@@ -45,6 +45,38 @@ module FsChecker =
             //     an approximate intellisense resolution is inaccurate because a range of text has changed. This 
             //     can be used to marginally increase accuracy of intellisense results in some situations.
             // "userOpName">An optional string used for tracing compiler operations associated with this request.
+
+            (*
+            https://github.com/dotnet/fsharp/issues/7669
+            let parsingOptions = 
+                  {{ SourceFiles = [|"/tmp.fsx"|]
+                    ConditionalCompilationDefines = []
+                    ErrorSeverityOptions = 
+                                         { WarnLevel = 3
+                                           GlobalWarnAsError = false
+                                           WarnOff = []
+                                           WarnOn = []
+                                           WarnAsError = []
+                                           WarnAsWarn = [] }
+                    IsInteractive = false
+                    LightSyntax = None
+                    CompilingFsLib = false
+                    IsExe = false }}
+                    CompilingFsLib: false
+                    ConditionalCompilationDefines: Length = 0
+                    ErrorSeverityOptions: {{ WarnLevel = 3
+                    GlobalWarnAsError = false
+                    WarnOff = []
+                    WarnOn = []
+                    WarnAsError = []
+                    WarnAsWarn = [] }}
+                    IsExe: false
+                    IsInteractive: false
+                    LightSyntax: null
+                    SourceFiles: {string[1]}
+                    *)
+
+
             let! parseRes , checkAnswer = ch.ParseAndCheckFileInProject(fileFsx, 0, Text.SourceText.ofString code, options) // can also be done in two speterate calls            
             match checkAnswer with
             | FSharpCheckFileAnswer.Succeeded checkRes ->                 

@@ -45,7 +45,7 @@ module Packages=
                                     doc.Replace(hook.Offset,length,s)  
 
                         isRunning <- true
-                        printfn "-looking for package '%s' for %A" name tab.FileInfo
+                        printfn "-looking for package '%s' for %A (not implemeted yet)" name tab.FileInfo
                         //getInstallOk tab name setNewRef
                         isRunning <- false
 

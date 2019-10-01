@@ -58,7 +58,7 @@ module Appearance=
         e.Options.EnableHyperlinks <- true
         e.TextArea.TextView.LinkTextForegroundBrush <- Brushes.DarkGreen
         e.Options.EnableTextDragDrop <- true //TODO add implementation
-        e.Options.ShowSpaces <- true
+        e.Options.ShowSpaces <- false //true
         e.Options.ShowTabs <- true
         e.Options.ConvertTabsToSpaces <- true
         e.Options.IndentationSize <- 4
