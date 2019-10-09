@@ -4,9 +4,11 @@
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <TargetFrameworks>net472</TargetFrameworks>
+    <LangVersion>preview</LangVersion>
+
     <RootNamespace>Seff</RootNamespace>
     <AssemblyName>Seff</AssemblyName>
-    <Win32Resource>D:\Git\Seff\Media\AppIcon.res</Win32Resource> <!-- adapt path as needed-->
+    <Win32Resource>D:\Git\Seff\Media\AppIcon.res</Win32Resource> <!-- for Application Icon, adapt path as needed-->
     
   </PropertyGroup>
 
