@@ -1,14 +1,15 @@
-﻿
+﻿<Project Sdk="Microsoft.NET.Sdk.WindowsDesktop"> <!-- or ? <Project Sdk="Microsoft.NET.Sdk"> -->
 
-<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <TargetFrameworks>net472</TargetFrameworks>
+    <TargetFramework>net472</TargetFramework>
     <LangVersion>preview</LangVersion>
+    <UseWPF>true</UseWPF>
 
     <RootNamespace>Seff</RootNamespace>
     <AssemblyName>Seff</AssemblyName>
-    <Win32Resource>D:\Git\Seff\Media\AppIcon.res</Win32Resource> <!-- for Application Icon, adapt path as needed-->
+    <ApplicationIcon>Media\LogoFSharp.ico</ApplicationIcon>
+    <Win32Resource>Media\AppIcon.res</Win32Resource> <!--  for Application Icon in explorer, adapt path as needed-->
     
   </PropertyGroup>
 
@@ -32,8 +33,8 @@
 
   <ItemGroup>
 
-    <!-- <EmbeddedResource Include="Media\AppIcon.resx" />
-    <Resource Include="Media\LogoFSharp.ico" /> -->
+    <EmbeddedResource Include="Media\AppIcon.res" />
+    <Resource Include="Media\LogoFSharp.ico" />
 
     <None Include="FSharpSynatxHighlighterExtended.xshd">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
@@ -65,5 +66,10 @@
     <Compile Include="90_MainWindow.fs" />
     <Compile Include="99_App.fs" />
 
+  </ItemGroup>
+
+
+  <ItemGroup>
+    <Folder Include="Properties\" />
   </ItemGroup>
 </Project>
