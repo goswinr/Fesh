@@ -100,7 +100,6 @@
 
     <Keywords color="Keywords">
     <Word>__SOURCE_DIRECTORY__</Word>
-    <!--is this a keyword too ?-->
     <Word>__SOURCE_FILE__</Word>
     <Word>__LINE__</Word>
     <!-- take from https://github.com/Microsoft/visualfsharp/blob/f214dcc38f6d34db8902eb40bd5b037ade59a67c/src/fsharp/lexhelp.fs#L362 -->
@@ -114,7 +113,7 @@
     <Word>default</Word>
     <Word>delegate</Word>
     <Word>do</Word>
-    <Word>do!</Word>
+    <Word>do!</Word> <!-- TODO the excamation mark will not be colored correctly -->
     <Word>done</Word>
     <Word>downcast</Word>
     <Word>downto</Word>
@@ -125,8 +124,7 @@
     <Word>extern</Word>
     <Word>FALSE</Word>
     <Word>finally</Word>
-    <Word>fixed</Word>
-    <!--new in F4.1-->
+    <Word>fixed</Word>    
     <Word>for</Word>
     <Word>fun</Word>
     <Word>function</Word>
@@ -139,8 +137,7 @@
     <Word>internal</Word>
     <Word>lazy</Word>
     <Word>let</Word>
-    <Word>let!</Word>
-    <!-- TODO the excamation mark will not be colored correctly -->
+    <Word>let!</Word> <!-- TODO the excamation mark will not be colored correctly -->    
     <Word>match</Word>
     <Word>match!</Word>
     <Word>member</Word>
@@ -176,7 +173,7 @@
     <Word>while</Word>
     <Word>with</Word>
     <Word>yield</Word>
-    <Word>yield!</Word>
+    <Word>yield!</Word><!-- TODO the excamation mark will not be colored correctly -->  
     </Keywords>
 
     <Keywords color = "ReservedKeywords">
@@ -246,15 +243,6 @@
       </RuleSet>
     </Span>
 
-    <Span color="Char">
-      <Begin>'</Begin>
-      <End>'</End>
-      <RuleSet>
-        <!-- span for escape sequences -->
-        <Span begin="\\" end="."/>
-      </RuleSet>
-    </Span>
-
     <Span color="String" multiline="true">
       <Begin>@"</Begin>
       <End>"</End>
@@ -264,7 +252,9 @@
       </RuleSet>
     </Span>
 
-
+    <Rule color="Char">
+      '\S'|'\\\S'   #Regex to match on '*' or '\*'
+    </Rule>
 
     <Span color="Attributes">
       <Begin>\[&lt;</Begin>
@@ -274,7 +264,7 @@
     <!-- Mark previous rule, not ideal for F# since parens are optional for function calls
     test on https://regexr.com/ \b[\d\w_]+(?=\s*\() -->
     <Rule color="MethodCall">
-      \b
+      \b        # match before
       [\d\w_]+  # an identifier
       (?=\s*\() # followed by (
     </Rule>
