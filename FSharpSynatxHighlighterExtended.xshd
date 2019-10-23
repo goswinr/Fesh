@@ -94,86 +94,82 @@
   <!-- This is the main ruleset. -->
   <RuleSet>
     <Keywords color="TrueFalse">
-    <Word>true</Word>
-    <Word>false</Word>
+      <Word>true</Word>
+      <Word>false</Word>
     </Keywords>
 
     <Keywords color="Keywords">
-    <Word>__SOURCE_DIRECTORY__</Word>
-    <Word>__SOURCE_FILE__</Word>
-    <Word>__LINE__</Word>
-    <!-- take from https://github.com/Microsoft/visualfsharp/blob/f214dcc38f6d34db8902eb40bd5b037ade59a67c/src/fsharp/lexhelp.fs#L362 -->
-    <Word>abstract</Word>
-    <Word>and</Word>
-    <Word>as</Word>
-    <Word>assert</Word>
-    <Word>base</Word>
-    <Word>begin</Word>
-    <Word>class</Word>
-    <Word>default</Word>
-    <Word>delegate</Word>
-    <Word>do</Word>
-    <Word>do!</Word> <!-- TODO the excamation mark will not be colored correctly -->
-    <Word>done</Word>
-    <Word>downcast</Word>
-    <Word>downto</Word>
-    <Word>elif</Word>
-    <Word>else</Word>
-    <Word>end</Word>
-    <Word>exception</Word>
-    <Word>extern</Word>
-    <Word>FALSE</Word>
-    <Word>finally</Word>
-    <Word>fixed</Word>    
-    <Word>for</Word>
-    <Word>fun</Word>
-    <Word>function</Word>
-    <Word>global</Word>
-    <Word>if</Word>
-    <Word>in</Word>
-    <Word>inherit</Word>
-    <Word>inline</Word>
-    <Word>interface</Word>
-    <Word>internal</Word>
-    <Word>lazy</Word>
-    <Word>let</Word>
-    <Word>let!</Word> <!-- TODO the excamation mark will not be colored correctly -->    
-    <Word>match</Word>
-    <Word>match!</Word>
-    <Word>member</Word>
-    <Word>module</Word>
-    <Word>mutable</Word>
-    <Word>namespace</Word>
-    <Word>new</Word>
-    <Word>not</Word>
-    <Word>null</Word>
-    <Word>of</Word>
-    <Word>open</Word>
-    <Word>or</Word>
-    <Word>override</Word>
-    <Word>private</Word>
-    <Word>public</Word>
-    <Word>rec</Word>
-    <Word>return</Word>
-    <Word>return!</Word>
-    <Word>select</Word>
-    <Word>static</Word>
-    <Word>struct</Word>
-    <Word>then</Word>
-    <Word>to</Word>
-    <Word>TRUE</Word>
-    <Word>try</Word>
-    <Word>type</Word>
-    <Word>upcast</Word>
-    <Word>use</Word>
-    <Word>use!</Word>
-    <Word>val</Word>
-    <Word>void</Word>
-    <Word>when</Word>
-    <Word>while</Word>
-    <Word>with</Word>
-    <Word>yield</Word>
-    <Word>yield!</Word><!-- TODO the excamation mark will not be colored correctly -->  
+      <Word>__SOURCE_DIRECTORY__</Word>
+      <Word>__SOURCE_FILE__</Word>
+      <Word>__LINE__</Word>
+      <!-- take from https://github.com/Microsoft/visualfsharp/blob/f214dcc38f6d34db8902eb40bd5b037ade59a67c/src/fsharp/lexhelp.fs#L362 -->
+      <Word>abstract</Word>
+      <Word>and</Word>
+      <Word>as</Word>
+      <Word>assert</Word>
+      <Word>base</Word>
+      <Word>begin</Word>
+      <Word>class</Word>
+      <Word>default</Word>
+      <Word>delegate</Word>
+      <Word>do</Word>      
+      <Word>done</Word>
+      <Word>downcast</Word>
+      <Word>downto</Word>
+      <Word>elif</Word>
+      <Word>else</Word>
+      <Word>end</Word>
+      <Word>exception</Word>
+      <Word>extern</Word>
+      <Word>FALSE</Word>
+      <Word>finally</Word>
+      <Word>fixed</Word>    
+      <Word>for</Word>
+      <Word>fun</Word>
+      <Word>function</Word>
+      <Word>global</Word>
+      <Word>if</Word>
+      <Word>in</Word>
+      <Word>inherit</Word>
+      <Word>inline</Word>
+      <Word>interface</Word>
+      <Word>internal</Word>
+      <Word>lazy</Word>
+      <Word>let</Word> <!-- let! (letbang) has sperate regex below -->
+      <Word>match</Word>      
+      <Word>member</Word>
+      <Word>module</Word>
+      <Word>mutable</Word>
+      <Word>namespace</Word>
+      <Word>new</Word>
+      <Word>not</Word>
+      <Word>null</Word>
+      <Word>of</Word>
+      <Word>open</Word>
+      <Word>or</Word>
+      <Word>override</Word>
+      <Word>private</Word>
+      <Word>public</Word>
+      <Word>rec</Word>
+      <Word>return</Word>
+      <Word>return!</Word>
+      <Word>select</Word>
+      <Word>static</Word>
+      <Word>struct</Word>
+      <Word>then</Word>
+      <Word>to</Word>
+      <Word>TRUE</Word>
+      <Word>try</Word>
+      <Word>type</Word>
+      <Word>upcast</Word>
+      <Word>use</Word>
+      <Word>use!</Word>
+      <Word>val</Word>
+      <Word>void</Word>
+      <Word>when</Word>
+      <Word>while</Word>
+      <Word>with</Word>
+      <Word>yield</Word>    
     </Keywords>
 
     <Keywords color = "ReservedKeywords">
@@ -280,8 +276,12 @@
     </Rule>
 
     <Rule color="Punctuation">
-      [?,.;()\[\]{}+\-/%*&lt;&gt;^+~!|&amp;]+
+      [?,.;:()\[\]{}+\-/%*&lt;&gt;^+~!|&amp;]+
     </Rule>
+
+    <!--<Rule color = "Keywords">let!|return!|yield!|match!</Rule>      does not work-->
+
+
   </RuleSet>
 
 </SyntaxDefinition>
