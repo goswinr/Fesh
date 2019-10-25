@@ -17,18 +17,22 @@
 mono_crash.*
 
 # Build results
-[Dd]ebug/
+#[Dd]ebug/                  #keep binary files in Repro ?
 [Dd]ebugPublic/
-[Rr]elease/
+#[Rr]elease/                #keep binary files in Repro ?
 [Rr]eleases/
 x64/
 x86/
 [Aa][Rr][Mm]/
 [Aa][Rr][Mm]64/
 bld/
-[Bb]in/
+#[Bb]in/                    #keep binary files in Repro ?
 [Oo]bj/
 [Ll]og/
+
+
+# Ionide
+.ionide/
 
 # Visual Studio 2015/2017 cache/options directory
 .vs/

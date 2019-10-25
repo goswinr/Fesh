@@ -1,0 +1,297 @@
+<?xml version="1.0" ?> <!--encoding="UTF-8" --> 
+<!-- 
+  copied from C#
+  https://raw.githubusercontent.com/icsharpcode/AvalonEdit/master/ICSharpCode.AvalonEdit/Highlighting/Resources/CSharp-Mode.xshd 
+  help:
+  https://github.com/icsharpcode/SharpDevelop/wiki/XSHD-Tags
+  https://github.com/icsharpcode/SharpDevelop/wiki/Syntax-highlighting
+  alternative syntaxdefinition for F# originaly by Robert Pickering :
+  https://github.com/icsharpcode/SharpDevelop/blob/master/src/AddIns/BackendBindings/FSharpBinding/Resources/FS-Mode.xshd 
+  -->
+
+
+<SyntaxDefinition name = "F#" extensions = ".fs;.fsi;.fsx" xmlns="http://icsharpcode.net/sharpdevelop/syntaxdefinition/2008">
+  
+  <!-- The named colors 'Comment' and 'String' are also used in SharpDevelop to detect if a line is inside a multiline string/comment -->
+  <Color name="Comment"             foreground="Green" />
+  <Color name="String"              foreground="#AA1111" />
+  <Color name="StringVerbatim"      foreground="#800000" />  
+  <Color name="StringFormating"     foreground="#2B91AF" />
+  <Color name="StringEscaped"       foreground="#FF0099" />  
+  <Color name="Char"                foreground="#FF0040" />
+  <Color name="LoadDirectives"      foreground="#887766" />
+  <Color name="Punctuation"         foreground="Purple" />
+  <Color name="Attributes"          foreground="Purple" />  
+  <Color name="Keywords"            foreground="Blue"         /> <!--fontWeight="bold" -->
+  <Color name="ReservedKeywords"    foreground="LightBlue"    /> <!--fontWeight="bold" -->
+  <Color name="MethodCall"          foreground="MidnightBlue" /> <!--fontWeight="bold" -->
+  <Color name="TrueFalse"           foreground="#0044CC"     /> <!--fontWeight="bold" -->
+  <Color name="NumberLiteral"       foreground="#3399BB"/>
+  <!--https://www.rapidtables.com/convert/color/rgb-to-hex.html-->
+  
+  <!-- taken from https://github.com/icsharpcode/AvalonEdit/blob/master/ICSharpCode.AvalonEdit/Highlighting/Resources/XmlDoc.xshd-->
+  <Color name="XmlString" foreground="#005500" fontWeight="bold"  />
+  <Color name="DocComment" foreground="#00FF00" />
+  <Color name="XmlPunctuation"  />
+  <Color name="KnownDocTags"   />
+  
+  <RuleSet name="DocCommentSet">
+    <Span color="DocComment">
+      <Begin>&lt;</Begin>
+      <End>&gt;</End>
+      <RuleSet>
+        <Span color="XmlString">
+          <Begin>"</Begin>
+          <End>"</End>
+        </Span>
+        <Keywords color="XmlPunctuation">
+          <Word>/</Word>
+          <Word>|</Word>
+          <Word>=</Word>
+        </Keywords>
+        <Keywords color="KnownDocTags">
+          <Word>c</Word>
+          <Word>code</Word>
+          <Word>example</Word>
+          <Word>exception</Word>
+          <Word>list</Word>
+          <Word>para</Word>
+          <Word>param</Word>
+          <Word>paramref</Word>
+          <Word>permission</Word>
+          <Word>remarks</Word>
+          <Word>returns</Word>
+          <Word>see</Word>
+          <Word>seealso</Word>
+          <Word>summary</Word>
+          <Word>value</Word>
+          <Word>type</Word>
+          <Word>name</Word>
+          <Word>cref</Word>
+          <Word>item</Word>
+          <Word>term</Word>
+          <Word>description</Word>
+          <Word>listheader</Word>
+          <Word>typeparam</Word>
+          <Word>typeparamref</Word>
+        </Keywords>
+      </RuleSet>
+    </Span>
+  </RuleSet>
+
+  
+  <RuleSet name="CommentMarkerSet">
+    <Keywords fontWeight="bold" foreground="Red">
+      <Word>TODO</Word>
+      <Word>FIXME</Word>
+    </Keywords>
+    <Keywords fontWeight="bold" foreground="#E0E000">
+      <Word>HACK</Word>
+      <Word>UNDONE</Word>
+    </Keywords>
+  </RuleSet>
+
+  <!-- This is the main ruleset. -->
+  <RuleSet>
+    <Keywords color="TrueFalse">
+    <Word>true</Word>
+    <Word>false</Word>
+    </Keywords>
+
+    <Keywords color="Keywords">
+    <Word>__SOURCE_DIRECTORY__</Word>
+    <!--is this a keyword too ?-->
+    <Word>__SOURCE_FILE__</Word>
+    <Word>__LINE__</Word>
+    <!-- take from https://github.com/Microsoft/visualfsharp/blob/f214dcc38f6d34db8902eb40bd5b037ade59a67c/src/fsharp/lexhelp.fs#L362 -->
+    <Word>abstract</Word>
+    <Word>and</Word>
+    <Word>as</Word>
+    <Word>assert</Word>
+    <Word>base</Word>
+    <Word>begin</Word>
+    <Word>class</Word>
+    <Word>default</Word>
+    <Word>delegate</Word>
+    <Word>do</Word>
+    <Word>do!</Word>
+    <Word>done</Word>
+    <Word>downcast</Word>
+    <Word>downto</Word>
+    <Word>elif</Word>
+    <Word>else</Word>
+    <Word>end</Word>
+    <Word>exception</Word>
+    <Word>extern</Word>
+    <Word>FALSE</Word>
+    <Word>finally</Word>
+    <Word>fixed</Word>
+    <!--new in F4.1-->
+    <Word>for</Word>
+    <Word>fun</Word>
+    <Word>function</Word>
+    <Word>global</Word>
+    <Word>if</Word>
+    <Word>in</Word>
+    <Word>inherit</Word>
+    <Word>inline</Word>
+    <Word>interface</Word>
+    <Word>internal</Word>
+    <Word>lazy</Word>
+    <Word>let</Word>
+    <Word>let!</Word>
+    <!-- TODO the excamation mark will not be colored correctly -->
+    <Word>match</Word>
+    <Word>match!</Word>
+    <Word>member</Word>
+    <Word>module</Word>
+    <Word>mutable</Word>
+    <Word>namespace</Word>
+    <Word>new</Word>
+    <Word>not</Word>
+    <Word>null</Word>
+    <Word>of</Word>
+    <Word>open</Word>
+    <Word>or</Word>
+    <Word>override</Word>
+    <Word>private</Word>
+    <Word>public</Word>
+    <Word>rec</Word>
+    <Word>return</Word>
+    <Word>return!</Word>
+    <Word>select</Word>
+    <Word>static</Word>
+    <Word>struct</Word>
+    <Word>then</Word>
+    <Word>to</Word>
+    <Word>TRUE</Word>
+    <Word>try</Word>
+    <Word>type</Word>
+    <Word>upcast</Word>
+    <Word>use</Word>
+    <Word>use!</Word>
+    <Word>val</Word>
+    <Word>void</Word>
+    <Word>when</Word>
+    <Word>while</Word>
+    <Word>with</Word>
+    <Word>yield</Word>
+    <Word>yield!</Word>
+    </Keywords>
+
+    <Keywords color = "ReservedKeywords">
+      <Word>atomic</Word>
+      <Word>break</Word>
+      <Word>checked</Word>
+      <Word>component</Word>
+      <Word>const</Word>
+      <Word>constraint</Word>
+      <Word>constructor</Word>
+      <Word>continue</Word>
+      <Word>eager</Word>
+      <Word>event</Word>
+      <Word>external</Word>
+      <Word>fixed</Word>
+      <Word>functor</Word>
+      <Word>include</Word>
+      <Word>method</Word>
+      <Word>mixin</Word>
+      <Word>object</Word>
+      <Word>parallel</Word>
+      <Word>process</Word>
+      <Word>protected</Word>
+      <Word>pure</Word>
+      <Word>sealed</Word>
+      <Word>tailcall</Word>
+      <Word>trait</Word>
+      <Word>virtual</Word>
+      <Word>volatile</Word>
+    </Keywords>
+    
+    <Keywords color = "LoadDirectives">
+      <Word>#r</Word>
+      <Word>#load</Word>
+      <Word>#I</Word>
+    </Keywords>
+
+    <Span color="Comment">
+      <Begin color="DocComment">///(?!/)</Begin>
+      <RuleSet>
+        <Import ruleSet="DocCommentSet"/>
+        <Import ruleSet="CommentMarkerSet"/>
+      </RuleSet>
+    </Span>
+
+    <Span color="Comment" ruleSet="CommentMarkerSet">
+      <Begin>//</Begin>      
+    </Span>
+
+    <Span color="Comment" ruleSet="CommentMarkerSet" multiline="true">
+      <Begin>\(\*</Begin>
+      <End>\*\)</End>      
+    </Span>
+    
+    <Span color="StringVerbatim">
+      <Begin>@"</Begin>
+      <End>"</End>      
+    </Span>
+    
+    <Span color="String">
+      <Begin>"</Begin>
+      <End>"</End>
+      <RuleSet>
+        <!-- span for escape sequences -->
+        <Span begin="\\" end="." color="StringEscaped" />
+        <Span begin="%" end="[sfd%bciuxXoeEfFgGeEgGMOAAat]" color="StringFormating" /> <!--%(\+?)( ?)(\-?)(\d*)(\.?)(\d*)[bcsdiuxXoeEfFgGeEfgGMOAAat]-->
+      </RuleSet>
+    </Span>
+
+    <Span color="Char">
+      <Begin>'</Begin>
+      <End>'</End>
+      <RuleSet>
+        <!-- span for escape sequences -->
+        <Span begin="\\" end="."/>
+      </RuleSet>
+    </Span>
+
+    <Span color="String" multiline="true">
+      <Begin>@"</Begin>
+      <End>"</End>
+      <RuleSet>
+        <!-- span for escape sequences -->
+        <Span begin='""' end=""/>
+      </RuleSet>
+    </Span>
+
+
+
+    <Span color="Attributes">
+      <Begin>\[&lt;</Begin>
+      <End>&gt;\]</End>
+    </Span>
+
+    <!-- Mark previous rule, not ideal for F# since parens are optional for function calls
+    test on https://regexr.com/ \b[\d\w_]+(?=\s*\() -->
+    <Rule color="MethodCall">
+      \b
+      [\d\w_]+  # an identifier
+      (?=\s*\() # followed by (
+    </Rule>
+
+    <!-- Digits -->
+    <Rule color="NumberLiteral">
+      \b0[xX][0-9a-fA-F]+  # hex number
+      |
+      (	\b\d+(\.[0-9]+)?   #number with optional floating point
+      |	\.[0-9]+           #or just starting with floating point
+      )
+      ([eE][+-]?[0-9]+)? # optional exponent
+    </Rule>
+
+    <Rule color="Punctuation">
+      [?,.;()\[\]{}+\-/%*&lt;&gt;^+~!|&amp;]+
+    </Rule>
+  </RuleSet>
+
+</SyntaxDefinition>
