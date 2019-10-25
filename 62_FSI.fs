@@ -50,7 +50,7 @@ module Fsi =
         timer.tic()
         let inStream = new StringReader("")
         // first arg is ignored: https://github.com/fsharp/FSharp.Compiler.Service/issues/420 and https://github.com/fsharp/FSharp.Compiler.Service/issues/877
-        let allArgs = [|"";"--noninteractive"|] //;"--nologo";"--gui-"|] // --gui: Enables or disables the Windows Forms event loop. The default is enabled.
+        let allArgs = [|"" ; "--langversion:preview" ; "--noninteractive"|] //;"--nologo";"--gui-"|] // --gui: Enables or disables the Windows Forms event loop. The default is enabled.
         //let fsiObj = FSharp.Compiler.Interactive.Shell.Settings.fsi // needed ?
         let fsiConfig = FsiEvaluationSession.GetDefaultConfiguration() //(fsiObj, false)
         let fsiSession = FsiEvaluationSession.Create(fsiConfig, allArgs, inStream, Log.textwriter, Log.textwriter)
