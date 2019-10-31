@@ -249,7 +249,7 @@
     </Span>
 
     <Rule color="Char">
-      '\S'|'\\\S'   #Regex to match on '*' or '\*'
+      ('\\'')|('\S')|('\\\S')   #Regex to match chars like  '*' or '\*' or '\'''
     </Rule>
 
     <Span color="Attributes">
