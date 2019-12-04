@@ -43,8 +43,8 @@ module FileDialogs =
         if isTrue (dlg.ShowDialog()) then
             for num,f in Seq.indexed dlg.FileNames do
                 let fi = new FileInfo(f)
-                if num = 0 then  openFile (fi, newtab,true) 
-                else             openFile (fi, newtab,false)
+                if num = 0 then  openFile (fi, newtab, true) 
+                else             openFile (fi, newtab, false)
                     
 
     /// returns true if saving operation was not canceled
