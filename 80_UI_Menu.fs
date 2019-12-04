@@ -56,6 +56,8 @@ module Menu =
             MenuItem(Header = "_File"),[
                 fromCmd Commands.NewTab
                 fromCmd Commands.OpenFile
+                fromCmd Commands.OpenTemplateFile
+                sep()
                 fromCmd Commands.Save
                 fromCmd Commands.SaveAs
                 fromCmd Commands.SaveAll
@@ -83,6 +85,7 @@ module Menu =
                 ]
             MenuItem(Header = "F_SI", ToolTip="FSharp Interactive code evaluation"),[ 
                 fromCmd Commands.RunAllText
+                fromCmd Commands.RunAllTextSave
                 fromCmd Commands.RunSelectedLines
                 fromCmd Commands.RunSelectedText                
                 sep()
@@ -103,6 +106,7 @@ module Menu =
             MenuItem(Header = "_About"),[
                 MenuItem(Header = "_Help")
                 MenuItem(Header = "_Version 0.1.1")
+                fromCmd Commands.SettingsFolder
                 ]
             ]
         RecentFiles.insertPosition <- (UI.menu.Items.[0] :?> MenuItem).Items.Count // to put recent files at bottom of file menu

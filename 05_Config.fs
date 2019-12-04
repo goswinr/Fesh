@@ -21,12 +21,21 @@ module Config =
     let mutable private fileRecent =    ""   // files for list in open menu
     let mutable private fileOnClosingOpen = "" // files that are open when closing the editor window, for next restart
     let private sep = '=' // key value separatur
-    let private path = IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"Seff")
+    let configFilesPath = IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"Seff")
     
+
+    let openConfigFolder()=
+        IO.Directory.CreateDirectory configFilesPath |> ignore        
+        Diagnostics.Process.Start("explorer.exe", configFilesPath)        |> ignore
+
     //-----------------
     //--default code--
     //-----------------
-    let private defaultBaseCode() = try IO.File.ReadAllText fileDefaultCode with _ -> ""
+    let private defaultBaseCode() = 
+        try IO.File.ReadAllText fileDefaultCode 
+        with _ -> 
+            File.WriteAllText(fileDefaultCode,"")// create file so it can be found to be edited manually
+            ""
     let getDefaultCode() = // TODO expose this in UI as file
         [
         "// Script created on " + Time.todayStr
@@ -34,7 +43,7 @@ module Config =
         //"// http://brandewinder.com/2016/02/06/10-fsharp-scripting-tips/"        
         //"#load @\"" + General.installFolder() + "\\SeffLib.fsx\""
         //"open SeffLib"
-        "open System"
+        //"open System"
         //"Environment.CurrentDirectory <- __SOURCE_DIRECTORY__"
         defaultBaseCode()
         ""
@@ -46,7 +55,8 @@ module Config =
     //-----------------
     let private Dict = new Collections.Concurrent.ConcurrentDictionary<string,string>()
 
-    let removeSpecialChars (str:string) = // to get a Valid foldername fom any host app name suplied
+    /// to get a Valid foldername fom any host app name suplied
+    let removeSpecialChars (str:string) = 
         let sb = new Text.StringBuilder()
         for c in str do
             if (c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || c = '.' || c = '_' then  sb.Append(c) |> ignore
@@ -54,14 +64,14 @@ module Config =
 
     let setCurrentRunContext ctx logger= 
         currentRunContext <- ctx
-        IO.Directory.CreateDirectory path |> ignore
+        IO.Directory.CreateDirectory configFilesPath |> ignore
         let host = removeSpecialChars hostName
         let ctxs = sprintf "%A" ctx
         
-        fileSettings        <- IO.Path.Combine(path, sprintf "%s.%s.Settings.WindowLayout.txt"ctxs host )
-        fileRecent          <- IO.Path.Combine(path, sprintf "%s.%s.RecentlyUsedFiles.txt"    ctxs host )
-        fileOnClosingOpen   <- IO.Path.Combine(path, sprintf "%s.%s.CurrentlyOpenFiles.txt"   ctxs host )
-        fileDefaultCode     <- IO.Path.Combine(path, sprintf "%s.%s.DefaultCode.fsx"          ctxs host )
+        fileSettings        <- IO.Path.Combine(configFilesPath, sprintf "%s.%s.Settings.WindowLayout.txt"ctxs host )
+        fileRecent          <- IO.Path.Combine(configFilesPath, sprintf "%s.%s.RecentlyUsedFiles.txt"    ctxs host )
+        fileOnClosingOpen   <- IO.Path.Combine(configFilesPath, sprintf "%s.%s.CurrentlyOpenFiles.txt"   ctxs host )
+        fileDefaultCode     <- IO.Path.Combine(configFilesPath, sprintf "%s.%s.DefaultCode.fsx"          ctxs host )
         
         try            
             for ln in  IO.File.ReadAllLines fileSettings do
