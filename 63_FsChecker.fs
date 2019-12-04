@@ -33,57 +33,65 @@ module FsChecker =
             let ch = match checker with  |Some c -> c  |None -> FSharpChecker.Create() //TODO default options OK? TODO one checker for serveral files or several checkers ?
             checker <- Some ch
             
-            let! options, optionsErr = ch.GetProjectOptionsFromScript(fileFsx, Text.SourceText.ofString code) //TODO really use check file in project for scripts??
-            for e in optionsErr do Log.printf "*Script Options Error: %A" e
+            try
+                let! options, optionsErr = ch.GetProjectOptionsFromScript(fileFsx, Text.SourceText.ofString code) //TODO really use check file in project for scripts??
+                for e in optionsErr do Log.printf "*Script Options Error: %A" e
             
-            // "filename">The name of the file in the project whose source is being checked
-            // "fileversion">An integer that can be used to indicate the version of the file. This will be returned by TryGetRecentCheckResultsForFile when looking up the file.
-            // "source">The full source for the file.
-            // "options">The options for the project or script.
-            // "textSnapshotInfo">
-            //     An item passed back to 'hasTextChangedSinceLastTypecheck' (from some calls made on 'FSharpCheckFileResults') to help determine if 
-            //     an approximate intellisense resolution is inaccurate because a range of text has changed. This 
-            //     can be used to marginally increase accuracy of intellisense results in some situations.
-            // "userOpName">An optional string used for tracing compiler operations associated with this request.
+                // "filename">The name of the file in the project whose source is being checked
+                // "fileversion">An integer that can be used to indicate the version of the file. This will be returned by TryGetRecentCheckResultsForFile when looking up the file.
+                // "source">The full source for the file.
+                // "options">The options for the project or script.
+                // "textSnapshotInfo">
+                //     An item passed back to 'hasTextChangedSinceLastTypecheck' (from some calls made on 'FSharpCheckFileResults') to help determine if 
+                //     an approximate intellisense resolution is inaccurate because a range of text has changed. This 
+                //     can be used to marginally increase accuracy of intellisense results in some situations.
+                // "userOpName">An optional string used for tracing compiler operations associated with this request.
 
-            (*
-            https://github.com/dotnet/fsharp/issues/7669
-            let parsingOptions = 
-                  {{ SourceFiles = [|"/tmp.fsx"|]
-                    ConditionalCompilationDefines = []
-                    ErrorSeverityOptions = 
-                                         { WarnLevel = 3
-                                           GlobalWarnAsError = false
-                                           WarnOff = []
-                                           WarnOn = []
-                                           WarnAsError = []
-                                           WarnAsWarn = [] }
-                    IsInteractive = false
-                    LightSyntax = None
-                    CompilingFsLib = false
-                    IsExe = false }}
-                    CompilingFsLib: false
-                    ConditionalCompilationDefines: Length = 0
-                    ErrorSeverityOptions: {{ WarnLevel = 3
-                    GlobalWarnAsError = false
-                    WarnOff = []
-                    WarnOn = []
-                    WarnAsError = []
-                    WarnAsWarn = [] }}
-                    IsExe: false
-                    IsInteractive: false
-                    LightSyntax: null
-                    SourceFiles: {string[1]}
-                    *)
+                (*
+                https://github.com/dotnet/fsharp/issues/7669
+                let parsingOptions = 
+                      {{ SourceFiles = [|"/tmp.fsx"|]
+                        ConditionalCompilationDefines = []
+                        ErrorSeverityOptions = 
+                                             { WarnLevel = 3
+                                               GlobalWarnAsError = false
+                                               WarnOff = []
+                                               WarnOn = []
+                                               WarnAsError = []
+                                               WarnAsWarn = [] }
+                        IsInteractive = false
+                        LightSyntax = None
+                        CompilingFsLib = false
+                        IsExe = false }}
+                        CompilingFsLib: false
+                        ConditionalCompilationDefines: Length = 0
+                        ErrorSeverityOptions: {{ WarnLevel = 3
+                        GlobalWarnAsError = false
+                        WarnOff = []
+                        WarnOn = []
+                        WarnAsError = []
+                        WarnAsWarn = [] }}
+                        IsExe: false
+                        IsInteractive: false
+                        LightSyntax: null
+                        SourceFiles: {string[1]}
+                        *)
 
-
-            let! parseRes , checkAnswer = ch.ParseAndCheckFileInProject(fileFsx, 0, Text.SourceText.ofString code, options) // can also be done in two speterate calls            
-            match checkAnswer with
-            | FSharpCheckFileAnswer.Succeeded checkRes ->                 
-                return true, parseRes,checkRes
-            | FSharpCheckFileAnswer.Aborted  ->
-                Log.printf "*ParseAndCheckFile code aborted"
-                return false, Unchecked.defaultof<FSharpParseFileResults> ,Unchecked.defaultof<FSharpCheckFileResults>
+                try
+                    let! parseRes , checkAnswer = ch.ParseAndCheckFileInProject(fileFsx, 0, Text.SourceText.ofString code, options) // can also be done in two speterate calls   //TODO really use check file in project for scripts??         
+                    match checkAnswer with
+                    | FSharpCheckFileAnswer.Succeeded checkRes ->                 
+                        return true, parseRes,checkRes
+                    | FSharpCheckFileAnswer.Aborted  ->
+                        Log.printf "*ParseAndCheckFile code aborted"
+                        return false, Unchecked.defaultof<FSharpParseFileResults> ,Unchecked.defaultof<FSharpCheckFileResults>
+                with e ->
+                    Log.printf "ParseAndCheckFileInProject crashed: %s" e.Message
+                    return false, Unchecked.defaultof<FSharpParseFileResults> ,Unchecked.defaultof<FSharpCheckFileResults>
+            
+            with e ->
+                    Log.printf "GetProjectOptionsFromScript crashed: %s" e.Message
+                    return false, Unchecked.defaultof<FSharpParseFileResults> ,Unchecked.defaultof<FSharpCheckFileResults>
             } 
 
     let complete (parseRes :FSharpParseFileResults, checkRes :FSharpCheckFileResults, pos :PositionInCode, ifDotSetback)  =        
