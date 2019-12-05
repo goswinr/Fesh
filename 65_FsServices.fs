@@ -67,7 +67,7 @@ module FsService =
                             let startOffset = tab.Editor.Document.GetOffset(new TextLocation(e.StartLineAlternate, e.StartColumn + 1 ))
                             let endOffset   = tab.Editor.Document.GetOffset(new TextLocation(e.EndLineAlternate,   e.EndColumn   + 1 ))
                             let length = endOffset-startOffset
-                            tab.TextMarkerService.Create(startOffset, length, e.Message+", Error:"+ (string e.ErrorNumber))
+                            tab.TextMarkerService.Create(startOffset, length, e.Message+", Error: "+ (string e.ErrorNumber))
                             Packages.checkForMissingPackage tab e startOffset length
 
                 tab.FsCheckerRunning <- 0

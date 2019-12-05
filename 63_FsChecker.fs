@@ -86,11 +86,11 @@ module FsChecker =
                         Log.printf "*ParseAndCheckFile code aborted"
                         return false, Unchecked.defaultof<FSharpParseFileResults> ,Unchecked.defaultof<FSharpCheckFileResults>
                 with e ->
-                    Log.printf "ParseAndCheckFileInProject crashed: %s" e.Message
+                    Log.printf "ParseAndCheckFileInProject crashed (varying Nuget versions of FCS ?): %s" e.Message
                     return false, Unchecked.defaultof<FSharpParseFileResults> ,Unchecked.defaultof<FSharpCheckFileResults>
             
             with e ->
-                    Log.printf "GetProjectOptionsFromScript crashed: %s" e.Message
+                    Log.printf "GetProjectOptionsFromScript crashed (varying Nuget versions of FCS ?) : %s" e.Message
                     return false, Unchecked.defaultof<FSharpParseFileResults> ,Unchecked.defaultof<FSharpCheckFileResults>
             } 
 
