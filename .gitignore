@@ -16,17 +16,18 @@
 # Mono auto generated files
 mono_crash.*
 
+
 # Build results
-#[Dd]ebug/                  #keep binary files in Repro ?
+[Dd]ebug/                  #keep binary files in Repro ?
 [Dd]ebugPublic/
-#[Rr]elease/                #keep binary files in Repro ?
+[Rr]elease/                #keep binary files in Repro ?
 [Rr]eleases/
 x64/
 x86/
 [Aa][Rr][Mm]/
 [Aa][Rr][Mm]64/
 bld/
-#[Bb]in/                    #keep binary files in Repro ?
+[Bb]in/                    #keep binary files in Repro ?
 [Oo]bj/
 [Ll]og/
 

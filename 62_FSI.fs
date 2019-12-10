@@ -16,6 +16,21 @@ module HostUndoRedo =
 
 
 module Fsi =    
+    
+    [<AbstractClass; Sealed>]
+    /// A static class to hold events 
+    type Events private () =
+        
+        static let runtimeErrorEv = new Event<Exception>() 
+        static let canceledEv = new Event<unit>()  
+
+        static member runtimeError = runtimeErrorEv        
+        [<CLIEvent>]
+        static member RuntimeError = runtimeErrorEv.Publish
+                
+        static member canceled = canceledEv        
+        [<CLIEvent>]
+        static member Canceled = canceledEv.Publish
 
 
     //mostly taken from: https://github.com/ionide/FsInteractiveService/blob/master/src/FsInteractiveService/Main.fs
@@ -73,24 +88,28 @@ module Fsi =
                             FsiStatus.Evaluation <- Evaluating
                             //Log.printf "* Evaluating code.."
                             timer.tic()                            
-                            if Config.currentRunContext <> Config.RunContext.Standalone then 
+                            if Config.currentRunContext <> Config.RunContext.Standalone then  // TODO when hosted evaluate on UI thread only
                                 // this sync switch does not work well for Rhino:
-                                //async{  do! Async.SwitchToContext Sync.syncContext // TODO when hosted evaluate on UI thread only
+                                //async{  do! Async.SwitchToContext Sync.syncContext
                                 //        session.EvalInteraction(code) } |> Async.RunSynchronously
                                 session.EvalInteraction(code + Config.codeToAppendEvaluations)
                             else
                                 session.EvalInteraction(code + Config.codeToAppendEvaluations)
                             //Log.printf "* Code evaluated in %s" timer.tocEx
                             FsiStatus.Evaluation <- Ready
+                        
                         with 
-                        | :? OperationCanceledException ->   
-                            Log.printf "*Evaluation was cancelled" //Thread aborted by user
+                        | :? OperationCanceledException ->
+                            Events.canceled.Trigger()
                             FsiStatus.Evaluation <- Ready
+                            Log.printf "**FSI evaluation was cancelled**" //Thread aborted by user
+                            
                         | e ->                               
-                            Log.printf "*** Exception (caught in Evaluation): \r\n %A" e // TODO not needed because error stream is redirected to Log too ??
+                            Events.runtimeError.Trigger(e)
                             FsiStatus.Evaluation <- HadError
-                    finally
-                        //FsiStatus.Evaluation <- Ready
+                            //Log.printf "*** Exception (caught in Evaluation): \r\n %A" e // TODO not needed because error stream is redirected to Log too ??                            
+                    
+                    finally                        
                         HostUndoRedo.endUndo(HostUndoRedo.undoIndex)
                         inbox.Post(Done) // to set thread to None. does thread need to be aborted too?                         
                     )
