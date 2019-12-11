@@ -82,6 +82,7 @@ module Util =
         member this.tic() =  ticWithGC stopWatch kGC
 
     type Time()=
+        static member nowStrMenu  = System.DateTime.Now.ToString("yyyy-MM-dd  HH:mm")
         static member nowStr      = System.DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss")
         static member nowStrMilli = System.DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss.FFF")
         static member todayStr    = System.DateTime.Now.ToString("yyyy-MM-dd")

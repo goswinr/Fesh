@@ -21,12 +21,18 @@ module Log =
         //see https://github.com/Microsoft/visualfsharp/issues/3712         
         //override this.Flush() = () //needed ?
     
-    
+    let mutable prevLine =""
+    let mutable prevprevLine =""
     let private dontPrint  = function // do not print certain strings to Log window
         |""                         -> true
         |"For help type #help;;"    -> true
         |"Copyright (c) Microsoft Corporation. All Rights Reserved."    -> true // FCS it  is actulally MIT licence
-        | _                         -> false
+        | s when s.StartsWith "--> Referenced" -> true // too noisy
+        | s when s="\r\n" && prevLine=s && prevprevLine=s -> true // to not have more than one empty line ever
+        | s                         -> 
+            prevprevLine<-prevLine
+            prevLine<-s
+            false
 
     let private backlog = Collections.Concurrent.ConcurrentQueue()  // to cache messages that cant be logged yet, (TODO never needed? debug only)
     

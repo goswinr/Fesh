@@ -18,19 +18,27 @@ module HostUndoRedo =
 module Fsi =    
     
     [<AbstractClass; Sealed>]
-    /// A static class to hold events 
+    /// A static class to hold FSI events 
     type Events private () =
         
         static let runtimeErrorEv = new Event<Exception>() 
-        static let canceledEv = new Event<unit>()  
-
+        static let canceledEv = new Event<unit>() 
+        static let completedEv = new Event<unit>()         
+        
+        ///The event that can be triggered  
         static member runtimeError = runtimeErrorEv        
         [<CLIEvent>]
         static member RuntimeError = runtimeErrorEv.Publish
-                
+        
+        ///The event that can be triggered        
         static member canceled = canceledEv        
         [<CLIEvent>]
         static member Canceled = canceledEv.Publish
+
+        ///The event that can be triggered
+        static member completed = completedEv        
+        [<CLIEvent>]
+        static member Completed = completedEv.Publish
 
 
     //mostly taken from: https://github.com/ionide/FsInteractiveService/blob/master/src/FsInteractiveService/Main.fs

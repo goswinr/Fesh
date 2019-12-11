@@ -3,12 +3,16 @@
 open System
 open System.Windows.Input
 open System.Windows.Controls
-
+open Seff.Util
 open Seff.UtilWPF
 open Seff.FileDialogs
 
 module Menu = 
     
+    /// a ref to the about menu so that other apps can append to it
+    let mutable private AboutMenu : MenuItem = null 
+    let addToAboutMenu (s:string) = if notNull AboutMenu then AboutMenu.Items.Add (MenuItem(Header = s) ) |> ignore<int> // add one mor item to about menu. like build infos
+
     module RecentFiles = 
         open CommandHelp
 
@@ -51,7 +55,7 @@ module Menu =
     let setup () = 
         FileDialogs.updateRecentMenu <- RecentFiles.updateRecentMenue
         
-        // this function is called after window is layed out other wise somehow th emnu doe snot show in Windows 10 if it is just a let value-
+        // this function is called after window is layed out otherwise somehow the menu does not show. e.g.  if it is just a let value.
         updateMenu UI.menu [
             MenuItem(Header = "_File"),[
                 fromCmd Commands.NewTab
@@ -103,10 +107,11 @@ module Menu =
                 fromCmd Commands.FontBigger
                 fromCmd Commands.FontSmaller
                 ]
-            MenuItem(Header = "_About"),[
+            MenuItem(Header = "_About") |> (fun mi -> AboutMenu<-mi; mi),[ //set top level refrence too
+                fromCmd Commands.SettingsFolder
                 MenuItem(Header = "_Help")
                 MenuItem(Header = "_Version 0.1.1")
-                fromCmd Commands.SettingsFolder
+                MenuItem(Header = "Seff Build Time "+Util.Time.nowStrMenu)                
                 ]
             ]
         RecentFiles.insertPosition <- (UI.menu.Items.[0] :?> MenuItem).Items.Count // to put recent files at bottom of file menu
