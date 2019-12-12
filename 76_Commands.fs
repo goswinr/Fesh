@@ -50,7 +50,7 @@ module Commands =
              
     let RunSelectedText  = "Run Selected Text"        , "Alt + Enter"   , mkCmd isEditorSel (fun a -> agent.Post (Evaluate  Tab.currEditor.SelectedText)),"Sends the currently seleceted Text in the editor to FSharp Interactive"// TODO mark evaluated code with grey background
     let RunSelectedLines = "Run Selected Lines"       , "Ctrl + Enter"  , mkCmd isTab       (fun a -> agent.Post (Evaluate <| ModifyUI.expandSelectionToFullLines Tab.currTab)),"Sends the currently seleceted Lines in the editor to FSharp Interactive.\r\nIncludes partially selected lines in full."
-    let RunAllText       = "Run All Text"             , "F5"            , mkCmd isTab       (fun a -> agent.Post (Evaluate Tab.currEditor.Text)) ,"Send all text in the current file to FSharp Interactive"
+    let RunAllText       = "Run All Text"             , "F5"            , mkCmd isTab       (fun a -> agent.Post (Evaluate  Tab.currEditor.Text)) ,"Send all text in the current file to FSharp Interactive"
     let RunAllTextSave   = "Save and Run All Text"    , "F6"            , mkCmd isTab       (fun a -> save Tab.currTab |> ignore; agent.Post (Evaluate Tab.currEditor.Text)) ,"First Save current File, then send all it's text to FSharp Interactive"
                                                         
     let ResetFSI         = "Reset FSI"                , "Ctrl + Alt + R", mkCmd isTab (fun a -> agent.Post Restart),"Reset FSharp Interactive"
@@ -59,7 +59,7 @@ module Commands =
                                                         
     let NewTab           = "New File"                 , "Ctrl + N"      , mkCmdSimple (fun a -> newTab(Config.getDefaultCode(),None,true)|>ignore),"Create a new script file"
     let OpenFile         = "Open File"                , "Ctrl + O"      , mkCmdSimple (fun a -> openFileDlg newTab),"Open a script file"
-    let OpenTemplateFile = "Open Template File"         ,""              , mkCmdSimple (fun a -> openFile(IO.FileInfo(Config.fileDefaultCode),newTab,true)|>ignore),"Opens the template file that is used when creating a new script"
+    let OpenTemplateFile = "Open Template File"         ,""             , mkCmdSimple (fun a -> openFile(IO.FileInfo(Config.fileDefaultCode),newTab,true)|>ignore),"Opens the template file that is used when creating a new script"
     let Close            = "Close File"               , "Ctrl + F4"     , mkCmdSimple (fun a -> altF4close()),"Closes the current Tab, if no tab present Application will be closed" 
     
     let SaveAs           = "Save As"                  , "Ctrl + Alt + S", mkCmd isTab (fun a -> saveAs          Tab.currTab |> ignore),"Shows a dialog to save the file at a new path or name."
