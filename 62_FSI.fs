@@ -73,14 +73,17 @@ module Fsi =
         timer.tic()
         let inStream = new StringReader("")
         // first arg is ignored: https://github.com/fsharp/FSharp.Compiler.Service/issues/420 and https://github.com/fsharp/FSharp.Compiler.Service/issues/877
-        let allArgs = [|"" ; "--langversion:preview" ; "--noninteractive"|] //;"--nologo";"--gui-"|] // --gui: Enables or disables the Windows Forms event loop. The default is enabled.
-        //let fsiObj = FSharp.Compiler.Interactive.Shell.Settings.fsi // needed ?
-        let fsiConfig = FsiEvaluationSession.GetDefaultConfiguration() //(fsiObj, false)
+        // https://github.com/fsharp/FSharp.Compiler.Service/issues/878
+        // ; "--shadowcopyreferences" is ignored https://github.com/fsharp/FSharp.Compiler.Service/issues/292
+        let allArgs = [|"" ; "--langversion:preview" ; "--noninteractive" ; "--debug:full" ;"--optimize-" ; "--shadowcopyreferences"|] //;"--nologo";"--gui-"|] // --gui: Enables or disables the Windows Forms event loop. The default is enabled.
+        let fsiObj = FSharp.Compiler.Interactive.Shell.Settings.fsi // needed ? not if calling GetDefaultConfiguration() 
+        //fsiObj.
+        let fsiConfig = FsiEvaluationSession.GetDefaultConfiguration(fsiObj, false) // https://github.com/dotnet/fsharp/blob/4978145c8516351b1338262b6b9bdf2d0372e757/src/fsharp/fsi/fsi.fs#L2839
         let fsiSession = FsiEvaluationSession.Create(fsiConfig, allArgs, inStream, Log.textwriter, Log.textwriter)
         AppDomain.CurrentDomain.UnhandledException.Add(fun ex -> Log.printf "*** FSI background exception:\r\n %A" ex.ExceptionObject) 
   
         Log.printf "* Time for loading FSharp Interactive: %s"  timer.tocEx             
-        //fsiSession.Run()// needed ?
+        //fsiSession.Run()// needed ? locks evaluation to current thread ?
         fsiSession    
 
 
@@ -93,13 +96,18 @@ module Fsi =
                     HostUndoRedo.undoIndex <- HostUndoRedo.beginUndo()                    
                     try
                         try
+                            
+                            //set  FsiEvaluationSession.dummyScriptFileName via reflection to somith other than  "input.fsx" https://github.com/fsharp/FSharp.Compiler.Service/blob/7920db8b67b2b5f4895254a7fb4851fa41cdbbc2/src/fsharp/fsi/fsi.fs#L2466
+                            //let prop = session.GetType().GetField("dummyScriptFileName", System.Reflection.BindingFlags.NonPublic ||| System.Reflection.BindingFlags.Instance)
+                            //prop.SetValue(session, filename)
+                            
                             FsiStatus.Evaluation <- Evaluating
                             //Log.printf "* Evaluating code.."
                             timer.tic()                            
                             if Config.currentRunContext <> Config.RunContext.Standalone then  // TODO when hosted evaluate on UI thread only
                                 // this sync switch does not work well for Rhino:
                                 //async{  do! Async.SwitchToContext Sync.syncContext
-                                //        session.EvalInteraction(code) } |> Async.RunSynchronously
+                                //        session.EvalInteraction(code) } |> Async.RunSynchronously                                
                                 session.EvalInteraction(code + Config.codeToAppendEvaluations)
                             else
                                 session.EvalInteraction(code + Config.codeToAppendEvaluations)
