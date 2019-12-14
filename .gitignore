@@ -3,6 +3,10 @@
 ##
 ## Get latest from https://github.com/github/gitignore/blob/master/VisualStudio.gitignore
 
+
+#build results, bin folder:
+[Bb]in/ 
+
 # User-specific files
 *.rsuser
 *.suo
@@ -16,18 +20,16 @@
 # Mono auto generated files
 mono_crash.*
 
-
 # Build results
-[Dd]ebug/                  #keep binary files in Repro ?
+[Dd]ebug/                  
 [Dd]ebugPublic/
-[Rr]elease/                #keep binary files in Repro ?
+[Rr]elease/                
 [Rr]eleases/
 x64/
 x86/
 [Aa][Rr][Mm]/
 [Aa][Rr][Mm]64/
 bld/
-[Bb]in/                    #keep binary files in Repro ?
 [Oo]bj/
 [Ll]og/
 
