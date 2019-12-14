@@ -127,6 +127,7 @@ module Fsi =
                     
                     finally                        
                         HostUndoRedo.endUndo(HostUndoRedo.undoIndex)
+                        Events.completed.Trigger()
                         inbox.Post(Done) // to set thread to None. does thread need to be aborted too?                         
                     )
             thr.Start()
