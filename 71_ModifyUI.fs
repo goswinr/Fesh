@@ -31,25 +31,27 @@ module ModifyUI =
         Appearance.fontSize <- newSize // use for UI completion line too
         Config.setFloat "FontSize" newSize    
         Config.save Log.dlog
-        Log.printf "new Fontsize: %.0f" newSize
+        Log.printf "new Fontsize: %.1f" newSize
 
     /// affects Editor and Log
     let fontBigger()= 
         let cs = if Tab.current.IsSome then Tab.currEditor.FontSize else Config.getFloat "FontSize" 14.
-        let step = 
-            if   cs >= 32. then 4. 
-            elif cs >= 16. then 2. 
-            else                1.
-        if cs < 82. then setFontSize(cs+step)
+        //let step = 
+        //    if   cs >= 36. then 4. 
+        //    elif cs >= 20. then 2. 
+        //    else                1.
+        //if cs < 112. then setFontSize(cs+step)
+        if cs < 250. then setFontSize(cs* 1.03) // 3% steps
     
     /// affects Editor and Log
     let fontSmaller()=
         let cs = if Tab.current.IsSome then Tab.currEditor.FontSize else Config.getFloat "FontSize" 14.
-        let step = 
-            if   cs >= 36. then 4. 
-            elif cs >= 18. then 2. 
-            else                1.
-        if cs > 6. then setFontSize(cs-step)
+        //let step = 
+        //    if   cs >= 36. then 4. 
+        //    elif cs >= 20. then 2. 
+        //    else                1.
+        //if cs > 5. then setFontSize(cs-step)
+        if cs > 3. then setFontSize(cs * 0.97) // 3% steps
 
     //--------------------------------------
     //-------- Marking unsaved files Tab-----

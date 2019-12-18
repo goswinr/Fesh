@@ -64,6 +64,7 @@ module Menu =
                 sep()
                 fromCmd Commands.Save
                 fromCmd Commands.SaveAs
+                fromCmd Commands.SaveIncremental
                 fromCmd Commands.SaveAll
                 fromCmd Commands.Close
                 sep()

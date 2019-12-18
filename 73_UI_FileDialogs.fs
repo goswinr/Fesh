@@ -56,7 +56,7 @@ module FileDialogs =
         dlg.Title <- sprintf "Save File As for: %s" (if t.FileInfo.IsSome then  t.FileInfo.Value.FullName else textForUnsavedFile)
         dlg.Filter <- "FSharp Script Files(*.fsx)|*.fsx|Text Files(*.txt)|*.txt|All Files(*.*)|*"
         if isTrue (dlg.ShowDialog()) then                
-            t.Editor.Save dlg.FileName //TODO add trimming of trailling white space: dropTrailingWhiteSpace in FsInteractiveService on Github
+            t.Editor.Save dlg.FileName 
             let fi = new FileInfo(dlg.FileName)   
             t.FileInfo <- Some fi
             t.CodeAtLastSave <- t.Editor.Text
@@ -70,13 +70,51 @@ module FileDialogs =
             true
         else
             false
-    
+
+    /// returns true if saving operation was not canceled
+    let saveIncremental (t:FsxTab) = 
+         if t.FileInfo.IsSome then            
+            let fn = t.FileInfo.Value.FullName
+            let last = fn.[fn.Length-5]
+            if not <| Char.IsLetterOrDigit last then 
+                Log.printf "saveIncremental failed on last value: '%c' on: \r\n%s" last fn
+                saveAs t
+            elif last = 'z' || last = 'Z' || last = '9' then                
+                Log.printf "saveIncremental reached last value: '%c' on: \r\n%s" last fn
+                saveAs t
+            else
+                let newLast = char(int(last)+1)
+                let npath =
+                    let letters = fn.ToCharArray()
+                    letters.[fn.Length-5] <- newLast
+                    String.Join("", letters)
+                let fi = new FileInfo(npath) 
+                if not <| fi.Exists then 
+                    t.Editor.Save npath                    
+                    t.FileInfo <- Some fi
+                    t.CodeAtLastSave <- t.Editor.Text
+                    ModifyUI.markTabSaved(t)  
+                    Config.recentFilesStack.Push (fi)
+                    Config.saveRecentFiles Log.dlog
+                    Config.saveOpenFilesAndCurrentTab (t.FileInfo , Tab.allTabs |> Seq.map(fun ta -> ta.FileInfo))
+                    updateHeader(t)
+                    updateRecentMenu fi            
+                    Log.printf "File incrementally saved as:\r\n%s" fi.FullName // dlg.FileName
+                    true
+                else
+                    Log.printf "incremented File already exists:\r\n%s" fi.FullName // dlg.FileName
+                    saveAs t
+         else
+            Log.printf "cant incremented unsaved File"  
+            saveAs t
+     
+
     /// returns true if saving operation was not canceled
     let save(t:FsxTab) = 
         if t.FileInfo.IsSome && t.FileInfo.Value.Exists then
             if t.CodeAtLastSave <> t.Editor.Text then
                 t.CodeAtLastSave <- t.Editor.Text //TODO add trimming of trailling white space: dropTrailingWhiteSpace in FsInteractiveService
-                t.Editor.Save t.FileInfo.Value.FullName //TODO add trimming of trailling white space
+                t.Editor.Save t.FileInfo.Value.FullName 
                 ModifyUI.markTabSaved(t)
                 Log.printf "File saved at:\r\n%s" t.FileInfo.Value.FullName           
                 true
@@ -84,6 +122,8 @@ module FileDialogs =
                 Log.printf "File already up to date:\r\n%s" t.FileInfo.Value.FullName  
                 true
         else 
+            if t.FileInfo.IsNone then Log.printf "FileInfo.IsNone, File never saved before?"
+            elif not <| t.FileInfo.Value.Exists then Log.printf "File does not exist on drivee:\r\n%s" t.FileInfo.Value.FullName  
             saveAs t
     
     /// returns true if closing operation was successful (not canceled by user)

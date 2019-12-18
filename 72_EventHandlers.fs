@@ -119,7 +119,7 @@ module EventHandlers =
             
             | None -> //no completion window open , do type check..
                 match e.InsertedText.Text with 
-                |"."  ->                                textChanged( TextChange.EnteredDot       , tab)//complete
+                |"."  ->                                textChanged( TextChange.EnteredDot          , tab)//complete
                 | txt when txt.Length = 1 ->
                     if Char.IsLetter(txt.[0])  then     textChanged( TextChange.EnteredOneLetter    , tab)//complete
                     else                                textChanged( TextChange.EnteredOneNonLetter , tab)//check

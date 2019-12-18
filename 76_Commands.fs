@@ -51,7 +51,7 @@ module Commands =
     let RunSelectedText  = "Run Selected Text"        , "Alt + Enter"   , mkCmd isEditorSel (fun a -> agent.Post (Evaluate  Tab.currEditor.SelectedText)),"Sends the currently seleceted Text in the editor to FSharp Interactive"// TODO mark evaluated code with grey background
     let RunSelectedLines = "Run Selected Lines"       , "Ctrl + Enter"  , mkCmd isTab       (fun a -> agent.Post (Evaluate <| ModifyUI.expandSelectionToFullLines Tab.currTab)),"Sends the currently seleceted Lines in the editor to FSharp Interactive.\r\nIncludes partially selected lines in full."
     let RunAllText       = "Run All Text"             , "F5"            , mkCmd isTab       (fun a -> agent.Post (Evaluate  Tab.currEditor.Text)) ,"Send all text in the current file to FSharp Interactive"
-    let RunAllTextSave   = "Save and Run All Text"    , "F6"            , mkCmd isTab       (fun a -> save Tab.currTab |> ignore; agent.Post (Evaluate Tab.currEditor.Text)) ,"First Save current File, then send all it's text to FSharp Interactive"
+    let RunAllTextSave   = "Save and Run All Text"    , "F6"            , mkCmd isTab       (fun a -> if save Tab.currTab then agent.Post (Evaluate Tab.currEditor.Text)) ,"First Save current File, then send all it's text to FSharp Interactive"
                                                         
     let ResetFSI         = "Reset FSI"                , "Ctrl + Alt + R", mkCmd isTab (fun a -> agent.Post Restart),"Reset FSharp Interactive"
     let CancelFSI        = "Cancel FSI"               , "Ctrl + Break"  , mkCmd isTab (fun a -> agent.Post Cancel),"Cancel current running FSharp Interactive"
@@ -62,6 +62,7 @@ module Commands =
     let OpenTemplateFile = "Open Template File"         ,""             , mkCmdSimple (fun a -> openFile(IO.FileInfo(Config.fileDefaultCode),newTab,true)|>ignore),"Opens the template file that is used when creating a new script"
     let Close            = "Close File"               , "Ctrl + F4"     , mkCmdSimple (fun a -> altF4close()),"Closes the current Tab, if no tab present Application will be closed" 
     
+    let SaveIncremental  = "Save Incremental"         , ""              , mkCmd isTab (fun a -> saveIncremental Tab.currTab |> ignore),"increases the last letter of filename, can be alphabetic or numeric "
     let SaveAs           = "Save As"                  , "Ctrl + Alt + S", mkCmd isTab (fun a -> saveAs          Tab.currTab |> ignore),"Shows a dialog to save the file at a new path or name."
     let Save             = "Save"                     , "Ctrl + S"      , mkCmd isTab (fun a -> save            Tab.currTab |> ignore),"Saves the file. Shows a dialog only if the open file does not exist anymore"
     let SaveAll          = "Save All"                 , "Ctrl + Shift + S", mkCmd isTab (fun a -> Seq.iter (save >> ignore) Tab.allTabs),"Saves all tabs. Shows a dialog only if the open file does not exist on disk"
@@ -108,6 +109,7 @@ module Commands =
         yield OpenFile 
         yield Close
         
+        yield SaveIncremental
         yield SaveAs           
         yield Save
         yield SaveAll

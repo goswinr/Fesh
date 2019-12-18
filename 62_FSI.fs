@@ -112,6 +112,7 @@ module Fsi =
                             else
                                 session.EvalInteraction(code + Config.codeToAppendEvaluations)
                             //Log.printf "* Code evaluated in %s" timer.tocEx
+                            Events.completed.Trigger()
                             FsiStatus.Evaluation <- Ready
                         
                         with 
@@ -124,10 +125,9 @@ module Fsi =
                             Events.runtimeError.Trigger(e)
                             FsiStatus.Evaluation <- HadError
                             //Log.printf "*** Exception (caught in Evaluation): \r\n %A" e // TODO not needed because error stream is redirected to Log too ??                            
-                    
+                        
                     finally                        
-                        HostUndoRedo.endUndo(HostUndoRedo.undoIndex)
-                        Events.completed.Trigger()
+                        HostUndoRedo.endUndo(HostUndoRedo.undoIndex)                        
                         inbox.Post(Done) // to set thread to None. does thread need to be aborted too?                         
                     )
             thr.Start()
@@ -153,7 +153,8 @@ module Fsi =
 
                 | Cancel, Some thr, _ ->
                     //session.Interrupt()
-                    thr.Abort()                    
+                    thr.Abort() 
+                    Events.canceled.Trigger()
                     FsiStatus.Evaluation <- Ready
                     Log.printf "FSharp Interactive Session canceled ..."
                     return! running None None session 
@@ -168,7 +169,8 @@ module Fsi =
                 // Reset F# Interactive session
                 | Restart, Some thr , _ ->
                     //session.Interrupt()  
-                    thr.Abort()                                      
+                    thr.Abort()
+                    Events.canceled.Trigger()
                     FsiStatus.Evaluation <- Ready
                     Log.printf "cancelling and restarting..."
                     return! running None None (startSession())
