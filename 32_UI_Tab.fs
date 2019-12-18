@@ -19,7 +19,7 @@ type FsxTab () =
 
     member val Editor = ed with get
     member val CompletionWin : AvalonEdit.CodeCompletion.CompletionWindow option = None with get,set
-    member val CodeAtLastSave = "" with get,set 
+    member val CodeAtLastSave = "" with get,set // TODO use editor.IsModified instead !!
     member val FileInfo: FileInfo option = None with get,set
     
     member val TextMarkerService = new ErrorUI.TextMarkerService(ed) with get
