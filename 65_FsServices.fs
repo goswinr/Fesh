@@ -128,7 +128,7 @@ module FsService =
             while CancellationSources.TryPop(&toCancel) do toCancel.Cancel() 
             
             match change with 
-            | CompletionWinClosed | TabChanged | OtherChange | EnteredOneNonLetter -> highlightErrors(tab) //TODO maybe do less call to rerreor highlighter wen typing in string or comment ?
+            | CompletionWinClosed | TabChanged | OtherChange | EnteredOneNonLetter -> highlightErrors(tab) //TODO maybe do less call to error highlighter when typing in string or comment ?
             | EnteredOneLetter | EnteredDot -> 
 
                 let pos = EditorUtil.currentLineBeforeCaret tab // this line will include the charcater that trigger auto completion(dot or first letter)
