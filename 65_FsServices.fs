@@ -63,7 +63,7 @@ module FsService =
                         tab.Editor.Background <- Appearance.editorBackgroundOk    
                     | es   -> 
                         tab.Editor.Background <- Appearance.editorBackgroundErr
-                        for e in es |> Seq.truncate 4 do // TODO Only highligth the first 3 Errors, Otherwise UI becomes unresponsive at 100 erroes ( eg when pasting text)
+                        for e in es |> Seq.truncate 5 do // TODO Only highligth the first 3 Errors, Otherwise UI becomes unresponsive at 100 erroes ( eg when pasting text)
                             let startOffset = tab.Editor.Document.GetOffset(new TextLocation(e.StartLineAlternate, e.StartColumn + 1 ))
                             let endOffset   = tab.Editor.Document.GetOffset(new TextLocation(e.EndLineAlternate,   e.EndColumn   + 1 ))
                             let length = endOffset-startOffset

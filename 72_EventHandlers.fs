@@ -158,11 +158,23 @@ module EventHandlers =
                 let markersAtOffset = tab.TextMarkerService.GetMarkersAtOffset(offset)
                 let markerWithMsg = markersAtOffset.FirstOrDefault(fun marker -> marker.Msg <> null)//LINq ??
                 if notNull markerWithMsg && notNull tab.ErrorToolTip then
-                    tab.ErrorToolTip <- new ToolTip()
-                    tab.ErrorToolTip.PlacementTarget <- tab.Editor
-                    tab.ErrorToolTip.Content <- new TextBlock(Text = markerWithMsg.Msg, TextWrapping = TextWrapping.Wrap)
+                    let tb = new TextBlock()
+                    tb.Text <- markerWithMsg.Msg        //TODO move styling out of event 
+                    tb.FontSize <- Appearance.fontSize
+                    tb.FontFamily <- Appearance.defaultFont
+                    tb.TextWrapping <- TextWrapping.Wrap
+                    tb.Foreground <- Media.SolidColorBrush(Media.Colors.DarkRed)                    
+                    tab.ErrorToolTip.Content <- tb
+                    
+                    let pos = tab.Editor.Document.GetLocation(markerWithMsg.StartOffset)                    
+                    let pt = tab.Editor.TextArea.TextView.GetVisualPosition(TextViewPosition(pos), Rendering.VisualYPosition.LineTop) //https://www.dazhuanlan.com/2019/07/03/wpf-position-a-tooltip-avalonedit%E6%B8%B8%E6%A0%87%E5%A4%84%E6%98%BE%E7%A4%BA/                    Posi
+                    tab.ErrorToolTip.PlacementTarget <- tab.Editor.TextArea
+                    tab.ErrorToolTip.PlacementRectangle <- new Rect(pt.X, pt.Y, 0., 0.)                    
+                    tab.ErrorToolTip.Placement <- Primitives.PlacementMode.Top //https://docs.microsoft.com/en-us/dotnet/framework/wpf/controls/popup-placement-behavior      
+                    tab.ErrorToolTip.VerticalOffset <- -6.0                   
+                    
                     tab.ErrorToolTip.IsOpen <- true
-                    e.Handled <- true
+                    //e.Handled <- true
                     //ErrorToolTipService.SetInitialShowDelay(tab.ErrorToolTip,50) // TODO does not work
                     //ErrorToolTipService.SetInitialShowDelay(this,50)// TODO does not work                    
                     //ErrorToolTipService.SetInitialShowDelay(tab.ErrorToolTip.Parent,50)// is null
