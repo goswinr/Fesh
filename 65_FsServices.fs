@@ -77,6 +77,7 @@ module FsService =
         Async.StartImmediate(findErrors, cancelScr.Token)
 
     let prepareAndShowComplWin(tab:FsxTab, pos:FsChecker.PositionInCode , changetype, setback, query, charBefore, onlyDU) = 
+        //Log.printf "*prepareAndShowComplWin..."
         if changetype = EnteredOneLetter  &&  Keywords.Contains query  then //this never happens since typing complete word happens in when window is open not closed
             highlightErrors(tab)
             () // do not complete, if keyword was typed full, just continue typing, completion will triger anyway on additional chars
@@ -103,7 +104,7 @@ module FsService =
                         tab.Editor.Cursor <- prevCursor
                         if Tab.isCurr tab then
                             //Log.printf "*prepareAndShowComplWin for '%s' with offset %d" pos.lineToCaret setback
-                            if completionLines.Count > 0 then showCompletionWindow(tab, completionLines, setback,query)
+                            if completionLines.Count > 0 then showCompletionWindow(tab, completionLines, setback, query)
                             else highlightErrors(tab)
                                       
                 } 
@@ -112,7 +113,7 @@ module FsService =
             Async.StartImmediate(aComp, cancelScr.Token)   
     
     let textChanged (change:TextChange ,tab:FsxTab) =
-        //Log.printf "*1-textChanged because of %A" change 
+        Log.printf "*1-textChanged because of %A" change 
         match tab.CompletionWin with
         | Some w ->  
             if w.CompletionList.ListBox.HasItems then 
@@ -134,7 +135,7 @@ module FsService =
                 let pos = EditorUtil.currentLineBeforeCaret tab // this line will include the charcater that trigger auto completion(dot or first letter)
                 let line = pos.lineToCaret
                 
-                // possible cases where autocompletion is not desired:
+                //possible cases where autocompletion is not desired:
                 //let isNotInString           = (countChar '"' line ) - (countSubString "\\\"" line) |> isEven && not <| line.Contains "print" // "\\\"" to ignore escaped quotes of form \" ; check if formating string
                 let isNotAlreadyInComment   = countSubString "//"  line = 0  ||  lastCharIs '/' line   // to make sure comment was not just typed(then still check)
                 let isNotLetDecl            = let lk = (countSubString "let " line) + (countSubString "let(" line) in lk <= (countSubString "=" line) || lk <= (countSubString ":" line)
@@ -163,21 +164,25 @@ module FsService =
                     let isKeyword   = Keywords.Contains query
                     //Log.printf "pos:%A setback='%d'" pos setback
                 
-                    let charBeforeQuery = 
+                                       
+                    let charBeforeQueryDU = 
                         let i = pos.column - setback - 1
                         if i >= 0 && i < line.Length then 
                             if line.[i] = '.' then Dot else NotDot
                         else
                             NotDot
 
-                    //Log.printf "*2-textChanged now FsChecking with: query='%s', charBefore='%A', isKey=%b, setback='%d', line='%s' " query charBeforeQuery isKeyword setback line
+                    
 
-                    if charBeforeQuery = NotDot && isKeyword then
+                    if charBeforeQueryDU = NotDot && isKeyword then
+                        //Log.printf "*2.1-textChanged highlighting with: query='%s', charBefore='%A', isKey=%b, setback='%d', line='%s' " query charBeforeQueryDU isKeyword setback line
                         highlightErrors(tab)
+
                     else 
-                        prepareAndShowComplWin(tab, pos, change, setback, query, charBeforeQuery, onlyDU)
+                        //Log.printf "*2.2-textChanged Completion window opening  with: query='%s', charBefore='%A', isKey=%b, setback='%d', line='%s' " query charBeforeQueryDU isKeyword setback line
+                        prepareAndShowComplWin(tab, pos, change, setback, query, charBeforeQueryDU, onlyDU)
                 else
                     //highlightErrors(tab)
-                    //Log.printf "*2-textChanged didn't trigger of checker not needed? \r\n"
+                    //Log.printf "*2.3-textChanged didn't trigger of checker not needed? \r\n"
                     ()
     

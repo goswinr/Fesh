@@ -30,12 +30,13 @@ type FsxTab () =
     member val HeaderTextBlock:TextBlock = null with get,set
     /// used for marking tab with a star *, to be sure compare code with tab.CodeAtLastSave 
     member val ChangesAreProbalySaved = true with get,set 
-
+    member val CompletionWindowJustClosed = false with get,set // for one letter completions to not trigger another completion
     // additional text change event:
     //let completionInserted = new Event<string>() // event needed because Text change event is not raised after completion insert    
     //[<CLIEvent>]
     //member this.CompletionInserted = completionInserted.Publish
     //member this.TriggerCompletionInserted x = completionInserted.Trigger x // to raise it after completion inserted ?
+    
     member val CompletionWindowClosed = fun ()->() with get,set //will be set with all the other eventhandlers setup, but ref is needed before
 
 

@@ -128,14 +128,19 @@ module CompletionUI =
         w.WindowStyle     <- WindowStyle.None // = no border
         w.SizeToContent   <- SizeToContent.WidthAndHeight //https://github.com/icsharpcode/AvalonEdit/blob/master/ICSharpCode.AvalonEdit/CodeCompletion/CompletionWindow.cs#L47
         w.Closed.Add (fun _  -> 
-            tab.CompletionWin <- None   // ;Log.printf "Completion window closed")
+            //Log.printf "Completion window closed with selected item %s " tab.CompletionWin.Value.CompletionList.SelectedItem.Text
+            tab.CompletionWin <- None  
             tab.CompletionWindowClosed()
             tab.ErrorToolTip.IsOpen    <- false
             tab.TypeInfoToolTip.IsOpen <- false
+            tab.CompletionWindowJustClosed <- true // to not trigger completion again
             )
+
+        
         
         w.CloseAutomatically <-true
         w.CloseWhenCaretAtBeginning <- true
+        //w.CompletionList.InsertionRequested.Add (fun _ -> tab.LastTextChangeWasFromCompletionWindow <- true) // BAD !! triggers after text inested and textchnaged is triggerd on singl eletter 
 
         //w.CompletionList.ListBox.SelectionChanged.Add (fun e -> //TODO this is not the correct event to hook up to
         //    try if not w.CompletionList.ListBox.HasItems then w.Close() 
@@ -149,3 +154,11 @@ module CompletionUI =
         //try
         w.Show()
         //with e -> Log.printf "Error in Showing Code Completion Window: %A" e
+
+
+        //Event sequence on pressing enter in completion window:// https://github.com/icsharpcode/AvalonEdit/blob/8fca62270d8ed3694810308061ff55c8820c8dfc/ICSharpCode.AvalonEdit/CodeCompletion/CompletionWindow.cs#L100
+        // Close window
+        // insert text into editor (triggers completion if one char only)
+        // raise InsertionRequested event
+
+        
