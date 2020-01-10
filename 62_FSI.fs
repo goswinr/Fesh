@@ -89,6 +89,8 @@ module Fsi =
 
     let private evaluate (thrO: Thread option, code:string, session:FsiEvaluationSession, inbox: MailboxProcessor<AgentMessage>)= 
         let eval () =             
+            if DateTime.Today < DateTime(2020, 9, 30) then failwithf "Seff Editor has expired, download a new version."
+            if DateTime.Today < DateTime(2020, 7, 30) then printf "*** Seff Editor will expire on 2020-9-30, download a new version. ***"
             Console.SetOut  (Log.textwriter) //TODO only redidirect printfn ? //https://github.com/fsharp/FSharp.Compiler.Service/issues/201
             Console.SetError(Log.textwriter) //TODO or evaluate non throwing ?
             let thr = 
@@ -136,7 +138,7 @@ module Fsi =
         // check for running evaluation sessions first:
         match thrO with 
         | Some thr ->
-            match MessageBox.Show("Do you want to Cancel currently running code?","Cancel Current Evaluation?",MessageBoxButton.YesNo,MessageBoxImage.Exclamation,MessageBoxResult.No) with
+            match MessageBox.Show("Do you want to Cancel currently running code?", "Cancel Current Evaluation?",MessageBoxButton.YesNo,MessageBoxImage.Exclamation,MessageBoxResult.No) with
             | MessageBoxResult.Yes -> thr.Abort(); eval ()
             | _ -> thrO        
         | _ -> eval ()
