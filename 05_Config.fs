@@ -5,7 +5,8 @@ open System.IO
 open System.Windows
 open System.Text
 open Seff.Util
-  
+
+/// persitance of user settings such as recent files and window location and size  
 module Config = 
     
 
@@ -20,7 +21,7 @@ module Config =
     let mutable private fileSettings = ""
     let mutable private fileRecent =    ""   // files for list in open menu
     let mutable private fileOnClosingOpen = "" // files that are open when closing the editor window, for next restart
-    let private sep = '=' // key value separatur
+    let private sep = '=' // key value separatur like in ini files
     let configFilesPath = IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"Seff")
     
 
