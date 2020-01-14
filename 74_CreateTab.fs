@@ -47,11 +47,7 @@ module CreateTab =
         //ModifyUI.markTabSaved(tab)// TODO this should not be needed
         
         Search.SearchPanel.Install(tab.Editor) |> ignore
-        
-        //https://github.com/icsharpcode/AvalonEdit/blob/697ff0d38c95c9e5a536fbc05ae2307ec9ef2a63/ICSharpCode.AvalonEdit/Folding/XmlFoldingStrategy.cs
-        //let foldingManager = Folding.FoldingManager.Install(tab.Editor.TextArea) 
-        //let foldingStrategy = new Folding.XmlFoldingStrategy();
-        //foldingStrategy.UpdateFoldings(foldingManager, tab.Editor.Document)
+        tab.FoldingManager <- Folding.FoldingManager.Install(tab.Editor.TextArea) 
 
         let i = UI.tabControl.Items.Add tab            
         if makeCurrent then 

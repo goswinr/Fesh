@@ -4,6 +4,8 @@ open System.Windows.Input
 open System.Threading
 open System.Collections.Generic
 open FSharp.Compiler.SourceCodeServices
+open ICSharpCode.AvalonEdit.Folding
+open ICSharpCode.AvalonEdit
 open ICSharpCode.AvalonEdit.CodeCompletion
 open ICSharpCode.AvalonEdit.Document
 open Seff.Util
@@ -49,7 +51,7 @@ module FsService =
             } |> Async.StartImmediate   
 
 
-    let highlightErrors(tab:FsxTab) = 
+    let highlightErrorsAndUpdateFoldings (tab:FsxTab) = 
         tab.FsCheckerRunning <- Rand.Next()                    
         showChecking tab 
         let findErrors = 
@@ -71,15 +73,39 @@ module FsService =
                             Packages.checkForMissingPackage tab e startOffset length
 
                 tab.FsCheckerRunning <- 0
+
+                //UpdateFoldings
+                if notNull tab.FoldingManager then 
+                    let folder = "module "
+                    let foldings=ResizeArray<NewFolding>()
+                    let mutable foldstart = -1
+                    for i,ln in Seq.indexed tab.Editor.Document.Lines do //TODO measure impact! do async?
+                        if ln.Length > folder.Length then  
+                            let txt = tab.Editor.Document.GetText(ln.Offset,folder.Length)                    
+                            if txt = folder then 
+                                foldstart <- i+1
+                            if foldstart >= 0 && txt.Length>0 && txt.[0] <> ' ' then
+                                if i+1-foldstart > 3 then // min 3 lines long to fold
+                                    let f = NewFolding(foldstart,i)
+                                    foldings.Add f
+                                    Log.printf "Folding from %d to %d" foldstart i
+                                    foldstart <- -1
+
+                    let firstErrorOffset = -1 //The first position of a parse error. Existing foldings starting after this offset will be kept even if they don't appear in newFoldings. Use -1 for this parameter if there were no parse errors)
+                    if foldings.Count > 0 then 
+                        tab.FoldingManager.UpdateFoldings(foldings,firstErrorOffset)
+                
                 } 
         let cancelScr = new CancellationTokenSource()
         CancellationSources.Push cancelScr 
         Async.StartImmediate(findErrors, cancelScr.Token)
 
+        
+
     let prepareAndShowComplWin(tab:FsxTab, pos:FsChecker.PositionInCode , changetype, setback, query, charBefore, onlyDU) = 
         //Log.printf "*prepareAndShowComplWin..."
         if changetype = EnteredOneLetter  &&  Keywords.Contains query  then //this never happens since typing complete word happens in when window is open not closed
-            highlightErrors(tab)
+            highlightErrorsAndUpdateFoldings(tab)
             () // do not complete, if keyword was typed full, just continue typing, completion will triger anyway on additional chars
         else
             let prevCursor = tab.Editor.Cursor
@@ -105,7 +131,7 @@ module FsService =
                         if Tab.isCurr tab then
                             //Log.printf "*prepareAndShowComplWin for '%s' with offset %d" pos.lineToCaret setback
                             if completionLines.Count > 0 then showCompletionWindow(tab, completionLines, setback, query)
-                            else highlightErrors(tab)
+                            else highlightErrorsAndUpdateFoldings(tab)
                                       
                 } 
             let cancelScr = new CancellationTokenSource()
@@ -129,7 +155,7 @@ module FsService =
             while CancellationSources.TryPop(&toCancel) do toCancel.Cancel() 
             
             match change with 
-            | CompletionWinClosed | TabChanged | OtherChange | EnteredOneNonLetter -> highlightErrors(tab) //TODO maybe do less call to error highlighter when typing in string or comment ?
+            | CompletionWinClosed | TabChanged | OtherChange | EnteredOneNonLetter -> highlightErrorsAndUpdateFoldings(tab) //TODO maybe do less call to error highlighter when typing in string or comment ?
             | EnteredOneLetter | EnteredDot -> 
 
                 let pos = EditorUtil.currentLineBeforeCaret tab // this line will include the charcater that trigger auto completion(dot or first letter)
@@ -176,13 +202,13 @@ module FsService =
 
                     if charBeforeQueryDU = NotDot && isKeyword then
                         //Log.printf "*2.1-textChanged highlighting with: query='%s', charBefore='%A', isKey=%b, setback='%d', line='%s' " query charBeforeQueryDU isKeyword setback line
-                        highlightErrors(tab)
+                        highlightErrorsAndUpdateFoldings(tab)
 
                     else 
                         //Log.printf "*2.2-textChanged Completion window opening  with: query='%s', charBefore='%A', isKey=%b, setback='%d', line='%s' " query charBeforeQueryDU isKeyword setback line
                         prepareAndShowComplWin(tab, pos, change, setback, query, charBeforeQueryDU, onlyDU)
                 else
-                    //highlightErrors(tab)
+                    //highlightErrorsAndUpdateFoldings(tab)
                     //Log.printf "*2.3-textChanged didn't trigger of checker not needed? \r\n"
                     ()
     

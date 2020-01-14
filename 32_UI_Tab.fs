@@ -22,6 +22,7 @@ type FsxTab () =
     member val CodeAtLastSave = "" with get,set // TODO use editor.IsModified instead !!
     member val FileInfo: FileInfo option = None with get,set
     
+    member val FoldingManager : Folding.FoldingManager = null with get,set// set up in Creattab function
     member val TextMarkerService = new ErrorUI.TextMarkerService(ed) with get
     member val FsCheckerResult: FSharpCheckFileResults option = None with get,set
     member val FsCheckerRunning = 0 with get,set // each check will get a unique id, used for UI background only?
