@@ -113,7 +113,7 @@ module FsService =
             Async.StartImmediate(aComp, cancelScr.Token)   
     
     let textChanged (change:TextChange ,tab:FsxTab) =
-        Log.printf "*1-textChanged because of %A" change 
+        //Log.printf "*1-textChanged because of %A" change 
         match tab.CompletionWin with
         | Some w ->  
             if w.CompletionList.ListBox.HasItems then 

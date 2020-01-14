@@ -159,7 +159,7 @@ module EventHandlers =
                 let logicalPosition = pos.Value.Location
                 let offset = tab.Editor.Document.GetOffset(logicalPosition)
                 let markersAtOffset = tab.TextMarkerService.GetMarkersAtOffset(offset)
-                let markerWithMsg = markersAtOffset.FirstOrDefault(fun marker -> marker.Msg <> null)//LINq ??
+                let markerWithMsg = markersAtOffset.FirstOrDefault(fun marker -> marker.Msg <> null)//LINQ ??
                 if notNull markerWithMsg && notNull tab.ErrorToolTip then
                     let tb = new TextBlock()
                     tb.Text <- markerWithMsg.Msg        //TODO move styling out of event 
@@ -169,10 +169,12 @@ module EventHandlers =
                     tb.Foreground <- Media.SolidColorBrush(Media.Colors.DarkRed)                    
                     tab.ErrorToolTip.Content <- tb
                     
-                    let pos = tab.Editor.Document.GetLocation(markerWithMsg.StartOffset)                    
-                    let pt = tab.Editor.TextArea.TextView.GetVisualPosition(TextViewPosition(pos), Rendering.VisualYPosition.LineTop) //https://www.dazhuanlan.com/2019/07/03/wpf-position-a-tooltip-avalonedit%E6%B8%B8%E6%A0%87%E5%A4%84%E6%98%BE%E7%A4%BA/                    Posi
+                    let pos = tab.Editor.Document.GetLocation(markerWithMsg.StartOffset) 
+                    let tvpos= TextViewPosition(pos.Line,pos.Column) 
+                    let pt = tab.Editor.TextArea.TextView.GetVisualPosition(tvpos, Rendering.VisualYPosition.LineTop) //https://www.dazhuanlan.com/2019/07/03/wpf-position-a-tooltip-avalonedit%E6%B8%B8%E6%A0%87%E5%A4%84%E6%98%BE%E7%A4%BA/                    Posi
+                    let ptInclScroll = pt - tab.Editor.TextArea.TextView.ScrollOffset
                     tab.ErrorToolTip.PlacementTarget <- tab.Editor.TextArea
-                    tab.ErrorToolTip.PlacementRectangle <- new Rect(pt.X, pt.Y, 0., 0.)                    
+                    tab.ErrorToolTip.PlacementRectangle <- new Rect(ptInclScroll.X, ptInclScroll.Y, 0., 0.)                    
                     tab.ErrorToolTip.Placement <- Primitives.PlacementMode.Top //https://docs.microsoft.com/en-us/dotnet/framework/wpf/controls/popup-placement-behavior      
                     tab.ErrorToolTip.VerticalOffset <- -6.0                   
                     

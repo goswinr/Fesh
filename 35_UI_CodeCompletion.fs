@@ -74,7 +74,7 @@ module CompletionUI =
             //Log.printf "%s is %A and %A" it.Name it.Glyph it.Kind
             //textArea.Document.Replace(completionSegment.Offset + 1, completionSegment.Length, it.Name) //Delete!
             //textArea.Caret.Offset <- completionSegment.Offset + it.Name.Length + 1  //Delete!          
-            let compl = if it.Glyph = FSharpGlyph.Class && it.Name.EndsWith "Attribute" then "[<" + it.Name.Replace("Attribute",">]") else it.Name            
+            let compl = if it.Glyph = FSharpGlyph.Class && it.Name.EndsWith "Attribute" then "[<" + it.Name.Replace("Attribute",">]") else it.Name     //TODO move this logic out here      
             textArea.Document.Replace(completionSegment, compl) 
             //Editor.current.TriggerCompletionInserted it.Name // to be able to rerun checking
 
