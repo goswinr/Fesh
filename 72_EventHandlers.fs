@@ -102,7 +102,7 @@ module EventHandlers =
 
         //tab.Editor.Document.TextChanged.Add (fun e -> ())
 
-        tab.Editor.Document.Changed.Add(fun e -> 
+        tab.Editor.Document.Changed.Add(fun e -> //TODO oer Text Changed ??
             //Log.printf "*Document.Changed Event: deleted %d '%s', inserted %d '%s' completion Window:%A" e.RemovalLength e.RemovedText.Text e.InsertionLength e.InsertedText.Text tab.CompletionWin
             ModifyUI.markTabUnSaved(tab)
             match tab.CompletionWin with
