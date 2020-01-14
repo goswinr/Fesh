@@ -74,4 +74,10 @@
   <ItemGroup>
     <Folder Include="Properties\" />
   </ItemGroup>
+
+   
+  <Target Name="CopyFilesOverAfterBuild" BeforeTargets="AfterBuild">
+    <Copy SourceFiles="C:\Users\gwins\.nuget\packages\fsharp.core\4.7.0\lib\net45\FSharp.Core.xml" DestinationFiles="$(TargetDir)FSharp.Core.xml" ContinueOnError="false" /> <!-- missing otherwise ? to have it as intellisense provider-->
+  </Target>
+
 </Project>
