@@ -16,13 +16,18 @@
 
   <ItemGroup>
     <PackageReference Update="FSharp.Core" Version="4.7.*" />
-    <PackageReference Include="FSharp.Compiler.Service" Version="33.*" />
+    <PackageReference Include="FSharp.Compiler.Service" Version="33.0.1" />
     <!-- <PackageReference Include="AvalonEdit" Version="6.0.0" /> use custom build of it instead-->    
+  </ItemGroup>
+
+
+  <ItemGroup>
+    <ProjectReference Include="..\AvalonEdit\ICSharpCode.AvalonEdit\ICSharpCode.AvalonEdit.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     
-    <Reference Include="ICSharpCode.AvalonEdit">      <HintPath>..\AvalonEdit\ICSharpCode.AvalonEdit\bin\Release\net45\ICSharpCode.AvalonEdit.dll</HintPath>    </Reference>
+    <!-- <Reference Include="ICSharpCode.AvalonEdit">      <HintPath>..\AvalonEdit\ICSharpCode.AvalonEdit\bin\Release\net45\ICSharpCode.AvalonEdit.dll</HintPath>    </Reference>-->   
     
     <Reference Include="PresentationCore" />
     <Reference Include="PresentationFramework" />
