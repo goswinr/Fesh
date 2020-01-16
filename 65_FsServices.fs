@@ -12,6 +12,7 @@ open Seff.Util
 open Seff.StringUtil
 open Seff.CompletionUI
 open Seff.FsChecker
+open FSharp.Compiler.Ast
 
 module EditorUtil=
 
@@ -51,12 +52,56 @@ module FsService =
             } |> Async.StartImmediate   
 
 
-    let highlightErrorsAndUpdateFoldings (tab:FsxTab) = 
+    let highlightErrorsAndUpdateFoldingsVERY_SLOW_Lag_DONT_USE (tab:FsxTab) = 
+        
         tab.FsCheckerRunning <- Rand.Next()                    
-        showChecking tab 
+        showChecking tab  
+        let cancelScr = new CancellationTokenSource()        
+        CancellationSources.Push cancelScr 
+
+        let ok, parseRes, checkRes,code =             
+            let doc = tab.Editor.Document
+            Async.RunSynchronously(
+                async{ return! FsChecker.check (tab, doc, 0 ) } , 
+                cancellationToken = cancelScr.Token        )        
+        
+        if not cancelScr.IsCancellationRequested && ok && Tab.isCurr tab then
+            tab.FsCheckerResult <- Some checkRes // cache for type info
+            tab.TextMarkerService.Clear()
+            match checkRes.Errors with 
+            | [||] -> 
+                tab.Editor.Background <- Appearance.editorBackgroundOk    
+            | es   -> 
+                tab.Editor.Background <- Appearance.editorBackgroundErr
+                for e in es |> Seq.truncate 5 do // TODO Only highligth the first 3 Errors, Otherwise UI becomes unresponsive at 100 errors ( eg when pasting text)
+                    let startOffset = tab.Editor.Document.GetOffset(new TextLocation(e.StartLineAlternate, e.StartColumn + 1 ))
+                    let endOffset   = tab.Editor.Document.GetOffset(new TextLocation(e.EndLineAlternate,   e.EndColumn   + 1 ))
+                    let length = endOffset-startOffset
+                    tab.TextMarkerService.Create(startOffset, length, e.Message+", Error: "+ (string e.ErrorNumber))
+                    Packages.checkForMissingPackage tab e startOffset length
+        
+        if false then 
+            // check foldings too
+            if not cancelScr.IsCancellationRequested && notNull tab.FoldingManager && Tab.isCurr tab then 
+                Async.RunSynchronously(FsFolding.get(code))
+
+            if not cancelScr.IsCancellationRequested && FsFolding.currentFoldings.IsSome && Tab.isCurr tab then 
+                let foldings=ResizeArray<NewFolding>()
+                for st,en in FsFolding.currentFoldings.Value do foldings.Add(NewFolding(st,en)) //if new folding type is created async a waiting symbol apears on top of it 
+                let firstErrorOffset = -1 //The first position of a parse error. Existing foldings starting after this offset will be kept even if they don't appear in newFoldings. Use -1 for this parameter if there were no parse errors)                    
+                tab.FoldingManager.UpdateFoldings(foldings,firstErrorOffset)
+
+
+        tab.FsCheckerRunning <- 0
+
+
+    let highlightErrorsAndUpdateFoldings (tab:FsxTab) = 
+        let cancelScr = new CancellationTokenSource()
+        CancellationSources.Push cancelScr 
         let findErrors = 
             async{  
-                let! ok, parseRes, checkRes =  FsChecker.check (tab, 0 )
+                let doc = tab.Editor.Document
+                let! ok, parseRes, checkRes,code =  FsChecker.check (tab,doc, 0 )
                 if ok && Tab.isCurr tab then
                     tab.FsCheckerResult <- Some checkRes // cache for type info
                     tab.TextMarkerService.Clear()
@@ -65,39 +110,26 @@ module FsService =
                         tab.Editor.Background <- Appearance.editorBackgroundOk    
                     | es   -> 
                         tab.Editor.Background <- Appearance.editorBackgroundErr
-                        for e in es |> Seq.truncate 5 do // TODO Only highligth the first 3 Errors, Otherwise UI becomes unresponsive at 100 erroes ( eg when pasting text)
+                        for e in es |> Seq.truncate 4 do // TODO Only highligth the first 3 Errors, Otherwise UI becomes unresponsive at 100 errors ( eg when pasting text)
                             let startOffset = tab.Editor.Document.GetOffset(new TextLocation(e.StartLineAlternate, e.StartColumn + 1 ))
                             let endOffset   = tab.Editor.Document.GetOffset(new TextLocation(e.EndLineAlternate,   e.EndColumn   + 1 ))
                             let length = endOffset-startOffset
                             tab.TextMarkerService.Create(startOffset, length, e.Message+", Error: "+ (string e.ErrorNumber))
                             Packages.checkForMissingPackage tab e startOffset length
 
-                tab.FsCheckerRunning <- 0
+                // update foldings too now:
+                if notNull tab.FoldingManager && not cancelScr.IsCancellationRequested && Tab.isCurr tab then 
+                    do! FsFolding.get(code)
 
-                //UpdateFoldings
-                if notNull tab.FoldingManager then 
-                    let folder = "module "
+                // TODO does this crash on large files ? update folding in cancellable thread? or move this out
+                if FsFolding.currentFoldings.IsSome && not cancelScr.IsCancellationRequested && Tab.isCurr tab then  
                     let foldings=ResizeArray<NewFolding>()
-                    let mutable foldstart = -1
-                    for i,ln in Seq.indexed tab.Editor.Document.Lines do //TODO measure impact! do async?
-                        if ln.Length > folder.Length then  
-                            let txt = tab.Editor.Document.GetText(ln.Offset,folder.Length)                    
-                            if txt = folder then 
-                                foldstart <- i+1
-                            if foldstart >= 0 && txt.Length>0 && txt.[0] <> ' ' then
-                                if i+1-foldstart > 3 then // min 3 lines long to fold
-                                    let f = NewFolding(foldstart,i)
-                                    foldings.Add f
-                                    Log.printf "Folding from %d to %d" foldstart i
-                                    foldstart <- -1
+                    for st,en in FsFolding.currentFoldings.Value do foldings.Add(NewFolding(st,en)) //if new folding type is created async a waiting symbol apears on top of it 
+                    let firstErrorOffset = -1 //The first position of a parse error. Existing foldings starting after this offset will be kept even if they don't appear in newFoldings. Use -1 for this parameter if there were no parse errors)                    
+                    tab.FoldingManager.UpdateFoldings(foldings,firstErrorOffset)
 
-                    let firstErrorOffset = -1 //The first position of a parse error. Existing foldings starting after this offset will be kept even if they don't appear in newFoldings. Use -1 for this parameter if there were no parse errors)
-                    if foldings.Count > 0 then 
-                        tab.FoldingManager.UpdateFoldings(foldings,firstErrorOffset)
-                
-                } 
-        let cancelScr = new CancellationTokenSource()
-        CancellationSources.Push cancelScr 
+                tab.FsCheckerRunning <- 0
+                }         
         Async.StartImmediate(findErrors, cancelScr.Token)
 
         
@@ -113,7 +145,7 @@ module FsService =
 
             let aComp = 
                 async{
-                    let! ok, parseRes, checkRes =  FsChecker.check (tab, pos.offset)
+                    let! ok, parseRes, checkRes, code =  FsChecker.check (tab, tab.Editor.Document, pos.offset)
                     if ok && Tab.isCurr tab then                        
                         //Log.printf "*2-prepareAndShowComplWin geting completions"
                         let ifDotSetback = if charBefore = Dot then setback else 0
@@ -152,10 +184,15 @@ module FsService =
 
             // first cancel all previous checker threads 
             let mutable toCancel:CancellationTokenSource = null
-            while CancellationSources.TryPop(&toCancel) do toCancel.Cancel() 
+            while CancellationSources.TryPop(&toCancel) do 
+                printf "checker thread cancelled"
+                toCancel.Cancel() 
+                
             
             match change with 
-            | CompletionWinClosed | TabChanged | OtherChange | EnteredOneNonLetter -> highlightErrorsAndUpdateFoldings(tab) //TODO maybe do less call to error highlighter when typing in string or comment ?
+            | CompletionWinClosed | TabChanged | OtherChange | EnteredOneNonLetter -> //TODO maybe do less call to error highlighter when typing in string or comment ?
+                highlightErrorsAndUpdateFoldings(tab) 
+
             | EnteredOneLetter | EnteredDot -> 
 
                 let pos = EditorUtil.currentLineBeforeCaret tab // this line will include the charcater that trigger auto completion(dot or first letter)

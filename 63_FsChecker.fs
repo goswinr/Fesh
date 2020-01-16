@@ -4,6 +4,7 @@ open System
 open System.IO
 open FSharp.Compiler
 open FSharp.Compiler.SourceCodeServices
+open ICSharpCode.AvalonEdit
 
 
 
@@ -16,11 +17,11 @@ module FsChecker =
                             offset: int }
     
     /// to check full code use 0 as 'tillOffset'
-    let check (tab:FsxTab, tillOffset) = 
+    let check (tab:FsxTab, doc:Document.TextDocument, tillOffset) = 
         async{
             let code = 
-                if tillOffset = 0 then tab.Editor.Document.CreateSnapshot().Text //the only threadsafe way to acces the code string
-                else                   tab.Editor.Document.CreateSnapshot(0, tillOffset).Text
+                if tillOffset = 0 then doc.CreateSnapshot().Text //the only threadsafe way to acces the code string
+                else                   doc.CreateSnapshot(0, tillOffset).Text
             
             let fileFsx = 
                 match tab.FileInfo with
@@ -46,7 +47,6 @@ module FsChecker =
                 //     an approximate intellisense resolution is inaccurate because a range of text has changed. This 
                 //     can be used to marginally increase accuracy of intellisense results in some situations.
                 // "userOpName">An optional string used for tracing compiler operations associated with this request.
-
                 (*
                 https://github.com/dotnet/fsharp/issues/7669
                 let parsingOptions = 
@@ -81,17 +81,17 @@ module FsChecker =
                     let! parseRes , checkAnswer = ch.ParseAndCheckFileInProject(fileFsx, 0, Text.SourceText.ofString code, options) // can also be done in two speterate calls   //TODO really use check file in project for scripts??         
                     match checkAnswer with
                     | FSharpCheckFileAnswer.Succeeded checkRes ->                 
-                        return true, parseRes,checkRes
+                        return true, parseRes,checkRes,code
                     | FSharpCheckFileAnswer.Aborted  ->
                         Log.printf "*ParseAndCheckFile code aborted"
-                        return false, Unchecked.defaultof<FSharpParseFileResults> ,Unchecked.defaultof<FSharpCheckFileResults>
+                        return false, Unchecked.defaultof<FSharpParseFileResults> ,Unchecked.defaultof<FSharpCheckFileResults>,code
                 with e ->
                     Log.printf "ParseAndCheckFileInProject crashed (varying Nuget versions of FCS ?): %s" e.Message
-                    return false, Unchecked.defaultof<FSharpParseFileResults> ,Unchecked.defaultof<FSharpCheckFileResults>
+                    return false, Unchecked.defaultof<FSharpParseFileResults> ,Unchecked.defaultof<FSharpCheckFileResults>,code
             
             with e ->
                     Log.printf "GetProjectOptionsFromScript crashed (varying Nuget versions of FCS ?) : %s" e.Message
-                    return false, Unchecked.defaultof<FSharpParseFileResults> ,Unchecked.defaultof<FSharpCheckFileResults>
+                    return false, Unchecked.defaultof<FSharpParseFileResults> ,Unchecked.defaultof<FSharpCheckFileResults>,code
             } 
 
     let complete (parseRes :FSharpParseFileResults, checkRes :FSharpCheckFileResults, pos :PositionInCode, ifDotSetback)  =        
