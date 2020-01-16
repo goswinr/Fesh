@@ -199,7 +199,7 @@ module EventHandlers =
                 let prevC = line.Substring(0 ,car-1)
                 //Log.printf "--Substring length %d: '%s'" prevC.Length prevC
                 if prevC.Length > 0 then 
-                    if isJustSpaceChars prevC  then
+                    if isJustSpaceCharsOrEmpty prevC  then
                         let dist = prevC.Length % tab.Editor.Options.IndentationSize
                         let clearCount = if dist = 0 then tab.Editor.Options.IndentationSize else dist
                         //Log.printf "--Clear length: %d " clearCount
