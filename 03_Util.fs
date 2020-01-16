@@ -171,8 +171,8 @@ module StringUtil =
         elif s = "" then false
         else char = s.[s.Length-1]
 
-    /// checks if a string is just space characters 
-    let inline isJustSpaceChars (str:string) =
+    /// checks if a string is just space characters or Empty string 
+    let inline isJustSpaceCharsOrEmpty (str:string) =
         let mutable isSpace = true
         let mutable i = 0
         while isSpace && i < str.Length do
