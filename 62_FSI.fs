@@ -154,8 +154,8 @@ module Fsi =
                     return! running None thr session 
 
                 | Cancel, Some thr, _ ->
-                    //session.Interrupt()
-                    thr.Abort() 
+                    //session.Interrupt() //=   thr.Interrupt()
+                    thr.Abort() // TODO check if memory leaks
                     Events.canceled.Trigger()
                     FsiStatus.Evaluation <- Ready
                     Log.printf "FSharp Interactive Session canceled ..."
