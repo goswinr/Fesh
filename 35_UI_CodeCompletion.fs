@@ -127,6 +127,8 @@ module CompletionUI =
         w.ResizeMode      <- ResizeMode.NoResize // needed to have no border!
         w.WindowStyle     <- WindowStyle.None // = no border
         w.SizeToContent   <- SizeToContent.WidthAndHeight //https://github.com/icsharpcode/AvalonEdit/blob/master/ICSharpCode.AvalonEdit/CodeCompletion/CompletionWindow.cs#L47
+        w.MinHeight <- tab.Editor.FontSize
+        w.MinWidth <- tab.Editor.FontSize * 8.0
         w.Closed.Add (fun _  -> 
             //Log.printf "Completion window closed with selected item %s " tab.CompletionWin.Value.CompletionList.SelectedItem.Text
             tab.CompletionWin <- None  
@@ -135,12 +137,13 @@ module CompletionUI =
             tab.TypeInfoToolTip.IsOpen <- false
             tab.CompletionWindowJustClosed <- true // to not trigger completion again
             )
-
         
+        w.CompletionList.SelectionChanged.Add(fun _ -> if w.CompletionList.ListBox.Items.Count=0 then w.Close()) // otherwise empty box might be shown and only get closed on second character
+        w.Loaded.Add(fun _ -> if w.CompletionList.ListBox.Items.Count=0 then w.Close()) // close immediatly if completion list is empty
         
         w.CloseAutomatically <-true
         w.CloseWhenCaretAtBeginning <- true
-        //w.CompletionList.InsertionRequested.Add (fun _ -> tab.LastTextChangeWasFromCompletionWindow <- true) // BAD !! triggers after text inested and textchnaged is triggerd on singl eletter 
+        //w.CompletionList.InsertionRequested.Add (fun _ -> tab.LastTextChangeWasFromCompletionWindow <- true) // BAD !! triggers after text inested and textchnaged is triggerd on single letter 
 
         //w.CompletionList.ListBox.SelectionChanged.Add (fun e -> //TODO this is not the correct event to hook up to
         //    try if not w.CompletionList.ListBox.HasItems then w.Close() 
