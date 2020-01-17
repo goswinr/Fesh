@@ -10,7 +10,7 @@ open Seff.UtilWPF
 module Appearance=    
     
     let private w  = 255uy // white
-    let private aw = 248uy // almost white
+    let private aw = 240uy // almost white
     let private lg = 210uy // lightgrey
     let private dg = 99uy // dark grey
     let logBackgroundFsiEvaluating   = SolidColorBrush(Color.FromRgb(dg,dg,dg))//DarkGray 
