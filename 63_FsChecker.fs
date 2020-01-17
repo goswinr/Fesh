@@ -15,10 +15,15 @@ module FsChecker =
                             row: int   
                             column: int 
                             offset: int }
+
+    type FsCheckResults = {ok:bool; parseRes:FSharpParseFileResults;  checkRes:FSharpCheckFileResults;  code:string}
     
     /// to check full code use 0 as 'tillOffset'
-    let check (tab:FsxTab, doc:Document.TextDocument, tillOffset) = 
+    /// returns on new thread 
+    let check (tab:FsxTab, tillOffset) : Async<FsCheckResults>= 
         async{
+            let doc = tab.Editor.Document
+            do! Async.SwitchToNewThread() // or SwitchToThreadPool() / SwitchToNewThread
             let code = 
                 if tillOffset = 0 then doc.CreateSnapshot().Text //the only threadsafe way to acces the code string
                 else                   doc.CreateSnapshot(0, tillOffset).Text
@@ -76,22 +81,22 @@ module FsChecker =
                         LightSyntax: null
                         SourceFiles: {string[1]}
                         *)
-
                 try
                     let! parseRes , checkAnswer = ch.ParseAndCheckFileInProject(fileFsx, 0, Text.SourceText.ofString code, options) // can also be done in two speterate calls   //TODO really use check file in project for scripts??         
                     match checkAnswer with
-                    | FSharpCheckFileAnswer.Succeeded checkRes ->                 
-                        return true, parseRes,checkRes,code
+                    | FSharpCheckFileAnswer.Succeeded checkRes ->   
+                        return {ok=true; parseRes=parseRes;  checkRes=checkRes;  code=code}
+                    
                     | FSharpCheckFileAnswer.Aborted  ->
                         Log.printf "*ParseAndCheckFile code aborted"
-                        return false, Unchecked.defaultof<FSharpParseFileResults> ,Unchecked.defaultof<FSharpCheckFileResults>,code
+                        return {ok=false; parseRes=Unchecked.defaultof<FSharpParseFileResults>;  checkRes=Unchecked.defaultof<FSharpCheckFileResults>;  code=code}                        
                 with e ->
                     Log.printf "ParseAndCheckFileInProject crashed (varying Nuget versions of FCS ?): %s" e.Message
-                    return false, Unchecked.defaultof<FSharpParseFileResults> ,Unchecked.defaultof<FSharpCheckFileResults>,code
+                    return {ok=false; parseRes=Unchecked.defaultof<FSharpParseFileResults>;  checkRes=Unchecked.defaultof<FSharpCheckFileResults>;  code=code}
             
             with e ->
                     Log.printf "GetProjectOptionsFromScript crashed (varying Nuget versions of FCS ?) : %s" e.Message
-                    return false, Unchecked.defaultof<FSharpParseFileResults> ,Unchecked.defaultof<FSharpCheckFileResults>,code
+                    return {ok=false; parseRes=Unchecked.defaultof<FSharpParseFileResults>;  checkRes=Unchecked.defaultof<FSharpCheckFileResults>;  code=code}
             } 
 
     let complete (parseRes :FSharpParseFileResults, checkRes :FSharpCheckFileResults, pos :PositionInCode, ifDotSetback)  =        
