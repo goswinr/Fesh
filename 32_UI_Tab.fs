@@ -40,6 +40,7 @@ type FsxTab () =
     
     member val CompletionWindowClosed = fun ()->() with get,set //will be set with all the other eventhandlers setup, but ref is needed before
 
+    member val Foldings:Option<ResizeArray<int*int>> =  None with get,set
 
 type Tab private () = // no constructor, for some important static values like current tab    
     
