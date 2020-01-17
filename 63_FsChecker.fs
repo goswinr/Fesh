@@ -18,12 +18,12 @@ module FsChecker =
 
     type FsCheckResults = {ok:bool; parseRes:FSharpParseFileResults;  checkRes:FSharpCheckFileResults;  code:string}
     
+
+
     /// to check full code use 0 as 'tillOffset'
     /// returns on new thread 
-    let check (tab:FsxTab, tillOffset) : Async<FsCheckResults>= 
-        async{
-            let doc = tab.Editor.Document
-            do! Async.SwitchToNewThread() // or SwitchToThreadPool() / SwitchToNewThread
+    let fsCheck (tab:FsxTab, doc:Document.TextDocument, tillOffset) : Async<FsCheckResults>= 
+        async{                   
             let code = 
                 if tillOffset = 0 then doc.CreateSnapshot().Text //the only threadsafe way to acces the code string
                 else                   doc.CreateSnapshot(0, tillOffset).Text
@@ -40,7 +40,8 @@ module FsChecker =
             checker <- Some ch
             
             try
-                let! options, optionsErr = ch.GetProjectOptionsFromScript(fileFsx, Text.SourceText.ofString code) //TODO really use check file in project for scripts??
+                let sourceText = Text.SourceText.ofString code
+                let! options, optionsErr = ch.GetProjectOptionsFromScript(fileFsx,sourceText, otherFlags = [| "--langversion:preview" |] ) //TODO really use check file in project for scripts??
                 for e in optionsErr do Log.printf "*Script Options Error: %A" e
             
                 // "filename">The name of the file in the project whose source is being checked
@@ -82,7 +83,7 @@ module FsChecker =
                         SourceFiles: {string[1]}
                         *)
                 try
-                    let! parseRes , checkAnswer = ch.ParseAndCheckFileInProject(fileFsx, 0, Text.SourceText.ofString code, options) // can also be done in two speterate calls   //TODO really use check file in project for scripts??         
+                    let! parseRes , checkAnswer = ch.ParseAndCheckFileInProject(fileFsx, 0, sourceText, options) // can also be done in two speterate calls   //TODO really use check file in project for scripts??         
                     match checkAnswer with
                     | FSharpCheckFileAnswer.Succeeded checkRes ->   
                         return {ok=true; parseRes=parseRes;  checkRes=checkRes;  code=code}
@@ -98,6 +99,24 @@ module FsChecker =
                     Log.printf "GetProjectOptionsFromScript crashed (varying Nuget versions of FCS ?) : %s" e.Message
                     return {ok=false; parseRes=Unchecked.defaultof<FSharpParseFileResults>;  checkRes=Unchecked.defaultof<FSharpCheckFileResults>;  code=code}
             } 
+    
+    let showChecking (tab:FsxTab, isRunning,checkerId) = //,changedColor) = 
+        async {            
+            do! Async.Sleep 200            
+            if !isRunning && tab.FsCheckerRunning = checkerId  then // || checkerId=0 //in case of completion window
+                do! Async.SwitchToContext Sync.syncContext
+                tab.Editor.Background <- Appearance.editorBackgroundChecking
+            } |> Async.Start
+
+    let checkAndIndicate (tab:FsxTab, tillOffset,checkerId)=
+        async{            
+            let isRunning = ref true
+            showChecking (tab, isRunning, checkerId)
+            let! calc = fsCheck (tab, tab.Editor.Document ,tillOffset) |> Async.StartChild
+            let! res = calc
+            isRunning := false            
+            return res
+            }
 
     let complete (parseRes :FSharpParseFileResults, checkRes :FSharpCheckFileResults, pos :PositionInCode, ifDotSetback)  =        
         //see https://stackoverflow.com/questions/46980690/f-compiler-service-get-a-list-of-names-visible-in-the-scope
