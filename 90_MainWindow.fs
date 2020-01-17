@@ -31,17 +31,16 @@ module MainWindow =
 
         win.Loaded.Add (fun _ ->
             Log.printf "* Time for loading main window: %s"  timer.tocEx
-            setIcon(win) 
-            Config.loadOpenFilesOnLastAppClosing (CreateTab.newTab >> ignore, Log.dlog) 
+            setIcon(win)             
+            
+            CreateTab.loadArgsAndOpenFilesOnLastAppClosing(args)
             Config.loadRecentFilesMenu Menu.RecentFiles.updateRecentMenue
             //Log.printf "** Time for loading recent files and recent menu: %s"  timer.tocEx
             Fsi.agent.Start()
             
-            for p in args do
-                Log.printf "received argument: '%s'" p
-                //FileDialogs.openFile (IO.FileInfo(p), CreateTab.newTab )
+
             //win.Activate() |> ignore // needed ?           
-            //Tab.currEditor.Focus() |> ignore // can be null ? needed ?            
+            //Tab.currEditor.Focus() |> ignore // can be null ? needed ?
             )    
                 
         win.Closing.Add( fun e ->

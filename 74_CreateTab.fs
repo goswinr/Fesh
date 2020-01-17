@@ -49,7 +49,7 @@ module CreateTab =
         Search.SearchPanel.Install(tab.Editor) |> ignore
         tab.FoldingManager <- Folding.FoldingManager.Install(tab.Editor.TextArea) 
 
-        let i = UI.tabControl.Items.Add tab            
+        let i = UI.tabControl.Items.Add tab  
         if makeCurrent then 
             UI.tabControl.SelectedIndex <- i
             Tab.current <- Some tab
@@ -73,3 +73,28 @@ module CreateTab =
         //        tab.Editor.Select(0,en.EndOffset)
         tab  
     
+
+            
+    let loadArgsAndOpenFilesOnLastAppClosing (startupArgs:string[]) = 
+        async{
+            let files = Config.getFilesfileOnClosingOpen()
+            for p in startupArgs do
+                let fi = FileInfo(p)
+                if fi.Exists then 
+                    let code = File.ReadAllText fi.FullName
+                    files.Add ((fi,true,code))
+
+            do! Async.SwitchToContext Sync.syncContext
+            for fi,curr,code in files do
+                newTab(code,Some fi,curr)  |> ignore 
+
+            if files.Count=0 then 
+                let def = Config.getDefaultCode()
+                newTab(def, None, true) |> ignore 
+            
+            if UI.tabControl.SelectedIndex = -1 then                 
+                let tab = UI.tabControl.Items.[0] :?> FsxTab
+                UI.tabControl.SelectedIndex <- 0
+                Tab.current <- Some tab 
+
+            } |> Async.Start // TODO make blocking so that user waits till all files are open ?

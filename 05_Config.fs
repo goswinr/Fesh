@@ -175,29 +175,19 @@ module Config =
         FileWriterLines.Post( fileOnClosingOpen , [| yield curr; for f in files do if f.IsSome then yield f.Value.FullName |] )
 
     
-    let loadOpenFilesOnLastAppClosing (createFun, dlogger) = 
-        let mutable any = false
-        async{
-            if IO.File.Exists fileOnClosingOpen then 
-                let lns = IO.File.ReadAllLines fileOnClosingOpen 
-                if lns.Length > 1 then 
-                    let currentFile = (lns |> Seq.head).ToLowerInvariant() // head is filepath and name for  current tab
-                    for path in lns |> Seq.skip 1  do 
-                        try 
-                            let code = IO.File.ReadAllText path                    
-                            do! Async.SwitchToContext Sync.syncContext
-                            createFun (code, Some (FileInfo(path)), path.ToLowerInvariant() = currentFile )
-                            any <- true
-                            do! Async.SwitchToThreadPool()
-                        with 
-                            | :? FileNotFoundException -> () ///dlogger "Recent Files record not found. (This is normal on first use of the App.)"
-                            | e -> dlogger e.Message
-                    
-            if not any then //create empty file if none was opened
-                let def = getDefaultCode()
-                do! Async.SwitchToContext Sync.syncContext
-                createFun(def, None, true)                    
-            } |> Async.Start // TODO make blocking so that user waits till all files are open ?
+    let getFilesfileOnClosingOpen() = 
+        let files=ResizeArray()
+        if IO.File.Exists fileOnClosingOpen then 
+            let lns = IO.File.ReadAllLines fileOnClosingOpen 
+            if lns.Length > 1 then 
+                let currentFile = (lns |> Seq.head).ToLowerInvariant() // head is filepath and name for  current tab
+                for path in lns |> Seq.skip 1  do 
+                    let fi = FileInfo(path)                    
+                    if fi.Exists then 
+                        let code = IO.File.ReadAllText path
+                        let makeCurrent = path.ToLowerInvariant() = currentFile 
+                        files.Add((fi,makeCurrent,code))
+        files
 
 
         

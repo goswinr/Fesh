@@ -187,3 +187,4 @@ module FileDialogs =
             if isTrue (dlg.ShowDialog()) then                
                 IO.File.WriteAllText(dlg.FileName, UI.log.SelectedText) 
                 Log.printf "Selected text from Log saved as:\r\n%s" dlg.FileName
+    
