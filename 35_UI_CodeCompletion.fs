@@ -50,13 +50,14 @@ module CompletionUI =
                  | _                                          -> FontStyles.Italic
 
         let tb = 
-            new TextBlock(
-                    Text = it.Name + " ", // TODO add padding instaead of space character?
-                    FontFamily = Appearance.defaultFont  ,
-                    FontSize =   Appearance.fontSize ,
-                    //Foreground  = col, // does not change color when selected anymore
-                    FontStyle = style
-                    )
+            let mutable tb = TextBlock()
+            tb.Text <- it.Name //+ " " // TODO add padding instaead of space character?
+            tb.FontFamily <- Appearance.defaultFont  
+            tb.FontSize <-   Appearance.fontSize 
+            //tb.Foreground  <- col, // does not change color when selected anymore
+            tb.FontStyle <- style
+            tb.Padding <- Thickness(3. , 3. , 10. , 3. ) //left top right bottom
+            tb
     
         member this.Content = tb :> obj
         member this.Description = //this gets call on demand only, not when filling the list.
