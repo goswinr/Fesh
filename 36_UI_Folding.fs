@@ -17,8 +17,7 @@ module FsFolding =
     
     /// a hash value to  see if folding state needs updating
     let mutable FoldStateHash = 0
-
-    let mutable currentFoldings:Option<ResizeArray<int*int>> = None
+    
 
     let getFoldstate (xys: ResizeArray<int*int>) =
         let mutable v = 0
@@ -29,8 +28,9 @@ module FsFolding =
 
     let minLinesForFold = 1
 
-    let get (code:string) : Async<unit> =
+    let get (tab:FsxTab, code:string) : Async<unit> =
         async{ 
+            do! Async.SwitchToThreadPool()
             let foldings=ResizeArray<int*int>()
             let lns = code.Split([|"\r\n"|],StringSplitOptions.None)
             
@@ -80,10 +80,11 @@ module FsFolding =
             
             let state = getFoldstate foldings
             if state = FoldStateHash then 
-                currentFoldings <- None
+                tab.Foldings <- None
             else
                 FoldStateHash <- state
-                currentFoldings<- Some foldings
+                tab.Foldings<- Some foldings
+            do! Async.SwitchToContext Sync.syncContext
             }
 
     
