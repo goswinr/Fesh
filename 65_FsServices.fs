@@ -45,14 +45,16 @@ module FsService =
     let FsCheckerCancellationSources = new System.Collections.Concurrent.ConcurrentDictionary<int,CancellationTokenSource>()
     
 
-
-
+    let inline cleartoken(checkerId) =
+        let ok,_ = FsCheckerCancellationSources.TryRemove(checkerId)
+        if not ok then Log.printf "Failed to remove token '%d' from  FsCheckerCancellationSources" checkerId
 
     let checkForErrorsAndUpdateFoldings (tab:FsxTab, checkDone : Option<FsCheckResults> ) = 
         //Log.printf "*checkForErrorsAndUpdateFoldings..."
-        let mutable checkerId = 0        
-        
+        let mutable checkerId = 0 
+
         let updateFoldings () =             
+            cleartoken(checkerId)
             if tab.FsCheckerRunning = checkerId then 
                 if tab.Foldings.IsSome && notNull tab.FoldingManager && Tab.isCurr tab then 
                     let foldings=ResizeArray<NewFolding>()
@@ -62,6 +64,7 @@ module FsService =
                 tab.FsCheckerRunning <- 0
 
         let highlightErrors (chr:FsCheckResults) = 
+            cleartoken(checkerId)
             async{  
                 do! Async.SwitchToContext Sync.syncContext                
                 if tab.FsCheckerRunning = checkerId && chr.ok && Tab.isCurr tab then
@@ -79,10 +82,6 @@ module FsService =
                             tab.TextMarkerService.Create(startOffset, length, e.Message+", Error: "+ (string e.ErrorNumber))
                             Packages.checkForMissingPackage tab e startOffset length
 
-                if checkerId<>0 then 
-                    let ok,_ = FsCheckerCancellationSources.TryRemove(checkerId)
-                    if not ok then Log.dlog "Failed to remove token from  FsCheckerCancellationSources"
-                
                  
                 if tab.FsCheckerRunning = checkerId && Tab.isCurr tab then // another checker migh alredy be started
                     checkerId <- Rand.Next()  
@@ -93,7 +92,7 @@ module FsService =
                             FsFolding.get(tab,chr.code),
                             updateFoldings,
                             (fun ex   -> Log.printf "Error in Async updateFoldings") ,
-                            (fun cncl -> Log.printf "Async updateFoldings cancelled"),
+                            (fun cncl -> () ), //Log.printf "Async updateFoldings cancelled"),
                             cancelFoldScr.Token)
                 
                 }|> Async.StartImmediate            
@@ -173,7 +172,7 @@ module FsService =
             for checkId in FsCheckerCancellationSources.Keys do
                 let ok,toCancel = FsCheckerCancellationSources.TryRemove(checkId)
                 if ok then 
-                    printf "checker thread cancelled" // does never print, why
+                    //Log.printf "checker thread cancelled" // does never print, why // it does print !!
                     toCancel.Cancel()
                 else
                     Log.dlog "Failed get checkId from FsCheckerCancellationSources" 
