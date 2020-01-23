@@ -56,7 +56,7 @@ module CompletionUI =
             tb.FontSize <-   Appearance.fontSize 
             //tb.Foreground  <- col, // does not change color when selected anymore
             tb.FontStyle <- style
-            tb.Padding <- Thickness(3. , 3. , 10. , 3. ) //left top right bottom
+            tb.Padding <- Thickness(0. , 0. , 8. , 0. ) //left top right bottom / so that it does not aper to be trimmed
             tb
     
         member this.Content = tb :> obj
