@@ -142,7 +142,8 @@ module Tooltips =
     // --------------------------------------------------------------------------------------
     // Formatting of tool-tip information displayed in F# IntelliSense
     // --------------------------------------------------------------------------------------
-    let  buildFormatComment cmt =
+    
+    let buildFormatComment cmt =
         match cmt with
         | FSharpXmlDoc.Text s -> Ok s //"plain text Doc: \r\n" + s
         | FSharpXmlDoc.None -> Error "*FSharpXmlDoc.None*"
