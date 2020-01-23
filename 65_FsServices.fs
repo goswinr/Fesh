@@ -132,13 +132,14 @@ module FsService =
                     if chr.ok && Tab.isCurr tab then                        
                         //Log.printf "*2-prepareAndShowComplWin geting completions"
                         let ifDotSetback = if charBefore = Dot then setback else 0
-                        let! decls = FsChecker.complete (chr.parseRes , chr.checkRes , pos , ifDotSetback)
+                        let! decls = FsChecker.getDeclListInfo (chr.parseRes , chr.checkRes , pos , ifDotSetback)
                         
                         do! Async.SwitchToContext Sync.syncContext
                         let completionLines = ResizeArray<ICompletionData>()                                
                         if not onlyDU && charBefore = NotDot then // add keywords to list
                             completionLines.AddRange keywordsComletionLines 
                         for it in decls.Items do 
+                            
                             match it.Glyph with 
                             |FSharpGlyph.Union|FSharpGlyph.Module | FSharpGlyph.EnumMember -> completionLines.Add (new CompletionLine(it)) 
                             | _ -> if not onlyDU then                                         completionLines.Add (new CompletionLine(it))

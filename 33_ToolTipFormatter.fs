@@ -12,6 +12,7 @@ open System.Text.RegularExpressions
 open FSharp.Compiler.SourceCodeServices
 
 
+/// taken and adapeted from FsAutoComplete
 module XmlToolTipFormatter =
 
     module private Section =
@@ -44,8 +45,8 @@ module XmlToolTipFormatter =
             else
                 addSection name (content |> String.concat nl)
 
-    // TODO: Improve this parser. Is there any other XmlDoc parser available?
-    type private XmlDocMember(doc: XmlDocument, indentationSize : int, columnOffset : int) =
+    // TODO: Improve this parser. Is there any other XmlDoc parser available?    
+    type XmlDocMember(doc: XmlDocument, indentationSize : int, columnOffset : int) =
         let nl = Environment.NewLine
         /// References used to detect if we should remove meaningless spaces
         let tabsOffset = String.replicate (columnOffset + indentationSize) " "
@@ -69,24 +70,23 @@ module XmlToolTipFormatter =
                         let table = c.Substring(tableIndex)
                         let rows = Regex.Matches(c, "<th>").Count
                         let table =
-                            table.Replace(nl, "")
-                                .Replace("\n", "")
-                                .Replace("<table>", "")
-                                .Replace("</table>", "")
-                                .Replace("<thead>", "")
-                                .Replace("</thead>", (String.replicate rows "| --- "))
-                                .Replace("<tbody>", nl)
-                                .Replace("</tbody>", "")
-                                .Replace("<tr>", "")
-                                .Replace("</tr>", "|" + nl)
-                                .Replace("<th>", "|")
-                                .Replace("</th>", "")
-                                .Replace("<td>", "|")
-                                .Replace("</td>", "")
+                            table.Replace(nl        , "")
+                                .Replace("\n"       , "")
+                                .Replace("<table>"  , "")
+                                .Replace("</table>" , "")
+                                .Replace("<thead>"  , "")
+                                .Replace("</thead>" , (String.replicate rows "| --- "))
+                                .Replace("<tbody>"  , nl)
+                                .Replace("</tbody>" , "")
+                                .Replace("<tr>"     , "")
+                                .Replace("</tr>"    , "|" + nl)
+                                .Replace("<th>"     , "|")
+                                .Replace("</th>"    , "")
+                                .Replace("<td>"     , "|")
+                                .Replace("</td>"    , "")
                         start + nl + nl + nl + nl + table
                     else
                         c
-
 
                 s.Replace("\r\n", "\n").Split('\n')
                 |> Array.map(fun line ->
@@ -106,6 +106,8 @@ module XmlToolTipFormatter =
         let readRemarks (doc : XmlDocument) =
             doc.DocumentElement.GetElementsByTagName "remarks"
             |> Seq.cast<XmlNode>
+        
+        // TODO make lazy (on demand)for performance?
 
         let rawSummary = doc.DocumentElement.ChildNodes.[0]
         let rawPars = readChildren "param" doc
@@ -154,6 +156,7 @@ module XmlToolTipFormatter =
       let acc' =
         match reader.Read() with
         | false -> indentationSize, None
+        
         // Assembly is the first node in the XML and is at least always indended by 1 "tab"
         // So we used it as a reference to detect the tabs sizes
         // This is needed because `netstandard.xml` use 2 spaces tabs
@@ -162,20 +165,24 @@ module XmlToolTipFormatter =
             let xli : IXmlLineInfo = (box reader) :?> IXmlLineInfo
             // - 2 : allow us to detect the position before the < char
             xli.LinePosition - 2, Some acc
+        
         | true when reader.Name = "member" && reader.NodeType = XmlNodeType.Element ->
-          try
-            // We detect the member LinePosition so we can calculate the meaningless spaces later
-            let xli : IXmlLineInfo = (box reader) :?> IXmlLineInfo
-            let key = reader.GetAttribute("name")
-            use subReader = reader.ReadSubtree()
-            let doc = XmlDocument()
-            doc.Load(subReader)
-            // - 3 : allow us to detect the last indentation position
-            // This isn't intuitive but from my tests this is what works
-            indentationSize, acc |> Map.add key (XmlDocMember(doc, indentationSize, xli.LinePosition - 3)) |> Some
-          with
-          | ex ->
-            indentationSize, Some acc
+              let mutable key = "??" // for error logging
+              try
+                // We detect the member LinePosition so we can calculate the meaningless spaces later
+                let xli : IXmlLineInfo = (box reader) :?> IXmlLineInfo
+                key <- reader.GetAttribute("name")                
+                use subReader = reader.ReadSubtree()
+                let doc = XmlDocument()
+                doc.Load(subReader)
+                // - 3 : allow us to detect the last indentation position
+                // This isn't intuitive but from my tests this is what works
+                indentationSize, acc |> Map.add key (XmlDocMember(doc, indentationSize, xli.LinePosition - 3)) |> Some
+              with
+              | ex ->
+                Log.printf "***Inner Error in reading xml file for tooltips, Current Name:\r\n%s" key
+                Log.printf "%s" ex.Message
+                indentationSize, Some acc
         | _ -> indentationSize, Some acc
 
       match acc' with
@@ -184,7 +191,7 @@ module XmlToolTipFormatter =
 
     let private xmlDocCache = Collections.Concurrent.ConcurrentDictionary<string, Map<string, XmlDocMember>>()
 
-    let private getXmlDoc dllFile =
+    let (* private *) getXmlDoc dllFile =
         let xmlFile = Path.ChangeExtension(dllFile, ".xml")
         //Workaround for netstandard.dll
         let xmlFile =
@@ -195,57 +202,63 @@ module XmlToolTipFormatter =
         if xmlDocCache.ContainsKey xmlFile then
           Some xmlDocCache.[xmlFile]
         else
-          let rec exists filePath tryAgain =
-            match File.Exists filePath, tryAgain with
-            | true, _ -> Some filePath
-            | false, false -> None
-            | false, true ->
-              // In Linux, we need to check for upper case extension separately
-              let filePath = Path.ChangeExtension(filePath, Path.GetExtension(filePath).ToUpper())
-              exists filePath false
+            //async{                
+                let rec exists filePath tryAgain =
+                    match File.Exists filePath, tryAgain with
+                    | true, _ -> Some filePath
+                    | false, false -> None
+                    | false, true ->
+                        // In Linux, we need to check for upper case extension separately
+                        let filePath = Path.ChangeExtension(filePath, Path.GetExtension(filePath).ToUpper())
+                        exists filePath false
 
-          match exists xmlFile true with
-          | None -> None
-          | Some actualXmlFile ->
-            // Prevent other threads from trying to add the same doc simultaneously
-            xmlDocCache.AddOrUpdate(xmlFile, Map.empty, fun _ _ -> Map.empty) |> ignore
-            try
-              let cnt = File.ReadAllText actualXmlFile
-              //Workaround for netstandard xmlDoc
-              let cnt =
-                if actualXmlFile.Contains "netstandard.xml" then
-                    let cnt = Regex.Replace(cnt,"""(<p .*?>)+(.*)(<\/?p>)*""", "$2")
-                    cnt.Replace("<p>", "").Replace("</p>", "").Replace("<br>", "")
-                else
-                    cnt
-              use stringReader = new StringReader(cnt)
-              use reader = XmlReader.Create stringReader
-              let xmlDoc = readXmlDoc reader 0 Map.empty
-              xmlDocCache.AddOrUpdate(xmlFile, xmlDoc, fun _ _ -> xmlDoc) |> ignore
-              Some xmlDoc
-            with ex ->
-              None  // TODO: Remove the empty map from cache to try again in the next request?
+                match exists xmlFile true with
+                | None -> None
+                | Some actualXmlFile ->
+                // Prevent other threads from trying to add the same doc simultaneously
+                xmlDocCache.AddOrUpdate(xmlFile, Map.empty, fun _ _ -> Map.empty) |> ignore
+                try
+                    //Log.printf "reading %s" actualXmlFile
+                    let cnt = File.ReadAllText actualXmlFile 
+                    let cnt = 
+                        if actualXmlFile.Contains "netstandard.xml" then //Workaround for netstandard xmlDoc
+                            let cnt = Regex.Replace(cnt,"""(<p .*?>)+(.*)(<\/?p>)*""", "$2")
+                            cnt.Replace("<p>", "").Replace("</p>", "").Replace("<br>", "")
+                        else
+                            cnt              
+                    use stringReader = new StringReader(cnt)
+                    use reader = XmlReader.Create stringReader
+                    let xmlDoc = readXmlDoc reader 0 Map.empty
+                    xmlDocCache.AddOrUpdate(xmlFile, xmlDoc, fun _ _ -> xmlDoc) |> ignore
+                    Some xmlDoc
+                with ex ->
+                    Log.printf "***Error in reading xml file %s \r\nfor tooltips: %s" actualXmlFile ex.Message
+                    None  // TODO: Remove the empty map from cache to try again in the next request?
+                //} Async.
 
     // --------------------------------------------------------------------------------------
     // Formatting of tool-tip information displayed in F# IntelliSense
     // --------------------------------------------------------------------------------------
-    let private buildFormatComment cmt (isEnhanced : bool) (typeDoc: string option) =
+    let  buildFormatComment (cmt:FSharpXmlDoc) (isEnhanced : bool) (typeDoc: string option) =
         match cmt with
         | FSharpXmlDoc.Text s -> s
         | FSharpXmlDoc.XmlDocFileSignature(dllFile, memberName) ->
             match getXmlDoc dllFile with
-            | Some doc when doc.ContainsKey memberName ->
-                let typeDoc =
-                    match typeDoc with
-                    | Some s when doc.ContainsKey s ->
-                        if isEnhanced then doc.[s].ToEnhancedString() else string doc.[s]
-                    | _ -> ""
-                let typeDoc = typeDoc.Replace("**Description**", "**Type Description**")
-                if isEnhanced then
-                    doc.[memberName].ToEnhancedString() + (if typeDoc <> "" then "\n\n" + typeDoc else "")
-                else
-                    string doc.[memberName] + (if typeDoc <> "" then "\n\n" + typeDoc else "")
-            | _ -> ""
+            | Some doc ->
+                if doc.ContainsKey memberName then
+                    let typeDoc =
+                        match typeDoc with
+                        | Some s when doc.ContainsKey s ->
+                            if isEnhanced then doc.[s].ToEnhancedString() else string doc.[s]
+                        | _ -> ""
+                    let typeDoc = typeDoc.Replace("**Description**", "**Type Description**")
+                    if isEnhanced then
+                        doc.[memberName].ToEnhancedString() + (if typeDoc <> "" then "\n\n" + typeDoc else "")
+                    else
+                        string doc.[memberName] + (if typeDoc <> "" then "\n\n" + typeDoc else "")
+                else 
+                    sprintf "'%s' not found in doc"memberName
+            | None -> ""
         | _ -> ""
 
     let private buildFormatDocumentation cmt =
@@ -257,7 +270,6 @@ module XmlToolTipFormatter =
                 doc.[memberName].ToDocumentationString()
            | _ -> ""
         | _ -> ""
-
 
     let private formatGenericParamInfo cmt =
       let m = Regex.Match(cmt, """(.*) is (.*)""")
