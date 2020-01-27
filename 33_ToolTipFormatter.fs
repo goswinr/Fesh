@@ -37,12 +37,12 @@ module XmlToolTipFormatter =
 
 
 
-        let fromMap (name : string) (content : Map<string, string>) =
+        let fromMap (name : string) (content : Map<int*string, string>) =
             if content.Count = 0 then
                 ""
             else
                 //addSection name (content |> Seq.map (fun kv -> "* `" + kv.Key + "`" + ": " + kv.Value) |> String.concat nl) //original markdown
-                addSection name (content |> Seq.map (fun kv -> "• `" + kv.Key + "`" + ": " + kv.Value) |> String.concat nl)
+                addSection name (content |> Seq.map (fun kv -> "• `" + snd kv.Key + "`" + ": " + kv.Value) |> String.concat nl)
 
         let fromOption (name : string) (content : string option) =
             if content.IsNone then
@@ -111,7 +111,8 @@ module XmlToolTipFormatter =
         let readChildren name (doc: XmlDocument) =
             doc.DocumentElement.GetElementsByTagName name
             |> Seq.cast<XmlNode>
-            |> Seq.map (fun node -> node.Attributes.[0].InnerText.Replace("T:",""), node)
+            |> Seq.indexed
+            |> Seq.map (fun (i,node) -> (i, node.Attributes.[0].InnerText.Replace("T:","")), node) //add an int to keep order of insertion wen iterating
             |> Map.ofSeq
 
         let readRemarks (doc : XmlDocument) =
@@ -132,18 +133,18 @@ module XmlToolTipFormatter =
 
 
         let summary = readContentForTooltip rawSummary
-        let pars = rawPars |> Map.map (fun _ n -> readContentForTooltip n)
-        let remarks = rawRemarks |> Seq.map readContentForTooltip
-        let exceptions = rawExceptions |> Map.map (fun _ n -> readContentForTooltip n)
-        let typeParams = rawTypeParams |> Map.map (fun _ n -> readContentForTooltip n)
-        let returns = rawReturs |> Option.map readContentForTooltip
+        let pars = rawPars              |> Map.map (fun _ n -> readContentForTooltip n)
+        let remarks = rawRemarks        |> Seq.map readContentForTooltip
+        let exceptions = rawExceptions  |> Map.map (fun _ n -> readContentForTooltip n)
+        let typeParams = rawTypeParams  |> Map.map (fun _ n -> readContentForTooltip n)
+        let returns = rawReturs         |> Option.map readContentForTooltip
 
         override x.ToString() =
             summary + nl + nl +
-            (pars |> Seq.map (fun kv -> "`" + kv.Key + "`" + ": " + kv.Value) |> String.concat nl) +
+            (pars |> Seq.map (fun kv -> "`" + snd kv.Key + "`" + ": " + kv.Value) |> String.concat nl) +
             (if exceptions.Count = 0 then ""
              else nl + nl + "Exceptions:" + nl +
-                    (exceptions |> Seq.map (fun kv -> "\t" + "`" + kv.Key + "`" + ": " + kv.Value) |> String.concat nl))
+                    (exceptions |> Seq.map (fun kv -> "\t" + "`" + snd kv.Key + "`" + ": " + kv.Value) |> String.concat nl))
 
         member __.ToEnhancedString() =
             "" // "**Description**" + nl + nl  //original markdown
