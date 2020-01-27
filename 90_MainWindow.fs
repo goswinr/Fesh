@@ -18,6 +18,11 @@ module MainWindow =
 
     let create (args: string []) = 
         let timer = Timer()
+
+        Environment.SetEnvironmentVariable ("FCS_ParseFileCacheSize", "5") 
+        // http://fsharp.github.io/FSharp.Compiler.Service/caches.html
+        //https://github.com/fsharp/FSharp.Compiler.Service/blob/71272426d0e554e0bac32ad349bbd9f5fa8a3be9/src/fsharp/service/service.fs#L35
+
         let win = new Window()
         
         win.Title       <-"Seff | FSharp Scripting Editor"
