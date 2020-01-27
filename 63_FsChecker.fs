@@ -36,12 +36,17 @@ module FsChecker =
                 | None -> "UnSavedFile.fsx" // .fsx file required by FCS , oddly !
 
                    
-            let ch = match checker with  |Some c -> c  |None -> FSharpChecker.Create() //TODO default options OK? TODO one checker for serveral files or several checkers ?
-            checker <- Some ch
+            match checker with  
+            |Some _ -> ()  
+            |None -> 
+                let ch = FSharpChecker.Create(suggestNamesForErrors=true) //TODO default options OK? 
+                // "you should generally use one global, shared FSharpChecker for everything in an IDE application." from http://fsharp.github.io/FSharp.Compiler.Service/caches.html
+                Environment.SetEnvironmentVariable ("FCS_ParseFileCacheSize", "5") // done on startup
+                checker <- Some ch
             
             try
                 let sourceText = Text.SourceText.ofString code
-                let! options, optionsErr = ch.GetProjectOptionsFromScript(fileFsx,sourceText, otherFlags = [| "--langversion:preview" |] ) //TODO really use check file in project for scripts??
+                let! options, optionsErr = checker.Value.GetProjectOptionsFromScript(fileFsx, sourceText, otherFlags = [| "--langversion:preview" |] ) //TODO really use check file in project for scripts??
                 for e in optionsErr do Log.printf "*Script Options Error: %A" e
             
                 // "filename">The name of the file in the project whose source is being checked
@@ -83,7 +88,7 @@ module FsChecker =
                         SourceFiles: {string[1]}
                         *)
                 try
-                    let! parseRes , checkAnswer = ch.ParseAndCheckFileInProject(fileFsx, 0, sourceText, options) // can also be done in two speterate calls   //TODO really use check file in project for scripts??         
+                    let! parseRes , checkAnswer = checker.Value.ParseAndCheckFileInProject(fileFsx, 0, sourceText, options) // can also be done in two speterate calls   //TODO really use check file in project for scripts??         
                     match checkAnswer with
                     | FSharpCheckFileAnswer.Succeeded checkRes ->   
                         return {ok=true; parseRes=parseRes;  checkRes=checkRes;  code=code}
@@ -138,7 +143,7 @@ module FsChecker =
             return decls
             } 
     
-    let getDeclListSymbols (parseRes :FSharpParseFileResults, checkRes :FSharpCheckFileResults, pos :PositionInCode, ifDotSetback)  =        
+    let getDeclListSymbols (parseRes :FSharpParseFileResults, checkRes :FSharpCheckFileResults, pos :PositionInCode, ifDotSetback)  = 
         //see https://stackoverflow.com/questions/46980690/f-compiler-service-get-a-list-of-names-visible-in-the-scope
         //and https://github.com/fsharp/FSharp.Compiler.Service/issues/835
         async{
@@ -155,9 +160,6 @@ module FsChecker =
                     ( fun _ -> [] )     // getAllEntities: (unit -> AssemblySymbol list) 
                     ) 
             //if decls.IsError then Log.printf "*ERROR in GetDeclarationListInfo: %A" decls
-            for ds in decls do
-                for d in ds do
-                    d.Symbol.Assembly|> ignore
-            
             return decls
             } 
+        

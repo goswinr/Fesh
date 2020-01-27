@@ -132,18 +132,27 @@ module FsService =
                     if chr.ok && Tab.isCurr tab then                        
                         //Log.printf "*2-prepareAndShowComplWin geting completions"
                         let ifDotSetback = if charBefore = Dot then setback else 0
-                        let! decls = FsChecker.getDeclListInfo (chr.parseRes , chr.checkRes , pos , ifDotSetback)
+                        let! decls     = FsChecker.getDeclListInfo    (chr.parseRes , chr.checkRes , pos , ifDotSetback) //TODO, can this be avoided use info from below symbol call ?
                         
+                        //find optional arguments too:
+                        let! declSymbs = FsChecker.getDeclListSymbols (chr.parseRes , chr.checkRes , pos , ifDotSetback) // only for optional parmeter info ?
+                        let optArgDict = Dictionary()
+                        for symbs in declSymbs do 
+                            for symb in symbs do 
+                                let opts = Tooltips.infoAboutOptinals symb
+                                if opts.Count>0 then 
+                                    optArgDict.[symb.Symbol.FullName]<- opts
+
                         do! Async.SwitchToContext Sync.syncContext
+
                         let completionLines = ResizeArray<ICompletionData>()                                
-                        if not onlyDU && charBefore = NotDot then // add keywords to list
-                            completionLines.AddRange keywordsComletionLines 
-                        for it in decls.Items do 
-                            
+                        if not onlyDU && charBefore = NotDot then   completionLines.AddRange keywordsComletionLines  // add keywords to list
+                        for it in decls.Items do
                             match it.Glyph with 
-                            |FSharpGlyph.Union|FSharpGlyph.Module | FSharpGlyph.EnumMember -> completionLines.Add (new CompletionLine(it)) 
-                            | _ -> if not onlyDU then                                         completionLines.Add (new CompletionLine(it))
-                                
+                            |FSharpGlyph.Union|FSharpGlyph.Module | FSharpGlyph.EnumMember -> completionLines.Add (new CompletionLine(it,optArgDict)) 
+                            | _ -> if not onlyDU then                                         completionLines.Add (new CompletionLine(it,optArgDict))
+                        
+
                         tab.Editor.Cursor <- prevCursor
                         if Tab.isCurr tab then
                             //Log.printf "*prepareAndShowComplWin for '%s' with offset %d" pos.lineToCaret setback                            

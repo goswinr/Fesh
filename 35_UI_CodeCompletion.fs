@@ -11,10 +11,11 @@ open ICSharpCode.AvalonEdit.Editing
 open ICSharpCode.AvalonEdit.Document
 open FSharp.Compiler
 open FSharp.Compiler.SourceCodeServices
+open System.Collections.Generic
 
 module CompletionUI =
     
-    type CompletionLine (it:FSharpDeclarationListItem) =
+    type CompletionLine (it:FSharpDeclarationListItem, optArgsDict:Dictionary<string,ResizeArray<string>>) =
         let col = 
             match it.Glyph with  // does not change coler when selected anymore
             | FSharpGlyph.Class
@@ -60,13 +61,13 @@ module CompletionUI =
             tb
     
         member this.Content = tb :> obj
-        member this.Description = //this gets call on demand only, not when filling the list.
-            it.StructuredDescriptionText |> Tooltips.formated |> Tooltips.stackPanel (Some it) :> obj
-            //async{
-            //    let! stt = it.StructuredDescriptionTextAsync
-            //    let ttds = Tooltips.formated stt
-            //    do! Async.SwitchToContext Sync.syncContext
-            //    return Tooltips.stackPanel ttds} |> Async.RunSynchronously :> obj // this will cause the UI to hang
+        member this.Description = // this gets called on demand only, not when initally filling the list.
+            let raw = it.StructuredDescriptionText
+            let structured = 
+                if optArgsDict.ContainsKey it.FullName then  Tooltips.formated (raw, optArgsDict.[it.FullName])
+                else                                         Tooltips.formated (raw, ResizeArray(0))
+            Tooltips.stackPanel (Some it) structured :> obj
+            
 
         member this.Image = null
         member this.Priority = prio

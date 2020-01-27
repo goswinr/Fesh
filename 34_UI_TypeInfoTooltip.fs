@@ -15,6 +15,7 @@ open FSharp.Compiler
 open FSharp.Compiler.SourceCodeServices
 
 
+
 module Tooltips = 
     open System.Windows.Input
     open System.Windows.Documents
@@ -107,7 +108,14 @@ module Tooltips =
                 Error ("*xml doc file not found for: "+dllFile+"\r\n")
 
 
-    let formated (sdtt: FSharpStructuredToolTipText) = 
+
+    let addQuestionmark (optArgs:ResizeArray<string>) (txt:string) = 
+        let mutable res = txt
+        for arg in optArgs do 
+            res <- res.Replace(arg, "?"+arg)
+        res
+
+    let formated (sdtt: FSharpStructuredToolTipText, optArgs:ResizeArray<string>) = 
         match sdtt with
         |FSharpToolTipText(els) ->
             match els with
@@ -115,27 +123,32 @@ module Tooltips =
             |els -> 
                 [ for el in els do 
                     match el with 
-                    | FSharpStructuredToolTipElement.None ->                    yield {name = ""; signature= ""; xmlDocStr = Error "*FSharpStructuredToolTipElement.None*"}
+                    | FSharpStructuredToolTipElement.None ->                    yield {name = ""; signature= ""; xmlDocStr = Error  "*FSharpStructuredToolTipElement.None*"}
                     | FSharpStructuredToolTipElement.CompositionError(text) ->  yield {name = ""; signature= ""; xmlDocStr = Error ("*FSharpStructuredToolTipElement.CompositionError: "+ text)}
                     | FSharpStructuredToolTipElement.Group(layouts) -> 
-                        for layout in layouts do                            
+                        for layout in layouts do 
                             yield { name =     Option.defaultValue "" layout.ParamName
-                                    signature= Layout.showL layout.MainDescription
+                                    signature= Layout.showL layout.MainDescription   |> addQuestionmark optArgs                                 
                                     xmlDocStr = buildFormatComment layout.XmlDoc}
                 ]
             
-
-                        //|> List.map (fun layout -> Option.defaultValue "noParamName" layout.ParamName)
-                       // |> List.map (fun layout ->  Layout.showL layout.MainDescription + "\r\n" + buildFormatComment layout.XmlDoc)
-                        //|> List.map (fun layout -> Option.map Layout.showL layout.Remarks |> Option.defaultValue "noRemarks")
-                        //|> String.concat "\r\n-------------------------------------------------------------------\r\n" // line between overloads
-                //sprintf "%s%s" tx eltxt) "" 
-    
  
 
     // --------------------------------------------------------------------------------------
     // Seff Type info ToolTip:
     // --------------------------------------------------------------------------------------
+
+    let infoAboutOptinals(fsu:FSharpSymbolUse)=
+        let D = ResizeArray<string>(0)               
+        match fsu.Symbol with
+        | :? FSharpMemberOrFunctionOrValue as x ->
+            for cs in x.CurriedParameterGroups do
+                for c in cs do 
+                    if c.IsOptionalArg then                         
+                        D.Add c.FullName
+                        //Log.printf "optional full name: %s" c.FullName
+        | _ -> ()
+        D
 
     let TextEditorMouseHover( e: MouseEventArgs) =
         // see https://github.com/icsharpcode/AvalonEdit/blob/master/ICSharpCode.AvalonEdit/Editing/SelectionMouseHandler.cs#L477
@@ -176,11 +189,14 @@ module Tooltips =
                         // <param name="userOpName">An optional string used for tracing compiler operations associated with this request.</param>    
                         
                         do! Async.SwitchToThreadPool()
-                        let! stt = tab.FsCheckerResult.Value.GetStructuredToolTipText(line,endCol,lineTxt,[word],FSharpTokenTag.Identifier)
-                        //let! decl = tab.FsCheckerResult.Value.GetDeclarationListInfo TODO get info about oprional paramters
-                        let ttds = formated stt
+
+                        let! stt =   tab.FsCheckerResult.Value.GetStructuredToolTipText(line,endCol,lineTxt,[word],FSharpTokenTag.Identifier)     //TODO, can this be avoided use info from below symbol call ?
+                        let! symbls = tab.FsCheckerResult.Value.GetSymbolUseAtLocation(line,endCol,lineTxt,[word]) //only get info about oprional paramters
+                        let defArgs = if symbls.IsSome then infoAboutOptinals(symbls.Value) else ResizeArray(0) 
+                        
                         do! Async.SwitchToContext Sync.syncContext
 
+                        let ttds = formated (stt, defArgs)
                         if List.isEmpty ttds then
                             tab.TypeInfoToolTip.IsOpen <- false
                         else                            
@@ -189,6 +205,7 @@ module Tooltips =
                                 tab.TypeInfoToolTip.Content <- ttPanel
                         } |> Async.StartImmediate //TODO: add Cancellation ?
           
+
                 
 
     let TextEditorMouseHoverStopped( e: MouseEventArgs) = 
