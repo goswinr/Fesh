@@ -19,7 +19,7 @@ module XmlToolTipFormatter =
 
         let inline nl<'T> = Environment.NewLine
 
-        let inline private addSection (name : string) (content : string) =
+        let inline private addSectionOriginal (name : string) (content : string) = //original markdown
             if name <> "" then
                 nl + nl
                 + "**" + name + "**"
@@ -27,11 +27,22 @@ module XmlToolTipFormatter =
             else
                 nl + nl + content
 
+        let inline private addSection (name : string) (content : string) =
+            if name <> "" then
+                nl + nl
+                + name + ":"
+                + nl + content
+            else
+                nl + nl +  content
+
+
+
         let fromMap (name : string) (content : Map<string, string>) =
             if content.Count = 0 then
                 ""
             else
-                addSection name (content |> Seq.map (fun kv -> "* `" + kv.Key + "`" + ": " + kv.Value) |> String.concat nl)
+                //addSection name (content |> Seq.map (fun kv -> "* `" + kv.Key + "`" + ": " + kv.Value) |> String.concat nl) //original markdown
+                addSection name (content |> Seq.map (fun kv -> "• `" + kv.Key + "`" + ": " + kv.Value) |> String.concat nl)
 
         let fromOption (name : string) (content : string option) =
             if content.IsNone then
@@ -135,7 +146,7 @@ module XmlToolTipFormatter =
                     (exceptions |> Seq.map (fun kv -> "\t" + "`" + kv.Key + "`" + ": " + kv.Value) |> String.concat nl))
 
         member __.ToEnhancedString() =
-            "**Description**" + nl + nl
+            "" // "**Description**" + nl + nl  //original markdown
             + summary
             + Section.fromList "" remarks
             + Section.fromMap "Type parameters" typeParams

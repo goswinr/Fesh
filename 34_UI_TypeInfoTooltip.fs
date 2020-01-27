@@ -27,7 +27,7 @@ module Tooltips =
     // make a fancy tooltip:
     let stackPanel  (it:FSharpDeclarationListItem option) (tds:ToolTipData list) = 
         let mutable assembly = ""
-        makePanelVert [
+        let stackPanel = makePanelVert [
             if it.IsSome then 
                 let glyph = sprintf "%A" it.Value.Glyph
                 let tb = new TextBlock(Text = glyph)
@@ -44,7 +44,7 @@ module Tooltips =
                     if td.name <> "" then 
                         let tb = new TextBlock(Text= "Name:" + td.name)
                         tb.Foreground <- Brushes.Black
-                        tb.FontSize <- Appearance.fontSize * 1.2
+                        tb.FontSize <- Appearance.fontSize * 0.9
                         tb.FontFamily <- Appearance.defaultFont
                         tb.FontWeight <- FontWeights.Bold
                         yield tb 
@@ -55,18 +55,18 @@ module Tooltips =
                         tb.FontFamily <- Appearance.defaultFont
                         yield tb
                 
-                    let color, txt,scale  = 
+                    let color, txt, scale  = 
                         match td.xmlDocStr with 
                         |Ok (txt,ass)     -> 
                             if ass <>"" then assembly <- ass
-                            Brushes.DarkBlue, txt, 1.1  //SolidColorBrush(Color.FromRgb(40uy,40uy,40uy))
+                            Brushes.DarkBlue, txt, 1.0  
                         |Error errTxt  -> 
                             Brushes.Gray, errTxt, 0.75
                     let tb = new TextBlock(Text= txt.Trim() )
                     tb.FontSize <- Appearance.fontSize * scale
-                    tb.Foreground <- color
-                    //tb.FontFamily <- new FontFamily ("Arial") // or use default of device
+                    tb.Foreground <- color                    
                     yield tb ]
+
                 let border = Border()
                 border.Child <- subPanel
                 border.BorderThickness <- Thickness(1.0)
@@ -77,11 +77,12 @@ module Tooltips =
             
             if assembly<>"" then 
                 let tb = new TextBlock(Text= "assembly:\r\n"+assembly)
-                tb.FontSize <- Appearance.fontSize * 0.85
+                tb.FontSize <- Appearance.fontSize * 0.80
                 tb.Foreground <- Brushes.Black
                 //tb.FontFamily <- new FontFamily ("Arial") // or use default of device
                 yield tb :> UIElement
                 ]
+        ScrollViewer(Content=stackPanel)
     
   
     // --------------------------------------------------------------------------------------
@@ -96,8 +97,8 @@ module Tooltips =
            match XmlToolTipFormatter.getXmlDoc dllFile with
            | Some doc ->
                 if doc.ContainsKey memberName then 
-                    //let docText = doc.[memberName].ToEnhancedString()
-                    let docText =  string doc.[memberName]
+                    let docText = doc.[memberName].ToEnhancedString()
+                    //let docText =  doc.[memberName].ToString()
                     Ok (docText  , dllFile)
                 else 
                     let xmlf = Path.ChangeExtension(dllFile, ".xml")
@@ -112,7 +113,7 @@ module Tooltips =
     let addQuestionmark (optArgs:ResizeArray<string>) (txt:string) = 
         let mutable res = txt
         for arg in optArgs do 
-            res <- res.Replace(arg, "?"+arg)
+            res <- res.Replace(" "+arg+":", " ?"+arg+":")
         res
 
     let formated (sdtt: FSharpStructuredToolTipText, optArgs:ResizeArray<string>) = 
@@ -169,7 +170,9 @@ module Tooltips =
                 if startOffset < endOffset then // to skip empty lines
                     tab.TypeInfoToolTip.Content <- "*loading type info ..."
                     tab.TypeInfoToolTip.PlacementTarget <- ed // required for property inheritance
-                    tab.TypeInfoToolTip.IsOpen <- true            
+                    tab.TypeInfoToolTip.IsOpen <- true 
+                    tab.TypeInfoToolTip.StaysOpen <- true
+                    
                     //e.Handled <- true // HACK. don't se handeled! so that on type errors the  Error tooltip still gets shown after this tooltip
 
                     let docLine = doc.GetLineByOffset(offset)
