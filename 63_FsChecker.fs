@@ -118,7 +118,7 @@ module FsChecker =
             return res
             }
 
-    let complete (parseRes :FSharpParseFileResults, checkRes :FSharpCheckFileResults, pos :PositionInCode, ifDotSetback)  =        
+    let getDeclListInfo (parseRes :FSharpParseFileResults, checkRes :FSharpCheckFileResults, pos :PositionInCode, ifDotSetback)  =        
         //see https://stackoverflow.com/questions/46980690/f-compiler-service-get-a-list-of-names-visible-in-the-scope
         //and https://github.com/fsharp/FSharp.Compiler.Service/issues/835
         async{
@@ -137,4 +137,27 @@ module FsChecker =
             if decls.IsError then Log.printf "*ERROR in GetDeclarationListInfo: %A" decls
             return decls
             } 
-        
+    
+    let getDeclListSymbols (parseRes :FSharpParseFileResults, checkRes :FSharpCheckFileResults, pos :PositionInCode, ifDotSetback)  =        
+        //see https://stackoverflow.com/questions/46980690/f-compiler-service-get-a-list-of-names-visible-in-the-scope
+        //and https://github.com/fsharp/FSharp.Compiler.Service/issues/835
+        async{
+            let colSetBack = pos.column - ifDotSetback
+            let partialLongName = QuickParse.GetPartialLongNameEx(pos.lineToCaret, colSetBack - 1) //- 1) ??TODO is minus one correct ? https://github.com/fsharp/FSharp.Compiler.Service/issues/837
+            //Log.printf "GetPartialLongNameEx on: '%s' setback: %d is:\r\n%A" pos.lineToCaret colSetBack partialLongName  
+            //Log.printf "GetDeclarationListInfo on: '%s' row: %d, col: %d, colSetBack:%d, ifDotSetback:%d\r\n" pos.lineToCaret pos.row pos.column colSetBack ifDotSetback          
+            let! decls = 
+                checkRes.GetDeclarationListSymbols(
+                    Some parseRes,      // ParsedFileResultsOpt
+                    pos.row,            // line                   
+                    pos.lineToCaret ,   // lineText
+                    partialLongName,    // PartialLongName
+                    ( fun _ -> [] )     // getAllEntities: (unit -> AssemblySymbol list) 
+                    ) 
+            //if decls.IsError then Log.printf "*ERROR in GetDeclarationListInfo: %A" decls
+            for ds in decls do
+                for d in ds do
+                    d.Symbol.Assembly|> ignore
+            
+            return decls
+            } 
