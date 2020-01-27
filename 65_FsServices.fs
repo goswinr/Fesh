@@ -47,7 +47,8 @@ module FsService =
 
     let inline cleartoken(checkerId) =
         let ok,_ = FsCheckerCancellationSources.TryRemove(checkerId)
-        if not ok then Log.printf "Failed to remove token '%d' from  FsCheckerCancellationSources" checkerId
+        if not ok && checkerId<> 0 then Log.printf "Failed to remove token '%d' from  FsCheckerCancellationSources" checkerId
+        ()
 
     let checkForErrorsAndUpdateFoldings (tab:FsxTab, checkDone : Option<FsCheckResults> ) = 
         //Log.printf "*checkForErrorsAndUpdateFoldings..."
@@ -98,7 +99,7 @@ module FsService =
                 }|> Async.StartImmediate            
         
         match checkDone with 
-        |Some chr -> 
+        |Some chr ->             
             highlightErrors (chr)
         
         |None ->
@@ -106,7 +107,7 @@ module FsService =
             tab.FsCheckerRunning <- checkerId                 
             
             let cancelScr = new CancellationTokenSource()
-            if not <| FsCheckerCancellationSources.TryAdd(checkerId,cancelScr) then Log.dlog "Failed to collect FsCheckerCancellationSources" 
+            if not <| FsCheckerCancellationSources.TryAdd(checkerId,cancelScr) then Log.dlog "Failed to add FsCheckerCancellationSources" 
             
             Async.StartWithContinuations(
                     FsChecker.checkAndIndicate (tab, 0 , checkerId),
