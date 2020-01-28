@@ -107,7 +107,7 @@ module FsChecker =
     
     let showChecking (tab:FsxTab, isRunning,checkerId) = //,changedColor) = 
         async {            
-            do! Async.Sleep 200            
+            do! Async.Sleep 300            
             if !isRunning && tab.FsCheckerRunning = checkerId  then // || checkerId=0 //in case of completion window
                 do! Async.SwitchToContext Sync.syncContext
                 tab.Editor.Background <- Appearance.editorBackgroundChecking

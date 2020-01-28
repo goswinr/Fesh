@@ -56,11 +56,11 @@ module Fsi =
     type Mode   = Sync |Async
 
     let mutable state = Ready
-    let mutable private mode =  Sync
+    let mutable internal mode =  Sync
     
     let mutable private session:FsiEvaluationSession option = None 
     
-    let private startSession (sync:Mode) =    
+    let private startSession () =     
         (*
                 - INPUT FILES -
         --use:<file>                             Use the given file on startup as initial input
@@ -121,14 +121,14 @@ module Fsi =
             timer.tic()
             let inStream = new StringReader("")
             // first arg is ignored: https://github.com/fsharp/FSharp.Compiler.Service/issues/420 and https://github.com/fsharp/FSharp.Compiler.Service/issues/877 and  https://github.com/fsharp/FSharp.Compiler.Service/issues/878            
-            let allArgs = [|"" ; "--langversion:preview" ; "--noninteractive" ; "--debug+"; "--debug:full" ;"--optimize+" ;"--nologo";"--gui-"|] // ; "--shadowcopyreferences" is ignored https://github.com/fsharp/FSharp.Compiler.Service/issues/292           
+            let allArgs = [|"" ; "--langversion:preview" ; "--noninteractive" ; "--debug+"; "--debug:full" ;"--optimize+" ;"--nologo"; "--gui-"|] // ; "--shadowcopyreferences" is ignored https://github.com/fsharp/FSharp.Compiler.Service/issues/292           
             let fsiConfig = FsiEvaluationSession.GetDefaultConfiguration() // https://github.com/dotnet/fsharp/blob/4978145c8516351b1338262b6b9bdf2d0372e757/src/fsharp/fsi/fsi.fs#L2839
             let fsiSession = FsiEvaluationSession.Create(fsiConfig, allArgs, inStream, Log.textwriter, Log.textwriter) //, collectible=false ??) //TODO add error logger window
             AppDomain.CurrentDomain.UnhandledException.Add(fun ex -> Log.print "*** FSI background exception:\r\n %A" ex.ExceptionObject)
             Console.SetOut  (Log.textwriter) //needed to redirect printfn ? //https://github.com/fsharp/FSharp.Compiler.Service/issues/201
             Console.SetError(Log.textwriter) //TODO needed if evaluate non throwing ? 
-            // if mode = Mode.Sync then do! Async.SwitchToContext Sync.syncContext            
-            /// fsiSession.Run()// dont do this it crashes the app !            
+            //if mode = Mode.Sync then do! Async.SwitchToContext Sync.syncContext            
+            //fsiSession.Run()// dont do this it crashes the app !            
             session <- Some fsiSession
             Log.print "* Time for loading FSharp Interactive: %s"  timer.tocEx
             match mode with
@@ -143,14 +143,18 @@ module Fsi =
         async{ 
             state <- Evaluating
             if session.IsNone then 
-                do! startSession mode     // might return on thread pool  
+                do! startSession()     // might return on thread pool  
             
             if mode = Mode.Async then do! Async.SwitchToContext Sync.syncContext
+            UI.log.Background <- Appearance.logBackgroundFsiEvaluating
             Events.started.Trigger() // do always sync
             fsiCancelScr <- Some (new CancellationTokenSource())
             
-            if mode = Mode.Async then do! Async.SwitchToThreadPool()            
-            let choice, errs =  session.Value.EvalInteractionNonThrowing(code,fsiCancelScr.Value.Token)
+            if mode = Mode.Async then do! Async.SwitchToThreadPool() else do! Async.Sleep 50            
+            let choice, errs =  
+                try session.Value.EvalInteractionNonThrowing(code,fsiCancelScr.Value.Token)   // might still throw OperationCanceledException        
+                with e -> Choice2Of2 e , [| |]
+            
             if mode = Mode.Async then do! Async.SwitchToContext Sync.syncContext 
             
             fsiCancelScr <- None
@@ -166,8 +170,8 @@ module Fsi =
             |Choice2Of2 exn ->     
                 match exn with 
                 | :? OperationCanceledException ->
-                    Log.print "**FSI evaluation was cancelled with OperationCanceledException**"
                     Events.canceled.Trigger()
+                    Log.print "**FSI evaluation was cancelled with OperationCanceledException**"                    
                 | :? FsiCompilationException -> 
                     Events.runtimeError.Trigger(exn)
                     Log.print "Compiler Error:"
@@ -183,7 +187,7 @@ module Fsi =
     let private evalThrowingUNUSED(code)=
         async{ 
             state <- Evaluating
-            if session.IsNone then do! startSession mode     // returns on thread pool 
+            if session.IsNone then do! startSession ()     // returns on thread pool 
             
             do! Async.SwitchToContext Sync.syncContext
             Events.started.Trigger() // do always sync
@@ -216,11 +220,6 @@ module Fsi =
             |> Async.StartImmediate
 
  
-
-    
-
-
-
     //-------------- public interface: ---------
 
     type IsCancelOk = Yes|No|NotNeded 
@@ -265,7 +264,7 @@ module Fsi =
     let reset() =         
         cancel()
         UI.log.Clear()
-        startSession (mode)|> Async.StartImmediate 
+        startSession ()|> Async.StartImmediate 
 
 
     let setMode(sync:Mode) =         
@@ -281,12 +280,12 @@ module Fsi =
         match isCancellingOk() with 
         | NotNeded ->            
             mode <- sync
-            startSession (sync) |> Async.StartImmediate
+            startSession () |> Async.StartImmediate
             setConfig()   
         | Yes      -> 
             mode <- sync
             cancel()
-            startSession (sync) |> Async.StartImmediate 
+            startSession () |> Async.StartImmediate 
             setConfig()
         | No  -> () 
 
@@ -303,6 +302,6 @@ module Fsi =
         
     do
         Events.RuntimeError.Add (fun _  -> UI.log.Background <- Appearance.logBackgroundFsiHadError)
-        Events.Started.Add      (fun () -> UI.log.Background <- Appearance.logBackgroundFsiEvaluating)
+        //Events.Started.Add      (fun () -> UI.log.Background <- Appearance.logBackgroundFsiEvaluating) // happens at end of eval in sync mode
         Events.Completed.Add    (fun () -> UI.log.Background <- Appearance.logBackgroundFsiReady)
        

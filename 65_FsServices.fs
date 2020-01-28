@@ -66,7 +66,7 @@ module FsService =
 
         let highlightErrors (chr:FsCheckResults) = 
             cleartoken(checkerId)
-            async{  
+            async{ 
                 do! Async.SwitchToContext Sync.syncContext                
                 if tab.FsCheckerRunning = checkerId && chr.ok && Tab.isCurr tab then
                     tab.FsCheckerResult <- Some chr.checkRes // cache for type info
@@ -83,7 +83,7 @@ module FsService =
                             tab.TextMarkerService.Create(startOffset, length, e.Message+", Error: "+ (string e.ErrorNumber))
                             Packages.checkForMissingPackage tab e startOffset length
 
-                 
+                do! Async.Sleep 500  
                 if tab.FsCheckerRunning = checkerId && Tab.isCurr tab then // another checker migh alredy be started
                     checkerId <- rand.Next()  
                     tab.FsCheckerRunning <- checkerId
@@ -100,21 +100,23 @@ module FsService =
         
         match checkDone with 
         |Some chr ->             
-            highlightErrors (chr)
-        
+            highlightErrors (chr)        
         |None ->
             checkerId <- rand.Next()  
             tab.FsCheckerRunning <- checkerId                 
+            async{  
+                do! Async.Sleep 200               
+                if tab.FsCheckerRunning = checkerId &&  Tab.isCurr tab then
+                    let cancelScr = new CancellationTokenSource()
+                    if not <| FsCheckerCancellationSources.TryAdd(checkerId,cancelScr) then Log.print "Failed to add FsCheckerCancellationSources" 
             
-            let cancelScr = new CancellationTokenSource()
-            if not <| FsCheckerCancellationSources.TryAdd(checkerId,cancelScr) then Log.print "Failed to add FsCheckerCancellationSources" 
-            
-            Async.StartWithContinuations(
-                    FsChecker.checkAndIndicate (tab, 0 , checkerId),
-                    highlightErrors,
-                    (fun ex   -> Log.print "Error in FsChecker.check") ,
-                    (fun cncl -> ()), //Log.print "FsChecker.check cancelled"),
-                    cancelScr.Token)
+                    Async.StartWithContinuations(
+                            FsChecker.checkAndIndicate (tab, 0 , checkerId),
+                            highlightErrors,
+                            (fun ex   -> Log.print "Error in FsChecker.check") ,
+                            (fun cncl -> ()), //Log.print "FsChecker.check cancelled"),
+                            cancelScr.Token)
+                }|> Async.StartImmediate 
         
 
     let prepareAndShowComplWin(tab:FsxTab, pos:FsChecker.PositionInCode , changetype, setback, query, charBefore, onlyDU) = 

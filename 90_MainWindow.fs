@@ -42,7 +42,7 @@ module MainWindow =
             Config.loadRecentFilesMenu Menu.RecentFiles.updateRecentMenue
             //Log.print "** Time for loading recent files and recent menu: %s"  timer.tocEx
             
-            if Config.getBool "asyncFsi" false then Fsi.setMode(Mode.Async) else Fsi.setMode(Mode.Sync) 
+            if Config.getBool "asyncFsi" (Fsi.mode=Async) then Fsi.setMode(Mode.Async) else Fsi.setMode(Mode.Sync) 
 
             //win.Activate() |> ignore // needed ?           
             //Tab.currEditor.Focus() |> ignore // can be null ? needed ?
