@@ -192,8 +192,8 @@ module XmlToolTipFormatter =
                 indentationSize, acc |> Map.add key (XmlDocMember(doc, indentationSize, xli.LinePosition - 3)) |> Some
               with
               | ex ->
-                Log.printf "***Inner Error in reading xml file for tooltips, Current Name:\r\n%s" key
-                Log.printf "%s" ex.Message
+                Log.print "***Inner Error in reading xml file for tooltips, Current Name:\r\n%s" key
+                Log.print "%s" ex.Message
                 indentationSize, Some acc
         | _ -> indentationSize, Some acc
 
@@ -230,7 +230,7 @@ module XmlToolTipFormatter =
                 // Prevent other threads from trying to add the same doc simultaneously
                 xmlDocCache.AddOrUpdate(xmlFile, Map.empty, fun _ _ -> Map.empty) |> ignore
                 try
-                    //Log.printf "reading %s" actualXmlFile
+                    //Log.print "reading %s" actualXmlFile
                     let cnt = File.ReadAllText actualXmlFile 
                     let cnt = 
                         if actualXmlFile.Contains "netstandard.xml" then //Workaround for netstandard xmlDoc
@@ -244,7 +244,7 @@ module XmlToolTipFormatter =
                     xmlDocCache.AddOrUpdate(xmlFile, xmlDoc, fun _ _ -> xmlDoc) |> ignore
                     Some xmlDoc
                 with ex ->
-                    Log.printf "***Error in reading xml file %s \r\nfor tooltips: %s" actualXmlFile ex.Message
+                    Log.print "***Error in reading xml file %s \r\nfor tooltips: %s" actualXmlFile ex.Message
                     None  // TODO: Remove the empty map from cache to try again in the next request?
                 //} Async.
 
