@@ -19,7 +19,7 @@ module Fsi =
         static let runtimeErrorEv   = new Event<Exception>() 
         static let canceledEv       = new Event<unit>() 
         static let completedEv      = new Event<unit>()
-        static let stoppedEv        = new Event<unit>()         
+        static let isReadyEv        = new Event<unit>()         
 
         ///The event that can be triggered  
         static member started = startedEv        
@@ -46,10 +46,10 @@ module Fsi =
         static member Completed = completedEv.Publish
 
         ///The event that can be triggered
-        static member stopped = stoppedEv        
+        static member isReady  = isReadyEv         
         /// This event will be trigger after completion, runtime error or cancelling of Fsi
         [<CLIEvent>]
-        static member Stopped = stoppedEv.Publish
+        static member IsReady  = isReadyEv .Publish
 
     
     type States = Ready|Evaluating
@@ -114,9 +114,9 @@ module Fsi =
         --quotations-debug[+|-]                  Emit debug information in quotations
         --shadowcopyreferences[+|-]              Prevents references from being locked by the F# Interactive process
         *)
-        async{
+        //async{
             //do! Async.SwitchToThreadPool()
-            do! Async.SwitchToContext Sync.syncContext
+            //do! Async.SwitchToContext Sync.syncContext
             let timer = Util.Timer()
             timer.tic()
             let inStream = new StringReader("")
@@ -134,105 +134,94 @@ module Fsi =
             match mode with
             |Sync ->  Log.print "*FSharp Interactive will evaluate synchronously on UI Thread."
             |Async -> Log.print "*FSharp Interactive will evaluate asynchronously on new Thread."
-            }
+            //}
     
     // to be able to cancel running Fsi eval
-    let mutable private  fsiCancelScr :CancellationTokenSource option = None
+    let mutable private thread :Thread option = None
+    //let mutable private fsiCancelScr :CancellationTokenSource option = None
 
     let private eval(code)=
-        async{ 
-            state <- Evaluating
-            if session.IsNone then 
-                do! startSession()     // might return on thread pool  
-            
-            if mode = Mode.Async then do! Async.SwitchToContext Sync.syncContext
-            UI.log.Background <- Appearance.logBackgroundFsiEvaluating
-            Events.started.Trigger() // do always sync
-            fsiCancelScr <- Some (new CancellationTokenSource())
-            
-            if mode = Mode.Async then do! Async.SwitchToThreadPool() else do! Async.Sleep 50            
-            let choice, errs =  
-                try session.Value.EvalInteractionNonThrowing(code,fsiCancelScr.Value.Token)   // might still throw OperationCanceledException        
-                with e -> Choice2Of2 e , [| |]
-            
-            if mode = Mode.Async then do! Async.SwitchToContext Sync.syncContext 
-            
-            fsiCancelScr <- None
-            state<-Ready
-            Events.stopped.Trigger() //reached when canceled ?
-            
-            match choice with //TODO move out !
-            |Choice1Of2 vo -> 
-                Events.completed.Trigger()
-                for e in errs do Log.print "Why Error: %A" e
-                //match vo with None-> () |Some v -> Log.print "Interaction evaluted to %A <%A>" v.ReflectionValue v.ReflectionType
-                
-            |Choice2Of2 exn ->     
-                match exn with 
-                | :? OperationCanceledException ->
-                    Events.canceled.Trigger()
-                    Log.print "**FSI evaluation was cancelled with OperationCanceledException**"                    
-                | :? FsiCompilationException -> 
-                    Events.runtimeError.Trigger(exn)
-                    Log.print "Compiler Error:"
-                    for e in errs do    
-                        Log.print "%A" e
-                | _ ->    
-                    Events.runtimeError.Trigger(exn)
-                    Log.print "Runtime Error: %A" exn
-                
-            } 
-            |> Async.StartImmediate
-
-    let private evalThrowingUNUSED(code)=
-        async{ 
-            state <- Evaluating
-            if session.IsNone then do! startSession ()     // returns on thread pool 
-            
-            do! Async.SwitchToContext Sync.syncContext
-            Events.started.Trigger() // do always sync
-            fsiCancelScr <- Some (new CancellationTokenSource())
+        state <- Evaluating
+        //fsiCancelScr <- Some (new CancellationTokenSource())
+        UI.log.Background <- Appearance.logBackgroundFsiEvaluating
+        Events.started.Trigger() // do always sync
+        if session.IsNone then  startSession()     // sync 
         
-            if mode = Mode.Async then do! Async.SwitchToThreadPool()
-            
-            try
-                //set  FsiEvaluationSession.dummyScriptFileName via reflection to somith other than  "input.fsx" https://github.com/fsharp/FSharp.Compiler.Service/blob/7920db8b67b2b5f4895254a7fb4851fa41cdbbc2/src/fsharp/fsi/fsi.fs#L2466
-                //let prop = session.GetType().GetField("dummyScriptFileName", System.Reflection.BindingFlags.NonPublic ||| System.Reflection.BindingFlags.Instance)
-                //prop.SetValue(session, filename)                           
-                session.Value.EvalInteraction(code,fsiCancelScr.Value.Token)
-                if mode = Mode.Async then do! Async.SwitchToContext Sync.syncContext 
-                Events.completed.Trigger()
-            with 
-            | :? OperationCanceledException ->
-                if mode = Mode.Async then do! Async.SwitchToContext Sync.syncContext 
-                Events.canceled.Trigger()
-                Log.print "**FSI evaluation was cancelled with OperationCanceledException**"
+        let thr = new Thread(fun () ->
+            let a = 
+                async{
+                    if mode = Mode.Sync then do! Async.SwitchToContext Sync.syncContext 
                 
-            | e ->                               
-                if mode = Mode.Async then do! Async.SwitchToContext Sync.syncContext 
-                Events.runtimeError.Trigger(e)
+                    let choice, errs =  
+                        try session.Value.EvalInteractionNonThrowing(code)//,fsiCancelScr.Value.Token)   // cancellation token here fails to cancel in sync, might still throw OperationCanceledException if async       
+                        with e -> Choice2Of2 e , [| |]
             
-            fsiCancelScr <- None
-            state <- Ready                
-            if mode = Mode.Async then do! Async.SwitchToContext Sync.syncContext // not allowed here?
-            Events.stopped.Trigger() 
-            } 
-            |> Async.StartImmediate
+                    if mode = Mode.Async then do! Async.SwitchToContext Sync.syncContext 
+            
+                    thread<-None
+                    state<-Ready //TODO reached when canceled ?                     
+            
+                    match choice with //TODO move out ?
+                    |Choice1Of2 vo -> 
+                        Events.completed.Trigger()
+                        Events.isReady.Trigger()
+                        for e in errs do Log.print "Why Error: %A" e
+                        //match vo with None-> () |Some v -> Log.print "Interaction evaluted to %A <%A>" v.ReflectionValue v.ReflectionType
+                
+                    |Choice2Of2 exn ->     
+                        match exn with 
+                        | :? OperationCanceledException ->
+                            Events.canceled.Trigger()
+                            Events.isReady.Trigger()
+                            Log.print "**FSI evaluation was cancelled with OperationCanceledException ++"                    
+                        | :? FsiCompilationException -> 
+                            Events.runtimeError.Trigger(exn)
+                            Events.isReady.Trigger()
+                            Log.print "Compiler Error:"
+                            for e in errs do    
+                                Log.print "%A" e
+                        | _ ->    
+                            Events.runtimeError.Trigger(exn)
+                            Events.isReady.Trigger()
+                            Log.print "Runtime Error: %A" exn     } 
+            
+            Async.StartImmediate(a)// cancellation token here fails to cancel evaluation,
+            )
+        thread<-Some thr
+        thr.Start()
 
- 
+     
     //-------------- public interface: ---------
 
     type IsCancelOk = Yes|No|NotNeded 
 
     /// forces cancellation
     let cancel() =
+        //fsiCancelScr.Value.Cancel()
         match state with 
         | Evaluating ->            
-            match fsiCancelScr with 
-            |Some cncl -> 
-                cncl.Cancel()
-                Log.print "Current Fsi Interaction was cancelled."  
-            |None -> Log.print "**No token to cancel Fsi, should never happen !"            
+            match thread with 
+            |Some thr -> 
+                match mode with
+                |Async ->                
+                    thr.Abort()
+                    thread<-None
+                    state<-Ready                 
+                    Events.canceled.Trigger()
+                    Events.isReady.Trigger()
+                    Log.print "Current Async Fsi Interaction thread was aborted."
+                |Sync ->
+                    thr.Interrupt()
+                    thr.Abort()
+                    thread<-None
+                    state<-Ready                 
+                    raise (new OperationCanceledException("async1"))
+                    Events.canceled.Trigger()
+                    Events.isReady.Trigger()
+                    Log.print "Current Sync Fsi Interaction cannot be canceled"                    
+                    
+            |None -> 
+                 Log.print "**No thread to cancel Fsi, should never happen !"            
         | Ready -> ()
 
     let isCancellingOk() = 
@@ -251,7 +240,7 @@ module Fsi =
         match isCancellingOk() with 
         | NotNeded -> cancel() ; true
         | Yes      -> cancel() ; true
-        | No       -> ()       ;false          
+        | No       -> ()       ; false          
     
     let evaluate(code) = 
         if DateTime.Today > DateTime(2020, 9, 30) then failwithf "Your Seff Editor has expired, please download a new version."
@@ -264,7 +253,7 @@ module Fsi =
     let reset() =         
         cancel()
         UI.log.Clear()
-        startSession ()|> Async.StartImmediate 
+        startSession ()//|> Async.StartImmediate 
 
 
     let setMode(sync:Mode) =         
@@ -280,12 +269,12 @@ module Fsi =
         match isCancellingOk() with 
         | NotNeded ->            
             mode <- sync
-            startSession () |> Async.StartImmediate
+            startSession () //|> Async.StartImmediate
             setConfig()   
         | Yes      -> 
             mode <- sync
             cancel()
-            startSession () |> Async.StartImmediate 
+            startSession () //|> Async.StartImmediate 
             setConfig()
         | No  -> () 
 
@@ -301,7 +290,16 @@ module Fsi =
         UI.log.Background <- Appearance.logBackgroundFsiReady // clearing log should remove red error color too.
         
     do
+        Events.Canceled.Add        (fun () -> Log.print "+Fsi Canceled")
+        Events.IsReady.Add         (fun () -> Log.print "+Fsi isReady")
+        Events.RuntimeError.Add    (fun _  -> Log.print "+Fsi RuntimeError")
+        Events.Started.Add         (fun () -> Log.print "+Fsi Started")
+        Events.Completed.Add       (fun () -> Log.print "+Fsi Completed")
+        
         Events.RuntimeError.Add (fun _  -> UI.log.Background <- Appearance.logBackgroundFsiHadError)
         //Events.Started.Add      (fun () -> UI.log.Background <- Appearance.logBackgroundFsiEvaluating) // happens at end of eval in sync mode
-        Events.Completed.Add    (fun () -> UI.log.Background <- Appearance.logBackgroundFsiReady)
-       
+        Events.Completed.Add       (fun () -> UI.log.Background <- Appearance.logBackgroundFsiReady)
+        Events.Canceled.Add       (fun () -> UI.log.Background <- Appearance.logBackgroundFsiReady)
+        
+        
+
