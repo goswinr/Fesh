@@ -41,8 +41,7 @@ module UtilWPF =
         static member TextBinding (binding:Data.BindingBase) =
             DependencyPropertyBindingPair(TextBox.TextProperty,binding)
 
-
-    let makeGridLength h = new GridLength(h,GridUnitType.Star)
+    let makeGridLength len = new GridLength(len, GridUnitType.Star)
 
     let makeMenu (xss:list<MenuItem*list<Control>>)=
         let menu = new Menu()
@@ -89,7 +88,6 @@ module UtilWPF =
             |> ignore     
             )
         grid
-
 
     let makePanelVert (xs:list<#UIElement>) =
         let p = new StackPanel(Orientation= Orientation.Vertical)
