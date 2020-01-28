@@ -19,15 +19,17 @@ module FsFolding =
     let mutable FoldStateHash = 0
     
 
-    let getFoldstate (xys: ResizeArray<int*int>) =
+    /// poor man's hash function
+    let private getFoldstate (xys: ResizeArray<int*int>) =
         let mutable v = 0
         for x,y in xys do   
             v <- v + x
-            v <- v + (y>>>16)
+            v <- v + (y<<<16)
         v
 
     let minLinesForFold = 1
 
+    ///Get foldings at every line that is followed by an indent
     let get (tab:FsxTab, code:string) : Async<unit> =
         async{ 
             do! Async.SwitchToThreadPool()
@@ -53,7 +55,7 @@ module FsFolding =
                             if foldStartLine <= lastNotBlankLineNum - minLinesForFold then                             
                                 
                                 let foldEnd = lastNotBlankLineEndOffset - 2 //-2 to skip over line break 
-                                //Log.printf "Folding from  line %d to %d : Offset %d to %d" foldStartLine lastNotBlankLineNum foldStartOfset foldEnd
+                                //Log.print "Folding from  line %d to %d : Offset %d to %d" foldStartLine lastNotBlankLineNum foldStartOfset foldEnd
                                 let f = foldStartOfset, foldEnd
                                 foldings.Add f                            
                                 foldStartOfset <- -1
@@ -73,10 +75,9 @@ module FsFolding =
             //close last folding
             if foldStartOfset > 0 then                  
                 let foldEnd = lastNotBlankLineEndOffset - 2 //-2 to skip over line break
-                //Log.printf "Last Folding from  line %d to end : Offset %d to %d" foldStartLine  foldStartOfset foldEnd
+                //Log.print "Last Folding from  line %d to end : Offset %d to %d" foldStartLine  foldStartOfset foldEnd
                 let f = foldStartOfset, foldEnd
-                foldings.Add f
-                   
+                foldings.Add f                   
             
             let state = getFoldstate foldings
             if state = FoldStateHash then 
@@ -89,7 +90,7 @@ module FsFolding =
 
     
     
-    // or  walk AST ?
+    // or walk AST ?
 
     //let visitDeclarations decls = 
     //  for declaration in decls do
@@ -99,7 +100,7 @@ module FsFolding =
     //        // as an expression (in visitExpression), but has no body
     //        for binding in bindings do
     //          let (Binding(access, kind, inlin, mutabl, attrs, xmlDoc, data, pat, retInfo, body, range, sp)) = binding
-    //          Log.printf "Binding: %A  from %d to %d:" kind  range.StartLine range.EndLine             
+    //          Log.print "Binding: %A  from %d to %d:" kind  range.StartLine range.EndLine             
     //    | _ -> printfn " - not supported declaration: %A" declaration
 
     //match parseRes.ParseTree with 
@@ -111,6 +112,6 @@ module FsFolding =
     //        let (ParsedImplFileInput(fn, script, name, _, _, modulesOrNss, _)) = implFile
     //        for moduleOrNs in modulesOrNss do
     //            let (SynModuleOrNamespace(lid, isRec, isMod, decls, xml, attrs, sao, range)) = moduleOrNs
-    //            Log.printf "Namespace or module: %A : %A from %d to %d" lid isMod range.StartLine range.EndLine   
+    //            Log.print "Namespace or module: %A : %A from %d to %d" lid isMod range.StartLine range.EndLine   
     //            visitDeclarations decls
     //    | _ -> failwith "F# Interface file (*.fsi) not supported."
