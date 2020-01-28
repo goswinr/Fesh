@@ -85,18 +85,22 @@ module Appearance=
         g
 
     
-    let setForStatusbar (b:StatusBar)=
-        b.Items.Add (StatusBarItem(Content="Test"))  |> ignore 
-        b.Items.Add (Separator())|> ignore 
-        b.Items.Add (StatusBarItem(Content="Test2")) |> ignore 
-        b
-    
-    
     let en_US = Globalization.CultureInfo.CreateSpecificCulture("en-US")
     do
         Globalization.CultureInfo.DefaultThreadCurrentCulture   <- en_US
         Globalization.CultureInfo.DefaultThreadCurrentUICulture <- en_US
 
+module StatusBar =
+    let async = StatusBarItem(Content="*unknown*")
+    
+    let bar = 
+        let b = new StatusBar()   
+        b.Items.Add (StatusBarItem(Content="FSI is evaluation mode: "))  |> ignore
+        b.Items.Add (async) |> ignore 
+        b.Items.Add (Separator())|> ignore 
+        b.Items.Add (StatusBarItem())  |> ignore // fill remaining space
+        b
+    
 
 module UI =     
     let editorRowHeight     = RowDefinition   (Height = makeGridLength (Config.getFloat "EditorHeight"  400.0))//, MinHeight = minRowHeight)
@@ -109,17 +113,16 @@ module UI =
     let splitterHor     = new GridSplitter()             |> Appearance.setForHorSplitter
     let splitterVert    = new GridSplitter()             |> Appearance.setForVertSplitter
     let log             = new AvalonEdit.TextEditor()    |> Appearance.setForLog
-    let statusBar       = new StatusBar()                |> Appearance.setForStatusbar
-
+    
     
     let gridHor() = 
         Config.setBool "isVertSplit" false
         makeGridHorizontalEx [         
-            menu        :> UIElement, RowDefinition(Height = GridLength.Auto)
-            tabControl  :> UIElement, editorRowHeight 
-            splitterHor :> UIElement, RowDefinition(Height = GridLength.Auto) 
-            log         :> UIElement, logRowHeight         
-            statusBar   :> UIElement, RowDefinition(Height = GridLength.Auto)                
+            menu         :> UIElement, RowDefinition(Height = GridLength.Auto)
+            tabControl   :> UIElement, editorRowHeight 
+            splitterHor  :> UIElement, RowDefinition(Height = GridLength.Auto) 
+            log          :> UIElement, logRowHeight         
+            StatusBar.bar:> UIElement, RowDefinition(Height = GridLength.Auto)                
             // TODO add https://github.com/SwensenSoftware/fseye
             ]
     
@@ -134,7 +137,7 @@ module UI =
         makeGridHorizontalEx [         
             menu         :> UIElement, RowDefinition(Height = GridLength.Auto)
             EditorAndLog :> UIElement, RowDefinition(Height = makeGridLength 200.0)
-            statusBar    :> UIElement, RowDefinition(Height = GridLength.Auto)                
+            StatusBar.bar:> UIElement, RowDefinition(Height = GridLength.Auto)                
             // TODO add https://github.com/SwensenSoftware/fseye
             ]
 

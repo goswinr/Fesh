@@ -26,9 +26,9 @@ module App =
     /// A string for the name of the hosting App (will be used for settings file name),
     /// Two functions to register beginn and end of undo steps in your App
     /// Call window.Show() on the returned window object.
-    let runEditorHostedWithUndo (mainWindowHandle, hostName, beginUndo, endUndo) =
-        HostUndoRedo.beginUndo <- beginUndo //TODO use events instead
-        HostUndoRedo.endUndo   <- endUndo
+    let runEditorHostedWithUndoUSEEVENTSINSTEAD (mainWindowHandle, hostName, beginUndo, endUndo) =
+        //HostUndoRedo.beginUndo <- beginUndo //TODO use events instead
+        //HostUndoRedo.endUndo   <- endUndo
         runEditorHosted  (mainWindowHandle,hostName)
 
 

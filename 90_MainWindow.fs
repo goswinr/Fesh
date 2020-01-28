@@ -13,7 +13,7 @@ module MainWindow =
         // musst be function to be calld at later moment(eg. after loading). Build action : "Resource"; Copy to ouput Dir: "Do not copy" 
         let uri = new Uri("pack://application:,,,/Seff;component/Media/LogoFSharp.ico", UriKind.RelativeOrAbsolute)
         try  win.Icon <-  Media.Imaging.BitmapFrame.Create(Application.GetResourceStream(uri).Stream)
-        with ex -> Log.dlog  "*** Failed to load application icon."
+        with ex -> Log.print  "Failed to load Media/LogoFSharp.ico from Application.ResourceStream ."
     
 
     let create (args: string []) = 
@@ -35,30 +35,28 @@ module MainWindow =
         Menu.setup()
 
         win.Loaded.Add (fun _ ->
-            Log.printf "* Time for loading main window: %s"  timer.tocEx
+            Log.print "* Time for loading main window: %s"  timer.tocEx
             setIcon(win)             
             
             CreateTab.loadArgsAndOpenFilesOnLastAppClosing(args)
             Config.loadRecentFilesMenu Menu.RecentFiles.updateRecentMenue
-            //Log.printf "** Time for loading recent files and recent menu: %s"  timer.tocEx
-            Fsi.agent.Start()
+            //Log.print "** Time for loading recent files and recent menu: %s"  timer.tocEx
             
+            if Config.getBool "asyncFsi" false then Fsi.setMode(Mode.Async) else Fsi.setMode(Mode.Sync) 
 
             //win.Activate() |> ignore // needed ?           
             //Tab.currEditor.Focus() |> ignore // can be null ? needed ?
             )    
                 
         win.Closing.Add( fun e ->
-            match FsiStatus.Evaluation with
-            |Ready |HadError -> ()
-            |Evaluating ->  
-                let msg = sprintf "Do you want to Cancel currently running code evaluation?" 
-                match MessageBox.Show(msg,"Cancel Evaluation?",MessageBoxButton.YesNoCancel,MessageBoxImage.Exclamation,MessageBoxResult.Yes) with
-                | MessageBoxResult.Yes -> Fsi.agent.Post Fsi.AgentMessage.Cancel
-                | _ -> e.Cancel <- true ) 
-                
+            match isCancellingOk() with 
+            | NotNeded -> ()  
+            | Yes      -> cancel()
+            | No       -> e.Cancel <- true // dont close window   
+            )
+                            
         win.Closing.Add( fun e ->  
-            // currnet tabs are already saved when opened
+            // current tabs are already saved when opened
             e.Cancel <- not <| FileDialogs.closeWindow() )
 
         //win.Initialized.Add (fun _ ->()) // this event seems to be never triggered   // why ???

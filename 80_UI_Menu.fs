@@ -97,6 +97,8 @@ module Menu =
                 fromCmd Commands.ClearFSI
                 fromCmd Commands.CancelFSI
                 fromCmd Commands.ResetFSI
+                sep()
+                fromCmd Commands.ToggleSync
                 ]
             MenuItem(Header = "_View"),[                 
                 fromCmd Commands.ToggleLogSize //TODO replace with actual tick box menu item 
