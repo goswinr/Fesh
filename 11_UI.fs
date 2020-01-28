@@ -3,6 +3,7 @@
 open System
 open System.Windows
 open System.Windows.Controls
+open System.Windows.Controls.Primitives // status bar
 open System.Windows.Media
 open ICSharpCode
 open Seff.UtilWPF
@@ -83,6 +84,14 @@ module Appearance=
         g.ToolTip <- "Drag to resize code editor and log window"
         g
 
+    
+    let setForStatusbar (b:StatusBar)=
+        b.Items.Add (StatusBarItem(Content="Test"))  |> ignore 
+        b.Items.Add (Separator())|> ignore 
+        b.Items.Add (StatusBarItem(Content="Test2")) |> ignore 
+        b
+    
+    
     let en_US = Globalization.CultureInfo.CreateSpecificCulture("en-US")
     do
         Globalization.CultureInfo.DefaultThreadCurrentCulture   <- en_US
@@ -100,7 +109,7 @@ module UI =
     let splitterHor     = new GridSplitter()             |> Appearance.setForHorSplitter
     let splitterVert    = new GridSplitter()             |> Appearance.setForVertSplitter
     let log             = new AvalonEdit.TextEditor()    |> Appearance.setForLog
-    //let statusBar  = new StatusBar()
+    let statusBar       = new StatusBar()                |> Appearance.setForStatusbar
 
     
     let gridHor() = 
@@ -110,7 +119,7 @@ module UI =
             tabControl  :> UIElement, editorRowHeight 
             splitterHor :> UIElement, RowDefinition(Height = GridLength.Auto) 
             log         :> UIElement, logRowHeight         
-            //statusBar   :> UIElement, RowDefinition(Height = GridLength.Auto)                
+            statusBar   :> UIElement, RowDefinition(Height = GridLength.Auto)                
             // TODO add https://github.com/SwensenSoftware/fseye
             ]
     
@@ -125,7 +134,7 @@ module UI =
         makeGridHorizontalEx [         
             menu         :> UIElement, RowDefinition(Height = GridLength.Auto)
             EditorAndLog :> UIElement, RowDefinition(Height = makeGridLength 200.0)
-            //statusBar   :> UIElement, RowDefinition(Height = GridLength.Auto)                
+            statusBar    :> UIElement, RowDefinition(Height = GridLength.Auto)                
             // TODO add https://github.com/SwensenSoftware/fseye
             ]
 
