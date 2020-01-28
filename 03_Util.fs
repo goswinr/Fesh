@@ -4,7 +4,7 @@ open System
 open System.Threading
 open System.Windows.Threading
 open System.Reflection
-
+open Microsoft.FSharp.Reflection
 
 module Sync = 
     
@@ -86,10 +86,9 @@ module Util =
         static member nowStr      = System.DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss")
         static member nowStrMilli = System.DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss.FFF")
         static member todayStr    = System.DateTime.Now.ToString("yyyy-MM-dd")
-
  
 
-    let Rand = new Random() // to give each error checking call a unique id
+    let rand = new Random() // to give each error checking call a unique id
 
     let inline notNull ob = not (Object.ReferenceEquals(ob,null))
     
@@ -106,9 +105,9 @@ module Util =
     let sameFile (f1:IO.FileInfo) (f2:IO.FileInfo) =
         f1.FullName.ToLowerInvariant() = f2.FullName.ToLowerInvariant()
 
-
+    
     /// Post to this agent for writing a debug string to a desktop file. Only used for bugs that cant be logged to the UI.
-    let FileLoggingAgent = // for async debug logging to a file (if the Log window fails to show)
+    let fileLoggingAgent = // for async debug logging to a file (if the Log window fails to show)
         let file = IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop),"Seff-DebugLog.txt")
         MailboxProcessor.Start(
             fun inbox ->
@@ -119,8 +118,8 @@ module Util =
                 loop() )
 
     // Post to this agent for writing a file async.
-    let FileWriter = 
-        MailboxProcessor.Start(
+    let fileWriter = 
+        MailboxProcessor.Start( //MB allows writing even when previous write is not finisched yet
             fun inbox ->
                 let rec loop () = 
                     async { let! (path,content) = inbox.Receive()
@@ -129,15 +128,16 @@ module Util =
                 loop() )
     
     // Post to this agent for writing a file async.
-    let FileWriterLines = 
-        MailboxProcessor.Start(
+    let fileWriterLines = 
+        MailboxProcessor.Start( //MB allows writing even when previous write is not finisched yet
             fun inbox ->
                 let rec loop () = 
                     async { let! (path,content) = inbox.Receive()
                             IO.File.WriteAllLines(path, content)
                             return! loop()}
                 loop() )
-    
+
+
     /// <summary>Uses reflection to get the field value from an object.</summary>
     /// <param name="type">The instance type.</param>
     /// <param name="instance">The instance object.</param>
@@ -152,8 +152,7 @@ module Util =
     ///This returns a sequence of union cases for a given discriminated union type, 
     ///the values in this sequence can be passed into any place that expects a case of that discriminated union. 
     ///Useful for use as the option values for a combobox, 
-    ///or for printing out all available options for that given discriminated union
-    open Microsoft.FSharp.Reflection
+    ///or for printing out all available options for that given discriminated union    
     let getAllUnionCases<'T>() =
         FSharpType.GetUnionCases(typeof<'T>)
         |> Seq.map (fun x -> FSharpValue.MakeUnion(x, Array.zeroCreate(x.GetFields().Length)) :?> 'T)
