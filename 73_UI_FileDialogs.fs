@@ -11,8 +11,8 @@ module FileDialogs =
     let dialogCaption = "Seff | FSharp Scripting Editor"
 
     /// to put recent files at bottom of File menu
-    let mutable updateRecentMenu = fun (fileinfo:FileInfo) ->Log.dlog "updateRecentMenu function not set" //will be set once menu is created
-    let mutable updateHeader = fun (tab:FsxTab) ->Log.dlog "updateHeader function not set" //will be set in CreatTab module
+    let mutable updateRecentMenu = fun (fileinfo:FileInfo) -> Log.print "updateRecentMenu function not set" //will be set once menu is created
+    let mutable updateHeader =     fun (tab:FsxTab) ->        Log.print "updateHeader function not set"     //will be set in CreatTab module
     
 
     let openFile (fi:FileInfo, newtab, makeCurrent) = // not need async?
@@ -25,7 +25,7 @@ module FileDialogs =
                 let tab:FsxTab = newtab(code, Some fi ,makeCurrent) 
                 Config.recentFilesStack.Push (fi) //.FullName.ToLowerInvariant()) // we dont care if it is alreday inside stack, stack is only for saving recent list 
                 Config.saveOpenFilesAndCurrentTab (tab.FileInfo , Tab.allTabs |> Seq.map(fun ta -> ta.FileInfo))
-                Config.saveRecentFiles Log.dlog
+                Config.saveRecentFiles ()
                 updateRecentMenu fi // this function checks if it is alreday Menu
         else
             MessageBox.Show("File not found:\r\n"+fi.FullName , dialogCaption, MessageBoxButton.OK) |> ignore
@@ -49,23 +49,23 @@ module FileDialogs =
     
     let private saveAsPath (t:FsxTab,fi:FileInfo) =                   
         if not <| fi.Directory.Exists then 
-            Log.printf "saveAsPath: Directory does not exist:\r\n%s" fi.Directory.FullName 
+            Log.print "saveAsPath: Directory does not exist:\r\n%s" fi.Directory.FullName 
             false
         else
             t.Editor.Save fi.FullName            
             if not <| fi.Exists then 
-                Log.printf "saveAsPath: File was not saved:\r\n%s" fi.FullName 
+                Log.print "saveAsPath: File was not saved:\r\n%s" fi.FullName 
                 false
             else
                 t.FileInfo <- Some fi
                 t.CodeAtLastSave <- t.Editor.Text
                 ModifyUI.markTabSaved(t)  
                 Config.recentFilesStack.Push (fi)
-                Config.saveRecentFiles Log.dlog
+                Config.saveRecentFiles()
                 Config.saveOpenFilesAndCurrentTab (t.FileInfo , Tab.allTabs |> Seq.map(fun ta -> ta.FileInfo))
                 updateHeader(t)
                 updateRecentMenu fi            
-                Log.printf "File saved as:\r\n%s" fi.FullName // dlg.FileName
+                Log.print "File saved as:\r\n%s" fi.FullName // dlg.FileName
                 true
     
         
@@ -91,10 +91,10 @@ module FileDialogs =
             let fn = t.FileInfo.Value.FullName
             let last = fn.[fn.Length-5]
             if not <| Char.IsLetterOrDigit last then 
-                Log.printf "saveIncremental failed on last value: '%c' on: \r\n%s" last fn
+                Log.print "saveIncremental failed on last value: '%c' on: \r\n%s" last fn
                 saveAs t
             elif last = 'z' || last = 'Z' || last = '9' then                
-                Log.printf "saveIncremental reached last value: '%c' on: \r\n%s" last fn
+                Log.print "saveIncremental reached last value: '%c' on: \r\n%s" last fn
                 saveAs t
             else
                 let newLast = char(int(last)+1)
@@ -105,7 +105,7 @@ module FileDialogs =
                 let fi = new FileInfo(npath)
                 saveAsPath(t,fi)                
          else
-            Log.printf "cant incremented unsaved File"  
+            Log.print "cant incremented unsaved File"  
             saveAs t
      
 
@@ -116,14 +116,14 @@ module FileDialogs =
                 t.CodeAtLastSave <- t.Editor.Text //TODO add trimming of trailling white space: dropTrailingWhiteSpace in FsInteractiveService
                 t.Editor.Save t.FileInfo.Value.FullName 
                 ModifyUI.markTabSaved(t)
-                Log.printf "File saved at:\r\n%s" t.FileInfo.Value.FullName           
+                Log.print "File saved at:\r\n%s" t.FileInfo.Value.FullName           
                 true
             else
-                Log.printf "File already up to date:\r\n%s" t.FileInfo.Value.FullName  
+                Log.print "File already up to date:\r\n%s" t.FileInfo.Value.FullName  
                 true
         else 
-            if t.FileInfo.IsNone then Log.printf "FileInfo.IsNone, File never saved before?"
-            elif not <| t.FileInfo.Value.Exists then Log.printf "File does not exist on drive:\r\n%s" t.FileInfo.Value.FullName  
+            if t.FileInfo.IsNone then Log.print "FileInfo.IsNone, File never saved before?"
+            elif not <| t.FileInfo.Value.Exists then Log.print "File does not exist on drive:\r\n%s" t.FileInfo.Value.FullName  
             saveAs t
     
     /// returns true if closing operation was successful (not canceled by user)
@@ -174,7 +174,7 @@ module FileDialogs =
         dlg.Filter <- "Text Files(*.txt)|*.txt|Text Files(*.csv)|*.csv|All Files(*.*)|*"
         if isTrue (dlg.ShowDialog()) then                
             UI.log.Save dlg.FileName
-            Log.printf "Log File saved as:\r\n%s" dlg.FileName
+            Log.print "Log File saved as:\r\n%s" dlg.FileName
     
     let saveLogSelected (t:FsxTab) = 
         if UI.log.SelectedText.Length > 0 then // this check is done in "canexecute command"
@@ -186,5 +186,5 @@ module FileDialogs =
             dlg.Filter <- "Text Files(*.txt)|*.txt|Text Files(*.csv)|*.csv|All Files(*.*)|*"
             if isTrue (dlg.ShowDialog()) then                
                 IO.File.WriteAllText(dlg.FileName, UI.log.SelectedText) 
-                Log.printf "Selected text from Log saved as:\r\n%s" dlg.FileName
+                Log.print "Selected text from Log saved as:\r\n%s" dlg.FileName
     
