@@ -16,7 +16,7 @@ open System.Collections.Generic
 module CompletionUI =
     
     type CompletionLine (it:FSharpDeclarationListItem, optArgsDict:Dictionary<string,ResizeArray<string>>) =
-        let col = 
+        let colorUNUSED = 
             match it.Glyph with  // does not change coler when selected anymore
             | FSharpGlyph.Class
             | FSharpGlyph.Typedef
@@ -73,7 +73,7 @@ module CompletionUI =
         member this.Priority = prio
         member this.Text = it.Name
         member this.Complete (textArea:TextArea, completionSegment:ISegment, e ) = 
-            //Log.printf "%s is %A and %A" it.Name it.Glyph it.Kind
+            //Log.print "%s is %A and %A" it.Name it.Glyph it.Kind
             //textArea.Document.Replace(completionSegment.Offset + 1, completionSegment.Length, it.Name) //Delete!
             //textArea.Caret.Offset <- completionSegment.Offset + it.Name.Length + 1  //Delete!          
             let compl = if it.Glyph = FSharpGlyph.Class && it.Name.EndsWith "Attribute" then "[<" + it.Name.Replace("Attribute",">]") else it.Name     //TODO move this logic out here      
@@ -132,7 +132,7 @@ module CompletionUI =
         w.MinHeight <- tab.Editor.FontSize
         w.MinWidth <- tab.Editor.FontSize * 8.0
         w.Closed.Add (fun _  -> 
-            //Log.printf "Completion window closed with selected item %s " tab.CompletionWin.Value.CompletionList.SelectedItem.Text
+            //Log.print "Completion window closed with selected item %s " tab.CompletionWin.Value.CompletionList.SelectedItem.Text
             tab.CompletionWin <- None  
             tab.CompletionWindowClosed()
             tab.ErrorToolTip.IsOpen    <- false
@@ -158,8 +158,7 @@ module CompletionUI =
             
         //try
         w.Show()
-        //with e -> Log.printf "Error in Showing Code Completion Window: %A" e
-
+        //with e -> Log.print "Error in Showing Code Completion Window: %A" e
 
         //Event sequence on pressing enter in completion window:// https://github.com/icsharpcode/AvalonEdit/blob/8fca62270d8ed3694810308061ff55c8820c8dfc/ICSharpCode.AvalonEdit/CodeCompletion/CompletionWindow.cs#L100
         // Close window
