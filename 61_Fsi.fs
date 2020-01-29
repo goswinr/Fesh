@@ -56,7 +56,7 @@ module Fsi =
     type Mode   = Sync |Async
 
     let mutable state = Ready
-    let mutable internal mode =  Sync
+    let mutable mode =  Sync
     
     let mutable private session:FsiEvaluationSession option = None 
     
@@ -143,7 +143,7 @@ module Fsi =
     let private eval(code)=
         state <- Evaluating
         //fsiCancelScr <- Some (new CancellationTokenSource())
-        UI.log.Background <- Appearance.logBackgroundFsiEvaluating
+        //UI.log.Background <- Appearance.logBackgroundFsiEvaluating //do in event below
         Events.started.Trigger() // do always sync
         if session.IsNone then  startSession()     // sync 
         
@@ -173,7 +173,7 @@ module Fsi =
                         | :? OperationCanceledException ->
                             Events.canceled.Trigger()
                             Events.isReady.Trigger()
-                            Log.print "**FSI evaluation was cancelled with OperationCanceledException ++"                    
+                            Log.print "**FSI evaluation was cancelled with OperationCanceledException\r\n %s" exn.Message                    
                         | :? FsiCompilationException -> 
                             Events.runtimeError.Trigger(exn)
                             Events.isReady.Trigger()
@@ -204,21 +204,21 @@ module Fsi =
             |Some thr -> 
                 match mode with
                 |Async ->                
-                    thr.Abort()
                     thread<-None
-                    state<-Ready                 
-                    Events.canceled.Trigger()
-                    Events.isReady.Trigger()
-                    Log.print "Current Async Fsi Interaction thread was aborted."
+                    state<-Ready 
+                    thr.Abort() // raises OperationCanceledException                                    
+                    //Events.canceled.Trigger()
+                    //Events.isReady.Trigger()
+                    //Log.print "Current Async Fsi Interaction thread was aborted."
                 |Sync ->
-                    thr.Interrupt()
-                    thr.Abort()
-                    thread<-None
-                    state<-Ready                 
-                    raise (new OperationCanceledException("async1"))
-                    Events.canceled.Trigger()
-                    Events.isReady.Trigger()
-                    Log.print "Current Sync Fsi Interaction cannot be canceled"                    
+                    //thr.Interrupt()
+                    //thr.Abort()
+                    //thread<-None
+                    //state<-Ready                 
+                    //raise (new OperationCanceledException("async1"))
+                    //Events.canceled.Trigger()
+                    //Events.isReady.Trigger()
+                    Log.print "Current synchronous Fsi Interaction cannot be canceled"                    
                     
             |None -> 
                  Log.print "**No thread to cancel Fsi, should never happen !"            
@@ -290,16 +290,18 @@ module Fsi =
         UI.log.Background <- Appearance.logBackgroundFsiReady // clearing log should remove red error color too.
         
     do
-        Events.Canceled.Add        (fun () -> Log.print "+Fsi Canceled")
-        Events.IsReady.Add         (fun () -> Log.print "+Fsi isReady")
-        Events.RuntimeError.Add    (fun _  -> Log.print "+Fsi RuntimeError")
-        Events.Started.Add         (fun () -> Log.print "+Fsi Started")
-        Events.Completed.Add       (fun () -> Log.print "+Fsi Completed")
+        Events.Canceled.Add        (fun () -> Log.print " +Fsi Canceled+")
+        Events.IsReady.Add         (fun () -> Log.print " +Fsi isReady+")
+        Events.RuntimeError.Add    (fun _  -> Log.print " +Fsi RuntimeError+")
+        Events.Started.Add         (fun () -> Log.print " +Fsi Started+")
+        Events.Completed.Add       (fun () -> Log.print " +Fsi Completed+")
         
         Events.RuntimeError.Add (fun _  -> UI.log.Background <- Appearance.logBackgroundFsiHadError)
-        //Events.Started.Add      (fun () -> UI.log.Background <- Appearance.logBackgroundFsiEvaluating) // happens at end of eval in sync mode
-        Events.Completed.Add       (fun () -> UI.log.Background <- Appearance.logBackgroundFsiReady)
-        Events.Canceled.Add       (fun () -> UI.log.Background <- Appearance.logBackgroundFsiReady)
+        Events.Started.Add      (fun () -> UI.log.Background <- Appearance.logBackgroundFsiEvaluating) // happens at end of eval in sync mode
+        Events.Completed.Add    (fun () -> UI.log.Background <- Appearance.logBackgroundFsiReady)
+        Events.Canceled.Add     (fun () -> UI.log.Background <- Appearance.logBackgroundFsiReady)
+
+        StatusBar.async.MouseDown.Add(fun _ -> toggleSync())
         
         
 
