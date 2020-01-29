@@ -72,14 +72,16 @@ module FsService =
                     tab.FsCheckerResult <- Some chr.checkRes // cache for type info
                     tab.TextMarkerService.Clear()
                     match chr.checkRes.Errors with 
-                    | [||] -> 
-                        tab.Editor.Background <- Appearance.editorBackgroundOk    
+                    | [| |] -> 
+                        tab.Editor.Background <- Appearance.editorBackgroundOk
+                        StatusBar.setErrors ([| |])
                     | es   -> 
                         tab.Editor.Background <- Appearance.editorBackgroundErr
+                        StatusBar.setErrors (es)
                         for e in es |> Seq.truncate 4 do // TODO Only highligth the first 3 Errors, Otherwise UI becomes unresponsive at 100 errors ( eg when pasting text)
                             let startOffset = tab.Editor.Document.GetOffset(new TextLocation(e.StartLineAlternate, e.StartColumn + 1 ))
                             let endOffset   = tab.Editor.Document.GetOffset(new TextLocation(e.EndLineAlternate,   e.EndColumn   + 1 ))
-                            let length = endOffset-startOffset
+                            let length      = endOffset-startOffset
                             tab.TextMarkerService.Create(startOffset, length, e.Message+", Error: "+ (string e.ErrorNumber))
                             Packages.checkForMissingPackage tab e startOffset length
 
