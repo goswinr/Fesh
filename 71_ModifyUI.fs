@@ -18,7 +18,7 @@ module ModifyUI =
             UI.log.WordWrap         <- true  
             UI.log.HorizontalScrollBarVisibility <- ScrollBarVisibility.Disabled 
             Config.setBool "logHasLineWrap" true
-        Config.save ()
+        Config.saveSettings ()
 
     //----------------------
     //-------- Fontsize-----
@@ -30,7 +30,7 @@ module ModifyUI =
             t.Editor.FontSize  <- newSize
         Appearance.fontSize <- newSize // use for UI completion line too
         Config.setFloat "FontSize" newSize    
-        Config.save ()
+        Config.saveSettings ()
         Log.print "new Fontsize: %.1f" newSize
 
     /// affects Editor and Log
@@ -117,7 +117,7 @@ module WindowLayout =
         else                                      
             mainWindow.Content <- UI.gridVert()
             Config.setBool "isVertSplit" true
-        Config.save ()
+        Config.saveSettings ()
 
     let splitChangeHor (editorRow:RowDefinition) (logRow:RowDefinition) = 
         state <- Both                    
@@ -125,7 +125,7 @@ module WindowLayout =
         logRow.Height    <- makeGridLength    logRow.ActualHeight
         Config.setFloat "EditorHeight"     editorRow.ActualHeight
         Config.setFloat "LogHeight"           logRow.ActualHeight            
-        Config.save ()
+        Config.saveSettings ()
     
     let splitChangeVert (editorCol:ColumnDefinition) (logCol:ColumnDefinition) = 
         state <- Both                    
@@ -133,7 +133,7 @@ module WindowLayout =
         logCol.Width    <- makeGridLength    logCol.ActualWidth
         Config.setFloat "EditorWidth"     editorCol.ActualWidth
         Config.setFloat "LogWidth"           logCol.ActualWidth            
-        Config.save ()
+        Config.saveSettings ()
         
     let maxLog () = 
         match state with

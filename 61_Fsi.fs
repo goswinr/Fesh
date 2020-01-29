@@ -54,8 +54,7 @@ module Fsi =
         [<CLIEvent>]
         static member IsReady  = isReadyEv .Publish
 
-    
-    
+        
 
     let mutable state = Ready
     let mutable mode =  Sync
@@ -280,6 +279,7 @@ module Fsi =
         | NotEvaluating | YesAsync    -> 
             mode <- sync
             setConfig()
+            Config.saveSettings ()
             startSession ()
         | Dont | NotPossibleSync -> () //Log.print "Wait till current synchronous evaluation completes before seting mode."
     

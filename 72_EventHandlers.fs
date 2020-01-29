@@ -40,7 +40,7 @@ module EventHandlers =
                 if win.Top > -500. && win.Left > -500. then // to not save on minimizing on minimized: Top=-32000 Left=-32000 
                     Config.setFloatDelayed "WindowTop"  win.Top  89 // get float in statchange maximised neddes top access this before 350 ms pass
                     Config.setFloatDelayed "WindowLeft" win.Left 95
-                    Config.save ()
+                    Config.saveSettings ()
                     //Log.dlog (sprintf "%s Location Changed: Top=%.0f Left=%.0f State=%A" Time.nowStrMilli win.Top win.Left win.WindowState) 
             )
 
@@ -53,7 +53,7 @@ module EventHandlers =
                 win.Width <-   Config.getFloat "WindowWidth"  800.0
                 Config.setBool  "WindowIsMax" false
                 WindowLayout.isMinOrMax <- false
-                Config.save ()
+                Config.saveSettings ()
                 //Log.dlog (sprintf "%s State changed=%A Top=%.0f Left=%.0f Width=%.0f Height=%.0f" Time.nowStrMilli win.WindowState win.Top win.Left win.ActualWidth win.ActualHeight )
 
             | WindowState.Maximized ->
@@ -69,7 +69,7 @@ module EventHandlers =
                         Config.setFloatDelayed "WindowHeight" (Config.getFloat "WindowHeight" 699.0) 220 // just to be save restore those too
                         Config.setFloatDelayed "WindowWidth"  (Config.getFloat "WindowWidth"  699.0) 230 // just to be save restore those too
                         Config.setBool  "WindowIsMax" true                    
-                        Config.save ()
+                        Config.saveSettings ()
                         //Log.dlog (sprintf "%s State changed=%A Top=%.0f Left=%.0f Width=%.0f Height=%.0f" Time.nowStrMilli win.WindowState win.Top win.Left win.ActualWidth win.ActualHeight )
                         }
                         |> Async.StartImmediate
@@ -85,7 +85,7 @@ module EventHandlers =
             if win.WindowState = WindowState.Normal &&  not WindowLayout.isMinOrMax then 
                 Config.setFloatDelayed "WindowHeight" win.Height 89
                 Config.setFloatDelayed "WindowWidth"  win.Width  95
-                Config.save ()
+                Config.saveSettings ()
                 //Log.dlog (sprintf "%s Size Changed: Width=%.0f Height=%.0f State=%A" Time.nowStrMilli win.Width win.Height win.WindowState)
             )
 
