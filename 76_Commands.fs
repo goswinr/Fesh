@@ -56,11 +56,11 @@ module Commands =
     let ResetFSI         = "Reset FSI"                , "Ctrl + Alt + R", mkCmd isTab (fun a -> Fsi.reset()    ),"Reset FSharp Interactive"
     let CancelFSI        = "Cancel FSI"               , "Ctrl + Break"  , mkCmd isTab (fun a -> Fsi.cancel()   ),"Cancel current running FSharp Interactive"
     let ClearFSI         = "Clear Log"                , "Ctrl + Alt + C", mkCmdSimple (fun a -> Fsi.clearLog() ),"Clear all text from FSI Log window"
-    let ToggleSync       = "Toggle Sync / Async"      , ""              , mkCmdSimple (fun a -> Fsi.toggleSync()),"Switch between synchronos and asynchronos evaluation in FSI, see status in StatusBar"
+    let ToggleSync       = "Toggle Sync / Async"      , ""              , mkCmdSimple (fun a -> Fsi.toggleSync()),"Switch between synchronous and asynchronous evaluation in FSI, see status in StatusBar"
                                                         
     let NewTab           = "New File"                 , "Ctrl + N"      , mkCmdSimple (fun a -> newTab(Config.getDefaultCode(),None,true)|>ignore),"Create a new script file"
     let OpenFile         = "Open File"                , "Ctrl + O"      , mkCmdSimple (fun a -> openFileDlg newTab),"Open a script file"
-    let OpenTemplateFile = "Open Template File"         ,""             , mkCmdSimple (fun a -> openFile(IO.FileInfo(Config.fileDefaultCode),newTab,true)|>ignore),"Opens the template file that is used when creating a new script"
+    let OpenTemplateFile = "Edit Template File"         ,""             , mkCmdSimple (fun a -> openFile(IO.FileInfo(Config.fileDefaultCode),newTab,true)|>ignore),"Opens the template file that is used when creating a New File ( Ctrl + N)"
     let Close            = "Close File"               , "Ctrl + F4"     , mkCmdSimple (fun a -> altF4close()),"Closes the current Tab, if no tab present Application will be closed" 
     
     let SaveIncremental  = "Save Incremental"         , ""              , mkCmd isTab (fun a -> saveIncremental Tab.currTab |> ignore),"increases the last letter of filename, can be alphabetic or numeric "
