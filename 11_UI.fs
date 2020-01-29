@@ -7,19 +7,17 @@ open System.Windows.Controls.Primitives // status bar
 open System.Windows.Media
 open ICSharpCode
 open Seff.UtilWPF
+open FSharp.Compiler.SourceCodeServices
 
 module Appearance=    
     
-    let private w  = 255uy // white
-    let private aw = 240uy // almost white
-    let private lg = 210uy // lightgrey
-    let private dg = 99uy // dark grey
-    let logBackgroundFsiEvaluating   = SolidColorBrush(Color.FromRgb(dg,dg,dg))//DarkGray 
-    let logBackgroundFsiReady    = Brushes.Black
-    let logBackgroundFsiHadError = Brushes.DarkRed
-    let editorBackgroundOk       = Brushes.White
-    let editorBackgroundErr      = SolidColorBrush(Color.FromRgb(w,aw,aw))// pink
-    let editorBackgroundChecking = SolidColorBrush(Color.FromRgb(lg,lg,lg))// light grey
+    
+    let logBackgroundFsiEvaluating   =  Brushes.Black    |> brighter 150 //DarkGray 
+    let logBackgroundFsiReady    =      Brushes.Black
+    let logBackgroundFsiHadError =      Brushes.DarkRed
+    let editorBackgroundOk       =      Brushes.White
+    let editorBackgroundErr      =      Brushes.Red      |> brighter 240 // very light pink
+    let editorBackgroundChecking =      Brushes.White    |> darker 55    // light grey
 
     let defaultFontSize = 14.0
     let defaultFont = FontFamily("Consolas")
@@ -91,14 +89,34 @@ module Appearance=
         Globalization.CultureInfo.DefaultThreadCurrentUICulture <- en_US
 
 module StatusBar =
-    let async = StatusBarItem(Content="*unknown*")
-    
+    let async = 
+        let bi = StatusBarItem(Content="*unknown*")
+        bi.ToolTip <- "Click to switch between synchronous and asynchronous evaluation in FSI,\r\nsynchronous is needed for UI interaction,\r\nasynchronous allows easy cancellation and keeps the editor window alive"
+        //bi.MouseDown.Add(fun _ -> toggleSync()) //done in fsi module
+        bi
+
+    let compilerErrors=
+        let tb = TextBox()
+        tb.FontWeight <- FontWeights.Bold
+        tb
+
+    let setErrors(es:FSharpErrorInfo[])= 
+        if es.Length = 0 then 
+            compilerErrors.Text <- "No Errors"
+            compilerErrors.Background <- Brushes.Green |> brighter 60            
+        else 
+            compilerErrors.Text <- sprintf "%d Errors" es.Length
+            compilerErrors.Background <- Brushes.Red   |> brighter 60  
+            compilerErrors.ToolTip <- makePanelVert [ for e in es do TextBlock(Text=sprintf "• Line %d: %A: %s" e.StartLineAlternate e.Severity e.Message)]
+
     let bar = 
-        let b = new StatusBar()   
-        b.Items.Add (StatusBarItem(Content="FSI is evaluation mode: "))  |> ignore
-        b.Items.Add (async) |> ignore 
-        b.Items.Add (Separator())|> ignore 
-        b.Items.Add (StatusBarItem())  |> ignore // fill remaining space
+        let b = new StatusBar() 
+        b.Items.Add (StatusBarItem(Content="FSI evaluation mode: "))  |> ignore
+        b.Items.Add (async)             |> ignore 
+        b.Items.Add (Separator())       |> ignore 
+        b.Items.Add compilerErrors      |> ignore 
+        b.Items.Add (Separator())       |> ignore 
+        b.Items.Add (StatusBarItem())   |> ignore // fill remaining space
         b
     
 
