@@ -54,7 +54,7 @@ module Commands =
     let RunAllTextSave   = "Save and Run All Text"    , "F6"            , mkCmd isTab       (fun a -> if save Tab.currTab then Fsi.evaluate  Tab.currEditor.Text) ,"First Save current File, then send all it's text to FSharp Interactive"
                                                         
     let ResetFSI         = "Reset FSI"                , "Ctrl + Alt + R", mkCmd isTab (fun a -> Fsi.reset()    ),"Reset FSharp Interactive"
-    let CancelFSI        = "Cancel FSI"               , "Ctrl + Break"  , mkCmd isTab (fun a -> Fsi.cancel()   ),"Cancel current running FSharp Interactive"
+    let CancelFSI        = "Cancel FSI"               , "Ctrl + Break"  , mkCmd isTab (fun a -> Fsi.cancelIfAsync()   ),"Cancel current running FSharp Interactive if Asynchronous"
     let ClearFSI         = "Clear Log"                , "Ctrl + Alt + C", mkCmdSimple (fun a -> Fsi.clearLog() ),"Clear all text from FSI Log window"
     let ToggleSync       = "Toggle Sync / Async"      , ""              , mkCmdSimple (fun a -> Fsi.toggleSync()),"Switch between synchronous and asynchronous evaluation in FSI, see status in StatusBar"
                                                         

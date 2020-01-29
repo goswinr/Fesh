@@ -156,7 +156,7 @@ module FileDialogs =
                 if Seq.exists ( fun OK -> OK = false) OKs then false else true // iterate unsafed files, if one file saving was canceled abort the closing of the main window                 
             | MessageBoxResult.No  -> true
             | _                    -> false 
-            // no need to save on closing open files.
+            // no need to save the files that were on closing open.
     
     let altF4close () =
         match Tab.current with

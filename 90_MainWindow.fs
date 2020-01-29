@@ -49,11 +49,13 @@ module MainWindow =
             )    
                 
         win.Closing.Add( fun e ->
-            match isCancellingOk() with 
-            | NotNeded -> ()  
-            | Yes      -> cancel()
-            | No       -> e.Cancel <- true // dont close window   
-            )
+            match askIfCancellingIsOk () with 
+            | NotEvaluating   -> ()
+            | YesAsync        -> cancelIfAsync() 
+            | Dont            -> e.Cancel <- true // dont close window   
+            | NotPossibleSync -> () // still close despite running thread ??
+            ) 
+           
                             
         win.Closing.Add( fun e ->  
             // current tabs are already saved when opened
