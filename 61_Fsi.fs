@@ -121,7 +121,7 @@ module Fsi =
             //do! Async.SwitchToContext Sync.syncContext
             let timer = Util.Timer()
             timer.tic()
-            //if session.IsSome then session.Value.Interrupt()  //TODO does this cancel it Ok ??         
+            if session.IsSome then session.Value.Interrupt()  //TODO does this cancel it Ok ??         
             
             let inStream = new StringReader("")
             // first arg is ignored: https://github.com/fsharp/FSharp.Compiler.Service/issues/420 and https://github.com/fsharp/FSharp.Compiler.Service/issues/877 and  https://github.com/fsharp/FSharp.Compiler.Service/issues/878            
@@ -169,7 +169,7 @@ module Fsi =
                     |Choice1Of2 vo -> 
                         Events.completed.Trigger(mode)
                         Events.isReady.Trigger(mode)
-                        for e in errs do Log.print "Why Error: %A" e
+                        for e in errs do Log.print "****Why Error: %A" e
                         //match vo with None-> () |Some v -> Log.print "Interaction evaluted to %A <%A>" v.ReflectionValue v.ReflectionType
                 
                     |Choice2Of2 exn ->     
@@ -177,7 +177,7 @@ module Fsi =
                         | :? OperationCanceledException ->
                             Events.canceled.Trigger(mode)
                             Events.isReady.Trigger(mode)
-                            Log.print "**Fsi evaluation was cancelled: %s" exn.Message                    
+                            Log.print "**Fsi evaluation was canceled: %s" exn.Message                    
                         | :? FsiCompilationException -> 
                             Events.runtimeError.Trigger(exn)
                             Events.isReady.Trigger(mode)
