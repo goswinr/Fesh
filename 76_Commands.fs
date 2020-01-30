@@ -47,14 +47,15 @@ module Commands =
     let private isTab       a   = Tab.current.IsSome (* Log.print "isTab was evalauted"; *) 
     let private isEditorSel a   = Tab.current.IsSome && Tab.currEditor.SelectionLength > 0
     let private isLogSel    a   = UI.log.SelectionLength > 0
+    let private runsAsync   a = Fsi.state = Fsi.Evaluating && Fsi.mode = Fsi.Async
              
     let RunSelectedText  = "Run Selected Text"        , "Alt + Enter"   , mkCmd isEditorSel (fun a -> Fsi.evaluate Tab.currEditor.SelectedText),"Sends the currently seleceted Text in the editor to FSharp Interactive"// TODO mark evaluated code with grey background
     let RunSelectedLines = "Run Selected Lines"       , "Ctrl + Enter"  , mkCmd isTab       (fun a -> Fsi.evaluate <| ModifyUI.expandSelectionToFullLines Tab.currTab),"Sends the currently seleceted Lines in the editor to FSharp Interactive.\r\nIncludes partially selected lines in full."
     let RunAllText       = "Run All Text"             , "F5"            , mkCmd isTab       (fun a -> Fsi.evaluate  Tab.currEditor.Text) ,"Send all text in the current file to FSharp Interactive"
     let RunAllTextSave   = "Save and Run All Text"    , "F6"            , mkCmd isTab       (fun a -> if save Tab.currTab then Fsi.evaluate  Tab.currEditor.Text) ,"First Save current File, then send all it's text to FSharp Interactive"
                                                         
-    let ResetFSI         = "Reset FSI"                , "Ctrl + Alt + R", mkCmd isTab (fun a -> Fsi.reset()    ),"Reset FSharp Interactive"
-    let CancelFSI        = "Cancel FSI"               , "Ctrl + Break"  , mkCmd isTab (fun a -> Fsi.cancelIfAsync()   ),"Cancel current running FSharp Interactive if Asynchronous"
+    let ResetFSI         = "Reset FSI"                , "Ctrl + Alt + R", mkCmd isTab     (fun a -> Fsi.reset()    ),"Reset FSharp Interactive"
+    let CancelFSI        = "Cancel FSI"               , "Ctrl + Break"  , mkCmd runsAsync (fun a -> Fsi.cancelIfAsync()   ),"Cancel running FSI evaluation (only available in asynchronous mode) "
     let ClearFSI         = "Clear Log"                , "Ctrl + Alt + C", mkCmdSimple (fun a -> Fsi.clearLog() ),"Clear all text from FSI Log window"
     let ToggleSync       = "Toggle Sync / Async"      , ""              , mkCmdSimple (fun a -> Fsi.toggleSync()),"Switch between synchronous and asynchronous evaluation in FSI, see status in StatusBar"
                                                         

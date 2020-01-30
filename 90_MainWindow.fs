@@ -5,6 +5,7 @@ open System.Windows
 open Seff.Util
 open Seff.Fsi
 
+
 module MainWindow =    
 
     let private setIcon (win:Window) = 
@@ -33,6 +34,8 @@ module MainWindow =
         EventHandlers.setUpForWindow(win)
         win.InputBindings.AddRange Commands.AllInputBindings  
         Menu.setup()
+
+        Controls.ToolTipService.ShowOnDisabledProperty.OverrideMetadata( typeof<Controls.Control>,  new FrameworkPropertyMetadata(true)) //https://stackoverflow.com/questions/4153539/wpf-how-to-show-tooltip-when-button-disabled-by-command
 
         win.Loaded.Add (fun _ ->
             Log.print "* Time for loading main window: %s"  timer.tocEx
