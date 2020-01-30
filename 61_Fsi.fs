@@ -162,8 +162,8 @@ module Fsi =
             
                     if mode = Mode.Async then do! Async.SwitchToContext Sync.syncContext 
             
-                    thread<-None
-                    state<-Ready //TODO reached when canceled ?                     
+                    thread <- None
+                    state <- Ready //TODO reached when canceled ?                     
             
                     match choice with //TODO move out ?
                     |Choice1Of2 vo -> 
