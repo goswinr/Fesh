@@ -121,7 +121,7 @@ module Fsi =
             //do! Async.SwitchToContext Sync.syncContext
             let timer = Util.Timer()
             timer.tic()
-            if session.IsSome then session.Value.Interrupt()  //TODO does this cancel it Ok ??         
+            //if session.IsSome then session.Value.Interrupt()  //TODO does this cancel it Ok ??         
             
             let inStream = new StringReader("")
             // first arg is ignored: https://github.com/fsharp/FSharp.Compiler.Service/issues/420 and https://github.com/fsharp/FSharp.Compiler.Service/issues/877 and  https://github.com/fsharp/FSharp.Compiler.Service/issues/878            
@@ -132,13 +132,13 @@ module Fsi =
             Console.SetOut  (Log.textwriter) //needed to redirect printfn ? //https://github.com/fsharp/FSharp.Compiler.Service/issues/201
             Console.SetError(Log.textwriter) //TODO needed if evaluate non throwing ? 
             //if mode = Mode.Sync then do! Async.SwitchToContext Sync.syncContext            
-            //fsiSession.Run()// dont do this it crashes the app !            
+            //fsiSession.Run()// dont do this it crashes the app when hosted in Rhino! 
+            if session.IsNone then Log.print "* Time for loading FSharp Interactive: %s"  timer.tocEx
             session <- Some fsiSession
-            Log.print "* Time for loading FSharp Interactive: %s"  timer.tocEx
             match mode with
             |Sync ->  Log.print "*FSharp Interactive will evaluate synchronously on UI Thread."
-            |Async -> Log.print "*FSharp Interactive will evaluate asynchronously on new Thread."
-            //}
+            |Async -> Log.print "*FSharp Interactive will evaluate asynchronously on new Thread."            //}
+            timer.stop()
     
     // to be able to cancel running Fsi eval
     let mutable private thread :Thread option = None

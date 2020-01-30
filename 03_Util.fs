@@ -81,6 +81,8 @@ module Util =
         ///* reset and start Timer
         member this.tic() =  ticWithGC stopWatch kGC
 
+        member this.stop() =  stopWatch.Stop()
+
     type Time()=
         //static member nowStrMenu  = System.DateTime.Now.ToString("yyyy-MM-dd  HH:mm")
         static member nowStr      = System.DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss")
