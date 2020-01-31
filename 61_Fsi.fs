@@ -8,6 +8,13 @@ open System.Threading
 open FSharp.Compiler.Interactive.Shell
 
 
+type internal ProcessCorruptedState =  
+    [< Runtime.ExceptionServices.HandleProcessCorruptedStateExceptions >] //to handle AccessViolationException too //https://stackoverflow.com/questions/3469368/how-to-handle-accessviolationexception/4759831
+    static member Handler (sender:obj) (e: UnhandledExceptionEventArgs) = 
+            //Starting with the .NET Framework 4, this event is not raised for exceptions that corrupt the state of the process, 
+            //such as stack overflows or access violations, unless the event handler is security-critical and has the HandleProcessCorruptedStateExceptionsAttribute attribute.
+            //https://docs.microsoft.com/en-us/dotnet/api/system.appdomain.unhandledexception?redirectedfrom=MSDN&view=netframework-4.8
+            Log.print "AppDomain.CurrentDomain.UnhandledException: isTerminating: %b : %A" e.IsTerminating e.ExceptionObject
 
 module Fsi =    
     
@@ -144,6 +151,7 @@ module Fsi =
     let mutable private thread :Thread option = None
     //let mutable private fsiCancelScr :CancellationTokenSource option = None
 
+    [< Runtime.ExceptionServices.HandleProcessCorruptedStateExceptions>]//to handle AccessViolationException too //https://stackoverflow.com/questions/3469368/how-to-handle-accessviolationexception/4759831
     let private eval(code)=
         state <- Evaluating
         //fsiCancelScr <- Some (new CancellationTokenSource())
@@ -155,7 +163,14 @@ module Fsi =
             let a = 
                 async{
                     if mode = Mode.Sync then do! Async.SwitchToContext Sync.syncContext 
-                
+                    
+                    Application.Current.DispatcherUnhandledException.Add(fun e ->  //exceptions generated on the UI thread
+                        Log.print "Application.Current.DispatcherUnhandledException: %A" e             
+                        e.Handled<- true)        
+       
+                    AppDomain.CurrentDomain.UnhandledException.AddHandler (//catching unhandled exceptions generated from all threads running under the context of a specific application domain. //https://dzone.com/articles/order-chaos-handling-unhandled
+                        new UnhandledExceptionEventHandler( ProcessCorruptedState.Handler)) //https://stackoverflow.com/questions/14711633/my-c-sharp-application-is-returning-0xe0434352-to-windows-task-scheduler-but-it
+
                     let choice, errs =  
                         try session.Value.EvalInteractionNonThrowing(code)//,fsiCancelScr.Value.Token)   // cancellation token here fails to cancel in sync, might still throw OperationCanceledException if async       
                         with e -> Choice2Of2 e , [| |]
@@ -192,6 +207,7 @@ module Fsi =
             Async.StartImmediate(a)// cancellation token here fails to cancel evaluation,
             )
         thread<-Some thr
+        
         thr.Start()
 
      

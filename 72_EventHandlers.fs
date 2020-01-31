@@ -15,7 +15,7 @@ open ICSharpCode.AvalonEdit
  
 module EventHandlers =
     
-    let setUpForWindow(win:Window) =  
+    let setUpForWindowSizing(win:Window) =  
         WindowLayout.init(win)
 
         UI.tabControl.SelectionChanged.Add( fun _-> 

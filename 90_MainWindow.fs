@@ -16,6 +16,8 @@ module MainWindow =
         try  win.Icon <-  Media.Imaging.BitmapFrame.Create(Application.GetResourceStream(uri).Stream)
         with ex -> Log.print  "Failed to load Media/LogoFSharp.ico from Application.ResourceStream ."
     
+    
+
 
     let create (args: string []) = 
         let timer = Timer()
@@ -31,12 +33,21 @@ module MainWindow =
         win.ResizeMode  <- ResizeMode.CanResize 
         win.Background  <- UI.menu.Background // otherwise space next to tabs is in an odd color
         
-        EventHandlers.setUpForWindow(win)
+        EventHandlers.setUpForWindowSizing(win)
         win.InputBindings.AddRange Commands.AllInputBindings  
         Menu.setup()
 
-        Controls.ToolTipService.ShowOnDisabledProperty.OverrideMetadata( typeof<Controls.Control>,  new FrameworkPropertyMetadata(true)) //https://stackoverflow.com/questions/4153539/wpf-how-to-show-tooltip-when-button-disabled-by-command
+        Controls.ToolTipService.ShowOnDisabledProperty.OverrideMetadata( typeof<Controls.Control>,  new FrameworkPropertyMetadata(true)) //show-tooltip-when-button-disabled-by-command //https://stackoverflow.com/questions/4153539/wpf-how-to-show-tooltip-when-button-disabled-by-command
 
+        
+        Application.Current.DispatcherUnhandledException.Add(fun e ->  //exceptions generated on the UI thread
+            Log.print "Application.Current.DispatcherUnhandledException: %A" e             
+            e.Handled<- true)        
+       
+        AppDomain.CurrentDomain.UnhandledException.AddHandler (//catching unhandled exceptions generated from all threads running under the context of a specific application domain. //https://dzone.com/articles/order-chaos-handling-unhandled
+            new UnhandledExceptionEventHandler( Seff.ProcessCorruptedState.Handler)) //https://stackoverflow.com/questions/14711633/my-c-sharp-application-is-returning-0xe0434352-to-windows-task-scheduler-but-it
+        
+                
         win.Loaded.Add (fun _ ->
             Log.print "* Time for loading main window: %s"  timer.tocEx
             setIcon(win)             
