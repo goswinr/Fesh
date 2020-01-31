@@ -15,7 +15,7 @@ module HostUndoRedoUNUSED =
     let mutable undoIndex = 0u
 
 
-module FsiUNUSED =    
+module FsiAgent =    
     
     [<AbstractClass; Sealed>]
     /// A static class to hold FSI events 
