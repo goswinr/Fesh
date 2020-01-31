@@ -13,176 +13,142 @@ open ICSharpCode.AvalonEdit.Editing
 open ICSharpCode.AvalonEdit.Document
 open FSharp.Compiler
 open FSharp.Compiler.SourceCodeServices
+open System.Windows.Input
+open System.Windows.Documents
 
 
 module Tooltips = 
-    open System.Windows.Input
-    open System.Windows.Documents
+    
 
-    //type XmlDocStr = Doc of string | Err of string | NoDoc
 
-    type ToolTipData = {name:string; signature:string; xmlDocStr: Result<string,string>}
+    type ToolTipData = {name:string; signature:string; xmlDocStr: Result<string*string,string>}
 
     // make a fancy tooltip:
     let stackPanel  (it:FSharpDeclarationListItem option) (tds:ToolTipData list) = 
-        makePanelVert [
+        let mutable assembly = ""
+        let stackPanel = makePanelVert [
             if it.IsSome then 
-                let tb = new TextBlock(Text= sprintf "%A" it.Value.Glyph)
+                let glyph = sprintf "%A" it.Value.Glyph
+                let tb = new TextBlock(Text = glyph)
                 tb.Foreground <- Brushes.DarkOrange
-                tb.FontSize <- Appearance.fontSize * 0.9
+                tb.FontSize <- Appearance.fontSize * 1.0
                 tb.FontFamily <- Appearance.defaultFont
                 tb.FontWeight <- FontWeights.Bold
-                yield tb 
+                yield tb :> UIElement
             
                 //let tb = new TextBlock(Text= sprintf "Kind:%A" it.Value.Kind)
             
             for td in tds do
-                if td.name <> ""then 
-                    let tb = new TextBlock(Text= td.name)
-                    tb.Foreground <- Brushes.Black
-                    tb.FontSize <- Appearance.fontSize
-                    tb.FontFamily <- Appearance.defaultFont
-                    tb.FontWeight <- FontWeights.Bold
-                    yield tb 
-                if td.signature <> ""then 
-                    let tb = new TextBlock(Text= td.signature)
-                    tb.Foreground <- Brushes.Black
-                    tb.FontSize <- Appearance.fontSize
-                    tb.FontFamily <- Appearance.defaultFont
-                    yield tb
+                let subPanel = makePanelVert [
+                    if td.name <> "" then 
+                        let tb = new TextBlock(Text= "Name:" + td.name)
+                        tb.Foreground <- Brushes.Black
+                        tb.FontSize <- Appearance.fontSize * 0.9
+                        tb.FontFamily <- Appearance.defaultFont
+                        tb.FontWeight <- FontWeights.Bold
+                        yield tb 
+                    if td.signature <> "" then 
+                        let tb = new TextBlock(Text = td.signature)
+                        tb.Foreground <- Brushes.Black
+                        tb.FontSize <- Appearance.fontSize * 1.2
+                        tb.FontFamily <- Appearance.defaultFont
+                        yield tb
                 
-                let color, txt,scale  = 
-                    match td.xmlDocStr with 
-                    |Ok txt     -> SolidColorBrush(Color.FromRgb(40uy,40uy,40uy)), txt, 0.95
-                    |Error txt  -> Brushes.Gray, txt, 0.80
-                let tb = new TextBlock(Text=txt)
-                tb.FontSize <- Appearance.fontSize * scale
-                tb.Foreground <- color
+                    let color, txt, scale  = 
+                        match td.xmlDocStr with 
+                        |Ok (txt,ass)     -> 
+                            if ass <>"" then assembly <- ass
+                            Brushes.DarkBlue, txt, 1.0  
+                        |Error errTxt  -> 
+                            Brushes.Gray, errTxt, 0.75
+                    let tb = new TextBlock(Text= txt.Trim() )
+                    tb.FontSize <- Appearance.fontSize * scale
+                    tb.Foreground <- color                    
+                    yield tb ]
+
+                let border = Border()
+                border.Child <- subPanel
+                border.BorderThickness <- Thickness(1.0)
+                border.BorderBrush <- Brushes.LightGray
+                border.Padding <- Thickness(4.0)
+                border.Margin <- Thickness(2.0)
+                yield border :> UIElement
+            
+            if assembly<>"" then 
+                let tb = new TextBlock(Text= "assembly:\r\n"+assembly)
+                tb.FontSize <- Appearance.fontSize * 0.80
+                tb.Foreground <- Brushes.Black
                 //tb.FontFamily <- new FontFamily ("Arial") // or use default of device
-                yield tb
+                yield tb :> UIElement
                 ]
+        ScrollViewer(Content=stackPanel)
     
-    module Xml = 
-        //taken form https://github.com/fsharp/FsAutoComplete/src/FsAutoComplete.Core/TipFormatter.fs
-    
-        // TODO: Improve this parser. Is there any other XmlDoc parser available?
-        // maybe https://stackoverflow.com/questions/2315000/parsing-xml-file-with-f-linq-to-xml
-        type  XmlDocMember(doc: XmlDocument) =
-          let nl = Environment.NewLine
-          let readContent (node: XmlNode) =
-            match node with
-            | null -> null
-            | _ ->
-                // Many definitions contain references like <paramref name="keyName" /> or <see cref="T:System.IO.IOException">
-                // Replace them by the attribute content (keyName and System.IO.Exception in the samples above)
-                // Put content in single quotes for possible formatting improvements on editor side.
-                Regex.Replace(node.InnerXml,"""<\w+ \w+="(?:\w:){0,1}(.+?)" />""", "`$1`")
-          let readChildren name (doc: XmlDocument) =
-            doc.DocumentElement.GetElementsByTagName name
-            |> Seq.cast<XmlNode>
-            |> Seq.map (fun node -> node.Attributes.[0].InnerText.Replace("T:",""), readContent node)
-            |> Map.ofSeq
-          let summary = readContent doc.DocumentElement.ChildNodes.[0]
-          let pars = readChildren "param" doc
-          let exceptions = readChildren "exception" doc
-          override x.ToString() =
-            summary + nl + nl +
-            (pars |> Seq.map (fun kv -> "`" + kv.Key + "`" + ": " + kv.Value) |> String.concat nl) +
-            (if exceptions.Count = 0 then ""
-             else nl + nl + "Exceptions:" + nl +
-                  (exceptions |> Seq.map (fun kv -> "\t" + "`" + kv.Key + "`" + ": " + kv.Value) |> String.concat nl))
-
-        let rec readXmlDoc (reader: XmlReader) (acc: Map<string,XmlDocMember>) =
-          let acc' =
-            match reader.Read() with
-            | false -> None
-            | true when reader.Name = "member" && reader.NodeType = XmlNodeType.Element ->
-              try
-                let key = reader.GetAttribute("name")
-                use subReader = reader.ReadSubtree()
-                let doc = XmlDocument()
-                doc.Load(subReader)
-                acc |> Map.add key (XmlDocMember doc) |> Some
-              with
-              | _ -> Some acc
-            | _ -> Some acc
-          match acc' with
-          | None -> acc
-          | Some acc' -> readXmlDoc reader acc'
-
-        let getXmlDoc =
-          let xmlDocCache = Collections.Concurrent.ConcurrentDictionary<string, Map<string, XmlDocMember>>()
-          fun dllFile ->
-            let xmlFile = Path.ChangeExtension(dllFile, ".xml")
-            if xmlDocCache.ContainsKey xmlFile then
-              Some xmlDocCache.[xmlFile]
-            else          
-              let rec exists filePath tryAgain = // In Linux, we need to check for upper case extension separately
-                match File.Exists filePath, tryAgain with
-                | true, _ -> Some filePath
-                | false, false -> None
-                | false, true ->
-                  let filePath = Path.ChangeExtension(filePath, Path.GetExtension(filePath).ToUpper())
-                  exists filePath false
-
-              match exists xmlFile true with
-              | None -> None
-              | Some actualXmlFile ->
-                // Prevent other threads from tying to add the same doc simultaneously
-                xmlDocCache.AddOrUpdate(xmlFile, Map.empty, fun _ _ -> Map.empty) |> ignore
-                try
-                  use reader = XmlReader.Create actualXmlFile
-                  let xmlDoc = readXmlDoc reader Map.empty
-                  xmlDocCache.AddOrUpdate(xmlFile, xmlDoc, fun _ _ -> xmlDoc) |> ignore
-                  Some xmlDoc
-                with _ ->
-                  None  // TODO: Remove the empty map from cache to try again in the next request?
-    
-    
+  
     // --------------------------------------------------------------------------------------
-    // Formatting of tool-tip information displayed in F# IntelliSense
+    // Seff Formatting of tool-tip information displayed in F# IntelliSense
     // --------------------------------------------------------------------------------------
-    let  buildFormatComment cmt =
+    
+    let buildFormatComment (cmt:FSharpXmlDoc) =
         match cmt with
-        | FSharpXmlDoc.Text s -> Ok s //"plain text Doc: \r\n" + s
+        | FSharpXmlDoc.Text s -> Ok (s,"") // "plain text Doc: \r\n" + s
         | FSharpXmlDoc.None -> Error "*FSharpXmlDoc.None*"
         | FSharpXmlDoc.XmlDocFileSignature(dllFile, memberName) ->
-           match Xml.getXmlDoc dllFile with
+           match XmlToolTipFormatter.getXmlDoc dllFile with
            | Some doc ->
-                if doc.ContainsKey memberName then Ok (string doc.[memberName])
-                else Error ("*member not found in docXml: "+memberName+"\r\n for "+dllFile+"\r\n")
-           | _ -> Error ("*doc file not found for: "+dllFile+"\r\n")
+                if doc.ContainsKey memberName then 
+                    let docText = doc.[memberName].ToEnhancedString()
+                    //let docText =  doc.[memberName].ToString()
+                    Ok (docText  , dllFile)
+                else 
+                    let xmlf = Path.ChangeExtension(dllFile, ".xml")
+                    let err = "no xml doc found for member'"+memberName+"' in \r\n"+xmlf+"\r\n"
+                    //Log.print "%s" err                    
+                    Error (err)
+           | None -> 
+                Error ("*xml doc file not found for: "+dllFile+"\r\n")
 
 
-    let formated (sdtt: FSharpStructuredToolTipText) = 
+
+    let addQuestionmark (optArgs:ResizeArray<string>) (txt:string) = 
+        let mutable res = txt
+        for arg in optArgs do 
+            res <- res.Replace(" "+arg+":", " ?"+arg+":")
+        res
+
+    let formated (sdtt: FSharpStructuredToolTipText, optArgs:ResizeArray<string>) = 
         match sdtt with
         |FSharpToolTipText(els) ->
             match els with
-            |[]  -> []//{name = ""; signature= ""; xmlDocStr = Error "*FSharpStructuredToolTipElement list is empty*"}]
+            |[]  -> [] //{name = ""; signature= ""; xmlDocStr = Error "*FSharpStructuredToolTipElement list is empty*"}]
             |els -> 
                 [ for el in els do 
                     match el with 
-                    | FSharpStructuredToolTipElement.None -> () //yield {name = ""; signature= ""; xmlDocStr = Error "*FSharpStructuredToolTipElement.None*"}
-                    | FSharpStructuredToolTipElement.CompositionError(text) -> yield {name = ""; signature= ""; xmlDocStr = Error ("*FSharpStructuredToolTipElement.CompositionError: "+ text)}
+                    | FSharpStructuredToolTipElement.None ->                    yield {name = ""; signature= ""; xmlDocStr = Error  "*FSharpStructuredToolTipElement.None*"}
+                    | FSharpStructuredToolTipElement.CompositionError(text) ->  yield {name = ""; signature= ""; xmlDocStr = Error ("*FSharpStructuredToolTipElement.CompositionError: "+ text)}
                     | FSharpStructuredToolTipElement.Group(layouts) -> 
-                        for layout in layouts do
-                            yield { name = "" //Option.defaultValue "*noParamName*" layout.ParamName
-                                    signature= Layout.showL layout.MainDescription
+                        for layout in layouts do 
+                            yield { name =     Option.defaultValue "" layout.ParamName
+                                    signature= Layout.showL layout.MainDescription   |> addQuestionmark optArgs                                 
                                     xmlDocStr = buildFormatComment layout.XmlDoc}
                 ]
             
-
-                        //|> List.map (fun layout -> Option.defaultValue "noParamName" layout.ParamName)
-                       // |> List.map (fun layout ->  Layout.showL layout.MainDescription + "\r\n" + buildFormatComment layout.XmlDoc)
-                        //|> List.map (fun layout -> Option.map Layout.showL layout.Remarks |> Option.defaultValue "noRemarks")
-                        //|> String.concat "\r\n-------------------------------------------------------------------\r\n" // line between overloads
-                //sprintf "%s%s" tx eltxt) "" 
-    
  
 
     // --------------------------------------------------------------------------------------
-    // Type info ToolTip:
+    // Seff Type info ToolTip:
     // --------------------------------------------------------------------------------------
+
+    let infoAboutOptinals(fsu:FSharpSymbolUse)=
+        let D = ResizeArray<string>(0)               
+        match fsu.Symbol with
+        | :? FSharpMemberOrFunctionOrValue as x ->
+            for cs in x.CurriedParameterGroups do
+                for c in cs do 
+                    if c.IsOptionalArg then                         
+                        D.Add c.FullName
+                        //Log.print "optional full name: %s" c.FullName
+        | _ -> ()
+        D
 
     let TextEditorMouseHover( e: MouseEventArgs) =
         // see https://github.com/icsharpcode/AvalonEdit/blob/master/ICSharpCode.AvalonEdit/Editing/SelectionMouseHandler.cs#L477
@@ -203,14 +169,16 @@ module Tooltips =
                 if startOffset < endOffset then // to skip empty lines
                     tab.TypeInfoToolTip.Content <- "*loading type info ..."
                     tab.TypeInfoToolTip.PlacementTarget <- ed // required for property inheritance
-                    tab.TypeInfoToolTip.IsOpen <- true            
+                    tab.TypeInfoToolTip.IsOpen <- true 
+                    tab.TypeInfoToolTip.StaysOpen <- true
+                    
                     //e.Handled <- true // HACK. don't se handeled! so that on type errors the  Error tooltip still gets shown after this tooltip
 
                     let docLine = doc.GetLineByOffset(offset)
                     let endCol = endOffset - docLine.Offset
                     let lineTxt = doc.GetText(docLine)          
                     let word = doc.GetText(max 0 startOffset, endOffset-startOffset) // max function to avoid -1
-                    //Log.printf "word = '%s' Line:%d starting at %d get from %d to %d: in '%s'" word line docLine.Offset startOffset endOffset lineTxt
+                    //Log.print "word = '%s' Line:%d starting at %d get from %d to %d: in '%s'" word line docLine.Offset startOffset endOffset lineTxt
                     async{
                         // <summary>Compute a formatted tooltip for the given location</summary>
                         // <param name="line">The line number where the information is being requested.</param>
@@ -221,18 +189,25 @@ module Tooltips =
                         //              an attempt is made to give a tooltip for a #r "..." location. 
                         //              Use a value from FSharpTokenInfo.Tag, or FSharpTokenTag.Identifier, unless you have other information available.</param>
                         // <param name="userOpName">An optional string used for tracing compiler operations associated with this request.</param>    
-                        let! stt = tab.FsCheckerResult.Value.GetStructuredToolTipText(line,endCol,lineTxt,[word],FSharpTokenTag.Identifier)
-                        let ttds = formated stt
-                                                
+                        
+                        do! Async.SwitchToThreadPool()
+
+                        let! stt =   tab.FsCheckerResult.Value.GetStructuredToolTipText(line,endCol,lineTxt,[word],FSharpTokenTag.Identifier)     //TODO, can this be avoided use info from below symbol call ?
+                        let! symbls = tab.FsCheckerResult.Value.GetSymbolUseAtLocation(line,endCol,lineTxt,[word]) //only get info about oprional paramters
+                        let defArgs = if symbls.IsSome then infoAboutOptinals(symbls.Value) else ResizeArray(0) 
+                        
                         do! Async.SwitchToContext Sync.syncContext
+
+                        let ttds = formated (stt, defArgs)
                         if List.isEmpty ttds then
                             tab.TypeInfoToolTip.IsOpen <- false
                         else                            
                             let ttPanel = stackPanel None ttds
                             if tab.TypeInfoToolTip.IsOpen then 
                                 tab.TypeInfoToolTip.Content <- ttPanel
-                        } |> Async.Start //TODO: add Cancellation ?
+                        } |> Async.StartImmediate //TODO: add Cancellation ?
           
+
                 
 
     let TextEditorMouseHoverStopped( e: MouseEventArgs) = 

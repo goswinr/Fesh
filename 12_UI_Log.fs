@@ -38,7 +38,6 @@ module Log =
     
     
     let private printLineToLog(s:string) =
-        //FileLoggingAgent.Post(s) // debugg logger directly to a file
         if dontPrint s then 
             ()
         elif isNull Sync.syncContext then //|| not isLogReady then // this might never happen ? // install sync context instead?
@@ -60,22 +59,19 @@ module Log =
     let textwriter = 
         new FsxTextWriter(printLineToLog) 
   
-    /// debug logging, might be disabled later
-    let dlog a = 
-        textwriter.WriteLine ("dlog: " + a )        
-        //fileLoggingAgent.Post(sprintf "%A" a)
+
     
     /// like printfn, use with format strings, adds new line
-    let printf s = 
+    let print s = 
         Printf.fprintfn textwriter s 
     
-    /// prints any type
-    let print a = 
-        match box a with 
-        | :? string as s -> Printf.fprintfn textwriter "%s" s // to avoid printing of quotes around string
-        | _              -> Printf.fprintfn textwriter "%A" a
+   
+    /// debug logging, might be disabled later
+    let debugLogOLD txt = 
+        textwriter.WriteLine ("debugLog: " + txt )        
+        
 
-    /// printf, does not add new line at end, use with format strings
-    let printInline s = Printf.fprintf textwriter s
+    do
+        Config.logger <- print "debugLog: %s" 
 
     

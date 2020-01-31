@@ -3,6 +3,8 @@
 open System
 open System.Windows
 open System.Windows.Controls
+open System.Windows.Media
+
 
 
 module UtilWPF =    
@@ -41,8 +43,7 @@ module UtilWPF =
         static member TextBinding (binding:Data.BindingBase) =
             DependencyPropertyBindingPair(TextBox.TextProperty,binding)
 
-
-    let makeGridLength h = new GridLength(h,GridUnitType.Star)
+    let makeGridLength len = new GridLength(len, GridUnitType.Star)
 
     let makeMenu (xss:list<MenuItem*list<Control>>)=
         let menu = new Menu()
@@ -90,7 +91,6 @@ module UtilWPF =
             )
         grid
 
-
     let makePanelVert (xs:list<#UIElement>) =
         let p = new StackPanel(Orientation= Orientation.Vertical)
         for x in xs do
@@ -102,3 +102,17 @@ module UtilWPF =
         for x in xs do
             p.Children.Add x |> ignore
         p
+
+    ///Adds bytes to each color channel to increase brightness, negative values to make darker
+    let changeLuminace (amount:int) (br:SolidColorBrush)=
+        let inline clamp x = if x<0 then 0uy elif x>255 then 255uy else byte(x)
+        let r = int br.Color.R + amount |> clamp      
+        let g = int br.Color.G + amount |> clamp
+        let b = int br.Color.B + amount |> clamp
+        SolidColorBrush(Color.FromArgb(br.Color.A, r,g,b))
+    
+    ///Adds bytes to each color channel to increase brightness
+    let brighter (amount:int) (br:SolidColorBrush)  = changeLuminace amount br 
+    
+    ///Removes bytes from each color channel to increase darkness
+    let darker  (amount:int) (br:SolidColorBrush)  = changeLuminace -amount br

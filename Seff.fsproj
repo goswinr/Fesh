@@ -15,7 +15,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Update="FSharp.Core" Version="4.7.*" />
+    <PackageReference Update="FSharp.Core" Version="4.7.0" GeneratePathProperty="true" /> <!-- path property $(PkgFSharp_Core) is C:\Users\Gos\.nuget\packages\fsharp.core\4.7.0 -->
     <PackageReference Include="FSharp.Compiler.Service" Version="33.0.1" />
     <!-- <PackageReference Include="AvalonEdit" Version="6.0.0" /> use custom build of it instead-->    
   </ItemGroup>
@@ -45,7 +45,7 @@
     <EmbeddedResource Include="Media\AppIcon.res" />
     <Resource Include="Media\LogoFSharp.ico" />
 
-    <None Include="FSharpSynatxHighlighterExtended.xshd">      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>    </None>
+    <None Include="FSharpSynatxHighlighterExtended.xshd">    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>    </None>
 
     <Compile Include="03_Util.fs" />
     <Compile Include="04_UtilWPF.fs" />
@@ -59,7 +59,8 @@
     <Compile Include="35_UI_CodeCompletion.fs" />
     <Compile Include="36_UI_Folding.fs" />
     <Compile Include="60_FsSyntaxColors.fs" />
-    <Compile Include="62_FSI.fs" />
+    <Compile Include="61_FsiOldc.fs" />
+    <Compile Include="61_Fsi.fs" />
     <Compile Include="63_FsChecker.fs" />
     <Compile Include="64_FsPakages.fs" />
     <Compile Include="65_FsServices.fs" />
@@ -76,13 +77,15 @@
   </ItemGroup>
 
 
-  <ItemGroup>
+  <!--<ItemGroup>
     <Folder Include="Properties\" />
-  </ItemGroup>
+  </ItemGroup> -->
+
 
    
   <Target Name="CopyFilesOverAfterBuild" BeforeTargets="AfterBuild">
-    <Copy SourceFiles="C:\Users\gwins\.nuget\packages\fsharp.core\4.7.0\lib\net45\FSharp.Core.xml" DestinationFiles="$(TargetDir)FSharp.Core.xml" ContinueOnError="false" /> <!-- missing otherwise ? to have it as intellisense provider-->
+    <!-- <Message Text="Copied FSharp.Core.xml file from $(PkgFSharp_Core) to output dir ." Importance="high"/> -->
+    <Copy SourceFiles="$(PkgFSharp_Core)\lib\net45\FSharp.Core.xml" DestinationFiles="$(TargetDir)FSharp.Core.xml" ContinueOnError="false" />  <!-- xml missing otherwise ? to have it as intellisense provider-->
   </Target>
 
 </Project>

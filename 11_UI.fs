@@ -3,22 +3,21 @@
 open System
 open System.Windows
 open System.Windows.Controls
+open System.Windows.Controls.Primitives // status bar
 open System.Windows.Media
 open ICSharpCode
 open Seff.UtilWPF
+open FSharp.Compiler.SourceCodeServices
 
 module Appearance=    
     
-    let private w  = 255uy // white
-    let private aw = 240uy // almost white
-    let private lg = 210uy // lightgrey
-    let private dg = 99uy // dark grey
-    let logBackgroundFsiEvaluating   = SolidColorBrush(Color.FromRgb(dg,dg,dg))//DarkGray 
-    let logBackgroundFsiReady    = Brushes.Black
-    let logBackgroundFsiHadError = Brushes.DarkRed
-    let editorBackgroundOk       = Brushes.White
-    let editorBackgroundErr      = SolidColorBrush(Color.FromRgb(w,aw,aw))// pink
-    let editorBackgroundChecking = SolidColorBrush(Color.FromRgb(lg,lg,lg))// light grey
+    
+    let logBackgroundFsiEvaluating   =  Brushes.Black    |> brighter 150 //DarkGray 
+    let logBackgroundFsiReady    =      Brushes.Black
+    let logBackgroundFsiHadError =      Brushes.DarkRed
+    let editorBackgroundOk       =      Brushes.White
+    let editorBackgroundErr      =      Brushes.Red      |> brighter 240 // very light pink
+    let editorBackgroundChecking =      Brushes.White    |> darker 55    // light grey
 
     let defaultFontSize = 14.0
     let defaultFont = FontFamily("Consolas")
@@ -83,11 +82,43 @@ module Appearance=
         g.ToolTip <- "Drag to resize code editor and log window"
         g
 
+    
     let en_US = Globalization.CultureInfo.CreateSpecificCulture("en-US")
     do
         Globalization.CultureInfo.DefaultThreadCurrentCulture   <- en_US
         Globalization.CultureInfo.DefaultThreadCurrentUICulture <- en_US
 
+module StatusBar =
+    let async = 
+        let bi = StatusBarItem(Content="*unknown*")
+        bi.ToolTip <- "Click to switch between synchronous and asynchronous evaluation in FSI,\r\nsynchronous is needed for UI interaction,\r\nasynchronous allows easy cancellation and keeps the editor window alive"
+        //bi.MouseDown.Add(fun _ -> toggleSync()) //done in fsi module
+        bi
+
+    let compilerErrors=
+        let tb = TextBox()
+        tb.FontWeight <- FontWeights.Bold
+        tb
+
+    let setErrors(es:FSharpErrorInfo[])= 
+        if es.Length = 0 then 
+            compilerErrors.Text <- "No Errors"
+            compilerErrors.Background <- Brushes.Green |> brighter 60            
+        else 
+            compilerErrors.Text <- sprintf "%d Errors" es.Length
+            compilerErrors.Background <- Brushes.Red   |> brighter 60  
+            compilerErrors.ToolTip <- makePanelVert [ for e in es do TextBlock(Text=sprintf "• Line %d: %A: %s" e.StartLineAlternate e.Severity e.Message)]
+
+    let bar = 
+        let b = new StatusBar() 
+        b.Items.Add (StatusBarItem(Content="FSI evaluation mode: "))  |> ignore
+        b.Items.Add (async)             |> ignore 
+        b.Items.Add (Separator())       |> ignore 
+        b.Items.Add compilerErrors      |> ignore 
+        b.Items.Add (Separator())       |> ignore 
+        b.Items.Add (StatusBarItem())   |> ignore // fill remaining space
+        b
+    
 
 module UI =     
     let editorRowHeight     = RowDefinition   (Height = makeGridLength (Config.getFloat "EditorHeight"  400.0))//, MinHeight = minRowHeight)
@@ -100,17 +131,16 @@ module UI =
     let splitterHor     = new GridSplitter()             |> Appearance.setForHorSplitter
     let splitterVert    = new GridSplitter()             |> Appearance.setForVertSplitter
     let log             = new AvalonEdit.TextEditor()    |> Appearance.setForLog
-    //let statusBar  = new StatusBar()
-
+    
     
     let gridHor() = 
         Config.setBool "isVertSplit" false
         makeGridHorizontalEx [         
-            menu        :> UIElement, RowDefinition(Height = GridLength.Auto)
-            tabControl  :> UIElement, editorRowHeight 
-            splitterHor :> UIElement, RowDefinition(Height = GridLength.Auto) 
-            log         :> UIElement, logRowHeight         
-            //statusBar   :> UIElement, RowDefinition(Height = GridLength.Auto)                
+            menu         :> UIElement, RowDefinition(Height = GridLength.Auto)
+            tabControl   :> UIElement, editorRowHeight 
+            splitterHor  :> UIElement, RowDefinition(Height = GridLength.Auto) 
+            log          :> UIElement, logRowHeight         
+            StatusBar.bar:> UIElement, RowDefinition(Height = GridLength.Auto)                
             // TODO add https://github.com/SwensenSoftware/fseye
             ]
     
@@ -125,7 +155,7 @@ module UI =
         makeGridHorizontalEx [         
             menu         :> UIElement, RowDefinition(Height = GridLength.Auto)
             EditorAndLog :> UIElement, RowDefinition(Height = makeGridLength 200.0)
-            //statusBar   :> UIElement, RowDefinition(Height = GridLength.Auto)                
+            StatusBar.bar:> UIElement, RowDefinition(Height = GridLength.Auto)                
             // TODO add https://github.com/SwensenSoftware/fseye
             ]
 

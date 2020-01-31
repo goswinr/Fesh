@@ -36,13 +36,18 @@ module FsChecker =
                 | None -> "UnSavedFile.fsx" // .fsx file required by FCS , oddly !
 
                    
-            let ch = match checker with  |Some c -> c  |None -> FSharpChecker.Create() //TODO default options OK? TODO one checker for serveral files or several checkers ?
-            checker <- Some ch
+            match checker with  
+            |Some _ -> ()  
+            |None -> 
+                let ch = FSharpChecker.Create(suggestNamesForErrors=true) //TODO default options OK? 
+                // "you should generally use one global, shared FSharpChecker for everything in an IDE application." from http://fsharp.github.io/FSharp.Compiler.Service/caches.html
+                Environment.SetEnvironmentVariable ("FCS_ParseFileCacheSize", "5") // done on startup
+                checker <- Some ch
             
             try
                 let sourceText = Text.SourceText.ofString code
-                let! options, optionsErr = ch.GetProjectOptionsFromScript(fileFsx,sourceText, otherFlags = [| "--langversion:preview" |] ) //TODO really use check file in project for scripts??
-                for e in optionsErr do Log.printf "*Script Options Error: %A" e
+                let! options, optionsErr = checker.Value.GetProjectOptionsFromScript(fileFsx, sourceText, otherFlags = [| "--langversion:preview" |] ) //TODO really use check file in project for scripts??
+                for e in optionsErr do Log.print "*Script Options Error: %A" e
             
                 // "filename">The name of the file in the project whose source is being checked
                 // "fileversion">An integer that can be used to indicate the version of the file. This will be returned by TryGetRecentCheckResultsForFile when looking up the file.
@@ -83,26 +88,26 @@ module FsChecker =
                         SourceFiles: {string[1]}
                         *)
                 try
-                    let! parseRes , checkAnswer = ch.ParseAndCheckFileInProject(fileFsx, 0, sourceText, options) // can also be done in two speterate calls   //TODO really use check file in project for scripts??         
+                    let! parseRes , checkAnswer = checker.Value.ParseAndCheckFileInProject(fileFsx, 0, sourceText, options) // can also be done in two speterate calls   //TODO really use check file in project for scripts??         
                     match checkAnswer with
                     | FSharpCheckFileAnswer.Succeeded checkRes ->   
                         return {ok=true; parseRes=parseRes;  checkRes=checkRes;  code=code}
                     
                     | FSharpCheckFileAnswer.Aborted  ->
-                        Log.printf "*ParseAndCheckFile code aborted"
+                        Log.print "*ParseAndCheckFile code aborted"
                         return {ok=false; parseRes=Unchecked.defaultof<FSharpParseFileResults>;  checkRes=Unchecked.defaultof<FSharpCheckFileResults>;  code=code}                        
                 with e ->
-                    Log.printf "ParseAndCheckFileInProject crashed (varying Nuget versions of FCS ?): %s" e.Message
+                    Log.print "ParseAndCheckFileInProject crashed (varying Nuget versions of FCS ?): %s" e.Message
                     return {ok=false; parseRes=Unchecked.defaultof<FSharpParseFileResults>;  checkRes=Unchecked.defaultof<FSharpCheckFileResults>;  code=code}
             
             with e ->
-                    Log.printf "GetProjectOptionsFromScript crashed (varying Nuget versions of FCS ?) : %s" e.Message
+                    Log.print "GetProjectOptionsFromScript crashed (varying Nuget versions of FCS ?) : %s" e.Message
                     return {ok=false; parseRes=Unchecked.defaultof<FSharpParseFileResults>;  checkRes=Unchecked.defaultof<FSharpCheckFileResults>;  code=code}
             } 
     
     let showChecking (tab:FsxTab, isRunning,checkerId) = //,changedColor) = 
         async {            
-            do! Async.Sleep 200            
+            do! Async.Sleep 300            
             if !isRunning && tab.FsCheckerRunning = checkerId  then // || checkerId=0 //in case of completion window
                 do! Async.SwitchToContext Sync.syncContext
                 tab.Editor.Background <- Appearance.editorBackgroundChecking
@@ -118,14 +123,14 @@ module FsChecker =
             return res
             }
 
-    let complete (parseRes :FSharpParseFileResults, checkRes :FSharpCheckFileResults, pos :PositionInCode, ifDotSetback)  =        
+    let getDeclListInfo (parseRes :FSharpParseFileResults, checkRes :FSharpCheckFileResults, pos :PositionInCode, ifDotSetback)  =        
         //see https://stackoverflow.com/questions/46980690/f-compiler-service-get-a-list-of-names-visible-in-the-scope
         //and https://github.com/fsharp/FSharp.Compiler.Service/issues/835
         async{
             let colSetBack = pos.column - ifDotSetback
             let partialLongName = QuickParse.GetPartialLongNameEx(pos.lineToCaret, colSetBack - 1) //- 1) ??TODO is minus one correct ? https://github.com/fsharp/FSharp.Compiler.Service/issues/837
-            //Log.printf "GetPartialLongNameEx on: '%s' setback: %d is:\r\n%A" pos.lineToCaret colSetBack partialLongName  
-            //Log.printf "GetDeclarationListInfo on: '%s' row: %d, col: %d, colSetBack:%d, ifDotSetback:%d\r\n" pos.lineToCaret pos.row pos.column colSetBack ifDotSetback          
+            //Log.print "GetPartialLongNameEx on: '%s' setback: %d is:\r\n%A" pos.lineToCaret colSetBack partialLongName  
+            //Log.print "GetDeclarationListInfo on: '%s' row: %d, col: %d, colSetBack:%d, ifDotSetback:%d\r\n" pos.lineToCaret pos.row pos.column colSetBack ifDotSetback          
             let! decls = 
                 checkRes.GetDeclarationListInfo(
                     Some parseRes,      // ParsedFileResultsOpt
@@ -134,7 +139,27 @@ module FsChecker =
                     partialLongName,    // PartialLongName
                     ( fun _ -> [] )     // getAllEntities: (unit -> AssemblySymbol list) 
                     ) 
-            if decls.IsError then Log.printf "*ERROR in GetDeclarationListInfo: %A" decls
+            if decls.IsError then Log.print "*ERROR in GetDeclarationListInfo: %A" decls
+            return decls
+            } 
+    
+    let getDeclListSymbols (parseRes :FSharpParseFileResults, checkRes :FSharpCheckFileResults, pos :PositionInCode, ifDotSetback)  = 
+        //see https://stackoverflow.com/questions/46980690/f-compiler-service-get-a-list-of-names-visible-in-the-scope
+        //and https://github.com/fsharp/FSharp.Compiler.Service/issues/835
+        async{
+            let colSetBack = pos.column - ifDotSetback
+            let partialLongName = QuickParse.GetPartialLongNameEx(pos.lineToCaret, colSetBack - 1) //- 1) ??TODO is minus one correct ? https://github.com/fsharp/FSharp.Compiler.Service/issues/837
+            //Log.print "GetPartialLongNameEx on: '%s' setback: %d is:\r\n%A" pos.lineToCaret colSetBack partialLongName  
+            //Log.print "GetDeclarationListInfo on: '%s' row: %d, col: %d, colSetBack:%d, ifDotSetback:%d\r\n" pos.lineToCaret pos.row pos.column colSetBack ifDotSetback          
+            let! decls = 
+                checkRes.GetDeclarationListSymbols(
+                    Some parseRes,      // ParsedFileResultsOpt
+                    pos.row,            // line                   
+                    pos.lineToCaret ,   // lineText
+                    partialLongName,    // PartialLongName
+                    ( fun _ -> [] )     // getAllEntities: (unit -> AssemblySymbol list) 
+                    ) 
+            //if decls.IsError then Log.print "*ERROR in GetDeclarationListInfo: %A" decls
             return decls
             } 
         

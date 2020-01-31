@@ -15,7 +15,7 @@ open ICSharpCode.AvalonEdit
  
 module EventHandlers =
     
-    let setUpForWindow(win:Window) =  
+    let setUpForWindowSizing(win:Window) =  
         WindowLayout.init(win)
 
         UI.tabControl.SelectionChanged.Add( fun _-> 
@@ -40,7 +40,7 @@ module EventHandlers =
                 if win.Top > -500. && win.Left > -500. then // to not save on minimizing on minimized: Top=-32000 Left=-32000 
                     Config.setFloatDelayed "WindowTop"  win.Top  89 // get float in statchange maximised neddes top access this before 350 ms pass
                     Config.setFloatDelayed "WindowLeft" win.Left 95
-                    Config.save Log.dlog
+                    Config.saveSettings ()
                     //Log.dlog (sprintf "%s Location Changed: Top=%.0f Left=%.0f State=%A" Time.nowStrMilli win.Top win.Left win.WindowState) 
             )
 
@@ -53,7 +53,7 @@ module EventHandlers =
                 win.Width <-   Config.getFloat "WindowWidth"  800.0
                 Config.setBool  "WindowIsMax" false
                 WindowLayout.isMinOrMax <- false
-                Config.save Log.dlog
+                Config.saveSettings ()
                 //Log.dlog (sprintf "%s State changed=%A Top=%.0f Left=%.0f Width=%.0f Height=%.0f" Time.nowStrMilli win.WindowState win.Top win.Left win.ActualWidth win.ActualHeight )
 
             | WindowState.Maximized ->
@@ -69,15 +69,15 @@ module EventHandlers =
                         Config.setFloatDelayed "WindowHeight" (Config.getFloat "WindowHeight" 699.0) 220 // just to be save restore those too
                         Config.setFloatDelayed "WindowWidth"  (Config.getFloat "WindowWidth"  699.0) 230 // just to be save restore those too
                         Config.setBool  "WindowIsMax" true                    
-                        Config.save Log.dlog
+                        Config.saveSettings ()
                         //Log.dlog (sprintf "%s State changed=%A Top=%.0f Left=%.0f Width=%.0f Height=%.0f" Time.nowStrMilli win.WindowState win.Top win.Left win.ActualWidth win.ActualHeight )
                         }
                         |> Async.StartImmediate
 
             |WindowState.Minimized -> 
                 WindowLayout.isMinOrMax <- true
-            |x -> 
-                Log.dlog (sprintf "*** unknown WindowState State change=%A" x) 
+            |wch -> 
+                Log.print "unknown WindowState State change=%A" wch
                 WindowLayout.isMinOrMax <- true
             )
 
@@ -85,7 +85,7 @@ module EventHandlers =
             if win.WindowState = WindowState.Normal &&  not WindowLayout.isMinOrMax then 
                 Config.setFloatDelayed "WindowHeight" win.Height 89
                 Config.setFloatDelayed "WindowWidth"  win.Width  95
-                Config.save Log.dlog
+                Config.saveSettings ()
                 //Log.dlog (sprintf "%s Size Changed: Width=%.0f Height=%.0f State=%A" Time.nowStrMilli win.Width win.Height win.WindowState)
             )
 
@@ -102,8 +102,8 @@ module EventHandlers =
 
         //tab.Editor.Document.TextChanged.Add (fun e -> ())
 
-        tab.Editor.Document.Changed.Add(fun e -> //TODO oer Text Changed ??
-            //Log.printf "*Document.Changed Event: deleted %d '%s', inserted %d '%s' completion Window:%A" e.RemovalLength e.RemovedText.Text e.InsertionLength e.InsertedText.Text tab.CompletionWin
+        tab.Editor.Document.Changed.Add(fun e -> //TODO oer TextChanged ??
+            //Log.print "*Document.Changed Event: deleted %d '%s', inserted %d '%s' completion Window:%A" e.RemovalLength e.RemovedText.Text e.InsertionLength e.InsertedText.Text tab.CompletionWin
             ModifyUI.markTabUnSaved(tab)
             match tab.CompletionWin with
             | Some w ->  // just keep on tying in completion window, no type checking !
@@ -112,8 +112,8 @@ module EventHandlers =
                     //let currentText = getField(typeof<CodeCompletion.CompletionList>,w.CompletionList,"currentText") :?> string //this property schould be public !
                     //TODO close Window if w.CompletionList.SelectedItem.Text = currentText
                     //TODO ther is a bug in current text when deliting chars
-                    //Log.printf "currentText: '%s'" currentText
-                    //Log.printf "w.CompletionList.CompletionData.Count:%d" w.CompletionList.ListBox.VisibleItemCount
+                    //Log.print "currentText: '%s'" currentText
+                    //Log.print "w.CompletionList.CompletionData.Count:%d" w.CompletionList.ListBox.VisibleItemCount
                 else 
                     w.Close() 
             
@@ -197,12 +197,12 @@ module EventHandlers =
                 let line:string = currentLine tab
                 let car = tArea.Caret.Column
                 let prevC = line.Substring(0 ,car-1)
-                //Log.printf "--Substring length %d: '%s'" prevC.Length prevC
+                //Log.print "--Substring length %d: '%s'" prevC.Length prevC
                 if prevC.Length > 0 then 
                     if isJustSpaceCharsOrEmpty prevC  then
                         let dist = prevC.Length % tab.Editor.Options.IndentationSize
                         let clearCount = if dist = 0 then tab.Editor.Options.IndentationSize else dist
-                        //Log.printf "--Clear length: %d " clearCount
+                        //Log.print "--Clear length: %d " clearCount
                         tab.Editor.Document.Remove(tab.Editor.CaretOffset - clearCount, clearCount)
                         e.Handled <- true
             )

@@ -9,6 +9,7 @@ open Seff.Util
 /// persitance of user settings such as recent files and window location and size  
 module Config = 
     
+    let mutable internal logger = Unchecked.defaultof<string->unit> // will be set once UI.Log is created
 
     // Yes, I rolled my own type of config file. The default App.config did not work for me when Editor is hosted in other CAD Apps like Rhinoceros3D
 
@@ -17,7 +18,7 @@ module Config =
     let mutable hostName = "NotHosted" 
     // TODO refactor to use FileInfo instead of path strings
     let mutable fileDefaultCode = ""
-    let mutable codeToAppendEvaluations = "" // \r\nRhino.RhinoDoc.ActiveDoc.Views.Redraw()  
+    //let mutable codeToAppendEvaluations = "" // \r\nRhino.RhinoDoc.ActiveDoc.Views.Redraw()  
     let mutable private fileSettings = ""
     let mutable private fileRecent =    ""   // files for list in open menu
     let mutable private fileOnClosingOpen = "" // files that are open when closing the editor window, for next restart
@@ -54,7 +55,7 @@ module Config =
     //-----------------
     //--UI Layout Settings--
     //-----------------
-    let private Dict = new Collections.Concurrent.ConcurrentDictionary<string,string>()
+    let private settingsDict = new Collections.Concurrent.ConcurrentDictionary<string,string>()
 
     /// to get a Valid foldername fom any host app name suplied
     let removeSpecialChars (str:string) = 
@@ -63,7 +64,7 @@ module Config =
             if (c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || c = '.' || c = '_' then  sb.Append(c) |> ignore
         sb.ToString()
 
-    let setCurrentRunContext ctx logger= 
+    let setCurrentRunContext ctx = 
         currentRunContext <- ctx
         IO.Directory.CreateDirectory configFilesPath |> ignore
         let host = removeSpecialChars hostName
@@ -77,11 +78,11 @@ module Config =
         try            
             for ln in  IO.File.ReadAllLines fileSettings do
                 match ln.Split(sep) with
-                | [|k;v|] -> Dict.[k] <- v // TODO allow for comments? use ini format ??
+                | [|k;v|] -> settingsDict.[k] <- v // TODO allow for comments? use ini format ??
                 | _       -> ()
         with 
-            | :? FileNotFoundException -> logger ("Settings file not found. (This is normal on first use of the App.)")
-            | e -> logger ("Problem reading settings file: " + e.Message)
+            | :? FileNotFoundException ->   if notNull logger then logger ("Settings file not found. (This is normal on first use of the App.)")
+            | e ->                          if notNull logger then logger ("Problem reading settings file: " + e.Message)
         
         //logger ("Settings loaded after " + Util.Timer3.toc)
        
@@ -90,24 +91,24 @@ module Config =
         // delayed because the onMaximise of window event triggers first Loaction changed and then state changed, 
         // state change event should still be able to get previous size and loaction that is not savade yet
         async{  do! Async.Sleep(delay) 
-                Dict.[k] <- v         
+                settingsDict.[k] <- v         
              } |> Async.Start
     
-    let set k v = Dict.[k] <- v             
+    let set k v = settingsDict.[k] <- v             
     
     let get k = 
-        match Dict.TryGetValue k with 
+        match settingsDict.TryGetValue k with 
         |true, v  -> Some v
         |false, _ -> None
     
     let private counter = ref 0L    
-    let save logger =
+    let saveSettings () =
         async{
             let k = Threading.Interlocked.Increment counter
-            do! Async.Sleep(500) // delay to see if this is the last of many events (otherwise there is a noticable lag in dragging window around)
+            do! Async.Sleep(400) // delay to see if this is the last of many events (otherwise there is a noticable lag in dragging window around)
             if k > 2L && !counter = k then //do not save on startup && only save last event after a delay if there are many save events in a row ( eg from window size change)(ignore first two event from creating window)
                 let sb = StringBuilder()
-                for KeyValue(k,v) in Dict do
+                for KeyValue(k,v) in settingsDict do
                     sb.Append(k)
                       .Append(sep)
                       .AppendLine(v) |> ignore
@@ -115,7 +116,7 @@ module Config =
                     IO.File.WriteAllText(fileSettings, sb.ToString())
                     //logger "Layout settings saved"
                 with e -> 
-                    logger (e.Message + Environment.NewLine + e.StackTrace)
+                    if notNull logger then logger (e.Message + Environment.NewLine + e.StackTrace)
             } |> Async.Start        
     
     let setFloat        key (v:float)       = set key (string v)
@@ -136,7 +137,7 @@ module Config =
     let recentFilesReOpened = new ResizeArray<FileInfo>() // to put them first in the menue
     
 
-    let saveRecentFiles dlogger =         
+    let saveRecentFiles () =         
         let sb = StringBuilder()
         recentFilesStack 
         |> Seq.map (fun fi -> fi.FullName)
@@ -144,7 +145,7 @@ module Config =
         |> Seq.truncate maxRecentFiles 
         |> Seq.rev 
         |> Seq.iter (sb.AppendLine >> ignore) // most recent file is a bottom of list
-        FileWriter.Post(fileRecent, sb.ToString())
+        fileWriter.Post(fileRecent, sb.ToString())
     
     
     let loadRecentFilesMenu updateRecentMenu =
@@ -163,7 +164,6 @@ module Config =
             for fi in recentFilesReOpened |> Seq.rev do // they are already distinct
                 recentFilesStack.Push fi
                 updateRecentMenu fi
-
         with _ -> ()
     
     //--------------------------------------------
@@ -172,7 +172,7 @@ module Config =
 
     let saveOpenFilesAndCurrentTab (currentFile:FileInfo option , files: seq<FileInfo option>) =         
         let curr = if currentFile.IsSome then currentFile.Value.FullName else ""
-        FileWriterLines.Post( fileOnClosingOpen , [| yield curr; for f in files do if f.IsSome then yield f.Value.FullName |] )
+        fileWriterLines.Post( fileOnClosingOpen , [| yield curr; for f in files do if f.IsSome then yield f.Value.FullName |] )
 
     
     let getFilesfileOnClosingOpen() = 

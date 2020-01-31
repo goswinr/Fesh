@@ -11,11 +11,12 @@ open ICSharpCode.AvalonEdit.Editing
 open ICSharpCode.AvalonEdit.Document
 open FSharp.Compiler
 open FSharp.Compiler.SourceCodeServices
+open System.Collections.Generic
 
 module CompletionUI =
     
-    type CompletionLine (it:FSharpDeclarationListItem) =
-        let col = 
+    type CompletionLine (it:FSharpDeclarationListItem, optArgsDict:Dictionary<string,ResizeArray<string>>) =
+        let colorUNUSED = 
             match it.Glyph with  // does not change coler when selected anymore
             | FSharpGlyph.Class
             | FSharpGlyph.Typedef
@@ -56,23 +57,23 @@ module CompletionUI =
             tb.FontSize <-   Appearance.fontSize 
             //tb.Foreground  <- col, // does not change color when selected anymore
             tb.FontStyle <- style
-            tb.Padding <- Thickness(3. , 3. , 10. , 3. ) //left top right bottom
+            tb.Padding <- Thickness(0. , 0. , 8. , 0. ) //left top right bottom / so that it does not aper to be trimmed
             tb
     
         member this.Content = tb :> obj
-        member this.Description = //this gets call on demand only, not when filling the list.
-            it.StructuredDescriptionText |> Tooltips.formated |> Tooltips.stackPanel (Some it) :> obj
-            //async{
-            //    let! stt = it.StructuredDescriptionTextAsync
-            //    let ttds = Tooltips.formated stt
-            //    do! Async.SwitchToContext Sync.syncContext
-            //    return Tooltips.stackPanel ttds} |> Async.RunSynchronously :> obj // this will cause the UI to hang
+        member this.Description = // this gets called on demand only, not when initally filling the list.
+            let raw = it.StructuredDescriptionText
+            let structured = 
+                if optArgsDict.ContainsKey it.FullName then  Tooltips.formated (raw, optArgsDict.[it.FullName])
+                else                                         Tooltips.formated (raw, ResizeArray(0))
+            Tooltips.stackPanel (Some it) structured :> obj
+            
 
         member this.Image = null
         member this.Priority = prio
         member this.Text = it.Name
         member this.Complete (textArea:TextArea, completionSegment:ISegment, e ) = 
-            //Log.printf "%s is %A and %A" it.Name it.Glyph it.Kind
+            //Log.print "%s is %A and %A" it.Name it.Glyph it.Kind
             //textArea.Document.Replace(completionSegment.Offset + 1, completionSegment.Length, it.Name) //Delete!
             //textArea.Caret.Offset <- completionSegment.Offset + it.Name.Length + 1  //Delete!          
             let compl = if it.Glyph = FSharpGlyph.Class && it.Name.EndsWith "Attribute" then "[<" + it.Name.Replace("Attribute",">]") else it.Name     //TODO move this logic out here      
@@ -131,7 +132,7 @@ module CompletionUI =
         w.MinHeight <- tab.Editor.FontSize
         w.MinWidth <- tab.Editor.FontSize * 8.0
         w.Closed.Add (fun _  -> 
-            //Log.printf "Completion window closed with selected item %s " tab.CompletionWin.Value.CompletionList.SelectedItem.Text
+            //Log.print "Completion window closed with selected item %s " tab.CompletionWin.Value.CompletionList.SelectedItem.Text
             tab.CompletionWin <- None  
             tab.CompletionWindowClosed()
             tab.ErrorToolTip.IsOpen    <- false
@@ -157,8 +158,7 @@ module CompletionUI =
             
         //try
         w.Show()
-        //with e -> Log.printf "Error in Showing Code Completion Window: %A" e
-
+        //with e -> Log.print "Error in Showing Code Completion Window: %A" e
 
         //Event sequence on pressing enter in completion window:// https://github.com/icsharpcode/AvalonEdit/blob/8fca62270d8ed3694810308061ff55c8820c8dfc/ICSharpCode.AvalonEdit/CodeCompletion/CompletionWindow.cs#L100
         // Close window

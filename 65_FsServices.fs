@@ -47,10 +47,11 @@ module FsService =
 
     let inline cleartoken(checkerId) =
         let ok,_ = FsCheckerCancellationSources.TryRemove(checkerId)
-        if not ok then Log.printf "Failed to remove token '%d' from  FsCheckerCancellationSources" checkerId
+        if not ok && checkerId<> 0 then Log.print "Failed to remove token '%d' from  FsCheckerCancellationSources" checkerId
+        ()
 
     let checkForErrorsAndUpdateFoldings (tab:FsxTab, checkDone : Option<FsCheckResults> ) = 
-        //Log.printf "*checkForErrorsAndUpdateFoldings..."
+        //Log.print "*checkForErrorsAndUpdateFoldings..."
         let mutable checkerId = 0 
 
         let updateFoldings () =             
@@ -65,59 +66,63 @@ module FsService =
 
         let highlightErrors (chr:FsCheckResults) = 
             cleartoken(checkerId)
-            async{  
+            async{ 
                 do! Async.SwitchToContext Sync.syncContext                
                 if tab.FsCheckerRunning = checkerId && chr.ok && Tab.isCurr tab then
                     tab.FsCheckerResult <- Some chr.checkRes // cache for type info
                     tab.TextMarkerService.Clear()
                     match chr.checkRes.Errors with 
-                    | [||] -> 
-                        tab.Editor.Background <- Appearance.editorBackgroundOk    
+                    | [| |] -> 
+                        tab.Editor.Background <- Appearance.editorBackgroundOk
+                        StatusBar.setErrors ([| |])
                     | es   -> 
                         tab.Editor.Background <- Appearance.editorBackgroundErr
+                        StatusBar.setErrors (es)
                         for e in es |> Seq.truncate 4 do // TODO Only highligth the first 3 Errors, Otherwise UI becomes unresponsive at 100 errors ( eg when pasting text)
                             let startOffset = tab.Editor.Document.GetOffset(new TextLocation(e.StartLineAlternate, e.StartColumn + 1 ))
                             let endOffset   = tab.Editor.Document.GetOffset(new TextLocation(e.EndLineAlternate,   e.EndColumn   + 1 ))
-                            let length = endOffset-startOffset
+                            let length      = endOffset-startOffset
                             tab.TextMarkerService.Create(startOffset, length, e.Message+", Error: "+ (string e.ErrorNumber))
                             Packages.checkForMissingPackage tab e startOffset length
 
-                 
+                do! Async.Sleep 500  
                 if tab.FsCheckerRunning = checkerId && Tab.isCurr tab then // another checker migh alredy be started
-                    checkerId <- Rand.Next()  
+                    checkerId <- rand.Next()  
                     tab.FsCheckerRunning <- checkerId
                     let cancelFoldScr = new CancellationTokenSource()
-                    if not <| FsCheckerCancellationSources.TryAdd(checkerId,cancelFoldScr) then Log.dlog "Failed to collect FsFolderCancellationSources" 
+                    if not <| FsCheckerCancellationSources.TryAdd(checkerId,cancelFoldScr) then Log.print "Failed to collect FsFolderCancellationSources" 
                     Async.StartWithContinuations(
                             FsFolding.get(tab,chr.code),
                             updateFoldings,
-                            (fun ex   -> Log.printf "Error in Async updateFoldings") ,
-                            (fun cncl -> () ), //Log.printf "Async updateFoldings cancelled"),
+                            (fun ex   -> Log.print "Error in Async updateFoldings") ,
+                            (fun cncl -> () ), //Log.print "Async updateFoldings cancelled"),
                             cancelFoldScr.Token)
                 
                 }|> Async.StartImmediate            
         
         match checkDone with 
-        |Some chr -> 
-            highlightErrors (chr)
-        
+        |Some chr ->             
+            highlightErrors (chr)        
         |None ->
-            checkerId <- Rand.Next()  
+            checkerId <- rand.Next()  
             tab.FsCheckerRunning <- checkerId                 
+            async{  
+                do! Async.Sleep 200               
+                if tab.FsCheckerRunning = checkerId &&  Tab.isCurr tab then
+                    let cancelScr = new CancellationTokenSource()
+                    if not <| FsCheckerCancellationSources.TryAdd(checkerId,cancelScr) then Log.print "Failed to add FsCheckerCancellationSources" 
             
-            let cancelScr = new CancellationTokenSource()
-            if not <| FsCheckerCancellationSources.TryAdd(checkerId,cancelScr) then Log.dlog "Failed to collect FsCheckerCancellationSources" 
-            
-            Async.StartWithContinuations(
-                    FsChecker.checkAndIndicate (tab, 0 , checkerId),
-                    highlightErrors,
-                    (fun ex   -> Log.printf "Error in FsChecker.check") ,
-                    (fun cncl -> ()), //Log.printf "FsChecker.check cancelled"),
-                    cancelScr.Token)
+                    Async.StartWithContinuations(
+                            FsChecker.checkAndIndicate (tab, 0 , checkerId),
+                            highlightErrors,
+                            (fun ex   -> Log.print "Error in FsChecker.check") ,
+                            (fun cncl -> ()), //Log.print "FsChecker.check cancelled"),
+                            cancelScr.Token)
+                }|> Async.StartImmediate 
         
 
     let prepareAndShowComplWin(tab:FsxTab, pos:FsChecker.PositionInCode , changetype, setback, query, charBefore, onlyDU) = 
-        //Log.printf "*prepareAndShowComplWin..."
+        //Log.print "*prepareAndShowComplWin..."
         if changetype = EnteredOneLetter  &&  Keywords.Contains query  then //this never happens since typing complete word happens in when window is open not closed
             // do not complete, if keyword was typed full, just continue typing, completion will triger anyway on additional chars
             checkForErrorsAndUpdateFoldings(tab,None)
@@ -130,34 +135,44 @@ module FsService =
                 async{
                     let! chr =  FsChecker.checkAndIndicate (tab,  pos.offset, 0)
                     if chr.ok && Tab.isCurr tab then                        
-                        //Log.printf "*2-prepareAndShowComplWin geting completions"
+                        //Log.print "*2-prepareAndShowComplWin geting completions"
                         let ifDotSetback = if charBefore = Dot then setback else 0
-                        let! decls = FsChecker.complete (chr.parseRes , chr.checkRes , pos , ifDotSetback)
+                        let! decls     = FsChecker.getDeclListInfo    (chr.parseRes , chr.checkRes , pos , ifDotSetback) //TODO, can this be avoided use info from below symbol call ?
                         
+                        //find optional arguments too:
+                        let! declSymbs = FsChecker.getDeclListSymbols (chr.parseRes , chr.checkRes , pos , ifDotSetback) // only for optional parmeter info ?
+                        let optArgDict = Dictionary()
+                        for symbs in declSymbs do 
+                            for symb in symbs do 
+                                let opts = Tooltips.infoAboutOptinals symb
+                                if opts.Count>0 then 
+                                    optArgDict.[symb.Symbol.FullName]<- opts
+
                         do! Async.SwitchToContext Sync.syncContext
+
                         let completionLines = ResizeArray<ICompletionData>()                                
-                        if not onlyDU && charBefore = NotDot then // add keywords to list
-                            completionLines.AddRange keywordsComletionLines 
-                        for it in decls.Items do 
+                        if not onlyDU && charBefore = NotDot then   completionLines.AddRange keywordsComletionLines  // add keywords to list
+                        for it in decls.Items do
                             match it.Glyph with 
-                            |FSharpGlyph.Union|FSharpGlyph.Module | FSharpGlyph.EnumMember -> completionLines.Add (new CompletionLine(it)) 
-                            | _ -> if not onlyDU then                                         completionLines.Add (new CompletionLine(it))
-                                
+                            |FSharpGlyph.Union|FSharpGlyph.Module | FSharpGlyph.EnumMember -> completionLines.Add (new CompletionLine(it,optArgDict)) 
+                            | _ -> if not onlyDU then                                         completionLines.Add (new CompletionLine(it,optArgDict))
+                        
+
                         tab.Editor.Cursor <- prevCursor
                         if Tab.isCurr tab then
-                            //Log.printf "*prepareAndShowComplWin for '%s' with offset %d" pos.lineToCaret setback                            
+                            //Log.print "*prepareAndShowComplWin for '%s' with offset %d" pos.lineToCaret setback                            
                             if completionLines.Count > 0 then showCompletionWindow(tab, completionLines, setback, query)
                             else checkForErrorsAndUpdateFoldings(tab, Some chr)
                 } 
             
-            let checkerId = Rand.Next()  
+            let checkerId = rand.Next()  
             tab.FsCheckerRunning <- checkerId 
             let cancelScr = new CancellationTokenSource()
-            if not <| FsCheckerCancellationSources.TryAdd(checkerId,cancelScr) then Log.dlog "Failed to collect FsCheckerCancellationSources"
+            if not <| FsCheckerCancellationSources.TryAdd(checkerId,cancelScr) then Log.print "Failed to collect FsCheckerCancellationSources"
             Async.StartImmediate(aComp, cancelScr.Token)   
     
     let textChanged (change:TextChange ,tab:FsxTab) =
-        //Log.printf "*1-textChanged because of %A" change 
+        //Log.print "*1-textChanged because of %A" change 
         match tab.CompletionWin with
         | Some w ->  
             if w.CompletionList.ListBox.HasItems then 
@@ -172,10 +187,10 @@ module FsService =
             for checkId in FsCheckerCancellationSources.Keys do
                 let ok,toCancel = FsCheckerCancellationSources.TryRemove(checkId)
                 if ok then 
-                    //Log.printf "checker thread cancelled" // does never print, why // it does print !!
+                    //Log.print "checker thread cancelled" // does never print, why // it does print !!
                     toCancel.Cancel()
                 else
-                    Log.dlog "Failed get checkId from FsCheckerCancellationSources" 
+                    Log.print "Failed get checkId from FsCheckerCancellationSources" 
             
             match change with             
             | OtherChange | CompletionWinClosed | TabChanged  | EnteredOneNonLetter -> //TODO maybe do less call to error highlighter when typing in string or comment ?
@@ -207,13 +222,13 @@ module FsService =
                         else
                            doCompl,false //not upper case, other 3 decide if anything is shown
 
-                //Log.printf "isNotInString:%b; isNotAlreadyInComment:%b; isNotFunDeclaration:%b; isNotLetDeclaration:%b; doCompletionInPattern:%b, onlyDU:%b" isNotInString isNotAlreadyInComment isNotFunDecl isNotLetDecl doCompletionInPattern onlyDU
+                //Log.print "isNotInString:%b; isNotAlreadyInComment:%b; isNotFunDeclaration:%b; isNotLetDeclaration:%b; doCompletionInPattern:%b, onlyDU:%b" isNotInString isNotAlreadyInComment isNotFunDecl isNotLetDecl doCompletionInPattern onlyDU
             
                 if (*isNotInString &&*) isNotAlreadyInComment && isNotFunDecl && isNotLetDecl && doCompletionInPattern then
                     let setback     = lastNonFSharpNameCharPosition line                
                     let query       = line.Substring(line.Length - setback)
                     let isKeyword   = Keywords.Contains query
-                    //Log.printf "pos:%A setback='%d'" pos setback
+                    //Log.print "pos:%A setback='%d'" pos setback
                 
                                        
                     let charBeforeQueryDU = 
@@ -226,14 +241,14 @@ module FsService =
                     
 
                     if charBeforeQueryDU = NotDot && isKeyword then
-                        //Log.printf "*2.1-textChanged highlighting with: query='%s', charBefore='%A', isKey=%b, setback='%d', line='%s' " query charBeforeQueryDU isKeyword setback line
+                        //Log.print "*2.1-textChanged highlighting with: query='%s', charBefore='%A', isKey=%b, setback='%d', line='%s' " query charBeforeQueryDU isKeyword setback line
                         checkForErrorsAndUpdateFoldings(tab,None)
 
                     else 
-                        //Log.printf "*2.2-textChanged Completion window opening  with: query='%s', charBefore='%A', isKey=%b, setback='%d', line='%s' " query charBeforeQueryDU isKeyword setback line
+                        //Log.print "*2.2-textChanged Completion window opening  with: query='%s', charBefore='%A', isKey=%b, setback='%d', line='%s' " query charBeforeQueryDU isKeyword setback line
                         prepareAndShowComplWin(tab, pos, change, setback, query, charBeforeQueryDU, onlyDU)
                 else
                     //checkForErrorsAndUpdateFoldings(tab)
-                    //Log.printf "*2.3-textChanged didn't trigger of checker not needed? \r\n"
+                    //Log.print "*2.3-textChanged didn't trigger of checker not needed? \r\n"
                     ()
     

@@ -9,13 +9,13 @@ open FSharp.Compiler.Interactive.Shell
 
 
 
-module HostUndoRedo = 
+module HostUndoRedoUNUSED = 
     let mutable beginUndo = fun ()          -> 0u // to preserev UNDO history when hosted in other app set in showHostedEditor
     let mutable endUndo   = fun (i:uint32)  -> () // https://github.com/mcneel/rhinocommon/blob/57c3967e33d18205efbe6a14db488319c276cbee/dotnet/rhino/rhinosdkdoc.cs#L857
     let mutable undoIndex = 0u
 
 
-module Fsi =    
+module FsiAgent =    
     
     [<AbstractClass; Sealed>]
     /// A static class to hold FSI events 
@@ -80,9 +80,9 @@ module Fsi =
         //fsiObj.
         let fsiConfig = FsiEvaluationSession.GetDefaultConfiguration(fsiObj, false) // https://github.com/dotnet/fsharp/blob/4978145c8516351b1338262b6b9bdf2d0372e757/src/fsharp/fsi/fsi.fs#L2839
         let fsiSession = FsiEvaluationSession.Create(fsiConfig, allArgs, inStream, Log.textwriter, Log.textwriter)
-        AppDomain.CurrentDomain.UnhandledException.Add(fun ex -> Log.printf "*** FSI background exception:\r\n %A" ex.ExceptionObject) 
+        AppDomain.CurrentDomain.UnhandledException.Add(fun ex -> Log.print "*** FSI background exception:\r\n %A" ex.ExceptionObject) 
   
-        Log.printf "* Time for loading FSharp Interactive: %s"  timer.tocEx             
+        Log.print "* Time for loading FSharp Interactive: %s"  timer.tocEx             
         //fsiSession.Run()// needed ? locks evaluation to current thread ?
         fsiSession    
 
@@ -95,7 +95,7 @@ module Fsi =
             Console.SetError(Log.textwriter) //TODO or evaluate non throwing ?
             let thr = 
                 new Thread(fun () ->
-                    HostUndoRedo.undoIndex <- HostUndoRedo.beginUndo()                    
+                    //HostUndoRedo.undoIndex <- HostUndoRedo.beginUndo()                    
                     try
                         try
                             
@@ -104,16 +104,16 @@ module Fsi =
                             //prop.SetValue(session, filename)
                             
                             FsiStatus.Evaluation <- Evaluating
-                            //Log.printf "* Evaluating code.."
+                            //Log.print "* Evaluating code.."
                             timer.tic()                            
                             if Config.currentRunContext <> Config.RunContext.Standalone then  // TODO when hosted evaluate on UI thread only
                                 // this sync switch does not work well for Rhino:
                                 //async{  do! Async.SwitchToContext Sync.syncContext
                                 //        session.EvalInteraction(code) } |> Async.RunSynchronously                                
-                                session.EvalInteraction(code + Config.codeToAppendEvaluations)
+                                session.EvalInteraction(code)// + Config.codeToAppendEvaluations)
                             else
-                                session.EvalInteraction(code + Config.codeToAppendEvaluations)
-                            //Log.printf "* Code evaluated in %s" timer.tocEx
+                                session.EvalInteraction(code)// + Config.codeToAppendEvaluations)
+                            //Log.print "* Code evaluated in %s" timer.tocEx
                             Events.completed.Trigger()
                             FsiStatus.Evaluation <- Ready
                         
@@ -121,15 +121,15 @@ module Fsi =
                         | :? OperationCanceledException ->
                             Events.canceled.Trigger()
                             FsiStatus.Evaluation <- Ready
-                            Log.printf "**FSI evaluation was cancelled**" //Thread aborted by user
+                            Log.print "**FSI evaluation was cancelled**" //Thread aborted by user
                             
                         | e ->                               
                             Events.runtimeError.Trigger(e)
                             FsiStatus.Evaluation <- HadError
-                            //Log.printf "*** Exception (caught in Evaluation): \r\n %A" e // TODO not needed because error stream is redirected to Log too ??                            
+                            //Log.print "*** Exception (caught in Evaluation): \r\n %A" e // TODO not needed because error stream is redirected to Log too ??                            
                         
                     finally                        
-                        HostUndoRedo.endUndo(HostUndoRedo.undoIndex)                        
+                        //HostUndoRedo.endUndo(HostUndoRedo.undoIndex)                        
                         inbox.Post(Done) // to set thread to None. does thread need to be aborted too?                         
                     )
             thr.Start()
@@ -158,7 +158,7 @@ module Fsi =
                     thr.Abort() // TODO check if memory leaks
                     Events.canceled.Trigger()
                     FsiStatus.Evaluation <- Ready
-                    Log.printf "FSharp Interactive Session canceled ..."
+                    Log.print "FSharp Interactive Session canceled ..."
                     return! running None None session 
 
                 // Thread completed or cancelling but no thread is running
@@ -174,7 +174,7 @@ module Fsi =
                     thr.Abort()
                     Events.canceled.Trigger()
                     FsiStatus.Evaluation <- Ready
-                    Log.printf "cancelling and restarting..."
+                    Log.print "cancelling and restarting..."
                     return! running None None (startSession())
                 | Restart, None , _ ->
                     //session.Interrupt() 
@@ -182,7 +182,7 @@ module Fsi =
                     return! running None None (startSession())           
             }
             running None None (startSession()))
-        mb.Error.Add (fun ex -> Log.printf "*** Exception raised in Fsi Mailboxprocessor: %A" ex)
+        mb.Error.Add (fun ex -> Log.print "*** Exception raised in Fsi Mailboxprocessor: %A" ex)
         //mb.Start() //do later, after window loading for hosted context
         mb
     
