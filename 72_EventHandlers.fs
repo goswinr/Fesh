@@ -36,12 +36,16 @@ module EventHandlers =
         //--------------------------------------
         
         win.LocationChanged.Add(fun e -> // occures for every pixel moved
-            if win.WindowState = WindowState.Normal &&  not WindowLayout.isMinOrMax then 
-                if win.Top > -500. && win.Left > -500. then // to not save on minimizing on minimized: Top=-32000 Left=-32000 
-                    Config.setFloatDelayed "WindowTop"  win.Top  89 // get float in statchange maximised neddes top access this before 350 ms pass
-                    Config.setFloatDelayed "WindowLeft" win.Left 95
-                    Config.saveSettings ()
-                    //Log.dlog (sprintf "%s Location Changed: Top=%.0f Left=%.0f State=%A" Time.nowStrMilli win.Top win.Left win.WindowState) 
+            async{
+                do! Async.Sleep 100 // so that StateChanged event comes first
+                if win.WindowState = WindowState.Normal &&  not WindowLayout.isMinOrMax then 
+                    if win.Top > -500. && win.Left > -500. then // to not save on minimizing on minimized: Top=-32000 Left=-32000 
+                        Config.setFloatDelayed "WindowTop"  win.Top  89 // get float in statchange maximised neddes top access this before 350 ms pass
+                        Config.setFloatDelayed "WindowLeft" win.Left 95
+                        Config.saveSettings ()
+                        //Log.print  "%s Location Changed: Top=%.0f Left=%.0f State=%A" Time.nowStrMilli win.Top win.Left win.WindowState
+                }
+                |> Async.StartImmediate
             )
 
         win.StateChanged.Add (fun e ->
@@ -54,28 +58,20 @@ module EventHandlers =
                 Config.setBool  "WindowIsMax" false
                 WindowLayout.isMinOrMax <- false
                 Config.saveSettings ()
-                //Log.dlog (sprintf "%s State changed=%A Top=%.0f Left=%.0f Width=%.0f Height=%.0f" Time.nowStrMilli win.WindowState win.Top win.Left win.ActualWidth win.ActualHeight )
+                //Log.print "Normal: %s State changed=%A Top=%.0f Left=%.0f Width=%.0f Height=%.0f" Time.nowStrMilli win.WindowState win.Top win.Left win.ActualWidth win.ActualHeight 
 
             | WindowState.Maximized ->
-                // the state change event comes after the location change event but before size changed.
-                // restore to previous values before Location change event (unfortunatly as normal state instead of maximised) that saves the maximised 
-                // position with a delay , see Conig.setDelayed(v) ).
+                // normally the state change event comes after the location change event but before size changed. async sleep in LocationChanged prevents this
                 WindowLayout.isMinOrMax <- true
-                async{
-                    do! Async.Sleep 800 //wait for UI.editorRowHeight.ActualHeight update
-                    if UI.editorRowHeight.ActualHeight > 1. then // do not save on Maximise Log     
-                        Config.setFloatDelayed "WindowTop"    (Config.getFloat "WindowTop"     11.0) 200 
-                        Config.setFloatDelayed "WindowLeft"   (Config.getFloat "WindowLeft"    11.0) 210 
-                        Config.setFloatDelayed "WindowHeight" (Config.getFloat "WindowHeight" 699.0) 220 // just to be save restore those too
-                        Config.setFloatDelayed "WindowWidth"  (Config.getFloat "WindowWidth"  699.0) 230 // just to be save restore those too
-                        Config.setBool  "WindowIsMax" true                    
-                        Config.saveSettings ()
-                        //Log.dlog (sprintf "%s State changed=%A Top=%.0f Left=%.0f Width=%.0f Height=%.0f" Time.nowStrMilli win.WindowState win.Top win.Left win.ActualWidth win.ActualHeight )
-                        }
-                        |> Async.StartImmediate
+                Config.setBool  "WindowIsMax" true
+                Config.saveSettings ()    
+                //Log.print "Maximised: %s State changed=%A Top=%.0f Left=%.0f Width=%.0f Height=%.0f" Time.nowStrMilli win.WindowState win.Top win.Left win.ActualWidth win.ActualHeight 
+                       
 
-            |WindowState.Minimized -> 
+            |WindowState.Minimized ->                 
                 WindowLayout.isMinOrMax <- true
+                //Log.print "Minimised: %s State changed=%A Top=%.0f Left=%.0f Width=%.0f Height=%.0f" Time.nowStrMilli win.WindowState win.Top win.Left win.ActualWidth win.ActualHeight 
+            
             |wch -> 
                 Log.print "unknown WindowState State change=%A" wch
                 WindowLayout.isMinOrMax <- true

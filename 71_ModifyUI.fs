@@ -94,7 +94,7 @@ module WindowLayout =
     
     type Size = MaxLog | Both 
 
-    let mutable state = Both
+    let mutable logWinstate = Both
 
     // saving layout of Log and editor window:
     let mutable mainWindow:Window = null // needed for maxing it, will be set in 'init(win)'
@@ -120,7 +120,7 @@ module WindowLayout =
         Config.saveSettings ()
 
     let splitChangeHor (editorRow:RowDefinition) (logRow:RowDefinition) = 
-        state <- Both                    
+        logWinstate <- Both                    
         editorRow.Height <- makeGridLength editorRow.ActualHeight
         logRow.Height    <- makeGridLength    logRow.ActualHeight
         Config.setFloat "EditorHeight"     editorRow.ActualHeight
@@ -128,7 +128,7 @@ module WindowLayout =
         Config.saveSettings ()
     
     let splitChangeVert (editorCol:ColumnDefinition) (logCol:ColumnDefinition) = 
-        state <- Both                    
+        logWinstate <- Both                    
         editorCol.Width <- makeGridLength editorCol.ActualWidth
         logCol.Width    <- makeGridLength    logCol.ActualWidth
         Config.setFloat "EditorWidth"     editorCol.ActualWidth
@@ -136,16 +136,16 @@ module WindowLayout =
         Config.saveSettings ()
         
     let maxLog () = 
-        match state with
+        match logWinstate with
         |MaxLog -> // if is already max size down again
-            state <- Both
+            logWinstate <- Both
             UI.editorRowHeight.Height   <- makeGridLength <|Config.getFloat "EditorHeight" 99.// TODO ad vert
             UI.logRowHeight.Height      <- makeGridLength <|Config.getFloat "LogHeight"    99.
             UI.editorColumnWidth.Width  <- makeGridLength <|Config.getFloat "EditorWidth" 99.
             UI.logColumnWidth.Width     <- makeGridLength <|Config.getFloat "LogWidth"    99.
             if not wasMax then mainWindow.WindowState <- WindowState.Normal
         |Both ->
-            state <- MaxLog
+            logWinstate <- MaxLog
             wasMax <-isMinOrMax
             if not isMinOrMax then mainWindow.WindowState <- WindowState.Maximized
             UI.editorRowHeight.Height   <- makeGridLength 0.

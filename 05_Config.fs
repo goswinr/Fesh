@@ -105,7 +105,7 @@ module Config =
     let saveSettings () =
         async{
             let k = Threading.Interlocked.Increment counter
-            do! Async.Sleep(400) // delay to see if this is the last of many events (otherwise there is a noticable lag in dragging window around)
+            do! Async.Sleep(500) // delay to see if this is the last of many events (otherwise there is a noticable lag in dragging window around)
             if k > 2L && !counter = k then //do not save on startup && only save last event after a delay if there are many save events in a row ( eg from window size change)(ignore first two event from creating window)
                 let sb = StringBuilder()
                 for KeyValue(k,v) in settingsDict do
