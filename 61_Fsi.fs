@@ -153,128 +153,7 @@ module Fsi =
 
 
 
-    
-    module FsiAgent = 
-        //mostly taken from: https://github.com/ionide/FsInteractiveService/blob/master/src/FsInteractiveService/Main.fs
-    
-        type AgentMessage = 
-            |Evaluate of string
-            |Restart 
-            |Cancel
-            |Done
-        
-    
-        let private timer = Util.Timer()
-    
-        let private startSession () =
-            timer.tic()
-            let inStream = new StringReader("")
-            // first arg is ignored: https://github.com/fsharp/FSharp.Compiler.Service/issues/420 and https://github.com/fsharp/FSharp.Compiler.Service/issues/877
-            // https://github.com/fsharp/FSharp.Compiler.Service/issues/878
-            // ; "--shadowcopyreferences" is ignored https://github.com/fsharp/FSharp.Compiler.Service/issues/292
-            let allArgs = [|"" ; "--langversion:preview" ; "--noninteractive" ; "--debug:full" ;"--optimize-" ; "--shadowcopyreferences"|] //;"--nologo";"--gui-"|] // --gui: Enables or disables the Windows Forms event loop. The default is enabled.
-            let fsiObj = FSharp.Compiler.Interactive.Shell.Settings.fsi // needed ? not if calling GetDefaultConfiguration() 
-            //fsiObj.
-            let fsiConfig = FsiEvaluationSession.GetDefaultConfiguration(fsiObj, false) // https://github.com/dotnet/fsharp/blob/4978145c8516351b1338262b6b9bdf2d0372e757/src/fsharp/fsi/fsi.fs#L2839
-            let fsiSession = FsiEvaluationSession.Create(fsiConfig, allArgs, inStream, Log.textwriter, Log.textwriter)
-            AppDomain.CurrentDomain.UnhandledException.Add(fun ex -> Log.print "*** FSI background exception:\r\n %A" ex.ExceptionObject) 
-      
-            Log.print "* Time for loading FSharp Interactive: %s"  timer.tocEx             
-            //fsiSession.Run()// needed ? locks evaluation to current thread ?
-            fsiSession    
-    
-    
-        let private evaluate (thrO: Thread option, code:string, session:FsiEvaluationSession, inbox: MailboxProcessor<AgentMessage>)= 
-            let eval () =             
-                if DateTime.Today > DateTime(2020, 9, 30) then failwithf "Your Seff Editor has expired, please download a new version."
-                if DateTime.Today > DateTime(2020, 7, 30) then printf "*** Your Seff Editor will expire on 2020-9-30, please download a new version soon. ***"
-                Console.SetOut  (Log.textwriter) //TODO only redidirect printfn ? //https://github.com/fsharp/FSharp.Compiler.Service/issues/201
-                Console.SetError(Log.textwriter) //TODO or evaluate non throwing ?
-                let thr = 
-                    new Thread(fun () ->                                      
-                        try
-                            try
-                                session.EvalInteraction(code)// + Config.codeToAppendEvaluations)
-                                //Log.print "* Code evaluated in %s" timer.tocEx
-                                Events.completed.Trigger(Async)
-                                
-                            
-                            with 
-                            | :? OperationCanceledException ->
-                                Events.canceled.Trigger(Async)
-                                
-                                Log.print "**FSI evaluation was cancelled**" //Thread aborted by user
-                                
-                            | e ->                               
-                                Events.runtimeError.Trigger(e)
-                                
-                                //Log.print "*** Exception (caught in Evaluation): \r\n %A" e // TODO not needed because error stream is redirected to Log too ??                            
-                            
-                        finally                        
-                            //HostUndoRedo.endUndo(HostUndoRedo.undoIndex)                        
-                            inbox.Post(Done) // to set thread to None. does thread need to be aborted too?                         
-                        )
-                thr.Start()
-                Some thr
-            
-            // check for running evaluation sessions first:
-            match thrO with 
-            | Some thr ->
-                match MessageBox.Show("Do you want to Cancel currently running code?", "Cancel Current Evaluation?",MessageBoxButton.YesNo,MessageBoxImage.Exclamation,MessageBoxResult.No) with
-                | MessageBoxResult.Yes -> thr.Abort(); eval ()
-                | _ -> thrO        
-            | _ -> eval ()
-    
-        let agent =        
-            let mb = new MailboxProcessor<AgentMessage>(fun inbox -> //TODO why not make this all synchronous  without MBP?
-                let rec running symbols thread session = async {
-                    let! msg = inbox.Receive()        
-                    match msg, (thread:Thread option), symbols with
-    
-                    | Evaluate(code), thr, sy ->                    
-                        let thr = evaluate (thr, code, session, inbox)
-                        return! running None thr session 
-    
-                    | Cancel, Some thr, _ ->
-                        //session.Interrupt() //=   thr.Interrupt()
-                        thr.Abort() // TODO check if memory leaks
-                        Events.canceled.Trigger(Async)
-                       
-                        Log.print "FSharp Interactive Session canceled ..."
-                        return! running None None session 
-    
-                    // Thread completed or cancelling but no thread is running
-                    | Done  ,  _   , _  ->
-                        return! running None None session 
-                    | Cancel, None , _ ->
-                        //FsiStatus.Evaluation <- Ready
-                        return! running None None session 
-    
-                    // Reset F# Interactive session
-                    | Restart, Some thr , _ ->
-                        //session.Interrupt()  
-                        thr.Abort()
-                        Events.canceled.Trigger(Async)
-                        
-                        Log.print "cancelling and restarting..."
-                        return! running None None (startSession())
-                    | Restart, None , _ ->
-                        //session.Interrupt() 
-                        
-                        return! running None None (startSession())           
-                }
-                running None None (startSession()))
-            mb.Error.Add (fun ex -> Log.print "*** Exception raised in Fsi Mailboxprocessor: %A" ex)
-            //mb.Start() //do later, after window loading for hosted context
-            mb
-        
-        
-    
-    
-
-
-
-    [< Runtime.ExceptionServices.HandleProcessCorruptedStateExceptions>]//to handle AccessViolationException too //https://stackoverflow.com/questions/3469368/how-to-handle-accessviolationexception/4759831
+    [< Runtime.ExceptionServices.HandleProcessCorruptedStateExceptions>] //to handle AccessViolationException too //https://stackoverflow.com/questions/3469368/how-to-handle-accessviolationexception/4759831
     let private eval(code)=
         state <- Evaluating
         //fsiCancelScr <- Some (new CancellationTokenSource())
@@ -381,9 +260,8 @@ module Fsi =
         | NotPossibleSync -> Evaluating       
     
     
-    let evaluate(code) =  FsiAgent.agent.Post(FsiAgent.Evaluate code)
 
-    let evaluateOrig(code) =         
+    let evaluate(code) =         
         if DateTime.Today > DateTime(2020, 9, 30) then failwithf "Your Seff Editor has expired, please download a new version."
         if DateTime.Today > DateTime(2020, 7, 30) then Log.print "*** Your Seff Editor will expire on 2020-9-30, please download a new version soon. ***"        
         match askIfCancellingIsOk () with 

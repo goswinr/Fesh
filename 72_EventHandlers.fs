@@ -125,7 +125,7 @@ module EventHandlers =
                     else
                         if Char.IsLetter(txt.[0])  then      textChanged( TextChange.EnteredOneLetter        , tab)//complete
                         else                                 textChanged( TextChange.EnteredOneNonLetter     , tab)//check
-                | _  ->                                      textChanged( TextChange.OtherChange             , tab)//delete or completion window          
+                | _  ->                                      textChanged( TextChange.OtherChange             , tab)//several charcters(paste) ,delete or completion window          
                 
                 tab.CompletionWindowJustClosed<-false
                 )

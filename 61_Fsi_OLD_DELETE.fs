@@ -9,13 +9,13 @@ open FSharp.Compiler.Interactive.Shell
 
 
 
-module HostUndoRedoUNUSED = 
+module HostUndoRedo_DELETE = 
     let mutable beginUndo = fun ()          -> 0u // to preserev UNDO history when hosted in other app set in showHostedEditor
     let mutable endUndo   = fun (i:uint32)  -> () // https://github.com/mcneel/rhinocommon/blob/57c3967e33d18205efbe6a14db488319c276cbee/dotnet/rhino/rhinosdkdoc.cs#L857
     let mutable undoIndex = 0u
 
 
-module FsiAgent =    
+module FsiAgent_DELETE =    
     
     [<AbstractClass; Sealed>]
     /// A static class to hold FSI events 

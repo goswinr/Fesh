@@ -60,7 +60,7 @@ module MainWindow =
 
             //win.Activate() |> ignore // needed ?           
             //Tab.currEditor.Focus() |> ignore // can be null ? needed ?
-            FsiAgent.agent.Start()
+            
             )    
                 
         win.Closing.Add( fun e ->
