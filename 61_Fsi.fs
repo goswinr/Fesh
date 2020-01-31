@@ -163,23 +163,6 @@ module Fsi =
             |Cancel
             |Done
         
-        type FsiState = Ready|Evaluating|HadError
-    
-        type FsiStatus () =
-            static let mutable isEval = Ready
-            static member Evaluation  // this is checked in main Window.Closing event
-                with get() = isEval
-                and set(s) = 
-                    if s <> isEval then //TODO create event instead of doing UI changes here?
-                        async{  
-                            do! Async.SwitchToContext Sync.syncContext
-                            match s with
-                            |Ready ->      UI.log.Background <- Appearance.logBackgroundFsiReady
-                            |Evaluating -> UI.log.Background <- Appearance.logBackgroundFsiEvaluating
-                            |HadError ->   UI.log.Background <- Appearance.logBackgroundFsiHadError
-                            } |> Async.StartImmediate
-                        isEval <-s
-    
     
         let private timer = Util.Timer()
     
@@ -214,17 +197,17 @@ module Fsi =
                                 session.EvalInteraction(code)// + Config.codeToAppendEvaluations)
                                 //Log.print "* Code evaluated in %s" timer.tocEx
                                 Events.completed.Trigger(Async)
-                                FsiStatus.Evaluation <- Ready
+                                
                             
                             with 
                             | :? OperationCanceledException ->
                                 Events.canceled.Trigger(Async)
-                                FsiStatus.Evaluation <- Ready
+                                
                                 Log.print "**FSI evaluation was cancelled**" //Thread aborted by user
                                 
                             | e ->                               
                                 Events.runtimeError.Trigger(e)
-                                FsiStatus.Evaluation <- HadError
+                                
                                 //Log.print "*** Exception (caught in Evaluation): \r\n %A" e // TODO not needed because error stream is redirected to Log too ??                            
                             
                         finally                        
@@ -256,7 +239,7 @@ module Fsi =
                         //session.Interrupt() //=   thr.Interrupt()
                         thr.Abort() // TODO check if memory leaks
                         Events.canceled.Trigger(Async)
-                        FsiStatus.Evaluation <- Ready
+                       
                         Log.print "FSharp Interactive Session canceled ..."
                         return! running None None session 
     
@@ -272,12 +255,12 @@ module Fsi =
                         //session.Interrupt()  
                         thr.Abort()
                         Events.canceled.Trigger(Async)
-                        FsiStatus.Evaluation <- Ready
+                        
                         Log.print "cancelling and restarting..."
                         return! running None None (startSession())
                     | Restart, None , _ ->
                         //session.Interrupt() 
-                        FsiStatus.Evaluation <- Ready
+                        
                         return! running None None (startSession())           
                 }
                 running None None (startSession()))
