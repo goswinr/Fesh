@@ -28,7 +28,9 @@ module FileDialogs =
                 Config.saveRecentFiles ()
                 updateRecentMenu fi // this function checks if it is alreday Menu
         else
+            Log.print "File not found:\r\n%s" fi.FullName
             MessageBox.Show("File not found:\r\n"+fi.FullName , dialogCaption, MessageBoxButton.OK) |> ignore
+            //raises Application.Current.DispatcherUnhandledException: System.Windows.Threading.DispatcherUnhandledExceptionEventArgs??
 
 
     let openFileDlg (newtab) = 

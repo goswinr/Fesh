@@ -47,7 +47,7 @@ module Menu =
 
     let private sep() = Separator():> Control
     
-    let private fromCmd (ngc: string * string * #ICommand*string) = 
+    let private fromCmd (ngc: string * string * #ICommand * string) = 
         let n,g,c,tt = ngc
         MenuItem(Header = n, InputGestureText = g, ToolTip = tt, Command = c):> Control
 
