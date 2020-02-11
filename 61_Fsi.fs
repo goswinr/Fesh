@@ -309,33 +309,6 @@ module Fsi =
 
     
     
-    let cancelOLD() =
-            //fsiCancelScr.Value.Cancel()
-            match state with 
-            | Evaluating ->            
-                match thread with 
-                |Some thr -> 
-                    match mode with
-                    |Async ->                
-                        thread<-None
-                        state<-Ready 
-                        thr.Abort() // raises OperationCanceledException                                    
-                        //Events.canceled.Trigger()
-                        //Events.isReady.Trigger()
-                        //Log.print "Current Async Fsi Interaction thread was aborted."
-                    |Sync ->
-                        //thr.Interrupt()
-                        //thr.Abort()
-                        //thread<-None
-                        //state<-Ready                 
-                        //raise (new OperationCanceledException("async1"))
-                        //Events.canceled.Trigger()
-                        //Events.isReady.Trigger()
-                        Log.print "Current synchronous Fsi Interaction cannot be canceled"                    
-                |None -> 
-                     Log.print "**No thread to cancel Fsi, should never happen !"            
-            | Ready -> ()   
-            
 
 
     do

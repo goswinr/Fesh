@@ -64,11 +64,7 @@ module Log =
     /// like printfn, use with format strings, adds new line
     let print s = 
         Printf.fprintfn textwriter s 
-    
-   
-    /// debug logging, might be disabled later
-    let debugLogOLD txt = 
-        textwriter.WriteLine ("debugLog: " + txt )        
+       
         
 
     do

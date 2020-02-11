@@ -21,16 +21,6 @@ module App =
         //win.Show() // do in host instead
         win
 
-    /// this is the same as getHostedEditorWindow but with two functions to register beginn and end undo steps in your App.
-    /// Arguments: Pointer to main window(nativeInt), 
-    /// A string for the name of the hosting App (will be used for settings file name),
-    /// Two functions to register beginn and end of undo steps in your App
-    /// Call window.Show() on the returned window object.
-    let runEditorHostedWithUndoUSEEVENTSINSTEAD (mainWindowHandle, hostName, beginUndo, endUndo) =
-        //HostUndoRedo.beginUndo <- beginUndo //TODO use events instead
-        //HostUndoRedo.endUndo   <- endUndo
-        runEditorHosted  (mainWindowHandle,hostName)
-
 
     [< EntryPoint >]
     [< STAThread >] 
