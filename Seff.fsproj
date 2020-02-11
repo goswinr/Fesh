@@ -16,7 +16,7 @@
 
   <ItemGroup>
     <PackageReference Update="FSharp.Core" Version="4.7.0" GeneratePathProperty="true" /> <!-- path property $(PkgFSharp_Core) is C:\Users\Gos\.nuget\packages\fsharp.core\4.7.0 -->
-    <PackageReference Include="FSharp.Compiler.Service" Version="33.0.1" />
+    <PackageReference Include="FSharp.Compiler.Service" Version="34.0.1" />
     <!-- <PackageReference Include="AvalonEdit" Version="6.0.0" /> use custom build of it instead-->    
   </ItemGroup>
 
