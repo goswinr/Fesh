@@ -8,6 +8,8 @@ open System.Windows.Media
 open ICSharpCode
 open Seff.UtilWPF
 open FSharp.Compiler.SourceCodeServices
+open System.Windows.Automation.Peers
+
 
 module Appearance=    
     
@@ -89,14 +91,14 @@ module Appearance=
         Globalization.CultureInfo.DefaultThreadCurrentUICulture <- en_US
 
 module StatusBar =
-    let async = 
+    let asyncDesc = 
         let bi = StatusBarItem(Content="*unknown*")
         bi.ToolTip <- "Click to switch between synchronous and asynchronous evaluation in FSI,\r\nsynchronous is needed for UI interaction,\r\nasynchronous allows easy cancellation and keeps the editor window alive"
         //bi.MouseDown.Add(fun _ -> toggleSync()) //done in fsi module
         bi
 
     let compilerErrors=
-        let tb = TextBox()
+        let tb = TextBox(Text="checking for Errors...")
         tb.FontWeight <- FontWeights.Bold
         tb
 
@@ -110,14 +112,16 @@ module StatusBar =
             compilerErrors.ToolTip <- makePanelVert [ for e in es do TextBlock(Text=sprintf "• Line %d: %A: %s" e.StartLineAlternate e.Severity e.Message)]
 
     let bar = 
-        let b = new StatusBar() 
-        b.Items.Add (StatusBarItem(Content="FSI evaluation mode: "))  |> ignore
-        b.Items.Add (async)             |> ignore 
-        b.Items.Add (Separator())       |> ignore 
+        let b = new StatusBar()
         b.Items.Add compilerErrors      |> ignore 
         b.Items.Add (Separator())       |> ignore 
         b.Items.Add (StatusBarItem())   |> ignore // fill remaining space
         b
+
+    let addSwitchFforSyncchonisationMode()=
+        bar.Items.Insert(0,StatusBarItem(Content="FSI evaluation mode: "))
+        bar.Items.Insert(1,asyncDesc)
+        bar.Items.Insert(2,Separator())          
     
 
 module UI =     

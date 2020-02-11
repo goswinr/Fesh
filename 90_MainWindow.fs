@@ -24,7 +24,7 @@ module MainWindow =
 
         Environment.SetEnvironmentVariable ("FCS_ParseFileCacheSize", "5") 
         // http://fsharp.github.io/FSharp.Compiler.Service/caches.html
-        //https://github.com/fsharp/FSharp.Compiler.Service/blob/71272426d0e554e0bac32ad349bbd9f5fa8a3be9/src/fsharp/service/service.fs#L35
+        // https://github.com/fsharp/FSharp.Compiler.Service/blob/71272426d0e554e0bac32ad349bbd9f5fa8a3be9/src/fsharp/service/service.fs#L35
 
         let win = new Window()
         
@@ -54,10 +54,16 @@ module MainWindow =
             
             CreateTab.loadArgsAndOpenFilesOnLastAppClosing(args)
             Config.loadRecentFilesMenu Menu.RecentFiles.updateRecentMenue
+            
             //Log.print "** Time for loading recent files and recent menu: %s"  timer.tocEx
             
-            if Config.getBool "asyncFsi" (Fsi.mode=Async) then Fsi.setMode(Mode.Async) else Fsi.setMode(Mode.Sync) 
-
+            match Config.currentRunContext with
+            |Config.RunContext.Hosted ->     // allow sync execution only for hosted context
+                if Config.getBool "asyncFsi" (Fsi.mode=Async) then Fsi.setMode(Mode.Async) else Fsi.setMode(Mode.Sync) 
+                StatusBar.addSwitchFforSyncchonisationMode()
+            |Config.RunContext.Standalone -> Config.setBool "asyncFsi" true; Fsi.setMode(Mode.Async)// always async
+            |Config.RunContext.Undefiend -> failwithf "RunContext should not be Undefiend"
+            
             //win.Activate() |> ignore // needed ?           
             //Tab.currEditor.Focus() |> ignore // can be null ? needed ?
             
@@ -76,7 +82,11 @@ module MainWindow =
             // current tabs are already saved when opened
             e.Cancel <- not <| FileDialogs.closeWindow() )
 
+        
         //win.Initialized.Add (fun _ ->()) // this event seems to be never triggered   // why ???
         
+
+
+
         win
 

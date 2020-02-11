@@ -168,7 +168,7 @@ module Fsi =
                     
                     Application.Current.DispatcherUnhandledException.Add(fun e ->  //exceptions generated on the UI thread
                         Log.print "Application.Current.DispatcherUnhandledException: %A" e             
-                        e.Handled<- true)        
+                        e.Handled <- true)        
        
                     AppDomain.CurrentDomain.UnhandledException.AddHandler (//catching unhandled exceptions generated from all threads running under the context of a specific application domain. //https://dzone.com/articles/order-chaos-handling-unhandled
                         new UnhandledExceptionEventHandler( ProcessCorruptedState.Handler)) //https://stackoverflow.com/questions/14711633/my-c-sharp-application-is-returning-0xe0434352-to-windows-task-scheduler-but-it
@@ -286,11 +286,11 @@ module Fsi =
         let setConfig()=
             match mode with
             |Sync ->
-                StatusBar.async.Content <- "Synchronous in UI Thread"  
+                StatusBar.asyncDesc.Content <- "Synchronous in UI Thread"  
                 Config.setBool "asyncFsi" false
                           
             |Async ->                 
-                StatusBar.async.Content <- "Asynchronous" 
+                StatusBar.asyncDesc.Content <- "Asynchronous" 
                 Config.setBool "asyncFsi" true                
         
 
@@ -323,7 +323,7 @@ module Fsi =
         Events.Completed.Add    (fun _ -> UI.log.Background <- Appearance.logBackgroundFsiReady)
         Events.Canceled.Add     (fun _ -> UI.log.Background <- Appearance.logBackgroundFsiReady)
 
-        StatusBar.async.MouseDown.Add(fun _ -> toggleSync())
+        StatusBar.asyncDesc.MouseDown.Add(fun _ -> toggleSync())
         
         
 
