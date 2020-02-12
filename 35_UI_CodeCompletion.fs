@@ -15,7 +15,7 @@ open System.Collections.Generic
 
 module CompletionUI =
     
-    type CompletionLine (it:FSharpDeclarationListItem, optArgsDict:Dictionary<string,ResizeArray<string>>) =
+    type CompletionLine (it:FSharpDeclarationListItem, isDotCompletion:bool, optArgsDict:Dictionary<string,ResizeArray<string>>) =
         let colorUNUSED = 
             match it.Glyph with  // does not change coler when selected anymore
             | FSharpGlyph.Class
@@ -43,7 +43,7 @@ module CompletionUI =
             | FSharpGlyph.ExtensionMethod   -> Brushes.DarkKhaki
             | FSharpGlyph.Error             -> Brushes.Red
     
-        let prio = if it.IsOwnMember then 1. else 1. 
+
         let style =         
             if it.IsOwnMember then FontStyles.Normal 
             else match it.Glyph with    //new Font(FontFamily.GenericSansSerif,12.0F, FontStyle.Bold | FontStyle.Italic) // needs system.drawing
@@ -59,6 +59,15 @@ module CompletionUI =
             tb.FontStyle <- style
             tb.Padding <- Thickness(0. , 0. , 8. , 0. ) //left top right bottom / so that it does not aper to be trimmed
             tb
+
+        let priority = //if it.IsOwnMember then 1. else 1. 
+            if isDotCompletion then // not on Dot completet
+                1.0
+            else
+                let p = 1.0 + Config.getCompletionStats(it.Name)
+                if p>1.0 then Log.print "%s %g" it.Name p
+                p
+            
     
         member this.Content = tb :> obj
         member this.Description = // this gets called on demand only, not when initally filling the list.
@@ -70,7 +79,7 @@ module CompletionUI =
             
 
         member this.Image = null
-        member this.Priority = prio
+        member this.Priority = priority
         member this.Text = it.Name
         member this.Complete (textArea:TextArea, completionSegment:ISegment, e ) = 
             //Log.print "%s is %A and %A" it.Name it.Glyph it.Kind
@@ -78,6 +87,9 @@ module CompletionUI =
             //textArea.Caret.Offset <- completionSegment.Offset + it.Name.Length + 1  //Delete!          
             let compl = if it.Glyph = FSharpGlyph.Class && it.Name.EndsWith "Attribute" then "[<" + it.Name.Replace("Attribute",">]") else it.Name     //TODO move this logic out here      
             textArea.Document.Replace(completionSegment, compl) 
+            if not isDotCompletion then 
+                Config.incrCompletionStats(it.Name)
+                Config.saveCompletionStats()
             //Editor.current.TriggerCompletionInserted it.Name // to be able to rerun checking
 
         interface ICompletionData with // needed in F#: implementing the interface members as properties too: https://github.com/icsharpcode/AvalonEdit/issues/28
@@ -89,9 +101,8 @@ module CompletionUI =
             member this.Text            = this.Text 
             
     type CompletionLineKeyWord (text:string, toolTip:string) =
-
         //let col = Brushes.DarkBlue    // fails on selection, does not get color inverted
-        let prio = 99.9
+        
         let style = FontStyles.Normal
         let tb = 
             new TextBlock(
@@ -104,7 +115,7 @@ module CompletionUI =
         member this.Content = tb :> obj
         member this.Description = toolTip :> obj // it.DescriptionText :> obj // xml ?
         member this.Image = null
-        member this.Priority = prio
+        member this.Priority = 99.9999999999999 // TODO or what ??????????
         member this.Text = text
         member this.Complete (textArea:TextArea, completionSegment:ISegment, e ) =       
             textArea.Document.Replace(completionSegment, text) 

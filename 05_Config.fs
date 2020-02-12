@@ -200,27 +200,29 @@ module Config =
     //--Auto completion statistic--
     //--------------------------------------------        
 
-    let CompletionStats = Dictionary<string,int>()
+    let CompletionStats = Dictionary<string,float>() // make concurrent ?
 
     let loadCompletionStats() =
-        try            
-            if IO.File.Exists fileCompletionStats then 
-                for ln in  IO.File.ReadAllLines fileCompletionStats do
-                match ln.Split(sep) with
-                | [|k;v|] -> CompletionStats.[k] <- int v // TODO allow for comments? use ini format ??
-                | _       -> if notNull logger then logger ("Bad line in CompletionStats file : '" + ln + "'")                       
-        with e -> 
-            if notNull logger then logger ("Error load fileCompletionStats:" +  e.Message)
+        async{
+            try            
+                if IO.File.Exists fileCompletionStats then 
+                    for ln in  IO.File.ReadAllLines fileCompletionStats do
+                    match ln.Split(sep) with
+                    | [|k;v|] -> CompletionStats.[k] <- float v // TODO allow for comments? use ini format ??
+                    | _       -> if notNull logger then logger ("Bad line in CompletionStats file : '" + ln + "'")                       
+            with e -> 
+                if notNull logger then logger ("Error load fileCompletionStats:" +  e.Message)
+            } |> Async.Start 
      
     let getCompletionStats(key) =
         match CompletionStats.TryGetValue key with
         |true,i -> i
-        |_      -> 0
+        |_      -> 0.0
     
     let incrCompletionStats(key) =
         match CompletionStats.TryGetValue key with
-        |true,i -> CompletionStats.[key] <- i+1
-        |_      -> CompletionStats.[key] <- 1
+        |true,i -> CompletionStats.[key] <- i +  1.0
+        |_      -> CompletionStats.[key] <- 1.0
     
     let saveCompletionStats() =
         async{

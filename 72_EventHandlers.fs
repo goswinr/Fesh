@@ -124,15 +124,16 @@ module EventHandlers =
             
             | None -> //no completion window open , do type check..
                 match e.InsertedText.Text with 
-                |"."  ->                                     textChanged( TextChange.EnteredDot              , tab)//complete
+                |"."  ->                                             textChanged( TextChange.EnteredDot              , tab)//complete
                 | txt when txt.Length = 1 ->                    
-                    if tab.CompletionWindowJustClosed then   textChanged( TextChange.CompletionWinClosed     , tab)//check to avoid retrigger of window on single char completions
+                    if tab.CompletionWindowJustClosed then           textChanged( TextChange.CompletionWinClosed     , tab)//check to avoid retrigger of window on single char completions
                     else
-                        if Char.IsLetter(txt.[0])  then      textChanged( TextChange.EnteredOneLetter        , tab)//complete
-                        else                                 textChanged( TextChange.EnteredOneNonLetter     , tab)//check
+                        let c = txt.[0]
+                        if Char.IsLetter(c) || c='_' || c='`' then   textChanged( TextChange.EnteredOneIdentifierChar        , tab)//complete
+                        else                                         textChanged( TextChange.EnteredOneNonIdentifierChar     , tab)//check
                 |"do" -> addReturnAndIndent(tab.Editor, e.Offset + 2 )// also triggers new Document.Changed event //TODO , better do check previous word when hitting enter to decide for auto indent, also check cutrent indent and add 4
 
-                | _  ->                                      textChanged( TextChange.OtherChange             , tab)//several charcters(paste) ,delete or completion window          
+                | _  ->                                              textChanged( TextChange.OtherChange             , tab)//several charcters(paste) ,delete or completion window          
                 
                 tab.CompletionWindowJustClosed<-false
                 )

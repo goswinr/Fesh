@@ -14,7 +14,8 @@ module App =
     let runEditorHosted (mainWindowHandle, hostName) =
         Sync.syncContext <- Sync.installAndGetSynchronizationContext() // do first
         Config.hostName <- hostName // do before Config.setCurrentRunContext(..)
-        Config.setCurrentRunContext(Config.RunContext.Hosted)      
+        Config.setCurrentRunContext(Config.RunContext.Hosted)
+        Config.loadCompletionStats()
         let win = MainWindow.create(Array.empty)
         Interop.WindowInteropHelper(win).Owner <- mainWindowHandle 
         win.Title <- win.Title + " for " + hostName
@@ -27,4 +28,5 @@ module App =
     let runEditorStandalone args =        
         Sync.syncContext <- Sync.installAndGetSynchronizationContext() // do first
         Config.setCurrentRunContext(Config.RunContext.Standalone)
+        Config.loadCompletionStats()
         (new Application()).Run(MainWindow.create(args)) // Returns application's exit code.

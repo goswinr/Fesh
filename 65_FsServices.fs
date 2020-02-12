@@ -35,7 +35,7 @@ module EditorUtil=
 
 module FsService = 
 
-    type TextChange =  EnteredDot | EnteredOneLetter | EnteredOneNonLetter | CompletionWinClosed | TabChanged | OtherChange //| EnteredQuote
+    type TextChange =  EnteredDot | EnteredOneIdentifierChar | EnteredOneNonIdentifierChar | CompletionWinClosed | TabChanged | OtherChange //| EnteredQuote
     type CharBeforeQuery = Dot | NotDot
     
     let keywordsComletionLines = [| 
@@ -129,7 +129,7 @@ module FsService =
 
     let prepareAndShowComplWin(tab:FsxTab, pos:FsChecker.PositionInCode , changetype, setback, query, charBefore, onlyDU) = 
         //Log.print "*prepareAndShowComplWin..."
-        if changetype = EnteredOneLetter  &&  Keywords.Contains query  then //this never happens since typing complete word happens in when window is open not closed
+        if changetype = EnteredOneIdentifierChar  &&  Keywords.Contains query  then //this never happens since typing complete word happens in when window is open not closed
             // do not complete, if keyword was typed full, just continue typing, completion will triger anyway on additional chars
             checkForErrorsAndUpdateFoldings(tab,None)
             
@@ -159,9 +159,10 @@ module FsService =
                         let completionLines = ResizeArray<ICompletionData>()                                
                         if not onlyDU && charBefore = NotDot then   completionLines.AddRange keywordsComletionLines  // add keywords to list
                         for it in decls.Items do
+                            
                             match it.Glyph with 
-                            |FSharpGlyph.Union|FSharpGlyph.Module | FSharpGlyph.EnumMember -> completionLines.Add (new CompletionLine(it,optArgDict)) 
-                            | _ -> if not onlyDU then                                         completionLines.Add (new CompletionLine(it,optArgDict))
+                            |FSharpGlyph.Union|FSharpGlyph.Module | FSharpGlyph.EnumMember -> completionLines.Add (new CompletionLine(it, (changetype = EnteredDot), optArgDict)) 
+                            | _ -> if not onlyDU then                                         completionLines.Add (new CompletionLine(it, (changetype = EnteredDot), optArgDict))
                         
 
                         tab.Editor.Cursor <- prevCursor
@@ -199,10 +200,10 @@ module FsService =
                     Log.print "Failed get checkId from FsCheckerCancellationSources" 
             
             match change with             
-            | OtherChange | CompletionWinClosed | TabChanged  | EnteredOneNonLetter -> //TODO maybe do less call to error highlighter when typing in string or comment ?
+            | OtherChange | CompletionWinClosed | TabChanged  | EnteredOneNonIdentifierChar -> //TODO maybe do less call to error highlighter when typing in string or comment ?
                 checkForErrorsAndUpdateFoldings(tab,None) 
 
-            | EnteredOneLetter | EnteredDot -> 
+            | EnteredOneIdentifierChar | EnteredDot -> 
 
                 let pos = EditorUtil.currentLineBeforeCaret tab // this line will include the charcater that trigger auto completion(dot or first letter)
                 let line = pos.lineToCaret
@@ -252,7 +253,7 @@ module FsService =
                         checkForErrorsAndUpdateFoldings(tab,None)
 
                     else 
-                        //Log.print "*2.2-textChanged Completion window opening  with: query='%s', charBefore='%A', isKey=%b, setback='%d', line='%s' " query charBeforeQueryDU isKeyword setback line
+                        Log.print "*2.2-textChanged Completion window opening with: query='%s', charBefore='%A', isKey=%b, setback='%d', line='%s' change=%A" query charBeforeQueryDU isKeyword setback line change
                         prepareAndShowComplWin(tab, pos, change, setback, query, charBeforeQueryDU, onlyDU)
                 else
                     //checkForErrorsAndUpdateFoldings(tab)
