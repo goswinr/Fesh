@@ -84,7 +84,16 @@ module EventHandlers =
                 Config.saveSettings ()
                 //Log.dlog (sprintf "%s Size Changed: Width=%.0f Height=%.0f State=%A" Time.nowStrMilli win.Width win.Height win.WindowState)
             )
+    
 
+    let addReturnAndIndent(editor:TextEditor, off) =        
+        async{
+            do! Async.SwitchToContext Sync.syncContext
+            let ret = Environment.NewLine + String(' ',editor.Options.IndentationSize)
+            //Log.print "'do' entered '%s'" ret
+            editor.Document.Insert(off , ret) // also triggers new Document.Changed event
+            } |> Async.StartImmediate
+        
 
     let setUpForTab (tab:FsxTab) =         
         let tArea = tab.Editor.TextArea
@@ -117,10 +126,12 @@ module EventHandlers =
                 match e.InsertedText.Text with 
                 |"."  ->                                     textChanged( TextChange.EnteredDot              , tab)//complete
                 | txt when txt.Length = 1 ->                    
-                    if tab.CompletionWindowJustClosed then   textChanged( TextChange.CompletionWinClosed    , tab)//check to avoid retrigger of window on single char completions
+                    if tab.CompletionWindowJustClosed then   textChanged( TextChange.CompletionWinClosed     , tab)//check to avoid retrigger of window on single char completions
                     else
                         if Char.IsLetter(txt.[0])  then      textChanged( TextChange.EnteredOneLetter        , tab)//complete
                         else                                 textChanged( TextChange.EnteredOneNonLetter     , tab)//check
+                |"do" -> addReturnAndIndent(tab.Editor, e.Offset + 2 )// also triggers new Document.Changed event //TODO , better do check previous word when hitting enter to decide for auto indent, also check cutrent indent and add 4
+
                 | _  ->                                      textChanged( TextChange.OtherChange             , tab)//several charcters(paste) ,delete or completion window          
                 
                 tab.CompletionWindowJustClosed<-false

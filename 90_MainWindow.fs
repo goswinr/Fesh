@@ -68,7 +68,8 @@ module MainWindow =
             //Tab.currEditor.Focus() |> ignore // can be null ? needed ?
             
             )    
-                
+        
+        
         win.Closing.Add( fun e ->
             match askIfCancellingIsOk () with 
             | NotEvaluating   -> ()

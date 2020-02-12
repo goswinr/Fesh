@@ -24,7 +24,7 @@
   <Color name="Attributes"          foreground="Purple" />  
   <Color name="Keywords"            foreground="Blue"         /> <!--fontWeight="bold" -->
   <Color name="ReservedKeywords"    foreground="LightBlue"    /> <!--fontWeight="bold" -->
-  <Color name="MethodCall"          foreground="MidnightBlue" /> <!--fontWeight="bold" -->
+  <Color name="MethodCall"          foreground="#0000AA" />  <!--fontWeight="bold" -->
   <Color name="TrueFalse"           foreground="#0044CC"     /> <!--fontWeight="bold" -->
   <Color name="NumberLiteral"       foreground="#3399BB"/>
   <!--https://www.rapidtables.com/convert/color/rgb-to-hex.html-->
@@ -263,6 +263,8 @@
       [\d\w_]+  # an identifier
       (?=\s*\() # followed by (
     </Rule>
+    
+    <!--<Rule color="MethodCall">(?<=let\s+)\b[\d\w_]+(?=\s+[\w\(])</Rule>  DOES NOT WORK a let bound function , (not a value)  -->
 
     <!-- Digits -->
     <Rule color="NumberLiteral">

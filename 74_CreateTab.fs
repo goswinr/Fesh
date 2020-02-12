@@ -14,7 +14,7 @@ module CreateTab =
         let bttn = 
             new Button(
                 Content = new Shapes.Path( Data = Geometry.Parse("M1,8 L8,1 M1,1 L8,8"), Stroke = Brushes.Black,  StrokeThickness = 1.0 ) ,                   
-                Margin =  new Thickness(5., 1., 1., 3.), //left ,top, right, bottom
+                Margin =  new Thickness(5., 0.5, 0.5, 3.), //left ,top, right, bottom
                 Padding = new Thickness(2.))
         let bg = bttn.Background 
         //bttn.MouseEnter.Add (fun _ -> bttn.Background <- Brushes.Red) // control template triggers have higher precedence compared to Style triggers // https://stackoverflow.com/questions/28346852/background-does-not-change-of-button-c-sharp-wpf

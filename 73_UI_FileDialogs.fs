@@ -29,7 +29,7 @@ module FileDialogs =
                 updateRecentMenu fi // this function checks if it is alreday Menu
         else
             Log.print "File not found:\r\n%s" fi.FullName
-            MessageBox.Show("File not found:\r\n"+fi.FullName , dialogCaption, MessageBoxButton.OK) |> ignore
+            MessageBox.Show("File not found:\r\n"+fi.FullName , dialogCaption, MessageBoxButton.OK, MessageBoxImage.Error) |> ignore
             //raises Application.Current.DispatcherUnhandledException: System.Windows.Threading.DispatcherUnhandledExceptionEventArgs??
 
 
@@ -138,7 +138,7 @@ module FileDialogs =
             true        
         if t.CodeAtLastSave = t.Editor.Text then cls()
         else 
-            match MessageBox.Show("Do you want to save changes before closing this tab?", dialogCaption, MessageBoxButton.YesNoCancel) with
+            match MessageBox.Show("Do you want to save changes before closing this tab?", dialogCaption, MessageBoxButton.YesNoCancel, MessageBoxImage.Question) with
             | MessageBoxResult.Yes -> if saveAs t then cls() else false
             | MessageBoxResult.No -> cls()
             | _ -> false
@@ -152,7 +152,7 @@ module FileDialogs =
             let msg = openFs  |> Seq.fold (fun m t -> 
                 let name  = if t.FileInfo.IsSome then t.FileInfo.Value.Name else textForUnsavedFile
                 sprintf "%s\r\n\r\n%s" m name) "Do you want to save the changes to:" 
-            match MessageBox.Show(msg, dialogCaption, MessageBoxButton.YesNoCancel) with
+            match MessageBox.Show(msg, dialogCaption, MessageBoxButton.YesNoCancel, MessageBoxImage.Question) with
             | MessageBoxResult.Yes -> 
                 let OKs = seq { for t in Tab.allTabs do if t.CodeAtLastSave <> t.Editor.Text then yield save t }// if saving was canceled cancel closing
                 if Seq.exists ( fun OK -> OK = false) OKs then false else true // iterate unsafed files, if one file saving was canceled abort the closing of the main window                 
