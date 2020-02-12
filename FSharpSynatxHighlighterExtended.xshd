@@ -15,9 +15,9 @@
   <!-- The named colors 'Comment' and 'String' are also used in SharpDevelop to detect if a line is inside a multiline string/comment -->
   <Color name="Comment"             foreground="Green" />
   <Color name="String"              foreground="#AA1111" />
-  <Color name="StringVerbatim"      foreground="#800000" />  
-  <Color name="StringFormating"     foreground="#2B91AF" />
-  <Color name="StringEscaped"       foreground="#FF0099" />  
+  <Color name="StringVerbatim"      foreground="#FF0000" />  
+  <Color name="StringFormating"     foreground="#2B91AF"  />
+  <Color name="StringEscaped"       foreground="#7700BB"  />  
   <Color name="Char"                foreground="#FF0040" />
   <Color name="LoadDirectives"      foreground="#887766" />
   <Color name="Punctuation"         foreground="Purple" />
@@ -30,8 +30,8 @@
   <!--https://www.rapidtables.com/convert/color/rgb-to-hex.html-->
   
   <!-- taken from https://github.com/icsharpcode/AvalonEdit/blob/master/ICSharpCode.AvalonEdit/Highlighting/Resources/XmlDoc.xshd-->
-  <Color name="XmlString" foreground="#005500" fontWeight="bold"  />
-  <Color name="DocComment" foreground="#00FF00" />
+  <Color name="XmlString" foreground="#005500"   />
+  <Color name="DocComment" foreground="#888888" />
   <Color name="XmlPunctuation"  />
   <Color name="KnownDocTags"   />
   
@@ -224,14 +224,20 @@
       <End>\*\)</End>      
     </Span>
     
-    <Span color="StringVerbatim">
+    <Span color="StringVerbatim" multiline="true">
       <Begin>@"</Begin>
       <End>"</End>      
     </Span>
+
     
-    <Span color="String">
-      <Begin>"</Begin>
-      <End>"</End>
+    <Span color="StringVerbatim" multiline="true">
+      <Begin>"""</Begin>
+      <End>"""</End>
+    </Span>
+    
+    <Span color="String" multiline="true"> 
+      <Begin>"</Begin>  <!-- regex for a " with any other character after-->
+      <End>"</End>      <!-- regex for a " with any other character before-->
       <RuleSet>
         <!-- span for escape sequences -->
         <Span begin="\\" end="." color="StringEscaped" />
@@ -239,14 +245,7 @@
       </RuleSet>
     </Span>
 
-    <Span color="String" multiline="true">
-      <Begin>@"</Begin>
-      <End>"</End>
-      <RuleSet>
-        <!-- span for escape sequences -->
-        <Span begin='""' end=""/>
-      </RuleSet>
-    </Span>
+
 
     <Rule color="Char">
       ('\\'')|('\S')|('\\\S')   #Regex to match chars like  '*' or '\*' or '\'''
@@ -269,10 +268,10 @@
     <Rule color="NumberLiteral">
       \b0[xX][0-9a-fA-F]+  # hex number
       |
-      (	\b\d+(\.[0-9]+)?   #number with optional floating point
-      |	\.[0-9]+           #or just starting with floating point
+      (	\b\d+(\.[0-9]+)?   # number with optional floating point
+      |	\.[0-9]+           # or just starting with floating point
       )
-      ([eE][+-]?[0-9]+)? # optional exponent
+      ([eE][+-]?[0-9]+)?   # optional exponent
     </Rule>
 
     <Rule color="Punctuation">
