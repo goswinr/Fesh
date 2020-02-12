@@ -13,11 +13,12 @@ module CreateTab =
     let makeTabHeader(tab:FsxTab) = 
         let bttn = 
             new Button(
-                Content = new Shapes.Path( Data = Geometry.Parse("M1,7 L7,1 M1,1 L7,7"), Stroke = Brushes.White,  StrokeThickness = 1.5 )                    
-                , Margin = new Thickness(4.,1.,1.,1.) )
+                Content = new Shapes.Path( Data = Geometry.Parse("M1,8 L8,1 M1,1 L8,8"), Stroke = Brushes.Black,  StrokeThickness = 1.0 ) ,                   
+                Margin =  new Thickness(5., 1., 1., 3.), //left ,top, right, bottom
+                Padding = new Thickness(2.))
         let bg = bttn.Background 
-        bttn.MouseEnter.Add (fun _ -> bttn.Background <- Brushes.Red)
-        bttn.MouseLeave.Add (fun _ -> bttn.Background <- bg)
+        //bttn.MouseEnter.Add (fun _ -> bttn.Background <- Brushes.Red) // control template triggers have higher precedence compared to Style triggers // https://stackoverflow.com/questions/28346852/background-does-not-change-of-button-c-sharp-wpf
+        //bttn.MouseLeave.Add (fun _ -> bttn.Background <- bg)
         bttn.Click.Add (fun _ -> FileDialogs.closeTab tab |> ignore)
         let name = if tab.FileInfo.IsSome then tab.FileInfo.Value.Name else FileDialogs.textForUnsavedFile
         let txtBl = new TextBlock( Text = name , VerticalAlignment = VerticalAlignment.Bottom)        
@@ -28,7 +29,7 @@ module CreateTab =
             txtBl.Foreground   <- Brushes.Gray
             txtBl.ToolTip     <- "this file has not yet been saved to disk"
         let p = makePanelHor [txtBl :> UIElement; bttn :> UIElement ]
-        p.Margin <- new Thickness(2. , 2. , 2. , 2.)
+        p.Margin <- new Thickness(2.5 , 0.5 , 0.5 , 2.5) //left ,top, right, bottom
         tab.Header <- p
 
 
@@ -41,7 +42,7 @@ module CreateTab =
         //tab.ChangesAreProbalySaved <- true // not neded. to not show star after putting in the code 
         tab.CodeAtLastSave <- code
         EventHandlers.setUpForTab tab
-        XshdHighlighting.setFSharp tab.Editor
+        XshdHighlighting.setFSharp (tab.Editor,false)
         makeTabHeader(tab)
         FileDialogs.updateHeader <- makeTabHeader
         //ModifyUI.markTabSaved(tab)// TODO this should not be needed

@@ -34,7 +34,7 @@ module MainWindow =
         win.Background  <- UI.menu.Background // otherwise space next to tabs is in an odd color
         
         EventHandlers.setUpForWindowSizing(win)
-        win.InputBindings.AddRange Commands.AllInputBindings  
+        win.InputBindings.AddRange Commands.allShortCutKeyGestures  
         Menu.setup()
 
         Controls.ToolTipService.ShowOnDisabledProperty.OverrideMetadata( typeof<Controls.Control>,  new FrameworkPropertyMetadata(true)) //show-tooltip-when-button-disabled-by-command //https://stackoverflow.com/questions/4153539/wpf-how-to-show-tooltip-when-button-disabled-by-command

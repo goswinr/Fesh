@@ -97,8 +97,9 @@ module Menu =
                 fromCmd Commands.ClearFSI
                 fromCmd Commands.CancelFSI
                 fromCmd Commands.ResetFSI
-                sep()
-                fromCmd Commands.ToggleSync
+                if Config.currentRunContext = Config.RunContext.Hosted then
+                    sep()
+                    fromCmd Commands.ToggleSync
                 ]
             MenuItem(Header = "_View"),[                 
                 fromCmd Commands.ToggleLogSize //TODO replace with actual tick box menu item 
@@ -114,6 +115,7 @@ module Menu =
                 fromCmd Commands.SettingsFolder
                 MenuItem(Header = "_Help")
                 MenuItem(Header = "_Version 0.1.1")
+                fromCmd Commands.ReloadXshd
                 //MenuItem(Header = "Seff Assembly Buildtime "+Util.CompileTime.nowStrMenu)                
                 ]
             ]

@@ -8,6 +8,7 @@ open Seff.CreateTab
 open Seff.FileDialogs
 
 
+
 module CommandHelp = 
 
     type Command(canExecute, execute) as this = 
@@ -87,6 +88,8 @@ module Commands =
 
     let SettingsFolder = "Open Settings Folder"       , ""              , mkCmdSimple (fun a -> Config.openConfigFolder()), "Opens the Folder where user settinsg such as default file content is saved."
 
+    let ReloadXshd =     "Reload Xshd file"          , "F11"            , mkCmd isTab (fun a -> XshdHighlighting.setFSharp(Tab.currTab.Editor,true)), "for Testing only: Reloads the Syntax highlighting file FSharpSynatxHighlighterExtended.xshd"
+
     // built in Commands                                
     let Copy             = "Copy"                     , "Ctrl + C"      , ApplicationCommands.Copy, "Copy selected text, or full current line if nothing is selceted."
     let Cut              = "Cut"                      , "Ctrl + X"      , ApplicationCommands.Cut  ,"Cut selected text, or full current line if nothing is selceted."
@@ -96,43 +99,48 @@ module Commands =
     let Find             = "Find"                     , "Ctrl + F"      , ApplicationCommands.Find,"Fint text of current selection"
     let Replace          = "Replace"                  , "Ctrl + H"      , ApplicationCommands.Replace ,"Not implemented yet"//TODO implement
 
-    //
-    let allCustomCommands = seq{
-        yield RunSelectedText  
-        yield RunSelectedLines 
-        yield RunAllText
-        yield RunAllTextSave
-        
-        yield ResetFSI         
-        yield CancelFSI        
-        yield ClearFSI
-        yield ToggleSync
-        
-        yield NewTab           
-        yield OpenFile 
-        yield Close
-        
-        yield SaveIncremental
-        yield SaveAs           
-        yield Save
-        yield SaveAll
-        yield SaveLog          
-        yield SaveLogSel       
-        
-        yield FontBigger       
-        yield FontSmaller      
-        yield Comment          
-        yield UnComment
-        yield ToggleLogSize
-        yield ToggleSplit
-        yield ToggleLogLineWrap
-
-        yield SelectLine
-        yield SelectLinesUp  
-        yield SelectLinesDown
-        }     
+       
             
-    let AllInputBindings = 
+    let allShortCutKeyGestures = 
+        
+        let allCustomCommands = [  //for seting up Key gestures below
+             RunSelectedText  
+             RunSelectedLines 
+             RunAllText
+             RunAllTextSave
+            
+             ResetFSI         
+             CancelFSI        
+             ClearFSI
+             if Config.currentRunContext = Config.RunContext.Hosted then ToggleSync
+            
+             NewTab           
+             OpenFile 
+             Close
+            
+             SaveIncremental
+             SaveAs           
+             Save
+             SaveAll
+             SaveLog          
+             SaveLogSel       
+            
+             FontBigger       
+             FontSmaller      
+             Comment          
+             UnComment
+             ToggleLogSize
+             ToggleSplit
+             ToggleLogLineWrap
+
+             SelectLine
+             SelectLinesUp  
+             SelectLinesDown
+
+             ReloadXshd
+             ] 
+
+
         // these functions parse the KeyGesture from a string defined above. 
         // eg. "Ctrl + V" becomes KeyGesture(Key.V , ModifierKeys.Control)
         // this is to make sure the displayed gesture matches the actual gesture
@@ -152,8 +160,7 @@ module Commands =
                    | _ -> Log.print "*AllInputBindings: failed to parse ModifierKey '%A'" x; ModifierKeys.None
 
         try
-            [|
-                 for _,g,cmd,_ in allCustomCommands do
+            [|  for _,g,cmd,_ in allCustomCommands do
                     match g.Trim() with
                     |"" -> ()
                     | "Ctrl + '+'" | "Ctrl + +" | "Ctrl +" ->
@@ -168,6 +175,7 @@ module Commands =
                                 Log.print "*AllInputBindings: failed to parse command Input gesture '%s'" g
                                 InputBinding(cmd,  KeyGesture(Key.None))
             |]
+        
         with e -> 
             Log.print "*AllInputBindings: failed to create keyboard shortcuts: %A"e
             [| |]

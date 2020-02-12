@@ -15,9 +15,8 @@ module XshdHighlighting =
     
     let mutable private fsHighlighting: IHighlightingDefinition option = None //use same highlighter for al tabs. load just once 
 
-    let setFSharp (ed:TextEditor) = //must be a function to be calld at later moment.
-        match fsHighlighting with
-        |None -> 
+    let setFSharp (ed:TextEditor,forceReLoad) = //must be a function to be calld at later moment.
+        if fsHighlighting.IsNone || forceReLoad then 
             async{
                 try
                     //let stream = Reflection.Assembly.GetExecutingAssembly().GetManifestResourceStream("FSharpSynatxHighlighter2.xshd") // Build action : Embeded Resource; Copy to ouput Dir: NO 
@@ -31,8 +30,8 @@ module XshdHighlighting =
                 with e -> 
                     Log.print "Error loading Syntax Highlighting: %A" e
                 } |> Async.Start
-        |Some fsh -> 
-            ed.SyntaxHighlighting <- fsh
+        else 
+            ed.SyntaxHighlighting <- fsHighlighting.Value
 
 
 /// taken from VS2017
