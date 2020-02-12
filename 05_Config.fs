@@ -5,6 +5,7 @@ open System.IO
 open System.Windows
 open System.Text
 open Seff.Util
+open System.Collections.Generic
 
 /// persitance of user settings such as recent files and window location and size  
 module Config = 
@@ -22,6 +23,7 @@ module Config =
     let mutable private fileSettings = ""
     let mutable private fileRecent =    ""      // files for list in open menu
     let mutable private fileOnClosingOpen = "" // files that are open when closing the editor window, for next restart
+    let mutable private fileCompletionStats = "" // statist of most used auto completions
     let private sep = '=' // key value separatur like in ini files
     let configFilesPath = IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"Seff")
     
@@ -44,7 +46,6 @@ module Config =
         //"// https://panesofglass.github.io/scripting-workshop/#/" 
         //"// http://brandewinder.com/2016/02/06/10-fsharp-scripting-tips/"        
         //"#load @\"" + General.installFolder() + "\\SeffLib.fsx\""
-        //"open SeffLib"
         //"open System"
         //"Environment.CurrentDirectory <- __SOURCE_DIRECTORY__"
         defaultBaseCode()
@@ -74,12 +75,12 @@ module Config =
         fileRecent          <- IO.Path.Combine(configFilesPath, sprintf "%s.%s.RecentlyUsedFiles.txt"    ctxs host )
         fileOnClosingOpen   <- IO.Path.Combine(configFilesPath, sprintf "%s.%s.CurrentlyOpenFiles.txt"   ctxs host )
         fileDefaultCode     <- IO.Path.Combine(configFilesPath, sprintf "%s.%s.DefaultCode.fsx"          ctxs host )
-        
+        fileCompletionStats <- IO.Path.Combine(configFilesPath, sprintf "%s.%s.CompletionStats.txt"      ctxs host ) 
         try            
             for ln in  IO.File.ReadAllLines fileSettings do
                 match ln.Split(sep) with
                 | [|k;v|] -> settingsDict.[k] <- v // TODO allow for comments? use ini format ??
-                | _       -> ()
+                | _       -> if notNull logger then logger ("Bad line in settings file file: '" + ln + "'")
         with 
             | :? FileNotFoundException ->   if notNull logger then logger ("Settings file not found. (This is normal on first use of the App.)")
             | e ->                          if notNull logger then logger ("Problem reading settings file: " + e.Message)
@@ -164,7 +165,9 @@ module Config =
             for fi in recentFilesReOpened |> Seq.rev do // they are already distinct
                 recentFilesStack.Push fi
                 updateRecentMenu fi
-        with _ -> ()
+        with e -> 
+            if notNull logger then logger ("Error Loading recently used files:" +  e.Message)
+
     
     //--------------------------------------------
     //--remember open files on closing the editor--
@@ -177,19 +180,61 @@ module Config =
     
     let getFilesfileOnClosingOpen() = 
         let files=ResizeArray()
-        if IO.File.Exists fileOnClosingOpen then 
-            let lns = IO.File.ReadAllLines fileOnClosingOpen 
-            if lns.Length > 1 then 
-                let currentFile = (lns |> Seq.head).ToLowerInvariant() // head is filepath and name for  current tab
-                for path in lns |> Seq.skip 1  do 
-                    let fi = FileInfo(path)                    
-                    if fi.Exists then 
-                        let code = IO.File.ReadAllText path
-                        let makeCurrent = path.ToLowerInvariant() = currentFile 
-                        files.Add((fi,makeCurrent,code))
+        try            
+            if IO.File.Exists fileOnClosingOpen then 
+                let lns = IO.File.ReadAllLines fileOnClosingOpen 
+                if lns.Length > 1 then 
+                    let currentFile = (lns |> Seq.head).ToLowerInvariant() // head is filepath and name for  current tab
+                    for path in lns |> Seq.skip 1  do 
+                        let fi = FileInfo(path)                    
+                        if fi.Exists then 
+                            let code = IO.File.ReadAllText path
+                            let makeCurrent = path.ToLowerInvariant() = currentFile 
+                            files.Add((fi,makeCurrent,code))            
+        with e -> 
+            if notNull logger then logger ("Error getFilesfileOnClosingOpen:" +  e.Message)
         files
 
 
-        
+    //--------------------------------------------
+    //--Auto completion statistic--
+    //--------------------------------------------        
 
+    let CompletionStats = Dictionary<string,int>()
+
+    let loadCompletionStats() =
+        try            
+            if IO.File.Exists fileCompletionStats then 
+                for ln in  IO.File.ReadAllLines fileCompletionStats do
+                match ln.Split(sep) with
+                | [|k;v|] -> CompletionStats.[k] <- int v // TODO allow for comments? use ini format ??
+                | _       -> if notNull logger then logger ("Bad line in CompletionStats file : '" + ln + "'")                       
+        with e -> 
+            if notNull logger then logger ("Error load fileCompletionStats:" +  e.Message)
+     
+    let getCompletionStats(key) =
+        match CompletionStats.TryGetValue key with
+        |true,i -> i
+        |_      -> 0
     
+    let incrCompletionStats(key) =
+        match CompletionStats.TryGetValue key with
+        |true,i -> CompletionStats.[key] <- i+1
+        |_      -> CompletionStats.[key] <- 1
+    
+    let saveCompletionStats() =
+        async{
+            let k = Threading.Interlocked.Increment counter
+            do! Async.Sleep(1000) // delay to see if this is the last of many events (otherwise there is a noticable lag in dragging window around)
+            if k > 2L && !counter = k then //do not save on startup && only save last event after a delay if there are many save events in a row ( eg from window size change)(ignore first two event from creating window)
+                let sb = StringBuilder()
+                for KeyValue(k,v) in CompletionStats do
+                    sb.Append(k)
+                        .Append(sep)
+                        .AppendLine(v.ToString()) |> ignore
+                try 
+                    IO.File.WriteAllText(fileCompletionStats, sb.ToString())
+                    //logger "fileCompletionStats settings saved"
+                with e -> 
+                    if notNull logger then logger ("Error saving  fileCompletionStats:" + e.Message + Environment.NewLine + e.StackTrace)
+            } |> Async.Start 
