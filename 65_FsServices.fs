@@ -38,7 +38,13 @@ module FsService =
     type TextChange =  EnteredDot | EnteredOneLetter | EnteredOneNonLetter | CompletionWinClosed | TabChanged | OtherChange //| EnteredQuote
     type CharBeforeQuery = Dot | NotDot
     
-    let keywordsComletionLines = [| for kw,desc in Keywords.KeywordsWithDescription  do yield CompletionLineKeyWord(kw,desc) :> ICompletionData|]
+    let keywordsComletionLines = [| 
+        for kw,desc in Keywords.KeywordsWithDescription  do 
+            yield CompletionLineKeyWord(kw,desc) :> ICompletionData
+        yield CompletionLineKeyWord("__SOURCE_DIRECTORY__","Evaluates to the current full path of the source directory" ) :> ICompletionData    
+        yield CompletionLineKeyWord("__SOURCE_FILE__"     ,"Evaluates to the current source file name, without its path") :> ICompletionData    
+        yield CompletionLineKeyWord("__LINE__",            "Evaluates to the current line number") :> ICompletionData    
+        |]
     let Keywords = Keywords.KeywordsWithDescription |> List.map fst |> HashSet
 
     // to be able to cancel all running FSC checker threads when text changed (there should only be one)

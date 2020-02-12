@@ -20,7 +20,7 @@ module Config =
     let mutable fileDefaultCode = ""
     //let mutable codeToAppendEvaluations = "" // \r\nRhino.RhinoDoc.ActiveDoc.Views.Redraw()  
     let mutable private fileSettings = ""
-    let mutable private fileRecent =    ""   // files for list in open menu
+    let mutable private fileRecent =    ""      // files for list in open menu
     let mutable private fileOnClosingOpen = "" // files that are open when closing the editor window, for next restart
     let private sep = '=' // key value separatur like in ini files
     let configFilesPath = IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"Seff")

@@ -30,7 +30,7 @@ module FileDialogs =
         else
             Log.print "File not found:\r\n%s" fi.FullName
             MessageBox.Show("File not found:\r\n"+fi.FullName , dialogCaption, MessageBoxButton.OK, MessageBoxImage.Error) |> ignore
-            //raises Application.Current.DispatcherUnhandledException: System.Windows.Threading.DispatcherUnhandledExceptionEventArgs??
+            //does this raises Application.Current.DispatcherUnhandledException: System.Windows.Threading.DispatcherUnhandledExceptionEventArgs??
 
 
     let openFileDlg (newtab) = 

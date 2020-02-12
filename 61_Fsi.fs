@@ -167,7 +167,7 @@ module Fsi =
                     if mode = Mode.Sync then do! Async.SwitchToContext Sync.syncContext 
                     
                     Application.Current.DispatcherUnhandledException.Add(fun e ->  //exceptions generated on the UI thread
-                        Log.print "Application.Current.DispatcherUnhandledException: %A" e             
+                        Log.print "Application.Current.DispatcherUnhandledException in fsi thread: %A" e.Exception        
                         e.Handled <- true)        
        
                     AppDomain.CurrentDomain.UnhandledException.AddHandler (//catching unhandled exceptions generated from all threads running under the context of a specific application domain. //https://dzone.com/articles/order-chaos-handling-unhandled
@@ -254,7 +254,7 @@ module Fsi =
     ///shows UI to confirm cancelling, returns new state
     let askAndCancel() =
         match askIfCancellingIsOk () with 
-        | NotEvaluating   ->  Ready
+        | NotEvaluating   -> Ready
         | YesAsync        -> cancelIfAsync();Ready
         | Dont            -> Evaluating
         | NotPossibleSync -> Evaluating       
