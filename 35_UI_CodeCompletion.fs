@@ -61,12 +61,8 @@ module CompletionUI =
             tb
 
         let priority = //if it.IsOwnMember then 1. else 1. 
-            if isDotCompletion then // not on Dot completet
-                1.0
-            else
-                let p = 1.0 + Config.getCompletionStats(it.Name) 
-                //if p>1.0 then Log.print "%s %g" it.Name p
-                p
+            if isDotCompletion then 1.0// not on Dot completion             
+            else                    1.0 + Config.getCompletionStats(it.Name) //if p>1.0 then Log.print "%s %g" it.Name p
             
     
         member this.Content = tb :> obj
@@ -102,7 +98,7 @@ module CompletionUI =
             
     type CompletionLineKeyWord (text:string, toolTip:string) =
         //let col = Brushes.DarkBlue    // fails on selection, does not get color inverted
-        
+
         let style = FontStyles.Normal
         let tb = 
             new TextBlock(
@@ -112,10 +108,13 @@ module CompletionUI =
                     //Foreground  = col, // does not change color when selected anymore //check  https://blogs.msdn.microsoft.com/text/2009/08/28/selection-brush/ ??
                     FontStyle = style
                     )
+        
+        let priority =  1.0 + Config.getCompletionStats(text) 
+        
         member this.Content = tb :> obj
         member this.Description = toolTip :> obj // it.DescriptionText :> obj // xml ?
         member this.Image = null
-        member this.Priority = 99.9999999999999 // TODO or what ??????????
+        member this.Priority = priority
         member this.Text = text
         member this.Complete (textArea:TextArea, completionSegment:ISegment, e ) =       
             textArea.Document.Replace(completionSegment, text) 
