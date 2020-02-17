@@ -253,7 +253,7 @@ module FsService =
                         checkForErrorsAndUpdateFoldings(tab,None)
 
                     else 
-                        Log.print "*2.2-textChanged Completion window opening with: query='%s', charBefore='%A', isKey=%b, setback='%d', line='%s' change=%A" query charBeforeQueryDU isKeyword setback line change
+                        //Log.print "*2.2-textChanged Completion window opening with: query='%s', charBefore='%A', isKey=%b, setback='%d', line='%s' change=%A" query charBeforeQueryDU isKeyword setback line change
                         prepareAndShowComplWin(tab, pos, change, setback, query, charBeforeQueryDU, onlyDU)
                 else
                     //checkForErrorsAndUpdateFoldings(tab)

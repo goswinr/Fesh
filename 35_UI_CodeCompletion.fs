@@ -64,8 +64,8 @@ module CompletionUI =
             if isDotCompletion then // not on Dot completet
                 1.0
             else
-                let p = 1.0 + Config.getCompletionStats(it.Name)
-                if p>1.0 then Log.print "%s %g" it.Name p
+                let p = 1.0 + Config.getCompletionStats(it.Name) 
+                //if p>1.0 then Log.print "%s %g" it.Name p
                 p
             
     
