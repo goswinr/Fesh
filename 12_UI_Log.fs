@@ -26,9 +26,9 @@ module Log =
     let private dontPrint  = function // do not print certain strings to Log window
         |""                         -> true
         |"For help type #help;;"    -> true
-        |"Copyright (c) Microsoft Corporation. All Rights Reserved."    -> true // FCS it  is actulally MIT licence
-        | s when s.StartsWith "--> Referenced" -> true // too noisy
-        | s when s="\r\n" && prevLine=s && prevprevLine=s -> true // to not have more than one empty line ever
+        |"Copyright (c) Microsoft Corporation. All Rights Reserved."    -> true // FCS is actulally MIT licence
+        //| s when s.StartsWith "--> Referenced" -> true // too noisy , // todo make optional
+        //| s when s="\r\n" && prevLine=s && prevprevLine=s -> true // to not have more than one empty line ever
         | s                         -> 
             prevprevLine<-prevLine
             prevLine<-s
@@ -48,7 +48,7 @@ module Log =
                 let backlogMsg =  ref ""
                 while backlog.TryDequeue(backlogMsg) do UI.log.AppendText ( "BACKLOG: " + !backlogMsg ) //TODO never needed? debug only                
                 UI.log.AppendText s
-                UI.log.ScrollToEnd()
+                UI.log.ScrollToEnd() // TODO slow !!  https://github.com/icsharpcode/AvalonEdit/issues/15
             } |> Async.StartImmediate            
     
     //-----------------
