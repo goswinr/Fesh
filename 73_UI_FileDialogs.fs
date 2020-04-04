@@ -7,7 +7,7 @@ open Seff.Util
 
 
 module FileDialogs =
-    let textForUnsavedFile =  "*unsaved"
+    let textForUnsavedFile =  "*unsaved*"
     let dialogCaption = "Seff | FSharp Scripting Editor"
 
     /// to put recent files at bottom of File menu

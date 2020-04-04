@@ -17,11 +17,18 @@ module Sync =
             DispatcherSynchronizationContext(Dispatcher.CurrentDispatcher) |> SynchronizationContext.SetSynchronizationContext
         SynchronizationContext.Current
     
-    // evaluates a function on UI thread
+    /// evaluates a function on UI thread
     let doSync f args = 
         async{  do! Async.SwitchToContext syncContext
                 return f args
              } |> Async.RunSynchronously
+    
+    ///evaluates the given function application on the UI thread
+    let postToUI : ('a -> 'b) -> 'a -> 'b =
+        fun f x ->
+          //app.Dispatcher.Invoke(new System.Func<_>(fun () -> f x), [||]) 
+          Dispatcher.CurrentDispatcher.Invoke(new System.Func<_>(fun () -> f x), [||])  // see https://www.ffconsultancy.com/products/fsharp_journal/subscribers/FSharpIDE.html        
+          |> unbox
 
 /// a timer for measuring performance, similar to the timer built into FSI
 

@@ -163,8 +163,8 @@ module Commands =
             [|  for _,g,cmd,_ in allCustomCommands do
                     match g.Trim() with
                     |"" -> ()
-                    | "Ctrl + '+'" | "Ctrl + +" | "Ctrl +" ->
-                        yield InputBinding(cmd,  KeyGesture(Key.Add,ModifierKeys.Control)) // fails on gg.Split('+')
+                    | "Ctrl + '+'" | "Ctrl + +" | "Ctrl +" -> // because  gg.Split('+') would fail
+                        yield InputBinding(cmd,  KeyGesture(Key.Add,ModifierKeys.Control)) 
                     | gg -> 
                         yield
                             match gg.Split('+') |> Array.map ( fun k -> k.Trim()) with

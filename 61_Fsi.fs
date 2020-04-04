@@ -9,12 +9,14 @@ open FSharp.Compiler.Interactive.Shell
 
 
 type internal ProcessCorruptedState =  
-    [< Runtime.ExceptionServices.HandleProcessCorruptedStateExceptions >] //to handle AccessViolationException too //https://stackoverflow.com/questions/3469368/how-to-handle-accessviolationexception/4759831
+    [< Security.SecurityCritical; Runtime.ExceptionServices.HandleProcessCorruptedStateExceptions >] //to handle AccessViolationException too //https://stackoverflow.com/questions/3469368/how-to-handle-accessviolationexception/4759831
     static member Handler (sender:obj) (e: UnhandledExceptionEventArgs) = 
             //Starting with the .NET Framework 4, this event is not raised for exceptions that corrupt the state of the process, 
             //such as stack overflows or access violations, unless the event handler is security-critical and has the HandleProcessCorruptedStateExceptionsAttribute attribute.
             //https://docs.microsoft.com/en-us/dotnet/api/system.appdomain.unhandledexception?redirectedfrom=MSDN&view=netframework-4.8
-            Log.print "AppDomain.CurrentDomain.UnhandledException: isTerminating: %b : %A" e.IsTerminating e.ExceptionObject
+            let err = sprintf "AppDomain.CurrentDomain.UnhandledException: isTerminating: %b : %A" e.IsTerminating e.ExceptionObject
+            Util.fileLoggingAgent.Post(err)
+            Log.print "%s" err
 
 module Fsi =    
     
@@ -153,7 +155,7 @@ module Fsi =
 
 
 
-    [< Runtime.ExceptionServices.HandleProcessCorruptedStateExceptions>] //to handle AccessViolationException too //https://stackoverflow.com/questions/3469368/how-to-handle-accessviolationexception/4759831
+    [< Security.SecurityCritical; Runtime.ExceptionServices.HandleProcessCorruptedStateExceptions>] //to handle AccessViolationException too //https://stackoverflow.com/questions/3469368/how-to-handle-accessviolationexception/4759831
     let private eval(code)=
         state <- Evaluating
         //fsiCancelScr <- Some (new CancellationTokenSource())
@@ -208,6 +210,7 @@ module Fsi =
             
             Async.StartImmediate(a)// cancellation token here fails to cancel evaluation,
             )
+        
         thread<-Some thr
         
         thr.Start()
@@ -215,7 +218,7 @@ module Fsi =
      
     //-------------- public interface: ---------
 
-    type IsCancelingOk = NotEvaluating | YesAsync | Dont | NotPossibleSync
+    type IsCancelingOk = NotEvaluating | YesAsync | Dont | NotPossibleSync // Not-Possible-Sync because during sync eval the ui should be frozen anyway and this request should not be happening
     
 
     let cancelIfAsync() = 
@@ -258,8 +261,7 @@ module Fsi =
         | YesAsync        -> cancelIfAsync();Ready
         | Dont            -> Evaluating
         | NotPossibleSync -> Evaluating       
-    
-    
+        
 
     let evaluate(code) =         
         if DateTime.Today > DateTime(2020, 9, 30) then failwithf "Your Seff Editor has expired, please download a new version."
@@ -307,15 +309,14 @@ module Fsi =
         |Async ->  setMode Sync
         |Sync ->   setMode Async      
 
-    
-    
-
+   
 
     do
         //Events.Canceled.Add        (fun _ -> Log.print " +Fsi Canceled+")
         //Events.IsReady.Add         (fun _ -> Log.print " +Fsi isReady+")      
         //Events.Started.Add         (fun _ -> Log.print " +Fsi Started+")
         //Events.Completed.Add       (fun _ -> Log.print " +Fsi Completed+")
+
         Events.RuntimeError.Add    (fun _  -> Log.print " +Fsi RuntimeError+")
         
         Events.RuntimeError.Add (fun _  -> UI.log.Background <- Appearance.logBackgroundFsiHadError)

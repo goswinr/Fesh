@@ -7,7 +7,7 @@ open ICSharpCode.AvalonEdit
 module ModifyCode =
 
     //----------------------
-    //-------- Commenting-----turning code into Comments and back
+    //-------- Commenting---  turning code into Comments and back
     //----------------------
     // 
     let comment(tab: FsxTab) =
@@ -27,7 +27,7 @@ module ModifyCode =
         doc.BeginUpdate() //tab.Editor.Document.RunUpdate
         comm start 0 0
         doc.EndUpdate()
-        FsService.textChanged (FsService.OtherChange, tab) // TODO needed ?        
+        //FsService.textChanged (FsService.OtherChange, tab) // TODO needed ?        
         
     let unComment(tab: FsxTab) =
         let doc = tab.Editor.Document
@@ -46,6 +46,6 @@ module ModifyCode =
         doc.BeginUpdate()//tab.Editor.Document.RunUpdate
         ucomm start 
         doc.EndUpdate()
-        FsService.textChanged (FsService.OtherChange, tab)// needed ?
+        //FsService.textChanged (FsService.OtherChange, tab)// needed ?
 
  

@@ -37,7 +37,7 @@ module MainWindow =
         win.InputBindings.AddRange Commands.allShortCutKeyGestures  
         Menu.setup()
 
-        Controls.ToolTipService.ShowOnDisabledProperty.OverrideMetadata( typeof<Controls.Control>,  new FrameworkPropertyMetadata(true)) //show-tooltip-when-button-disabled-by-command //https://stackoverflow.com/questions/4153539/wpf-how-to-show-tooltip-when-button-disabled-by-command
+        Controls.ToolTipService.ShowOnDisabledProperty.OverrideMetadata( typeof<Controls.Control>,  new FrameworkPropertyMetadata(true)) //still show-tooltip-when a button(or menu item )  is disabled-by-command //https://stackoverflow.com/questions/4153539/wpf-how-to-show-tooltip-when-button-disabled-by-command
 
         
         Application.Current.DispatcherUnhandledException.Add(fun e ->  //exceptions generated on the UI thread
