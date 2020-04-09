@@ -10,7 +10,7 @@ open System.Collections.Generic
 /// persitance of user settings such as recent files and window location and size  
 module Config = 
     
-    let mutable internal logger = Unchecked.defaultof<string->unit> // will be set once UI.Log is created
+    let mutable internal logger : string->unit = fun _ -> () // will be set once UI.Log is created
 
     // Yes, I rolled my own type of config file. The default App.config did not work for me when Editor is hosted in other CAD Apps like Rhinoceros3D
 
@@ -40,7 +40,7 @@ module Config =
         with _ -> 
             File.WriteAllText(fileDefaultCode,"")// create file so it can be found to be edited manually
             ""
-    let getDefaultCode() = // TODO expose this in UI as file
+    let getDefaultCode() = 
         [
         "// Script created on " + Time.todayStr
         //"// https://panesofglass.github.io/scripting-workshop/#/" 
@@ -80,10 +80,10 @@ module Config =
             for ln in  IO.File.ReadAllLines fileSettings do
                 match ln.Split(sep) with
                 | [|k;v|] -> settingsDict.[k] <- v // TODO allow for comments? use ini format ??
-                | _       -> if notNull logger then logger ("Bad line in settings file file: '" + ln + "'")
+                | _       ->  logger ("Bad line in settings file file: '" + ln + "'")
         with 
-            | :? FileNotFoundException ->   if notNull logger then logger ("Settings file not found. (This is normal on first use of the App.)")
-            | e ->                          if notNull logger then logger ("Problem reading settings file: " + e.Message)
+            | :? FileNotFoundException ->   logger ("Settings file not found. (This is normal on first use of the App.)")
+            | e ->                          logger ("Problem reading settings file: " + e.Message)
         
         //logger ("Settings loaded after " + Util.Timer3.toc)
        
@@ -117,7 +117,7 @@ module Config =
                     IO.File.WriteAllText(fileSettings, sb.ToString())
                     //logger "Layout settings saved"
                 with e -> 
-                    if notNull logger then logger (e.Message + Environment.NewLine + e.StackTrace)
+                    logger (e.Message + Environment.NewLine + e.StackTrace)
             } |> Async.Start        
     
     let setFloat        key (v:float)       = set key (string v)
@@ -166,7 +166,7 @@ module Config =
                 recentFilesStack.Push fi
                 updateRecentMenu fi
         with e -> 
-            if notNull logger then logger ("Error Loading recently used files:" +  e.Message)
+            logger ("Error Loading recently used files:" +  e.Message)
 
     
     //--------------------------------------------
@@ -192,7 +192,7 @@ module Config =
                             let makeCurrent = path.ToLowerInvariant() = currentFile 
                             files.Add((fi,makeCurrent,code))            
         with e -> 
-            if notNull logger then logger ("Error getFilesfileOnClosingOpen:" +  e.Message)
+            logger ("Error getFilesfileOnClosingOpen:" +  e.Message)
         files
 
 
@@ -209,9 +209,9 @@ module Config =
                     for ln in  IO.File.ReadAllLines fileCompletionStats do
                     match ln.Split(sep) with
                     | [|k;v|] -> CompletionStats.[k] <- float v // TODO allow for comments? use ini format ??
-                    | _       -> if notNull logger then logger ("Bad line in CompletionStats file : '" + ln + "'")                       
+                    | _       -> logger ("Bad line in CompletionStats file : '" + ln + "'")                       
             with e -> 
-                if notNull logger then logger ("Error load fileCompletionStats:" +  e.Message)
+                logger ("Error load fileCompletionStats:" +  e.Message)
             } |> Async.Start 
      
     let getCompletionStats(key) =
@@ -238,5 +238,5 @@ module Config =
                     IO.File.WriteAllText(fileCompletionStats, sb.ToString())
                     //logger "fileCompletionStats settings saved"
                 with e -> 
-                    if notNull logger then logger ("Error saving  fileCompletionStats:" + e.Message + Environment.NewLine + e.StackTrace)
+                    logger ("Error saving  fileCompletionStats:" + e.Message + Environment.NewLine + e.StackTrace)
             } |> Async.Start 

@@ -8,14 +8,15 @@ open Microsoft.FSharp.Reflection
 
 module Sync = 
     
+    /// the UI SynchronizationContext to switch to inside async CEs
     let mutable syncContext : SynchronizationContext = null  // will be set in main UI STAThread
     
-    let internal installAndGetSynchronizationContext () = 
+    let internal installSynchronizationContext () = 
         // see https://github.com/fsprojects/FsXaml/blob/c0979473eddf424f7df83e1b9222a8ca9707c45a/src/FsXaml.Wpf/Utilities.fs#L132
         if SynchronizationContext.Current = null then 
             // Create our UI sync context, and install it:
             DispatcherSynchronizationContext(Dispatcher.CurrentDispatcher) |> SynchronizationContext.SetSynchronizationContext
-        SynchronizationContext.Current
+        syncContext <- SynchronizationContext.Current
     
     /// evaluates a function on UI thread
     let doSync f args = 
@@ -27,13 +28,15 @@ module Sync =
     let postToUI : ('a -> 'b) -> 'a -> 'b =
         fun f x ->
           //app.Dispatcher.Invoke(new System.Func<_>(fun () -> f x), [||]) 
-          Dispatcher.CurrentDispatcher.Invoke(new System.Func<_>(fun () -> f x), [||])  // see https://www.ffconsultancy.com/products/fsharp_journal/subscribers/FSharpIDE.html        
+          Dispatcher.CurrentDispatcher.Invoke(new System.Func<_>(fun () -> f x), [||])  // from https://www.ffconsultancy.com/products/fsharp_journal/subscribers/FSharpIDE.html        
           |> unbox
 
-/// a timer for measuring performance, similar to the timer built into FSI
+
 
 
 module Util =    
+
+    /// a timer for measuring performance, similar to the timer built into FSI
     type Timer() = 
         // GC : https://github.com/fsharp/fsharp/blob/master/src/fsharp/fsi/fsi.fs#L124
 
@@ -99,7 +102,7 @@ module Util =
 
     let rand = new Random() // to give each error checking call a unique id
 
-    let inline notNull ob = not (Object.ReferenceEquals(ob,null))
+    let inline notNull x = match x with null -> true | _ -> false  //not (Object.ReferenceEquals(ob,null))
     
     let inline isTrue (nb:Nullable<bool>) = nb.HasValue && nb.Value
 
@@ -128,7 +131,7 @@ module Util =
 
     // Post to this agent for writing a file async.
     let fileWriter = 
-        MailboxProcessor.Start( //MB allows writing even when previous write is not finisched yet
+        MailboxProcessor.Start( //MailboxProcessor allows writing even when previous write is not finisched yet
             fun inbox ->
                 let rec loop () = 
                     async { let! (path,content) = inbox.Receive()
