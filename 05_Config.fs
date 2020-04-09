@@ -7,9 +7,95 @@ open System.Text
 open Seff.Util
 open System.Collections.Generic
 
+
+
+module Configuration = 
+    
+    let defaultCodeOnFirstRun =
+        [
+        "// this is your default code for new files, you can change by going to the menu: File -> Edit Template File"
+        "// or in your local AppData folder: Environment.SpecialFolder.LocalApplicationData/Seff"
+        //"tips: // https://panesofglass.github.io/scripting-workshop/#/" 
+        //"tips: // http://brandewinder.com/2016/02/06/10-fsharp-scripting-tips/"        
+        //"#load @\"" + General.installFolder() + "\\SeffLib.fsx\""
+        "open System"
+        // "Environment.CurrentDirectory <- __SOURCE_DIRECTORY__"
+        ""
+        ] |> String.concat Environment.NewLine
+    
+    /// to get a valid foldername fom any host app name suplied
+    let removeSpecialChars (str:string) = 
+          let sb = new Text.StringBuilder()
+          for c in str do
+              if (c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || c = '.' || c = '_' then  sb.Append(c) |> ignore
+          sb.ToString()
+    
+
+    let loadSettings(file)
+        let private sep = '=' // key value separatur like in ini files
+        try            
+            for ln in  IO.File.ReadAllLines file do
+                match ln.Split(sep) with
+                | [|k;v|] -> settingsDict.[k] <- v // TODO allow for comments? use ini format ??
+                | _       ->  logger ("Bad line in settings file file: '" + ln + "'")
+        with 
+            | :? FileNotFoundException ->   logger ("Settings file not found. (This is normal on first use of the App.)")
+            | e ->                          logger ("Problem reading settings file: " + e.Message)
+
+        ()
+
+
+    type RunContext = Standalone | Hosted of string
+
+
+
+
+
+
+    type Settings private () = 
+    
+        static let mutable logger : string->unit = fun _ -> () 
+        static let mutable fileDefaultCode = ""     // default code for new files
+        static let mutable fileSettings = ""        // window size, layout and position 
+        static let mutable fileRecent =    ""       // files for list in open menu
+        static let mutable fileOnClosingOpen = ""   // files that are open when closing the editor window, for next restart
+        static let mutable fileCompletionStats = "" // statistic of most used toplevel auto completions
+
+        static let configFilesFolder = IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"Seff")
+
+        static member init(context:RunContext, loging: string-> unit) =
+            logger <- loging
+
+            let host = match context with Standalone ->  "Standalone" | Hosted x -> "Hosted." + removeSpecialChars(x)
+
+            fileSettings        <- IO.Path.Combine(configFilesFolder, sprintf "%s.Settings.WindowLayout.txt" host )
+            fileRecent          <- IO.Path.Combine(configFilesFolder, sprintf "%s.RecentlyUsedFiles.txt"     host )
+            fileOnClosingOpen   <- IO.Path.Combine(configFilesFolder, sprintf "%s.CurrentlyOpenFiles.txt"    host )
+            fileDefaultCode     <- IO.Path.Combine(configFilesFolder, sprintf "%s.DefaultCode.fsx"           host )
+            fileCompletionStats <- IO.Path.Combine(configFilesFolder, sprintf "%s.CompletionStats.txt"       host ) 
+
+
+            
+        
+        static member GetDefaultCode() =            
+            try IO.File.ReadAllText fileDefaultCode 
+            with _ -> 
+                File.WriteAllText(fileDefaultCode,defaultCodeOnFirstRun)// create file so it can be found and edited manually
+                defaultCodeOnFirstRun
+            
+         
+
+        /// opens up Explorer
+        static member openConfigFolder()=
+            IO.Directory.CreateDirectory configFilesFolder |> ignore        
+            Diagnostics.Process.Start("explorer.exe", configFilesFolder)        |> ignore
+
+
+
 /// persitance of user settings such as recent files and window location and size  
 module Config = 
     
+
     let mutable internal logger : string->unit = fun _ -> () // will be set once UI.Log is created
 
     // Yes, I rolled my own type of config file. The default App.config did not work for me when Editor is hosted in other CAD Apps like Rhinoceros3D
@@ -17,16 +103,18 @@ module Config =
     type RunContext = Standalone | Hosted | Undefiend    
     let mutable currentRunContext = Undefiend
     let mutable hostName = "NotHosted" 
+
     // TODO refactor to use FileInfo instead of path strings
-    let mutable fileDefaultCode = ""
-    //let mutable codeToAppendEvaluations = "" // \r\nRhino.RhinoDoc.ActiveDoc.Views.Redraw()  
+    let mutable         fileDefaultCode = ""     
     let mutable private fileSettings = ""
-    let mutable private fileRecent =    ""      // files for list in open menu
-    let mutable private fileOnClosingOpen = "" // files that are open when closing the editor window, for next restart
-    let mutable private fileCompletionStats = "" // statist of most used auto completions
+    let mutable private fileRecent =    ""       // files for list in open menu
+    let mutable private fileOnClosingOpen = ""   // files that are open when closing the editor window, for next restart
+    let mutable private fileCompletionStats = "" // statistic of most used toplevel auto completions
     let private sep = '=' // key value separatur like in ini files
-    let configFilesPath = IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"Seff")
-    
+
+    let configFilesPath = 
+        IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"Seff")
+        
 
     let openConfigFolder()=
         IO.Directory.CreateDirectory configFilesPath |> ignore        
