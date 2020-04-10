@@ -3,19 +3,17 @@
 open System
 open System.Windows
 open Seff.Util
-
+open Seff.Model
 
 module App =    
     
 
-    /// Arguments: Pointer to main window(nativeInt), 
-    /// a string for the name of the hosting App (will be used for settings file name).
+    /// mainWindowHandle: Pointer to main window(nativeInt), 
+    /// hostName: a string for the name of the hosting App (will be used for settings file name an displayed in the Title Bar.
     /// Call window.Show() on the returned window object.
     let runEditorHosted (mainWindowHandle, hostName) =
         Sync.installSynchronizationContext() // do first
-        Config.hostName <- hostName // do before Config.setCurrentRunContext(..)
-        Config.setCurrentRunContext(Config.RunContext.Hosted)
-        Config.loadCompletionStats()
+        Config.initialize (Hosted hostName)
         let win = MainWindow.create(Array.empty)
         Interop.WindowInteropHelper(win).Owner <- mainWindowHandle 
         win.Title <- win.Title + " for " + hostName
@@ -27,6 +25,6 @@ module App =
     [< STAThread >] 
     let runEditorStandalone args =        
         Sync.installSynchronizationContext() // do first
-        Config.setCurrentRunContext(Config.RunContext.Standalone)
-        Config.loadCompletionStats()
-        (new Application()).Run(MainWindow.create(args)) // Returns application's exit code.
+        Config.initialize (Standalone)
+        let win = MainWindow.create(args)
+        (new Application()).Run(win) 

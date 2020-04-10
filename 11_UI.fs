@@ -29,7 +29,7 @@ module Appearance=
     let setForLog (l:AvalonEdit.TextEditor)=
         AvalonEdit.Search.SearchPanel.Install(l) |> ignore
         l.FontFamily       <- defaultFont
-        l.FontSize         <- Config.getFloat "FontSize" defaultFontSize
+        l.FontSize         <- Config.Settings.getFloat "FontSize" defaultFontSize
         l.IsReadOnly       <- true
         l.ShowLineNumbers  <- true
         l.WordWrap         <- true
@@ -40,7 +40,7 @@ module Appearance=
         l.TextArea.SelectionCornerRadius <- 0.0 
         //l.TextArea.SelectionBorder <- null
         l.VerticalScrollBarVisibility <- ScrollBarVisibility.Auto        
-        if Config.getBool "logHasLineWrap" true then 
+        if Config.Settings.getBool "logHasLineWrap" true then 
             l.WordWrap         <- true // or 
             l.HorizontalScrollBarVisibility <- ScrollBarVisibility.Disabled   
         else
@@ -51,7 +51,7 @@ module Appearance=
     let setForEditor (e:AvalonEdit.TextEditor)=
         e.Background <- editorBackgroundOk
         e.FontFamily <- defaultFont
-        e.FontSize <- Config.getFloat "FontSize" defaultFontSize
+        e.FontSize <- Config.Settings.getFloat "FontSize" defaultFontSize
         e.ShowLineNumbers <- true
         e.VerticalScrollBarVisibility <- ScrollBarVisibility.Auto
         e.HorizontalScrollBarVisibility <- ScrollBarVisibility.Auto
@@ -105,10 +105,10 @@ module StatusBar =
     let setErrors(es:FSharpErrorInfo[])= 
         if es.Length = 0 then 
             compilerErrors.Text <- "No Errors"
-            compilerErrors.Background <- Brushes.Green |> brighter 60            
+            compilerErrors.Background <- Brushes.Green |> brighter 90            
         else 
             compilerErrors.Text <- sprintf "%d Errors" es.Length
-            compilerErrors.Background <- Brushes.Red   |> brighter 60  
+            compilerErrors.Background <- Brushes.Red   |> brighter 90  
             compilerErrors.ToolTip <- makePanelVert [ for e in es do TextBlock(Text=sprintf "• Line %d: %A: %s" e.StartLineAlternate e.Severity e.Message)]
 
     let bar = 
@@ -125,10 +125,10 @@ module StatusBar =
     
 
 module UI =     
-    let editorRowHeight     = RowDefinition   (Height = makeGridLength (Config.getFloat "EditorHeight"  400.0))//, MinHeight = minRowHeight)
-    let logRowHeight        = RowDefinition   (Height = makeGridLength (Config.getFloat "LogHeight"     400.0))//, MinHeight = minRowHeight)
-    let editorColumnWidth   = ColumnDefinition(Width  = makeGridLength (Config.getFloat "EditorWidth"   400.0))
-    let logColumnWidth      = ColumnDefinition(Width  = makeGridLength (Config.getFloat "LogWidth"      400.0))
+    let editorRowHeight     = RowDefinition   (Height = makeGridLength (Config.Settings.getFloat "EditorHeight"  400.0))//, MinHeight = minRowHeight)
+    let logRowHeight        = RowDefinition   (Height = makeGridLength (Config.Settings.getFloat "LogHeight"     400.0))//, MinHeight = minRowHeight)
+    let editorColumnWidth   = ColumnDefinition(Width  = makeGridLength (Config.Settings.getFloat "EditorWidth"   400.0))
+    let logColumnWidth      = ColumnDefinition(Width  = makeGridLength (Config.Settings.getFloat "LogWidth"      400.0))
 
     let menu            = new Menu()
     let tabControl      = new TabControl()
@@ -138,7 +138,7 @@ module UI =
     
     
     let gridHor() = 
-        Config.setBool "isVertSplit" false
+        Config.Settings.setBool "isVertSplit" false
         makeGridHorizontalEx [         
             menu         :> UIElement, RowDefinition(Height = GridLength.Auto)
             tabControl   :> UIElement, editorRowHeight 
@@ -150,7 +150,7 @@ module UI =
     
     let gridVert() = 
         //if structure changes update ModifyWindowLayout.toggleSplit() too
-        Config.setBool "isVertSplit" true
+        Config.Settings.setBool "isVertSplit" true
         let EditorAndLog =  makeGridVerticalEx [         
                 tabControl    :> UIElement, editorColumnWidth 
                 splitterVert  :> UIElement, ColumnDefinition(Width = GridLength.Auto) 

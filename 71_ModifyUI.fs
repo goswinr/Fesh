@@ -10,15 +10,15 @@ open Seff.Util
 module ModifyUI = 
    
     let toggleLogLineWrap()=
-        if Config.getBool "logHasLineWrap" true then 
+        if Config.Settings.getBool "logHasLineWrap" true then 
             UI.log.WordWrap         <- false 
             UI.log.HorizontalScrollBarVisibility <- ScrollBarVisibility.Auto
-            Config.setBool "logHasLineWrap" false
+            Config.Settings.setBool "logHasLineWrap" false
         else
             UI.log.WordWrap         <- true  
             UI.log.HorizontalScrollBarVisibility <- ScrollBarVisibility.Disabled 
-            Config.setBool "logHasLineWrap" true
-        Config.saveSettings ()
+            Config.Settings.setBool "logHasLineWrap" true
+        Config.Settings.Save ()
 
     //----------------------
     //-------- Fontsize-----
@@ -29,13 +29,13 @@ module ModifyUI =
         for t in Tab.allTabs do                
             t.Editor.FontSize  <- newSize
         Appearance.fontSize <- newSize // use for UI completion line too
-        Config.setFloat "FontSize" newSize    
-        Config.saveSettings ()
+        Config.Settings.setFloat "FontSize" newSize    
+        Config.Settings.Save ()
         Log.print "new Fontsize: %.1f" newSize
 
     /// affects Editor and Log
     let fontBigger()= 
-        let cs = if Tab.current.IsSome then Tab.currEditor.FontSize else Config.getFloat "FontSize" 14.
+        let cs = if Tab.current.IsSome then Tab.currEditor.FontSize else Config.Settings.getFloat "FontSize" 14.
         //let step = 
         //    if   cs >= 36. then 4. 
         //    elif cs >= 20. then 2. 
@@ -45,7 +45,7 @@ module ModifyUI =
     
     /// affects Editor and Log
     let fontSmaller()=
-        let cs = if Tab.current.IsSome then Tab.currEditor.FontSize else Config.getFloat "FontSize" 14.
+        let cs = if Tab.current.IsSome then Tab.currEditor.FontSize else Config.Settings.getFloat "FontSize" 14.
         //let step = 
         //    if   cs >= 36. then 4. 
         //    elif cs >= 20. then 2. 
@@ -111,38 +111,38 @@ module WindowLayout =
                 g.ColumnDefinitions.Clear()
             | _ -> ()                
         clean mainWindow.Content
-        if Config.getBool "isVertSplit" true then 
+        if Config.Settings.getBool "isVertSplit" true then 
             mainWindow.Content <- UI.gridHor()
-            Config.setBool "isVertSplit" false
+            Config.Settings.setBool "isVertSplit" false
         else                                      
             mainWindow.Content <- UI.gridVert()
-            Config.setBool "isVertSplit" true
-        Config.saveSettings ()
+            Config.Settings.setBool "isVertSplit" true
+        Config.Settings.Save ()
 
     let splitChangeHor (editorRow:RowDefinition) (logRow:RowDefinition) = 
         logWinstate <- Both                    
         editorRow.Height <- makeGridLength editorRow.ActualHeight
         logRow.Height    <- makeGridLength    logRow.ActualHeight
-        Config.setFloat "EditorHeight"     editorRow.ActualHeight
-        Config.setFloat "LogHeight"           logRow.ActualHeight            
-        Config.saveSettings ()
+        Config.Settings.setFloat "EditorHeight"     editorRow.ActualHeight
+        Config.Settings.setFloat "LogHeight"           logRow.ActualHeight            
+        Config.Settings.Save ()
     
     let splitChangeVert (editorCol:ColumnDefinition) (logCol:ColumnDefinition) = 
         logWinstate <- Both                    
         editorCol.Width <- makeGridLength editorCol.ActualWidth
         logCol.Width    <- makeGridLength    logCol.ActualWidth
-        Config.setFloat "EditorWidth"     editorCol.ActualWidth
-        Config.setFloat "LogWidth"           logCol.ActualWidth            
-        Config.saveSettings ()
+        Config.Settings.setFloat "EditorWidth"     editorCol.ActualWidth
+        Config.Settings.setFloat "LogWidth"           logCol.ActualWidth            
+        Config.Settings.Save ()
         
     let maxLog () = 
         match logWinstate with
         |MaxLog -> // if is already max size down again
             logWinstate <- Both
-            UI.editorRowHeight.Height   <- makeGridLength <|Config.getFloat "EditorHeight" 99.// TODO ad vert
-            UI.logRowHeight.Height      <- makeGridLength <|Config.getFloat "LogHeight"    99.
-            UI.editorColumnWidth.Width  <- makeGridLength <|Config.getFloat "EditorWidth" 99.
-            UI.logColumnWidth.Width     <- makeGridLength <|Config.getFloat "LogWidth"    99.
+            UI.editorRowHeight.Height   <- makeGridLength <|Config.Settings.getFloat "EditorHeight" 99.// TODO ad vert
+            UI.logRowHeight.Height      <- makeGridLength <|Config.Settings.getFloat "LogHeight"    99.
+            UI.editorColumnWidth.Width  <- makeGridLength <|Config.Settings.getFloat "EditorWidth" 99.
+            UI.logColumnWidth.Width     <- makeGridLength <|Config.Settings.getFloat "LogWidth"    99.
             if not wasMax then mainWindow.WindowState <- WindowState.Normal
         |Both ->
             logWinstate <- MaxLog
@@ -156,7 +156,7 @@ module WindowLayout =
     
     let init (win) = // set startup location and size:     
         mainWindow <- win
-        if Config.getBool "WindowIsMax" false then
+        if Config.Settings.getBool "WindowIsMax" false then
             mainWindow.WindowState <- WindowState.Maximized
             isMinOrMax <- true
             wasMax <- true
@@ -167,10 +167,10 @@ module WindowLayout =
             
             let maxW = SystemParameters.VirtualScreenWidth   + 8.0
             let maxH = SystemParameters.VirtualScreenHeight  + 8.0 // somehow a windocked on the right is 7 pix bigger than the screen ??
-            mainWindow.Top <-     Config.getFloat "WindowTop"    0.0
-            mainWindow.Left <-    Config.getFloat "WindowLeft"   0.0 
-            mainWindow.Height <-  Config.getFloat "WindowHeight" 800.0
-            mainWindow.Width <-   Config.getFloat "WindowWidth"  800.0
+            mainWindow.Top <-     Config.Settings.getFloat "WindowTop"    0.0
+            mainWindow.Left <-    Config.Settings.getFloat "WindowLeft"   0.0 
+            mainWindow.Height <-  Config.Settings.getFloat "WindowHeight" 800.0
+            mainWindow.Width <-   Config.Settings.getFloat "WindowWidth"  800.0
             if  mainWindow.Top  < -8. || mainWindow.Height + mainWindow.Top  > maxH || // verify window fits screen (second screen might be off)
                 mainWindow.Left < -8. || mainWindow.Width  + mainWindow.Left > maxW then                    
                     mainWindow.Top <-   0.0 ; mainWindow.Height <- 600.0

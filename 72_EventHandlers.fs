@@ -25,7 +25,7 @@ module EventHandlers =
                 let tab = ob :?> FsxTab
                 Tab.current <- Some tab
                 textChanged (TextChange.TabChanged , tab)  // not needed?
-                Config.saveOpenFilesAndCurrentTab(tab.FileInfo , Tab.allTabs |> Seq.map(fun t -> t.FileInfo))
+                Config.CurrentlyOpenFiles.Save(tab.FileInfo , Tab.allTabs |> Seq.map(fun t -> t.FileInfo))
             )
 
         UI.splitterHor.DragCompleted.Add      (fun _ -> WindowLayout.splitChangeHor UI.editorRowHeight    UI.logRowHeight) 
@@ -40,9 +40,9 @@ module EventHandlers =
                 do! Async.Sleep 100 // so that StateChanged event comes first
                 if win.WindowState = WindowState.Normal &&  not WindowLayout.isMinOrMax then 
                     if win.Top > -500. && win.Left > -500. then // to not save on minimizing on minimized: Top=-32000 Left=-32000 
-                        Config.setFloatDelayed "WindowTop"  win.Top  89 // get float in statchange maximised neddes top access this before 350 ms pass
-                        Config.setFloatDelayed "WindowLeft" win.Left 95
-                        Config.saveSettings ()
+                        Config.Settings.setFloatDelayed "WindowTop"  win.Top  89 // get float in statchange maximised neddes top access this before 350 ms pass
+                        Config.Settings.setFloatDelayed "WindowLeft" win.Left 95
+                        Config.Settings.Save ()
                         //Log.print  "%s Location Changed: Top=%.0f Left=%.0f State=%A" Time.nowStrMilli win.Top win.Left win.WindowState
                 }
                 |> Async.StartImmediate
@@ -51,20 +51,20 @@ module EventHandlers =
         win.StateChanged.Add (fun e ->
             match win.WindowState with 
             | WindowState.Normal -> // because when Window is hosted in other App the restore from maximised does not remember the previous position automatically                
-                win.Top <-     Config.getFloat "WindowTop"    0.0
-                win.Left <-    Config.getFloat "WindowLeft"   0.0 
-                win.Height <-  Config.getFloat "WindowHeight" 800.0
-                win.Width <-   Config.getFloat "WindowWidth"  800.0
-                Config.setBool  "WindowIsMax" false
+                win.Top <-     Config.Settings.getFloat "WindowTop"    0.0
+                win.Left <-    Config.Settings.getFloat "WindowLeft"   0.0 
+                win.Height <-  Config.Settings.getFloat "WindowHeight" 800.0
+                win.Width <-   Config.Settings.getFloat "WindowWidth"  800.0
+                Config.Settings.setBool  "WindowIsMax" false
                 WindowLayout.isMinOrMax <- false
-                Config.saveSettings ()
+                Config.Settings.Save ()
                 //Log.print "Normal: %s State changed=%A Top=%.0f Left=%.0f Width=%.0f Height=%.0f" Time.nowStrMilli win.WindowState win.Top win.Left win.ActualWidth win.ActualHeight 
 
             | WindowState.Maximized ->
                 // normally the state change event comes after the location change event but before size changed. async sleep in LocationChanged prevents this
                 WindowLayout.isMinOrMax <- true
-                Config.setBool  "WindowIsMax" true
-                Config.saveSettings ()    
+                Config.Settings.setBool  "WindowIsMax" true
+                Config.Settings.Save  ()    
                 //Log.print "Maximised: %s State changed=%A Top=%.0f Left=%.0f Width=%.0f Height=%.0f" Time.nowStrMilli win.WindowState win.Top win.Left win.ActualWidth win.ActualHeight 
                        
 
@@ -79,9 +79,9 @@ module EventHandlers =
 
         win.SizeChanged.Add (fun e ->
             if win.WindowState = WindowState.Normal &&  not WindowLayout.isMinOrMax then 
-                Config.setFloatDelayed "WindowHeight" win.Height 89
-                Config.setFloatDelayed "WindowWidth"  win.Width  95
-                Config.saveSettings ()
+                Config.Settings.setFloatDelayed "WindowHeight" win.Height 89
+                Config.Settings.setFloatDelayed "WindowWidth"  win.Width  95
+                Config.Settings.Save ()
                 //Log.dlog (sprintf "%s Size Changed: Width=%.0f Height=%.0f State=%A" Time.nowStrMilli win.Width win.Height win.WindowState)
             )
     

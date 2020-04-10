@@ -62,7 +62,7 @@ module CompletionUI =
 
         let priority = //if it.IsOwnMember then 1. else 1. 
             if isDotCompletion then 1.0// not on Dot completion             
-            else                    1.0 + Config.getCompletionStats(it.Name) //if p>1.0 then Log.print "%s %g" it.Name p
+            else                    1.0 + Config.AutoCompleteStatistic.Get(it.Name) //if p>1.0 then Log.print "%s %g" it.Name p
             
     
         member this.Content = tb :> obj
@@ -84,8 +84,8 @@ module CompletionUI =
             let compl = if it.Glyph = FSharpGlyph.Class && it.Name.EndsWith "Attribute" then "[<" + it.Name.Replace("Attribute",">]") else it.Name     //TODO move this logic out here      
             textArea.Document.Replace(completionSegment, compl) 
             if not isDotCompletion then 
-                Config.incrCompletionStats(it.Name)
-                Config.saveCompletionStats()
+                Config.AutoCompleteStatistic.Incr(it.Name)
+                Config.AutoCompleteStatistic.Save()
             //Editor.current.TriggerCompletionInserted it.Name // to be able to rerun checking
 
         interface ICompletionData with // needed in F#: implementing the interface members as properties too: https://github.com/icsharpcode/AvalonEdit/issues/28
@@ -109,7 +109,7 @@ module CompletionUI =
                     FontStyle = style
                     )
         
-        let priority =  1.0 + Config.getCompletionStats(text) 
+        let priority =  1.0 + Config.AutoCompleteStatistic.Get(text) 
         
         member this.Content = tb :> obj
         member this.Description = toolTip :> obj // it.DescriptionText :> obj // xml ?

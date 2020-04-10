@@ -23,9 +23,9 @@ module FileDialogs =
             | None -> 
                 let code = IO.File.ReadAllText fi.FullName
                 let tab:FsxTab = newtab(code, Some fi ,makeCurrent) 
-                Config.recentFilesStack.Push (fi) //.FullName.ToLowerInvariant()) // we dont care if it is alreday inside stack, stack is only for saving recent list 
-                Config.saveOpenFilesAndCurrentTab (tab.FileInfo , Tab.allTabs |> Seq.map(fun ta -> ta.FileInfo))
-                Config.saveRecentFiles ()
+                Config.RecentlyUsedFiles.Add(fi) //.FullName.ToLowerInvariant()) // we dont care if it is alreday inside stack, stack is only for saving recent list 
+                Config.CurrentlyOpenFiles.Save(tab.FileInfo , Tab.allTabs |> Seq.map(fun ta -> ta.FileInfo))
+                Config.RecentlyUsedFiles.Save ()
                 updateRecentMenu fi // this function checks if it is alreday Menu
         else
             Log.print "File not found:\r\n%s" fi.FullName
@@ -62,9 +62,9 @@ module FileDialogs =
                 t.FileInfo <- Some fi
                 t.CodeAtLastSave <- t.Editor.Text
                 ModifyUI.markTabSaved(t)  
-                Config.recentFilesStack.Push (fi)
-                Config.saveRecentFiles()
-                Config.saveOpenFilesAndCurrentTab (t.FileInfo , Tab.allTabs |> Seq.map(fun ta -> ta.FileInfo))
+                Config.RecentlyUsedFiles.Add (fi)
+                Config.RecentlyUsedFiles.Save()
+                Config.CurrentlyOpenFiles.Save(t.FileInfo , Tab.allTabs |> Seq.map(fun ta -> ta.FileInfo))
                 updateHeader(t)
                 updateRecentMenu fi            
                 Log.print "File saved as:\r\n%s" fi.FullName // dlg.FileName
@@ -134,7 +134,7 @@ module FileDialogs =
             UI.tabControl.Items.Remove(t)
             if UI.tabControl.Items.Count = 0 then 
                 Tab.current <- None
-            Config.saveOpenFilesAndCurrentTab (t.FileInfo , Tab.allTabs |> Seq.map(fun ta -> ta.FileInfo))
+            Config.CurrentlyOpenFiles.Save (t.FileInfo , Tab.allTabs |> Seq.map(fun ta -> ta.FileInfo))
             true        
         if t.CodeAtLastSave = t.Editor.Text then cls()
         else 

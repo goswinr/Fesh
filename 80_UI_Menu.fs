@@ -6,17 +6,18 @@ open System.Windows.Controls
 open Seff.Util
 open Seff.UtilWPF
 open Seff.FileDialogs
+open Seff.Config
 
 module Menu = 
     
-    /// a ref to the about menu so that other apps can append to it
+    /// a ref to the about menu so that hosting apps can append to it
     let mutable private AboutMenu : MenuItem = null 
     let addToAboutMenu (s:string) = if notNull AboutMenu then AboutMenu.Items.Add (MenuItem(Header = s) ) |> ignore<int> // add one mor item to about menu. like build infos
 
     module RecentFiles = 
         open CommandHelp
 
-        let private hash = Collections.Generic.HashSet<string>() // to ensure no duplicates i recent list
+        let private hash = Collections.Generic.HashSet<string>() // to ensure no duplicates in recent list
     
         let mutable insertPosition = 0 // will be set in Menu setup function below
 
@@ -37,9 +38,9 @@ module Menu =
             else 
                 hash.Add file |> ignore
                 //Config.recentFilesStack.Push f // not needed here, done seperatly
-                let openCom  = mkCmdSimple ( fun a -> openFile(fi, CreateTab.newTab,true)) // checking if file exist to grey it out would take too long
+                let openCom  = mkCmdSimple ( fun a -> openFile(fi, CreateTab.newTab,true)) // checking if file exist to grey it out would take too long?
                 fileMenu.Items.Insert(insertPosition, MenuItem (Header = fi.Name, ToolTip=fi.FullName, Command = openCom))            
-                while fileMenu.Items.Count > Config.maxRecentFiles + insertPosition do
+                while fileMenu.Items.Count > RecentlyUsedFiles.maxCount + insertPosition do
                     let lasti = fileMenu.Items.Count - 1
                     let rfile = (fileMenu.Items.[lasti] :?> MenuItem).ToolTip :?> string
                     hash.Remove rfile |> ignore
@@ -97,7 +98,7 @@ module Menu =
                 fromCmd Commands.ClearFSI
                 fromCmd Commands.CancelFSI
                 fromCmd Commands.ResetFSI
-                if Config.currentRunContext = Config.RunContext.Hosted then
+                if Config.currentRunContext <> Model.RunContext.Standalone then
                     sep()
                     fromCmd Commands.ToggleSync
                 ]

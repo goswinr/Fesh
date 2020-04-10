@@ -37,7 +37,7 @@ module CreateTab =
     let newTab(code, fi:FileInfo option, makeCurrent) = 
         let tab = new FsxTab ()
         tab.FileInfo <- fi
-        tab.Editor.Text  <- code //this trigger docChanged event , do befor hooking up event
+        tab.Editor.Text  <- code //this trigger docChanged event , do before hooking up event
         tab.Content <- tab.Editor        
         //tab.ChangesAreProbalySaved <- true // not neded. to not show star after putting in the code 
         tab.CodeAtLastSave <- code
@@ -72,13 +72,14 @@ module CreateTab =
         //        let st = doc.GetLineByOffset(0)
         //        let en = doc.GetLineByNumber(i)
         //        tab.Editor.Select(0,en.EndOffset)
+
         tab  
     
 
             
     let loadArgsAndOpenFilesOnLastAppClosing (startupArgs:string[]) = 
         async{
-            let files = Config.getFilesfileOnClosingOpen()
+            let files = Config.CurrentlyOpenFiles.GetFromLastSession()
             for p in startupArgs do
                 let fi = FileInfo(p)
                 if fi.Exists then 
@@ -90,7 +91,7 @@ module CreateTab =
                 newTab(code,Some fi,curr)  |> ignore 
 
             if files.Count=0 then 
-                let def = Config.getDefaultCode()
+                let def = Config.DefaultCode.Get()
                 newTab(def, None, true) |> ignore 
             
             if UI.tabControl.SelectedIndex = -1 then                 

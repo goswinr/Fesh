@@ -4,6 +4,8 @@ open System
 open System.Windows
 open Seff.Util
 open Seff.Fsi
+open Seff.Model
+open Seff.Config
 
 
 module MainWindow =    
@@ -29,7 +31,7 @@ module MainWindow =
         let win = new Window()
         
         win.Title       <-"Seff | FSharp Scripting Editor"
-        win.Content     <- if Config.getBool "isVertSplit" false then UI.gridVert() else UI.gridHor() 
+        win.Content     <- if Settings.getBool "isVertSplit" false then UI.gridVert() else UI.gridHor() 
         win.ResizeMode  <- ResizeMode.CanResize 
         win.Background  <- UI.menu.Background // otherwise space next to tabs is in an odd color
         
@@ -53,16 +55,16 @@ module MainWindow =
             setIcon(win)             
             
             CreateTab.loadArgsAndOpenFilesOnLastAppClosing(args)
-            Config.loadRecentFilesMenu Menu.RecentFiles.updateRecentMenue
+            RecentlyUsedFiles.loadRecentFilesMenu Menu.RecentFiles.updateRecentMenue
             
             //Log.print "** Time for loading recent files and recent menu: %s"  timer.tocEx
             
             match Config.currentRunContext with
-            |Config.RunContext.Hosted ->     // allow sync execution only for hosted context
-                if Config.getBool "asyncFsi" (Fsi.mode=Async) then Fsi.setMode(Mode.Async) else Fsi.setMode(Mode.Sync) 
+            |Hosted _ ->     // allow sync execution only for hosted context
+                if Settings.getBool "asyncFsi" (Fsi.mode=Async) then Fsi.setMode(Mode.Async) else Fsi.setMode(Mode.Sync) 
                 StatusBar.addSwitchFforSyncchonisationMode()
-            |Config.RunContext.Standalone -> Config.setBool "asyncFsi" true; Fsi.setMode(Mode.Async)// always async
-            |Config.RunContext.Undefiend -> failwithf "RunContext should not be Undefiend"
+            |Standalone -> Settings.setBool "asyncFsi" true; Fsi.setMode(Mode.Async)// always async
+            
             
             //win.Activate() |> ignore // needed ?           
             //Tab.currEditor.Focus() |> ignore // can be null ? needed ?

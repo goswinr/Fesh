@@ -289,18 +289,18 @@ module Fsi =
             match mode with
             |Sync ->
                 StatusBar.asyncDesc.Content <- "Synchronous in UI Thread"  
-                Config.setBool "asyncFsi" false
+                Config.Settings.setBool "asyncFsi" false
                           
             |Async ->                 
                 StatusBar.asyncDesc.Content <- "Asynchronous" 
-                Config.setBool "asyncFsi" true                
+                Config.Settings.setBool "asyncFsi" true                
         
 
         match askIfCancellingIsOk() with 
         | NotEvaluating | YesAsync    -> 
             mode <- sync
             setConfig()
-            Config.saveSettings ()
+            Config.Settings.Save()
             startSession ()
         | Dont | NotPossibleSync -> () //Log.print "Wait till current synchronous evaluation completes before seting mode."
     
