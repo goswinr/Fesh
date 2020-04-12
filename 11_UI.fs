@@ -34,11 +34,11 @@ module Appearance=
         l.ShowLineNumbers  <- true
         l.WordWrap         <- true
         l.Options.EnableHyperlinks <- true 
-        l.Background <- logBackgroundFsiReady
-        l.Foreground <- Brushes.White
+        //l.Background <- logBackgroundFsiReady
+        //l.Foreground <- Brushes.White
         l.TextArea.TextView.LinkTextForegroundBrush <- l.Foreground //Hyperlinks color
         l.TextArea.SelectionCornerRadius <- 0.0 
-        //l.TextArea.SelectionBorder <- null
+        l.TextArea.SelectionBorder <- null
         l.VerticalScrollBarVisibility <- ScrollBarVisibility.Auto        
         if Config.Settings.getBool "logHasLineWrap" true then 
             l.WordWrap         <- true // or 
@@ -134,7 +134,7 @@ module UI =
     let tabControl      = new TabControl()
     let splitterHor     = new GridSplitter()             |> Appearance.setForHorSplitter
     let splitterVert    = new GridSplitter()             |> Appearance.setForVertSplitter
-    let log             = new AvalonEdit.TextEditor()    |> Appearance.setForLog
+    let log             = Logging.Log.Editor             |> Appearance.setForLog
     
     
     let gridHor() = 

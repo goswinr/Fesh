@@ -5,7 +5,7 @@ open System.IO
 open FSharp.Compiler
 open FSharp.Compiler.SourceCodeServices
 open ICSharpCode.AvalonEdit
-
+open Seff.Logging
 
 
 module FsChecker = 

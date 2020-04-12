@@ -4,6 +4,7 @@ open System
 open System.IO
 open System.Windows
 open Seff.Util
+open Seff.Logging
 
 
 module FileDialogs =

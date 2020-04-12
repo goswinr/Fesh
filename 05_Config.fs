@@ -6,64 +6,33 @@ open System.Windows
 open System.Threading
 open System.Text
 open Seff.Util
+open Seff.Model
+open Seff.Logging
 open System.Collections.Generic
 
-module Model =
-    
-    type LogMessage = 
-        | StdOut of string
-        | ErrorOut of string
-        | InfoMsg of string
-        | AppError of string
-        | IOError of string
-        | DebugMsg of string
-
-    let loggingBacklog = Collections.Concurrent.ConcurrentBag<LogMessage>()
-
-    type RunContext = 
-        |Standalone 
-        |Hosted of string
-
-    let defaultCodeOnFirstRun =
-        [
-        "// this is your default code for new files, you can change by going to the menu: File -> Edit Template File"
-        "// or in your local AppData folder: Environment.SpecialFolder.LocalApplicationData/Seff"
-        //"tips: // https://panesofglass.github.io/scripting-workshop/#/" 
-        //"tips: // http://brandewinder.com/2016/02/06/10-fsharp-scripting-tips/"        
-        //"#load @\"" + General.installFolder() + "\\SeffLib.fsx\""
-        "open System"
-        // "Environment.CurrentDirectory <- __SOURCE_DIRECTORY__"
-        ""
-        ] |> String.concat Environment.NewLine
-
 module Config = 
-    
-    open Model
 
-    /// the lock used for all file writing operations.
-    let private readerWriterLock = new ReaderWriterLockSlim()    
-
-    let writeToFileAsync(path,text) = 
+    let writeToFileAsyncLocked(path, readerWriterLock:ReaderWriterLockSlim, text) = 
         async{
             readerWriterLock.EnterWriteLock()
             try
                 try
                     IO.File.WriteAllText(path,text)
                 with ex ->            
-                    loggingBacklog.Add(IOError ex.Message)
+                    Log.printIOError ex.Message
             finally
                 readerWriterLock.ExitWriteLock()
             } |> Async.Start
 
       
     /// getString will only be called and file will only be written if after the delay the counter value is the same as before. (no more recent calls to this have been made)
-    let writeToFileDelayed (file, delay, counter :int64 ref , getString: unit->string) =
+    let writeToFileDelayed (file, delay, counter :int64 ref ,readerWriterLock:ReaderWriterLockSlim, getString: unit->string) =
         async{
             let k = Threading.Interlocked.Increment counter
             do! Async.Sleep(delay) // delay to see if this is the last of many events (otherwise there is a noticable lag in dragging window around)
             if !counter = k then //k > 2L &&   //do not save on startup && only save last event after a delay if there are many save events in a row ( eg from window size change)(ignore first two event from creating window)
-                try writeToFileAsync(file, getString() ) // getString might fail
-                with ex -> loggingBacklog.Add(AppError ex.Message)
+                try writeToFileAsyncLocked(file, readerWriterLock, getString() ) // getString might fail
+                with ex -> Log.printAppError ex.Message
             } |> Async.Start
         
     
@@ -79,6 +48,7 @@ module Config =
         static let settingsDict = new Collections.Concurrent.ConcurrentDictionary<string,string>()   
         static let sep = '=' // key value separatur like in ini files
         static let counter = ref 0L // for atomic writing back to file
+        static let readerWriterLock = new ReaderWriterLockSlim()
         static let settingsAsString () = 
             let sb = StringBuilder()
             for KeyValue(k,v) in settingsDict do
@@ -92,10 +62,10 @@ module Config =
                 for ln in  IO.File.ReadAllLines Settings.FilePath do
                     match ln.Split(sep) with
                     | [|k;v|] -> settingsDict.[k] <- v // TODO allow for comments? use ini format ??
-                    | _       -> loggingBacklog.Add(AppError ("Bad line in settings file file: '" + ln + "'"))
+                    | _       -> Log.printAppError ("Bad line in settings file file: '" + ln + "'")
             with 
-                | :? FileNotFoundException ->   loggingBacklog.Add(InfoMsg   ("Settings file not found. (This is normal on first use of the App.)"))
-                | e ->                          loggingBacklog.Add(AppError  ("Problem reading or initalizing settings file: " + e.Message))
+                | :? FileNotFoundException ->   Log.printInfoMsg   ("Settings file not found. (This is normal on first use of the App.)")
+                | e ->                          Log.printAppError  ("Problem reading or initalizing settings file: " + e.Message)
                         
         
         static member setDelayed k v delay= 
@@ -106,8 +76,8 @@ module Config =
                  } |> Async.Start
         
         static member set (k:string) (v:string) = 
-            if k.IndexOf(sep) > -1 then loggingBacklog.Add (AppError  (sprintf "Settings key shall not contain '%c' : %s%c%s"  sep  k  sep  v ))            
-            if v.IndexOf(sep) > -1 then loggingBacklog.Add (AppError  (sprintf "Settings value shall not contain '%c' : %s%c%s"  sep  k  sep  v ))
+            if k.IndexOf(sep) > -1 then Log.printAppError  (sprintf "Settings key shall not contain '%c' : %s%c%s"  sep  k  sep  v )           
+            if v.IndexOf(sep) > -1 then Log.printAppError  (sprintf "Settings value shall not contain '%c' : %s%c%s"  sep  k  sep  v )
             settingsDict.[k] <- v             
         
         static member get k = 
@@ -116,7 +86,7 @@ module Config =
             |false, _ -> None        
           
         static member Save () =                       
-            writeToFileDelayed (Settings.FilePath, 500, counter, settingsAsString)
+            writeToFileDelayed (Settings.FilePath, 500, counter,readerWriterLock, settingsAsString)
         
         static member setFloat        key (v:float)       = Settings.set key (string v)
         static member setFloatDelayed key (v:float) delay = Settings.setDelayed key (string v) delay
@@ -128,26 +98,28 @@ module Config =
     
     
     type DefaultCode private () =
+        static let readerWriterLock = new ReaderWriterLockSlim()
         static member val FilePath = "xyz" with get,set
         
+
         static member Get() =            
             try IO.File.ReadAllText DefaultCode.FilePath
             with _ -> 
-                writeToFileAsync(DefaultCode.FilePath, defaultCodeOnFirstRun)// create file so it can be found and edited manually
+                writeToFileAsyncLocked(DefaultCode.FilePath, readerWriterLock, defaultCodeOnFirstRun)// create file so it can be found and edited manually
                 defaultCodeOnFirstRun
             
     
     /// files that are open when closing the editor window, for next restart
     type CurrentlyOpenFiles  private () = 
-        static member val FilePath = "xyz" with get,set
-        
+        static let readerWriterLock = new ReaderWriterLockSlim()
+        static member val FilePath = "xyz" with get,set        
         static member Save (currentFile:FileInfo option , files: seq<FileInfo option>) =         
             let curr = if currentFile.IsSome then currentFile.Value.FullName else ""
             let sb = StringBuilder()
             sb.AppendLine(curr) |> ignore // first line is filepath and name for current tab (repeats below)
             for f in files do 
                 if f.IsSome then sb.AppendLine(f.Value.FullName) |> ignore 
-            writeToFileAsync(CurrentlyOpenFiles.FilePath,sb.ToString() )
+            writeToFileAsyncLocked(CurrentlyOpenFiles.FilePath, readerWriterLock, sb.ToString() )
 
         
         static member GetFromLastSession() = 
@@ -164,11 +136,13 @@ module Config =
                                 let makeCurrent = path.ToLowerInvariant() = currentFile 
                                 files.Add((fi,makeCurrent,code))            
             with e -> 
-                loggingBacklog.Add (AppError  ("Error getFilesfileOnClosingOpen:" +  e.Message))
+                Log.printAppError  ("Error getFilesfileOnClosingOpen:" +  e.Message)
             files
     
     type RecentlyUsedFiles private () =
         static let counter = ref 0L // for atomic writing back to file
+        static let readerWriterLock = new ReaderWriterLockSlim()
+
         static let recentFilesStack = new Collections.Concurrent.ConcurrentStack<FileInfo>()// might contain even files that dont exist(on a currently detached drive)
         static let recentFilesReOpened = new ResizeArray<FileInfo>() // to put them first in the menue
         
@@ -183,7 +157,7 @@ module Config =
              |> Seq.truncate RecentlyUsedFiles.maxCount 
              |> Seq.rev 
              |> Seq.iter (sb.AppendLine >> ignore) // most recent file is a bottom of list
-             writeToFileDelayed(RecentlyUsedFiles.FilePath,1000,counter, sb.ToString)
+             writeToFileDelayed(RecentlyUsedFiles.FilePath,1000,counter,readerWriterLock, sb.ToString)
                       
         static member Add (fi) = recentFilesStack.Push fi
 
@@ -204,7 +178,7 @@ module Config =
                      recentFilesStack.Push fi
                      updateRecentMenu fi
              with e -> 
-                 loggingBacklog.Add (AppError  ("Error Loading recently used files:" +  e.Message))
+                 Log.printAppError  ("Error Loading recently used files:" +  e.Message)
     
     /// statistic of most used toplevel auto completions
     type AutoCompleteStatistic private () =
@@ -212,8 +186,10 @@ module Config =
         static let completionStats = Dictionary<string,float>() // make concurrent ?
         static let sep = '=' // key value separatur like in ini files
         static let counter = ref 0L // for atomic writing back to file
+        static let readerWriterLock = new ReaderWriterLockSlim()
+
         static let completionStatsAsString () = 
-            let sb = StringBuilder()
+            let sb = StringBuilder() 
             for KeyValue(k,v) in completionStats do
                 sb.Append(k).Append(sep).AppendLine(v.ToString()) |> ignore
             sb.ToString() 
@@ -227,9 +203,9 @@ module Config =
                         for ln in  IO.File.ReadAllLines AutoCompleteStatistic.FilePath do
                         match ln.Split(sep) with
                         | [|k;v|] -> completionStats.[k] <- float v // TODO allow for comments? use ini format ??
-                        | _       -> loggingBacklog.Add (AppError ("Bad line in CompletionStats file : '" + ln + "'") )                     
+                        | _       -> Log.printAppError ("Bad line in CompletionStats file : '" + ln + "'")                    
                 with e -> 
-                    loggingBacklog.Add (AppError ("Error load fileCompletionStats:" +  e.Message))
+                    Log.printAppError ("Error load fileCompletionStats:" +  e.Message)
                 } |> Async.Start 
          
         static member Get(key) =
@@ -237,13 +213,14 @@ module Config =
             |true,i -> i
             |_      -> 0.0
         
+        /// increase by 1.0
         static member Incr(key) =
             match completionStats.TryGetValue key with
             |true,i -> completionStats.[key] <- i +  1.0
             |_      -> completionStats.[key] <- 1.0
         
         static member Save() =
-            writeToFileDelayed (AutoCompleteStatistic.FilePath, 500, counter, completionStatsAsString)
+            writeToFileDelayed (AutoCompleteStatistic.FilePath, 500, counter, readerWriterLock,completionStatsAsString)
             
     /// opens up Explorer
     let openConfigFolder()=

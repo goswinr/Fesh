@@ -6,6 +6,7 @@ open Seff.Util
 open Seff.Fsi
 open Seff.Model
 open Seff.Config
+open Seff.Logging
 
 
 module MainWindow =    
@@ -41,10 +42,12 @@ module MainWindow =
 
         Controls.ToolTipService.ShowOnDisabledProperty.OverrideMetadata( typeof<Controls.Control>,  new FrameworkPropertyMetadata(true)) //still show-tooltip-when a button(or menu item )  is disabled-by-command //https://stackoverflow.com/questions/4153539/wpf-how-to-show-tooltip-when-button-disabled-by-command
 
-        
+        (* TODO this fails when debugging
         Application.Current.DispatcherUnhandledException.Add(fun e ->  //exceptions generated on the UI thread
-            Log.print "Application.Current.DispatcherUnhandledException in main Thread: %A" e.Exception           
-            e.Handled<- true)        
+            if e <> null then 
+                Log.print "Application.Current.DispatcherUnhandledException in main Thread: %A" e.Exception           
+                e.Handled<- true) 
+               *)
        
         AppDomain.CurrentDomain.UnhandledException.AddHandler (//catching unhandled exceptions generated from all threads running under the context of a specific application domain. //https://dzone.com/articles/order-chaos-handling-unhandled
             new UnhandledExceptionEventHandler( Seff.ProcessCorruptedState.Handler)) //https://stackoverflow.com/questions/14711633/my-c-sharp-application-is-returning-0xe0434352-to-windows-task-scheduler-but-it

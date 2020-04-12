@@ -11,16 +11,13 @@ open Seff.Model
 
 module Logging =
 
-    
-
-
     /// A TextWriter that writes using a function (to an Avalonedit Control). used in FSI session constructor   
     type FsxTextWriter(writeStr) =
         inherit TextWriter()
         override this.Encoding =  Text.Encoding.Default
         override this.Write     (s:string)  = writeStr (s)
         override this.WriteLine (s:string)  = writeStr (s + Environment.NewLine)    // actually never used see  https://github.com/dotnet/fsharp/issues/3712   
-        override this.WriteLine ()          = writeStr (    Environment.NewLine) 
+        override this.WriteLine ()          = writeStr (    Environment.NewLine)    
     
     /// Dictionary holding the color of all non standart lines
     let private LineColors = Collections.Generic.Dictionary<int,SolidColorBrush>()
@@ -31,6 +28,8 @@ module Logging =
            let ok,color = LineColors.TryGetValue(line.LineNumber)
            if ok && not line.IsDeleted then
                base.ChangeLinePart(line.Offset, line.EndOffset, fun element -> element.TextRunProperties.SetForegroundBrush(color))
+    
+   
 
     type LogView () =
         let editor =  
@@ -43,56 +42,12 @@ module Logging =
         // The below functions are trying to work around double UI update in printfn for better UI performance
         // see  https://github.com/dotnet/fsharp/issues/3712   
 
-        let newLinesBuffer= ref 0
-
-        /// Add string to editor if it isn not just a new line.
-        /// New lines get bufferd till next call
-        /// returns start offset for coloring or -1 if nothing was added
-        let addString (s) = 
-            if s = NewLine then 
-                Interlocked.Increment newLinesBuffer  |> ignore 
-                -1
-            else
-                let st = editor.Document.TextLength
-                let k = Interlocked.Exchange(newLinesBuffer , 0)
-                match k with 
-                | 0 -> editor.AppendText("+" + s)
-                | 1 -> editor.AppendText("++" + NewLine + s)
-                | 2 -> editor.AppendText("+++" + NewLine + NewLine + s)
-                | x -> editor.AppendText("++++" + Text.StringBuilder(s.Length + x * 2).Insert(0, NewLine, x).Append(s).ToString())   
-                st
         
-        
-        let offsetForColoring = ref 0
 
-        let scrollToEndAndColorize(ty:LogMessageType, fromOffset:int) =
-            let endOffset = editor.Document.TextLength
-            offsetForColoring := endOffset
-            if ty <> StdOut then 
-
-                let start = 
-                    let mutable r = fromOffset
-                    while (let c = editor.Document.GetCharAt(r) in c='\r' || c='\n') do
-                        r <- r+1
-                    r
-                let ende = 
-                    let mutable r = endOffset
-                    while (let c = editor.Document.GetCharAt(r) in c='\r' || c='\n') do
-                        r <- r-1
-                    r
-                
-                if fromOffset < endOffset then
-                    let mutable line = editor.Document.GetLineByOffset(fromOffset)
-                    LineColors.[line.LineNumber] <- LogMessageType.getColor(ty)
-                    line <- line.NextLine                    
-                    while line <> null && line.EndOffset <= endOffset do
-                        LineColors.[line.LineNumber] <- LogMessageType.getColor(ty)
-            editor.AppendText("*scroll*")
-            editor.ScrollToEnd() // slow !!  https://github.com/icsharpcode/AvalonEdit/issues/15
         
         let printCallsCounter = ref 0L
         let scrollSkipedTimes = ref 0
-        let printCallsType = ref StdOut
+        let newLinesBuffer= ref 0
         
 
         /// adds string on UI thread then scrolls to end after 300ms , 50 lines or a color change
@@ -100,20 +55,36 @@ module Logging =
         /// scroll to end and coloring is delayed too
         let addStrAndScroll (s,ty:LogMessageType) =
             async {
-                do! Async.SwitchToContext Sync.syncContext 
-                let prevType = Interlocked.Exchange (printCallsType, ty) // TODO Interlock not needed if always on UI thread ?
-                if prevType <> ty then 
-                    scrollToEndAndColorize(ty, !offsetForColoring)
-                let startOffset = addString (s) 
-                if startOffset >= 0 then 
+                if s = NewLine then 
+                    Interlocked.Increment newLinesBuffer  |> ignore 
+                else
+                    do! Async.SwitchToContext Sync.syncContext 
+                    let start = editor.Document.TextLength
+                    let k = Interlocked.Exchange(newLinesBuffer , 0)
+                    match k with 
+                    | 0 -> editor.AppendText("|+| " + s)
+                    | 1 -> editor.AppendText( NewLine + "|++| "+ s)
+                    | 2 -> editor.AppendText( NewLine + NewLine + "|+++| " + s)
+                    | x -> editor.AppendText(Text.StringBuilder(s.Length + x * 2).Insert(0, NewLine, x).Append("|++++| ").Append(s).ToString())   
+
+
+                    let mutable line = editor.Document.GetLineByOffset(start)
+                    LineColors.[line.LineNumber] <- LogMessageType.getColor(ty)
+                    line <- line.NextLine                    
+                    while line <> null  do
+                        LineColors.[line.LineNumber] <- LogMessageType.getColor(ty)
+                        line <- line.NextLine
+
                     if !scrollSkipedTimes> 100 then // scroll at least every 50 ( * 2) lines
                         scrollSkipedTimes := 0
-                        scrollToEndAndColorize(ty, !offsetForColoring)
+                        editor.AppendText("*scroll*")
+                        editor.ScrollToEnd()
                     else
                         let k = Interlocked.Increment printCallsCounter
                         do! Async.Sleep 300
                         if !printCallsCounter = k  then //it is the last call for 300 ms
-                            scrollToEndAndColorize(ty, !offsetForColoring)
+                            editor.AppendText("*scroll*")
+                            editor.ScrollToEnd()
 
             } |> Async.StartImmediate 
 
@@ -136,4 +107,12 @@ module Logging =
         ///for FSI session constructor
         member val ErrorOutTextWriter  = new FsxTextWriter(fun s -> addStrAndScroll (s,ErrorOut) )
 
+        member val InfoMsgTextWriter  = new FsxTextWriter(fun s -> addStrAndScroll (s,InfoMsg) )
+
+        /// like printfn, use with format strings, adds new line
+        member this.print s =  Printf.fprintfn this.InfoMsgTextWriter s
+            
     
+    
+    let Log = new LogView()
+

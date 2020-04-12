@@ -6,6 +6,7 @@ open System.Windows
 open System.IO
 open System.Threading
 open FSharp.Compiler.Interactive.Shell
+open Seff.Logging
 
 
 type internal ProcessCorruptedState =  
@@ -136,10 +137,10 @@ module Fsi =
             // first arg is ignored: https://github.com/fsharp/FSharp.Compiler.Service/issues/420 and https://github.com/fsharp/FSharp.Compiler.Service/issues/877 and  https://github.com/fsharp/FSharp.Compiler.Service/issues/878            
             let allArgs = [|"" ; "--langversion:preview" ; "--noninteractive" ; "--debug+"; "--debug:full" ;"--optimize+" ;"--nologo"; "--gui-"|] // ; "--shadowcopyreferences" is ignored https://github.com/fsharp/FSharp.Compiler.Service/issues/292           
             let fsiConfig = FsiEvaluationSession.GetDefaultConfiguration() // https://github.com/dotnet/fsharp/blob/4978145c8516351b1338262b6b9bdf2d0372e757/src/fsharp/fsi/fsi.fs#L2839
-            let fsiSession = FsiEvaluationSession.Create(fsiConfig, allArgs, inStream, Log.textwriter, Log.textwriter) //, collectible=false ??) //TODO add error logger window
+            let fsiSession = FsiEvaluationSession.Create(fsiConfig, allArgs, inStream, Log.StdOutTextWriter, Log.ErrorOutTextWriter) //, collectible=false ??) //TODO add error logger window
             AppDomain.CurrentDomain.UnhandledException.Add(fun ex -> Log.print "*** FSI background exception:\r\n %A" ex.ExceptionObject)
-            Console.SetOut  (Log.textwriter) //needed to redirect printfn ? //https://github.com/fsharp/FSharp.Compiler.Service/issues/201
-            Console.SetError(Log.textwriter) //TODO needed if evaluate non throwing ? 
+            Console.SetOut  (Log.StdOutTextWriter) //needed to redirect printfn ? //https://github.com/fsharp/FSharp.Compiler.Service/issues/201
+            Console.SetError(Log.ErrorOutTextWriter) //TODO needed if evaluate non throwing ? 
             //if mode = Mode.Sync then do! Async.SwitchToContext Sync.syncContext            
             //fsiSession.Run()// dont do this it crashes the app when hosted in Rhino! 
             if session.IsNone then Log.print "* Time for loading FSharp Interactive: %s"  timer.tocEx

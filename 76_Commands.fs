@@ -7,7 +7,7 @@ open Seff.Fsi
 open Seff.CreateTab
 open Seff.FileDialogs
 open Seff.Config
-
+open Seff.Logging
 
 
 module CommandHelp = 

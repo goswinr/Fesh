@@ -5,7 +5,7 @@ open System.Windows
 open System.Windows.Controls
 open Seff.UtilWPF
 open Seff.Util
-
+open Seff.Logging
 
 module ModifyUI = 
    

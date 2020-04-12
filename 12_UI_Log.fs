@@ -4,7 +4,7 @@ open System
 open System.IO
 
 
-module Log = 
+module LogOLDUNUSED = 
     
      //-----------------
     //--private values--
@@ -67,7 +67,6 @@ module Log =
        
         
 
-    do
-        Config.logger <- print "debugLog: %s" 
+    //do        Config.logger <- print "debugLog: %s" 
 
     

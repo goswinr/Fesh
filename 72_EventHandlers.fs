@@ -11,7 +11,7 @@ open Seff.FsService
 open Seff.EditorUtil
 open Seff.Fsi
 open ICSharpCode.AvalonEdit
-
+open Seff.Logging
  
 module EventHandlers =
     

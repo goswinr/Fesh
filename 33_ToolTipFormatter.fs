@@ -10,7 +10,7 @@ open System.IO
 open System.Xml
 open System.Text.RegularExpressions
 open FSharp.Compiler.SourceCodeServices
-
+open Seff.Logging
 
 /// taken and adapeted from FsAutoComplete
 module XmlToolTipFormatter =
