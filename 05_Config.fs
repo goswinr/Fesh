@@ -66,7 +66,6 @@ module Config =
                 with ex -> loggingBacklog.Add(AppError ex.Message)
             } |> Async.Start
         
-
     
     /// to get a valid filename fom any host app name suplied
     let removeSpecialChars (str:string) = 
@@ -176,7 +175,6 @@ module Config =
         static member val maxCount = 30 with get       
         static member val FilePath = "xyz" with get,set
 
-
         static member Save() =         
              let sb = StringBuilder()
              recentFilesStack 
@@ -272,7 +270,7 @@ module Config =
         AutoCompleteStatistic.loadFromFile()
 
 /// persitance of user settings such as recent files and window location and size  
-module ConfigOLD = 
+module ConfigOLDUNUSED = 
     
 
     let mutable internal logger : string->unit = fun _ -> () // will be set once UI.Log is created

@@ -48,6 +48,12 @@
 
     <None Include="FSharpSynatxHighlighterExtended.xshd">    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>    </None>
 
+    <Compile Include="Model.fs" />
+
+    <Compile Include="Sync.fs" />
+
+    <Compile Include="LogView.fs" />
+
     <Compile Include="03_Util.fs" />
     <Compile Include="04_UtilWPF.fs" />
     <Compile Include="05_Config.fs" />

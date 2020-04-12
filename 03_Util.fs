@@ -6,35 +6,6 @@ open System.Windows.Threading
 open System.Reflection
 open Microsoft.FSharp.Reflection
 
-module Sync = 
-    
-    /// the UI SynchronizationContext to switch to inside async CEs
-    let mutable syncContext : SynchronizationContext = null  // will be set in main UI STAThread
-    
-    let internal installSynchronizationContext () = 
-        // see https://github.com/fsprojects/FsXaml/blob/c0979473eddf424f7df83e1b9222a8ca9707c45a/src/FsXaml.Wpf/Utilities.fs#L132
-        if SynchronizationContext.Current = null then 
-            // Create our UI sync context, and install it:
-            DispatcherSynchronizationContext(Dispatcher.CurrentDispatcher) |> SynchronizationContext.SetSynchronizationContext
-        syncContext <- SynchronizationContext.Current
-    
-    /// evaluates a function on UI thread
-    let doSync f args = 
-        async{  do! Async.SwitchToContext syncContext
-                return f args
-             } |> Async.RunSynchronously
-    
-    ///evaluates the given function application on the UI thread
-    let postToUI : ('a -> 'b) -> 'a -> 'b =
-        fun f x ->
-          //app.Dispatcher.Invoke(new System.Func<_>(fun () -> f x), [||]) 
-          Dispatcher.CurrentDispatcher.Invoke(new System.Func<_>(fun () -> f x), [||])  // from https://www.ffconsultancy.com/products/fsharp_journal/subscribers/FSharpIDE.html        
-          |> unbox
-
-
-
-
-
 
 module Util =    
 
