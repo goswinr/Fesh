@@ -1,6 +1,7 @@
 ﻿namespace Seff
 
 open System
+open System.Windows.Media // for color brushes
 
 module Model =
     
@@ -11,6 +12,14 @@ module Model =
         | AppError 
         | IOError 
         | DebugMsg 
+
+        static member getColor = function
+            | StdOut    -> Brushes.Black
+            | ErrorOut  -> Brushes.DarkRed
+            | InfoMsg   -> Brushes.DarkGray
+            | AppError  -> Brushes.DarkMagenta
+            | IOError   -> Brushes.Blue
+            | DebugMsg  -> Brushes.Gray
 
 
     type RunContext = 
