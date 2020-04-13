@@ -30,8 +30,7 @@ module Logging =
            let ok,color = LineColors.TryGetValue(line.LineNumber)
            if ok && not line.IsDeleted then
                base.ChangeLinePart(line.Offset, line.EndOffset, fun element -> element.TextRunProperties.SetForegroundBrush(color))
-    
-   
+       
 
     type LogView () =
         let editor =  
@@ -66,9 +65,11 @@ module Logging =
                     editor.AppendText(txt)
                     
                     let mutable line = editor.Document.GetLineByOffset(start) 
+                    editor.AppendText(sprintf "(%d:%A)" line.LineNumber ty)
                     LineColors.[line.LineNumber] <- LogMessageType.getColor(ty) //only color this line if it does not start with a new line chatacter
                     line <- line.NextLine                    
                     while line <> null  do
+                        editor.AppendText(sprintf "(%d:%A)" line.LineNumber ty)
                         LineColors.[line.LineNumber] <- LogMessageType.getColor(ty)
                         line <- line.NextLine
 
@@ -92,27 +93,32 @@ module Logging =
         /// to acces the underlying Avalonedit Texteditor
         member this.Editor = editor
 
-        member this.printStdOut   (s) = addStrAndScroll(s,StdOut  )
-        member this.printErrorOut (s) = addStrAndScroll(s,ErrorOut)
-        member this.printInfoMsg  (s) = addStrAndScroll(s,InfoMsg )
-        member this.printAppError (s) = addStrAndScroll(s,AppError)
-        member this.printIOError  (s) = addStrAndScroll(s,IOError )
-        member this.printDebugMsg (s) = addStrAndScroll(s,DebugMsg)
+        //used in fsi constructor:
+        member val TextWriterFsiStdOut     = new FsxTextWriter(fun s -> addStrAndScroll (s,FsiStdOut    ))
+        member val TextWriterFsiErrorOut   = new FsxTextWriter(fun s -> addStrAndScroll (s,FsiErrorOut  ))
+        member val TextWriterConsoleOut    = new FsxTextWriter(fun s -> addStrAndScroll (s,ConsoleOut   ))
+        member val TextWriterConsoleError  = new FsxTextWriter(fun s -> addStrAndScroll (s,ConsoleError ))
+        // used for printf:
+        member val TextWriterInfoMsg       = new FsxTextWriter(fun s -> addStrAndScroll (s,InfoMsg      ))
+        member val TextWriterFsiErrorMsg   = new FsxTextWriter(fun s -> addStrAndScroll (s,FsiErrorMsg  ))
+        member val TextWriterAppErrorMsg   = new FsxTextWriter(fun s -> addStrAndScroll (s,AppErrorMsg  ))
+        member val TextWriterIOErrorMsg    = new FsxTextWriter(fun s -> addStrAndScroll (s,IOErrorMsg   ))
+        member val TextWriterDebugMsg      = new FsxTextWriter(fun s -> addStrAndScroll (s,DebugMsg     ))
+        member val TextWriterPrintMsg      = new FsxTextWriter(fun s -> addStrAndScroll (s,PrintMsg     ))
 
-
-        ///for FSI session constructor
-        member val StdOutTextWriter    = new FsxTextWriter(fun s -> addStrAndScroll (s,StdOut) )
-        
-        ///for FSI session constructor
-        member val ErrorOutTextWriter  = new FsxTextWriter(fun s -> addStrAndScroll (s,ErrorOut) )
-
-        /// a Textwriter for Log.print Formating
-        member val InfoMsgTextWriter  = new FsxTextWriter(fun s -> addStrAndScroll (s,InfoMsg) )
+            
+        //member this.printFsiStdOut    s =  Printf.fprintfn this.TextWriterFsiStdOut    s  //should not be used
+        //member this.printFsiErrorOut  s =  Printf.fprintfn this.TextWriterFsiErrorOut  s
+        //member this.printConsoleOut   s =  Printf.fprintfn this.TextWriterConsoleOut   s
+        //member this.printConsoleError s =  Printf.fprintfn this.TextWriterConsoleError s
+        member this.printInfoMsg      s =  Printf.fprintfn this.TextWriterInfoMsg      s
+        member this.printFsiErrorMsg  s =  Printf.fprintfn this.TextWriterFsiErrorMsg  s
+        member this.printAppErrorMsg  s =  Printf.fprintfn this.TextWriterAppErrorMsg  s
+        member this.printIOErrorMsg   s =  Printf.fprintfn this.TextWriterIOErrorMsg   s        
+        member this.printDebugMsg     s =  Printf.fprintfn this.TextWriterDebugMsg     s
 
         /// like printfn, use with format strings, adds new line
-        member this.print s =  Printf.fprintfn this.InfoMsgTextWriter s
-            
-    
+        member this.print s             =  Printf.fprintfn this.TextWriterPrintMsg     s
     
     let Log = new LogView()
 

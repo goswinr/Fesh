@@ -6,20 +6,28 @@ open System.Windows.Media // for color brushes
 module Model =
     
     type LogMessageType = 
-        | StdOut 
-        | ErrorOut 
+        | FsiStdOut 
+        | FsiErrorOut 
+        | ConsoleOut
+        | ConsoleError
         | InfoMsg 
-        | AppError 
-        | IOError 
+        | FsiErrorMsg 
+        | AppErrorMsg 
+        | IOErrorMsg 
         | DebugMsg 
+        | PrintMsg
 
         static member getColor = function
-            | StdOut    -> Brushes.Black
-            | ErrorOut  -> Brushes.DarkRed
-            | InfoMsg   -> Brushes.MidnightBlue
-            | AppError  -> Brushes.DarkMagenta
-            | IOError   -> Brushes.Blue
-            | DebugMsg  -> Brushes.Gray
+            | FsiStdOut     ->Brushes.DarkGray
+            | FsiErrorOut   ->Brushes.DarkMagenta
+            | ConsoleOut    ->Brushes.DarkGreen  // printfn in script
+            | ConsoleError  ->Brushes.Magenta
+            | InfoMsg       ->Brushes.Green
+            | FsiErrorMsg   ->Brushes.Red
+            | AppErrorMsg   ->Brushes.DarkOrange
+            | IOErrorMsg    ->Brushes.DarkRed
+            | DebugMsg      ->Brushes.Blue
+            | PrintMsg      ->Brushes.Black
 
 
     type RunContext = 

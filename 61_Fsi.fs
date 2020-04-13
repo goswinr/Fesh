@@ -137,17 +137,17 @@ module Fsi =
             // first arg is ignored: https://github.com/fsharp/FSharp.Compiler.Service/issues/420 and https://github.com/fsharp/FSharp.Compiler.Service/issues/877 and  https://github.com/fsharp/FSharp.Compiler.Service/issues/878            
             let allArgs = [|"" ; "--langversion:preview" ; "--noninteractive" ; "--debug+"; "--debug:full" ;"--optimize+" ;"--nologo"; "--gui-"|] // ; "--shadowcopyreferences" is ignored https://github.com/fsharp/FSharp.Compiler.Service/issues/292           
             let fsiConfig = FsiEvaluationSession.GetDefaultConfiguration() // https://github.com/dotnet/fsharp/blob/4978145c8516351b1338262b6b9bdf2d0372e757/src/fsharp/fsi/fsi.fs#L2839
-            let fsiSession = FsiEvaluationSession.Create(fsiConfig, allArgs, inStream, Log.StdOutTextWriter, Log.ErrorOutTextWriter) //, collectible=false ??) //TODO add error logger window
+            let fsiSession = FsiEvaluationSession.Create(fsiConfig, allArgs, inStream, Log.TextWriterFsiStdOut, Log.TextWriterFsiErrorOut) //, collectible=false ??) //TODO add error logger window
             AppDomain.CurrentDomain.UnhandledException.Add(fun ex -> Log.print "*** FSI background exception:\r\n %A" ex.ExceptionObject)
-            Console.SetOut  (Log.StdOutTextWriter) //needed to redirect printfn ? //https://github.com/fsharp/FSharp.Compiler.Service/issues/201
-            Console.SetError(Log.ErrorOutTextWriter) //TODO needed if evaluate non throwing ? 
+            Console.SetOut  (Log.TextWriterConsoleOut) //needed to redirect printfn ? //https://github.com/fsharp/FSharp.Compiler.Service/issues/201
+            Console.SetError(Log.TextWriterConsoleError) //TODO needed if evaluate non throwing ? 
             //if mode = Mode.Sync then do! Async.SwitchToContext Sync.syncContext            
             //fsiSession.Run()// dont do this it crashes the app when hosted in Rhino! 
             if session.IsNone then Log.print "* Time for loading FSharp Interactive: %s"  timer.tocEx
             session <- Some fsiSession
             match mode with
-            |Sync ->  Log.print "*FSharp Interactive will evaluate synchronously on UI Thread."
-            |Async -> Log.print "*FSharp Interactive will evaluate asynchronously on new Thread."            //}
+            |Sync ->  Log.printInfoMsg "*FSharp Interactive will evaluate synchronously on UI Thread."
+            |Async -> Log.printInfoMsg "*FSharp Interactive will evaluate asynchronously on new Thread."            //}
             timer.stop()
     
     // to be able to cancel running Fsi eval
@@ -170,7 +170,7 @@ module Fsi =
                     if mode = Mode.Sync then do! Async.SwitchToContext Sync.syncContext 
                     
                     Application.Current.DispatcherUnhandledException.Add(fun e ->  //exceptions generated on the UI thread
-                        Log.print "Application.Current.DispatcherUnhandledException in fsi thread: %A" e.Exception        
+                        Log.printAppErrorMsg "Application.Current.DispatcherUnhandledException in fsi thread: %A" e.Exception        
                         e.Handled <- true)        
        
                     AppDomain.CurrentDomain.UnhandledException.AddHandler (//catching unhandled exceptions generated from all threads running under the context of a specific application domain. //https://dzone.com/articles/order-chaos-handling-unhandled
@@ -189,7 +189,7 @@ module Fsi =
                     |Choice1Of2 vo -> 
                         Events.completed.Trigger(mode)
                         Events.isReady.Trigger(mode)
-                        for e in errs do Log.print "****Why Error: %A" e
+                        for e in errs do Log.printFsiErrorMsg "****Why Error: %A" e
                         //match vo with None-> () |Some v -> Log.print "Interaction evaluted to %A <%A>" v.ReflectionValue v.ReflectionType
                 
                     |Choice2Of2 exn ->     
@@ -197,17 +197,18 @@ module Fsi =
                         | :? OperationCanceledException ->
                             Events.canceled.Trigger(mode)
                             Events.isReady.Trigger(mode)
-                            Log.print "**Fsi evaluation was canceled: %s" exn.Message                    
+                            Log.printInfoMsg "**Fsi evaluation was canceled: %s" exn.Message                    
                         | :? FsiCompilationException -> 
                             Events.runtimeError.Trigger(exn)
                             Events.isReady.Trigger(mode)
-                            Log.print "Compiler Error:"
+                            Log.printFsiErrorMsg "Compiler Error:"
                             for e in errs do    
-                                Log.print "%A" e
+                                Log.printFsiErrorMsg "%A" e
                         | _ ->    
                             Events.runtimeError.Trigger(exn)
                             Events.isReady.Trigger(mode)
-                            Log.print "Runtime Error: %A" exn     } 
+                            Log.printFsiErrorMsg "Runtime Error: %A" exn     
+                    } 
             
             Async.StartImmediate(a)// cancellation token here fails to cancel evaluation,
             )
@@ -266,12 +267,12 @@ module Fsi =
 
     let evaluate(code) =         
         if DateTime.Today > DateTime(2020, 9, 30) then failwithf "Your Seff Editor has expired, please download a new version."
-        if DateTime.Today > DateTime(2020, 7, 30) then Log.print "*** Your Seff Editor will expire on 2020-9-30, please download a new version soon. ***"        
+        if DateTime.Today > DateTime(2020, 7, 30) then Log.printInfoMsg "*** Your Seff Editor will expire on 2020-9-30, please download a new version soon. ***"        
         match askIfCancellingIsOk () with 
         | NotEvaluating   -> eval(code) 
         | YesAsync        -> cancelIfAsync();eval(code) 
         | Dont            -> ()
-        | NotPossibleSync -> Log.print "Wait till current synchronous evaluation completes before starting new one."
+        | NotPossibleSync -> Log.printInfoMsg "Wait till current synchronous evaluation completes before starting new one."
        
     let clearLog() =         
         UI.log.Clear()
@@ -318,7 +319,7 @@ module Fsi =
         //Events.Started.Add         (fun _ -> Log.print " +Fsi Started+")
         //Events.Completed.Add       (fun _ -> Log.print " +Fsi Completed+")
 
-        Events.RuntimeError.Add    (fun _  -> Log.printErrorOut " +Fsi RuntimeError+")
+        //Events.RuntimeError.Add    (fun _  -> Log.printFsiErrorMsg "+Fsi RuntimeError(2):+")
         
         //Events.RuntimeError.Add (fun _ -> UI.log.Background <- Appearance.logBackgroundFsiHadError)
         Events.Started.Add      (fun _ -> UI.log.Background <- Appearance.logBackgroundFsiEvaluating) // happens at end of eval in sync mode

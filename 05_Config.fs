@@ -19,7 +19,7 @@ module Config =
                 try
                     IO.File.WriteAllText(path,text)
                 with ex ->            
-                    Log.printIOError ex.Message
+                    Log.printIOErrorMsg "%s" ex.Message
             finally
                 readerWriterLock.ExitWriteLock()
             } |> Async.Start
@@ -32,7 +32,7 @@ module Config =
             do! Async.Sleep(delay) // delay to see if this is the last of many events (otherwise there is a noticable lag in dragging window around)
             if !counter = k then //k > 2L &&   //do not save on startup && only save last event after a delay if there are many save events in a row ( eg from window size change)(ignore first two event from creating window)
                 try writeToFileAsyncLocked(file, readerWriterLock, getString() ) // getString might fail
-                with ex -> Log.printAppError ex.Message
+                with ex -> Log.printAppErrorMsg "%s" ex.Message
             } |> Async.Start
         
     
@@ -62,10 +62,10 @@ module Config =
                 for ln in  IO.File.ReadAllLines Settings.FilePath do
                     match ln.Split(sep) with
                     | [|k;v|] -> settingsDict.[k] <- v // TODO allow for comments? use ini format ??
-                    | _       -> Log.printAppError ("Bad line in settings file file: '" + ln + "'")
+                    | _       -> Log.printAppErrorMsg "Bad line in settings file file: '%s'" ln
             with 
                 | :? FileNotFoundException ->   Log.printInfoMsg   ("Settings file not found. (This is normal on first use of the App.)")
-                | e ->                          Log.printAppError  ("Problem reading or initalizing settings file: " + e.Message)
+                | e ->                          Log.printAppErrorMsg  "Problem reading or initalizing settings file: %s"  e.Message
                         
         
         static member setDelayed k v delay= 
@@ -76,8 +76,8 @@ module Config =
                  } |> Async.Start
         
         static member set (k:string) (v:string) = 
-            if k.IndexOf(sep) > -1 then Log.printAppError  (sprintf "Settings key shall not contain '%c' : %s%c%s"  sep  k  sep  v )           
-            if v.IndexOf(sep) > -1 then Log.printAppError  (sprintf "Settings value shall not contain '%c' : %s%c%s"  sep  k  sep  v )
+            if k.IndexOf(sep) > -1 then Log.printAppErrorMsg  "Settings key shall not contain '%c' : %s%c%s"  sep  k  sep  v            
+            if v.IndexOf(sep) > -1 then Log.printAppErrorMsg  "Settings value shall not contain '%c' : %s%c%s"  sep  k  sep  v 
             settingsDict.[k] <- v             
         
         static member get k = 
@@ -136,7 +136,7 @@ module Config =
                                 let makeCurrent = path.ToLowerInvariant() = currentFile 
                                 files.Add((fi,makeCurrent,code))            
             with e -> 
-                Log.printAppError  ("Error getFilesfileOnClosingOpen:" +  e.Message)
+                Log.printAppErrorMsg "Error getFilesfileOnClosingOpen: %s"  e.Message
             files
     
     type RecentlyUsedFiles private () =
@@ -178,7 +178,7 @@ module Config =
                      recentFilesStack.Push fi
                      updateRecentMenu fi
              with e -> 
-                 Log.printAppError  ("Error Loading recently used files:" +  e.Message)
+                 Log.printAppErrorMsg "Error Loading recently used files: %s"   e.Message
     
     /// statistic of most used toplevel auto completions
     type AutoCompleteStatistic private () =
@@ -203,9 +203,9 @@ module Config =
                         for ln in  IO.File.ReadAllLines AutoCompleteStatistic.FilePath do
                         match ln.Split(sep) with
                         | [|k;v|] -> completionStats.[k] <- float v // TODO allow for comments? use ini format ??
-                        | _       -> Log.printAppError ("Bad line in CompletionStats file : '" + ln + "'")                    
+                        | _       -> Log.printAppErrorMsg "Bad line in CompletionStats file : '%s'" ln                   
                 with e -> 
-                    Log.printAppError ("Error load fileCompletionStats:" +  e.Message)
+                    Log.printAppErrorMsg "Error load fileCompletionStats: %s"   e.Message
                 } |> Async.Start 
          
         static member Get(key) =
