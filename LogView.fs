@@ -8,6 +8,8 @@ open Seff.Model
 open ICSharpCode
 open System.Windows.Media // for color brushes
 open Seff.Model
+open System.Text
+open System.Diagnostics
 
 module Logging =
 
@@ -46,49 +48,43 @@ module Logging =
 
         
         let printCallsCounter = ref 0L
-        let scrollSkipedTimes = ref 0
-        //let newLinesBuffer= ref 0
-        let mutable newLinesBuffer=  0
+        let stopWatch = Stopwatch.StartNew()
+        let buffer =  new StringBuilder()
 
-        /// adds string on UI thread then scrolls to end after 300ms , 50 lines or a color change
-        /// adding just a new line character  is delayed till next text
-        /// scroll to end and coloring is delayed too
-        let addStrAndScroll (s,ty:LogMessageType) =
+        /// adds string on UI thread  every 150ms then scrolls to end after 300ms
+        /// sets line color on LineColors dictionay for DocumentColorizingTransformer
+        let addStrAndScroll (s:string,ty:LogMessageType) =
             async {
                 do! Async.SwitchToContext Sync.syncContext 
-                if s = NewLine then 
-                    //Interlocked.Increment newLinesBuffer  |> ignore
-                    newLinesBuffer <- newLinesBuffer + 1
-                else                    
+                buffer.Append(s)  |> ignore 
+                
+                if stopWatch.ElapsedMilliseconds > 150L && s.Contains(NewLine) then //only add top document every 150ms
+                    stopWatch.Restart()
                     let start = editor.Document.TextLength
-                    //let k = Interlocked.Exchange(newLinesBuffer , 0)
-                    let k = newLinesBuffer
-                    newLinesBuffer <- 0
-                    match k with 
-                    | 0 -> editor.AppendText("|_|" + s)
-                    | 1 -> editor.AppendText( NewLine + "|$|"+ s)
-                    | 2 -> editor.AppendText( NewLine + NewLine + "|$$| " + s)
-                    | x -> editor.AppendText(Text.StringBuilder(s.Length + x * 2).Insert(0, NewLine, x).Append("|$$$+|").Append(s).ToString())   
-
-                    (*
-                    let mutable line = editor.Document.GetLineByOffset(start + k*2) // k*2 to skip newline chars
+                    let txt = buffer.ToString()
+                    buffer.Clear()  |> ignore 
+                    editor.AppendText(txt)
+                    
+                    let mutable line = editor.Document.GetLineByOffset(start) 
                     LineColors.[line.LineNumber] <- LogMessageType.getColor(ty) //only color this line if it does not start with a new line chatacter
                     line <- line.NextLine                    
                     while line <> null  do
                         LineColors.[line.LineNumber] <- LogMessageType.getColor(ty)
                         line <- line.NextLine
 
-                    if !scrollSkipedTimes> 100 then // scroll at least every 50 ( * 2) lines
-                        scrollSkipedTimes := 0
-                        editor.AppendText("|-scroll-|")
+                    //editor.AppendText("|-scroll->") //for DEBUG only
+                    editor.ScrollToEnd()
+                
+                else                        
+                    let k = Interlocked.Increment printCallsCounter
+                    do! Async.Sleep 300
+                    if !printCallsCounter = k  then //it is the last call for 300 ms
+                        let txt = buffer.ToString()
+                        buffer.Clear()  |> ignore 
+                        editor.AppendText(txt)
+                        //editor.AppendText("|*scroll*>") //for DEBUG only
                         editor.ScrollToEnd()
-                    else
-                        let k = Interlocked.Increment printCallsCounter
-                        do! Async.Sleep 300
-                        if !printCallsCounter = k  then //it is the last call for 300 ms
-                            editor.AppendText("|*scroll*|")
-                            editor.ScrollToEnd()
-                    *)
+                    
             } |> Async.StartImmediate 
 
 
@@ -110,6 +106,7 @@ module Logging =
         ///for FSI session constructor
         member val ErrorOutTextWriter  = new FsxTextWriter(fun s -> addStrAndScroll (s,ErrorOut) )
 
+        /// a Textwriter for Log.print Formating
         member val InfoMsgTextWriter  = new FsxTextWriter(fun s -> addStrAndScroll (s,InfoMsg) )
 
         /// like printfn, use with format strings, adds new line

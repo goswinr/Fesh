@@ -16,7 +16,7 @@ module Model =
         static member getColor = function
             | StdOut    -> Brushes.Black
             | ErrorOut  -> Brushes.DarkRed
-            | InfoMsg   -> Brushes.DarkGray
+            | InfoMsg   -> Brushes.MidnightBlue
             | AppError  -> Brushes.DarkMagenta
             | IOError   -> Brushes.Blue
             | DebugMsg  -> Brushes.Gray

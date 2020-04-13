@@ -13,21 +13,22 @@
 <SyntaxDefinition name = "F#" extensions = ".fs;.fsi;.fsx" xmlns="http://icsharpcode.net/sharpdevelop/syntaxdefinition/2008">
   
   <!-- The named colors 'Comment' and 'String' are also used in SharpDevelop to detect if a line is inside a multiline string/comment -->
+  <!--https://www.rapidtables.com/convert/color/rgb-to-hex.html-->
   <Color name="Comment"             foreground="Green" />
   <Color name="String"              foreground="#AA1111" />
   <Color name="StringVerbatim"      foreground="#FF0000" />  
-  <Color name="StringFormating"     foreground="#2B91AF"  />
+  <Color name="StringFormating"     foreground="DarkMagenta"  />
   <Color name="StringEscaped"       foreground="#7700BB"  />  
   <Color name="Char"                foreground="#FF0040" />
   <Color name="LoadDirectives"      foreground="#887766" />
   <Color name="Punctuation"         foreground="Purple" />
   <Color name="Attributes"          foreground="Purple" />  
-  <Color name="Keywords"            foreground="Blue"         /> <!--fontWeight="bold" -->
-  <Color name="ReservedKeywords"    foreground="LightBlue"    /> <!--fontWeight="bold" -->
+  <Color name="Keywords"            foreground="Blue"  /> <!--fontWeight="bold" -->
+  <Color name="ReservedKeywords"    foreground="LightBlue"/> <!--fontWeight="bold" -->
   <Color name="MethodCall"          foreground="#0000AA" />  <!--fontWeight="bold" -->
-  <Color name="TrueFalse"           foreground="#0044CC"     /> <!--fontWeight="bold" -->
+  <Color name="TrueFalse"           foreground="#0044CC" /> <!--fontWeight="bold" -->
   <Color name="NumberLiteral"       foreground="#3399BB"/>
-  <!--https://www.rapidtables.com/convert/color/rgb-to-hex.html-->
+  
   
   <!-- taken from https://github.com/icsharpcode/AvalonEdit/blob/master/ICSharpCode.AvalonEdit/Highlighting/Resources/XmlDoc.xshd-->
   <Color name="XmlString" foreground="#005500"   />
@@ -268,6 +269,7 @@
 
     <!-- Digits -->
     <Rule color="NumberLiteral">
+      <!--TODO add L u uy I M and  _  -->
       \b0[xX][0-9a-fA-F]+  # hex number
       |
       (	\b\d+(\.[0-9]+)?   # number with optional floating point
