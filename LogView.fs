@@ -16,8 +16,8 @@ module Logging =
         inherit TextWriter()
         override this.Encoding =  Text.Encoding.Default
         override this.Write     (s:string)  = writeStr (s)
-        override this.WriteLine (s:string)  = writeStr (s + Environment.NewLine)    // actually never used see  https://github.com/dotnet/fsharp/issues/3712   
-        override this.WriteLine ()          = writeStr (    Environment.NewLine)    
+        override this.WriteLine (s:string)  = writeStr (s + NewLine)    // actually never used see  https://github.com/dotnet/fsharp/issues/3712   
+        override this.WriteLine ()          = writeStr (    NewLine)    
     
     /// Dictionary holding the color of all non standart lines
     let private LineColors = Collections.Generic.Dictionary<int,SolidColorBrush>()
@@ -47,29 +47,32 @@ module Logging =
         
         let printCallsCounter = ref 0L
         let scrollSkipedTimes = ref 0
-        let newLinesBuffer= ref 0
-        
+        //let newLinesBuffer= ref 0
+        let mutable newLinesBuffer=  0
 
         /// adds string on UI thread then scrolls to end after 300ms , 50 lines or a color change
         /// adding just a new line character  is delayed till next text
         /// scroll to end and coloring is delayed too
         let addStrAndScroll (s,ty:LogMessageType) =
             async {
+                do! Async.SwitchToContext Sync.syncContext 
                 if s = NewLine then 
-                    Interlocked.Increment newLinesBuffer  |> ignore 
-                else
-                    do! Async.SwitchToContext Sync.syncContext 
+                    //Interlocked.Increment newLinesBuffer  |> ignore
+                    newLinesBuffer <- newLinesBuffer + 1
+                else                    
                     let start = editor.Document.TextLength
-                    let k = Interlocked.Exchange(newLinesBuffer , 0)
+                    //let k = Interlocked.Exchange(newLinesBuffer , 0)
+                    let k = newLinesBuffer
+                    newLinesBuffer <- 0
                     match k with 
-                    | 0 -> editor.AppendText("|+| " + s)
-                    | 1 -> editor.AppendText( NewLine + "|++| "+ s)
-                    | 2 -> editor.AppendText( NewLine + NewLine + "|+++| " + s)
-                    | x -> editor.AppendText(Text.StringBuilder(s.Length + x * 2).Insert(0, NewLine, x).Append("|++++| ").Append(s).ToString())   
+                    | 0 -> editor.AppendText("|_|" + s)
+                    | 1 -> editor.AppendText( NewLine + "|$|"+ s)
+                    | 2 -> editor.AppendText( NewLine + NewLine + "|$$| " + s)
+                    | x -> editor.AppendText(Text.StringBuilder(s.Length + x * 2).Insert(0, NewLine, x).Append("|$$$+|").Append(s).ToString())   
 
-
-                    let mutable line = editor.Document.GetLineByOffset(start)
-                    LineColors.[line.LineNumber] <- LogMessageType.getColor(ty)
+                    (*
+                    let mutable line = editor.Document.GetLineByOffset(start + k*2) // k*2 to skip newline chars
+                    LineColors.[line.LineNumber] <- LogMessageType.getColor(ty) //only color this line if it does not start with a new line chatacter
                     line <- line.NextLine                    
                     while line <> null  do
                         LineColors.[line.LineNumber] <- LogMessageType.getColor(ty)
@@ -77,15 +80,15 @@ module Logging =
 
                     if !scrollSkipedTimes> 100 then // scroll at least every 50 ( * 2) lines
                         scrollSkipedTimes := 0
-                        editor.AppendText("*scroll*")
+                        editor.AppendText("|-scroll-|")
                         editor.ScrollToEnd()
                     else
                         let k = Interlocked.Increment printCallsCounter
                         do! Async.Sleep 300
                         if !printCallsCounter = k  then //it is the last call for 300 ms
-                            editor.AppendText("*scroll*")
+                            editor.AppendText("|*scroll*|")
                             editor.ScrollToEnd()
-
+                    *)
             } |> Async.StartImmediate 
 
 

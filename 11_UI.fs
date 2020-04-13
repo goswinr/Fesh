@@ -14,9 +14,9 @@ open System.Windows.Automation.Peers
 module Appearance=    
     
     
-    let logBackgroundFsiEvaluating   =  Brushes.Black    |> brighter 150 //DarkGray 
-    let logBackgroundFsiReady    =      Brushes.Black
-    let logBackgroundFsiHadError =      Brushes.DarkRed
+    let logBackgroundFsiEvaluating   =  Brushes.White    |> darker 30 
+    let logBackgroundFsiReady    =      Brushes.White
+    //let logBackgroundFsiHadError =      Brushes.DarkRed
     let editorBackgroundOk       =      Brushes.White
     let editorBackgroundErr      =      Brushes.Red      |> brighter 240 // very light pink
     let editorBackgroundChecking =      Brushes.White    |> darker 55    // light grey
@@ -34,7 +34,7 @@ module Appearance=
         l.ShowLineNumbers  <- true
         l.WordWrap         <- true
         l.Options.EnableHyperlinks <- true 
-        //l.Background <- logBackgroundFsiReady
+        l.Background <- logBackgroundFsiReady
         //l.Foreground <- Brushes.White
         l.TextArea.TextView.LinkTextForegroundBrush <- l.Foreground //Hyperlinks color
         l.TextArea.SelectionCornerRadius <- 0.0 
