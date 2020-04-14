@@ -24,20 +24,36 @@ module Logging =
     /// Dictionary holding the color of all non standart lines
     let private LineColors = Collections.Generic.Dictionary<int,SolidColorBrush>()
 
-    type private LogLineColorizer() = 
+    type private LogLineColorizer(editor:AvalonEdit.TextEditor) = 
         inherit AvalonEdit.Rendering.DocumentColorizingTransformer()
         override this.ColorizeLine(line:AvalonEdit.Document.DocumentLine) =       
            let ok,color = LineColors.TryGetValue(line.LineNumber)
            if ok && not line.IsDeleted then
-               base.ChangeLinePart(line.Offset, line.EndOffset, fun element -> element.TextRunProperties.SetForegroundBrush(color))
-       
+                // consider selcetion and exlude fom higlighting:
+                let st=line.Offset
+                let en=line.EndOffset
+                let selLen = editor.SelectionLength
+                if selLen < 1 then // no selection 
+                    base.ChangeLinePart(st,en, fun element -> element.TextRunProperties.SetForegroundBrush(color)) // highlight full line
+                else
+                    let selSt = editor.SelectionStart
+                    let selEn = selSt + selLen
+                    if selSt > en || selEn < st then
+                        base.ChangeLinePart(st,en, fun element -> element.TextRunProperties.SetForegroundBrush(color)) // highlight full line
+                    else
+                        // consider block or rectangle selection:
+                        for seg in editor.TextArea.Selection.Segments do
+                            if st < seg.StartOffset && seg.StartOffset < en then base.ChangeLinePart(st, seg.StartOffset, fun element -> element.TextRunProperties.SetForegroundBrush(color))
+                            if en > seg.EndOffset   && seg.EndOffset   > st then base.ChangeLinePart(seg.EndOffset,   en, fun element -> element.TextRunProperties.SetForegroundBrush(color))
+                
+                   
 
     type LogView () =
         let editor =  
             let e = AvalonEdit.TextEditor()
             e.IsReadOnly <- true
             e.Encoding <- Text.Encoding.Default
-            e.TextArea.TextView.LineTransformers.Add(new LogLineColorizer())
+            e.TextArea.TextView.LineTransformers.Add(new LogLineColorizer(e))
             e
         
         // The below functions are trying to work around double UI update in printfn for better UI performance
@@ -58,6 +74,7 @@ module Logging =
             let start = editor.Document.TextLength
             editor.AppendText(txt)
             
+            //if type<>PrintMsg then 
             let mutable line = editor.Document.GetLineByOffset(start) 
             //editor.Document.Insert( line.EndOffset, sprintf "(%d:%A)" line.LineNumber ty) //for DEBUG only
             //editor.AppendText(sprintf "(1st Line %d, %d chars:%A)" line.LineNumber line.Length ty) //for DEBUG only

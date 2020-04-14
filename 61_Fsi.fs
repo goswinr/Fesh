@@ -314,14 +314,14 @@ module Fsi =
    
 
     do
-        //Events.Canceled.Add        (fun _ -> Log.print " +Fsi Canceled+")
-        //Events.IsReady.Add         (fun _ -> Log.print " +Fsi isReady+")      
-        //Events.Started.Add         (fun _ -> Log.print " +Fsi Started+")
-        //Events.Completed.Add       (fun _ -> Log.print " +Fsi Completed+")
+        //Events.Canceled.Add        (fun _ -> Log.printDebugMsg " +Fsi Canceled+")
+        //Events.IsReady.Add         (fun _ -> Log.printDebugMsg " +Fsi isReady+")      
+        //Events.Started.Add         (fun _ -> Log.printDebugMsg " +Fsi Started+")
+        //Events.Completed.Add       (fun _ -> Log.printDebugMsg " +Fsi Completed+")
 
         //Events.RuntimeError.Add    (fun _  -> Log.printFsiErrorMsg "+Fsi RuntimeError(2):+")
         
-        //Events.RuntimeError.Add (fun _ -> UI.log.Background <- Appearance.logBackgroundFsiHadError)
+        Events.RuntimeError.Add (fun _ -> UI.log.Background <- Appearance.logBackgroundFsiReady)  // <- Appearance.logBackgroundFsiHadError)
         Events.Started.Add      (fun _ -> UI.log.Background <- Appearance.logBackgroundFsiEvaluating) // happens at end of eval in sync mode
         Events.Completed.Add    (fun _ -> UI.log.Background <- Appearance.logBackgroundFsiReady)
         Events.Canceled.Add     (fun _ -> UI.log.Background <- Appearance.logBackgroundFsiReady)

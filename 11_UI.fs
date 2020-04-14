@@ -39,6 +39,7 @@ module Appearance=
         l.TextArea.TextView.LinkTextForegroundBrush <- l.Foreground //Hyperlinks color
         l.TextArea.SelectionCornerRadius <- 0.0 
         l.TextArea.SelectionBorder <- null
+        //l.TextArea.SelectionForeground <- Brushes.White // ignored if DocumentColorizingTransformer active on foreground.
         l.VerticalScrollBarVisibility <- ScrollBarVisibility.Auto        
         if Config.Settings.getBool "logHasLineWrap" true then 
             l.WordWrap         <- true // or 
