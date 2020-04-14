@@ -22,11 +22,11 @@ module Model =
             | FsiErrorOut   ->Brushes.DarkMagenta
             | ConsoleOut    ->Brushes.DarkGreen  // printfn in script
             | ConsoleError  ->Brushes.Magenta
-            | InfoMsg       ->Brushes.Green
+            | InfoMsg       ->Brushes.Blue
             | FsiErrorMsg   ->Brushes.Red
             | AppErrorMsg   ->Brushes.DarkOrange
             | IOErrorMsg    ->Brushes.DarkRed
-            | DebugMsg      ->Brushes.Blue
+            | DebugMsg      ->Brushes.Green
             | PrintMsg      ->Brushes.DarkCyan
 
 

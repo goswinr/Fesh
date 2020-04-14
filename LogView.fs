@@ -50,24 +50,23 @@ module Logging =
         let buffer =  new StringBuilder()
 
 
-        let printFromBufferAndScroll(ty:LogMessageType) = 
-            prevMsgType <- ty
+        let printFromBufferAndScroll(ty:LogMessageType) =             
             stopWatch.Restart()
             
-            let txt = buffer.ToString().Replace(NewLine, sprintf "(%A)%s" ty NewLine)             
+            let txt = buffer.ToString()//.Replace(NewLine, sprintf "(%A)%s" ty NewLine)  //for DEBUG only           
             buffer.Clear()  |> ignore 
             let start = editor.Document.TextLength
             editor.AppendText(txt)
             
             let mutable line = editor.Document.GetLineByOffset(start) 
-            //editor.Document.Insert( line.EndOffset, sprintf "(%d:%A)" line.LineNumber ty)
-            //editor.AppendText(sprintf "(1st Line %d, %d chars:%A)" line.LineNumber line.Length ty)
+            //editor.Document.Insert( line.EndOffset, sprintf "(%d:%A)" line.LineNumber ty) //for DEBUG only
+            //editor.AppendText(sprintf "(1st Line %d, %d chars:%A)" line.LineNumber line.Length ty) //for DEBUG only
             LineColors.[line.LineNumber] <- LogMessageType.getColor(ty) //only color this line if it does not start with a new line chatacter
             line <- line.NextLine                    
             while line <> null  do
                 if line.Length>0 then
-                    //editor.Document.Insert( line.EndOffset, sprintf "(%d:%A)" line.LineNumber ty)
-                    //editor.AppendText(sprintf "(Line %d, %d chars:%A)" line.LineNumber line.Length ty)
+                    //editor.Document.Insert( line.EndOffset, sprintf "(%d:%A)" line.LineNumber ty) //for DEBUG only
+                    //editor.AppendText(sprintf "(Line %d, %d chars:%A)" line.LineNumber line.Length ty)//for DEBUG only
                     LineColors.[line.LineNumber] <- LogMessageType.getColor(ty)
                 line <- line.NextLine
 
@@ -80,15 +79,18 @@ module Logging =
         let printOrBuffer (s:string,ty:LogMessageType) =
             async {
                 do! Async.SwitchToContext Sync.syncContext 
+                if prevMsgType<>ty then // print case 1
+                    printFromBufferAndScroll(prevMsgType) 
+                    prevMsgType <- ty
+
                 buffer.Append(s)  |> ignore 
 
-                if (prevMsgType<>ty || stopWatch.ElapsedMilliseconds > 150L ) && s.Contains(NewLine) then //only add to document every 150ms
-                    printFromBufferAndScroll(ty)
-                
+                if stopWatch.ElapsedMilliseconds > 150L  && s.Contains(NewLine) then //// print case 2, only add to document every 150ms
+                    printFromBufferAndScroll(ty)                
                 else                        
                     let k = Interlocked.Increment printCallsCounter
                     do! Async.Sleep 300
-                    if !printCallsCounter = k  then //it is the last call for 300 ms
+                    if !printCallsCounter = k  then //print case 3, it is the last call for 300 ms
                         printFromBufferAndScroll(ty)
                     
             } |> Async.StartImmediate 
