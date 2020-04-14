@@ -29,7 +29,7 @@ module Logging =
         override this.ColorizeLine(line:AvalonEdit.Document.DocumentLine) =       
            let ok,color = LineColors.TryGetValue(line.LineNumber)
            if ok && not line.IsDeleted then
-                // consider selcetion and exlude fom higlighting:
+                // consider selection and exclude fom higlighting:
                 let st=line.Offset
                 let en=line.EndOffset
                 let selLen = editor.SelectionLength
@@ -38,16 +38,14 @@ module Logging =
                 else
                     let selSt = editor.SelectionStart
                     let selEn = selSt + selLen
-                    if selSt > en || selEn < st then
+                    if selSt > en || selEn < st then // nothing slected on this line
                         base.ChangeLinePart(st,en, fun element -> element.TextRunProperties.SetForegroundBrush(color)) // highlight full line
                     else
                         // consider block or rectangle selection:
                         for seg in editor.TextArea.Selection.Segments do
                             if st < seg.StartOffset && seg.StartOffset < en then base.ChangeLinePart(st, seg.StartOffset, fun element -> element.TextRunProperties.SetForegroundBrush(color))
                             if en > seg.EndOffset   && seg.EndOffset   > st then base.ChangeLinePart(seg.EndOffset,   en, fun element -> element.TextRunProperties.SetForegroundBrush(color))
-                
-                   
-
+    
     type LogView () =
         let editor =  
             let e = AvalonEdit.TextEditor()
@@ -81,7 +79,7 @@ module Logging =
             LineColors.[line.LineNumber] <- LogMessageType.getColor(ty) //only color this line if it does not start with a new line chatacter
             line <- line.NextLine                    
             while line <> null  do
-                if line.Length>0 then
+                if line.Length>0 then // to exclude empty lines
                     //editor.Document.Insert( line.EndOffset, sprintf "(%d:%A)" line.LineNumber ty) //for DEBUG only
                     //editor.AppendText(sprintf "(Line %d, %d chars:%A)" line.LineNumber line.Length ty)//for DEBUG only
                     LineColors.[line.LineNumber] <- LogMessageType.getColor(ty)
