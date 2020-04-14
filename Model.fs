@@ -27,7 +27,7 @@ module Model =
             | AppErrorMsg   ->Brushes.DarkOrange
             | IOErrorMsg    ->Brushes.DarkRed
             | DebugMsg      ->Brushes.Blue
-            | PrintMsg      ->Brushes.Black
+            | PrintMsg      ->Brushes.DarkCyan
 
 
     type RunContext = 

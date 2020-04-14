@@ -44,47 +44,52 @@ module Logging =
         // see  https://github.com/dotnet/fsharp/issues/3712   
 
         
-
-        
         let printCallsCounter = ref 0L
+        let mutable prevMsgType = IOErrorMsg
         let stopWatch = Stopwatch.StartNew()
         let buffer =  new StringBuilder()
 
+
+        let printFromBufferAndScroll(ty:LogMessageType) = 
+            prevMsgType <- ty
+            stopWatch.Restart()
+            
+            let txt = buffer.ToString().Replace(NewLine, sprintf "(%A)%s" ty NewLine)             
+            buffer.Clear()  |> ignore 
+            let start = editor.Document.TextLength
+            editor.AppendText(txt)
+            
+            let mutable line = editor.Document.GetLineByOffset(start) 
+            //editor.Document.Insert( line.EndOffset, sprintf "(%d:%A)" line.LineNumber ty)
+            //editor.AppendText(sprintf "(1st Line %d, %d chars:%A)" line.LineNumber line.Length ty)
+            LineColors.[line.LineNumber] <- LogMessageType.getColor(ty) //only color this line if it does not start with a new line chatacter
+            line <- line.NextLine                    
+            while line <> null  do
+                if line.Length>0 then
+                    //editor.Document.Insert( line.EndOffset, sprintf "(%d:%A)" line.LineNumber ty)
+                    //editor.AppendText(sprintf "(Line %d, %d chars:%A)" line.LineNumber line.Length ty)
+                    LineColors.[line.LineNumber] <- LogMessageType.getColor(ty)
+                line <- line.NextLine
+
+            //editor.AppendText("|-scroll->") //for DEBUG only
+            editor.ScrollToEnd()
+
+
         /// adds string on UI thread  every 150ms then scrolls to end after 300ms
         /// sets line color on LineColors dictionay for DocumentColorizingTransformer
-        let addStrAndScroll (s:string,ty:LogMessageType) =
+        let printOrBuffer (s:string,ty:LogMessageType) =
             async {
                 do! Async.SwitchToContext Sync.syncContext 
                 buffer.Append(s)  |> ignore 
-                
-                if stopWatch.ElapsedMilliseconds > 150L && s.Contains(NewLine) then //only add top document every 150ms
-                    stopWatch.Restart()
-                    let start = editor.Document.TextLength
-                    let txt = buffer.ToString()
-                    buffer.Clear()  |> ignore 
-                    editor.AppendText(txt)
-                    
-                    let mutable line = editor.Document.GetLineByOffset(start) 
-                    editor.AppendText(sprintf "(%d:%A)" line.LineNumber ty)
-                    LineColors.[line.LineNumber] <- LogMessageType.getColor(ty) //only color this line if it does not start with a new line chatacter
-                    line <- line.NextLine                    
-                    while line <> null  do
-                        editor.AppendText(sprintf "(%d:%A)" line.LineNumber ty)
-                        LineColors.[line.LineNumber] <- LogMessageType.getColor(ty)
-                        line <- line.NextLine
 
-                    //editor.AppendText("|-scroll->") //for DEBUG only
-                    editor.ScrollToEnd()
+                if (prevMsgType<>ty || stopWatch.ElapsedMilliseconds > 150L ) && s.Contains(NewLine) then //only add to document every 150ms
+                    printFromBufferAndScroll(ty)
                 
                 else                        
                     let k = Interlocked.Increment printCallsCounter
                     do! Async.Sleep 300
                     if !printCallsCounter = k  then //it is the last call for 300 ms
-                        let txt = buffer.ToString()
-                        buffer.Clear()  |> ignore 
-                        editor.AppendText(txt)
-                        //editor.AppendText("|*scroll*>") //for DEBUG only
-                        editor.ScrollToEnd()
+                        printFromBufferAndScroll(ty)
                     
             } |> Async.StartImmediate 
 
@@ -94,17 +99,17 @@ module Logging =
         member this.Editor = editor
 
         //used in fsi constructor:
-        member val TextWriterFsiStdOut     = new FsxTextWriter(fun s -> addStrAndScroll (s,FsiStdOut    ))
-        member val TextWriterFsiErrorOut   = new FsxTextWriter(fun s -> addStrAndScroll (s,FsiErrorOut  ))
-        member val TextWriterConsoleOut    = new FsxTextWriter(fun s -> addStrAndScroll (s,ConsoleOut   ))
-        member val TextWriterConsoleError  = new FsxTextWriter(fun s -> addStrAndScroll (s,ConsoleError ))
+        member val TextWriterFsiStdOut     = new FsxTextWriter(fun s -> printOrBuffer (s,FsiStdOut    ))
+        member val TextWriterFsiErrorOut   = new FsxTextWriter(fun s -> printOrBuffer (s,FsiErrorOut  ))
+        member val TextWriterConsoleOut    = new FsxTextWriter(fun s -> printOrBuffer (s,ConsoleOut   ))
+        member val TextWriterConsoleError  = new FsxTextWriter(fun s -> printOrBuffer (s,ConsoleError ))
         // used for printf:
-        member val TextWriterInfoMsg       = new FsxTextWriter(fun s -> addStrAndScroll (s,InfoMsg      ))
-        member val TextWriterFsiErrorMsg   = new FsxTextWriter(fun s -> addStrAndScroll (s,FsiErrorMsg  ))
-        member val TextWriterAppErrorMsg   = new FsxTextWriter(fun s -> addStrAndScroll (s,AppErrorMsg  ))
-        member val TextWriterIOErrorMsg    = new FsxTextWriter(fun s -> addStrAndScroll (s,IOErrorMsg   ))
-        member val TextWriterDebugMsg      = new FsxTextWriter(fun s -> addStrAndScroll (s,DebugMsg     ))
-        member val TextWriterPrintMsg      = new FsxTextWriter(fun s -> addStrAndScroll (s,PrintMsg     ))
+        member val TextWriterInfoMsg       = new FsxTextWriter(fun s -> printOrBuffer (s,InfoMsg      ))
+        member val TextWriterFsiErrorMsg   = new FsxTextWriter(fun s -> printOrBuffer (s,FsiErrorMsg  ))
+        member val TextWriterAppErrorMsg   = new FsxTextWriter(fun s -> printOrBuffer (s,AppErrorMsg  ))
+        member val TextWriterIOErrorMsg    = new FsxTextWriter(fun s -> printOrBuffer (s,IOErrorMsg   ))
+        member val TextWriterDebugMsg      = new FsxTextWriter(fun s -> printOrBuffer (s,DebugMsg     ))
+        member val TextWriterPrintMsg      = new FsxTextWriter(fun s -> printOrBuffer (s,PrintMsg     ))
 
             
         //member this.printFsiStdOut    s =  Printf.fprintfn this.TextWriterFsiStdOut    s  //should not be used
