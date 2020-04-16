@@ -13,7 +13,7 @@ open Seff.StringUtil
 open Seff.CompletionUI
 open Seff.FsChecker
 open Seff.Logging
-open FSharp.Compiler.Ast
+
 
 module EditorUtil=
 
