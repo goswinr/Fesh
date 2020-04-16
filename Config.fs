@@ -63,8 +63,9 @@ module Config =
                     match ln.Split(sep) with
                     | [|k;v|] -> settingsDict.[k] <- v // TODO allow for comments? use ini format ??
                     | _       -> Log.printAppErrorMsg "Bad line in settings file file: '%s'" ln
+                    //Log.printDebugMsg "on File: %s" ln
             with 
-                | :? FileNotFoundException ->   Log.printInfoMsg   ("Settings file not found. (This is normal on first use of the App.)")
+                | :? FileNotFoundException ->   Log.printInfoMsg   "Settings file not found. (This is normal on first use of the App.)"
                 | e ->                          Log.printAppErrorMsg  "Problem reading or initalizing settings file: %s"  e.Message
                         
         
@@ -82,9 +83,13 @@ module Config =
         
         static member get k = 
             match settingsDict.TryGetValue k with 
-            |true, v  -> Some v
-            |false, _ -> None        
-          
+            |true, v  -> 
+                Log.printDebugMsg "get %s as %s" k v
+                Some v
+            |false, _ -> 
+                //Log.printDebugMsg "missing key %s " //TODO printing this will crash Rhino
+                None
+
         static member Save () =                       
             writeToFileDelayed (Settings.FilePath, 500, counter,readerWriterLock, settingsAsString)
         
@@ -99,8 +104,7 @@ module Config =
     
     type DefaultCode private () =
         static let readerWriterLock = new ReaderWriterLockSlim()
-        static member val FilePath = "xyz" with get,set
-        
+        static member val FilePath = "xyz" with get,set        
 
         static member Get() =            
             try IO.File.ReadAllText DefaultCode.FilePath
