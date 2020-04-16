@@ -56,7 +56,7 @@
 
     <Compile Include="03_Util.fs" />
     <Compile Include="04_UtilWPF.fs" />
-    <Compile Include="05_Config.fs" />
+    <Compile Include="Config.fs" />
     <Compile Include="11_UI.fs" />
     <Compile Include="12_UI_Log.fs" />
     <Compile Include="31_UI_BackgroundRenderer.fs" />

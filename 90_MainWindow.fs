@@ -49,7 +49,7 @@ module MainWindow =
         AppDomain.CurrentDomain.UnhandledException.AddHandler (//catching unhandled exceptions generated from all threads running under the context of a specific application domain. //https://dzone.com/articles/order-chaos-handling-unhandled
             new UnhandledExceptionEventHandler( Seff.ProcessCorruptedState.Handler)) //https://stackoverflow.com/questions/14711633/my-c-sharp-application-is-returning-0xe0434352-to-windows-task-scheduler-but-it
         
-        win.Loaded.Add ( fun _ -> 
+        win.Loaded.Add ( fun _ ->  // TODO delaying this does not help with Rhino crash on reading Editor hight from config
             win.Title       <-"Seff | FSharp Scripting Editor"
             win.Content     <- if Settings.getBool "isVertSplit" false then UI.gridVert() else UI.gridHor() 
             win.ResizeMode  <- ResizeMode.CanResize 

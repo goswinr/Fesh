@@ -84,7 +84,7 @@ module Config =
         static member get k = 
             match settingsDict.TryGetValue k with 
             |true, v  -> 
-                Log.printDebugMsg "get %s as %s" k v
+                //Log.printDebugMsg "get %s as %s" k v
                 Some v
             |false, _ -> 
                 //Log.printDebugMsg "missing key %s " //TODO printing this will crash Rhino
