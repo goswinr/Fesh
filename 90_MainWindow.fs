@@ -15,9 +15,9 @@ module MainWindow =
         // the Icon at the top left of the window and in the status bar, 
         // for the exe file icon use <Win32Resource>Media\AppIcon.res</Win32Resource>  in fsproj 
         // musst be function to be calld at later moment(eg. after loading). Build action : "Resource"; Copy to ouput Dir: "Do not copy" 
-        let uri = new Uri("pack://application:,,,/Seff;component/Media/LogoFSharp.ico", UriKind.RelativeOrAbsolute)
+        let uri = new Uri("pack://application:,,,/Seff;component/Media/Logo15.ico", UriKind.RelativeOrAbsolute)
         try  win.Icon <-  Media.Imaging.BitmapFrame.Create(Application.GetResourceStream(uri).Stream)
-        with ex -> Log.print  "Failed to load Media/LogoFSharp.ico from Application.ResourceStream ."
+        with ex -> Log.print  "Failed to load Media/Logo15.ico from Application.ResourceStream ."
     
     
 

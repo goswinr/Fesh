@@ -10,8 +10,8 @@
 
     <RootNamespace>Seff</RootNamespace>
     <AssemblyName>Seff</AssemblyName>
-    <ApplicationIcon>Media\LogoFSharp.ico</ApplicationIcon>
-    <Win32Resource>Media\AppIcon.res</Win32Resource> <!--  for Application Icon in explorer, adapt path as needed-->
+    <ApplicationIcon>Media\Logo15.ico</ApplicationIcon>
+    <Win32Resource>Media\Logo15.res</Win32Resource> <!--  for Application Icon in explorer, adapt path as needed-->
     
   </PropertyGroup>
 
@@ -43,8 +43,8 @@
 
   <ItemGroup>
 
-    <EmbeddedResource Include="Media\AppIcon.res" />
-    <Resource Include="Media\LogoFSharp.ico" />
+    <EmbeddedResource Include="Media\Logo15.res" />
+    <Resource Include="Media\Logo15.ico" />
 
     <None Include="FSharpSynatxHighlighterExtended.xshd">    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>    </None>
 
