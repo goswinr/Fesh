@@ -83,18 +83,14 @@ module Util =
     
     let inline isEven x = x % 2 = 0
 
-    let (|>>) a f = f a |> ignore ;a
+    let inline (|>>) a f = f a |> ignore ;a
     
     let assemblyLocation() = IO.Path.GetDirectoryName(Reflection.Assembly.GetExecutingAssembly().Location)
 
     let sameFile (f1:IO.FileInfo) (f2:IO.FileInfo) =
         f1.FullName.ToLowerInvariant() = f2.FullName.ToLowerInvariant()
-
-
-
-     
-   
     
+    (*
     /// Post to this agent for writing a debug string to a desktop file. Only used for bugs that cant be logged to the UI.
     let fileLoggingAgent = // for async debug logging to a file (if the Log window fails to show)
         let file = IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop),"Seff-DebugLog.txt")
@@ -125,6 +121,7 @@ module Util =
                             IO.File.WriteAllLines(path, content)
                             return! loop()}
                 loop() )
+                *)
 
 
     /// <summary>Uses reflection to get the field value from an object.</summary>

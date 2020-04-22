@@ -8,19 +8,23 @@ open System.Threading
 open FSharp.Compiler.Interactive.Shell
 
 
+
 type internal ProcessCorruptedState =  
     [< Security.SecurityCritical; Runtime.ExceptionServices.HandleProcessCorruptedStateExceptions >] //to handle AccessViolationException too //https://stackoverflow.com/questions/3469368/how-to-handle-accessviolationexception/4759831
     static member Handler (sender:obj) (e: UnhandledExceptionEventArgs) = 
             //Starting with the .NET Framework 4, this event is not raised for exceptions that corrupt the state of the process, 
             //such as stack overflows or access violations, unless the event handler is security-critical and has the HandleProcessCorruptedStateExceptionsAttribute attribute.
             //https://docs.microsoft.com/en-us/dotnet/api/system.appdomain.unhandledexception?redirectedfrom=MSDN&view=netframework-4.8
+            // https://docs.microsoft.com/en-us/archive/msdn-magazine/2009/february/clr-inside-out-handling-corrupted-state-exceptions
             let err = sprintf "AppDomain.CurrentDomain.UnhandledException: isTerminating: %b : %A" e.IsTerminating e.ExceptionObject
-            Util.fileLoggingAgent.Post(err)
+            let file = IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop),"Seff-AppDomain.CurrentDomain.UnhandledException.txt")
+            async { IO.File.WriteAllText(file, err)} |> Async.Start
             Log.print "%s" err
 
 module Fsi =    
     
-    type States = Ready|Evaluating
+    type State = Ready|Evaluating
+
     type Mode   = Sync |Async
 
     [<AbstractClass; Sealed>]
@@ -30,7 +34,7 @@ module Fsi =
         static let startedEv        = new Event<Mode>() 
         static let runtimeErrorEv   = new Event<Exception>() 
         static let canceledEv       = new Event<Mode>() 
-        static let completedEv      = new Event<Mode>()
+        static let completedOkEv    = new Event<Mode>()
         static let isReadyEv        = new Event<Mode>()         
 
         ///The event that can be triggered  
@@ -52,10 +56,10 @@ module Fsi =
         static member Canceled = canceledEv.Publish
 
         ///The event that can be triggered
-        static member completed = completedEv        
+        static member completedOk = completedOkEv        
         /// This event will be trigger after succesfull completion, NOT on runtime error or cancelling of Fsi
         [<CLIEvent>]
-        static member Completed = completedEv.Publish
+        static member CompletedOk = completedOkEv.Publish
 
         ///The event that can be triggered
         static member isReady  = isReadyEv         
@@ -125,41 +129,38 @@ module Fsi =
         --quotations-debug[+|-]                  Emit debug information in quotations
         --shadowcopyreferences[+|-]              Prevents references from being locked by the F# Interactive process
         *)
-        //async{
-            //do! Async.SwitchToThreadPool()
-            //do! Async.SwitchToContext Sync.syncContext
-            let timer = Util.Timer()
-            timer.tic()
-            //if session.IsSome then session.Value.Interrupt()  //TODO does this cancel it Ok ??         
+       
+        let timer = Util.Timer()
+        timer.tic()
+        //if session.IsSome then session.Value.Interrupt()  //TODO does this cancel it Ok ??         
             
-            let inStream = new StringReader("")
-            // first arg is ignored: https://github.com/fsharp/FSharp.Compiler.Service/issues/420 and https://github.com/fsharp/FSharp.Compiler.Service/issues/877 and  https://github.com/fsharp/FSharp.Compiler.Service/issues/878            
-            let allArgs = [|"" ; "--langversion:preview" ; "--noninteractive" ; "--debug+"; "--debug:full" ;"--optimize+" ;"--nologo"; "--gui-"|] // ; "--shadowcopyreferences" is ignored https://github.com/fsharp/FSharp.Compiler.Service/issues/292           
-            let fsiConfig = FsiEvaluationSession.GetDefaultConfiguration() // https://github.com/dotnet/fsharp/blob/4978145c8516351b1338262b6b9bdf2d0372e757/src/fsharp/fsi/fsi.fs#L2839
-            let fsiSession = FsiEvaluationSession.Create(fsiConfig, allArgs, inStream, Log.TextWriterFsiStdOut, Log.TextWriterFsiErrorOut) //, collectible=false ??) //TODO add error logger window
-            AppDomain.CurrentDomain.UnhandledException.Add(fun ex -> Log.print "*** FSI background exception:\r\n %A" ex.ExceptionObject)
-            Console.SetOut  (Log.TextWriterConsoleOut) //needed to redirect printfn ? //https://github.com/fsharp/FSharp.Compiler.Service/issues/201
-            Console.SetError(Log.TextWriterConsoleError) //TODO needed if evaluate non throwing ? 
-            //if mode = Mode.Sync then do! Async.SwitchToContext Sync.syncContext            
-            //fsiSession.Run()// dont do this it crashes the app when hosted in Rhino! 
-            if session.IsNone then Log.print "* Time for loading FSharp Interactive: %s"  timer.tocEx
-            session <- Some fsiSession
+        let inStream = new StringReader("")
+        // first arg is ignored: https://github.com/fsharp/FSharp.Compiler.Service/issues/420 and https://github.com/fsharp/FSharp.Compiler.Service/issues/877 and  https://github.com/fsharp/FSharp.Compiler.Service/issues/878            
+        let allArgs = [|"" ; "--langversion:preview" ; "--noninteractive" ; "--debug+"; "--debug:full" ;"--optimize+" ; "--gui-" ; "--nologo"|] // ; "--shadowcopyreferences" is ignored https://github.com/fsharp/FSharp.Compiler.Service/issues/292           
+        let fsiConfig = FsiEvaluationSession.GetDefaultConfiguration() // https://github.com/dotnet/fsharp/blob/4978145c8516351b1338262b6b9bdf2d0372e757/src/fsharp/fsi/fsi.fs#L2839
+        let fsiSession = FsiEvaluationSession.Create(fsiConfig, allArgs, inStream, Log.TextWriterFsiStdOut, Log.TextWriterFsiErrorOut) //, collectible=false ??) //TODO add error logger window
+        AppDomain.CurrentDomain.UnhandledException.Add(fun ex -> Log.print "*** FSI AppDomain.CurrentDomain.UnhandledException:\r\n %A" ex.ExceptionObject)
+        Console.SetOut  (Log.TextWriterConsoleOut)   // TODO needed to redirect printfn ? //https://github.com/fsharp/FSharp.Compiler.Service/issues/201
+        Console.SetError(Log.TextWriterConsoleError) // TODO needed if evaluate non throwing ? 
+        //if mode = Mode.Sync then do! Async.SwitchToContext Sync.syncContext            
+        //fsiSession.Run()// dont do this it crashes the app when hosted in Rhino! 
+        if session.IsNone then Log.print "* Time for loading FSharp Interactive: %s"  timer.tocEx
+        session <- Some fsiSession
+        if Config.currentRunContext <> Model.RunContext.Standalone then 
             match mode with
             |Sync ->  Log.printInfoMsg "*FSharp Interactive will evaluate synchronously on UI Thread."
             |Async -> Log.printInfoMsg "*FSharp Interactive will evaluate asynchronously on new Thread."            //}
-            timer.stop()
+        timer.stop()
     
     // to be able to cancel running Fsi eval
     let mutable private thread :Thread option = None
     //let mutable private fsiCancelScr :CancellationTokenSource option = None
 
 
-
     [< Security.SecurityCritical; Runtime.ExceptionServices.HandleProcessCorruptedStateExceptions>] //to handle AccessViolationException too //https://stackoverflow.com/questions/3469368/how-to-handle-accessviolationexception/4759831
     let private eval(code)=
         state <- Evaluating
         //fsiCancelScr <- Some (new CancellationTokenSource())
-        //UI.log.Background <- Appearance.logBackgroundFsiEvaluating //do in event below
         Events.started.Trigger(mode) // do always sync
         if session.IsNone then  startSession()     // sync 
         
@@ -176,7 +177,7 @@ module Fsi =
                         new UnhandledExceptionEventHandler( ProcessCorruptedState.Handler)) //https://stackoverflow.com/questions/14711633/my-c-sharp-application-is-returning-0xe0434352-to-windows-task-scheduler-but-it
 
                     let choice, errs =  
-                        try session.Value.EvalInteractionNonThrowing(code)//,fsiCancelScr.Value.Token)   // cancellation token here fails to cancel in sync, might still throw OperationCanceledException if async       
+                        try session.Value.EvalInteractionNonThrowing(code) //,fsiCancelScr.Value.Token)   // cancellation token here fails to cancel in sync, might still throw OperationCanceledException if async       
                         with e -> Choice2Of2 e , [| |]
             
                     if mode = Mode.Async then do! Async.SwitchToContext Sync.syncContext 
@@ -186,7 +187,7 @@ module Fsi =
             
                     match choice with //TODO move out ?
                     |Choice1Of2 vo -> 
-                        Events.completed.Trigger(mode)
+                        Events.completedOk.Trigger(mode)
                         Events.isReady.Trigger(mode)
                         for e in errs do Log.printFsiErrorMsg "****Why Error: %A" e
                         //match vo with None-> () |Some v -> Log.print "Interaction evaluted to %A <%A>" v.ReflectionValue v.ReflectionType
@@ -197,6 +198,7 @@ module Fsi =
                             Events.canceled.Trigger(mode)
                             Events.isReady.Trigger(mode)
                             Log.printInfoMsg "**Fsi evaluation was canceled: %s" exn.Message                    
+                        
                         | :? FsiCompilationException -> 
                             Events.runtimeError.Trigger(exn)
                             Events.isReady.Trigger(mode)
@@ -209,7 +211,7 @@ module Fsi =
                             Log.printFsiErrorMsg "Runtime Error: %A" exn     
                     } 
             
-            Async.StartImmediate(a)// cancellation token here fails to cancel evaluation,
+            Async.StartImmediate(a) // a cancellation token here fails to cancel evaluation,
             )
         
         thread<-Some thr
@@ -317,13 +319,9 @@ module Fsi =
         //Events.IsReady.Add         (fun _ -> Log.printDebugMsg " +Fsi isReady+")      
         //Events.Started.Add         (fun _ -> Log.printDebugMsg " +Fsi Started+")
         //Events.Completed.Add       (fun _ -> Log.printDebugMsg " +Fsi Completed+")
-
-        //Events.RuntimeError.Add    (fun _  -> Log.printFsiErrorMsg "+Fsi RuntimeError(2):+")
-        
-        Events.RuntimeError.Add (fun _ -> UI.log.Background <- Appearance.logBackgroundFsiReady)  // <- Appearance.logBackgroundFsiHadError)
+                
+        Events.IsReady.Add      (fun _ -> UI.log.Background <- Appearance.logBackgroundFsiReady) 
         Events.Started.Add      (fun _ -> UI.log.Background <- Appearance.logBackgroundFsiEvaluating) // happens at end of eval in sync mode
-        Events.Completed.Add    (fun _ -> UI.log.Background <- Appearance.logBackgroundFsiReady)
-        Events.Canceled.Add     (fun _ -> UI.log.Background <- Appearance.logBackgroundFsiReady)
 
         StatusBar.asyncDesc.MouseDown.Add(fun _ -> toggleSync())
         

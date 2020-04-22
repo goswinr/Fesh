@@ -16,8 +16,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Update="FSharp.Core" Version="4.7.0" GeneratePathProperty="true" /> <!-- path property $(PkgFSharp_Core) is C:\Users\Gos\.nuget\packages\fsharp.core\4.7.0 -->
-    <PackageReference Include="FSharp.Compiler.Service" Version="33.0.1" />
+    <PackageReference Update="FSharp.Core" Version="4.7.1" GeneratePathProperty="true" /> <!-- path property $(PkgFSharp_Core) is C:\Users\Gos\.nuget\packages\fsharp.core\4.7.0 -->
+    <PackageReference Include="FSharp.Compiler.Service" Version="34.0.1" />
     <!-- <PackageReference Include="AvalonEdit" Version="6.0.0" /> use custom build of it instead-->    
   </ItemGroup>
 
@@ -44,7 +44,7 @@
   <ItemGroup>
 
     <EmbeddedResource Include="Media\Logo15.res" />
-    <Resource Include="Media\Logo15.ico" />
+    <Resource Include="Media\Logo15.ico">  <CopyToOutputDirectory>Never</CopyToOutputDirectory>    </Resource>
 
     <None Include="FSharpSynatxHighlighterExtended.xshd">    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>    </None>
 
@@ -58,7 +58,6 @@
     <Compile Include="04_UtilWPF.fs" />
     <Compile Include="Config.fs" />
     <Compile Include="11_UI.fs" />
-    <Compile Include="12_UI_Log.fs" />
     <Compile Include="31_UI_BackgroundRenderer.fs" />
     <Compile Include="32_UI_Tab.fs" />
     <Compile Include="33_ToolTipFormatter.fs" />

@@ -16,10 +16,9 @@ module Appearance=
     
     let logBackgroundFsiEvaluating   =  Brushes.White    |> darker 30 
     let logBackgroundFsiReady    =      Brushes.White
-    //let logBackgroundFsiHadError =      Brushes.DarkRed
     let editorBackgroundOk       =      Brushes.White
     let editorBackgroundErr      =      Brushes.Red      |> brighter 240 // very light pink
-    let editorBackgroundChecking =      Brushes.White    |> darker 55    // light grey
+    let editorBackgroundChecking =      Brushes.White    |> darker 45    // light grey
 
     let defaultFontSize = 14.0
     let defaultFont = FontFamily("Consolas")
@@ -35,11 +34,9 @@ module Appearance=
         l.WordWrap         <- true
         l.Options.EnableHyperlinks <- true 
         l.Background <- logBackgroundFsiReady
-        //l.Foreground <- Brushes.White
         l.TextArea.TextView.LinkTextForegroundBrush <- l.Foreground //Hyperlinks color
         l.TextArea.SelectionCornerRadius <- 0.0 
-        l.TextArea.SelectionBorder <- null
-        //l.TextArea.SelectionForeground <- Brushes.White // ignored if DocumentColorizingTransformer active on foreground.
+        l.TextArea.SelectionBorder <- null        
         l.VerticalScrollBarVisibility <- ScrollBarVisibility.Auto        
         if Config.Settings.getBool "logHasLineWrap" true then 
             l.WordWrap         <- true // or 
