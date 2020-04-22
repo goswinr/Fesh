@@ -139,7 +139,7 @@ module FileDialogs =
             true        
         if t.CodeAtLastSave = t.Editor.Text then cls()
         else 
-            match MessageBox.Show("Do you want to save changes before closing this tab?", dialogCaption, MessageBoxButton.YesNoCancel, MessageBoxImage.Question) with
+            match MessageBox.Show("Do you want to \r\nsave the changes \r\nbefore closing this tab?", dialogCaption, MessageBoxButton.YesNoCancel, MessageBoxImage.Question) with
             | MessageBoxResult.Yes -> if saveAs t then cls() else false
             | MessageBoxResult.No -> cls()
             | _ -> false
@@ -152,7 +152,7 @@ module FileDialogs =
         else
             let msg = openFs  |> Seq.fold (fun m t -> 
                 let name  = if t.FileInfo.IsSome then t.FileInfo.Value.Name else textForUnsavedFile
-                sprintf "%s\r\n\r\n%s" m name) "Do you want to save the changes to:" 
+                sprintf "%s\r\n\r\n%s" m name) "Do you want to \r\nsave the changes to:" 
             match MessageBox.Show(msg, dialogCaption, MessageBoxButton.YesNoCancel, MessageBoxImage.Question) with
             | MessageBoxResult.Yes -> 
                 let OKs = seq { for t in Tab.allTabs do if t.CodeAtLastSave <> t.Editor.Text then yield save t }// if saving was canceled cancel closing
