@@ -25,7 +25,7 @@ module Config =
             } |> Async.Start
 
       
-    /// getString will only be called and file will only be written if after the delay the counter value is the same as before. (no more recent calls to this have been made)
+    /// getString will only be called and file will only be written if after the delay the counter value is the same as before. ( that means no more recent calls to this function have been made)
     let writeToFileDelayed (file, delay, counter :int64 ref ,readerWriterLock:ReaderWriterLockSlim, getString: unit->string) =
         async{
             let k = Threading.Interlocked.Increment counter
@@ -55,7 +55,7 @@ module Config =
                 sb.Append(k).Append(sep).AppendLine(v) |> ignore
             sb.ToString() 
 
-        static member val FilePath = "xyz" with get,set
+        static member val FilePath = "xyz" with get,set // set in Config.initialize()
 
         static member loadFromFile() = 
             try            
@@ -84,10 +84,10 @@ module Config =
         static member get k = 
             match settingsDict.TryGetValue k with 
             |true, v  -> 
-                //Log.printDebugMsg "get %s as %s" k v
+                Log.printDebugMsg "get %s as %s" k v
                 Some v
             |false, _ -> 
-                //Log.printDebugMsg "missing key %s " //TODO printing this will crash Rhino
+                Log.printDebugMsg "missing key %s " k //TODO printing this will crash Rhino
                 None
 
         static member Save () =                       
@@ -104,7 +104,7 @@ module Config =
     
     type DefaultCode private () =
         static let readerWriterLock = new ReaderWriterLockSlim()
-        static member val FilePath = "xyz" with get,set        
+        static member val FilePath = "xyz" with get,set        // set in Config.initialize()
 
         static member Get() =            
             try IO.File.ReadAllText DefaultCode.FilePath
@@ -116,7 +116,9 @@ module Config =
     /// files that are open when closing the editor window, for next restart
     type CurrentlyOpenFiles  private () = 
         static let readerWriterLock = new ReaderWriterLockSlim()
-        static member val FilePath = "xyz" with get,set        
+
+        static member val FilePath = "xyz" with get,set        // set in Config.initialize()
+
         static member Save (currentFile:FileInfo option , files: seq<FileInfo option>) =         
             let curr = if currentFile.IsSome then currentFile.Value.FullName else ""
             let sb = StringBuilder()
@@ -148,10 +150,13 @@ module Config =
         static let readerWriterLock = new ReaderWriterLockSlim()
 
         static let recentFilesStack = new Collections.Concurrent.ConcurrentStack<FileInfo>()// might contain even files that dont exist(on a currently detached drive)
+
         static let recentFilesReOpened = new ResizeArray<FileInfo>() // to put them first in the menue
         
+        /// the maximum number of recxent files to be saved
         static member val maxCount = 30 with get       
-        static member val FilePath = "xyz" with get,set
+
+        static member val FilePath = "xyz" with get,set // set in Config.initialize()
 
         static member Save() =         
              let sb = StringBuilder()
@@ -198,7 +203,7 @@ module Config =
                 sb.Append(k).Append(sep).AppendLine(v.ToString()) |> ignore
             sb.ToString() 
 
-        static member val FilePath = "xyz" with get,set
+        static member val FilePath = "xyz" with get,set // set in Config.initialize()
 
         static member loadFromFile() =
             async{
@@ -235,6 +240,7 @@ module Config =
     let mutable currentRunContext = Standalone
 
     let initialize(context:RunContext) =
+        Log.initialize() // so debug text is available
         currentRunContext <- context
         let configFilesFolder = IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"Seff")
         IO.Directory.CreateDirectory(configFilesFolder) |> ignore
@@ -250,6 +256,7 @@ module Config =
         Settings.loadFromFile()
         AutoCompleteStatistic.loadFromFile()
 
+(*
 /// persitance of user settings such as recent files and window location and size  
 module ConfigOLDUNUSED = 
     
@@ -486,3 +493,5 @@ module ConfigOLDUNUSED =
                 with e -> 
                     logger ("Error saving  fileCompletionStats:" + e.Message + Environment.NewLine + e.StackTrace)
             } |> Async.Start 
+
+*)

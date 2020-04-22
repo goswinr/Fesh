@@ -6,7 +6,6 @@ open System.Windows
 open System.IO
 open System.Threading
 open FSharp.Compiler.Interactive.Shell
-open Seff.Logging
 
 
 type internal ProcessCorruptedState =  

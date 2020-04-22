@@ -26,6 +26,8 @@ module Logging =
 
     type private LogLineColorizer(editor:AvalonEdit.TextEditor) = 
         inherit AvalonEdit.Rendering.DocumentColorizingTransformer()
+        
+        /// This gets called for every visvble line on any view change
         override this.ColorizeLine(line:AvalonEdit.Document.DocumentLine) =       
            let ok,color = LineColors.TryGetValue(line.LineNumber)
            if ok && not line.IsDeleted then
@@ -46,9 +48,10 @@ module Logging =
                             if st < seg.StartOffset && seg.StartOffset < en then base.ChangeLinePart(st, seg.StartOffset, fun element -> element.TextRunProperties.SetForegroundBrush(color))
                             if en > seg.EndOffset   && seg.EndOffset   > st then base.ChangeLinePart(seg.EndOffset,   en, fun element -> element.TextRunProperties.SetForegroundBrush(color))
     
+    [<AllowNullLiteral>]
     type LogView () =
         let editor =  
-            let e = AvalonEdit.TextEditor()
+            let e = new AvalonEdit.TextEditor()
             e.IsReadOnly <- true
             e.Encoding <- Text.Encoding.Default
             e.TextArea.TextView.LineTransformers.Add(new LogLineColorizer(e))
@@ -72,7 +75,7 @@ module Logging =
             let start = editor.Document.TextLength
             editor.AppendText(txt)
             
-            //if type<>PrintMsg then 
+            //if type<>PrintMsg then //TODO exlude default print color, it should be same as foreground anyway
             let mutable line = editor.Document.GetLineByOffset(start) 
             //editor.Document.Insert( line.EndOffset, sprintf "(%d:%A)" line.LineNumber ty) //for DEBUG only
             //editor.AppendText(sprintf "(1st Line %d, %d chars:%A)" line.LineNumber line.Length ty) //for DEBUG only
@@ -91,16 +94,16 @@ module Logging =
 
         /// adds string on UI thread  every 150ms then scrolls to end after 300ms
         /// sets line color on LineColors dictionay for DocumentColorizingTransformer
-        let printOrBuffer (s:string,ty:LogMessageType) =
+        member this.printOrBuffer (s:string,ty:LogMessageType) =
             async {
                 do! Async.SwitchToContext Sync.syncContext 
-                if prevMsgType<>ty then // print case 1
+                if prevMsgType<>ty then // print case 1, color change
                     printFromBufferAndScroll(prevMsgType) 
                     prevMsgType <- ty
 
                 buffer.Append(s)  |> ignore 
 
-                if stopWatch.ElapsedMilliseconds > 150L  && s.Contains(NewLine) then //// print case 2, only add to document every 150ms
+                if stopWatch.ElapsedMilliseconds > 150L  && s.Contains(NewLine) then // print case 2, only add to document every 150ms
                     printFromBufferAndScroll(ty)                
                 else                        
                     let k = Interlocked.Increment printCallsCounter
@@ -109,38 +112,47 @@ module Logging =
                         printFromBufferAndScroll(ty)
                     
             } |> Async.StartImmediate 
-
-
-
-        /// to acces the underlying Avalonedit Texteditor
+        
+        /// to acces the underlying read only Avalonedit Texteditor
         member this.Editor = editor
 
-        //used in fsi constructor:
-        member val TextWriterFsiStdOut     = new FsxTextWriter(fun s -> printOrBuffer (s,FsiStdOut    ))
-        member val TextWriterFsiErrorOut   = new FsxTextWriter(fun s -> printOrBuffer (s,FsiErrorOut  ))
-        member val TextWriterConsoleOut    = new FsxTextWriter(fun s -> printOrBuffer (s,ConsoleOut   ))
-        member val TextWriterConsoleError  = new FsxTextWriter(fun s -> printOrBuffer (s,ConsoleError ))
-        // used for printf:
-        member val TextWriterInfoMsg       = new FsxTextWriter(fun s -> printOrBuffer (s,InfoMsg      ))
-        member val TextWriterFsiErrorMsg   = new FsxTextWriter(fun s -> printOrBuffer (s,FsiErrorMsg  ))
-        member val TextWriterAppErrorMsg   = new FsxTextWriter(fun s -> printOrBuffer (s,AppErrorMsg  ))
-        member val TextWriterIOErrorMsg    = new FsxTextWriter(fun s -> printOrBuffer (s,IOErrorMsg   ))
-        member val TextWriterDebugMsg      = new FsxTextWriter(fun s -> printOrBuffer (s,DebugMsg     ))
-        member val TextWriterPrintMsg      = new FsxTextWriter(fun s -> printOrBuffer (s,PrintMsg     ))
+    //let Log = new LogView() // this is lazy, instead use a static class, so that it can be initalized early,
 
-            
-        //member this.printFsiStdOut    s =  Printf.fprintfn this.TextWriterFsiStdOut    s  //should not be used
-        //member this.printFsiErrorOut  s =  Printf.fprintfn this.TextWriterFsiErrorOut  s
-        //member this.printConsoleOut   s =  Printf.fprintfn this.TextWriterConsoleOut   s
-        //member this.printConsoleError s =  Printf.fprintfn this.TextWriterConsoleError s
-        member this.printInfoMsg      s =  Printf.fprintfn this.TextWriterInfoMsg      s
-        member this.printFsiErrorMsg  s =  Printf.fprintfn this.TextWriterFsiErrorMsg  s
-        member this.printAppErrorMsg  s =  Printf.fprintfn this.TextWriterAppErrorMsg  s
-        member this.printIOErrorMsg   s =  Printf.fprintfn this.TextWriterIOErrorMsg   s        
-        member this.printDebugMsg     s =  Printf.fprintfn this.TextWriterDebugMsg     s
+type Log  private () =    
+    // just uing a let value  like (let Log = new LogView()) has some bugs in hosted context (Rhino), I think due to late initalizing
+    // so here is a static class with explicit init
 
-        /// like printfn, use with format strings, adds new line
-        member this.print s             =  Printf.fprintfn this.TextWriterPrintMsg     s
+    static let mutable log : Logging.LogView = null 
     
-    let Log = new LogView()
+    static member initialize() = log <- new Logging.LogView() //will be called in Conig.initialize()
 
+    /// to acces the underlying read only Avalonedit Texteditor
+    static member Editor = log.Editor
+
+    //used in fsi constructor:
+    static member val TextWriterFsiStdOut     = new Logging.FsxTextWriter(fun s -> log.printOrBuffer (s,FsiStdOut    ))
+    static member val TextWriterFsiErrorOut   = new Logging.FsxTextWriter(fun s -> log.printOrBuffer (s,FsiErrorOut  ))
+    static member val TextWriterConsoleOut    = new Logging.FsxTextWriter(fun s -> log.printOrBuffer (s,ConsoleOut   ))
+    static member val TextWriterConsoleError  = new Logging.FsxTextWriter(fun s -> log.printOrBuffer (s,ConsoleError ))
+    
+    // used for printf formaters:                                                     
+    static member val TextWriterInfoMsg       = new Logging.FsxTextWriter(fun s -> log.printOrBuffer (s,InfoMsg      ))
+    static member val TextWriterFsiErrorMsg   = new Logging.FsxTextWriter(fun s -> log.printOrBuffer (s,FsiErrorMsg  ))
+    static member val TextWriterAppErrorMsg   = new Logging.FsxTextWriter(fun s -> log.printOrBuffer (s,AppErrorMsg  ))
+    static member val TextWriterIOErrorMsg    = new Logging.FsxTextWriter(fun s -> log.printOrBuffer (s,IOErrorMsg   ))
+    static member val TextWriterDebugMsg      = new Logging.FsxTextWriter(fun s -> log.printOrBuffer (s,DebugMsg     ))
+    static member val TextWriterPrintMsg      = new Logging.FsxTextWriter(fun s -> log.printOrBuffer (s,PrintMsg     ))
+
+
+    static member printFsiStdOut    s =  Printf.fprintfn Log.TextWriterFsiStdOut    s  //should not be used
+    static member printFsiErrorOut  s =  Printf.fprintfn Log.TextWriterFsiErrorOut  s
+    static member printConsoleOut   s =  Printf.fprintfn Log.TextWriterConsoleOut   s
+    static member printConsoleError s =  Printf.fprintfn Log.TextWriterConsoleError s
+    static member printInfoMsg      s =  Printf.fprintfn Log.TextWriterInfoMsg      s
+    static member printFsiErrorMsg  s =  Printf.fprintfn Log.TextWriterFsiErrorMsg  s
+    static member printAppErrorMsg  s =  Printf.fprintfn Log.TextWriterAppErrorMsg  s
+    static member printIOErrorMsg   s =  Printf.fprintfn Log.TextWriterIOErrorMsg   s        
+    static member printDebugMsg     s =  Printf.fprintfn Log.TextWriterDebugMsg     s
+    
+    /// like printfn, use with format strings, adds new line
+    static member print s             =  Printf.fprintfn Log.TextWriterPrintMsg     s

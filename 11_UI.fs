@@ -135,7 +135,7 @@ module UI =
     let tabControl      = new TabControl()
     let splitterHor     = new GridSplitter()             |> Appearance.setForHorSplitter
     let splitterVert    = new GridSplitter()             |> Appearance.setForVertSplitter
-    let log             = Logging.Log.Editor             |> Appearance.setForLog
+    let log             = Log.Editor             |> Appearance.setForLog
     
     
     let gridHor() = 
