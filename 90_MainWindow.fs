@@ -10,7 +10,8 @@ open Seff.Logging
 
 
 module MainWindow =    
-
+    
+    (*
     let private setIcon (win:Window) = 
         // the Icon at the top left of the window and in the status bar, 
         // (for the exe file icon in explorer use <Win32Resource>Media\AppIcon.res</Win32Resource>  in fsproj )
@@ -18,7 +19,7 @@ module MainWindow =
         let uri = new Uri("pack://application:,,,/Seff;component/Media/Logo15.ico", UriKind.RelativeOrAbsolute)
         try  win.Icon <-  Media.Imaging.BitmapFrame.Create(Application.GetResourceStream(uri).Stream)
         with ex -> Log.print  "Failed to load Media/Logo15.ico from Application.ResourceStream : %A" ex
-    
+    *)
     
 
 
@@ -30,8 +31,10 @@ module MainWindow =
         // https://github.com/fsharp/FSharp.Compiler.Service/blob/71272426d0e554e0bac32ad349bbd9f5fa8a3be9/src/fsharp/service/service.fs#L35
 
         let win = new Window()
-        
-        
+        win.Title       <-"Seff | FSharp Scripting Editor"
+        win.Content     <- if Settings.getBool "isVertSplit" false then UI.gridVert() else UI.gridHor() 
+        win.ResizeMode  <- ResizeMode.CanResize 
+        win.Background  <- UI.menu.Background // otherwise space next to tabs is in an odd color)
         
         EventHandlers.setUpForWindowSizing(win)
         win.InputBindings.AddRange Commands.allShortCutKeyGestures  
@@ -49,16 +52,10 @@ module MainWindow =
         AppDomain.CurrentDomain.UnhandledException.AddHandler (//catching unhandled exceptions generated from all threads running under the context of a specific application domain. //https://dzone.com/articles/order-chaos-handling-unhandled
             new UnhandledExceptionEventHandler( Seff.ProcessCorruptedState.Handler)) //https://stackoverflow.com/questions/14711633/my-c-sharp-application-is-returning-0xe0434352-to-windows-task-scheduler-but-it
         
-        win.Loaded.Add ( fun _ ->  // TODO delaying this does not help with Rhino crash on reading Editor hight from config
-            win.Title       <-"Seff | FSharp Scripting Editor"
-            win.Content     <- if Settings.getBool "isVertSplit" false then UI.gridVert() else UI.gridHor() 
-            win.ResizeMode  <- ResizeMode.CanResize 
-            win.Background  <- UI.menu.Background // otherwise space next to tabs is in an odd color)
-            )
-
+       
         win.Loaded.Add (fun _ ->
             Log.print "* Time for loading main window: %s"  timer.tocEx
-            setIcon(win)             
+            //setIcon(win)             
             
             CreateTab.loadArgsAndOpenFilesOnLastAppClosing(args)
             RecentlyUsedFiles.loadRecentFilesMenu Menu.RecentFiles.updateRecentMenue
@@ -69,12 +66,13 @@ module MainWindow =
             |Hosted _ ->     // allow sync execution only for hosted context
                 if Settings.getBool "asyncFsi" (Fsi.mode=Async) then Fsi.setMode(Mode.Async) else Fsi.setMode(Mode.Sync) 
                 StatusBar.addSwitchFforSyncchonisationMode()
-            |Standalone -> Settings.setBool "asyncFsi" true; Fsi.setMode(Mode.Async)// always async
+            |Standalone -> 
+                Settings.setBool "asyncFsi" true
+                Fsi.setMode(Mode.Async)// always async
             
             
             //win.Activate() |> ignore // needed ?           
-            //Tab.currEditor.Focus() |> ignore // can be null ? needed ?
-            
+            //Tab.currEditor.Focus() |> ignore // can be null ? needed ?            
             )    
         
         
