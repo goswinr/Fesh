@@ -11,13 +11,13 @@
     <RootNamespace>Seff</RootNamespace>
     <AssemblyName>Seff</AssemblyName>
     <ApplicationIcon>Media\Logo15.ico</ApplicationIcon>
-    <Win32Resource>Media\Logo15.res</Win32Resource> <!--  for Application Icon in explorer, adapt path as needed-->
-    
+    <Win32Resource>Media\Logo15.res</Win32Resource> <!--  for Application Icon in explorer, adapt path as needed-->    
   </PropertyGroup>
+
 
   <ItemGroup>
     <PackageReference Update="FSharp.Core" Version="4.7.1" GeneratePathProperty="true" /> <!-- path property $(PkgFSharp_Core) is C:\Users\Gos\.nuget\packages\fsharp.core\4.7.1 -->
-    <PackageReference Include="FSharp.Compiler.Service" Version="33.0.1" />
+    <PackageReference Include="FSharp.Compiler.Service" Version="33.0.1" />    <!-- can not go to 34.0.1 or higher because the app will not work hosted in Rhino anymore: https://github.com/fsharp/FSharp.Compiler.Service/issues/935 -->
     <!-- <PackageReference Include="AvalonEdit" Version="6.0.0" /> use custom build of it instead-->    
   </ItemGroup>
 
@@ -27,9 +27,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    
-    <!-- <Reference Include="ICSharpCode.AvalonEdit">      <HintPath>..\AvalonEdit\ICSharpCode.AvalonEdit\bin\Release\net45\ICSharpCode.AvalonEdit.dll</HintPath>    </Reference>-->   
-    
+        
     <Reference Include="PresentationCore" />
     <Reference Include="PresentationFramework" />
     <Reference Include="ReachFramework" />
@@ -82,10 +80,9 @@
   </ItemGroup>
 
 
-  <!--<ItemGroup>
+  <ItemGroup>
     <Folder Include="Properties\" />
-  </ItemGroup> -->
-
+  </ItemGroup>
 
    
   <Target Name="CopyFilesOverAfterBuild" BeforeTargets="AfterBuild">

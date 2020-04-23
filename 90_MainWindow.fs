@@ -11,15 +11,15 @@ open Seff.Logging
 
 module MainWindow =    
     
-    (*
+    
     let private setIcon (win:Window) = 
-        // the Icon at the top left of the window and in the status bar, 
-        // (for the exe file icon in explorer use <Win32Resource>Media\AppIcon.res</Win32Resource>  in fsproj )
+        // the Icon at the top left of the window and in the status bar,         
         // musst be function to be calld at later moment(eg. after loading). Build action : "Resource"; Copy to ouput Dir: "Do not copy" 
+        // (for the exe file icon in explorer use <Win32Resource>Media\Logo15.res</Win32Resource>  in fsproj )
         let uri = new Uri("pack://application:,,,/Seff;component/Media/Logo15.ico", UriKind.RelativeOrAbsolute)
         try  win.Icon <-  Media.Imaging.BitmapFrame.Create(Application.GetResourceStream(uri).Stream)
         with ex -> Log.print  "Failed to load Media/Logo15.ico from Application.ResourceStream : %A" ex
-    *)
+    
     
 
 
@@ -55,7 +55,7 @@ module MainWindow =
        
         win.Loaded.Add (fun _ ->
             Log.print "* Time for loading main window: %s"  timer.tocEx
-            //setIcon(win)             
+            setIcon(win)             
             
             CreateTab.loadArgsAndOpenFilesOnLastAppClosing(args)
             RecentlyUsedFiles.loadRecentFilesMenu Menu.RecentFiles.updateRecentMenue
