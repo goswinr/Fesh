@@ -90,58 +90,7 @@ module Util =
     let sameFile (f1:IO.FileInfo) (f2:IO.FileInfo) =
         f1.FullName.ToLowerInvariant() = f2.FullName.ToLowerInvariant()
     
-    (*
-    /// Post to this agent for writing a debug string to a desktop file. Only used for bugs that cant be logged to the UI.
-    let fileLoggingAgent = // for async debug logging to a file (if the Log window fails to show)
-        let file = IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop),"Seff-DebugLog.txt")
-        MailboxProcessor.Start(
-            fun inbox ->
-                let rec loop () = 
-                    async { let! msg = inbox.Receive()
-                            IO.File.AppendAllText(file, Environment.NewLine + msg)
-                            return! loop()}
-                loop() )
 
-    // Post to this agent for writing a file async.
-    let fileWriter = 
-        MailboxProcessor.Start( //MailboxProcessor allows writing even when previous write is not finisched yet
-            fun inbox ->
-                let rec loop () = 
-                    async { let! (path,content) = inbox.Receive()
-                            IO.File.WriteAllText(path, content)
-                            return! loop()}
-                loop() )
-    
-    // Post to this agent for writing a file async.
-    let fileWriterLines = 
-        MailboxProcessor.Start( //MB allows writing even when previous write is not finisched yet
-            fun inbox ->
-                let rec loop () = 
-                    async { let! (path,content) = inbox.Receive()
-                            IO.File.WriteAllLines(path, content)
-                            return! loop()}
-                loop() )
-                *)
-
-
-    /// <summary>Uses reflection to get the field value from an object.</summary>
-    /// <param name="type">The instance type.</param>
-    /// <param name="instance">The instance object.</param>
-    /// <param name="fieldName">The field's name which is to be fetched.</param>
-    /// <returns>The field value from the object.</returns>
-    let getField(typeDecs:Type, instance:obj, fieldName)=
-        let  bindFlags = BindingFlags.Instance ||| BindingFlags.Public ||| BindingFlags.NonPublic ||| BindingFlags.Static
-        let field = typeDecs.GetField(fieldName, bindFlags)
-        field.GetValue(instance)
-    
-    ////Getting a sequence of all union cases in discriminated union 
-    ///This returns a sequence of union cases for a given discriminated union type, 
-    ///the values in this sequence can be passed into any place that expects a case of that discriminated union. 
-    ///Useful for use as the option values for a combobox, 
-    ///or for printing out all available options for that given discriminated union    
-    let getAllUnionCases<'T>() =
-        FSharpType.GetUnionCases(typeof<'T>)
-        |> Seq.map (fun x -> FSharpValue.MakeUnion(x, Array.zeroCreate(x.GetFields().Length)) :?> 'T)
 
 module StringUtil =
     let removeSpecialChars (str:string) = 
@@ -230,35 +179,56 @@ module StringUtil =
                 s.Substring(start + a.Length, ende - start - a.Length),// finds text betwween two chars
                 s.Substring(ende + b.Length)
 
-module Extern =
-    open System.Runtime.InteropServices
+module UnusedAndObsolete = //TODO delete
 
-    [<DllImport "user32.dll">] 
-    extern IntPtr FindWindow(string lpClassName,string lpWindowName)
+    /// <summary>Uses reflection to get the field value from an object.</summary>
+    /// <param name="type">The instance type.</param>
+    /// <param name="instance">The instance object.</param>
+    /// <param name="fieldName">The field's name which is to be fetched.</param>
+    /// <returns>The field value from the object.</returns>
+    let getField(typeDecs:Type, instance:obj, fieldName)=
+        let  bindFlags = BindingFlags.Instance ||| BindingFlags.Public ||| BindingFlags.NonPublic ||| BindingFlags.Static
+        let field = typeDecs.GetField(fieldName, bindFlags)
+        field.GetValue(instance)
     
-    [<DllImport "user32.dll">] 
-    extern IntPtr FindWindowEx(IntPtr parentHandle, IntPtr childAfter, string lclassName , string windowTitle)
+    ////Getting a sequence of all union cases in discriminated union 
+    ///This returns a sequence of union cases for a given discriminated union type, 
+    ///the values in this sequence can be passed into any place that expects a case of that discriminated union. 
+    ///Useful for use as the option values for a combobox, 
+    ///or for printing out all available options for that given discriminated union    
+    let getAllUnionCases<'T>() =
+        FSharpType.GetUnionCases(typeof<'T>)
+        |> Seq.map (fun x -> FSharpValue.MakeUnion(x, Array.zeroCreate(x.GetFields().Length)) :?> 'T)
+
+    module Extern =
+        open System.Runtime.InteropServices
+
+        [<DllImport "user32.dll">] 
+        extern IntPtr FindWindow(string lpClassName,string lpWindowName)
     
-    [<DllImport("user32.dll", CharSet=CharSet.Auto)>]
-    extern IntPtr SendMessage(IntPtr hWnd, uint32 Msg, IntPtr wParam , IntPtr lParam)
+        [<DllImport "user32.dll">] 
+        extern IntPtr FindWindowEx(IntPtr parentHandle, IntPtr childAfter, string lclassName , string windowTitle)
+    
+        [<DllImport("user32.dll", CharSet=CharSet.Auto)>]
+        extern IntPtr SendMessage(IntPtr hWnd, uint32 Msg, IntPtr wParam , IntPtr lParam)
 
-    /// installs a font from a filepath on this PC
-    [<DllImport("gdi32.dll", EntryPoint="AddFontResourceW", SetLastError=true)>]
-    extern int InstallFont([<In>][<MarshalAs(UnmanagedType.LPWStr)>]string fontFileName)
+        /// installs a font from a filepath on this PC
+        [<DllImport("gdi32.dll", EntryPoint="AddFontResourceW", SetLastError=true)>]
+        extern int InstallFont([<In>][<MarshalAs(UnmanagedType.LPWStr)>]string fontFileName)
 
-    let getChromeMainWindowUrl () = // use to scan for nuget(fuget) package and install it with paket
-        let ps = Diagnostics.Process.GetProcessesByName "chrome"
-        seq { 
-        for p in ps do
-        let mainWnd = FindWindow("Chrome_WidgetWin_1", p.MainWindowTitle)
-        let addrBar = FindWindowEx(mainWnd, 0n, "Chrome_OmniboxView", null)
-        if addrBar <> 0n then
-            let url = Marshal.AllocHGlobal 100
-            let WM_GETTEXT = 0x000Du
-            SendMessage (addrBar, WM_GETTEXT, 50n, url) |> ignore
-            let url = Marshal.PtrToStringUni url
-            yield url } 
-        |> Seq.head
+        let getChromeMainWindowUrl () = // use to scan for nuget(fuget) package and install it with paket
+            let ps = Diagnostics.Process.GetProcessesByName "chrome"
+            seq { 
+            for p in ps do
+            let mainWnd = FindWindow("Chrome_WidgetWin_1", p.MainWindowTitle)
+            let addrBar = FindWindowEx(mainWnd, 0n, "Chrome_OmniboxView", null)
+            if addrBar <> 0n then
+                let url = Marshal.AllocHGlobal 100
+                let WM_GETTEXT = 0x000Du
+                SendMessage (addrBar, WM_GETTEXT, 50n, url) |> ignore
+                let url = Marshal.PtrToStringUni url
+                yield url } 
+            |> Seq.head
 
         
 

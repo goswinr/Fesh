@@ -116,8 +116,7 @@ module Menu =
                 fromCmd Commands.SettingsFolder
                 MenuItem(Header = "_Help")
                 MenuItem(Header = "_Version 0.1.1")
-                fromCmd Commands.ReloadXshd
-                //MenuItem(Header = "Seff Assembly Buildtime "+Util.CompileTime.nowStrMenu)                
+                fromCmd Commands.ReloadXshd         
                 ]
             ]
         RecentFiles.insertPosition <- (UI.menu.Items.[0] :?> MenuItem).Items.Count // to put recent files at bottom of file menu

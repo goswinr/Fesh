@@ -20,8 +20,6 @@ module MainWindow =
         try  win.Icon <-  Media.Imaging.BitmapFrame.Create(Application.GetResourceStream(uri).Stream)
         with ex -> Log.print  "Failed to load Media/Logo15.ico from Application.ResourceStream : %A" ex
     
-    
-
 
     let create (args: string []) = 
         let timer = Timer()
@@ -34,7 +32,7 @@ module MainWindow =
         win.Title       <-"Seff | FSharp Scripting Editor"
         win.Content     <- if Settings.getBool "isVertSplit" false then UI.gridVert() else UI.gridHor() 
         win.ResizeMode  <- ResizeMode.CanResize 
-        win.Background  <- UI.menu.Background // otherwise space next to tabs is in an odd color)
+        win.Background  <- UI.menu.Background // otherwise space next to tab headers is in an odd color)
         
         EventHandlers.setUpForWindowSizing(win)
         win.InputBindings.AddRange Commands.allShortCutKeyGestures  
@@ -42,12 +40,12 @@ module MainWindow =
 
         Controls.ToolTipService.ShowOnDisabledProperty.OverrideMetadata( typeof<Controls.Control>,  new FrameworkPropertyMetadata(true)) //still show-tooltip-when a button(or menu item )  is disabled-by-command //https://stackoverflow.com/questions/4153539/wpf-how-to-show-tooltip-when-button-disabled-by-command
 
-        (* TODO this fails when debugging
+        (* //TODO with this the app fails to start. why?
         Application.Current.DispatcherUnhandledException.Add(fun e ->  //exceptions generated on the UI thread
             if e <> null then 
                 Log.print "Application.Current.DispatcherUnhandledException in main Thread: %A" e.Exception           
-                e.Handled<- true) 
-               *)
+                e.Handled<- true) *)
+               
        
         AppDomain.CurrentDomain.UnhandledException.AddHandler (//catching unhandled exceptions generated from all threads running under the context of a specific application domain. //https://dzone.com/articles/order-chaos-handling-unhandled
             new UnhandledExceptionEventHandler( Seff.ProcessCorruptedState.Handler)) //https://stackoverflow.com/questions/14711633/my-c-sharp-application-is-returning-0xe0434352-to-windows-task-scheduler-but-it
@@ -62,6 +60,7 @@ module MainWindow =
             
             //Log.print "** Time for loading recent files and recent menu: %s"  timer.tocEx
             
+            //conig and start FSI
             match Config.currentRunContext with
             |Hosted _ ->     // allow sync execution only for hosted context
                 if Settings.getBool "asyncFsi" (Fsi.mode=Async) then Fsi.setMode(Mode.Async) else Fsi.setMode(Mode.Sync) 
