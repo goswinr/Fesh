@@ -179,13 +179,15 @@ module EventHandlers =
                     //ErrorToolTipService.SetInitialShowDelay(tab.ErrorToolTip,50) // TODO does not work
                     //ErrorToolTipService.SetInitialShowDelay(this,50)// TODO does not work                    
                     //ErrorToolTipService.SetInitialShowDelay(tab.ErrorToolTip.Parent,50)// is null
-                        
+                else
+                    Log.printDebugMsg "markerWithMsg %A" markerWithMsg
+                    Log.printDebugMsg "tab.ErrorToolTip %A" tab.ErrorToolTip
                )
 
-        tView.MouseHoverStopped.Add ( fun e ->  if notNull tab.ErrorToolTip then (tab.ErrorToolTip.IsOpen <- false ))//; e.Handled <- true) )
+        tView.MouseHoverStopped.Add ( fun e ->  if notNull tab.ErrorToolTip then (tab.ErrorToolTip.IsOpen <- false ; e.Handled <- true) )
         tView.VisualLinesChanged.Add( fun e ->  if notNull tab.ErrorToolTip then  tab.ErrorToolTip.IsOpen <- false )
 
-        
+
         //------------------------------
         //--------Backspacing-----------
         //------------------------------  
