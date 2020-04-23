@@ -184,7 +184,9 @@ module EventHandlers =
                         //ErrorToolTipService.SetInitialShowDelay(this,50)// TODO does not work                    
                         //ErrorToolTipService.SetInitialShowDelay(tab.ErrorToolTip.Parent,50)// is null
                         
-                |None -> () )
+                |None -> 
+                    Log.printDebugMsg "Error toolTip null"
+                    () )
 
         tView.MouseHoverStopped.Add ( fun e ->  if notNull tab.ErrorToolTip then (tab.ErrorToolTip.IsOpen <- false ; e.Handled <- true) )
         tView.VisualLinesChanged.Add( fun e ->  if notNull tab.ErrorToolTip then  tab.ErrorToolTip.IsOpen <- false )

@@ -44,7 +44,7 @@ module CreateTab =
         EventHandlers.setUpForTab tab
         XshdHighlighting.setFSharp (tab.Editor,false)
         makeTabHeader(tab)
-        FileDialogs.updateHeader <- makeTabHeader
+        FileDialogs.updateHeader <- makeTabHeader //TODO why set this on every new Tab ?????
         //ModifyUI.markTabSaved(tab)// TODO this should not be needed
         
         Search.SearchPanel.Install(tab.Editor) |> ignore
