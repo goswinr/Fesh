@@ -163,6 +163,7 @@ module EventHandlers =
                     tb.FontFamily <- Appearance.defaultFont
                     tb.TextWrapping <- TextWrapping.Wrap
                     tb.Foreground <- Media.SolidColorBrush(Media.Colors.DarkRed)                    
+                    // TODO use popup instead of tooltip so it can be pinned?
                     tab.ErrorToolTip.Content <- tb
                     
                     let pos = tab.Editor.Document.GetLocation(markerWithMsg.StartOffset) 
@@ -176,15 +177,11 @@ module EventHandlers =
                     
                     tab.ErrorToolTip.IsOpen <- true
                     //e.Handled <- true
-                    //ErrorToolTipService.SetInitialShowDelay(tab.ErrorToolTip,50) // TODO does not work
-                    //ErrorToolTipService.SetInitialShowDelay(this,50)// TODO does not work                    
-                    //ErrorToolTipService.SetInitialShowDelay(tab.ErrorToolTip.Parent,50)// is null
-                else
-                    Log.printDebugMsg "markerWithMsg %A" markerWithMsg
-                    Log.printDebugMsg "tab.ErrorToolTip %A" tab.ErrorToolTip
+                    //ErrorToolTipService.SetInitialShowDelay(tab.ErrorToolTip,50) // do in main window create instead
+               
                )
 
-        tView.MouseHoverStopped.Add ( fun e ->  if notNull tab.ErrorToolTip then (tab.ErrorToolTip.IsOpen <- false ; e.Handled <- true) )
+        tView.MouseHoverStopped.Add ( fun e ->  if notNull tab.ErrorToolTip then  tab.ErrorToolTip.IsOpen <- false ) //; e.Handled <- true) )
         tView.VisualLinesChanged.Add( fun e ->  if notNull tab.ErrorToolTip then  tab.ErrorToolTip.IsOpen <- false )
 
 

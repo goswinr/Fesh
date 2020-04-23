@@ -158,7 +158,7 @@ module Tooltips =
             if pos.HasValue && tab.FsCheckerResult.IsSome then                            
                 let line = pos.Value.Line            
                 
-                //TODO check for in strimng to give #r tooltip
+                //TODO check for in string to give #r tooltip
                 //TODO find word boundary yourself
                 
                 let offset = doc.GetOffset(pos.Value.Location)
@@ -202,6 +202,7 @@ module Tooltips =
                         else                            
                             let ttPanel = stackPanel None ttds
                             if tab.TypeInfoToolTip.IsOpen then 
+                                // TODO hide tooltip and use use popup instead now, so it can be pinned?
                                 tab.TypeInfoToolTip.Content <- ttPanel
                         } |> Async.StartImmediate //TODO: add Cancellation ?
           
