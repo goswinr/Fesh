@@ -155,36 +155,32 @@ module EventHandlers =
                 let logicalPosition = pos.Value.Location
                 let offset = tab.Editor.Document.GetOffset(logicalPosition)
                 let markersAtOffset = tab.TextMarkerService.GetMarkersAtOffset(offset)
-                let markerWithMsgOp = markersAtOffset |> Seq.tryFind (fun marker -> notNull marker.Msg )
-                match markerWithMsgOp with 
-                |Some markerWithMsg -> 
-                    if notNull tab.ErrorToolTip then
-                        let tb = new TextBlock()
-                        tb.Text <- markerWithMsg.Msg        //TODO move styling out of event handler ?
-                        tb.FontSize <- Appearance.fontSize
-                        tb.FontFamily <- Appearance.defaultFont
-                        tb.TextWrapping <- TextWrapping.Wrap
-                        tb.Foreground <- Media.SolidColorBrush(Media.Colors.DarkRed)                    
-                        tab.ErrorToolTip.Content <- tb
+                let markerWithMsg = markersAtOffset.FirstOrDefault(fun marker -> marker.Msg <> null)//LINQ ??
+                if notNull markerWithMsg && notNull tab.ErrorToolTip then
+                    let tb = new TextBlock()
+                    tb.Text <- markerWithMsg.Msg        //TODO move styling out of event handler ?
+                    tb.FontSize <- Appearance.fontSize
+                    tb.FontFamily <- Appearance.defaultFont
+                    tb.TextWrapping <- TextWrapping.Wrap
+                    tb.Foreground <- Media.SolidColorBrush(Media.Colors.DarkRed)                    
+                    tab.ErrorToolTip.Content <- tb
                     
-                        let pos = tab.Editor.Document.GetLocation(markerWithMsg.StartOffset) 
-                        let tvpos= TextViewPosition(pos.Line,pos.Column) 
-                        let pt = tab.Editor.TextArea.TextView.GetVisualPosition(tvpos, Rendering.VisualYPosition.LineTop) //https://www.dazhuanlan.com/2019/07/03/wpf-position-a-tooltip-avalonedit%E6%B8%B8%E6%A0%87%E5%A4%84%E6%98%BE%E7%A4%BA/                    Posi
-                        let ptInclScroll = pt - tab.Editor.TextArea.TextView.ScrollOffset
-                        tab.ErrorToolTip.PlacementTarget <- tab.Editor.TextArea
-                        tab.ErrorToolTip.PlacementRectangle <- new Rect(ptInclScroll.X, ptInclScroll.Y, 0., 0.)                    
-                        tab.ErrorToolTip.Placement <- Primitives.PlacementMode.Top //https://docs.microsoft.com/en-us/dotnet/framework/wpf/controls/popup-placement-behavior      
-                        tab.ErrorToolTip.VerticalOffset <- -6.0                   
+                    let pos = tab.Editor.Document.GetLocation(markerWithMsg.StartOffset) 
+                    let tvpos= TextViewPosition(pos.Line,pos.Column) 
+                    let pt = tab.Editor.TextArea.TextView.GetVisualPosition(tvpos, Rendering.VisualYPosition.LineTop) //https://www.dazhuanlan.com/2019/07/03/wpf-position-a-tooltip-avalonedit%E6%B8%B8%E6%A0%87%E5%A4%84%E6%98%BE%E7%A4%BA/                    Posi
+                    let ptInclScroll = pt - tab.Editor.TextArea.TextView.ScrollOffset
+                    tab.ErrorToolTip.PlacementTarget <- tab.Editor.TextArea
+                    tab.ErrorToolTip.PlacementRectangle <- new Rect(ptInclScroll.X, ptInclScroll.Y, 0., 0.)                    
+                    tab.ErrorToolTip.Placement <- Primitives.PlacementMode.Top //https://docs.microsoft.com/en-us/dotnet/framework/wpf/controls/popup-placement-behavior      
+                    tab.ErrorToolTip.VerticalOffset <- -6.0                   
                     
-                        tab.ErrorToolTip.IsOpen <- true
-                        //e.Handled <- true
-                        //ErrorToolTipService.SetInitialShowDelay(tab.ErrorToolTip,50) // TODO does not work
-                        //ErrorToolTipService.SetInitialShowDelay(this,50)// TODO does not work                    
-                        //ErrorToolTipService.SetInitialShowDelay(tab.ErrorToolTip.Parent,50)// is null
+                    tab.ErrorToolTip.IsOpen <- true
+                    //e.Handled <- true
+                    //ErrorToolTipService.SetInitialShowDelay(tab.ErrorToolTip,50) // TODO does not work
+                    //ErrorToolTipService.SetInitialShowDelay(this,50)// TODO does not work                    
+                    //ErrorToolTipService.SetInitialShowDelay(tab.ErrorToolTip.Parent,50)// is null
                         
-                |None -> 
-                    Log.printDebugMsg "Error toolTip %A" tab.ErrorToolTip
-                    () )
+               )
 
         tView.MouseHoverStopped.Add ( fun e ->  if notNull tab.ErrorToolTip then (tab.ErrorToolTip.IsOpen <- false ))//; e.Handled <- true) )
         tView.VisualLinesChanged.Add( fun e ->  if notNull tab.ErrorToolTip then  tab.ErrorToolTip.IsOpen <- false )

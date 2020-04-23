@@ -51,7 +51,8 @@ module ErrorUI =
 
     // taken from //https://stackoverflow.com/questions/11149907/showing-invalid-xml-syntax-with-avalonedit
     // better would be https://github.com/icsharpcode/SharpDevelop/blob/master/src/AddIns/DisplayBindings/AvalonEdit.AddIn/Src/TextMarkerService.cs
-
+    
+    [<AllowNullLiteral>]
     type TextMarker (startOffset, length, erMsg:string) as this =
         inherit TextSegment ()
         do
