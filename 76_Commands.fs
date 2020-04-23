@@ -44,6 +44,8 @@ module CommandHelp =
 
 module Commands = 
     open CommandHelp
+    open ICSharpCode.AvalonEdit.Editing
+
     //see https://github.com/icsharpcode/AvalonEdit/blob/697ff0d38c95c9e5a536fbc05ae2307ec9ef2a63/ICSharpCode.AvalonEdit/Editing/CaretNavigationCommandHandler.cs#L73
     //TODO these gets evaluated for each command on every mouse click or key perss . is this OK?  any lag ?? in Canexecute for commands
     let private isTab       a   = Tab.current.IsSome (* Log.print "isTab was evalauted"; *) 
@@ -89,7 +91,7 @@ module Commands =
 
     let SettingsFolder = "Open Settings Folder"       , ""              , mkCmdSimple (fun a -> Config.openConfigFolder()), "Opens the Folder where user settinsg such as default file content is saved."
 
-    let ReloadXshd =     "Reload Xshd file"          , "F11"            , mkCmd isTab (fun a -> XshdHighlighting.setFSharp(Tab.currTab.Editor,true)), "for Testing only: Reloads the Syntax highlighting file FSharpSynatxHighlighterExtended.xshd"
+    let ReloadXshd =     "Reload Xshd file"           , "F11"            , mkCmd isTab (fun a -> XshdHighlighting.setFSharp(Tab.currTab.Editor,true)), "for Testing only: Reloads the Syntax highlighting file FSharpSynatxHighlighterExtended.xshd"
 
     // built in Commands                                
     let Copy             = "Copy"                     , "Ctrl + C"      , ApplicationCommands.Copy, "Copy selected text, or full current line if nothing is selceted."
@@ -100,8 +102,17 @@ module Commands =
     let Find             = "Find"                     , "Ctrl + F"      , ApplicationCommands.Find,"Fint text of current selection"
     let Replace          = "Replace"                  , "Ctrl + H"      , ApplicationCommands.Replace ,"Not implemented yet"//TODO implement
 
-       
-            
+
+    let boxSelectLeftByCharacter  = "Box Select Left By Character" , "Alt + Shift + Left" , RectangleSelection.BoxSelectLeftByCharacter ,   "Expands the selection left by one character, creating a rectangular selection."
+    let boxSelectRightByCharacter = "Box Select Right By Character" ,"Alt + Shift + Right", RectangleSelection.BoxSelectRightByCharacter,   "Expands the selection right by one character, creating a rectangular selection."
+    let boxSelectLeftByWord       = "Box Select Left By Word"       ,"Ctrl + Alt + Shift + Left", RectangleSelection.BoxSelectLeftByWord,   "Expands the selection left by one word, creating a rectangular selection."
+    let boxSelectRightByWord      = "Box Select Right By Word"      ,"Ctrl + Alt + Shift + Right",RectangleSelection.BoxSelectRightByWord, "Expands the selection right by one word, creating a rectangular selection."
+    let boxSelectUpByLine         = "Box Select Up By Line"         ,"Alt + Shift + Up",    RectangleSelection.BoxSelectUpByLine,           "Expands the selection up by one line, creating a rectangular selection."
+    let boxSelectDownByLine       = "Box Select Down By Line"       ,"Alt + Shift + Down",  RectangleSelection.BoxSelectDownByLine,         "Expands the selection down by one line, creating a rectangular selection."
+    let boxSelectToLineStart      = "Box Select To Line Start"      ,"Alt + Shift + Home",  RectangleSelection.BoxSelectToLineStart,        "Expands the selection to the start of the line, creating a rectangular selection."
+    let boxSelectToLineEnd        = "Box Select To Line End"        ,"Alt + Shift + End",   RectangleSelection.BoxSelectToLineEnd,          "Expands the selection to the end of the line, creating a rectangular selection."
+
+
     let allShortCutKeyGestures = 
         
         let allCustomCommands = [  //for seting up Key gestures below

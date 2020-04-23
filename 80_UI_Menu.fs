@@ -86,8 +86,22 @@ module Menu =
                 sep()
                 fromCmd Commands.Find
                 fromCmd Commands.Replace
+                ]
+            MenuItem(Header = "_Select"),[ 
+                fromCmd Commands.SelectLine  
+                ]
+            MenuItem(Header = "_BoxSelect"),[ 
+                fromCmd Commands.boxSelectLeftByCharacter  
+                fromCmd Commands.boxSelectRightByCharacter 
                 sep()
-                fromCmd Commands.SelectLine                
+                fromCmd Commands.boxSelectLeftByWord       
+                fromCmd Commands.boxSelectRightByWord 
+                sep()
+                fromCmd Commands.boxSelectUpByLine         
+                fromCmd Commands.boxSelectDownByLine 
+                sep()
+                fromCmd Commands.boxSelectToLineStart      
+                fromCmd Commands.boxSelectToLineEnd 
                 ]
             MenuItem(Header = "F_SI", ToolTip="FSharp Interactive code evaluation"),[ 
                 fromCmd Commands.RunAllText
@@ -142,6 +156,7 @@ module Menu =
             makeContextMenu [
                 fromCmd Commands.Copy
                 fromCmd Commands.ToggleLogSize
+                fromCmd Commands.ToggleLogLineWrap
                 sep()
                 fromCmd Commands.ClearFSI
                 fromCmd Commands.CancelFSI
