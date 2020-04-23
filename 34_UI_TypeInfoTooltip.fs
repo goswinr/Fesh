@@ -19,8 +19,6 @@ open System.Windows.Documents
 
 module Tooltips = 
     
-
-
     type ToolTipData = {name:string; signature:string; xmlDocStr: Result<string*string,string>}
 
     // make a fancy tooltip:
@@ -172,7 +170,7 @@ module Tooltips =
                     tab.TypeInfoToolTip.IsOpen <- true 
                     tab.TypeInfoToolTip.StaysOpen <- true
                     
-                    //e.Handled <- true // HACK. don't se handeled! so that on type errors the  Error tooltip still gets shown after this tooltip
+                    //e.Handled <- true // HACK. don't set handeled! so that on type errors the  Error tooltip still gets shown after this tooltip
 
                     let docLine = doc.GetLineByOffset(offset)
                     let endCol = endOffset - docLine.Offset

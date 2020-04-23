@@ -38,15 +38,17 @@ module CreateTab =
         let tab = new FsxTab ()
         tab.FileInfo <- fi
         tab.Editor.Text  <- code //this trigger docChanged event , do before hooking up event
-        tab.Content <- tab.Editor        
-        //tab.ChangesAreProbalySaved <- true // not neded. to not show star after putting in the code 
+        tab.Content <- tab.Editor  
         tab.CodeAtLastSave <- code
         EventHandlers.setUpForTab tab
         XshdHighlighting.setFSharp (tab.Editor,false)
+
         makeTabHeader(tab)
         FileDialogs.updateHeader <- makeTabHeader //TODO why set this on every new Tab ?????
-        //ModifyUI.markTabSaved(tab)// TODO this should not be needed
         
+        //ModifyUI.markTabSaved(tab)// TODO this should not be needed
+        //tab.ChangesAreProbalySaved <- true // not neded. to not show star after putting in the code 
+
         Search.SearchPanel.Install(tab.Editor) |> ignore
         tab.FoldingManager <- Folding.FoldingManager.Install(tab.Editor.TextArea) 
 
@@ -54,25 +56,7 @@ module CreateTab =
         if makeCurrent then 
             UI.tabControl.SelectedIndex <- i
             Tab.current <- Some tab
-          
-        //EditingServices.textChanged( EditingServices.TextChange.DocChanged , tab)//coverd by tab selection changed
-
-        //if false then// TODO immideatly load refrences ?                
-        //    let lines = code.Split( [|'\r'; '\n'|] )
-        //    match Array.tryFindIndexBack (fun (ln:string) -> ln.StartsWith("#load ") || ln.StartsWith("#I ") || ln.StartsWith("#r ") ) lines with
-        //    |None -> ()
-        //    |Some i -> 
-        //        lines
-        //        |> Seq.take (i+1)
-        //        |> String.concat "\r\n"
-        //        |> Fsi.Evaluate
-        //        |> Fsi.agent.Post
-        //        // highlight too:
-        //        let doc = tab.Editor.Document
-        //        let st = doc.GetLineByOffset(0)
-        //        let en = doc.GetLineByNumber(i)
-        //        tab.Editor.Select(0,en.EndOffset)
-
+        
         tab  
     
 

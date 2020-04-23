@@ -6,12 +6,10 @@ open System.Windows.Controls
 open System.Linq
 open Seff.StringUtil
 open Seff.Util
-open Seff.UtilWPF
 open Seff.FsService
 open Seff.EditorUtil
-open Seff.Fsi
 open ICSharpCode.AvalonEdit
-open Seff.Logging
+
  
 module EventHandlers =
     
@@ -185,10 +183,10 @@ module EventHandlers =
                         //ErrorToolTipService.SetInitialShowDelay(tab.ErrorToolTip.Parent,50)// is null
                         
                 |None -> 
-                    Log.printDebugMsg "Error toolTip null"
+                    Log.printDebugMsg "Error toolTip %A" tab.ErrorToolTip
                     () )
 
-        tView.MouseHoverStopped.Add ( fun e ->  if notNull tab.ErrorToolTip then (tab.ErrorToolTip.IsOpen <- false ; e.Handled <- true) )
+        tView.MouseHoverStopped.Add ( fun e ->  if notNull tab.ErrorToolTip then (tab.ErrorToolTip.IsOpen <- false ))//; e.Handled <- true) )
         tView.VisualLinesChanged.Add( fun e ->  if notNull tab.ErrorToolTip then  tab.ErrorToolTip.IsOpen <- false )
 
         

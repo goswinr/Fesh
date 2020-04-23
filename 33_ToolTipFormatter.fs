@@ -10,7 +10,7 @@ open System.IO
 open System.Xml
 open System.Text.RegularExpressions
 open FSharp.Compiler.SourceCodeServices
-open Seff.Logging
+
 
 /// taken and adapeted from FsAutoComplete
 module XmlToolTipFormatter =
@@ -34,7 +34,6 @@ module XmlToolTipFormatter =
                 + nl + content
             else
                 nl + nl +  content
-
 
 
         let fromMap (name : string) (content : Map<int*string, string>) =

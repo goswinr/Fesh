@@ -14,8 +14,6 @@ open ICSharpCode.AvalonEdit.Utils
 open System.Linq // for First() and Last() on read only colections
 
 
-
-
 module ColumnRulers = 
     type ColumnRulers (columnsInit: seq<int>) =
         //https://github.com/icsharpcode/AvalonEdit/blob/master/ICSharpCode.AvalonEdit/Rendering/ColumnRulerRenderer.cs
@@ -71,7 +69,7 @@ module ErrorUI =
             [| for i=0 to count - 1 do yield new Point( start.X + (float i * offset) , 
                                                         start.Y - if (i + 1) % 2 = 0 then offset else 0.) |]
 
-        member this.Draw (textView:TextView , drawingContext:DrawingContext) =
+        member this.Draw (textView:TextView , drawingContext:DrawingContext) = // for IBackgroundRenderer
             let vls = textView.VisualLines  
             if textView.VisualLinesValid  && vls.Count > 0 then
                 let  viewStart = vls.First().FirstDocumentLine.Offset
@@ -104,8 +102,8 @@ module ErrorUI =
                         drawingContext.DrawGeometry(Brushes.Transparent, usedPen, geometry)
                         //break //TODO why in original code ? //https://stackoverflow.com/questions/11149907/showing-invalid-xml-syntax-with-avalonedit
         
-        member this.Layer = KnownLayer.Selection
-        member this.Transform(context:ITextRunConstructionContext , elements:IList<VisualLineElement>)=() // needed ?
+        member this.Layer = KnownLayer.Selection // for IBackgroundRenderer
+        member this.Transform(context:ITextRunConstructionContext , elements:IList<VisualLineElement>)=() // needed ? // for IVisualLineTransformer
         
         member this.Create(offset, length, message)=
             let m = new TextMarker(offset, length, message)
@@ -116,11 +114,11 @@ module ErrorUI =
         
         member this.Clear()= 
             markers.Clear()
-            textEditor.TextArea.TextView.Redraw() // redraw all instead of just marker ISegment  ?
-            
+            textEditor.TextArea.TextView.Redraw() // redraw all instead of just marker ISegment  ?            
 
         member this.GetMarkersAtOffset(offset) = markers.FindSegmentsContaining(offset)
         
+
         interface IBackgroundRenderer with
             member this.Draw(tv,dc) = this.Draw(tv,dc)
             member this.Layer = this.Layer
