@@ -93,13 +93,7 @@ module Util =
 
 
 module StringUtil =
-    let removeSpecialChars (str:string) = 
-        let sb = new Text.StringBuilder()
-        for c in str do
-            if (c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') then  //|| c = '.' || c = '_' then 
-                sb.Append(c) |> ignore
-        sb.ToString()
-    
+        
     let lastCharIs char (s:string)= 
         if isNull s then false
         elif s = "" then false
@@ -131,7 +125,7 @@ module StringUtil =
             k <- k + 1
             i <- s.IndexOf(c,i + 1)
         k
-    /// retursn the remainder after the last substring found
+    /// returns the remainder after the last substring found
     let stringAfterLast (sub:string) (s:string) =
         match s.LastIndexOf(sub) with
         | -1 -> None
@@ -147,7 +141,7 @@ module StringUtil =
             loop <- Char.IsWhiteSpace s.[i]            
         Char.IsUpper s.[i]
     
-    /// poor man's name parsing: retruns the offset from end of string to last non alphanumeric or '_' character
+    /// poor man's name parsing: returns the offset from end of string to last non alphanumeric or '_' character
     let lastNonFSharpNameCharPosition (s:string) =        
         let mutable p = s.Length-1
         if p = -1 then 0 // empty string
@@ -160,6 +154,7 @@ module StringUtil =
                 p <- p-1
                 if p >=0 then ch <- s.[p]
             i
+
     /// test if char is Fharp opreator, includes '~'
     let isOperator (c:Char)=
         // https://docs.microsoft.com/en-us/dotnet/fsharp/language-reference/operator-overloading
@@ -179,6 +174,7 @@ module StringUtil =
                 s.Substring(start + a.Length, ende - start - a.Length),// finds text betwween two chars
                 s.Substring(ende + b.Length)
 
+(*
 module UnusedAndObsolete = //TODO delete
 
     /// <summary>Uses reflection to get the field value from an object.</summary>
@@ -230,5 +226,5 @@ module UnusedAndObsolete = //TODO delete
                 yield url } 
             |> Seq.head
 
-        
+*)        
 

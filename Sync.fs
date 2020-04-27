@@ -24,7 +24,7 @@ type Sync private () =
     
 
 
-    (* not needed ?:
+    (* not needed ?: https://stackoverflow.com/questions/61227071/f-async-switchtocontext-vs-dispatcher-invoke
 
     /// evaluates a function on UI thread
     let doSync f args = 

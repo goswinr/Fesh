@@ -59,7 +59,6 @@ module CreateTab =
         
         tab  
     
-
             
     let loadArgsAndOpenFilesOnLastAppClosing (startupArgs:string[]) = 
         async{

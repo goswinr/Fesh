@@ -36,11 +36,10 @@ module Model =
 
     let defaultCodeOnFirstRun =
         [
-        "// this is your default code for new files, you can change by going to the menu: File -> Edit Template File"
+        "// this is your default code for new files, you can change it by going to the menu: File -> Edit Template File"
         "// or in your local AppData folder: Environment.SpecialFolder.LocalApplicationData/Seff"
         //"tips: // https://panesofglass.github.io/scripting-workshop/#/" 
         //"tips: // http://brandewinder.com/2016/02/06/10-fsharp-scripting-tips/"        
-        //"#load @\"" + General.installFolder() + "\\SeffLib.fsx\""
         "open System"
         // "Environment.CurrentDirectory <- __SOURCE_DIRECTORY__"
         ""

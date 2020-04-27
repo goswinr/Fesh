@@ -118,7 +118,7 @@ module Logging =
 
     //let Log = new LogView() // this is lazy, instead use a static class, so that it can be initalized early,
 
-type Log  private () =    
+type Log private () =    
     // just uing a let value  like (let Log = new LogView()) has some bugs in hosted context (Rhino), I think due to late initalizing
     // so here is a static class with explicit init
 
@@ -144,10 +144,10 @@ type Log  private () =
     static member val TextWriterPrintMsg      = new Logging.FsxTextWriter(fun s -> log.printOrBuffer (s,PrintMsg     ))
 
 
-    static member printFsiStdOut    s =  Printf.fprintfn Log.TextWriterFsiStdOut    s  //should not be used
-    static member printFsiErrorOut  s =  Printf.fprintfn Log.TextWriterFsiErrorOut  s
-    static member printConsoleOut   s =  Printf.fprintfn Log.TextWriterConsoleOut   s
-    static member printConsoleError s =  Printf.fprintfn Log.TextWriterConsoleError s
+    //static member printFsiStdOut    s =  Printf.fprintfn Log.TextWriterFsiStdOut    s  //should not be used
+    //static member printFsiErrorOut  s =  Printf.fprintfn Log.TextWriterFsiErrorOut  s
+    //static member printConsoleOut   s =  Printf.fprintfn Log.TextWriterConsoleOut   s
+    //static member printConsoleError s =  Printf.fprintfn Log.TextWriterConsoleError s
     static member printInfoMsg      s =  Printf.fprintfn Log.TextWriterInfoMsg      s
     static member printFsiErrorMsg  s =  Printf.fprintfn Log.TextWriterFsiErrorMsg  s
     static member printAppErrorMsg  s =  Printf.fprintfn Log.TextWriterAppErrorMsg  s

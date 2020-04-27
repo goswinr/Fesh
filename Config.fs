@@ -38,7 +38,7 @@ module Config =
         
     
     /// to get a valid filename fom any host app name suplied
-    let removeSpecialChars (str:string) = 
+    let private removeSpecialChars (str:string) = 
           let sb = new Text.StringBuilder()
           for c in str do
               if (c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || c = '.' || c = '_'|| c = ' ' || c = '-'|| c = '+' then  sb.Append(c) |> ignore
