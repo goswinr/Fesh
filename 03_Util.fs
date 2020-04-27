@@ -83,7 +83,7 @@ module Util =
     
     let inline isEven x = x % 2 = 0
 
-    let inline (|>>) a f = f a |> ignore ;a
+    let inline (|>>) a f = f a |> ignore ; a
     
     let assemblyLocation() = IO.Path.GetDirectoryName(Reflection.Assembly.GetExecutingAssembly().Location)
 
@@ -176,6 +176,13 @@ module StringUtil =
 
 (*
 module UnusedAndObsolete = //TODO delete
+    
+    
+    
+    open System.ComponentModel
+    open Microsoft.FSharp.Quotations
+    open Microsoft.FSharp.Quotations.Patterns
+       
 
     /// <summary>Uses reflection to get the field value from an object.</summary>
     /// <param name="type">The instance type.</param>
@@ -195,6 +202,41 @@ module UnusedAndObsolete = //TODO delete
     let getAllUnionCases<'T>() =
         FSharpType.GetUnionCases(typeof<'T>)
         |> Seq.map (fun x -> FSharpValue.MakeUnion(x, Array.zeroCreate(x.GetFields().Length)) :?> 'T)
+    
+
+    
+    type ViewModelBase() = //http://www.fssnip.net/4Q/title/F-Quotations-with-INotifyPropertyChanged
+        let propertyChanged = new Event<_, _>()
+        let toPropName(query : Expr) = 
+            match query with
+            | PropertyGet(a, b, list) ->
+                b.Name
+            | _ -> ""
+
+        interface INotifyPropertyChanged with
+            [<CLIEvent>]
+            member x.PropertyChanged = propertyChanged.Publish
+
+        abstract member OnPropertyChanged: string -> unit
+        default x.OnPropertyChanged(propertyName : string) =
+            propertyChanged.Trigger(x, new PropertyChangedEventArgs(propertyName))
+
+        member x.OnPropertyChanged(expr : Expr) =
+            let propName = toPropName(expr)
+            x.OnPropertyChanged(propName)
+
+    type TestModel() =
+        inherit ViewModelBase()
+
+        let mutable selectedItem : obj = null
+
+        member x.SelectedItem
+            with get() = selectedItem
+            and set(v : obj) = 
+                selectedItem <- v
+                x.OnPropertyChanged(<@ x.SelectedItem @>)
+
+
 
     module Extern =
         open System.Runtime.InteropServices

@@ -13,7 +13,6 @@ module App =
     /// Call window.Show() on the returned window object.
     [< STAThread >] 
     let runEditorHosted (mainWindowHandle, hostName) =
-        Sync.installSynchronizationContext() // important do first        
         Config.initialize (Hosted hostName)
         let win = MainWindow.create(Array.empty)
         Interop.WindowInteropHelper(win).Owner <- mainWindowHandle 
@@ -24,8 +23,7 @@ module App =
 
     [< EntryPoint >]
     [< STAThread >] 
-    let runEditorStandalone args =        
-        Sync.installSynchronizationContext() //  important do first
+    let runEditorStandalone args =   
         Config.initialize (Standalone)
         let win = MainWindow.create(args)
         (new Application()).Run(win) 

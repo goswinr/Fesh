@@ -65,7 +65,7 @@ module Commands =
                                                         
     let NewTab           = "New File"                 , "Ctrl + N"      , mkCmdSimple (fun a -> newTab(DefaultCode.Get(),None,true)|>ignore),"Create a new script file"
     let OpenFile         = "Open File"                , "Ctrl + O"      , mkCmdSimple (fun a -> openFileDlg newTab),"Open a script file"
-    let OpenTemplateFile = "Edit Template File"         ,""             , mkCmdSimple (fun a -> openFile(IO.FileInfo(DefaultCode.Get()),newTab,true)|>ignore),"Opens the template file that is used when creating a New File ( Ctrl + N)"
+    let OpenTemplateFile = "Edit Template File"       ,""               , mkCmdSimple (fun a -> openFile(IO.FileInfo(DefaultCode.Get()),newTab,true)|>ignore),"Opens the template file that is used when creating a New File ( Ctrl + N)"
     let Close            = "Close File"               , "Ctrl + F4"     , mkCmdSimple (fun a -> altF4close()),"Closes the current Tab, if no tab present Application will be closed" 
     
     let SaveIncremental  = "Save Incremental"         , ""              , mkCmd isTab (fun a -> saveIncremental Tab.currTab |> ignore),"increases the last letter of filename, can be alphabetic or numeric "
@@ -91,9 +91,9 @@ module Commands =
 
     let SettingsFolder = "Open Settings Folder"       , ""              , mkCmdSimple (fun a -> Config.openConfigFolder()), "Opens the Folder where user settinsg such as default file content is saved."
 
-    let ReloadXshd =     "Reload Xshd file"           , "F11"            , mkCmd isTab (fun a -> XshdHighlighting.setFSharp(Tab.currTab.Editor,true)), "for Testing only: Reloads the Syntax highlighting file FSharpSynatxHighlighterExtended.xshd"
+    let ReloadXshd =     "Reload Xshd file"           , "F11"           , mkCmd isTab (fun a -> XshdHighlighting.setFSharp(Tab.currTab.Editor,true)), "for Testing only: Reloads the Syntax highlighting file FSharpSynatxHighlighterExtended.xshd"
 
-    // built in Commands                                
+    // built in Commands from Avalonedit                               
     let Copy             = "Copy"                     , "Ctrl + C"      , ApplicationCommands.Copy, "Copy selected text, or full current line if nothing is selceted."
     let Cut              = "Cut"                      , "Ctrl + X"      , ApplicationCommands.Cut  ,"Cut selected text, or full current line if nothing is selceted."
     let Paste            = "Paste"                    , "Ctrl + V"      , ApplicationCommands.Paste,"Insert text from Clipboard"
@@ -106,13 +106,14 @@ module Commands =
     let boxSelectLeftByCharacter  = "Box Select Left By Character" , "Alt + Shift + Left" , RectangleSelection.BoxSelectLeftByCharacter ,   "Expands the selection left by one character, creating a rectangular selection."
     let boxSelectRightByCharacter = "Box Select Right By Character" ,"Alt + Shift + Right", RectangleSelection.BoxSelectRightByCharacter,   "Expands the selection right by one character, creating a rectangular selection."
     let boxSelectLeftByWord       = "Box Select Left By Word"       ,"Ctrl + Alt + Shift + Left", RectangleSelection.BoxSelectLeftByWord,   "Expands the selection left by one word, creating a rectangular selection."
-    let boxSelectRightByWord      = "Box Select Right By Word"      ,"Ctrl + Alt + Shift + Right",RectangleSelection.BoxSelectRightByWord, "Expands the selection right by one word, creating a rectangular selection."
+    let boxSelectRightByWord      = "Box Select Right By Word"      ,"Ctrl + Alt + Shift + Right",RectangleSelection.BoxSelectRightByWord,  "Expands the selection right by one word, creating a rectangular selection."
     let boxSelectUpByLine         = "Box Select Up By Line"         ,"Alt + Shift + Up",    RectangleSelection.BoxSelectUpByLine,           "Expands the selection up by one line, creating a rectangular selection."
     let boxSelectDownByLine       = "Box Select Down By Line"       ,"Alt + Shift + Down",  RectangleSelection.BoxSelectDownByLine,         "Expands the selection down by one line, creating a rectangular selection."
     let boxSelectToLineStart      = "Box Select To Line Start"      ,"Alt + Shift + Home",  RectangleSelection.BoxSelectToLineStart,        "Expands the selection to the start of the line, creating a rectangular selection."
     let boxSelectToLineEnd        = "Box Select To Line End"        ,"Alt + Shift + End",   RectangleSelection.BoxSelectToLineEnd,          "Expands the selection to the end of the line, creating a rectangular selection."
 
-
+    
+    /// exluding the ones alreadyu provided by avalonedit
     let allShortCutKeyGestures = 
         
         let allCustomCommands = [  //for seting up Key gestures below
@@ -163,13 +164,13 @@ module Commands =
             |"Down"  -> Key.Down
             | x -> match Key.TryParse(x,true) with
                    |true, k -> k
-                   | _ -> Log.print "*AllInputBindings: failed to parse Command Key '%A'" x; Key.NoName
+                   | _ -> Log.printAppErrorMsg "*AllInputBindings: failed to parse Command Key '%A'" x; Key.NoName
         
         let getModKey = function
             |"Ctrl"     -> ModifierKeys.Control        
             | x -> match ModifierKeys.TryParse(x,true) with
                    |true, k -> k
-                   | _ -> Log.print "*AllInputBindings: failed to parse ModifierKey '%A'" x; ModifierKeys.None
+                   | _ -> Log.printAppErrorMsg "*AllInputBindings: failed to parse ModifierKey '%A'" x; ModifierKeys.None
 
         try
             [|  for _,g,cmd,_ in allCustomCommands do
@@ -184,10 +185,10 @@ module Commands =
                             | [| m; k |]        -> InputBinding(cmd,  KeyGesture(getKey k, getModKey m))
                             | [| k |]           -> InputBinding(cmd,  KeyGesture(getKey k))
                             | _ -> 
-                                Log.print "*AllInputBindings: failed to parse command Input gesture '%s'" g
+                                Log.printAppErrorMsg "*AllInputBindings: failed to parse command Input gesture '%s'" g
                                 InputBinding(cmd,  KeyGesture(Key.None))
             |]
         
         with e -> 
-            Log.print "*AllInputBindings: failed to create keyboard shortcuts: %A"e
+            Log.printAppErrorMsg "*AllInputBindings: failed to create keyboard shortcuts: %A"e
             [| |]

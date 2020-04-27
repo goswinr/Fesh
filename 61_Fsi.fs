@@ -23,13 +23,14 @@ type internal ProcessCorruptedState =
 
 module Fsi =    
     
-    type State = Ready|Evaluating
+    type State = Ready | Evaluating
 
-    type Mode   = Sync |Async
+    type Mode   = Sync | Async
 
-    [<AbstractClass; Sealed>]
+    
     /// A static class to hold FSI events 
-    type Events internal () =
+    [<Sealed>]
+    type Events private () =
         
         static let startedEv        = new Event<Mode>() 
         static let runtimeErrorEv   = new Event<Exception>() 
@@ -138,12 +139,12 @@ module Fsi =
         // first arg is ignored: https://github.com/fsharp/FSharp.Compiler.Service/issues/420 and https://github.com/fsharp/FSharp.Compiler.Service/issues/877 and  https://github.com/fsharp/FSharp.Compiler.Service/issues/878            
         let allArgs = [|"" ; "--langversion:preview" ; "--noninteractive" ; "--debug+"; "--debug:full" ;"--optimize+" ; "--gui-" ; "--nologo"|] // ; "--shadowcopyreferences" is ignored https://github.com/fsharp/FSharp.Compiler.Service/issues/292           
         let fsiConfig = FsiEvaluationSession.GetDefaultConfiguration() // https://github.com/dotnet/fsharp/blob/4978145c8516351b1338262b6b9bdf2d0372e757/src/fsharp/fsi/fsi.fs#L2839
-        let fsiSession = FsiEvaluationSession.Create(fsiConfig, allArgs, inStream, Log.TextWriterFsiStdOut, Log.TextWriterFsiErrorOut) //, collectible=false ??) //TODO add error logger window
+        let fsiSession = FsiEvaluationSession.Create(fsiConfig, allArgs, inStream, Log.TextWriterFsiStdOut, Log.TextWriterFsiErrorOut) //, collectible=false ??) 
         AppDomain.CurrentDomain.UnhandledException.Add(fun ex -> Log.print "*** FSI AppDomain.CurrentDomain.UnhandledException:\r\n %A" ex.ExceptionObject)
-        Console.SetOut  (Log.TextWriterConsoleOut)   // TODO needed to redirect printfn ? //https://github.com/fsharp/FSharp.Compiler.Service/issues/201
-        Console.SetError(Log.TextWriterConsoleError) // TODO needed if evaluate non throwing ? 
+        Console.SetOut  (Log.TextWriterConsoleOut)   // TODO needed to redirect printfn or coverd by TextWriterFsiStdOut? //https://github.com/fsharp/FSharp.Compiler.Service/issues/201
+        Console.SetError(Log.TextWriterConsoleError) // TODO needed if evaluate non throwing or coverd by TextWriterFsiErrorOut? 
         //if mode = Mode.Sync then do! Async.SwitchToContext Sync.syncContext            
-        //fsiSession.Run()// dont do this it crashes the app when hosted in Rhino! 
+        //fsiSession.Run() // dont do this it crashes the app when hosted in Rhino! 
         if session.IsNone then Log.print "* Time for loading FSharp Interactive: %s"  timer.tocEx
         session <- Some fsiSession
         if Config.currentRunContext <> Model.RunContext.Standalone then 

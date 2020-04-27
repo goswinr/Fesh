@@ -90,7 +90,7 @@ module Menu =
             MenuItem(Header = "_Select"),[ 
                 fromCmd Commands.SelectLine  
                 ]
-            MenuItem(Header = "_BoxSelect"),[ 
+            MenuItem(Header = "_BoxSelect", ToolTip="Create a Box Selection by \r\n holding down the Alt key while selecting \r\n or pressing the middle mouse button."),[ 
                 fromCmd Commands.boxSelectLeftByCharacter  
                 fromCmd Commands.boxSelectRightByCharacter 
                 sep()
@@ -117,9 +117,9 @@ module Menu =
                     fromCmd Commands.ToggleSync
                 ]
             MenuItem(Header = "_View"),[                 
-                fromCmd Commands.ToggleLogSize //TODO replace with actual tick box menu item 
-                fromCmd Commands.ToggleSplit //TODO replace with actual tick box menu item 
-                fromCmd Commands.ToggleLogLineWrap //TODO replace with actual tick box menu item 
+                fromCmd Commands.ToggleLogSize 
+                fromCmd Commands.ToggleSplit 
+                fromCmd Commands.ToggleLogLineWrap //TODO replace with actual tick box in status bar 
                 sep()
                 fromCmd Commands.ClearFSI
                 sep()

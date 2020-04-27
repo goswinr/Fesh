@@ -82,11 +82,7 @@ module Appearance=
         g.ToolTip <- "Drag to resize code editor and log window"
         g
 
-    
-    let en_US = Globalization.CultureInfo.CreateSpecificCulture("en-US")
-    do
-        Globalization.CultureInfo.DefaultThreadCurrentCulture   <- en_US
-        Globalization.CultureInfo.DefaultThreadCurrentUICulture <- en_US
+
 
 module StatusBar =
     let asyncDesc = 
@@ -132,7 +128,7 @@ module UI =
     let tabControl      = new TabControl()
     let splitterHor     = new GridSplitter()             |> Appearance.setForHorSplitter
     let splitterVert    = new GridSplitter()             |> Appearance.setForVertSplitter
-    let log             = Log.Editor             |> Appearance.setForLog
+    let log             = Log.Editor                     |> Appearance.setForLog
     
     
     let gridHor() = 

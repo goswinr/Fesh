@@ -51,6 +51,10 @@ module MainWindow =
         AppDomain.CurrentDomain.UnhandledException.AddHandler (//catching unhandled exceptions generated from all threads running under the context of a specific application domain. //https://dzone.com/articles/order-chaos-handling-unhandled
             new UnhandledExceptionEventHandler( Seff.ProcessCorruptedState.Handler)) //https://stackoverflow.com/questions/14711633/my-c-sharp-application-is-returning-0xe0434352-to-windows-task-scheduler-but-it
         
+        
+        let en_US = Globalization.CultureInfo.CreateSpecificCulture("en-US")        
+        Globalization.CultureInfo.DefaultThreadCurrentCulture   <- en_US
+        Globalization.CultureInfo.DefaultThreadCurrentUICulture <- en_US
        
         win.Loaded.Add (fun _ ->
             Log.print "* Time for loading main window: %s"  timer.tocEx

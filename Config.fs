@@ -5,10 +5,8 @@ open System.IO
 open System.Windows
 open System.Threading
 open System.Text
-open Seff.Util
-open Seff.Model
-open Seff.Logging
 open System.Collections.Generic
+open Seff.Model
 
 module Config = 
 
@@ -38,7 +36,7 @@ module Config =
         
     
     /// to get a valid filename fom any host app name suplied
-    let private removeSpecialChars (str:string) = 
+    let makeValidFilename (str:string) = 
           let sb = new Text.StringBuilder()
           for c in str do
               if (c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || c = '.' || c = '_'|| c = ' ' || c = '-'|| c = '+' then  sb.Append(c) |> ignore
@@ -236,14 +234,15 @@ module Config =
     let mutable currentRunContext = Standalone
 
     let initialize(context:RunContext) =
+        Sync.installSynchronizationContext() //  important do first
         Log.initialize() // so debug text is available
         currentRunContext <- context
         let configFilesFolder = IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"Seff")
         IO.Directory.CreateDirectory(configFilesFolder) |> ignore
 
-        let host = match context with Standalone ->  "Standalone" | Hosted x -> "Hosted." + removeSpecialChars(x)
+        let host = match context with Standalone ->  "Standalone" | Hosted x -> "Hosted." + makeValidFilename(x)
 
-        Settings.FilePath               <- IO.Path.Combine(configFilesFolder, sprintf "%s.Settings.txt" host )
+        Settings.FilePath               <- IO.Path.Combine(configFilesFolder, sprintf "%s.Settings.txt"              host )
         RecentlyUsedFiles.FilePath      <- IO.Path.Combine(configFilesFolder, sprintf "%s.RecentlyUsedFiles.txt"     host )
         CurrentlyOpenFiles.FilePath     <- IO.Path.Combine(configFilesFolder, sprintf "%s.CurrentlyOpenFiles.txt"    host )
         DefaultCode.FilePath            <- IO.Path.Combine(configFilesFolder, sprintf "%s.DefaultCode.fsx"           host )

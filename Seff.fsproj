@@ -52,9 +52,10 @@
 
     <Compile Include="LogView.fs" />
 
+    <Compile Include="Config.fs" />
+
     <Compile Include="03_Util.fs" />
     <Compile Include="04_UtilWPF.fs" />
-    <Compile Include="Config.fs" />
     <Compile Include="11_UI.fs" />
     <Compile Include="31_UI_BackgroundRenderer.fs" />
     <Compile Include="32_UI_Tab.fs" />

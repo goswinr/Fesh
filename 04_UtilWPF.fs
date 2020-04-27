@@ -7,44 +7,23 @@ open System.Windows.Media
 
 
 
-module UtilWPF =    
+module UtilWPF = 
 
-
-    open System.ComponentModel
-    open Microsoft.FSharp.Quotations
-    open Microsoft.FSharp.Quotations.Patterns
-
-    type ViewModelBase() = //http://www.fssnip.net/4Q/title/F-Quotations-with-INotifyPropertyChanged
-        let propertyChanged = new Event<_, _>()
-        let toPropName(query : Expr) = 
-            match query with
-            | PropertyGet(a, b, list) ->
-                b.Name
-            | _ -> ""
-
-        interface INotifyPropertyChanged with
-            [<CLIEvent>]
-            member x.PropertyChanged = propertyChanged.Publish
-
-        abstract member OnPropertyChanged: string -> unit
-        default x.OnPropertyChanged(propertyName : string) =
-            propertyChanged.Trigger(x, new PropertyChangedEventArgs(propertyName))
-
-        member x.OnPropertyChanged(expr : Expr) =
-            let propName = toPropName(expr)
-            x.OnPropertyChanged(propName)
-
-    type TestModel() =
-        inherit ViewModelBase()
-
-        let mutable selectedItem : obj = null
-
-        member x.SelectedItem
-            with get() = selectedItem
-            and set(v : obj) = 
-                selectedItem <- v
-                x.OnPropertyChanged(<@ x.SelectedItem @>)
+    ///Adds bytes to each color channel to increase brightness, negative values to make darker
+    let changeLuminace (amount:int) (br:SolidColorBrush)=
+        let inline clamp x = if x<0 then 0uy elif x>255 then 255uy else byte(x)
+        let r = int br.Color.R + amount |> clamp      
+        let g = int br.Color.G + amount |> clamp
+        let b = int br.Color.B + amount |> clamp
+        SolidColorBrush(Color.FromArgb(br.Color.A, r,g,b))
     
+    ///Adds bytes to each color channel to increase brightness
+    let brighter (amount:int) (br:SolidColorBrush)  = changeLuminace amount br 
+    
+    ///Removes bytes from each color channel to increase darkness
+    let darker  (amount:int) (br:SolidColorBrush)  = changeLuminace -amount br
+
+
 
     //see: http://www.fssnip.net/4W/title/Calculator
     //http://trelford.com/blog/post/F-operator-overloads-for-WPF-dependency-properties.aspx
@@ -53,16 +32,14 @@ module UtilWPF =
     type DependencyPropertyBindingPair(dp:DependencyProperty,binding:Data.BindingBase) =
         member this.Property = dp
         member this.Binding = binding
-        static member (++) 
-            (target:#FrameworkElement,pair:DependencyPropertyBindingPair) =
+        static member ( <++> ) (target:#FrameworkElement, pair:DependencyPropertyBindingPair) =
             target.SetBinding(pair.Property,pair.Binding) |> ignore
             target
 
     type DependencyPropertyValuePair(dp:DependencyProperty,value:obj) =
         member this.Property = dp
         member this.Value = value
-        static member (++) 
-            (target:#UIElement,pair:DependencyPropertyValuePair) =
+        static member ( <+> )  (target:#UIElement, pair:DependencyPropertyValuePair) =
             target.SetValue(pair.Property,pair.Value)
             target
 
@@ -105,8 +82,8 @@ module UtilWPF =
     let makeGridHorizontalEx (xs:list<UIElement*RowDefinition>)= 
         let grid = new Grid()
         xs |> List.iteri (fun i (e,rd)->        
-            grid.RowDefinitions.Add <| rd
-            grid.Children.Add       <| e ++ Grid.Row i
+            grid.RowDefinitions.Add (rd)
+            grid.Children.Add       ( e <+> Grid.Row i )
             |> ignore     
             )
         grid
@@ -114,8 +91,8 @@ module UtilWPF =
     let makeGridVerticalEx (xs:list<UIElement*ColumnDefinition>)= 
         let grid = new Grid()
         xs |> List.iteri (fun i (e,cd)->        
-            grid.ColumnDefinitions.Add <| cd
-            grid.Children.Add          <| e ++ Grid.Column i
+            grid.ColumnDefinitions.Add (cd )
+            grid.Children.Add          ( e <+> Grid.Column i)
             |> ignore     
             )
         grid
@@ -123,7 +100,7 @@ module UtilWPF =
     let makeGrid (xs:list<UIElement>)= 
         let grid = new Grid()
         xs |> List.iteri (fun i e->        
-            grid.Children.Add       <| e ++ Grid.Row i
+            grid.Children.Add ( e <+> Grid.Row i )
             |> ignore     
             )
         grid
@@ -140,19 +117,5 @@ module UtilWPF =
             p.Children.Add x |> ignore
         p
 
-    ///Adds bytes to each color channel to increase brightness, negative values to make darker
-    let changeLuminace (amount:int) (br:SolidColorBrush)=
-        let inline clamp x = if x<0 then 0uy elif x>255 then 255uy else byte(x)
-        let r = int br.Color.R + amount |> clamp      
-        let g = int br.Color.G + amount |> clamp
-        let b = int br.Color.B + amount |> clamp
-        SolidColorBrush(Color.FromArgb(br.Color.A, r,g,b))
     
-    ///Adds bytes to each color channel to increase brightness
-    let brighter (amount:int) (br:SolidColorBrush)  = changeLuminace amount br 
-    
-    ///Removes bytes from each color channel to increase darkness
-    let darker  (amount:int) (br:SolidColorBrush)  = changeLuminace -amount br
-
-
 

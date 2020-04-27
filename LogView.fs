@@ -48,7 +48,7 @@ module Logging =
                             if st < seg.StartOffset && seg.StartOffset < en then base.ChangeLinePart(st, seg.StartOffset, fun element -> element.TextRunProperties.SetForegroundBrush(color))
                             if en > seg.EndOffset   && seg.EndOffset   > st then base.ChangeLinePart(seg.EndOffset,   en, fun element -> element.TextRunProperties.SetForegroundBrush(color))
     
-    [<AllowNullLiteral>]
+    [<AllowNullLiteral>] // so that Log.log can be null initially
     type LogView () =
         let editor =  
             let e = new AvalonEdit.TextEditor()
@@ -116,8 +116,10 @@ module Logging =
         /// to acces the underlying read only Avalonedit Texteditor
         member this.Editor = editor
 
-    //let Log = new LogView() // this is lazy, instead use a static class, so that it can be initalized early,
 
+
+/// A static class that hold the single neded instance of LogView and provides print formating methods for the LogView
+[<Sealed>]
 type Log private () =    
     // just uing a let value  like (let Log = new LogView()) has some bugs in hosted context (Rhino), I think due to late initalizing
     // so here is a static class with explicit init
@@ -129,7 +131,7 @@ type Log private () =
     /// to acces the underlying read only Avalonedit Texteditor
     static member Editor = log.Editor
 
-    //used in fsi constructor:
+    //used in FSI constructor:
     static member val TextWriterFsiStdOut     = new Logging.FsxTextWriter(fun s -> log.printOrBuffer (s,FsiStdOut    ))
     static member val TextWriterFsiErrorOut   = new Logging.FsxTextWriter(fun s -> log.printOrBuffer (s,FsiErrorOut  ))
     static member val TextWriterConsoleOut    = new Logging.FsxTextWriter(fun s -> log.printOrBuffer (s,ConsoleOut   ))
