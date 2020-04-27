@@ -112,7 +112,7 @@ module Menu =
                 fromCmd Commands.ClearFSI
                 fromCmd Commands.CancelFSI
                 fromCmd Commands.ResetFSI
-                if Config.currentRunContext <> Model.RunContext.Standalone then
+                if Config.Context.IsStandalone then
                     sep()
                     fromCmd Commands.ToggleSync
                 ]

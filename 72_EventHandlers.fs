@@ -13,6 +13,19 @@ open ICSharpCode.AvalonEdit
  
 module EventHandlers =
     
+    (* TODO 
+        //Events.Canceled.Add        (fun _ -> Log.printDebugMsg " +Fsi Canceled+")
+        //Events.IsReady.Add         (fun _ -> Log.printDebugMsg " +Fsi isReady+")      
+        //Events.Started.Add         (fun _ -> Log.printDebugMsg " +Fsi Started+")
+        //Events.Completed.Add       (fun _ -> Log.printDebugMsg " +Fsi Completed+")
+                
+        Fsi.IsReady.Add      (fun _ -> UI.log.Background <- Appearance.logBackgroundFsiReady) 
+        Fsi.Started.Add      (fun _ -> UI.log.Background <- Appearance.logBackgroundFsiEvaluating) // happens at end of eval in sync mode
+
+        StatusBar.asyncDesc.MouseDown.Add(fun _ -> toggleSync())
+        *)
+
+
     let setUpForWindowSizing(win:Window) =  
         WindowLayout.init(win)
 
@@ -83,6 +96,10 @@ module EventHandlers =
                 //Log.dlog (sprintf "%s Size Changed: Width=%.0f Height=%.0f State=%A" Time.nowStrMilli win.Width win.Height win.WindowState)
             )
     
+
+
+
+
 
     let setUpForTab (tab:FsxTab) =         
         let tArea = tab.Editor.TextArea

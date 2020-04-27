@@ -75,18 +75,18 @@ module Logging =
             let start = editor.Document.TextLength
             editor.AppendText(txt)
             
-            //if type<>PrintMsg then //TODO exlude default print color, it should be same as foreground anyway
-            let mutable line = editor.Document.GetLineByOffset(start) 
-            //editor.Document.Insert( line.EndOffset, sprintf "(%d:%A)" line.LineNumber ty) //for DEBUG only
-            //editor.AppendText(sprintf "(1st Line %d, %d chars:%A)" line.LineNumber line.Length ty) //for DEBUG only
-            LineColors.[line.LineNumber] <- LogMessageType.getColor(ty) //only color this line if it does not start with a new line chatacter
-            line <- line.NextLine                    
-            while line <> null  do
-                if line.Length>0 then // to exclude empty lines
-                    //editor.Document.Insert( line.EndOffset, sprintf "(%d:%A)" line.LineNumber ty) //for DEBUG only
-                    //editor.AppendText(sprintf "(Line %d, %d chars:%A)" line.LineNumber line.Length ty)//for DEBUG only
-                    LineColors.[line.LineNumber] <- LogMessageType.getColor(ty)
-                line <- line.NextLine
+            if true then // if type<>PrintMsg then //TODO exclude default print color, it should be same as foreground anyway
+                let mutable line = editor.Document.GetLineByOffset(start) 
+                //editor.Document.Insert( line.EndOffset, sprintf "(%d:%A)" line.LineNumber ty) //for DEBUG only
+                //editor.AppendText(sprintf "(1st Line %d, %d chars:%A)" line.LineNumber line.Length ty) //for DEBUG only
+                LineColors.[line.LineNumber] <- LogMessageType.getColor(ty) 
+                line <- line.NextLine                    
+                while line <> null  do
+                    if line.Length>0 then // to exclude empty lines 
+                        //editor.Document.Insert( line.EndOffset, sprintf "(%d:%A)" line.LineNumber ty) //for DEBUG only
+                        //editor.AppendText(sprintf "(Line %d, %d chars:%A)" line.LineNumber line.Length ty)//for DEBUG only
+                        LineColors.[line.LineNumber] <- LogMessageType.getColor(ty)
+                    line <- line.NextLine
 
             //editor.AppendText("|-scroll->") //for DEBUG only
             editor.ScrollToEnd()

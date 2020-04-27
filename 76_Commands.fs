@@ -1,16 +1,8 @@
 ﻿namespace Seff
 
-open System
-open System.Windows.Input
-
-open Seff.Fsi
-open Seff.CreateTab
-open Seff.FileDialogs
-open Seff.Config
-open Seff.Logging
-
-
 module CommandHelp = 
+    open System
+    open System.Windows.Input
 
     type Command(canExecute, execute) as this = 
         // from https://github.com/Prolucid/Elmish.WPF/blob/0c7ce6a1e21a1314b299eba05684f2f60e08c353/src/Elmish.WPF/Binding.fs#L12
@@ -43,36 +35,42 @@ module CommandHelp =
                 }
 
 module Commands = 
+    open System
+    open System.Windows.Input
+    open Seff.CreateTab
+    open Seff.FileDialogs
+    open Seff.Config
     open CommandHelp
     open ICSharpCode.AvalonEdit.Editing
+    open Seff.Model
 
     //see https://github.com/icsharpcode/AvalonEdit/blob/697ff0d38c95c9e5a536fbc05ae2307ec9ef2a63/ICSharpCode.AvalonEdit/Editing/CaretNavigationCommandHandler.cs#L73
     //TODO these gets evaluated for each command on every mouse click or key perss . is this OK?  any lag ?? in Canexecute for commands
     let private isTab       a   = Tab.current.IsSome (* Log.print "isTab was evalauted"; *) 
     let private isEditorSel a   = Tab.current.IsSome && Tab.currEditor.SelectionLength > 0
     let private isLogSel    a   = UI.log.SelectionLength > 0
-    let private runsAsync   a = Fsi.state = Fsi.Evaluating && Fsi.mode = Fsi.Async
+    let private runsAsync   a   = Fsi.State = Evaluating && Fsi.Mode = Async
              
-    let RunSelectedText  = "Run Selected Text"        , "Alt + Enter"   , mkCmd isEditorSel (fun a -> Fsi.evaluate Tab.currEditor.SelectedText),"Sends the currently seleceted Text in the editor to FSharp Interactive"// TODO mark evaluated code with grey background
-    let RunSelectedLines = "Run Selected Lines"       , "Ctrl + Enter"  , mkCmd isTab       (fun a -> Fsi.evaluate <| ModifyUI.expandSelectionToFullLines Tab.currTab),"Sends the currently seleceted Lines in the editor to FSharp Interactive.\r\nIncludes partially selected lines in full."
-    let RunAllText       = "Run All Text"             , "F5"            , mkCmd isTab       (fun a -> Fsi.evaluate  Tab.currEditor.Text) ,"Send all text in the current file to FSharp Interactive"
-    let RunAllTextSave   = "Save and Run All Text"    , "F6"            , mkCmd isTab       (fun a -> if save Tab.currTab then Fsi.evaluate  Tab.currEditor.Text) ,"First Save current File, then send all it's text to FSharp Interactive"
+    let RunSelectedText  = "Run Selected Text"        , "Alt + Enter"   , mkCmd isEditorSel (fun a -> Fsi.Evaluate Tab.currEditor.SelectedText),"Sends the currently seleceted Text in the editor to FSharp Interactive"// TODO mark evaluated code with grey background
+    let RunSelectedLines = "Run Selected Lines"       , "Ctrl + Enter"  , mkCmd isTab       (fun a -> Fsi.Evaluate <| ModifyUI.expandSelectionToFullLines Tab.currTab),"Sends the currently seleceted Lines in the editor to FSharp Interactive.\r\nIncludes partially selected lines in full."
+    let RunAllText       = "Run All Text"             , "F5"            , mkCmd isTab       (fun a -> Fsi.Evaluate  Tab.currEditor.Text) ,"Send all text in the current file to FSharp Interactive"
+    let RunAllTextSave   = "Save and Run All Text"    , "F6"            , mkCmd isTab       (fun a -> if save Tab.currTab then Fsi.Evaluate  Tab.currEditor.Text) ,"First Save current File, then send all it's text to FSharp Interactive"
                                                         
-    let ResetFSI         = "Reset FSI"                , "Ctrl + Alt + R", mkCmd isTab     (fun a -> Fsi.reset()    ),"Reset FSharp Interactive"
-    let CancelFSI        = "Cancel FSI"               , "Ctrl + Break"  , mkCmd runsAsync (fun a -> Fsi.cancelIfAsync()   ),"Cancel running FSI evaluation (only available in asynchronous mode) "
-    let ClearFSI         = "Clear Log"                , "Ctrl + Alt + C", mkCmdSimple (fun a -> Fsi.clearLog() ),"Clear all text from FSI Log window"
-    let ToggleSync       = "Toggle Sync / Async"      , ""              , mkCmdSimple (fun a -> Fsi.toggleSync()),"Switch between synchronous and asynchronous evaluation in FSI, see status in StatusBar"
+    let ResetFSI         = "Reset FSI"                , "Ctrl + Alt + R", mkCmd isTab     (fun a -> Fsi.Reset()          ),"Reset FSharp Interactive"
+    let CancelFSI        = "Cancel FSI"               , "Ctrl + Break"  , mkCmd runsAsync (fun a -> Fsi.CancelIfAsync()  ),"Cancel running FSI evaluation (only available in asynchronous mode) "
+    let ClearFSI         = "Clear Log"                , "Ctrl + Alt + C", mkCmdSimple     (fun a -> Log.Editor.Clear()   ),"Clear all text from FSI Log window"
+    let ToggleSync       = "Toggle Sync / Async"      , ""              , mkCmdSimple     (fun a -> Fsi.ToggleSync()     ),"Switch between synchronous and asynchronous evaluation in FSI, see status in StatusBar"
                                                         
     let NewTab           = "New File"                 , "Ctrl + N"      , mkCmdSimple (fun a -> newTab(DefaultCode.Get(),None,true)|>ignore),"Create a new script file"
     let OpenFile         = "Open File"                , "Ctrl + O"      , mkCmdSimple (fun a -> openFileDlg newTab),"Open a script file"
     let OpenTemplateFile = "Edit Template File"       ,""               , mkCmdSimple (fun a -> openFile(IO.FileInfo(DefaultCode.Get()),newTab,true)|>ignore),"Opens the template file that is used when creating a New File ( Ctrl + N)"
     let Close            = "Close File"               , "Ctrl + F4"     , mkCmdSimple (fun a -> altF4close()),"Closes the current Tab, if no tab present Application will be closed" 
     
-    let SaveIncremental  = "Save Incremental"         , ""              , mkCmd isTab (fun a -> saveIncremental Tab.currTab |> ignore),"increases the last letter of filename, can be alphabetic or numeric "
-    let SaveAs           = "Save As"                  , "Ctrl + Alt + S", mkCmd isTab (fun a -> saveAs          Tab.currTab |> ignore),"Shows a dialog to save the file at a new path or name."
-    let Save             = "Save"                     , "Ctrl + S"      , mkCmd isTab (fun a -> save            Tab.currTab |> ignore),"Saves the file. Shows a dialog only if the open file does not exist anymore"
-    let SaveAll          = "Save All"                 , "Ctrl + Shift + S", mkCmd isTab (fun a -> Seq.iter (save >> ignore) Tab.allTabs),"Saves all tabs. Shows a dialog only if the open file does not exist on disk"
-    let SaveLog          = "Save Text in Log"         , ""              , mkCmd isTab (fun a -> saveLog            Tab.currTab |> ignore),"Save all text from Log Window"
+    let SaveIncremental  = "Save Incremental"         , ""              , mkCmd isTab    (fun a -> saveIncremental Tab.currTab |> ignore),"increases the last letter of filename, can be alphabetic or numeric "
+    let SaveAs           = "Save As"                  , "Ctrl + Alt + S", mkCmd isTab    (fun a -> saveAs          Tab.currTab |> ignore),"Shows a dialog to save the file at a new path or name."
+    let Save             = "Save"                     , "Ctrl + S"      , mkCmd isTab    (fun a -> save            Tab.currTab |> ignore),"Saves the file. Shows a dialog only if the open file does not exist anymore"
+    let SaveAll          = "Save All"               , "Ctrl + Shift + S", mkCmd isTab    (fun a -> Seq.iter (save >> ignore) Tab.allTabs),"Saves all tabs. Shows a dialog only if the open file does not exist on disk"
+    let SaveLog          = "Save Text in Log"         , ""              , mkCmd isTab    (fun a -> saveLog            Tab.currTab |> ignore),"Save all text from Log Window"
     let SaveLogSel       = "Save Selected Text in Log", ""              , mkCmd isLogSel (fun a -> saveLogSelected Tab.currTab |> ignore),"Save selected text from Log Window"
                                                         
     let FontBigger       = "Make Font Bigger"         , "Ctrl + '+'"    , mkCmdSimple (fun a -> ModifyUI.fontBigger ()) ,"Increase Text Size for both Editor and Log"
@@ -125,7 +123,7 @@ module Commands =
              ResetFSI         
              CancelFSI        
              ClearFSI
-             if Config.currentRunContext <> Model.RunContext.Standalone then ToggleSync
+             if Config.Context.IsStandalone then ToggleSync
             
              NewTab           
              OpenFile 

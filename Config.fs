@@ -34,13 +34,7 @@ module Config =
                 with ex -> Log.printAppErrorMsg "%s" ex.Message
             } |> Async.Start
         
-    
-    /// to get a valid filename fom any host app name suplied
-    let makeValidFilename (str:string) = 
-          let sb = new Text.StringBuilder()
-          for c in str do
-              if (c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || c = '.' || c = '_'|| c = ' ' || c = '-'|| c = '+' then  sb.Append(c) |> ignore
-          sb.ToString()
+
     
     /// window size, layout and position, async state and more
     type Settings private () = 
@@ -188,10 +182,10 @@ module Config =
              with e -> 
                  Log.printAppErrorMsg "Error Loading recently used files: %s"   e.Message
     
-    /// statistic of most used toplevel auto completions
+    /// A static class to hold the statistic of most used toplevel auto completions
     type AutoCompleteStatistic private () =
         
-        static let completionStats = Dictionary<string,float>() // make concurrent ?
+        static let completionStats = Dictionary<string,float>() // TODO make concurrent ?
         static let sep = '=' // key value separatur like in ini files
         static let counter = ref 0L // for atomic writing back to file
         static let readerWriterLock = new ReaderWriterLockSlim()
@@ -229,18 +223,33 @@ module Config =
         
         static member Save() =
             writeToFileDelayed (AutoCompleteStatistic.FilePath, 500, counter, readerWriterLock,completionStatsAsString)
+    
+    /// A static class to hold the current App Run context (Standalone or Hosted)
+    type Context private () =
+        static let mutable currentRunContext = Standalone
+        static member Mode     = currentRunContext 
+        static member IsHosted     = currentRunContext <> Standalone        
+        static member IsStandalone = currentRunContext = Standalone  
+        static member internal Set (v:AppRunContext) = currentRunContext <- v
+        static member asStringForFilename() = 
+            match currentRunContext with 
+            |Standalone ->  "Standalone" 
+            |Hosted name ->  
+                  let sb = new Text.StringBuilder()/// to get a valid filename fom any host app name suplied
+                  for c in name do
+                      if (c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || c = '.' || c = '_'|| c = ' ' || c = '-'|| c = '+' then  sb.Append(c) |> ignore
+                  "Hosted." + sb.ToString()
 
 
-    let mutable currentRunContext = Standalone
-
-    let initialize(context:RunContext) =
+    let initialize(context:AppRunContext) =
         Sync.installSynchronizationContext() //  important do first
         Log.initialize() // so debug text is available
-        currentRunContext <- context
+        Context.Set (context)
+
         let configFilesFolder = IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"Seff")
         IO.Directory.CreateDirectory(configFilesFolder) |> ignore
 
-        let host = match context with Standalone ->  "Standalone" | Hosted x -> "Hosted." + makeValidFilename(x)
+        let host = Context.asStringForFilename()
 
         Settings.FilePath               <- IO.Path.Combine(configFilesFolder, sprintf "%s.Settings.txt"              host )
         RecentlyUsedFiles.FilePath      <- IO.Path.Combine(configFilesFolder, sprintf "%s.RecentlyUsedFiles.txt"     host )

@@ -20,7 +20,7 @@ module Model =
         static member getColor = function
             | FsiStdOut     ->Brushes.DarkGray
             | FsiErrorOut   ->Brushes.DarkMagenta
-            | ConsoleOut    ->Brushes.DarkGreen  // printfn in script
+            | ConsoleOut    ->Brushes.DarkGreen  // printfn in script?? exlude this in printFromBufferAndScroll
             | ConsoleError  ->Brushes.Magenta
             | InfoMsg       ->Brushes.Blue
             | FsiErrorMsg   ->Brushes.Red
@@ -30,10 +30,19 @@ module Model =
             | PrintMsg      ->Brushes.DarkCyan
 
 
-    type RunContext = 
+    type AppRunContext = 
         |Standalone 
         |Hosted of string
 
+    
+    type FsiState =  Ready | Evaluating
+
+    type FsiMode  = Sync | Async
+
+    type FsiIsCancelingOk = NotEvaluating | YesAsync | Dont | NotPossibleSync // Not-Possible-Sync because during sync eval the ui should be frozen anyway and this request should not be happening
+     
+    
+    
     let defaultCodeOnFirstRun =
         [
         "// this is your default code for new files, you can change it by going to the menu: File -> Edit Template File"
