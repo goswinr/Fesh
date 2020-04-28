@@ -13,7 +13,7 @@ module App =
     //[< STAThread >] needed?
     let runEditorHosted (mainWindowHandle, hostName) : Window =
         Config.initialize (Hosted hostName)
-        let win = MainWindow.create( [| |] )
+        let win = MainWindow.create( [| |], false )
         Interop.WindowInteropHelper(win).Owner <- mainWindowHandle
         //win.Show() // do in host instead, so that the host can control the window show time
         win
@@ -23,5 +23,5 @@ module App =
     [< STAThread >] 
     let runEditorStandalone args : int =   
         Config.initialize (Standalone)
-        let win = MainWindow.create(args)
+        let win = MainWindow.create(args,true)
         (new Application()).Run(win) 

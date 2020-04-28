@@ -17,7 +17,7 @@ module MainWindow =
         with ex -> Log.print  "Failed to load Media/Logo15.ico from Application.ResourceStream : %A" ex
     
 
-    let create (args: string []) = 
+    let create (args: string [],startFsi:bool) = 
         let timer = Seff.Timer()
 
         (* //TODO with this the app fails to start. why?
@@ -53,9 +53,6 @@ module MainWindow =
         win.InputBindings.AddRange Commands.allShortCutKeyGestures  
         Menu.setup()
 
-        
-
-
 
        
         win.Loaded.Add (fun _ ->
@@ -64,7 +61,7 @@ module MainWindow =
             
             CreateTab.loadArgsAndOpenFilesOnLastAppClosing(args)
             RecentlyUsedFiles.loadRecentFilesMenu Menu.RecentFiles.updateRecentMenue
-            Fsi.Initalize()
+            if startFsi then Fsi.Initalize()
             
             //win.Activate() |> ignore // needed ?           
             //Tab.currEditor.Focus() |> ignore // can be null ? needed ?            

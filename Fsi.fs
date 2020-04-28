@@ -188,7 +188,7 @@ type Fsi private () =
         Console.SetError(Log.TextWriterConsoleError) // TODO needed if evaluate non throwing or coverd by TextWriterFsiErrorOut? 
         //if mode = Mode.Sync then do! Async.SwitchToContext Sync.syncContext            
         //fsiSession.Run() // TODO ? dont do this it crashes the app when hosted in Rhino! 
-        fsiSession.AssemblyReferenceAdded.Add ( fun r -> Config.AssemblyReferenceStatistic.Incr(r)) // to have autocomplete on #r "path"       
+              
         if session.IsNone then Log.printInfoMsg "Time for loading FSharp Interactive: %s"  timer.tocEx  
         else                   Log.printInfoMsg "New FSharp Interactive session created."    
         session <- Some fsiSession
@@ -254,8 +254,8 @@ type Fsi private () =
 
     static member  Reset() =  
         match Fsi.AskIfCancellingIsOk () with 
-        | NotEvaluating   -> Fsi.Initalize (); resetEv.Trigger(mode)
-        | YesAsync        -> Fsi.CancelIfAsync(); Fsi.Initalize (); resetEv.Trigger(mode)
+        | NotEvaluating   ->                      Log.printInfoMsg "FSI reset." ; Fsi.Initalize (); resetEv.Trigger(mode)
+        | YesAsync        -> Fsi.CancelIfAsync(); Log.printInfoMsg "FSI reset." ; Fsi.Initalize (); resetEv.Trigger(mode)
         | Dont            -> ()
         | NotPossibleSync -> Log.printInfoMsg "ResetFsi is not be possibe in current synchronous evaluation." // TODO test
       
