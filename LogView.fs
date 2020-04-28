@@ -55,6 +55,7 @@ module Logging =
             e.IsReadOnly <- true
             e.Encoding <- Text.Encoding.Default
             e.TextArea.TextView.LineTransformers.Add(new LogLineColorizer(e))
+            AvalonEdit.Search.SearchPanel.Install(e) |> ignore
             e
         
         // The below functions are trying to work around double UI update in printfn for better UI performance
