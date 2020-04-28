@@ -49,7 +49,7 @@ type Fsi private () =
         state <- Evaluating
         //fsiCancelScr <- Some (new CancellationTokenSource()) //does not work? needs Thread.Abort () ?
         startedEv.Trigger(mode) // do always sync
-        if session.IsNone then  Fsi.StartSession()     // sync 
+        if session.IsNone then  Fsi.Initalize()     // sync 
            
         let thr = new Thread(fun () ->
             let a = 
@@ -187,8 +187,8 @@ type Fsi private () =
         Console.SetOut  (Log.TextWriterConsoleOut)   // TODO needed to redirect printfn or coverd by TextWriterFsiStdOut? //https://github.com/fsharp/FSharp.Compiler.Service/issues/201
         Console.SetError(Log.TextWriterConsoleError) // TODO needed if evaluate non throwing or coverd by TextWriterFsiErrorOut? 
         //if mode = Mode.Sync then do! Async.SwitchToContext Sync.syncContext            
-        //fsiSession.Run() // dont do this it crashes the app when hosted in Rhino! 
-        fsiSession.AssemblyReferenceAdded.Add ( fun r -> Config.AssemblyReferenceStatistic.Incr(r)) // to have autocomplete on #r        
+        //fsiSession.Run() // TODO ? dont do this it crashes the app when hosted in Rhino! 
+        fsiSession.AssemblyReferenceAdded.Add ( fun r -> Config.AssemblyReferenceStatistic.Incr(r)) // to have autocomplete on #r "path"       
         if session.IsNone then Log.printInfoMsg "Time for loading FSharp Interactive: %s"  timer.tocEx  
         else                   Log.printInfoMsg "New FSharp Interactive session created."    
         session <- Some fsiSession
@@ -254,8 +254,8 @@ type Fsi private () =
 
     static member  Reset() =  
         match Fsi.AskIfCancellingIsOk () with 
-        | NotEvaluating   -> Fsi.StartSession (); resetEv.Trigger(mode)
-        | YesAsync        -> Fsi.CancelIfAsync(); Fsi.StartSession (); resetEv.Trigger(mode)
+        | NotEvaluating   -> Fsi.Initalize (); resetEv.Trigger(mode)
+        | YesAsync        -> Fsi.CancelIfAsync(); Fsi.Initalize (); resetEv.Trigger(mode)
         | Dont            -> ()
         | NotPossibleSync -> Log.printInfoMsg "ResetFsi is not be possibe in current synchronous evaluation." // TODO test
       
@@ -271,7 +271,7 @@ type Fsi private () =
             mode <- sync
             setConfig()
             Config.Settings.Save()
-            Fsi.StartSession ()
+            Fsi.Initalize ()
         | Dont -> () 
         | NotPossibleSync -> Log.printInfoMsg "Wait till current synchronous evaluation completes before seting mode to Async."
     

@@ -64,7 +64,7 @@ module MainWindow =
             
             CreateTab.loadArgsAndOpenFilesOnLastAppClosing(args)
             RecentlyUsedFiles.loadRecentFilesMenu Menu.RecentFiles.updateRecentMenue
-            Fsi.StartSession()
+            Fsi.Initalize()
             
             //win.Activate() |> ignore // needed ?           
             //Tab.currEditor.Focus() |> ignore // can be null ? needed ?            
