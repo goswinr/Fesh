@@ -111,7 +111,8 @@ type Fsi private () =
 
     static member Mode = mode
 
-    static member StartSession () =     
+    /// starts a new Fsi session 
+    static member Initalize () =     
         (*
                 - INPUT FILES -
         --use:<file>                             Use the given file on startup as initial input
@@ -169,8 +170,11 @@ type Fsi private () =
         let timer = Seff.Timer()
         timer.tic()
         if Config.Settings.getBool "asyncFsi" true then mode <- Async else mode <- Sync
-        //if session.IsSome then session.Value.Interrupt()  //TODO does this cancel running session ??         
-        
+        if session.IsSome then 
+            session.Value.Interrupt()  //TODO does this cancel running session correctly ??         
+            // TODO how to dispose previous session ?
+          
+
         // TODO change to async thead for  FsiEvaluationSession.Create ?
         let inStream = new StringReader("")
         // first arg is ignored: https://github.com/fsharp/FSharp.Compiler.Service/issues/420 
@@ -178,13 +182,15 @@ type Fsi private () =
         // and  https://github.com/fsharp/FSharp.Compiler.Service/issues/878            
         let allArgs = [|"" ; "--langversion:preview" ; "--noninteractive" ; "--debug+"; "--debug:full" ;"--optimize+" ; "--gui-" ; "--nologo"|] // ; "--shadowcopyreferences" is ignored https://github.com/fsharp/FSharp.Compiler.Service/issues/292           
         let fsiConfig = FsiEvaluationSession.GetDefaultConfiguration() // https://github.com/dotnet/fsharp/blob/4978145c8516351b1338262b6b9bdf2d0372e757/src/fsharp/fsi/fsi.fs#L2839
-        let fsiSession = FsiEvaluationSession.Create(fsiConfig, allArgs, inStream, Log.TextWriterFsiStdOut, Log.TextWriterFsiErrorOut) //, collectible=false ??) 
-        AppDomain.CurrentDomain.UnhandledException.Add(fun ex -> Log.print "*** FSI AppDomain.CurrentDomain.UnhandledException:\r\n %A" ex.ExceptionObject)
+        let fsiSession = FsiEvaluationSession.Create(fsiConfig, allArgs, inStream, Log.TextWriterFsiStdOut, Log.TextWriterFsiErrorOut) //, collectible=false ??)
+        AppDomain.CurrentDomain.UnhandledException.Add(fun ex -> Log.printFsiErrorMsg "*** FSI AppDomain.CurrentDomain.UnhandledException:\r\n %A" ex.ExceptionObject)
         Console.SetOut  (Log.TextWriterConsoleOut)   // TODO needed to redirect printfn or coverd by TextWriterFsiStdOut? //https://github.com/fsharp/FSharp.Compiler.Service/issues/201
         Console.SetError(Log.TextWriterConsoleError) // TODO needed if evaluate non throwing or coverd by TextWriterFsiErrorOut? 
         //if mode = Mode.Sync then do! Async.SwitchToContext Sync.syncContext            
         //fsiSession.Run() // dont do this it crashes the app when hosted in Rhino! 
-        if session.IsNone then Log.print "* Time for loading FSharp Interactive: %s"  timer.tocEx        
+        fsiSession.AssemblyReferenceAdded.Add ( fun r -> Config.AssemblyReferenceStatistic.Incr(r)) // to have autocomplete on #r        
+        if session.IsNone then Log.printInfoMsg "Time for loading FSharp Interactive: %s"  timer.tocEx  
+        else                   Log.printInfoMsg "New FSharp Interactive session created."    
         session <- Some fsiSession
         timer.stop()
 

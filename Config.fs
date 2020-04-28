@@ -34,12 +34,12 @@ module Config =
                 with ex -> Log.printAppErrorMsg "%s" ex.Message
             } |> Async.Start
         
+    let private sep = '=' // key value separatur like in ini files
 
     
     /// window size, layout and position, async state and more
     type Settings private () = 
         static let settingsDict = new Collections.Concurrent.ConcurrentDictionary<string,string>()   
-        static let sep = '=' // key value separatur like in ini files
         static let counter = ref 0L // for atomic writing back to file
         static let readerWriterLock = new ReaderWriterLockSlim()
         static let settingsAsString () = 
@@ -184,9 +184,8 @@ module Config =
     
     /// A static class to hold the statistic of most used toplevel auto completions
     type AutoCompleteStatistic private () =
-        
+    
         static let completionStats = Dictionary<string,float>() // TODO make concurrent ?
-        static let sep = '=' // key value separatur like in ini files
         static let counter = ref 0L // for atomic writing back to file
         static let readerWriterLock = new ReaderWriterLockSlim()
 
@@ -209,20 +208,61 @@ module Config =
                 with e -> 
                     Log.printAppErrorMsg "Error load fileCompletionStats: %s"   e.Message
                 } |> Async.Start 
-         
+     
         static member Get(key) =
             match completionStats.TryGetValue key with
             |true,i -> i
             |_      -> 0.0
-        
+    
         /// increase by 1.0
         static member Incr(key) =
             match completionStats.TryGetValue key with
             |true,i -> completionStats.[key] <- i +  1.0
             |_      -> completionStats.[key] <- 1.0
-        
+    
         static member Save() =
             writeToFileDelayed (AutoCompleteStatistic.FilePath, 500, counter, readerWriterLock,completionStatsAsString)
+        
+    /// A static class to hold the previously loaded assemble refrences for auto completions
+    type AssemblyReferenceStatistic private () =
+            
+        static let assRefStats = Dictionary<string,float>() // TODO make concurrent ?        
+        static let counter = ref 0L // for atomic writing back to file
+        static let readerWriterLock = new ReaderWriterLockSlim()
+
+        static let assRefStatsAsString () = 
+            let sb = StringBuilder() 
+            for KeyValue(k,v) in assRefStats do
+                sb.Append(k).Append(sep).AppendLine(v.ToString()) |> ignore
+            sb.ToString() 
+
+        static member val FilePath = "xyz" with get,set // set in Config.initialize()
+
+        static member loadFromFile() =
+            async{
+                try            
+                    if IO.File.Exists AssemblyReferenceStatistic.FilePath then 
+                        for ln in  IO.File.ReadAllLines AssemblyReferenceStatistic.FilePath do
+                        match ln.Split(sep) with
+                        | [|k;v|] -> assRefStats.[k] <- float v // TODO allow for comments? use ini format ??
+                        | _       -> Log.printAppErrorMsg "Bad line in AssemblyReferenceStatistic file : '%s'" ln                   
+                with e -> 
+                    Log.printAppErrorMsg "Error load assRefStatsStats: %s"   e.Message
+                } |> Async.Start 
+             
+        static member Get(key) =
+            match assRefStats.TryGetValue key with
+            |true,i -> i
+            |_      -> 0.0
+            
+        /// increase by 1.0
+        static member Incr(key) =
+            match assRefStats.TryGetValue key with
+            |true,i -> assRefStats.[key] <- i +  1.0
+            |_      -> assRefStats.[key] <- 1.0
+            
+        static member Save() =
+            writeToFileDelayed (AssemblyReferenceStatistic.FilePath, 500, counter, readerWriterLock,assRefStatsAsString)
     
     /// A static class to hold the current App Run context (Standalone or Hosted)
     type Context private () =
@@ -251,15 +291,16 @@ module Config =
 
         let host = Context.asStringForFilename()
 
-        Settings.FilePath               <- IO.Path.Combine(configFilesFolder, sprintf "%s.Settings.txt"              host )
-        RecentlyUsedFiles.FilePath      <- IO.Path.Combine(configFilesFolder, sprintf "%s.RecentlyUsedFiles.txt"     host )
-        CurrentlyOpenFiles.FilePath     <- IO.Path.Combine(configFilesFolder, sprintf "%s.CurrentlyOpenFiles.txt"    host )
-        DefaultCode.FilePath            <- IO.Path.Combine(configFilesFolder, sprintf "%s.DefaultCode.fsx"           host )
-        AutoCompleteStatistic.FilePath  <- IO.Path.Combine(configFilesFolder, sprintf "%s.AutoCompleteStatistic.txt" host ) 
-        
+        Settings.FilePath                    <- IO.Path.Combine(configFilesFolder, sprintf "%s.Settings.txt"                   host )
+        RecentlyUsedFiles.FilePath           <- IO.Path.Combine(configFilesFolder, sprintf "%s.RecentlyUsedFiles.txt"          host )
+        CurrentlyOpenFiles.FilePath          <- IO.Path.Combine(configFilesFolder, sprintf "%s.CurrentlyOpenFiles.txt"         host )
+        DefaultCode.FilePath                 <- IO.Path.Combine(configFilesFolder, sprintf "%s.DefaultCode.fsx"                host )
+        AutoCompleteStatistic.FilePath       <- IO.Path.Combine(configFilesFolder, sprintf "%s.AutoCompleteStatistic.txt"      host ) 
+        AssemblyReferenceStatistic.FilePath  <- IO.Path.Combine(configFilesFolder, sprintf "%s.AssemblyReferenceStatistic.txt" host ) 
+
         Settings.loadFromFile()
         AutoCompleteStatistic.loadFromFile()
-
+        AssemblyReferenceStatistic.loadFromFile()
 
 
     /// opens up Explorer
