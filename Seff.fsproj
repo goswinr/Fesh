@@ -17,7 +17,7 @@
 
   <ItemGroup>
     <!-- don't add explict ref to Fsharp.Core-->
-    <PackageReference Include="FSharp.Compiler.Service" Version="35.0.0"/> 
+    <PackageReference Include="FSharp.Compiler.Service" Version="33.0.1"/> 
   </ItemGroup>
 
 

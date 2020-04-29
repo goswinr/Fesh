@@ -9,6 +9,7 @@ module App =
     /// mainWindowHandle: Pointer to main window(nativeInt), 
     /// hostName: a string for the name of the hosting App (will be used for settings file name an displayed in the Title Bar.
     /// Call window.Show() on the returned Window object.
+    /// Call Fsi.Initalize() to start it.
     /// Use Fsi.OnStarted and Fsi.OnIsReady Events to implement undo and redo in host App.
     //[< STAThread >] needed?
     let runEditorHosted (mainWindowHandle, hostName) : Window =
