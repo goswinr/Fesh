@@ -22,7 +22,7 @@ module Logging =
         override this.WriteLine ()          = writeStr (    NewLine)    
     
     /// Dictionary holding the color of all non standart lines
-    let private LineColors = Collections.Generic.Dictionary<int,SolidColorBrush>()
+    let private LineColors = Collections.Generic.Dictionary<int,SolidColorBrush>() // TODO store line type instead,  
 
     type private LogLineColorizer(editor:AvalonEdit.TextEditor) = 
         inherit AvalonEdit.Rendering.DocumentColorizingTransformer()
@@ -31,6 +31,9 @@ module Logging =
         override this.ColorizeLine(line:AvalonEdit.Document.DocumentLine) =       
            let ok,color = LineColors.TryGetValue(line.LineNumber)
            if ok && not line.IsDeleted then
+                
+                // TODO skip ConsoleOut lines since they dont have a Foreground renderer line type instead,  
+
                 // consider selection and exclude fom higlighting:
                 let st=line.Offset
                 let en=line.EndOffset
@@ -75,9 +78,10 @@ module Logging =
             buffer.Clear()  |> ignore 
             let start = editor.Document.TextLength
             editor.AppendText(txt)
-            
-            if true then // if type<>PrintMsg then //TODO exclude default print color, it should be same as foreground anyway
-                let mutable line = editor.Document.GetLineByOffset(start) 
+            let mutable line = editor.Document.GetLineByOffset(start) 
+            if ty = ConsoleOut then //TODO exclude default print color, it should be same as foreground anyway                
+                LineColors.Remove line.LineNumber |> ignore // claer any color that might exit from printing on same line before ( maybe just a return)
+            else                
                 //editor.Document.Insert( line.EndOffset, sprintf "(%d:%A)" line.LineNumber ty) //for DEBUG only
                 //editor.AppendText(sprintf "(1st Line %d, %d chars:%A)" line.LineNumber line.Length ty) //for DEBUG only
                 LineColors.[line.LineNumber] <- LogMessageType.getColor(ty) 
