@@ -63,7 +63,7 @@ module Commands =
                                                         
     let NewTab           = "New File"                 , "Ctrl + N"      , mkCmdSimple (fun a -> newTab(DefaultCode.Get(),None,true)|>ignore),"Create a new script file"
     let OpenFile         = "Open File"                , "Ctrl + O"      , mkCmdSimple (fun a -> openFileDlg newTab),"Open a script file"
-    let OpenTemplateFile = "Edit Template File"       ,""               , mkCmdSimple (fun a -> openFile(IO.FileInfo(DefaultCode.Get()),newTab,true)|>ignore),"Opens the template file that is used when creating a New File ( Ctrl + N)"
+    let OpenTemplateFile = "Edit Template File"       ,""               , mkCmdSimple (fun a -> openFile(IO.FileInfo(DefaultCode.FilePath),newTab,true)|>ignore),"Opens the template file that is used when creating a New File ( Ctrl + N)"
     let Close            = "Close File"               , "Ctrl + F4"     , mkCmdSimple (fun a -> altF4close()),"Closes the current Tab, if no tab present Application will be closed" 
     
     let SaveIncremental  = "Save Incremental"         , ""              , mkCmd isTab    (fun a -> saveIncremental Tab.currTab |> ignore),"increases the last letter of filename, can be alphabetic or numeric "
