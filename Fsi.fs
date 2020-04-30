@@ -167,7 +167,7 @@ type Fsi private () =
         --shadowcopyreferences[+|-]              Prevents references from being locked by the F# Interactive process
         *)
         match state with 
-        | Initalizing -> () // do nothing. TODO try again later
+        | Initalizing -> Log.printInfoMsg "FSI initialization can't be started because it is already in process.."
         | NotLoaded | Ready | Evaluating -> 
             let  prevState = state
             state <- Initalizing
@@ -201,8 +201,8 @@ type Fsi private () =
             
                 if Config.Context.IsHosted then 
                     match mode with
-                    |Sync ->  Log.printDebugMsg "FSharp Interactive will evaluate synchronously on UI Thread."
-                    |Async -> Log.printDebugMsg "FSharp Interactive will evaluate asynchronously on new Thread."           
+                    |Sync ->  Log.printInfoMsg "FSharp Interactive will evaluate synchronously on UI Thread."
+                    |Async -> Log.printInfoMsg "FSharp Interactive will evaluate asynchronously on new Thread."           
                 } |> Async.Start
 
     static member CancelIfAsync() = 
