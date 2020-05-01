@@ -27,7 +27,7 @@ module Model =
             | AppErrorMsg   ->Brushes.DarkOrange
             | IOErrorMsg    ->Brushes.DarkRed
             | DebugMsg      ->Brushes.Green
-            | PrintMsg      ->Brushes.DarkGreen // Log.print only. never used ? only ConsoleOut is used?
+            | PrintMsg      ->Brushes.DarkGreen // Log.Print only. never used ? only ConsoleOut is used?
 
 
     type AppRunContext = 

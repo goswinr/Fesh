@@ -29,7 +29,7 @@ module XshdHighlighting =
                     do! Async.SwitchToContext Sync.syncContext
                     ed.SyntaxHighlighting <- fsh
                 with e -> 
-                    Log.print "Error loading Syntax Highlighting: %A" e
+                    Log.Print "Error loading Syntax Highlighting: %A" e
                 } |> Async.Start
         else 
             ed.SyntaxHighlighting <- fsHighlighting.Value

@@ -18,7 +18,7 @@ module Config =
                 try
                     IO.File.WriteAllText(path,text)
                 with ex ->            
-                    Log.printIOErrorMsg "%s" ex.Message
+                    Log.PrintIOErrorMsg "%s" ex.Message
             finally
                 readerWriterLock.ExitWriteLock()
             } |> Async.Start
@@ -31,7 +31,7 @@ module Config =
             do! Async.Sleep(delay) // delay to see if this is the last of many events (otherwise there is a noticable lag in dragging window around)
             if !counter = k then //k > 2L &&   //do not save on startup && only save last event after a delay if there are many save events in a row ( eg from window size change)(ignore first two event from creating window)
                 try writeToFileAsyncLocked(file, readerWriterLock, getString() ) // getString might fail
-                with ex -> Log.printAppErrorMsg "%s" ex.Message
+                with ex -> Log.PrintAppErrorMsg "%s" ex.Message
             } |> Async.Start
         
     let private sep = '=' // key value separatur like in ini files
@@ -55,11 +55,11 @@ module Config =
                 for ln in  IO.File.ReadAllLines Settings.FilePath do
                     match ln.Split(sep) with
                     | [|k;v|] -> settingsDict.[k] <- v // TODO allow for comments? use ini format ??
-                    | _       -> Log.printAppErrorMsg "Bad line in settings file file: '%s'" ln
-                    //Log.printDebugMsg "on File: %s" ln
+                    | _       -> Log.PrintAppErrorMsg "Bad line in settings file file: '%s'" ln
+                    //Log.PrintDebugMsg "on File: %s" ln
             with 
-                | :? FileNotFoundException ->   Log.printInfoMsg   "Settings file not found. (This is normal on first use of the App.)"
-                | e ->                          Log.printAppErrorMsg  "Problem reading or initalizing settings file: %s"  e.Message
+                | :? FileNotFoundException ->   Log.PrintInfoMsg   "Settings file not found. (This is normal on first use of the App.)"
+                | e ->                          Log.PrintAppErrorMsg  "Problem reading or initalizing settings file: %s"  e.Message
                         
         
         static member setDelayed k v delay= 
@@ -70,17 +70,17 @@ module Config =
                  } |> Async.Start
         
         static member set (k:string) (v:string) = 
-            if k.IndexOf(sep) > -1 then Log.printAppErrorMsg  "Settings key shall not contain '%c' : %s%c%s"  sep  k  sep  v            
-            if v.IndexOf(sep) > -1 then Log.printAppErrorMsg  "Settings value shall not contain '%c' : %s%c%s"  sep  k  sep  v 
+            if k.IndexOf(sep) > -1 then Log.PrintAppErrorMsg  "Settings key shall not contain '%c' : %s%c%s"  sep  k  sep  v            
+            if v.IndexOf(sep) > -1 then Log.PrintAppErrorMsg  "Settings value shall not contain '%c' : %s%c%s"  sep  k  sep  v 
             settingsDict.[k] <- v             
         
         static member get k = 
             match settingsDict.TryGetValue k with 
             |true, v  -> 
-                //Log.printDebugMsg "get %s as %s" k v  //for DEBUG only
+                //Log.PrintDebugMsg "get %s as %s" k v  //for DEBUG only
                 Some v
             |false, _ -> 
-                //Log.printDebugMsg "missing key %s " k  //for DEBUG only
+                //Log.PrintDebugMsg "missing key %s " k  //for DEBUG only
                 None
 
         static member Save () =                       
@@ -135,7 +135,7 @@ module Config =
                                 let makeCurrent = path.ToLowerInvariant() = currentFile 
                                 files.Add((fi,makeCurrent,code))            
             with e -> 
-                Log.printAppErrorMsg "Error getFilesfileOnClosingOpen: %s"  e.Message
+                Log.PrintAppErrorMsg "Error getFilesfileOnClosingOpen: %s"  e.Message
             files
     
     type RecentlyUsedFiles private () =
@@ -180,7 +180,7 @@ module Config =
                      recentFilesStack.Push fi
                      updateRecentMenu fi
              with e -> 
-                 Log.printAppErrorMsg "Error Loading recently used files: %s"   e.Message
+                 Log.PrintAppErrorMsg "Error Loading recently used files: %s"   e.Message
     
     /// A static class to hold the statistic of most used toplevel auto completions
     type AutoCompleteStatistic private () =
@@ -204,9 +204,9 @@ module Config =
                         for ln in  IO.File.ReadAllLines AutoCompleteStatistic.FilePath do
                         match ln.Split(sep) with
                         | [|k;v|] -> completionStats.[k] <- float v // TODO allow for comments? use ini format ??
-                        | _       -> Log.printAppErrorMsg "Bad line in CompletionStats file : '%s'" ln                   
+                        | _       -> Log.PrintAppErrorMsg "Bad line in CompletionStats file : '%s'" ln                   
                 with e -> 
-                    Log.printAppErrorMsg "Error load fileCompletionStats: %s"   e.Message
+                    Log.PrintAppErrorMsg "Error load fileCompletionStats: %s"   e.Message
                 } |> Async.Start 
      
         static member Get(key) =
@@ -245,9 +245,9 @@ module Config =
                         for ln in  IO.File.ReadAllLines AssemblyReferenceStatistic.FilePath do
                         match ln.Split(sep) with
                         | [|k;v|] -> assRefStats.[k] <- float v // TODO allow for comments? use ini format ??
-                        | _       -> Log.printAppErrorMsg "Bad line in AssemblyReferenceStatistic file : '%s'" ln                   
+                        | _       -> Log.PrintAppErrorMsg "Bad line in AssemblyReferenceStatistic file : '%s'" ln                   
                 with e -> 
-                    Log.printAppErrorMsg "Error load assRefStatsStats: %s"   e.Message
+                    Log.PrintAppErrorMsg "Error load assRefStatsStats: %s"   e.Message
                 } |> Async.Start 
              
         static member Get(key) =
@@ -300,7 +300,7 @@ module Config =
             AutoCompleteStatistic.loadFromFile()
             AssemblyReferenceStatistic.loadFromFile()
         with ex ->
-            Log.printAppErrorMsg "Error in Congig.initialize(%A): %A" context ex
+            Log.PrintAppErrorMsg "Error in Congig.initialize(%A): %A" context ex
 
 
     /// opens up Explorer

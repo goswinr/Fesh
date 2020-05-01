@@ -27,7 +27,7 @@ module Initialize =
         (* //TODO with this the app fails to start. why?
         Application.Current.DispatcherUnhandledException.Add(fun e ->  //exceptions generated on the UI thread
             if e <> null then 
-                Log.print "Application.Current.DispatcherUnhandledException in main Thread: %A" e.Exception           
+                Log.Print "Application.Current.DispatcherUnhandledException in main Thread: %A" e.Exception           
                 e.Handled<- true) *)
         
         //catching unhandled exceptions generated from all threads running under the context of a specific application domain. 

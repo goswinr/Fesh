@@ -46,10 +46,11 @@
 
     <Compile Include="Model.fs" />
     <Compile Include="Sync.fs" />
-    <Compile Include="LogView.fs" />
+    <Compile Include="Log.fs" />
     <Compile Include="Config.fs" />
     <Compile Include="Timer.fs" />
     <Compile Include="Fsi.fs" />
+    <Compile Include="Win.fs" />
 
     <Compile Include="03_Util.fs" />
     <Compile Include="04_UtilWPF.fs" />

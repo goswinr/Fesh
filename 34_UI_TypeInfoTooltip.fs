@@ -100,7 +100,7 @@ module Tooltips =
                 else 
                     let xmlf = Path.ChangeExtension(dllFile, ".xml")
                     let err = "no xml doc found for member'"+memberName+"' in \r\n"+xmlf+"\r\n"
-                    //Log.print "%s" err                    
+                    //Log.Print "%s" err                    
                     Error (err)
            | None -> 
                 Error ("*xml doc file not found for: "+dllFile+"\r\n")
@@ -144,7 +144,7 @@ module Tooltips =
                 for c in cs do 
                     if c.IsOptionalArg then                         
                         D.Add c.FullName
-                        //Log.print "optional full name: %s" c.FullName
+                        //Log.Print "optional full name: %s" c.FullName
         | _ -> ()
         D
 
@@ -176,7 +176,7 @@ module Tooltips =
                     let endCol = endOffset - docLine.Offset
                     let lineTxt = doc.GetText(docLine)          
                     let word = doc.GetText(max 0 startOffset, endOffset-startOffset) // max function to avoid -1
-                    //Log.print "word = '%s' Line:%d starting at %d get from %d to %d: in '%s'" word line docLine.Offset startOffset endOffset lineTxt
+                    //Log.Print "word = '%s' Line:%d starting at %d get from %d to %d: in '%s'" word line docLine.Offset startOffset endOffset lineTxt
                     async{
                         // <summary>Compute a formatted tooltip for the given location</summary>
                         // <param name="line">The line number where the information is being requested.</param>

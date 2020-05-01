@@ -46,7 +46,7 @@ module Commands =
 
     //see https://github.com/icsharpcode/AvalonEdit/blob/697ff0d38c95c9e5a536fbc05ae2307ec9ef2a63/ICSharpCode.AvalonEdit/Editing/CaretNavigationCommandHandler.cs#L73
     //TODO these gets evaluated for each command on every mouse click or key perss . is this OK?  any lag ?? in Canexecute for commands
-    let private isTab       a   = Tab.current.IsSome (* Log.print "isTab was evalauted"; *) 
+    let private isTab       a   = Tab.current.IsSome (* Log.Print "isTab was evalauted"; *) 
     let private isEditorSel a   = Tab.current.IsSome && Tab.currEditor.SelectionLength > 0
     let private isLogSel    a   = UI.log.SelectionLength > 0
     let private runsAsync   a   = Fsi.State = Evaluating && Fsi.Mode = Async
@@ -162,13 +162,13 @@ module Commands =
             |"Down"  -> Key.Down
             | x -> match Key.TryParse(x,true) with
                    |true, k -> k
-                   | _ -> Log.printAppErrorMsg "*AllInputBindings: failed to parse Command Key '%A'" x; Key.NoName
+                   | _ -> Log.PrintAppErrorMsg "*AllInputBindings: failed to parse Command Key '%A'" x; Key.NoName
         
         let getModKey = function
             |"Ctrl"     -> ModifierKeys.Control        
             | x -> match ModifierKeys.TryParse(x,true) with
                    |true, k -> k
-                   | _ -> Log.printAppErrorMsg "*AllInputBindings: failed to parse ModifierKey '%A'" x; ModifierKeys.None
+                   | _ -> Log.PrintAppErrorMsg "*AllInputBindings: failed to parse ModifierKey '%A'" x; ModifierKeys.None
 
         try
             [|  for _,g,cmd,_ in allCustomCommands do
@@ -183,10 +183,10 @@ module Commands =
                             | [| m; k |]        -> InputBinding(cmd,  KeyGesture(getKey k, getModKey m))
                             | [| k |]           -> InputBinding(cmd,  KeyGesture(getKey k))
                             | _ -> 
-                                Log.printAppErrorMsg "*AllInputBindings: failed to parse command Input gesture '%s'" g
+                                Log.PrintAppErrorMsg "*AllInputBindings: failed to parse command Input gesture '%s'" g
                                 InputBinding(cmd,  KeyGesture(Key.None))
             |]
         
         with e -> 
-            Log.printAppErrorMsg "*AllInputBindings: failed to create keyboard shortcuts: %A"e
+            Log.PrintAppErrorMsg "*AllInputBindings: failed to create keyboard shortcuts: %A"e
             [| |]

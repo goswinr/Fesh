@@ -14,10 +14,10 @@ open ICSharpCode.AvalonEdit
 module EventHandlers =
     
     (* TODO 
-        //Events.Canceled.Add        (fun _ -> Log.printDebugMsg " +Fsi Canceled+")
-        //Events.IsReady.Add         (fun _ -> Log.printDebugMsg " +Fsi isReady+")      
-        //Events.Started.Add         (fun _ -> Log.printDebugMsg " +Fsi Started+")
-        //Events.Completed.Add       (fun _ -> Log.printDebugMsg " +Fsi Completed+")
+        //Events.Canceled.Add        (fun _ -> Log.PrintDebugMsg " +Fsi Canceled+")
+        //Events.IsReady.Add         (fun _ -> Log.PrintDebugMsg " +Fsi isReady+")      
+        //Events.Started.Add         (fun _ -> Log.PrintDebugMsg " +Fsi Started+")
+        //Events.Completed.Add       (fun _ -> Log.PrintDebugMsg " +Fsi Completed+")
                 
         Fsi.IsReady.Add      (fun _ -> UI.log.Background <- Appearance.logBackgroundFsiReady) 
         Fsi.Started.Add      (fun _ -> UI.log.Background <- Appearance.logBackgroundFsiEvaluating) // happens at end of eval in sync mode
@@ -26,8 +26,7 @@ module EventHandlers =
         *)
 
 
-    let setUpForWindowSizing(win:Window) =  
-        WindowLayout.init(win)
+    let setUpForWindowSizing(win:Window) =        
 
         UI.tabControl.SelectionChanged.Add( fun _-> 
             let ob = UI.tabControl.SelectedItem 
@@ -42,61 +41,6 @@ module EventHandlers =
         UI.splitterHor.DragCompleted.Add      (fun _ -> WindowLayout.splitChangeHor UI.editorRowHeight    UI.logRowHeight) 
         UI.splitterVert.DragCompleted.Add     (fun _ -> WindowLayout.splitChangeVert UI.editorColumnWidth UI.logColumnWidth) 
 
-        //--------------------------------------
-        // -  window location and size ---
-        //--------------------------------------
-        
-        win.LocationChanged.Add(fun e -> // occures for every pixel moved
-            async{
-                // normally the state change event comes after the location change event but before size changed. async sleep in LocationChanged prevents this
-                do! Async.Sleep 200 // so that StateChanged event comes first
-                if win.WindowState = WindowState.Normal &&  not WindowLayout.isMinOrMax then 
-                    if win.Top > -500. && win.Left > -500. then // to not save on minimizing on minimized: Top=-32000 Left=-32000 
-                        Config.Settings.setFloatDelayed "WindowTop"  win.Top  89 // get float in statchange maximised needs to access this before 350 ms pass
-                        Config.Settings.setFloatDelayed "WindowLeft" win.Left 95
-                        Config.Settings.Save ()
-                        //Log.print  "%s Location Changed: Top=%.0f Left=%.0f State=%A" Time.nowStrMilli win.Top win.Left win.WindowState
-                }
-                |> Async.StartImmediate
-            )
-
-        win.StateChanged.Add (fun e ->
-            match win.WindowState with 
-            | WindowState.Normal -> // because when Window is hosted in other App the restore from maximised does not remember the previous position automatically                
-                win.Top <-     Config.Settings.getFloat "WindowTop"    0.0
-                win.Left <-    Config.Settings.getFloat "WindowLeft"   0.0 
-                win.Height <-  Config.Settings.getFloat "WindowHeight" 800.0
-                win.Width <-   Config.Settings.getFloat "WindowWidth"  800.0
-                Config.Settings.setBool  "WindowIsMax" false
-                WindowLayout.isMinOrMax <- false
-                Config.Settings.Save ()
-                //Log.print "Normal: %s State changed=%A Top=%.0f Left=%.0f Width=%.0f Height=%.0f" Time.nowStrMilli win.WindowState win.Top win.Left win.ActualWidth win.ActualHeight 
-
-            | WindowState.Maximized ->
-                // normally the state change event comes after the location change event but before size changed. async sleep in LocationChanged prevents this
-                WindowLayout.isMinOrMax <- true
-                Config.Settings.setBool  "WindowIsMax" true
-                Config.Settings.Save  ()    
-                //Log.print "Maximised: %s State changed=%A Top=%.0f Left=%.0f Width=%.0f Height=%.0f" Time.nowStrMilli win.WindowState win.Top win.Left win.ActualWidth win.ActualHeight 
-                       
-
-            |WindowState.Minimized ->                 
-                WindowLayout.isMinOrMax <- true
-                //Log.print "Minimised: %s State changed=%A Top=%.0f Left=%.0f Width=%.0f Height=%.0f" Time.nowStrMilli win.WindowState win.Top win.Left win.ActualWidth win.ActualHeight 
-            
-            |wch -> 
-                Log.print "unknown WindowState State change=%A" wch
-                WindowLayout.isMinOrMax <- true
-            )
-
-        win.SizeChanged.Add (fun e ->
-            if win.WindowState = WindowState.Normal &&  not WindowLayout.isMinOrMax then 
-                Config.Settings.setFloatDelayed "WindowHeight" win.Height 89
-                Config.Settings.setFloatDelayed "WindowWidth"  win.Width  95
-                Config.Settings.Save ()
-                //Log.dlog (sprintf "%s Size Changed: Width=%.0f Height=%.0f State=%A" Time.nowStrMilli win.Width win.Height win.WindowState)
-            )
-    
 
 
 
@@ -115,7 +59,7 @@ module EventHandlers =
         //tab.Editor.Document.TextChanged.Add (fun e -> ())
 
         tab.Editor.Document.Changed.Add(fun e -> //TODO or TextChanged ??
-            //Log.print "*Document.Changed Event: deleted %d '%s', inserted %d '%s' completion Window:%A" e.RemovalLength e.RemovedText.Text e.InsertionLength e.InsertedText.Text tab.CompletionWin
+            //Log.Print "*Document.Changed Event: deleted %d '%s', inserted %d '%s' completion Window:%A" e.RemovalLength e.RemovedText.Text e.InsertionLength e.InsertedText.Text tab.CompletionWin
             ModifyUI.markTabUnSaved(tab)
             match tab.CompletionWin with
             | Some w ->  // just keep on tying in completion window, no type checking !
@@ -124,8 +68,8 @@ module EventHandlers =
                     //let currentText = getField(typeof<CodeCompletion.CompletionList>,w.CompletionList,"currentText") :?> string //this property schould be public !
                     //TODO close Window if w.CompletionList.SelectedItem.Text = currentText
                     //TODO ther is a bug in current text when deliting chars
-                    //Log.print "currentText: '%s'" currentText
-                    //Log.print "w.CompletionList.CompletionData.Count:%d" w.CompletionList.ListBox.VisibleItemCount
+                    //Log.Print "currentText: '%s'" currentText
+                    //Log.Print "w.CompletionList.CompletionData.Count:%d" w.CompletionList.ListBox.VisibleItemCount
                 else 
                     w.Close() 
             
@@ -212,12 +156,12 @@ module EventHandlers =
                 let line:string = currentLine tab
                 let car = tArea.Caret.Column
                 let prevC = line.Substring(0 ,car-1)
-                //Log.print "--Substring length %d: '%s'" prevC.Length prevC
+                //Log.Print "--Substring length %d: '%s'" prevC.Length prevC
                 if prevC.Length > 0 then 
                     if isJustSpaceCharsOrEmpty prevC  then
                         let dist = prevC.Length % tab.Editor.Options.IndentationSize
                         let clearCount = if dist = 0 then tab.Editor.Options.IndentationSize else dist
-                        //Log.print "--Clear length: %d " clearCount
+                        //Log.Print "--Clear length: %d " clearCount
                         tab.Editor.Document.Remove(tab.Editor.CaretOffset - clearCount, clearCount)
                         e.Handled <- true
             )

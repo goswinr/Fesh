@@ -5,7 +5,7 @@ open System.Windows
 open System.Windows.Controls
 open Seff.UtilWPF
 open Seff.Util
-open Seff.Logging
+
 
 module ModifyUI = 
    
@@ -31,7 +31,7 @@ module ModifyUI =
         Appearance.fontSize <- newSize // use for UI completion line too
         Config.Settings.setFloat "FontSize" newSize    
         Config.Settings.Save ()
-        Log.print "new Fontsize: %.1f" newSize
+        Log.Print "new Fontsize: %.1f" newSize
 
     /// affects Editor and Log
     let fontBigger()= 
@@ -90,16 +90,12 @@ module ModifyUI =
 
 
 
-module WindowLayout =  
+module ViewSplit =  
     
     type Size = MaxLog | Both 
 
     let mutable logWinstate = Both
 
-    // saving layout of Log and editor window:
-    let mutable mainWindow:Window = null // needed for maxing it, will be set in 'init(win)'
-    let mutable isMinOrMax = false
-    let mutable wasMax = false
     
     let toggleSplit() =        
         let rec clean (e:obj) = // clean grid up first //BindingOperations.ClearAllBindings(UI.editorRowHeight  ) // not needed
@@ -110,12 +106,12 @@ module WindowLayout =
                 g.RowDefinitions.Clear()
                 g.ColumnDefinitions.Clear()
             | _ -> ()                
-        clean mainWindow.Content
+        clean Win.Window.Content
         if Config.Settings.getBool "isVertSplit" true then 
-            mainWindow.Content <- UI.gridHor()
+            Win.Window.Content <- UI.gridHor()
             Config.Settings.setBool "isVertSplit" false
         else                                      
-            mainWindow.Content <- UI.gridVert()
+            Win.Window.Content <- UI.gridVert()
             Config.Settings.setBool "isVertSplit" true
         Config.Settings.Save ()
 
@@ -143,39 +139,16 @@ module WindowLayout =
             UI.logRowHeight.Height      <- makeGridLength <|Config.Settings.getFloat "LogHeight"    99.
             UI.editorColumnWidth.Width  <- makeGridLength <|Config.Settings.getFloat "EditorWidth" 99.
             UI.logColumnWidth.Width     <- makeGridLength <|Config.Settings.getFloat "LogWidth"    99.
-            if not wasMax then mainWindow.WindowState <- WindowState.Normal
+            if not Win.WasMax then Win.Window.WindowState <- WindowState.Normal
         |Both ->
             logWinstate <- MaxLog
-            wasMax <-isMinOrMax
-            if not isMinOrMax then mainWindow.WindowState <- WindowState.Maximized
+            Win.WasMax <- Win.IsMinOrMax
+            if not Win.IsMinOrMax then Win.Window.WindowState <- WindowState.Maximized
             UI.editorRowHeight.Height   <- makeGridLength 0.
             UI.logRowHeight.Height      <- makeGridLength 999.
             UI.editorColumnWidth.Width  <- makeGridLength 0.
             UI.logColumnWidth.Width     <- makeGridLength 999.
         
     
-    let init (win) = // set startup location and size:     
-        mainWindow <- win
-        if Config.Settings.getBool "WindowIsMax" false then
-            mainWindow.WindowState <- WindowState.Maximized
-            isMinOrMax <- true
-            wasMax <- true
-        else
-            mainWindow.WindowStartupLocation <- WindowStartupLocation.Manual
-            //let maxW = float <| Array.sumBy (fun (sc:Forms.Screen) -> sc.WorkingArea.Width)  Forms.Screen.AllScreens  // neded for dual screens ?, needs wins.forms
-            //let maxH = float <| Array.sumBy (fun (sc:Forms.Screen) -> sc.WorkingArea.Height) Forms.Screen.AllScreens //https://stackoverflow.com/questions/37927011/in-wpf-how-to-shift-a-win-onto-the-screen-if-it-is-off-the-screen/37927012#37927012
-            
-            let maxW = SystemParameters.VirtualScreenWidth   + 8.0
-            let maxH = SystemParameters.VirtualScreenHeight  + 8.0 // somehow a windocked on the right is 7 pix bigger than the screen ??
-            mainWindow.Top <-     Config.Settings.getFloat "WindowTop"    0.0
-            mainWindow.Left <-    Config.Settings.getFloat "WindowLeft"   0.0 
-            mainWindow.Height <-  Config.Settings.getFloat "WindowHeight" 800.0
-            mainWindow.Width <-   Config.Settings.getFloat "WindowWidth"  800.0
-            if  mainWindow.Top  < -8. || mainWindow.Height + mainWindow.Top  > maxH || // verify window fits screen (second screen might be off)
-                mainWindow.Left < -8. || mainWindow.Width  + mainWindow.Left > maxW then                    
-                    mainWindow.Top <-   0.0 ; mainWindow.Height <- 600.0
-                    mainWindow.Left <-  0.0 ; mainWindow.Width  <- 800.0
-
-          
 
 

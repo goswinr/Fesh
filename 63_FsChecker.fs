@@ -47,7 +47,7 @@ module FsChecker =
             try
                 let sourceText = Text.SourceText.ofString code
                 let! options, optionsErr = checker.Value.GetProjectOptionsFromScript(fileFsx, sourceText, otherFlags = [| "--langversion:preview" |] ) //TODO really use check file in project for scripts??
-                for e in optionsErr do Log.print "*Script Options Error: %A" e
+                for e in optionsErr do Log.Print "*Script Options Error: %A" e
             
                 // "filename">The name of the file in the project whose source is being checked
                 // "fileversion">An integer that can be used to indicate the version of the file. This will be returned by TryGetRecentCheckResultsForFile when looking up the file.
@@ -94,14 +94,14 @@ module FsChecker =
                         return {ok=true; parseRes=parseRes;  checkRes=checkRes;  code=code}
                     
                     | FSharpCheckFileAnswer.Aborted  ->
-                        Log.print "*ParseAndCheckFile code aborted"
+                        Log.Print "*ParseAndCheckFile code aborted"
                         return {ok=false; parseRes=Unchecked.defaultof<FSharpParseFileResults>;  checkRes=Unchecked.defaultof<FSharpCheckFileResults>;  code=code}                        
                 with e ->
-                    Log.print "ParseAndCheckFileInProject crashed (varying Nuget versions of FCS ?): %s" e.Message
+                    Log.Print "ParseAndCheckFileInProject crashed (varying Nuget versions of FCS ?): %s" e.Message
                     return {ok=false; parseRes=Unchecked.defaultof<FSharpParseFileResults>;  checkRes=Unchecked.defaultof<FSharpCheckFileResults>;  code=code}
             
             with e ->
-                    Log.print "GetProjectOptionsFromScript crashed (varying Nuget versions of FCS ?) : %s" e.Message
+                    Log.Print "GetProjectOptionsFromScript crashed (varying Nuget versions of FCS ?) : %s" e.Message
                     return {ok=false; parseRes=Unchecked.defaultof<FSharpParseFileResults>;  checkRes=Unchecked.defaultof<FSharpCheckFileResults>;  code=code}
             } 
     
@@ -129,8 +129,8 @@ module FsChecker =
         async{
             let colSetBack = pos.column - ifDotSetback
             let partialLongName = QuickParse.GetPartialLongNameEx(pos.lineToCaret, colSetBack - 1) //- 1) ??TODO is minus one correct ? https://github.com/fsharp/FSharp.Compiler.Service/issues/837
-            //Log.print "GetPartialLongNameEx on: '%s' setback: %d is:\r\n%A" pos.lineToCaret colSetBack partialLongName  
-            //Log.print "GetDeclarationListInfo on: '%s' row: %d, col: %d, colSetBack:%d, ifDotSetback:%d\r\n" pos.lineToCaret pos.row pos.column colSetBack ifDotSetback          
+            //Log.Print "GetPartialLongNameEx on: '%s' setback: %d is:\r\n%A" pos.lineToCaret colSetBack partialLongName  
+            //Log.Print "GetDeclarationListInfo on: '%s' row: %d, col: %d, colSetBack:%d, ifDotSetback:%d\r\n" pos.lineToCaret pos.row pos.column colSetBack ifDotSetback          
             let! decls = 
                 checkRes.GetDeclarationListInfo(
                     Some parseRes,      // ParsedFileResultsOpt
@@ -139,7 +139,7 @@ module FsChecker =
                     partialLongName,    // PartialLongName
                     ( fun _ -> [] )     // getAllEntities: (unit -> AssemblySymbol list) 
                     ) 
-            if decls.IsError then Log.print "*ERROR in GetDeclarationListInfo: %A" decls
+            if decls.IsError then Log.Print "*ERROR in GetDeclarationListInfo: %A" decls
             return decls
             } 
     
@@ -149,8 +149,8 @@ module FsChecker =
         async{
             let colSetBack = pos.column - ifDotSetback
             let partialLongName = QuickParse.GetPartialLongNameEx(pos.lineToCaret, colSetBack - 1) //- 1) ??TODO is minus one correct ? https://github.com/fsharp/FSharp.Compiler.Service/issues/837
-            //Log.print "GetPartialLongNameEx on: '%s' setback: %d is:\r\n%A" pos.lineToCaret colSetBack partialLongName  
-            //Log.print "GetDeclarationListInfo on: '%s' row: %d, col: %d, colSetBack:%d, ifDotSetback:%d\r\n" pos.lineToCaret pos.row pos.column colSetBack ifDotSetback          
+            //Log.Print "GetPartialLongNameEx on: '%s' setback: %d is:\r\n%A" pos.lineToCaret colSetBack partialLongName  
+            //Log.Print "GetDeclarationListInfo on: '%s' row: %d, col: %d, colSetBack:%d, ifDotSetback:%d\r\n" pos.lineToCaret pos.row pos.column colSetBack ifDotSetback          
             let! decls = 
                 checkRes.GetDeclarationListSymbols(
                     Some parseRes,      // ParsedFileResultsOpt
@@ -159,7 +159,7 @@ module FsChecker =
                     partialLongName,    // PartialLongName
                     ( fun _ -> [] )     // getAllEntities: (unit -> AssemblySymbol list) 
                     ) 
-            //if decls.IsError then Log.print "*ERROR in GetDeclarationListInfo: %A" decls
+            //if decls.IsError then Log.Print "*ERROR in GetDeclarationListInfo: %A" decls
             return decls
             } 
         
