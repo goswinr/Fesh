@@ -14,7 +14,7 @@ module MainWindow =
         // (for the exe file icon in explorer use <Win32Resource>Media\Logo15.res</Win32Resource>  in fsproj )
         let uri = new Uri("pack://application:,,,/Seff;component/Media/Logo15.ico", UriKind.RelativeOrAbsolute)
         try  win.Icon <-  Media.Imaging.BitmapFrame.Create(Application.GetResourceStream(uri).Stream)
-        with ex -> Log.print  "Failed to load Media/Logo15.ico from Application.ResourceStream : %A" ex
+        with ex -> Log.printAppErrorMsg  "Failed to load Media/Logo15.ico from Application.ResourceStream : %A" ex
     
 
     let create (args: string [],startFsi:bool) = 
@@ -56,7 +56,7 @@ module MainWindow =
 
        
         win.Loaded.Add (fun _ ->
-            Log.print "* Time for loading main window: %s"  timer.tocEx
+            Log.printInfoMsg "* Time for loading main window: %s"  timer.tocEx
             setIcon(win)             
             
             CreateTab.loadArgsAndOpenFilesOnLastAppClosing(args)

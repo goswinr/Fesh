@@ -19,15 +19,15 @@ module Model =
 
         static member getColor = function
             | FsiStdOut     ->Brushes.DarkGray // values printet by fsi iteself like "val it = ...."
-            | FsiErrorOut   ->Brushes.Red
+            | FsiErrorOut   ->Brushes.DarkMagenta //are they all caught by evaluate non throwing ?
             | ConsoleOut    ->Brushes.Yellow // never used should be black by default !!   // the out from printfn
             | ConsoleError  ->Brushes.LightSalmon // this is never used, only FsiErrorOut is used?
             | InfoMsg       ->Brushes.Blue
-            | FsiErrorMsg   ->Brushes.DarkMagenta
+            | FsiErrorMsg   ->Brushes.Red
             | AppErrorMsg   ->Brushes.DarkOrange
             | IOErrorMsg    ->Brushes.DarkRed
             | DebugMsg      ->Brushes.Green
-            | PrintMsg      ->Brushes.DarkGreen // never used ? only ConsoleOut is used?
+            | PrintMsg      ->Brushes.DarkGreen // Log.print only. never used ? only ConsoleOut is used?
 
 
     type AppRunContext = 
