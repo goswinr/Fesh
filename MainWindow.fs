@@ -5,41 +5,22 @@ open System.Windows
 open Seff.Model
 open Seff.Config
 
+
 module MainWindow =    
-    
-    
-    let private setIcon (win:Window) = 
-        // the Icon at the top left of the window and in the status bar,         
-        // musst be function to be calld at later moment(eg. after loading). Build action : "Resource"; Copy to ouput Dir: "Do not copy" 
-        // (for the exe file icon in explorer use <Win32Resource>Media\Logo15.res</Win32Resource>  in fsproj )
-        let uri = new Uri("pack://application:,,,/Seff;component/Media/Logo15.ico", UriKind.RelativeOrAbsolute)
-        try  win.Icon <-  Media.Imaging.BitmapFrame.Create(Application.GetResourceStream(uri).Stream)
-        with ex -> Log.printAppErrorMsg  "Failed to load Media/Logo15.ico from Application.ResourceStream : %A" ex
-    
 
     let create (args: string [], startFsi:bool) = 
-        
 
-
-        let win = new Window()
-        win.Title       <- match Context.Mode with Standalone -> "Seff | Scripting editor for fsharp"  | Hosted n ->  "Seff | Scripting editor for fsharp in " + n
-        win.ResizeMode  <- ResizeMode.CanResize         
+        let win = Win.Initialize()
+               
         win.Content     <- if Settings.getBool "isVertSplit" false then UI.gridVert() else UI.gridHor() 
-        win.Background  <- UI.menu.Background // otherwise space next to tab headers is in an odd color, call afte setting up content
+        win.Background  <- UI.menu.Background // call after setting up content, otherwise space next to tab headers is in an odd color
         
-
-
-
-
         EventHandlers.setUpForWindowSizing(win)
         win.InputBindings.AddRange Commands.allShortCutKeyGestures  
         Menu.setup()
-
-
-       
+               
         win.Loaded.Add (fun _ ->
-            setIcon(win) // call only after loading   
-            Log.printInfoMsg "* Time for loading main window: %s"  Timer.InstanceStartup.tocEx
+            Log.PrintInfoMsg "* Time for loading main window: %s"  Timer.InstanceStartup.tocEx
                      
             
             CreateTab.loadArgsAndOpenFilesOnLastAppClosing(args)
