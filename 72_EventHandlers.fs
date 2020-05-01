@@ -48,10 +48,11 @@ module EventHandlers =
         
         win.LocationChanged.Add(fun e -> // occures for every pixel moved
             async{
-                do! Async.Sleep 100 // so that StateChanged event comes first
+                // normally the state change event comes after the location change event but before size changed. async sleep in LocationChanged prevents this
+                do! Async.Sleep 200 // so that StateChanged event comes first
                 if win.WindowState = WindowState.Normal &&  not WindowLayout.isMinOrMax then 
                     if win.Top > -500. && win.Left > -500. then // to not save on minimizing on minimized: Top=-32000 Left=-32000 
-                        Config.Settings.setFloatDelayed "WindowTop"  win.Top  89 // get float in statchange maximised neddes top access this before 350 ms pass
+                        Config.Settings.setFloatDelayed "WindowTop"  win.Top  89 // get float in statchange maximised needs to access this before 350 ms pass
                         Config.Settings.setFloatDelayed "WindowLeft" win.Left 95
                         Config.Settings.Save ()
                         //Log.print  "%s Location Changed: Top=%.0f Left=%.0f State=%A" Time.nowStrMilli win.Top win.Left win.WindowState

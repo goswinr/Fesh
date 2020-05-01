@@ -282,25 +282,25 @@ module Config =
 
 
     let initialize(context:AppRunContext) =
-        Sync.installSynchronizationContext() //  important do first
-        Log.initialize() // so debug text is available
         Context.Set (context)
+        try
+            let configFilesFolder = IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"Seff")
+            IO.Directory.CreateDirectory(configFilesFolder) |> ignore
 
-        let configFilesFolder = IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"Seff")
-        IO.Directory.CreateDirectory(configFilesFolder) |> ignore
+            let host = Context.asStringForFilename()
 
-        let host = Context.asStringForFilename()
+            Settings.FilePath                    <- IO.Path.Combine(configFilesFolder, sprintf "%s.Settings.txt"                   host )
+            RecentlyUsedFiles.FilePath           <- IO.Path.Combine(configFilesFolder, sprintf "%s.RecentlyUsedFiles.txt"          host )
+            CurrentlyOpenFiles.FilePath          <- IO.Path.Combine(configFilesFolder, sprintf "%s.CurrentlyOpenFiles.txt"         host )
+            DefaultCode.FilePath                 <- IO.Path.Combine(configFilesFolder, sprintf "%s.DefaultCode.fsx"                host )
+            AutoCompleteStatistic.FilePath       <- IO.Path.Combine(configFilesFolder, sprintf "%s.AutoCompleteStatistic.txt"      host ) 
+            AssemblyReferenceStatistic.FilePath  <- IO.Path.Combine(configFilesFolder, sprintf "%s.AssemblyReferenceStatistic.txt" host ) 
 
-        Settings.FilePath                    <- IO.Path.Combine(configFilesFolder, sprintf "%s.Settings.txt"                   host )
-        RecentlyUsedFiles.FilePath           <- IO.Path.Combine(configFilesFolder, sprintf "%s.RecentlyUsedFiles.txt"          host )
-        CurrentlyOpenFiles.FilePath          <- IO.Path.Combine(configFilesFolder, sprintf "%s.CurrentlyOpenFiles.txt"         host )
-        DefaultCode.FilePath                 <- IO.Path.Combine(configFilesFolder, sprintf "%s.DefaultCode.fsx"                host )
-        AutoCompleteStatistic.FilePath       <- IO.Path.Combine(configFilesFolder, sprintf "%s.AutoCompleteStatistic.txt"      host ) 
-        AssemblyReferenceStatistic.FilePath  <- IO.Path.Combine(configFilesFolder, sprintf "%s.AssemblyReferenceStatistic.txt" host ) 
-
-        Settings.loadFromFile()
-        AutoCompleteStatistic.loadFromFile()
-        AssemblyReferenceStatistic.loadFromFile()
+            Settings.loadFromFile()
+            AutoCompleteStatistic.loadFromFile()
+            AssemblyReferenceStatistic.loadFromFile()
+        with ex ->
+            Log.printAppErrorMsg "Error in Congig.initialize(%A): %A" context ex
 
 
     /// opens up Explorer

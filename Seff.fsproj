@@ -17,7 +17,7 @@
 
   <ItemGroup>
     <!-- don't add explict ref to Fsharp.Core-->
-    <PackageReference Include="FSharp.Compiler.Service" Version="33.0.1"/> 
+    <PackageReference Include="FSharp.Compiler.Service" Version="33.0.1" /> 
   </ItemGroup>
 
 
@@ -71,7 +71,8 @@
     <Compile Include="74_CreateTab.fs" />
     <Compile Include="76_Commands.fs" />
     <Compile Include="80_UI_Menu.fs" />
-    <Compile Include="90_MainWindow.fs" />
+    <Compile Include="MainWindow.fs" />
+    <Compile Include="Initialize.fs" />
     
     <Compile Include="App.fs" />
 

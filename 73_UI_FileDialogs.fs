@@ -145,7 +145,7 @@ module FileDialogs =
             | _ -> false
     
     /// returns true if all files are saved or unsaved changeas ignored (closing not canceled by user).
-    let closeWindow() =             
+    let askIfClosingWindowIsOk() =             
         let openFs = Tab.allTabs |> Seq.filter (fun t -> t.CodeAtLastSave <> t.Editor.Text) 
         if  Seq.isEmpty openFs then
             true
@@ -164,7 +164,7 @@ module FileDialogs =
     let altF4close () =
         match Tab.current with
         |Some t -> closeTab(t:FsxTab)
-        |None -> closeWindow()
+        |None -> askIfClosingWindowIsOk()
         |>ignore
 
     //Log:

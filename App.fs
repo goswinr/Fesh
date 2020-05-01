@@ -13,7 +13,7 @@ module App =
     /// Use Fsi.OnStarted and Fsi.OnIsReady Events to implement undo and redo in host App.
     //[< STAThread >] needed?
     let runEditorHosted (mainWindowHandle, hostName) : Window =
-        Config.initialize (Hosted hostName)
+        Initialize.enviroment (Hosted hostName)
         let win = MainWindow.create( [| |], false )
         Interop.WindowInteropHelper(win).Owner <- mainWindowHandle
         //win.Show() // do in host instead, so that the host can control the window show time
@@ -23,6 +23,6 @@ module App =
     [< EntryPoint >]
     [< STAThread >] 
     let runEditorStandalone args : int =   
-        Config.initialize (Standalone)
+        Initialize.enviroment (Standalone)
         let win = MainWindow.create(args,true)
         (new Application()).Run(win) 

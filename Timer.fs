@@ -5,7 +5,7 @@ open System
 /// A performance timer that also measures Garbage Collection Generations.
 /// includes nice formating of ms , sec, and minutes
 /// Similar to the #time;; statement built in to FSI
-/// uses System.Stopwatch
+/// The timer starts immediately when created
 type Timer() = 
     
     // taken from FsiTimeReporter at https://github.com/dotnet/fsharp/blob/master/src/fsharp/fsi/fsi.fs#L183
@@ -64,3 +64,6 @@ type Timer() =
 
     ///Stops Timer
     member this.stop() =  stopWatch.Stop()
+
+    // an instance of a timer to be used to measure statup performance
+    static member val InstanceStartup = Timer()
