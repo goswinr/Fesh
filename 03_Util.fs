@@ -55,10 +55,10 @@ module StringUtil =
     /// counts how many time a substring occures in a string 
     let countSubString (sub:string) (s:string) =
         let mutable k =  0
-        let mutable i = s.IndexOf(sub)
+        let mutable i = s.IndexOf(sub, StringComparison.Ordinal)
         while i >= 0 do
             k <- k + 1
-            i <- s.IndexOf(sub,i + sub.Length)
+            i <- s.IndexOf(sub,i + sub.Length, StringComparison.Ordinal)
         k
     
     /// counts how many time a character occures in a string 
@@ -108,10 +108,10 @@ module StringUtil =
     // finds text between first occurance of two strings
     let between (a:string) (b:string) (s:string) = 
         //between "((" "))" "c((ab))c" = ("c", "ab", "c")
-        let start = s.IndexOf(a) 
+        let start = s.IndexOf(a, StringComparison.Ordinal) 
         if start = -1 then "","",""
         else 
-            let ende = s.IndexOf(b, start + a.Length)
+            let ende = s.IndexOf(b, start + a.Length, StringComparison.Ordinal)
             if ende = -1 then "","",""
             else 
                 s.Substring(0,start ),

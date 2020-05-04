@@ -62,6 +62,7 @@ type Log private () =
     static let mutable prevMsgType = IOErrorMsg
     static let stopWatch = Stopwatch.StartNew()
     static let buffer =  new StringBuilder()
+    static let textAddEv = new Event<string> ()
 
     /// Dictionary holding the color of all non standart lines
     static let lineColors = new Collections.Generic.Dictionary<int,SolidColorBrush>() 
@@ -92,6 +93,7 @@ type Log private () =
 
         //log.AppendText("|-scroll->") //for DEBUG only
         log.ScrollToEnd()
+        
 
 
     /// adds string on UI thread  every 150ms then scrolls to end after 300ms
@@ -99,11 +101,12 @@ type Log private () =
     static let printOrBuffer (s:string,ty:LogMessageType) =
         async {
             do! Async.SwitchToContext Sync.syncContext 
-            if prevMsgType<>ty then // print case 1, color change
+            if prevMsgType<>ty then // print case 1, color change, do before append new string
                 printFromBufferAndScroll(prevMsgType) 
                 prevMsgType <- ty
 
             buffer.Append(s)  |> ignore 
+            textAddEv.Trigger(s)
 
             if stopWatch.ElapsedMilliseconds > 150L  && s.Contains(NewLine) then // print case 2, only add to document every 150ms
                 printFromBufferAndScroll(ty)                
@@ -114,6 +117,8 @@ type Log private () =
                     printFromBufferAndScroll(ty)
                 
         } |> Async.StartImmediate 
+    
+
 
     //----------------------members:------------------------------------------
 
@@ -155,3 +160,6 @@ type Log private () =
     
     /// like printfn, use with format strings, adds new line
     static member Print s             =  Printf.fprintfn Log.TextWriterPrintMsg     s //TODO remove unused?
+
+    /// this event occures on ever call to print, NOT on the aggregated strings that are appened to Log
+    static member OnPrint = textAddEv.Publish

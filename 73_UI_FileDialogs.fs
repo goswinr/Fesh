@@ -4,7 +4,6 @@ open System
 open System.IO
 open System.Windows
 open Seff.Util
-open Seff.Logging
 
 
 module FileDialogs =
@@ -125,7 +124,7 @@ module FileDialogs =
                 Log.PrintInfoMsg "File already up to date:\r\n%s" t.FileInfo.Value.FullName  
                 true
         else 
-            if t.FileInfo.IsNone then Log.PrintIOErrorMsg "FileInfo.IsNone, File never saved before?"
+            if t.FileInfo.IsNone then () //Log.PrintIOErrorMsg "FileInfo.IsNone, File never saved before?"
             elif not <| t.FileInfo.Value.Exists then Log.PrintIOErrorMsg "File does not exist on drive:\r\n%s" t.FileInfo.Value.FullName  
             saveAs t
     

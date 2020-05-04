@@ -226,14 +226,13 @@ module Config =
     /// A static class to hold the previously loaded assemble refrences for auto completions
     type AssemblyReferenceStatistic private () =
             
-        static let assRefStats = Dictionary<string,float>() // TODO make concurrent ?        
+        static let assRefStats = HashSet<string>() // TODO make concurrent ?        
         static let counter = ref 0L // for atomic writing back to file
         static let readerWriterLock = new ReaderWriterLockSlim()
 
         static let assRefStatsAsString () = 
             let sb = StringBuilder() 
-            for KeyValue(k,v) in assRefStats do
-                sb.Append(k).Append(sep).AppendLine(v.ToString()) |> ignore
+            for v in assRefStats do sb.AppendLine(v.ToString()) |> ignore
             sb.ToString() 
 
         static member val FilePath = "xyz" with get,set // set in Config.initialize()
@@ -243,27 +242,29 @@ module Config =
                 try            
                     if IO.File.Exists AssemblyReferenceStatistic.FilePath then 
                         for ln in  IO.File.ReadAllLines AssemblyReferenceStatistic.FilePath do
-                        match ln.Split(sep) with
-                        | [|k;v|] -> assRefStats.[k] <- float v // TODO allow for comments? use ini format ??
-                        | _       -> Log.PrintAppErrorMsg "Bad line in AssemblyReferenceStatistic file : '%s'" ln                   
+                            //TODO verify path exists
+                            assRefStats.Add(ln) |> ignore
                 with e -> 
                     Log.PrintAppErrorMsg "Error load assRefStatsStats: %s"   e.Message
                 } |> Async.Start 
              
-        static member Get(key) =
-            match assRefStats.TryGetValue key with
-            |true,i -> i
-            |_      -> 0.0
-            
-        /// increase by 1.0
-        static member Incr(key) =
-            match assRefStats.TryGetValue key with
-            |true,i -> assRefStats.[key] <- i +  1.0
-            |_      -> assRefStats.[key] <- 1.0
+        static member Items = assRefStats
             
         static member Save() =
             writeToFileDelayed (AssemblyReferenceStatistic.FilePath, 500, counter, readerWriterLock,assRefStatsAsString)
-    
+        
+        static member RecordFromLog =
+            fun (s:string) -> 
+                if s.Contains "--> Referenced '" then // --> Referenced 'C:\Program Files\Rhino 6\System\RhinoCommon.dll' (file may be locked by F# Interactive process)
+                    let start = s.IndexOf(''') 
+                    if start > -1 then 
+                        let ende = s.IndexOf(''', start + 2)
+                        if ende > start + 3 then
+                            let r = s.Substring(start + 1, ende - 1)
+                            assRefStats.Add (r)  |> ignore 
+                            
+
+
     /// A static class to hold the current App Run context (Standalone or Hosted)
     type Context private () =
         static let mutable currentRunContext = Standalone
@@ -299,6 +300,8 @@ module Config =
             Settings.loadFromFile()
             AutoCompleteStatistic.loadFromFile()
             AssemblyReferenceStatistic.loadFromFile()
+            Log.OnPrint.Add (AssemblyReferenceStatistic.RecordFromLog) // TODO does this have print perfomance impact ? measure do async ?
+
         with ex ->
             Log.PrintAppErrorMsg "Error in Congig.initialize(%A): %A" context ex
 
