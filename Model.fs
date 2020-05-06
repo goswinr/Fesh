@@ -18,7 +18,7 @@ module Model =
         | PrintMsg
 
         static member getColor = function
-            | FsiStdOut     ->Brushes.DarkGray // values printet by fsi iteself like "val it = ...."
+            | FsiStdOut     ->Brushes.DarkGray |> Util.WPF.darker 40 // values printet by fsi iteself like "val it = ...."
             | FsiErrorOut   ->Brushes.DarkMagenta //are they all caught by evaluate non throwing ?
             | ConsoleOut    ->Brushes.Yellow // never used should be black by default !!   // the out from printfn
             | ConsoleError  ->Brushes.LightSalmon // this is never used, only FsiErrorOut is used?

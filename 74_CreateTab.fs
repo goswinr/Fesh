@@ -59,27 +59,4 @@ module CreateTab =
         
         tab  
     
-            
-    let loadArgsAndOpenFilesOnLastAppClosing (startupArgs:string[]) = 
-        async{
-            let files = Config.CurrentlyOpenFiles.GetFromLastSession()
-            for p in startupArgs do
-                let fi = FileInfo(p)
-                if fi.Exists then 
-                    let code = File.ReadAllText fi.FullName
-                    files.Add ((fi,true,code))
-
-            do! Async.SwitchToContext Sync.syncContext
-            for fi,curr,code in files do
-                newTab(code,Some fi,curr)  |> ignore 
-
-            if files.Count=0 then 
-                let def = Config.DefaultCode.Get()
-                newTab(def, None, true) |> ignore 
-            
-            if UI.tabControl.SelectedIndex = -1 then                 
-                let tab = UI.tabControl.Items.[0] :?> FsxTab
-                UI.tabControl.SelectedIndex <- 0
-                Tab.current <- Some tab 
-
-            } |> Async.Start // TODO make blocking so that user waits till all files are open ?
+    

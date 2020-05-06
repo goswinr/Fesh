@@ -10,8 +10,8 @@
 
     <RootNamespace>Seff</RootNamespace>
     <AssemblyName>Seff</AssemblyName>
-    <ApplicationIcon>Media\Logo15.ico</ApplicationIcon>
-    <Win32Resource>Media\Logo15.res</Win32Resource> <!--  for Application Icon in explorer-->    
+    <ApplicationIcon>Media\LogoCursorTr.ico</ApplicationIcon>
+    <Win32Resource>Media\LogoCursorTr.res</Win32Resource> <!--  for Application Icon in explorer-->    
   </PropertyGroup>
 
 
@@ -39,10 +39,12 @@
 
   <ItemGroup>
 
-    <EmbeddedResource Include="Media\Logo15.res" />
-    <Resource Include="Media\Logo15.ico">  <CopyToOutputDirectory>Never</CopyToOutputDirectory>    </Resource>
+    <EmbeddedResource Include="Media\LogoCursorTr.res" />
+    <Resource Include="Media\LogoCursorTr.ico">  <CopyToOutputDirectory>Never</CopyToOutputDirectory>    </Resource>
 
     <None Include="FSharpSynatxHighlighterExtended.xshd">    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>    </None>
+
+    <Compile Include="Util.WPF.fs" />
 
     <Compile Include="Model.fs" />
     <Compile Include="Sync.fs" />
@@ -50,10 +52,13 @@
     <Compile Include="Config.fs" />
     <Compile Include="Timer.fs" />
     <Compile Include="Fsi.fs" />
-    <Compile Include="Win.fs" />
+    <Compile Include="Tab.fs" />
+    <Compile Include="FileDialogs.fs" />
+    <Compile Include="Tabs.fs" />
+    <Compile Include="TabsAndLog.fs" />
+    <Compile Include="StatusBar.fs" />
 
     <Compile Include="03_Util.fs" />
-    <Compile Include="04_UtilWPF.fs" />
     <Compile Include="11_UI.fs" />
     <Compile Include="31_UI_BackgroundRenderer.fs" />
     <Compile Include="32_UI_Tab.fs" />
@@ -68,11 +73,10 @@
     <Compile Include="70_ModifyCode.fs" />
     <Compile Include="71_ModifyUI.fs" />
     <Compile Include="72_EventHandlers.fs" />
-    <Compile Include="73_UI_FileDialogs.fs" />
     <Compile Include="74_CreateTab.fs" />
     <Compile Include="76_Commands.fs" />
-    <Compile Include="80_UI_Menu.fs" />
-    <Compile Include="MainWindow.fs" />
+    <Compile Include="Menu.fs" />
+    <Compile Include="Win.fs" />
     <Compile Include="Initialize.fs" />
     
     <Compile Include="App.fs" />

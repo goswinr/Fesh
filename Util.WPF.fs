@@ -1,4 +1,4 @@
-﻿namespace Seff
+﻿namespace Seff.Util
 
 open System
 open System.Windows
@@ -7,9 +7,10 @@ open System.Windows.Media
 
 
 
-module UtilWPF = 
+module WPF = 
 
     ///Adds bytes to each color channel to increase brightness, negative values to make darker
+    /// result will be clamped between 0 and 255
     let changeLuminace (amount:int) (br:SolidColorBrush)=
         let inline clamp x = if x<0 then 0uy elif x>255 then 255uy else byte(x)
         let r = int br.Color.R + amount |> clamp      
@@ -18,11 +19,12 @@ module UtilWPF =
         SolidColorBrush(Color.FromArgb(br.Color.A, r,g,b))
     
     ///Adds bytes to each color channel to increase brightness
+    /// result will be clamped between 0 and 255
     let brighter (amount:int) (br:SolidColorBrush)  = changeLuminace amount br 
     
-    ///Removes bytes from each color channel to increase darkness
+    ///Removes bytes from each color channel to increase darkness, 
+    /// result will be clamped between 0 and 255
     let darker  (amount:int) (br:SolidColorBrush)  = changeLuminace -amount br
-
 
 
     //see: http://www.fssnip.net/4W/title/Calculator
@@ -73,36 +75,35 @@ module UtilWPF =
             for x in xs do
                 h.Items.Add (x) |> ignore            
         
-    let makeContextMenu (xs:list<Control>)=
+    let makeContextMenu (xs:list<#Control>)=
         let menu = new ContextMenu()
         for x in xs do menu.Items.Add (x) |> ignore         
         menu
 
-            
-    let makeGridHorizontalEx (xs:list<UIElement*RowDefinition>)= 
-        let grid = new Grid()
-        xs |> List.iteri (fun i (e,rd)->        
+    /// clear Grid first and then set with new elements        
+    let setGridHorizontal (grid:Grid) (xs:list<UIElement*RowDefinition>)= 
+        grid.Children.Clear()
+        grid.RowDefinitions.Clear()
+        grid.ColumnDefinitions.Clear()
+        for i , (e,rd) in List.indexed xs do    
             grid.RowDefinitions.Add (rd)
-            grid.Children.Add       ( e <+> Grid.Row i )
-            |> ignore     
-            )
-        grid
+            grid.Children.Add  ( e <+> Grid.Row i ) |> ignore     
+            
     
-    let makeGridVerticalEx (xs:list<UIElement*ColumnDefinition>)= 
-        let grid = new Grid()
-        xs |> List.iteri (fun i (e,cd)->        
-            grid.ColumnDefinitions.Add (cd )
-            grid.Children.Add          ( e <+> Grid.Column i)
-            |> ignore     
-            )
-        grid
+    /// clear Grid first and then set with new elements
+    let setGridVertical (grid:Grid) (xs:list<UIElement*ColumnDefinition>)= 
+        grid.Children.Clear()
+        grid.RowDefinitions.Clear()
+        grid.ColumnDefinitions.Clear()
+        for i , (e,cd) in List.indexed xs do    
+            grid.ColumnDefinitions.Add (cd)
+            grid.Children.Add  ( e <+> Grid.Column i ) |> ignore 
+     
     
     let makeGrid (xs:list<UIElement>)= 
         let grid = new Grid()
-        xs |> List.iteri (fun i e->        
-            grid.Children.Add ( e <+> Grid.Row i )
-            |> ignore     
-            )
+        for i , e in List.indexed xs do 
+            grid.Children.Add  ( e <+> Grid.Row i ) |> ignore  
         grid
 
     let makePanelVert (xs:list<#UIElement>) =
@@ -117,5 +118,13 @@ module UtilWPF =
             p.Children.Add x |> ignore
         p
 
+    let dockPanelVert (top:UIElement, center: UIElement, bottom:UIElement)=
+        let d = new DockPanel()
+        DockPanel.SetDock(top,Dock.Top)
+        DockPanel.SetDock(bottom,Dock.Bottom)
+        d.Children.Add(top) |> ignore         
+        d.Children.Add(bottom) |> ignore 
+        d.Children.Add(center) |> ignore 
+        d
     
 

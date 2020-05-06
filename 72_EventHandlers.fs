@@ -38,11 +38,6 @@ module EventHandlers =
                 Config.CurrentlyOpenFiles.Save(tab.FileInfo , Tab.allTabs |> Seq.map(fun t -> t.FileInfo))
             )
 
-        UI.splitterHor.DragCompleted.Add      (fun _ -> WindowLayout.splitChangeHor UI.editorRowHeight    UI.logRowHeight) 
-        UI.splitterVert.DragCompleted.Add     (fun _ -> WindowLayout.splitChangeVert UI.editorColumnWidth UI.logColumnWidth) 
-
-
-
 
 
 

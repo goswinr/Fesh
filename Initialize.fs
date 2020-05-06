@@ -8,11 +8,11 @@ open Seff.Model
 [<RequireQualifiedAccess>]
 module Initialize =    
     
-    let enviroment(context:AppRunContext) =
-        Timer.InstanceStartup.tic()
-        Sync.installSynchronizationContext()//  do first
-        Log.initialize() // second so it can be used in Config already
-        Config.initialize(context)
+    let enviroment(context:AppRunContext, startupArgs:string[]) =
+        Timer.InstanceStartup.tic()             // optional timer for full init process
+        Sync.installSynchronizationContext()    // do first
+        Log.Initialize()                        // do second so it can be used in Config already
+        Config.initialize(context)              // do third so settings are loade from file and  availabe 
         
         // http://fsharp.github.io/FSharp.Compiler.Service/caches.html
         // https://github.com/fsharp/FSharp.Compiler.Service/blob/71272426d0e554e0bac32ad349bbd9f5fa8a3be9/src/fsharp/service/service.fs#L35
@@ -41,3 +41,7 @@ module Initialize =
         Controls.ToolTipService.ShowDurationProperty.OverrideMetadata(    typeof<DependencyObject>, new FrameworkPropertyMetadata(Int32.MaxValue))
         Controls.ToolTipService.InitialShowDelayProperty.OverrideMetadata(typeof<DependencyObject>, new FrameworkPropertyMetadata(50))
 
+        Tabs.Initialize(startupArgs)
+        TabsAndLog.Initialize()
+
+        Win.Initialize()

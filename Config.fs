@@ -48,7 +48,7 @@ module Config =
                 sb.Append(k).Append(sep).AppendLine(v) |> ignore
             sb.ToString() 
 
-        static member val FilePath = "xyz" with get,set // set in Config.initialize()
+        static member val FilePath = "Settings.Path not set " with get,set // set in Config.initialize()
 
         static member loadFromFile() = 
             try            
@@ -97,7 +97,7 @@ module Config =
     
     type DefaultCode private () =
         static let readerWriterLock = new ReaderWriterLockSlim()
-        static member val FilePath = "xyz" with get,set        // set in Config.initialize()
+        static member val FilePath = "DefaultCode.Path not set " with get,set        // set in Config.initialize()
 
         static member Get() =            
             try IO.File.ReadAllText DefaultCode.FilePath
@@ -109,8 +109,8 @@ module Config =
     /// files that are open when closing the editor window, for next restart
     type CurrentlyOpenFiles  private () = 
         static let readerWriterLock = new ReaderWriterLockSlim()
-
-        static member val FilePath = "xyz" with get,set        // set in Config.initialize()
+        static let counter = ref 0L // for atomic writing back to file
+        static member val FilePath = "CurrentlyOpenFiles.Path not set " with get,set        // set in Config.initialize()
 
         static member Save (currentFile:FileInfo option , files: seq<FileInfo option>) =         
             let curr = if currentFile.IsSome then currentFile.Value.FullName else ""
@@ -119,10 +119,11 @@ module Config =
             for f in files do 
                 if f.IsSome then sb.AppendLine(f.Value.FullName) |> ignore 
             writeToFileAsyncLocked(CurrentlyOpenFiles.FilePath, readerWriterLock, sb.ToString() )
-
+            writeToFileDelayed    (CurrentlyOpenFiles.FilePath, 500, counter,readerWriterLock, sb.ToString )
         
         static member GetFromLastSession() = 
             let files = ResizeArray()
+            let Done = HashSet()
             try            
                 if IO.File.Exists CurrentlyOpenFiles.FilePath then 
                     let lns = IO.File.ReadAllLines CurrentlyOpenFiles.FilePath 
@@ -131,27 +132,31 @@ module Config =
                         for path in lns |> Seq.skip 1  do 
                             let fi = FileInfo(path)                    
                             if fi.Exists then 
-                                let code = IO.File.ReadAllText path
-                                let makeCurrent = path.ToLowerInvariant() = currentFile 
-                                files.Add((fi,makeCurrent,code))            
+                                let lPath = path.ToLowerInvariant()
+                                if not <| Done.Contains lPath then // savety check for duplicates
+                                    Done.Add lPath  |> ignore
+                                    let makeCurrent = lPath = currentFile 
+                                    files.Add((fi,makeCurrent))            
             with e -> 
                 Log.PrintAppErrorMsg "Error getFilesfileOnClosingOpen: %s"  e.Message
-            files
+            files,Done
     
     type RecentlyUsedFiles private () =
         static let counter = ref 0L // for atomic writing back to file
         static let readerWriterLock = new ReaderWriterLockSlim()
 
         static let recentFilesStack = new Collections.Concurrent.ConcurrentStack<FileInfo>()// might contain even files that dont exist(on a currently detached drive)
-
-        static let recentFilesReOpened = new ResizeArray<FileInfo>() // to put them first in the menue
+                
+        static let recentFilesChangedEv = new Event<Collections.Concurrent.ConcurrentStack<FileInfo>>()
         
         /// the maximum number of recxent files to be saved
-        static member val maxCount = 30 with get       
+        /// the amount of files in the recently used manu can be controlled separetly
+        static member val maxCount = 50 with get       
 
-        static member val FilePath = "xyz" with get,set // set in Config.initialize()
+        static member val FilePath = "RecentlyUsedFiles.Path not set " with get,set // set in Config.initialize()
 
-        static member Save() =         
+        static member Save(fi) =         
+             recentFilesStack.Push fi
              let sb = StringBuilder()
              recentFilesStack 
              |> Seq.map (fun fi -> fi.FullName)
@@ -159,29 +164,26 @@ module Config =
              |> Seq.truncate RecentlyUsedFiles.maxCount 
              |> Seq.rev 
              |> Seq.iter (sb.AppendLine >> ignore) // most recent file is a bottom of list
-             writeToFileDelayed(RecentlyUsedFiles.FilePath,1000,counter,readerWriterLock, sb.ToString)
-                      
-        static member Add (fi) = recentFilesStack.Push fi
+             
+             let get() = 
+                recentFilesChangedEv.Trigger(recentFilesStack)
+                sb.ToString()
+             writeToFileDelayed(RecentlyUsedFiles.FilePath,3000,counter,readerWriterLock, get)
+         
+        static member loadFromFile() =
+            async{
+                try            
+                    if IO.File.Exists RecentlyUsedFiles.FilePath then 
+                        for ln in  IO.File.ReadAllLines RecentlyUsedFiles.FilePath do
+                            recentFilesStack.Push(FileInfo(ln)) |> ignore
+                    recentFilesChangedEv.Trigger(recentFilesStack)
+                with e -> 
+                    Log.PrintAppErrorMsg "Error load RecentlyUsedFiles: %s"   e.Message
+                } |> Async.Start 
 
-        static member loadRecentFilesMenu updateRecentMenu =
-             try
-                 IO.File.ReadAllLines RecentlyUsedFiles.FilePath
-                 |> Seq.iter (
-                     fun f -> 
-                         let fl = f.ToLowerInvariant()
-                         match recentFilesReOpened |> Seq.tryFind (fun fi -> fi.FullName.ToLowerInvariant() = fl ) with 
-                         |Some _ -> ()
-                         |None ->
-                             let fi = new FileInfo(f)
-                             recentFilesStack.Push fi
-                             updateRecentMenu fi
-                         )
-                 for fi in recentFilesReOpened |> Seq.rev do // they are already distinct
-                     recentFilesStack.Push fi
-                     updateRecentMenu fi
-             with e -> 
-                 Log.PrintAppErrorMsg "Error Loading recently used files: %s"   e.Message
-    
+        static member OnRecentFilesChanged = recentFilesChangedEv.Publish
+
+
     /// A static class to hold the statistic of most used toplevel auto completions
     type AutoCompleteStatistic private () =
     
@@ -195,7 +197,7 @@ module Config =
                 sb.Append(k).Append(sep).AppendLine(v.ToString()) |> ignore
             sb.ToString() 
 
-        static member val FilePath = "xyz" with get,set // set in Config.initialize()
+        static member val FilePath = "AutoCompleteStatistic.Path not set " with get,set // set in Config.initialize()
 
         static member loadFromFile() =
             async{
@@ -235,7 +237,7 @@ module Config =
             for v in assRefStats do sb.AppendLine(v.ToString()) |> ignore
             sb.ToString() 
 
-        static member val FilePath = "xyz" with get,set // set in Config.initialize()
+        static member val FilePath = "AssemblyReferenceStatistic.Path not set " with get,set // set in Config.initialize()
 
         static member loadFromFile() =
             async{
@@ -255,7 +257,7 @@ module Config =
         
         static member RecordFromLog =
             fun (s:string) -> 
-                if s.Contains "--> Referenced '" then // --> Referenced 'C:\Program Files\Rhino 6\System\RhinoCommon.dll' (file may be locked by F# Interactive process)
+                if s.Contains "--> Referenced '" then // e.g.: --> Referenced 'C:\Program Files\Rhino 6\System\RhinoCommon.dll' (file may be locked by F# Interactive process)
                     let start = s.IndexOf(''') 
                     if start > -1 then 
                         let ende = s.IndexOf(''', start + 2)
@@ -300,6 +302,7 @@ module Config =
             Settings.loadFromFile()
             AutoCompleteStatistic.loadFromFile()
             AssemblyReferenceStatistic.loadFromFile()
+            RecentlyUsedFiles.loadFromFile()
             Log.OnPrint.Add (AssemblyReferenceStatistic.RecordFromLog) // TODO does this have print perfomance impact ? measure do async ?
 
         with ex ->

@@ -7,7 +7,6 @@ open System.Windows.Controls
 
 open Seff.UtilWPF
 open Seff.Util
-open Seff.Logging
 
 module XshdHighlighting = 
     open ICSharpCode.AvalonEdit

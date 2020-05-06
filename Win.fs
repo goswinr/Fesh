@@ -3,41 +3,84 @@
 open System
 open System.Windows
 open Seff.Model
+open System.Windows.Controls
+open Seff.Util
 
 /// A Static class holding the main WPF Window
+/// Includes logic for saving and restoreing size and position
 type Win private ()= 
     
     static let win = new Window()    
 
-    static let mutable isMinOrMax = false
+    //static let mutable isMinOrMax = false // TODO test and then clean up
 
-    static let mutable wasMax = false
+    //indicating if the Window was in  Fullscreen mode before switching to temporary Log only fullscreeen
+    //static let mutable wasMax = false
 
     static member Window = win
     
     //indicating if the Window is in Fullscreen mode
-    static member IsMinOrMax = isMinOrMax
-    
+    static member IsMinOrMax 
+        with get() = Config.Settings.getBool "WindowIsMinOrMax" false 
+        and set(v) = Config.Settings.setBool "WindowIsMinOrMax" v  //isMinOrMax <- v
+
     //indicating if the Window was in  Fullscreen mode before switching to temporary Log only fullscreeen
     static member WasMax 
-        with get() = wasMax 
-        and set(v) = wasMax <- v
+        // not using internal mutable so window can be declared at a later point and Log+Editor grid can access these values from config
+        with get() = Config.Settings.getBool "WindowWasMax" false 
+        and set(v) = Config.Settings.setBool "WindowWasMax" v  //wasMax <- v
 
     /// loads window size and position from last run and sets up events to save window state in Config
     static member Initialize() :Window =
-        
+        Tabs.MainWindow <- win
         win.Title       <- match Config.Context.Mode with Standalone -> "Seff | Scripting editor for fsharp"  | Hosted n ->  "Seff | Scripting editor for fsharp in " + n
         win.ResizeMode  <- ResizeMode.CanResize  
-
+        win.Content     <- WPF.dockPanelVert(Menu.Bar, TabsAndLog.Grid, StatusBar.Bar)
+        win.Background  <- Menu.Bar.Background // call after setting up content, otherwise space next to tab headers is in an odd color
+        
         //---- load ICON ----
         win.Loaded.Add(fun _ ->
             // Add the Icon at the top left of the window and in the status bar,         
             // musst be called at later moment(eg. after loading).
-            // (for the exe file icon in explorer use <Win32Resource>Media\Logo15.res</Win32Resource>  in fsproj )
-            let uri = new Uri("pack://application:,,,/Seff;component/Media/Logo15.ico", UriKind.RelativeOrAbsolute) //Build action : "Resource"; Copy to ouput Dir: "Do not copy" 
+            // (for the exe file icon in explorer use <Win32Resource>Media\LogoCursorTr.res</Win32Resource>  in fsproj )
+            let uri = new Uri("pack://application:,,,/Seff;component/Media/LogoCursorTr.ico", UriKind.RelativeOrAbsolute) //Build action : "Resource"; Copy to ouput Dir: "Do not copy" 
             try  win.Icon <-  Media.Imaging.BitmapFrame.Create(Application.GetResourceStream(uri).Stream)
-            with ex -> Log.PrintAppErrorMsg  "Failed to load Media/Logo15.ico from Application.ResourceStream : %A" ex)
-
+            with ex -> Log.PrintAppErrorMsg  "Failed to load Media/LogoCursorTr.ico from Application.ResourceStream : %A" ex
+            )
+        
+        EventHandlers.setUpForWindowSizing(win)
+        win.InputBindings.AddRange Commands.allShortCutKeyGestures  
+        Menu.setup()
+                    
+        win.Loaded.Add (fun _ ->
+            Log.PrintInfoMsg "* Time for loading main window: %s"  Timer.InstanceStartup.tocEx
+                          
+                 
+            //CreateTab.loadArgsAndOpenFilesOnLastAppClosing(args)
+            //RecentlyUsedFiles.loadRecentFilesMenu Menu.RecentFiles.updateRecentMenue
+            Fsi.Initalize()
+                 
+            //win.Activate() |> ignore // needed ?           
+            //Tab.currEditor.Focus() |> ignore // fails!   
+            //System.Windows.Input.FocusManager.SetFocusedElement(...)
+            )    
+             
+             
+        win.Closing.Add( fun e ->
+            match Fsi.AskIfCancellingIsOk () with 
+            | NotEvaluating   -> ()
+            | YesAsync        -> Fsi.CancelIfAsync() 
+            | Dont            -> e.Cancel <- true // dont close window   
+            | NotPossibleSync -> () // still close despite running thread ??
+            ) 
+                
+                                 
+        win.Closing.Add( fun e -> //maybe cancel closing if files are unsaved
+            e.Cancel <- not <| FileDialogs.askIfClosingWindowIsOk() )
+             
+        //win.Initialized.Add (fun _ ->()) // this event seems to be never triggered, why ???
+             
+             
 
         //----------------------------------------------
         // -  load and safe window location and size ---
@@ -45,8 +88,8 @@ type Win private ()=
         
         if Config.Settings.getBool "WindowIsMax" false then
             win.WindowState <- WindowState.Maximized
-            isMinOrMax <- true
-            wasMax <- true
+            Win.IsMinOrMax  <- true
+            Win.WasMax <- true
         else
             win.WindowStartupLocation <- WindowStartupLocation.Manual
             //let maxW = float <| Array.sumBy (fun (sc:Forms.Screen) -> sc.WorkingArea.Width)  Forms.Screen.AllScreens  // neded for dual screens ?, needs wins.forms
@@ -67,7 +110,7 @@ type Win private ()=
             async{
                 // normally the state change event comes after the location change event but before size changed. async sleep in LocationChanged prevents this
                 do! Async.Sleep 200 // so that StateChanged event comes first
-                if win.WindowState = WindowState.Normal &&  not isMinOrMax then 
+                if win.WindowState = WindowState.Normal &&  not Win.IsMinOrMax then 
                     if win.Top > -500. && win.Left > -500. then // to not save on minimizing on minimized: Top=-32000 Left=-32000 
                         Config.Settings.setFloatDelayed "WindowTop"  win.Top  89 // get float in statchange maximised needs to access this before 350 ms pass
                         Config.Settings.setFloatDelayed "WindowLeft" win.Left 95
@@ -85,29 +128,29 @@ type Win private ()=
                 win.Height <-  Config.Settings.getFloat "WindowHeight" 800.0
                 win.Width <-   Config.Settings.getFloat "WindowWidth"  800.0
                 Config.Settings.setBool  "WindowIsMax" false
-                isMinOrMax <- false
+                Win.IsMinOrMax <- false
                 Config.Settings.Save ()
                 //Log.Print "Normal: %s State changed=%A Top=%.0f Left=%.0f Width=%.0f Height=%.0f" Time.nowStrMilli win.WindowState win.Top win.Left win.ActualWidth win.ActualHeight 
 
             | WindowState.Maximized ->
                 // normally the state change event comes after the location change event but before size changed. async sleep in LocationChanged prevents this
-                isMinOrMax <- true
+                Win.IsMinOrMax  <- true
                 Config.Settings.setBool  "WindowIsMax" true
                 Config.Settings.Save  ()    
                 //Log.Print "Maximised: %s State changed=%A Top=%.0f Left=%.0f Width=%.0f Height=%.0f" Time.nowStrMilli win.WindowState win.Top win.Left win.ActualWidth win.ActualHeight 
                           
 
             |WindowState.Minimized ->                 
-                isMinOrMax <- true
+                Win.IsMinOrMax  <- true
                 //Log.Print "Minimised: %s State changed=%A Top=%.0f Left=%.0f Width=%.0f Height=%.0f" Time.nowStrMilli win.WindowState win.Top win.Left win.ActualWidth win.ActualHeight 
                
             |wch -> 
-                Log.Print "unknown WindowState State change=%A" wch
-                isMinOrMax <- true
+                Log.PrintAppErrorMsg "unknown WindowState State change=%A" wch
+                Win.IsMinOrMax  <- true
             )
 
         win.SizeChanged.Add (fun e ->
-            if win.WindowState = WindowState.Normal &&  not isMinOrMax then 
+            if win.WindowState = WindowState.Normal &&  not Win.IsMinOrMax  then 
                 Config.Settings.setFloatDelayed "WindowHeight" win.Height 89
                 Config.Settings.setFloatDelayed "WindowWidth"  win.Width  95
                 Config.Settings.Save ()

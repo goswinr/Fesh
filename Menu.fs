@@ -4,26 +4,50 @@ open System
 open System.Windows.Input
 open System.Windows.Controls
 open Seff.Util
-open Seff.UtilWPF
+open Seff.Util.WPF
 open Seff.FileDialogs
 open Seff.Config
 
 module Menu = 
     
+    let Bar = new Menu()
+
     /// a ref to the about menu so that hosting apps can append to it
     let mutable private AboutMenu : MenuItem = null 
-    let addToAboutMenu (s:string) = if notNull AboutMenu then AboutMenu.Items.Add (MenuItem(Header = s) ) |> ignore<int> // add one mor item to about menu. like build infos
+    let addToAboutMenu (s:string) = if not <| isNull AboutMenu then AboutMenu.Items.Add (MenuItem(Header = s) ) |> ignore<int> // add one mor item to about menu. like build infos
 
     module RecentFiles = 
         open CommandHelp
-
+        
+        //static member Add (fi) = recentFilesStack.Push fi
+        (*
+        static member loadRecentFilesMenu updateRecentMenu =
+             //static let recentFilesReOpened = new ResizeArray<FileInfo>() // to put them first in the menue
+             try
+                 IO.File.ReadAllLines RecentlyUsedFiles.FilePath
+                 |> Seq.iter (
+                     fun f -> 
+                         let fl = f.ToLowerInvariant()
+                         match recentFilesReOpened |> Seq.tryFind (fun fi -> fi.FullName.ToLowerInvariant() = fl ) with 
+                         |Some _ -> ()
+                         |None ->
+                             let fi = new FileInfo(f)
+                             recentFilesStack.Push fi
+                             updateRecentMenu fi
+                         )
+                 for fi in recentFilesReOpened |> Seq.rev do // they are already distinct
+                     recentFilesStack.Push fi
+                     updateRecentMenu fi
+             with e -> 
+                 Log.PrintAppErrorMsg "Error Loading recently used files: %s"   e.Message
+          *)
         let private hash = Collections.Generic.HashSet<string>() // to ensure no duplicates in recent list
     
         let mutable insertPosition = 0 // will be set in Menu setup function below
 
         /// to put recent files at bottom of File menu
         let updateRecentMenue (fi:IO.FileInfo) =
-            let fileMenu = UI.menu.Items.[0] :?> MenuItem
+            let fileMenu = Bar.Items.[0] :?> MenuItem
             let file = fi.FullName.ToLowerInvariant()
             if hash.Contains file then // just move it to top of list
                 let i = 
@@ -38,7 +62,7 @@ module Menu =
             else 
                 hash.Add file |> ignore
                 //Config.recentFilesStack.Push f // not needed here, done seperatly
-                let openCom  = mkCmdSimple ( fun a -> openFile(fi, CreateTab.newTab,true)) // checking if file exist to grey it out would take too long?
+                let openCom  = mkCmdSimple ( fun a -> Tabs.AddFile(fi, true)) // checking if file exist to grey it out would take too long?
                 fileMenu.Items.Insert(insertPosition, MenuItem (Header = fi.Name, ToolTip=fi.FullName, Command = openCom))            
                 while fileMenu.Items.Count > RecentlyUsedFiles.maxCount + insertPosition do
                     let lasti = fileMenu.Items.Count - 1
@@ -54,10 +78,10 @@ module Menu =
 
     /// create and hook up context and main window menu:
     let setup () = 
-        FileDialogs.updateRecentMenu <- RecentFiles.updateRecentMenue
+        //FileDialogs.updateRecentMenu <- RecentFiles.updateRecentMenue // TODO
         
         // this function is called after window is layed out otherwise somehow the menu does not show. e.g.  if it is just a let value.
-        updateMenu UI.menu [
+        updateMenu Bar [
             MenuItem(Header = "_File"),[
                 fromCmd Commands.NewTab
                 fromCmd Commands.OpenFile
@@ -133,9 +157,9 @@ module Menu =
                 fromCmd Commands.ReloadXshd         
                 ]
             ]
-        RecentFiles.insertPosition <- (UI.menu.Items.[0] :?> MenuItem).Items.Count // to put recent files at bottom of file menu
+        RecentFiles.insertPosition <- (Bar.Items.[0] :?> MenuItem).Items.Count // to put recent files at bottom of file menu
 
-        UI.tabControl.ContextMenu <- // TODO or attach to each new editor window ?
+        Tabs.Control.ContextMenu <- // TODO or attach to each new editor window ?
             makeContextMenu [
                 fromCmd Commands.Copy 
                 fromCmd Commands.Cut
@@ -152,7 +176,7 @@ module Menu =
                 fromCmd Commands.RunSelectedText
                 ]
                 
-        UI.log.ContextMenu <- 
+        Log.ReadOnlyEditor.ContextMenu <- 
             makeContextMenu [
                 fromCmd Commands.Copy
                 fromCmd Commands.ToggleLogSize

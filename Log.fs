@@ -48,9 +48,6 @@ type private LogLineColorizer(editor:AvalonEdit.TextEditor, lineColors:Collectio
     
 
 
-  
-
-
 /// A static class that hold the single neded instance of LogView and provides print formating methods for the LogView
 [<Sealed>]
 type Log private () =    
@@ -131,7 +128,7 @@ type Log private () =
         
 
     /// to acces the underlying read only Avalonedit Texteditor
-    static member Editor = log
+    static member ReadOnlyEditor = log
 
     //used in FSI constructor:
     static member val TextWriterFsiStdOut     = new FsxTextWriter(fun s -> printOrBuffer (s,FsiStdOut    ))

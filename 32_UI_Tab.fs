@@ -9,7 +9,7 @@ open System.Windows
 open System.Windows.Controls
 open ICSharpCode.AvalonEdit
 open System.Windows.Media
-open Seff.UtilWPF
+open Seff.Util.WPF
 open FSharp.Compiler.SourceCodeServices
  
  /// the tab that holds the editor of a code file, Log window is not part of tab, exists only once
@@ -43,30 +43,3 @@ type FsxTab () =
     //[<CLIEvent>]
     //member this.CompletionInserted = completionInserted.Publish
     //member this.TriggerCompletionInserted x = completionInserted.Trigger x // to raise it after completion inserted ?
-
-
-
-type Tab private () = // no constructor, for some important static values like current tab    
-    
-    /// The current active tab. the most important global mutable value in this code base !
-    static member val current: FsxTab option = None with get,set 
-
-    static member allTabs = (Seq.cast UI.tabControl.Items) : FsxTab seq    // TODO this cast may fail on "new  Tab button"  that is not a tabitem at end ??
-
-    static member isCurr tab = UI.tabControl.Items.Contains tab && Tab.currTab = tab
-
-
-    /// this will raise an Exception if there is no current tab
-    static member currTab = 
-        match Tab.current with
-        |Some t -> t
-        |None   -> failwith "*tried to access current Tab but no current Tab is set" // better than null ref exception on Option.value
-    
-    /// this will raise an Exception if there is no current tab
-    static member currEditor = 
-        match Tab.current with
-        |Some t -> t.Editor
-        |None   -> failwith "*tried to access current Tab.Editor but no current Tab is set" // better than null ref exception on Option.value
-
-
-    

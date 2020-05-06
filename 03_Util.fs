@@ -1,4 +1,4 @@
-﻿namespace Seff
+﻿namespace Seff.Util
 
 open System
 open System.Threading
@@ -7,7 +7,7 @@ open System.Reflection
 open Microsoft.FSharp.Reflection
 
 
-module Util =    
+module General =    
 
     (*
     type Time()=
@@ -31,12 +31,8 @@ module Util =
     
     let assemblyLocation() = IO.Path.GetDirectoryName(Reflection.Assembly.GetExecutingAssembly().Location)
 
-    let sameFile (f1:IO.FileInfo) (f2:IO.FileInfo) =
-        f1.FullName.ToLowerInvariant() = f2.FullName.ToLowerInvariant()
-    
 
-
-module StringUtil =
+module String =
         
     let lastCharIs char (s:string)= 
         if isNull s then false
