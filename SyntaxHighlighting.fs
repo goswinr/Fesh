@@ -2,11 +2,6 @@ namespace Seff
 
 open System
 open System.Drawing
-open System.Windows
-open System.Windows.Controls
-
-open Seff.UtilWPF
-open Seff.Util
 
 module XshdHighlighting = 
     open ICSharpCode.AvalonEdit
@@ -20,7 +15,8 @@ module XshdHighlighting =
             async{
                 try
                     //let stream = Reflection.Assembly.GetExecutingAssembly().GetManifestResourceStream("FSharpSynatxHighlighter2.xshd") // Build action : Embeded Resource; Copy to ouput Dir: NO 
-                    let stream = new StreamReader(Path.Combine(assemblyLocation(),"FSharpSynatxHighlighterExtended.xshd"))//will be copied there after compiling recompiling
+                    let assemblyLocation = IO.Path.GetDirectoryName(Reflection.Assembly.GetExecutingAssembly().Location)                    
+                    let stream = new StreamReader(Path.Combine(assemblyLocation,"FSharpSynatxHighlighterExtended.xshd"))//will be copied there after compiling recompiling
                     use reader = new Xml.XmlTextReader(stream)
                     let fsh = Xshd.HighlightingLoader.Load(reader, HighlightingManager.Instance)
                     HighlightingManager.Instance.RegisterHighlighting("F#", [| ".fsx"; ".fs";".fsi" |], fsh)

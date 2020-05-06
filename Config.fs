@@ -181,6 +181,7 @@ module Config =
                     Log.PrintAppErrorMsg "Error load RecentlyUsedFiles: %s"   e.Message
                 } |> Async.Start 
 
+        [<CLIEvent>]
         static member OnRecentFilesChanged = recentFilesChangedEv.Publish
 
 
@@ -303,8 +304,12 @@ module Config =
             AutoCompleteStatistic.loadFromFile()
             AssemblyReferenceStatistic.loadFromFile()
             RecentlyUsedFiles.loadFromFile()
+            //Log:
             Log.OnPrint.Add (AssemblyReferenceStatistic.RecordFromLog) // TODO does this have print perfomance impact ? measure do async ?
-
+            Log.ReadOnlyEditor.FontFamily       <- defaultFont
+            Log.ReadOnlyEditor.FontSize         <- Settings.getFloat "FontSize" defaultFontSize                
+            Log.setWordWrap( Settings.getBool "logHasLineWrap" true )
+               
         with ex ->
             Log.PrintAppErrorMsg "Error in Congig.initialize(%A): %A" context ex
 

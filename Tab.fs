@@ -57,10 +57,27 @@ type Tab (code:string, fileInfo :FileInfo option) as this=
     do
         //Editor.Document.Changed.Add(fun e 
         ed.Text <- code //trigger text changed, TODO!! listener already added ? or added later
+        ed.ShowLineNumbers <- true
+        ed.VerticalScrollBarVisibility <- ScrollBarVisibility.Auto
+        ed.HorizontalScrollBarVisibility <- ScrollBarVisibility.Auto
+        ed.Options.HighlightCurrentLine <- true // http://stackoverflow.com/questions/5072761/avalonedit-highlight-current-line-even-when-not-focused
+        ed.Options.EnableHyperlinks <- true
+        ed.TextArea.TextView.LinkTextForegroundBrush <- Brushes.DarkGreen
+        ed.Options.EnableTextDragDrop <- true //TODO add implementation
+        ed.Options.ShowSpaces <- false //true
+        ed.Options.ShowTabs <- true
+        ed.Options.ConvertTabsToSpaces <- true
+        ed.Options.IndentationSize <- 4
+        ed.Options.HideCursorWhileTyping <- false
+        ed.TextArea.SelectionCornerRadius <- 0.0 
+        ed.TextArea.SelectionBorder <- null
+        ed.FontFamily <- Model.defaultFont
+        ed.FontSize <- Config.Settings.getFloat "FontSize" Model.defaultFontSize  
         this.Content <- ed 
         this.FileInfo <- fileInfo
         setHeader() 
-        Search.SearchPanel.Install(ed) |> ignore 
+        Search.SearchPanel.Install(ed) |> ignore
+        XshdHighlighting.setFSharp(ed,false)
     
     ///additional constructor using default code 
     new () =  Tab(Config.DefaultCode.Get(),None)
@@ -96,8 +113,8 @@ type Tab (code:string, fileInfo :FileInfo option) as this=
     
     member val Foldings:Option<ResizeArray<int*int>> =  None with get,set
     
-    member val CompletionWin : CodeCompletion.CompletionWindow option = None with get,set
-           
+    member val CompletionWin : CodeCompletion.CompletionWindow option = None with get,set   
+    
     member val FsCheckerResult: FSharpCheckFileResults option = None with get,set
     
     member val FsCheckerId = 0 with get,set // each check will get a unique id, used for UI background only?    

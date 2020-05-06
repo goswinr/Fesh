@@ -1,16 +1,15 @@
 ﻿namespace Seff
 
-
 open System
 open ICSharpCode.AvalonEdit
 
-module ModifyCode =
+module Commenting =
 
     //----------------------
     //-------- Commenting---  turning code into Comments and back
     //----------------------
     // 
-    let comment(tab: FsxTab) =
+    let comment(tab:Tab) =
         let doc = tab.Editor.Document
         let start = doc.GetLineByOffset(tab.Editor.SelectionStart)
         let endeNext = doc.GetLineByOffset(tab.Editor.SelectionStart + tab.Editor.SelectionLength).NextLine            
@@ -29,7 +28,7 @@ module ModifyCode =
         doc.EndUpdate()
         //FsService.textChanged (FsService.OtherChange, tab) // TODO needed ?        
         
-    let unComment(tab: FsxTab) =
+    let unComment(tab:Tab) =
         let doc = tab.Editor.Document
         let start = doc.GetLineByOffset(tab.Editor.SelectionStart)
         let endeNext = doc.GetLineByOffset(tab.Editor.SelectionStart + tab.Editor.SelectionLength).NextLine            

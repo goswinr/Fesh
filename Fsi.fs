@@ -33,6 +33,7 @@ type Fsi private () =
     static let completedOkEv    = new Event<FsiMode>()
     static let isReadyEv        = new Event<FsiMode>()
     static let resetEv          = new Event<FsiMode>()
+    static let modeChangedEv    = new Event<FsiMode>()
     
     static let mutable state = NotLoaded
 
@@ -267,27 +268,28 @@ type Fsi private () =
         | NotPossibleSync -> Log.PrintInfoMsg "ResetFsi is not be possibe in current synchronous evaluation." // TODO test
       
 
-    static member  SetMode(sync:FsiMode) =         
+    static member SetMode(sync:FsiMode) =         
         let setConfig()=
             match mode with
-            |Sync -> Config.Settings.setBool "asyncFsi" false                          
+            |Sync ->  Config.Settings.setBool "asyncFsi" false                          
             |Async -> Config.Settings.setBool "asyncFsi" true   
 
         match Fsi.AskIfCancellingIsOk() with 
         | NotEvaluating | YesAsync    -> 
             mode <- sync
+            modeChangedEv.Trigger(sync)
             setConfig()
             Config.Settings.Save()
             Fsi.Initalize ()
         | Dont -> () 
         | NotPossibleSync -> Log.PrintInfoMsg "Wait till current synchronous evaluation completes before seting mode to Async."
     
-    static member  ToggleSync()=
+    static member ToggleSync()=
         match mode with
         |Async ->  Fsi.SetMode Sync
         |Sync ->   Fsi.SetMode Async      
+          
 
-   
     ///Triggered whenever code is sent to Fsi for evaluation
     [<CLIEvent>]
     static member OnStarted = startedEv.Publish
@@ -311,7 +313,10 @@ type Fsi private () =
     /// This event will be trigger after Fsi is reset
     [<CLIEvent>]
     static member OnReset  = resetEv.Publish   
-
+    
+    ///Triggered whenever Fsi for evaluation mode changes
+    [<CLIEvent>]
+    static member OnModeChanged = modeChangedEv.Publish
 
         
         

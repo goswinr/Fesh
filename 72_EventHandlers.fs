@@ -14,34 +14,16 @@ open ICSharpCode.AvalonEdit
 module EventHandlers =
     
     (* TODO 
-        //Events.Canceled.Add        (fun _ -> Log.PrintDebugMsg " +Fsi Canceled+")
-        //Events.IsReady.Add         (fun _ -> Log.PrintDebugMsg " +Fsi isReady+")      
-        //Events.Started.Add         (fun _ -> Log.PrintDebugMsg " +Fsi Started+")
-        //Events.Completed.Add       (fun _ -> Log.PrintDebugMsg " +Fsi Completed+")
-                
+        
         Fsi.IsReady.Add      (fun _ -> UI.log.Background <- Appearance.logBackgroundFsiReady) 
         Fsi.Started.Add      (fun _ -> UI.log.Background <- Appearance.logBackgroundFsiEvaluating) // happens at end of eval in sync mode
 
-        StatusBar.asyncDesc.MouseDown.Add(fun _ -> toggleSync())
         *)
 
 
-    let setUpForWindowSizing(win:Window) =        
-
-        UI.tabControl.SelectionChanged.Add( fun _-> 
-            let ob = UI.tabControl.SelectedItem 
-            if isNull ob then Tab.current <- None //  happens when closing the last open tab
-            else
-                let tab = ob :?> FsxTab
-                Tab.current <- Some tab
-                textChanged (TextChange.TabChanged , tab)  // not needed?
-                Config.CurrentlyOpenFiles.Save(tab.FileInfo , Tab.allTabs |> Seq.map(fun t -> t.FileInfo))
-            )
 
 
-
-
-    let setUpForTab (tab:FsxTab) =         
+    let setUpForTab (tab:Tab) =         
         let tArea = tab.Editor.TextArea
         let tView = tab.Editor.TextArea.TextView
 

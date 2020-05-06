@@ -75,6 +75,8 @@ type Tabs private ()=
     
     static member AllFileInfos = allTabs |> Seq.map(fun t -> t.FileInfo)
 
+    static member AllTabs = allTabs
+
     static member WorkingDirectory = 
         match Tabs.Current.FileInfo with 
         |Some fi -> Some fi.Directory
@@ -161,8 +163,13 @@ type Tabs private ()=
             Log.PrintIOErrorMsg "can't incremented unsaved File"  
             Tabs.SaveAs(t)
 
+    [<CLIEvent>]
     static member OnSavedAs = savedAsEv.Publish
 
+    /// also saves currently open files 
+    static member CloseTab(t) = closeTab(t) 
+
+    /// does not saves currently open files 
     static member TryCloseAll() = FileDialogs.askIfClosingWindowIsOk(allTabs, Tabs.Save)
 
     static member Initialize(startupArgs:string[]) = 

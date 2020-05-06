@@ -33,6 +33,7 @@ type Win private ()=
     /// loads window size and position from last run and sets up events to save window state in Config
     static member Initialize() :Window =
         Tabs.MainWindow <- win
+        TabsAndLog.MainWindow <- win
         win.Title       <- match Config.Context.Mode with Standalone -> "Seff | Scripting editor for fsharp"  | Hosted n ->  "Seff | Scripting editor for fsharp in " + n
         win.ResizeMode  <- ResizeMode.CanResize  
         win.Content     <- WPF.dockPanelVert(Menu.Bar, TabsAndLog.Grid, StatusBar.Bar)
@@ -61,7 +62,7 @@ type Win private ()=
             Fsi.Initalize()
                  
             //win.Activate() |> ignore // needed ?           
-            //Tab.currEditor.Focus() |> ignore // fails!   
+            //Tabs.Current.Editor.Focus() |> ignore // fails!   
             //System.Windows.Input.FocusManager.SetFocusedElement(...)
             )    
              

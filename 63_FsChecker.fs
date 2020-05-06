@@ -21,7 +21,7 @@ module FsChecker =
 
     /// to check full code use 0 as 'tillOffset'
     /// returns on new thread 
-    let fsCheck (tab:FsxTab, doc:Document.TextDocument, tillOffset) : Async<FsCheckResults>= 
+    let fsCheck (tab:Tab, doc:Document.TextDocument, tillOffset) : Async<FsCheckResults>= 
         async{                   
             let code = 
                 if tillOffset = 0 then doc.CreateSnapshot().Text //the only threadsafe way to acces the code string

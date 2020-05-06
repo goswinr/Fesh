@@ -9,37 +9,47 @@ open ICSharpCode
 open Seff.Util.WPF
 open FSharp.Compiler.SourceCodeServices
 open System.Windows.Automation.Peers
+open Seff.Model
 
-module StatusBar =
-    let asyncDesc = 
-        let bi = StatusBarItem(Content="*unknown*")
-        bi.ToolTip <- "Click to switch between synchronous and asynchronous evaluation in FSI,\r\nsynchronous is needed for UI interaction,\r\nasynchronous allows easy cancellation and keeps the editor window alive"
-        //bi.MouseDown.Add(fun _ -> toggleSync()) //done in fsi module
-        bi
+type StatusBar private ()  =
+    static let bar = new Primitives.StatusBar() 
 
-    let compilerErrors=
-        let tb = TextBox(Text="checking for Errors...")
-        tb.FontWeight <- FontWeights.Bold
-        tb
+    static let compilerErrors = new TextBlock(Text="checking for Errors ...") //FontWeight = FontWeights.Bold
+    
+    static let fsiState = new TextBlock(Text="FSI is initializing ...") //FontWeight = FontWeights.Bold
+        
 
-    let setErrors(es:FSharpErrorInfo[])= 
+    static member Initialize() =        
+        bar.Items.Add compilerErrors          |> ignore 
+        bar.Items.Add (new Separator())       |> ignore 
+        bar.Items.Add fsiState                |> ignore 
+        bar.Items.Add (new Separator())       |> ignore 
+        bar.Items.Add (new StatusBarItem())   |> ignore // to fill remaining space
+        
+        Fsi.OnStarted.Add(fun _ -> fsiState.Text <- "FSI is evaluating ..." )
+        Fsi.OnIsReady.Add(fun _ -> fsiState.Text <- "FSI is ready!" )    
+
+    static member SetErrors(es:FSharpErrorInfo[])= 
         if es.Length = 0 then 
             compilerErrors.Text <- "No Errors"
-            compilerErrors.Background <- Brushes.Green |> brighter 90            
+            compilerErrors.Background <- Brushes.Green |> brighter 90
+            compilerErrors.ToolTip <- "FSarp Compiler Service found no Errors in this tab"
         else 
             compilerErrors.Text <- sprintf "%d Errors" es.Length
             compilerErrors.Background <- Brushes.Red   |> brighter 90  
-            compilerErrors.ToolTip <- makePanelVert [ for e in es do TextBlock(Text=sprintf "• Line %d: %A: %s" e.StartLineAlternate e.Severity e.Message)]
+            compilerErrors.ToolTip <- makePanelVert [ for e in es do new TextBlock(Text=sprintf "• Line %d: %A: %s" e.StartLineAlternate e.Severity e.Message)]
 
-    let Bar = 
-        let b = new StatusBar()
-        b.Items.Add compilerErrors      |> ignore 
-        b.Items.Add (Separator())       |> ignore 
-        b.Items.Add (StatusBarItem())   |> ignore // to fill remaining space
-        b
+    static member Bar =  bar
 
-    let addSwitchFforSyncchonisationMode()=
-        Bar.Items.Insert(0,StatusBarItem(Content="FSI evaluation mode: "))
-        Bar.Items.Insert(1,asyncDesc)
-        Bar.Items.Insert(2,Separator())          
-    
+    static member AddFsiSynchModeStatus()=
+        let atPosition = 0
+        bar.Items.Insert(atPosition, new StatusBarItem(Content="FSI evaluation mode: "))
+        let asyncDesc = new TextBlock(Text="*unknown*")
+        asyncDesc.ToolTip <- "Click to switch between synchronous and asynchronous evaluation in FSI,\r\nsynchronous is needed for UI interaction,\r\nasynchronous allows easy cancellation and keeps the editor window alive"
+        asyncDesc.MouseDown.Add(fun _ -> Fsi.ToggleSync()) //done in fsi module
+        
+        bar.Items.Insert(atPosition+1,asyncDesc)
+        bar.Items.Insert(atPosition+2, new Separator())          
+        Fsi.OnModeChanged.Add(function 
+            | Sync  -> asyncDesc.Text <- "Synchronos" 
+            | Async -> asyncDesc.Text <- "Asynchronos"  )
