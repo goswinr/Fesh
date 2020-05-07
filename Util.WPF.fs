@@ -167,3 +167,40 @@ module WPF =
                 member this.CanExecute(obj) = true
                 member this.Execute(obj) = action(obj)                
                 }
+
+(*
+    open System.ComponentModel
+    
+    type ViewModelBase() = //http://www.fssnip.net/4Q/title/F-Quotations-with-INotifyPropertyChanged
+        let propertyChanged = new Event<_, _>()
+        let toPropName(query : Expr) = 
+            match query with
+            | PropertyGet(a, b, list) ->
+                b.Name
+            | _ -> ""
+
+        interface INotifyPropertyChanged with
+            [<CLIEvent>]
+            member x.PropertyChanged = propertyChanged.Publish
+
+        abstract member OnPropertyChanged: string -> unit
+        default x.OnPropertyChanged(propertyName : string) =
+            propertyChanged.Trigger(x, new PropertyChangedEventArgs(propertyName))
+
+        member x.OnPropertyChanged(expr : Expr) =
+            let propName = toPropName(expr)
+            x.OnPropertyChanged(propName)
+
+    type TestModel() =
+        inherit ViewModelBase()
+
+        let mutable selectedItem : obj = null
+
+        member x.SelectedItem
+            with get() = selectedItem
+            and set(v : obj) = 
+                selectedItem <- v
+                x.OnPropertyChanged(<@ x.SelectedItem @>)
+
+
+*)

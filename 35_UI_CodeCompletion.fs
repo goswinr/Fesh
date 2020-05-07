@@ -53,7 +53,7 @@ module CompletionUI =
         let tb = 
             let mutable tb = TextBlock()
             tb.Text <- it.Name //+ " " // TODO add padding instaead of space character?
-            tb.FontFamily <- Appearance.defaultFont  
+            tb.FontFamily <- Appearance.font  
             tb.FontSize <-   Appearance.fontSize 
             //tb.Foreground  <- col, // does not change color when selected anymore
             tb.FontStyle <- style
@@ -103,7 +103,7 @@ module CompletionUI =
         let tb = 
             new TextBlock(
                     Text = text + " ", // add padding instaead of space character
-                    FontFamily = Appearance.defaultFont  ,
+                    FontFamily = Appearance.font  ,
                     FontSize =   Appearance.fontSize ,
                     //Foreground  = col, // does not change color when selected anymore //check  https://blogs.msdn.microsoft.com/text/2009/08/28/selection-brush/ ??
                     FontStyle = style
@@ -128,7 +128,7 @@ module CompletionUI =
             member this.Priority        = this.Priority
             member this.Text            = this.Text
 
-    let showCompletionWindow( tab:FsxTab, xs: ICompletionData seq, setback, query:string) =
+    let showCompletionWindow( tab:Tab, xs: ICompletionData seq, setback, query:string) =
         tab.ErrorToolTip.IsOpen    <- false
         tab.TypeInfoToolTip.IsOpen <- false
             

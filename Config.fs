@@ -50,6 +50,7 @@ module Config =
 
         static member val FilePath = "Settings.Path not set " with get,set // set in Config.initialize()
 
+        ///loads sync
         static member loadFromFile() = 
             try            
                 for ln in  IO.File.ReadAllLines Settings.FilePath do
@@ -99,6 +100,7 @@ module Config =
         static let readerWriterLock = new ReaderWriterLockSlim()
         static member val FilePath = "DefaultCode.Path not set " with get,set        // set in Config.initialize()
 
+        ///loads sync
         static member Get() =            
             try IO.File.ReadAllText DefaultCode.FilePath
             with _ -> 
@@ -121,6 +123,7 @@ module Config =
             writeToFileAsyncLocked(CurrentlyOpenFiles.FilePath, readerWriterLock, sb.ToString() )
             writeToFileDelayed    (CurrentlyOpenFiles.FilePath, 500, counter,readerWriterLock, sb.ToString )
         
+        ///loads sync
         static member GetFromLastSession() = 
             let files = ResizeArray()
             let Done = HashSet()
@@ -147,7 +150,7 @@ module Config =
 
         static let recentFilesStack = new Collections.Concurrent.ConcurrentStack<FileInfo>()// might contain even files that dont exist(on a currently detached drive)
                 
-        static let recentFilesChangedEv = new Event<Collections.Concurrent.ConcurrentStack<FileInfo>>()
+        static let recentFilesChangedEv = new Event<unit>()
         
         /// the maximum number of recxent files to be saved
         /// the amount of files in the recently used manu can be controlled separetly
@@ -156,32 +159,30 @@ module Config =
         static member val FilePath = "RecentlyUsedFiles.Path not set " with get,set // set in Config.initialize()
 
         static member Save(fi) =         
-             recentFilesStack.Push fi
-             let sb = StringBuilder()
-             recentFilesStack 
-             |> Seq.map (fun fi -> fi.FullName)
-             |> Seq.distinctBy (fun f -> f.ToLowerInvariant())
-             |> Seq.truncate RecentlyUsedFiles.maxCount 
-             |> Seq.rev 
-             |> Seq.iter (sb.AppendLine >> ignore) // most recent file is a bottom of list
-             
-             let get() = 
-                recentFilesChangedEv.Trigger(recentFilesStack)
-                sb.ToString()
-             writeToFileDelayed(RecentlyUsedFiles.FilePath,3000,counter,readerWriterLock, get)
-         
-        static member loadFromFile() =
+             recentFilesStack.Push fi             
+             let getStringRaiseEvent() = 
+                let sb = StringBuilder()
+                for fi in recentFilesStack  do  sb.AppendLine(fi.FullName)  |> ignore // iteration starts at last element
+                recentFilesChangedEv.Trigger()  //this event will be triggered 1000 ms after new tabs are created
+                sb.ToString()                
+             writeToFileDelayed(RecentlyUsedFiles.FilePath,1000,counter,readerWriterLock, getStringRaiseEvent)
+        
+        static member Items = Array.ofSeq recentFilesStack
+
+        ///loads async, triggers Event
+        static member loadFromFile(updateMenu:unit-> unit) =
             async{
                 try            
                     if IO.File.Exists RecentlyUsedFiles.FilePath then 
-                        for ln in  IO.File.ReadAllLines RecentlyUsedFiles.FilePath do
+                        for ln in  IO.File.ReadAllLines RecentlyUsedFiles.FilePath |> Seq.rev do
                             recentFilesStack.Push(FileInfo(ln)) |> ignore
-                    recentFilesChangedEv.Trigger(recentFilesStack)
+                    updateMenu()
                 with e -> 
                     Log.PrintAppErrorMsg "Error load RecentlyUsedFiles: %s"   e.Message
                 } |> Async.Start 
 
         [<CLIEvent>]
+        /// this even is not raised from UI thread 
         static member OnRecentFilesChanged = recentFilesChangedEv.Publish
 
 
@@ -200,6 +201,7 @@ module Config =
 
         static member val FilePath = "AutoCompleteStatistic.Path not set " with get,set // set in Config.initialize()
 
+        ///loads async
         static member loadFromFile() =
             async{
                 try            
@@ -240,6 +242,7 @@ module Config =
 
         static member val FilePath = "AssemblyReferenceStatistic.Path not set " with get,set // set in Config.initialize()
 
+        ///loads async
         static member loadFromFile() =
             async{
                 try            
@@ -265,9 +268,7 @@ module Config =
                         if ende > start + 3 then
                             let r = s.Substring(start + 1, ende - 1)
                             assRefStats.Add (r)  |> ignore 
-                            
-
-
+   
     /// A static class to hold the current App Run context (Standalone or Hosted)
     type Context private () =
         static let mutable currentRunContext = Standalone
@@ -285,7 +286,7 @@ module Config =
                   "Hosted." + sb.ToString()
 
 
-    let initialize(context:AppRunContext) =
+    let Initialize(context:AppRunContext) =
         Context.Set (context)
         try
             let configFilesFolder = IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"Seff")
@@ -303,15 +304,16 @@ module Config =
             Settings.loadFromFile()
             AutoCompleteStatistic.loadFromFile()
             AssemblyReferenceStatistic.loadFromFile()
-            RecentlyUsedFiles.loadFromFile()
+            //RecentlyUsedFiles.loadFromFile() // do in Menu.initialize
+            
             //Log:
             Log.OnPrint.Add (AssemblyReferenceStatistic.RecordFromLog) // TODO does this have print perfomance impact ? measure do async ?
-            Log.ReadOnlyEditor.FontFamily       <- defaultFont
-            Log.ReadOnlyEditor.FontSize         <- Settings.getFloat "FontSize" defaultFontSize                
+            Log.ReadOnlyEditor.FontFamily       <- Appearance.font
+            Log.ReadOnlyEditor.FontSize         <- Settings.getFloat "FontSize" Appearance.fontSize                
             Log.setWordWrap( Settings.getBool "logHasLineWrap" true )
                
         with ex ->
-            Log.PrintAppErrorMsg "Error in Congig.initialize(%A): %A" context ex
+            Log.PrintAppErrorMsg "Error in Congig.Initialize(%A): %A" context ex
 
 
     /// opens up Explorer

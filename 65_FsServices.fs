@@ -8,7 +8,7 @@ open ICSharpCode.AvalonEdit.Folding
 open ICSharpCode.AvalonEdit
 open ICSharpCode.AvalonEdit.CodeCompletion
 open ICSharpCode.AvalonEdit.Document
-open Seff.Util
+open Seff.Util.General
 open Seff.Util.String
 open Seff.CompletionUI
 open Seff.FsChecker
@@ -63,7 +63,7 @@ module FsService =
         let updateFoldings () =             
             cleartoken(checkerId)
             if tab.FsCheckerId = checkerId then 
-                if tab.Foldings.IsSome && notNull tab.FoldingManager && Tab.isCurr tab then 
+                if tab.Foldings.IsSome && notNull tab.FoldingManager && tab.IsCurrent then 
                     let foldings=ResizeArray<NewFolding>()
                     for st,en in tab.Foldings.Value do foldings.Add(NewFolding(st,en)) //if new folding type is created async a waiting symbol apears on top of it 
                     let firstErrorOffset = -1 //The first position of a parse error. Existing foldings starting after this offset will be kept even if they don't appear in newFoldings. Use -1 for this parameter if there were no parse errors)                    
@@ -74,25 +74,25 @@ module FsService =
             cleartoken(checkerId)
             async{ 
                 do! Async.SwitchToContext Sync.syncContext                
-                if tab.FsCheckerId = checkerId && chr.ok && Tab.isCurr tab then
+                if tab.FsCheckerId = checkerId && chr.ok && tab.IsCurrent then
                     tab.FsCheckerResult <- Some chr.checkRes // cache for type info
-                    tab.TextMarkerService.Clear()
+                    tab.ErrorMarker.Clear()
                     match chr.checkRes.Errors with 
                     | [| |] -> 
-                        tab.Editor.Background <- Appearance.editorBackgroundOk
+                        //tab.Editor.Background <- Appearance.editorBackgroundOk
                         StatusBar.SetErrors ([| |])
                     | es   -> 
-                        tab.Editor.Background <- Appearance.editorBackgroundErr
+                        //tab.Editor.Background <- Appearance.editorBackgroundErr
                         StatusBar.SetErrors (es)
                         for e in es |> Seq.truncate 4 do // TODO Only highligth the first 3 Errors, Otherwise UI becomes unresponsive at 100 errors ( eg when pasting text)
                             let startOffset = tab.Editor.Document.GetOffset(new TextLocation(e.StartLineAlternate, e.StartColumn + 1 ))
                             let endOffset   = tab.Editor.Document.GetOffset(new TextLocation(e.EndLineAlternate,   e.EndColumn   + 1 ))
                             let length      = endOffset-startOffset
-                            tab.TextMarkerService.Create(startOffset, length, e.Message+", Error: "+ (string e.ErrorNumber))
+                            tab.ErrorMarker.Create(startOffset, length, e.Message+", Error: "+ (string e.ErrorNumber))
                             Packages.checkForMissingPackage tab e startOffset length
 
                 do! Async.Sleep 500  
-                if tab.FsCheckerId = checkerId && Tab.isCurr tab then // another checker migh alredy be started
+                if tab.FsCheckerId = checkerId && tab.IsCurrent then // another checker migh alredy be started
                     checkerId <- rand.Next()  
                     tab.FsCheckerId <- checkerId
                     let cancelFoldScr = new CancellationTokenSource()
@@ -111,10 +111,10 @@ module FsService =
             highlightErrors (chr)        
         |None ->
             checkerId <- rand.Next()  
-            tab.FsCheckerRunning <- checkerId                 
+            tab.FsCheckerId <- checkerId                 
             async{  
                 do! Async.Sleep 200               
-                if tab.FsCheckerRunning = checkerId &&  Tab.isCurr tab then
+                if tab.FsCheckerId = checkerId &&  tab.IsCurrent then
                     let cancelScr = new CancellationTokenSource()
                     if not <| FsCheckerCancellationSources.TryAdd(checkerId,cancelScr) then Log.Print "Failed to add FsCheckerCancellationSources" 
             
@@ -127,7 +127,7 @@ module FsService =
                 }|> Async.StartImmediate 
         
 
-    let prepareAndShowComplWin(tab:FsxTab, pos:FsChecker.PositionInCode , changetype, setback, query, charBefore, onlyDU) = 
+    let prepareAndShowComplWin(tab:Tab, pos:FsChecker.PositionInCode , changetype, setback, query, charBefore, onlyDU) = 
         //Log.Print "*prepareAndShowComplWin..."
         if changetype = EnteredOneIdentifierChar  &&  Keywords.Contains query  then //this never happens since typing complete word happens in when window is open not closed
             // do not complete, if keyword was typed full, just continue typing, completion will triger anyway on additional chars
@@ -140,7 +140,7 @@ module FsService =
             let aComp = 
                 async{
                     let! chr =  FsChecker.checkAndIndicate (tab,  pos.offset, 0)
-                    if chr.ok && Tab.isCurr tab then                        
+                    if chr.ok && tab.IsCurrent then                        
                         //Log.Print "*2-prepareAndShowComplWin geting completions"
                         let ifDotSetback = if charBefore = Dot then setback else 0
                         let! decls     = FsChecker.getDeclListInfo    (chr.parseRes , chr.checkRes , pos , ifDotSetback) //TODO, can this be avoided use info from below symbol call ?
@@ -166,19 +166,19 @@ module FsService =
                         
 
                         tab.Editor.Cursor <- prevCursor
-                        if Tab.isCurr tab then
+                        if tab.IsCurrent then
                             //Log.Print "*prepareAndShowComplWin for '%s' with offset %d" pos.lineToCaret setback                            
                             if completionLines.Count > 0 then showCompletionWindow(tab, completionLines, setback, query)
                             else checkForErrorsAndUpdateFoldings(tab, Some chr)
                 } 
             
             let checkerId = rand.Next()  
-            tab.FsCheckerRunning <- checkerId 
+            tab.FsCheckerId <- checkerId 
             let cancelScr = new CancellationTokenSource()
             if not <| FsCheckerCancellationSources.TryAdd(checkerId,cancelScr) then Log.Print "Failed to collect FsCheckerCancellationSources"
             Async.StartImmediate(aComp, cancelScr.Token)   
     
-    let textChanged (change:TextChange ,tab:FsxTab) =
+    let textChanged (change:TextChange ,tab:Tab) =
         //Log.Print "*1-textChanged because of %A" change 
         match tab.CompletionWin with
         | Some w ->  

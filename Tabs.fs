@@ -19,8 +19,6 @@ open Seff.Util.WPF
 type Tabs private ()=
 
     static let tabs = new TabControl()
-
-    static let allTabs:  seq<Tab> =  Seq.cast tabs.Items
     
     static let mutable current = None
     
@@ -56,13 +54,58 @@ type Tabs private ()=
     static member val MainWindow:Window = null with get,set // neded for closing afterlast tab set in Win.fs
 
     static member Control = tabs
-
-    static member Current  = match current with Some t -> t | None -> failwith "Tabs.Current shall never be None!"
     
-    static member AllFileInfos = allTabs |> Seq.map(fun t -> t.FileInfo)
+    //static member Any =  current.IsSome
 
-    static member AllTabs = allTabs
+    static member Current:Tab  = 
+        try match current with Some t -> t | None -> failwith "Tabs.Current shall never be None!" 
+        with e -> 
+            let err = sprintf "Tabs.Current is None:  %A" e
+            let file = IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop),"Seff-Tabs.Current is None Exception.txt") //TODO not needed?
+            IO.File.WriteAllText(file, err)
+            raise e
+    
+    static member AllFileInfos = Tabs.AllTabs |> Seq.map(fun t -> t.FileInfo)
 
+    static member AllTabs:seq<Tab> =  Seq.cast tabs.Items
+    
+    static member Initialize(startupArgs:string[]) =
+            
+        let files,fiAsLowCaseStrings = Config.CurrentlyOpenFiles.GetFromLastSession()
+        try
+            for p in startupArgs do
+                let fi = FileInfo(p)
+                if fi.Exists then 
+                    let lc = fi.FullName.ToLowerInvariant()
+                    if not <| fiAsLowCaseStrings.Contains lc then //make sure to not open it twice
+                        let code = File.ReadAllText fi.FullName
+                        files.Add ((fi,true)) // make file from arguments current
+        with e -> 
+            Log.PrintAppErrorMsg "Error reading startup arguments: %A %A"  startupArgs e
+            
+        for fi,curr in files do
+            Tabs.AddFile(fi,curr)  |> ignore 
+
+        if files.Count=0 then //Open default file if none found in recent files or args                
+            Tabs.AddTab(Tab(), true) |> ignore 
+                
+        //if tabs.SelectedIndex = -1 then    //make one tab current  if none yet
+        //    tabs.SelectedIndex <- 0
+        //    current <- Some (Seq.head Tabs.AllTabs)
+            
+        tabs.SelectionChanged.Add( fun _-> // when closing, opening or changing tabs
+            let tab = tabs.SelectedItem 
+            if isNull tab then //  happens when closing the last open tab
+                if Tabs.MainWindow<>null then Tabs.MainWindow.Close() // exit App ? (chrome and edge also closes when closing the last tab, Visual Studio not)
+            else
+                let tab = tab :?> Tab
+                current <- Some tab
+                for t in Tabs.AllTabs do t.IsCurrent<- false  // first set all false then one true              
+                tab.IsCurrent <-true
+                currentTabChangedEv.Trigger(tab) // to start fschecker
+                Config.CurrentlyOpenFiles.Save(tab.FileInfo , Tabs.AllFileInfos)
+            )
+    
     static member WorkingDirectory = 
         match Tabs.Current.FileInfo with 
         |Some fi -> Some fi.Directory
@@ -72,26 +115,30 @@ type Tabs private ()=
             |None    -> None
  
 
+
     static member AddTab(tab:Tab, makeCurrent) = 
         let ix = tabs.Items.Add tab
-        if makeCurrent then  tabs.SelectedIndex <- ix
+        if makeCurrent then  
+            tabs.SelectedIndex <- ix
+            current <- Some tab
         match tab.FileInfo with 
         |Some fi -> 
             Config.RecentlyUsedFiles.Save(fi)
-            Config.CurrentlyOpenFiles.Save(tab.FileInfo , Tabs.AllFileInfos)            
-            //updateRecentMenu fi // TODO this function checks if it is alreday Menu
-
+            Config.CurrentlyOpenFiles.Save(tab.FileInfo , Tabs.AllFileInfos)  
         |None -> ()
+        
         tab.CloseButton.Click.Add (fun _ -> closeTab(tab))
     
-    /// checks if file is open alread 
+    /// checks if file is open already then calls addTtab
     static member AddFile(fi:FileInfo, makeCurrent) =
         
         if fi.Exists then            
-            match Tabs.AllFileInfos |> Seq.tryFindIndex (FileDialogs.areFilesOptionsSame fi)  with  // check if file is already open 
-            | Some i -> 
-                if makeCurrent then tabs.SelectedIndex <- i  
-                // TODO  or remove it from recent list when open? add to recent list when closing?
+            match Tabs.AllTabs |> Seq.indexed |> Seq.tryFind (fun (_,t) -> FileDialogs.areFilesOptionsSame fi t.FileInfo) with // check if file is already open             
+            | Some (i,t) -> 
+                if makeCurrent then tabs.SelectedIndex <- i 
+                current <- Some t
+                Config.RecentlyUsedFiles.Save(fi)
+                Config.CurrentlyOpenFiles.Save(t.FileInfo , Tabs.AllFileInfos)
             | None -> 
                 try
                     let code = IO.File.ReadAllText fi.FullName
@@ -157,45 +204,5 @@ type Tabs private ()=
     /// also saves currently open files 
     static member CloseTab(t) = closeTab(t) 
 
-    /// does not saves currently open files 
-    static member TryCloseAll() = FileDialogs.askIfClosingWindowIsOk(allTabs, Tabs.Save)
-
-    static member Initialize(startupArgs:string[]) = 
-            
-        let files,fiAsLowCaseStrings = Config.CurrentlyOpenFiles.GetFromLastSession()
-        try
-            for p in startupArgs do
-                let fi = FileInfo(p)
-                if fi.Exists then 
-                    let lc = fi.FullName.ToLowerInvariant()
-                    if not <| fiAsLowCaseStrings.Contains lc then //make sure to not open it twice
-                        let code = File.ReadAllText fi.FullName
-                        files.Add ((fi,true)) // make file from arguments current
-        with e -> 
-            Log.PrintAppErrorMsg "Error reading startup arguments: %A %A"  startupArgs e
-            
-        for fi,curr in files do
-            Tabs.AddFile(fi,curr)  |> ignore 
-
-        if files.Count=0 then //Open default file if none found in recent files or args                
-            Tabs.AddTab(Tab(), true) |> ignore 
-                
-        if tabs.SelectedIndex = -1 then    //make one tab current  if none yet
-            tabs.SelectedIndex <- 0
-            
-        if not <| Tabs.Current.Editor.Focus() then Log.PrintAppErrorMsg "Tabs.Current.Editor.Focus failed"
-    
-  
-        tabs.SelectionChanged.Add( fun _-> // when closing, opening or changing tabs
-            let ob = tabs.SelectedItem 
-            if isNull ob then //  happens when closing the last open tab
-                if Tabs.MainWindow<>null then Tabs.MainWindow.Close() // exit App ? (chrome and edge also closes when closing the last tab, Visual Studio not)
-            else
-                let tab = ob :?> Tab
-                for t in allTabs do t.IsCurrent<- false  // first set all false then one true              
-                tab.IsCurrent <-true
-                current <- Some tab
-                currentTabChangedEv.Trigger(tab) // to start fschecker
-                Config.CurrentlyOpenFiles.Save(tab.FileInfo , Tabs.AllFileInfos)
-            )
-    
+    // does not saves currently open files 
+    //static member TryCloseAll() =      if FileDialogs.askIfClosingWindowIsOk(allTabs, Tabs.Save) then Tabs.MainWindow.Close()

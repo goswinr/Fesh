@@ -55,5 +55,8 @@ module Model =
         ] 
         |> String.concat Environment.NewLine
 
-    let defaultFontSize = 14.0
-    let defaultFont = FontFamily("Consolas")
+module Appearance =  
+
+    let mutable font = FontFamily("Consolas")
+    
+    let mutable fontSize = 14.0

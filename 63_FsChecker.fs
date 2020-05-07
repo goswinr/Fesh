@@ -104,15 +104,15 @@ module FsChecker =
                     return {ok=false; parseRes=Unchecked.defaultof<FSharpParseFileResults>;  checkRes=Unchecked.defaultof<FSharpCheckFileResults>;  code=code}
             } 
     
-    let showChecking (tab:FsxTab, isRunning,checkerId) = //,changedColor) = 
+    let showChecking (tab:Tab, isRunning,checkerId) = //,changedColor) = 
         async {            
             do! Async.Sleep 300            
-            if !isRunning && tab.FsCheckerRunning = checkerId  then // || checkerId=0 //in case of completion window
+            if !isRunning && tab.FsCheckerId = checkerId  then // || checkerId=0 //in case of completion window
                 do! Async.SwitchToContext Sync.syncContext
-                tab.Editor.Background <- Appearance.editorBackgroundChecking
+                //tab.Editor.Background <- Appearance.editorBackgroundChecking
             } |> Async.Start
 
-    let checkAndIndicate (tab:FsxTab, tillOffset,checkerId)=
+    let checkAndIndicate (tab:Tab, tillOffset,checkerId)=
         async{            
             let isRunning = ref true
             showChecking (tab, isRunning, checkerId)

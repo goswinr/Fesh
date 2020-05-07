@@ -7,187 +7,168 @@ open Seff.Util
 open Seff.Util.WPF
 open Seff.FileDialogs
 open Seff.Config
+open SyntaxHighlighting
+open System.Collections.Generic
 
-module Menu = 
+
+
+type Menu private () = 
     
-    let Bar = new Menu()
-
-    /// a ref to the about menu so that hosting apps can append to it
-    let mutable private AboutMenu : MenuItem = null 
-    let addToAboutMenu (s:string) = if not <| isNull AboutMenu then AboutMenu.Items.Add (MenuItem(Header = s) ) |> ignore<int> // add one mor item to about menu. like build infos
-
-    module RecentFiles = 
-        open CommandHelp
-        
-        //static member Add (fi) = recentFilesStack.Push fi
-        (*
-        static member loadRecentFilesMenu updateRecentMenu =
-             //static let recentFilesReOpened = new ResizeArray<FileInfo>() // to put them first in the menue
-             try
-                 IO.File.ReadAllLines RecentlyUsedFiles.FilePath
-                 |> Seq.iter (
-                     fun f -> 
-                         let fl = f.ToLowerInvariant()
-                         match recentFilesReOpened |> Seq.tryFind (fun fi -> fi.FullName.ToLowerInvariant() = fl ) with 
-                         |Some _ -> ()
-                         |None ->
-                             let fi = new FileInfo(f)
-                             recentFilesStack.Push fi
-                             updateRecentMenu fi
-                         )
-                 for fi in recentFilesReOpened |> Seq.rev do // they are already distinct
-                     recentFilesStack.Push fi
-                     updateRecentMenu fi
-             with e -> 
-                 Log.PrintAppErrorMsg "Error Loading recently used files: %s"   e.Message
-          *)
-        let private hash = Collections.Generic.HashSet<string>() // to ensure no duplicates in recent list
+    static let maxFilesInRecentMenu = 30
     
-        let mutable insertPosition = 0 // will be set in Menu setup function below
+    static let bar = new Windows.Controls.Menu()
 
-        /// to put recent files at bottom of File menu
-        let updateRecentMenue (fi:IO.FileInfo) =
-            let fileMenu = Bar.Items.[0] :?> MenuItem
-            let file = fi.FullName.ToLowerInvariant()
-            if hash.Contains file then // just move it to top of list
-                let i = 
-                    fileMenu.Items
-                    |> Seq.cast 
-                    |> Seq.skip insertPosition // to pass separator
-                    |> Seq.findIndex (fun (mi:MenuItem) -> (mi.ToolTip :?> string).ToLowerInvariant() = file)
-                    |> (+) insertPosition
-                let mi = fileMenu.Items.[i]
-                fileMenu.Items.RemoveAt i
-                fileMenu.Items.Insert(insertPosition,mi)
-            else 
-                hash.Add file |> ignore
-                //Config.recentFilesStack.Push f // not needed here, done seperatly
-                let openCom  = mkCmdSimple ( fun a -> Tabs.AddFile(fi, true)) // checking if file exist to grey it out would take too long?
-                fileMenu.Items.Insert(insertPosition, MenuItem (Header = fi.Name, ToolTip=fi.FullName, Command = openCom))            
-                while fileMenu.Items.Count > RecentlyUsedFiles.maxCount + insertPosition do
-                    let lasti = fileMenu.Items.Count - 1
-                    let rfile = (fileMenu.Items.[lasti] :?> MenuItem).ToolTip :?> string
-                    hash.Remove rfile |> ignore
-                    fileMenu.Items.RemoveAt lasti
-
-    let private sep() = Separator():> Control
+    static let fileMenu = MenuItem(Header = "_File")
     
-    let private fromCmd (ngc: string * string * #ICommand * string) = 
+    static let fileOpeners = Dictionary<string,MenuItem>()
+    
+    static let mutable recentFilesInsertPosition = 0
+
+    static let sep() = Separator():> Control
+    
+    static let item (ngc: string * string * #ICommand * string) = 
         let n,g,c,tt = ngc
         MenuItem(Header = n, InputGestureText = g, ToolTip = tt, Command = c):> Control
+    
+    static member Bar = bar
 
     /// create and hook up context and main window menu:
-    let setup () = 
-        //FileDialogs.updateRecentMenu <- RecentFiles.updateRecentMenue // TODO
-        
-        // this function is called after window is layed out otherwise somehow the menu does not show. e.g.  if it is just a let value.
-        updateMenu Bar [
-            MenuItem(Header = "_File"),[
-                fromCmd Commands.NewTab
-                fromCmd Commands.OpenFile
-                fromCmd Commands.OpenTemplateFile
+    static member Initialize() = // this function is called after window is layed out otherwise somehow the menu does not show. e.g.  if it is just a let value.
+        updateMenu bar [
+            fileMenu,[
+                item Commands.NewTab
+                item Commands.OpenFile
+                item Commands.OpenTemplateFile
                 sep()
-                fromCmd Commands.Save
-                fromCmd Commands.SaveAs
-                fromCmd Commands.SaveIncremental
-                fromCmd Commands.SaveAll
-                fromCmd Commands.Close
+                item Commands.Save
+                item Commands.SaveAs
+                item Commands.SaveIncremental
+                item Commands.SaveAll
+                item Commands.Close
                 sep()
-                fromCmd Commands.SaveLog
-                fromCmd Commands.SaveLogSel
+                item Commands.SaveLog
+                item Commands.SaveLogSel
                 sep()
                 ]
             MenuItem(Header = "_Edit"),[ 
-                fromCmd Commands.Copy 
-                fromCmd Commands.Cut
-                fromCmd Commands.Paste
+                item Commands.Copy 
+                item Commands.Cut
+                item Commands.Paste
                 sep()
-                fromCmd Commands.Comment
-                fromCmd Commands.UnComment
+                item Commands.Comment
+                item Commands.UnComment
                 sep()
-                fromCmd Commands.Undo
-                fromCmd Commands.Redo
+                item Commands.Undo
+                item Commands.Redo
                 sep()
-                fromCmd Commands.Find
-                fromCmd Commands.Replace
+                item Commands.Find
+                item Commands.Replace
                 ]
             MenuItem(Header = "_Select"),[ 
-                fromCmd Commands.SelectLine  
+                item Commands.SelectLine  
                 ]
             MenuItem(Header = "_BoxSelect", ToolTip="Create a Box Selection by \r\n holding down the Alt key while selecting \r\n or pressing the middle mouse button."),[ 
-                fromCmd Commands.boxSelectLeftByCharacter  
-                fromCmd Commands.boxSelectRightByCharacter 
+                item Commands.boxSelectLeftByCharacter  
+                item Commands.boxSelectRightByCharacter 
                 sep()
-                fromCmd Commands.boxSelectLeftByWord       
-                fromCmd Commands.boxSelectRightByWord 
+                item Commands.boxSelectLeftByWord       
+                item Commands.boxSelectRightByWord 
                 sep()
-                fromCmd Commands.boxSelectUpByLine         
-                fromCmd Commands.boxSelectDownByLine 
+                item Commands.boxSelectUpByLine         
+                item Commands.boxSelectDownByLine 
                 sep()
-                fromCmd Commands.boxSelectToLineStart      
-                fromCmd Commands.boxSelectToLineEnd 
+                item Commands.boxSelectToLineStart      
+                item Commands.boxSelectToLineEnd 
                 ]
             MenuItem(Header = "F_SI", ToolTip="FSharp Interactive code evaluation"),[ 
-                fromCmd Commands.RunAllText
-                fromCmd Commands.RunAllTextSave
-                fromCmd Commands.RunSelectedLines
-                fromCmd Commands.RunSelectedText                
+                item Commands.RunAllText
+                item Commands.RunAllTextSave
+                item Commands.RunSelectedLines
+                item Commands.RunSelectedText                
                 sep()
-                fromCmd Commands.ClearFSI
-                fromCmd Commands.CancelFSI
-                fromCmd Commands.ResetFSI
+                item Commands.ClearFSI
+                item Commands.CancelFSI
+                item Commands.ResetFSI
                 if Config.Context.IsStandalone then
                     sep()
-                    fromCmd Commands.ToggleSync
+                    item Commands.ToggleSync
                 ]
             MenuItem(Header = "_View"),[                 
-                fromCmd Commands.ToggleLogSize 
-                fromCmd Commands.ToggleSplit 
-                fromCmd Commands.ToggleLogLineWrap //TODO replace with actual tick box in status bar 
+                item Commands.ToggleLogSize 
+                item Commands.ToggleSplit 
+                item Commands.ToggleLogLineWrap //TODO replace with actual tick box in status bar 
                 sep()
-                fromCmd Commands.ClearFSI
+                item Commands.ClearFSI
                 sep()
-                fromCmd Commands.FontBigger
-                fromCmd Commands.FontSmaller
+                item Commands.FontBigger
+                item Commands.FontSmaller
                 ]
-            MenuItem(Header = "_About") |> (fun mi -> AboutMenu<-mi; mi),[ //set top level refrence too
-                fromCmd Commands.SettingsFolder
+            MenuItem(Header = "_About"),[ //set top level refrence too
+                item Commands.SettingsFolder
                 MenuItem(Header = "_Help")
-                MenuItem(Header = "_Version 0.1.1")
-                fromCmd Commands.ReloadXshd         
+                MenuItem(Header = "_Version 0.?.?")
+                item Commands.ReloadXshd         
                 ]
             ]
-        RecentFiles.insertPosition <- (Bar.Items.[0] :?> MenuItem).Items.Count // to put recent files at bottom of file menu
+        recentFilesInsertPosition <- fileMenu.Items.Count // to put recent files at bottom of file menu
 
         Tabs.Control.ContextMenu <- // TODO or attach to each new editor window ?
             makeContextMenu [
-                fromCmd Commands.Copy 
-                fromCmd Commands.Cut
-                fromCmd Commands.Paste
+                item Commands.Copy 
+                item Commands.Cut
+                item Commands.Paste
                 sep()
-                fromCmd Commands.Comment
-                fromCmd Commands.UnComment
+                item Commands.Comment
+                item Commands.UnComment
                 sep()
-                fromCmd Commands.Undo
-                fromCmd Commands.Redo
+                item Commands.Undo
+                item Commands.Redo
                 sep()
-                fromCmd Commands.RunAllText
-                fromCmd Commands.RunSelectedLines
-                fromCmd Commands.RunSelectedText
+                item Commands.RunAllText
+                item Commands.RunSelectedLines
+                item Commands.RunSelectedText
                 ]
                 
         Log.ReadOnlyEditor.ContextMenu <- 
             makeContextMenu [
-                fromCmd Commands.Copy
-                fromCmd Commands.ToggleLogSize
-                fromCmd Commands.ToggleLogLineWrap
+                item Commands.Copy
+                item Commands.ToggleLogSize
+                item Commands.ToggleLogLineWrap
                 sep()
-                fromCmd Commands.ClearFSI
-                fromCmd Commands.CancelFSI
-                fromCmd Commands.ResetFSI
+                item Commands.ClearFSI
+                item Commands.CancelFSI
+                item Commands.ResetFSI
                 sep()
-                fromCmd Commands.SaveLog
-                fromCmd Commands.SaveLogSel
+                item Commands.SaveLog
+                item Commands.SaveLogSel
                 ]
 
-    
+        Config.RecentlyUsedFiles.OnRecentFilesChanged.Add(Menu.SetRecentFiles ) //this event will be triggered 1000 ms after new tabs are created
+        Config.RecentlyUsedFiles.loadFromFile(Menu.SetRecentFiles) // trigger it here to to have the correct recent menu asap
+
+    static member SetRecentFiles()=
+        async{            
+            let fis = 
+                Config.RecentlyUsedFiles.Items
+                |> Seq.filter ( fun fi -> fi.Exists)
+                |> Seq.distinctBy( fun fi -> fi.FullName.ToLowerInvariant())
+                |> Seq.truncate maxFilesInRecentMenu
+                |> Seq.toArray
+            do! Async.SwitchToContext Sync.syncContext
+            ///first clear
+            while fileMenu.Items.Count > recentFilesInsertPosition do 
+                fileMenu.Items.RemoveAt recentFilesInsertPosition
+            // then insert all again
+            for fi in fis do                
+                let lPath = fi.FullName.ToLowerInvariant()
+                // reuse previosly creted MenuItems if possible
+                match fileOpeners.TryGetValue(lPath) with
+                |true , m -> fileMenu.Items.Add(m) |> ignore  
+                |_ -> 
+                    let openCom  = mkCmdSimple ( fun a -> Tabs.AddFile(fi, true)) 
+                    let mi = MenuItem (Header = fi.Name, ToolTip=fi.FullName, Command = openCom)
+                    fileMenu.Items.Add(mi) |> ignore 
+                    fileOpeners.[lPath] <- mi
+                
+        } |> Async.Start
+

@@ -4,8 +4,8 @@ open System
 open System.Windows
 open System.Windows.Controls
 open System.Linq
-open Seff.StringUtil
-open Seff.Util
+open Seff.Util.String
+open Seff.Util.General
 open Seff.FsService
 open Seff.EditorUtil
 open ICSharpCode.AvalonEdit
@@ -19,8 +19,6 @@ module EventHandlers =
         Fsi.Started.Add      (fun _ -> UI.log.Background <- Appearance.logBackgroundFsiEvaluating) // happens at end of eval in sync mode
 
         *)
-
-
 
 
     let setUpForTab (tab:Tab) =         
@@ -37,7 +35,7 @@ module EventHandlers =
 
         tab.Editor.Document.Changed.Add(fun e -> //TODO or TextChanged ??
             //Log.Print "*Document.Changed Event: deleted %d '%s', inserted %d '%s' completion Window:%A" e.RemovalLength e.RemovedText.Text e.InsertionLength e.InsertedText.Text tab.CompletionWin
-            ModifyUI.markTabUnSaved(tab)
+            tab.IsCodeSaved <- false
             match tab.CompletionWin with
             | Some w ->  // just keep on tying in completion window, no type checking !
                 if w.CompletionList.ListBox.HasItems then 
@@ -85,21 +83,21 @@ module EventHandlers =
         //--------Error UI-------------
         //-----------------------------          
             
-        tView.BackgroundRenderers.Add(tab.TextMarkerService)
-        tView.LineTransformers.Add(   tab.TextMarkerService)
-        tView.Services.AddService(typeof<ErrorUI.TextMarkerService> , tab.TextMarkerService) // what for?
+        tView.BackgroundRenderers.Add(tab.ErrorMarker)
+        tView.LineTransformers.Add(   tab.ErrorMarker)
+        tView.Services.AddService(typeof<ErrorMarker> , tab.ErrorMarker) // what for?
         tView.MouseHover.Add (fun e ->
             let pos = tView.GetPositionFloor(e.GetPosition(tView) + tView.ScrollOffset)
             if pos.HasValue then
                 let logicalPosition = pos.Value.Location
                 let offset = tab.Editor.Document.GetOffset(logicalPosition)
-                let markersAtOffset = tab.TextMarkerService.GetMarkersAtOffset(offset)
+                let markersAtOffset = tab.ErrorMarker.GetMarkersAtOffset(offset)
                 let markerWithMsg = markersAtOffset.FirstOrDefault(fun marker -> marker.Msg <> null)//LINQ ??
                 if notNull markerWithMsg && notNull tab.ErrorToolTip then
                     let tb = new TextBlock()
                     tb.Text <- markerWithMsg.Msg        //TODO move styling out of event handler ?
                     tb.FontSize <- Appearance.fontSize
-                    tb.FontFamily <- Appearance.defaultFont
+                    tb.FontFamily <- Appearance.font
                     tb.TextWrapping <- TextWrapping.Wrap
                     tb.Foreground <- Media.SolidColorBrush(Media.Colors.DarkRed)                    
                     // TODO use popup instead of tooltip so it can be pinned?

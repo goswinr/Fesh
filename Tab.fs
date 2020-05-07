@@ -12,30 +12,34 @@ open System.Windows.Media
 open Seff.Util.WPF
 open FSharp.Compiler.SourceCodeServices
 
-/// returns a bigger integer on each access 
+/// returns a bigger integer on each access for naming unsaved files
 type Counter private () = 
     static let unsavedFile = ref 1
     
     /// returns a bigger integer on each access
     /// used to give each unsaved file a unique number
-    static member UnsavedFile= 
-        incr unsavedFile
-        !unsavedFile
+    static member UnsavedFile = incr unsavedFile ;  !unsavedFile
+
 
  /// The tab that holds one editor of a code file, Log window is not part of tab, it exists only once
-type Tab (code:string, fileInfo :FileInfo option) as this= 
+type Tab (code:string, fileInfoOp :FileInfo option) as this= 
     inherit TabItem()
     
     let ed = new AvalonEdit.TextEditor() //|> Appearance.setForEditor
     
     let mutable isCodeSaved          = true
-    
+    let mutable fileInfo :FileInfo option = None
     let mutable headerShowsUnsaved   = false
 
     let txBl = new TextBlock(VerticalAlignment = VerticalAlignment.Bottom)  
     
+    let closeButton = new Button(
+                            Content = new Shapes.Path( Data = Geometry.Parse("M0,8 L8,0 M0,0 L8,8"), Stroke = Brushes.Black,  StrokeThickness = 0.8 ) ,            //"M1,8 L8,1 M1,1 L8,8"       
+                            Margin =  new Thickness(7., 0.5, 0.5, 3.), //left ,top, right, bottom
+                            Padding = new Thickness(2.) )
+
     let setHeader() = 
-        match this.FileInfo, isCodeSaved with 
+        match fileInfo, isCodeSaved with 
         |Some fi , true -> 
             txBl.ToolTip       <- "File saved at:\r\n" + fi.FullName
             txBl.Text          <- fi.Name
@@ -50,13 +54,14 @@ type Tab (code:string, fileInfo :FileInfo option) as this=
             txBl.ToolTip      <- "This file has not yet been saved to disk."
             txBl.Text         <- sprintf "* unsaved-%d *" Counter.UnsavedFile  
             txBl.Foreground   <- Brushes.Gray
-        let p = makePanelHor [txBl :> UIElement; this.CloseButton :> UIElement ]
+        let p = makePanelHor [txBl :> UIElement; closeButton :> UIElement ]
         p.Margin <- new Thickness(2.5 , 0.5 , 0.5 , 2.5) //left ,top, right, bottom
         this.Header <- p
       
     do
-        //Editor.Document.Changed.Add(fun e 
-        ed.Text <- code //trigger text changed, TODO!! listener already added ? or added later
+        //Editor.Document.Changed.Add(fun e //trigger text changed, TODO!! listener already added ? or added later
+        fileInfo <- fileInfoOp
+        ed.Text <- code 
         ed.ShowLineNumbers <- true
         ed.VerticalScrollBarVisibility <- ScrollBarVisibility.Auto
         ed.HorizontalScrollBarVisibility <- ScrollBarVisibility.Auto
@@ -71,13 +76,12 @@ type Tab (code:string, fileInfo :FileInfo option) as this=
         ed.Options.HideCursorWhileTyping <- false
         ed.TextArea.SelectionCornerRadius <- 0.0 
         ed.TextArea.SelectionBorder <- null
-        ed.FontFamily <- Model.defaultFont
-        ed.FontSize <- Config.Settings.getFloat "FontSize" Model.defaultFontSize  
-        this.Content <- ed 
-        this.FileInfo <- fileInfo
+        ed.FontFamily <- Appearance.font
+        ed.FontSize <- Config.Settings.getFloat "FontSize" Appearance.fontSize  
+        this.Content <- ed         
         setHeader() 
         Search.SearchPanel.Install(ed) |> ignore
-        XshdHighlighting.setFSharp(ed,false)
+        SyntaxHighlighting.setFSharp(ed,false)
     
     ///additional constructor using default code 
     new () =  Tab(Config.DefaultCode.Get(),None)
@@ -92,11 +96,8 @@ type Tab (code:string, fileInfo :FileInfo option) as this=
                 isCodeSaved <- true
                 setHeader()
     
-    member val CloseButton = // public so click event can be attached later in Tabs.fs
-        new Button(
-            Content = new Shapes.Path( Data = Geometry.Parse("M0,8 L8,0 M0,0 L8,8"), Stroke = Brushes.Black,  StrokeThickness = 0.8 ) ,            //"M1,8 L8,1 M1,1 L8,8"       
-            Margin =  new Thickness(7., 0.5, 0.5, 3.), //left ,top, right, bottom
-            Padding = new Thickness(2.) )
+    member this.CloseButton = closeButton // public so click event can be attached later in Tabs.fs AddTab
+        
     
     member this.FormatedFileName = 
         match this.FileInfo with 
@@ -123,14 +124,13 @@ type Tab (code:string, fileInfo :FileInfo option) as this=
 
     member val TypeInfoToolTip = new ToolTip(IsOpen=false) with get,set
     
-    //member val CompletionWindowJustClosed = false with get,set // for one letter completions to not trigger another completion
-    //member val CompletionWindowClosed = fun ()->() with get,set //will be set with all the other eventhandlers setup, but ref is needed before
+    member val ErrorMarker = new ErrorMarker(ed) with get
+    
+    member val CompletionWindowJustClosed = false with get,set // for one letter completions to not trigger another completion
+    member val CompletionWindowClosed = fun ()->() with get,set //will be set with all the other eventhandlers setup, but ref is needed before
     
     
-    
-    
-    //member val TextMarkerService = new ErrorUI.TextMarkerService(ed) with get
-  // additional text change event:
+    // additional text change event:
     //let completionInserted = new Event<string>() // event needed because Text change event is not raised after completion insert    
     //[<CLIEvent>]
     //member this.CompletionInserted = completionInserted.Publish

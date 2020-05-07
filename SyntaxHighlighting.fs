@@ -3,7 +3,7 @@ namespace Seff
 open System
 open System.Drawing
 
-module XshdHighlighting = 
+module SyntaxHighlighting = 
     open ICSharpCode.AvalonEdit
     open ICSharpCode.AvalonEdit.Highlighting
     open System.IO
@@ -30,26 +30,26 @@ module XshdHighlighting =
             ed.SyntaxHighlighting <- fsHighlighting.Value
 
 
-/// taken from VS2017
-module ColorsUNUSED=
-    let shadowed        = Color.FromArgb(188,0,0 )
-    let comment         = Color.FromArgb( 0,128,0)
-    let disposable      = Color.FromArgb(43,145,175)
-    let functionVal     = Color.FromArgb(0,0,0 )
-    let methodVal       = Color.FromArgb(0,0,0 )
-    let properties      = Color.FromArgb(0,0,0 )
-    let mutableVar      = Color.FromArgb(160,128,0 )
-    let refVar          = Color.FromArgb(160,128,0 )
-    let printfFormat    = Color.FromArgb(43,145,175) // #2B91AF
+    /// taken from VS2017
+    module ColorsUNUSED=
+        let shadowed        = Color.FromArgb(188,0,0 )
+        let comment         = Color.FromArgb( 0,128,0)
+        let disposable      = Color.FromArgb(43,145,175)
+        let functionVal     = Color.FromArgb(0,0,0 )
+        let methodVal       = Color.FromArgb(0,0,0 )
+        let properties      = Color.FromArgb(0,0,0 )
+        let mutableVar      = Color.FromArgb(160,128,0 )
+        let refVar          = Color.FromArgb(160,128,0 )
+        let printfFormat    = Color.FromArgb(43,145,175) // #2B91AF
 
-    let stringVal       = Color.FromArgb(163,21,21 )// #A31515
-    let stringVerbatim  = Color.FromArgb(128,0,0 )
-    let keyword         = Color.FromArgb(0,0,255 )
+        let stringVal       = Color.FromArgb(163,21,21 )// #A31515
+        let stringVerbatim  = Color.FromArgb(128,0,0 )
+        let keyword         = Color.FromArgb(0,0,255 )
     
-    let number          = Color.FromArgb(0,0,0 )
-    let operator        = Color.FromArgb(0,0,0 )
-    let unusedDecl      = Color.FromArgb(157,157,157 )//VS2015
+        let number          = Color.FromArgb(0,0,0 )
+        let operator        = Color.FromArgb(0,0,0 )
+        let unusedDecl      = Color.FromArgb(157,157,157 )//VS2015
 
-    let types           = Color.FromArgb(43,145,175)//VS2015
-    let escapeChars     = Color.FromArgb(255,0,128) // #FF0080 VS2015
+        let types           = Color.FromArgb(43,145,175)//VS2015
+        let escapeChars     = Color.FromArgb(255,0,128) // #FF0080 VS2015
 

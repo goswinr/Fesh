@@ -31,57 +31,49 @@ type Win private ()=
         and set(v) = Config.Settings.setBool "WindowWasMax" v  //wasMax <- v
 
     /// loads window size and position from last run and sets up events to save window state in Config
-    static member Initialize() :Window =
+    static member Initialize()  =
         Tabs.MainWindow <- win
         TabsAndLog.MainWindow <- win
-        win.Title       <- match Config.Context.Mode with Standalone -> "Seff | Scripting editor for fsharp"  | Hosted n ->  "Seff | Scripting editor for fsharp in " + n
         win.ResizeMode  <- ResizeMode.CanResize  
-        win.Content     <- WPF.dockPanelVert(Menu.Bar, TabsAndLog.Grid, StatusBar.Bar)
-        win.Background  <- Menu.Bar.Background // call after setting up content, otherwise space next to tab headers is in an odd color
         
-        //---- load ICON ----
+        win.Content     <- WPF.dockPanelVert(Menu.Bar, TabsAndLog.Grid, StatusBar.Bar)
+        
+        win.Background  <- Menu.Bar.Background // call after setting up content, otherwise space next to tab headers is in an odd color
+        win.Title       <- match Config.Context.Mode with Standalone -> "Seff | Scripting editor for fsharp"  | Hosted n ->  "Seff | Scripting editor for fsharp in " + n
+        
+        
         win.Loaded.Add(fun _ ->
+            //---- load ICON ----
             // Add the Icon at the top left of the window and in the status bar,         
             // musst be called at later moment(eg. after loading).
             // (for the exe file icon in explorer use <Win32Resource>Media\LogoCursorTr.res</Win32Resource>  in fsproj )
             let uri = new Uri("pack://application:,,,/Seff;component/Media/LogoCursorTr.ico", UriKind.RelativeOrAbsolute) //Build action : "Resource"; Copy to ouput Dir: "Do not copy" 
             try  win.Icon <-  Media.Imaging.BitmapFrame.Create(Application.GetResourceStream(uri).Stream)
-            with ex -> Log.PrintAppErrorMsg  "Failed to load Media/LogoCursorTr.ico from Application.ResourceStream : %A" ex
-            )
-        
-        EventHandlers.setUpForWindowSizing(win)
-        win.InputBindings.AddRange Commands.allShortCutKeyGestures  
-        Menu.setup()
-                    
-        win.Loaded.Add (fun _ ->
-            Log.PrintInfoMsg "* Time for loading main window: %s"  Timer.InstanceStartup.tocEx
-                          
-                 
-            //CreateTab.loadArgsAndOpenFilesOnLastAppClosing(args)
-            //RecentlyUsedFiles.loadRecentFilesMenu Menu.RecentFiles.updateRecentMenue
-            Fsi.Initalize()
-                 
-            //win.Activate() |> ignore // needed ?           
-            //Tabs.Current.Editor.Focus() |> ignore // fails!   
-            //System.Windows.Input.FocusManager.SetFocusedElement(...)
+            with ex -> Log.PrintAppErrorMsg  "Failed to load Media/LogoCursorTr.ico from Application.ResourceStream : %A" ex            
             )    
-             
-             
+        
+        win.ContentRendered.Add(fun _ -> 
+            //if not <| Tabs.Current.Editor.Focus() then Log.PrintAppErrorMsg "Tabs.Current.Editor.Focus failed"  //or System.Windows.Input.FocusManager.SetFocusedElement(...) 
+            
+            Log.PrintInfoMsg "* Time for loading and render main window: %s"  Timer.InstanceStartup.tocEx
+            
+            Fsi.Initalize() // do late to be sure errors can print to log and dont get lost (Rhino has problems with FSI from  FCS 33.0.1 on)
+            ) 
+            
         win.Closing.Add( fun e ->
+            // first check for running FSI
             match Fsi.AskIfCancellingIsOk () with 
             | NotEvaluating   -> ()
             | YesAsync        -> Fsi.CancelIfAsync() 
             | Dont            -> e.Cancel <- true // dont close window   
             | NotPossibleSync -> () // still close despite running thread ??
+            
+            //second check for unsaved files:
+            let canClose = FileDialogs.askIfClosingWindowIsOk(Tabs.AllTabs,Tabs.SaveAs) 
+            if not canClose then e.Cancel <- true // dont close window  
             ) 
                 
-                                 
-        win.Closing.Add( fun e -> //maybe cancel closing if files are unsaved
-            e.Cancel <- not <| FileDialogs.askIfClosingWindowIsOk() )
-             
-        //win.Initialized.Add (fun _ ->()) // this event seems to be never triggered, why ???
-             
-             
+         
 
         //----------------------------------------------
         // -  load and safe window location and size ---
@@ -158,5 +150,5 @@ type Win private ()=
                 //Log.dlog (sprintf "%s Size Changed: Width=%.0f Height=%.0f State=%A" Time.nowStrMilli win.Width win.Height win.WindowState)
             )
         
-        win
+       
        

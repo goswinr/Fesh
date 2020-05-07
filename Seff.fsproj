@@ -53,6 +53,7 @@
     <Compile Include="Config.fs" />
     <Compile Include="Timer.fs" />
     <Compile Include="Fsi.fs" />
+    <Compile Include="ErrorMarker.fs" />
     <Compile Include="Tab.fs" />
     <Compile Include="FileDialogs.fs" />
     <Compile Include="Tabs.fs" />

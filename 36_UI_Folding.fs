@@ -30,7 +30,7 @@ module FsFolding =
     let minLinesForFold = 1
 
     ///Get foldings at every line that is followed by an indent
-    let get (tab:FsxTab, code:string) : Async<unit> =
+    let get (tab:Tab, code:string) : Async<unit> =
         async{ 
             do! Async.SwitchToThreadPool()
             let foldings=ResizeArray<int*int>()
@@ -45,7 +45,7 @@ module FsFolding =
             for lni, ln in Seq.indexed lns do 
                 let lnNum = lni+1
                 currLnEndOffset <- currLnEndOffset + ln.Length + 2
-                let notBlank = not (StringUtil.isJustSpaceCharsOrEmpty ln)  
+                let notBlank = not (String.isJustSpaceCharsOrEmpty ln)  
                 if notBlank && ln.Length>0 then                         
                     let firstChar = ln.[0]
                     if firstChar <> ' ' then  
