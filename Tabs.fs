@@ -51,27 +51,13 @@ type Tabs private ()=
             tabs.Items.Remove(t)            
             Config.CurrentlyOpenFiles.Save (t.FileInfo , Tabs.AllFileInfos)//saving removed file, not added 
     
-    do
-        tabs.SelectionChanged.Add( fun _-> // when closing, opening or changing tabs
-            let ob = tabs.SelectedItem 
-            if isNull ob then //  happens when closing the last open tab
-                if Tabs.MainWindow<>null then Tabs.MainWindow.Close() // exit App ? (chrome and edge also closes when closing the last tab, Visual Studio not)
-            else
-                let tab = ob :?> Tab
-                for t in allTabs do t.IsCurrent<- false  // first set all false then one true              
-                tab.IsCurrent <-true
-                current <- Some tab
-                currentTabChangedEv.Trigger(tab) // to start fschecker
-                Config.CurrentlyOpenFiles.Save(tab.FileInfo , Tabs.AllFileInfos)
-            )
-    
     
     //--------------- Public members------------------
     static member val MainWindow:Window = null with get,set // neded for closing afterlast tab set in Win.fs
 
     static member Control = tabs
 
-    static member Current = match current with Some t -> t | None -> failwith "Tabs.Current shall never be None!"
+    static member Current  = match current with Some t -> t | None -> failwith "Tabs.Current shall never be None!"
     
     static member AllFileInfos = allTabs |> Seq.map(fun t -> t.FileInfo)
 
@@ -113,10 +99,12 @@ type Tabs private ()=
           else
               Log.PrintIOErrorMsg "File not found:\r\n%s" fi.FullName
               MessageBox.Show("File not found:\r\n"+fi.FullName , FileDialogs.dialogCaption, MessageBoxButton.OK, MessageBoxImage.Error) |> ignore
-
-    static member OpenFileDialog() = 
+    
+    /// Shows a file opening dialog
+    static member OpenFile() = 
         FileDialogs.openFileDialog(Tabs.AddFile, Tabs.WorkingDirectory )
-
+    
+    /// Shows a file opening dialog
     static member SaveAs (t:Tab) =                   
         FileDialogs.saveAsDialog(t,saveAs)
     
@@ -167,27 +155,40 @@ type Tabs private ()=
 
     static member Initialize(startupArgs:string[]) = 
             
-            let files,fiAsLowCaseStrings = Config.CurrentlyOpenFiles.GetFromLastSession()
-            try
-                for p in startupArgs do
-                    let fi = FileInfo(p)
-                    if fi.Exists then 
-                        let lc = fi.FullName.ToLowerInvariant()
-                        if not <| fiAsLowCaseStrings.Contains lc then //make sure to not open it twice
-                            let code = File.ReadAllText fi.FullName
-                            files.Add ((fi,true)) // make file from arguments current
-            with e -> 
-                Log.PrintAppErrorMsg "Error reading startup arguments: %A %A"  startupArgs e
+        let files,fiAsLowCaseStrings = Config.CurrentlyOpenFiles.GetFromLastSession()
+        try
+            for p in startupArgs do
+                let fi = FileInfo(p)
+                if fi.Exists then 
+                    let lc = fi.FullName.ToLowerInvariant()
+                    if not <| fiAsLowCaseStrings.Contains lc then //make sure to not open it twice
+                        let code = File.ReadAllText fi.FullName
+                        files.Add ((fi,true)) // make file from arguments current
+        with e -> 
+            Log.PrintAppErrorMsg "Error reading startup arguments: %A %A"  startupArgs e
             
-            for fi,curr in files do
-                Tabs.AddFile(fi,curr)  |> ignore 
+        for fi,curr in files do
+            Tabs.AddFile(fi,curr)  |> ignore 
 
-            if files.Count=0 then //Open default file if none found in recent files or args                
-                Tabs.AddTab(Tab(), true) |> ignore 
+        if files.Count=0 then //Open default file if none found in recent files or args                
+            Tabs.AddTab(Tab(), true) |> ignore 
                 
-            if tabs.SelectedIndex = -1 then    //make one tab current  if none yet
-                tabs.SelectedIndex <- 0
+        if tabs.SelectedIndex = -1 then    //make one tab current  if none yet
+            tabs.SelectedIndex <- 0
             
-            if not <| Tabs.Current.Editor.Focus() then Log.PrintAppErrorMsg "Tabs.Current.Editor.Focus failed"
+        if not <| Tabs.Current.Editor.Focus() then Log.PrintAppErrorMsg "Tabs.Current.Editor.Focus failed"
     
+  
+        tabs.SelectionChanged.Add( fun _-> // when closing, opening or changing tabs
+            let ob = tabs.SelectedItem 
+            if isNull ob then //  happens when closing the last open tab
+                if Tabs.MainWindow<>null then Tabs.MainWindow.Close() // exit App ? (chrome and edge also closes when closing the last tab, Visual Studio not)
+            else
+                let tab = ob :?> Tab
+                for t in allTabs do t.IsCurrent<- false  // first set all false then one true              
+                tab.IsCurrent <-true
+                current <- Some tab
+                currentTabChangedEv.Trigger(tab) // to start fschecker
+                Config.CurrentlyOpenFiles.Save(tab.FileInfo , Tabs.AllFileInfos)
+            )
     
