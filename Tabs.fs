@@ -28,7 +28,7 @@ type Tabs private ()=
     
     //static let savedAsEv = new Event<FileInfo>()
     
-    static let saveAs (t:Tab,fi:FileInfo) =                   
+    static let saveAt (t:Tab,fi:FileInfo) =                   
         if not <| fi.Directory.Exists then 
             Log.PrintIOErrorMsg "saveAsPath: Directory does not exist:\r\n%s" fi.Directory.FullName 
             false
@@ -45,8 +45,25 @@ type Tabs private ()=
                 Log.PrintInfoMsg "File saved as:\r\n%s" t.FormatedFileName
                 true
     
+    static let trySave (t:Tab)=
+        if t.FileInfo.IsSome && t.FileInfo.Value.Exists then
+            if not t.IsCodeSaved then
+                t.Editor.Save t.FileInfo.Value.FullName 
+                t.IsCodeSaved <- true 
+                Log.PrintInfoMsg "File saved at:\r\n%s" t.FileInfo.Value.FullName           
+                true
+            else
+                Log.PrintInfoMsg "File already up to date:\r\n%s" t.FileInfo.Value.FullName  
+                true
+        else 
+            if t.FileInfo.IsNone then () 
+            elif not <| t.FileInfo.Value.Exists then 
+                Log.PrintIOErrorMsg "File does not exist on drive anymore:\r\n%s" t.FileInfo.Value.FullName  
+                MessageBox.Show("File does not exist on drive anymore:\r\n" + t.FileInfo.Value.FullName , FileDialogs.dialogCaption, MessageBoxButton.OK, MessageBoxImage.Error) |> ignore
+            FileDialogs.saveAsDialog(t,saveAt)
+
     static let closeTab(t:Tab)= 
-        if FileDialogs.askIfClosingTabIsOk(t,saveAs) then 
+        if FileDialogs.askIfClosingTabIsOk(t,trySave) then 
             tabs.Items.Remove(t)            
             Config.CurrentlyOpenFiles.Save (t.FileInfo , Tabs.AllFileInfos)//saving removed file, not added 
     
@@ -138,7 +155,7 @@ type Tabs private ()=
                 let tab = tab :?> Tab
                 current <- Some tab
                 for t in Tabs.AllTabs do t.IsCurrent<- false  // first set all false then one true              
-                tab.IsCurrent <-true
+                tab.IsCurrent <-true                
                 currentTabChangedEv.Trigger(tab) // to start fschecker
                 Config.CurrentlyOpenFiles.Save(tab.FileInfo , Tabs.AllFileInfos)
             )
@@ -159,7 +176,7 @@ type Tabs private ()=
     
     /// Shows a file opening dialog
     static member SaveAs (t:Tab) =                   
-        FileDialogs.saveAsDialog(t,saveAs)
+        FileDialogs.saveAsDialog(t,saveAt)
     
     /// also saves currently open files 
     static member CloseTab(t) = closeTab(t) 
@@ -180,7 +197,7 @@ type Tabs private ()=
             elif not <| t.FileInfo.Value.Exists then 
                 Log.PrintIOErrorMsg "File does not exist on drive anymore:\r\n%s" t.FileInfo.Value.FullName  
                 MessageBox.Show("File does not exist on drive anymore:\r\n" + t.FileInfo.Value.FullName , FileDialogs.dialogCaption, MessageBoxButton.OK, MessageBoxImage.Error) |> ignore
-            FileDialogs.saveAsDialog(t,saveAs)
+            FileDialogs.saveAsDialog(t,saveAt)
     
     /// returns true if saving operation was not canceled
     static member SaveIncremental (t:Tab) = 
@@ -200,7 +217,7 @@ type Tabs private ()=
                     letters.[fn.Length-5] <- newLast
                     String.Join("", letters)
                 let fi = new FileInfo(npath)
-                saveAs(t,fi)                
+                saveAt(t,fi)                
          else
             Log.PrintIOErrorMsg "can't incremented unsaved File"  
             Tabs.SaveAs(t)

@@ -53,12 +53,12 @@ module FileDialogs =
             false
 
     /// returns true if file is saved or if closing ok (not canceled by user)
-    let askIfClosingTabIsOk(t:Tab, doSaveAs: Tab*FileInfo->bool) :bool=  
+    let askIfClosingTabIsOk(t:Tab, doSaveAs: Tab->bool) :bool=  
         if t.IsCodeSaved then true
         else 
             let msg = sprintf "Do you want to save the changes to:\r\n%s\r\nbefore closing this tab?" t.FormatedFileName
             match MessageBox.Show(msg, dialogCaption, MessageBoxButton.YesNoCancel, MessageBoxImage.Question) with
-            | MessageBoxResult.Yes -> saveAsDialog (t,doSaveAs)
+            | MessageBoxResult.Yes -> doSaveAs t
             | MessageBoxResult.No -> false
             | _ -> false
 
