@@ -40,6 +40,8 @@ module Initialize =
         Controls.ToolTipService.InitialShowDelayProperty.OverrideMetadata(typeof<DependencyObject>, new FrameworkPropertyMetadata(50))
 
 
+        Tabs.OnTabAdded.Add TabEvents.setUpForTab
+        //Tabs.OnTabChanged.Add (fun t -> FsChecker.checkAndIndicate(t,0,t.FsCheckerId))
         //------ Seff Views----------------
         
         Log.Initialize()                        // do second so it can be used in Config already

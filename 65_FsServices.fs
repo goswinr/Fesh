@@ -175,11 +175,11 @@ module FsService =
             let checkerId = rand.Next()  
             tab.FsCheckerId <- checkerId 
             let cancelScr = new CancellationTokenSource()
-            if not <| FsCheckerCancellationSources.TryAdd(checkerId,cancelScr) then Log.Print "Failed to collect FsCheckerCancellationSources"
+            if not <| FsCheckerCancellationSources.TryAdd(checkerId,cancelScr) then Log.PrintAppErrorMsg "Failed to collect FsCheckerCancellationSources"
             Async.StartImmediate(aComp, cancelScr.Token)   
     
     let textChanged (change:TextChange ,tab:Tab) =
-        //Log.Print "*1-textChanged because of %A" change 
+        Log.PrintDebugMsg "*1-textChanged because of %A" change 
         match tab.CompletionWin with
         | Some w ->  
             if w.CompletionList.ListBox.HasItems then 

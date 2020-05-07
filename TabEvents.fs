@@ -11,7 +11,7 @@ open Seff.EditorUtil
 open ICSharpCode.AvalonEdit
 
  
-module EventHandlers =
+module TabEvents =
     
     (* TODO 
         

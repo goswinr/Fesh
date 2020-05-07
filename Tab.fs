@@ -14,7 +14,7 @@ open FSharp.Compiler.SourceCodeServices
 
 /// returns a bigger integer on each access for naming unsaved files
 type Counter private () = 
-    static let unsavedFile = ref 1
+    static let unsavedFile = ref 0
     
     /// returns a bigger integer on each access
     /// used to give each unsaved file a unique number
@@ -34,9 +34,13 @@ type Tab (code:string, fileInfoOp :FileInfo option) as this=
     let txBl = new TextBlock(VerticalAlignment = VerticalAlignment.Bottom)  
     
     let closeButton = new Button(
-                            Content = new Shapes.Path( Data = Geometry.Parse("M0,8 L8,0 M0,0 L8,8"), Stroke = Brushes.Black,  StrokeThickness = 0.8 ) ,            //"M1,8 L8,1 M1,1 L8,8"       
+                            Content = new Shapes.Path( Data = Geometry.Parse("M0,7 L7,0 M0,0 L7,7"), Stroke = Brushes.Black,  StrokeThickness = 0.8 ) ,            //"M1,8 L8,1 M1,1 L8,8"       
                             Margin =  new Thickness(7., 0.5, 0.5, 3.), //left ,top, right, bottom
                             Padding = new Thickness(2.) )
+    let header = 
+        let p = makePanelHor [txBl :> UIElement; closeButton :> UIElement ]
+        p.Margin <- new Thickness(2.5 , 0.5 , 0.5 , 2.5) //left ,top, right, bottom
+        p
 
     let setHeader() = 
         match fileInfo, isCodeSaved with 
@@ -54,9 +58,7 @@ type Tab (code:string, fileInfoOp :FileInfo option) as this=
             txBl.ToolTip      <- "This file has not yet been saved to disk."
             txBl.Text         <- sprintf "* unsaved-%d *" Counter.UnsavedFile  
             txBl.Foreground   <- Brushes.Gray
-        let p = makePanelHor [txBl :> UIElement; closeButton :> UIElement ]
-        p.Margin <- new Thickness(2.5 , 0.5 , 0.5 , 2.5) //left ,top, right, bottom
-        this.Header <- p
+        
       
     do
         //Editor.Document.Changed.Add(fun e //trigger text changed, TODO!! listener already added ? or added later
@@ -78,7 +80,8 @@ type Tab (code:string, fileInfoOp :FileInfo option) as this=
         ed.TextArea.SelectionBorder <- null
         ed.FontFamily <- Appearance.font
         ed.FontSize <- Config.Settings.getFloat "FontSize" Appearance.fontSize  
-        this.Content <- ed         
+        this.Content <- ed
+        this.Header <- header
         setHeader() 
         Search.SearchPanel.Install(ed) |> ignore
         SyntaxHighlighting.setFSharp(ed,false)

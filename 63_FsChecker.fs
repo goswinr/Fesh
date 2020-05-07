@@ -109,6 +109,7 @@ module FsChecker =
             do! Async.Sleep 300            
             if !isRunning && tab.FsCheckerId = checkerId  then // || checkerId=0 //in case of completion window
                 do! Async.SwitchToContext Sync.syncContext
+                //TODO
                 //tab.Editor.Background <- Appearance.editorBackgroundChecking
             } |> Async.Start
 

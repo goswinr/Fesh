@@ -71,7 +71,7 @@
     <Compile Include="65_FsServices.fs" />
     <Compile Include="Commenting.fs" />
     <Compile Include="ModifyUI.fs" />
-    <Compile Include="72_EventHandlers.fs" />
+    <Compile Include="TabEvents.fs" />
     <Compile Include="Commands.fs" />
     <Compile Include="Menu.fs" />
     <Compile Include="Win.fs" />

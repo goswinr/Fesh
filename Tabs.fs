@@ -22,9 +22,11 @@ type Tabs private ()=
     
     static let mutable current = None
     
-    static let currentTabChangedEv = new Event<Tab>()  
+    static let currentTabChangedEv = new Event<Tab>() 
     
-    static let savedAsEv = new Event<FileInfo>()
+    static let tabAddedEv = new Event<Tab>() 
+    
+    //static let savedAsEv = new Event<FileInfo>()
     
     static let saveAs (t:Tab,fi:FileInfo) =                   
         if not <| fi.Directory.Exists then 
@@ -39,8 +41,7 @@ type Tabs private ()=
                 t.IsCodeSaved <- true 
                 t.FileInfo <- Some fi
                 Config.RecentlyUsedFiles.Save(fi)
-                Config.CurrentlyOpenFiles.Save(t.FileInfo , Tabs.AllFileInfos)
-                savedAsEv.Trigger(fi) // TODO updateRecentMenu fi   
+                Config.CurrentlyOpenFiles.Save(t.FileInfo , Tabs.AllFileInfos)                
                 Log.PrintInfoMsg "File saved as:\r\n%s" t.FormatedFileName
                 true
     
@@ -69,6 +70,40 @@ type Tabs private ()=
 
     static member AllTabs:seq<Tab> =  Seq.cast tabs.Items
     
+    
+    static member AddTab(tab:Tab, makeCurrent) = 
+        let ix = tabs.Items.Add tab
+        tabAddedEv.Trigger(tab) // to attach al sorts of events to tab 
+        if makeCurrent then  
+            tabs.SelectedIndex <- ix
+            current <- Some tab
+        match tab.FileInfo with 
+        |Some fi -> 
+            Config.RecentlyUsedFiles.Save(fi)
+            Config.CurrentlyOpenFiles.Save(tab.FileInfo , Tabs.AllFileInfos)  
+        |None -> ()
+            
+        tab.CloseButton.Click.Add (fun _ -> closeTab(tab))
+        
+    /// checks if file is open already then calls addTtab
+    static member AddFile(fi:FileInfo, makeCurrent) =            
+        if fi.Exists then            
+            match Tabs.AllTabs |> Seq.indexed |> Seq.tryFind (fun (_,t) -> FileDialogs.areFilesOptionsSame fi t.FileInfo) with // check if file is already open             
+            | Some (i,t) -> 
+                if makeCurrent then tabs.SelectedIndex <- i 
+                current <- Some t
+                Config.RecentlyUsedFiles.Save(fi)
+                Config.CurrentlyOpenFiles.Save(t.FileInfo , Tabs.AllFileInfos)
+            | None -> 
+                try
+                    let code = IO.File.ReadAllText fi.FullName
+                    Tabs.AddTab(Tab(code,Some fi),makeCurrent)
+                with  e -> 
+                    Log.PrintIOErrorMsg "Error reading d:\r\n%s\r\n%A" fi.FullName e
+            else
+                Log.PrintIOErrorMsg "File not found:\r\n%s" fi.FullName
+                MessageBox.Show("File not found:\r\n"+fi.FullName , FileDialogs.dialogCaption, MessageBoxButton.OK, MessageBoxImage.Error) |> ignore
+
     static member Initialize(startupArgs:string[]) =
             
         let files,fiAsLowCaseStrings = Config.CurrentlyOpenFiles.GetFromLastSession()
@@ -89,15 +124,17 @@ type Tabs private ()=
         if files.Count=0 then //Open default file if none found in recent files or args                
             Tabs.AddTab(Tab(), true) |> ignore 
                 
-        //if tabs.SelectedIndex = -1 then    //make one tab current  if none yet
-        //    tabs.SelectedIndex <- 0
-        //    current <- Some (Seq.head Tabs.AllTabs)
+        if tabs.SelectedIndex = -1 then    //make one tab current  if none yet
+            tabs.SelectedIndex <- 0
+            current <- Some (Seq.head Tabs.AllTabs)
             
-        tabs.SelectionChanged.Add( fun _-> // when closing, opening or changing tabs
-            let tab = tabs.SelectedItem 
-            if isNull tab then //  happens when closing the last open tab
+        tabs.SelectionChanged.Add( fun _-> // when closing, opening or changing tabs            
+            if tabs.Items.Count = 0 then //  happens when closing the last open tab
                 if Tabs.MainWindow<>null then Tabs.MainWindow.Close() // exit App ? (chrome and edge also closes when closing the last tab, Visual Studio not)
             else
+                let tab = 
+                    if isNull tabs.SelectedItem then tabs.Items.[0]
+                    else tabs.SelectedItem                 
                 let tab = tab :?> Tab
                 current <- Some tab
                 for t in Tabs.AllTabs do t.IsCurrent<- false  // first set all false then one true              
@@ -115,39 +152,6 @@ type Tabs private ()=
             |None    -> None
  
 
-
-    static member AddTab(tab:Tab, makeCurrent) = 
-        let ix = tabs.Items.Add tab
-        if makeCurrent then  
-            tabs.SelectedIndex <- ix
-            current <- Some tab
-        match tab.FileInfo with 
-        |Some fi -> 
-            Config.RecentlyUsedFiles.Save(fi)
-            Config.CurrentlyOpenFiles.Save(tab.FileInfo , Tabs.AllFileInfos)  
-        |None -> ()
-        
-        tab.CloseButton.Click.Add (fun _ -> closeTab(tab))
-    
-    /// checks if file is open already then calls addTtab
-    static member AddFile(fi:FileInfo, makeCurrent) =
-        
-        if fi.Exists then            
-            match Tabs.AllTabs |> Seq.indexed |> Seq.tryFind (fun (_,t) -> FileDialogs.areFilesOptionsSame fi t.FileInfo) with // check if file is already open             
-            | Some (i,t) -> 
-                if makeCurrent then tabs.SelectedIndex <- i 
-                current <- Some t
-                Config.RecentlyUsedFiles.Save(fi)
-                Config.CurrentlyOpenFiles.Save(t.FileInfo , Tabs.AllFileInfos)
-            | None -> 
-                try
-                    let code = IO.File.ReadAllText fi.FullName
-                    Tabs.AddTab(Tab(code,Some fi),makeCurrent)
-                with  e -> 
-                    Log.PrintIOErrorMsg "Error reading d:\r\n%s\r\n%A" fi.FullName e
-          else
-              Log.PrintIOErrorMsg "File not found:\r\n%s" fi.FullName
-              MessageBox.Show("File not found:\r\n"+fi.FullName , FileDialogs.dialogCaption, MessageBoxButton.OK, MessageBoxImage.Error) |> ignore
     
     /// Shows a file opening dialog
     static member OpenFile() = 
@@ -156,6 +160,9 @@ type Tabs private ()=
     /// Shows a file opening dialog
     static member SaveAs (t:Tab) =                   
         FileDialogs.saveAsDialog(t,saveAs)
+    
+    /// also saves currently open files 
+    static member CloseTab(t) = closeTab(t) 
     
     /// returns true if saving operation was not canceled
     static member Save(t:Tab) = 
@@ -199,10 +206,13 @@ type Tabs private ()=
             Tabs.SaveAs(t)
 
     [<CLIEvent>]
-    static member OnSavedAs = savedAsEv.Publish
+    static member OnTabAdded = tabAddedEv.Publish
+    
+    [<CLIEvent>]
+    static member OnTabChanged = currentTabChangedEv.Publish
 
-    /// also saves currently open files 
-    static member CloseTab(t) = closeTab(t) 
+
+
 
     // does not saves currently open files 
     //static member TryCloseAll() =      if FileDialogs.askIfClosingWindowIsOk(allTabs, Tabs.Save) then Tabs.MainWindow.Close()

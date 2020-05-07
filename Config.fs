@@ -115,7 +115,7 @@ module Config =
         static member val FilePath = "CurrentlyOpenFiles.Path not set " with get,set        // set in Config.initialize()
 
         static member Save (currentFile:FileInfo option , files: seq<FileInfo option>) =         
-            let curr = if currentFile.IsSome then currentFile.Value.FullName else ""
+            let curr = if currentFile.IsSome then currentFile.Value.FullName else "*no current file*"
             let sb = StringBuilder()
             sb.AppendLine(curr) |> ignore // first line is filepath and name for current tab (repeats below)
             for f in files do 
