@@ -3,6 +3,7 @@
 open System
 open System.Windows
 open Seff.Model
+open Seff.FsService
 
 
 [<RequireQualifiedAccess>]
@@ -41,15 +42,9 @@ module Initialize =
 
 
         Tabs.OnTabAdded.Add TabEvents.setUpForTab
-        //Tabs.OnTabChanged.Add (fun t -> FsChecker.checkAndIndicate(t,0,t.FsCheckerId))
+        Tabs.OnTabChanged.Add (fun t -> textChanged (TabChanged , t) ) 
         //------ Seff Views----------------
         
         Log.Initialize()                        // do second so it can be used in Config already
         Config.Initialize(context)              // do third so settings are loaded from file and  availabe 
-        Tabs.Initialize(startupArgs)
-        TabsAndLog.Initialize()
-        Menu.Initialize()
-        StatusBar.Initialize()
-        Win.Initialize()
-        
-        Win.Window.InputBindings.AddRange (Commands.allShortCutKeyGestures ())
+        Win.Initialize(startupArgs)

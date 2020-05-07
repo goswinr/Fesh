@@ -31,17 +31,13 @@ type Win private ()=
         and set(v) = Config.Settings.setBool "WindowWasMax" v  //wasMax <- v
 
     /// loads window size and position from last run and sets up events to save window state in Config
-    static member Initialize()  =
+    static member Initialize(startupArgs)  =
         Tabs.MainWindow <- win
         TabsAndLog.MainWindow <- win
         win.ResizeMode  <- ResizeMode.CanResize  
-        
-        win.Content     <- WPF.dockPanelVert(Menu.Bar, TabsAndLog.Grid, StatusBar.Bar)
-        
-        win.Background  <- Menu.Bar.Background // call after setting up content, otherwise space next to tab headers is in an odd color
+                
         win.Title       <- match Config.Context.Mode with Standalone -> "Seff | Scripting editor for fsharp"  | Hosted n ->  "Seff | Scripting editor for fsharp in " + n
-        
-        
+                
         win.Loaded.Add(fun _ ->
             //---- load ICON ----
             // Add the Icon at the top left of the window and in the status bar,         
@@ -50,6 +46,15 @@ type Win private ()=
             let uri = new Uri("pack://application:,,,/Seff;component/Media/LogoCursorTr.ico", UriKind.RelativeOrAbsolute) //Build action : "Resource"; Copy to ouput Dir: "Do not copy" 
             try  win.Icon <-  Media.Imaging.BitmapFrame.Create(Application.GetResourceStream(uri).Stream)
             with ex -> Log.PrintAppErrorMsg  "Failed to load Media/LogoCursorTr.ico from Application.ResourceStream : %A" ex            
+            
+            
+            Tabs.Initialize(startupArgs)
+            TabsAndLog.Initialize()
+            Menu.Initialize()
+            StatusBar.Initialize() 
+            win.Background  <- Menu.Bar.Background // call after setting up content, otherwise space next to tab headers is in an odd color
+            win.Content     <- WPF.dockPanelVert(Menu.Bar, TabsAndLog.Grid, StatusBar.Bar)
+            Win.Window.InputBindings.AddRange (Commands.allShortCutKeyGestures ())
             )    
         
         win.ContentRendered.Add(fun _ -> 

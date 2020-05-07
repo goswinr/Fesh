@@ -44,7 +44,14 @@ type TabsAndLog private ()=
             Log.ReadOnlyEditor  :> UIElement, logColumnWidth 
             ]
     
-    do
+
+
+    static member val MainWindow:Window = null with get,set // neded for toggeling max view, set in Win.fs
+    
+    static member Initialize() =
+        if Config.Settings.getBool "isVertSplit" true then setGridVert()            
+        else                                               setGridHor()
+
         splitterHor.Height <- 4.0
         splitterHor.HorizontalAlignment <- Windows.HorizontalAlignment.Stretch
         splitterHor.VerticalAlignment <- Windows.VerticalAlignment.Center
@@ -54,16 +61,6 @@ type TabsAndLog private ()=
         splitterVert.VerticalAlignment <- Windows.VerticalAlignment.Stretch
         splitterVert.HorizontalAlignment <- Windows.HorizontalAlignment.Center //needed only on vertical split
         splitterVert.ToolTip <- "Drag to resize code editor and log window"
-          
-
-
-
-
-    static member val MainWindow:Window = null with get,set // neded for toggeling max view, set in Win.fs
-    
-    static member Initialize() =
-        if Config.Settings.getBool "isVertSplit" true then setGridVert()            
-        else                                               setGridHor()
 
         splitterHor.DragCompleted.Add  (fun _ -> 
                 isLogMaxed <- false                    
