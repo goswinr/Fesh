@@ -54,3 +54,6 @@ module Model =
         ""
         ] 
         |> String.concat Environment.NewLine
+
+    let defaultFontSize = 14.0
+    let defaultFont = FontFamily("Consolas")

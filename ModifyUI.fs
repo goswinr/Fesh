@@ -11,12 +11,12 @@ module ModifyUI =
    
     let toggleLogLineWrap()=
         if Config.Settings.getBool "logHasLineWrap" true then 
-            UI.log.WordWrap         <- false 
-            UI.log.HorizontalScrollBarVisibility <- ScrollBarVisibility.Auto
+            Log.ReadOnlyEditor.WordWrap         <- false 
+            Log.ReadOnlyEditor.HorizontalScrollBarVisibility <- ScrollBarVisibility.Auto
             Config.Settings.setBool "logHasLineWrap" false
         else
-            UI.log.WordWrap         <- true  
-            UI.log.HorizontalScrollBarVisibility <- ScrollBarVisibility.Disabled 
+            Log.ReadOnlyEditor.WordWrap         <- true  
+            Log.ReadOnlyEditor.HorizontalScrollBarVisibility <- ScrollBarVisibility.Disabled 
             Config.Settings.setBool "logHasLineWrap" true
         Config.Settings.Save ()
 
@@ -25,8 +25,8 @@ module ModifyUI =
     //----------------------
 
     let setFontSize newSize = 
-        UI.log.FontSize    <- newSize
-        for t in Tab.allTabs do                
+        Log.ReadOnlyEditor.FontSize    <- newSize
+        for t in Tabs.AllTabs do                
             t.Editor.FontSize  <- newSize
         Appearance.fontSize <- newSize // use for UI completion line too
         Config.Settings.setFloat "FontSize" newSize    
@@ -35,7 +35,7 @@ module ModifyUI =
 
     /// affects Editor and Log
     let fontBigger()= 
-        let cs = if Tab.current.IsSome then Tab.currEditor.FontSize else Config.Settings.getFloat "FontSize" 14.
+        let cs = Tabs.Current.Editor.FontSize
         //let step = 
         //    if   cs >= 36. then 4. 
         //    elif cs >= 20. then 2. 
@@ -45,7 +45,7 @@ module ModifyUI =
     
     /// affects Editor and Log
     let fontSmaller()=
-        let cs = if Tab.current.IsSome then Tab.currEditor.FontSize else Config.Settings.getFloat "FontSize" 14.
+        let cs = Tabs.Current.Editor.FontSize
         //let step = 
         //    if   cs >= 36. then 4. 
         //    elif cs >= 20. then 2. 
@@ -58,7 +58,7 @@ module ModifyUI =
     //-------- Text Selection---------------
     //--------------------------------------
 
-    let expandSelectionToFullLines(tab: FsxTab) =
+    let expandSelectionToFullLines(tab:Tab) =
         let doc = tab.Editor.Document
         let st = doc.GetLineByOffset(tab.Editor.SelectionStart)
         let en = doc.GetLineByOffset(tab.Editor.SelectionStart + tab.Editor.SelectionLength)
@@ -66,7 +66,7 @@ module ModifyUI =
         tab.Editor.Select(stoff,en.EndOffset-stoff)
         tab.Editor.SelectedText
 
-    let selectAll(tab: FsxTab) =
+    let selectAll(tab: Tab) =
         let doc = tab.Editor.Document
         tab.Editor.Select(0,doc.TextLength)
 

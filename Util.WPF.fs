@@ -4,7 +4,7 @@ open System
 open System.Windows
 open System.Windows.Controls
 open System.Windows.Media
-
+open System.Windows.Input
 
 
 module WPF = 
@@ -127,4 +127,43 @@ module WPF =
         d.Children.Add(center) |> ignore 
         d
     
+    
 
+    
+    /// A command that optionally hooks into CommandManager.RequerySuggested to
+    /// automatically trigger CanExecuteChanged whenever the CommandManager detects
+    /// conditions that might change the output of canExecute. It's necessary to use
+    /// this feature for command bindings where the CommandParameter is bound to
+    /// another UI control (e.g. a ListView.SelectedItem).
+    type Command(execute, canExecute, autoRequery) as this =
+        let canExecuteChanged = Event<EventHandler,EventArgs>()
+        let handler = EventHandler(fun _ _ -> this.RaiseCanExecuteChanged())
+    
+        do if autoRequery then CommandManager.RequerySuggested.AddHandler(handler)
+        
+        member private this._Handler = handler // CommandManager only keeps a weak reference to the event handler, so a strong handler must be maintained
+           
+        member this.RaiseCanExecuteChanged () = canExecuteChanged.Trigger(this , EventArgs.Empty)        
+           
+        //interface is implemented as members and as interface members( to be sure it works):
+        member this.CanExecuteChanged = canExecuteChanged.Publish
+        member this.CanExecute p = canExecute p
+        member this.Execute p = execute p
+        interface ICommand with
+            [<CLIEvent>]
+            member this.CanExecuteChanged = this.CanExecuteChanged
+            member this.CanExecute p =      this.CanExecute p 
+            member this.Execute p =         this.Execute p 
+        
+    /// creates a ICommand
+    let mkCmd canEx ex = new Command(ex,canEx,true) :> ICommand
+    
+    /// creates a ICommand, CanExecute is always true
+    let mkCmdSimple action =
+        let ev = Event<_ , _>()
+        { new Windows.Input.ICommand with
+                [<CLIEvent>]
+                member this.CanExecuteChanged = ev.Publish
+                member this.CanExecute(obj) = true
+                member this.Execute(obj) = action(obj)                
+                }

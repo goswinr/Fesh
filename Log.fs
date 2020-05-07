@@ -10,6 +10,7 @@ open System.Windows.Media // for color brushes
 open System.Text
 open System.Diagnostics
 open System.Collections.Generic
+open System.Windows.Controls
 
 /// A TextWriter that writes using a function (to an Avalonedit Control). used in FSI session constructor   
 type FsxTextWriter(writeStr) =
@@ -123,9 +124,23 @@ type Log private () =
         log <- new AvalonEdit.TextEditor()
         log.IsReadOnly <- true
         log.Encoding <- Text.Encoding.Default
+
+        log.ShowLineNumbers  <- true
+        log.Options.EnableHyperlinks <- true 
+        log.TextArea.SelectionCornerRadius <- 0.0 
+        log.TextArea.SelectionBorder <- null         
+        log.TextArea.TextView.LinkTextForegroundBrush <- Brushes.Blue //Hyperlinks color        
         log.TextArea.TextView.LineTransformers.Add(new LogLineColorizer(log,lineColors))
-        AvalonEdit.Search.SearchPanel.Install(log) |> ignore
-        
+        AvalonEdit.Search.SearchPanel.Install(log) |> ignore  
+        // font and fontsize will be set up in Config.initialize since it depends on config.
+    
+    static member setWordWrap(v)=
+        if v then 
+            log.WordWrap         <- true 
+            log.HorizontalScrollBarVisibility <- ScrollBarVisibility.Disabled   
+        else
+            log.WordWrap         <- false 
+            log.HorizontalScrollBarVisibility <- ScrollBarVisibility.Auto 
 
     /// to acces the underlying read only Avalonedit Texteditor
     static member ReadOnlyEditor = log
@@ -159,4 +174,5 @@ type Log private () =
     static member Print s             =  Printf.fprintfn Log.TextWriterPrintMsg     s //TODO remove unused?
 
     /// this event occures on ever call to print, NOT on the aggregated strings that are appened to Log
+    [<CLIEvent>]
     static member OnPrint = textAddEv.Publish

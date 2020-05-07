@@ -62,7 +62,7 @@ module FileDialogs =
             | MessageBoxResult.No -> false
             | _ -> false
 
-    /// returns true if all files are saved or unsaved changeas ignored (closing not canceled by user).
+    /// returns true if all files are saved or unsaved changes are ignored (closing not canceled by user).
     let askIfClosingWindowIsOk(tabs:Tab seq, saveTab:Tab-> bool) :bool=             
         let openFs = tabs |> Seq.filter (fun t -> not t.IsCodeSaved) 
         if  Seq.isEmpty openFs then

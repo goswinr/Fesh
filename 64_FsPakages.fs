@@ -8,7 +8,7 @@ open FSharp.Compiler.SourceCodeServices
 open ICSharpCode.AvalonEdit.CodeCompletion
 open ICSharpCode.AvalonEdit.Document
 open Seff.Util
-open Seff.StringUtil
+open Seff.Util.String
 open Seff.CompletionUI
 
 open System
@@ -25,14 +25,14 @@ module Packages=
     let Searched = Dictionary<string,string>()
     let mutable isRunning = false
 
-    let checkForMissingPackage (tab:FsxTab)(e:FSharpErrorInfo) startOffset length=
+    let checkForMissingPackage (tab:Tab)(e:FSharpErrorInfo) startOffset length=
         if e.ErrorNumber = 84 then 
             let doc = tab.Editor.Document
             let hook = doc.CreateAnchor(startOffset)
             let errTxt =  doc.GetText(startOffset, length)
             let errLine = doc.GetText(doc.GetLineByOffset(startOffset))
             if errLine.StartsWith "#r " then 
-                let _,name,_ = StringUtil.between "\"" "\"" errTxt
+                let _,name,_ = between "\"" "\"" errTxt
                 if  not (name.Contains ".dll")  &&
                     not (name.Contains "\\")    &&
                     not (name.Contains "/")     &&

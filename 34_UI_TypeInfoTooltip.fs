@@ -1,6 +1,6 @@
 ﻿namespace Seff
 
-open Seff.UtilWPF
+open Seff.Util.WPF
 open System
 open System.Windows
 open System.Windows.Controls
@@ -15,6 +15,7 @@ open FSharp.Compiler
 open FSharp.Compiler.SourceCodeServices
 open System.Windows.Input
 open System.Windows.Documents
+open System.Collections.Generic
 
 
 module Tooltips = 
@@ -23,7 +24,7 @@ module Tooltips =
 
     // make a fancy tooltip:
     let stackPanel  (it:FSharpDeclarationListItem option) (tds:ToolTipData list) = 
-        let mutable assembly = ""
+        let mutable assemblies = new HashSet<string>()
         let stackPanel = makePanelVert [
             if it.IsSome then 
                 let glyph = sprintf "%A" it.Value.Glyph
@@ -55,7 +56,7 @@ module Tooltips =
                     let color, txt, scale  = 
                         match td.xmlDocStr with 
                         |Ok (txt,ass)     -> 
-                            if ass <>"" then assembly <- ass
+                            if ass <>"" then assemblies.Add(ass) |> ignore //could it be from more than one assembly? because of type extensions?
                             Brushes.DarkBlue, txt, 1.0  
                         |Error errTxt  -> 
                             Brushes.Gray, errTxt, 0.75
@@ -72,8 +73,10 @@ module Tooltips =
                 border.Margin <- Thickness(2.0)
                 yield border :> UIElement
             
-            if assembly<>"" then 
-                let tb = new TextBlock(Text= "assembly:\r\n"+assembly)
+            if assemblies.Count > 0 then 
+                let tb = 
+                    if assemblies.Count = 1 then new TextBlock(Text= "assembly:\r\n" + Seq.head assemblies)
+                    else                         new TextBlock(Text= "assemblies:\r\n" + String.concat "\r\n" assemblies)
                 tb.FontSize <- Appearance.fontSize * 0.80
                 tb.Foreground <- Brushes.Black
                 //tb.FontFamily <- new FontFamily ("Arial") // or use default of device
@@ -151,10 +154,10 @@ module Tooltips =
     let TextEditorMouseHover( e: MouseEventArgs) =
         // see https://github.com/icsharpcode/AvalonEdit/blob/master/ICSharpCode.AvalonEdit/Editing/SelectionMouseHandler.cs#L477
         if Tab.current.IsSome then
-            let ed = Tab.currEditor
-            let tab = Tab.currTab
+            let ed = Tabs.Current.Editor
+            let tab = Tabs.Current
             let doc = ed.Document
-            let pos = ed.GetPositionFromPoint(e.GetPosition(Tab.currEditor))
+            let pos = ed.GetPositionFromPoint(e.GetPosition(Tabs.Current.Editor))
             if pos.HasValue && tab.FsCheckerResult.IsSome then                            
                 let line = pos.Value.Line            
                 
@@ -211,4 +214,4 @@ module Tooltips =
 
     let TextEditorMouseHoverStopped( e: MouseEventArgs) = 
         if Tab.current.IsSome then 
-            Tab.currTab.TypeInfoToolTip.IsOpen <- false
+            Tabs.Current.TypeInfoToolTip.IsOpen <- false
