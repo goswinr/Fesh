@@ -1,5 +1,6 @@
-﻿namespace Seff
+﻿namespace Seff.Views
 
+open Seff
 open System
 open System.Environment
 open System.IO
@@ -12,23 +13,26 @@ open System.Diagnostics
 open System.Collections.Generic
 open System.Windows.Controls
 open System.Windows
-open Seff.Util.WPF
+open Seff.Views.Util
 
 /// A Static class holding the Tab Control
 /// Includes logic saving and opening files
-type Tabs private ()=
+/// Window neded for closing after last Tab closed
+type Tabs(log:ISeffLog, win:Window) = 
 
-    static let tabs = new TabControl()
+    let tabs = new TabControl()
     
-    static let mutable current = None
+    let Log = log // TODO fix
+
+    let mutable current = None
     
-    static let currentTabChangedEv = new Event<Tab>() 
+    let currentTabChangedEv = new Event<Tab>() 
     
-    static let tabAddedEv = new Event<Tab>() 
+    let tabAddedEv = new Event<Tab>() 
     
-    //static let savedAsEv = new Event<FileInfo>()
+    //let savedAsEv = new Event<FileInfo>()
     
-    static let saveAt (t:Tab,fi:FileInfo) =                   
+    let saveAt (t:Tab,fi:FileInfo) =                   
         if not <| fi.Directory.Exists then 
             Log.PrintIOErrorMsg "saveAsPath: Directory does not exist:\r\n%s" fi.Directory.FullName 
             false
@@ -45,7 +49,24 @@ type Tabs private ()=
                 Log.PrintInfoMsg "File saved as:\r\n%s" t.FormatedFileName
                 true
     
-    static let trySave (t:Tab)=
+    
+    /// returns true if saving operation was not canceled
+    let saveAsDialog (t:Tab,doSaveAs:Tab*FileInfo->bool) :bool= 
+        let dlg = new Microsoft.Win32.SaveFileDialog()
+        if t.FileInfo.IsSome && t.FileInfo.Value.Directory.Exists then dlg.InitialDirectory <- t.FileInfo.Value.DirectoryName
+        if t.FileInfo.IsSome then dlg.FileName <- t.FileInfo.Value.Name        
+        dlg.DefaultExt <- ".fsx"
+        dlg.Title <- sprintf "Save File As for: %s" (if t.FileInfo.IsSome then  t.FileInfo.Value.FullName else t.FormatedFileName)
+        dlg.Filter <- "FSharp Script Files(*.fsx)|*.fsx|Text Files(*.txt)|*.txt|All Files(*.*)|*"
+        if isTrue (dlg.ShowDialog()) then                
+            try t.Editor.Save dlg.FileName 
+            with e -> Log.PrintIOErrorMsg "Failed to save at :\r\n%s\r\n%A" dlg.FileName e
+            let fi = new FileInfo(dlg.FileName) 
+            doSaveAs (t, fi)
+        else
+            false
+
+    let trySave (t:Tab)=
         if t.FileInfo.IsSome && t.FileInfo.Value.Exists then
             if not t.IsCodeSaved then
                 t.Editor.Save t.FileInfo.Value.FullName 
@@ -62,20 +83,19 @@ type Tabs private ()=
                 MessageBox.Show("File does not exist on drive anymore:\r\n" + t.FileInfo.Value.FullName , FileDialogs.dialogCaption, MessageBoxButton.OK, MessageBoxImage.Error) |> ignore
             FileDialogs.saveAsDialog(t,saveAt)
 
-    static let closeTab(t:Tab)= 
+    let closeTab(t:Tab)= 
         if FileDialogs.askIfClosingTabIsOk(t,trySave) then 
             tabs.Items.Remove(t)            
             Config.CurrentlyOpenFiles.Save (t.FileInfo , Tabs.AllFileInfos)//saving removed file, not added 
     
     
     //--------------- Public members------------------
-    static member val MainWindow:Window = null with get,set // neded for closing afterlast tab set in Win.fs
-
-    static member Control = tabs
+   
+    member Control = tabs
     
-    //static member Any =  current.IsSome
+    //member Any =  current.IsSome
 
-    static member Current:Tab  = 
+    member Current:Tab  = 
         try match current with Some t -> t | None -> failwith "Tabs.Current shall never be None!" 
         with e -> 
             let err = sprintf "Tabs.Current is None:  %A" e
@@ -83,12 +103,12 @@ type Tabs private ()=
             IO.File.WriteAllText(file, err)
             raise e
     
-    static member AllFileInfos = Tabs.AllTabs |> Seq.map(fun t -> t.FileInfo)
+    member AllFileInfos = Tabs.AllTabs |> Seq.map(fun t -> t.FileInfo)
 
-    static member AllTabs:seq<Tab> =  Seq.cast tabs.Items
+    member AllTabs:seq<Tab> =  Seq.cast tabs.Items
     
     
-    static member AddTab(tab:Tab, makeCurrent) = 
+    member AddTab(tab:Tab, makeCurrent) = 
         let ix = tabs.Items.Add tab
         tabAddedEv.Trigger(tab) // to attach al sorts of events to tab 
         if makeCurrent then  
@@ -103,7 +123,7 @@ type Tabs private ()=
         tab.CloseButton.Click.Add (fun _ -> closeTab(tab))
         
     /// checks if file is open already then calls addTtab
-    static member AddFile(fi:FileInfo, makeCurrent) =            
+    member AddFile(fi:FileInfo, makeCurrent) =            
         if fi.Exists then            
             match Tabs.AllTabs |> Seq.indexed |> Seq.tryFind (fun (_,t) -> FileDialogs.areFilesOptionsSame fi t.FileInfo) with // check if file is already open             
             | Some (i,t) -> 
@@ -121,7 +141,7 @@ type Tabs private ()=
                 Log.PrintIOErrorMsg "File not found:\r\n%s" fi.FullName
                 MessageBox.Show("File not found:\r\n"+fi.FullName , FileDialogs.dialogCaption, MessageBoxButton.OK, MessageBoxImage.Error) |> ignore
 
-    static member Initialize(startupArgs:string[]) =
+    member Initialize(startupArgs:string[]) =
             
         let files,fiAsLowCaseStrings = Config.CurrentlyOpenFiles.GetFromLastSession()
         try
@@ -160,7 +180,7 @@ type Tabs private ()=
                 Config.CurrentlyOpenFiles.Save(tab.FileInfo , Tabs.AllFileInfos)
             )
     
-    static member WorkingDirectory = 
+    member WorkingDirectory = 
         match Tabs.Current.FileInfo with 
         |Some fi -> Some fi.Directory
         |None ->
@@ -171,18 +191,18 @@ type Tabs private ()=
 
     
     /// Shows a file opening dialog
-    static member OpenFile() = 
+    member OpenFile() = 
         FileDialogs.openFileDialog(Tabs.AddFile, Tabs.WorkingDirectory )
     
     /// Shows a file opening dialog
-    static member SaveAs (t:Tab) =                   
+    member SaveAs (t:Tab) =                   
         FileDialogs.saveAsDialog(t,saveAt)
     
     /// also saves currently open files 
-    static member CloseTab(t) = closeTab(t) 
+    member CloseTab(t) = closeTab(t) 
     
     /// returns true if saving operation was not canceled
-    static member Save(t:Tab) = 
+    member Save(t:Tab) = 
         if t.FileInfo.IsSome && t.FileInfo.Value.Exists then
             if not t.IsCodeSaved then
                 t.Editor.Save t.FileInfo.Value.FullName 
@@ -200,7 +220,7 @@ type Tabs private ()=
             FileDialogs.saveAsDialog(t,saveAt)
     
     /// returns true if saving operation was not canceled
-    static member SaveIncremental (t:Tab) = 
+    member SaveIncremental (t:Tab) = 
          if t.FileInfo.IsSome then            
             let fn = t.FileInfo.Value.FullName
             let last = fn.[fn.Length-5]
@@ -223,13 +243,13 @@ type Tabs private ()=
             Tabs.SaveAs(t)
 
     [<CLIEvent>]
-    static member OnTabAdded = tabAddedEv.Publish
+    member OnTabAdded = tabAddedEv.Publish
     
     [<CLIEvent>]
-    static member OnTabChanged = currentTabChangedEv.Publish
+    member OnTabChanged = currentTabChangedEv.Publish
 
 
 
 
     // does not saves currently open files 
-    //static member TryCloseAll() =      if FileDialogs.askIfClosingWindowIsOk(allTabs, Tabs.Save) then Tabs.MainWindow.Close()
+    //member TryCloseAll() =      if FileDialogs.askIfClosingWindowIsOk(allTabs, Tabs.Save) then Tabs.MainWindow.Close()

@@ -1,5 +1,6 @@
 ﻿namespace Seff.Views
 
+open Seff
 open System
 open System.Environment
 open System.IO
@@ -25,11 +26,11 @@ type LogMessageType =
     | DebugMsg 
 
     static member getColor = function
-        | FsiStdOut     ->Brushes.DarkGray |> Util.darker 40 // values printet by fsi iteself like "val it = ...."
+        | FsiStdOut     ->Brushes.DarkGray |> Util.darker 20 // values printet by fsi iteself like "val it = ...."
         | FsiErrorOut   ->Brushes.DarkMagenta //are they all caught by evaluate non throwing ?
         | ConsoleOut    ->Brushes.Yellow // default black forground is used ; never used should  // the out from printfn
         | ConsoleError  ->Brushes.LightSalmon // this is never used, only FsiErrorOut is used?
-        | InfoMsg       ->Brushes.Blue
+        | InfoMsg       ->Brushes.Blue |> Util.brighter 20 
         | FsiErrorMsg   ->Brushes.Red
         | AppErrorMsg   ->Brushes.DarkOrange
         | IOErrorMsg    ->Brushes.DarkRed
@@ -184,7 +185,7 @@ type Log () =
     [<CLIEvent>]
     member this.OnPrint = textAddEv.Publish
        
-    member this.ApplyConfig(config: Seff.Config)=        
+    member this.ApplyConfig(config: Seff.Config.Config)=        
         this.OnPrint.Add (config.AssemblyReferenceStatistic.RecordFromlog) // TODO: does this have print perfomance impact ? measure do async ?
         setWordWrap( config.Settings.GetBool "logHasLineWrap" true )
         log.FontFamily       <- Seff.Appearance.font
@@ -213,3 +214,33 @@ type Log () =
         member this.PrintAppErrorMsg s = this.PrintAppErrorMsg  s
         member this.PrintIOErrorMsg  s = this.PrintIOErrorMsg   s
         member this.PrintDebugMsg    s = this.PrintDebugMsg     s
+
+    
+    member this.SaveAllText (pathHint: FileInfo Option) = 
+        let dlg = new Microsoft.Win32.SaveFileDialog()
+        if pathHint.IsSome && pathHint.Value.Directory.Exists then dlg.InitialDirectory <- pathHint.Value.DirectoryName
+        if pathHint.IsSome then dlg.FileName <- pathHint.Value.Name  + "_Log" 
+        dlg.Title <- "SaveText from Log Window of " + Appearance.dialogCaption
+        dlg.DefaultExt <- ".txt"
+        dlg.Filter <- "Text Files(*.txt)|*.txt|Text Files(*.csv)|*.csv|All Files(*.*)|*"
+        if Util.isTrue (dlg.ShowDialog()) then                
+            try
+                log.Save dlg.FileName
+                this.PrintInfoMsg "Log File saved as:\r\n%s" dlg.FileName
+            with e -> 
+                this.PrintIOErrorMsg "Failed to save text from Log at :\r\n%s\r\n%A" dlg.FileName e
+    
+    member this.SaveSelectedText (pathHint: FileInfo Option) = 
+        if log.SelectedText.Length > 0 then // this check is also done in "canexecute command"
+           let dlg = new Microsoft.Win32.SaveFileDialog()
+           if pathHint.IsSome && pathHint.Value.Directory.Exists then dlg.InitialDirectory <- pathHint.Value.DirectoryName
+           if pathHint.IsSome then dlg.FileName <- pathHint.Value.Name  + "_Log" 
+           dlg.Title <- "Save Seleceted Text from Log Window of " + Appearance.dialogCaption
+           dlg.DefaultExt <- ".txt"
+           dlg.Filter <- "Text Files(*.txt)|*.txt|Text Files(*.csv)|*.csv|All Files(*.*)|*"
+           if Util.isTrue (dlg.ShowDialog()) then                
+              try 
+                   IO.File.WriteAllText(dlg.FileName, log.SelectedText) 
+                   this.PrintInfoMsg "Selected text from Log saved as:\r\n%s" dlg.FileName
+              with e -> 
+                   this.PrintIOErrorMsg "Failed to save selected text from Log at :\r\n%s\r\n%A" dlg.FileName e

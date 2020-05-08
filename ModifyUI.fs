@@ -28,7 +28,7 @@ module ModifyUI =
         Log.ReadOnlyEditor.FontSize    <- newSize
         for t in Tabs.AllTabs do                
             t.Editor.FontSize  <- newSize        
-        Config.Settings.setFloat "FontSize" newSize 
+        Config.Settings.SetFloat "FontSize" newSize 
         Appearance.fontSize <- newSize
         Config.Settings.Save ()
         Log.Print "new Fontsize: %.1f" newSize

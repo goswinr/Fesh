@@ -8,6 +8,9 @@ module Util =
     open System.Windows.Media
     open System.Windows.Input
 
+    /// used for evaluating results of win32 dialogs
+    let inline isTrue (nb:Nullable<bool>) = nb.HasValue && nb.Value
+
     ///------color adjusting -----
 
     ///Adds bytes to each color channel to increase brightness, negative values to make darker

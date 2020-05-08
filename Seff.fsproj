@@ -44,6 +44,8 @@
 
     <None Include="FSharpSynatxHighlighterExtended.xshd">    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>    </None>
 
+    <Compile Include="Timer.fs" />
+
     <Compile Include="Interfaces.fs" />
 
     <Compile Include="Model.fs" />
@@ -61,14 +63,13 @@
 
     <Compile Include="Views\Util.fs" />
     <Compile Include="Views\Log.fs" />
-    <Compile Include="Log.fs" />
-    <Compile Include="SyntaxHighlighting.fs" />
-    <Compile Include="Timer.fs" />
+    <Compile Include="Views\SyntaxHighlighting.fs" />
+    <Compile Include="Views\ErrorMarker.fs" />
+    <Compile Include="Views\Editor.fs" />
+    <Compile Include="Views\Tab.fs" />
+    <Compile Include="Views\Tabs.fs" />
+    <Compile Include="Views\FileDialogs.fs" />
     <Compile Include="Fsi.fs" />
-    <Compile Include="ErrorMarker.fs" />
-    <Compile Include="Tab.fs" />
-    <Compile Include="FileDialogs.fs" />
-    <Compile Include="Tabs.fs" />
     <Compile Include="TabsAndLog.fs" />
     <Compile Include="StatusBar.fs" />
 

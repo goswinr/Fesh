@@ -95,10 +95,10 @@ type Win private ()=
     
             let maxW = SystemParameters.VirtualScreenWidth   + 8.0
             let maxH = SystemParameters.VirtualScreenHeight  + 8.0 // somehow a window docked on the right is 7 pix bigger than the screen ??
-            win.Top <-     Config.Settings.getFloat "WindowTop"    0.0
-            win.Left <-    Config.Settings.getFloat "WindowLeft"   0.0 
-            win.Height <-  Config.Settings.getFloat "WindowHeight" 800.0
-            win.Width <-   Config.Settings.getFloat "WindowWidth"  800.0
+            win.Top <-     Config.Settings.GetFloat "WindowTop"    0.0
+            win.Left <-    Config.Settings.GetFloat "WindowLeft"   0.0 
+            win.Height <-  Config.Settings.GetFloat "WindowHeight" 800.0
+            win.Width <-   Config.Settings.GetFloat "WindowWidth"  800.0
             if  win.Top  < -8. || win.Height + win.Top  > maxH || // verify window fits screen (second screen might be off)
                 win.Left < -8. || win.Width  + win.Left > maxW then                    
                     win.Top <-   0.0 ; win.Height <- 600.0
@@ -121,10 +121,10 @@ type Win private ()=
         win.StateChanged.Add (fun e ->
             match win.WindowState with 
             | WindowState.Normal -> // because when Window is hosted in other App the restore from maximised does not remember the previous position automatically                
-                win.Top <-     Config.Settings.getFloat "WindowTop"    0.0
-                win.Left <-    Config.Settings.getFloat "WindowLeft"   0.0 
-                win.Height <-  Config.Settings.getFloat "WindowHeight" 800.0
-                win.Width <-   Config.Settings.getFloat "WindowWidth"  800.0
+                win.Top <-     Config.Settings.GetFloat "WindowTop"    0.0
+                win.Left <-    Config.Settings.GetFloat "WindowLeft"   0.0 
+                win.Height <-  Config.Settings.GetFloat "WindowHeight" 800.0
+                win.Width <-   Config.Settings.GetFloat "WindowWidth"  800.0
                 Config.Settings.setBool  "WindowIsMax" false
                 Win.IsMinOrMax <- false
                 Config.Settings.Save ()

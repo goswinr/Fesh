@@ -20,10 +20,10 @@ type TabsAndLog private ()=
     
 
     static let grid                = new Grid()
-    static let editorRowHeight     = new RowDefinition   (Height = makeGridLength (Config.Settings.getFloat "EditorHeight"  400.0))
-    static let logRowHeight        = new RowDefinition   (Height = makeGridLength (Config.Settings.getFloat "LogHeight"     400.0))
-    static let editorColumnWidth   = new ColumnDefinition(Width  = makeGridLength (Config.Settings.getFloat "EditorWidth"   400.0))
-    static let logColumnWidth      = new ColumnDefinition(Width  = makeGridLength (Config.Settings.getFloat "LogWidth"      400.0))
+    static let editorRowHeight     = new RowDefinition   (Height = makeGridLength (Config.Settings.GetFloat "EditorHeight"  400.0))
+    static let logRowHeight        = new RowDefinition   (Height = makeGridLength (Config.Settings.GetFloat "LogHeight"     400.0))
+    static let editorColumnWidth   = new ColumnDefinition(Width  = makeGridLength (Config.Settings.GetFloat "EditorWidth"   400.0))
+    static let logColumnWidth      = new ColumnDefinition(Width  = makeGridLength (Config.Settings.GetFloat "LogWidth"      400.0))
     static let splitterHor         = new GridSplitter()             //|> Appearance.setForHorSplitter
     static let splitterVert        = new GridSplitter()             //|> Appearance.setForVertSplitter
     static let mutable isLogMaxed = false
@@ -66,8 +66,8 @@ type TabsAndLog private ()=
                 isLogMaxed <- false                    
                 editorRowHeight.Height <- makeGridLength    editorRowHeight.ActualHeight
                 logRowHeight.Height    <- makeGridLength    logRowHeight.ActualHeight
-                Config.Settings.setFloat "EditorHeight"     editorRowHeight.ActualHeight
-                Config.Settings.setFloat "LogHeight"        logRowHeight.ActualHeight            
+                Config.Settings.SetFloat "EditorHeight"     editorRowHeight.ActualHeight
+                Config.Settings.SetFloat "LogHeight"        logRowHeight.ActualHeight            
                 Config.Settings.Save ()
                 )
 
@@ -75,8 +75,8 @@ type TabsAndLog private ()=
                 isLogMaxed <- false                    
                 editorColumnWidth.Width <- makeGridLength   editorColumnWidth.ActualWidth
                 logColumnWidth.Width    <- makeGridLength   logColumnWidth.ActualWidth
-                Config.Settings.setFloat "EditorWidth"      editorColumnWidth.ActualWidth
-                Config.Settings.setFloat "LogWidth"         logColumnWidth.ActualWidth            
+                Config.Settings.SetFloat "EditorWidth"      editorColumnWidth.ActualWidth
+                Config.Settings.SetFloat "LogWidth"         logColumnWidth.ActualWidth            
                 Config.Settings.Save ()
                 )
 
@@ -88,10 +88,10 @@ type TabsAndLog private ()=
     static member ToggleMaxLog() = 
         if  isLogMaxed then // if it is already maxed then size down again
             isLogMaxed <- false
-            editorRowHeight.Height   <- makeGridLength <|Config.Settings.getFloat "EditorHeight" 99.// TODO ad vert
-            logRowHeight.Height      <- makeGridLength <|Config.Settings.getFloat "LogHeight"    99.
-            editorColumnWidth.Width  <- makeGridLength <|Config.Settings.getFloat "EditorWidth" 99.
-            logColumnWidth.Width     <- makeGridLength <|Config.Settings.getFloat "LogWidth"    99.
+            editorRowHeight.Height   <- makeGridLength <|Config.Settings.GetFloat "EditorHeight" 99.// TODO ad vert
+            logRowHeight.Height      <- makeGridLength <|Config.Settings.GetFloat "LogHeight"    99.
+            editorColumnWidth.Width  <- makeGridLength <|Config.Settings.GetFloat "EditorWidth" 99.
+            logColumnWidth.Width     <- makeGridLength <|Config.Settings.GetFloat "LogWidth"    99.
             let wasMax = Config.Settings.getBool "WindowWasMax" false 
             if isNull TabsAndLog.MainWindow then Log.PrintAppErrorMsg "TabsAndLog.MainWindow null"// should never happen
             elif not wasMax then TabsAndLog.MainWindow.WindowState <- WindowState.Normal

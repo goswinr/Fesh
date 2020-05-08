@@ -27,3 +27,5 @@ module Appearance =
     let mutable font = FontFamily("Consolas")
     
     let mutable fontSize = 14.0
+
+    let dialogCaption = "Seff | Scripting editor for fsharp"   
