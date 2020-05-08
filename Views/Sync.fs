@@ -1,10 +1,7 @@
-﻿namespace Seff
+﻿namespace Seff.Views
 
-
-open System
 open System.Threading
 open System.Windows.Threading
-
 
 
 type Sync private () =    

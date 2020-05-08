@@ -44,13 +44,25 @@
 
     <None Include="FSharpSynatxHighlighterExtended.xshd">    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>    </None>
 
-    <Compile Include="Util.WPF.fs" />
+    <Compile Include="Interfaces.fs" />
 
     <Compile Include="Model.fs" />
-    <Compile Include="Sync.fs" />
+
+    <Compile Include="Config\SaveWriter.fs" />
+    <Compile Include="Config\AppDataLocation.fs" />
+    <Compile Include="Config\Settings.fs" />
+    <Compile Include="Config\DefaultCode.fs" />
+    <Compile Include="Config\OpenTabs.fs" />
+    <Compile Include="Config\RecentlyUsedFiles.fs" />
+    <Compile Include="Config\AutoCompleteStatistic.fs" />
+    <Compile Include="Config\AssemblyReferenceStatistic.fs" />
+    <Compile Include="Config\Config.fs" />
+    <Compile Include="Views\Sync.fs" />
+
+    <Compile Include="Views\Util.fs" />
+    <Compile Include="Views\Log.fs" />
     <Compile Include="Log.fs" />
     <Compile Include="SyntaxHighlighting.fs" />
-    <Compile Include="Config.fs" />
     <Compile Include="Timer.fs" />
     <Compile Include="Fsi.fs" />
     <Compile Include="ErrorMarker.fs" />

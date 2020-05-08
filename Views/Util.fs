@@ -1,13 +1,14 @@
-﻿namespace Seff.Util
-
-open System
-open System.Windows
-open System.Windows.Controls
-open System.Windows.Media
-open System.Windows.Input
+﻿namespace Seff.Views
 
 
-module WPF = 
+module Util = 
+    open System
+    open System.Windows
+    open System.Windows.Controls
+    open System.Windows.Media
+    open System.Windows.Input
+
+    ///------color adjusting -----
 
     ///Adds bytes to each color channel to increase brightness, negative values to make darker
     /// result will be clamped between 0 and 255
@@ -26,6 +27,7 @@ module WPF =
     /// result will be clamped between 0 and 255
     let darker  (amount:int) (br:SolidColorBrush)  = changeLuminace -amount br
 
+    //---------- creating UIElemnts --------------
 
     //see: http://www.fssnip.net/4W/title/Calculator
     //http://trelford.com/blog/post/F-operator-overloads-for-WPF-dependency-properties.aspx

@@ -9,6 +9,13 @@ open Seff.FsService
 [<RequireQualifiedAccess>]
 module Initialize =    
     
+    let newWay(context:AppRunContext, startupArgs:string[])=
+        let log = Views.Log()        
+        let config = Config.Config(log,context)
+        log.ApplyConfig(config)
+
+
+
     let enviroment(context:AppRunContext, startupArgs:string[]) =
         Timer.InstanceStartup.tic()             // optional timer for full init process
         Sync.installSynchronizationContext()    // do first

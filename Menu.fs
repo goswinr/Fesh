@@ -144,7 +144,7 @@ type Menu private () =
                 ]
 
         Config.RecentlyUsedFiles.OnRecentFilesChanged.Add(Menu.SetRecentFiles ) //this event will be triggered 1000 ms after new tabs are created
-        Config.RecentlyUsedFiles.loadFromFile(Menu.SetRecentFiles) // trigger it here to to have the correct recent menu asap
+        Config.RecentlyUsedFiles.LoadFromFile(Menu.SetRecentFiles) // trigger it here to to have the correct recent menu asap
 
     static member SetRecentFiles()=
         async{            
