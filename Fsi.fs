@@ -7,43 +7,46 @@ open System.IO
 open System.Threading
 open FSharp.Compiler.Interactive.Shell
 open Seff.Model
+open Seff.Config
+open Seff.Views
 
-
-/// A static class to provide an Error Handler that can catch currupted state or access violation errors frim FSI threads too
-type internal ProcessCorruptedState =  
+/// A class to provide an Error Handler that can catch currupted state or access violation errors frim FSI threads too
+type internal ProcessCorruptedState(config:Config) =  
+    
     [< Security.SecurityCritical; Runtime.ExceptionServices.HandleProcessCorruptedStateExceptions >] //to handle AccessViolationException too //https://stackoverflow.com/questions/3469368/how-to-handle-accessviolationexception/4759831
-    static member Handler (sender:obj) (e: UnhandledExceptionEventArgs) = 
-            // Starting with the .NET Framework 4, this event is not raised for exceptions that corrupt the state of the process, 
-            // such as stack overflows or access violations, unless the event handler is security-critical and has the HandleProcessCorruptedStateExceptionsAttribute attribute.
-            // https://docs.microsoft.com/en-us/dotnet/api/system.appdomain.unhandledexception?redirectedfrom=MSDN&view=netframework-4.8
-            // https://docs.microsoft.com/en-us/archive/msdn-magazine/2009/february/clr-inside-out-handling-corrupted-state-exceptions
-            let err = sprintf "AppDomain.CurrentDomain.UnhandledException: isTerminating: %b : %A" e.IsTerminating e.ExceptionObject
-            let file = IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop),"Seff-AppDomain.CurrentDomain.UnhandledException.txt")
-            async { IO.File.WriteAllText(file, err)} |> Async.Start
-            Log.PrintAppErrorMsg "%s" err
+    member this.Handler (sender:obj) (e: UnhandledExceptionEventArgs) = 
+         // Starting with the .NET Framework 4, this event is not raised for exceptions that corrupt the state of the process, 
+         // such as stack overflows or access violations, unless the event handler is security-critical and has the HandleProcessCorruptedStateExceptionsAttribute attribute.
+         // https://docs.microsoft.com/en-us/dotnet/api/system.appdomain.unhandledexception?redirectedfrom=MSDN&view=netframework-4.8
+         // https://docs.microsoft.com/en-us/archive/msdn-magazine/2009/february/clr-inside-out-handling-corrupted-state-exceptions
+         let err = sprintf "ProcessCorruptedState Special Handler: AppDomain.CurrentDomain.UnhandledException: isTerminating: %b : %A" e.IsTerminating e.ExceptionObject
+         let file = IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop),"Seff-AppDomain.CurrentDomain.UnhandledException.txt")
+         async { IO.File.WriteAllText(file, err)} |> Async.Start
+         config.Log.PrintAppErrorMsg "%s" err
 
 
-[<Sealed>]
-type Fsi private () =    
-       
+
+type Fsi (config:Config) =    
+    let Log = config.Log
+    
     ///FSI events
-    static let startedEv        = new Event<FsiMode>()      //TODO why include mode ar event arg ?
-    static let runtimeErrorEv   = new Event<Exception>() 
-    static let canceledEv       = new Event<FsiMode>() 
-    static let completedOkEv    = new Event<FsiMode>()
-    static let isReadyEv        = new Event<FsiMode>()
-    static let resetEv          = new Event<FsiMode>()
-    static let modeChangedEv    = new Event<FsiMode>()
+    let startedEv        = new Event<FsiMode>()      //TODO why include mode ar event arg ?
+    let runtimeErrorEv   = new Event<Exception>() 
+    let canceledEv       = new Event<FsiMode>() 
+    let completedOkEv    = new Event<FsiMode>()
+    let isReadyEv        = new Event<FsiMode>()
+    let resetEv          = new Event<FsiMode>()
+    let modeChangedEv    = new Event<FsiMode>()
     
-    static let mutable state = NotLoaded
+    let mutable state = NotLoaded
 
-    static let mutable mode =  Async
+    let mutable mode =  Async
     
-    static let mutable session:FsiEvaluationSession option = None 
+    let mutable session:FsiEvaluationSession option = None 
 
-    static let mutable thread :Thread option = None
+    let mutable thread :Thread option = None
 
-    static let init() = 
+    let init() = 
         (*
             - INPUT FILES -
                 --use:<file>                             Use the given file on startup as initial input
@@ -105,7 +108,7 @@ type Fsi private () =
                 async{
                     let timer = Seff.Timer()
                     timer.tic()
-                    if Config.Settings.getBool "asyncFsi" true then mode <- Async else mode <- Sync
+                    if config.Settings.GetBool "asyncFsi" true then mode <- Async else mode <- FsiMode.Sync
                     if session.IsSome then 
                         session.Value.Interrupt()  //TODO does this cancel running session correctly ??         
                         // TODO how to dispose previous session ?
@@ -128,15 +131,19 @@ type Fsi private () =
                     if prevState = NotLoaded then Log.PrintInfoMsg "FSharp Interactive session created in %s"  timer.tocEx  
                     else                          Log.PrintInfoMsg "New FSharp Interactive session created in %s" timer.tocEx     
             
-                    if Config.Context.IsHosted then 
+                    if config.AppDataLocation.IsHosted then 
                         match mode with
                         |Sync ->  Log.PrintInfoMsg "FSharp Interactive will evaluate synchronously on UI Thread."
                         |Async -> Log.PrintInfoMsg "FSharp Interactive will evaluate asynchronously on new Thread."           
+                    do! Async.SwitchToContext Sync.syncContext 
+                    isReadyEv.Trigger(mode)
                     } |> Async.Start
+    
+    
 
-    [< Security.SecurityCritical >] 
+    [< Security.SecurityCritical >] // TODO do these Attributes appy in to async thread too ?
     [< Runtime.ExceptionServices.HandleProcessCorruptedStateExceptions >] //to handle AccessViolationException too //https://stackoverflow.com/questions/3469368/how-to-handle-accessviolationexception/4759831
-    static let eval(code)=
+    let eval(code)=
         state <- Evaluating
         //fsiCancelScr <- Some (new CancellationTokenSource()) //does not work? needs Thread.Abort () ?
         startedEv.Trigger(mode) // do always sync
@@ -148,15 +155,15 @@ type Fsi private () =
         // let dummyScriptFileName = "input.fsx"
 
         let asyncEval = async{
-            if mode = Sync then do! Async.SwitchToContext Sync.syncContext 
+            if mode = FsiMode.Sync then do! Async.SwitchToContext Sync.syncContext 
                        
             Application.Current.DispatcherUnhandledException.Add(fun e ->  //exceptions generated on the UI thread
                 Log.PrintAppErrorMsg "Application.Current.DispatcherUnhandledException in fsi thread: %A" e.Exception        
                 e.Handled <- true)        
           
             AppDomain.CurrentDomain.UnhandledException.AddHandler (//catching unhandled exceptions generated from all threads running under the context of a specific application domain. //https://dzone.com/articles/order-chaos-handling-unhandled
-                new UnhandledExceptionEventHandler( ProcessCorruptedState.Handler)) //https://stackoverflow.com/questions/14711633/my-c-sharp-application-is-returning-0xe0434352-to-windows-task-scheduler-but-it
-
+                new UnhandledExceptionEventHandler( (new ProcessCorruptedState(config)).Handler)) //https://stackoverflow.com/questions/14711633/my-c-sharp-application-is-returning-0xe0434352-to-windows-task-scheduler-but-it
+                        
             let choice, errs =  
                 try session.Value.EvalInteractionNonThrowing(code) //,fsiCancelScr.Value.Token)   // cancellation token here fails to cancel in sync, might still throw OperationCanceledException if async       
                 with e -> Choice2Of2 e , [| |]
@@ -199,16 +206,16 @@ type Fsi private () =
      
     //-------------- public interface: ---------
 
-    static member State = state
+    member this.State = state
 
-    static member Mode = mode
+    member this.Mode = mode
 
     /// starts a new Fsi session 
-    static member Initalize() =  
+    member this.Initalize() =  
         init() 
         
 
-    static member CancelIfAsync() = 
+    member this.CancelIfAsync() = 
         match state  with 
         | Ready | Initalizing | NotLoaded -> ()
         | Evaluating -> 
@@ -223,7 +230,7 @@ type Fsi private () =
                     thr.Abort() // raises OperationCanceledException  
 
     
-    static member AskIfCancellingIsOk() = 
+    member this.AskIfCancellingIsOk() = 
         match state with 
         | Ready | Initalizing | NotLoaded -> NotEvaluating      
         | Evaluating ->
@@ -242,81 +249,81 @@ type Fsi private () =
     
 
     ///shows UI to confirm cancelling, returns new state
-    static member AskAndCancel() =
-        match Fsi.AskIfCancellingIsOk () with 
+    member this.AskAndCancel() =
+        match this.AskIfCancellingIsOk () with 
         | NotEvaluating   -> Ready
-        | YesAsync        -> Fsi.CancelIfAsync();Ready
+        | YesAsync        -> this.CancelIfAsync();Ready
         | Dont            -> Evaluating
         | NotPossibleSync -> Evaluating     // UI for this only available in asynchronous mode anyway, see Commands  
         
 
-    static member Evaluate(code) =         
+    member this.Evaluate(code) =         
         if DateTime.Today > DateTime(2020, 9, 30) then failwithf "Your Seff Editor has expired, please download a new version."
         if DateTime.Today > DateTime(2020, 7, 30) then Log.PrintInfoMsg "*** Your Seff Editor will expire on 2020-9-30, please download a new version soon. ***"        
-        match Fsi.AskIfCancellingIsOk () with 
+        match this.AskIfCancellingIsOk () with 
         | NotEvaluating   -> eval(code) 
-        | YesAsync        -> Fsi.CancelIfAsync();eval(code) 
+        | YesAsync        -> this.CancelIfAsync();eval(code) 
         | Dont            -> ()
         | NotPossibleSync -> Log.PrintInfoMsg "Wait till current synchronous evaluation completes before starting new one."
        
 
-    static member Reset() =  
-        match Fsi.AskIfCancellingIsOk () with 
-        | NotEvaluating   ->                      Fsi.Initalize (); resetEv.Trigger(mode) //Log.PrintInfoMsg "FSI reset." done by Fsi.Initialize()
-        | YesAsync        -> Fsi.CancelIfAsync(); Fsi.Initalize (); resetEv.Trigger(mode)
+    member this.Reset() =  
+        match this.AskIfCancellingIsOk () with 
+        | NotEvaluating   ->                      this.Initalize (); resetEv.Trigger(mode) //Log.PrintInfoMsg "FSI reset." done by this.Initialize()
+        | YesAsync        -> this.CancelIfAsync(); this.Initalize (); resetEv.Trigger(mode)
         | Dont            -> ()
         | NotPossibleSync -> Log.PrintInfoMsg "ResetFsi is not be possibe in current synchronous evaluation." // TODO test
       
 
-    static member SetMode(sync:FsiMode) =         
+    member this.SetMode(sync:FsiMode) =         
         let setConfig()=
             match mode with
-            |Sync ->  Config.Settings.setBool "asyncFsi" false                          
-            |Async -> Config.Settings.setBool "asyncFsi" true   
+            |Sync ->  config.Settings.SetBool "asyncFsi" false                          
+            |Async -> config.Settings.SetBool "asyncFsi" true   
 
-        match Fsi.AskIfCancellingIsOk() with 
+        match this.AskIfCancellingIsOk() with 
         | NotEvaluating | YesAsync    -> 
             mode <- sync
             modeChangedEv.Trigger(sync)
             setConfig()
-            Config.Settings.Save()
-            Fsi.Initalize ()
+            config.Settings.Save()
+            this.Initalize ()
         | Dont -> () 
         | NotPossibleSync -> Log.PrintInfoMsg "Wait till current synchronous evaluation completes before seting mode to Async."
     
-    static member ToggleSync()=
+    member this.ToggleSync()=
         match mode with
-        |Async ->  Fsi.SetMode Sync
-        |Sync ->   Fsi.SetMode Async      
+        |Async ->  this.SetMode FsiMode.Sync
+        |Sync ->   this.SetMode FsiMode.Async      
           
 
     ///Triggered whenever code is sent to Fsi for evaluation
     [<CLIEvent>]
-    static member OnStarted = startedEv.Publish
+    member this.OnStarted = startedEv.Publish
 
     /// Interactive evaluation was cancelled because of a runtime error
     [<CLIEvent>]
-    static member OnRuntimeError = runtimeErrorEv.Publish
+    member this.OnRuntimeError = runtimeErrorEv.Publish
              
     /// Interactive evaluation was cancelled by user (e.g. by pressing Esc)
     [<CLIEvent>]
-    static member OnCanceled = canceledEv.Publish
+    member this.OnCanceled = canceledEv.Publish
  
     /// This event will be trigger after succesfull completion, NOT on runtime error or cancelling of Fsi
     [<CLIEvent>]
-    static member OnCompletedOk = completedOkEv.Publish
+    member this.OnCompletedOk = completedOkEv.Publish
       
     /// This event will be trigger after completion, runtime error or cancelling of Fsi
     [<CLIEvent>]
-    static member OnIsReady  = isReadyEv .Publish
+    member this.OnIsReady  = isReadyEv .Publish
      
     /// This event will be trigger after Fsi is reset
     [<CLIEvent>]
-    static member OnReset  = resetEv.Publish   
+    member this.OnReset  = resetEv.Publish   
     
     ///Triggered whenever Fsi for evaluation mode changes
     [<CLIEvent>]
-    static member OnModeChanged = modeChangedEv.Publish
+    member this.OnModeChanged = modeChangedEv.Publish
 
         
         

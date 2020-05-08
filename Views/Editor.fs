@@ -10,7 +10,7 @@ open FSharp.Compiler.SourceCodeServices
 
 
  /// The tab that holds the tab header and the code editor 
-type SeffEditor (code:string, config:Config) = //as this= 
+type Editor (code:string, config:Config) = //as this= 
     
     let ed = new AvalonEdit.TextEditor()    
       
@@ -37,9 +37,9 @@ type SeffEditor (code:string, config:Config) = //as this=
         SyntaxHighlighting.setFSharp(ed,false)
     
     ///additional constructor using default code 
-    new (config:Config) =  SeffEditor( config.DefaultCode.Get() , config)
+    new (config:Config) =  Editor( config.DefaultCode.Get() , config)
 
-    member val Editor = ed 
+    member val AvaEdit = ed 
 
     member val FoldingManager = Folding.FoldingManager.Install(ed.TextArea)  
     

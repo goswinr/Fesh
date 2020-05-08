@@ -50,6 +50,8 @@
 
     <Compile Include="Model.fs" />
 
+    <Compile Include="Sync.fs" />
+
     <Compile Include="Config\SaveWriter.fs" />
     <Compile Include="Config\AppDataLocation.fs" />
     <Compile Include="Config\Settings.fs" />
@@ -59,7 +61,7 @@
     <Compile Include="Config\AutoCompleteStatistic.fs" />
     <Compile Include="Config\AssemblyReferenceStatistic.fs" />
     <Compile Include="Config\Config.fs" />
-    <Compile Include="Views\Sync.fs" />
+    <Compile Include="Fsi.fs" />
 
     <Compile Include="Views\Util.fs" />
     <Compile Include="Views\Log.fs" />
@@ -68,9 +70,9 @@
     <Compile Include="Views\Editor.fs" />
     <Compile Include="Views\Tab.fs" />
     <Compile Include="Views\Tabs.fs" />
-    <Compile Include="Fsi.fs" />
-    <Compile Include="TabsAndLog.fs" />
-    <Compile Include="StatusBar.fs" />
+    <Compile Include="Views\TabsAndLog.fs" />
+    <Compile Include="Views\Window.fs" />
+    <Compile Include="Views\StatusBar.fs" />
 
     <Compile Include="03_Util.fs" />
     <Compile Include="31_UI_BackgroundRenderer.fs" />
@@ -86,7 +88,6 @@
     <Compile Include="TabEvents.fs" />
     <Compile Include="Commands.fs" />
     <Compile Include="Menu.fs" />
-    <Compile Include="Win.fs" />
     <Compile Include="Initialize.fs" />
     
     <Compile Include="App.fs" />

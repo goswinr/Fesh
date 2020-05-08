@@ -185,7 +185,7 @@ type Log () =
     [<CLIEvent>]
     member this.OnPrint = textAddEv.Publish
        
-    member this.ApplyConfig(config: Seff.Config.Config)=        
+    member this.AdjustToSettingsInConfig(config: Seff.Config.Config)=        
         this.OnPrint.Add (config.AssemblyReferenceStatistic.RecordFromlog) // TODO: does this have print perfomance impact ? measure do async ?
         setWordWrap( config.Settings.GetBool "logHasLineWrap" true )
         log.FontFamily       <- Seff.Appearance.font
@@ -209,11 +209,17 @@ type Log () =
     member this.PrintDebugMsg     s =  Printf.fprintfn textWriterDebugMsg     s
 
     interface Seff.ISeffLog with
-        member this.PrintInfoMsg     s = this.PrintInfoMsg      s
-        member this.PrintFsiErrorMsg s = this.PrintFsiErrorMsg  s
-        member this.PrintAppErrorMsg s = this.PrintAppErrorMsg  s
-        member this.PrintIOErrorMsg  s = this.PrintIOErrorMsg   s
-        member this.PrintDebugMsg    s = this.PrintDebugMsg     s
+        //used in FSI constructor:
+        member this.TextWriterFsiStdOut    = textWriterFsiStdOut    
+        member this.TextWriterFsiErrorOut  = textWriterFsiErrorOut  
+        member this.TextWriterConsoleOut   = textWriterConsoleOut   
+        member this.TextWriterConsoleError = textWriterConsoleError 
+        
+        member this.PrintInfoMsg     s = Printf.fprintfn textWriterInfoMsg      s
+        member this.PrintFsiErrorMsg s = Printf.fprintfn textWriterFsiErrorMsg  s
+        member this.PrintAppErrorMsg s = Printf.fprintfn textWriterAppErrorMsg  s
+        member this.PrintIOErrorMsg  s = Printf.fprintfn textWriterIOErrorMsg   s 
+        member this.PrintDebugMsg    s = Printf.fprintfn textWriterDebugMsg     s
 
     
     member this.SaveAllText (pathHint: FileInfo Option) = 

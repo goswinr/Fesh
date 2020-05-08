@@ -15,6 +15,6 @@ type Config (log:ISeffLog, context:AppRunContext) =
     member val AutoCompleteStatistic      = AutoCompleteStatistic       (log, adl)
     member val AssemblyReferenceStatistic = AssemblyReferenceStatistic  (log, adl)
     member val AppDataLocation            = adl      
-    member val Log                        = log //TODO test if needed
+    member val Log                        = log 
 
 

@@ -4,19 +4,52 @@ open System
 open System.Windows
 open Seff.Model
 open Seff.FsService
-
+open Seff.Views
+open Seff.Config
 
 [<RequireQualifiedAccess>]
 module Initialize =    
     
-    let newWay(context:AppRunContext, startupArgs:string[])=
-        let log = Views.Log()        
-        let config = Config.Config(log,context)
-        log.ApplyConfig(config)
+    let views(context:AppRunContext, startupArgs:string[])=
+        let log = new Log()        
+        let config = new Config(log,context)
+        log.AdjustToSettingsInConfig(config)
 
+        let win = new Window(config)
+        let tabs = new Tabs(config,startupArgs, win.Window)
+        let tabsAndLog = new TabsAndLog(tabs,log,win.Window,config)
+        let fsi = Fsi(config)
+        let statusBar = StatusBar(fsi)
+        let menu = Menu(config)
 
+        // finish setting up window:
+        win.Window.ContentRendered.Add(fun _ -> 
+            //if not <| Tabs.Current.Editor.Focus() then Log.PrintAppErrorMsg "Tabs.Current.Editor.Focus failed"  //or System.Windows.Input.FocusManager.SetFocusedElement(...) 
+            
+            log.PrintInfoMsg "* Time for loading and render main window: %s"  Timer.InstanceStartup.tocEx
+            
+            fsi.Initalize() // do late to be sure errors can print to log and dont get lost (Rhino has problems with FSI from  FCS 33.0.1 on)
+            ) 
+            
+        win.Window.Closing.Add( fun e ->
+            // first check for running FSI
+            match fsi.AskIfCancellingIsOk () with 
+            | NotEvaluating   -> ()
+            | YesAsync        -> fsi.CancelIfAsync() 
+            | Dont            -> e.Cancel <- true // dont close window   
+            | NotPossibleSync -> () // still close despite running thread ??
+            
+            //second check for unsaved files:
+            let canClose = tabs.AskIfClosingWindowIsOk() 
+            if not canClose then e.Cancel <- true // dont close window  
+            ) 
+         
 
-    let enviroment(context:AppRunContext, startupArgs:string[]) =
+        win.Window.Background  <- Menu.Bar.Background // call after setting up content, otherwise space next to tab headers is in an odd color
+        win.Window.Content     <- Util.dockPanelVert(menu.Bar, tabsAndLog.Grid, statusBar.Bar)
+        win.Window.InputBindings.AddRange (Commands.allShortCutKeyGestures ())
+
+    let enviroment() =
         Timer.InstanceStartup.tic()             // optional timer for full init process
         Sync.installSynchronizationContext()    // do first
 

@@ -10,14 +10,14 @@ open Seff.Util
 module ModifyUI = 
    
     let toggleLogLineWrap()=
-        if Config.Settings.getBool "logHasLineWrap" true then 
+        if Config.Settings.GetBool "logHasLineWrap" true then 
             Log.ReadOnlyEditor.WordWrap         <- false 
             Log.ReadOnlyEditor.HorizontalScrollBarVisibility <- ScrollBarVisibility.Auto
-            Config.Settings.setBool "logHasLineWrap" false
+            Config.Settings.SetBool "logHasLineWrap" false
         else
             Log.ReadOnlyEditor.WordWrap         <- true  
             Log.ReadOnlyEditor.HorizontalScrollBarVisibility <- ScrollBarVisibility.Disabled 
-            Config.Settings.setBool "logHasLineWrap" true
+            Config.Settings.SetBool "logHasLineWrap" true
         Config.Settings.Save ()
 
     //----------------------

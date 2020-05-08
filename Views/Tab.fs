@@ -15,7 +15,7 @@ type Counter private () =
 
 
  /// The tab that holds the tab header logic and the code editor 
-type Tab (editor:SeffEditor, fileInfoOp :FileInfo option) = //as this= 
+type Tab (editor:Editor, fileInfoOp :FileInfo option) = //as this= 
     inherit TabItem()
     
     let mutable isCodeSaved          = true
@@ -85,5 +85,5 @@ type Tab (editor:SeffEditor, fileInfoOp :FileInfo option) = //as this=
 
     member val Editor = editor 
     
-    member val AvaEdit = editor.Editor 
+    member val AvaEdit = editor.AvaEdit
     

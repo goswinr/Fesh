@@ -2,24 +2,16 @@
 
 open Seff
 open System
-open System.Environment
 open System.IO
-open System.Threading
-open Seff.Model
-open ICSharpCode
-open System.Windows.Media // for color brushes
-open System.Text
-open System.Diagnostics
-open System.Collections.Generic
 open System.Windows.Controls
 open System.Windows
 open Seff.Views.Util
 open Seff.Config
 open Seff.Appearance
 
-/// A Static class holding the Tab Control
-/// Includes logic saving and opening files
-/// Window neded for closing after last Tab closed
+/// A class holding the Tab Control
+/// Includes logic for saving and opening files
+/// Window ref neded for closing after last Tab closed
 type Tabs(config:Config, startupArgs: string[], win:Window) = 
 
     let tabs = new TabControl()
@@ -132,7 +124,7 @@ type Tabs(config:Config, startupArgs: string[], win:Window) =
             | None -> 
                 try
                     let code = IO.File.ReadAllText fi.FullName
-                    addTab(Tab(SeffEditor(code,config),Some fi),makeCurrent)
+                    addTab(Tab(Editor(code,config),Some fi),makeCurrent)
                 with  e -> 
                     log.PrintIOErrorMsg "Error reading and adding :\r\n%s\r\n%A" fi.FullName e
         else
@@ -172,7 +164,7 @@ type Tabs(config:Config, startupArgs: string[], win:Window) =
             addFile(fi,curr)  |> ignore 
 
         if tabs.Items.Count=0 then //Open default file if none found in recent files or args                
-            addTab(Tab(SeffEditor(config),None), true) |> ignore 
+            addTab(Tab(Editor(config),None), true) |> ignore 
                 
         if tabs.SelectedIndex = -1 then    //make one tab current  if none yet
             tabs.SelectedIndex <- 0
@@ -273,7 +265,7 @@ type Tabs(config:Config, startupArgs: string[], win:Window) =
     member this.OnTabChanged = currentTabChangedEv.Publish 
     
     /// returns true if all files are saved or unsaved changes are ignored (closing not canceled by user).
-    member this.AskIfClosingWindowIsOk() :bool=             
+    member this.AskIfClosingWindowIsOk()=             
         let openFs = allTabs |> Seq.filter (fun t -> not t.IsCodeSaved) 
         if  Seq.isEmpty openFs then
             true
