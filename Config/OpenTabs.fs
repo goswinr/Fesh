@@ -13,7 +13,7 @@ type OpenTabs  (log:ISeffLog, adl:AppDataLocation) =
 
     let currentTabPreFix =  "*Current tab:* " //a string that can never be part of a filename
 
-    let mutable allFiles:seq<FileInfo option> = Seq.empty
+    let mutable allFiles:seq<FileInfo> = Seq.empty
 
     let mutable currentFile:FileInfo option = None
 
@@ -39,13 +39,13 @@ type OpenTabs  (log:ISeffLog, adl:AppDataLocation) =
         let sb = StringBuilder()
         sb.AppendLine(curr) |> ignore // first line is filepath and name for current tab (repeats below)
         for f in allFiles do 
-            if f.IsSome then sb.AppendLine(f.Value.FullName) |> ignore   
+            sb.AppendLine(f.FullName) |> ignore   
         sb.ToString()
 
-    member this.Save (currentFileO:FileInfo option , allFilesO: seq<FileInfo option>) =         
+    member this.Save (currentFileO:FileInfo option , allFilesO: seq<FileInfo>) =         
         currentFile<-currentFileO
         allFiles<-allFilesO
         writer.WriteDelayed  (filePath, getText ,500)
       
     /// second item in tuple indicates current tab
-    member this.Get = files
+    member this.Get() = files

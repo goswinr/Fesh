@@ -45,7 +45,7 @@ type RecentlyUsedFiles  (log:ISeffLog, adl:AppDataLocation) =
             writer.WriteDelayed(filePath, getStringRaiseEvent, 1000)
         
     /// the first elemnt in this array the top of stack
-    member this.Get = Array.ofSeq recentFilesStack
+    member this.Get() = Array.ofSeq recentFilesStack
 
    
     [<CLIEvent>]

@@ -68,7 +68,6 @@
     <Compile Include="Views\Editor.fs" />
     <Compile Include="Views\Tab.fs" />
     <Compile Include="Views\Tabs.fs" />
-    <Compile Include="Views\FileDialogs.fs" />
     <Compile Include="Fsi.fs" />
     <Compile Include="TabsAndLog.fs" />
     <Compile Include="StatusBar.fs" />
