@@ -34,7 +34,7 @@ module TabEvents =
         //tab.Editor.Document.TextChanged.Add (fun e -> ())
 
         tab.Editor.Document.Changed.Add(fun e -> //TODO or TextChanged ??
-            //Log.Print "*Document.Changed Event: deleted %d '%s', inserted %d '%s' completion Window:%A" e.RemovalLength e.RemovedText.Text e.InsertionLength e.InsertedText.Text tab.CompletionWin
+            //log.Print "*Document.Changed Event: deleted %d '%s', inserted %d '%s' completion Window:%A" e.RemovalLength e.RemovedText.Text e.InsertionLength e.InsertedText.Text tab.CompletionWin
             tab.IsCodeSaved <- false
             match tab.CompletionWin with
             | Some w ->  // just keep on tying in completion window, no type checking !
@@ -43,8 +43,8 @@ module TabEvents =
                     //let currentText = getField(typeof<CodeCompletion.CompletionList>,w.CompletionList,"currentText") :?> string //this property schould be public !
                     //TODO close Window if w.CompletionList.SelectedItem.Text = currentText
                     //TODO ther is a bug in current text when deliting chars
-                    //Log.Print "currentText: '%s'" currentText
-                    //Log.Print "w.CompletionList.CompletionData.Count:%d" w.CompletionList.ListBox.VisibleItemCount
+                    //log.Print "currentText: '%s'" currentText
+                    //log.Print "w.CompletionList.CompletionData.Count:%d" w.CompletionList.ListBox.VisibleItemCount
                 else 
                     w.Close() 
             
@@ -131,12 +131,12 @@ module TabEvents =
                 let line:string = currentLine tab
                 let car = tArea.Caret.Column
                 let prevC = line.Substring(0 ,car-1)
-                //Log.Print "--Substring length %d: '%s'" prevC.Length prevC
+                //log.Print "--Substring length %d: '%s'" prevC.Length prevC
                 if prevC.Length > 0 then 
                     if isJustSpaceCharsOrEmpty prevC  then
                         let dist = prevC.Length % tab.Editor.Options.IndentationSize
                         let clearCount = if dist = 0 then tab.Editor.Options.IndentationSize else dist
-                        //Log.Print "--Clear length: %d " clearCount
+                        //log.Print "--Clear length: %d " clearCount
                         tab.Editor.Document.Remove(tab.Editor.CaretOffset - clearCount, clearCount)
                         e.Handled <- true
             )

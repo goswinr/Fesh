@@ -53,11 +53,11 @@ module FsService =
 
     let inline cleartoken(checkerId) =
         let ok,_ = FsCheckerCancellationSources.TryRemove(checkerId)
-        if not ok && checkerId<> 0 then Log.Print "Failed to remove token '%d' from  FsCheckerCancellationSources" checkerId
+        if not ok && checkerId<> 0 then log.Print "Failed to remove token '%d' from  FsCheckerCancellationSources" checkerId
         ()
 
     let checkForErrorsAndUpdateFoldings (tab:Tab, checkDone : Option<FsCheckResults> ) = 
-        //Log.Print "*checkForErrorsAndUpdateFoldings..."
+        //log.Print "*checkForErrorsAndUpdateFoldings..."
         let mutable checkerId = 0 
 
         let updateFoldings () =             
@@ -96,12 +96,12 @@ module FsService =
                     checkerId <- rand.Next()  
                     tab.FsCheckerId <- checkerId
                     let cancelFoldScr = new CancellationTokenSource()
-                    if not <| FsCheckerCancellationSources.TryAdd(checkerId,cancelFoldScr) then Log.Print "Failed to collect FsFolderCancellationSources" 
+                    if not <| FsCheckerCancellationSources.TryAdd(checkerId,cancelFoldScr) then log.Print "Failed to collect FsFolderCancellationSources" 
                     Async.StartWithContinuations(
                             FsFolding.get(tab,chr.code),
                             updateFoldings,
-                            (fun ex   -> Log.Print "Error in Async updateFoldings") ,
-                            (fun cncl -> () ), //Log.Print "Async updateFoldings cancelled"),
+                            (fun ex   -> log.Print "Error in Async updateFoldings") ,
+                            (fun cncl -> () ), //log.Print "Async updateFoldings cancelled"),
                             cancelFoldScr.Token)
                 
                 }|> Async.StartImmediate            
@@ -116,19 +116,19 @@ module FsService =
                 do! Async.Sleep 200               
                 if tab.FsCheckerId = checkerId &&  tab.IsCurrent then
                     let cancelScr = new CancellationTokenSource()
-                    if not <| FsCheckerCancellationSources.TryAdd(checkerId,cancelScr) then Log.Print "Failed to add FsCheckerCancellationSources" 
+                    if not <| FsCheckerCancellationSources.TryAdd(checkerId,cancelScr) then log.Print "Failed to add FsCheckerCancellationSources" 
             
                     Async.StartWithContinuations(
                             FsChecker.checkAndIndicate (tab, 0 , checkerId),
                             highlightErrors,
-                            (fun ex   -> Log.Print "Error in FsChecker.check") ,
-                            (fun cncl -> ()), //Log.Print "FsChecker.check cancelled"),
+                            (fun ex   -> log.Print "Error in FsChecker.check") ,
+                            (fun cncl -> ()), //log.Print "FsChecker.check cancelled"),
                             cancelScr.Token)
                 }|> Async.StartImmediate 
         
 
     let prepareAndShowComplWin(tab:Tab, pos:FsChecker.PositionInCode , changetype, setback, query, charBefore, onlyDU) = 
-        //Log.Print "*prepareAndShowComplWin..."
+        //log.Print "*prepareAndShowComplWin..."
         if changetype = EnteredOneIdentifierChar  &&  Keywords.Contains query  then //this never happens since typing complete word happens in when window is open not closed
             // do not complete, if keyword was typed full, just continue typing, completion will triger anyway on additional chars
             checkForErrorsAndUpdateFoldings(tab,None)
@@ -141,7 +141,7 @@ module FsService =
                 async{
                     let! chr =  FsChecker.checkAndIndicate (tab,  pos.offset, 0)
                     if chr.ok && tab.IsCurrent then                        
-                        //Log.Print "*2-prepareAndShowComplWin geting completions"
+                        //log.Print "*2-prepareAndShowComplWin geting completions"
                         let ifDotSetback = if charBefore = Dot then setback else 0
                         let! decls     = FsChecker.getDeclListInfo    (chr.parseRes , chr.checkRes , pos , ifDotSetback) //TODO, can this be avoided use info from below symbol call ?
                         
@@ -167,7 +167,7 @@ module FsService =
 
                         tab.Editor.Cursor <- prevCursor
                         if tab.IsCurrent then
-                            //Log.Print "*prepareAndShowComplWin for '%s' with offset %d" pos.lineToCaret setback                            
+                            //log.Print "*prepareAndShowComplWin for '%s' with offset %d" pos.lineToCaret setback                            
                             if completionLines.Count > 0 then showCompletionWindow(tab, completionLines, setback, query)
                             else checkForErrorsAndUpdateFoldings(tab, Some chr)
                 } 
@@ -175,11 +175,11 @@ module FsService =
             let checkerId = rand.Next()  
             tab.FsCheckerId <- checkerId 
             let cancelScr = new CancellationTokenSource()
-            if not <| FsCheckerCancellationSources.TryAdd(checkerId,cancelScr) then Log.PrintAppErrorMsg "Failed to collect FsCheckerCancellationSources"
+            if not <| FsCheckerCancellationSources.TryAdd(checkerId,cancelScr) then log.PrintAppErrorMsg "Failed to collect FsCheckerCancellationSources"
             Async.StartImmediate(aComp, cancelScr.Token)   
     
     let textChanged (change:TextChange ,tab:Tab) =
-        Log.PrintDebugMsg "*1-textChanged because of %A" change 
+        log.PrintDebugMsg "*1-textChanged because of %A" change 
         match tab.CompletionWin with
         | Some w ->  
             if w.CompletionList.ListBox.HasItems then 
@@ -194,10 +194,10 @@ module FsService =
             for checkId in FsCheckerCancellationSources.Keys do
                 let ok,toCancel = FsCheckerCancellationSources.TryRemove(checkId)
                 if ok then 
-                    //Log.Print "checker thread cancelled" // does never print, why // it does print !!
+                    //log.Print "checker thread cancelled" // does never print, why // it does print !!
                     toCancel.Cancel()
                 else
-                    Log.Print "Failed get checkId from FsCheckerCancellationSources" 
+                    log.Print "Failed get checkId from FsCheckerCancellationSources" 
             
             match change with             
             | OtherChange | CompletionWinClosed | TabChanged  | EnteredOneNonIdentifierChar -> //TODO maybe do less call to error highlighter when typing in string or comment ?
@@ -217,7 +217,7 @@ module FsService =
                 let doCompletionInPattern, onlyDU   =  
                     match stringAfterLast " |" (" "+line) with // add starting step to not fail at start of line with "|"
                     |None    -> true,false 
-                    |Some "" -> Log.Print " this schould never happen since we get here only with letters, but not typing '|'" ; false,false // most comen case: '|" was just typed, next pattern declaration starts after next car
+                    |Some "" -> log.Print " this schould never happen since we get here only with letters, but not typing '|'" ; false,false // most comen case: '|" was just typed, next pattern declaration starts after next car
                     |Some s  -> 
                         let doCompl = 
                             s.Contains "->"             || // name binding already happend 
@@ -230,13 +230,13 @@ module FsService =
                         else
                            doCompl,false //not upper case, other 3 decide if anything is shown
 
-                //Log.Print "isNotInString:%b; isNotAlreadyInComment:%b; isNotFunDeclaration:%b; isNotLetDeclaration:%b; doCompletionInPattern:%b, onlyDU:%b" isNotInString isNotAlreadyInComment isNotFunDecl isNotLetDecl doCompletionInPattern onlyDU
+                //log.Print "isNotInString:%b; isNotAlreadyInComment:%b; isNotFunDeclaration:%b; isNotLetDeclaration:%b; doCompletionInPattern:%b, onlyDU:%b" isNotInString isNotAlreadyInComment isNotFunDecl isNotLetDecl doCompletionInPattern onlyDU
             
                 if (*isNotInString &&*) isNotAlreadyInComment && isNotFunDecl && isNotLetDecl && doCompletionInPattern then
                     let setback     = lastNonFSharpNameCharPosition line                
                     let query       = line.Substring(line.Length - setback)
                     let isKeyword   = Keywords.Contains query
-                    //Log.Print "pos:%A setback='%d'" pos setback
+                    //log.Print "pos:%A setback='%d'" pos setback
                 
                                        
                     let charBeforeQueryDU = 
@@ -249,14 +249,14 @@ module FsService =
                     
 
                     if charBeforeQueryDU = NotDot && isKeyword then
-                        //Log.Print "*2.1-textChanged highlighting with: query='%s', charBefore='%A', isKey=%b, setback='%d', line='%s' " query charBeforeQueryDU isKeyword setback line
+                        //log.Print "*2.1-textChanged highlighting with: query='%s', charBefore='%A', isKey=%b, setback='%d', line='%s' " query charBeforeQueryDU isKeyword setback line
                         checkForErrorsAndUpdateFoldings(tab,None)
 
                     else 
-                        //Log.Print "*2.2-textChanged Completion window opening with: query='%s', charBefore='%A', isKey=%b, setback='%d', line='%s' change=%A" query charBeforeQueryDU isKeyword setback line change
+                        //log.Print "*2.2-textChanged Completion window opening with: query='%s', charBefore='%A', isKey=%b, setback='%d', line='%s' change=%A" query charBeforeQueryDU isKeyword setback line change
                         prepareAndShowComplWin(tab, pos, change, setback, query, charBeforeQueryDU, onlyDU)
                 else
                     //checkForErrorsAndUpdateFoldings(tab)
-                    //Log.Print "*2.3-textChanged didn't trigger of checker not needed? \r\n"
+                    //log.Print "*2.3-textChanged didn't trigger of checker not needed? \r\n"
                     ()
     

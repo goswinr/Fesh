@@ -24,7 +24,7 @@ module SyntaxHighlighting =
                     do! Async.SwitchToContext Sync.syncContext
                     ed.SyntaxHighlighting <- fsh
                 with e -> 
-                    Log.Print "Error loading Syntax Highlighting: %A" e
+                    log.Print "Error loading Syntax Highlighting: %A" e
                 } |> Async.Start
         else 
             ed.SyntaxHighlighting <- fsHighlighting.Value

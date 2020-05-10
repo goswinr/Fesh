@@ -62,7 +62,7 @@ module CompletionUI =
 
         let priority = //if it.IsOwnMember then 1. else 1. 
             if isDotCompletion then 1.0// not on Dot completion             
-            else                    1.0 + Config.AutoCompleteStatistic.Get(it.Name) //if p>1.0 then Log.Print "%s %g" it.Name p
+            else                    1.0 + Config.AutoCompleteStatistic.Get(it.Name) //if p>1.0 then log.Print "%s %g" it.Name p
             
     
         member this.Content = tb :> obj
@@ -78,7 +78,7 @@ module CompletionUI =
         member this.Priority = priority
         member this.Text = it.Name
         member this.Complete (textArea:TextArea, completionSegment:ISegment, e ) = 
-            //Log.Print "%s is %A and %A" it.Name it.Glyph it.Kind
+            //log.Print "%s is %A and %A" it.Name it.Glyph it.Kind
             //textArea.Document.Replace(completionSegment.Offset + 1, completionSegment.Length, it.Name) //Delete!
             //textArea.Caret.Offset <- completionSegment.Offset + it.Name.Length + 1  //Delete!          
             let compl = if it.Glyph = FSharpGlyph.Class && it.Name.EndsWith "Attribute" then "[<" + it.Name.Replace("Attribute",">]") else it.Name     //TODO move this logic out here      
@@ -142,7 +142,7 @@ module CompletionUI =
         w.MinHeight <- tab.Editor.FontSize
         w.MinWidth <- tab.Editor.FontSize * 8.0
         w.Closed.Add (fun _  -> 
-            //Log.Print "Completion window closed with selected item %s " tab.CompletionWin.Value.CompletionList.SelectedItem.Text
+            //log.Print "Completion window closed with selected item %s " tab.CompletionWin.Value.CompletionList.SelectedItem.Text
             tab.CompletionWin <- None  
             tab.CompletionWindowClosed()
             tab.ErrorToolTip.IsOpen    <- false
@@ -159,7 +159,7 @@ module CompletionUI =
 
         //w.CompletionList.ListBox.SelectionChanged.Add (fun e -> //TODO this is not the correct event to hook up to
         //    try if not w.CompletionList.ListBox.HasItems then w.Close() 
-        //    with  _ -> Log.Print "Null ref HasItems")// because sometime empty completion window stays open
+        //    with  _ -> log.Print "Null ref HasItems")// because sometime empty completion window stays open
 
         for x in xs do w.CompletionList.CompletionData.Add (x) // if window is slow: https://stackoverflow.com/questions/487661/how-do-i-suspend-painting-for-a-control-and-its-children 
 
@@ -168,7 +168,7 @@ module CompletionUI =
             
         //try
         w.Show()
-        //with e -> Log.Print "Error in Showing Code Completion Window: %A" e
+        //with e -> log.Print "Error in Showing Code Completion Window: %A" e
 
         //Event sequence on pressing enter in completion window:// https://github.com/icsharpcode/AvalonEdit/blob/8fca62270d8ed3694810308061ff55c8820c8dfc/ICSharpCode.AvalonEdit/CodeCompletion/CompletionWindow.cs#L100
         // Close window

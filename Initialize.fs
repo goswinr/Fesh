@@ -24,7 +24,7 @@ module Initialize =
 
         // finish setting up window:
         win.Window.ContentRendered.Add(fun _ -> 
-            //if not <| Tabs.Current.Editor.Focus() then Log.PrintAppErrorMsg "Tabs.Current.Editor.Focus failed"  //or System.Windows.Input.FocusManager.SetFocusedElement(...) 
+            //if not <| Tabs.Current.Editor.Focus() then log.PrintAppErrorMsg "Tabs.Current.Editor.Focus failed"  //or System.Windows.Input.FocusManager.SetFocusedElement(...) 
             
             log.PrintInfoMsg "* Time for loading and render main window: %s"  Timer.InstanceStartup.tocEx
             
@@ -66,7 +66,7 @@ module Initialize =
         (* //TODO with this the app fails to start. why?
         Application.Current.DispatcherUnhandledException.Add(fun e ->  //exceptions generated on the UI thread
             if e <> null then 
-                Log.Print "Application.Current.DispatcherUnhandledException in main Thread: %A" e.Exception           
+                log.Print "Application.Current.DispatcherUnhandledException in main Thread: %A" e.Exception           
                 e.Handled<- true) *)
         
         //catching unhandled exceptions generated from all threads running under the context of a specific application domain. 
@@ -85,6 +85,6 @@ module Initialize =
         Tabs.OnTabChanged.Add (fun t -> textChanged (TabChanged , t) ) 
         //------ Seff Views----------------
         
-        Log.Initialize()                        // do second so it can be used in Config already
+        log.Initialize()                        // do second so it can be used in Config already
         Config.Initialize(context)              // do third so settings are loaded from file and  availabe 
         Win.Initialize(startupArgs)

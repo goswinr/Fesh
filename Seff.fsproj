@@ -61,7 +61,19 @@
     <Compile Include="Config\AutoCompleteStatistic.fs" />
     <Compile Include="Config\AssemblyReferenceStatistic.fs" />
     <Compile Include="Config\Config.fs" />
-    <Compile Include="Fsi.fs" />
+    <Compile Include="EditorServices\Fsi.fs" />
+    <Compile Include="EditorServices\31_UI_BackgroundRenderer.fs" />
+    <Compile Include="EditorServices\33_ToolTipFormatter.fs" />
+    <Compile Include="EditorServices\34_UI_TypeInfoTooltip.fs" />
+    <Compile Include="EditorServices\35_UI_CodeCompletion.fs" />
+    <Compile Include="EditorServices\36_UI_Folding.fs" />
+    <Compile Include="EditorServices\63_FsChecker.fs" />
+    <Compile Include="EditorServices\64_FsPakages.fs" />
+    <Compile Include="EditorServices\65_FsServices.fs" />
+    <Compile Include="EditorServices\Commenting.fs" />
+    <Compile Include="EditorServices\ModifyUI.fs" />
+    <Compile Include="EditorServices\TabEvents.fs" />
+    <Compile Include="EditorServices\03_Util.fs" />
 
     <Compile Include="Views\Util.fs" />
     <Compile Include="Views\Log.fs" />
@@ -73,21 +85,8 @@
     <Compile Include="Views\TabsAndLog.fs" />
     <Compile Include="Views\Window.fs" />
     <Compile Include="Views\StatusBar.fs" />
-
-    <Compile Include="03_Util.fs" />
-    <Compile Include="31_UI_BackgroundRenderer.fs" />
-    <Compile Include="33_ToolTipFormatter.fs" />
-    <Compile Include="34_UI_TypeInfoTooltip.fs" />
-    <Compile Include="35_UI_CodeCompletion.fs" />
-    <Compile Include="36_UI_Folding.fs" />
-    <Compile Include="63_FsChecker.fs" />
-    <Compile Include="64_FsPakages.fs" />
-    <Compile Include="65_FsServices.fs" />
-    <Compile Include="Commenting.fs" />
-    <Compile Include="ModifyUI.fs" />
-    <Compile Include="TabEvents.fs" />
+    <Compile Include="Views\Menu.fs" />
     <Compile Include="Commands.fs" />
-    <Compile Include="Menu.fs" />
     <Compile Include="Initialize.fs" />
     
     <Compile Include="App.fs" />

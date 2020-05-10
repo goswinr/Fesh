@@ -11,12 +11,12 @@ module ModifyUI =
    
     let toggleLogLineWrap()=
         if Config.Settings.GetBool "logHasLineWrap" true then 
-            Log.ReadOnlyEditor.WordWrap         <- false 
-            Log.ReadOnlyEditor.HorizontalScrollBarVisibility <- ScrollBarVisibility.Auto
+            log.ReadOnlyEditor.WordWrap         <- false 
+            log.ReadOnlyEditor.HorizontalScrollBarVisibility <- ScrollBarVisibility.Auto
             Config.Settings.SetBool "logHasLineWrap" false
         else
-            Log.ReadOnlyEditor.WordWrap         <- true  
-            Log.ReadOnlyEditor.HorizontalScrollBarVisibility <- ScrollBarVisibility.Disabled 
+            log.ReadOnlyEditor.WordWrap         <- true  
+            log.ReadOnlyEditor.HorizontalScrollBarVisibility <- ScrollBarVisibility.Disabled 
             Config.Settings.SetBool "logHasLineWrap" true
         Config.Settings.Save ()
 
@@ -25,13 +25,13 @@ module ModifyUI =
     //----------------------
 
     let setFontSize newSize = 
-        Log.ReadOnlyEditor.FontSize    <- newSize
+        log.ReadOnlyEditor.FontSize    <- newSize
         for t in Tabs.AllTabs do                
             t.Editor.FontSize  <- newSize        
         Config.Settings.SetFloat "FontSize" newSize 
         Appearance.fontSize <- newSize
         Config.Settings.Save ()
-        Log.Print "new Fontsize: %.1f" newSize
+        log.Print "new Fontsize: %.1f" newSize
 
     /// affects Editor and Log
     let fontBigger()= 

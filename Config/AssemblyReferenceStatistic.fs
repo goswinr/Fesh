@@ -37,7 +37,7 @@ type AssemblyReferenceStatistic  (log:ISeffLog, adl:AppDataLocation) =
     member this.Save() =
         writer.WriteDelayed (filePath,assRefStatsAsString, 500)
         
-    /// used as event delegate in Log.print ?
+    /// used as event delegate in log.print ?
     member this.RecordFromlog = 
         fun (s:string) -> 
             if s.Contains "--> Referenced '" then // e.g.: --> Referenced 'C:\Program Files\Rhino 6\System\RhinoCommon.dll' (file may be locked by F# Interactive process)

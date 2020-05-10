@@ -54,8 +54,7 @@ type LogLineColorizer(editor:AvalonEdit.TextEditor, lineColors:Collections.Gener
     /// This gets called for every visvble line on any view change
     override this.ColorizeLine(line:AvalonEdit.Document.DocumentLine) =       
         let ok,color = lineColors.TryGetValue(line.LineNumber) // consoleOut line are missing in dict so skiped
-        if ok && not line.IsDeleted then
-                
+        if ok && not line.IsDeleted then                
             // consider selection and exclude fom higlighting:
             let st=line.Offset
             let en=line.EndOffset
@@ -78,7 +77,7 @@ type LogLineColorizer(editor:AvalonEdit.TextEditor, lineColors:Collections.Gener
 /// A ReadOnly text AvalonEdit Editor that provides print formating methods 
 /// call ApplyConfig() once config is set up too, (config depends on this Log instance)
 type Log () =    
-    // just using a let value  like (let Log = new LogView()) has some bugs in hosted context (Rhino), I think due to late initalizing
+    // just using a let value  like (let log = new LogView()) has some bugs in hosted context (Rhino), I think due to late initalizing
     // so here is a class with explicit init
 
     let mutable log : AvalonEdit.TextEditor = null 
@@ -149,14 +148,11 @@ type Log () =
         else
             log.WordWrap         <- false 
             log.HorizontalScrollBarVisibility <- ScrollBarVisibility.Auto 
-    do
-    
-        //log:       
-
+    do    
+        //styling: 
         log <- new AvalonEdit.TextEditor()
         log.IsReadOnly <- true
         log.Encoding <- Text.Encoding.Default
-
         log.ShowLineNumbers  <- true
         log.Options.EnableHyperlinks <- true 
         log.TextArea.SelectionCornerRadius <- 0.0 

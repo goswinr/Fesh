@@ -244,10 +244,10 @@ type Tabs(config:Config, startupArgs: string[], win:Window) =
             let fn = t.FileInfo.Value.FullName
             let last = fn.[fn.Length-5]
             if not <| Char.IsLetterOrDigit last then 
-                log.PrintIOErrorMsg "saveIncremental failed on last value: '%c' on: \r\n%s" last fn
+                log.PrintInfoMsg "Save Incrementing failed on last value: '%c' on: \r\n%s" last fn
                 this.Save(t)
             elif last = 'z' || last = 'Z' || last = '9' then                
-                log.PrintIOErrorMsg "saveIncremental reached last value: '%c' on: \r\n%s" last fn
+                log.PrintInfoMsg "Save Incrementing reached last value: '%c' on: \r\n%s" last fn
                 this.SaveAs(t)
             else
                 let newLast = char(int(last)+1)
@@ -256,9 +256,12 @@ type Tabs(config:Config, startupArgs: string[], win:Window) =
                     letters.[fn.Length-5] <- newLast
                     String.Join("", letters)
                 let fi = new FileInfo(npath)
-                saveAt(t,fi)                
+                if fi.Exists then 
+                    this.SaveAs(t)
+                else
+                    saveAt(t,fi)                
          else
-            log.PrintIOErrorMsg "can't incremented unsaved File"  
+            log.PrintIOErrorMsg "can't Save Incrementing unsaved file"  
             this.SaveAs(t)
     
     [<CLIEvent>]

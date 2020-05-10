@@ -6,35 +6,37 @@ open System.Windows
 open Seff.Model
 
 /// A class holding the main WPF Window
-/// Includes logic for saving and restoreing size and position
+/// Includes loading Icon and logic for saving and restoring size and position
 type Window (config:Config.Config)= 
     
     let win = new Windows.Window()    
 
-    let Log = config.Log
+    let log = config.Log
 
-    let mutable isMinOrMax = false // TODO test and then clean up
-
-    //indicating if the Window was in  Fullscreen mode before switching to temporary Log only fullscreeen
-    let mutable wasMax = false
+    let mutable isMinOrMax = false 
+    
+    let mutable wasMax = false //indicating if the Window was in  Fullscreen mode before switching to temporary Log only fullscreeen
 
     do       
         win.ResizeMode  <- ResizeMode.CanResize  
                 
-        win.Title       <- match config.AppDataLocation.Mode with Standalone -> "Seff | Scripting editor for fsharp"  | Hosted n ->  "Seff | Scripting editor for fsharp in " + n
+        win.Title       <- match config.AppDataLocation.Mode with 
+                           |Standalone -> "Seff | Scripting editor for fsharp"  
+                           |Hosted n   -> "Seff | Scripting editor for fsharp in " + n
                 
         win.Loaded.Add(fun _ ->
             //---- load ICON ----
-            // Add the Icon at the top left of the window and in the status bar,         
-            // musst be called at later moment(eg. after loading).
+            // Add the Icon at the top left of the window and in the status bar, musst be called at later moment(eg. after loading).
             // (for the exe file icon in explorer use <Win32Resource>Media\LogoCursorTr.res</Win32Resource>  in fsproj )
             let uri = new Uri("pack://application:,,,/Seff;component/Media/LogoCursorTr.ico", UriKind.RelativeOrAbsolute) //Build action : "Resource"; Copy to ouput Dir: "Do not copy" 
-            try  win.Icon <-  Media.Imaging.BitmapFrame.Create(Application.GetResourceStream(uri).Stream)
-            with ex -> Log.PrintAppErrorMsg  "Failed to load Media/LogoCursorTr.ico from Application.ResourceStream : %A" ex 
+            try 
+                win.Icon <-  Media.Imaging.BitmapFrame.Create(Application.GetResourceStream(uri).Stream)
+            with ex -> 
+                log.PrintAppErrorMsg  "Failed to load Media/LogoCursorTr.ico from Application.ResourceStream : %A" ex 
             )    
       
         //----------------------------------------------
-        // -  load and safe window location and size ---
+        // -  all below code is for load and safe window location and size ---
         //----------------------------------------------
         
         if config.Settings.GetBool "WindowIsMax" false then
@@ -66,7 +68,7 @@ type Window (config:Config.Config)=
                         config.Settings.SetFloatDelayed "WindowTop"  win.Top  89 // get float in statchange maximised needs to access this before 350 ms pass
                         config.Settings.SetFloatDelayed "WindowLeft" win.Left 95
                         config.Settings.Save ()
-                        //Log.Print  "%s Location Changed: Top=%.0f Left=%.0f State=%A" Time.nowStrMilli win.Top win.Left win.WindowState
+                        //log.Print  "%s Location Changed: Top=%.0f Left=%.0f State=%A" Time.nowStrMilli win.Top win.Left win.WindowState
                 }
                 |> Async.StartImmediate
             )
@@ -81,22 +83,22 @@ type Window (config:Config.Config)=
                 config.Settings.SetBool  "WindowIsMax" false
                 isMinOrMax <- false
                 config.Settings.Save ()
-                //Log.Print "Normal: %s State changed=%A Top=%.0f Left=%.0f Width=%.0f Height=%.0f" Time.nowStrMilli win.WindowState win.Top win.Left win.ActualWidth win.ActualHeight 
+                //log.Print "Normal: %s State changed=%A Top=%.0f Left=%.0f Width=%.0f Height=%.0f" Time.nowStrMilli win.WindowState win.Top win.Left win.ActualWidth win.ActualHeight 
 
             | WindowState.Maximized ->
                 // normally the state change event comes after the location change event but before size changed. async sleep in LocationChanged prevents this
                 isMinOrMax  <- true
                 config.Settings.SetBool  "WindowIsMax" true
                 config.Settings.Save  ()    
-                //Log.Print "Maximised: %s State changed=%A Top=%.0f Left=%.0f Width=%.0f Height=%.0f" Time.nowStrMilli win.WindowState win.Top win.Left win.ActualWidth win.ActualHeight 
+                //log.Print "Maximised: %s State changed=%A Top=%.0f Left=%.0f Width=%.0f Height=%.0f" Time.nowStrMilli win.WindowState win.Top win.Left win.ActualWidth win.ActualHeight 
                           
 
             |WindowState.Minimized ->                 
                 isMinOrMax  <- true
-                //Log.Print "Minimised: %s State changed=%A Top=%.0f Left=%.0f Width=%.0f Height=%.0f" Time.nowStrMilli win.WindowState win.Top win.Left win.ActualWidth win.ActualHeight 
+                //log.Print "Minimised: %s State changed=%A Top=%.0f Left=%.0f Width=%.0f Height=%.0f" Time.nowStrMilli win.WindowState win.Top win.Left win.ActualWidth win.ActualHeight 
                
             |wch -> 
-                Log.PrintAppErrorMsg "unknown WindowState State change=%A" wch
+                log.PrintAppErrorMsg "unknown WindowState State change=%A" wch
                 isMinOrMax  <- true
             )
 
@@ -105,7 +107,7 @@ type Window (config:Config.Config)=
                 config.Settings.SetFloatDelayed "WindowHeight" win.Height 89
                 config.Settings.SetFloatDelayed "WindowWidth"  win.Width  95
                 config.Settings.Save ()
-                //Log.dlog (sprintf "%s Size Changed: Width=%.0f Height=%.0f State=%A" Time.nowStrMilli win.Width win.Height win.WindowState)
+                //log.dlog (sprintf "%s Size Changed: Width=%.0f Height=%.0f State=%A" Time.nowStrMilli win.Width win.Height win.WindowState)
             )
         
        
@@ -126,8 +128,8 @@ type Window (config:Config.Config)=
           
           (* done in Initialize function 
           win.ContentRendered.Add(fun _ -> 
-              //if not <| Tabs.Current.Editor.Focus() then Log.PrintAppErrorMsg "Tabs.Current.Editor.Focus failed"  //or System.Windows.Input.FocusManager.SetFocusedElement(...)             
-              Log.PrintInfoMsg "* Time for loading and render main window: %s"  Timer.InstanceStartup.tocEx            
+              //if not <| Tabs.Current.Editor.Focus() then log.PrintAppErrorMsg "Tabs.Current.Editor.Focus failed"  //or System.Windows.Input.FocusManager.SetFocusedElement(...)             
+              log.PrintInfoMsg "* Time for loading and render main window: %s"  Timer.InstanceStartup.tocEx            
               Fsi.Initalize() // do late to be sure errors can print to log and dont get lost (Rhino has problems with FSI from  FCS 33.0.1 on) ) 
               
           win.Closing.Add( fun e ->

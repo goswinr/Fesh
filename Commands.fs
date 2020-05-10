@@ -13,7 +13,7 @@ type Commands private () =
     //TODO these gets evaluated for each command on every mouse click or key perss . is this OK?  any lag ?? in Canexecute for commands
     
     static let isEditorSel a   = Tabs.Current.Editor.SelectionLength > 0
-    static let isLogSel    a   = Log.ReadOnlyEditor.SelectionLength > 0
+    static let isLogSel    a   = log.ReadOnlyEditor.SelectionLength > 0
     static let runsAsync   a   = Fsi.State = Evaluating && Fsi.Mode = Async
              
     static member val RunSelectedText  = "Run Selected Text"        , "Alt + Enter"   , mkCmd isEditorSel (fun a -> Fsi.Evaluate Tabs.Current.Editor.SelectedText),"Sends the currently seleceted Text in the editor to FSharp Interactive"// TODO mark evaluated code with grey background
@@ -23,7 +23,7 @@ type Commands private () =
                                                        
     static member val ResetFSI         = "Reset FSI"                , "Ctrl + Alt + R", mkCmdSimple     (fun a -> Fsi.Reset()          ),"Reset FSharp Interactive"
     static member val CancelFSI        = "Cancel FSI"               , "Ctrl + Break"  , mkCmd runsAsync (fun a -> Fsi.CancelIfAsync()  ),"Cancel running FSI evaluation (only available in asynchronous mode) "
-    static member val ClearFSI         = "Clear Log"                , "Ctrl + Alt + C", mkCmdSimple     (fun a -> Log.ReadOnlyEditor.Clear()   ),"Clear all text from FSI Log window"
+    static member val ClearFSI         = "Clear Log"                , "Ctrl + Alt + C", mkCmdSimple     (fun a -> log.ReadOnlyEditor.Clear()   ),"Clear all text from FSI Log window"
     static member val ToggleSync       = "Toggle Sync / Async"      , ""              , mkCmdSimple     (fun a -> Fsi.ToggleSync()     ),"Switch between synchronous and asynchronous evaluation in FSI, see status in StatusBar"
                                                        
     static member val NewTab           = "New File"                 , "Ctrl + N"      , mkCmdSimple (fun a -> Tabs.AddTab(new Tab(),true)),"Create a new script file"
@@ -90,7 +90,7 @@ type Commands private () =
              Commands.ResetFSI         
              Commands.CancelFSI        
              Commands.ClearFSI
-             if Config.Context.IsStandalone then Commands.ToggleSync
+             if config.AppDataLocation.IsStandalone then Commands.ToggleSync
              
              Commands.NewTab           
              Commands.OpenFile 
@@ -129,13 +129,13 @@ type Commands private () =
             |"Down"  -> Key.Down
             | x -> match Key.TryParse(x,true) with
                    |true, k -> k
-                   | _ -> Log.PrintAppErrorMsg "*AllInputBindings: failed to parse Command Key '%A'" x; Key.NoName
+                   | _ -> log.PrintAppErrorMsg "*AllInputBindings: failed to parse Command Key '%A'" x; Key.NoName
         
         let getModKey = function
             |"Ctrl"     -> ModifierKeys.Control        
             | x -> match ModifierKeys.TryParse(x,true) with
                    |true, k -> k
-                   | _ -> Log.PrintAppErrorMsg "*AllInputBindings: failed to parse ModifierKey '%A'" x; ModifierKeys.None
+                   | _ -> log.PrintAppErrorMsg "*AllInputBindings: failed to parse ModifierKey '%A'" x; ModifierKeys.None
 
         try
             [|  for _,g,cmd,_ in allCustomCommands do
@@ -150,12 +150,12 @@ type Commands private () =
                             | [| m; k |]        -> InputBinding(cmd,  KeyGesture(getKey k, getModKey m))
                             | [| k |]           -> InputBinding(cmd,  KeyGesture(getKey k))
                             | _ -> 
-                                Log.PrintAppErrorMsg "*AllInputBindings: failed to parse command Input gesture '%s'" g
+                                log.PrintAppErrorMsg "*AllInputBindings: failed to parse command Input gesture '%s'" g
                                 InputBinding(cmd,  KeyGesture(Key.None))
             |]
         
         with e -> 
-            Log.PrintAppErrorMsg "*AllInputBindings: failed to create keyboard shortcuts: %A"e
+            log.PrintAppErrorMsg "*AllInputBindings: failed to create keyboard shortcuts: %A"e
             [| |]
     
 
