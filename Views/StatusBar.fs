@@ -12,7 +12,7 @@ open FSharp.Compiler.SourceCodeServices
 open System.Windows.Automation.Peers
 open Seff.Model
 
-type StatusBar (fsi:Fsi)  =
+type StatusBar (fsi:Fsi)  = // TODO better make it dependent on commands , not fsi
     let bar = new Primitives.StatusBar() 
 
     let compilerErrors = new TextBlock(Text="checking for Errors ...") //FontWeight = FontWeights.Bold

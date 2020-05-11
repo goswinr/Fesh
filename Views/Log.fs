@@ -181,7 +181,7 @@ type Log () =
     [<CLIEvent>]
     member this.OnPrint = textAddEv.Publish
        
-    member this.AdjustToSettingsInConfig(config: Seff.Config.Config)=        
+    member this.AdjustToSettingsInConfig(config: Seff.config.Config)=        
         this.OnPrint.Add (config.AssemblyReferenceStatistic.RecordFromlog) // TODO: does this have print perfomance impact ? measure do async ?
         setWordWrap( config.Settings.GetBool "logHasLineWrap" true )
         log.FontFamily       <- Seff.Appearance.font

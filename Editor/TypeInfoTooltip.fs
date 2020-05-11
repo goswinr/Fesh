@@ -1,6 +1,6 @@
-﻿namespace Seff
+﻿namespace Seff.Editor
 
-open Seff.Util.WPF
+open Seff
 open System
 open System.Windows
 open System.Windows.Controls
@@ -22,15 +22,20 @@ module Tooltips =
     
     type ToolTipData = {name:string; signature:string; xmlDocStr: Result<string*string,string>}
 
+    let makePanelVert (xs:list<#UIElement>) =
+        let p = new StackPanel(Orientation= Orientation.Vertical)
+        for x in xs do p.Children.Add x |> ignore
+        p
+
     // make a fancy tooltip:
-    let stackPanel  (it:FSharpDeclarationListItem option) (tds:ToolTipData list) = 
+    let stackPanel  (it:FSharpDeclarationListItem option, tds:ToolTipData list, fontSize) = 
         let mutable assemblies = new HashSet<string>()
         let stackPanel = makePanelVert [
             if it.IsSome then 
                 let glyph = sprintf "%A" it.Value.Glyph
                 let tb = new TextBlock(Text = glyph)
                 tb.Foreground <- Brushes.DarkOrange
-                tb.FontSize <- Appearance.fontSize * 1.0
+                tb.FontSize <- fontSize * 1.0
                 tb.FontFamily <- Appearance.font
                 tb.FontWeight <- FontWeights.Bold
                 yield tb :> UIElement
@@ -42,14 +47,14 @@ module Tooltips =
                     if td.name <> "" then 
                         let tb = new TextBlock(Text= "Name:" + td.name)
                         tb.Foreground <- Brushes.Black
-                        tb.FontSize <- Appearance.fontSize * 0.9
+                        tb.FontSize <- fontSize * 0.9
                         tb.FontFamily <- Appearance.font
                         tb.FontWeight <- FontWeights.Bold
                         yield tb 
                     if td.signature <> "" then 
                         let tb = new TextBlock(Text = td.signature)
                         tb.Foreground <- Brushes.Black
-                        tb.FontSize <- Appearance.fontSize * 1.2
+                        tb.FontSize <- fontSize * 1.2
                         tb.FontFamily <- Appearance.font
                         yield tb
                 
@@ -61,7 +66,7 @@ module Tooltips =
                         |Error errTxt  -> 
                             Brushes.Gray, errTxt, 0.75
                     let tb = new TextBlock(Text= txt.Trim() )
-                    tb.FontSize <- Appearance.fontSize * scale
+                    tb.FontSize <- fontSize * scale
                     tb.Foreground <- color                    
                     yield tb ]
 
@@ -77,7 +82,7 @@ module Tooltips =
                 let tb = 
                     if assemblies.Count = 1 then new TextBlock(Text= "assembly:\r\n" + Seq.head assemblies)
                     else                         new TextBlock(Text= "assemblies:\r\n" + String.concat "\r\n" assemblies)
-                tb.FontSize <- Appearance.fontSize * 0.80
+                tb.FontSize <- fontSize * 0.80
                 tb.Foreground <- Brushes.Black
                 //tb.FontFamily <- new FontFamily ("Arial") // or use default of device
                 yield tb :> UIElement
@@ -94,7 +99,7 @@ module Tooltips =
         | FSharpXmlDoc.Text s -> Ok (s,"") // "plain text Doc: \r\n" + s
         | FSharpXmlDoc.None -> Error "*FSharpXmlDoc.None*"
         | FSharpXmlDoc.XmlDocFileSignature(dllFile, memberName) ->
-           match XmlToolTipFormatter.getXmlDoc dllFile with
+           match DocStringParser.getXmlDoc dllFile with
            | Some doc ->
                 if doc.ContainsKey memberName then 
                     let docText = doc.[memberName].ToEnhancedString()
@@ -150,15 +155,18 @@ module Tooltips =
                         //log.Print "optional full name: %s" c.FullName
         | _ -> ()
         D
+    
 
-    let TextEditorMouseHover( e: MouseEventArgs) =
+    let loadingText =  "Loading type info ..."
+
+    let TextEditorMouseHover(ed:Editor, e: MouseEventArgs) =
         // see https://github.com/icsharpcode/AvalonEdit/blob/master/ICSharpCode.AvalonEdit/Editing/SelectionMouseHandler.cs#L477
         
-        let ed = Tabs.Current.Editor
-        let tab = Tabs.Current
-        let doc = ed.Document
-        let pos = ed.GetPositionFromPoint(e.GetPosition(Tabs.Current.Editor))
-        if pos.HasValue && tab.FsCheckerResult.IsSome then                            
+        
+        let aved = ed.AvaEdit        
+        let doc = aved.Document
+        let pos = aved.GetPositionFromPoint(e.GetPosition(aved))
+        if pos.HasValue && ed.FsCheckerResult.IsSome then                            
             let line = pos.Value.Line            
                 
             //TODO check for in string to give #r tooltip
@@ -168,10 +176,10 @@ module Tooltips =
             let startOffset = TextUtilities.GetNextCaretPosition(doc,offset, LogicalDirection.Backward, CaretPositioningMode.WordBorderOrSymbol)// TODO fails on ´´ backtick names
             let endOffset = TextUtilities.GetNextCaretPosition(doc,offset, LogicalDirection.Forward, CaretPositioningMode.WordBorderOrSymbol)// returns -1 on empty lines; TODO fails on ´´ backtick names
             if startOffset < endOffset then // to skip empty lines
-                tab.TypeInfoToolTip.Content <- "*loading type info ..."
-                tab.TypeInfoToolTip.PlacementTarget <- ed // required for property inheritance
-                tab.TypeInfoToolTip.IsOpen <- true 
-                tab.TypeInfoToolTip.StaysOpen <- true
+                ed.TypeInfoToolTip.Content <- loadingText
+                ed.TypeInfoToolTip.PlacementTarget <- aved // required for property inheritance
+                ed.TypeInfoToolTip.IsOpen <- true 
+                ed.TypeInfoToolTip.StaysOpen <- true
                     
                 //e.Handled <- true // HACK. don't set handeled! so that on type errors the  Error tooltip still gets shown after this tooltip
 
@@ -193,21 +201,22 @@ module Tooltips =
                         
                     do! Async.SwitchToThreadPool()
 
-                    let! stt =   tab.FsCheckerResult.Value.GetStructuredToolTipText(line,endCol,lineTxt,[word],FSharpTokenTag.Identifier)     //TODO, can this be avoided use info from below symbol call ?
-                    let! symbls = tab.FsCheckerResult.Value.GetSymbolUseAtLocation(line,endCol,lineTxt,[word]) //only get info about oprional paramters
+                    let! stt =   ed.FsCheckerResult.Value.GetStructuredToolTipText(line,endCol,lineTxt,[word],FSharpTokenTag.Identifier)     //TODO, can this be avoided use info from below symbol call ?
+                    let! symbls = ed.FsCheckerResult.Value.GetSymbolUseAtLocation(line,endCol,lineTxt,[word]) //only get info about oprional paramters
                     let defArgs = if symbls.IsSome then infoAboutOptinals(symbls.Value) else ResizeArray(0) 
                         
                     do! Async.SwitchToContext Sync.syncContext
 
                     let ttds = formated (stt, defArgs)
                     if List.isEmpty ttds then
-                        tab.TypeInfoToolTip.IsOpen <- false
+                        ed.TypeInfoToolTip.Content <- "No type info found."
+                        //ed.TypeInfoToolTip.IsOpen <- false
                     else                            
-                        let ttPanel = stackPanel None ttds
-                        if tab.TypeInfoToolTip.IsOpen then 
+                        let ttPanel = stackPanel (None , ttds, ed.AvaEdit.FontSize )
+                        if ed.TypeInfoToolTip.IsOpen then 
                             // TODO hide tooltip and use use popup instead now, so it can be pinned?
-                            tab.TypeInfoToolTip.Content <- ttPanel
+                            ed.TypeInfoToolTip.Content <- ttPanel
                     } |> Async.StartImmediate //TODO: add Cancellation ?
     
-    let TextEditorMouseHoverStopped( e: MouseEventArgs) = 
-            Tabs.Current.TypeInfoToolTip.IsOpen <- false
+    let TextEditorMouseHoverStopped( ed:Editor, e: MouseEventArgs) = 
+            ed.TypeInfoToolTip.IsOpen <- false

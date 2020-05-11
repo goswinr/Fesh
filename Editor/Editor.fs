@@ -1,4 +1,4 @@
-﻿namespace Seff.Views
+﻿namespace Seff.Editor
 
 open ICSharpCode
 open System.Windows.Controls
@@ -6,6 +6,7 @@ open ICSharpCode.AvalonEdit
 open System.Windows.Media
 open Seff.Config
 open FSharp.Compiler.SourceCodeServices
+open System.Windows
 
 
 
@@ -40,6 +41,8 @@ type Editor (code:string, config:Config) = //as this=
     new (config:Config) =  Editor( config.DefaultCode.Get() , config)
 
     member val AvaEdit = ed 
+    
+    member val IsCurrent = false with get,set
 
     member val FoldingManager = Folding.FoldingManager.Install(ed.TextArea)  
     
@@ -47,9 +50,9 @@ type Editor (code:string, config:Config) = //as this=
     
     member val CompletionWin : CodeCompletion.CompletionWindow option = None with get,set   
     
-    member val FsCheckerResult: FSharpCheckFileResults option = None with get,set
+    member val CheckerResult: FSharpCheckFileResults option = None with get,set
     
-    member val FsCheckerId = 0 with get,set // each check will get a unique id, used for UI background only?    
+    member val CheckerId = 0 with get,set // each check will get a unique id, used for UI background only?    
     
     member val ErrorToolTip =    new ToolTip(IsOpen=false) with get,set 
 
@@ -61,7 +64,11 @@ type Editor (code:string, config:Config) = //as this=
     
     member val CompletionWindowClosed = fun ()->() with get,set //will be set with all the other eventhandlers setup, but ref is needed before
     
+    /// to access the Config from editor
     member this.Config = config
+
+    /// to access the Log view fom editor
+    member this.Log = config.Log
   
     
     // additional text change event:

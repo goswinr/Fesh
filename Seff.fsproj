@@ -44,6 +44,8 @@
 
     <None Include="FSharpSynatxHighlighterExtended.xshd">    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>    </None>
 
+    <Compile Include="Util.fs" />
+
     <Compile Include="Timer.fs" />
 
     <Compile Include="Interfaces.fs" />
@@ -61,29 +63,28 @@
     <Compile Include="Config\AutoCompleteStatistic.fs" />
     <Compile Include="Config\AssemblyReferenceStatistic.fs" />
     <Compile Include="Config\Config.fs" />
-    <Compile Include="EditorServices\Fsi.fs" />
-    <Compile Include="EditorServices\31_UI_BackgroundRenderer.fs" />
-    <Compile Include="EditorServices\33_ToolTipFormatter.fs" />
-    <Compile Include="EditorServices\34_UI_TypeInfoTooltip.fs" />
-    <Compile Include="EditorServices\35_UI_CodeCompletion.fs" />
-    <Compile Include="EditorServices\36_UI_Folding.fs" />
-    <Compile Include="EditorServices\63_FsChecker.fs" />
-    <Compile Include="EditorServices\64_FsPakages.fs" />
-    <Compile Include="EditorServices\65_FsServices.fs" />
-    <Compile Include="EditorServices\Commenting.fs" />
-    <Compile Include="EditorServices\ModifyUI.fs" />
-    <Compile Include="EditorServices\TabEvents.fs" />
-    <Compile Include="EditorServices\03_Util.fs" />
+    <Compile Include="Fsi.fs" />
+    <Compile Include="Editor\SyntaxHighlighting.fs" />
+    <Compile Include="Editor\ErrorMarker.fs" />
+    <Compile Include="Editor\Editor.fs" />
+    <Compile Include="Editor\ColumnRulers.fs" />
+    <Compile Include="Editor\DocString.fs" />
+    <Compile Include="Editor\TypeInfoTooltip.fs" />
+    <Compile Include="Editor\CodeCompletion.fs" />
+    <Compile Include="Editor\Folding.fs" />
+    <Compile Include="Editor\Checker.fs" />
+    <Compile Include="Editor\Nuget.fs" />
+    <Compile Include="Editor\65_FsServices.fs" />
+    <Compile Include="Editor\Commenting.fs" />
+    <Compile Include="Editor\ModifyUI.fs" />
+    <Compile Include="Editor\TabEvents.fs" />
 
     <Compile Include="Views\Util.fs" />
     <Compile Include="Views\Log.fs" />
-    <Compile Include="Views\SyntaxHighlighting.fs" />
-    <Compile Include="Views\ErrorMarker.fs" />
-    <Compile Include="Views\Editor.fs" />
+    <Compile Include="Views\Window.fs" />
     <Compile Include="Views\Tab.fs" />
     <Compile Include="Views\Tabs.fs" />
     <Compile Include="Views\TabsAndLog.fs" />
-    <Compile Include="Views\Window.fs" />
     <Compile Include="Views\StatusBar.fs" />
     <Compile Include="Views\Menu.fs" />
     <Compile Include="Commands.fs" />

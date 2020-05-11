@@ -12,13 +12,13 @@ module Initialize =
     
     let views(context:AppRunContext, startupArgs:string[])=
         let log = new Log()        
-        let config = new Config(log,context)
+        let config = new Config(log,context,startupArgs)
         log.AdjustToSettingsInConfig(config)
 
         let win = new Window(config)
-        let tabs = new Tabs(config,startupArgs, win.Window)
-        let tabsAndLog = new TabsAndLog(tabs,log,win.Window,config)
-        let fsi = Fsi(config)
+        let tabs = new Tabs(config, win.Window)
+        let tabsAndLog = new TabsAndLog(config, tabs, log, win)
+        let fsi = Fsi(config)// TODO first start FS checker only then FSI
         let statusBar = StatusBar(fsi)
         let menu = Menu(config)
 
@@ -45,7 +45,7 @@ module Initialize =
             ) 
          
 
-        win.Window.Background  <- Menu.Bar.Background // call after setting up content, otherwise space next to tab headers is in an odd color
+        win.Window.Background  <- menu.Bar.Background // call after setting up content, otherwise space next to tab headers is in an odd color
         win.Window.Content     <- Util.dockPanelVert(menu.Bar, tabsAndLog.Grid, statusBar.Bar)
         win.Window.InputBindings.AddRange (Commands.allShortCutKeyGestures ())
 
@@ -53,10 +53,6 @@ module Initialize =
         Timer.InstanceStartup.tic()             // optional timer for full init process
         Sync.installSynchronizationContext()    // do first
 
-        // http://fsharp.github.io/FSharp.Compiler.Service/caches.html
-        // https://github.com/fsharp/FSharp.Compiler.Service/blob/71272426d0e554e0bac32ad349bbd9f5fa8a3be9/src/fsharp/service/service.fs#L35
-        Environment.SetEnvironmentVariable ("FCS_ParseFileCacheSize", "5") 
-        
         let en_US = Globalization.CultureInfo.CreateSpecificCulture("en-US")        
         Globalization.CultureInfo.DefaultThreadCurrentCulture   <- en_US
         Globalization.CultureInfo.DefaultThreadCurrentUICulture <- en_US
@@ -83,8 +79,4 @@ module Initialize =
 
         Tabs.OnTabAdded.Add TabEvents.setUpForTab
         Tabs.OnTabChanged.Add (fun t -> textChanged (TabChanged , t) ) 
-        //------ Seff Views----------------
         
-        log.Initialize()                        // do second so it can be used in Config already
-        Config.Initialize(context)              // do third so settings are loaded from file and  availabe 
-        Win.Initialize(startupArgs)

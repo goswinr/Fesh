@@ -1,5 +1,6 @@
-﻿namespace Seff
+﻿namespace Seff.Editor
 
+open Seff
 open Seff.Util
 open System
 open System.Windows
@@ -13,7 +14,7 @@ open FSharp.Compiler
 open FSharp.Compiler.SourceCodeServices
 open ICSharpCode.AvalonEdit.Folding
 
-module FsFolding = 
+module Folding = 
     
     /// a hash value to  see if folding state needs updating
     let mutable FoldStateHash = 0
@@ -30,7 +31,7 @@ module FsFolding =
     let minLinesForFold = 1
 
     ///Get foldings at every line that is followed by an indent
-    let get (tab:Tab, code:string) : Async<unit> =
+    let get (ed:Editor, code:string) : Async<unit> =
         async{ 
             do! Async.SwitchToThreadPool()
             let foldings=ResizeArray<int*int>()
@@ -81,11 +82,11 @@ module FsFolding =
             
             let state = getFoldstate foldings
             if state = FoldStateHash then 
-                tab.Foldings <- None
+                ed.Foldings <- None
             else
                 FoldStateHash <- state
-                tab.Foldings<- Some foldings
-            do! Async.SwitchToContext Sync.syncContext
+                ed.Foldings<- Some foldings
+            //do! Async.SwitchToContext Sync.syncContext
             }
 
     

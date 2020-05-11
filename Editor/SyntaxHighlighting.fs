@@ -1,4 +1,4 @@
-namespace Seff.Views
+namespace Seff.Editor
 
 open System
 open System.Drawing

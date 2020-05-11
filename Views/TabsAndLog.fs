@@ -9,7 +9,7 @@ open Seff.Views.Util
 
 /// A Static class holding the main grid of Tabs and the log Window
 /// Includes logic for toggeling the view split and saving and restoring size and position
-type TabsAndLog (tabs:Tabs,log:Log,win:Window,config:Config) =
+type TabsAndLog (config:Config,tabs:Tabs,log:Log,win:Views.Window) =
     
 
     let grid                = new Grid()
@@ -77,22 +77,20 @@ type TabsAndLog (tabs:Tabs,log:Log,win:Window,config:Config) =
     member this.ToggleMaxLog() = 
         if  isLogMaxed then // if it is already maxed then size down again
             isLogMaxed <- false
-            editorRowHeight.Height   <- makeGridLength <|config.Settings.GetFloat "EditorHeight" 99.// TODO ad vert
+            editorRowHeight.Height   <- makeGridLength <|config.Settings.GetFloat "EditorHeight" 99.
             logRowHeight.Height      <- makeGridLength <|config.Settings.GetFloat "LogHeight"    99.
             editorColumnWidth.Width  <- makeGridLength <|config.Settings.GetFloat "EditorWidth" 99.
-            logColumnWidth.Width     <- makeGridLength <|config.Settings.GetFloat "LogWidth"    99.
-            let wasMax = config.Settings.GetBool "WindowWasMax" false 
-            if not wasMax then win.WindowState <- WindowState.Normal
+            logColumnWidth.Width     <- makeGridLength <|config.Settings.GetFloat "LogWidth"    99.            
+            if not win.WasMax then win.Window.WindowState <- WindowState.Normal
         else
+            // maximase log view
             isLogMaxed <- true
-            let isMinOrMax = config.Settings.GetBool "WindowIsMinOrMax" false 
-            config.Settings.SetBool "WindowWasMax" isMinOrMax             
-            if not isMinOrMax then win.WindowState <- WindowState.Maximized
+            win.WasMax <- win.IsMinOrMax            
+            if not win.IsMinOrMax  then win.Window.WindowState <- WindowState.Maximized
             editorRowHeight.Height   <- makeGridLength 0.
             logRowHeight.Height      <- makeGridLength 999.
             editorColumnWidth.Width  <- makeGridLength 0.
             logColumnWidth.Width     <- makeGridLength 999.
 
     member this.Grid = grid
-    
     

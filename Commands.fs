@@ -52,7 +52,7 @@ type Commands private () =
     static member val SelectLinesUp   = "Select Lines Upwards"      , "Shift + Up"    , mkCmdSimple (fun a -> ModifyUI.expandSelectionToFullLines Tabs.Current|> ignore),"Not implemented yet"
     static member val SelectLinesDown = "Select Lines Downwards"    , "Shift + Down"  , mkCmdSimple (fun a -> ModifyUI.expandSelectionToFullLines Tabs.Current|> ignore),"Not implemented yet"
    
-    static member val SettingsFolder = "Open Settings Folder"       , ""              , mkCmdSimple (fun a -> Config.openConfigFolder()), "Opens the Folder where user settinsg such as default file content is saved."
+    static member val SettingsFolder = "Open Settings Folder"       , ""              , mkCmdSimple (fun a -> config.openConfigFolder()), "Opens the Folder where user settinsg such as default file content is saved."
    
     static member val ReloadXshd =     "Reload Xshd file"           , "F11"           , mkCmdSimple (fun a -> SyntaxHighlighting.setFSharp(Tabs.Current.Editor,true)), "for Testing only: Reloads the Syntax highlighting file FSharpSynatxHighlighterExtended.xshd"
    

@@ -1,4 +1,4 @@
-﻿namespace Seff
+﻿namespace Seff.Editor
 
 open System.Windows.Input
 open System.Threading
@@ -10,19 +10,19 @@ open ICSharpCode.AvalonEdit.CodeCompletion
 open ICSharpCode.AvalonEdit.Document
 open Seff.Util.General
 open Seff.Util.String
-open Seff.CompletionUI
-open Seff.FsChecker
+open Seff.Editor.CodeCompletion
+open Seff.Editor
 
 
 module EditorUtil=
 
-    let currentLine(tab:Tab)=
-        let doc = tab.Editor.Document
-        doc.GetText(doc.GetLineByOffset(tab.Editor.CaretOffset))
+    let currentLine(ed:Editor)=
+        let doc = ed.AvaEdit.Document
+        doc.GetText(doc.GetLineByOffset(ed.AvaEdit.CaretOffset))
     
-    let currentLineBeforeCaret(tab: Tab)=
-        let doc = tab.Editor.Document
-        let car = tab.Editor.TextArea.Caret
+    let currentLineBeforeCaret(ed: Editor)=
+        let doc = ed.AvaEdit.Document
+        let car = ed.AvaEdit.TextArea.Caret
         let caretOffset = car.Offset
         let ln = doc.GetLineByOffset(caretOffset)
         let caretOffsetInThisLine = caretOffset - ln.Offset
@@ -41,10 +41,10 @@ module FsService =
     let keywordsComletionLines = [| 
         for kw,desc in Keywords.KeywordsWithDescription  do 
             yield CompletionLineKeyWord(kw,desc) :> ICompletionData
-        yield CompletionLineKeyWord("__SOURCE_DIRECTORY__","Evaluates to the current full path of the source directory" ) :> ICompletionData    
-        yield CompletionLineKeyWord("__SOURCE_FILE__"     ,"Evaluates to the current source file name, without its path") :> ICompletionData    
-        yield CompletionLineKeyWord("__LINE__",            "Evaluates to the current line number") :> ICompletionData    
-        |]
+            yield CompletionLineKeyWord("__SOURCE_DIRECTORY__","Evaluates to the current full path of the source directory" ) :> ICompletionData    
+            yield CompletionLineKeyWord("__SOURCE_FILE__"     ,"Evaluates to the current source file name, without its path") :> ICompletionData    
+            yield CompletionLineKeyWord("__LINE__",            "Evaluates to the current line number") :> ICompletionData    
+            |]
     let Keywords = Keywords.KeywordsWithDescription |> List.map fst |> HashSet
 
     // to be able to cancel all running FSC checker threads when text changed (there should only be one)
@@ -53,48 +53,45 @@ module FsService =
 
     let inline cleartoken(checkerId) =
         let ok,_ = FsCheckerCancellationSources.TryRemove(checkerId)
-        if not ok && checkerId<> 0 then log.Print "Failed to remove token '%d' from  FsCheckerCancellationSources" checkerId
+        if not ok && checkerId<> 0 then printfn "Failed to remove token '%d' from  FsCheckerCancellationSources" checkerId //TODO use log
         ()
 
-    let checkForErrorsAndUpdateFoldings (tab:Tab, checkDone : Option<FsCheckResults> ) = 
+    let checkForErrorsAndUpdateFoldings (ed:Editor, checkDone : Option<FsCheckResults> ) = 
         //log.Print "*checkForErrorsAndUpdateFoldings..."
+        
         let mutable checkerId = 0 
 
         let updateFoldings () =             
             cleartoken(checkerId)
-            if tab.FsCheckerId = checkerId then 
-                if tab.Foldings.IsSome && notNull tab.FoldingManager && tab.IsCurrent then 
+            if ed.FsCheckerId = checkerId then 
+                if ed.Foldings.IsSome && notNull ed.FoldingManager && ed.IsCurrent then 
                     let foldings=ResizeArray<NewFolding>()
-                    for st,en in tab.Foldings.Value do foldings.Add(NewFolding(st,en)) //if new folding type is created async a waiting symbol apears on top of it 
+                    for st,en in ed.Foldings.Value do foldings.Add(NewFolding(st,en)) //if new folding type is created async a waiting symbol apears on top of it 
                     let firstErrorOffset = -1 //The first position of a parse error. Existing foldings starting after this offset will be kept even if they don't appear in newFoldings. Use -1 for this parameter if there were no parse errors)                    
-                    tab.FoldingManager.UpdateFoldings(foldings,firstErrorOffset)
-                tab.FsCheckerId <- 0
+                    ed.FoldingManager.UpdateFoldings(foldings,firstErrorOffset)
+                ed.FsCheckerId <- 0
 
         let highlightErrors (chr:FsCheckResults) = 
             cleartoken(checkerId)
             async{ 
                 do! Async.SwitchToContext Sync.syncContext                
-                if tab.FsCheckerId = checkerId && chr.ok && tab.IsCurrent then
-                    tab.FsCheckerResult <- Some chr.checkRes // cache for type info
-                    tab.ErrorMarker.Clear()
+                if ed.FsCheckerId = checkerId && chr.ok && ed.IsCurrent then
+                    ed.FsCheckerResult <- Some chr.checkRes // cache for type info
+                    ed.ErrorMarker.Clear()
                     match chr.checkRes.Errors with 
                     | [| |] -> 
-                        //tab.Editor.Background <- Appearance.editorBackgroundOk
+                        //ed.Editor.Background <- Appearance.editorBackgroundOk
                         StatusBar.SetErrors ([| |])
                     | es   -> 
-                        //tab.Editor.Background <- Appearance.editorBackgroundErr
+                        //ed.Editor.Background <- Appearance.editorBackgroundErr
                         StatusBar.SetErrors (es)
-                        for e in es |> Seq.truncate 4 do // TODO Only highligth the first 3 Errors, Otherwise UI becomes unresponsive at 100 errors ( eg when pasting text)
-                            let startOffset = tab.Editor.Document.GetOffset(new TextLocation(e.StartLineAlternate, e.StartColumn + 1 ))
-                            let endOffset   = tab.Editor.Document.GetOffset(new TextLocation(e.EndLineAlternate,   e.EndColumn   + 1 ))
-                            let length      = endOffset-startOffset
-                            tab.ErrorMarker.Create(startOffset, length, e.Message+", Error: "+ (string e.ErrorNumber))
-                            Packages.checkForMissingPackage tab e startOffset length
+                        ed.ErrorMarker.AddSegments(es)
+                        Packages.checkForMissingPackage tab e startOffset length
 
                 do! Async.Sleep 500  
-                if tab.FsCheckerId = checkerId && tab.IsCurrent then // another checker migh alredy be started
+                if ed.FsCheckerId = checkerId && ed.IsCurrent then // another checker migh alredy be started
                     checkerId <- rand.Next()  
-                    tab.FsCheckerId <- checkerId
+                    ed.FsCheckerId <- checkerId
                     let cancelFoldScr = new CancellationTokenSource()
                     if not <| FsCheckerCancellationSources.TryAdd(checkerId,cancelFoldScr) then log.Print "Failed to collect FsFolderCancellationSources" 
                     Async.StartWithContinuations(
@@ -111,10 +108,10 @@ module FsService =
             highlightErrors (chr)        
         |None ->
             checkerId <- rand.Next()  
-            tab.FsCheckerId <- checkerId                 
+            ed.FsCheckerId <- checkerId                 
             async{  
                 do! Async.Sleep 200               
-                if tab.FsCheckerId = checkerId &&  tab.IsCurrent then
+                if ed.FsCheckerId = checkerId &&  ed.IsCurrent then
                     let cancelScr = new CancellationTokenSource()
                     if not <| FsCheckerCancellationSources.TryAdd(checkerId,cancelScr) then log.Print "Failed to add FsCheckerCancellationSources" 
             
@@ -134,13 +131,13 @@ module FsService =
             checkForErrorsAndUpdateFoldings(tab,None)
             
         else
-            let prevCursor = tab.Editor.Cursor
-            tab.Editor.Cursor <- Cursors.Wait
+            //let prevCursor = ed.Editor.Cursor
+            //ed.Editor.Cursor <- Cursors.Wait //TODO does this get stuck on folding collumn ?
 
             let aComp = 
                 async{
                     let! chr =  FsChecker.checkAndIndicate (tab,  pos.offset, 0)
-                    if chr.ok && tab.IsCurrent then                        
+                    if chr.ok && ed.IsCurrent then                        
                         //log.Print "*2-prepareAndShowComplWin geting completions"
                         let ifDotSetback = if charBefore = Dot then setback else 0
                         let! decls     = FsChecker.getDeclListInfo    (chr.parseRes , chr.checkRes , pos , ifDotSetback) //TODO, can this be avoided use info from below symbol call ?
@@ -165,22 +162,22 @@ module FsService =
                             | _ -> if not onlyDU then                                         completionLines.Add (new CompletionLine(it, (changetype = EnteredDot), optArgDict))
                         
 
-                        tab.Editor.Cursor <- prevCursor
-                        if tab.IsCurrent then
+                        //ed.Editor.Cursor <- prevCursor
+                        if ed.IsCurrent then
                             //log.Print "*prepareAndShowComplWin for '%s' with offset %d" pos.lineToCaret setback                            
                             if completionLines.Count > 0 then showCompletionWindow(tab, completionLines, setback, query)
                             else checkForErrorsAndUpdateFoldings(tab, Some chr)
                 } 
             
             let checkerId = rand.Next()  
-            tab.FsCheckerId <- checkerId 
+            ed.FsCheckerId <- checkerId 
             let cancelScr = new CancellationTokenSource()
             if not <| FsCheckerCancellationSources.TryAdd(checkerId,cancelScr) then log.PrintAppErrorMsg "Failed to collect FsCheckerCancellationSources"
             Async.StartImmediate(aComp, cancelScr.Token)   
     
     let textChanged (change:TextChange ,tab:Tab) =
         log.PrintDebugMsg "*1-textChanged because of %A" change 
-        match tab.CompletionWin with
+        match ed.CompletionWin with
         | Some w ->  
             if w.CompletionList.ListBox.HasItems then 
                 //TODO check text is full mtch and close completion window ?

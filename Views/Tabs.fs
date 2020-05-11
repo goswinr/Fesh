@@ -1,6 +1,7 @@
 ﻿namespace Seff.Views
 
 open Seff
+open Seff.Editor
 open System
 open System.IO
 open System.Windows.Controls
@@ -99,7 +100,7 @@ type Tabs(config:Config, startupArgs: string[], win:Window) =
         match tab.FileInfo with 
         |Some fi -> 
             config.RecentlyUsedFiles.Save(fi)
-            if not makeCurrent then config.OpenTabs.Save(tab.FileInfo , allFileInfos)  // if make Current this is  done in SelectionChanged event below
+            if not makeCurrent then config.OpenTabs.Save(tab.FileInfo , allFileInfos)  // if makeCurrent this is done in tabs.SelectionChanged event handler below
         |None -> ()
         tab.CloseButton.Click.Add (fun _ -> closeTab(tab))
        
@@ -134,7 +135,7 @@ type Tabs(config:Config, startupArgs: string[], win:Window) =
 
     
     do
-        tabs.SelectionChanged.Add( fun _-> // when closing, opening or changing tabs  attach firs so it will be triggered below
+        tabs.SelectionChanged.Add( fun _-> // when closing, opening or changing tabs  attach first so it will be triggered below when adding files
             if tabs.Items.Count = 0 then //  happens when closing the last open tab
                 win.Close() // exit App ? (chrome and edge also closes when closing the last tab, Visual Studio not)
             else
@@ -143,25 +144,17 @@ type Tabs(config:Config, startupArgs: string[], win:Window) =
                     else tabs.SelectedItem                 
                 let tab = tab :?> Tab
                 current <- tab
-                for t in allTabs do t.IsCurrent<- false  // first set all false then one true              
-                tab.IsCurrent <-true                
+                for t in allTabs do
+                    t.Editor.IsCurrent <- false 
+                    t.IsCurrent <- false  // first set all false then one true              
+                tab.IsCurrent <-true
+                tab.Editor.IsCurrent <- true 
                 currentTabChangedEv.Trigger(tab) // to start fschecker
                 config.OpenTabs.Save(tab.FileInfo , allFileInfos)
             )
         
-        let files = config.OpenTabs.Get()
-        try
-            for p in startupArgs do
-                let fi = FileInfo(p)
-                if fi.Exists then 
-                    let lc = fi.FullName.ToLowerInvariant()
-                    if not <| Seq.exists(fun (f:FileInfo,_) -> lc = f.FullName.ToLowerInvariant()) files then //make sure to not open it twice                        
-                        files.Add ((fi,true)) // make file from arguments current
-        with e -> 
-            log.PrintAppErrorMsg "Error reading startup arguments: %A %A"  startupArgs e
-            
-        for fi,curr in files do
-            addFile(fi,curr)  |> ignore 
+        for f in config.OpenTabs.Get() do 
+            addFile( f.file, f.makeCurrent)  |> ignore 
 
         if tabs.Items.Count=0 then //Open default file if none found in recent files or args                
             addTab(Tab(Editor(config),None), true) |> ignore 

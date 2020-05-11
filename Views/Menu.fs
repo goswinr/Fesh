@@ -194,7 +194,7 @@ type Menu (config:Config) =
     member SetRecentFiles()=
         async{            
             let fis = 
-                Config.RecentlyUsedFiles.Items
+                config.RecentlyUsedFiles.Items
                 |> Seq.filter ( fun fi -> fi.Exists)
                 |> Seq.distinctBy( fun fi -> fi.FullName.ToLowerInvariant())
                 |> Seq.truncate maxFilesInRecentMenu

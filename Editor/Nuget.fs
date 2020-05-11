@@ -1,4 +1,4 @@
-﻿namespace Seff
+﻿namespace Seff.Editor
 
 open System
 open System.Windows.Input
@@ -9,7 +9,7 @@ open ICSharpCode.AvalonEdit.CodeCompletion
 open ICSharpCode.AvalonEdit.Document
 open Seff.Util
 open Seff.Util.String
-open Seff.CompletionUI
+open Seff.Editor.CodeCompletion
 
 open System
 open System.IO
@@ -25,9 +25,9 @@ module Packages=
     let Searched = Dictionary<string,string>()
     let mutable isRunning = false
 
-    let checkForMissingPackage (tab:Tab)(e:FSharpErrorInfo) startOffset length=
+    let checkForMissingPackage (tab:Editor)(e:FSharpErrorInfo) startOffset length=
         if e.ErrorNumber = 84 then 
-            let doc = tab.Editor.Document
+            let doc = tab.AvaEdit.Document
             let hook = doc.CreateAnchor(startOffset)
             let errTxt =  doc.GetText(startOffset, length)
             let errLine = doc.GetText(doc.GetLineByOffset(startOffset))
@@ -45,7 +45,7 @@ module Packages=
                                     doc.Replace(hook.Offset,length,s)  
 
                         isRunning <- true
-                        printfn "-looking for package '%s' for %A (not implemeted yet)" name tab.FileInfo
+                        printfn "-looking for package '%s' (not implemeted yet)" name 
                         //getInstallOk tab name setNewRef
                         isRunning <- false
 

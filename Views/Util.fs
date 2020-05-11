@@ -151,6 +151,7 @@ module Util =
         member this.RaiseCanExecuteChanged () = canExecuteChanged.Trigger(this , EventArgs.Empty)        
            
         //interface is implemented as members and as interface members( to be sure it works):
+        [<CLIEvent>]
         member this.CanExecuteChanged = canExecuteChanged.Publish
         member this.CanExecute p = canExecute p
         member this.Execute p = execute p

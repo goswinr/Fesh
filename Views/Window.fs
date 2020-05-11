@@ -7,7 +7,7 @@ open Seff.Model
 
 /// A class holding the main WPF Window
 /// Includes loading Icon and logic for saving and restoring size and position
-type Window (config:Config.Config)= 
+type Window (config:config.Config)= 
     
     let win = new Windows.Window()    
 
@@ -114,32 +114,30 @@ type Window (config:Config.Config)=
     member this.Window = win
     
     //indicating if the Window is in Fullscreen mode
-    member this.IsMinOrMax_
-        with get() = config.Settings.GetBool "WindowIsMinOrMax" false 
-        and set(v) = config.Settings.SetBool "WindowIsMinOrMax" v  //isMinOrMax <- v
+    member this.IsMinOrMax = isMinOrMax
+      
 
     //indicating if the Window was in  Fullscreen mode before switching to temporary Log only fullscreeen
-    member this.WasMax_ 
-          // not using internal mutable so window can be declared at a later point and Log+Editor grid can access these values from config
-          with get() = config.Settings.GetBool "WindowWasMax" false 
-          and set(v) = config.Settings.SetBool "WindowWasMax" v  //wasMax <- v 
+    member this.WasMax 
+        with get() = wasMax  
+        and set(v) = wasMax <- v 
 
 
           
-          (* done in Initialize function 
-          win.ContentRendered.Add(fun _ -> 
-              //if not <| Tabs.Current.Editor.Focus() then log.PrintAppErrorMsg "Tabs.Current.Editor.Focus failed"  //or System.Windows.Input.FocusManager.SetFocusedElement(...)             
-              log.PrintInfoMsg "* Time for loading and render main window: %s"  Timer.InstanceStartup.tocEx            
-              Fsi.Initalize() // do late to be sure errors can print to log and dont get lost (Rhino has problems with FSI from  FCS 33.0.1 on) ) 
+    (* done in Initialize function 
+    win.ContentRendered.Add(fun _ -> 
+        //if not <| Tabs.Current.Editor.Focus() then log.PrintAppErrorMsg "Tabs.Current.Editor.Focus failed"  //or System.Windows.Input.FocusManager.SetFocusedElement(...)             
+        log.PrintInfoMsg "* Time for loading and render main window: %s"  Timer.InstanceStartup.tocEx            
+        Fsi.Initalize() // do late to be sure errors can print to log and dont get lost (Rhino has problems with FSI from  FCS 33.0.1 on) ) 
               
-          win.Closing.Add( fun e ->
-              // first check for running FSI
-              match Fsi.AskIfCancellingIsOk () with 
-              | NotEvaluating   -> ()
-              | YesAsync        -> Fsi.CancelIfAsync() 
-              | Dont            -> e.Cancel <- true // dont close window   
-              | NotPossibleSync -> () // still close despite running thread ??            
-              //second check for unsaved files:
-              let canClose = tabs.askIfClosingWindowIsOk(Tabs.AllTabs,Tabs.SaveAs) 
-              if not canClose then e.Cancel <- true // dont close window  
-              ) *)
+    win.Closing.Add( fun e ->
+        // first check for running FSI
+        match Fsi.AskIfCancellingIsOk () with 
+        | NotEvaluating   -> ()
+        | YesAsync        -> Fsi.CancelIfAsync() 
+        | Dont            -> e.Cancel <- true // dont close window   
+        | NotPossibleSync -> () // still close despite running thread ??            
+        //second check for unsaved files:
+        let canClose = tabs.askIfClosingWindowIsOk(Tabs.AllTabs,Tabs.SaveAs) 
+        if not canClose then e.Cancel <- true // dont close window  
+        ) *)

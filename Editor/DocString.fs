@@ -16,7 +16,7 @@ open FSharp.Compiler.SourceCodeServices
 
 
 /// taken and adapeted from FsAutoComplete
-module XmlToolTipFormatter =
+module DocString =
 
     module private Section =
 
@@ -246,7 +246,7 @@ module XmlToolTipFormatter =
                     xmlDocCache.AddOrUpdate(xmlFile, xmlDoc, fun _ _ -> xmlDoc) |> ignore
                     Some xmlDoc
                 with ex ->
-                    log.Print "***Error in reading xml file %s \r\nfor tooltips: %s" actualXmlFile ex.Message
+                    printfn  "***Error in reading xml file %s \r\nfor tooltips: %s" actualXmlFile ex.Message /// TODO ad printing to LOG ?
                     None  // TODO: Remove the empty map from cache to try again in the next request?
                 //} Async.
 

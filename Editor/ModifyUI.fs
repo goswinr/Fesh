@@ -10,15 +10,15 @@ open Seff.Util
 module ModifyUI = 
    
     let toggleLogLineWrap()=
-        if Config.Settings.GetBool "logHasLineWrap" true then 
+        if config.Settings.GetBool "logHasLineWrap" true then 
             log.ReadOnlyEditor.WordWrap         <- false 
             log.ReadOnlyEditor.HorizontalScrollBarVisibility <- ScrollBarVisibility.Auto
-            Config.Settings.SetBool "logHasLineWrap" false
+            config.Settings.SetBool "logHasLineWrap" false
         else
             log.ReadOnlyEditor.WordWrap         <- true  
             log.ReadOnlyEditor.HorizontalScrollBarVisibility <- ScrollBarVisibility.Disabled 
-            Config.Settings.SetBool "logHasLineWrap" true
-        Config.Settings.Save ()
+            config.Settings.SetBool "logHasLineWrap" true
+        config.Settings.Save ()
 
     //----------------------
     //-------- Fontsize-----
@@ -28,9 +28,9 @@ module ModifyUI =
         log.ReadOnlyEditor.FontSize    <- newSize
         for t in Tabs.AllTabs do                
             t.Editor.FontSize  <- newSize        
-        Config.Settings.SetFloat "FontSize" newSize 
+        config.Settings.SetFloat "FontSize" newSize 
         Appearance.fontSize <- newSize
-        Config.Settings.Save ()
+        config.Settings.Save ()
         log.Print "new Fontsize: %.1f" newSize
 
     /// affects Editor and Log

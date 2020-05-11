@@ -26,6 +26,6 @@ module Appearance =
 
     let mutable font = FontFamily("Consolas")
     
-    let mutable fontSize = 14.0
+    let mutable fontSize = 14.0 //will also be used for sizing tooltip text
 
     let dialogCaption = "Seff | Scripting editor for fsharp"   
