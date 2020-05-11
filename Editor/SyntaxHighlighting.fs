@@ -1,5 +1,7 @@
 namespace Seff.Editor
 
+open Seff
+open Seff.Config
 open System
 open System.Drawing
 
@@ -10,7 +12,7 @@ module SyntaxHighlighting =
     
     let mutable private fsHighlighting: IHighlightingDefinition option = None //use same highlighter for al tabs. load just once 
 
-    let setFSharp (ed:TextEditor,forceReLoad) = //must be a function to be calld at later moment.
+    let setFSharp (ed:TextEditor,config:Config,forceReLoad) = //must be a function to be calld at later moment.
         if fsHighlighting.IsNone || forceReLoad then 
             async{
                 try
@@ -24,7 +26,7 @@ module SyntaxHighlighting =
                     do! Async.SwitchToContext Sync.syncContext
                     ed.SyntaxHighlighting <- fsh
                 with e -> 
-                    log.Print "Error loading Syntax Highlighting: %A" e
+                    config.Log.PrintAppErrorMsg "Error loading Syntax Highlighting: %A" e
                 } |> Async.Start
         else 
             ed.SyntaxHighlighting <- fsHighlighting.Value

@@ -22,7 +22,7 @@ module Tooltips =
     
     type ToolTipData = {name:string; signature:string; xmlDocStr: Result<string*string,string>}
 
-    let makePanelVert (xs:list<#UIElement>) =
+    let private makePanelVert (xs:list<#UIElement>) =
         let p = new StackPanel(Orientation= Orientation.Vertical)
         for x in xs do p.Children.Add x |> ignore
         p
@@ -99,7 +99,7 @@ module Tooltips =
         | FSharpXmlDoc.Text s -> Ok (s,"") // "plain text Doc: \r\n" + s
         | FSharpXmlDoc.None -> Error "*FSharpXmlDoc.None*"
         | FSharpXmlDoc.XmlDocFileSignature(dllFile, memberName) ->
-           match DocStringParser.getXmlDoc dllFile with
+           match DocString.getXmlDoc dllFile with
            | Some doc ->
                 if doc.ContainsKey memberName then 
                     let docText = doc.[memberName].ToEnhancedString()
@@ -111,7 +111,7 @@ module Tooltips =
                     //log.Print "%s" err                    
                     Error (err)
            | None -> 
-                Error ("*xml doc file not found for: "+dllFile+"\r\n")
+                Error ("xml doc file not found for: "+dllFile+"\r\n")
 
 
 
@@ -166,7 +166,7 @@ module Tooltips =
         let aved = ed.AvaEdit        
         let doc = aved.Document
         let pos = aved.GetPositionFromPoint(e.GetPosition(aved))
-        if pos.HasValue && ed.FsCheckerResult.IsSome then                            
+        if pos.HasValue && ed.CheckerResult.IsSome then                            
             let line = pos.Value.Line            
                 
             //TODO check for in string to give #r tooltip
@@ -202,7 +202,7 @@ module Tooltips =
                     do! Async.SwitchToThreadPool()
 
                     let! stt =   ed.FsCheckerResult.Value.GetStructuredToolTipText(line,endCol,lineTxt,[word],FSharpTokenTag.Identifier)     //TODO, can this be avoided use info from below symbol call ?
-                    let! symbls = ed.FsCheckerResult.Value.GetSymbolUseAtLocation(line,endCol,lineTxt,[word]) //only get info about oprional paramters
+                    let! symbls = ed.FsCheckerResult.Value.GetSymbolUseAtLocation(line,endCol,lineTxt,[word]) //only get to info about oprional paramters
                     let defArgs = if symbls.IsSome then infoAboutOptinals(symbls.Value) else ResizeArray(0) 
                         
                     do! Async.SwitchToContext Sync.syncContext

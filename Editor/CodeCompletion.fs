@@ -8,7 +8,7 @@ open System
 open System.Windows
 open System.Windows.Controls
 open System.Windows.Media
-
+open ICSharpCode.AvalonEdit
 open ICSharpCode.AvalonEdit.CodeCompletion
 open ICSharpCode.AvalonEdit.Editing
 open ICSharpCode.AvalonEdit.Document
@@ -54,7 +54,7 @@ type CompletionLine (config:Config, ed:Editor, it:FSharpDeclarationListItem, isD
 
     let tb = 
         let mutable tb = TextBlock()
-        tb.Text <- it.Name //+ " " // TODO add padding instaead of space character?
+        tb.Text <- it.Name 
         tb.FontFamily <- Appearance.font  
         tb.FontSize <-   Appearance.fontSize 
         //tb.Foreground  <- col, // does not change color when selected anymore
@@ -83,14 +83,13 @@ type CompletionLine (config:Config, ed:Editor, it:FSharpDeclarationListItem, isD
         } |> Async.Start
         Tooltips.loadingText :> obj
         
-
     member this.Image = null
     member this.Priority = priority
     member this.Text = it.Name
     member this.Complete (textArea:TextArea, completionSegment:ISegment, e ) = 
         //log.Print "%s is %A and %A" it.Name it.Glyph it.Kind
-        //textArea.Document.Replace(completionSegment.Offset + 1, completionSegment.Length, it.Name) //Delete!
-        //textArea.Caret.Offset <- completionSegment.Offset + it.Name.Length + 1  //Delete!          
+        //textArea.Document.Replace(completionSegment.Offset + 1, completionSegment.Length, it.Name) //TODO Delete!
+        //textArea.Caret.Offset <- completionSegment.Offset + it.Name.Length + 1  //TODO Delete!          
         let compl = if it.Glyph = FSharpGlyph.Class && it.Name.EndsWith "Attribute" then "[<" + it.Name.Replace("Attribute",">]") else it.Name     //TODO move this logic out here      
         textArea.Document.Replace(completionSegment, compl) 
         if not isDotCompletion then 
@@ -109,23 +108,24 @@ type CompletionLine (config:Config, ed:Editor, it:FSharpDeclarationListItem, isD
         member this.Priority        = this.Priority
         member this.Text            = this.Text 
             
-type CompletionLineKeyWord (config:Config,text:string, toolTip:string) =
-    //let col = Brushes.DarkBlue    // fails on selection, does not get color inverted
-
+type CompletionLineKeyWord (config:Config, text:string, toolTip:string) =
+    //let col = Brushes.DarkBlue    // fails on selection, does not get color inverted//check  https://blogs.msdn.microsoft.com/text/2009/08/28/selection-brush/ ??
+                
     let style = FontStyles.Normal
     let tb = 
-        new TextBlock(
-                Text = text + " ", // add padding instaead of space character
-                FontFamily = Appearance.font  ,
-                FontSize =   Appearance.fontSize ,
-                //Foreground  = col, // does not change color when selected anymore //check  https://blogs.msdn.microsoft.com/text/2009/08/28/selection-brush/ ??
-                FontStyle = style
-                )
+        let mutable tb = TextBlock()
+        tb.Text <- text
+        tb.FontFamily <- Appearance.font  
+        tb.FontSize <-   Appearance.fontSize 
+        //tb.Foreground  <- col, // does not change color when selected anymore
+        tb.FontStyle <- style
+        tb.Padding <- Thickness(0. , 0. , 8. , 0. ) //left top right bottom / so that it does not aper to be trimmed
+        tb
         
     let priority =  1.0 + config.AutoCompleteStatistic.Get(text) 
         
     member this.Content = tb :> obj
-    member this.Description = toolTip :> obj // it.DescriptionText :> obj // xml ?
+    member this.Description = toolTip :> obj 
     member this.Image = null
     member this.Priority = priority
     member this.Text = text
@@ -141,32 +141,25 @@ type CompletionLineKeyWord (config:Config,text:string, toolTip:string) =
         member this.Priority        = this.Priority
         member this.Text            = this.Text
 
-module CodeCompletion =
+type CompletionWindowManager(ed:TextEditor) =
+    let w = new CodeCompletion.CompletionWindow(ed.TextArea)
     
-    let showWindow( ed:Editor, xs: ICompletionData seq, setback, query:string) =
-        ed.ErrorToolTip.IsOpen    <- false
-        ed.TypeInfoToolTip.IsOpen <- false
-            
-        let w = new CompletionWindow(ed.AvaEdit.TextArea)
-        ed.CompletionWin <- Some w
-        w.StartOffset <- w.StartOffset - setback // to maybe replace some previous characters too           
+    do
         w.BorderThickness <- Thickness(0.0)
         w.ResizeMode      <- ResizeMode.NoResize // needed to have no border!
         w.WindowStyle     <- WindowStyle.None // = no border
         w.SizeToContent   <- SizeToContent.WidthAndHeight //https://github.com/icsharpcode/AvalonEdit/blob/master/ICSharpCode.AvalonEdit/CodeCompletion/CompletionWindow.cs#L47
-        w.MinHeight <- ed.AvaEdit.FontSize
-        w.MinWidth <- ed.AvaEdit.FontSize * 8.0
+        w.MinHeight <- ed.FontSize
+        w.MinWidth <- ed.FontSize * 8.0
         w.Closed.Add (fun _  -> 
             //log.Print "Completion window closed with selected item %s " ed.CompletionWin.Value.CompletionList.SelectedItem.Text
             ed.CompletionWin <- None  
-            ed.CompletionWindowClosed()
-            ed.ErrorToolTip.IsOpen    <- false
-            ed.TypeInfoToolTip.IsOpen <- false
+            ed.CompletionWindowClosed()            
             ed.CompletionWindowJustClosed <- true // to not trigger completion again
             )
         
         w.CompletionList.SelectionChanged.Add(fun _ -> if w.CompletionList.ListBox.Items.Count=0 then w.Close()) // otherwise empty box might be shown and only get closed on second character
-        w.Loaded.Add(fun _ -> if w.CompletionList.ListBox.Items.Count=0 then w.Close()) // close immediatly if completion list is empty
+        w.Loaded.Add(                         fun _ -> if w.CompletionList.ListBox.Items.Count=0 then w.Close()) // close immediatly if completion list is empty
         
         w.CloseAutomatically <-true
         w.CloseWhenCaretAtBeginning <- true
@@ -176,7 +169,20 @@ module CodeCompletion =
         //    try if not w.CompletionList.ListBox.HasItems then w.Close() 
         //    with  _ -> log.Print "Null ref HasItems")// because sometime empty completion window stays open
 
-        for x in xs do w.CompletionList.CompletionData.Add (x) // if window is slow: https://stackoverflow.com/questions/487661/how-do-i-suspend-painting-for-a-control-and-its-children 
+        
+    member this.Show( xs: ICompletionData seq, setback:int , query:string) =
+        w.CompletionList.CompletionData.Clear()
+    
+    
+        ed.ErrorToolTip.IsOpen    <- false
+        ed.TypeInfoToolTip.IsOpen <- false
+            
+        
+        ed.CompletionWin <- Some w
+        w.StartOffset <- w.StartOffset - setback // to maybe replace some previous characters too           
+       
+        for x in xs do 
+            w.CompletionList.CompletionData.Add (x) // if window is slow: https://stackoverflow.com/questions/487661/how-do-i-suspend-painting-for-a-control-and-its-children 
 
         if query.Length > 0 then 
             w.CompletionList.SelectItem(query) //to prefilter the list if query present
@@ -185,9 +191,8 @@ module CodeCompletion =
         w.Show()
         //with e -> log.Print "Error in Showing Code Completion Window: %A" e
 
-        //Event sequence on pressing enter in completion window:// https://github.com/icsharpcode/AvalonEdit/blob/8fca62270d8ed3694810308061ff55c8820c8dfc/ICSharpCode.AvalonEdit/CodeCompletion/CompletionWindow.cs#L100
-        // Close window
-        // insert text into editor (triggers completion if one char only)
-        // raise InsertionRequested event
-
-        
+        // Event sequence on pressing enter in completion window:
+        // (1)Close window
+        // (2)insert text into editor (triggers completion if one char only)
+        // (3)raise InsertionRequested event
+        // https://github.com/icsharpcode/AvalonEdit/blob/8fca62270d8ed3694810308061ff55c8820c8dfc/ICSharpCode.AvalonEdit/CodeCompletion/CompletionWindow.cs#L100

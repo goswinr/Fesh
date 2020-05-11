@@ -40,6 +40,7 @@ type ColumnRulers (columnsInit: seq<int>) =
             columns.AddRange(columnsNew)
             editor.TextArea.TextView.InvalidateLayer(this.Layer)
 
+
     interface IBackgroundRenderer with  // needed in F#: implementing the interface members as properties too.
         member this.Draw(v,c) = this.Draw(v,c)
         member this.Layer     = this.Layer

@@ -14,7 +14,11 @@ open System.Windows
 type Editor (code:string, config:Config) = //as this= 
     
     let ed = new AvalonEdit.TextEditor()    
-      
+    
+    let checker = Checker.Create(config.Log)
+
+    let errorHighligter = new ErrorHighligter(ed)
+
     do
         //Editor.Document.Changed.Add(fun e //trigger text changed, TODO!! listener already added ? or added later        
         ed.Text <- code
@@ -35,30 +39,38 @@ type Editor (code:string, config:Config) = //as this=
         ed.FontFamily <- Seff.Appearance.font
         ed.FontSize <- config.Settings.GetFloat "FontSize" Seff.Appearance.fontSize 
         Search.SearchPanel.Install(ed) |> ignore
-        SyntaxHighlighting.setFSharp(ed,false)
-    
+        SyntaxHighlighting.setFSharp(ed,config,false)
+
+        checker.OnChecked.Add(errorHighligter.Draw)
+        
+
+
     ///additional constructor using default code 
     new (config:Config) =  Editor( config.DefaultCode.Get() , config)
 
     member val AvaEdit = ed 
     
-    member val IsCurrent = false with get,set
+    member val IsCurrent = false with get,set // this is managed in Tabs.selctionChanged event handler 
+    
+    member val Checker = checker
+
+    member val ErrorHighligter = new ErrorHighligter(ed)
+
+
+
+
+
 
     member val FoldingManager = Folding.FoldingManager.Install(ed.TextArea)  
     
     member val Foldings:Option<ResizeArray<int*int>> =  None with get,set
     
     member val CompletionWin : CodeCompletion.CompletionWindow option = None with get,set   
-    
-    member val CheckerResult: FSharpCheckFileResults option = None with get,set
-    
-    member val CheckerId = 0 with get,set // each check will get a unique id, used for UI background only?    
-    
-    member val ErrorToolTip =    new ToolTip(IsOpen=false) with get,set 
+        
+
 
     member val TypeInfoToolTip = new ToolTip(IsOpen=false) with get,set
-    
-    member val ErrorMarker = new ErrorMarker(ed) with get
+   
     
     member val CompletionWindowJustClosed = false with get,set // for one letter completions to not trigger another completion
     

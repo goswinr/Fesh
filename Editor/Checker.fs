@@ -18,7 +18,7 @@ type CheckResults = {   parseRes:FSharpParseFileResults;
                         code:string
                         tillOffset:int}
 
-type Checker (log:ISeffLog) = 
+type Checker private (log:ISeffLog) = 
     
     let mutable checker: FSharpChecker Option = None
     
@@ -32,10 +32,11 @@ type Checker (log:ISeffLog) =
     let checkedEv = new Event<FSharpErrorInfo[]>()
 
     /// to check full code use 0 as 'tillOffset'
-    let check(ed:Editor, fileInfo:FileInfo option, tillOffset, continueOnThreadPool:CheckResults->unit) = 
+    let check(ed:TextEditor, fileInfo:FileInfo option, tillOffset, continueOnThreadPool:CheckResults->unit) = 
+        let thisId = Interlocked.Increment checkId
         checkingEv.Trigger()
         async {            
-            let thisId = Interlocked.Increment checkId
+            
 
             match checker with 
             | Some ch -> ()
@@ -49,8 +50,8 @@ type Checker (log:ISeffLog) =
             
             if !checkId = thisId then
                 let code = 
-                    if tillOffset = 0 then ed.AvaEdit.Document.CreateSnapshot().Text //the only threadsafe way to acces the code string
-                    else                   ed.AvaEdit.Document.CreateSnapshot(0, tillOffset).Text
+                    if tillOffset = 0 then ed.Document.CreateSnapshot().Text //the only threadsafe way to acces the code string
+                    else                   ed.Document.CreateSnapshot(0, tillOffset).Text
             
                 let fileFsx = 
                     match fileInfo with
@@ -61,8 +62,9 @@ type Checker (log:ISeffLog) =
             
                 if !checkId = thisId  then
                     try
+                        
                         let sourceText = Text.SourceText.ofString code
-                        let! options, optionsErr = checker.Value.GetProjectOptionsFromScript(fileFsx, sourceText, otherFlags = [| "--langversion:preview" |] ) //TODO really use check file in project for scripts??
+                        let! options, optionsErr = checker.Value.GetProjectOptionsFromScript(fileFsx, sourceText, otherFlags = [| "--langversion:preview" |] ) // Gets additional script #load closure information if applicable.
                         for e in optionsErr do log.PrintAppErrorMsg "ERROR in GetProjectOptionsFromScript: %A" e //TODO make lo print
         
                         // "filename">The name of the file in the project whose source is being checked
@@ -105,7 +107,7 @@ type Checker (log:ISeffLog) =
                                 *)
                         if !checkId = thisId  then
                             try
-                                let! parseRes , checkAnswer = checker.Value.ParseAndCheckFileInProject(fileFsx, 0, sourceText, options) // can also be done in two speterate calls   //TODO really use check file in project for scripts??         
+                                let! parseRes , checkAnswer = checker.Value.ParseAndCheckFileInProject(fileFsx, 0, sourceText, options) // can also be done in two  calls   //TODO really use check file in project for scripts??         
                                 match checkAnswer with
                                 | FSharpCheckFileAnswer.Succeeded checkRes ->   
                                     if !checkId = thisId  then
@@ -127,18 +129,31 @@ type Checker (log:ISeffLog) =
                             results <- None 
             } |> Async.Start
     
+    
+    static let mutable singleInstance:Checker option  = None
+    
+    /// ensures only one instance is created
+    static member Create(log) = 
+        match singleInstance with 
+        |Some ch -> ch
+        |None -> singleInstance <- Some (new Checker(log)); singleInstance.Value
+
+    member this.Id = checkId
+    
+     /// this event is raised on UI thread
     [<CLIEvent>]
     member this.OnChecking = checkingEv.Publish
     
+    /// this event is raised on UI thread
     [<CLIEvent>]
-    member this.OnChecked = checkingEv.Publish
+    member this.OnChecked = checkedEv.Publish
 
-    /// Triggers Event<FSharpErrorInfo[]> event
-    member this.Ckeck (ed:Editor,fileInfo:FileInfo Option)  = check(ed, fileInfo, 0, ignore)
+    /// Triggers Event<FSharpErrorInfo[]> event after calling the continuation
+    member this.Ckeck (ed:TextEditor,fileInfo:FileInfo Option)  = check(ed, fileInfo, 0, ignore)
 
-    //member this.CkeckTill( ed:Editor, fileInfo:FileInfo Option, tillOffset )  = check(ed, fileInfo, tillOffset, ignore)    
+    //member this.CkeckTill( ed:TextEditor, fileInfo:FileInfo Option, tillOffset )  = check(ed, fileInfo, tillOffset, ignore)    
 
-    member this.GetDeclListInfo (ed:Editor, fileInfo:FileInfo Option, pos :PositionInCode, ifDotSetback, continueOnUI: FSharpDeclarationListInfo -> unit)  =        
+    member this.GetDeclListInfo (ed:TextEditor, fileInfo:FileInfo Option, pos :PositionInCode, ifDotSetback, continueOnUI: FSharpDeclarationListInfo -> unit)  =        
         let thisId = !checkId
         let getDecls(res:CheckResults) = 
             //see https://stackoverflow.com/questions/46980690/f-compiler-service-get-a-list-of-names-visible-in-the-scope
@@ -168,7 +183,7 @@ type Checker (log:ISeffLog) =
         else 
             check(ed, fileInfo, pos.offset, getDecls)
     
-    member this.GetDeclListSymbols (ed:Editor, fileInfo:FileInfo Option, pos :PositionInCode, ifDotSetback, continueOnUI:FSharpSymbolUse list list -> unit)  =        
+    member this.GetDeclListSymbols (ed:TextEditor, fileInfo:FileInfo Option, pos :PositionInCode, ifDotSetback, continueOnUI:FSharpSymbolUse list list -> unit)  =        
         let thisId = !checkId
         let getSymbols(res:CheckResults) = 
             //see https://stackoverflow.com/questions/46980690/f-compiler-service-get-a-list-of-names-visible-in-the-scope

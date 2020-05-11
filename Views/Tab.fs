@@ -61,7 +61,8 @@ type Tab (editor:Editor, fileInfoOp :FileInfo option) = //as this=
     do
         base.Content <- editor 
         base.Header <- header
-        setHeader()  
+        setHeader()
+        editor.Checker.Check(ed,fileInfo)
 
     member this.IsCodeSaved 
         with get() = isCodeSaved 

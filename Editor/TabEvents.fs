@@ -79,48 +79,6 @@ module TabEvents =
         tView.MouseHover.Add        Tooltips.TextEditorMouseHover
         tView.MouseHoverStopped.Add Tooltips.TextEditorMouseHoverStopped
 
-        //-----------------------------
-        //--------Error UI-------------
-        //-----------------------------          
-            
-        tView.BackgroundRenderers.Add(tab.ErrorMarker)
-        tView.LineTransformers.Add(   tab.ErrorMarker)
-        tView.Services.AddService(typeof<ErrorMarker> , tab.ErrorMarker) // what for?
-        tView.MouseHover.Add (fun e ->
-            let pos = tView.GetPositionFloor(e.GetPosition(tView) + tView.ScrollOffset)
-            if pos.HasValue then
-                let logicalPosition = pos.Value.Location
-                let offset = tab.Editor.Document.GetOffset(logicalPosition)
-                let markersAtOffset = tab.ErrorMarker.GetMarkersAtOffset(offset)
-                let markerWithMsg = markersAtOffset.FirstOrDefault(fun marker -> marker.Msg <> null)//LINQ ??
-                if notNull markerWithMsg && notNull tab.ErrorToolTip then
-                    let tb = new TextBlock()
-                    tb.Text <- markerWithMsg.Msg        //TODO move styling out of event handler ?
-                    tb.FontSize <- Appearance.fontSize
-                    tb.FontFamily <- Appearance.font
-                    tb.TextWrapping <- TextWrapping.Wrap
-                    tb.Foreground <- Media.SolidColorBrush(Media.Colors.DarkRed)                    
-                    // TODO use popup instead of tooltip so it can be pinned?
-                    tab.ErrorToolTip.Content <- tb
-                    
-                    let pos = tab.Editor.Document.GetLocation(markerWithMsg.StartOffset) 
-                    let tvpos= TextViewPosition(pos.Line,pos.Column) 
-                    let pt = tab.Editor.TextArea.TextView.GetVisualPosition(tvpos, Rendering.VisualYPosition.LineTop) //https://www.dazhuanlan.com/2019/07/03/wpf-position-a-tooltip-avalonedit%E6%B8%B8%E6%A0%87%E5%A4%84%E6%98%BE%E7%A4%BA/                    Posi
-                    let ptInclScroll = pt - tab.Editor.TextArea.TextView.ScrollOffset
-                    tab.ErrorToolTip.PlacementTarget <- tab.Editor.TextArea
-                    tab.ErrorToolTip.PlacementRectangle <- new Rect(ptInclScroll.X, ptInclScroll.Y, 0., 0.)                    
-                    tab.ErrorToolTip.Placement <- Primitives.PlacementMode.Top //https://docs.microsoft.com/en-us/dotnet/framework/wpf/controls/popup-placement-behavior      
-                    tab.ErrorToolTip.VerticalOffset <- -6.0                   
-                    
-                    tab.ErrorToolTip.IsOpen <- true
-                    //e.Handled <- true
-                    //ErrorToolTipService.SetInitialShowDelay(tab.ErrorToolTip,50) // do in main window create instead
-               
-               )
-
-        tView.MouseHoverStopped.Add ( fun e ->  if notNull tab.ErrorToolTip then  tab.ErrorToolTip.IsOpen <- false ) //; e.Handled <- true) )
-        tView.VisualLinesChanged.Add( fun e ->  if notNull tab.ErrorToolTip then  tab.ErrorToolTip.IsOpen <- false )
-
 
         //------------------------------
         //--------Backspacing-----------
