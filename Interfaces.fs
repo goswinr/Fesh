@@ -1,8 +1,11 @@
 ﻿namespace Seff
 
 open System.IO
+open ICSharpCode
 
 type ISeffLog =
+    abstract member ReadOnlyEditor   : AvalonEdit.TextEditor
+
     // this interface allows the Config to be declared before the Log
     // the Log is created first with this interface and then Config gets it in the constructor
     abstract member PrintInfoMsg     : Printf.TextWriterFormat<'T> -> 'T 

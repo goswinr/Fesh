@@ -1,4 +1,4 @@
-﻿namespace Seff
+﻿namespace Seff.Editor
 
 open System
 open ICSharpCode.AvalonEdit
@@ -8,11 +8,11 @@ module Commenting =
     //----------------------
     //-------- Commenting---  turning code into Comments and back
     //----------------------
-    // 
-    let comment(tab:Tab) =
-        let doc = tab.Editor.Document
-        let start = doc.GetLineByOffset(tab.Editor.SelectionStart)
-        let endeNext = doc.GetLineByOffset(tab.Editor.SelectionStart + tab.Editor.SelectionLength).NextLine            
+    
+    let comment(avaEdit:TextEditor) =
+        let doc = avaEdit.Document
+        let start = doc.GetLineByOffset(avaEdit.SelectionStart)
+        let endeNext = doc.GetLineByOffset(avaEdit.SelectionStart + avaEdit.SelectionLength).NextLine            
         let rec comm ln pos lineK= 
             if ln <> endeNext then 
                 let dl = doc.GetText(ln)
@@ -23,15 +23,15 @@ module Commenting =
                     let ii = if lineK = 0 || i < pos then i else pos // use the indent on first line for position of comments markers unles line is more inside
                     doc.Insert(ln.Offset + ii, "//")
                     comm ln.NextLine ii (lineK+1)           
-        doc.BeginUpdate() //tab.Editor.Document.RunUpdate
+        doc.BeginUpdate() //avaEdit.Document.RunUpdate
         comm start 0 0
         doc.EndUpdate()
         //FsService.textChanged (FsService.OtherChange, tab) // TODO needed ?        
         
-    let unComment(tab:Tab) =
-        let doc = tab.Editor.Document
-        let start = doc.GetLineByOffset(tab.Editor.SelectionStart)
-        let endeNext = doc.GetLineByOffset(tab.Editor.SelectionStart + tab.Editor.SelectionLength).NextLine            
+    let unComment(avaEdit:TextEditor) =
+        let doc = avaEdit.Document
+        let start = doc.GetLineByOffset(avaEdit.SelectionStart)
+        let endeNext = doc.GetLineByOffset(avaEdit.SelectionStart + avaEdit.SelectionLength).NextLine            
         let rec ucomm ln = 
             if ln <> endeNext then 
                 let dl = doc.GetText(ln)                    
@@ -42,9 +42,22 @@ module Commenting =
                         dl.[i]  ='/' &&
                         dl.[i+1]='/' then doc.Remove(ln.Offset + i , 2)                        
                     ucomm ln.NextLine            
-        doc.BeginUpdate()//tab.Editor.Document.RunUpdate
+        doc.BeginUpdate()//avaEdit.Document.RunUpdate
         ucomm start 
         doc.EndUpdate()
         //FsService.textChanged (FsService.OtherChange, tab)// needed ?
 
+module Selection =
+    
+    let expandSelectionToFullLines(avaEdit:TextEditor) =
+        let doc = avaEdit.Document
+        let st = doc.GetLineByOffset(avaEdit.SelectionStart)
+        let en = doc.GetLineByOffset(avaEdit.SelectionStart + avaEdit.SelectionLength)
+        let stoff = st.Offset
+        avaEdit.Select(stoff,en.EndOffset-stoff)
+        avaEdit.SelectedText
+
+    let selectAll(avaEdit:TextEditor) = 
+        let doc = avaEdit.Document
+        avaEdit.Select(0,doc.TextLength)
  

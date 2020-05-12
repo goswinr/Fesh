@@ -16,12 +16,10 @@ type Counter private () =
 
 
  /// The tab that holds the tab header logic and the code editor 
-type Tab (editor:Editor, fileInfoOp :FileInfo option) = //as this= 
+type Tab (editor:Editor) = //as this= 
     inherit TabItem()
     
     let mutable isCodeSaved          = true
-
-    let mutable fileInfo = fileInfoOp
 
     let mutable headerShowsUnsaved   = false
 
@@ -33,15 +31,15 @@ type Tab (editor:Editor, fileInfoOp :FileInfo option) = //as this=
                             Padding = new Thickness(2.) )
     let header = 
         let p = new StackPanel(
-                        Margin = Thickness(2.5 , 0.5 , 0.5 , 2.5),
-                        Orientation= Orientation.Horizontal) //left ,top, right, bottom)
+                        Margin = Thickness(2.5 , 0.5 , 0.5 , 2.5),//left ,top, right, bottom)
+                        Orientation= Orientation.Horizontal) 
         p.Children.Add textBlock  |> ignore
         p.Children.Add closeButton |> ignore
         p
         
         
     let setHeader() = 
-        match fileInfo, isCodeSaved with 
+        match editor.FileInfo, isCodeSaved with 
         |Some fi , true -> 
             textBlock.ToolTip       <- "File saved at:\r\n" + fi.FullName
             textBlock.Text          <- fi.Name
@@ -62,7 +60,9 @@ type Tab (editor:Editor, fileInfoOp :FileInfo option) = //as this=
         base.Content <- editor 
         base.Header <- header
         setHeader()
-        editor.Checker.Check(ed,fileInfo)
+        
+        
+
 
     member this.IsCodeSaved 
         with get() = isCodeSaved 
@@ -74,6 +74,12 @@ type Tab (editor:Editor, fileInfoOp :FileInfo option) = //as this=
                 isCodeSaved <- true
                 setHeader()
     
+    member this.FileInfo
+        with get() = editor.FileInfo
+        and set(fi) =
+            editor.FileInfo <- fi
+            setHeader()
+
     member this.CloseButton = closeButton // public so click event can be attached later in Tabs.fs AddTab
        
     member this.FormatedFileName = 
@@ -81,9 +87,8 @@ type Tab (editor:Editor, fileInfoOp :FileInfo option) = //as this=
         |Some fi  -> sprintf "%s\r\nat\r\n%s" fi.Name fi.DirectoryName
         |None     -> textBlock.Text
     
-    member val IsCurrent = false with get,set
-    
-    member val FileInfo:FileInfo option = fileInfo with get,set
+    member val IsCurrent = false with get,set    
+
 
     member val Editor = editor 
     

@@ -1,19 +1,9 @@
 ﻿namespace Seff.Editor
 
 open System
-open System.Windows.Input
-open System.Threading
 open System.Collections.Generic
 open FSharp.Compiler.SourceCodeServices
-open ICSharpCode.AvalonEdit.CodeCompletion
-open ICSharpCode.AvalonEdit.Document
-open Seff.Util
 open Seff.Util.String
-open Seff.Editor.CodeCompletion
-
-open System
-open System.IO
- 
     
 module Packages=
   

@@ -8,10 +8,10 @@ open System.Threading
 open FSharp.Compiler.Interactive.Shell
 open Seff.Model
 open Seff.Config
-open Seff.Views
+
 
 /// A class to provide an Error Handler that can catch currupted state or access violation errors frim FSI threads too
-type internal ProcessCorruptedState(config:Config) =  
+type ProcessCorruptedState(config:Config) =  
     
 
     // TODO ingerate handler info FSI
@@ -28,11 +28,11 @@ type internal ProcessCorruptedState(config:Config) =
 
 
 
-type Fsi (config:Config) =    
+type Fsi private (config:Config) =    
     let log = config.Log
     
     ///FSI events
-    let startedEv        = new Event<FsiMode>()      //TODO why include mode ar event arg ?
+    let startedEv        = new Event<FsiMode>()      //TODO why include mode in event arg ?
     let runtimeErrorEv   = new Event<Exception>() 
     let canceledEv       = new Event<FsiMode>() 
     let completedOkEv    = new Event<FsiMode>()
@@ -122,7 +122,7 @@ type Fsi (config:Config) =
                     let allArgs = [|"" ; "--langversion:preview" ; "--noninteractive" ; "--debug+"; "--debug:full" ;"--optimize+" ; "--gui-" ; "--nologo"|] // ; "--shadowcopyreferences" is ignored https://github.com/fsharp/FSharp.Compiler.Service/issues/292           
                     let fsiConfig = FsiEvaluationSession.GetDefaultConfiguration() // https://github.com/dotnet/fsharp/blob/4978145c8516351b1338262b6b9bdf2d0372e757/src/fsharp/fsi/fsi.fs#L2839
                     let fsiSession = FsiEvaluationSession.Create(fsiConfig, allArgs, inStream, log.TextWriterFsiStdOut, log.TextWriterFsiErrorOut) //, collectible=false ??) //https://github.com/dotnet/fsharp/blob/6b0719845c928361e63f6e38a9cce4ae7d621fbf/src/fsharp/fsi/fsi.fs#L2440
-                    AppDomain.CurrentDomain.UnhandledException.Add(fun ex -> log.PrintFsiErrorMsg "*** FSI AppDomain.CurrentDomain.UnhandledException:\r\n %A" ex.ExceptionObject)
+                    //AppDomain.CurrentDomain.UnhandledException.AddHandler (new UnhandledExceptionEventHandler( (new ProcessCorruptedState(config)).Handler)) //Add(fun ex -> log.PrintFsiErrorMsg "*** FSI AppDomain.CurrentDomain.UnhandledException:\r\n %A" ex.ExceptionObject)
                     Console.SetOut  (log.TextWriterConsoleOut)   // TODO needed to redirect printfn or coverd by TextWriterFsiStdOut? //https://github.com/fsharp/FSharp.Compiler.Service/issues/201
                     Console.SetError(log.TextWriterConsoleError) // TODO needed if evaluate non throwing or coverd by TextWriterFsiErrorOut? 
                     //if mode = Mode.Sync then do! Async.SwitchToContext Sync.syncContext            
@@ -142,7 +142,6 @@ type Fsi (config:Config) =
                     } |> Async.Start
     
     
-
     [< Security.SecurityCritical >] // TODO do these Attributes appy in to async thread too ?
     [< Runtime.ExceptionServices.HandleProcessCorruptedStateExceptions >] //to handle AccessViolationException too //https://stackoverflow.com/questions/3469368/how-to-handle-accessviolationexception/4759831
     let eval(code)=
@@ -180,7 +179,7 @@ type Fsi (config:Config) =
                 completedOkEv.Trigger(mode)
                 isReadyEv.Trigger(mode)
                 for e in errs do log.PrintAppErrorMsg " **** Why Error? EvalInteractionNonThrowing should not have errors: %A" e
-                //match vo with None-> () |Some v -> log.Print "Interaction evaluted to %A <%A>" v.ReflectionValue v.ReflectionType
+                //match vo with None-> () |Some v -> log.PrintDebugMsg "Interaction evaluted to %A <%A>" v.ReflectionValue v.ReflectionType
                    
             |Choice2Of2 exn ->     
                 match exn with 
@@ -205,7 +204,16 @@ type Fsi (config:Config) =
         let thr = new Thread(fun () -> Async.StartImmediate(asyncEval)) // a cancellation token here fails to cancel evaluation,
         thread <- Some thr           
         thr.Start()
-     
+    
+    
+    static let mutable singleInstance:Fsi option  = None
+    
+    /// ensures only one instance is created
+    static member Create(config) = 
+        match singleInstance with 
+        |Some fsi -> fsi
+        |None -> singleInstance <- Some (new Fsi(config)); singleInstance.Value
+
     //-------------- public interface: ---------
 
     member this.State = state
@@ -213,8 +221,7 @@ type Fsi (config:Config) =
     member this.Mode = mode
 
     /// starts a new Fsi session 
-    member this.Initalize() =  
-        init() 
+    member this.Initalize() =  init() // Checker class will call this after first run of checker, to start fsi when checker is  idle
         
 
     member this.CancelIfAsync() = 
@@ -271,8 +278,8 @@ type Fsi (config:Config) =
 
     member this.Reset() =  
         match this.AskIfCancellingIsOk () with 
-        | NotEvaluating   ->                      this.Initalize (); resetEv.Trigger(mode) //log.PrintInfoMsg "FSI reset." done by this.Initialize()
-        | YesAsync        -> this.CancelIfAsync(); this.Initalize (); resetEv.Trigger(mode)
+        | NotEvaluating   ->                       init (); resetEv.Trigger(mode) //log.PrintInfoMsg "FSI reset." done by this.Initialize()
+        | YesAsync        -> this.CancelIfAsync(); init (); resetEv.Trigger(mode)
         | Dont            -> ()
         | NotPossibleSync -> log.PrintInfoMsg "ResetFsi is not be possibe in current synchronous evaluation." // TODO test
       
@@ -289,7 +296,7 @@ type Fsi (config:Config) =
             modeChangedEv.Trigger(sync)
             setConfig()
             config.Settings.Save()
-            this.Initalize ()
+            init ()
         | Dont -> () 
         | NotPossibleSync -> log.PrintInfoMsg "Wait till current synchronous evaluation completes before seting mode to Async."
     

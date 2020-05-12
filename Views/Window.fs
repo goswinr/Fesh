@@ -1,13 +1,14 @@
 ﻿namespace Seff.Views
 
 open Seff
+open Seff.Config
 open System
 open System.Windows
 open Seff.Model
 
 /// A class holding the main WPF Window
 /// Includes loading Icon and logic for saving and restoring size and position
-type Window (config:config.Config)= 
+type Window (config:Config)= 
     
     let win = new Windows.Window()    
 
@@ -68,7 +69,7 @@ type Window (config:config.Config)=
                         config.Settings.SetFloatDelayed "WindowTop"  win.Top  89 // get float in statchange maximised needs to access this before 350 ms pass
                         config.Settings.SetFloatDelayed "WindowLeft" win.Left 95
                         config.Settings.Save ()
-                        //log.Print  "%s Location Changed: Top=%.0f Left=%.0f State=%A" Time.nowStrMilli win.Top win.Left win.WindowState
+                        //log.PrintDebugMsg  "%s Location Changed: Top=%.0f Left=%.0f State=%A" Time.nowStrMilli win.Top win.Left win.WindowState
                 }
                 |> Async.StartImmediate
             )
@@ -83,19 +84,19 @@ type Window (config:config.Config)=
                 config.Settings.SetBool  "WindowIsMax" false
                 isMinOrMax <- false
                 config.Settings.Save ()
-                //log.Print "Normal: %s State changed=%A Top=%.0f Left=%.0f Width=%.0f Height=%.0f" Time.nowStrMilli win.WindowState win.Top win.Left win.ActualWidth win.ActualHeight 
+                //log.PrintDebugMsg "Normal: %s State changed=%A Top=%.0f Left=%.0f Width=%.0f Height=%.0f" Time.nowStrMilli win.WindowState win.Top win.Left win.ActualWidth win.ActualHeight 
 
             | WindowState.Maximized ->
                 // normally the state change event comes after the location change event but before size changed. async sleep in LocationChanged prevents this
                 isMinOrMax  <- true
                 config.Settings.SetBool  "WindowIsMax" true
                 config.Settings.Save  ()    
-                //log.Print "Maximised: %s State changed=%A Top=%.0f Left=%.0f Width=%.0f Height=%.0f" Time.nowStrMilli win.WindowState win.Top win.Left win.ActualWidth win.ActualHeight 
+                //log.PrintDebugMsg "Maximised: %s State changed=%A Top=%.0f Left=%.0f Width=%.0f Height=%.0f" Time.nowStrMilli win.WindowState win.Top win.Left win.ActualWidth win.ActualHeight 
                           
 
             |WindowState.Minimized ->                 
                 isMinOrMax  <- true
-                //log.Print "Minimised: %s State changed=%A Top=%.0f Left=%.0f Width=%.0f Height=%.0f" Time.nowStrMilli win.WindowState win.Top win.Left win.ActualWidth win.ActualHeight 
+                //log.PrintDebugMsg "Minimised: %s State changed=%A Top=%.0f Left=%.0f Width=%.0f Height=%.0f" Time.nowStrMilli win.WindowState win.Top win.Left win.ActualWidth win.ActualHeight 
                
             |wch -> 
                 log.PrintAppErrorMsg "unknown WindowState State change=%A" wch
@@ -124,7 +125,7 @@ type Window (config:config.Config)=
 
 
           
-    (* done in Initialize function 
+    (* done in Initialize function, TODO check
     win.ContentRendered.Add(fun _ -> 
         //if not <| Tabs.Current.Editor.Focus() then log.PrintAppErrorMsg "Tabs.Current.Editor.Focus failed"  //or System.Windows.Input.FocusManager.SetFocusedElement(...)             
         log.PrintInfoMsg "* Time for loading and render main window: %s"  Timer.InstanceStartup.tocEx            

@@ -7,6 +7,7 @@ open System.Windows
 open System.Threading
 open System.Text
 open System.Collections.Generic
+open System.IO
 
    
     
@@ -26,6 +27,8 @@ type DefaultCode  (log:ISeffLog, adl:AppDataLocation) =
         ""
         ] 
         |> String.concat Environment.NewLine
+    
+    member this.FileInfo = FileInfo(filePath)
 
     ///loads sync
     member this.Get() =            

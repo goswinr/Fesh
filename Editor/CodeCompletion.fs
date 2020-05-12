@@ -2,9 +2,11 @@
 
 open Seff
 open Seff.Config
+open Seff.Model
 
 //open Seff.Util
 open System
+open System.IO
 open System.Windows
 open System.Windows.Controls
 open System.Windows.Media
@@ -17,34 +19,7 @@ open FSharp.Compiler.SourceCodeServices
 open System.Collections.Generic
 
 
-type CompletionLine (config:Config, ed:Editor, it:FSharpDeclarationListItem, isDotCompletion:bool, optArgsDict:Dictionary<string,ResizeArray<string>>) =
-    let colorUNUSED = 
-        match it.Glyph with  // does not change coler when selected anymore
-        | FSharpGlyph.Class
-        | FSharpGlyph.Typedef
-        | FSharpGlyph.Type
-        | FSharpGlyph.Exception         -> Brushes.DarkBlue
-
-        | FSharpGlyph.Union
-        | FSharpGlyph.Enum              -> Brushes.DarkGray
-
-        | FSharpGlyph.EnumMember
-        | FSharpGlyph.Variable
-        | FSharpGlyph.Field             -> Brushes.Black
-
-        | FSharpGlyph.Constant          -> Brushes.DarkCyan
-        | FSharpGlyph.Event             -> Brushes.DarkRed
-        | FSharpGlyph.Delegate          -> Brushes.DarkMagenta
-        | FSharpGlyph.Interface         -> Brushes.DarkCyan
-        | FSharpGlyph.Method            -> Brushes.Black
-        | FSharpGlyph.OverridenMethod   -> Brushes.DarkKhaki
-        | FSharpGlyph.Module            -> Brushes.Black
-        | FSharpGlyph.NameSpace         -> Brushes.Black
-        | FSharpGlyph.Property          -> Brushes.DarkGreen
-        | FSharpGlyph.Struct            -> Brushes.Blue
-        | FSharpGlyph.ExtensionMethod   -> Brushes.DarkKhaki
-        | FSharpGlyph.Error             -> Brushes.Red
-    
+type CompletionLine (config:Config, win:CompletionWindow, it:FSharpDeclarationListItem, isDotCompletion:bool, optArgsDict:Dictionary<string,ResizeArray<string>>) =
 
     let style =         
         if it.IsOwnMember then FontStyles.Normal 
@@ -64,7 +39,7 @@ type CompletionLine (config:Config, ed:Editor, it:FSharpDeclarationListItem, isD
 
     let priority = //if it.IsOwnMember then 1. else 1. 
         if isDotCompletion then 1.0// not on Dot completion             
-        else                    1.0 + config.AutoCompleteStatistic.Get(it.Name) //if p>1.0 then log.Print "%s %g" it.Name p
+        else                    1.0 + config.AutoCompleteStatistic.Get(it.Name) //if p>1.0 then log.PrintDebugMsg "%s %g" it.Name p
             
     
     member this.Content = tb :> obj
@@ -72,22 +47,22 @@ type CompletionLine (config:Config, ed:Editor, it:FSharpDeclarationListItem, isD
         async{
             let raw = it.StructuredDescriptionText
             let structured = 
-                if optArgsDict.ContainsKey it.FullName then  Tooltips.formated (raw, optArgsDict.[it.FullName])
-                else                                         Tooltips.formated (raw, ResizeArray(0))
-            match ed.CompletionWin with 
-            |None -> ()
-            |Some cw -> 
+                if optArgsDict.ContainsKey it.FullName then  TypeInfo.GetFormated (raw, optArgsDict.[it.FullName])
+                else                                         TypeInfo.GetFormated (raw, ResizeArray(0))
+            if win.Visibility = Visibility.Visible then  
                 do! Async.SwitchToContext Sync.syncContext
-                if cw.CompletionList.SelectedItem.Text = it.Name then 
-                    cw.ToolTipContent <- Tooltips.stackPanel (Some it, structured , Appearance.fontSize)  
+                if win.CompletionList.SelectedItem.Text = it.Name then 
+                    win.ToolTipContent <- TypeInfo.GetPanel (Some it, structured )
+                else
+                    () //TODO add structure to Dict so it does not need recomputing if browsing items in the completion list.
         } |> Async.Start
-        Tooltips.loadingText :> obj
+        TypeInfo.LoadingText :> obj
         
     member this.Image = null
     member this.Priority = priority
     member this.Text = it.Name
     member this.Complete (textArea:TextArea, completionSegment:ISegment, e ) = 
-        //log.Print "%s is %A and %A" it.Name it.Glyph it.Kind
+        //log.PrintDebugMsg "%s is %A and %A" it.Name it.Glyph it.Kind
         //textArea.Document.Replace(completionSegment.Offset + 1, completionSegment.Length, it.Name) //TODO Delete!
         //textArea.Caret.Offset <- completionSegment.Offset + it.Name.Length + 1  //TODO Delete!          
         let compl = if it.Glyph = FSharpGlyph.Class && it.Name.EndsWith "Attribute" then "[<" + it.Name.Replace("Attribute",">]") else it.Name     //TODO move this logic out here      
@@ -141,58 +116,109 @@ type CompletionLineKeyWord (config:Config, text:string, toolTip:string) =
         member this.Priority        = this.Priority
         member this.Text            = this.Text
 
-type CompletionWindowManager(ed:TextEditor) =
-    let w = new CodeCompletion.CompletionWindow(ed.TextArea)
+type CompletionWindow(avaEdit:TextEditor,config:Config, checker:Checker) =
+    let win = new CodeCompletion.CompletionWindow(avaEdit.TextArea)
+    
+    let showingEv = Event<unit>()
+
+    let mutable justClosed = false //TODO neded ?
+
+    let keywordsComletionLines = [| 
+        for kw,desc in Keywords.KeywordsWithDescription  do 
+            yield CompletionLineKeyWord(config,kw,desc) :> ICompletionData
+            yield CompletionLineKeyWord(config,"__SOURCE_DIRECTORY__","Evaluates to the current full path of the source directory" ) :> ICompletionData    
+            yield CompletionLineKeyWord(config,"__SOURCE_FILE__"     ,"Evaluates to the current source file name, without its path") :> ICompletionData    
+            yield CompletionLineKeyWord(config,"__LINE__",            "Evaluates to the current line number") :> ICompletionData    
+            |]
     
     do
-        w.BorderThickness <- Thickness(0.0)
-        w.ResizeMode      <- ResizeMode.NoResize // needed to have no border!
-        w.WindowStyle     <- WindowStyle.None // = no border
-        w.SizeToContent   <- SizeToContent.WidthAndHeight //https://github.com/icsharpcode/AvalonEdit/blob/master/ICSharpCode.AvalonEdit/CodeCompletion/CompletionWindow.cs#L47
-        w.MinHeight <- ed.FontSize
-        w.MinWidth <- ed.FontSize * 8.0
-        w.Closed.Add (fun _  -> 
-            //log.Print "Completion window closed with selected item %s " ed.CompletionWin.Value.CompletionList.SelectedItem.Text
-            ed.CompletionWin <- None  
-            ed.CompletionWindowClosed()            
-            ed.CompletionWindowJustClosed <- true // to not trigger completion again
+        win.BorderThickness <- Thickness(0.0)
+        win.ResizeMode      <- ResizeMode.NoResize // needed to have no border!
+        win.WindowStyle     <- WindowStyle.None // = no border
+        win.SizeToContent   <- SizeToContent.WidthAndHeight //https://github.com/icsharpcode/AvalonEdit/blob/master/ICSharpCode.AvalonEdit/CodeCompletion/CompletionWindow.cs#L47
+        win.MinHeight <- avaEdit.FontSize
+        win.MinWidth  <- avaEdit.FontSize * 8.0
+        win.Closed.Add (fun _  -> 
+             config.Log.PrintDebugMsg "Completion window just closed with selected item: %A " win.CompletionList.SelectedItem
+             justClosed <- true // to not trigger completion again
             )
         
-        w.CompletionList.SelectionChanged.Add(fun _ -> if w.CompletionList.ListBox.Items.Count=0 then w.Close()) // otherwise empty box might be shown and only get closed on second character
-        w.Loaded.Add(                         fun _ -> if w.CompletionList.ListBox.Items.Count=0 then w.Close()) // close immediatly if completion list is empty
+        win.CompletionList.SelectionChanged.Add(fun _ -> if win.CompletionList.ListBox.Items.Count=0 then win.Close()) // otherwise empty box might be shown and only get closed on second character
+        win.Loaded.Add(                         fun _ -> if win.CompletionList.ListBox.Items.Count=0 then win.Close()) // close immediatly if completion list is empty
+         
+        win.CloseAutomatically <-true
+        win.CloseWhenCaretAtBeginning <- true
         
-        w.CloseAutomatically <-true
-        w.CloseWhenCaretAtBeginning <- true
-        //w.CompletionList.InsertionRequested.Add (fun _ -> ed.LastTextChangeWasFromCompletionWindow <- true) // BAD !! triggers after text inested and textchnaged is triggerd on single letter 
+        //w.CompletionList.InsertionRequested.Add (fun _ -> avaEdit.LastTextChangeWasFromCompletionWindow <- true) // BAD !! triggers after text inested and textchnaged is triggerd on single letter 
 
         //w.CompletionList.ListBox.SelectionChanged.Add (fun e -> //TODO this is not the correct event to hook up to
         //    try if not w.CompletionList.ListBox.HasItems then w.Close() 
-        //    with  _ -> log.Print "Null ref HasItems")// because sometime empty completion window stays open
+        //    with  _ -> log.PrintDebugMsg "Null ref HasItems")// because sometime empty completion window stays open
 
-        
-    member this.Show( xs: ICompletionData seq, setback:int , query:string) =
-        w.CompletionList.CompletionData.Clear()
     
+    member this.IsVisible = win.IsVisible
     
-        ed.ErrorToolTip.IsOpen    <- false
-        ed.TypeInfoToolTip.IsOpen <- false
+    /// returns  win.CompletionList.ListBox.HasItems
+    member this.HasItems = win.CompletionList.ListBox.HasItems
+
+    member this.Close() = win.Close()
+
+    member this.Window = win
+
+    member this.JustClosed 
+                with get() = justClosed
+                and set(v) = justClosed <- v
+
+    member this.OnShowing = showingEv.Publish
+
+    member this.TryShow(fi: FileInfo Option, pos:PositionInCode , changetype:Model.TextChange, setback:int, query:string, charBefore:CharBeforeQuery, onlyDU:bool) = 
+        //log.PrintDebugMsg "*prepareAndShowComplWin..."
+        let ifDotSetback = if charBefore = Dot then setback else 0
+
+        //let prevCursor = avaEdit.Editor.Cursor
+        //avaEdit.Editor.Cursor <- Cursors.Wait //TODO does this get stuck on folding column ?
+
+        let contOnUI (decls: FSharpDeclarationListInfo,declSymbs: FSharpSymbolUse list list) =
             
-        
-        ed.CompletionWin <- Some w
-        w.StartOffset <- w.StartOffset - setback // to maybe replace some previous characters too           
+            /// for adding question m arks to optional arguments:
+            let optArgDict = Dictionary()
+            for symbs in declSymbs do 
+                for symb in symbs do 
+                    let opts = TypeInfo.NamesOfOptionalArgs symb
+                    if opts.Count>0 then 
+                        optArgDict.[symb.Symbol.FullName]<- opts
+
+            let completionLines = ResizeArray<ICompletionData>()                                
+            if not onlyDU && charBefore = NotDot then   completionLines.AddRange keywordsComletionLines  // add keywords to list
+            for it in decls.Items do                    
+                match it.Glyph with 
+                |FSharpGlyph.Union|FSharpGlyph.Module | FSharpGlyph.EnumMember -> completionLines.Add (new CompletionLine(config, win, it, (changetype = EnteredDot), optArgDict)) 
+                | _ -> if not onlyDU then                                         completionLines.Add (new CompletionLine(config, win, it, (changetype = EnteredDot), optArgDict))
+              
+            if completionLines.Count > 0 then 
+                //( xs: ICompletionData seq, setback:int , query:string) 
+                showingEv.Trigger() // to close error and type info tooltip
+                win.CompletionList.CompletionData.Clear()
+                win.StartOffset <- win.StartOffset - setback // to maybe replace some previous characters too           
        
-        for x in xs do 
-            w.CompletionList.CompletionData.Add (x) // if window is slow: https://stackoverflow.com/questions/487661/how-do-i-suspend-painting-for-a-control-and-its-children 
+                for cln in completionLines do 
+                    win.CompletionList.CompletionData.Add (cln) // if window is slow: https://stackoverflow.com/questions/487661/how-do-i-suspend-painting-for-a-control-and-its-children 
 
-        if query.Length > 0 then 
-            w.CompletionList.SelectItem(query) //to prefilter the list if query present
+                if query.Length > 0 then 
+                    win.CompletionList.SelectItem(query) //to prefilter the list if query present
             
-        //try
-        w.Show()
-        //with e -> log.Print "Error in Showing Code Completion Window: %A" e
+                //try
+                win.Show()
+                //with e -> log.PrintDebugMsg "Error in Showing Code Completion Window: %A" e
 
-        // Event sequence on pressing enter in completion window:
-        // (1)Close window
-        // (2)insert text into editor (triggers completion if one char only)
-        // (3)raise InsertionRequested event
-        // https://github.com/icsharpcode/AvalonEdit/blob/8fca62270d8ed3694810308061ff55c8820c8dfc/ICSharpCode.AvalonEdit/CodeCompletion/CompletionWindow.cs#L100
+                // Event sequence on pressing enter in completion window:
+                // (1)Close window
+                // (2)insert text into editor (triggers completion if one char only)
+                // (3)raise InsertionRequested event
+                // https://github.com/icsharpcode/AvalonEdit/blob/8fca62270d8ed3694810308061ff55c8820c8dfc/ICSharpCode.AvalonEdit/CodeCompletion/CompletionWindow.cs#L100
+            
+            else
+                ()// TODO highlight errors instead
+
+        checker.GetCompletions(avaEdit, fi, pos, ifDotSetback, contOnUI)
+

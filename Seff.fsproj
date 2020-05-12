@@ -64,20 +64,18 @@
     <Compile Include="Config\AssemblyReferenceStatistic.fs" />
     <Compile Include="Config\Config.fs" />
     <Compile Include="Fsi.fs" />
+    <Compile Include="Editor\Commenting.fs" />
     <Compile Include="Editor\DocString.fs" />
     <Compile Include="Editor\SyntaxHighlighting.fs" />
     <Compile Include="Editor\ErrorHighligter.fs" />
-    <Compile Include="Editor\ColumnRulers.fs" />
     <Compile Include="Editor\Checker.fs" />
-    <Compile Include="Editor\Editor.fs" />
-    <Compile Include="Editor\TypeInfoTooltip.fs" />
+    <Compile Include="Editor\TypeInfo.fs" />
     <Compile Include="Editor\CodeCompletion.fs" />
+    <Compile Include="Editor\Editor.fs" />
+    <Compile Include="Editor\TextChanged.fs" />
+    <Compile Include="Editor\ColumnRulers.fs" />
     <Compile Include="Editor\Folding.fs" />
     <Compile Include="Editor\Nuget.fs" />
-    <Compile Include="Editor\65_FsServices.fs" />
-    <Compile Include="Editor\Commenting.fs" />
-    <Compile Include="Editor\ModifyUI.fs" />
-    <Compile Include="Editor\TabEvents.fs" />
 
     <Compile Include="Views\Util.fs" />
     <Compile Include="Views\Log.fs" />
@@ -85,9 +83,10 @@
     <Compile Include="Views\Tab.fs" />
     <Compile Include="Views\Tabs.fs" />
     <Compile Include="Views\TabsAndLog.fs" />
+    <Compile Include="Views\Commands.fs" />
     <Compile Include="Views\StatusBar.fs" />
     <Compile Include="Views\Menu.fs" />
-    <Compile Include="Commands.fs" />
+    <Compile Include="EditorEvents.fs" />
     <Compile Include="Initialize.fs" />
     
     <Compile Include="App.fs" />

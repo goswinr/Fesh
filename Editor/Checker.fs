@@ -1,43 +1,43 @@
 ﻿namespace Seff.Editor
 
 open Seff
+open Seff.Model
 open System
 open System.IO
 open FSharp.Compiler
 open FSharp.Compiler.SourceCodeServices
 open ICSharpCode.AvalonEdit
 open System.Threading
-    
-type PositionInCode = { lineToCaret:string  
-                        row: int   
-                        column: int 
-                        offset: int }
+open Seff.Config
+
 
 type CheckResults = {   parseRes:FSharpParseFileResults;  
                         checkRes:FSharpCheckFileResults;  
                         code:string
                         tillOffset:int}
 
-type Checker private (log:ISeffLog) = 
+type Checker private (config:Config)  = 
     
+    let log = config.Log
+
     let mutable checker: FSharpChecker Option = None
     
     let mutable results : CheckResults Option = None
     
-    let checkId = ref 0L
-    let getInfoId = ref 0L
+    let checkId = ref 0L    
 
-    let checkingEv = new Event<unit>()
+    let checkingEv = new Event<int64 ref>()
     
     let checkedEv = new Event<FSharpErrorInfo[]>()
 
-    /// to check full code use 0 as 'tillOffset'
-    let check(ed:TextEditor, fileInfo:FileInfo option, tillOffset, continueOnThreadPool:CheckResults->unit) = 
-        let thisId = Interlocked.Increment checkId
-        checkingEv.Trigger()
-        async {            
-            
+    let mutable isFirstCheck = true
+    let firstCheckDoneEv = new Event<unit>() // to first check file, then start FSI
 
+    /// to check full code use 0 as 'tillOffset', for highlight error set continuation to  'ignore' and trigger event to true
+    let check(avaEdit:TextEditor, fileInfo:FileInfo option, tillOffset, continueOnThreadPool:CheckResults->unit, triggerCheckedEvent:bool) = 
+        let thisId = Interlocked.Increment checkId
+        checkingEv.Trigger(checkId) // to show in statusbar
+        async { 
             match checker with 
             | Some ch -> ()
             | None ->             
@@ -50,8 +50,8 @@ type Checker private (log:ISeffLog) =
             
             if !checkId = thisId then
                 let code = 
-                    if tillOffset = 0 then ed.Document.CreateSnapshot().Text //the only threadsafe way to acces the code string
-                    else                   ed.Document.CreateSnapshot(0, tillOffset).Text
+                    if tillOffset = 0 then avaEdit.Document.CreateSnapshot().Text //the only threadsafe way to acces the code string
+                    else                   avaEdit.Document.CreateSnapshot(0, tillOffset).Text
             
                 let fileFsx = 
                     match fileInfo with
@@ -111,12 +111,15 @@ type Checker private (log:ISeffLog) =
                                 match checkAnswer with
                                 | FSharpCheckFileAnswer.Succeeded checkRes ->   
                                     if !checkId = thisId  then
-                                        let res = {parseRes=parseRes;  checkRes=checkRes;  code=code; tillOffset=code.Length}
+                                        let res = {parseRes = parseRes;  checkRes = checkRes;  code = code; tillOffset = code.Length}
                                         results <- Some res 
                                         continueOnThreadPool(res)
-                                        if !checkId = thisId  then
+                                        if triggerCheckedEvent && !checkId = thisId  then
                                             do! Async.SwitchToContext Sync.syncContext 
-                                            checkedEv.Trigger(checkRes.Errors) // TODO or trigger event first ? //TODO all eventstrigger in Sync ?
+                                            checkedEv.Trigger(checkRes.Errors) // to  highlighting errors  and mark statusbar //TODO all eventstrigger in Sync ?
+                                            if isFirstCheck then 
+                                                firstCheckDoneEv.Trigger()
+                                                isFirstCheck <- false
                 
                                 | FSharpCheckFileAnswer.Aborted  ->
                                     log.PrintAppErrorMsg "*ParseAndCheckFile code aborted"
@@ -131,68 +134,44 @@ type Checker private (log:ISeffLog) =
     
     
     static let mutable singleInstance:Checker option  = None
+
+     /// this event is raised on UI thread    
+    [<CLIEvent>] member this.OnChecking = checkingEv.Publish
     
+    /// this event is raised on UI thread    
+    [<CLIEvent>] member this.OnChecked = checkedEv.Publish
+    
+    /// this event is raised on UI thread    
+    [<CLIEvent>] member this.OnFirstCheckDone = firstCheckDoneEv.Publish
+
     /// ensures only one instance is created
-    static member Create(log) = 
+    static member Create(config) = 
         match singleInstance with 
         |Some ch -> ch
-        |None -> singleInstance <- Some (new Checker(log)); singleInstance.Value
+        |None -> 
+            let ch = new Checker(config)
+            ch.OnFirstCheckDone.Add ( fun () -> Fsi.Create(config).Initalize() ) // to start fsi when checker is  idle
+            singleInstance <- Some ch; 
+            ch
 
-    member this.Id = checkId
-    
-     /// this event is raised on UI thread
-    [<CLIEvent>]
-    member this.OnChecking = checkingEv.Publish
-    
-    /// this event is raised on UI thread
-    [<CLIEvent>]
-    member this.OnChecked = checkedEv.Publish
+    //member this.CurrentCheckId = checkId
+
+    member this.Results = results
 
     /// Triggers Event<FSharpErrorInfo[]> event after calling the continuation
-    member this.Ckeck (ed:TextEditor,fileInfo:FileInfo Option)  = check(ed, fileInfo, 0, ignore)
+    member this.CkeckAndHighlight (avaEdit:TextEditor,fileInfo:FileInfo Option)  = check (avaEdit, fileInfo, 0, ignore, true)
 
-    //member this.CkeckTill( ed:TextEditor, fileInfo:FileInfo Option, tillOffset )  = check(ed, fileInfo, tillOffset, ignore)    
-
-    member this.GetDeclListInfo (ed:TextEditor, fileInfo:FileInfo Option, pos :PositionInCode, ifDotSetback, continueOnUI: FSharpDeclarationListInfo -> unit)  =        
-        let thisId = !checkId
-        let getDecls(res:CheckResults) = 
+    /// checks for items available for completion
+    member this.GetCompletions (avaEdit:TextEditor, fileInfo:FileInfo Option, pos :PositionInCode, ifDotSetback, continueOnUI: FSharpDeclarationListInfo*FSharpSymbolUse list list  -> unit) =        
+        let getSymbolsAndDecls(res:CheckResults) = 
+            let thisId = !checkId
             //see https://stackoverflow.com/questions/46980690/f-compiler-service-get-a-list-of-names-visible-in-the-scope
             //and https://github.com/fsharp/FSharp.Compiler.Service/issues/835            
             async{
                 let colSetBack = pos.column - ifDotSetback
                 let partialLongName = QuickParse.GetPartialLongNameEx(pos.lineToCaret, colSetBack - 1) //- 1) ??TODO is minus one correct ? https://github.com/fsharp/FSharp.Compiler.Service/issues/837
-                //log.Print "GetPartialLongNameEx on: '%s' setback: %d is:\r\n%A" pos.lineToCaret colSetBack partialLongName  
-                //log.Print "GetDeclarationListInfo on: '%s' row: %d, col: %d, colSetBack:%d, ifDotSetback:%d\r\n" pos.lineToCaret pos.row pos.column colSetBack ifDotSetback          
-                if !checkId = thisId  then 
-                    let! decls = 
-                        res.checkRes.GetDeclarationListInfo(
-                            Some res.parseRes,  // ParsedFileResultsOpt
-                            pos.row,            // line                   
-                            pos.lineToCaret ,   // lineText
-                            partialLongName,    // PartialLongName
-                            ( fun _ -> [] )     // getAllEntities: (unit -> AssemblySymbol list) 
-                            )
-                    if !checkId = thisId  then         
-                        do! Async.SwitchToContext Sync.syncContext 
-                        if decls.IsError then log.PrintAppErrorMsg "*ERROR in GetDeclarationListInfo: %A" decls //TODO use log
-                        else continueOnUI( decls)
-            } |> Async.StartImmediate 
-        
-        if !checkId = thisId  && results.IsSome && results.Value.tillOffset >= pos.offset then 
-            getDecls(results.Value) 
-        else 
-            check(ed, fileInfo, pos.offset, getDecls)
-    
-    member this.GetDeclListSymbols (ed:TextEditor, fileInfo:FileInfo Option, pos :PositionInCode, ifDotSetback, continueOnUI:FSharpSymbolUse list list -> unit)  =        
-        let thisId = !checkId
-        let getSymbols(res:CheckResults) = 
-            //see https://stackoverflow.com/questions/46980690/f-compiler-service-get-a-list-of-names-visible-in-the-scope
-            //and https://github.com/fsharp/FSharp.Compiler.Service/issues/835            
-            async{
-                let colSetBack = pos.column - ifDotSetback
-                let partialLongName = QuickParse.GetPartialLongNameEx(pos.lineToCaret, colSetBack - 1) //- 1) ??TODO is minus one correct ? https://github.com/fsharp/FSharp.Compiler.Service/issues/837
-                //log.Print "GetPartialLongNameEx on: '%s' setback: %d is:\r\n%A" pos.lineToCaret colSetBack partialLongName  
-                //log.Print "GetDeclarationListInfo on: '%s' row: %d, col: %d, colSetBack:%d, ifDotSetback:%d\r\n" pos.lineToCaret pos.row pos.column colSetBack ifDotSetback          
+                //log.PrintDebugMsg "GetPartialLongNameEx on: '%s' setback: %d is:\r\n%A" pos.lineToCaret colSetBack partialLongName  
+                //log.PrintDebugMsg "GetDeclarationListInfo on: '%s' row: %d, col: %d, colSetBack:%d, ifDotSetback:%d\r\n" pos.lineToCaret pos.row pos.column colSetBack ifDotSetback          
                 if !checkId = thisId  then 
                     let! symUse = 
                         res.checkRes.GetDeclarationListSymbols(
@@ -202,13 +181,21 @@ type Checker private (log:ISeffLog) =
                             partialLongName,    // PartialLongName
                             ( fun _ -> [] )     // getAllEntities: (unit -> AssemblySymbol list) 
                             )
-                    if !checkId = thisId  then         
-                        do! Async.SwitchToContext Sync.syncContext 
-                        continueOnUI( symUse)
-            
-            } |> Async.StartImmediate 
-    
-        if !checkId = thisId  && results.IsSome && results.Value.tillOffset >= pos.offset then 
-            getSymbols(results.Value) 
-        else 
-            check(ed, fileInfo, pos.offset, getSymbols)
+                    if !checkId = thisId  then
+                        let! decls = 
+                            res.checkRes.GetDeclarationListInfo(            //TODO take declaration from Symbol list !
+                                Some res.parseRes,  // ParsedFileResultsOpt
+                                pos.row,            // line                   
+                                pos.lineToCaret ,   // lineText
+                                partialLongName,    // PartialLongName
+                                ( fun _ -> [] )     // getAllEntities: (unit -> AssemblySymbol list) 
+                                )
+                        if !checkId = thisId  then         
+                            do! Async.SwitchToContext Sync.syncContext 
+                            if decls.IsError then log.PrintAppErrorMsg "*ERROR in GetDeclarationListInfo: %A" decls //TODO use log
+                            else
+                                do! Async.SwitchToContext Sync.syncContext 
+                                continueOnUI( decls, symUse)
+            } |> Async.StartImmediate // we are on thread pool alredeay    
+        
+        check(avaEdit, fileInfo, pos.offset, getSymbolsAndDecls, false) //TODO can existing parse results be used ? or do they miss the dot so dont show dot completions ?

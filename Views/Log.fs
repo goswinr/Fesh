@@ -1,6 +1,7 @@
 ﻿namespace Seff.Views
 
 open Seff
+open Seff.Config
 open System
 open System.Environment
 open System.IO
@@ -141,13 +142,15 @@ type Log () =
                 
         } |> Async.StartImmediate 
     
-    let setWordWrap(v)=
+    let setLineWrap(v)=
         if v then 
             log.WordWrap         <- true 
-            log.HorizontalScrollBarVisibility <- ScrollBarVisibility.Disabled   
+            log.HorizontalScrollBarVisibility <- ScrollBarVisibility.Disabled 
         else
             log.WordWrap         <- false 
             log.HorizontalScrollBarVisibility <- ScrollBarVisibility.Auto 
+    
+    
     do    
         //styling: 
         log <- new AvalonEdit.TextEditor()
@@ -181,13 +184,17 @@ type Log () =
     [<CLIEvent>]
     member this.OnPrint = textAddEv.Publish
        
-    member this.AdjustToSettingsInConfig(config: Seff.config.Config)=        
+    member this.AdjustToSettingsInConfig(config:Config)=        
         this.OnPrint.Add (config.AssemblyReferenceStatistic.RecordFromlog) // TODO: does this have print perfomance impact ? measure do async ?
-        setWordWrap( config.Settings.GetBool "logHasLineWrap" true )
+        setLineWrap( config.Settings.GetBool "logHasLineWrap" true )
         log.FontFamily       <- Seff.Appearance.font
         log.FontSize         <- config.Settings.GetFloat "FontSize" Seff.Appearance.fontSize                
         
-    member this.SetWordWrap(v) = setWordWrap(v)
+    member this.ToggleLineWrap(config:Config)=
+        let newState = not  log.WordWrap 
+        setLineWrap newState
+        config.Settings.SetBool "logHasLineWrap" newState
+        config.Settings.Save ()
     
     /// to acces the underlying read-only Avalonedit Texteditor
     member this.ReadOnlyEditor = log
@@ -204,12 +211,13 @@ type Log () =
     member this.PrintIOErrorMsg   s =  Printf.fprintfn textWriterIOErrorMsg   s        
     member this.PrintDebugMsg     s =  Printf.fprintfn textWriterDebugMsg     s
 
-    interface Seff.ISeffLog with
+    interface Seff.ISeffLog with        
+        member this.ReadOnlyEditor         = log
         //used in FSI constructor:
-        member this.TextWriterFsiStdOut    = textWriterFsiStdOut    
-        member this.TextWriterFsiErrorOut  = textWriterFsiErrorOut  
-        member this.TextWriterConsoleOut   = textWriterConsoleOut   
-        member this.TextWriterConsoleError = textWriterConsoleError 
+        member this.TextWriterFsiStdOut    = textWriterFsiStdOut    :> TextWriter   
+        member this.TextWriterFsiErrorOut  = textWriterFsiErrorOut  :> TextWriter   
+        member this.TextWriterConsoleOut   = textWriterConsoleOut   :> TextWriter   
+        member this.TextWriterConsoleError = textWriterConsoleError :> TextWriter   
         
         member this.PrintInfoMsg     s = Printf.fprintfn textWriterInfoMsg      s
         member this.PrintFsiErrorMsg s = Printf.fprintfn textWriterFsiErrorMsg  s

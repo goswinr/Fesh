@@ -92,5 +92,12 @@ type TabsAndLog (config:Config,tabs:Tabs,log:Log,win:Views.Window) =
             editorColumnWidth.Width  <- makeGridLength 0.
             logColumnWidth.Width     <- makeGridLength 999.
 
-    member this.Grid = grid
+    member this.Grid = grid    
     
+    member this.Config = config
+
+    member this.Tabs= tabs
+
+    member this.Log = log
+
+    member this.Window = win 

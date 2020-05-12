@@ -157,8 +157,10 @@ type ErrorHighligter (ed:TextEditor) =
         tView.MouseHover.Add (showTip)
         
         tView.MouseHoverStopped.Add ( fun e ->  tip.IsOpen <- false ) //; e.Handled <- true) )
-        tView.VisualLinesChanged.Add( fun e ->  tip.IsOpen <- false ) // scroll ,resize?
+        tView.VisualLinesChanged.Add( fun e ->  tip.IsOpen <- false ) // on scroll  or resize?
     
-    member this.Draw( errs: FSharpErrorInfo[] ) = 
+    member this.Draw( errs: FSharpErrorInfo[] ) = // this is used as Checker.OnChecked event handler 
         renderer.Clear()
         renderer.AddSegments(errs)
+
+    member this.ToolTip = tip

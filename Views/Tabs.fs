@@ -13,21 +13,23 @@ open Seff.Appearance
 /// A class holding the Tab Control
 /// Includes logic for saving and opening files
 /// Window ref neded for closing after last Tab closed
-type Tabs(config:Config, startupArgs: string[], win:Window) = 
+type Tabs(config:Config, win:Window) = 
 
     let tabs = new TabControl()
     
     let log = config.Log 
 
+    let fsi = Fsi.Create(config)
+
     let allTabs:seq<Tab> =  Seq.cast tabs.Items
     
-    let allFileInfos = seq{ for t in allTabs do if  t.FileInfo.IsSome then yield t.FileInfo.Value } //TODO does thi reevaluate every time?
+    let allFileInfos = seq{ for t in allTabs do if  t.FileInfo.IsSome then yield t.FileInfo.Value } //TODO does this reevaluate every time?
     
     let currentTabChangedEv = new Event<Tab>() //to Trigger Fs Checker
                 
     let mutable current =  Unchecked.defaultof<Tab>
 
-    let saveAt (t:Tab,fi:FileInfo) =                   
+    let saveAt (t:Tab, fi:FileInfo) =                   
         if not <| fi.Directory.Exists then 
             log.PrintIOErrorMsg "saveAsPath: Directory does not exist:\r\n%s" fi.Directory.FullName 
             false
@@ -38,7 +40,7 @@ type Tabs(config:Config, startupArgs: string[], win:Window) =
                 false
             else
                 t.IsCodeSaved <- true 
-                t.FileInfo <- Some fi
+                t.FileInfo <- Some fi //this also updates the Tab header and set file info on editor
                 config.RecentlyUsedFiles.Save(fi)
                 config.OpenTabs.Save(t.FileInfo , allFileInfos)                
                 log.PrintInfoMsg "File saved as:\r\n%s" t.FormatedFileName
@@ -52,11 +54,16 @@ type Tabs(config:Config, startupArgs: string[], win:Window) =
         dlg.DefaultExt <- ".fsx"
         dlg.Title <- sprintf "Save File As for: %s" (if t.FileInfo.IsSome then  t.FileInfo.Value.FullName else t.FormatedFileName)
         dlg.Filter <- "FSharp Script Files(*.fsx)|*.fsx|Text Files(*.txt)|*.txt|All Files(*.*)|*"
-        if isTrue (dlg.ShowDialog()) then                
-            try t.AvaEdit.Save dlg.FileName 
-            with e -> log.PrintIOErrorMsg "Failed to save at :\r\n%s\r\n%A" dlg.FileName e
+        if isTrue (dlg.ShowDialog()) then
             let fi = new FileInfo(dlg.FileName) 
-            saveAt (t, fi)
+            if fi.Exists then 
+                let msg = sprintf "Do you want to overwrite the existing file?\r\n%s" t.FormatedFileName
+                match MessageBox.Show(msg, Appearance.dialogCaption, MessageBoxButton.YesNo, MessageBoxImage.Question) with
+                | MessageBoxResult.Yes -> saveAt (t, fi)
+                | MessageBoxResult.No -> false
+                | _ -> false 
+            else
+                saveAt (t, fi)
         else
             false
 
@@ -102,11 +109,12 @@ type Tabs(config:Config, startupArgs: string[], win:Window) =
             config.RecentlyUsedFiles.Save(fi)
             if not makeCurrent then config.OpenTabs.Save(tab.FileInfo , allFileInfos)  // if makeCurrent this is done in tabs.SelectionChanged event handler below
         |None -> ()
+        
         tab.CloseButton.Click.Add (fun _ -> closeTab(tab))
        
         
     /// checks if file is open already then calls addTtab
-    let addFile(fi:FileInfo, makeCurrent) =            
+    let tryAddFile(fi:FileInfo, makeCurrent) =            
         let areFilesSame (a:FileInfo) (b:FileInfo) = a.FullName.ToLowerInvariant() = b.FullName.ToLowerInvariant()
         
         let areFilesOptionsSame (a:FileInfo ) (b:FileInfo Option) = 
@@ -125,14 +133,21 @@ type Tabs(config:Config, startupArgs: string[], win:Window) =
             | None -> 
                 try
                     let code = IO.File.ReadAllText fi.FullName
-                    addTab(Tab(Editor(code,config),Some fi),makeCurrent)
+                    addTab(new Tab(new Editor(code, config, Some fi)),makeCurrent)
                 with  e -> 
                     log.PrintIOErrorMsg "Error reading and adding :\r\n%s\r\n%A" fi.FullName e
         else
             log.PrintIOErrorMsg "File not found:\r\n%s" fi.FullName
             MessageBox.Show("File not found:\r\n"+fi.FullName , dialogCaption, MessageBoxButton.OK, MessageBoxImage.Error) |> ignore
 
-
+    let setFontSize (newSize) = // on log and all tabs
+        log.ReadOnlyEditor.FontSize    <- newSize
+        for t in allTabs do                
+            t.Editor.AvaEdit.FontSize  <- newSize        
+        config.Settings.SetFloat "FontSize" newSize 
+        Appearance.fontSize <- newSize
+        config.Settings.Save ()
+        log.PrintInfoMsg "new Fontsize: %.1f" newSize
     
     do
         tabs.SelectionChanged.Add( fun _-> // when closing, opening or changing tabs  attach first so it will be triggered below when adding files
@@ -140,45 +155,61 @@ type Tabs(config:Config, startupArgs: string[], win:Window) =
                 win.Close() // exit App ? (chrome and edge also closes when closing the last tab, Visual Studio not)
             else
                 let tab = 
-                    if isNull tabs.SelectedItem then tabs.Items.[0]
-                    else tabs.SelectedItem                 
+                    if isNull tabs.SelectedItem then 
+                        log.PrintAppErrorMsg "Tabs SelectionChanged handler: there was no tab selected by default" // should never happen
+                        tabs.Items.[0]
+                    else 
+                        tabs.SelectedItem                 
                 let tab = tab :?> Tab
                 current <- tab
                 for t in allTabs do
                     t.Editor.IsCurrent <- false 
                     t.IsCurrent <- false  // first set all false then one true              
                 tab.IsCurrent <-true
-                tab.Editor.IsCurrent <- true 
-                currentTabChangedEv.Trigger(tab) // to start fschecker
+                tab.Editor.IsCurrent <- true                
+                tab.Editor.Checker.CkeckAndHighlight(tab.Editor.AvaEdit,tab.FileInfo)
+                currentTabChangedEv.Trigger(tab) // checker is started above, does not need this event to start
                 config.OpenTabs.Save(tab.FileInfo , allFileInfos)
+                log.PrintDebugMsg "Current Tab changed to %s" tab.FormatedFileName
             )
         
         for f in config.OpenTabs.Get() do 
-            addFile( f.file, f.makeCurrent)  |> ignore 
+            tryAddFile( f.file, f.makeCurrent)  |> ignore 
 
         if tabs.Items.Count=0 then //Open default file if none found in recent files or args                
-            addTab(Tab(Editor(config),None), true) |> ignore 
+            addTab(new Tab(new Editor(config)), true) |> ignore 
                 
         if tabs.SelectedIndex = -1 then    //make one tab current  if none yet
+            log.PrintAppErrorMsg "Tabs Constructor 'do' block: there was no tab selected by default" // should never happen
             tabs.SelectedIndex <- 0
             current <- Seq.head allTabs
         
-        currentTabChangedEv.Trigger(current)  //TODO check if triggerd here and in SelectionChanged
         
+        current.Editor.Checker.CkeckAndHighlight(current.Editor.AvaEdit,current.FileInfo)
+        currentTabChangedEv.Trigger(current)  //TODO check if triggerd here and in SelectionChanged
+        log.PrintDebugMsg "Current Tab changed from do block end %s" current.FormatedFileName
+        
+
     //--------------- Public members------------------
    
     member this.Control = tabs
     
+    member this.Fsi = fsi
+
+    member this.Config = config
+
     member this.Current = current 
+
+    member this.CurrAvaEdit = current.Editor.AvaEdit
     
     member this.AllFileInfos = allFileInfos 
 
     member this.AllTabs = allTabs
     
-    //member this.AddTab(tab:Tab, makeCurrent) = addTab(tab, makeCurrent)
+    member this.AddTab(tab:Tab, makeCurrent) = addTab(tab, makeCurrent)
 
     /// checks if file is open already then calls addTtab
-    member this.AddFile(fi:FileInfo, makeCurrent) =  addFile(fi, makeCurrent)
+    member this.AddFile(fi:FileInfo, makeCurrent) =  tryAddFile(fi, makeCurrent)
     
     member this.WorkingDirectory = 
         match current.FileInfo with 
@@ -187,9 +218,7 @@ type Tabs(config:Config, startupArgs: string[], win:Window) =
             match allFileInfos |> Seq.tryHead with
             |Some fi -> Some fi.Directory
             |None    -> None
- 
-
-    
+     
     /// Shows a file opening dialog
     member this.OpenFile() =
         let dlg = new Microsoft.Win32.OpenFileDialog()
@@ -203,10 +232,9 @@ type Tabs(config:Config, startupArgs: string[], win:Window) =
         if isTrue (dlg.ShowDialog()) then
             for num,f in Seq.indexed dlg.FileNames do
                 let fi = new FileInfo(f)
-                if num = 0 then  addFile (fi, true) 
-                else             addFile (fi, false)
-        
-    
+                if num = 0 then  tryAddFile (fi, true) 
+                else             tryAddFile (fi, false)
+            
     /// Shows a file opening dialog
     member this.SaveAs (t:Tab) = saveAsDialog(t)
     
@@ -214,22 +242,8 @@ type Tabs(config:Config, startupArgs: string[], win:Window) =
     member this.CloseTab(t) = closeTab(t) 
     
     /// returns true if saving operation was not canceled
-    member this.Save(t:Tab) = 
-        if t.FileInfo.IsSome && t.FileInfo.Value.Exists then
-            if not t.IsCodeSaved then
-                t.AvaEdit.Save t.FileInfo.Value.FullName 
-                t.IsCodeSaved <- true 
-                log.PrintInfoMsg "File saved at:\r\n%s" t.FileInfo.Value.FullName           
-                true
-            else
-                log.PrintInfoMsg "File already up to date:\r\n%s" t.FileInfo.Value.FullName  
-                true
-        else 
-            if t.FileInfo.IsNone then () 
-            elif not <| t.FileInfo.Value.Exists then 
-                log.PrintIOErrorMsg "File does not exist on drive anymore:\r\n%s" t.FileInfo.Value.FullName  
-                MessageBox.Show("File does not exist on drive anymore:\r\n" + t.FileInfo.Value.FullName , dialogCaption, MessageBoxButton.OK, MessageBoxImage.Error) |> ignore
-            this.SaveAs(t)
+    member this.Save(t:Tab) = trySave(t)
+    
     
     /// returns true if saving operation was not canceled
     member this.SaveIncremental (t:Tab) = 
@@ -275,8 +289,26 @@ type Tabs(config:Config, startupArgs: string[], win:Window) =
                 if Seq.exists ( fun OK -> OK = false) OKs then false else true // iterate unsafed files, if one file saving was canceled abort the closing of the main window                 
             | MessageBoxResult.No  -> true
             | _                    -> false 
-       
-       
+    
+    /// affects Editor and Log    
+    member this.FontsBigger()= 
+        let cs = current.Editor.AvaEdit.FontSize
+        //let step = 
+        //    if   cs >= 36. then 4. 
+        //    elif cs >= 20. then 2. 
+        //    else                1.
+        //if cs < 112. then setFontSize(cs+step)
+        if cs < 250. then setFontSize(cs* 1.03) // 3% steps
+    
+    /// affects Editor and Log
+    member this.FontsSmaller()=
+        let cs = current.Editor.AvaEdit.FontSize
+        //let step = 
+        //    if   cs >= 36. then 4. 
+        //    elif cs >= 20. then 2. 
+        //    else                1.
+        //if cs > 5. then setFontSize(cs-step)
+        if cs > 3. then setFontSize(cs * 0.97) // 3% steps       
     
                    
        

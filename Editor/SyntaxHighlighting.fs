@@ -34,6 +34,8 @@ module SyntaxHighlighting =
 
     /// taken from VS2017
     module ColorsUNUSED=
+        open FSharp.Compiler.SourceCodeServices
+
         let shadowed        = Color.FromArgb(188,0,0 )
         let comment         = Color.FromArgb( 0,128,0)
         let disposable      = Color.FromArgb(43,145,175)
@@ -55,3 +57,29 @@ module SyntaxHighlighting =
         let types           = Color.FromArgb(43,145,175)//VS2015
         let escapeChars     = Color.FromArgb(255,0,128) // #FF0080 VS2015
 
+        let colorUNUSED glyph = 
+            match glyph with  // from completion window / does not change coler when selected anymore
+            | FSharpGlyph.Class
+            | FSharpGlyph.Typedef
+            | FSharpGlyph.Type
+            | FSharpGlyph.Exception         -> Brushes.DarkBlue
+
+            | FSharpGlyph.Union
+            | FSharpGlyph.Enum              -> Brushes.DarkGray
+
+            | FSharpGlyph.EnumMember
+            | FSharpGlyph.Variable
+            | FSharpGlyph.Field             -> Brushes.Black
+
+            | FSharpGlyph.Constant          -> Brushes.DarkCyan
+            | FSharpGlyph.Event             -> Brushes.DarkRed
+            | FSharpGlyph.Delegate          -> Brushes.DarkMagenta
+            | FSharpGlyph.Interface         -> Brushes.DarkCyan
+            | FSharpGlyph.Method            -> Brushes.Black
+            | FSharpGlyph.OverridenMethod   -> Brushes.DarkKhaki
+            | FSharpGlyph.Module            -> Brushes.Black
+            | FSharpGlyph.NameSpace         -> Brushes.Black
+            | FSharpGlyph.Property          -> Brushes.DarkGreen
+            | FSharpGlyph.Struct            -> Brushes.Blue
+            | FSharpGlyph.ExtensionMethod   -> Brushes.DarkKhaki
+            | FSharpGlyph.Error             -> Brushes.Red

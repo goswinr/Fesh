@@ -14,8 +14,18 @@ open FSharp.Compiler
 open FSharp.Compiler.SourceCodeServices
 open ICSharpCode.AvalonEdit.Folding
 
+(*
 module Folding = 
     
+    
+    
+        //member val FoldingManager = Folding.FoldingManager.Install(avaEdit.TextArea)  
+        
+        //member val Foldings:Option<ResizeArray<int*int>> =  None with get,set
+        
+       
+       
+
     /// a hash value to  see if folding state needs updating
     let mutable FoldStateHash = 0
     
@@ -56,7 +66,7 @@ module Folding =
                             if foldStartLine <= lastNotBlankLineNum - minLinesForFold then                             
                                 
                                 let foldEnd = lastNotBlankLineEndOffset - 2 //-2 to skip over line break 
-                                //log.Print "Folding from  line %d to %d : Offset %d to %d" foldStartLine lastNotBlankLineNum foldStartOfset foldEnd
+                                //log.PrintDebugMsg "Folding from  line %d to %d : Offset %d to %d" foldStartLine lastNotBlankLineNum foldStartOfset foldEnd
                                 let f = foldStartOfset, foldEnd
                                 foldings.Add f                            
                                 foldStartOfset <- -1
@@ -76,7 +86,7 @@ module Folding =
             //close last folding
             if foldStartOfset > 0 then                  
                 let foldEnd = lastNotBlankLineEndOffset - 2 //-2 to skip over line break
-                //log.Print "Last Folding from  line %d to end : Offset %d to %d" foldStartLine  foldStartOfset foldEnd
+                //log.PrintDebugMsg "Last Folding from  line %d to end : Offset %d to %d" foldStartLine  foldStartOfset foldEnd
                 let f = foldStartOfset, foldEnd
                 foldings.Add f                   
             
@@ -89,7 +99,8 @@ module Folding =
             //do! Async.SwitchToContext Sync.syncContext
             }
 
-    
+    let firstErrorOffset = -1 //The first position of a parse error. Existing foldings starting after this offset will be kept even if they don't appear in newFoldings. Use -1 for this parameter if there were no parse errors)                    
+    ed.FoldingManager.UpdateFoldings(foldings,firstErrorOffset)
     
     // or walk AST ?
 
@@ -101,7 +112,7 @@ module Folding =
     //        // as an expression (in visitExpression), but has no body
     //        for binding in bindings do
     //          let (Binding(access, kind, inlin, mutabl, attrs, xmlDoc, data, pat, retInfo, body, range, sp)) = binding
-    //          log.Print "Binding: %A  from %d to %d:" kind  range.StartLine range.EndLine             
+    //          log.PrintDebugMsg "Binding: %A  from %d to %d:" kind  range.StartLine range.EndLine             
     //    | _ -> printfn " - not supported declaration: %A" declaration
 
     //match parseRes.ParseTree with 
@@ -113,6 +124,9 @@ module Folding =
     //        let (ParsedImplFileInput(fn, script, name, _, _, modulesOrNss, _)) = implFile
     //        for moduleOrNs in modulesOrNss do
     //            let (SynModuleOrNamespace(lid, isRec, isMod, decls, xml, attrs, sao, range)) = moduleOrNs
-    //            log.Print "Namespace or module: %A : %A from %d to %d" lid isMod range.StartLine range.EndLine   
+    //            log.PrintDebugMsg "Namespace or module: %A : %A from %d to %d" lid isMod range.StartLine range.EndLine   
     //            visitDeclarations decls
     //    | _ -> failwith "F# Interface file (*.fsi) not supported."
+
+
+    *)
