@@ -27,9 +27,7 @@ type Tabs(config:Config, win:Window) =
     
     let allFileInfos = seq{ for t in allTabs do if  t.FileInfo.IsSome then yield t.FileInfo.Value } //TODO does this reevaluate every time?
     
-    //delete //let currentTabChangedEv = new Event<Tab>() //to Trigger Fs Checker
-
-    let currentTabChangedEv = new Event<Tab>() //to Trigger Fs Checker 
+    let currentTabChangedEv = new Event<Tab>() //to Trigger Fs Checker
     
     let mutable current =  Unchecked.defaultof<Tab>
 
@@ -47,7 +45,7 @@ type Tabs(config:Config, win:Window) =
                 t.FileInfo <- Some fi //this also updates the Tab header and set file info on editor
                 config.RecentlyUsedFiles.Save(fi)
                 config.OpenTabs.Save(t.FileInfo , allFileInfos)                
-                log.PrintInfoMsg "File saved as:\r\n%s" t.FormatedFileName
+                log.PrintInfoMsg "File saved as:\r\n%s" fi.FullName
                 true
 
     /// returns true if saving operation was not canceled
@@ -154,7 +152,7 @@ type Tabs(config:Config, win:Window) =
         log.PrintInfoMsg "new Fontsize: %.1f" newSize
     
     do
-        tabs.SelectionChanged.Add( fun _-> // when closing, opening or changing tabs  attach first so it will be triggered below when adding files
+        tabs.SelectionChanged.Add( fun _-> // triggered an all tabs on startup ???// when closing, opening or changing tabs  attach first so it will be triggered below when adding files
             if tabs.Items.Count = 0 then //  happens when closing the last open tab
                 win.Close() // exit App ? (chrome and edge also closes when closing the last tab, Visual Studio not)
             else
@@ -171,12 +169,12 @@ type Tabs(config:Config, win:Window) =
                     t.IsCurrent <- false  // first set all false then one true              
                 tab.IsCurrent <-true
                 tab.Editor.IsCurrent <- true                
-                tab.Editor.Checker.CkeckAndHighlight(tab.Editor.AvaEdit,tab.FileInfo)
-                //delete //currentTabChangedEv.Trigger(tab) // checker is started above, does not need this event to start
+                currentTabChangedEv.Trigger(tab)  or done other wise ? to do // set errosr in bar  by current tab on startup tab.Editor.Checker.CkeckAndHighlight(tab.Editor.AvaEdit, tab.FileInfo, tab.Editor.ErrorHighlighter)                
                 config.OpenTabs.Save(tab.FileInfo , allFileInfos)
-                log.PrintDebugMsg "Current Tab changed to %s" tab.FormatedFileName
+                log.PrintDebugMsg "Current Tab changed to %s" tab.FormatedFileName // triggered an all tabs on startup ?
             )
         
+        // --------------load tabs from last session--------------
         for f in config.OpenTabs.Get() do 
             tryAddFile( f.file, f.makeCurrent)  |> ignore 
 
@@ -188,10 +186,8 @@ type Tabs(config:Config, win:Window) =
             tabs.SelectedIndex <- 0
             current <- Seq.head allTabs
         
-        
-        current.Editor.Checker.CkeckAndHighlight(current.Editor.AvaEdit,current.FileInfo)
-        //delete//currentTabChangedEv.Trigger(current)  //TODO check if triggerd here and in SelectionChanged
-        log.PrintDebugMsg "Current Tab set from do block end %s" current.FormatedFileName
+        //delete current.Editor.Checker.CkeckAndHighlight(current.Editor.AvaEdit,current.FileInfo) //not needed ,done in selcetion changed event handler
+        //log.PrintDebugMsg "Current Tab set from do block end %s" current.FormatedFileName
         
 
     //--------------- Public members------------------

@@ -160,7 +160,10 @@ type Checker private (config:Config)  =
     member this.Results = results
 
     /// Triggers Event<FSharpErrorInfo[]> event after calling the continuation
-    member this.CkeckAndHighlight (avaEdit:TextEditor,fileInfo:FileInfo Option)  = check (avaEdit, fileInfo, 0, ignore, true)
+    member this.CkeckAndHighlight (avaEdit:TextEditor, fileInfo:FileInfo Option, errorHighlighter:ErrorHighlighter)  = 
+        log.PrintDebugMsg "checking started for %A" fileInfo
+        let draw (r:CheckResults) = errorHighlighter.Draw(r.checkRes.Errors)
+        check (avaEdit, fileInfo, 0, draw, true)
 
     /// checks for items available for completion
     member this.GetCompletions (avaEdit:TextEditor, fileInfo:FileInfo Option, pos :PositionInCode, ifDotSetback, continueOnUI: FSharpDeclarationListInfo*FSharpSymbolUse list list  -> unit) =        

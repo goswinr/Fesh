@@ -114,7 +114,7 @@ type ErrorRenderer (textEditor:TextEditor) =
         member this.Transform(ctx,es) = this.Transform(ctx,es)
 
 
-type ErrorHighligter (ed:TextEditor) = 
+type ErrorHighlighter (ed:TextEditor) = 
 
     let tView= ed.TextArea.TextView
     let renderer = ErrorRenderer(ed)
@@ -159,8 +159,13 @@ type ErrorHighligter (ed:TextEditor) =
         tView.MouseHoverStopped.Add ( fun e ->  tip.IsOpen <- false ) //; e.Handled <- true) )
         tView.VisualLinesChanged.Add( fun e ->  tip.IsOpen <- false ) // on scroll  or resize?
     
+    /// draws underlines
+    /// theadsafe
     member this.Draw( errs: FSharpErrorInfo[] ) = // this is used as Checker.OnChecked event handler 
-        renderer.Clear()
-        renderer.AddSegments(errs)
+        async{
+            do! Async.SwitchToContext Sync.syncContext
+            renderer.Clear()
+            renderer.AddSegments(errs)
+            } |> Async.StartImmediate
 
     member this.ToolTip = tip

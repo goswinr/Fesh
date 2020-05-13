@@ -67,7 +67,7 @@
     <Compile Include="Editor\Commenting.fs" />
     <Compile Include="Editor\DocString.fs" />
     <Compile Include="Editor\SyntaxHighlighting.fs" />
-    <Compile Include="Editor\ErrorHighligter.fs" />
+    <Compile Include="Editor\ErrorHighlighter.fs" />
     <Compile Include="Editor\Checker.fs" />
     <Compile Include="Editor\TypeInfo.fs" />
     <Compile Include="Editor\CodeCompletion.fs" />

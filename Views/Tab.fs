@@ -52,7 +52,7 @@ type Tab (editor:Editor) = //as this=
             headerShowsSaved        <- false
         |None,_    -> 
             textBlock.ToolTip      <- "This file has not yet been saved to disk."
-            textBlock.Text         <- sprintf "* unsaved-%d *" Counter.UnsavedFile  
+            textBlock.Text         <- sprintf "*unsaved-%d*" Counter.UnsavedFile  
             textBlock.Foreground   <- Brushes.Gray
      
     let upadteIsCodeCaved(isSaved)=
@@ -84,7 +84,7 @@ type Tab (editor:Editor) = //as this=
        
     member this.FormatedFileName = 
         match this.FileInfo with 
-        |Some fi  -> sprintf "%s\r\nat\r\n%s" fi.Name fi.DirectoryName
+        |Some fi  -> sprintf "%s" fi.FullName //sprintf "%s\r\nat\r\n%s" fi.Name fi.DirectoryName
         |None     -> textBlock.Text
     
     member val IsCurrent = false with get,set    

@@ -23,7 +23,7 @@ type Editor (code:string, config:Config, fileInfo:FileInfo Option) = //as this=
     
     let checker =           Checker.GetOrCreate(config)
 
-    let errorHighligter =   new ErrorHighligter(avaEdit)
+    let errorHighlighter =   new ErrorHighlighter(avaEdit)
 
     let typeInfo =          new TypeInfo(avaEdit,checker)
 
@@ -58,7 +58,7 @@ type Editor (code:string, config:Config, fileInfo:FileInfo Option) = //as this=
             match change with             
             | OtherChange | CompletionWinClosed  | EnteredOneNonIdentifierChar -> //TODO maybe do less call to error highlighter when typing in string or comment ?
                 log.PrintDebugMsg "*1.2-textChanged highlighting for  %A" change
-                checker.CkeckAndHighlight(avaEdit, fileInfo)
+                checker.CkeckAndHighlight(avaEdit, fileInfo, errorHighlighter)
                 //TODO trigger here UpdateFoldings(tab,None) or use event
 
             | EnteredOneIdentifierChar | EnteredDot -> 
@@ -104,7 +104,7 @@ type Editor (code:string, config:Config, fileInfo:FileInfo Option) = //as this=
 
                     if charBeforeQueryDU = NotDot && isKeyword then
                         //log.PrintDebugMsg "*2.1-textChanged highlighting with: query='%s', charBefore='%A', isKey=%b, setback='%d', line='%s' " query charBeforeQueryDU isKeyword setback line
-                        checker.CkeckAndHighlight(avaEdit,fileInfo)
+                        checker.CkeckAndHighlight(avaEdit,fileInfo,errorHighlighter)
 
                     else 
                         //log.PrintDebugMsg "*2.2-textChanged Completion window opening with: query='%s', charBefore='%A', isKey=%b, setback='%d', line='%s' change=%A" query charBeforeQueryDU isKeyword setback line change
@@ -137,9 +137,9 @@ type Editor (code:string, config:Config, fileInfo:FileInfo Option) = //as this=
         SyntaxHighlighting.setFSharp(avaEdit,config,false)
 
         //checker.OnChecked.Add(errorHighligter.Draw) // dont do this it would trigger error highlighting in all tabs for the errors of one tab
-        checker.CkeckAndHighlight(avaEdit,fileInfo)
+        checker.CkeckAndHighlight(avaEdit,fileInfo,errorHighlighter)
 
-        complWin.OnShowing.Add(fun _ -> errorHighligter.ToolTip.IsOpen <- false)
+        complWin.OnShowing.Add(fun _ -> errorHighlighter.ToolTip.IsOpen <- false)
         complWin.OnShowing.Add(fun _ -> typeInfo.ToolTip.IsOpen        <- false)
         
         
@@ -216,7 +216,7 @@ type Editor (code:string, config:Config, fileInfo:FileInfo Option) = //as this=
     
     member this.Checker = checker
 
-    member this.ErrorHighligter = errorHighligter
+    member this.ErrorHighlighter = errorHighlighter
     
     member this.ComletionWin = complWin
 
@@ -229,7 +229,7 @@ type Editor (code:string, config:Config, fileInfo:FileInfo Option) = //as this=
 
     /// to access the Log view fom editor
     member this.Log = config.Log
-  
+
     
     // additional text change event:
     //let completionInserted = new Event<string>() // event needed because Text change event is not raised after completion insert    
