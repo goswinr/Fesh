@@ -4,7 +4,7 @@ open Seff
 open Seff.Config
 open System
 open System.Windows
-open Seff.Model
+
 
 /// A class holding the main WPF Window
 /// Includes loading Icon and logic for saving and restoring size and position
@@ -21,7 +21,7 @@ type Window (config:Config)=
     do       
         win.ResizeMode  <- ResizeMode.CanResize  
                 
-        win.Title       <- match config.AppDataLocation.Mode with 
+        win.Title       <- match config.HostingMode.Mode with 
                            |Standalone -> "Seff | Scripting editor for fsharp"  
                            |Hosted n   -> "Seff | Scripting editor for fsharp in " + n
                 

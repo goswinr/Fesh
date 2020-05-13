@@ -19,9 +19,9 @@ type Counter private () =
 type Tab (editor:Editor) = //as this= 
     inherit TabItem()
     
-    let mutable isCodeSaved          = true
+    let mutable isCodeSaved        = true
 
-    let mutable headerShowsUnsaved   = false
+    let mutable headerShowsSaved   = true
 
     let textBlock = new TextBlock(VerticalAlignment = VerticalAlignment.Bottom)  
     
@@ -44,35 +44,35 @@ type Tab (editor:Editor) = //as this=
             textBlock.ToolTip       <- "File saved at:\r\n" + fi.FullName
             textBlock.Text          <- fi.Name
             textBlock.Foreground    <- Brushes.Black
-            headerShowsUnsaved <- false
+            headerShowsSaved        <- true
         |Some fi , false -> 
             textBlock.ToolTip       <- "File with unsaved changes from :\r\n" + fi.FullName
             textBlock.Text          <- fi.Name + "*"
             textBlock.Foreground    <- Brushes.DarkRed
-            headerShowsUnsaved <- true
+            headerShowsSaved        <- false
         |None,_    -> 
             textBlock.ToolTip      <- "This file has not yet been saved to disk."
             textBlock.Text         <- sprintf "* unsaved-%d *" Counter.UnsavedFile  
             textBlock.Foreground   <- Brushes.Gray
-       
+     
+    let upadteIsCodeCaved(isSaved)=
+        if  not isSaved && headerShowsSaved then 
+            isCodeSaved <- false
+            setHeader()
+        elif isSaved && not headerShowsSaved  then 
+            isCodeSaved <- true
+            setHeader()
        
     do
-        base.Content <- editor 
+        base.Content <- editor.AvaEdit 
         base.Header <- header
         setHeader()
-        
-        
-
+        editor.AvaEdit.TextChanged.Add(fun _ ->upadteIsCodeCaved(false)) 
 
     member this.IsCodeSaved 
-        with get() = isCodeSaved 
-        and set(isSaved) = 
-            if  not isSaved && not headerShowsUnsaved then 
-                isCodeSaved <- false
-                setHeader()
-            elif isSaved && headerShowsUnsaved  then 
-                isCodeSaved <- true
-                setHeader()
+        with get()       = isCodeSaved 
+        and set(isSaved) = upadteIsCodeCaved(isSaved)
+          
     
     member this.FileInfo
         with get() = editor.FileInfo

@@ -10,10 +10,10 @@ open System.Collections.Generic
 type FileToOpen = {file:FileInfo; makeCurrent:bool}
 
 /// files that are open when closing the editor window, for next restart
-type OpenTabs  (log:ISeffLog, adl:AppDataLocation, startupArgs:string[]) = 
+type OpenTabs  (log:ISeffLog, adl:HostingMode, startupArgs:string[]) = 
     let writer = SaveWriter(log)
     
-    let filePath = adl.GetFilePath("CurrentlyOpenFiles.txt")
+    let filePath = adl.GetPathToSaveAppData("CurrentlyOpenFiles.txt")
 
     let currentTabPreFix =  "*Current tab:* " //a string that can never be part of a filename
 
@@ -48,7 +48,7 @@ type OpenTabs  (log:ISeffLog, adl:AppDataLocation, startupArgs:string[]) =
                         files.Add fi
                   
         with e -> 
-            log.PrintAppErrorMsg "Error getFilesfileOnClosingOpen: %s"  e.Message
+            log.PrintAppErrorMsg "Error getFilesfileOnClosingOpen: %A"  e
         
         [|  
         for fi in files do 

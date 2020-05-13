@@ -31,6 +31,9 @@ module SyntaxHighlighting =
         else 
             ed.SyntaxHighlighting <- fsHighlighting.Value
 
+    
+    // TODO take colors from https://github.com/johnpapa/vscode-winteriscoming/blob/master/themes/WinterIsComing-light-color-theme.json
+
 
     /// taken from VS2017
     module ColorsUNUSED=

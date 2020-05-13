@@ -1,5 +1,7 @@
 ﻿namespace Seff.Views
 
+open Seff
+
 
 module Util = 
     open System
@@ -84,7 +86,9 @@ module Util =
         let menu = new ContextMenu()
         for x in xs do menu.Items.Add (x) |> ignore         
         menu
-
+    
+    let menuItem (cmd:CommandInfo) =  MenuItem(Header = cmd.name, InputGestureText = cmd.gesture, ToolTip = cmd.tip, Command = cmd.cmd):> Control
+    
     /// clear Grid first and then set with new elements        
     let setGridHorizontal (grid:Grid) (xs:list<UIElement*RowDefinition>)= 
         grid.Children.Clear()

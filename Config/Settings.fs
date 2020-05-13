@@ -6,10 +6,10 @@ open System.Text
 
  
 /// window size, layout and position, async state and more
-type Settings (log:ISeffLog, adl:AppDataLocation) = 
+type Settings (log:ISeffLog, adl:HostingMode) = 
     let  sep = '=' // key value separatur like in ini files
     
-    let filePath = adl.GetFilePath("Settings.txt")
+    let filePath = adl.GetPathToSaveAppData("Settings.txt")
     
     let settingsDict = 
         let dict = new Collections.Concurrent.ConcurrentDictionary<string,string>()   
@@ -21,7 +21,7 @@ type Settings (log:ISeffLog, adl:AppDataLocation) =
                 //log.PrintDebugMsg "on File: %s" ln
         with 
             | :? IO.FileNotFoundException ->  log.PrintInfoMsg   "Settings file not found. (This is normal on first use of the App.)"
-            | e ->                            log.PrintAppErrorMsg  "Problem reading or initalizing settings file: %s"  e.Message
+            | e ->                            log.PrintAppErrorMsg  "Problem reading or initalizing settings file: %A"  e
         dict
 
     let writer = SaveWriter(log)

@@ -2,7 +2,7 @@
 
 open System
 open System.Windows
-open Seff.Model
+
 
 module App =        
 
@@ -13,14 +13,14 @@ module App =
     /// Use Fsi.OnStarted and Fsi.OnIsReady Events to implement undo and redo in host App.
     //[< STAThread >] needed?
     let runEditorHosted (mainWindowHandle, hostName) : Window =
-        Initialize.enviroment (Hosted hostName , [| |])        
-        Interop.WindowInteropHelper(Win.Window).Owner <- mainWindowHandle
+        let win = Initialize.everything (Hosted hostName , [| |])        
+        Interop.WindowInteropHelper(win).Owner <- mainWindowHandle
         //win.Show() // do in host instead, so that the host can control the window show time
-        Win.Window
+        win
 
 
     [< EntryPoint >]
     [< STAThread >] 
     let runEditorStandalone args : int =   
-        Initialize.enviroment (Standalone,args)
-        (new Application()).Run(Win.Window) 
+        let win = Initialize.everything (Standalone,args)
+        (new Application()).Run(win) 

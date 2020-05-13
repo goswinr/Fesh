@@ -7,12 +7,12 @@ open System.Collections.Generic
 
    
 /// A class to hold the statistic of most used toplevel auto completions
-type AutoCompleteStatistic  (log:ISeffLog, adl:AppDataLocation) =
+type AutoCompleteStatistic  (log:ISeffLog, adl:HostingMode) =
     let writer = SaveWriter(log)
         
     let  sep = '=' // key value separatur like in ini files
     
-    let filePath = adl.GetFilePath("AutoCompleteStatistic.txt")
+    let filePath = adl.GetPathToSaveAppData("AutoCompleteStatistic.txt")
     
     let completionStats = 
         let dict=Collections.Concurrent.ConcurrentDictionary<string,float>() 
@@ -24,7 +24,7 @@ type AutoCompleteStatistic  (log:ISeffLog, adl:AppDataLocation) =
                     | [|k;v|] -> dict.[k] <- float v // TODO allow for comments? use ini format ??
                     | _       -> log.PrintAppErrorMsg "Bad line in CompletionStats file : '%s'" ln                   
             with e -> 
-                log.PrintAppErrorMsg "Error load fileCompletionStats: %s"   e.Message
+                log.PrintAppErrorMsg "Error load fileCompletionStats: %A"   e
             } |> Async.Start 
         dict
 

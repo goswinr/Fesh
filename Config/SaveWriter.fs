@@ -20,7 +20,7 @@ type SaveWriter  (log:ISeffLog)=
                 try
                     IO.File.WriteAllText(path,text)
                 with ex ->            
-                    log.PrintIOErrorMsg "Write.toFileAsyncLocked failed with: %s \r\n writing:\r\n%s" ex.Message text
+                    log.PrintIOErrorMsg "Write.toFileAsyncLocked failed with: %A \r\n while writing:\r\n%s" ex text
             finally
                 readerWriterLock.ExitWriteLock()
             } |> Async.Start

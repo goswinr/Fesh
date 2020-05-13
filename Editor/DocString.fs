@@ -195,7 +195,7 @@ module DocString =
               with
               | ex ->
                 printfn  "***Inner ERROR in reading xml file for tooltips, Current Name:\r\n%s" key /// TODO ad printing to LOG ?
-                printfn  "%s" ex.Message
+                printfn  "%A" ex
                 indentationSize, Some acc
         | _ -> indentationSize, Some acc
 
@@ -246,7 +246,7 @@ module DocString =
                     xmlDocCache.AddOrUpdate(xmlFile, xmlDoc, fun _ _ -> xmlDoc) |> ignore
                     Some xmlDoc
                 with ex ->
-                    printfn  "***Error in reading xml file %s \r\nfor tooltips: %s" actualXmlFile ex.Message /// TODO ad printing to LOG ?
+                    printfn  "***Error in reading xml file %s \r\nfor tooltips: %A" actualXmlFile ex /// TODO ad printing to LOG ?
                     None  // TODO: Remove the empty map from cache to try again in the next request?
                 //} Async.
 

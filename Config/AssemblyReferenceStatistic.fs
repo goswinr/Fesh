@@ -7,10 +7,10 @@ open System.Collections.Generic
 
            
 /// A class to hold the previously loaded assemble refrences for auto completions
-type AssemblyReferenceStatistic  (log:ISeffLog, adl:AppDataLocation) =
+type AssemblyReferenceStatistic  (log:ISeffLog, adl:HostingMode) =
     let writer = SaveWriter(log)
         
-    let filePath = adl.GetFilePath("AssemblyReferenceStatistic.txt")
+    let filePath = adl.GetPathToSaveAppData("AssemblyReferenceStatistic.txt")
         
     let assRefStats = 
         let set = HashSet<string>() 
@@ -21,7 +21,7 @@ type AssemblyReferenceStatistic  (log:ISeffLog, adl:AppDataLocation) =
                         //TODO verify path exists
                         set.Add(ln) |> ignore
             with e -> 
-                log.PrintAppErrorMsg "Error load assRefStatsStats: %s"   e.Message
+                log.PrintAppErrorMsg "Error load assRefStatsStats: %A" e
             } |> Async.Start 
         set
 
@@ -30,7 +30,7 @@ type AssemblyReferenceStatistic  (log:ISeffLog, adl:AppDataLocation) =
         for v in assRefStats do sb.AppendLine(v.ToString()) |> ignore
         sb.ToString() 
 
-    let filePath = adl.GetFilePath("AssemblyReferenceStatistic.txt")
+    let filePath = adl.GetPathToSaveAppData("AssemblyReferenceStatistic.txt")
                      
     member this.Get = assRefStats
             

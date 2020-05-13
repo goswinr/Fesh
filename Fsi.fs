@@ -6,7 +6,7 @@ open System.Windows
 open System.IO
 open System.Threading
 open FSharp.Compiler.Interactive.Shell
-open Seff.Model
+
 open Seff.Config
 
 
@@ -27,17 +27,16 @@ type ProcessCorruptedState(config:Config) =
          config.Log.PrintAppErrorMsg "%s" err
 
 
-
 type Fsi private (config:Config) =    
     let log = config.Log
     
     ///FSI events
-    let startedEv        = new Event<FsiMode>()      //TODO why include mode in event arg ?
+    let startedEv        = new Event<CodeToEval>()      //TODO why include mode in event arg ?
     let runtimeErrorEv   = new Event<Exception>() 
-    let canceledEv       = new Event<FsiMode>() 
-    let completedOkEv    = new Event<FsiMode>()
-    let isReadyEv        = new Event<FsiMode>()
-    let resetEv          = new Event<FsiMode>()
+    let canceledEv       = new Event<unit>() 
+    let completedOkEv    = new Event<unit>()
+    let isReadyEv        = new Event<unit>()
+    let resetEv          = new Event<unit>()
     let modeChangedEv    = new Event<FsiMode>()
     
     let mutable state = NotLoaded
@@ -133,21 +132,21 @@ type Fsi private (config:Config) =
                     if prevState = NotLoaded then log.PrintInfoMsg "FSharp Interactive session created in %s"  timer.tocEx  
                     else                          log.PrintInfoMsg "New FSharp Interactive session created in %s" timer.tocEx     
             
-                    if config.AppDataLocation.IsHosted then 
+                    if config.HostingMode.IsHosted then 
                         match mode with
                         |Sync ->  log.PrintInfoMsg "FSharp Interactive will evaluate synchronously on UI Thread."
                         |Async -> log.PrintInfoMsg "FSharp Interactive will evaluate asynchronously on new Thread."           
                     do! Async.SwitchToContext Sync.syncContext 
-                    isReadyEv.Trigger(mode)
+                    isReadyEv.Trigger()
                     } |> Async.Start
     
     
     [< Security.SecurityCritical >] // TODO do these Attributes appy in to async thread too ?
     [< Runtime.ExceptionServices.HandleProcessCorruptedStateExceptions >] //to handle AccessViolationException too //https://stackoverflow.com/questions/3469368/how-to-handle-accessviolationexception/4759831
-    let eval(code)=
+    let eval(code:CodeToEval)=
         state <- Evaluating
         //fsiCancelScr <- Some (new CancellationTokenSource()) //does not work? needs Thread.Abort () ?
-        startedEv.Trigger(mode) // do always sync
+        startedEv.Trigger(code) // do always sync
         if session.IsNone then init()     
         
         
@@ -164,9 +163,11 @@ type Fsi private (config:Config) =
           
             AppDomain.CurrentDomain.UnhandledException.AddHandler (//catching unhandled exceptions generated from all threads running under the context of a specific application domain. //https://dzone.com/articles/order-chaos-handling-unhandled
                 new UnhandledExceptionEventHandler( (new ProcessCorruptedState(config)).Handler)) //https://stackoverflow.com/questions/14711633/my-c-sharp-application-is-returning-0xe0434352-to-windows-task-scheduler-but-it
-                        
+            
+            // TODO set current directory  form fileInfo
+
             let choice, errs =  
-                try session.Value.EvalInteractionNonThrowing(code) //,fsiCancelScr.Value.Token)   // cancellation token here fails to cancel in sync, might still throw OperationCanceledException if async       
+                try session.Value.EvalInteractionNonThrowing(code.code) //,fsiCancelScr.Value.Token)   // cancellation token here fails to cancel in sync, might still throw OperationCanceledException if async       
                 with e -> Choice2Of2 e , [| |]
                
             if mode = Async then do! Async.SwitchToContext Sync.syncContext 
@@ -176,27 +177,27 @@ type Fsi private (config:Config) =
                
             match choice with //TODO move out of Thread?
             |Choice1Of2 vo -> 
-                completedOkEv.Trigger(mode)
-                isReadyEv.Trigger(mode)
+                completedOkEv.Trigger()
+                isReadyEv.Trigger()
                 for e in errs do log.PrintAppErrorMsg " **** Why Error? EvalInteractionNonThrowing should not have errors: %A" e
                 //match vo with None-> () |Some v -> log.PrintDebugMsg "Interaction evaluted to %A <%A>" v.ReflectionValue v.ReflectionType
                    
             |Choice2Of2 exn ->     
                 match exn with 
                 | :? OperationCanceledException ->
-                    canceledEv.Trigger(mode)
-                    isReadyEv.Trigger(mode)
-                    log.PrintInfoMsg "Fsi evaluation was canceled: %s" exn.Message                    
+                    canceledEv.Trigger()
+                    isReadyEv.Trigger()
+                    log.PrintFsiErrorMsg "Fsi evaluation was canceled by user!" //: %A" exn                
                            
                 | :? FsiCompilationException -> 
                     runtimeErrorEv.Trigger(exn)
-                    isReadyEv.Trigger(mode)
+                    isReadyEv.Trigger()
                     log.PrintFsiErrorMsg "Compiler Error:"
                     for e in errs do    
                         log.PrintFsiErrorMsg "%A" e
                 | _ ->    
                     runtimeErrorEv.Trigger(exn)
-                    isReadyEv.Trigger(mode)
+                    isReadyEv.Trigger()
                     log.PrintFsiErrorMsg "Runtime Error: %A" exn     
             } 
         
@@ -209,7 +210,7 @@ type Fsi private (config:Config) =
     static let mutable singleInstance:Fsi option  = None
     
     /// ensures only one instance is created
-    static member Create(config) = 
+    static member GetOrCreate(config) = 
         match singleInstance with 
         |Some fsi -> fsi
         |None -> singleInstance <- Some (new Fsi(config)); singleInstance.Value
@@ -267,19 +268,20 @@ type Fsi private (config:Config) =
         
 
     member this.Evaluate(code) =         
-        if DateTime.Today > DateTime(2020, 9, 30) then failwithf "Your Seff Editor has expired, please download a new version."
-        if DateTime.Today > DateTime(2020, 7, 30) then log.PrintInfoMsg "*** Your Seff Editor will expire on 2020-9-30, please download a new version soon. ***"        
-        match this.AskIfCancellingIsOk () with 
-        | NotEvaluating   -> eval(code) 
-        | YesAsync        -> this.CancelIfAsync();eval(code) 
-        | Dont            -> ()
-        | NotPossibleSync -> log.PrintInfoMsg "Wait till current synchronous evaluation completes before starting new one."
+        if DateTime.Today > DateTime(2020, 12, 31) then log.PrintFsiErrorMsg "*** Your Seff Editor has expired, please download a new version. or contact goswin@rothenthal.com ***"
+        else 
+            if DateTime.Today > DateTime(2020, 10, 30) then log.PrintFsiErrorMsg "*** Your Seff Editor will expire on 2020-12-31, please download a new version soon. or contact goswin@rothenthal.com***"        
+            match this.AskIfCancellingIsOk () with 
+            | NotEvaluating   -> eval(code) 
+            | YesAsync        -> this.CancelIfAsync();eval(code) 
+            | Dont            -> ()
+            | NotPossibleSync -> log.PrintInfoMsg "Wait till current synchronous evaluation completes before starting new one."
        
 
     member this.Reset() =  
         match this.AskIfCancellingIsOk () with 
-        | NotEvaluating   ->                       init (); resetEv.Trigger(mode) //log.PrintInfoMsg "FSI reset." done by this.Initialize()
-        | YesAsync        -> this.CancelIfAsync(); init (); resetEv.Trigger(mode)
+        | NotEvaluating   ->                       init (); resetEv.Trigger() //log.PrintInfoMsg "FSI reset." done by this.Initialize()
+        | YesAsync        -> this.CancelIfAsync(); init (); resetEv.Trigger()
         | Dont            -> ()
         | NotPossibleSync -> log.PrintInfoMsg "ResetFsi is not be possibe in current synchronous evaluation." // TODO test
       

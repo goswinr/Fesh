@@ -1,6 +1,7 @@
 ﻿namespace Seff.Views
 
 open Seff
+
 open Seff.Editor
 open System
 open System.IO
@@ -9,6 +10,7 @@ open System.Windows
 open Seff.Views.Util
 open Seff.Config
 open Seff.Appearance
+open Seff.Editor
 
 /// A class holding the Tab Control
 /// Includes logic for saving and opening files
@@ -19,14 +21,16 @@ type Tabs(config:Config, win:Window) =
     
     let log = config.Log 
 
-    let fsi = Fsi.Create(config)
+    let fsi = Fsi.GetOrCreate(config)
 
     let allTabs:seq<Tab> =  Seq.cast tabs.Items
     
     let allFileInfos = seq{ for t in allTabs do if  t.FileInfo.IsSome then yield t.FileInfo.Value } //TODO does this reevaluate every time?
     
-    let currentTabChangedEv = new Event<Tab>() //to Trigger Fs Checker
-                
+    //delete //let currentTabChangedEv = new Event<Tab>() //to Trigger Fs Checker
+
+    let currentTabChangedEv = new Event<Tab>() //to Trigger Fs Checker 
+    
     let mutable current =  Unchecked.defaultof<Tab>
 
     let saveAt (t:Tab, fi:FileInfo) =                   
@@ -168,7 +172,7 @@ type Tabs(config:Config, win:Window) =
                 tab.IsCurrent <-true
                 tab.Editor.IsCurrent <- true                
                 tab.Editor.Checker.CkeckAndHighlight(tab.Editor.AvaEdit,tab.FileInfo)
-                currentTabChangedEv.Trigger(tab) // checker is started above, does not need this event to start
+                //delete //currentTabChangedEv.Trigger(tab) // checker is started above, does not need this event to start
                 config.OpenTabs.Save(tab.FileInfo , allFileInfos)
                 log.PrintDebugMsg "Current Tab changed to %s" tab.FormatedFileName
             )
@@ -186,8 +190,8 @@ type Tabs(config:Config, win:Window) =
         
         
         current.Editor.Checker.CkeckAndHighlight(current.Editor.AvaEdit,current.FileInfo)
-        currentTabChangedEv.Trigger(current)  //TODO check if triggerd here and in SelectionChanged
-        log.PrintDebugMsg "Current Tab changed from do block end %s" current.FormatedFileName
+        //delete//currentTabChangedEv.Trigger(current)  //TODO check if triggerd here and in SelectionChanged
+        log.PrintDebugMsg "Current Tab set from do block end %s" current.FormatedFileName
         
 
     //--------------- Public members------------------
@@ -310,6 +314,11 @@ type Tabs(config:Config, win:Window) =
         //if cs > 5. then setFontSize(cs-step)
         if cs > 3. then setFontSize(cs * 0.97) // 3% steps       
     
-                   
-       
+      
+                                                                                                                           
+    member this.EvalAllText()        =  fsi.Evaluate                            {code=current.Editor.AvaEdit.Text                             ; file=current.FileInfo; allOfFile=true}                               
+    member this.EvalAllTextSave()    =  if this.Save(current) then fsi.Evaluate {code=current.Editor.AvaEdit.Text                             ; file=current.FileInfo; allOfFile=true} 
+    member this.EvalSelectedLines()  =  fsi.Evaluate                            {code = Selection.expandSelectionToFullLines(current.AvaEdit) ; file=current.FileInfo; allOfFile=false} 
+    member this.EvalSelectedText()   =  fsi.Evaluate                            {code = current.AvaEdit.SelectedText                          ; file=current.FileInfo; allOfFile=false} 
+                           
     

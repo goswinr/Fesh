@@ -11,10 +11,10 @@ open System.IO
 
    
     
-type DefaultCode  (log:ISeffLog, adl:AppDataLocation) =
+type DefaultCode  (log:ISeffLog, adl:HostingMode) =
     let writer = SaveWriter(log)
     
-    let filePath = adl.GetFilePath("DefaultCode.fsx")
+    let filePath = adl.GetPathToSaveAppData("DefaultCode.fsx")
 
     let defaultCodeOnFirstRun =
         [

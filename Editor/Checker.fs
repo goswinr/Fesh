@@ -1,7 +1,7 @@
 ﻿namespace Seff.Editor
 
 open Seff
-open Seff.Model
+
 open System
 open System.IO
 open FSharp.Compiler
@@ -37,6 +37,7 @@ type Checker private (config:Config)  =
     let check(avaEdit:TextEditor, fileInfo:FileInfo option, tillOffset, continueOnThreadPool:CheckResults->unit, triggerCheckedEvent:bool) = 
         let thisId = Interlocked.Increment checkId
         checkingEv.Trigger(checkId) // to show in statusbar
+        let doc = avaEdit.Document // access documnet before starting async
         async { 
             match checker with 
             | Some ch -> ()
@@ -50,8 +51,8 @@ type Checker private (config:Config)  =
             
             if !checkId = thisId then
                 let code = 
-                    if tillOffset = 0 then avaEdit.Document.CreateSnapshot().Text //the only threadsafe way to acces the code string
-                    else                   avaEdit.Document.CreateSnapshot(0, tillOffset).Text
+                    if tillOffset = 0 then doc.CreateSnapshot().Text //the only threadsafe way to acces the code string
+                    else                   doc.CreateSnapshot(0, tillOffset).Text
             
                 let fileFsx = 
                     match fileInfo with
@@ -107,7 +108,7 @@ type Checker private (config:Config)  =
                                 *)
                         if !checkId = thisId  then
                             try
-                                let! parseRes , checkAnswer = checker.Value.ParseAndCheckFileInProject(fileFsx, 0, sourceText, options) // can also be done in two  calls   //TODO really use check file in project for scripts??         
+                                let! parseRes , checkAnswer = checker.Value.ParseAndCheckFileInProject(fileFsx, 0, sourceText, options) // can also be done in two  calls   //TODO really use check file in project for scripts?? 
                                 match checkAnswer with
                                 | FSharpCheckFileAnswer.Succeeded checkRes ->   
                                     if !checkId = thisId  then
@@ -116,19 +117,19 @@ type Checker private (config:Config)  =
                                         continueOnThreadPool(res)
                                         if triggerCheckedEvent && !checkId = thisId  then
                                             do! Async.SwitchToContext Sync.syncContext 
-                                            checkedEv.Trigger(checkRes.Errors) // to  highlighting errors  and mark statusbar //TODO all eventstrigger in Sync ?
+                                            checkedEv.Trigger(checkRes.Errors) // to   mark statusbar , NOT to highlighting errors //TODO all events trigger in Sync ?
                                             if isFirstCheck then 
-                                                firstCheckDoneEv.Trigger()
+                                                firstCheckDoneEv.Trigger() //now start FSI
                                                 isFirstCheck <- false
                 
                                 | FSharpCheckFileAnswer.Aborted  ->
                                     log.PrintAppErrorMsg "*ParseAndCheckFile code aborted"
                                     results <- None                       
                             with e ->
-                                log.PrintAppErrorMsg "ParseAndCheckFileInProject crashed (maybe you are using another version of  FSharpCompilerService.dll than at compile time): %s" e.Message
+                                log.PrintAppErrorMsg "Error in ParseAndCheckFileInProject Block.\r\nMaybe you are using another version of  FSharpCompilerService.dll than at compile time?\r\nOr the error is in the continuation.\r\nOr in the event handlers: %A" e
                                 results <- None         
                     with e ->
-                            log.PrintAppErrorMsg "GetProjectOptionsFromScript crashed (maybe you are using another version of  FSharpCompilerService.dll than at compile time): %s" e.Message
+                            log.PrintAppErrorMsg "Error in GetProjectOptionsFromScript Block.\r\nMaybe you are using another version of  FSharpCompilerService.dll than at compile time?: %A" e
                             results <- None 
             } |> Async.Start
     
@@ -145,12 +146,12 @@ type Checker private (config:Config)  =
     [<CLIEvent>] member this.OnFirstCheckDone = firstCheckDoneEv.Publish
 
     /// ensures only one instance is created
-    static member Create(config) = 
+    static member GetOrCreate(config) = 
         match singleInstance with 
         |Some ch -> ch
         |None -> 
             let ch = new Checker(config)
-            ch.OnFirstCheckDone.Add ( fun () -> Fsi.Create(config).Initalize() ) // to start fsi when checker is  idle
+            ch.OnFirstCheckDone.Add ( fun () -> Fsi.GetOrCreate(config).Initalize() ) // to start fsi when checker is  idle
             singleInstance <- Some ch; 
             ch
 

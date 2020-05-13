@@ -55,7 +55,7 @@
     <Compile Include="Sync.fs" />
 
     <Compile Include="Config\SaveWriter.fs" />
-    <Compile Include="Config\AppDataLocation.fs" />
+    <Compile Include="Config\HostingMode.fs" />
     <Compile Include="Config\Settings.fs" />
     <Compile Include="Config\DefaultCode.fs" />
     <Compile Include="Config\OpenTabs.fs" />
@@ -72,10 +72,9 @@
     <Compile Include="Editor\TypeInfo.fs" />
     <Compile Include="Editor\CodeCompletion.fs" />
     <Compile Include="Editor\Editor.fs" />
-    <Compile Include="Editor\TextChanged.fs" />
-    <Compile Include="Editor\ColumnRulers.fs" />
-    <Compile Include="Editor\Folding.fs" />
-    <Compile Include="Editor\Nuget.fs" />
+    <Compile Include="Editor\UNUSEDColumnRulers.fs" />
+    <Compile Include="Editor\UNUSEDFolding.fs" />
+    <Compile Include="Editor\UNUSEDNuget.fs" />
 
     <Compile Include="Views\Util.fs" />
     <Compile Include="Views\Log.fs" />
@@ -86,7 +85,6 @@
     <Compile Include="Views\Commands.fs" />
     <Compile Include="Views\StatusBar.fs" />
     <Compile Include="Views\Menu.fs" />
-    <Compile Include="EditorEvents.fs" />
     <Compile Include="Initialize.fs" />
     
     <Compile Include="App.fs" />

@@ -6,10 +6,10 @@ open System.Text
 open System.IO
 
    
-type RecentlyUsedFiles  (log:ISeffLog, adl:AppDataLocation) =
+type RecentlyUsedFiles  (log:ISeffLog, adl:HostingMode) =
     let writer = SaveWriter(log)
         
-    let filePath = adl.GetFilePath("RecentlyUsedFiles.txt")
+    let filePath = adl.GetPathToSaveAppData("RecentlyUsedFiles.txt")
         
     let recentFilesChangedEv = new Event<unit>()
         
@@ -23,7 +23,7 @@ type RecentlyUsedFiles  (log:ISeffLog, adl:AppDataLocation) =
             for ln in  IO.File.ReadAllLines filePath |> Seq.rev do
                 stack.Push(FileInfo(ln)) |> ignore                    
         with e -> 
-            log.PrintAppErrorMsg "Error load RecentlyUsedFiles: %s"   e.Message
+            log.PrintAppErrorMsg "Error load RecentlyUsedFiles: %A"   e
                   
         stack   
 
@@ -42,6 +42,7 @@ type RecentlyUsedFiles  (log:ISeffLog, adl:AppDataLocation) =
 
     member this.Save(fi:FileInfo) =         
             recentFilesStack.Push fi 
+            log.PrintDebugMsg "add recent file %s" fi.FullName
             writer.WriteDelayed(filePath, getStringRaiseEvent, 1000)
         
     /// the first elemnt in this array the top of stack

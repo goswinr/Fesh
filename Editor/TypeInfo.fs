@@ -35,9 +35,8 @@ type TypeInfo(aved:TextEditor, checker:Checker) =
     static let stackPanel  (it:FSharpDeclarationListItem option, tds:ToolTipData list) = 
         let mutable assemblies = new HashSet<string>()
         let stackPanel = makePanelVert [
-            if it.IsSome then 
-                let glyph = sprintf "%A" it.Value.Glyph
-                let tb = new TextBlock(Text = glyph)
+            if it.IsSome then                 
+                let tb = new TextBlock(Text = sprintf "%A" it.Value.Glyph)
                 tb.Foreground <- Brushes.DarkOrange
                 tb.FontSize <- Appearance.fontSize  * 1.0
                 tb.FontFamily <- Appearance.font
@@ -91,7 +90,7 @@ type TypeInfo(aved:TextEditor, checker:Checker) =
                 //tb.FontFamily <- new FontFamily ("Arial") // or use default of device
                 yield tb :> UIElement
                 ]
-        ScrollViewer(Content=stackPanel)
+        ScrollViewer(Content=stackPanel , VerticalScrollBarVisibility = ScrollBarVisibility.Auto ) //TODO cant be scrolled, never gets focus? because completion window keeps focus on editor
     
   
     // --------------------------------------------------------------------------------------
@@ -200,11 +199,12 @@ type TypeInfo(aved:TextEditor, checker:Checker) =
                         
                     do! Async.SwitchToThreadPool()
 
-                    let! stt =    checker.Results.Value.checkRes.GetStructuredToolTipText(line,endCol,lineTxt,[word],FSharpTokenTag.Identifier)       //TODO, can this be avoided use info from below symbol call ?
+                    let! stt =    checker.Results.Value.checkRes.GetStructuredToolTipText(line,endCol,lineTxt,[word],FSharpTokenTag.Identifier)       //TODO, can this be avoided use info from below symbol call ? // TODO move into checker
                     let! symbls = checker.Results.Value.checkRes.GetSymbolUseAtLocation(  line,endCol,lineTxt,[word])                                 //only get to info about oprional paramters
                     let optArgs = if symbls.IsSome then namesOfOptionalArgs(symbls.Value) else ResizeArray(0) 
                         
                     do! Async.SwitchToContext Sync.syncContext
+                    
 
                     let ttds = formated (stt, optArgs)
                     if List.isEmpty ttds then
