@@ -11,18 +11,12 @@ open System.Threading
 open Seff.Config
 
 
-type CheckResults = {   parseRes:FSharpParseFileResults;  
-                        checkRes:FSharpCheckFileResults;  
-                        code:string
-                        tillOffset:int}
 
 type Checker private (config:Config)  = 
     
     let log = config.Log
 
     let mutable checker: FSharpChecker Option = None
-    
-    let mutable results : CheckResults Option = None
     
     let checkId = ref 0L    
 
@@ -34,10 +28,10 @@ type Checker private (config:Config)  =
     let firstCheckDoneEv = new Event<unit>() // to first check file, then start FSI
 
     /// to check full code use 0 as 'tillOffset', for highlight error set continuation to  'ignore' and trigger event to true
-    let check(avaEdit:TextEditor, fileInfo:FileInfo option, tillOffset, continueOnThreadPool:CheckResults->unit, triggerCheckedEvent:bool) = 
+    let check(iEditor:IEditor, tillOffset, continueOnThreadPool:CheckResults->unit, triggerCheckedEvent:bool) = 
         let thisId = Interlocked.Increment checkId
         checkingEv.Trigger(checkId) // to show in statusbar
-        let doc = avaEdit.Document // access documnet before starting async
+        let doc = iEditor.AvaEdit.Document // access documnet before starting async
         async { 
             match checker with 
             | Some ch -> ()
@@ -55,7 +49,7 @@ type Checker private (config:Config)  =
                     else                   doc.CreateSnapshot(0, tillOffset).Text
             
                 let fileFsx = 
-                    match fileInfo with
+                    match iEditor.FileInfo with
                     |Some fi -> 
                         let n = fi.FullName
                         if not <| n.EndsWith(".fsx",StringComparison.InvariantCultureIgnoreCase) then n + ".fsx" else n // required by FCS, oddly !
@@ -113,7 +107,7 @@ type Checker private (config:Config)  =
                                 | FSharpCheckFileAnswer.Succeeded checkRes ->   
                                     if !checkId = thisId  then
                                         let res = {parseRes = parseRes;  checkRes = checkRes;  code = code; tillOffset = code.Length}
-                                        results <- Some res 
+                                        iEditor.CheckRes <- Some res 
                                         continueOnThreadPool(res)
                                         if triggerCheckedEvent && !checkId = thisId  then
                                             do! Async.SwitchToContext Sync.syncContext 
@@ -124,13 +118,13 @@ type Checker private (config:Config)  =
                 
                                 | FSharpCheckFileAnswer.Aborted  ->
                                     log.PrintAppErrorMsg "*ParseAndCheckFile code aborted"
-                                    results <- None                       
+                                    iEditor.CheckRes <- None                       
                             with e ->
                                 log.PrintAppErrorMsg "Error in ParseAndCheckFileInProject Block.\r\nMaybe you are using another version of  FSharpCompilerService.dll than at compile time?\r\nOr the error is in the continuation.\r\nOr in the event handlers: %A" e
-                                results <- None         
+                                iEditor.CheckRes <- None         
                     with e ->
                             log.PrintAppErrorMsg "Error in GetProjectOptionsFromScript Block.\r\nMaybe you are using another version of  FSharpCompilerService.dll than at compile time?: %A" e
-                            results <- None 
+                            iEditor.CheckRes <- None 
             } |> Async.Start
     
     
@@ -151,22 +145,18 @@ type Checker private (config:Config)  =
         |Some ch -> ch
         |None -> 
             let ch = new Checker(config)
-            ch.OnFirstCheckDone.Add ( fun () -> Fsi.GetOrCreate(config).Initalize() ) // to start fsi when checker is  idle
+            ch.OnFirstCheckDone.Add ( fun () -> Fsi.GetOrCreate(config).Initalize() ) // to start fsi when checker is idle
             singleInstance <- Some ch; 
             ch
 
-    //member this.CurrentCheckId = checkId
-
-    member this.Results = results
-
     /// Triggers Event<FSharpErrorInfo[]> event after calling the continuation
-    member this.CkeckAndHighlight (avaEdit:TextEditor, fileInfo:FileInfo Option, errorHighlighter:ErrorHighlighter)  = 
-        log.PrintDebugMsg "checking started for %A" fileInfo
-        let draw (r:CheckResults) = errorHighlighter.Draw(r.checkRes.Errors)
-        check (avaEdit, fileInfo, 0, draw, true)
+    member this.CkeckAndHighlight (iEditor:IEditor)  = 
+        log.PrintDebugMsg "checking started for %A" iEditor.FileInfo
+        let draw (r:CheckResults) = iEditor.DrawErrors(r.checkRes.Errors)
+        check (iEditor, 0, draw, true)
 
     /// checks for items available for completion
-    member this.GetCompletions (avaEdit:TextEditor, fileInfo:FileInfo Option, pos :PositionInCode, ifDotSetback, continueOnUI: FSharpDeclarationListInfo*FSharpSymbolUse list list  -> unit) =        
+    member this.GetCompletions (iEditor:IEditor, pos :PositionInCode, ifDotSetback, continueOnUI: FSharpDeclarationListInfo*FSharpSymbolUse list list  -> unit) =        
         let getSymbolsAndDecls(res:CheckResults) = 
             let thisId = !checkId
             //see https://stackoverflow.com/questions/46980690/f-compiler-service-get-a-list-of-names-visible-in-the-scope
@@ -194,12 +184,11 @@ type Checker private (config:Config)  =
                                 partialLongName,    // PartialLongName
                                 ( fun _ -> [] )     // getAllEntities: (unit -> AssemblySymbol list) 
                                 )
-                        if !checkId = thisId  then         
-                            do! Async.SwitchToContext Sync.syncContext 
+                        if !checkId = thisId  then
                             if decls.IsError then log.PrintAppErrorMsg "*ERROR in GetDeclarationListInfo: %A" decls //TODO use log
                             else
                                 do! Async.SwitchToContext Sync.syncContext 
                                 continueOnUI( decls, symUse)
             } |> Async.StartImmediate // we are on thread pool alredeay    
         
-        check(avaEdit, fileInfo, pos.offset, getSymbolsAndDecls, false) //TODO can existing parse results be used ? or do they miss the dot so dont show dot completions ?
+        check(iEditor, pos.offset, getSymbolsAndDecls, false) //TODO can existing parse results be used ? or do they miss the dot so dont show dot completions ?

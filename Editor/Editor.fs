@@ -1,4 +1,6 @@
-﻿namespace Seff.Editor
+﻿open Seff.Editor
+
+namespace Seff.Editor
 
 open Seff
 
@@ -16,106 +18,21 @@ open System
 
 
  /// The tab that holds the tab header and the code editor 
-type Editor (code:string, config:Config, fileInfo:FileInfo Option) = //as this= 
-    let log =               config.Log
-
-    let avaEdit =           new AvalonEdit.TextEditor()    
+type Editor private (code:string, config:Config, fileInfo:FileInfo Option) = 
+    let avaEdit =           new AvalonEdit.TextEditor()
     
-    let checker =           Checker.GetOrCreate(config)
-
-    let errorHighlighter =   new ErrorHighlighter(avaEdit)
-
+    let checker =           Checker.GetOrCreate(config) 
+    let errorHighlighter =  new ErrorHighlighter(avaEdit)
+    let complWin =          new CompletionWindow(avaEdit,config,checker)
+    
+    let log = config.Log
+    let id = Guid.NewGuid()
+    let mutable checkRes : CheckResults Option = None 
+    let mutable fileInfo = fileInfo    
     let typeInfo =          new TypeInfo(avaEdit,checker)
 
-    let complWin =          new CompletionWindow(avaEdit,config,checker)
-
-    let currentLineBeforeCaret()=
-        let doc = avaEdit.Document
-        let car = avaEdit.TextArea.Caret
-        let caretOffset = car.Offset
-        let ln = doc.GetLineByOffset(caretOffset)
-        let caretOffsetInThisLine = caretOffset - ln.Offset
-        
-        { lineToCaret = doc.GetText(ln.Offset, caretOffsetInThisLine) 
-          row =    car.Line  
-          column = caretOffsetInThisLine // equal to amount of characters in lineToCaret
-          offset = caretOffset }
-
-    let keywords = Keywords.KeywordsWithDescription |> List.map fst |> Collections.Generic.HashSet // used in analysing text change
-
-    let textChanged (change:TextChange) =        
-        //log.PrintDebugMsg "*1-textChanged because of %A" change 
-        if not complWin.IsOpen then 
-            if complWin.HasItems then 
-                //log.PrintDebugMsg "*1.2-textChanged not highlighting because  complWin.HasItems"
-                //TODO check text is full mtch and close completion window ?
-                // just keep on tying in completion window, no type checking !
-                ()
-            else 
-                //log.PrintDebugMsg "*1.1-textChanged: closing empty completion window(change: %A)" change 
-                complWin.Close() 
-
-            match change with             
-            | OtherChange | CompletionWinClosed  | EnteredOneNonIdentifierChar -> //TODO maybe do less call to error highlighter when typing in string or comment ?
-                log.PrintDebugMsg "*1.2-textChanged highlighting for  %A" change
-                checker.CkeckAndHighlight(avaEdit, fileInfo, errorHighlighter)
-                //TODO trigger here UpdateFoldings(tab,None) or use event
-
-            | EnteredOneIdentifierChar | EnteredDot -> 
-                let pos = currentLineBeforeCaret() // this line will include the charcater that trigger auto completion(dot or first letter)
-                let line = pos.lineToCaret
-                
-                //possible cases where autocompletion is not desired:
-                //let isNotInString           = (countChar '"' line ) - (countSubString "\\\"" line) |> isEven && not <| line.Contains "print" // "\\\"" to ignore escaped quotes of form \" ; check if formating string
-                let isNotAlreadyInComment   = countSubString "//"  line = 0  ||  lastCharIs '/' line   // to make sure comment was not just typed(then still check)
-                let isNotLetDecl            = let lk = (countSubString "let " line) + (countSubString "let(" line) in lk <= (countSubString "=" line) || lk <= (countSubString ":" line)
-                // TODO add check for "for" declaration
-                let isNotFunDecl            = let fk = (countSubString "fun " line) + (countSubString "fun(" line) in fk <= (countSubString "->" line)|| fk <= (countSubString ":" line)
-                let doCompletionInPattern, onlyDU   =  
-                    match stringAfterLast " |" (" "+line) with // add starting step to not fail at start of line with "|"
-                    |None    -> true,false 
-                    |Some "" -> log.PrintDebugMsg " this schould never happen since we get here only with letters, but not typing '|'" ; false,false // most comen case: '|" was just typed, next pattern declaration starts after next car
-                    |Some s  -> 
-                        let doCompl = 
-                            s.Contains "->"             || // name binding already happend 
-                            isOperator s.[0]            || // not in pattern matching 
-                            s.[0]=']'                   || // not in pattern matching 
-                            (s.Contains " :?" && not <| s.Contains " as ")  // auto complete desired  after '| :?" type check but not after 'as' 
-                        if not doCompl && startsWithUppercaseAfterWhitespace s then // do autocomplete on DU types when starting with uppercase Letter
-                           if s.Contains "(" || s.Contains " " then   false,false //no completion binding a new name inside a DU
-                           else                                       true ,true //upper case only, show DU and Enum in completion list, if all others are false
-                        else
-                           doCompl,false //not upper case, other 3 decide if anything is shown
-
-                //log.PrintDebugMsg "isNotInString:%b; isNotAlreadyInComment:%b; isNotFunDeclaration:%b; isNotLetDeclaration:%b; doCompletionInPattern:%b, onlyDU:%b" isNotInString isNotAlreadyInComment isNotFunDecl isNotLetDecl doCompletionInPattern onlyDU
-            
-                if (*isNotInString &&*) isNotAlreadyInComment && isNotFunDecl && isNotLetDecl && doCompletionInPattern then
-                    let setback     = lastNonFSharpNameCharPosition line                
-                    let query       = line.Substring(line.Length - setback)
-                    let isKeyword   = keywords.Contains query
-                    //log.PrintDebugMsg "pos:%A setback='%d'" pos setback                
-                                       
-                    let charBeforeQueryDU = 
-                        let i = pos.column - setback - 1
-                        if i >= 0 && i < line.Length then 
-                            if line.[i] = '.' then Dot else NotDot
-                        else
-                            NotDot
-
-                    if charBeforeQueryDU = NotDot && isKeyword then
-                        //log.PrintDebugMsg "*2.1-textChanged highlighting with: query='%s', charBefore='%A', isKey=%b, setback='%d', line='%s' " query charBeforeQueryDU isKeyword setback line
-                        checker.CkeckAndHighlight(avaEdit,fileInfo,errorHighlighter)
-
-                    else 
-                        //log.PrintDebugMsg "*2.2-textChanged Completion window opening with: query='%s', charBefore='%A', isKey=%b, setback='%d', line='%s' change=%A" query charBeforeQueryDU isKeyword setback line change
-                       complWin.TryShow(fileInfo, pos, change, setback, query, charBeforeQueryDU, onlyDU)
-                else
-                    //checkForErrorsAndUpdateFoldings(tab)
-                    //log.PrintDebugMsg "*2.3-textChanged didn't trigger of checker not needed? \r\n"
-                    ()
 
     do
-        //Editor.Document.Changed.Add(fun e //trigger text changed, TODO!! listener already added ? or added later        
         avaEdit.Text <- code
         avaEdit.ShowLineNumbers <- true
         avaEdit.VerticalScrollBarVisibility <- Controls.ScrollBarVisibility.Auto
@@ -136,13 +53,148 @@ type Editor (code:string, config:Config, fileInfo:FileInfo Option) = //as this=
         Search.SearchPanel.Install(avaEdit) |> ignore
         SyntaxHighlighting.setFSharp(avaEdit,config,false)
 
-        //checker.OnChecked.Add(errorHighligter.Draw) // dont do this it would trigger error highlighting in all tabs for the errors of one tab
-        checker.CkeckAndHighlight(avaEdit,fileInfo,errorHighlighter)
+        
+        //remove 4 charactes (Options.IndentationSize) on pressing backspace key instead of one 
+        avaEdit.PreviewKeyDown.Add ( fun e -> 
+            if e.Key = Input.Key.Back then 
+                let line = avaEdit.Document.GetText(avaEdit.Document.GetLineByOffset(avaEdit.CaretOffset)) // = get current line
+                let car = avaEdit.TextArea.Caret.Column
+                let prevC = line.Substring(0 ,car-1)
+                //log.PrintDebugMsg "--Substring length %d: '%s'" prevC.Length prevC
+                if prevC.Length > 0 then 
+                    if isJustSpaceCharsOrEmpty prevC  then
+                        let dist = prevC.Length % avaEdit.Options.IndentationSize
+                        let clearCount = if dist = 0 then avaEdit.Options.IndentationSize else dist
+                        //log.PrintDebugMsg "--Clear length: %d " clearCount
+                        avaEdit.Document.Remove(avaEdit.CaretOffset - clearCount, clearCount)
+                        e.Handled <- true )
 
         complWin.OnShowing.Add(fun _ -> errorHighlighter.ToolTip.IsOpen <- false)
         complWin.OnShowing.Add(fun _ -> typeInfo.ToolTip.IsOpen        <- false)
+
+    member val IsCurrent = false with get,set // TODO really needed ? this is managed in Tabs.selectionChanged event handler 
+    
+    member this.Checker = checker
+    member this.ErrorHighlighter = errorHighlighter    
+    member this.ComletionWin = complWin
+    member this.Config = config
+      
+    member this.Log = log
+
+    member this.Id = id
+    member this.AvaEdit   = avaEdit
+    member this.CheckRes  with get()=checkRes and  set(v) = checkRes <- v
+    member this.FileInfo  with get()=fileInfo and  set(v) = fileInfo <- v // The Tab class containing this editor takes care of updating this 
+    member this.DrawErrors(es: FSharpErrorInfo[]) = errorHighlighter.Draw(es)
+
+    interface IEditor
+        member this.Id = id
+        member this.AvaEdit   = avaEdit
+        member this.CheckRes  with get()=checkRes and  set(v) = checkRes <- v
+        member this.FileInfo  = fileInfo //with get()=fileInfo and  set(v) = fileInfo <- v
+        member this.DrawErrors(es: FSharpErrorInfo[]) = errorHighlighter.Draw(es)
+       
+    
+    
+    // additional text change event:
+    //let completionInserted = new Event<string>() // event needed because Text change event is not raised after completion insert    
+    //[<CLIEvent>]
+    //member this.CompletionInserted = completionInserted.Publish
+    //member this.TriggerCompletionInserted x = completionInserted.Trigger x // to raise it after completion inserted ?
+    
+    /// sets up Text change event handlers
+    static member SetUp  (code:string, config:Config, fileInfo:FileInfo Option ) = 
+        let ed = Editor(code, config, fileInfo )
         
+        let avaEdit = ed.AvaEdit
+        let complWin = ed.ComletionWin
+        let log = ed.Log
         
+        let currentLineBeforeCaret()=
+            let doc = avaEdit.Document
+            let car = avaEdit.TextArea.Caret
+            let caretOffset = car.Offset
+            let ln = doc.GetLineByOffset(caretOffset)
+            let caretOffsetInThisLine = caretOffset - ln.Offset
+            
+            { lineToCaret = doc.GetText(ln.Offset, caretOffsetInThisLine) 
+              row =    car.Line  
+              column = caretOffsetInThisLine // equal to amount of characters in lineToCaret
+              offset = caretOffset }
+
+        let keywords = Keywords.KeywordsWithDescription |> List.map fst |> Collections.Generic.HashSet // used in analysing text change
+
+        let textChanged (change:TextChange) =        
+            //log.PrintDebugMsg "*1-textChanged because of %A" change 
+            if not complWin.IsOpen then 
+                if complWin.HasItems then 
+                    //log.PrintDebugMsg "*1.2-textChanged not highlighting because  complWin.HasItems"
+                    //TODO check text is full mtch and close completion window ?
+                    // just keep on tying in completion window, no type checking !
+                    ()
+                else 
+                    //log.PrintDebugMsg "*1.1-textChanged: closing empty completion window(change: %A)" change 
+                    complWin.Close() 
+
+                match change with             
+                | OtherChange | CompletionWinClosed  | EnteredOneNonIdentifierChar -> //TODO maybe do less call to error highlighter when typing in string or comment ?
+                    log.PrintDebugMsg "*1.2-textChanged highlighting for  %A" change
+                    ed.Checker.CkeckAndHighlight(ed)
+                    //TODO trigger here UpdateFoldings(tab,None) or use event
+
+                | EnteredOneIdentifierChar | EnteredDot -> 
+                    let pos = currentLineBeforeCaret() // this line will include the charcater that trigger auto completion(dot or first letter)
+                    let line = pos.lineToCaret
+                    
+                    //possible cases where autocompletion is not desired:
+                    //let isNotInString           = (countChar '"' line ) - (countSubString "\\\"" line) |> isEven && not <| line.Contains "print" // "\\\"" to ignore escaped quotes of form \" ; check if formating string
+                    let isNotAlreadyInComment   = countSubString "//"  line = 0  ||  lastCharIs '/' line   // to make sure comment was not just typed(then still check)
+                    let isNotLetDecl            = let lk = (countSubString "let " line) + (countSubString "let(" line) in lk <= (countSubString "=" line) || lk <= (countSubString ":" line)
+                    // TODO add check for "for" declaration
+                    let isNotFunDecl            = let fk = (countSubString "fun " line) + (countSubString "fun(" line) in fk <= (countSubString "->" line)|| fk <= (countSubString ":" line)
+                    let doCompletionInPattern, onlyDU   =  
+                        match stringAfterLast " |" (" "+line) with // add starting step to not fail at start of line with "|"
+                        |None    -> true,false 
+                        |Some "" -> log.PrintDebugMsg " this schould never happen since we get here only with letters, but not typing '|'" ; false,false // most comen case: '|" was just typed, next pattern declaration starts after next car
+                        |Some s  -> 
+                            let doCompl = 
+                                s.Contains "->"             || // name binding already happend 
+                                isOperator s.[0]            || // not in pattern matching 
+                                s.[0]=']'                   || // not in pattern matching 
+                                (s.Contains " :?" && not <| s.Contains " as ")  // auto complete desired  after '| :?" type check but not after 'as' 
+                            if not doCompl && startsWithUppercaseAfterWhitespace s then // do autocomplete on DU types when starting with uppercase Letter
+                               if s.Contains "(" || s.Contains " " then   false,false //no completion binding a new name inside a DU
+                               else                                       true ,true //upper case only, show DU and Enum in completion list, if all others are false
+                            else
+                               doCompl,false //not upper case, other 3 decide if anything is shown
+
+                    //log.PrintDebugMsg "isNotInString:%b; isNotAlreadyInComment:%b; isNotFunDeclaration:%b; isNotLetDeclaration:%b; doCompletionInPattern:%b, onlyDU:%b" isNotInString isNotAlreadyInComment isNotFunDecl isNotLetDecl doCompletionInPattern onlyDU
+                
+                    if (*isNotInString &&*) isNotAlreadyInComment && isNotFunDecl && isNotLetDecl && doCompletionInPattern then
+                        let setback     = lastNonFSharpNameCharPosition line                
+                        let query       = line.Substring(line.Length - setback)
+                        let isKeyword   = keywords.Contains query
+                        //log.PrintDebugMsg "pos:%A setback='%d'" pos setback                
+                                           
+                        let charBeforeQueryDU = 
+                            let i = pos.column - setback - 1
+                            if i >= 0 && i < line.Length then 
+                                if line.[i] = '.' then Dot else NotDot
+                            else
+                                NotDot
+
+                        if charBeforeQueryDU = NotDot && isKeyword then
+                            //log.PrintDebugMsg "*2.1-textChanged highlighting with: query='%s', charBefore='%A', isKey=%b, setback='%d', line='%s' " query charBeforeQueryDU isKeyword setback line
+                            ed.Checker.CkeckAndHighlight(ed)
+
+                        else 
+                            //log.PrintDebugMsg "*2.2-textChanged Completion window opening with: query='%s', charBefore='%A', isKey=%b, setback='%d', line='%s' change=%A" query charBeforeQueryDU isKeyword setback line change
+                           complWin.TryShow(fileInfo, pos, change, setback, query, charBeforeQueryDU, onlyDU)
+                    else
+                        //checkForErrorsAndUpdateFoldings(tab)
+                        //log.PrintDebugMsg "*2.3-textChanged didn't trigger of checker not needed? \r\n"
+                        ()
+
         //----------------------------------
         //--FS Checker and Code completion--
         //----------------------------------        
@@ -185,55 +237,5 @@ type Editor (code:string, config:Config, fileInfo:FileInfo Option) = //as this=
 
 
 
-        //------------------------------
-        //--------Backspacing-----------
-        //------------------------------  
-        //remove 4 charactes (Options.IndentationSize) on pressing backspace key insted of one 
-        avaEdit.PreviewKeyDown.Add ( fun e -> // http://community.sharpdevelop.net/forums/t/10746.aspx
-            if e.Key = Input.Key.Back then 
-                let line = avaEdit.Document.GetText(avaEdit.Document.GetLineByOffset(avaEdit.CaretOffset)) // = get current line
-                let car = avaEdit.TextArea.Caret.Column
-                let prevC = line.Substring(0 ,car-1)
-                //log.PrintDebugMsg "--Substring length %d: '%s'" prevC.Length prevC
-                if prevC.Length > 0 then 
-                    if isJustSpaceCharsOrEmpty prevC  then
-                        let dist = prevC.Length % avaEdit.Options.IndentationSize
-                        let clearCount = if dist = 0 then avaEdit.Options.IndentationSize else dist
-                        //log.PrintDebugMsg "--Clear length: %d " clearCount
-                        avaEdit.Document.Remove(avaEdit.CaretOffset - clearCount, clearCount)
-                        e.Handled <- true )
-
-
     ///additional constructor using default code 
-    new (config:Config) =  Editor( config.DefaultCode.Get() , config, None)
-
-    member this.AvaEdit = avaEdit 
-    
-    /// The Tab class containing this editor takes care of updating this 
-    member val FileInfo = fileInfo with get, set
-
-    member val IsCurrent = false with get,set // TODO really needed ? this is managed in Tabs.selectionChanged event handler 
-    
-    member this.Checker = checker
-
-    member this.ErrorHighlighter = errorHighlighter
-    
-    member this.ComletionWin = complWin
-
-    //member val CompletionWindowJustClosed = false with get,set // for one letter completions to not trigger another completion
-    
-    //member val CompletionWindowClosed = fun ()->() with get,set //will be set with all the other eventhandlers setup, but ref is needed before
-    
-    /// to access the Config from editor
-    member this.Config = config
-
-    /// to access the Log view fom editor
-    member this.Log = config.Log
-
-    
-    // additional text change event:
-    //let completionInserted = new Event<string>() // event needed because Text change event is not raised after completion insert    
-    //[<CLIEvent>]
-    //member this.CompletionInserted = completionInserted.Publish
-    //member this.TriggerCompletionInserted x = completionInserted.Trigger x // to raise it after completion inserted ?
-
+    static member New (config:Config) =  Editor.Create( config.DefaultCode.Get() , config, None)

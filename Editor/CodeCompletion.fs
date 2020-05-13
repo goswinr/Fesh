@@ -49,7 +49,7 @@ type CompletionLineKeyWord (config:Config, text:string, toolTip:string) =
         member this.Priority        = this.Priority
         member this.Text            = this.Text
 
-type CompletionLine (config:Config, win:CompletionWindow, it:FSharpDeclarationListItem, isDotCompletion:bool) =
+type CompletionLine (config:Config, getToolTip, it:FSharpDeclarationListItem, isDotCompletion:bool) =
 
     let style =         
         if it.IsOwnMember then FontStyles.Normal 
@@ -71,7 +71,7 @@ type CompletionLine (config:Config, win:CompletionWindow, it:FSharpDeclarationLi
         else                    1.0 + config.AutoCompleteStatistic.Get(it.Name) //if p>1.0 then log.PrintDebugMsg "%s %g" it.Name p
       
     member this.Content = tb :> obj
-    member this.Description = win.GetToolTip(it) // this gets called on demand only, not when initally filling the list.
+    member this.Description = getToolTip(it) // this gets called on demand only, not when initally filling the list.
     member this.Image = null //TODO
     member this.Priority = priority
     member this.Text = it.Name
@@ -103,25 +103,19 @@ type CompletionLine (config:Config, win:CompletionWindow, it:FSharpDeclarationLi
             
 
 
-and CompletionWindow(avaEdit:TextEditor,config:Config, checker:Checker) =
+type CompletionWindow(avaEdit:TextEditor,config:Config, checker:Checker) =
+    
+    let log = config.Log
+
     let mutable win : CodeCompletion.CompletionWindow option = None
     
     /// for adding question marks to optional arguments:
-    let optArgsDict = Dictionary()
+    let optArgsDict = Dictionary() //TODO make global ?
 
     let showingEv = Event<unit>()
 
-    let mutable justClosed = false //TODO neded ?
+    let mutable justClosed = false 
 
-    let keywordsComletionLines = [| 
-        for kw,desc in Keywords.KeywordsWithDescription  do 
-            yield CompletionLineKeyWord(config,kw,desc) :> ICompletionData
-            yield CompletionLineKeyWord(config,"__SOURCE_DIRECTORY__","Evaluates to the current full path of the source directory" ) :> ICompletionData    
-            yield CompletionLineKeyWord(config,"__SOURCE_FILE__"     ,"Evaluates to the current source file name, without its path") :> ICompletionData    
-            yield CompletionLineKeyWord(config,"__LINE__",            "Evaluates to the current line number") :> ICompletionData    
-            |]
-          
-    
     let selectedText ()= 
         match win with 
         |None -> ""
@@ -134,9 +128,21 @@ and CompletionWindow(avaEdit:TextEditor,config:Config, checker:Checker) =
     
     /// returns  win.CompletionList.ListBox.HasItems
     member this.HasItems = win.IsSome && win.Value.CompletionList.ListBox.HasItems
+    
+    member this.Close() = 
+        if win.IsSome then 
+            win.Value.Close()
+            win <- None
+            justClosed <- true
+   
+    member this.RequestInsertion(ev) = if win.IsSome then win.Value.CompletionList.RequestInsertion(ev)
+    
+    member this.JustClosed 
+                with get() = justClosed
+                and set(v) = justClosed <- v
 
-    //returns win.CompletionList.SelectedItem.Text or empty string on failure or none selected
-    //member this.SelectedText = 
+    [<CLIEvent>] member this.OnShowing = showingEv.Publish
+    member this.ShowingEv = showingEv
 
     /// retuns "loading" text and triggers async computation to get and update with actual text 
     member this.GetToolTip(it:FSharpDeclarationListItem)= 
@@ -155,28 +161,17 @@ and CompletionWindow(avaEdit:TextEditor,config:Config, checker:Checker) =
         } |> Async.Start
         TypeInfo.LoadingText :> obj
     
-    
-    // Dont use this , better create an explicit member for any members of the completion window that you might need
-    //member this.WindowActual = win // dont expose window. just use members below
-    
-    member this.Close() = 
-        if win.IsSome then 
-            win.Value.Close()
-            win <- None
-            justClosed <- true
-   
+    member this.OptArgsDict = optArgsDict
 
-    member this.RequestInsertion(ev) = if win.IsSome then win.Value.CompletionList.RequestInsertion(ev)
-          
+    member this.Log = log
+    member this.Checker = checker
+    member this.Config = config
 
-    member this.JustClosed 
-                with get() = justClosed
-                and set(v) = justClosed <- v
-
-    member this.OnShowing = showingEv.Publish
-
-    member this.TryShow(fi: FileInfo Option, pos:PositionInCode , changetype:TextChange, setback:int, query:string, charBefore:CharBeforeQuery, onlyDU:bool) = 
-        //log.PrintDebugMsg "*prepareAndShowComplWin..."
+    static member TryShow(iEdtor:IEditor, win:CompletionWindow, pos:PositionInCode , changetype:TextChange, setback:int, query:string, charBefore:CharBeforeQuery, onlyDU:bool) = 
+        let log = win.Log
+        let config = win.Config
+        let avaEdit = iEdtor.AvaEdit
+        log.PrintDebugMsg "TryShow Completion Window for '%s'" pos.lineToCaret
         let ifDotSetback = if charBefore = Dot then setback else 0
 
         //let prevCursor = avaEdit.Editor.Cursor
@@ -185,22 +180,30 @@ and CompletionWindow(avaEdit:TextEditor,config:Config, checker:Checker) =
         let contOnUI (decls: FSharpDeclarationListInfo,declSymbs: FSharpSymbolUse list list) =
             
             /// for adding question marks to optional arguments:
-            optArgsDict.Clear() //TODO make persistent on class for cashing
+            win.OptArgsDict.Clear() //TODO make persistent on class for cashing
             for symbs in declSymbs do 
                 for symb in symbs do 
                     let opts = TypeInfo.NamesOfOptionalArgs symb
                     if opts.Count>0 then 
-                        optArgsDict.[symb.Symbol.FullName]<- opts
+                        win.OptArgsDict.[symb.Symbol.FullName]<- opts
 
             let completionLines = ResizeArray<ICompletionData>()                                
-            if not onlyDU && charBefore = NotDot then   completionLines.AddRange keywordsComletionLines  // add keywords to list
+            if not onlyDU && charBefore = NotDot then
+                for kw,desc in Keywords.KeywordsWithDescription  do // add keywords to list
+                    completionLines.Add( CompletionLineKeyWord(config,kw,desc) :> ICompletionData) |>ignore
+                    completionLines.Add( CompletionLineKeyWord(config,"__SOURCE_DIRECTORY__","Evaluates to the current full path of the source directory" ) :> ICompletionData)    |>ignore
+                    completionLines.Add( CompletionLineKeyWord(config,"__SOURCE_FILE__"     ,"Evaluates to the current source file name, without its path") :> ICompletionData)    |>ignore
+                    completionLines.Add( CompletionLineKeyWord(config,"__LINE__",            "Evaluates to the current line number") :> ICompletionData)    |>ignore
+                    
+            
+              
             for it in decls.Items do                    
                 match it.Glyph with 
                 |FSharpGlyph.Union|FSharpGlyph.Module | FSharpGlyph.EnumMember -> completionLines.Add (new CompletionLine(config, this, it, (changetype = EnteredDot))) // for DU completion add just some.
                 | _ -> if not onlyDU then                                         completionLines.Add (new CompletionLine(config, this, it, (changetype = EnteredDot))) // for normal completion add all others too.
               
             if completionLines.Count > 0 then 
-                showingEv.Trigger() // to close error and type info tooltip
+                win.ShowingEv.Trigger() // to close error and type info tooltip
 
                 let w =  new CodeCompletion.CompletionWindow(avaEdit.TextArea)
                 win <- Some w

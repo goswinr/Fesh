@@ -113,7 +113,6 @@ type Tabs(config:Config, win:Window) =
         |None -> ()
         
         tab.CloseButton.Click.Add (fun _ -> closeTab(tab))
-       
         
     /// checks if file is open already then calls addTtab
     let tryAddFile(fi:FileInfo, makeCurrent) =            
@@ -142,16 +141,25 @@ type Tabs(config:Config, win:Window) =
             log.PrintIOErrorMsg "File not found:\r\n%s" fi.FullName
             MessageBox.Show("File not found:\r\n"+fi.FullName , dialogCaption, MessageBoxButton.OK, MessageBoxImage.Error) |> ignore
 
-    let setFontSize (newSize) = // on log and all tabs
-        log.ReadOnlyEditor.FontSize    <- newSize
-        for t in allTabs do                
-            t.Editor.AvaEdit.FontSize  <- newSize        
-        config.Settings.SetFloat "FontSize" newSize 
-        Appearance.fontSize <- newSize
-        config.Settings.Save ()
-        log.PrintInfoMsg "new Fontsize: %.1f" newSize
+
     
     do
+        
+        // --------------first load tabs from last session an startup args--------------
+        for f in config.OpenTabs.Get() do 
+            tryAddFile( f.file, f.makeCurrent)  |> ignore 
+
+        if tabs.Items.Count=0 then //Open default file if none found in recent files or args                
+            addTab(new Tab(new Editor(config)), true) |> ignore 
+                
+        if tabs.SelectedIndex = -1 then    //make one tab current  if none yet
+            log.PrintAppErrorMsg "Tabs Constructor 'do' block: there was no tab selected by default" // should never happen
+            tabs.SelectedIndex <- 0
+            current <- Seq.head allTabs
+        
+        // then start highligh errors on current only
+        current.Editor.Checker.CkeckAndHighlight(current.Editor:>IEditor)  
+        
         tabs.SelectionChanged.Add( fun _-> // triggered an all tabs on startup ???// when closing, opening or changing tabs  attach first so it will be triggered below when adding files
             if tabs.Items.Count = 0 then //  happens when closing the last open tab
                 win.Close() // exit App ? (chrome and edge also closes when closing the last tab, Visual Studio not)
@@ -165,33 +173,23 @@ type Tabs(config:Config, win:Window) =
                 let tab = tab :?> Tab
                 current <- tab
                 for t in allTabs do
-                    t.Editor.IsCurrent <- false 
                     t.IsCurrent <- false  // first set all false then one true              
                 tab.IsCurrent <-true
-                tab.Editor.IsCurrent <- true                
-                currentTabChangedEv.Trigger(tab)  or done other wise ? to do // set errosr in bar  by current tab on startup tab.Editor.Checker.CkeckAndHighlight(tab.Editor.AvaEdit, tab.FileInfo, tab.Editor.ErrorHighlighter)                
+                currentTabChangedEv.Trigger(tab)
+                //tab.Editor.Checker.CkeckAndHighlight(tab.Editor.AvaEdit, tab.FileInfo, tab.Editor.ErrorHighlighter)                
                 config.OpenTabs.Save(tab.FileInfo , allFileInfos)
                 log.PrintDebugMsg "Current Tab changed to %s" tab.FormatedFileName // triggered an all tabs on startup ?
             )
-        
-        // --------------load tabs from last session--------------
-        for f in config.OpenTabs.Get() do 
-            tryAddFile( f.file, f.makeCurrent)  |> ignore 
-
-        if tabs.Items.Count=0 then //Open default file if none found in recent files or args                
-            addTab(new Tab(new Editor(config)), true) |> ignore 
-                
-        if tabs.SelectedIndex = -1 then    //make one tab current  if none yet
-            log.PrintAppErrorMsg "Tabs Constructor 'do' block: there was no tab selected by default" // should never happen
-            tabs.SelectedIndex <- 0
-            current <- Seq.head allTabs
-        
         //delete current.Editor.Checker.CkeckAndHighlight(current.Editor.AvaEdit,current.FileInfo) //not needed ,done in selcetion changed event handler
         //log.PrintDebugMsg "Current Tab set from do block end %s" current.FormatedFileName
         
 
     //--------------- Public members------------------
    
+    
+       
+    [<CLIEvent>]  member this.OnTabChanged = currentTabChangedEv.Publish 
+       
     member this.Control = tabs
     
     member this.Fsi = fsi
@@ -270,10 +268,7 @@ type Tabs(config:Config, win:Window) =
          else
             log.PrintIOErrorMsg "can't Save Incrementing unsaved file"  
             this.SaveAs(t)
-    
-    [<CLIEvent>]
-    member this.OnTabChanged = currentTabChangedEv.Publish 
-    
+   
     /// returns true if all files are saved or unsaved changes are ignored (closing not canceled by user).
     member this.AskIfClosingWindowIsOk()=             
         let openFs = allTabs |> Seq.filter (fun t -> not t.IsCodeSaved) 
@@ -290,27 +285,6 @@ type Tabs(config:Config, win:Window) =
             | MessageBoxResult.No  -> true
             | _                    -> false 
     
-    /// affects Editor and Log    
-    member this.FontsBigger()= 
-        let cs = current.Editor.AvaEdit.FontSize
-        //let step = 
-        //    if   cs >= 36. then 4. 
-        //    elif cs >= 20. then 2. 
-        //    else                1.
-        //if cs < 112. then setFontSize(cs+step)
-        if cs < 250. then setFontSize(cs* 1.03) // 3% steps
-    
-    /// affects Editor and Log
-    member this.FontsSmaller()=
-        let cs = current.Editor.AvaEdit.FontSize
-        //let step = 
-        //    if   cs >= 36. then 4. 
-        //    elif cs >= 20. then 2. 
-        //    else                1.
-        //if cs > 5. then setFontSize(cs-step)
-        if cs > 3. then setFontSize(cs * 0.97) // 3% steps       
-    
-      
                                                                                                                            
     member this.EvalAllText()        =  fsi.Evaluate                            {code=current.Editor.AvaEdit.Text                             ; file=current.FileInfo; allOfFile=true}                               
     member this.EvalAllTextSave()    =  if this.Save(current) then fsi.Evaluate {code=current.Editor.AvaEdit.Text                             ; file=current.FileInfo; allOfFile=true} 

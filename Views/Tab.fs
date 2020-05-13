@@ -5,6 +5,7 @@ open System.IO
 open System.Windows.Controls
 open System.Windows
 open System.Windows.Media
+open Seff
 
 /// returns a bigger integer on each access for naming unsaved files
 type Counter private () = 
@@ -66,14 +67,14 @@ type Tab (editor:Editor) = //as this=
     do
         base.Content <- editor.AvaEdit 
         base.Header <- header
-        setHeader()
+        setHeader()        
         editor.AvaEdit.TextChanged.Add(fun _ ->upadteIsCodeCaved(false)) 
 
     member this.IsCodeSaved 
         with get()       = isCodeSaved 
         and set(isSaved) = upadteIsCodeCaved(isSaved)
           
-    
+    /// this gets and set FileInfo on the Editor
     member this.FileInfo
         with get() = editor.FileInfo
         and set(fi) =
@@ -87,8 +88,10 @@ type Tab (editor:Editor) = //as this=
         |Some fi  -> sprintf "%s" fi.FullName //sprintf "%s\r\nat\r\n%s" fi.Name fi.DirectoryName
         |None     -> textBlock.Text
     
-    member val IsCurrent = false with get,set    
-
+    /// this gets and sets IsCurrent on the Editor
+    member this.IsCurrent  
+        with get() = editor.IsCurrent
+        and set(c) = editor.IsCurrent <- c
 
     member val Editor = editor 
     

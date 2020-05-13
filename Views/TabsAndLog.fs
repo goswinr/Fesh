@@ -37,6 +37,15 @@ type TabsAndLog (config:Config,tabs:Tabs,log:Log,win:Views.Window) =
             log.ReadOnlyEditor  :> UIElement, logColumnWidth 
             ]
     
+    let setFontSize (newSize) = // on log and all tabs
+        log.ReadOnlyEditor.FontSize    <- newSize
+        for t in tabs.AllTabs do                
+            t.Editor.AvaEdit.FontSize  <- newSize        
+        config.Settings.SetFloat "FontSize" newSize 
+        Appearance.fontSize <- newSize
+        config.Settings.Save ()
+        log.PrintInfoMsg "new Fontsize: %.1f" newSize
+
     do
         if config.Settings.GetBool "isVertSplit" true then setGridVert()            
         else                                               setGridHor()
@@ -101,3 +110,23 @@ type TabsAndLog (config:Config,tabs:Tabs,log:Log,win:Views.Window) =
     member this.Log = log
 
     member this.Window = win 
+
+    /// affects Editor and Log    
+    member this.FontsBigger()= 
+        let cs = tabs.Current.Editor.AvaEdit.FontSize
+        //let step = 
+        //    if   cs >= 36. then 4. 
+        //    elif cs >= 20. then 2. 
+        //    else                1.
+        //if cs < 112. then setFontSize(cs+step)
+        if cs < 250. then setFontSize(cs* 1.03) // 3% steps
+    
+    /// affects Editor and Log
+    member this.FontsSmaller()=
+        let cs = tabs.Current.Editor.AvaEdit.FontSize
+        //let step = 
+        //    if   cs >= 36. then 4. 
+        //    elif cs >= 20. then 2. 
+        //    else                1.
+        //if cs > 5. then setFontSize(cs-step)
+        if cs > 3. then setFontSize(cs * 0.97) // 3% steps 
