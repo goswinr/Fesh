@@ -23,7 +23,7 @@ type CompletionItemForKeyWord(config:Config, text:string, toolTip:string) =
     let tb = 
         let mutable tb = Controls.TextBlock()
         tb.Text <- text
-        tb.FontFamily <- Appearance.font  
+        tb.FontFamily <- Appearance.consolas  
         tb.FontSize <-   Appearance.fontSize 
         //tb.Foreground  <- col, // does not change color when selected anymore
         tb.FontStyle <- style
@@ -59,7 +59,7 @@ type CompletionItem (config:Config, getToolTip, it:FSharpDeclarationListItem, is
     let tb = 
         let mutable tb = Controls.TextBlock()
         tb.Text <- it.Name 
-        tb.FontFamily <- Appearance.font  
+        tb.FontFamily <- Appearance.consolas  
         tb.FontSize <-   Appearance.fontSize 
         //tb.Foreground  <- col, // does not change color when selected anymore
         tb.FontStyle <- style
@@ -132,7 +132,7 @@ type Completions(avaEdit:TextEditor,config:Config, checker:Checker) =
         if win.IsSome then 
             win.Value.Close()
             win <- None
-            justClosed <- true
+        justClosed <- true // to not trigger completion again on one letter completions
    
     member this.RequestInsertion(ev) = if win.IsSome then win.Value.CompletionList.RequestInsertion(ev)
     
@@ -193,12 +193,11 @@ type Completions(avaEdit:TextEditor,config:Config, checker:Checker) =
 
             let completionLines = ResizeArray<ICompletionData>()                                
             if not onlyDU && charBefore = NotDot then
+                completionLines.Add( CompletionItemForKeyWord(config,"__SOURCE_DIRECTORY__","Evaluates to the current full path of the source directory" ) :> ICompletionData)    |>ignore
+                completionLines.Add( CompletionItemForKeyWord(config,"__SOURCE_FILE__"     ,"Evaluates to the current source file name, without its path") :> ICompletionData)    |>ignore
+                completionLines.Add( CompletionItemForKeyWord(config,"__LINE__",            "Evaluates to the current line number") :> ICompletionData)    |>ignore
                 for kw,desc in Keywords.KeywordsWithDescription  do // add keywords to list
                     completionLines.Add( CompletionItemForKeyWord(config,kw,desc) :> ICompletionData) |>ignore
-                    completionLines.Add( CompletionItemForKeyWord(config,"__SOURCE_DIRECTORY__","Evaluates to the current full path of the source directory" ) :> ICompletionData)    |>ignore
-                    completionLines.Add( CompletionItemForKeyWord(config,"__SOURCE_FILE__"     ,"Evaluates to the current source file name, without its path") :> ICompletionData)    |>ignore
-                    completionLines.Add( CompletionItemForKeyWord(config,"__LINE__",            "Evaluates to the current line number") :> ICompletionData)    |>ignore
-                    
             
               
             for it in decls.Items do                    
@@ -218,9 +217,9 @@ type Completions(avaEdit:TextEditor,config:Config, checker:Checker) =
                 w.MinHeight <- avaEdit.FontSize
                 w.MinWidth  <- avaEdit.FontSize * 8.0
                 w.Closed.Add (fun _  -> 
+                        compl.Close()
                         config.Log.PrintDebugMsg "Completion window just closed with selected item: %A " w.CompletionList.SelectedItem
-                        compl.JustClosed <- true // to not trigger completion again
-                    )
+                        )
                     
                 w.CompletionList.SelectionChanged.Add(fun _ -> if w.CompletionList.ListBox.Items.Count=0 then w.Close()) // otherwise empty box might be shown and only get closed on second character
                 w.Loaded.Add(                         fun _ -> if w.CompletionList.ListBox.Items.Count=0 then w.Close()) // close immediatly if completion list is empty
@@ -235,7 +234,6 @@ type Completions(avaEdit:TextEditor,config:Config, checker:Checker) =
                 //    with  _ -> log.PrintDebugMsg "Null ref HasItems")// because sometime empty completion window stays open
 
                 
-                w.CompletionList.CompletionData.Clear()
                 w.StartOffset <- w.StartOffset - setback // to maybe replace some previous characters too           
        
                 for cln in completionLines do 
@@ -244,9 +242,10 @@ type Completions(avaEdit:TextEditor,config:Config, checker:Checker) =
                 if query.Length > 0 then 
                     w.CompletionList.SelectItem(query) //to prefilter the list if query present
             
-                //try
-                w.Show()
-                //with e -> log.PrintDebugMsg "Error in Showing Code Completion Window: %A" e
+                try
+                    w.Show()
+                with e -> 
+                    log.PrintAppErrorMsg "Error in Showing Code Completion Window: %A" e
 
                 // Event sequence on pressing enter in completion window:
                 // (1)Close window
@@ -255,7 +254,7 @@ type Completions(avaEdit:TextEditor,config:Config, checker:Checker) =
                 // https://github.com/icsharpcode/AvalonEdit/blob/8fca62270d8ed3694810308061ff55c8820c8dfc/ICSharpCode.AvalonEdit/CodeCompletion/CompletionWindow.cs#L100
             
             else
-                ()// TODO highlight errors instead
+                if iEdtor.CheckRes.IsSome then iEdtor.DrawErrors(iEdtor.CheckRes.Value.checkRes.Errors)
 
         compl.Checker.GetCompletions(iEdtor, pos, ifDotSetback, contOnUI)
 

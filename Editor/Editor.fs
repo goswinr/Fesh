@@ -43,7 +43,7 @@ type Editor private (code:string, config:Config, fileInfo:FileInfo Option) =
         avaEdit.Options.HideCursorWhileTyping <- false
         avaEdit.TextArea.SelectionCornerRadius <- 0.0 
         avaEdit.TextArea.SelectionBorder <- null
-        avaEdit.FontFamily <- Seff.Appearance.font
+        avaEdit.FontFamily <- Seff.Appearance.consolas
         avaEdit.FontSize <- config.Settings.GetFloat "FontSize" Seff.Appearance.fontSize 
         Search.SearchPanel.Install(avaEdit) |> ignore
         SyntaxHighlighting.setFSharp(avaEdit,config,false)
@@ -182,7 +182,7 @@ type Editor private (code:string, config:Config, fileInfo:FileInfo Option) =
                                 NotDot
 
                         if charBeforeQueryDU = NotDot && isKeyword then
-                            //log.PrintDebugMsg "*2.1-textChanged highlighting with: query='%s', charBefore='%A', isKey=%b, setback='%d', line='%s' " query charBeforeQueryDU isKeyword setback line
+                            log.PrintDebugMsg "*2.1-textChanged highlighting with: query='%s', charBefore='%A', isKey=%b, setback='%d', line='%s' " query charBeforeQueryDU isKeyword setback line
                             ed.Checker.CkeckAndHighlight(ed)
 
                         else 
@@ -204,9 +204,12 @@ type Editor private (code:string, config:Config, fileInfo:FileInfo Option) =
         avaEdit.TextArea.TextView.MouseHoverStopped.Add(fun _ -> ed.TypeInfoTip.IsOpen <- false )
 
         avaEdit.Document.Changed.Add(fun e -> 
-            //log.PrintDebugMsg "*Document.Changed Event: deleted %d '%s', inserted %d '%s' completion Window:%A" e.RemovalLength e.RemovedText.Text e.InsertionLength e.InsertedText.Text tab.CompletionWin
+            log.PrintDebugMsg "*Document.Changed Event: deleted %d '%s', inserted %d '%s' completion hasItems: %b and isOpen: %b" e.RemovalLength e.RemovedText.Text e.InsertionLength e.InsertedText.Text ed.Completions.HasItems ed.Completions.IsOpen
             
+            if e.RemovalLength >0 then compls.JustClosed<-false // in this case open window again?
+
             if compls.IsOpen then   // just keep on tying in completion window, no type checking !
+                
                 if compls.HasItems then 
                     ()
                     //let currentText = getField(typeof<CodeCompletion.CompletionList>,w.CompletionList,"currentText") :?> string //this property schould be public !
@@ -237,7 +240,8 @@ type Editor private (code:string, config:Config, fileInfo:FileInfo Option) =
             if compls.IsOpen then 
                 match ev.Text with              //this is not needed  for  general insertion,  insertion with Tab or Enter is built in !!
                 |" " -> compls.Close()
-                |"." -> compls.RequestInsertion(ev) // insert on dot too? // not nededed: textChanged( TextChange.EnteredDot , tab)
+                |"." -> compls.RequestInsertion(ev) // insert on dot too? 
+                |"(" -> compls.RequestInsertion(ev) // insert on open Bracket too? 
                 | _  -> () // other triggers https://github.com/icsharpcode/AvalonEdit/blob/28b887f78c821c7fede1d4fc461bde64f5f21bd1/ICSharpCode.AvalonEdit/CodeCompletion/CompletionList.cs#L171            
             )
 

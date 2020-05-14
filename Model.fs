@@ -11,8 +11,11 @@ open FSharp.Compiler.SourceCodeServices
 module Appearance =  
     let dialogCaption = "Seff | Scripting editor for fsharp"   // e.g title of saveAs window
     
-    let font = FontFamily("Consolas")
-    
+    let consolas = FontFamily("Consolas")
+    //let lucida = FontFamily("Lucida Console")
+    //let elronet = FontFamily("ElroNet Monospace")
+    let andale = FontFamily("Andale Mono")
+
     let mutable fontSize = 14.0 //will also be used for sizing tooltip text
 
 

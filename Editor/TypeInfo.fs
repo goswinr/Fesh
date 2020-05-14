@@ -38,9 +38,9 @@ type TypeInfo private () =
             if it.IsSome then                 
                 let tb = new TextBlock(Text = sprintf "%A" it.Value.Glyph)
                 tb.Foreground <- Brushes.DarkOrange
-                tb.FontSize <- Appearance.fontSize  * 1.0
-                tb.FontFamily <- Appearance.font
-                tb.FontWeight <- FontWeights.Bold
+                tb.FontSize <- Appearance.fontSize  * 0.85
+                tb.FontFamily <- Appearance.consolas
+                //tb.FontWeight <- FontWeights.Bold
                 yield tb :> UIElement
             
                 //let tb = new TextBlock(Text= sprintf "Kind:%A" it.Value.Kind)
@@ -51,25 +51,26 @@ type TypeInfo private () =
                         let tb = new TextBlock(Text= "Name:" + td.name)
                         tb.Foreground <- Brushes.Black
                         tb.FontSize <- Appearance.fontSize * 0.9
-                        tb.FontFamily <- Appearance.font
+                        //tb.FontFamily <- Appearance.elronet
                         tb.FontWeight <- FontWeights.Bold
                         yield tb 
                     if td.signature <> "" then 
                         let tb = new TextBlock(Text = td.signature)
                         tb.Foreground <- Brushes.Black
-                        tb.FontSize <- Appearance.fontSize  * 1.2
-                        tb.FontFamily <- Appearance.font
+                        tb.FontSize <- Appearance.fontSize  * 1.0
+                        tb.FontFamily <- Appearance.consolas
                         yield tb
                 
                     let color, txt, scale  = 
                         match td.xmlDocStr with 
                         |Ok (txt,ass)     -> 
                             if ass <>"" then assemblies.Add(ass) |> ignore //could it be from more than one assembly? because of type extensions?
-                            Brushes.DarkBlue, txt, 1.0  
+                            Brushes.DarkBlue, txt, 0.9 
                         |Error errTxt  -> 
                             Brushes.Gray, errTxt, 0.75
                     let tb = new TextBlock(Text= txt.Trim() )
                     tb.FontSize <- Appearance.fontSize  * scale
+                    tb.FontFamily <- Appearance.andale
                     tb.Foreground <- color                    
                     yield tb ]
 
@@ -216,7 +217,9 @@ type TypeInfo private () =
 
                     let ttds = formated (stt, optArgs)
                     if List.isEmpty ttds then
-                        tip.Content <- "No type info found for: " + word
+                        let w= word.Trim()
+                        if w <> "" then     tip.Content <- "No type info found for:\r\n" + word
+                        else                tip.Content <- "No tip"
                         //ed.TypeInfoToolTip.IsOpen <- false
                     else                            
                         let ttPanel = stackPanel (None , ttds)

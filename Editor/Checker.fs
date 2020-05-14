@@ -103,6 +103,7 @@ type Checker private (config:Config)  =
                                     *)
                             if !checkId = thisId  then
                                 try
+                                    //log.PrintDebugMsg "checking %A" iEditor.FileInfo
                                     let! parseRes , checkAnswer = checker.Value.ParseAndCheckFileInProject(fileFsx, 0, sourceText, options) // can also be done in two  calls   //TODO really use check file in project for scripts?? 
                                     match checkAnswer with
                                     | FSharpCheckFileAnswer.Succeeded checkRes ->   
@@ -152,8 +153,7 @@ type Checker private (config:Config)  =
             ch
 
     /// Triggers Event<FSharpErrorInfo[]> event after calling the continuation
-    member this.CkeckAndHighlight (iEditor:IEditor)  = 
-        log.PrintDebugMsg "checking started for %A" iEditor.FileInfo
+    member this.CkeckAndHighlight (iEditor:IEditor)  =         
         let draw (r:CheckResults) = iEditor.DrawErrors(r.checkRes.Errors)
         check (iEditor, 0, draw, true)
 

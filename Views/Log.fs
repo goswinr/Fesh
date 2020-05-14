@@ -187,7 +187,7 @@ type Log () =
     member this.AdjustToSettingsInConfig(config:Config)=        
         this.OnPrint.Add (config.AssemblyReferenceStatistic.RecordFromlog) // TODO: does this have print perfomance impact ? measure do async ?
         setLineWrap( config.Settings.GetBool "logHasLineWrap" true )
-        log.FontFamily       <- Seff.Appearance.font
+        log.FontFamily       <- Seff.Appearance.consolas
         log.FontSize         <- config.Settings.GetFloat "FontSize" Seff.Appearance.fontSize                
         
     member this.ToggleLineWrap(config:Config)=

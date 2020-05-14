@@ -133,7 +133,7 @@ type ErrorHighlighter (ed:TextEditor) =
                 let tb = new TextBlock()
                 tb.Text <- seg.Message       //TODO move styling out of event handler ?
                 tb.FontSize <- Appearance.fontSize
-                tb.FontFamily <- Appearance.font //TODO use another monospace font ?
+                tb.FontFamily <- Appearance.consolas //TODO use another monospace font ?
                 tb.TextWrapping <- TextWrapping.Wrap
                 tb.Foreground <- Media.SolidColorBrush(if seg.IsWarning then Colors.DarkRed else Colors.DarkGreen) 
                 tip.Content <- tb
