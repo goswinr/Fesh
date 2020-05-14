@@ -83,6 +83,7 @@
     <Compile Include="Views\Commands.fs" />
     <Compile Include="Views\StatusBar.fs" />
     <Compile Include="Views\Menu.fs" />
+    <Compile Include="Views\Seff.fs" />
     <Compile Include="Initialize.fs" />
     
     <Compile Include="App.fs" />

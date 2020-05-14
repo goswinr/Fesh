@@ -49,7 +49,9 @@ module Initialize =
         let commands = Commands(tabsAndLog)
         let statusBar = StatusBar(config, tabs, commands)
         let menu = Menu(config,commands,tabs,log)
-        win.Window.Content <- Util.dockPanelVert(menu.Bar , tabsAndLog.Grid , statusBar.Bar)
+        let seff = Seff(win,config,tabsAndLog,statusBar,menu)
+        commands.SetUpGestureInputBindings()
+        
         win.Window.Background  <- menu.Bar.Background // call after setting up content, otherwise space next to tab headers is in an odd color
         
 
@@ -72,7 +74,7 @@ module Initialize =
             if not canClose then e.Cancel <- true // dont close window  
             ) 
         
-        win.Window
+        seff
          
 
         

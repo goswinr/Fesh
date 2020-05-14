@@ -1,13 +1,13 @@
-﻿namespace Seff
+﻿namespace Seff.Views
 
-open Seff.Views
+open Seff
 open Seff.Config
 open System
 open System.Windows.Controls
 open System.Windows
 open Seff.Views.Util
 
-/// A Static class holding the main grid of Tabs and the log Window
+/// A class holding the main grid of Tabs and the log Window
 /// Includes logic for toggeling the view split and saving and restoring size and position
 type TabsAndLog (config:Config,tabs:Tabs,log:Log,win:Views.Window) =
     
