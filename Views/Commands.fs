@@ -95,84 +95,88 @@ type Commands (grid:TabsAndLog) =
     /// exluding the ones already provided by avalonedit
     member this.SetUpGestureInputBindings () = 
         
-        let allCustomCommands = [  //for seting up Key gestures below,exluding the ones already provided by avalonedit
-             this.NewTab           
-             this.OpenFile         
-             this.OpenTemplateFile 
-             this.Save             
-             this.SaveAs           
-             this.SaveIncrementing 
-             this.SaveAll          
-             this.Close            
-             this.SaveLog          
-             this.SaveLogSel
-             
-             this.Comment          
-             this.UnComment
-             
-             this.SelectLine       
-             //this.SelectLinesUp  
-             //this.SelectLinesDown
-                            
-             this.RunAllText       
-             this.RunAllTextSave   
-             this.RunSelectedLines 
-             this.RunSelectedText  
-             this.ClearFSI         
-             this.CancelFSI        
-             this.ResetFSI         
-             if config.HostingMode.IsStandalone then this.ToggleSync
-             
-             this.ToggleSplit      
-             this.ToggleLogSize    
-             this.ToggleLogLineWrap
-             this.FontBigger       
-             this.FontSmaller
-                                       
-             this.SettingsFolder   
-             this.ReloadXshdFile
-             ] 
-
-
-        // these functions parse the KeyGesture from a string defined above. 
-        // eg. "Ctrl + V" becomes KeyGesture(Key.V , ModifierKeys.Control)
-        // this is to make sure the displayed gesture matches the actual gesture
-        let getKey = function
-            |"'-'"   -> Key.Subtract //|"'+'"   -> Key.Add // fails on gg.Split('+') 
-            |"Break" -> Key.Cancel
-            |"Up"    -> Key.Up
-            |"Down"  -> Key.Down
-            | x -> match Key.TryParse(x,true) with
-                   |true, k -> k
-                   | _ -> log.PrintAppErrorMsg "*AllInputBindings: failed to parse cmd Key '%A'" x; Key.NoName
-        
-        let getModKey = function
-            |"Ctrl"     -> ModifierKeys.Control        
-            | x -> match ModifierKeys.TryParse(x,true) with
-                   |true, k -> k
-                   | _ -> log.PrintAppErrorMsg "*AllInputBindings: failed to parse ModifierKey '%A'" x; ModifierKeys.None
-
-        try
-            [|  for cmd in allCustomCommands do
-                    match cmd.gesture.Trim() with
-                    |"" -> ()
-                    | "Ctrl + '+'" | "Ctrl + +" | "Ctrl +" -> // because  gg.Split('+') would fail
-                        yield InputBinding(cmd.cmd,  KeyGesture(Key.Add,ModifierKeys.Control)) 
-                    | gg -> 
-                        yield
-                            match gg.Split('+') |> Array.map ( fun k -> k.Trim()) with
-                            | [| m1; m2; k |]   -> InputBinding(cmd.cmd,  KeyGesture(getKey k, getModKey m1 + getModKey m2))
-                            | [| m; k |]        -> InputBinding(cmd.cmd,  KeyGesture(getKey k, getModKey m))
-                            | [| k |]           -> InputBinding(cmd.cmd,  KeyGesture(getKey k))
-                            | _ -> 
-                                log.PrintAppErrorMsg "*AllInputBindings: failed to parse cmd Input gesture '%s'" cmd.gesture
-                                InputBinding(cmd.cmd,  KeyGesture(Key.None))
-            |]
-            |> grid.Window.Window.InputBindings.AddRange 
-
-        with e -> 
-            log.PrintAppErrorMsg "*AllInputBindings: failed to create keyboard shortcuts: %A"e
+        grid.Window.Window.Loaded.Add( fun _ -> 
             
+            let allCustomCommands = [  //for seting up Key gestures below,exluding the ones already provided by avalonedit
+                 this.NewTab           
+                 this.OpenFile         
+                 this.OpenTemplateFile 
+                 this.Save             
+                 this.SaveAs           
+                 this.SaveIncrementing 
+                 this.SaveAll          
+                 this.Close            
+                 this.SaveLog          
+                 this.SaveLogSel
+             
+                 this.Comment          
+                 this.UnComment
+             
+                 this.SelectLine       
+                 //this.SelectLinesUp  
+                 //this.SelectLinesDown
+                            
+                 this.RunAllText       
+                 this.RunAllTextSave   
+                 this.RunSelectedLines 
+                 this.RunSelectedText  
+                 this.ClearFSI         
+                 this.CancelFSI        
+                 this.ResetFSI         
+                 if config.HostingMode.IsStandalone then this.ToggleSync
+             
+                 this.ToggleSplit      
+                 this.ToggleLogSize    
+                 this.ToggleLogLineWrap
+                 this.FontBigger       
+                 this.FontSmaller
+                                       
+                 this.SettingsFolder   
+                 this.ReloadXshdFile
+                 ] 
+
+
+            // these functions parse the KeyGesture from a string defined above. 
+            // eg. "Ctrl + V" becomes KeyGesture(Key.V , ModifierKeys.Control)
+            // this is to make sure the displayed gesture matches the actual gesture
+            let getKey = function
+                |"'-'"   -> Key.Subtract //|"'+'"   -> Key.Add // fails on gg.Split('+') 
+                |"Break" -> Key.Cancel
+                |"Up"    -> Key.Up
+                |"Down"  -> Key.Down
+                | x -> match Key.TryParse(x,true) with
+                       |true, k -> k
+                       | _ -> log.PrintAppErrorMsg "*AllInputBindings: failed to parse cmd Key '%A'" x; Key.NoName
+        
+            let getModKey = function
+                |"Ctrl"     -> ModifierKeys.Control        
+                | x -> match ModifierKeys.TryParse(x,true) with
+                       |true, k -> k
+                       | _ -> log.PrintAppErrorMsg "*AllInputBindings: failed to parse ModifierKey '%A'" x; ModifierKeys.None
+        
+        
+            try
+                let bindings = 
+                    [|  for cmd in allCustomCommands do
+                            match cmd.gesture.Trim() with
+                            |"" -> ()
+                            | "Ctrl + '+'" | "Ctrl + +" | "Ctrl +" -> // because  gg.Split('+') would fail
+                                yield InputBinding(cmd.cmd,  KeyGesture(Key.Add,ModifierKeys.Control)) 
+                            | gg -> 
+                                yield
+                                    match gg.Split('+') |> Array.map ( fun k -> k.Trim()) with
+                                    | [| m1; m2; k |]   -> InputBinding(cmd.cmd,  KeyGesture(getKey k, getModKey m1 + getModKey m2))
+                                    | [| m; k |]        -> InputBinding(cmd.cmd,  KeyGesture(getKey k, getModKey m))
+                                    | [| k |]           -> InputBinding(cmd.cmd,  KeyGesture(getKey k))
+                                    | _ -> 
+                                        log.PrintAppErrorMsg "*AllInputBindings: failed to parse cmd Input gesture '%s'" cmd.gesture
+                                        InputBinding(cmd.cmd,  KeyGesture(Key.None))
+                    |]
+                grid.Window.Window.InputBindings.AddRange (bindings)
+                log.PrintAppErrorMsg "added %d input bindings" bindings.Length
+            with e -> 
+                log.PrintAppErrorMsg "*AllInputBindings: failed to create keyboard shortcuts: %A"e
+        )    
     
 
         
