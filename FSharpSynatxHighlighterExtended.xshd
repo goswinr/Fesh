@@ -16,7 +16,7 @@
   <!--https://www.rapidtables.com/convert/color/rgb-to-hex.html-->
   <Color name="Comment"             foreground="Green" />
   <Color name="String"              foreground="#AA1111" />
-  <Color name="StringVerbatim"      foreground="#FF0000" />  
+  <Color name="StringVerbatim"      foreground="#CC0000" />  
   <Color name="StringFormating"     foreground="DarkMagenta"  />
   <Color name="StringEscaped"       foreground="#7700BB"  />  
   <Color name="Char"                foreground="#FF0040" />

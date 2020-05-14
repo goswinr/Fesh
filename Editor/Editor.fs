@@ -1,11 +1,7 @@
-﻿open Seff.Editor
-
-namespace Seff.Editor
+﻿namespace Seff.Editor
 
 open Seff
-
 open ICSharpCode
-//open System.Windows.Controls
 open ICSharpCode.AvalonEdit
 open System.Windows.Media
 open Seff.Config
@@ -23,14 +19,13 @@ type Editor private (code:string, config:Config, fileInfo:FileInfo Option) =
     
     let checker =           Checker.GetOrCreate(config) 
     let errorHighlighter =  new ErrorHighlighter(avaEdit)
-    let complWin =          new CompletionWindow(avaEdit,config,checker)
+    let compls =            new Completions(avaEdit,config,checker)
     
     let log = config.Log
     let id = Guid.NewGuid()
     let mutable checkRes : CheckResults Option = None 
     let mutable fileInfo = fileInfo    
-    let typeInfo =          new TypeInfo(avaEdit,checker)
-
+    let mutable needsChecking = true // so that on a tab chnage a recheck is not triggered if not needed
 
     do
         avaEdit.Text <- code
@@ -69,29 +64,31 @@ type Editor private (code:string, config:Config, fileInfo:FileInfo Option) =
                         avaEdit.Document.Remove(avaEdit.CaretOffset - clearCount, clearCount)
                         e.Handled <- true )
 
-        complWin.OnShowing.Add(fun _ -> errorHighlighter.ToolTip.IsOpen <- false)
-        complWin.OnShowing.Add(fun _ -> typeInfo.ToolTip.IsOpen        <- false)
 
     member val IsCurrent = false with get,set // TODO really needed ? this is managed in Tabs.selectionChanged event handler 
+   
+    member val TypeInfoTip = new Controls.ToolTip(IsOpen=false)
     
     member this.Checker = checker
     member this.ErrorHighlighter = errorHighlighter    
-    member this.ComletionWin = complWin
+    member this.Completions = compls
     member this.Config = config
       
     member this.Log = log
 
-    member this.Id = id
-    member this.AvaEdit   = avaEdit
-    member this.CheckRes  with get()=checkRes and  set(v) = checkRes <- v
-    member this.FileInfo  with get()=fileInfo and  set(v) = fileInfo <- v // The Tab class containing this editor takes care of updating this 
+    member this.Id              = id
+    member this.AvaEdit         = avaEdit
+    member this.CheckRes        with get()=checkRes         and  set(v) = checkRes <- v
+    member this.FileInfo        with get()=fileInfo         and  set(v) = fileInfo <- v // The Tab class containing this editor takes care of updating this 
+    member this.NeedsChecking   with get()=needsChecking    and  set(v) = needsChecking <- v
     member this.DrawErrors(es: FSharpErrorInfo[]) = errorHighlighter.Draw(es)
-
-    interface IEditor
-        member this.Id = id
-        member this.AvaEdit   = avaEdit
-        member this.CheckRes  with get()=checkRes and  set(v) = checkRes <- v
-        member this.FileInfo  = fileInfo //with get()=fileInfo and  set(v) = fileInfo <- v
+    
+    interface IEditor with
+        member this.Id              = id
+        member this.AvaEdit         = avaEdit
+        member this.CheckRes        with get()=checkRes         and  set(v) = checkRes <- v
+        member this.FileInfo        = fileInfo // interface does not need setter
+        member this.NeedsChecking   with get()=needsChecking    and  set(v) = needsChecking <- v
         member this.DrawErrors(es: FSharpErrorInfo[]) = errorHighlighter.Draw(es)
        
     
@@ -103,11 +100,12 @@ type Editor private (code:string, config:Config, fileInfo:FileInfo Option) =
     //member this.TriggerCompletionInserted x = completionInserted.Trigger x // to raise it after completion inserted ?
     
     /// sets up Text change event handlers
+    /// a statci method s o that an instance if IEditor can be used
     static member SetUp  (code:string, config:Config, fileInfo:FileInfo Option ) = 
         let ed = Editor(code, config, fileInfo )
         
         let avaEdit = ed.AvaEdit
-        let complWin = ed.ComletionWin
+        let compls = ed.Completions
         let log = ed.Log
         
         let currentLineBeforeCaret()=
@@ -126,15 +124,15 @@ type Editor private (code:string, config:Config, fileInfo:FileInfo Option) =
 
         let textChanged (change:TextChange) =        
             //log.PrintDebugMsg "*1-textChanged because of %A" change 
-            if not complWin.IsOpen then 
-                if complWin.HasItems then 
-                    //log.PrintDebugMsg "*1.2-textChanged not highlighting because  complWin.HasItems"
+            if not compls.IsOpen then 
+                if compls.HasItems then 
+                    //log.PrintDebugMsg "*1.2-textChanged not highlighting because  compls.HasItems"
                     //TODO check text is full mtch and close completion window ?
                     // just keep on tying in completion window, no type checking !
                     ()
                 else 
                     //log.PrintDebugMsg "*1.1-textChanged: closing empty completion window(change: %A)" change 
-                    complWin.Close() 
+                    compls.Close() 
 
                 match change with             
                 | OtherChange | CompletionWinClosed  | EnteredOneNonIdentifierChar -> //TODO maybe do less call to error highlighter when typing in string or comment ?
@@ -189,7 +187,7 @@ type Editor private (code:string, config:Config, fileInfo:FileInfo Option) =
 
                         else 
                             //log.PrintDebugMsg "*2.2-textChanged Completion window opening with: query='%s', charBefore='%A', isKey=%b, setback='%d', line='%s' change=%A" query charBeforeQueryDU isKeyword setback line change
-                           complWin.TryShow(fileInfo, pos, change, setback, query, charBeforeQueryDU, onlyDU)
+                           Completions.TryShow(ed, compls, pos, change, setback, query, charBeforeQueryDU, onlyDU)
                     else
                         //checkForErrorsAndUpdateFoldings(tab)
                         //log.PrintDebugMsg "*2.3-textChanged didn't trigger of checker not needed? \r\n"
@@ -197,12 +195,19 @@ type Editor private (code:string, config:Config, fileInfo:FileInfo Option) =
 
         //----------------------------------
         //--FS Checker and Code completion--
-        //----------------------------------        
+        //----------------------------------  
+        
+        compls.OnShowing.Add(fun _ -> ed.ErrorHighlighter.ToolTip.IsOpen <- false)
+        compls.OnShowing.Add(fun _ -> ed.TypeInfoTip.IsOpen        <- false)
+
+        avaEdit.TextArea.TextView.MouseHover.Add(fun e -> TypeInfo.mouseHover(e,ed, ed.TypeInfoTip))        
+        avaEdit.TextArea.TextView.MouseHoverStopped.Add(fun _ -> ed.TypeInfoTip.IsOpen <- false )
+
         avaEdit.Document.Changed.Add(fun e -> 
             //log.PrintDebugMsg "*Document.Changed Event: deleted %d '%s', inserted %d '%s' completion Window:%A" e.RemovalLength e.RemovedText.Text e.InsertionLength e.InsertedText.Text tab.CompletionWin
             
-            if complWin.IsOpen then   // just keep on tying in completion window, no type checking !
-                if complWin.HasItems then 
+            if compls.IsOpen then   // just keep on tying in completion window, no type checking !
+                if compls.HasItems then 
                     ()
                     //let currentText = getField(typeof<CodeCompletion.CompletionList>,w.CompletionList,"currentText") :?> string //this property schould be public !
                     //TODO close Window if w.CompletionList.SelectedItem.Text = currentText
@@ -210,13 +215,14 @@ type Editor private (code:string, config:Config, fileInfo:FileInfo Option) =
                     //log.PrintDebugMsg "currentText: '%s'" currentText
                     //log.PrintDebugMsg "w.CompletionList.CompletionData.Count:%d" w.CompletionList.ListBox.VisibleItemCount
                 else 
-                    complWin.Close() 
+                    compls.Close() 
             
             else //no completion window open , do type check..
+                ed.NeedsChecking <- true
                 match e.InsertedText.Text with 
                 |"."  ->                                             textChanged (EnteredDot         )//complete
                 | txt when txt.Length = 1 ->                                     
-                    if complWin.JustClosed then                      textChanged (CompletionWinClosed)//check to avoid retrigger of window on single char completions
+                    if compls.JustClosed then                        textChanged (CompletionWinClosed)//check to avoid retrigger of window on single char completions
                     else                                                         
                         let c = txt.[0]                                          
                         if Char.IsLetter(c) || c='_' || c='`' then   textChanged (EnteredOneIdentifierChar  )//complete
@@ -224,18 +230,19 @@ type Editor private (code:string, config:Config, fileInfo:FileInfo Option) =
                                                                                  
                 | _  ->                                              textChanged (OtherChange               )//several charcters(paste) ,delete or completion window          
                 
-                complWin.JustClosed<-false
+                compls.JustClosed<-false
                 )
         
         avaEdit.TextArea.TextEntering.Add (fun ev ->  //http://avalonedit.net/documentation/html/47c58b63-f30c-4290-a2f2-881d21227446.htm          
-            if complWin.IsOpen then 
+            if compls.IsOpen then 
                 match ev.Text with              //this is not needed  for  general insertion,  insertion with Tab or Enter is built in !!
-                |" " -> complWin.Close()
-                |"." -> complWin.RequestInsertion(ev) // insert on dot too? // not nededed: textChanged( TextChange.EnteredDot , tab)
+                |" " -> compls.Close()
+                |"." -> compls.RequestInsertion(ev) // insert on dot too? // not nededed: textChanged( TextChange.EnteredDot , tab)
                 | _  -> () // other triggers https://github.com/icsharpcode/AvalonEdit/blob/28b887f78c821c7fede1d4fc461bde64f5f21bd1/ICSharpCode.AvalonEdit/CodeCompletion/CompletionList.cs#L171            
             )
 
+        ed
 
 
     ///additional constructor using default code 
-    static member New (config:Config) =  Editor.Create( config.DefaultCode.Get() , config, None)
+    static member New (config:Config) =  Editor.SetUp( config.DefaultCode.Get() , config, None)

@@ -17,7 +17,7 @@ type Counter private () =
 
 
  /// The tab that holds the tab header logic and the code editor 
-type Tab (editor:Editor) = //as this= 
+type Tab (editor:Editor) =  
     inherit TabItem()
     
     let mutable isCodeSaved        = true

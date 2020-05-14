@@ -42,7 +42,7 @@ type RecentlyUsedFiles  (log:ISeffLog, adl:HostingMode) =
 
     member this.Save(fi:FileInfo) =         
             recentFilesStack.Push fi 
-            log.PrintDebugMsg "add recent file %s" fi.FullName
+            //log.PrintDebugMsg "add recent file %s" fi.FullName
             writer.WriteDelayed(filePath, getStringRaiseEvent, 1000)
         
     /// the first elemnt in this array the top of stack

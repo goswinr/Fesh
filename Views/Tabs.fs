@@ -27,7 +27,7 @@ type Tabs(config:Config, win:Window) =
     
     let allFileInfos = seq{ for t in allTabs do if  t.FileInfo.IsSome then yield t.FileInfo.Value } //TODO does this reevaluate every time?
     
-    let currentTabChangedEv = new Event<Tab>() //to Trigger Fs Checker
+    let currentTabChangedEv = new Event<Tab>() //to Trigger Fs Checker and status bar update
     
     let mutable current =  Unchecked.defaultof<Tab>
 
@@ -134,7 +134,7 @@ type Tabs(config:Config, win:Window) =
             | None -> 
                 try
                     let code = IO.File.ReadAllText fi.FullName
-                    addTab(new Tab(new Editor(code, config, Some fi)),makeCurrent)
+                    addTab(new Tab(Editor.SetUp(code, config, Some fi)),makeCurrent)
                 with  e -> 
                     log.PrintIOErrorMsg "Error reading and adding :\r\n%s\r\n%A" fi.FullName e
         else
@@ -150,7 +150,7 @@ type Tabs(config:Config, win:Window) =
             tryAddFile( f.file, f.makeCurrent)  |> ignore 
 
         if tabs.Items.Count=0 then //Open default file if none found in recent files or args                
-            addTab(new Tab(new Editor(config)), true) |> ignore 
+            addTab(new Tab(Editor.New(config)), true) |> ignore 
                 
         if tabs.SelectedIndex = -1 then    //make one tab current  if none yet
             log.PrintAppErrorMsg "Tabs Constructor 'do' block: there was no tab selected by default" // should never happen
@@ -160,6 +160,7 @@ type Tabs(config:Config, win:Window) =
         // then start highligh errors on current only
         current.Editor.Checker.CkeckAndHighlight(current.Editor:>IEditor)  
         
+        //then set up events
         tabs.SelectionChanged.Add( fun _-> // triggered an all tabs on startup ???// when closing, opening or changing tabs  attach first so it will be triggered below when adding files
             if tabs.Items.Count = 0 then //  happens when closing the last open tab
                 win.Close() // exit App ? (chrome and edge also closes when closing the last tab, Visual Studio not)
@@ -174,14 +175,13 @@ type Tabs(config:Config, win:Window) =
                 current <- tab
                 for t in allTabs do
                     t.IsCurrent <- false  // first set all false then one true              
-                tab.IsCurrent <-true
+                tab.IsCurrent <-true                
                 currentTabChangedEv.Trigger(tab)
-                //tab.Editor.Checker.CkeckAndHighlight(tab.Editor.AvaEdit, tab.FileInfo, tab.Editor.ErrorHighlighter)                
+                tab.Editor.Checker.CkeckAndHighlight(tab.Editor)  // onlt actually highglights if editor has needsChecking=true              
                 config.OpenTabs.Save(tab.FileInfo , allFileInfos)
-                log.PrintDebugMsg "Current Tab changed to %s" tab.FormatedFileName // triggered an all tabs on startup ?
+                
             )
-        //delete current.Editor.Checker.CkeckAndHighlight(current.Editor.AvaEdit,current.FileInfo) //not needed ,done in selcetion changed event handler
-        //log.PrintDebugMsg "Current Tab set from do block end %s" current.FormatedFileName
+       
         
 
     //--------------- Public members------------------

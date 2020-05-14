@@ -47,7 +47,7 @@ module Initialize =
         let tabs = new Tabs(config, win.Window)
         let tabsAndLog = new TabsAndLog(config, tabs, log, win)
         let commands = Commands(tabsAndLog)
-        let statusBar = StatusBar(config,commands)
+        let statusBar = StatusBar(config, tabs, commands)
         let menu = Menu(config,commands,tabs,log)
         win.Window.Content <- Util.dockPanelVert(menu.Bar , tabsAndLog.Grid , statusBar.Bar)
         win.Window.Background  <- menu.Bar.Background // call after setting up content, otherwise space next to tab headers is in an odd color

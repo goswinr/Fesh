@@ -16,7 +16,7 @@ open FSharp.Compiler
 open FSharp.Compiler.SourceCodeServices
 open System.Collections.Generic
 
-type CompletionLineKeyWord (config:Config, text:string, toolTip:string) =
+type CompletionItemForKeyWord(config:Config, text:string, toolTip:string) =
     //let col = Brushes.DarkBlue    // fails on selection, does not get color inverted//check  https://blogs.msdn.microsoft.com/text/2009/08/28/selection-brush/ ??
                 
     let style = FontStyles.Normal
@@ -49,7 +49,7 @@ type CompletionLineKeyWord (config:Config, text:string, toolTip:string) =
         member this.Priority        = this.Priority
         member this.Text            = this.Text
 
-type CompletionLine (config:Config, getToolTip, it:FSharpDeclarationListItem, isDotCompletion:bool) =
+type CompletionItem (config:Config, getToolTip, it:FSharpDeclarationListItem, isDotCompletion:bool) =
 
     let style =         
         if it.IsOwnMember then FontStyles.Normal 
@@ -102,19 +102,18 @@ type CompletionLine (config:Config, getToolTip, it:FSharpDeclarationListItem, is
         member this.Text            = this.Text 
             
 
-
-type CompletionWindow(avaEdit:TextEditor,config:Config, checker:Checker) =
+type Completions(avaEdit:TextEditor,config:Config, checker:Checker) =
     
     let log = config.Log
 
-    let mutable win : CodeCompletion.CompletionWindow option = None
+    let mutable win : CompletionWindow option = None
     
     /// for adding question marks to optional arguments:
-    let optArgsDict = Dictionary() //TODO make global ?
+    let optArgsDict = Dictionary() //TODO should this be global ?
 
     let showingEv = Event<unit>()
 
-    let mutable justClosed = false 
+    let mutable justClosed = false // to avoid retrigger of window on single char completions
 
     let selectedText ()= 
         match win with 
@@ -149,27 +148,32 @@ type CompletionWindow(avaEdit:TextEditor,config:Config, checker:Checker) =
         async{
             let raw = it.StructuredDescriptionText
             let structured = 
-                if optArgsDict.ContainsKey it.FullName then  TypeInfo.GetFormated (raw, optArgsDict.[it.FullName])
-                else                                         TypeInfo.GetFormated (raw, ResizeArray(0))
+                if optArgsDict.ContainsKey it.FullName then  TypeInfo.getFormated (raw, optArgsDict.[it.FullName])
+                else                                         TypeInfo.getFormated (raw, ResizeArray(0))
             if this.IsOpen then
                 do! Async.SwitchToContext Sync.syncContext
                 if this.IsOpen then // might get closed during context switch
                     if selectedText() = it.Name then 
-                        win.Value.ToolTipContent <- TypeInfo.GetPanel (Some it, structured )
+                        win.Value.ToolTipContent <- TypeInfo.getPanel (Some it, structured )
                     else
                         () //TODO add structure to Dict so it does not need recomputing if browsing items in the completion list.
         } |> Async.Start
-        TypeInfo.LoadingText :> obj
+        TypeInfo.loadingText :> obj
     
+    /// for a given method name retunes a list of optional argument names
     member this.OptArgsDict = optArgsDict
 
     member this.Log = log
     member this.Checker = checker
     member this.Config = config
+    member this.ComplWin 
+        with get() = win
+        and set(w) = win<-w  
 
-    static member TryShow(iEdtor:IEditor, win:CompletionWindow, pos:PositionInCode , changetype:TextChange, setback:int, query:string, charBefore:CharBeforeQuery, onlyDU:bool) = 
-        let log = win.Log
-        let config = win.Config
+    static member TryShow(iEdtor:IEditor, compl:Completions, pos:PositionInCode , changetype:TextChange, setback:int, query:string, charBefore:CharBeforeQuery, onlyDU:bool) = 
+        //a static method so that i can take an IEditor as argument
+        let log = compl.Log
+        let config = compl.Config
         let avaEdit = iEdtor.AvaEdit
         log.PrintDebugMsg "TryShow Completion Window for '%s'" pos.lineToCaret
         let ifDotSetback = if charBefore = Dot then setback else 0
@@ -180,33 +184,33 @@ type CompletionWindow(avaEdit:TextEditor,config:Config, checker:Checker) =
         let contOnUI (decls: FSharpDeclarationListInfo,declSymbs: FSharpSymbolUse list list) =
             
             /// for adding question marks to optional arguments:
-            win.OptArgsDict.Clear() //TODO make persistent on class for cashing
+            compl.OptArgsDict.Clear() //TODO make persistent on class for cashing
             for symbs in declSymbs do 
                 for symb in symbs do 
-                    let opts = TypeInfo.NamesOfOptionalArgs symb
+                    let opts = TypeInfo.namesOfOptionalArgs symb
                     if opts.Count>0 then 
-                        win.OptArgsDict.[symb.Symbol.FullName]<- opts
+                        compl.OptArgsDict.[symb.Symbol.FullName]<- opts
 
             let completionLines = ResizeArray<ICompletionData>()                                
             if not onlyDU && charBefore = NotDot then
                 for kw,desc in Keywords.KeywordsWithDescription  do // add keywords to list
-                    completionLines.Add( CompletionLineKeyWord(config,kw,desc) :> ICompletionData) |>ignore
-                    completionLines.Add( CompletionLineKeyWord(config,"__SOURCE_DIRECTORY__","Evaluates to the current full path of the source directory" ) :> ICompletionData)    |>ignore
-                    completionLines.Add( CompletionLineKeyWord(config,"__SOURCE_FILE__"     ,"Evaluates to the current source file name, without its path") :> ICompletionData)    |>ignore
-                    completionLines.Add( CompletionLineKeyWord(config,"__LINE__",            "Evaluates to the current line number") :> ICompletionData)    |>ignore
+                    completionLines.Add( CompletionItemForKeyWord(config,kw,desc) :> ICompletionData) |>ignore
+                    completionLines.Add( CompletionItemForKeyWord(config,"__SOURCE_DIRECTORY__","Evaluates to the current full path of the source directory" ) :> ICompletionData)    |>ignore
+                    completionLines.Add( CompletionItemForKeyWord(config,"__SOURCE_FILE__"     ,"Evaluates to the current source file name, without its path") :> ICompletionData)    |>ignore
+                    completionLines.Add( CompletionItemForKeyWord(config,"__LINE__",            "Evaluates to the current line number") :> ICompletionData)    |>ignore
                     
             
               
             for it in decls.Items do                    
                 match it.Glyph with 
-                |FSharpGlyph.Union|FSharpGlyph.Module | FSharpGlyph.EnumMember -> completionLines.Add (new CompletionLine(config, this, it, (changetype = EnteredDot))) // for DU completion add just some.
-                | _ -> if not onlyDU then                                         completionLines.Add (new CompletionLine(config, this, it, (changetype = EnteredDot))) // for normal completion add all others too.
+                |FSharpGlyph.Union|FSharpGlyph.Module | FSharpGlyph.EnumMember -> completionLines.Add (new CompletionItem(config, compl.GetToolTip, it, (changetype = EnteredDot))) // for DU completion add just some.
+                | _ -> if not onlyDU then                                         completionLines.Add (new CompletionItem(config, compl.GetToolTip, it, (changetype = EnteredDot))) // for normal completion add all others too.
               
             if completionLines.Count > 0 then 
-                win.ShowingEv.Trigger() // to close error and type info tooltip
+                compl.ShowingEv.Trigger() // to close error and type info tooltip
 
                 let w =  new CodeCompletion.CompletionWindow(avaEdit.TextArea)
-                win <- Some w
+                compl.ComplWin <- Some w
                 w.BorderThickness <- Thickness(0.0)
                 w.ResizeMode      <- ResizeMode.NoResize // needed to have no border!
                 w.WindowStyle     <- WindowStyle.None // = no border
@@ -215,7 +219,7 @@ type CompletionWindow(avaEdit:TextEditor,config:Config, checker:Checker) =
                 w.MinWidth  <- avaEdit.FontSize * 8.0
                 w.Closed.Add (fun _  -> 
                         config.Log.PrintDebugMsg "Completion window just closed with selected item: %A " w.CompletionList.SelectedItem
-                        justClosed <- true // to not trigger completion again
+                        compl.JustClosed <- true // to not trigger completion again
                     )
                     
                 w.CompletionList.SelectionChanged.Add(fun _ -> if w.CompletionList.ListBox.Items.Count=0 then w.Close()) // otherwise empty box might be shown and only get closed on second character
@@ -253,5 +257,5 @@ type CompletionWindow(avaEdit:TextEditor,config:Config, checker:Checker) =
             else
                 ()// TODO highlight errors instead
 
-        checker.GetCompletions(avaEdit, fi, pos, ifDotSetback, contOnUI)
+        compl.Checker.GetCompletions(iEdtor, pos, ifDotSetback, contOnUI)
 

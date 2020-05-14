@@ -20,19 +20,19 @@ open System.Collections.Generic
 
 type ToolTipData = {name:string; signature:string; xmlDocStr: Result<string*string,string>}
 
-type TypeInfo(aved:TextEditor, checker:Checker) = 
-    
-    let tip = new ToolTip(IsOpen=false) // TODO replace with something pinnable
-    
-    static let loadingText =  "Loading type info ..."
 
-    static let makePanelVert (xs:list<#UIElement>) =
-        let p = new StackPanel(Orientation= Orientation.Vertical)
-        for x in xs do p.Children.Add x |> ignore
-        p
+///a static class for creating tooltips 
+type TypeInfo private () = 
+        
+    static let loadingTxt =  "Loading type info ..."
 
     // make a fancy tooltip:
     static let stackPanel  (it:FSharpDeclarationListItem option, tds:ToolTipData list) = 
+        let makePanelVert (xs:list<#UIElement>) =
+            let p = new StackPanel(Orientation= Orientation.Vertical)
+            for x in xs do p.Children.Add x |> ignore
+            p
+        
         let mutable assemblies = new HashSet<string>()
         let stackPanel = makePanelVert [
             if it.IsSome then                 
@@ -145,7 +145,7 @@ type TypeInfo(aved:TextEditor, checker:Checker) =
     // --------------------------------------------------------------------------------------
 
     ///returns the names of optional Arguments in a given method call
-    static let namesOfOptionalArgs(fsu:FSharpSymbolUse)=
+    static let namesOfOptnlArgs(fsu:FSharpSymbolUse)=
         let D = ResizeArray<string>(0)               
         match fsu.Symbol with
         | :? FSharpMemberOrFunctionOrValue as x ->
@@ -157,14 +157,22 @@ type TypeInfo(aved:TextEditor, checker:Checker) =
         | _ -> ()
         D
     
+    //--------------public values and functions -----------------
     
+    static member loadingText = loadingTxt
+    
+    static member getFormated (sdtt: FSharpStructuredToolTipText, optArgs:ResizeArray<string>) = formated (sdtt, optArgs) 
+    
+    static member getPanel  (it:FSharpDeclarationListItem option, tds:ToolTipData list) = stackPanel (it, tds)
 
-    let mouseHover(e: MouseEventArgs) =
+    static member namesOfOptionalArgs(fsu:FSharpSymbolUse) = namesOfOptnlArgs(fsu)
+
+    static member mouseHover(e: MouseEventArgs, iEditor:IEditor, tip:ToolTip) =
         // see https://github.com/icsharpcode/AvalonEdit/blob/master/ICSharpCode.AvalonEdit/Editing/SelectionMouseHandler.cs#L477
                 
-        let doc = aved.Document
-        let pos = aved.GetPositionFromPoint(e.GetPosition(aved))
-        if pos.HasValue && checker.Results.IsSome then                            
+        let doc = iEditor.AvaEdit.Document
+        let pos = iEditor.AvaEdit.GetPositionFromPoint(e.GetPosition(iEditor.AvaEdit))
+        if pos.HasValue && iEditor.CheckRes.IsSome then                            
             let line = pos.Value.Line            
                 
             //TODO check for in string to give #r tooltip
@@ -181,8 +189,8 @@ type TypeInfo(aved:TextEditor, checker:Checker) =
                 let word = doc.GetText(max 0 startOffset, endOffset-startOffset) // max function to avoid -1
                 //log.PrintDebugMsg "word = '%s' Line:%d starting at %d get from %d to %d: in '%s'" word line docLine.Offset startOffset endOffset lineTxt
                 
-                tip.Content <- loadingText
-                tip.PlacementTarget <- aved // required for property inheritance
+                tip.Content <- loadingTxt
+                tip.PlacementTarget <- iEditor.AvaEdit // required for property inheritance
                 tip.StaysOpen <- true
                 tip.IsOpen <- true 
                 
@@ -199,9 +207,9 @@ type TypeInfo(aved:TextEditor, checker:Checker) =
                         
                     do! Async.SwitchToThreadPool()
 
-                    let! stt =    checker.Results.Value.checkRes.GetStructuredToolTipText(line,endCol,lineTxt,[word],FSharpTokenTag.Identifier)       //TODO, can this be avoided use info from below symbol call ? // TODO move into checker
-                    let! symbls = checker.Results.Value.checkRes.GetSymbolUseAtLocation(  line,endCol,lineTxt,[word])                                 //only get to info about oprional paramters
-                    let optArgs = if symbls.IsSome then namesOfOptionalArgs(symbls.Value) else ResizeArray(0) 
+                    let! stt =    iEditor.CheckRes.Value.checkRes.GetStructuredToolTipText(line,endCol,lineTxt,[word],FSharpTokenTag.Identifier)       //TODO, can this be avoided use info from below symbol call ? // TODO move into checker
+                    let! symbls = iEditor.CheckRes.Value.checkRes.GetSymbolUseAtLocation(  line,endCol,lineTxt,[word])                                 //only get to info about oprional paramters
+                    let optArgs = if symbls.IsSome then namesOfOptnlArgs(symbls.Value) else ResizeArray(0) 
                         
                     do! Async.SwitchToContext Sync.syncContext
                     
@@ -218,16 +226,5 @@ type TypeInfo(aved:TextEditor, checker:Checker) =
                     } |> Async.StartImmediate //TODO: add Cancellation ?
     
                //e.Handled <- true //  don't set handeled! so that on type errors the  Error tooltip still gets shown after this tooltip      
-    do 
-        aved.TextArea.TextView.MouseHover.Add(mouseHover)        
-        aved.TextArea.TextView.MouseHoverStopped.Add(fun _ -> tip.IsOpen <- false )
 
-    member this.ToolTip = tip
 
-    static member GetFormated (sdtt: FSharpStructuredToolTipText, optArgs:ResizeArray<string>) = formated (sdtt, optArgs) 
-    
-    static member GetPanel  (it:FSharpDeclarationListItem option, tds:ToolTipData list) = stackPanel (it, tds)
-
-    static member NamesOfOptionalArgs(fsu:FSharpSymbolUse) = namesOfOptionalArgs(fsu)
-
-    static member LoadingText = loadingText

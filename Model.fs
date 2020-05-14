@@ -7,6 +7,15 @@ open System.Windows.Input
 open ICSharpCode
 open FSharp.Compiler.SourceCodeServices
 
+
+module Appearance =  
+    let dialogCaption = "Seff | Scripting editor for fsharp"   // e.g title of saveAs window
+    
+    let font = FontFamily("Consolas")
+    
+    let mutable fontSize = 14.0 //will also be used for sizing tooltip text
+
+
 type ISeffLog = 
     // this interface allows the Config to be declared before the Log
     // the Log is created first with this interface and then Config gets it in the constructor
@@ -31,6 +40,7 @@ type IEditor =
     abstract member AvaEdit   : AvalonEdit.TextEditor
     abstract member CheckRes  : CheckResults Option with get , set
     abstract member FileInfo  : FileInfo Option     //with get , set
+    abstract member NeedsChecking  : bool with get , set
     abstract member DrawErrors: FSharpErrorInfo[] -> unit
    
 type AppRunContext = Standalone  | Hosted of string
@@ -52,11 +62,5 @@ type PositionInCode = { lineToCaret:string ; row:int; column:int; offset:int }
 type CommandInfo = {name:string; gesture:string; cmd:ICommand; tip:string }
 
 
-module Appearance =  
-    let dialogCaption = "Seff | Scripting editor for fsharp"   // e.g title of saveAs window
-    
-    let font = FontFamily("Consolas")
-    
-    let mutable fontSize = 14.0 //will also be used for sizing tooltip text
 
     

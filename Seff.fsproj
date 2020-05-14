@@ -48,8 +48,6 @@
 
     <Compile Include="Timer.fs" />
 
-    <Compile Include="Interfaces.fs" />
-
     <Compile Include="Model.fs" />
 
     <Compile Include="Sync.fs" />
