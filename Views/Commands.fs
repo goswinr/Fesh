@@ -95,7 +95,7 @@ type Commands (grid:TabsAndLog) =
     /// exluding the ones already provided by avalonedit
     member this.SetUpGestureInputBindings () = 
         
-        grid.Window.Window.Loaded.Add( fun _ -> 
+        //grid.Window.Window.Loaded.Add( fun _ -> 
             
             let allCustomCommands = [  //for seting up Key gestures below,exluding the ones already provided by avalonedit
                  this.NewTab           
@@ -176,7 +176,7 @@ type Commands (grid:TabsAndLog) =
                 log.PrintAppErrorMsg "added %d input bindings" bindings.Length
             with e -> 
                 log.PrintAppErrorMsg "*AllInputBindings: failed to create keyboard shortcuts: %A"e
-        )    
+        //)    
     
 
         
