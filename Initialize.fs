@@ -48,8 +48,8 @@ module Initialize =
         let tabsAndLog = new TabsAndLog(config, tabs, log, win)
         let commands = Commands(tabsAndLog)
         let statusBar = StatusBar(config, tabs, commands)
-        let menu = Menu(config,commands,tabs,log)
-        let seff = Seff(win,config,tabsAndLog,statusBar,menu)
+        let menu = Menu(config, commands, tabs, log)
+        let seff = Seff(win, config, tabsAndLog, statusBar, menu, commands)
         commands.SetUpGestureInputBindings()
         
         win.Window.Background  <- menu.Bar.Background // call after setting up content, otherwise space next to tab headers is in an odd color

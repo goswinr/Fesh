@@ -6,7 +6,7 @@ open Seff.Editor
 
 /// the main App holding all UI and interaction ellements
 /// this is passed on to hosting apps
-type Seff (win:Window,config:Config,tabsAndLog:TabsAndLog,statusBar:StatusBar, menu:Menu) =
+type Seff (win:Window,config:Config,tabsAndLog:TabsAndLog,statusBar:StatusBar, menu:Menu, cmds:Commands) =
 
     do
         win.Window.Content <- Util.dockPanelVert(menu.Bar , tabsAndLog.Grid , statusBar.Bar)        
@@ -26,3 +26,5 @@ type Seff (win:Window,config:Config,tabsAndLog:TabsAndLog,statusBar:StatusBar, m
     member this.Fsi = Fsi.GetOrCreate(config)
 
     member this.Window = win.Window 
+
+    member this.Commands = cmds

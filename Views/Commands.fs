@@ -93,11 +93,9 @@ type Commands (grid:TabsAndLog) =
    
     
     /// exluding the ones already provided by avalonedit
-    member this.SetUpGestureInputBindings () = 
-        
-        //grid.Window.Window.Loaded.Add( fun _ -> 
+    member this.SetUpGestureInputBindings () =         
             
-            let allCustomCommands = [  //for seting up Key gestures below,exluding the ones already provided by avalonedit
+            let allCustomCommands = [  //for seting up Key gestures below, exluding the ones already provided by avalonedit
                  this.NewTab           
                  this.OpenFile         
                  this.OpenTemplateFile 
@@ -173,10 +171,10 @@ type Commands (grid:TabsAndLog) =
                                         InputBinding(cmd.cmd,  KeyGesture(Key.None))
                     |]
                 grid.Window.Window.InputBindings.AddRange (bindings)
-                log.PrintAppErrorMsg "added %d input bindings" bindings.Length
+                
             with e -> 
                 log.PrintAppErrorMsg "*AllInputBindings: failed to create keyboard shortcuts: %A"e
-        //)    
+         
     
 
         
