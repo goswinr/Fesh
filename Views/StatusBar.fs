@@ -14,8 +14,14 @@ open System.Windows.Automation.Peers
 open Seff.Config
 open Seff.Editor
 
-type StatusBar (config:Config, tabs:Tabs, cmds:Commands)  = // TODO better make it dependent on commands , not fsi
+type StatusBar (grid:TabsAndLog, cmds:Commands)  = // TODO better make it dependent on commands , not fsi
+
+    let log = grid.Log
+    let tabs= grid.Tabs
+    let config = grid.Config 
+
     let bar = new Primitives.StatusBar() 
+   
 
     let padding = Thickness(6. , 2. , 6., 2. ) //left ,top, right, bottom)
 
@@ -98,8 +104,8 @@ type StatusBar (config:Config, tabs:Tabs, cmds:Commands)  = // TODO better make 
         
 
     member this.Bar =  bar
-    
-   
+  
+
     member this.AddFsiSynchModeStatus()=
         let atPosition = 0
         bar.Items.Insert(atPosition, new StatusBarItem(Content="FSI evaluation mode: "))

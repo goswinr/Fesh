@@ -39,8 +39,11 @@
 
   <ItemGroup>
 
-    <EmbeddedResource Include="Media\LogoCursorTr.res" />
-    <Resource Include="Media\LogoCursorTr.ico">  <CopyToOutputDirectory>Never</CopyToOutputDirectory>    </Resource>
+    <EmbeddedResource Include="Media\LogoCursorTr.res" /> <!--  for Application Icon in explorer-->     
+    
+    <Resource Include="Media\LogoCursorTr.ico" />
+    
+    <Resource Include="Media\FiraCode-Regular.ttf" />  
 
     <None Include="FSharpSynatxHighlighterExtended.xshd">    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>    </None>
 
@@ -80,6 +83,7 @@
     <Compile Include="Views\Tab.fs" />
     <Compile Include="Views\Tabs.fs" />
     <Compile Include="Views\TabsAndLog.fs" />
+    <Compile Include="Views\Fonts.fs" />
     <Compile Include="Views\Commands.fs" />
     <Compile Include="Views\StatusBar.fs" />
     <Compile Include="Views\Menu.fs" />

@@ -4,6 +4,7 @@ open Seff
 open Seff.Config
 open System
 open System.Windows
+open System.Windows.Media.Imaging
 
 
 /// A class holding the main WPF Window
@@ -25,16 +26,16 @@ type Window (config:Config)=
                            |Standalone -> "Seff | Scripting editor for fsharp"  
                            |Hosted n   -> "Seff | Scripting editor for fsharp in " + n
                 
-        win.Loaded.Add(fun _ ->
-            //---- load ICON ----
+        // delete if no bug//win.Loaded.Add(fun _ -> //---- load ICON ----
+        try                 
             // Add the Icon at the top left of the window and in the status bar, musst be called at later moment(eg. after loading).
             // (for the exe file icon in explorer use <Win32Resource>Media\LogoCursorTr.res</Win32Resource>  in fsproj )
-            let uri = new Uri("pack://application:,,,/Seff;component/Media/LogoCursorTr.ico", UriKind.RelativeOrAbsolute) //Build action : "Resource"; Copy to ouput Dir: "Do not copy" 
-            try 
-                win.Icon <-  Media.Imaging.BitmapFrame.Create(Application.GetResourceStream(uri).Stream)
-            with ex -> 
-                log.PrintAppErrorMsg  "Failed to load Media/LogoCursorTr.ico from Application.ResourceStream : %A" ex 
-            )    
+            // delete if no bug //let uri = new Uri("pack://application:,,,/Seff;component/Media/LogoCursorTr.ico", UriKind.RelativeOrAbsolute) 
+            // delete if no bug //win.Icon <-  Media.Imaging.BitmapFrame.Create(Application.GetResourceStream(uri).Stream)
+            win.Icon <-  BitmapFrame.Create(Uri("pack://application:,,,/Media/LogoCursorTr.ico"))//Build action : "Resource"
+        with ex -> 
+            log.PrintAppErrorMsg  "Failed to load Media/LogoCursorTr.ico from Application.ResourceStream : %A" ex 
+        //)    
       
         //----------------------------------------------
         // -  all below code is for load and safe window location and size ---

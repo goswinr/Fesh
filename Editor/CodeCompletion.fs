@@ -23,8 +23,8 @@ type CompletionItemForKeyWord(config:Config, text:string, toolTip:string) =
     let tb = 
         let mutable tb = Controls.TextBlock()
         tb.Text <- text
-        tb.FontFamily <- Appearance.consolas  
-        tb.FontSize <-   Appearance.fontSize 
+        tb.FontFamily <- Style.fontEditor  
+        tb.FontSize <-   Style.fontSize 
         //tb.Foreground  <- col, // does not change color when selected anymore
         tb.FontStyle <- style
         tb.Padding <- Thickness(0. , 0. , 8. , 0. ) //left top right bottom / so that it does not aper to be trimmed
@@ -59,8 +59,8 @@ type CompletionItem (config:Config, getToolTip, it:FSharpDeclarationListItem, is
     let tb = 
         let mutable tb = Controls.TextBlock()
         tb.Text <- it.Name 
-        tb.FontFamily <- Appearance.consolas  
-        tb.FontSize <-   Appearance.fontSize 
+        tb.FontFamily <- Style.fontEditor  
+        tb.FontSize <-   Style.fontSize 
         //tb.Foreground  <- col, // does not change color when selected anymore
         tb.FontStyle <- style
         tb.Padding <- Thickness(0. , 0. , 8. , 0. ) //left top right bottom / so that it does not apear to be trimmed

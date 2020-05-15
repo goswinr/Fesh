@@ -43,8 +43,8 @@ type Editor private (code:string, config:Config, fileInfo:FileInfo Option) =
         avaEdit.Options.HideCursorWhileTyping <- false
         avaEdit.TextArea.SelectionCornerRadius <- 0.0 
         avaEdit.TextArea.SelectionBorder <- null
-        avaEdit.FontFamily <- Seff.Appearance.consolas
-        avaEdit.FontSize <- config.Settings.GetFloat "FontSize" Seff.Appearance.fontSize 
+        //avaEdit.FontFamily <- set in fonts.fs
+        avaEdit.FontSize <- config.Settings.GetFloat "FontSize" Seff.Style.fontSize 
         Search.SearchPanel.Install(avaEdit) |> ignore
         SyntaxHighlighting.setFSharp(avaEdit,config,false)
 

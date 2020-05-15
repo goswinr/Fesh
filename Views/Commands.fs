@@ -10,14 +10,24 @@ open Seff.Editor
 open Seff
 open System.IO
 open Seff.Editor.Selection
+open System.Windows.Media
 
 
 
 type Commands (grid:TabsAndLog) = 
+    
+    let fonts = Fonts(grid)
+
     let tabs = grid.Tabs
     let log = grid.Log
     let config= grid.Config
     let fsi = Fsi.GetOrCreate(config)
+
+
+    let evalAllText()        =                                  fsi.Evaluate {code=tabs.CurrAvaEdit.Text                                    ; file=tabs.Current.FileInfo; allOfFile=true}                               
+    let evalAllTextSave()    =  if tabs.Save(tabs.Current) then fsi.Evaluate {code=tabs.CurrAvaEdit.Text                                    ; file=tabs.Current.FileInfo; allOfFile=true} 
+    let evalSelectedLines()  =                                  fsi.Evaluate {code = Selection.expandSelectionToFullLines(tabs.CurrAvaEdit) ; file=tabs.Current.FileInfo; allOfFile=false} 
+    let evalSelectedText()   =                                  fsi.Evaluate {code = tabs.CurrAvaEdit.SelectedText                          ; file=tabs.Current.FileInfo; allOfFile=false} 
     
     //see https://github.com/icsharpcode/AvalonEdit/blob/697ff0d38c95c9e5a536fbc05ae2307ec9ef2a63/ICSharpCode.AvalonEdit/Editing/CaretNavigationCommandHandler.cs#L73
     //TODO these gets evaluated for each cmd on every mouse click or key perss . is this OK?  any lag ?? in Canexecute for commands
@@ -49,10 +59,10 @@ type Commands (grid:TabsAndLog) =
     //member val SelectLinesDown    ={name= "Select Lines Downwards"    ;gesture= "Shift + Down"   ;cmd= mkCmdSimple (fun _ ->                                                           ;tip= "Not implemented yet"} //TODO!   
                                                                                                                                          
     //FSI menu:                                                                                                                              
-    member val RunAllText        = {name= "Run All Text"              ;gesture= "F5"             ;cmd= mkCmdSimple (fun _ -> tabs.EvalAllText() )        ;tip= "Send all text in the current file to FSharp Interactive"                }
-    member val RunAllTextSave    = {name= "Save and Run All Text"     ;gesture= "F6"             ;cmd= mkCmdSimple (fun _ -> tabs.EvalAllTextSave())     ;tip= "First Save current File, then send all it's text to FSharp Interactive" }
-    member val RunSelectedLines  = {name= "Run Selected Lines"        ;gesture= "Ctrl + Enter"   ;cmd= mkCmdSimple (fun _ -> tabs.EvalSelectedLines())   ;tip= "Sends the currently seleceted Lines in the editor to FSharp Interactive.\r\nIncludes partially selected lines in full."}
-    member val RunSelectedText   = {name= "Run Selected Text"         ;gesture= "Alt + Enter"    ;cmd= mkCmd isEse (fun _ -> tabs.EvalSelectedText())    ;tip= "Sends the currently seleceted Text in the editor to FSharp Interactive" }// TODO mark evaluated code with grey background
+    member val RunAllText        = {name= "Run All Text"              ;gesture= "F5"             ;cmd= mkCmdSimple (fun _ -> evalAllText() )             ;tip= "Send all text in the current file to FSharp Interactive"                }
+    member val RunAllTextSave    = {name= "Save and Run All Text"     ;gesture= "F6"             ;cmd= mkCmdSimple (fun _ -> evalAllTextSave())          ;tip= "First Save current File, then send all it's text to FSharp Interactive" }
+    member val RunSelectedLines  = {name= "Run Selected Lines"        ;gesture= "Ctrl + Enter"   ;cmd= mkCmdSimple (fun _ -> evalSelectedLines())        ;tip= "Sends the currently seleceted Lines in the editor to FSharp Interactive.\r\nIncludes partially selected lines in full."}
+    member val RunSelectedText   = {name= "Run Selected Text"         ;gesture= "Alt + Enter"    ;cmd= mkCmd isEse (fun _ -> evalSelectedText())         ;tip= "Sends the currently seleceted Text in the editor to FSharp Interactive" }// TODO mark evaluated code with grey background
     member val ClearFSI          = {name= "Clear Log"                 ;gesture= "Ctrl + Alt + C" ;cmd= mkCmdSimple (fun _ -> log.ReadOnlyEditor.Clear()) ;tip= "Clear all text from FSI Log window"                                     }
     member val CancelFSI         = {name= "Cancel FSI"                ;gesture= "Ctrl + Break"   ;cmd= mkCmd isAsy (fun _ -> fsi.CancelIfAsync())        ;tip= "Cancel running FSI evaluation (only available in asynchronous mode)"    }
     member val ResetFSI          = {name= "Reset FSI"                 ;gesture= "Ctrl + Alt + R" ;cmd= mkCmdSimple (fun _ -> fsi.Reset())                ;tip= "Reset FSharp Interactive"                                               }
@@ -62,8 +72,8 @@ type Commands (grid:TabsAndLog) =
     member val ToggleSplit       = {name= "Toggle Window Split"       ;gesture= "Ctrl + T"       ;cmd= mkCmdSimple (fun _ -> grid.ToggleSplit())         ;tip= "Toggle between vertical and horizontal Screen Split of Editor and Log"}
     member val ToggleLogSize     = {name= "Toggle Log Maximased"      ;gesture= "Ctrl + M"       ;cmd= mkCmdSimple (fun _ -> grid.ToggleMaxLog())        ;tip= "Maximises or resets the size of the Log window. \r\n(depending on curren state)"}
     member val ToggleLogLineWrap = {name= "Toggle Line Wraping in Log";gesture= "Alt + Z"        ;cmd= mkCmdSimple (fun _ -> log.ToggleLineWrap(config)) ;tip= "Toggle Line Wraping in Log window"}  
-    member val FontBigger        = {name= "Make Font Bigger"          ;gesture= "Ctrl + '+'"     ;cmd= mkCmdSimple (fun _ -> grid.FontsBigger())         ;tip= "Increase Text Size for both Editor and Log"}
-    member val FontSmaller       = {name= "Make Font Smaller"         ;gesture= "Ctrl + '-'"     ;cmd= mkCmdSimple (fun _ -> grid.FontsSmaller())        ;tip= "Decrease Text Size for both Editor and Log"}
+    member val FontBigger        = {name= "Make Font Bigger"          ;gesture= "Ctrl + '+'"     ;cmd= mkCmdSimple (fun _ -> fonts.FontsBigger())         ;tip= "Increase Text Size for both Editor and Log"}
+    member val FontSmaller       = {name= "Make Font Smaller"         ;gesture= "Ctrl + '-'"     ;cmd= mkCmdSimple (fun _ -> fonts.FontsSmaller())        ;tip= "Decrease Text Size for both Editor and Log"}
                                                                                                                                      
     //Settings Menu                                                                                                                      
     member val SettingsFolder    = {name= "Open Settings Folder"      ;gesture= ""               ;cmd= mkCmdSimple (fun _ -> config.HostingMode.OpenFolder())                             ;tip= "Opens the Folder where user settinsg such as default file content is saved."}
@@ -91,7 +101,8 @@ type Commands (grid:TabsAndLog) =
 
    // TODO add  all built in  DocmentNavigatin shortcuts
    
-    
+    member this.Fonts = fonts
+
     /// exluding the ones already provided by avalonedit
     member this.SetUpGestureInputBindings () =         
             

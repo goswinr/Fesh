@@ -47,7 +47,7 @@ module Initialize =
         let tabs = new Tabs(config, win.Window)
         let tabsAndLog = new TabsAndLog(config, tabs, log, win)
         let commands = Commands(tabsAndLog)
-        let statusBar = StatusBar(config, tabs, commands)
+        let statusBar = StatusBar(tabsAndLog, commands)
         let menu = Menu(config, commands, tabs, log)
         let seff = Seff(win, config, tabsAndLog, statusBar, menu, commands)
         commands.SetUpGestureInputBindings()

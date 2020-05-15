@@ -223,8 +223,7 @@ type Fsi private (config:Config) =
 
     /// starts a new Fsi session 
     member this.Initalize() =  init() // Checker class will call this after first run of checker, to start fsi when checker is  idle
-        
-
+    
     member this.CancelIfAsync() = 
         match state  with 
         | Ready | Initalizing | NotLoaded -> ()
@@ -239,7 +238,6 @@ type Fsi private (config:Config) =
                     state<-Ready 
                     thr.Abort() // raises OperationCanceledException  
 
-    
     member this.AskIfCancellingIsOk() = 
         match state with 
         | Ready | Initalizing | NotLoaded -> NotEvaluating      
@@ -265,8 +263,7 @@ type Fsi private (config:Config) =
         | YesAsync        -> this.CancelIfAsync();Ready
         | Dont            -> Evaluating
         | NotPossibleSync -> Evaluating     // UI for this only available in asynchronous mode anyway, see Commands  
-        
-
+    
     member this.Evaluate(code) =         
         if DateTime.Today > DateTime(2020, 12, 31) then log.PrintFsiErrorMsg "*** Your Seff Editor has expired, please download a new version. or contact goswin@rothenthal.com ***"
         else 
@@ -276,7 +273,7 @@ type Fsi private (config:Config) =
             | YesAsync        -> this.CancelIfAsync();eval(code) 
             | Dont            -> ()
             | NotPossibleSync -> log.PrintInfoMsg "Wait till current synchronous evaluation completes before starting new one."
-       
+     
 
     member this.Reset() =  
         match this.AskIfCancellingIsOk () with 

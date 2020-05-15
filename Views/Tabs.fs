@@ -9,7 +9,7 @@ open System.Windows.Controls
 open System.Windows
 open Seff.Views.Util
 open Seff.Config
-open Seff.Appearance
+open Seff.Style
 open Seff.Editor
 
 /// A class holding the Tab Control
@@ -60,7 +60,7 @@ type Tabs(config:Config, win:Window) =
             let fi = new FileInfo(dlg.FileName) 
             if fi.Exists then 
                 let msg = sprintf "Do you want to overwrite the existing file?\r\n%s" t.FormatedFileName
-                match MessageBox.Show(msg, Appearance.dialogCaption, MessageBoxButton.YesNo, MessageBoxImage.Question) with
+                match MessageBox.Show(msg, Style.dialogCaption, MessageBoxButton.YesNo, MessageBoxImage.Question) with
                 | MessageBoxResult.Yes -> saveAt (t, fi)
                 | MessageBoxResult.No -> false
                 | _ -> false 
@@ -91,7 +91,7 @@ type Tabs(config:Config, win:Window) =
         if t.IsCodeSaved then true
         else 
             let msg = sprintf "Do you want to save the changes to:\r\n%s\r\nbefore closing this tab?" t.FormatedFileName
-            match MessageBox.Show(msg, Appearance.dialogCaption, MessageBoxButton.YesNoCancel, MessageBoxImage.Question) with
+            match MessageBox.Show(msg, Style.dialogCaption, MessageBoxButton.YesNoCancel, MessageBoxImage.Question) with
             | MessageBoxResult.Yes -> trySave t
             | MessageBoxResult.No -> false
             | _ -> false
@@ -152,8 +152,7 @@ type Tabs(config:Config, win:Window) =
         if tabs.Items.Count=0 then //Open default file if none found in recent files or args                
             addTab(new Tab(Editor.New(config)), true) |> ignore 
                 
-        if tabs.SelectedIndex = -1 then    //make one tab current  if none yet
-            log.PrintAppErrorMsg "Tabs Constructor 'do' block: there was no tab selected by default" // should never happen
+        if tabs.SelectedIndex = -1 then    //make one tab current if none yet , happens if current file on last closing was an unsaved file
             tabs.SelectedIndex <- 0
             current <- Seq.head allTabs
         
@@ -225,7 +224,7 @@ type Tabs(config:Config, win:Window) =
         | Some t when t.Exists -> dlg.InitialDirectory <- t.FullName
         | _ -> ()
         dlg.DefaultExt <- ".fsx"
-        dlg.Title <- "Open file for " + Appearance.dialogCaption
+        dlg.Title <- "Open file for " + Style.dialogCaption
         dlg.Filter <- "FSharp Files(*.fsx, *.fs)|*.fsx;*.fs|Text Files(*.txt)|*.txt|All Files(*.*)|*"
         if isTrue (dlg.ShowDialog()) then
             for num,f in Seq.indexed dlg.FileNames do
@@ -278,7 +277,7 @@ type Tabs(config:Config, win:Window) =
             let msg = openFs  |> Seq.fold (fun m t -> 
                 let name  = if t.FileInfo.IsSome then t.FileInfo.Value.Name else t.FormatedFileName
                 sprintf "%s\r\n\r\n%s" m name) "Do you want to\r\nsave the changes to:" 
-            match MessageBox.Show(msg, Appearance.dialogCaption, MessageBoxButton.YesNoCancel, MessageBoxImage.Question) with
+            match MessageBox.Show(msg, Style.dialogCaption, MessageBoxButton.YesNoCancel, MessageBoxImage.Question) with
             | MessageBoxResult.Yes -> 
                 let OKs = seq { for t in allTabs do if not t.IsCodeSaved then yield this.Save t }// if saving was canceled cancel closing
                 if Seq.exists ( fun OK -> OK = false) OKs then false else true // iterate unsafed files, if one file saving was canceled abort the closing of the main window                 
@@ -286,9 +285,6 @@ type Tabs(config:Config, win:Window) =
             | _                    -> false 
     
                                                                                                                            
-    member this.EvalAllText()        =  fsi.Evaluate                            {code=current.Editor.AvaEdit.Text                             ; file=current.FileInfo; allOfFile=true}                               
-    member this.EvalAllTextSave()    =  if this.Save(current) then fsi.Evaluate {code=current.Editor.AvaEdit.Text                             ; file=current.FileInfo; allOfFile=true} 
-    member this.EvalSelectedLines()  =  fsi.Evaluate                            {code = Selection.expandSelectionToFullLines(current.AvaEdit) ; file=current.FileInfo; allOfFile=false} 
-    member this.EvalSelectedText()   =  fsi.Evaluate                            {code = current.AvaEdit.SelectedText                          ; file=current.FileInfo; allOfFile=false} 
+
                            
     

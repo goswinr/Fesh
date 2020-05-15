@@ -132,8 +132,8 @@ type ErrorHighlighter (ed:TextEditor) =
                 let seg = segmentsAtOffset.[0]
                 let tb = new TextBlock()
                 tb.Text <- seg.Message       //TODO move styling out of event handler ?
-                tb.FontSize <- Appearance.fontSize
-                tb.FontFamily <- Appearance.consolas //TODO use another monospace font ?
+                tb.FontSize <- Style.fontSize
+                tb.FontFamily <- Style.fontToolTip //TODO use another monospace font ?
                 tb.TextWrapping <- TextWrapping.Wrap
                 tb.Foreground <- Media.SolidColorBrush(if seg.IsWarning then Colors.DarkRed else Colors.DarkGreen) 
                 tip.Content <- tb

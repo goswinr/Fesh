@@ -187,8 +187,7 @@ type Log () =
     member this.AdjustToSettingsInConfig(config:Config)=        
         this.OnPrint.Add (config.AssemblyReferenceStatistic.RecordFromlog) // TODO: does this have print perfomance impact ? measure do async ?
         setLineWrap( config.Settings.GetBool "logHasLineWrap" true )
-        log.FontFamily       <- Seff.Appearance.consolas
-        log.FontSize         <- config.Settings.GetFloat "FontSize" Seff.Appearance.fontSize                
+        log.FontSize         <- config.Settings.GetFloat "FontSize" Seff.Style.fontSize                
         
     member this.ToggleLineWrap(config:Config)=
         let newState = not  log.WordWrap 
@@ -230,7 +229,7 @@ type Log () =
         let dlg = new Microsoft.Win32.SaveFileDialog()
         if pathHint.IsSome && pathHint.Value.Directory.Exists then dlg.InitialDirectory <- pathHint.Value.DirectoryName
         if pathHint.IsSome then dlg.FileName <- pathHint.Value.Name  + "_Log" 
-        dlg.Title <- "SaveText from Log Window of " + Appearance.dialogCaption
+        dlg.Title <- "SaveText from Log Window of " + Style.dialogCaption
         dlg.DefaultExt <- ".txt"
         dlg.Filter <- "Text Files(*.txt)|*.txt|Text Files(*.csv)|*.csv|All Files(*.*)|*"
         if Util.isTrue (dlg.ShowDialog()) then                
@@ -245,7 +244,7 @@ type Log () =
            let dlg = new Microsoft.Win32.SaveFileDialog()
            if pathHint.IsSome && pathHint.Value.Directory.Exists then dlg.InitialDirectory <- pathHint.Value.DirectoryName
            if pathHint.IsSome then dlg.FileName <- pathHint.Value.Name  + "_Log" 
-           dlg.Title <- "Save Seleceted Text from Log Window of " + Appearance.dialogCaption
+           dlg.Title <- "Save Seleceted Text from Log Window of " + Style.dialogCaption
            dlg.DefaultExt <- ".txt"
            dlg.Filter <- "Text Files(*.txt)|*.txt|Text Files(*.csv)|*.csv|All Files(*.*)|*"
            if Util.isTrue (dlg.ShowDialog()) then                

@@ -38,8 +38,8 @@ type TypeInfo private () =
             if it.IsSome then                 
                 let tb = new TextBlock(Text = sprintf "%A" it.Value.Glyph)
                 tb.Foreground <- Brushes.DarkOrange
-                tb.FontSize <- Appearance.fontSize  * 0.85
-                tb.FontFamily <- Appearance.consolas
+                tb.FontSize <- Style.fontSize  * 0.85
+                tb.FontFamily <- Style.fontEditor
                 //tb.FontWeight <- FontWeights.Bold
                 yield tb :> UIElement
             
@@ -50,15 +50,15 @@ type TypeInfo private () =
                     if td.name <> "" then 
                         let tb = new TextBlock(Text= "Name:" + td.name)
                         tb.Foreground <- Brushes.Black
-                        tb.FontSize <- Appearance.fontSize * 0.9
-                        //tb.FontFamily <- Appearance.elronet
+                        tb.FontSize <- Style.fontSize * 0.9
+                        //tb.FontFamily <- Style.elronet
                         tb.FontWeight <- FontWeights.Bold
                         yield tb 
                     if td.signature <> "" then 
                         let tb = new TextBlock(Text = td.signature)
                         tb.Foreground <- Brushes.Black
-                        tb.FontSize <- Appearance.fontSize  * 1.0
-                        tb.FontFamily <- Appearance.consolas
+                        tb.FontSize <- Style.fontSize  * 1.0
+                        tb.FontFamily <- Style.fontEditor
                         yield tb
                 
                     let color, txt, scale  = 
@@ -69,8 +69,8 @@ type TypeInfo private () =
                         |Error errTxt  -> 
                             Brushes.Gray, errTxt, 0.75
                     let tb = new TextBlock(Text= txt.Trim() )
-                    tb.FontSize <- Appearance.fontSize  * scale
-                    tb.FontFamily <- Appearance.andale
+                    tb.FontSize <- Style.fontSize  * scale
+                    tb.FontFamily <- Style.fontToolTip
                     tb.Foreground <- color                    
                     yield tb ]
 
@@ -86,7 +86,7 @@ type TypeInfo private () =
                 let tb = 
                     if assemblies.Count = 1 then new TextBlock(Text= "assembly:\r\n" + Seq.head assemblies)
                     else                         new TextBlock(Text= "assemblies:\r\n" + String.concat "\r\n" assemblies)
-                tb.FontSize <- Appearance.fontSize  * 0.80
+                tb.FontSize <- Style.fontSize  * 0.80
                 tb.Foreground <- Brushes.Black
                 //tb.FontFamily <- new FontFamily ("Arial") // or use default of device
                 yield tb :> UIElement
