@@ -22,13 +22,13 @@ type Checker private (config:Config)  =
 
     let checkingEv = new Event< IEditor *  int64 ref > ()
     
-    let checkedEv = new Event< IEditor * FSharpErrorInfo[] > ()
+    let checkedEv = new Event< IEditor > ()
 
     let mutable isFirstCheck = true
     let firstCheckDoneEv = new Event<unit>() // to first check file, then start FSI
 
-    /// to check full code use 0 as 'tillOffset', for highlight error set continuation to  'ignore' and trigger event to true
-    let check(iEditor:IEditor, tillOffset, continueOnThreadPool:CheckResults->unit, triggerCheckedEvent:bool) = 
+    /// to check full code use 0 as 'tillOffset', at the end either a event is raised or continuation called if present
+    let check(iEditor:IEditor, tillOffset, continueOnThreadPool:Option<CheckResults->unit>) = 
         if iEditor.NeedsChecking then  
             let thisId = Interlocked.Increment checkId
             checkingEv.Trigger(iEditor, checkId) // to show in statusbar
@@ -108,13 +108,14 @@ type Checker private (config:Config)  =
                                     match checkAnswer with
                                     | FSharpCheckFileAnswer.Succeeded checkRes ->   
                                         if !checkId = thisId  then
-                                            let res = {parseRes = parseRes;  checkRes = checkRes;  code = code; tillOffset = code.Length}
+                                            let res = {parseRes = parseRes;  checkRes = checkRes;  code = code; tillOffset = code.Length; fromRunId=thisId}
                                             iEditor.CheckRes <- Some res 
                                             iEditor.NeedsChecking <- false
-                                            continueOnThreadPool(res)
-                                            if triggerCheckedEvent && !checkId = thisId  then
+                                            match continueOnThreadPool with
+                                            | Some f -> f(res)
+                                            | None -> 
                                                 do! Async.SwitchToContext Sync.syncContext 
-                                                checkedEv.Trigger(iEditor, checkRes.Errors) // to   mark statusbar , NOT to highlighting errors //TODO all events trigger in Sync ?
+                                                checkedEv.Trigger(iEditor) // to  mark statusbar , and highlighting errors 
                                                 if isFirstCheck then 
                                                     firstCheckDoneEv.Trigger() //now start FSI
                                                     isFirstCheck <- false
@@ -133,7 +134,11 @@ type Checker private (config:Config)  =
     
     static let mutable singleInstance:Checker option  = None
 
-     /// this event is raised on UI thread    
+    //--------------------public --------------
+
+    member this.LastStartedCheckId = checkId
+        
+    /// this event is raised on UI thread    
     [<CLIEvent>] member this.OnChecking = checkingEv.Publish
     
     /// this event is raised on UI thread    
@@ -153,9 +158,7 @@ type Checker private (config:Config)  =
             ch
 
     /// Triggers Event<FSharpErrorInfo[]> event after calling the continuation
-    member this.CkeckAndHighlight (iEditor:IEditor)  =         
-        let draw (r:CheckResults) = iEditor.DrawErrors(r.checkRes.Errors)
-        check (iEditor, 0, draw, true)
+    member this.CkeckHighlightAndFold (iEditor:IEditor)  =  check (iEditor, 0, None)
 
     /// checks for items available for completion
     member this.GetCompletions (iEditor:IEditor, pos :PositionInCode, ifDotSetback, continueOnUI: FSharpDeclarationListInfo*FSharpSymbolUse list list  -> unit) =        
@@ -193,4 +196,4 @@ type Checker private (config:Config)  =
                                 continueOnUI( decls, symUse)
             } |> Async.StartImmediate // we are on thread pool alredeay    
         
-        check(iEditor, pos.offset, getSymbolsAndDecls, false) //TODO can existing parse results be used ? or do they miss the dot so dont show dot completions ?
+        check(iEditor, pos.offset, Some getSymbolsAndDecls) //TODO can existing parse results be used ? or do they miss the dot so dont show dot completions ?

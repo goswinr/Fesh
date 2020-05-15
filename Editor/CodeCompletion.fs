@@ -102,7 +102,7 @@ type CompletionItem (config:Config, getToolTip, it:FSharpDeclarationListItem, is
         member this.Text            = this.Text 
             
 
-type Completions(avaEdit:TextEditor,config:Config, checker:Checker) =
+type Completions(avaEdit:TextEditor,config:Config, checker:Checker, errorHighlighter:ErrorHighlighter) =
     
     let log = config.Log
 
@@ -166,15 +166,16 @@ type Completions(avaEdit:TextEditor,config:Config, checker:Checker) =
     member this.Log = log
     member this.Checker = checker
     member this.Config = config
+    member this.ErrorHighlighter = errorHighlighter
     member this.ComplWin 
         with get() = win
         and set(w) = win<-w  
 
-    static member TryShow(iEdtor:IEditor, compl:Completions, pos:PositionInCode , changetype:TextChange, setback:int, query:string, charBefore:CharBeforeQuery, onlyDU:bool) = 
+    static member TryShow(iEditor:IEditor,compl:Completions, pos:PositionInCode , changetype:TextChange, setback:int, query:string, charBefore:CharBeforeQuery, onlyDU:bool) = 
         //a static method so that i can take an IEditor as argument
         let log = compl.Log
         let config = compl.Config
-        let avaEdit = iEdtor.AvaEdit
+        let avaEdit = iEditor.AvaEdit
         log.PrintDebugMsg "TryShow Completion Window for '%s'" pos.lineToCaret
         let ifDotSetback = if charBefore = Dot then setback else 0
 
@@ -254,7 +255,9 @@ type Completions(avaEdit:TextEditor,config:Config, checker:Checker) =
                 // https://github.com/icsharpcode/AvalonEdit/blob/8fca62270d8ed3694810308061ff55c8820c8dfc/ICSharpCode.AvalonEdit/CodeCompletion/CompletionWindow.cs#L100
             
             else
-                if iEdtor.CheckRes.IsSome then iEdtor.DrawErrors(iEdtor.CheckRes.Value.checkRes.Errors)
+                match iEditor.CheckRes with
+                |Some res ->  compl.ErrorHighlighter.Draw(iEditor)
+                |None ->()
 
-        compl.Checker.GetCompletions(iEdtor, pos, ifDotSetback, contOnUI)
+        compl.Checker.GetCompletions(iEditor, pos, ifDotSetback, contOnUI)
 

@@ -107,8 +107,8 @@ type Fsi private (config:Config) =
                 let  prevState = state
                 state <- Initalizing
                 async{
-                    let timer = Seff.Timer()
-                    timer.tic()
+                    //let timer = Seff.Timer()
+                    //timer.tic()
                     if config.Settings.GetBool "asyncFsi" true then mode <- Async else mode <- FsiMode.Sync
                     if session.IsSome then 
                         session.Value.Interrupt()  //TODO does this cancel running session correctly ??         
@@ -128,9 +128,9 @@ type Fsi private (config:Config) =
                     //fsiSession.Run() // TODO ? dont do this it crashes the app when hosted in Rhino! 
                     state <- Ready
                     session <- Some fsiSession
-                    timer.stop()
-                    if prevState = NotLoaded then log.PrintInfoMsg "FSharp Interactive session created in %s"  timer.tocEx  
-                    else                          log.PrintInfoMsg "New FSharp Interactive session created in %s" timer.tocEx     
+                    //timer.stop()
+                    if prevState = NotLoaded then () //log.PrintInfoMsg "FSharp Interactive session created in %s"  timer.tocEx  
+                    else                          log.PrintInfoMsg "FSharp Interactive session reset." // in %s" timer.tocEx     
             
                     if config.HostingMode.IsHosted then 
                         match mode with

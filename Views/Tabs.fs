@@ -157,7 +157,7 @@ type Tabs(config:Config, win:Window) =
             current <- Seq.head allTabs
         
         // then start highligh errors on current only
-        current.Editor.Checker.CkeckAndHighlight(current.Editor:>IEditor)  
+        current.Editor.Checker.CkeckHighlightAndFold(current.Editor)  
         
         //then set up events
         tabs.SelectionChanged.Add( fun _-> // triggered an all tabs on startup ???// when closing, opening or changing tabs  attach first so it will be triggered below when adding files
@@ -176,7 +176,7 @@ type Tabs(config:Config, win:Window) =
                     t.IsCurrent <- false  // first set all false then one true              
                 tab.IsCurrent <-true                
                 currentTabChangedEv.Trigger(tab)
-                tab.Editor.Checker.CkeckAndHighlight(tab.Editor)  // onlt actually highglights if editor has needsChecking=true              
+                tab.Editor.Checker.CkeckHighlightAndFold(tab.Editor)  // onlt actually highglights if editor has needsChecking=true              
                 config.OpenTabs.Save(tab.FileInfo , allFileInfos)
                 
             )

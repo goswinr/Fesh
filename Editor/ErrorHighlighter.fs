@@ -87,8 +87,8 @@ type ErrorRenderer (textEditor:TextEditor) =
     member this.Layer = KnownLayer.Selection // for IBackgroundRenderer
     member this.Transform(context:ITextRunConstructionContext , elements:IList<VisualLineElement>)=() // needed ? // for IVisualLineTransformer
         
-    member this.AddSegments(errs:FSharpErrorInfo[])=        
-        for e in errs |> Seq.truncate 5 do // TODO Only highligth the first 3 Errors, Otherwise UI becomes unresponsive at 100 errors ( eg when pasting bad text)// TODO Test again        
+    member this.AddSegments( res: CheckResults )=        
+        for e in res.checkRes.Errors |> Seq.truncate 5 do // TODO Only highligth the first 3 Errors, Otherwise UI becomes unresponsive at 100 errors ( eg when pasting bad text)// TODO Test again        
             //TODO as an alternative use Visualline transformers like in Log view, do they perform better ?
             let startOffset = textEditor.Document.GetOffset(new TextLocation(e.StartLineAlternate, e.StartColumn + 1 ))
             let endOffset   = textEditor.Document.GetOffset(new TextLocation(e.EndLineAlternate,   e.EndColumn   + 1 ))
@@ -119,6 +119,8 @@ type ErrorHighlighter (ed:TextEditor) =
     let tView= ed.TextArea.TextView
     let renderer = ErrorRenderer(ed)
     let tip = new ToolTip(IsOpen=false) // replace with something that can be pinned// TODO use popup instead of tooltip so it can be pinned?
+
+    let drawnEv = new Event<IEditor>()
 
     let showTip(mouse:Input.MouseEventArgs) = 
         let pos = tView.GetPositionFloor(mouse.GetPosition(tView) + tView.ScrollOffset)
@@ -159,13 +161,19 @@ type ErrorHighlighter (ed:TextEditor) =
         tView.MouseHoverStopped.Add ( fun e ->  tip.IsOpen <- false ) //; e.Handled <- true) )
         tView.VisualLinesChanged.Add( fun e ->  tip.IsOpen <- false ) // on scroll  or resize?
     
+    [<CLIEvent>] member this.OnDrawn = drawnEv.Publish
+
     /// draws underlines
     /// theadsafe
-    member this.Draw( errs: FSharpErrorInfo[] ) = // this is used as Checker.OnChecked event handler 
-        async{
-            do! Async.SwitchToContext Sync.syncContext
-            renderer.Clear()
-            renderer.AddSegments(errs)
-            } |> Async.StartImmediate
+    member this.Draw( iEditor: IEditor ) = // this is used as Checker.OnChecked event handler         
+        match iEditor.CheckRes with
+        |Some res -> 
+            if !iEditor.LastStartedCheckId = res.fromRunId then 
+                renderer.Clear()
+                renderer.AddSegments(res)
+                if !iEditor.LastStartedCheckId = res.fromRunId then 
+                    drawnEv.Trigger(iEditor) // to update foldings now
+        |None->()
+            
 
     member this.ToolTip = tip

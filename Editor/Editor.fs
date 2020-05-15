@@ -17,9 +17,9 @@ open System
 type Editor private (code:string, config:Config, fileInfo:FileInfo Option) = 
     let avaEdit =           new AvalonEdit.TextEditor()
     
-    let checker =           Checker.GetOrCreate(config) 
     let errorHighlighter =  new ErrorHighlighter(avaEdit)
-    let compls =            new Completions(avaEdit,config,checker)
+    let checker =           Checker.GetOrCreate(config)     
+    let compls =            new Completions(avaEdit,config,checker,errorHighlighter)
     
     let log = config.Log
     let id = Guid.NewGuid()
@@ -81,7 +81,7 @@ type Editor private (code:string, config:Config, fileInfo:FileInfo Option) =
     member this.CheckRes        with get()=checkRes         and  set(v) = checkRes <- v
     member this.FileInfo        with get()=fileInfo         and  set(v) = fileInfo <- v // The Tab class containing this editor takes care of updating this 
     member this.NeedsChecking   with get()=needsChecking    and  set(v) = needsChecking <- v
-    member this.DrawErrors(es: FSharpErrorInfo[]) = errorHighlighter.Draw(es)
+    member this.LastStartedCheckId = checker.LastStartedCheckId
     
     interface IEditor with
         member this.Id              = id
@@ -89,8 +89,7 @@ type Editor private (code:string, config:Config, fileInfo:FileInfo Option) =
         member this.CheckRes        with get()=checkRes         and  set(v) = checkRes <- v
         member this.FileInfo        = fileInfo // interface does not need setter
         member this.NeedsChecking   with get()=needsChecking    and  set(v) = needsChecking <- v
-        member this.DrawErrors(es: FSharpErrorInfo[]) = errorHighlighter.Draw(es)
-       
+        member this.LastStartedCheckId = checker.LastStartedCheckId
     
     
     // additional text change event:
@@ -137,7 +136,7 @@ type Editor private (code:string, config:Config, fileInfo:FileInfo Option) =
                 match change with             
                 | OtherChange | CompletionWinClosed  | EnteredOneNonIdentifierChar -> //TODO maybe do less call to error highlighter when typing in string or comment ?
                     log.PrintDebugMsg "*1.2-textChanged highlighting for  %A" change
-                    ed.Checker.CkeckAndHighlight(ed)
+                    ed.Checker.CkeckHighlightAndFold(ed)
                     //TODO trigger here UpdateFoldings(tab,None) or use event
 
                 | EnteredOneIdentifierChar | EnteredDot -> 
@@ -153,7 +152,7 @@ type Editor private (code:string, config:Config, fileInfo:FileInfo Option) =
                     let doCompletionInPattern, onlyDU   =  
                         match stringAfterLast " |" (" "+line) with // add starting step to not fail at start of line with "|"
                         |None    -> true,false 
-                        |Some "" -> log.PrintDebugMsg " this schould never happen since we get here only with letters, but not typing '|'" ; false,false // most comen case: '|" was just typed, next pattern declaration starts after next car
+                        |Some "" -> log.PrintDebugMsg " this schould never happen since we get here only with letters, but not typing '|'" ; false, false // most comen case: '|" was just typed, next pattern declaration starts after next car
                         |Some s  -> 
                             let doCompl = 
                                 s.Contains "->"             || // name binding already happend 
@@ -183,7 +182,7 @@ type Editor private (code:string, config:Config, fileInfo:FileInfo Option) =
 
                         if charBeforeQueryDU = NotDot && isKeyword then
                             log.PrintDebugMsg "*2.1-textChanged highlighting with: query='%s', charBefore='%A', isKey=%b, setback='%d', line='%s' " query charBeforeQueryDU isKeyword setback line
-                            ed.Checker.CkeckAndHighlight(ed)
+                            ed.Checker.CkeckHighlightAndFold(ed)
 
                         else 
                             //log.PrintDebugMsg "*2.2-textChanged Completion window opening with: query='%s', charBefore='%A', isKey=%b, setback='%d', line='%s' change=%A" query charBeforeQueryDU isKeyword setback line change
@@ -199,6 +198,8 @@ type Editor private (code:string, config:Config, fileInfo:FileInfo Option) =
         
         compls.OnShowing.Add(fun _ -> ed.ErrorHighlighter.ToolTip.IsOpen <- false)
         compls.OnShowing.Add(fun _ -> ed.TypeInfoTip.IsOpen        <- false)
+
+        ed.Checker.OnChecked.Add(fun iEditor -> ed.ErrorHighlighter.Draw(ed)) // this then trigger folding too, stusbar update is added in statusbar
 
         avaEdit.TextArea.TextView.MouseHover.Add(fun e -> TypeInfo.mouseHover(e,ed, ed.TypeInfoTip))        
         avaEdit.TextArea.TextView.MouseHoverStopped.Add(fun _ -> ed.TypeInfoTip.IsOpen <- false )

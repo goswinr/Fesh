@@ -14,7 +14,7 @@ module Style =
     
     let mutable fontEditor      = FontFamily("Consolas") // used for startup and later for Tooltips. will be set in FontManager.fs
     let mutable fontLog         = FontFamily("Consolas") // defaults to arial if font is missing. will be set from rescources in  FontManager.fs
-    let mutable fontToolTip   = FontFamily("Consolas") // use for Tooltips. will be set in FontManager.fs
+    let mutable fontToolTip     = FontFamily("Consolas") // use for Tooltips. will be set in FontManager.fs
 
     let mutable fontSize = 14.0 //will also be used for sizing tooltip text
 
@@ -35,16 +35,17 @@ type ISeffLog =
     abstract member TextWriterConsoleOut   : TextWriter
     abstract member TextWriterConsoleError : TextWriter
 
-type CheckResults = {   parseRes:FSharpParseFileResults; checkRes:FSharpCheckFileResults;   code:string; tillOffset:int}
+type CheckResults = { parseRes:FSharpParseFileResults; checkRes:FSharpCheckFileResults;  code:string; tillOffset:int; fromRunId:int64}
 
 // so that the Editor can be used before declared
 type IEditor = 
-    abstract member Id        : Guid
-    abstract member AvaEdit   : AvalonEdit.TextEditor
-    abstract member CheckRes  : CheckResults Option with get , set
-    abstract member FileInfo  : FileInfo Option     //with get , set
+    abstract member Id             : Guid
+    abstract member AvaEdit        : AvalonEdit.TextEditor
+    abstract member CheckRes       : CheckResults Option with get , set
+    abstract member FileInfo       : FileInfo Option     
     abstract member NeedsChecking  : bool with get , set
-    abstract member DrawErrors: FSharpErrorInfo[] -> unit
+    //abstract member DrawErrors     : CheckResults -> unit
+    abstract member LastStartedCheckId : int64 ref 
    
 type AppRunContext = Standalone  | Hosted of string
 

@@ -14,38 +14,34 @@ open FSharp.Compiler
 open FSharp.Compiler.SourceCodeServices
 open ICSharpCode.AvalonEdit.Folding
 
-(*
-module Folding = 
-    
-    
-    
-        //member val FoldingManager = Folding.FoldingManager.Install(avaEdit.TextArea)  
-        
-        //member val Foldings:Option<ResizeArray<int*int>> =  None with get,set
-        
-       
-       
 
+type Folding(iEditor:IEditor) = 
+    
+    let minLinesForFold = 1
+
+    let manager = Folding.FoldingManager.Install(iEditor.AvaEdit.TextArea)  
+        
+    let foldings: ResizeArray<int*int> =  ResizeArray()
+    
     /// a hash value to  see if folding state needs updating
-    let mutable FoldStateHash = 0
+    let mutable foldStateHash = 0
     
-
     /// poor man's hash function
-    let private getFoldstate (xys: ResizeArray<int*int>) =
+    let getFoldstate (xys: ResizeArray<int*int>) =
         let mutable v = 0
         for x,y in xys do   
             v <- v + x
             v <- v + (y<<<16)
         v
-
-    let minLinesForFold = 1
-
+    (*
     ///Get foldings at every line that is followed by an indent
-    let get (ed:Editor, code:string) : Async<unit> =
-        async{ 
-            do! Async.SwitchToThreadPool()
+    let get (code:string) : Async<unit> =
+        async{
             let foldings=ResizeArray<int*int>()
-            let lns = code.Split([|"\r\n"|],StringSplitOptions.None)
+
+            // TODO compute update only for visible areas not allcode?
+
+            let lns = code.Split([|"\r\n"|],StringSplitOptions.None) // TODO better iterate without allocating an array of lines 
             
             let mutable currLnEndOffset = 0
             let mutable foldStartOfset = -1
@@ -91,16 +87,15 @@ module Folding =
                 foldings.Add f                   
             
             let state = getFoldstate foldings
-            if state = FoldStateHash then 
+            if state = foldStateHash then 
                 ed.Foldings <- None
             else
-                FoldStateHash <- state
-                ed.Foldings<- Some foldings
-            //do! Async.SwitchToContext Sync.syncContext
+                foldStateHash <- state
+                ed.Foldings<- Some foldings            
             }
-
-    let firstErrorOffset = -1 //The first position of a parse error. Existing foldings starting after this offset will be kept even if they don't appear in newFoldings. Use -1 for this parameter if there were no parse errors)                    
-    ed.FoldingManager.UpdateFoldings(foldings,firstErrorOffset)
+    *)
+    //let firstErrorOffset = -1 //The first position of a parse error. Existing foldings starting after this offset will be kept even if they don't appear in newFoldings. Use -1 for this parameter if there were no parse errors)                    
+    //manager.UpdateFoldings(foldings,firstErrorOffset)
     
     // or walk AST ?
 
@@ -129,4 +124,4 @@ module Folding =
     //    | _ -> failwith "F# Interface file (*.fsi) not supported."
 
 
-    *)
+  

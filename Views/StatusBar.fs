@@ -36,31 +36,38 @@ type StatusBar (grid:TabsAndLog, cmds:Commands)  = // TODO better make it depend
     
     let originalBackGround = compilerErrors.Background
             
-    let setErrors(iEditor:IEditor, es:FSharpErrorInfo[])= 
-        if tabs.Current.Editor.Id = iEditor.Id then
-            if es.Length = 0 then 
-                compilerErrors.Text <- "No compiler errors"
-                compilerErrors.Background <- Brushes.Green |> brighter 120
-                compilerErrors.ToolTip <- "FSarp Compiler Service found no Errors in " + tabs.Current.FormatedFileName
-            else 
-                let ers = es|> Seq.filter (fun e -> e.Severity = FSharpErrorSeverity.Error) |> Seq.length
-                let was = es.Length - ers
-                if ers = 0 then 
-                    compilerErrors.Text <- sprintf "Compiler warnings: %d" was
-                    compilerErrors.Background <- Brushes.Yellow   |> brighter 40  
-                elif was = 0 then
-                    compilerErrors.Text <- sprintf "Compiler errors: %d" ers
-                    compilerErrors.Background <- Brushes.Red   |> brighter 150  
-                else
-                    compilerErrors.Text <- sprintf "Compiler errors: %d, warnings: %d" ers was
-                    compilerErrors.Background <- Brushes.Red   |> brighter 150             
-                compilerErrors.ToolTip <- makePanelVert [ 
-                    TextBlock(Text = tabs.Current.FormatedFileName)
-                    if ers>0 then TextBlock(Text="Errors", FontSize = 14.)
-                    for e in es|> Seq.filter (fun e -> e.Severity = FSharpErrorSeverity.Error)  do new TextBlock(Text = sprintf "• Line %d: %s" e.StartLineAlternate e.Message)
-                    if was>0 then TextBlock(Text="Warnings", FontSize = 14.)
-                    for e in es|> Seq.filter (fun e -> e.Severity = FSharpErrorSeverity.Warning) do new TextBlock(Text = sprintf "• Line %d: %s" e.StartLineAlternate e.Message) 
-                    ]
+    let setErrors(iEditor:IEditor)= 
+        //log.PrintDebugMsg "Setting errors for %A %A nededscheck %b" iEditor.FileInfo iEditor.CheckRes.Value.checkRes.Errors.Length iEditor.NeedsChecking
+        if not iEditor.NeedsChecking then 
+            match iEditor.CheckRes with
+            |Some res ->                 
+                    let es = res.checkRes.Errors
+                    if es.Length = 0 then 
+                        compilerErrors.Text <- "No compiler errors"
+                        compilerErrors.Background <- Brushes.Green |> brighter 120
+                        compilerErrors.ToolTip <- "FSarp Compiler Service found no Errors in " + tabs.Current.FormatedFileName
+                    else 
+                        let ers = es|> Seq.filter (fun e -> e.Severity = FSharpErrorSeverity.Error) |> Seq.length
+                        let was = es.Length - ers
+                        if ers = 0 then 
+                            compilerErrors.Text <- sprintf "Compiler warnings: %d" was
+                            compilerErrors.Background <- Brushes.Yellow   |> brighter 40  
+                        elif was = 0 then
+                            compilerErrors.Text <- sprintf "Compiler errors: %d" ers
+                            compilerErrors.Background <- Brushes.Red   |> brighter 150  
+                        else
+                            compilerErrors.Text <- sprintf "Compiler errors: %d, warnings: %d" ers was
+                            compilerErrors.Background <- Brushes.Red   |> brighter 150             
+                        compilerErrors.ToolTip <- makePanelVert [ 
+                            TextBlock(Text = tabs.Current.FormatedFileName)
+                            if ers>0 then TextBlock(Text="Errors", FontSize = 14.)
+                            for e in es|> Seq.filter (fun e -> e.Severity = FSharpErrorSeverity.Error)  do new TextBlock(Text = sprintf "• Line %d: %s" e.StartLineAlternate e.Message)
+                            if was>0 then TextBlock(Text="Warnings", FontSize = 14.)
+                            for e in es|> Seq.filter (fun e -> e.Severity = FSharpErrorSeverity.Warning) do new TextBlock(Text = sprintf "• Line %d: %s" e.StartLineAlternate e.Message) 
+                            ]
+            |None-> // only happens on start up, or never?
+                compilerErrors.Text <- checkingTxt
+                compilerErrors.Background <- originalBackGround
         else
             compilerErrors.Text <- checkingTxt
             compilerErrors.Background <- originalBackGround
@@ -86,7 +93,8 @@ type StatusBar (grid:TabsAndLog, cmds:Commands)  = // TODO better make it depend
         
         tabs.OnTabChanged.Add (fun tab -> 
             if tab.Editor.CheckRes.IsSome then 
-                setErrors(tab.Editor, tab.Editor.CheckRes.Value.checkRes.Errors))
+                setErrors(tab.Editor)
+            )
             
         checker.OnChecked.Add setErrors
 

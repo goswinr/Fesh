@@ -72,9 +72,9 @@
     <Compile Include="Editor\Checker.fs" />
     <Compile Include="Editor\TypeInfo.fs" />
     <Compile Include="Editor\CodeCompletion.fs" />
+    <Compile Include="Editor\Folding.fs" />
     <Compile Include="Editor\Editor.fs" />
     <Compile Include="Editor\UNUSEDColumnRulers.fs" />
-    <Compile Include="Editor\UNUSEDFolding.fs" />
     <Compile Include="Editor\UNUSEDNuget.fs" />
 
     <Compile Include="Views\Util.fs" />

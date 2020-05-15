@@ -30,7 +30,7 @@ type Window (config:Config)=
         try                 
             // Add the Icon at the top left of the window and in the status bar, musst be called at later moment(eg. after loading).
             // (for the exe file icon in explorer use <Win32Resource>Media\LogoCursorTr.res</Win32Resource>  in fsproj )
-            // delete if no bug //let uri = new Uri("pack://application:,,,/Seff;component/Media/LogoCursorTr.ico", UriKind.RelativeOrAbsolute) 
+            // TODO delete if no bug //let uri = new Uri("pack://application:,,,/Seff;component/Media/LogoCursorTr.ico", UriKind.RelativeOrAbsolute) 
             // delete if no bug //win.Icon <-  Media.Imaging.BitmapFrame.Create(Application.GetResourceStream(uri).Stream)
             win.Icon <-  BitmapFrame.Create(Uri("pack://application:,,,/Media/LogoCursorTr.ico"))//Build action : "Resource"
         with ex -> 
