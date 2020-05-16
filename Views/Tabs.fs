@@ -176,7 +176,8 @@ type Tabs(config:Config, win:Window) =
                     t.IsCurrent <- false  // first set all false then one true              
                 tab.IsCurrent <-true                
                 currentTabChangedEv.Trigger(tab)
-                tab.Editor.Checker.CkeckHighlightAndFold(tab.Editor)  // onlt actually highglights if editor has needsChecking=true              
+                
+                 do only if stat is not staryed yed of checker tab.Editor.Checker.CkeckHighlightAndFold(tab.Editor)  // onlt actually highglights if editor has needsChecking=true              
                 config.OpenTabs.Save(tab.FileInfo , allFileInfos)
                 
             )

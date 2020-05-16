@@ -10,8 +10,6 @@ open ICSharpCode.AvalonEdit
 open System.Threading
 open Seff.Config
 
-
-
 type Checker private (config:Config)  = 
     
     let log = config.Log
@@ -20,7 +18,7 @@ type Checker private (config:Config)  =
     
     let checkId = ref 0L    
 
-    let checkingEv = new Event< IEditor *  int64 ref > ()
+    let checkingEv = new Event< IEditor > () 
     
     let checkedEv = new Event< IEditor > ()
 
@@ -28,115 +26,114 @@ type Checker private (config:Config)  =
     let firstCheckDoneEv = new Event<unit>() // to first check file, then start FSI
 
     /// to check full code use 0 as 'tillOffset', at the end either a event is raised or continuation called if present
-    let check(iEditor:IEditor, tillOffset, continueOnThreadPool:Option<CheckResults->unit>) = 
-        if iEditor.NeedsChecking then  
-            let thisId = Interlocked.Increment checkId
-            checkingEv.Trigger(iEditor, checkId) // to show in statusbar
-            let doc = iEditor.AvaEdit.Document // access documnet before starting async
-            async { 
-                match checker with 
-                | Some ch -> ()
-                | None ->             
-                    // http://fsharp.github.io/FSharp.Compiler.Service/caches.html
-                    // https://github.com/fsharp/FSharp.Compiler.Service/blob/71272426d0e554e0bac32ad349bbd9f5fa8a3be9/src/fsharp/service/service.fs#L35
-                    Environment.SetEnvironmentVariable ("FCS_ParseFileCacheSize", "5") 
-                    // "you should generally use one global, shared FSharpChecker for everything in an IDE application." from http://fsharp.github.io/FSharp.Compiler.Service/caches.html 
-                    let ch = FSharpChecker.Create(suggestNamesForErrors=true) //TODO default options OK?
-                    checker <- Some ch
+    let check(iEditor:IEditor, tillOffset, continueOnThreadPool:Option<CheckResults->unit>) =         
+        let thisId = Interlocked.Increment checkId
+        iEditor.CheckerState <- Running
+        checkingEv.Trigger(iEditor) // to show in statusbar
+        let doc = iEditor.AvaEdit.Document // access documnet before starting async
+        async { 
+            match checker with 
+            | Some ch -> ()
+            | None ->             
+                // http://fsharp.github.io/FSharp.Compiler.Service/caches.html
+                // https://github.com/fsharp/FSharp.Compiler.Service/blob/71272426d0e554e0bac32ad349bbd9f5fa8a3be9/src/fsharp/service/service.fs#L35
+                Environment.SetEnvironmentVariable ("FCS_ParseFileCacheSize", "5") 
+                // "you should generally use one global, shared FSharpChecker for everything in an IDE application." from http://fsharp.github.io/FSharp.Compiler.Service/caches.html 
+                let ch = FSharpChecker.Create(suggestNamesForErrors=true) //TODO default options OK?
+                checker <- Some ch
             
-                if !checkId = thisId then
-                    let code = 
-                        if tillOffset = 0 then doc.CreateSnapshot().Text //the only threadsafe way to acces the code string
-                        else                   doc.CreateSnapshot(0, tillOffset).Text
+            if !checkId = thisId then
+                let code = 
+                    if tillOffset = 0 then doc.CreateSnapshot().Text //the only threadsafe way to acces the code string
+                    else                   doc.CreateSnapshot(0, tillOffset).Text
             
-                    let fileFsx = 
-                        match iEditor.FileInfo with
-                        |Some fi -> 
-                            let n = fi.FullName
-                            if not <| n.EndsWith(".fsx",StringComparison.InvariantCultureIgnoreCase) then n + ".fsx" else n // required by FCS, oddly !
-                        | None -> "UnSavedFile.fsx" // .fsx file required by FCS , oddly ! //TODO check if file can contain invald path characters like *
+                let fileFsx = 
+                    match iEditor.FileInfo with
+                    |Some fi -> 
+                        let n = fi.FullName
+                        if not <| n.EndsWith(".fsx",StringComparison.InvariantCultureIgnoreCase) then n + ".fsx" else n // required by FCS, oddly !
+                    | None -> "UnSavedFile.fsx" // .fsx file required by FCS , oddly ! //TODO check if file can contain invald path characters like *
             
-                    if !checkId = thisId  then
-                        try
+                if !checkId = thisId  then
+                    try
                         
-                            let sourceText = Text.SourceText.ofString code
-                            let! options, optionsErr = checker.Value.GetProjectOptionsFromScript(fileFsx, sourceText, otherFlags = [| "--langversion:preview" |] ) // Gets additional script #load closure information if applicable.
-                            for e in optionsErr do log.PrintAppErrorMsg "ERROR in GetProjectOptionsFromScript: %A" e //TODO make lo print
+                        let sourceText = Text.SourceText.ofString code
+                        let! options, optionsErr = checker.Value.GetProjectOptionsFromScript(fileFsx, sourceText, otherFlags = [| "--langversion:preview" |] ) // Gets additional script #load closure information if applicable.
+                        for e in optionsErr do log.PrintAppErrorMsg "ERROR in GetProjectOptionsFromScript: %A" e //TODO make lo print
         
-                            // "filename">The name of the file in the project whose source is being checked
-                            // "fileversion">An integer that can be used to indicate the version of the file. This will be returned by TryGetRecentCheckResultsForFile when looking up the file.
-                            // "source">The full source for the file.
-                            // "options">The options for the project or script.
-                            // "textSnapshotInfo">
-                            //     An item passed back to 'hasTextChangedSinceLastTypecheck' (from some calls made on 'FSharpCheckFileResults') to help determine if 
-                            //     an approximate intellisense resolution is inaccurate because a range of text has changed. This 
-                            //     can be used to marginally increase accuracy of intellisense results in some situations.
-                            // "userOpName">An optional string used for tracing compiler operations associated with this request.
-                            (*
-                            https://github.com/dotnet/fsharp/issues/7669
-                            let parsingOptions = 
-                                  {{ SourceFiles = [|"/tmp.fsx"|]
-                                    ConditionalCompilationDefines = []
-                                    ErrorSeverityOptions = 
-                                                         { WarnLevel = 3
-                                                           GlobalWarnAsError = false
-                                                           WarnOff = []
-                                                           WarnOn = []
-                                                           WarnAsError = []
-                                                           WarnAsWarn = [] }
-                                    IsInteractive = false
-                                    LightSyntax = None
-                                    CompilingFsLib = false
-                                    IsExe = false }}
-                                    CompilingFsLib: false
-                                    ConditionalCompilationDefines: Length = 0
-                                    ErrorSeverityOptions: {{ WarnLevel = 3
-                                    GlobalWarnAsError = false
-                                    WarnOff = []
-                                    WarnOn = []
-                                    WarnAsError = []
-                                    WarnAsWarn = [] }}
-                                    IsExe: false
-                                    IsInteractive: false
-                                    LightSyntax: null
-                                    SourceFiles: {string[1]}
-                                    *)
-                            if !checkId = thisId  then
-                                try
-                                    //log.PrintDebugMsg "checking %A" iEditor.FileInfo
-                                    let! parseRes , checkAnswer = checker.Value.ParseAndCheckFileInProject(fileFsx, 0, sourceText, options) // can also be done in two  calls   //TODO really use check file in project for scripts?? 
-                                    match checkAnswer with
-                                    | FSharpCheckFileAnswer.Succeeded checkRes ->   
-                                        if !checkId = thisId  then
-                                            let res = {parseRes = parseRes;  checkRes = checkRes;  code = code; tillOffset = code.Length; fromRunId=thisId}
-                                            iEditor.CheckRes <- Some res 
-                                            iEditor.NeedsChecking <- false
-                                            match continueOnThreadPool with
-                                            | Some f -> f(res)
-                                            | None -> 
-                                                do! Async.SwitchToContext Sync.syncContext 
+                        // "filename">The name of the file in the project whose source is being checked
+                        // "fileversion">An integer that can be used to indicate the version of the file. This will be returned by TryGetRecentCheckResultsForFile when looking up the file.
+                        // "source">The full source for the file.
+                        // "options">The options for the project or script.
+                        // "textSnapshotInfo">
+                        //     An item passed back to 'hasTextChangedSinceLastTypecheck' (from some calls made on 'FSharpCheckFileResults') to help determine if 
+                        //     an approximate intellisense resolution is inaccurate because a range of text has changed. This 
+                        //     can be used to marginally increase accuracy of intellisense results in some situations.
+                        // "userOpName">An optional string used for tracing compiler operations associated with this request.
+                        (*
+                        https://github.com/dotnet/fsharp/issues/7669
+                        let parsingOptions = 
+                                {{ SourceFiles = [|"/tmp.fsx"|]
+                                ConditionalCompilationDefines = []
+                                ErrorSeverityOptions = 
+                                                        { WarnLevel = 3
+                                                        GlobalWarnAsError = false
+                                                        WarnOff = []
+                                                        WarnOn = []
+                                                        WarnAsError = []
+                                                        WarnAsWarn = [] }
+                                IsInteractive = false
+                                LightSyntax = None
+                                CompilingFsLib = false
+                                IsExe = false }}
+                                CompilingFsLib: false
+                                ConditionalCompilationDefines: Length = 0
+                                ErrorSeverityOptions: {{ WarnLevel = 3
+                                GlobalWarnAsError = false
+                                WarnOff = []
+                                WarnOn = []
+                                WarnAsError = []
+                                WarnAsWarn = [] }}
+                                IsExe: false
+                                IsInteractive: false
+                                LightSyntax: null
+                                SourceFiles: {string[1]}
+                                *)
+                        if !checkId = thisId  then
+                            try
+                                //log.PrintDebugMsg "checking %A" iEditor.FileInfo
+                                let! parseRes , checkAnswer = checker.Value.ParseAndCheckFileInProject(fileFsx, 0, sourceText, options) // can also be done in two  calls   //TODO really use check file in project for scripts?? 
+                                match checkAnswer with
+                                | FSharpCheckFileAnswer.Succeeded checkRes ->   
+                                    if !checkId = thisId  then // this ensures that stat get set to done ich no checker has started in the meantime
+                                        let res = {parseRes = parseRes;  checkRes = checkRes;  code = code; tillOffset = code.Length; fromCheckId = thisId}
+                                        iEditor.CheckerState <- Done res
+                                        match continueOnThreadPool with
+                                        | Some f -> f(res)
+                                        | None -> 
+                                            do! Async.SwitchToContext Sync.syncContext 
+                                            if !checkId = thisId  then 
                                                 checkedEv.Trigger(iEditor) // to  mark statusbar , and highlighting errors 
-                                                if isFirstCheck then 
+                                                if !checkId = thisId  && isFirstCheck then 
                                                     firstCheckDoneEv.Trigger() //now start FSI
                                                     isFirstCheck <- false
                 
-                                    | FSharpCheckFileAnswer.Aborted  ->
-                                        log.PrintAppErrorMsg "*ParseAndCheckFile code aborted"
-                                        iEditor.CheckRes <- None                       
-                                with e ->
-                                    log.PrintAppErrorMsg "Error in ParseAndCheckFileInProject Block.\r\nMaybe you are using another version of  FSharpCompilerService.dll than at compile time?\r\nOr the error is in the continuation.\r\nOr in the event handlers: %A" e
-                                    iEditor.CheckRes <- None         
-                        with e ->
-                                log.PrintAppErrorMsg "Error in GetProjectOptionsFromScript Block.\r\nMaybe you are using another version of  FSharpCompilerService.dll than at compile time?: %A" e
-                                iEditor.CheckRes <- None 
-                } |> Async.Start
+                                | FSharpCheckFileAnswer.Aborted  ->
+                                    log.PrintAppErrorMsg "*ParseAndCheckFile code aborted"
+                                    iEditor.CheckerState <-Failed                    
+                            with e ->
+                                log.PrintAppErrorMsg "Error in ParseAndCheckFileInProject Block.\r\nMaybe you are using another version of  FSharpCompilerService.dll than at compile time?\r\nOr the error is in the continuation.\r\nOr in the event handlers: %A" e
+                                iEditor.CheckerState <-Failed          
+                    with e ->
+                            log.PrintAppErrorMsg "Error in GetProjectOptionsFromScript Block.\r\nMaybe you are using another version of  FSharpCompilerService.dll than at compile time?: %A" e
+                            iEditor.CheckerState <-Failed
+                            
+            } |> Async.Start
     
     
     static let mutable singleInstance:Checker option  = None
 
     //--------------------public --------------
-
-    member this.LastStartedCheckId = checkId
         
     /// this event is raised on UI thread    
     [<CLIEvent>] member this.OnChecking = checkingEv.Publish

@@ -15,14 +15,12 @@ open FSharp.Compiler.SourceCodeServices
 open ICSharpCode.AvalonEdit.Folding
 
 
-type Folding(iEditor:IEditor) = 
+type Folding(iEditor:IEditor,errorHighlighter:ErrorHighlighter) = 
     
     let minLinesForFold = 1
 
     let manager = Folding.FoldingManager.Install(iEditor.AvaEdit.TextArea)  
         
-    let foldings: ResizeArray<int*int> =  ResizeArray()
-    
     /// a hash value to  see if folding state needs updating
     let mutable foldStateHash = 0
     
@@ -33,67 +31,85 @@ type Folding(iEditor:IEditor) =
             v <- v + x
             v <- v + (y<<<16)
         v
-    (*
+    
     ///Get foldings at every line that is followed by an indent
-    let get (code:string) : Async<unit> =
-        async{
-            let foldings=ResizeArray<int*int>()
+    let fold (iEditor:IEditor) =
+        match iEditor.CheckerState with
+        | NotStarted | Running   | Failed -> ()
+        | Done res -> 
+            async{
+                let foldings=ResizeArray<int*int>()
 
-            // TODO compute update only for visible areas not allcode?
+                // TODO compute update only for visible areas not allcode?
 
-            let lns = code.Split([|"\r\n"|],StringSplitOptions.None) // TODO better iterate without allocating an array of lines 
-            
-            let mutable currLnEndOffset = 0
-            let mutable foldStartOfset = -1
-            let mutable foldStartLine = -1
-            let mutable lastNotBlankLineEndOffset = -1
-            let mutable lastNotBlankLineNum = 0
+                let lns = res.code.Split([|"\r\n"|],StringSplitOptions.None) // TODO better iterate without allocating an array of lines 
+                
+                match iEditor.CheckerState with
+                | NotStarted | Running   | Failed -> ()
+                | Done _ -> 
+                    let mutable currLnEndOffset = 0
+                    let mutable foldStartOfset = -1
+                    let mutable foldStartLine = -1
+                    let mutable lastNotBlankLineEndOffset = -1
+                    let mutable lastNotBlankLineNum = 0
 
-            for lni, ln in Seq.indexed lns do 
-                let lnNum = lni+1
-                currLnEndOffset <- currLnEndOffset + ln.Length + 2
-                let notBlank = not (String.isJustSpaceCharsOrEmpty ln)  
-                if notBlank && ln.Length>0 then                         
-                    let firstChar = ln.[0]
-                    if firstChar <> ' ' then  
+                    for lni, ln in Seq.indexed lns do 
+                        let lnNum = lni+1
+                        currLnEndOffset <- currLnEndOffset + ln.Length + 2
+                        let notBlank = not (String.isJustSpaceCharsOrEmpty ln)  
+                        if notBlank && ln.Length>0 then                         
+                            let firstChar = ln.[0]
+                            if firstChar <> ' ' then  
                         
-                        //test for open folds
-                        if foldStartOfset > 0 then    
-                            if foldStartLine <= lastNotBlankLineNum - minLinesForFold then                             
+                                //test for open folds
+                                if foldStartOfset > 0 then    
+                                    if foldStartLine <= lastNotBlankLineNum - minLinesForFold then                             
                                 
-                                let foldEnd = lastNotBlankLineEndOffset - 2 //-2 to skip over line break 
-                                //log.PrintDebugMsg "Folding from  line %d to %d : Offset %d to %d" foldStartLine lastNotBlankLineNum foldStartOfset foldEnd
-                                let f = foldStartOfset, foldEnd
-                                foldings.Add f                            
-                                foldStartOfset <- -1
-                                foldStartLine  <- -1
-                            else
-                                foldStartOfset <- -1
-                                foldStartLine  <- -1
+                                        let foldEnd = lastNotBlankLineEndOffset - 2 //-2 to skip over line break 
+                                        //log.PrintDebugMsg "Folding from  line %d to %d : Offset %d to %d" foldStartLine lastNotBlankLineNum foldStartOfset foldEnd
+                                        let f = foldStartOfset, foldEnd
+                                        foldings.Add f                            
+                                        foldStartOfset <- -1
+                                        foldStartLine  <- -1
+                                    else
+                                        foldStartOfset <- -1
+                                        foldStartLine  <- -1
                         
-                        //on then same line a new fold might open
-                        if foldStartOfset < 0 then                                                   
-                            foldStartLine <- lnNum
-                            foldStartOfset <- currLnEndOffset-2//-2 to skip over line break
-                    lastNotBlankLineEndOffset <- currLnEndOffset
-                    lastNotBlankLineNum <- lnNum
+                                //on then same line a new fold might open
+                                if foldStartOfset < 0 then                                                   
+                                    foldStartLine <- lnNum
+                                    foldStartOfset <- currLnEndOffset-2//-2 to skip over line break
+                            lastNotBlankLineEndOffset <- currLnEndOffset
+                            lastNotBlankLineNum <- lnNum
                   
             
-            //close last folding
-            if foldStartOfset > 0 then                  
-                let foldEnd = lastNotBlankLineEndOffset - 2 //-2 to skip over line break
-                //log.PrintDebugMsg "Last Folding from  line %d to end : Offset %d to %d" foldStartLine  foldStartOfset foldEnd
-                let f = foldStartOfset, foldEnd
-                foldings.Add f                   
+                    //close last folding
+                    if foldStartOfset > 0 then                  
+                        let foldEnd = lastNotBlankLineEndOffset - 2 //-2 to skip over line break
+                        //log.PrintDebugMsg "Last Folding from  line %d to end : Offset %d to %d" foldStartLine  foldStartOfset foldEnd
+                        let f = foldStartOfset, foldEnd
+                        foldings.Add f                   
             
-            let state = getFoldstate foldings
-            if state = foldStateHash then 
-                ed.Foldings <- None
-            else
-                foldStateHash <- state
-                ed.Foldings<- Some foldings            
-            }
-    *)
+                    let state = getFoldstate foldings
+                    if state = foldStateHash then 
+                        () // noch chnages in folding
+                    else
+                        foldStateHash <- state
+                        do! Async.SwitchToContext Sync.syncContext
+                        match iEditor.CheckerState with
+                        | NotStarted | Running  | Failed -> ()
+                        | Done _ -> 
+                            let folds=ResizeArray<NewFolding>()
+                            for st,en in foldings do 
+                                folds.Add(new NewFolding(st,en)) //if new folding type is created async a waiting symbol apears on top of it 
+                            let firstErrorOffset = -1 //The first position of a parse error. Existing foldings starting after this offset will be kept even if they don't appear in newFoldings. Use -1 for this parameter if there were no parse errors) 
+                            manager.UpdateFoldings(folds,firstErrorOffset)
+             } |>  Async.Start
+        
+        
+        
+    do
+        errorHighlighter.OnDrawn.Add(fold) 
     //let firstErrorOffset = -1 //The first position of a parse error. Existing foldings starting after this offset will be kept even if they don't appear in newFoldings. Use -1 for this parameter if there were no parse errors)                    
     //manager.UpdateFoldings(foldings,firstErrorOffset)
     

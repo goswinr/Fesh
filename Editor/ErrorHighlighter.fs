@@ -166,14 +166,13 @@ type ErrorHighlighter (ed:TextEditor) =
     /// draws underlines
     /// theadsafe
     member this.Draw( iEditor: IEditor ) = // this is used as Checker.OnChecked event handler         
-        match iEditor.CheckRes with
-        |Some res -> 
-            if !iEditor.LastStartedCheckId = res.fromRunId then 
-                renderer.Clear()
-                renderer.AddSegments(res)
-                if !iEditor.LastStartedCheckId = res.fromRunId then 
-                    drawnEv.Trigger(iEditor) // to update foldings now
-        |None->()
-            
+        match iEditor.CheckerState with        
+        | Done res -> 
+            renderer.Clear()
+            renderer.AddSegments(res)
+            drawnEv.Trigger(iEditor) // to update foldings now
+        | NotStarted | Running  | Failed -> ()
+        
+       
 
     member this.ToolTip = tip

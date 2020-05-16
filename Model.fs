@@ -35,17 +35,18 @@ type ISeffLog =
     abstract member TextWriterConsoleOut   : TextWriter
     abstract member TextWriterConsoleError : TextWriter
 
-type CheckResults = { parseRes:FSharpParseFileResults; checkRes:FSharpCheckFileResults;  code:string; tillOffset:int; fromRunId:int64}
+type CheckResults = { parseRes:FSharpParseFileResults; checkRes:FSharpCheckFileResults;  code:string; tillOffset:int ; fromCheckId:int64}
+type checkId
+type FileCheckState = NotStarted | Failed | Running of in| Done of CheckResults // not global but local per file
 
 // so that the Editor can be used before declared
 type IEditor = 
     abstract member Id             : Guid
     abstract member AvaEdit        : AvalonEdit.TextEditor
-    abstract member CheckRes       : CheckResults Option with get , set
+    abstract member CheckerState   : FileCheckState with get , set //None means a check is running
     abstract member FileInfo       : FileInfo Option     
-    abstract member NeedsChecking  : bool with get , set
-    //abstract member DrawErrors     : CheckResults -> unit
-    abstract member LastStartedCheckId : int64 ref 
+    //abstract member CheckerRunning : bool with get , set //computed as fromCheckId=LastStartedCheckId
+    //abstract member LastStartedCheckId : int64  // the latest on this editor not the latest over all
    
 type AppRunContext = Standalone  | Hosted of string
 

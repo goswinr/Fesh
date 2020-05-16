@@ -37,40 +37,41 @@ type StatusBar (grid:TabsAndLog, cmds:Commands)  = // TODO better make it depend
     let originalBackGround = compilerErrors.Background
             
     let setErrors(iEditor:IEditor)= 
-        //log.PrintDebugMsg "Setting errors for %A %A nededscheck %b" iEditor.FileInfo iEditor.CheckRes.Value.checkRes.Errors.Length iEditor.NeedsChecking
-        if not iEditor.NeedsChecking then 
-            match iEditor.CheckRes with
-            |Some res ->                 
-                    let es = res.checkRes.Errors
-                    if es.Length = 0 then 
-                        compilerErrors.Text <- "No compiler errors"
-                        compilerErrors.Background <- Brushes.Green |> brighter 120
-                        compilerErrors.ToolTip <- "FSarp Compiler Service found no Errors in " + tabs.Current.FormatedFileName
-                    else 
-                        let ers = es|> Seq.filter (fun e -> e.Severity = FSharpErrorSeverity.Error) |> Seq.length
-                        let was = es.Length - ers
-                        if ers = 0 then 
-                            compilerErrors.Text <- sprintf "Compiler warnings: %d" was
-                            compilerErrors.Background <- Brushes.Yellow   |> brighter 40  
-                        elif was = 0 then
-                            compilerErrors.Text <- sprintf "Compiler errors: %d" ers
-                            compilerErrors.Background <- Brushes.Red   |> brighter 150  
-                        else
-                            compilerErrors.Text <- sprintf "Compiler errors: %d, warnings: %d" ers was
-                            compilerErrors.Background <- Brushes.Red   |> brighter 150             
-                        compilerErrors.ToolTip <- makePanelVert [ 
-                            TextBlock(Text = tabs.Current.FormatedFileName)
-                            if ers>0 then TextBlock(Text="Errors", FontSize = 14.)
-                            for e in es|> Seq.filter (fun e -> e.Severity = FSharpErrorSeverity.Error)  do new TextBlock(Text = sprintf "• Line %d: %s" e.StartLineAlternate e.Message)
-                            if was>0 then TextBlock(Text="Warnings", FontSize = 14.)
-                            for e in es|> Seq.filter (fun e -> e.Severity = FSharpErrorSeverity.Warning) do new TextBlock(Text = sprintf "• Line %d: %s" e.StartLineAlternate e.Message) 
-                            ]
-            |None-> // only happens on start up, or never?
-                compilerErrors.Text <- checkingTxt
-                compilerErrors.Background <- originalBackGround
-        else
+        //log.PrintDebugMsg "Setting errors for %A %A " iEditor.FileInfo iEditor.CheckRes.Value.checkRes.Errors.Length 
+        match iEditor.CheckerState with
+        | Done res ->                                            
+                let es = res.checkRes.Errors
+                if es.Length = 0 then 
+                    compilerErrors.Text <- "No compiler errors"
+                    compilerErrors.Background <- Brushes.Green |> brighter 120
+                    compilerErrors.ToolTip <- "FSarp Compiler Service found no Errors in " + tabs.Current.FormatedFileName
+                else 
+                    let ers = es|> Seq.filter (fun e -> e.Severity = FSharpErrorSeverity.Error) |> Seq.length
+                    let was = es.Length - ers
+                    if ers = 0 then 
+                        compilerErrors.Text <- sprintf "Compiler warnings: %d" was
+                        compilerErrors.Background <- Brushes.Yellow   |> brighter 40  
+                    elif was = 0 then
+                        compilerErrors.Text <- sprintf "Compiler errors: %d" ers
+                        compilerErrors.Background <- Brushes.Red   |> brighter 150  
+                    else
+                        compilerErrors.Text <- sprintf "Compiler errors: %d, warnings: %d" ers was
+                        compilerErrors.Background <- Brushes.Red   |> brighter 150             
+                    compilerErrors.ToolTip <- makePanelVert [ 
+                        TextBlock(Text = tabs.Current.FormatedFileName)
+                        if ers>0 then TextBlock(Text="Errors", FontSize = 14.)
+                        for e in es|> Seq.filter (fun e -> e.Severity = FSharpErrorSeverity.Error)  do new TextBlock(Text = sprintf "• Line %d: %s" e.StartLineAlternate e.Message)
+                        if was>0 then TextBlock(Text="Warnings", FontSize = 14.)
+                        for e in es|> Seq.filter (fun e -> e.Severity = FSharpErrorSeverity.Warning) do new TextBlock(Text = sprintf "• Line %d: %s" e.StartLineAlternate e.Message) 
+                        ]        
+        | NotStarted | Running -> // these below never happen because event is only triggerd on success
             compilerErrors.Text <- checkingTxt
-            compilerErrors.Background <- originalBackGround
+            compilerErrors.Background <- originalBackGround 
+        | Failed ->
+            compilerErrors.Text <- "Fs Checker failed to complete."
+            compilerErrors.Background <- Brushes.Magenta 
+
+        
 
     do        
         bar.Items.Add compilerErrors          |> ignore 
@@ -98,16 +99,21 @@ type StatusBar (grid:TabsAndLog, cmds:Commands)  = // TODO better make it depend
             
         checker.OnChecked.Add setErrors
 
-        checker.OnChecking.Add(fun (iEditor, checkId) -> 
-                                    let id = !checkId 
+        checker.OnChecking.Add(fun (iEditor) ->
+                                    let id = iEditor.
                                     async{
-                                        do! Async.Sleep 300
-                                        if id = !checkId // to cancel if new checker has already started ( from tab change or text enter)
-                                        && iEditor.Id = tabs.Current.Editor.Id  // to cancel if tab changed
-                                        && iEditor.NeedsChecking then // to cancel if check completed already
-                                            compilerErrors.Text <- checkingTxt
-                                            compilerErrors.Background <- originalBackGround 
-                                        } |> Async.StartImmediate )
+                                        do! Async.Sleep 300 // delay  to only show check in progress massage if it takes long, otherwis just show results via on checked event
+                                        if iEditor.Id = tabs.Current.Editor.Id then // to cancel if tab changed
+                                            match iEditor.CheckerState with
+                                            | Done _ -> ()                                            
+                                            | NotStarted | Running ->
+                                                compilerErrors.Text <- checkingTxt
+                                                compilerErrors.Background <- originalBackGround 
+                                            | Failed ->
+                                                compilerErrors.Text <- "Fs Checker failed to complete."
+                                                compilerErrors.Background <- Brushes.Magenta                                            
+                                        
+                                    } |> Async.StartImmediate )
 
         
 
