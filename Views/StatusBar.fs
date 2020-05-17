@@ -36,9 +36,9 @@ type StatusBar (grid:TabsAndLog, cmds:Commands)  = // TODO better make it depend
     
     let originalBackGround = compilerErrors.Background
             
-    let setErrors(iEditor:IEditor)= 
+    let updateCheckState(iEditor:IEditor)= 
         //log.PrintDebugMsg "Setting errors for %A %A " iEditor.FileInfo iEditor.CheckRes.Value.checkRes.Errors.Length 
-        match iEditor.CheckerState with
+        match iEditor.CheckState with
         | Done res ->                                            
                 let es = res.checkRes.Errors
                 if es.Length = 0 then 
@@ -64,14 +64,29 @@ type StatusBar (grid:TabsAndLog, cmds:Commands)  = // TODO better make it depend
                         if was>0 then TextBlock(Text="Warnings", FontSize = 14.)
                         for e in es|> Seq.filter (fun e -> e.Severity = FSharpErrorSeverity.Warning) do new TextBlock(Text = sprintf "• Line %d: %s" e.StartLineAlternate e.Message) 
                         ]        
-        | NotStarted | Running -> // these below never happen because event is only triggerd on success
-            compilerErrors.Text <- checkingTxt
+        
+        | Running id0->
+            async{
+                do! Async.Sleep 300 // delay  to only show check in progress massage if it takes long, otherwis just show results via on checked event
+                if iEditor.Id = tabs.Current.Editor.Id then // to cancel if tab changed
+                    match iEditor.CheckState with
+                    | Running id300 ->
+                        if id300 = id0 then // this is still the most recent checker
+                            compilerErrors.Text <- checkingTxt
+                            compilerErrors.Background <- originalBackGround 
+                    | Done _ | NotStarted | Failed -> ()
+            } |> Async.StartImmediate 
+        
+        | NotStarted -> // these below never happen because event is only triggerd on success
+            compilerErrors.Text <- "Initializing compiler.."
             compilerErrors.Background <- originalBackGround 
-        | Failed ->
+        
+        | Failed -> // these below never happen because event is only triggerd on success
             compilerErrors.Text <- "Fs Checker failed to complete."
             compilerErrors.Background <- Brushes.Magenta 
 
-        
+    
+
 
     do        
         bar.Items.Add compilerErrors          |> ignore 
@@ -92,30 +107,11 @@ type StatusBar (grid:TabsAndLog, cmds:Commands)  = // TODO better make it depend
             fsiState.Text <- "FSI is ready!" 
             fsiState.Background <- Brushes.Green |> brighter 120)
         
-        tabs.OnTabChanged.Add (fun tab -> 
-            if tab.Editor.CheckRes.IsSome then 
-                setErrors(tab.Editor)
-            )
+        tabs.OnTabChanged.Add (fun t -> updateCheckState(t.Editor))
             
-        checker.OnChecked.Add setErrors
+        checker.OnChecked.Add updateCheckState
 
-        checker.OnChecking.Add(fun (iEditor) ->
-                                    let id = iEditor.
-                                    async{
-                                        do! Async.Sleep 300 // delay  to only show check in progress massage if it takes long, otherwis just show results via on checked event
-                                        if iEditor.Id = tabs.Current.Editor.Id then // to cancel if tab changed
-                                            match iEditor.CheckerState with
-                                            | Done _ -> ()                                            
-                                            | NotStarted | Running ->
-                                                compilerErrors.Text <- checkingTxt
-                                                compilerErrors.Background <- originalBackGround 
-                                            | Failed ->
-                                                compilerErrors.Text <- "Fs Checker failed to complete."
-                                                compilerErrors.Background <- Brushes.Magenta                                            
-                                        
-                                    } |> Async.StartImmediate )
-
-        
+        checker.OnChecking.Add updateCheckState
 
     member this.Bar =  bar
   

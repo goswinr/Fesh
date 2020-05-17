@@ -173,60 +173,63 @@ type TypeInfo private () =
                 
         let doc = iEditor.AvaEdit.Document
         let pos = iEditor.AvaEdit.GetPositionFromPoint(e.GetPosition(iEditor.AvaEdit))
-        if pos.HasValue && iEditor.CheckRes.IsSome then                            
-            let line = pos.Value.Line            
+        if pos.HasValue then
+            match iEditor.CheckState with
+            | Running _ |Failed | NotStarted -> ()
+            | Done res -> 
+                let line = pos.Value.Line            
                 
-            //TODO check for in string to give #r tooltip
-            //TODO fails on ´´ backtick names
-            //TODO test using Fsharp instead for finding words:  let partialLongName = QuickParse.GetPartialLongNameEx(pos.lineToCaret, colSetBack - 1)
+                //TODO check for in string to give #r tooltip
+                //TODO fails on ´´ backtick names
+                //TODO test using Fsharp instead for finding words:  let partialLongName = QuickParse.GetPartialLongNameEx(pos.lineToCaret, colSetBack - 1)
                 
-            let offset = doc.GetOffset(pos.Value.Location)
-            let startOffset = TextUtilities.GetNextCaretPosition(doc,offset, LogicalDirection.Backward, CaretPositioningMode.WordBorderOrSymbol)// TODO fails on ´´ backtick names
-            let endOffset =   TextUtilities.GetNextCaretPosition(doc,offset, LogicalDirection.Forward,  CaretPositioningMode.WordBorderOrSymbol)// returns -1 on empty lines; 
-            if startOffset < endOffset then // to skip empty lines
-                let docLine = doc.GetLineByOffset(offset)
-                let endCol = endOffset - docLine.Offset
-                let lineTxt = doc.GetText(docLine)          
-                let word = doc.GetText(max 0 startOffset, endOffset-startOffset) // max function to avoid -1
-                //log.PrintDebugMsg "word = '%s' Line:%d starting at %d get from %d to %d: in '%s'" word line docLine.Offset startOffset endOffset lineTxt
+                let offset = doc.GetOffset(pos.Value.Location)
+                let startOffset = TextUtilities.GetNextCaretPosition(doc,offset, LogicalDirection.Backward, CaretPositioningMode.WordBorderOrSymbol)// TODO fails on ´´ backtick names
+                let endOffset =   TextUtilities.GetNextCaretPosition(doc,offset, LogicalDirection.Forward,  CaretPositioningMode.WordBorderOrSymbol)// returns -1 on empty lines; 
+                if startOffset < endOffset then // to skip empty lines
+                    let docLine = doc.GetLineByOffset(offset)
+                    let endCol = endOffset - docLine.Offset
+                    let lineTxt = doc.GetText(docLine)          
+                    let word = doc.GetText(max 0 startOffset, endOffset-startOffset) // max function to avoid -1
+                    //log.PrintDebugMsg "word = '%s' Line:%d starting at %d get from %d to %d: in '%s'" word line docLine.Offset startOffset endOffset lineTxt
                 
-                tip.Content <- loadingTxt
-                tip.PlacementTarget <- iEditor.AvaEdit // required for property inheritance
-                tip.StaysOpen <- true
-                tip.IsOpen <- true 
+                    tip.Content <- loadingTxt
+                    tip.PlacementTarget <- iEditor.AvaEdit // required for property inheritance
+                    tip.StaysOpen <- true
+                    tip.IsOpen <- true 
                 
-                async{
-                    // <summary>Compute a formatted tooltip for the given location</summary>
-                    // <param name="line">The line number where the information is being requested.</param>
-                    // <param name="colAtEndOfNames">The column number at the end of the identifiers where the information is being requested.</param>
-                    // <param name="lineText">The text of the line where the information is being requested.</param>
-                    // <param name="names">The identifiers at the location where the information is being requested.</param>
-                    // <param name="tokenTag">Used to discriminate between 'identifiers', 'strings' and others. For strings, 
-                    //              an attempt is made to give a tooltip for a #r "..." location. 
-                    //              Use a value from FSharpTokenInfo.Tag, or FSharpTokenTag.Identifier, unless you have other information available.</param>
-                    // <param name="userOpName">An optional string used for tracing compiler operations associated with this request.</param>    
+                    async{
+                        // <summary>Compute a formatted tooltip for the given location</summary>
+                        // <param name="line">The line number where the information is being requested.</param>
+                        // <param name="colAtEndOfNames">The column number at the end of the identifiers where the information is being requested.</param>
+                        // <param name="lineText">The text of the line where the information is being requested.</param>
+                        // <param name="names">The identifiers at the location where the information is being requested.</param>
+                        // <param name="tokenTag">Used to discriminate between 'identifiers', 'strings' and others. For strings, 
+                        //              an attempt is made to give a tooltip for a #r "..." location. 
+                        //              Use a value from FSharpTokenInfo.Tag, or FSharpTokenTag.Identifier, unless you have other information available.</param>
+                        // <param name="userOpName">An optional string used for tracing compiler operations associated with this request.</param>    
                         
-                    do! Async.SwitchToThreadPool()
+                        do! Async.SwitchToThreadPool()
 
-                    let! stt =    iEditor.CheckRes.Value.checkRes.GetStructuredToolTipText(line,endCol,lineTxt,[word],FSharpTokenTag.Identifier)       //TODO, can this be avoided use info from below symbol call ? // TODO move into checker
-                    let! symbls = iEditor.CheckRes.Value.checkRes.GetSymbolUseAtLocation(  line,endCol,lineTxt,[word])                                 //only get to info about oprional paramters
-                    let optArgs = if symbls.IsSome then namesOfOptnlArgs(symbls.Value) else ResizeArray(0) 
+                        let! stt =    res.checkRes.GetStructuredToolTipText(line,endCol,lineTxt,[word],FSharpTokenTag.Identifier)       //TODO, can this be avoided use info from below symbol call ? // TODO move into checker
+                        let! symbls = res.checkRes.GetSymbolUseAtLocation(  line,endCol,lineTxt,[word])                                 //only get to info about oprional paramters
+                        let optArgs = if symbls.IsSome then namesOfOptnlArgs(symbls.Value) else ResizeArray(0) 
                         
-                    do! Async.SwitchToContext Sync.syncContext
+                        do! Async.SwitchToContext Sync.syncContext
                     
 
-                    let ttds = formated (stt, optArgs)
-                    if List.isEmpty ttds then
-                        let w= word.Trim()
-                        if w <> "" then     tip.Content <- "No type info found for:\r\n" + word
-                        else                tip.Content <- "No tip"
-                        //ed.TypeInfoToolTip.IsOpen <- false
-                    else                            
-                        let ttPanel = stackPanel (None , ttds)
-                        if tip.IsOpen then 
-                            // TODO hide tooltip and use use popup instead now, so it can be pinned?
-                            tip.Content <- ttPanel
-                    } |> Async.StartImmediate //TODO: add Cancellation ?
+                        let ttds = formated (stt, optArgs)
+                        if List.isEmpty ttds then
+                            let w= word.Trim()
+                            if w <> "" then     tip.Content <- "No type info found for:\r\n" + word
+                            else                tip.Content <- "No tip"
+                            //ed.TypeInfoToolTip.IsOpen <- false
+                        else                            
+                            let ttPanel = stackPanel (None , ttds)
+                            if tip.IsOpen then 
+                                // TODO hide tooltip and use use popup instead now, so it can be pinned?
+                                tip.Content <- ttPanel
+                        } |> Async.StartImmediate //TODO: add Cancellation ?
     
                //e.Handled <- true //  don't set handeled! so that on type errors the  Error tooltip still gets shown after this tooltip      
 

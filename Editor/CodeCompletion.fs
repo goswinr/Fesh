@@ -255,9 +255,7 @@ type Completions(avaEdit:TextEditor,config:Config, checker:Checker, errorHighlig
                 // https://github.com/icsharpcode/AvalonEdit/blob/8fca62270d8ed3694810308061ff55c8820c8dfc/ICSharpCode.AvalonEdit/CodeCompletion/CompletionWindow.cs#L100
             
             else
-                match iEditor.CheckRes with
-                |Some res ->  compl.ErrorHighlighter.Draw(iEditor)
-                |None ->()
+                compl.Checker.CkeckHighlightAndFold(iEditor)// start new full check, this on was trimmed at offset.
 
         compl.Checker.GetCompletions(iEditor, pos, ifDotSetback, contOnUI)
 

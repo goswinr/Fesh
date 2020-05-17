@@ -166,12 +166,12 @@ type ErrorHighlighter (ed:TextEditor) =
     /// draws underlines
     /// theadsafe
     member this.Draw( iEditor: IEditor ) = // this is used as Checker.OnChecked event handler         
-        match iEditor.CheckerState with        
+        match iEditor.CheckState with        
         | Done res -> 
             renderer.Clear()
             renderer.AddSegments(res)
             drawnEv.Trigger(iEditor) // to update foldings now
-        | NotStarted | Running  | Failed -> ()
+        | NotStarted | Running _ | Failed -> ()
         
        
 

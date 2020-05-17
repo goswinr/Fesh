@@ -28,7 +28,7 @@ type Checker private (config:Config)  =
     /// to check full code use 0 as 'tillOffset', at the end either a event is raised or continuation called if present
     let check(iEditor:IEditor, tillOffset, continueOnThreadPool:Option<CheckResults->unit>) =         
         let thisId = Interlocked.Increment checkId
-        iEditor.CheckerState <- Running
+        iEditor.CheckState <- Running thisId
         checkingEv.Trigger(iEditor) // to show in statusbar
         let doc = iEditor.AvaEdit.Document // access documnet before starting async
         async { 
@@ -106,8 +106,8 @@ type Checker private (config:Config)  =
                                 match checkAnswer with
                                 | FSharpCheckFileAnswer.Succeeded checkRes ->   
                                     if !checkId = thisId  then // this ensures that stat get set to done ich no checker has started in the meantime
-                                        let res = {parseRes = parseRes;  checkRes = checkRes;  code = code; tillOffset = code.Length; fromCheckId = thisId}
-                                        iEditor.CheckerState <- Done res
+                                        let res = {parseRes = parseRes;  checkRes = checkRes;  code = code ; checkId=thisId }
+                                        iEditor.CheckState <- Done res
                                         match continueOnThreadPool with
                                         | Some f -> f(res)
                                         | None -> 
@@ -120,13 +120,13 @@ type Checker private (config:Config)  =
                 
                                 | FSharpCheckFileAnswer.Aborted  ->
                                     log.PrintAppErrorMsg "*ParseAndCheckFile code aborted"
-                                    iEditor.CheckerState <-Failed                    
+                                    iEditor.CheckState <-Failed                    
                             with e ->
                                 log.PrintAppErrorMsg "Error in ParseAndCheckFileInProject Block.\r\nMaybe you are using another version of  FSharpCompilerService.dll than at compile time?\r\nOr the error is in the continuation.\r\nOr in the event handlers: %A" e
-                                iEditor.CheckerState <-Failed          
+                                iEditor.CheckState <-Failed          
                     with e ->
                             log.PrintAppErrorMsg "Error in GetProjectOptionsFromScript Block.\r\nMaybe you are using another version of  FSharpCompilerService.dll than at compile time?: %A" e
-                            iEditor.CheckerState <-Failed
+                            iEditor.CheckState <-Failed
                             
             } |> Async.Start
     

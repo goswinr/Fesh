@@ -1,5 +1,6 @@
 ﻿namespace Seff.Editor
 
+
 open Seff
 open ICSharpCode
 open ICSharpCode.AvalonEdit
@@ -20,10 +21,11 @@ type Editor private (code:string, config:Config, fileInfo:FileInfo Option) =
     let errorHighlighter =  new ErrorHighlighter(avaEdit)
     let checker =           Checker.GetOrCreate(config)     
     let compls =            new Completions(avaEdit,config,checker,errorHighlighter)
+    let folds =             new Foldings(avaEdit,errorHighlighter)
     
     let log = config.Log
     let id = Guid.NewGuid()
-    let mutable checkRes : CheckResults Option = None 
+    let mutable checkState = FileCheckState.NotStarted
     let mutable fileInfo = fileInfo    
     let mutable needsChecking = true // so that on a tab chnage a recheck is not triggered if not needed
 
@@ -78,18 +80,16 @@ type Editor private (code:string, config:Config, fileInfo:FileInfo Option) =
 
     member this.Id              = id
     member this.AvaEdit         = avaEdit
-    member this.CheckRes        with get()=checkRes         and  set(v) = checkRes <- v
-    member this.FileInfo        with get()=fileInfo         and  set(v) = fileInfo <- v // The Tab class containing this editor takes care of updating this 
-    member this.NeedsChecking   with get()=needsChecking    and  set(v) = needsChecking <- v
-    member this.LastStartedCheckId = checker.LastStartedCheckId
+    member this.CheckState      with get()=checkState    and  set(v) = checkState <- v
+    member this.FileInfo        with get()=fileInfo      and  set(v) = fileInfo <- v // The Tab class containing this editor takes care of updating this 
+
     
     interface IEditor with
         member this.Id              = id
         member this.AvaEdit         = avaEdit
-        member this.CheckRes        with get()=checkRes         and  set(v) = checkRes <- v
+        member this.CheckState        with get()=checkState and  set(v) = checkState <- v
         member this.FileInfo        = fileInfo // interface does not need setter
-        member this.NeedsChecking   with get()=needsChecking    and  set(v) = needsChecking <- v
-        member this.LastStartedCheckId = checker.LastStartedCheckId
+      
     
     
     // additional text change event:
@@ -222,7 +222,6 @@ type Editor private (code:string, config:Config, fileInfo:FileInfo Option) =
                     compls.Close() 
             
             else //no completion window open , do type check..
-                ed.NeedsChecking <- true
                 match e.InsertedText.Text with 
                 |"."  ->                                             textChanged (EnteredDot         )//complete
                 | txt when txt.Length = 1 ->                                     

@@ -15,11 +15,11 @@ open FSharp.Compiler.SourceCodeServices
 open ICSharpCode.AvalonEdit.Folding
 
 
-type Folding(iEditor:IEditor,errorHighlighter:ErrorHighlighter) = 
+type Foldings(ed:TextEditor,errorHighlighter:ErrorHighlighter) = 
     
     let minLinesForFold = 1
 
-    let manager = Folding.FoldingManager.Install(iEditor.AvaEdit.TextArea)  
+    let manager = Folding.FoldingManager.Install(ed.TextArea)  
         
     /// a hash value to  see if folding state needs updating
     let mutable foldStateHash = 0
@@ -34,9 +34,10 @@ type Folding(iEditor:IEditor,errorHighlighter:ErrorHighlighter) =
     
     ///Get foldings at every line that is followed by an indent
     let fold (iEditor:IEditor) =
-        match iEditor.CheckerState with
-        | NotStarted | Running   | Failed -> ()
+        match iEditor.CheckState with
+        | NotStarted | Running _  | Failed -> ()
         | Done res -> 
+            let id0 = res.checkId
             async{
                 let foldings=ResizeArray<int*int>()
 
@@ -44,8 +45,8 @@ type Folding(iEditor:IEditor,errorHighlighter:ErrorHighlighter) =
 
                 let lns = res.code.Split([|"\r\n"|],StringSplitOptions.None) // TODO better iterate without allocating an array of lines 
                 
-                match iEditor.CheckerState with
-                | NotStarted | Running   | Failed -> ()
+                match iEditor.CheckState with
+                | NotStarted | Running _  | Failed -> ()
                 | Done _ -> 
                     let mutable currLnEndOffset = 0
                     let mutable foldStartOfset = -1
@@ -96,20 +97,23 @@ type Folding(iEditor:IEditor,errorHighlighter:ErrorHighlighter) =
                     else
                         foldStateHash <- state
                         do! Async.SwitchToContext Sync.syncContext
-                        match iEditor.CheckerState with
-                        | NotStarted | Running  | Failed -> ()
-                        | Done _ -> 
-                            let folds=ResizeArray<NewFolding>()
-                            for st,en in foldings do 
-                                folds.Add(new NewFolding(st,en)) //if new folding type is created async a waiting symbol apears on top of it 
-                            let firstErrorOffset = -1 //The first position of a parse error. Existing foldings starting after this offset will be kept even if they don't appear in newFoldings. Use -1 for this parameter if there were no parse errors) 
-                            manager.UpdateFoldings(folds,firstErrorOffset)
+                        match iEditor.CheckState with
+                        | NotStarted | Running _ | Failed -> ()
+                        | Done r -> 
+                            if r.checkId = id0 then
+                                let folds=ResizeArray<NewFolding>()
+                                for st,en in foldings do 
+                                    folds.Add(new NewFolding(st,en)) //if new folding type is created async a waiting symbol apears on top of it 
+                                let firstErrorOffset = -1 //The first position of a parse error. Existing foldings starting after this offset will be kept even if they don't appear in newFoldings. Use -1 for this parameter if there were no parse errors) 
+                                manager.UpdateFoldings(folds,firstErrorOffset)
              } |>  Async.Start
         
         
         
     do
         errorHighlighter.OnDrawn.Add(fold) 
+
+    member this.Manager = manager
     //let firstErrorOffset = -1 //The first position of a parse error. Existing foldings starting after this offset will be kept even if they don't appear in newFoldings. Use -1 for this parameter if there were no parse errors)                    
     //manager.UpdateFoldings(foldings,firstErrorOffset)
     
