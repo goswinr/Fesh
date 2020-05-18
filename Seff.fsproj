@@ -73,11 +73,10 @@
     <Compile Include="Editor\TypeInfo.fs" />
     <Compile Include="Editor\CodeCompletion.fs" />
     <Compile Include="Editor\Folding.fs" />
+    <Compile Include="Editor\ColumnRulers.fs" />
     <Compile Include="Editor\Editor.fs" />
-    <Compile Include="Editor\UNUSEDColumnRulers.fs" />
     <Compile Include="Editor\UNUSEDNuget.fs" />
-
-    <Compile Include="Views\Util.fs" />
+    <Compile Include="Views\Views.Util.fs" />
     <Compile Include="Views\Log.fs" />
     <Compile Include="Views\Window.fs" />
     <Compile Include="Views\Tab.fs" />

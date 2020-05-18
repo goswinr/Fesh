@@ -12,6 +12,7 @@ open System.Text
 open System.Diagnostics
 open System.Collections.Generic
 open System.Windows.Controls
+open System.Windows
 
 
 
@@ -27,11 +28,11 @@ type LogMessageType =
     | DebugMsg 
 
     static member getColor = function
-        | FsiStdOut     ->Brushes.DarkGray |> Util.darker 20 // values printet by fsi iteself like "val it = ...."
+        | FsiStdOut     ->Brushes.DarkGray |> Util.General.darker 20 // values printet by fsi iteself like "val it = ...."
         | FsiErrorOut   ->Brushes.DarkMagenta //are they all caught by evaluate non throwing ?
         | ConsoleOut    ->Brushes.Yellow // default black forground is used ; never used should  // the out from printfn
         | ConsoleError  ->Brushes.LightSalmon // this is never used, only FsiErrorOut is used?
-        | InfoMsg       ->Brushes.Blue |> Util.brighter 20 
+        | InfoMsg       ->Brushes.Blue |> Util.General.brighter 20 
         | FsiErrorMsg   ->Brushes.Red
         | AppErrorMsg   ->Brushes.DarkOrange
         | IOErrorMsg    ->Brushes.DarkRed
@@ -81,7 +82,7 @@ type Log () =
     // just using a let value  like (let log = new LogView()) has some bugs in hosted context (Rhino), I think due to late initalizing
     // so here is a class with explicit init
 
-    let mutable log : AvalonEdit.TextEditor = null 
+    let log = new AvalonEdit.TextEditor()
     let printCallsCounter = ref 0L
     let mutable prevMsgType = IOErrorMsg
     let stopWatch = Stopwatch.StartNew()
@@ -155,7 +156,10 @@ type Log () =
     
     do    
         //styling: 
-        log <- new AvalonEdit.TextEditor()
+        log.BorderThickness <- new Thickness( 0.5)
+        log.Padding         <- new Thickness( 0.5)
+        log.Margin         <- new Thickness( 0.5)
+        log.BorderBrush <- Brushes.Black
         log.IsReadOnly <- true
         log.Encoding <- Text.Encoding.Default
         log.ShowLineNumbers  <- true

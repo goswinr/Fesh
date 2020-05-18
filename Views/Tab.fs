@@ -24,7 +24,7 @@ type Tab (editor:Editor) =
 
     let mutable headerShowsSaved   = true
 
-    let textBlock = new TextBlock(VerticalAlignment = VerticalAlignment.Bottom)  
+    let textBlock = new TextBlock(VerticalAlignment = VerticalAlignment.Bottom) //, FontFamily = Style.fontEditor)  
     
     let closeButton = new Button(
                             Content = new Shapes.Path( Data = Geometry.Parse("M0,7 L7,0 M0,0 L7,7"), Stroke = Brushes.Black,  StrokeThickness = 0.8 ) ,            //"M1,8 L8,1 M1,1 L8,8"       
@@ -32,7 +32,7 @@ type Tab (editor:Editor) =
                             Padding = new Thickness(2.) )
     let header = 
         let p = new StackPanel(
-                        Margin = Thickness(2.5 , 0.5 , 0.5 , 2.5),//left ,top, right, bottom)
+                        Margin = Thickness(4. , 2. , 2. , 2.),//left ,top, right, bottom)
                         Orientation= Orientation.Horizontal) 
         p.Children.Add textBlock  |> ignore
         p.Children.Add closeButton |> ignore
@@ -65,8 +65,9 @@ type Tab (editor:Editor) =
             setHeader()
        
     do
-        base.Content <- editor.AvaEdit 
+        base.Content <- editor.AvaEdit
         base.Header <- header
+        //base.Margin <- Thickness(3., 0. , 0. , 0.) //left ,top, right, bottom) // don't messes it all up 
         setHeader()        
         editor.AvaEdit.TextChanged.Add(fun _ ->upadteIsCodeCaved(false)) 
 

@@ -1,5 +1,4 @@
 ﻿namespace Seff.Views
-
 open Seff
 
 
@@ -13,24 +12,7 @@ module Util =
     /// used for evaluating results of win32 dialogs
     let inline isTrue (nb:Nullable<bool>) = nb.HasValue && nb.Value
 
-    ///------color adjusting -----
 
-    ///Adds bytes to each color channel to increase brightness, negative values to make darker
-    /// result will be clamped between 0 and 255
-    let changeLuminace (amount:int) (br:SolidColorBrush)=
-        let inline clamp x = if x<0 then 0uy elif x>255 then 255uy else byte(x)
-        let r = int br.Color.R + amount |> clamp      
-        let g = int br.Color.G + amount |> clamp
-        let b = int br.Color.B + amount |> clamp
-        SolidColorBrush(Color.FromArgb(br.Color.A, r,g,b))
-    
-    ///Adds bytes to each color channel to increase brightness
-    /// result will be clamped between 0 and 255
-    let brighter (amount:int) (br:SolidColorBrush)  = changeLuminace amount br 
-    
-    ///Removes bytes from each color channel to increase darkness, 
-    /// result will be clamped between 0 and 255
-    let darker  (amount:int) (br:SolidColorBrush)  = changeLuminace -amount br
 
     //---------- creating UIElemnts --------------
 

@@ -11,6 +11,7 @@ open Seff.Views.Util
 /// Includes logic for toggeling the view split and saving and restoring size and position
 type TabsAndLog (config:Config,tabs:Tabs,log:Log,win:Views.Window) =
     
+    let gridSplitterSize = 5.0
 
     let grid                = new Grid()
     let editorRowHeight     = new RowDefinition   (Height = makeGridLength (config.Settings.GetFloat "EditorHeight"  400.0))
@@ -42,12 +43,12 @@ type TabsAndLog (config:Config,tabs:Tabs,log:Log,win:Views.Window) =
         if config.Settings.GetBool "isVertSplit" true then setGridVert()            
         else                                               setGridHor()
 
-        splitterHor.Height <- 4.0
+        splitterHor.Height <- gridSplitterSize
         splitterHor.HorizontalAlignment <- Windows.HorizontalAlignment.Stretch
         splitterHor.VerticalAlignment <- Windows.VerticalAlignment.Center
         splitterHor.ToolTip <- "Drag to resize code editor and log window"
 
-        splitterVert.Width  <- 4.0        
+        splitterVert.Width  <- gridSplitterSize       
         splitterVert.VerticalAlignment <- Windows.VerticalAlignment.Stretch
         splitterVert.HorizontalAlignment <- Windows.HorizontalAlignment.Center //needed only on vertical split
         splitterVert.ToolTip <- "Drag to resize code editor and log window"

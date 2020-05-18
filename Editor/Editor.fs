@@ -22,6 +22,7 @@ type Editor private (code:string, config:Config, fileInfo:FileInfo Option) =
     let checker =           Checker.GetOrCreate(config)     
     let compls =            new Completions(avaEdit,config,checker,errorHighlighter)
     let folds =             new Foldings(avaEdit,errorHighlighter)
+    let rulers =            new ColumnRulers(avaEdit, [0; 4; 8])
     
     let log = config.Log
     let id = Guid.NewGuid()
@@ -30,6 +31,7 @@ type Editor private (code:string, config:Config, fileInfo:FileInfo Option) =
     let mutable needsChecking = true // so that on a tab chnage a recheck is not triggered if not needed
 
     do
+        avaEdit.BorderThickness <- new Thickness( 0.0)
         avaEdit.Text <- code
         avaEdit.ShowLineNumbers <- true
         avaEdit.VerticalScrollBarVisibility <- Controls.ScrollBarVisibility.Auto
@@ -203,6 +205,8 @@ type Editor private (code:string, config:Config, fileInfo:FileInfo Option) =
 
         avaEdit.TextArea.TextView.MouseHover.Add(fun e -> TypeInfo.mouseHover(e,ed, ed.TypeInfoTip))        
         avaEdit.TextArea.TextView.MouseHoverStopped.Add(fun _ -> ed.TypeInfoTip.IsOpen <- false )
+
+        
 
         avaEdit.Document.Changed.Add(fun e -> 
             //log.PrintDebugMsg "*Document.Changed Event: deleted %d '%s', inserted %d '%s' completion hasItems: %b and isOpen: %b" e.RemovalLength e.RemovedText.Text e.InsertionLength e.InsertedText.Text ed.Completions.HasItems ed.Completions.IsOpen

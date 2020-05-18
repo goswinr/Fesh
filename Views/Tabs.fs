@@ -11,14 +11,22 @@ open Seff.Views.Util
 open Seff.Config
 open Seff.Style
 open Seff.Editor
+open System.Windows.Media
 
 /// A class holding the Tab Control
 /// Includes logic for saving and opening files
 /// Window ref neded for closing after last Tab closed
 type Tabs(config:Config, win:Window) = 
 
-    let tabs = new TabControl()
+    let tabs = new TabControl(
+                        Padding = Thickness(0.9), 
+                        Margin = Thickness( 0.5), 
+                        BorderThickness = Thickness(0.5), 
+                        BorderBrush = Brushes.Black
+                        )
     
+
+
     let log = config.Log 
 
     let fsi = Fsi.GetOrCreate(config)

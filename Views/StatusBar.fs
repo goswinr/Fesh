@@ -1,6 +1,7 @@
 ﻿namespace Seff.Views
 
 open Seff
+open Seff.Util.General
 open System
 open System.Windows
 open System.Windows.Controls
