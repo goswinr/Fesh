@@ -176,7 +176,7 @@ type Completions(avaEdit:TextEditor,config:Config, checker:Checker, errorHighlig
         let log = compl.Log
         let config = compl.Config
         let avaEdit = iEditor.AvaEdit
-        log.PrintDebugMsg "TryShow Completion Window for '%s'" pos.lineToCaret
+        //log.PrintDebugMsg "TryShow Completion Window for '%s'" pos.lineToCaret
         let ifDotSetback = if charBefore = Dot then setback else 0
 
         //let prevCursor = avaEdit.Editor.Cursor
@@ -219,7 +219,7 @@ type Completions(avaEdit:TextEditor,config:Config, checker:Checker, errorHighlig
                 w.MinWidth  <- avaEdit.FontSize * 8.0
                 w.Closed.Add (fun _  -> 
                         compl.Close()
-                        config.Log.PrintDebugMsg "Completion window just closed with selected item: %A " w.CompletionList.SelectedItem
+                        //config.Log.PrintDebugMsg "Completion window just closed with selected item: %A " w.CompletionList.SelectedItem
                         )
                     
                 w.CompletionList.SelectionChanged.Add(fun _ -> if w.CompletionList.ListBox.Items.Count=0 then w.Close()) // otherwise empty box might be shown and only get closed on second character
@@ -238,7 +238,7 @@ type Completions(avaEdit:TextEditor,config:Config, checker:Checker, errorHighlig
                 w.StartOffset <- w.StartOffset - setback // to maybe replace some previous characters too           
        
                 for cln in completionLines do 
-                    w.CompletionList.CompletionData.Add (cln) // if window is slow: https://stackoverflow.com/questions/487661/how-do-i-suspend-painting-for-a-control-and-its-children 
+                    w.CompletionList.CompletionData.Add (cln) 
 
                 if query.Length > 0 then 
                     w.CompletionList.SelectItem(query) //to prefilter the list if query present

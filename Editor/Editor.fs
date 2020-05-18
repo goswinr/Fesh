@@ -135,7 +135,7 @@ type Editor private (code:string, config:Config, fileInfo:FileInfo Option) =
 
                 match change with             
                 | OtherChange | CompletionWinClosed  | EnteredOneNonIdentifierChar -> //TODO maybe do less call to error highlighter when typing in string or comment ?
-                    log.PrintDebugMsg "*1.2-textChanged highlighting for  %A" change
+                    //log.PrintDebugMsg "*1.2-textChanged highlighting for  %A" change
                     ed.Checker.CkeckHighlightAndFold(ed)
                     //TODO trigger here UpdateFoldings(tab,None) or use event
 
@@ -205,7 +205,7 @@ type Editor private (code:string, config:Config, fileInfo:FileInfo Option) =
         avaEdit.TextArea.TextView.MouseHoverStopped.Add(fun _ -> ed.TypeInfoTip.IsOpen <- false )
 
         avaEdit.Document.Changed.Add(fun e -> 
-            log.PrintDebugMsg "*Document.Changed Event: deleted %d '%s', inserted %d '%s' completion hasItems: %b and isOpen: %b" e.RemovalLength e.RemovedText.Text e.InsertionLength e.InsertedText.Text ed.Completions.HasItems ed.Completions.IsOpen
+            //log.PrintDebugMsg "*Document.Changed Event: deleted %d '%s', inserted %d '%s' completion hasItems: %b and isOpen: %b" e.RemovalLength e.RemovedText.Text e.InsertionLength e.InsertedText.Text ed.Completions.HasItems ed.Completions.IsOpen
             
             if e.RemovalLength >0 then compls.JustClosed<-false // in this case open window again?
 
