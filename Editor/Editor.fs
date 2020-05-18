@@ -206,7 +206,22 @@ type Editor private (code:string, config:Config, filePath:FilePath) =
         avaEdit.TextArea.TextView.MouseHover.Add(fun e -> TypeInfo.mouseHover(e,ed, ed.TypeInfoTip))        
         avaEdit.TextArea.TextView.MouseHoverStopped.Add(fun _ -> ed.TypeInfoTip.IsOpen <- false )
 
-        
+        avaEdit.AllowDrop <- true  
+        avaEdit.Drop.Add(fun e ->
+            if e.Data.GetDataPresent DataFormats.FileDrop then
+                try
+                    (e.Data.GetData DataFormats.FileDrop :?> string []) // to get file path                    
+                    |> Array.iter (fun p ->
+                        try 
+                            if p.EndsWith(".dll", StringComparison.OrdinalIgnoreCase) ||  p.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) then 
+                                avaEdit.Document.Insert (0, sprintf "#r @\"%s\"\r\n" p)
+                            if p.EndsWith(".fsx", StringComparison.OrdinalIgnoreCase)  then 
+                                avaEdit.Document.Insert (0, sprintf "#load @\"%s\"\r\n" p)                            
+                            else 
+                                avaEdit.Document.Insert (avaEdit.CaretOffset , sprintf " @\"%s\"\r\n" p)
+                        with e -> log.PrintIOErrorMsg "one drop failed: %A" e)
+                with e -> log.PrintIOErrorMsg "full drop failed: %A" e
+                )
 
         avaEdit.Document.Changed.Add(fun e -> 
             //log.PrintDebugMsg "*Document.Changed Event: deleted %d '%s', inserted %d '%s' completion hasItems: %b and isOpen: %b" e.RemovalLength e.RemovedText.Text e.InsertionLength e.InsertedText.Text ed.Completions.HasItems ed.Completions.IsOpen
