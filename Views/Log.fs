@@ -96,13 +96,14 @@ type Log () =
     let printFromBufferAndScroll(ty:LogMessageType) =             
         stopWatch.Restart()
         
+        //buffer.Insert(0,"£") |> ignore // Debug only
         let txt = buffer.ToString()//.Replace(NewLine, sprintf "(%A)%s" ty NewLine)  //for DEBUG only           
         buffer.Clear()  |> ignore 
         let start = log.Document.TextLength
         log.AppendText(txt)
         let mutable line = log.Document.GetLineByOffset(start) 
         if ty = ConsoleOut then //exclude default print color, it should be same as foreground anyway                
-            lineColors.Remove line.LineNumber |> ignore // claer any color that might exit from printing on same line before ( maybe just a return)
+            lineColors.Remove line.LineNumber |> ignore // clears any color that might exit from printing on same line before ( maybe just a return)
         else                
             //log.Document.Insert( line.EndOffset, sprintf "(%d:%A)" line.LineNumber ty) //for DEBUG only
             //log.AppendText(sprintf "(1st Line %d, %d chars:%A)" line.LineNumber line.Length ty) //for DEBUG only
@@ -117,7 +118,8 @@ type Log () =
 
         //log.AppendText("|-scroll->") //for DEBUG only
         log.ScrollToEnd()
-        
+        if log.WordWrap then log.ScrollToEnd() //is needed a second time !
+         
 
 
     /// adds string on UI thread  every 150ms then scrolls to end after 300ms
