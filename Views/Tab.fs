@@ -40,18 +40,18 @@ type Tab (editor:Editor) =
         
         
     let setHeader() = 
-        match editor.FileInfo, isCodeSaved with 
-        |Some fi , true -> 
+        match editor.FilePath, isCodeSaved with 
+        |SetTo fi , true -> 
             textBlock.ToolTip       <- "File saved at:\r\n" + fi.FullName
             textBlock.Text          <- fi.Name
             textBlock.Foreground    <- Brushes.Black
             headerShowsSaved        <- true
-        |Some fi , false -> 
+        |SetTo fi , false -> 
             textBlock.ToolTip       <- "File with unsaved changes from :\r\n" + fi.FullName
             textBlock.Text          <- fi.Name + "*"
             textBlock.Foreground    <- Brushes.DarkRed
             headerShowsSaved        <- false
-        |None,_    -> 
+        |NotSet,_    -> 
             textBlock.ToolTip      <- "This file has not yet been saved to disk."
             textBlock.Text         <- sprintf "*unsaved-%d*" Counter.UnsavedFile  
             textBlock.Foreground   <- Brushes.Gray
@@ -76,18 +76,18 @@ type Tab (editor:Editor) =
         and set(isSaved) = upadteIsCodeCaved(isSaved)
           
     /// this gets and set FileInfo on the Editor
-    member this.FileInfo
-        with get() = editor.FileInfo
+    member this.FilePath
+        with get() = editor.FilePath
         and set(fi) =
-            editor.FileInfo <- fi
+            editor.FilePath <- fi
             setHeader()
 
     member this.CloseButton = closeButton // public so click event can be attached later in Tabs.fs AddTab
        
     member this.FormatedFileName = 
-        match this.FileInfo with 
-        |Some fi  -> sprintf "%s" fi.FullName //sprintf "%s\r\nat\r\n%s" fi.Name fi.DirectoryName
-        |None     -> textBlock.Text
+        match this.FilePath with 
+        |SetTo fi   -> sprintf "%s" fi.FullName //sprintf "%s\r\nat\r\n%s" fi.Name fi.DirectoryName
+        |NotSet     -> textBlock.Text
     
     /// this gets and sets IsCurrent on the Editor
     member this.IsCurrent  

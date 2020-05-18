@@ -231,10 +231,10 @@ type Log () =
         member this.PrintDebugMsg    s = Printf.fprintfn textWriterDebugMsg     s
 
     
-    member this.SaveAllText (pathHint: FileInfo Option) = 
+    member this.SaveAllText (pathHint: FilePath) = 
         let dlg = new Microsoft.Win32.SaveFileDialog()
-        if pathHint.IsSome && pathHint.Value.Directory.Exists then dlg.InitialDirectory <- pathHint.Value.DirectoryName
-        if pathHint.IsSome then dlg.FileName <- pathHint.Value.Name  + "_Log" 
+        match pathHint with NotSet ->() |SetTo fi -> if fi.Directory.Exists then dlg.InitialDirectory <- fi.DirectoryName
+        match pathHint with NotSet ->() |SetTo fi -> dlg.FileName <- fi.Name  + "_Log" 
         dlg.Title <- "SaveText from Log Window of " + Style.dialogCaption
         dlg.DefaultExt <- ".txt"
         dlg.Filter <- "Text Files(*.txt)|*.txt|Text Files(*.csv)|*.csv|All Files(*.*)|*"
@@ -245,11 +245,11 @@ type Log () =
             with e -> 
                 this.PrintIOErrorMsg "Failed to save text from Log at :\r\n%s\r\n%A" dlg.FileName e
     
-    member this.SaveSelectedText (pathHint: FileInfo Option) = 
+    member this.SaveSelectedText (pathHint: FilePath) = 
         if log.SelectedText.Length > 0 then // this check is also done in "canexecute command"
            let dlg = new Microsoft.Win32.SaveFileDialog()
-           if pathHint.IsSome && pathHint.Value.Directory.Exists then dlg.InitialDirectory <- pathHint.Value.DirectoryName
-           if pathHint.IsSome then dlg.FileName <- pathHint.Value.Name  + "_Log" 
+           match pathHint with NotSet ->() |SetTo fi -> if fi.Directory.Exists then dlg.InitialDirectory <- fi.DirectoryName
+           match pathHint with NotSet ->() |SetTo fi -> dlg.FileName <- fi.Name  + "_Log"
            dlg.Title <- "Save Seleceted Text from Log Window of " + Style.dialogCaption
            dlg.DefaultExt <- ".txt"
            dlg.Filter <- "Text Files(*.txt)|*.txt|Text Files(*.csv)|*.csv|All Files(*.*)|*"

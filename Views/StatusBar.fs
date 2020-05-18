@@ -99,10 +99,10 @@ type StatusBar (grid:TabsAndLog, cmds:Commands)  = // TODO better make it depend
         fsi.OnStarted.Add(fun code -> 
             fsiState.Background <- Brushes.Orange   |> brighter 20 
             match code.file with 
-            |Some fi -> 
+            |SetTo fi -> 
                 if code.allOfFile then fsiState.Text <- sprintf "FSI is running %s  ..." fi.Name
                 else                   fsiState.Text <- sprintf "FSI is running segments from file %s  ..." fi.Name
-            | None ->                  fsiState.Text <- "FSI is running ..." )
+            |NotSet ->                  fsiState.Text <- "FSI is running ..." )
 
         fsi.OnIsReady.Add(fun _ -> 
             fsiState.Text <- "FSI is ready!" 

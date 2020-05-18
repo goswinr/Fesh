@@ -35,10 +35,13 @@ type ISeffLog =
     abstract member TextWriterConsoleOut   : TextWriter
     abstract member TextWriterConsoleError : TextWriter
 
+/// ---- Editor types -----------
+
 type CheckId = int64
 
 type CheckResults = { parseRes:FSharpParseFileResults; checkRes:FSharpCheckFileResults;  code:string ; checkId:CheckId} // to do remove till offset , not needed?
 
+type FilePath = SetTo of FileInfo | NotSet
 
 type FileCheckState = 
     | NotStarted 
@@ -46,13 +49,19 @@ type FileCheckState =
     | Done of CheckResults // not global but local per file
     | Failed 
 
+
 // so that the Editor can be used before declared
 type IEditor = 
     abstract member Id           : Guid
     abstract member AvaEdit      : AvalonEdit.TextEditor
     abstract member CheckState   : FileCheckState with get , set //None means a check is running
-    abstract member FileInfo     : FileInfo Option     
-   
+    abstract member FilePath     : FilePath     
+
+
+//---- Fsi types ------------
+
+type CodeToEval = {code:string; file:FilePath; allOfFile:bool}   
+
 type AppRunContext = Standalone  | Hosted of string
 
 type FsiState =  Ready | Evaluating | Initalizing | NotLoaded
@@ -65,10 +74,10 @@ type TextChange =  EnteredDot | EnteredOneIdentifierChar | EnteredOneNonIdentifi
     
 type CharBeforeQuery = Dot | NotDot
     
-type CodeToEval = {code:string; file:FileInfo Option; allOfFile:bool}
-    
 type PositionInCode = { lineToCaret:string ; row:int; column:int; offset:int }
-    
+
+// Menu and commands:
+
 type CommandInfo = {name:string; gesture:string; cmd:ICommand; tip:string }
 
 

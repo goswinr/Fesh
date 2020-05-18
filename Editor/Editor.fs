@@ -15,7 +15,7 @@ open System
 
 
  /// The tab that holds the tab header and the code editor 
-type Editor private (code:string, config:Config, fileInfo:FileInfo Option) = 
+type Editor private (code:string, config:Config, filePath:FilePath) = 
     let avaEdit =           new AvalonEdit.TextEditor()
     
     let errorHighlighter =  new ErrorHighlighter(avaEdit)
@@ -27,7 +27,7 @@ type Editor private (code:string, config:Config, fileInfo:FileInfo Option) =
     let log = config.Log
     let id = Guid.NewGuid()
     let mutable checkState = FileCheckState.NotStarted
-    let mutable fileInfo = fileInfo    
+    let mutable filePath = filePath    
     let mutable needsChecking = true // so that on a tab chnage a recheck is not triggered if not needed
 
     do
@@ -83,14 +83,14 @@ type Editor private (code:string, config:Config, fileInfo:FileInfo Option) =
     member this.Id              = id
     member this.AvaEdit         = avaEdit
     member this.CheckState      with get()=checkState    and  set(v) = checkState <- v
-    member this.FileInfo        with get()=fileInfo      and  set(v) = fileInfo <- v // The Tab class containing this editor takes care of updating this 
+    member this.FilePath        with get()=filePath      and  set(v) = filePath <- v // The Tab class containing this editor takes care of updating this 
 
     
     interface IEditor with
         member this.Id              = id
         member this.AvaEdit         = avaEdit
         member this.CheckState        with get()=checkState and  set(v) = checkState <- v
-        member this.FileInfo        = fileInfo // interface does not need setter
+        member this.FilePath        = filePath // interface does not need setter
       
     
     
@@ -102,8 +102,8 @@ type Editor private (code:string, config:Config, fileInfo:FileInfo Option) =
     
     /// sets up Text change event handlers
     /// a statci method s o that an instance if IEditor can be used
-    static member SetUp  (code:string, config:Config, fileInfo:FileInfo Option ) = 
-        let ed = Editor(code, config, fileInfo )
+    static member SetUp  (code:string, config:Config, filePath:FilePath ) = 
+        let ed = Editor(code, config, filePath )
         
         let avaEdit = ed.AvaEdit
         let compls = ed.Completions
@@ -253,4 +253,4 @@ type Editor private (code:string, config:Config, fileInfo:FileInfo Option) =
 
 
     ///additional constructor using default code 
-    static member New (config:Config) =  Editor.SetUp( config.DefaultCode.Get() , config, None)
+    static member New (config:Config) =  Editor.SetUp( config.DefaultCode.Get() , config, NotSet)

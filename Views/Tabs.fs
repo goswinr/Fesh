@@ -33,7 +33,7 @@ type Tabs(config:Config, win:Window) =
 
     let allTabs:seq<Tab> =  Seq.cast tabs.Items
     
-    let allFileInfos = seq{ for t in allTabs do if  t.FileInfo.IsSome then yield t.FileInfo.Value } //TODO does this reevaluate every time?
+    let allFileInfos = seq{ for t in allTabs do match t.FilePath with NotSet ->() |SetTo fi -> yield fi } //TODO does this reevaluate every time?
     
     let currentTabChangedEv = new Event<Tab>() //to Trigger Fs Checker and status bar update
     
@@ -43,31 +43,33 @@ type Tabs(config:Config, win:Window) =
         if not <| fi.Directory.Exists then 
             log.PrintIOErrorMsg "saveAsPath: Directory does not exist:\r\n%s" fi.Directory.FullName 
             false
-        else
-            t.AvaEdit.Save fi.FullName            
-            if not <| fi.Exists then 
-                log.PrintIOErrorMsg "saveAsPath: File was not saved:\r\n%s" t.FormatedFileName
-                false
-            else
+        else            
+            try
+                //t.AvaEdit.Save fi.FullName // fails, is it async ?
+                IO.File.WriteAllText(fi.FullName, t.AvaEdit.Text)
                 t.IsCodeSaved <- true 
-                t.FileInfo <- Some fi //this also updates the Tab header and set file info on editor
+                t.FilePath <- SetTo fi //this also updates the Tab header and set file info on editor
                 config.RecentlyUsedFiles.AddAndSave(fi)
-                config.OpenTabs.Save(t.FileInfo , allFileInfos)                
+                config.OpenTabs.Save(t.FilePath , allFileInfos)                
                 log.PrintInfoMsg "File saved as:\r\n%s" fi.FullName
                 true
+            with e -> 
+                log.PrintIOErrorMsg "saveAt: %s failed with %A" fi.FullName e
+                false
+                
 
     /// returns true if saving operation was not canceled
     let saveAsDialog (t:Tab) :bool= 
         let dlg = new Microsoft.Win32.SaveFileDialog()
-        if t.FileInfo.IsSome && t.FileInfo.Value.Directory.Exists then dlg.InitialDirectory <- t.FileInfo.Value.DirectoryName
-        if t.FileInfo.IsSome then dlg.FileName <- t.FileInfo.Value.Name        
+        match t.FilePath with NotSet ->() |SetTo fi -> if fi.Directory.Exists then dlg.InitialDirectory <- fi.DirectoryName
+        match t.FilePath with NotSet ->() |SetTo fi -> dlg.FileName <- fi.Name        
         dlg.DefaultExt <- ".fsx"
-        dlg.Title <- sprintf "Save File As for: %s" (if t.FileInfo.IsSome then  t.FileInfo.Value.FullName else t.FormatedFileName)
+        dlg.Title <- sprintf "Save File As for: %s" (match t.FilePath with NotSet -> t.FormatedFileName |SetTo fi -> fi.FullName )
         dlg.Filter <- "FSharp Script Files(*.fsx)|*.fsx|Text Files(*.txt)|*.txt|All Files(*.*)|*"
         if isTrue (dlg.ShowDialog()) then
             let fi = new FileInfo(dlg.FileName) 
             if fi.Exists then 
-                let msg = sprintf "Do you want to overwrite the existing file?\r\n%s" t.FormatedFileName
+                let msg = sprintf "Do you want to overwrite the existing file?\r\n%s\r\nwith\r\n%s"fi.FullName t.FormatedFileName
                 match MessageBox.Show(msg, Style.dialogCaption, MessageBoxButton.YesNo, MessageBoxImage.Question) with
                 | MessageBoxResult.Yes -> saveAt (t, fi)
                 | MessageBoxResult.No -> false
@@ -77,22 +79,19 @@ type Tabs(config:Config, win:Window) =
         else
             false
 
-    let trySave (t:Tab)=
-        if t.FileInfo.IsSome && t.FileInfo.Value.Exists then
-            if not t.IsCodeSaved then
-                t.AvaEdit.Save t.FileInfo.Value.FullName 
-                t.IsCodeSaved <- true 
-                log.PrintInfoMsg "File saved at:\r\n%s" t.FileInfo.Value.FullName           
+    let trySave (t:Tab)=        
+        match t.FilePath with
+        |SetTo fi ->         
+            if  t.IsCodeSaved then 
+                log.PrintInfoMsg "File already up to date:\r\n%s" fi.FullName
                 true
+            elif fi.Exists then
+                saveAt(t, fi)
             else
-                log.PrintInfoMsg "File already up to date:\r\n%s" t.FileInfo.Value.FullName  
-                true
-        else 
-            if t.FileInfo.IsNone then () 
-            elif not <| t.FileInfo.Value.Exists then 
-                log.PrintIOErrorMsg "File does not exist on drive anymore:\r\n%s" t.FileInfo.Value.FullName  
-                MessageBox.Show("File does not exist on drive anymore:\r\n" + t.FileInfo.Value.FullName , dialogCaption, MessageBoxButton.OK, MessageBoxImage.Error) |> ignore
-            saveAsDialog(t)
+                log.PrintIOErrorMsg "File does not exist on drive anymore:\r\n%s" fi.FullName
+                saveAsDialog(t)
+        |NotSet -> 
+                saveAsDialog(t)
 
     /// returns true if file is saved or if closing ok (not canceled by user)
     let askIfClosingTabIsOk(t:Tab) :bool=  
@@ -107,21 +106,21 @@ type Tabs(config:Config, win:Window) =
     let closeTab(t:Tab)= 
         if askIfClosingTabIsOk(t) then 
             tabs.Items.Remove(t)            
-            config.OpenTabs.Save (t.FileInfo , allFileInfos)//saving removed file, not added 
+            config.OpenTabs.Save (t.FilePath , allFileInfos)//saving removed file, not added 
 
     let addTab(tab:Tab, makeCurrent, moreTabsToCome) = 
         let ix = tabs.Items.Add tab        
         if makeCurrent then  
             tabs.SelectedIndex <- ix
             current <-  tab        
-        match tab.FileInfo with 
-        |Some fi -> 
+        match tab.FilePath with 
+        |SetTo fi -> 
             if moreTabsToCome then 
                 config.RecentlyUsedFiles.Add(fi)
             else
                 config.RecentlyUsedFiles.AddAndSave(fi)
-                config.OpenTabs.Save(tab.FileInfo , allFileInfos)  // if makeCurrent this is done in tabs.SelectionChanged event handler below
-        |None -> ()
+                config.OpenTabs.Save(tab.FilePath , allFileInfos)  // if makeCurrent this is done in tabs.SelectionChanged event handler below
+        |NotSet -> ()
         
         tab.CloseButton.Click.Add (fun _ -> closeTab(tab))
         
@@ -129,13 +128,13 @@ type Tabs(config:Config, win:Window) =
     let tryAddFile(fi:FileInfo, makeCurrent, moreTabsToCome) =            
         let areFilesSame (a:FileInfo) (b:FileInfo) = a.FullName.ToLowerInvariant() = b.FullName.ToLowerInvariant()
         
-        let areFilesOptionsSame (a:FileInfo ) (b:FileInfo Option) = 
+        let areFilePtahsSame (a:FileInfo ) (b:FilePath) = 
             match b with 
-            |Some bb -> areFilesSame bb a
-            |_ -> false
+            |SetTo bb -> areFilesSame bb a
+            |NotSet -> false
 
         if fi.Exists then            
-            match allTabs |> Seq.indexed |> Seq.tryFind (fun (_,t) -> areFilesOptionsSame fi t.FileInfo) with // check if file is already open             
+            match allTabs |> Seq.indexed |> Seq.tryFind (fun (_,t) -> areFilePtahsSame fi t.FilePath) with // check if file is already open             
             | Some (i,t) -> 
                 if makeCurrent && not t.IsCurrent then 
                     tabs.SelectedIndex <- i 
@@ -145,7 +144,7 @@ type Tabs(config:Config, win:Window) =
             | None -> 
                 try
                     let code = IO.File.ReadAllText fi.FullName
-                    let t = new Tab(Editor.SetUp(code, config, Some fi))
+                    let t = new Tab(Editor.SetUp(code, config, SetTo fi))
                     addTab(t,makeCurrent, moreTabsToCome)
                 with  e -> 
                     log.PrintIOErrorMsg "Error reading and adding :\r\n%s\r\n%A" fi.FullName e
@@ -172,7 +171,7 @@ type Tabs(config:Config, win:Window) =
         // then start highligh errors on current only
         current.Editor.Checker.CkeckHighlightAndFold(current.Editor)  
         config.RecentlyUsedFiles.Save() 
-        config.OpenTabs.Save(current.FileInfo , allFileInfos)
+        config.OpenTabs.Save(current.FilePath , allFileInfos)
 
         //then set up events
         tabs.SelectionChanged.Add( fun _-> // triggered an all tabs on startup ???// when closing, opening or changing tabs  attach first so it will be triggered below when adding files
@@ -192,7 +191,7 @@ type Tabs(config:Config, win:Window) =
                 tab.IsCurrent <-true                
                 currentTabChangedEv.Trigger(tab) // to update statusbar
                 if tab.Editor.CheckState = FileCheckState.NotStarted then tab.Editor.Checker.CkeckHighlightAndFold(tab.Editor)  // onlt actually highglights if editor has needsChecking=true              
-                config.OpenTabs.Save(tab.FileInfo , allFileInfos)
+                config.OpenTabs.Save(tab.FilePath , allFileInfos)
                 
             )
        
@@ -224,9 +223,9 @@ type Tabs(config:Config, win:Window) =
     member this.AddFile(fi:FileInfo, makeCurrent) =  tryAddFile(fi, makeCurrent,false)
     
     member this.WorkingDirectory = 
-        match current.FileInfo with 
-        |Some fi -> Some fi.Directory
-        |None ->
+        match current.FilePath with 
+        |SetTo fi -> Some fi.Directory
+        |NotSet ->
             match allFileInfos |> Seq.tryHead with
             |Some fi -> Some fi.Directory
             |None    -> None
@@ -259,8 +258,9 @@ type Tabs(config:Config, win:Window) =
     
     /// returns true if saving operation was not canceled
     member this.SaveIncremental (t:Tab) = 
-         if t.FileInfo.IsSome then            
-            let fn = t.FileInfo.Value.FullName
+         match t.FilePath with           
+         |SetTo fi ->
+            let fn = fi.FullName
             let last = fn.[fn.Length-5]
             if not <| Char.IsLetterOrDigit last then 
                 log.PrintInfoMsg "Save Incrementing failed on last value: '%c' on: \r\n%s" last fn
@@ -279,7 +279,7 @@ type Tabs(config:Config, win:Window) =
                     this.SaveAs(t)
                 else
                     saveAt(t,fi)                
-         else
+         |NotSet ->
             log.PrintIOErrorMsg "can't Save Incrementing unsaved file"  
             this.SaveAs(t)
    
@@ -290,7 +290,7 @@ type Tabs(config:Config, win:Window) =
             true
         else
             let msg = openFs  |> Seq.fold (fun m t -> 
-                let name  = if t.FileInfo.IsSome then t.FileInfo.Value.Name else t.FormatedFileName
+                let name  = match t.FilePath with NotSet ->t.FormatedFileName |SetTo fi ->fi.Name 
                 sprintf "%s\r\n\r\n%s" m name) "Do you want to\r\nsave the changes to:" 
             match MessageBox.Show(msg, Style.dialogCaption, MessageBoxButton.YesNoCancel, MessageBoxImage.Question) with
             | MessageBoxResult.Yes -> 

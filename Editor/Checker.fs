@@ -48,11 +48,11 @@ type Checker private (config:Config)  =
                     else                   doc.CreateSnapshot(0, tillOffset).Text
             
                 let fileFsx = 
-                    match iEditor.FileInfo with
-                    |Some fi -> 
+                    match iEditor.FilePath with
+                    |SetTo fi -> 
                         let n = fi.FullName
                         if not <| n.EndsWith(".fsx",StringComparison.InvariantCultureIgnoreCase) then n + ".fsx" else n // required by FCS, oddly !
-                    | None -> "UnSavedFile.fsx" // .fsx file required by FCS , oddly ! //TODO check if file can contain invald path characters like *
+                    |NotSet -> "UnSavedFile.fsx" // .fsx file required by FCS , oddly ! //TODO check if file can contain invald path characters like *
             
                 if !checkId = thisId  then
                     try

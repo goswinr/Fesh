@@ -19,7 +19,7 @@ type OpenTabs  (log:ISeffLog, adl:HostingMode, startupArgs:string[]) =
 
     let mutable allFiles:seq<FileInfo> = Seq.empty
 
-    let mutable currentFile:FileInfo option = None
+    let mutable currentFile:FilePath = NotSet
 
     let files = 
         let files = ResizeArray()
@@ -57,14 +57,14 @@ type OpenTabs  (log:ISeffLog, adl:HostingMode, startupArgs:string[]) =
         |]
 
     let getText() = 
-        let curr = if currentFile.IsSome then currentTabPreFix + currentFile.Value.FullName else "*No current tab*"
+        let curr = match currentFile with NotSet ->"*No current tab*" |SetTo fi -> currentTabPreFix + fi.FullName 
         let sb = StringBuilder()
         sb.AppendLine(curr) |> ignore // first line is filepath and name for current tab (repeats below)
         for f in allFiles do 
             sb.AppendLine(f.FullName) |> ignore   
         sb.ToString()
 
-    member this.Save (currentFileO:FileInfo option , allFilesO: seq<FileInfo>) =         
+    member this.Save (currentFileO:FilePath , allFilesO: seq<FileInfo>) =         
         currentFile<-currentFileO
         allFiles<-allFilesO
         log.PrintDebugMsg "Save tabs %A, curent %A" allFiles currentFile
