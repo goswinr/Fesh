@@ -43,7 +43,7 @@ type Tabs(config:Config, win:Window) =
             else
                 t.IsCodeSaved <- true 
                 t.FileInfo <- Some fi //this also updates the Tab header and set file info on editor
-                config.RecentlyUsedFiles.Save(fi)
+                config.RecentlyUsedFiles.AddAndSave(fi)
                 config.OpenTabs.Save(t.FileInfo , allFileInfos)                
                 log.PrintInfoMsg "File saved as:\r\n%s" fi.FullName
                 true
@@ -101,21 +101,24 @@ type Tabs(config:Config, win:Window) =
             tabs.Items.Remove(t)            
             config.OpenTabs.Save (t.FileInfo , allFileInfos)//saving removed file, not added 
 
-    let addTab(tab:Tab, makeCurrent) = 
+    let addTab(tab:Tab, makeCurrent, moreTabsToCome) = 
         let ix = tabs.Items.Add tab        
         if makeCurrent then  
             tabs.SelectedIndex <- ix
             current <-  tab        
         match tab.FileInfo with 
         |Some fi -> 
-            config.RecentlyUsedFiles.Save(fi)
-            if not makeCurrent then config.OpenTabs.Save(tab.FileInfo , allFileInfos)  // if makeCurrent this is done in tabs.SelectionChanged event handler below
+            if moreTabsToCome then 
+                config.RecentlyUsedFiles.Add(fi)
+            else
+                config.RecentlyUsedFiles.AddAndSave(fi)
+                config.OpenTabs.Save(tab.FileInfo , allFileInfos)  // if makeCurrent this is done in tabs.SelectionChanged event handler below
         |None -> ()
         
         tab.CloseButton.Click.Add (fun _ -> closeTab(tab))
         
     /// checks if file is open already then calls addTtab
-    let tryAddFile(fi:FileInfo, makeCurrent) =            
+    let tryAddFile(fi:FileInfo, makeCurrent, moreTabsToCome) =            
         let areFilesSame (a:FileInfo) (b:FileInfo) = a.FullName.ToLowerInvariant() = b.FullName.ToLowerInvariant()
         
         let areFilesOptionsSame (a:FileInfo ) (b:FileInfo Option) = 
@@ -129,12 +132,13 @@ type Tabs(config:Config, win:Window) =
                 if makeCurrent && not t.IsCurrent then 
                     tabs.SelectedIndex <- i 
                     current <- t
-                    config.RecentlyUsedFiles.Save(fi) // to move it up to top of stack
+                    config.RecentlyUsedFiles.AddAndSave(fi) // to move it up to top of stack
                     //config.OpenTabs.Save(t.FileInfo , allFileInfos) // done in SelectionChanged event below
             | None -> 
                 try
                     let code = IO.File.ReadAllText fi.FullName
-                    addTab(new Tab(Editor.SetUp(code, config, Some fi)),makeCurrent)
+                    let t = new Tab(Editor.SetUp(code, config, Some fi))
+                    addTab(t,makeCurrent, moreTabsToCome)
                 with  e -> 
                     log.PrintIOErrorMsg "Error reading and adding :\r\n%s\r\n%A" fi.FullName e
         else
@@ -145,12 +149,13 @@ type Tabs(config:Config, win:Window) =
     
     do
         
-        // --------------first load tabs from last session an startup args--------------
+        // --------------first load tabs from last session including startup args--------------
         for f in config.OpenTabs.Get() do 
-            tryAddFile( f.file, f.makeCurrent)  |> ignore 
+            tryAddFile( f.file, f.makeCurrent, true)  |> ignore 
 
         if tabs.Items.Count=0 then //Open default file if none found in recent files or args                
-            addTab(new Tab(Editor.New(config)), true) |> ignore 
+            let t = new Tab(Editor.New(config))
+            addTab(t, true, true) |> ignore 
                 
         if tabs.SelectedIndex = -1 then    //make one tab current if none yet , happens if current file on last closing was an unsaved file
             tabs.SelectedIndex <- 0
@@ -158,7 +163,9 @@ type Tabs(config:Config, win:Window) =
         
         // then start highligh errors on current only
         current.Editor.Checker.CkeckHighlightAndFold(current.Editor)  
-        
+        config.RecentlyUsedFiles.Save() 
+        config.OpenTabs.Save(current.FileInfo , allFileInfos)
+
         //then set up events
         tabs.SelectionChanged.Add( fun _-> // triggered an all tabs on startup ???// when closing, opening or changing tabs  attach first so it will be triggered below when adding files
             if tabs.Items.Count = 0 then //  happens when closing the last open tab
@@ -203,10 +210,10 @@ type Tabs(config:Config, win:Window) =
 
     member this.AllTabs = allTabs
     
-    member this.AddTab(tab:Tab, makeCurrent) = addTab(tab, makeCurrent)
+    member this.AddTab(tab:Tab, makeCurrent) = addTab(tab, makeCurrent,false)
 
     /// checks if file is open already then calls addTtab
-    member this.AddFile(fi:FileInfo, makeCurrent) =  tryAddFile(fi, makeCurrent)
+    member this.AddFile(fi:FileInfo, makeCurrent) =  tryAddFile(fi, makeCurrent,false)
     
     member this.WorkingDirectory = 
         match current.FileInfo with 
@@ -229,8 +236,8 @@ type Tabs(config:Config, win:Window) =
         if isTrue (dlg.ShowDialog()) then
             for num,f in Seq.indexed dlg.FileNames do
                 let fi = new FileInfo(f)
-                if num = 0 then  tryAddFile (fi, true) 
-                else             tryAddFile (fi, false)
+                if num = 0 then  tryAddFile (fi, true,false) 
+                else             tryAddFile (fi, false,false)
             
     /// Shows a file opening dialog
     member this.SaveAs (t:Tab) = saveAsDialog(t)

@@ -40,10 +40,18 @@ type RecentlyUsedFiles  (log:ISeffLog, adl:HostingMode) =
         recentFilesChangedEv.Trigger()  //this event will be triggered 1000 ms after new tabs are created
         sb.ToString()    
 
-    member this.Save(fi:FileInfo) =         
-            recentFilesStack.Push fi 
-            //log.PrintDebugMsg "add recent file %s" fi.FullName
-            writer.WriteDelayed(filePath, getStringRaiseEvent, 1000)
+    member this.AddAndSave(fi:FileInfo) =         
+        recentFilesStack.Push fi 
+        //log.PrintDebugMsg "add recent file %s" fi.FullName
+        writer.WriteDelayed(filePath, getStringRaiseEvent, 1000)
+
+    member this.Save() =         
+        writer.WriteDelayed(filePath, getStringRaiseEvent, 1000)
+
+
+    /// does not save 
+    member this.Add(fi:FileInfo) =         
+        recentFilesStack.Push fi
         
     /// the first elemnt in this array the top of stack
     member this.Get() = Array.ofSeq recentFilesStack

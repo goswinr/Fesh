@@ -67,6 +67,7 @@ type OpenTabs  (log:ISeffLog, adl:HostingMode, startupArgs:string[]) =
     member this.Save (currentFileO:FileInfo option , allFilesO: seq<FileInfo>) =         
         currentFile<-currentFileO
         allFiles<-allFilesO
+        log.PrintDebugMsg "Save tabs %A, curent %A" allFiles currentFile
         writer.WriteDelayed  (filePath, getText ,500)
       
     /// second item in tuple indicates current tab
