@@ -12,9 +12,9 @@ open FSharp.Compiler.SourceCodeServices
 module Style =  
     let dialogCaption = "Seff | Scripting editor for fsharp"   // e.g title of saveAs window
     
-    let mutable fontEditor      = FontFamily("Consolas") // used for startup and later for Tooltips. will be set in FontManager.fs
-    let mutable fontLog         = FontFamily("Consolas") // defaults to arial if font is missing. will be set from rescources in  FontManager.fs
-    let mutable fontToolTip     = FontFamily("Consolas") // use for Tooltips. will be set in FontManager.fs
+    let mutable fontEditor      = FontFamily("Consolas") // used for startup only, will be set from rescources in  FontManager.fs
+    let mutable fontLog         = FontFamily("Consolas") // used for startup only,
+    let mutable fontToolTip     = FontFamily("Consolas") // used for startup only,
 
     let mutable fontSize = 14.0 //will also be used for sizing tooltip text
 
