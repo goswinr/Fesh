@@ -32,7 +32,7 @@ type LogMessageType =
         | FsiErrorOut   ->Brushes.DarkMagenta //are they all caught by evaluate non throwing ?
         | ConsoleOut    ->Brushes.Yellow // default black forground is used ; never used should  // the out from printfn
         | ConsoleError  ->Brushes.LightSalmon // this is never used, only FsiErrorOut is used?
-        | InfoMsg       ->Brushes.Blue |> Util.General.brighter 20 
+        | InfoMsg       ->Brushes.LightSeaGreen
         | FsiErrorMsg   ->Brushes.Red
         | AppErrorMsg   ->Brushes.DarkOrange
         | IOErrorMsg    ->Brushes.DarkRed
