@@ -26,7 +26,7 @@ module Initialize =
         let log = new Log()        
         let config = new Config(log,context,startupArgs)
         log.AdjustToSettingsInConfig(config)
-
+        Fsi.GetOrCreate(config).Initalize() 
 
         //--------------ERROR Handeling --------------------
 
