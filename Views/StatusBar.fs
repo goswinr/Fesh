@@ -58,12 +58,12 @@ type StatusBar (grid:TabsAndLog, cmds:Commands)  = // TODO better make it depend
                     else
                         compilerErrors.Text <- sprintf "Compiler errors: %d, warnings: %d" ers was
                         compilerErrors.Background <- Brushes.Red   |> brighter 150             
-                    compilerErrors.ToolTip <- makePanelVert [ 
-                        TextBlock(Text = tabs.Current.FormatedFileName)
-                        if ers>0 then TextBlock(Text="Errors", FontSize = 14.)
+                    compilerErrors.ToolTip <- makePanelVert [                         
+                        if ers>0 then TextBlock(Text="Errors:", FontSize = 14. , FontWeight = FontWeights.Bold )
                         for e in es|> Seq.filter (fun e -> e.Severity = FSharpErrorSeverity.Error)  do new TextBlock(Text = sprintf "• Line %d: %s" e.StartLineAlternate e.Message)
-                        if was>0 then TextBlock(Text="Warnings", FontSize = 14.)
+                        if was>0 then TextBlock(Text="Warnings:", FontSize = 14. , FontWeight = FontWeights.Bold )
                         for e in es|> Seq.filter (fun e -> e.Severity = FSharpErrorSeverity.Warning) do new TextBlock(Text = sprintf "• Line %d: %s" e.StartLineAlternate e.Message) 
+                        TextBlock(Text = tabs.Current.FormatedFileName, FontSize = 8.)
                         ]        
         
         | Running id0->
