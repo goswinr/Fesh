@@ -16,7 +16,8 @@
 
 
   <ItemGroup>
-    <!-- don't add explict ref to Fsharp.Core-->
+    <!-- don't add explict ref to Fsharp.Core? https://github.com/dotnet/fsharp/issues/9064-->
+    <PackageReference Update="FSharp.Core" Version="4.7.1" /> 
     <PackageReference Include="FSharp.Compiler.Service" Version="33.0.1" /> 
   </ItemGroup>
 
@@ -26,35 +27,28 @@
   </ItemGroup>
 
   <ItemGroup>        
+    <Reference Include="WindowsBase" />
     <Reference Include="PresentationCore" />
     <Reference Include="PresentationFramework" />
-    <Reference Include="ReachFramework" />
+    <!--<Reference Include="ReachFramework" />
     <Reference Include="System.Net" />
     <Reference Include="System.Printing" />
     <Reference Include="System.Xaml" />
-    <Reference Include="UIAutomationTypes" />
-    <Reference Include="WindowsBase" />
+    <Reference Include="UIAutomationTypes" />-->
   </ItemGroup>
 
 
   <ItemGroup>
 
-    <EmbeddedResource Include="Media\LogoCursorTr.res" /> <!--  for Application Icon in explorer-->     
-    
-    <Resource Include="Media\LogoCursorTr.ico" />
-    
-    <Resource Include="Media\FiraCode-Regular.ttf" />  
-
+    <EmbeddedResource Include="Media\LogoCursorTr.res" /> <!--  for Application Icon in explorer-->   
+    <Resource         Include="Media\LogoCursorTr.ico" />    
+    <Resource         Include="Media\FiraCode-Regular.ttf" />  
     <None Include="FSharpSynatxHighlighterExtended.xshd">    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>    </None>
 
     <Compile Include="Util.fs" />
-
     <Compile Include="Timer.fs" />
-
     <Compile Include="Model.fs" />
-
     <Compile Include="Sync.fs" />
-
     <Compile Include="Config\SaveWriter.fs" />
     <Compile Include="Config\HostingMode.fs" />
     <Compile Include="Config\Settings.fs" />
@@ -87,8 +81,7 @@
     <Compile Include="Views\StatusBar.fs" />
     <Compile Include="Views\Menu.fs" />
     <Compile Include="Views\Seff.fs" />
-    <Compile Include="Initialize.fs" />
-    
+    <Compile Include="Initialize.fs" />    
     <Compile Include="App.fs" />
 
   </ItemGroup>
