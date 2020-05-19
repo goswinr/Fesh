@@ -15,6 +15,9 @@ type Fonts (grid:TabsAndLog) = // will be contructed as part of Commands class
     let tabs= grid.Tabs
     let config = grid.Config
     
+    let fontsUri =  new Uri("pack://application:,,,/Seff;component/Media/#")
+    let mediaUri =  new Uri("pack://application:,,,/Seff;component/Media/")
+
     let setSize (newSize) = // on log and all tabs
         log.ReadOnlyEditor.FontSize <- newSize
         for t in tabs.AllTabs do                
@@ -32,7 +35,7 @@ type Fonts (grid:TabsAndLog) = // will be contructed as part of Commands class
         else
             log.PrintAppErrorMsg "Font '%s' could not be loaded. Loaded '%s' instead." f.Source n
             log.PrintAppErrorMsg "Fonts found in Rescources in folder Media:"
-            for fo in Fonts.GetFontFamilies(new Uri("pack://application:,,,/Media/#")) do
+            for fo in Fonts.GetFontFamilies(fontsUri) do
                 log.PrintAppErrorMsg "'%s'" fo.Source    
             false
 
@@ -57,8 +60,7 @@ type Fonts (grid:TabsAndLog) = // will be contructed as part of Commands class
 
     let fromRescources(name, alternative) =
         try
-            let uri =  new Uri("pack://application:,,,/") //new Uri("pack://application:,,,/Seff;component/Media/FiraCode-Regular.ttf", UriKind.RelativeOrAbsolute) //Build action : "Resource"; Copy to ouput Dir: "Do not copy" 
-            let f = new FontFamily(uri,"./Media/#"+name) 
+            let f = new FontFamily(mediaUri,"./#"+name) 
             // TODO set ligatures?
             if not (verifyFont  f) then 
                 new FontFamily(alternative) |>> verifyFont 

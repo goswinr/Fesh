@@ -32,7 +32,8 @@ type Window (config:Config)=
             // (for the exe file icon in explorer use <Win32Resource>Media\LogoCursorTr.res</Win32Resource>  in fsproj )
             // TODO delete if no bug //let uri = new Uri("pack://application:,,,/Seff;component/Media/LogoCursorTr.ico", UriKind.RelativeOrAbsolute) 
             // delete if no bug //win.Icon <-  Media.Imaging.BitmapFrame.Create(Application.GetResourceStream(uri).Stream)
-            win.Icon <-  BitmapFrame.Create(Uri("pack://application:,,,/Media/LogoCursorTr.ico"))//Build action : "Resource"
+            //win.Icon <-  BitmapFrame.Create(Uri("pack://application:,,,/Media/LogoCursorTr.ico"))//Build action : "Resource"
+            win.Icon <-  BitmapFrame.Create(Uri("pack://application:,,,/Seff;component/Media/LogoCursorTr.ico")) // so that it works hosted in other dlls too?
         with ex -> 
             log.PrintAppErrorMsg  "Failed to load Media/LogoCursorTr.ico from Application.ResourceStream : %A" ex 
         //)    
