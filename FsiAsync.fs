@@ -9,24 +9,8 @@ open FSharp.Compiler.Interactive.Shell
 open Seff.Config
 
 
-/// A class to provide an Error Handler that can catch currupted state or access violation errors frim FSI threads too
-type ProcessCorruptedState(config:Config) =  
-    
 
-    // TODO ingerate handler info FSI
-    [< Security.SecurityCritical; Runtime.ExceptionServices.HandleProcessCorruptedStateExceptions >] //to handle AccessViolationException too //https://stackoverflow.com/questions/3469368/how-to-handle-accessviolationexception/4759831
-    member this.Handler (sender:obj) (e: UnhandledExceptionEventArgs) = 
-         // Starting with the .NET Framework 4, this event is not raised for exceptions that corrupt the state of the process, 
-         // such as stack overflows or access violations, unless the event handler is security-critical and has the HandleProcessCorruptedStateExceptionsAttribute attribute.
-         // https://docs.microsoft.com/en-us/dotnet/api/system.appdomain.unhandledexception?redirectedfrom=MSDN&view=netframework-4.8
-         // https://docs.microsoft.com/en-us/archive/msdn-magazine/2009/february/clr-inside-out-handling-corrupted-state-exceptions
-         let err = sprintf "ProcessCorruptedState Special Handler: AppDomain.CurrentDomain.UnhandledException: isTerminating: %b : %A" e.IsTerminating e.ExceptionObject
-         let file = IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop),"Seff-AppDomain.CurrentDomain.UnhandledException.txt")
-         async { IO.File.WriteAllText(file, err)} |> Async.Start
-         config.Log.PrintAppErrorMsg "%s" err
-
-
-type Fsi private (config:Config) =    
+type FsiAsync private (config:Config) =    
     let log = config.Log
     
     ///FSI events
@@ -206,13 +190,18 @@ type Fsi private (config:Config) =
         thr.Start()
     
     
-    static let mutable singleInstance:Fsi option  = None
+    static let mutable singleInstance:FsiAsync option  = None
     
     /// ensures only one instance is created
-    static member GetOrCreate(config) = 
-        match singleInstance with 
-        |Some fsi -> fsi
-        |None -> singleInstance <- Some (new Fsi(config)); singleInstance.Value
+    static member GetOrCreate(config:Config) : FsiAsync = 
+        match config.HostingInfo.Mode with
+        |Hosted h when h= "Revit" ->
+            config.Log.PrintInfoMsg "Fsi in Sync only mode for Revit"
+            FsiAsync.GetOrCreate(config)
+        | _ -> 
+            match singleInstance with 
+            |Some fsi -> fsi
+            |None -> singleInstance <- Some (new FsiAsync(config)); singleInstance.Value
 
     //-------------- public interface: ---------
 

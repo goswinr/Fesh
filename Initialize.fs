@@ -39,7 +39,7 @@ module Initialize =
         //catching unhandled exceptions generated from all threads running under the context of a specific application domain. 
         //https://dzone.com/articles/order-chaos-handling-unhandled
         //https://stackoverflow.com/questions/14711633/my-c-sharp-application-is-returning-0xe0434352-to-windows-task-scheduler-but-it        
-        AppDomain.CurrentDomain.UnhandledException.AddHandler (  new UnhandledExceptionEventHandler( Seff.ProcessCorruptedState(config).Handler)) 
+        AppDomain.CurrentDomain.UnhandledException.AddHandler (  new UnhandledExceptionEventHandler( ProcessCorruptedState(config).Handler)) 
 
         // --------------- rest of views-------------------
 

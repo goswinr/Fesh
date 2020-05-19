@@ -126,21 +126,4 @@ type Window (config:Config)=
         and set(v) = wasMax <- v 
 
 
-          
-    (* done in Initialize function, TODO check
-    win.ContentRendered.Add(fun _ -> 
-        //if not <| Tabs.Current.Editor.Focus() then log.PrintAppErrorMsg "Tabs.Current.Editor.Focus failed"  //or System.Windows.Input.FocusManager.SetFocusedElement(...)             
-        log.PrintInfoMsg "* Time for loading and render main window: %s"  Timer.InstanceStartup.tocEx            
-        Fsi.Initalize() // do late to be sure errors can print to log and dont get lost (Rhino has problems with FSI from  FCS 33.0.1 on) ) 
-              
-    win.Closing.Add( fun e ->
-        // first check for running FSI
-        match Fsi.AskIfCancellingIsOk () with 
-        | NotEvaluating   -> ()
-        | YesAsync        -> Fsi.CancelIfAsync() 
-        | Dont            -> e.Cancel <- true // dont close window   
-        | NotPossibleSync -> () // still close despite running thread ??            
-        //second check for unsaved files:
-        let canClose = tabs.askIfClosingWindowIsOk(Tabs.AllTabs,Tabs.SaveAs) 
-        if not canClose then e.Cancel <- true // dont close window  
-        ) *)
+    

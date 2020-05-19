@@ -81,5 +81,3 @@ type PositionInCode = { lineToCaret:string ; row:int; column:int; offset:int }
 type CommandInfo = {name:string; gesture:string; cmd:ICommand; tip:string }
 
 
-
-    
