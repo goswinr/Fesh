@@ -179,11 +179,8 @@ type Tabs(config:Config, win:Window) =
                 win.Close() // exit App ? (chrome and edge also closes when closing the last tab, Visual Studio not)
             else
                 let tab = 
-                    if isNull tabs.SelectedItem then 
-                        log.PrintAppErrorMsg "Tabs SelectionChanged handler: there was no tab selected by default" // should never happen
-                        tabs.Items.[0]
-                    else 
-                        tabs.SelectedItem                 
+                    if isNull tabs.SelectedItem then tabs.Items.[0] //log.PrintAppErrorMsg "Tabs SelectionChanged handler: there was no tab selected by default" //  does happen 
+                    else                             tabs.SelectedItem                 
                 let tab = tab :?> Tab
                 current <- tab
                 for t in allTabs do

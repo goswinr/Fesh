@@ -132,7 +132,7 @@ type Commands (grid:TabsAndLog) =
                  this.ClearFSI         
                  this.CancelFSI        
                  this.ResetFSI         
-                 if config.HostingMode.IsStandalone then this.ToggleSync
+                 if config.HostingMode.IsHosted then this.ToggleSync
              
                  this.ToggleSplit      
                  this.ToggleLogSize    

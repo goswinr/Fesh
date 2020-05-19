@@ -107,7 +107,7 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, log:Log) =
                 menuItem cmds.ClearFSI  
                 menuItem cmds.CancelFSI 
                 menuItem cmds.ResetFSI  
-                if config.HostingMode.IsStandalone then
+                if config.HostingMode.IsHosted then
                     sep()
                     menuItem cmds.ToggleSync
                 ]

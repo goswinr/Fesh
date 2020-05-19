@@ -146,16 +146,18 @@ type TypeInfo private () =
     // --------------------------------------------------------------------------------------
 
     ///returns the names of optional Arguments in a given method call
-    static let namesOfOptnlArgs(fsu:FSharpSymbolUse)=
+    static let namesOfOptnlArgs(fsu:FSharpSymbolUse,log:ISeffLog)=
         let D = ResizeArray<string>(0)               
-        match fsu.Symbol with
-        | :? FSharpMemberOrFunctionOrValue as x ->
-            for cs in x.CurriedParameterGroups do
-                for c in cs do 
-                    if c.IsOptionalArg then                         
-                        D.Add c.FullName
-                        //log.PrintDebugMsg "optional full name: %s" c.FullName
-        | _ -> ()
+        try
+            match fsu.Symbol with
+            | :? FSharpMemberOrFunctionOrValue as x ->
+                for cs in x.CurriedParameterGroups do
+                    for c in cs do 
+                        if c.IsOptionalArg then                         
+                            D.Add c.FullName
+                            //log.PrintDebugMsg "optional full name: %s" c.FullName
+            | _ -> ()
+        with e -> log.PrintAppErrorMsg "Error in TypeInfo.namesOfOptnlArgs: %A" e
         D
     
     //--------------public values and functions -----------------
@@ -166,9 +168,9 @@ type TypeInfo private () =
     
     static member getPanel  (it:FSharpDeclarationListItem option, tds:ToolTipData list) = stackPanel (it, tds)
 
-    static member namesOfOptionalArgs(fsu:FSharpSymbolUse) = namesOfOptnlArgs(fsu)
+    static member namesOfOptionalArgs(fsu:FSharpSymbolUse,log:ISeffLog) = namesOfOptnlArgs(fsu,log)
 
-    static member mouseHover(e: MouseEventArgs, iEditor:IEditor, tip:ToolTip) =
+    static member mouseHover(e: MouseEventArgs, iEditor:IEditor, log:ISeffLog, tip:ToolTip) =
         // see https://github.com/icsharpcode/AvalonEdit/blob/master/ICSharpCode.AvalonEdit/Editing/SelectionMouseHandler.cs#L477
                 
         let doc = iEditor.AvaEdit.Document
@@ -213,7 +215,7 @@ type TypeInfo private () =
 
                         let! stt =    res.checkRes.GetStructuredToolTipText(line,endCol,lineTxt,[word],FSharpTokenTag.Identifier)       //TODO, can this be avoided use info from below symbol call ? // TODO move into checker
                         let! symbls = res.checkRes.GetSymbolUseAtLocation(  line,endCol,lineTxt,[word])                                 //only get to info about oprional paramters
-                        let optArgs = if symbls.IsSome then namesOfOptnlArgs(symbls.Value) else ResizeArray(0) 
+                        let optArgs = if symbls.IsSome then namesOfOptnlArgs(symbls.Value,log) else ResizeArray(0) 
                         
                         do! Async.SwitchToContext Sync.syncContext
                     

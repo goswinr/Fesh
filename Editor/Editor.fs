@@ -203,7 +203,7 @@ type Editor private (code:string, config:Config, filePath:FilePath) =
 
         ed.Checker.OnChecked.Add(fun iEditor -> ed.ErrorHighlighter.Draw(ed)) // this then trigger folding too, stusbar update is added in statusbar
 
-        avaEdit.TextArea.TextView.MouseHover.Add(fun e -> TypeInfo.mouseHover(e,ed, ed.TypeInfoTip))        
+        avaEdit.TextArea.TextView.MouseHover.Add(fun e -> TypeInfo.mouseHover(e, ed, log, ed.TypeInfoTip))        
         avaEdit.TextArea.TextView.MouseHoverStopped.Add(fun _ -> ed.TypeInfoTip.IsOpen <- false )
 
         avaEdit.AllowDrop <- true  

@@ -188,7 +188,7 @@ type Completions(avaEdit:TextEditor,config:Config, checker:Checker, errorHighlig
             compl.OptArgsDict.Clear() //TODO make persistent on class for cashing
             for symbs in declSymbs do 
                 for symb in symbs do 
-                    let opts = TypeInfo.namesOfOptionalArgs symb
+                    let opts = TypeInfo.namesOfOptionalArgs( symb, log)
                     if opts.Count>0 then 
                         compl.OptArgsDict.[symb.Symbol.FullName]<- opts
 
