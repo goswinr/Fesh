@@ -7,12 +7,12 @@ open System.Collections.Generic
 
    
 /// A class to hold the statistic of most used toplevel auto completions
-type AutoCompleteStatistic  (log:ISeffLog, adl:HostingMode) =
+type AutoCompleteStatistic  (log:ISeffLog, hostInfo:HostingInfo) =
     let writer = SaveWriter(log)
         
     let  sep = '=' // key value separatur like in ini files
     
-    let filePath = adl.GetPathToSaveAppData("AutoCompleteStatistic.txt")
+    let filePath = hostInfo.GetPathToSaveAppData("AutoCompleteStatistic.txt")
     
     let completionStats = 
         let dict=Collections.Concurrent.ConcurrentDictionary<string,float>() 

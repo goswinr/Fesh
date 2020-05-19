@@ -5,7 +5,7 @@ open Seff
 
 
 /// A class to hold the current App Run context (Standalone or Hosted)
-type HostingMode (ctx:AppRunContext) =    
+type HostingInfo (ctx:HostingMode) =    
     let configFolder = 
         let appData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData)
         let p = IO.Path.Combine(appData,"Seff")

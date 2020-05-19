@@ -7,10 +7,10 @@ open System.Collections.Generic
 
            
 /// A class to hold the previously loaded assemble refrences for auto completions
-type AssemblyReferenceStatistic  (log:ISeffLog, adl:HostingMode) =
+type AssemblyReferenceStatistic  (log:ISeffLog, hostInfo:HostingInfo) =
     let writer = SaveWriter(log)
         
-    let filePath = adl.GetPathToSaveAppData("AssemblyReferenceStatistic.txt")
+    let filePath = hostInfo.GetPathToSaveAppData("AssemblyReferenceStatistic.txt")
         
     let assRefStats = 
         let set = HashSet<string>() 
@@ -30,7 +30,7 @@ type AssemblyReferenceStatistic  (log:ISeffLog, adl:HostingMode) =
         for v in assRefStats do sb.AppendLine(v.ToString()) |> ignore
         sb.ToString() 
 
-    let filePath = adl.GetPathToSaveAppData("AssemblyReferenceStatistic.txt")
+    let filePath = hostInfo.GetPathToSaveAppData("AssemblyReferenceStatistic.txt")
                      
     member this.Get = assRefStats
             

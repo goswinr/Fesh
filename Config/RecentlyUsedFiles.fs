@@ -6,10 +6,10 @@ open System.Text
 open System.IO
 
    
-type RecentlyUsedFiles  (log:ISeffLog, adl:HostingMode) =
+type RecentlyUsedFiles  (log:ISeffLog, hostInfo:HostingInfo) =
     let writer = SaveWriter(log)
         
-    let filePath = adl.GetPathToSaveAppData("RecentlyUsedFiles.txt")
+    let filePath = hostInfo.GetPathToSaveAppData("RecentlyUsedFiles.txt")
         
     let recentFilesChangedEv = new Event<unit>()
         

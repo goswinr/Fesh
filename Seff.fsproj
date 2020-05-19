@@ -41,8 +41,8 @@
   <ItemGroup>
 
     <EmbeddedResource Include="Media\LogoCursorTr.res" /> <!--  for Application Icon in explorer-->   
-    <Resource         Include="Media\LogoCursorTr.ico" />    
-    <Resource         Include="Media\FiraCode-Regular.ttf" />  
+    <Resource Include="Media\LogoCursorTr.ico" />    
+    <Resource Include="Media\FiraCode-Regular.ttf" />  
     <None Include="FSharpSynatxHighlighterExtended.xshd">    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>    </None>
 
     <Compile Include="Util.fs" />
@@ -50,7 +50,7 @@
     <Compile Include="Model.fs" />
     <Compile Include="Sync.fs" />
     <Compile Include="Config\SaveWriter.fs" />
-    <Compile Include="Config\HostingMode.fs" />
+    <Compile Include="Config\HostingInfo.fs" />
     <Compile Include="Config\Settings.fs" />
     <Compile Include="Config\DefaultCode.fs" />
     <Compile Include="Config\OpenTabs.fs" />

@@ -8,7 +8,7 @@ open Seff.Config
 
 
 module Initialize =  
-    let everything(context:AppRunContext, startupArgs:string[])=
+    let everything(context:HostingMode, startupArgs:string[])=
         Timer.InstanceStartup.tic()             // optional timer for full init process
         Sync.installSynchronizationContext()    // do first
 

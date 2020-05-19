@@ -90,11 +90,6 @@ type StatusBar (grid:TabsAndLog, cmds:Commands)  = // TODO better make it depend
 
 
     do        
-        bar.Items.Add compilerErrors          |> ignore 
-        bar.Items.Add (new Separator())       |> ignore 
-        bar.Items.Add fsiState                |> ignore 
-        bar.Items.Add (new Separator())       |> ignore 
-        bar.Items.Add (new StatusBarItem())   |> ignore // to fill remaining space
         
         fsi.OnStarted.Add(fun code -> 
             fsiState.Background <- Brushes.Orange   |> brighter 20 
@@ -114,27 +109,37 @@ type StatusBar (grid:TabsAndLog, cmds:Commands)  = // TODO better make it depend
 
         checker.OnChecking.Add updateCheckState
 
+        bar.Items.Add compilerErrors          |> ignore 
+        bar.Items.Add (new Separator())       |> ignore 
+        bar.Items.Add fsiState                |> ignore 
+        bar.Items.Add (new Separator())       |> ignore 
+        
+        match config.HostingInfo.Mode with
+        |Standalone -> 
+            bar.Items.Add (new StatusBarItem())   |> ignore // to fill remaining space
+        |Hosted _ ->
+            let ini =   
+                match fsi.Mode with
+                | Sync  ->  "FSI evaluation mode: Synchronos" 
+                | Async ->  "FSI evaluation mode: Asynchronos"
+        
+            let asyncDesc = new TextBlock( Text =  ini  , Padding = padding) 
+            bar.Items.Add( new StatusBarItem(Content=asyncDesc)) |> ignore
+            bar.Items.Add( new Separator())  |> ignore 
+            bar.Items.Add( new StatusBarItem())   |> ignore // to fill remaining space
+            asyncDesc.ToolTip <- "Click to switch between synchronous and asynchronous evaluation in FSI,\r\nsynchronous is needed for UI interaction,\r\nasynchronous allows easy cancellation and keeps the editor window alive"
+            asyncDesc.MouseDown.Add(fun _ -> fsi.ToggleSync()) //done in fsi module
+      
+            fsi.OnModeChanged.Add(function 
+                | Sync  -> asyncDesc.Text <- "FSI evaluation mode: Synchronos" 
+                | Async -> asyncDesc.Text <- "FSI evaluation mode: Asynchronos"  )
+
+
+
+
+
     member this.Bar =  bar
   
 
-    member this.AddFsiSynchModeStatus()=
-        
-        let ini =   
-            match fsi.Mode with
-            | Sync  ->  "FSI evaluation mode: Synchronos" 
-            | Async ->  "FSI evaluation mode: Asynchronos"
-        
-        let asyncDesc = new TextBlock( Text=  ini  , Padding = padding)
-        
-        bar.Items.Add( new StatusBarItem(Content=asyncDesc)) |> ignore
-        bar.Items.Add( new Separator())  |> ignore 
-        bar.Items.Add( new StatusBarItem())   |> ignore // to fill remaining space
-        asyncDesc.ToolTip <- "Click to switch between synchronous and asynchronous evaluation in FSI,\r\nsynchronous is needed for UI interaction,\r\nasynchronous allows easy cancellation and keeps the editor window alive"
-        asyncDesc.MouseDown.Add(fun _ -> fsi.ToggleSync()) //done in fsi module
-        
-      
-        fsi.OnModeChanged.Add(function 
-            | Sync  -> asyncDesc.Text <- "FSI evaluation mode: Synchronos" 
-            | Async -> asyncDesc.Text <- "FSI evaluation mode: Asynchronos"  )
 
 

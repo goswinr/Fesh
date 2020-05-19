@@ -6,10 +6,10 @@ open System.Text
 
  
 /// window size, layout and position, async state and more
-type Settings (log:ISeffLog, adl:HostingMode) = 
+type Settings (log:ISeffLog, hostInfo:HostingInfo) = 
     let  sep = '=' // key value separatur like in ini files
     
-    let filePath = adl.GetPathToSaveAppData("Settings.txt")
+    let filePath = hostInfo.GetPathToSaveAppData("Settings.txt")
     
     let settingsDict = 
         let dict = new Collections.Concurrent.ConcurrentDictionary<string,string>()   

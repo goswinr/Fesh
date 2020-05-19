@@ -22,7 +22,7 @@ type Window (config:Config)=
     do       
         win.ResizeMode  <- ResizeMode.CanResize  
                 
-        win.Title       <- match config.HostingMode.Mode with 
+        win.Title       <- match config.HostingInfo.Mode with 
                            |Standalone -> "Seff | Scripting editor for fsharp"  
                            |Hosted n   -> "Seff | Scripting editor for fsharp in " + n
                 

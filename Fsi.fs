@@ -131,7 +131,7 @@ type Fsi private (config:Config) =
                     if prevState = NotLoaded then () //log.PrintInfoMsg "FSharp Interactive session created in %s"  timer.tocEx  
                     else                          log.PrintInfoMsg "FSharp Interactive session reset." // in %s" timer.tocEx     
             
-                    if config.HostingMode.IsHosted then 
+                    if config.HostingInfo.IsHosted then 
                         match mode with
                         |Sync ->  log.PrintInfoMsg "FSharp Interactive will evaluate synchronously on UI Thread."
                         |Async -> log.PrintInfoMsg "FSharp Interactive will evaluate asynchronously on new Thread."           

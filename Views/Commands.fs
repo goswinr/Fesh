@@ -76,7 +76,7 @@ type Commands (grid:TabsAndLog) =
     member val FontSmaller       = {name= "Make Font Smaller"         ;gesture= "Ctrl + '-'"     ;cmd= mkCmdSimple (fun _ -> fonts.FontsSmaller())        ;tip= "Decrease Text Size for both Editor and Log"}
                                                                                                                                      
     //Settings Menu                                                                                                                      
-    member val SettingsFolder    = {name= "Open Settings Folder"      ;gesture= ""               ;cmd= mkCmdSimple (fun _ -> config.HostingMode.OpenFolder())                             ;tip= "Opens the Folder where user settinsg such as default file content is saved."}
+    member val SettingsFolder    = {name= "Open Settings Folder"      ;gesture= ""               ;cmd= mkCmdSimple (fun _ -> config.HostingInfo.OpenFolder())                             ;tip= "Opens the Folder where user settinsg such as default file content is saved."}
     member val ReloadXshdFile    = {name= "Reload Xshd File"          ;gesture= "F11"            ;cmd= mkCmdSimple (fun _ -> SyntaxHighlighting.setFSharp(tabs.CurrAvaEdit,config,true))  ;tip= "Reloads FSharpSynatxHighlighterExtended.xshd, this is useful for testing new highlighting files without a restart."}
 
     //--------------------------
@@ -132,7 +132,7 @@ type Commands (grid:TabsAndLog) =
                  this.ClearFSI         
                  this.CancelFSI        
                  this.ResetFSI         
-                 if config.HostingMode.IsHosted then this.ToggleSync
+                 if config.HostingInfo.IsHosted then this.ToggleSync
              
                  this.ToggleSplit      
                  this.ToggleLogSize    

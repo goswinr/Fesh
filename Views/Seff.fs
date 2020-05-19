@@ -22,8 +22,7 @@ type Seff (config:Config,log:Log) =
         
         commands.SetUpGestureInputBindings()
         
-        if config.HostingMode.IsHosted then statusBar.AddFsiSynchModeStatus()
-
+        
         win.Window.Content <-   dockP   
         win.Window.Background  <- menu.Bar.Background // call after setting up content, otherwise space next to tab headers is in an odd color
               

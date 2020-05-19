@@ -62,7 +62,7 @@ type IEditor =
 
 type CodeToEval = {code:string; file:FilePath; allOfFile:bool}   
 
-type AppRunContext = Standalone  | Hosted of string
+type HostingMode = Standalone  | Hosted of string
 
 type FsiState =  Ready | Evaluating | Initalizing | NotLoaded
 
