@@ -43,39 +43,7 @@ module Initialize =
 
         // --------------- rest of views-------------------
 
-        let win = new Window(config)
-        let tabs = new Tabs(config, win.Window)
-        let tabsAndLog = new TabsAndLog(config, tabs, log, win)
-        let commands = Commands(tabsAndLog)
-        let statusBar = StatusBar(tabsAndLog, commands)
-        let menu = Menu(config, commands, tabs, log)
-        let seff = Seff(win, config, tabsAndLog, statusBar, menu, commands)
-        commands.SetUpGestureInputBindings()
-        
-        win.Window.Background  <- menu.Bar.Background // call after setting up content, otherwise space next to tab headers is in an odd color
-        
-
-        // finish setting up window:
-        win.Window.ContentRendered.Add(fun _ -> 
-            //if not <| Tabs.Current.Editor.Focus() then log.PrintAppErrorMsg "Tabs.Current.Editor.Focus failed"  //or System.Windows.Input.FocusManager.SetFocusedElement(...)             
-            log.PrintInfoMsg "* Time for loading and render main window: %s"  Timer.InstanceStartup.tocEx
-            ) 
-            
-        win.Window.Closing.Add( fun e ->
-            // first check for running FSI
-            match tabs.Fsi.AskIfCancellingIsOk () with 
-            | NotEvaluating   -> ()
-            | YesAsync        -> tabs.Fsi.CancelIfAsync() 
-            | Dont            -> e.Cancel <- true // dont close window   
-            | NotPossibleSync -> () // still close despite running thread ??
-            
-            //then check for unsaved files:
-            let canClose = tabs.AskIfClosingWindowIsOk() 
-            if not canClose then e.Cancel <- true // dont close window  
-            ) 
-        
-        seff
-         
+        Seff( config, log)
 
         
         

@@ -101,8 +101,8 @@ type StatusBar (grid:TabsAndLog, cmds:Commands)  = // TODO better make it depend
             match code.file with 
             |SetTo fi -> 
                 if code.allOfFile then fsiState.Text <- sprintf "FSI is running %s  ..." fi.Name
-                else                   fsiState.Text <- sprintf "FSI is running segments from file %s  ..." fi.Name
-            |NotSet ->                  fsiState.Text <- "FSI is running ..." )
+                else                   fsiState.Text <- sprintf "FSI is running selected code from file %s  ..." fi.Name
+            |NotSet ->                 fsiState.Text <- "FSI is running ..." )
 
         fsi.OnIsReady.Add(fun _ -> 
             fsiState.Text <- "FSI is ready!" 
@@ -119,7 +119,7 @@ type StatusBar (grid:TabsAndLog, cmds:Commands)  = // TODO better make it depend
 
     member this.AddFsiSynchModeStatus()=
         let atPosition = 0
-        bar.Items.Insert(atPosition, new StatusBarItem(Content="FSI evaluation mode: "))
+        bar.Items.Add(new StatusBarItem(Content="FSI evaluation mode: ")) |> ignore 
         let asyncDesc = new TextBlock(Text="*unknown*", Padding = padding)
         asyncDesc.ToolTip <- "Click to switch between synchronous and asynchronous evaluation in FSI,\r\nsynchronous is needed for UI interaction,\r\nasynchronous allows easy cancellation and keeps the editor window alive"
         asyncDesc.MouseDown.Add(fun _ -> fsi.ToggleSync()) //done in fsi module
