@@ -30,9 +30,7 @@
     <Reference Include="WindowsBase" />
     <Reference Include="PresentationCore" />
     <Reference Include="PresentationFramework" />
-    <!--<Reference Include="ReachFramework" />
-    <Reference Include="System.Net" />
-    <Reference Include="System.Printing" />
+    <!--
     <Reference Include="System.Xaml" />
     <Reference Include="UIAutomationTypes" />-->
   </ItemGroup>
