@@ -193,15 +193,19 @@ type Fsi private (config:Config) =
     static let mutable singleInstance:Fsi option  = None
     
     /// ensures only one instance is created
-    static member GetOrCreate(config:Config)  = 
-        match config.HostingInfo.Mode with
-        |Hosted h when h= "Revit" ->
-            config.Log.PrintInfoMsg "Fsi in Sync only mode for Revit"
-            Fsi.GetOrCreate(config)
-        | _ -> 
-            match singleInstance with 
-            |Some fsi -> fsi
-            |None -> singleInstance <- Some (new Fsi(config)); singleInstance.Value
+    static member GetOrCreate(config:Config) :Fsi = 
+        match singleInstance with 
+        |Some fsi -> fsi
+        |None -> singleInstance <- Some (new Fsi(config)); singleInstance.Value
+        
+        //match config.HostingInfo.Mode with
+        //|Hosted h when h= "Revit" ->
+        //    config.Log.PrintInfoMsg "Fsi in Sync only mode for Revit"
+        //    FsiSync.GetOrCreate(config)
+        //| _ -> 
+        //    match singleInstance with 
+        //    |Some fsi -> fsi
+        //    |None -> singleInstance <- Some (new Fsi(config)); singleInstance.Value
 
     //-------------- public interface: ---------
 
