@@ -5,6 +5,7 @@ open System.Windows
 
 open Seff.Views
 open Seff.Config
+open Seff.Util.General
 
 
 module Initialize =  
@@ -29,12 +30,11 @@ module Initialize =
         
 
         //--------------ERROR Handeling --------------------
-
-        (* //TODO with this the app fails to start. why?
-        Application.Current.DispatcherUnhandledException.Add(fun e ->  //exceptions generated on the UI thread
-            if e <> null then 
-                log.PrintDebugMsg "Application.Current.DispatcherUnhandledException in main Thread: %A" e.Exception           
-                e.Handled<- true) *)
+        if notNull Application.Current then // null if application is not yet created, or no application in hoted context
+            Application.Current.DispatcherUnhandledException.Add(fun e ->  
+                if e <> null then 
+                    log.PrintDebugMsg "Application.Current.DispatcherUnhandledException in main Thread: %A" e.Exception           
+                    e.Handled<- true)
         
         //catching unhandled exceptions generated from all threads running under the context of a specific application domain. 
         //https://dzone.com/articles/order-chaos-handling-unhandled

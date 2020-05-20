@@ -7,6 +7,7 @@ open System.IO
 open System.Threading
 open FSharp.Compiler.Interactive.Shell
 open Seff.Config
+open Seff.Util.General
 
 
 
@@ -139,10 +140,11 @@ type Fsi private (config:Config) =
 
         let asyncEval = async{
             if mode = FsiMode.Sync then do! Async.SwitchToContext Sync.syncContext 
-                       
-            Application.Current.DispatcherUnhandledException.Add(fun e ->  //exceptions generated on the UI thread
-                log.PrintAppErrorMsg "Application.Current.DispatcherUnhandledException in fsi thread: %A" e.Exception        
-                e.Handled <- true)        
+            
+            if notNull Application.Current then // null if application is not yet created, or no application in hoted context
+                Application.Current.DispatcherUnhandledException.Add(fun e ->  //exceptions generated on the UI thread
+                    log.PrintAppErrorMsg "Application.Current.DispatcherUnhandledException in fsi thread: %A" e.Exception        
+                    e.Handled <- true)        
           
             AppDomain.CurrentDomain.UnhandledException.AddHandler (//catching unhandled exceptions generated from all threads running under the context of a specific application domain. //https://dzone.com/articles/order-chaos-handling-unhandled
                 new UnhandledExceptionEventHandler( (new ProcessCorruptedState(config)).Handler)) //https://stackoverflow.com/questions/14711633/my-c-sharp-application-is-returning-0xe0434352-to-windows-task-scheduler-but-it
