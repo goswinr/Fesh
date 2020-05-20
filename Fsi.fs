@@ -151,65 +151,66 @@ type Fsi private (config:Config) =
         state <- Evaluating
         //fsiCancelScr <- Some (new CancellationTokenSource()) //does not work? needs Thread.Abort () ?
         startedEv.Trigger(code) // do always sync
-        if session.IsNone then init()     
+        if session.IsNone then 
+            log.PrintInfoMsg "Please wait till FSI is initalized for running scripts"
+        else
         
-        
-        //TODO https://github.com/dotnet/fsharp/blob/6b0719845c928361e63f6e38a9cce4ae7d621fbf/src/fsharp/fsi/fsi.fs#L2618
-        // change via reflection??? 
-        // let dummyScriptFileName = "input.fsx"
+            //TODO https://github.com/dotnet/fsharp/blob/6b0719845c928361e63f6e38a9cce4ae7d621fbf/src/fsharp/fsi/fsi.fs#L2618
+            // change via reflection??? 
+            // let dummyScriptFileName = "input.fsx"
 
-        let asyncEval = async{
-            if mode = FsiMode.Sync then do! Async.SwitchToContext Sync.syncContext 
+            let asyncEval = async{
+                if mode = FsiMode.Sync then do! Async.SwitchToContext Sync.syncContext 
             
-            if notNull Application.Current then // null if application is not yet created, or no application in hoted context
-                Application.Current.DispatcherUnhandledException.Add(fun e ->  //exceptions generated on the UI thread
-                    log.PrintAppErrorMsg "Application.Current.DispatcherUnhandledException in fsi thread: %A" e.Exception        
-                    e.Handled <- true)        
+                if notNull Application.Current then // null if application is not yet created, or no application in hoted context
+                    Application.Current.DispatcherUnhandledException.Add(fun e ->  //exceptions generated on the UI thread
+                        log.PrintAppErrorMsg "Application.Current.DispatcherUnhandledException in fsi thread: %A" e.Exception        
+                        e.Handled <- true)        
           
-            AppDomain.CurrentDomain.UnhandledException.AddHandler (//catching unhandled exceptions generated from all threads running under the context of a specific application domain. //https://dzone.com/articles/order-chaos-handling-unhandled
-                new UnhandledExceptionEventHandler( (new ProcessCorruptedState(config)).Handler)) //https://stackoverflow.com/questions/14711633/my-c-sharp-application-is-returning-0xe0434352-to-windows-task-scheduler-but-it
+                AppDomain.CurrentDomain.UnhandledException.AddHandler (//catching unhandled exceptions generated from all threads running under the context of a specific application domain. //https://dzone.com/articles/order-chaos-handling-unhandled
+                    new UnhandledExceptionEventHandler( (new ProcessCorruptedState(config)).Handler)) //https://stackoverflow.com/questions/14711633/my-c-sharp-application-is-returning-0xe0434352-to-windows-task-scheduler-but-it
             
-            // TODO set current directory  form fileInfo
+                // TODO set current directory  form fileInfo
 
-            let choice, errs =  
-                try session.Value.EvalInteractionNonThrowing(code.code) //,fsiCancelScr.Value.Token)   // cancellation token here fails to cancel in sync, might still throw OperationCanceledException if async       
-                with e -> Choice2Of2 e , [| |]
+                let choice, errs =  
+                    try session.Value.EvalInteractionNonThrowing(code.code) //,fsiCancelScr.Value.Token)   // cancellation token here fails to cancel in sync, might still throw OperationCanceledException if async       
+                    with e -> Choice2Of2 e , [| |]
                
-            if mode = Async then do! Async.SwitchToContext Sync.syncContext 
+                if mode = Async then do! Async.SwitchToContext Sync.syncContext 
                
-            thread <- None
-            state <- Ready //TODO reached when canceled ?                     
+                thread <- None
+                state <- Ready //TODO reached when canceled ?                     
                
-            match choice with //TODO move out of Thread?
-            |Choice1Of2 vo -> 
-                completedOkEv.Trigger()
-                isReadyEv.Trigger()
-                for e in errs do log.PrintAppErrorMsg " **** Why Error? EvalInteractionNonThrowing should not have errors: %A" e
-                //match vo with None-> () |Some v -> log.PrintDebugMsg "Interaction evaluted to %A <%A>" v.ReflectionValue v.ReflectionType
+                match choice with //TODO move out of Thread?
+                |Choice1Of2 vo -> 
+                    completedOkEv.Trigger()
+                    isReadyEv.Trigger()
+                    for e in errs do log.PrintAppErrorMsg " **** Why Error? EvalInteractionNonThrowing should not have errors: %A" e
+                    //match vo with None-> () |Some v -> log.PrintDebugMsg "Interaction evaluted to %A <%A>" v.ReflectionValue v.ReflectionType
                    
-            |Choice2Of2 exn ->     
-                match exn with 
-                | :? OperationCanceledException ->
-                    canceledEv.Trigger()
-                    isReadyEv.Trigger()
-                    log.PrintFsiErrorMsg "Fsi evaluation was canceled by user!" //: %A" exn                
+                |Choice2Of2 exn ->     
+                    match exn with 
+                    | :? OperationCanceledException ->
+                        canceledEv.Trigger()
+                        isReadyEv.Trigger()
+                        log.PrintFsiErrorMsg "Fsi evaluation was canceled by user!" //: %A" exn                
                            
-                | :? FsiCompilationException -> 
-                    runtimeErrorEv.Trigger(exn)
-                    isReadyEv.Trigger()
-                    log.PrintFsiErrorMsg "Compiler Error:"
-                    for e in errs do    
-                        log.PrintFsiErrorMsg "%A" e
-                | _ ->    
-                    runtimeErrorEv.Trigger(exn)
-                    isReadyEv.Trigger()
-                    log.PrintFsiErrorMsg "Runtime Error: %A" exn     
-            } 
+                    | :? FsiCompilationException -> 
+                        runtimeErrorEv.Trigger(exn)
+                        isReadyEv.Trigger()
+                        log.PrintFsiErrorMsg "Compiler Error:"
+                        for e in errs do    
+                            log.PrintFsiErrorMsg "%A" e
+                    | _ ->    
+                        runtimeErrorEv.Trigger(exn)
+                        isReadyEv.Trigger()
+                        log.PrintFsiErrorMsg "Runtime Error: %A" exn     
+                } 
         
-        //TODO trigger from a new thread even in Synchronous evaluation ?
-        let thr = new Thread(fun () -> Async.StartImmediate(asyncEval)) // a cancellation token here fails to cancel evaluation,
-        thread <- Some thr           
-        thr.Start()
+            //TODO trigger from a new thread even in Synchronous evaluation ?
+            let thr = new Thread(fun () -> Async.StartImmediate(asyncEval)) // a cancellation token here fails to cancel evaluation,
+            thread <- Some thr           
+            thr.Start()
     
     
     static let mutable singleInstance:Fsi option  = None
