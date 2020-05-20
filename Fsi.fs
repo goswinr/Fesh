@@ -160,7 +160,9 @@ type Fsi private (config:Config) =
             // let dummyScriptFileName = "input.fsx"
 
             let asyncEval = async{
-                if mode = FsiMode.Sync then do! Async.SwitchToContext Sync.syncContext 
+                if mode = FsiMode.Sync then 
+                    do! Async.SwitchToContext Sync.syncContext 
+                    //TODO hide window while running !
             
                 if notNull Application.Current then // null if application is not yet created, or no application in hoted context
                     Application.Current.DispatcherUnhandledException.Add(fun e ->  //exceptions generated on the UI thread

@@ -112,7 +112,8 @@ type Tabs(config:Config, win:Window) =
         if askIfClosingTabIsOk(t) then 
             tabs.Items.Remove(t)            
             config.OpenTabs.Save (t.FilePath , allFileInfos)//saving removed file, not added 
-
+    
+    ///tab:Tab, makeCurrent, moreTabsToCome
     let addTab(tab:Tab, makeCurrent, moreTabsToCome) = 
         let ix = tabs.Items.Add tab        
         if makeCurrent then  
@@ -183,6 +184,10 @@ type Tabs(config:Config, win:Window) =
         tabs.SelectionChanged.Add( fun _-> // triggered an all tabs on startup ???// when closing, opening or changing tabs  attach first so it will be triggered below when adding files
             if tabs.Items.Count = 0 then //  happens when closing the last open tab
                 win.Close() // exit App ? (chrome and edge also closes when closing the last tab, Visual Studio not)
+                // in case closing gets canceled:
+                if win.IsLoaded then 
+                    let t = new Tab(Editor.New(config))
+                    addTab(t, true, true) |> ignore 
             else
                 let tab = 
                     if isNull tabs.SelectedItem then tabs.Items.[0] //log.PrintAppErrorMsg "Tabs SelectionChanged handler: there was no tab selected by default" //  does happen 
