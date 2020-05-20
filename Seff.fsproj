@@ -56,8 +56,7 @@
     <Compile Include="Config\AutoCompleteStatistic.fs" />
     <Compile Include="Config\AssemblyReferenceStatistic.fs" />
     <Compile Include="Config\Config.fs" />
-    <Compile Include="FsiSync.fs" />
-    <Compile Include="FsiAsync.fs" />
+    <Compile Include="Fsi.fs" />
     <Compile Include="Editor\Commenting.fs" />
     <Compile Include="Editor\DocString.fs" />
     <Compile Include="Editor\SyntaxHighlighting.fs" />
