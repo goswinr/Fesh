@@ -58,7 +58,7 @@ type Seff (config:Config,log:Log) =
 
     member this.Checker = Checker.GetOrCreate(config)
 
-    member this.Fsi = Fsi.GetOrCreate(config)
+    member this.Fsi = tabs.Fsi
 
     member this.Window = win.Window 
 

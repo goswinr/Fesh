@@ -20,13 +20,14 @@ type StatusBar (grid:TabsAndLog, cmds:Commands)  = // TODO better make it depend
     let log = grid.Log
     let tabs= grid.Tabs
     let config = grid.Config 
+    let fsi = tabs.Fsi
 
     let bar = new Primitives.StatusBar() 
    
 
     let padding = Thickness(6. , 2. , 6., 2. ) //left ,top, right, bottom)
 
-    let fsi = Fsi.GetOrCreate(config)
+    
     let checker = Checker.GetOrCreate(config)
      
     let fsiState = TextBlock(Text="FSI is initializing ...", Padding = padding, ContextMenu = makeContextMenu [ menuItem cmds.CancelFSI ])

@@ -21,7 +21,7 @@ type Commands (grid:TabsAndLog) =
     let tabs = grid.Tabs
     let log = grid.Log
     let config= grid.Config
-    let fsi = Fsi.GetOrCreate(config)
+    let fsi = tabs.Fsi
 
 
     let evalAllText()        =                                  fsi.Evaluate {code=tabs.CurrAvaEdit.Text                                    ; file=tabs.Current.FilePath; allOfFile=true}                               

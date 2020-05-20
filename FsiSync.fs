@@ -10,7 +10,7 @@ open Seff.Config
 
 
 
-type Fsi private (config:Config) =    // Sync only
+type FsiSync private (config:Config) =    // Sync only
     let log = config.Log
     
     ///FSI events
@@ -116,13 +116,13 @@ type Fsi private (config:Config) =    // Sync only
                 isReadyEv.Trigger()
                 log.PrintFsiErrorMsg "Runtime Error: %A" exn     
                
-    static let mutable singleInstance:Fsi option  = None
+    static let mutable singleInstance:FsiSync option  = None
     
     /// ensures only one instance is created
     static member GetOrCreate(config) = 
         match singleInstance with 
         |Some fsi -> fsi
-        |None -> singleInstance <- Some (new Fsi(config)); singleInstance.Value
+        |None -> singleInstance <- Some (new FsiSync(config)); singleInstance.Value
 
     //-------------- public interface: ---------
 

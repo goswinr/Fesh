@@ -10,7 +10,7 @@ open Seff.Config
 
 
 
-type FsiAsync private (config:Config) =    
+type Fsi private (config:Config) =    
     let log = config.Log
     
     ///FSI events
@@ -190,18 +190,18 @@ type FsiAsync private (config:Config) =
         thr.Start()
     
     
-    static let mutable singleInstance:FsiAsync option  = None
+    static let mutable singleInstance:Fsi option  = None
     
     /// ensures only one instance is created
-    static member GetOrCreate(config:Config) : FsiAsync = 
+    static member GetOrCreate(config:Config)  = 
         match config.HostingInfo.Mode with
         |Hosted h when h= "Revit" ->
             config.Log.PrintInfoMsg "Fsi in Sync only mode for Revit"
-            FsiAsync.GetOrCreate(config)
+            Fsi.GetOrCreate(config)
         | _ -> 
             match singleInstance with 
             |Some fsi -> fsi
-            |None -> singleInstance <- Some (new FsiAsync(config)); singleInstance.Value
+            |None -> singleInstance <- Some (new Fsi(config)); singleInstance.Value
 
     //-------------- public interface: ---------
 
