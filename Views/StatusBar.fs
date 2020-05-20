@@ -64,7 +64,7 @@ type StatusBar (grid:TabsAndLog, cmds:Commands)  = // TODO better make it depend
                         for e in es|> Seq.filter (fun e -> e.Severity = FSharpErrorSeverity.Error)  do new TextBlock(Text = sprintf "• Line %d: %s" e.StartLineAlternate e.Message)
                         if was>0 then TextBlock(Text="Warnings:", FontSize = 14. , FontWeight = FontWeights.Bold )
                         for e in es|> Seq.filter (fun e -> e.Severity = FSharpErrorSeverity.Warning) do new TextBlock(Text = sprintf "• Line %d: %s" e.StartLineAlternate e.Message) 
-                        TextBlock(Text = tabs.Current.FormatedFileName, FontSize = 8.)
+                        TextBlock(Text = tabs.Current.FormatedFileName, FontSize = 9.)
                         ]        
         
         | Running id0->
@@ -115,14 +115,15 @@ type StatusBar (grid:TabsAndLog, cmds:Commands)  = // TODO better make it depend
         bar.Items.Add fsiState                |> ignore 
         bar.Items.Add (new Separator())       |> ignore 
         
+        //------- add Async or Sync state-------------
         match config.HostingInfo.Mode with
         |Standalone -> 
             bar.Items.Add (new StatusBarItem())   |> ignore // to fill remaining space
         |Hosted _ ->
             let ini =   
-                match fsi.Mode with
-                | Sync  ->  "FSI evaluation mode: Synchronos" 
-                | Async ->  "FSI evaluation mode: Asynchronos"
+                match config.Settings.GetBool "asyncFsi" true  with
+                | false  ->  "FSI evaluation mode: Synchronos" 
+                | true ->  "FSI evaluation mode: Asynchronos"
         
             let asyncDesc = new TextBlock( Text =  ini  , Padding = padding) 
             bar.Items.Add( new StatusBarItem(Content=asyncDesc)) |> ignore

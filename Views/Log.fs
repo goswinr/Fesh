@@ -233,14 +233,18 @@ type Log () =
     
     member this.SaveAllText (pathHint: FilePath) = 
         let dlg = new Microsoft.Win32.SaveFileDialog()
-        match pathHint with NotSet ->() |SetTo fi -> if fi.Directory.Exists then dlg.InitialDirectory <- fi.DirectoryName
-        match pathHint with NotSet ->() |SetTo fi -> dlg.FileName <- fi.Name  + "_Log" 
+        match pathHint with 
+        |NotSet ->() 
+        |SetTo fi -> 
+            fi.Refresh()
+            if fi.Directory.Exists then dlg.InitialDirectory <- fi.DirectoryName
+            dlg.FileName <- fi.Name + "_Log" 
         dlg.Title <- "SaveText from Log Window of " + Style.dialogCaption
         dlg.DefaultExt <- ".txt"
         dlg.Filter <- "Text Files(*.txt)|*.txt|Text Files(*.csv)|*.csv|All Files(*.*)|*"
         if Util.isTrue (dlg.ShowDialog()) then                
             try
-                log.Save dlg.FileName
+                IO.File.WriteAllText(dlg.FileName, log.Text) 
                 this.PrintInfoMsg "Log File saved as:\r\n%s" dlg.FileName
             with e -> 
                 this.PrintIOErrorMsg "Failed to save text from Log at :\r\n%s\r\n%A" dlg.FileName e
@@ -248,8 +252,12 @@ type Log () =
     member this.SaveSelectedText (pathHint: FilePath) = 
         if log.SelectedText.Length > 0 then // this check is also done in "canexecute command"
            let dlg = new Microsoft.Win32.SaveFileDialog()
-           match pathHint with NotSet ->() |SetTo fi -> if fi.Directory.Exists then dlg.InitialDirectory <- fi.DirectoryName
-           match pathHint with NotSet ->() |SetTo fi -> dlg.FileName <- fi.Name  + "_Log"
+           match pathHint with 
+           |NotSet ->() 
+           |SetTo fi -> 
+               fi.Refresh()
+               if fi.Directory.Exists then dlg.InitialDirectory <- fi.DirectoryName
+               dlg.FileName <- fi.Name + "_Log" 
            dlg.Title <- "Save Seleceted Text from Log Window of " + Style.dialogCaption
            dlg.DefaultExt <- ".txt"
            dlg.Filter <- "Text Files(*.txt)|*.txt|Text Files(*.csv)|*.csv|All Files(*.*)|*"

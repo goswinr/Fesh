@@ -26,7 +26,7 @@ type OpenTabs  (log:ISeffLog, hostInfo:HostingInfo, startupArgs:string[]) =
         let dup =  HashSet()
         let mutable curr ="" 
         try            
-            // parse settings
+            // parse settings            
             if IO.File.Exists filePath then 
                 let lns = IO.File.ReadAllLines filePath 
                 if lns.Length > 1 then 

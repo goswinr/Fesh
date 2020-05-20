@@ -32,7 +32,7 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, log:Log) =
         async{            
             let fis = 
                 config.RecentlyUsedFiles.Get()
-                |> Seq.filter ( fun fi -> fi.Exists)
+                |> Seq.filter ( fun fi -> IO.File.Exists(fi.FullName))
                 |> Seq.distinctBy( fun fi -> fi.FullName.ToLowerInvariant())
                 |> Seq.truncate maxFilesInRecentMenu
                 |> Seq.toArray

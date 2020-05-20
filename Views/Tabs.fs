@@ -40,6 +40,7 @@ type Tabs(config:Config, win:Window) =
     let mutable current =  Unchecked.defaultof<Tab>
 
     let saveAt (t:Tab, fi:FileInfo) =                   
+        fi.Refresh()
         if not <| fi.Directory.Exists then 
             log.PrintIOErrorMsg "saveAsPath: Directory does not exist:\r\n%s" fi.Directory.FullName 
             false
@@ -59,10 +60,14 @@ type Tabs(config:Config, win:Window) =
                 
 
     /// returns true if saving operation was not canceled
-    let saveAsDialog (t:Tab) :bool= 
+    let saveAsDialog (t:Tab) :bool=         
         let dlg = new Microsoft.Win32.SaveFileDialog()
-        match t.FilePath with NotSet ->() |SetTo fi -> if fi.Directory.Exists then dlg.InitialDirectory <- fi.DirectoryName
-        match t.FilePath with NotSet ->() |SetTo fi -> dlg.FileName <- fi.Name        
+        match t.FilePath with 
+        |NotSet ->() 
+        |SetTo fi -> 
+            fi.Refresh()
+            if fi.Directory.Exists then dlg.InitialDirectory <- fi.DirectoryName
+            dlg.FileName <- fi.Name        
         dlg.DefaultExt <- ".fsx"
         dlg.Title <- sprintf "Save File As for: %s" (match t.FilePath with NotSet -> t.FormatedFileName |SetTo fi -> fi.FullName )
         dlg.Filter <- "FSharp Script Files(*.fsx)|*.fsx|Text Files(*.txt)|*.txt|All Files(*.*)|*"
@@ -85,10 +90,10 @@ type Tabs(config:Config, win:Window) =
             if  t.IsCodeSaved then 
                 log.PrintInfoMsg "File already up to date:\r\n%s" fi.FullName
                 true
-            elif fi.Exists then
+            elif (fi.Refresh(); fi.Exists) then
                 saveAt(t, fi)
             else
-                log.PrintIOErrorMsg "File does not exist on drive anymore:\r\n%s" fi.FullName
+                log.PrintIOErrorMsg "File does not exist on drive anymore:\r\n%s" fi.FullName 
                 saveAsDialog(t)
         |NotSet -> 
                 saveAsDialog(t)
@@ -132,7 +137,8 @@ type Tabs(config:Config, win:Window) =
             match b with 
             |SetTo bb -> areFilesSame bb a
             |NotSet -> false
-
+        
+        fi.Refresh()
         if fi.Exists then            
             match allTabs |> Seq.indexed |> Seq.tryFind (fun (_,t) -> areFilePtahsSame fi t.FilePath) with // check if file is already open             
             | Some (i,t) -> 
@@ -232,7 +238,7 @@ type Tabs(config:Config, win:Window) =
         let dlg = new Microsoft.Win32.OpenFileDialog()
         dlg.Multiselect <- true
         match this.WorkingDirectory  with 
-        | Some t when t.Exists -> dlg.InitialDirectory <- t.FullName
+        | Some t -> t.Refresh(); if  t.Exists then  dlg.InitialDirectory <- t.FullName
         | _ -> ()
         dlg.DefaultExt <- ".fsx"
         dlg.Title <- "Open file for " + Style.dialogCaption
