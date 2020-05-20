@@ -1,6 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project Sdk="Microsoft.NET.Sdk.WindowsDesktop"> <!-- or ? <Project Sdk="Microsoft.NET.Sdk"> -->
-
+<!--Win desktop needed so that rescources work with dotnet build:-->
+<Project Sdk="Microsoft.NET.Sdk.WindowsDesktop"> 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <TargetFramework>net472</TargetFramework>
