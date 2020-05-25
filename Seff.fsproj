@@ -17,7 +17,10 @@
 
   <ItemGroup>
     <!-- don't add explict ref to Fsharp.Core? https://github.com/dotnet/fsharp/issues/9064-->
-    <PackageReference Update="FSharp.Core" Version="4.6.2" /> <!-- the combo 4.6.2 and 33.0.1 makes it work in Revit-->
+    <!-- path property $(PkgFSharp_Core) is C:\Users\Gos\.nuget\packages\fsharp.core\4.7.0 -->
+    <!-- the combo 4.6.2 and 33.0.1 makes it work in Revit-->
+    <PackageReference Update="FSharp.Core" Version="4.6.2" GeneratePathProperty="true"/>
+    
     <PackageReference Include="FSharp.Compiler.Service" Version="33.0.1" /> 
   </ItemGroup>
 
@@ -88,7 +91,7 @@
   <Target Name="CopyFilesOverAfterBuild" BeforeTargets="AfterBuild">
     <!-- <Message Text="Copied FSharp.Core.xml file from $(PkgFSharp_Core) to output dir ." Importance="high"/> -->
     <!-- FSharp.Core.xml is missing otherwise ? to have it as intellisense provider-->
-    <Copy SourceFiles="$(USERPROFILE)\.nuget\packages\fsharp.core\4.7.1\lib\net45\FSharp.Core.xml" DestinationFiles="$(TargetDir)FSharp.Core.xml" ContinueOnError="false" />  
+    <Copy SourceFiles="$(PkgFSharp_Core)\lib\net45\FSharp.Core.xml" DestinationFiles="$(TargetDir)FSharp.Core.xml" ContinueOnError="false" />  
   </Target>
 
 </Project>
