@@ -3,7 +3,7 @@
 <Project Sdk="Microsoft.NET.Sdk.WindowsDesktop"> 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <TargetFramework>net461</TargetFramework> <!--net 461 for FSharp.Compiler.Service 35.0.0 /> -->
+    <TargetFramework>net472</TargetFramework> <!--less files when 472, net 461 for FSharp.Compiler.Service 35.0.0 /> -->
     <LangVersion>preview</LangVersion>
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages> <!--to only have the english resources-->
     <UseWPF>true</UseWPF>
