@@ -1,0 +1,96 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<!--Win desktop needed so that rescources work with dotnet build:-->
+<Project Sdk="Microsoft.NET.Sdk.WindowsDesktop"> 
+  <PropertyGroup>
+    <OutputType>Library</OutputType>
+    <TargetFramework>net461</TargetFramework> <!--net 461 for FSharp.Compiler.Service 33.0.1 /> -->
+    <LangVersion>preview</LangVersion>
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages> <!--to only have the english resources-->
+    <UseWPF>true</UseWPF>
+
+    <RootNamespace>Seff</RootNamespace>
+    <AssemblyName>Seff</AssemblyName>
+    <ApplicationIcon>Media\LogoCursorTr.ico</ApplicationIcon>
+    <Win32Resource>Media\LogoCursorTr.res</Win32Resource> <!--  for Application Icon in explorer-->    
+  </PropertyGroup> 
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <OutputPath>binHosting\Debug\</OutputPath>
+  </PropertyGroup> 
+  
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <OutputPath>binHosting\Release\</OutputPath>
+  </PropertyGroup>
+
+
+  <ItemGroup>
+    <!-- don't add explict ref to Fsharp.Core? https://github.com/dotnet/fsharp/issues/9064-->
+    <!-- path property $(PkgFSharp_Core) is C:\Users\Gos\.nuget\packages\fsharp.core\4.7.0 -->    
+    <!-- <PackageReference Update="FSharp.Core" Version="4.7.2" GeneratePathProperty="true" /> -->
+    <!-- the combo 4.6.2 and 33.0.1 makes it work in Revit-->
+    <PackageReference Include="FSharp.Compiler.Service" Version="33.0.1" /> 
+  </ItemGroup>
+
+
+  <ItemGroup>
+    <ProjectReference Include="..\AvalonEdit\ICSharpCode.AvalonEdit\ICSharpCode.AvalonEdit.csproj" />    <!-- take from https://github.com/goswinr/AvalonEdit -->
+  </ItemGroup>
+
+  <ItemGroup>        
+    <Reference Include="WindowsBase" />
+    <Reference Include="PresentationCore" />
+    <Reference Include="PresentationFramework" />
+  </ItemGroup>
+
+
+  <ItemGroup>
+
+    <EmbeddedResource Include="Media\LogoCursorTr.res" /> <!--  for Application Icon in explorer-->   
+    <Resource Include="Media\LogoCursorTr.ico" />    
+    <Resource Include="Media\FiraCode-Regular.ttf" />  
+    <None Include="FSharpSynatxHighlighterExtended.xshd">    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>    </None>
+
+    <Compile Include="Src\Util.fs" />
+    <Compile Include="Src\Timer.fs" />
+    <Compile Include="Src\Model.fs" />
+    <Compile Include="Src\Sync.fs" />
+    <Compile Include="Src\Config\SaveWriter.fs" />
+    <Compile Include="Src\Config\HostingInfo.fs" />
+    <Compile Include="Src\Config\Settings.fs" />
+    <Compile Include="Src\Config\DefaultCode.fs" />
+    <Compile Include="Src\Config\OpenTabs.fs" />
+    <Compile Include="Src\Config\RecentlyUsedFiles.fs" />
+    <Compile Include="Src\Config\AutoCompleteStatistic.fs" />
+    <Compile Include="Src\Config\AssemblyReferenceStatistic.fs" />
+    <Compile Include="Src\Config\Config.fs" />
+    <Compile Include="Src\Fsi.fs" />
+    <Compile Include="Src\Editor\Commenting.fs" />
+    <Compile Include="Src\Editor\DocString.fs" />
+    <Compile Include="Src\Editor\SyntaxHighlighting.fs" />
+    <Compile Include="Src\Editor\ErrorHighlighter.fs" />
+    <Compile Include="Src\Editor\Checker.fs" />
+    <Compile Include="Src\Editor\TypeInfo.fs" />
+    <Compile Include="Src\Editor\CodeCompletion.fs" />
+    <Compile Include="Src\Editor\Folding.fs" />
+    <Compile Include="Src\Editor\ColumnRulers.fs" />
+    <Compile Include="Src\Editor\Editor.fs" />
+    <Compile Include="Src\Editor\UNUSEDNuget.fs" />
+    <Compile Include="Src\Views\Views.Util.fs" />
+    <Compile Include="Src\Views\Log.fs" />
+    <Compile Include="Src\Views\Window.fs" />
+    <Compile Include="Src\Views\Tab.fs" />
+    <Compile Include="Src\Views\Tabs.fs" />
+    <Compile Include="Src\Views\TabsAndLog.fs" />
+    <Compile Include="Src\Views\Fonts.fs" />
+    <Compile Include="Src\Views\Commands.fs" />
+    <Compile Include="Src\Views\StatusBar.fs" />
+    <Compile Include="Src\Views\Menu.fs" />
+    <Compile Include="Src\Views\Seff.fs" />
+    <Compile Include="Src\Initialize.fs" />    
+    <Compile Include="Src\App.fs" />
+
+  </ItemGroup>
+
+   
+
+</Project>
