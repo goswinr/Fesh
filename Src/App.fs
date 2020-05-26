@@ -10,7 +10,7 @@ module App =
     /// hostName: a string for the name of the hosting App (will be used for settings file name an displayed in the Title Bar.
     /// Call seff.Window.Show() on the returned Seff object.    
     /// Use seff.Fsi.OnStarted and seff.Fsi.OnIsReady Events to implement undo and redo in host App.
-    let runEditorHosted (mainWindowHandle, hostName) : Seff =
+    let createEditorForHosting (mainWindowHandle, hostName) : Seff =
         //let app = Application()
         let seff = Initialize.everything (Hosted hostName , [| |])        
         if mainWindowHandle <> IntPtr.Zero then 
