@@ -79,18 +79,38 @@ type LogLineColorizer(editor:AvalonEdit.TextEditor, lineColors:Collections.Gener
 /// A ReadOnly text AvalonEdit Editor that provides print formating methods 
 /// call ApplyConfig() once config is set up too, (config depends on this Log instance)
 type Log () =    
-    // just using a let value  like (let log = new LogView()) has some bugs in hosted context (Rhino), I think due to late initalizing
-    // so here is a class with explicit init
+    
+    /// Dictionary holding the color of all non standart lines
+    let lineColors = new Collections.Generic.Dictionary<int,SolidColorBrush>() 
 
-    let log = new AvalonEdit.TextEditor()
+    let log = 
+        let l = new AvalonEdit.TextEditor()
+        //styling: 
+        l.BorderThickness <- new Thickness( 0.5)
+        l.Padding         <- new Thickness( 0.7)
+        l.Margin          <- new Thickness( 0.7)
+        l.BorderBrush <- Brushes.Black
+
+        l.IsReadOnly <- true
+        l.Encoding <- Text.Encoding.Default
+        l.ShowLineNumbers  <- true
+        l.Options.EnableHyperlinks <- true 
+        l.TextArea.SelectionCornerRadius <- 0.0 
+        l.TextArea.SelectionBorder <- null         
+        l.TextArea.TextView.LinkTextForegroundBrush <- Brushes.Blue //Hyperlinks color        
+        l.TextArea.TextView.LineTransformers.Add(new LogLineColorizer(l,lineColors))
+        AvalonEdit.Search.SearchPanel.Install(l) |> ignore //TODO disable search and replace ?
+        l
+
+
+
     let printCallsCounter = ref 0L
     let mutable prevMsgType = IOErrorMsg
     let stopWatch = Stopwatch.StartNew()
     let buffer =  new StringBuilder()
     let textAddEv = new Event<string> ()
 
-    /// Dictionary holding the color of all non standart lines
-    let lineColors = new Collections.Generic.Dictionary<int,SolidColorBrush>() 
+
 
     // The below functions are trying to work around double UI update in printfn for better UI performance, and the poor performance of log.ScrollToEnd().
     // see  https://github.com/dotnet/fsharp/issues/3712   
@@ -154,21 +174,7 @@ type Log () =
             log.HorizontalScrollBarVisibility <- ScrollBarVisibility.Auto 
     
     
-    do    
-        //styling: 
-        log.BorderThickness <- new Thickness( 0.5)
-        log.Padding         <- new Thickness( 0.5)
-        log.Margin         <- new Thickness( 0.5)
-        log.BorderBrush <- Brushes.Black
-        log.IsReadOnly <- true
-        log.Encoding <- Text.Encoding.Default
-        log.ShowLineNumbers  <- true
-        log.Options.EnableHyperlinks <- true 
-        log.TextArea.SelectionCornerRadius <- 0.0 
-        log.TextArea.SelectionBorder <- null         
-        log.TextArea.TextView.LinkTextForegroundBrush <- Brushes.Blue //Hyperlinks color        
-        log.TextArea.TextView.LineTransformers.Add(new LogLineColorizer(log,lineColors))
-        AvalonEdit.Search.SearchPanel.Install(log) |> ignore //TODO disable search and replace ?
+
    
 
     //used in FSI constructor:

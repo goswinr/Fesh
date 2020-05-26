@@ -11,7 +11,7 @@ open Seff.Views.Util
 /// Includes logic for toggeling the view split and saving and restoring size and position
 type TabsAndLog (config:Config,tabs:Tabs,log:Log,win:Views.Window) =
     
-    let gridSplitterSize = 5.0
+    let gridSplitterSize = 4.0
 
     let grid                = new Grid()
     let editorRowHeight     = new RowDefinition   (Height = makeGridLength (config.Settings.GetFloat "EditorHeight"  400.0))
@@ -103,3 +103,5 @@ type TabsAndLog (config:Config,tabs:Tabs,log:Log,win:Views.Window) =
     member this.Log = log
 
     member this.Window = win 
+
+    member this.GridSplitterSize = gridSplitterSize

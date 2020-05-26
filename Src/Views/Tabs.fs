@@ -19,13 +19,13 @@ open System.Windows.Media
 type Tabs(config:Config, win:Window) = 
 
     let tabs = new TabControl(
-                        Padding = Thickness(0.9), 
-                        Margin = Thickness( 0.5), 
-                        BorderThickness = Thickness(0.5), 
+                        Padding = Thickness(0.6), 
+                        Margin = Thickness( 0.6), 
+                        BorderThickness = Thickness(0.6), 
                         BorderBrush = Brushes.Black
                         )
     
-
+   
 
     let log = config.Log 
 

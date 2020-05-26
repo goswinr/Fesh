@@ -18,7 +18,7 @@ type Seff (config:Config,log:Log) =
     let dockP = Util.dockPanelVert(menu.Bar , tabsAndLog.Grid , statusBar.Bar)   
     
     do
-        dockP.Margin <- Thickness(4.)
+        dockP.Margin <- Thickness(tabsAndLog.GridSplitterSize)
         
         commands.SetUpGestureInputBindings()
         

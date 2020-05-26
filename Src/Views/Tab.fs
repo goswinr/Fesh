@@ -67,6 +67,8 @@ type Tab (editor:Editor) =
     do
         base.Content <- editor.AvaEdit
         base.Header <- header
+        //base.BorderThickness <- Thickness(4.)// don't messes it all up 
+        //base.BorderBrush <- Brushes.Blue
         //base.Margin <- Thickness(3., 0. , 0. , 0.) //left ,top, right, bottom) // don't messes it all up 
         setHeader()        
         editor.AvaEdit.TextChanged.Add(fun _ ->upadteIsCodeCaved(false)) 
