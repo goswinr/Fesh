@@ -11,10 +11,11 @@ open Seff
 open System.IO
 open Seff.Editor.Selection
 open System.Windows.Media
+open ICSharpCode.AvalonEdit
 
 
 
-type Commands (grid:TabsAndLog) = 
+type Commands (grid:TabsAndLog)  = 
     
     let fonts = Fonts(grid)
 
@@ -36,22 +37,28 @@ type Commands (grid:TabsAndLog) =
     let isLse a  = log.ReadOnlyEditor.SelectionLength > 0
     let isAsy a  = fsi.State = Evaluating && fsi.Mode = Async
 
+  
     // File menu:                                                                          
-    member val NewTab            = {name= "New File"                  ;gesture= "Ctrl + N"       ;cmd= mkCmdSimple (fun _ -> tabs.AddTab(new Tab(Editor.New(config)),true))      ;tip= "Create a new script file."                                                      }
-    member val OpenFile          = {name= "Open File"                 ;gesture= "Ctrl + O"       ;cmd= mkCmdSimple (fun _ -> tabs.OpenFile())                                    ;tip= "Open a script file."                                                            }
-    member val OpenTemplateFile  = {name= "Edit Template File"        ;gesture= ""               ;cmd= mkCmdSimple (fun _ -> tabs.AddFile(config.DefaultCode.FileInfo,true))     ;tip= "Opens the template file that is used when creating a New File ( Ctrl + N)."     }
-    member val Save              = {name= "Save"                      ;gesture= "Ctrl + S"       ;cmd= mkCmdSimple (fun _ -> tabs.Save(tabs.Current) |> ignore )                 ;tip= "Saves the file. Shows a dialog only if the open file does not exist anymore."   }
-    member val SaveAs            = {name= "Save As"                   ;gesture= "Ctrl + Alt + S" ;cmd= mkCmdSimple (fun _ -> tabs.SaveAs(tabs.Current) |> ignore)                ;tip= "Shows a dialog to save the file at a new path or name."                         }
+    member val NewTab            = {name= "New File"                  ;gesture= "Ctrl + N"       ;cmd= mkCmdSimple (fun _ -> tabs.AddTab(new Tab(Editor.New(config)),true))      ;tip= "Create a new script file."                                                       }
+    member val OpenFile          = {name= "Open File"                 ;gesture= "Ctrl + O"       ;cmd= mkCmdSimple (fun _ -> tabs.OpenFile())                                    ;tip= "Open a script file."                                                             }
+    member val OpenTemplateFile  = {name= "Edit Template File"        ;gesture= ""               ;cmd= mkCmdSimple (fun _ -> tabs.AddFile(config.DefaultCode.FileInfo,true))     ;tip= "Opens the template file that is used when creating a New File ( Ctrl + N)."      }
+    member val Save              = {name= "Save"                      ;gesture= "Ctrl + S"       ;cmd= mkCmdSimple (fun _ -> tabs.Save(tabs.Current) |> ignore )                 ;tip= "Saves the file. Shows a dialog only if the open file does not exist anymore."    }
+    member val SaveAs            = {name= "Save As"                   ;gesture= "Ctrl + Alt + S" ;cmd= mkCmdSimple (fun _ -> tabs.SaveAs(tabs.Current) |> ignore)                ;tip= "Shows a dialog to save the file at a new path or name."                          }
     member val SaveIncrementing  = {name= "Save Incrementing"         ;gesture= ""               ;cmd= mkCmdSimple (fun _ -> tabs.SaveIncremental(tabs.Current) |> ignore)       ;tip= "Save with increased last character of filename.\r\nCan be alphabetic or numeric ( e.g.  d->e or 5->6).\r\nDoes not overwrite any existing file."}
-    member val SaveAll           = {name= "Save All"                 ;gesture= "Ctrl + Shift + S";cmd= mkCmdSimple (fun _ -> for t in tabs.AllTabs do tabs.Save(t) |> ignore)    ;tip= "Saves all tabs. Shows a dialog only if the open file does not exist on disk."   }
+    member val SaveAll           = {name= "Save All"                 ;gesture= "Ctrl + Shift + S";cmd= mkCmdSimple (fun _ -> for t in tabs.AllTabs do tabs.Save(t) |> ignore)    ;tip= "Saves all tabs. Shows a dialog only if the open file does not exist on disk."    }
     member val Close             = {name= "Close File"                ;gesture= "Ctrl + F4"      ;cmd= mkCmdSimple (fun _ -> tabs.CloseTab(tabs.Current))                        ;tip= "Closes the current tab, if there is only one tab then the window will be closed."}
-    member val SaveLog           = {name= "Save Text in Log"          ;gesture= ""               ;cmd= mkCmdSimple (fun _ -> log.SaveAllText(tabs.Current.FilePath))             ;tip= "Save all text from Log Window."                                                 }
-    member val SaveLogSel        = {name= "Save Selected Text in Log" ;gesture= ""               ;cmd= mkCmd isLse (fun _ -> log.SaveSelectedText(tabs.Current.FilePath))        ;tip= "Save selected text from Log Window."                                            }
-                                   
+    member val SaveLog           = {name= "Save Text in Log"          ;gesture= ""               ;cmd= mkCmdSimple (fun _ -> log.SaveAllText(tabs.Current.FilePath))             ;tip= "Save all text from Log Window."                                                  }
+    member val SaveLogSel        = {name= "Save Selected Text in Log" ;gesture= ""               ;cmd= mkCmd isLse (fun _ -> log.SaveSelectedText(tabs.Current.FilePath))        ;tip= "Save selected text from Log Window."                                             }
+                                    
                                                
     //Edit menu:                                                                                                                              
     member val Comment           = {name= "Comment"                   ;gesture= "Ctrl + K"       ;cmd= mkCmdSimple (fun _ -> Commenting.comment tabs.CurrAvaEdit)                ;tip= "Removes '//' at the beginning of current line, \r\nor from all line touched by current selection"   }
     member val UnComment         = {name= "Uncomment"                 ;gesture= "Ctrl + U"       ;cmd= mkCmdSimple (fun _ -> Commenting.unComment tabs.CurrAvaEdit)              ;tip= "Puts '//' at the beginning of current line, \r\nor all line touched by current selection"           }                                                                                     
+    member val SwapLineUp        = {name= "Swap Line Up"              ;gesture= "Alt + Up"       ;cmd=AvalonEditCommands.SwapLinesUp                                             ;tip= "Swap the current line and the previous line."                                                       }                                                                                     
+    member val SwapLineDown      = {name= "Swap Line Down"            ;gesture= "Alt + Down"     ;cmd=AvalonEditCommands.SwapLinesDown                                           ;tip= "Swap the current line and the next line."                                                           } 
+    member val ToUppercase       = {name= "To UPPERCASE"              ;gesture= ""               ;cmd=AvalonEditCommands.ConvertToUppercase                                      ;tip= "Convertes the selected text to UPPERCASE."                                                          }     
+    member val Tolowercase       = {name= "To lowercase"              ;gesture= ""               ;cmd=AvalonEditCommands.ConvertToLowercase                                      ;tip= "Convertes the selected text to lowercase."                                                          }     
+
                                                                                                                                              
     //Select menu:                                                                                                                               
     member val SelectLine        = {name= "Select Current Line"       ;gesture= "Ctrl  + L"      ;cmd= mkCmdSimple (fun _ -> expandSelectionToFullLines(tabs.CurrAvaEdit) |> ignore )  ;tip= "Select current line"} // TODO compare VSCODE shortcuts to  see https://github.com/icsharpcode/SharpDevelop/wiki/Keyboard-Shortcuts
@@ -69,15 +76,15 @@ type Commands (grid:TabsAndLog) =
     member val ToggleSync        = {name= "Toggle Sync / Async"       ;gesture= ""               ;cmd= mkCmdSimple (fun _ -> fsi.ToggleSync())           ;tip= "Switch between synchronous and asynchronous evaluation in FSI, see status in StatusBar"} 
                                                                                                                                        
    //View menu:                                                                                                                        
-    member val ToggleSplit       = {name= "Toggle Window Split"       ;gesture= "Ctrl + T"       ;cmd= mkCmdSimple (fun _ -> grid.ToggleSplit())         ;tip= "Toggle between vertical and horizontal Screen Split of Editor and Log"}
-    member val ToggleLogSize     = {name= "Toggle Log Maximased"      ;gesture= "Ctrl + M"       ;cmd= mkCmdSimple (fun _ -> grid.ToggleMaxLog())        ;tip= "Maximises or resets the size of the Log window. \r\n(depending on curren state)"}
-    member val ToggleLogLineWrap = {name= "Toggle Line Wraping in Log";gesture= "Alt + Z"        ;cmd= mkCmdSimple (fun _ -> log.ToggleLineWrap(config)) ;tip= "Toggle Line Wraping in Log window"}  
-    member val FontBigger        = {name= "Make Font Bigger"          ;gesture= "Ctrl + '+'"     ;cmd= mkCmdSimple (fun _ -> fonts.FontsBigger())         ;tip= "Increase Text Size for both Editor and Log"}
-    member val FontSmaller       = {name= "Make Font Smaller"         ;gesture= "Ctrl + '-'"     ;cmd= mkCmdSimple (fun _ -> fonts.FontsSmaller())        ;tip= "Decrease Text Size for both Editor and Log"}
+    member val ToggleSplit       = {name= "Toggle Window Split"       ;gesture= "Ctrl + T"       ;cmd= mkCmdSimple (fun _ -> grid.ToggleSplit())         ;tip= "Toggle between vertical and horizontal Screen Split of Editor and Log"              }
+    member val ToggleLogSize     = {name= "Toggle Log Maximased"      ;gesture= "Ctrl + M"       ;cmd= mkCmdSimple (fun _ -> grid.ToggleMaxLog())        ;tip= "Maximises or resets the size of the Log window. \r\n(depending on curren state)"    }
+    member val ToggleLogLineWrap = {name= "Toggle Line Wraping in Log";gesture= "Alt + Z"        ;cmd= mkCmdSimple (fun _ -> log.ToggleLineWrap(config)) ;tip= "Toggle Line Wraping in Log window"                                                  }  
+    member val FontBigger        = {name= "Make Font Bigger"          ;gesture= "Ctrl + '+'"     ;cmd= mkCmdSimple (fun _ -> fonts.FontsBigger())         ;tip= "Increase Text Size for both Editor and Log"                                        }
+    member val FontSmaller       = {name= "Make Font Smaller"         ;gesture= "Ctrl + '-'"     ;cmd= mkCmdSimple (fun _ -> fonts.FontsSmaller())        ;tip= "Decrease Text Size for both Editor and Log"                                        }
                                                                                                                                      
     //Settings Menu                                                                                                                      
-    member val SettingsFolder    = {name= "Open Settings Folder"      ;gesture= ""               ;cmd= mkCmdSimple (fun _ -> config.HostingInfo.OpenFolder())                             ;tip= "Opens the Folder where user settinsg such as default file content is saved."}
-    member val ReloadXshdFile    = {name= "Reload Xshd File"          ;gesture= "F11"            ;cmd= mkCmdSimple (fun _ -> SyntaxHighlighting.setFSharp(tabs.CurrAvaEdit,config,true))  ;tip= "Reloads FSharpSynatxHighlighterExtended.xshd, this is useful for testing new highlighting files without a restart."}
+    member val SettingsFolder    = {name= "Open Settings Folder"      ;gesture= ""               ;cmd= mkCmdSimple (fun _ -> config.HostingInfo.OpenFolder())                             ;tip= "Opens the Folder where user settinsg such as default file content is saved."                                        }
+    member val ReloadXshdFile    = {name= "Reload Xshd File"          ;gesture= "F11"            ;cmd= mkCmdSimple (fun _ -> SyntaxHighlighting.setFSharp(tabs.CurrAvaEdit,config,true))  ;tip= "Reloads FSharpSynatxHighlighterExtended.xshd, this is useful for testing new highlighting files without a restart." }
 
     //--------------------------
     // Built in Commands from Avalonedit (listed as functiosn so the can be created more than once( eg for menu; and context menu)
@@ -178,11 +185,13 @@ type Commands (grid:TabsAndLog) =
                                     | [| m; k |]        -> InputBinding(cmd.cmd,  KeyGesture(getKey k, getModKey m))
                                     | [| k |]           -> InputBinding(cmd.cmd,  KeyGesture(getKey k))
                                     | _ -> 
-                                        log.PrintAppErrorMsg "*AllInputBindings: failed to parse cmd Input gesture '%s'" cmd.gesture
+                                        log.PrintAppErrorMsg "*SetUpGestureInputBindings: failed to parse cmd Input gesture '%s'" cmd.gesture
                                         InputBinding(cmd.cmd,  KeyGesture(Key.None))
                     |]
                 grid.Window.Window.InputBindings.AddRange (bindings)
-                
+                // to no redirect alt to the menu bar :
+                grid.Tabs.Control.InputBindings.Add (InputBinding(this.RunSelectedText.cmd, KeyGesture(Key.Return , ModifierKeys.Alt))) |> ignore 
+                grid.Tabs.Control.InputBindings.Add (InputBinding(this.RunSelectedText.cmd, KeyGesture(Key.Enter  , ModifierKeys.Alt))) |> ignore 
             with e -> 
                 log.PrintAppErrorMsg "*AllInputBindings: failed to create keyboard shortcuts: %A"e
          
