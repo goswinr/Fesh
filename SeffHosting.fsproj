@@ -3,7 +3,7 @@
 <Project Sdk="Microsoft.NET.Sdk.WindowsDesktop"> 
   <PropertyGroup>
     <OutputType>Library</OutputType>
-    <TargetFramework>net472</TargetFramework> <!--less files when 472, net 461 for FSharp.Compiler.Service 33.0.1 /> -->
+    <TargetFramework>net472</TargetFramework>    <!--472 to have fewer files, 461 ok too-->
     <LangVersion>preview</LangVersion>
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages> <!--to only have the english resources-->
     <UseWPF>true</UseWPF>
@@ -24,10 +24,9 @@
 
 
   <ItemGroup>
-    <!-- don't add explict ref to Fsharp.Core? https://github.com/dotnet/fsharp/issues/9064-->
-    <!-- path property $(PkgFSharp_Core) is C:\Users\Gos\.nuget\packages\fsharp.core\4.7.0 -->    
-    <!-- <PackageReference Update="FSharp.Core" Version="4.7.2" GeneratePathProperty="true" /> -->
+    <!-- don't add explict ref to Fsharp.Core? https://github.com/dotnet/fsharp/issues/9064 -->
     <!-- the combo 4.6.2 and 33.0.1 makes it work in Revit-->
+    <PackageReference Update="FSharp.Core" Version="4.6.2" />
     <PackageReference Include="FSharp.Compiler.Service" Version="33.0.1" /> 
   </ItemGroup>
 

@@ -20,7 +20,7 @@ type Settings (log:ISeffLog, hostInfo:HostingInfo) =
                 | _       -> log.PrintAppErrorMsg "Bad line in settings file file: '%s'" ln
                 //log.PrintDebugMsg "on File: %s" ln
         with 
-            | :? IO.FileNotFoundException ->  log.PrintInfoMsg   "Settings file not found. (This is normal on first use of the App.)"
+            | :? IO.FileNotFoundException ->  log.PrintInfoMsg   "Settings file not found. (This is expected on first use of the App.)"
             | e ->                            log.PrintAppErrorMsg  "Problem reading or initalizing settings file: %A"  e
         dict
 

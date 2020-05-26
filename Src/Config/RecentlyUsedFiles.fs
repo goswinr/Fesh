@@ -23,7 +23,7 @@ type RecentlyUsedFiles  (log:ISeffLog, hostInfo:HostingInfo) =
             for ln in  IO.File.ReadAllLines filePath |> Seq.rev do
                 stack.Push(FileInfo(ln)) |> ignore                    
         with e -> 
-            log.PrintAppErrorMsg "Error load RecentlyUsedFiles: %A"   e
+            log.PrintInfoMsg "No recently used files found. (This is expected on first use of the App)"  
                   
         stack   
 

@@ -24,7 +24,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Update="FSharp.Core" Version="4.7.2" GeneratePathProperty="true"/>    
+    <PackageReference Update="FSharp.Core" Version="4.7.2" GeneratePathProperty="true" />    
     <PackageReference Include="FSharp.Compiler.Service" Version="35.0.0" /> 
   </ItemGroup>
 
