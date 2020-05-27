@@ -10,7 +10,7 @@ open Seff.Util.General
 
 module Initialize =  
     let everything(context:HostingMode, startupArgs:string[])=
-        Timer.InstanceStartup.tic()             // optional timer for full init process
+        if context = Standalone then Timer.InstanceStartup.tic()             // optional timer for full init process
         Sync.installSynchronizationContext()    // do first
 
         let en_US = Globalization.CultureInfo.CreateSpecificCulture("en-US")        
