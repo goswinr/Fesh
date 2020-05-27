@@ -32,20 +32,20 @@ module General =
 
     ///Adds bytes to each color channel to increase brightness, negative values to make darker
     /// result will be clamped between 0 and 255
-    let changeLuminace (amount:int) (br:SolidColorBrush)=
+    let changeLuminace (amount:int) (col:Color)=
         let inline clamp x = if x<0 then 0uy elif x>255 then 255uy else byte(x)
-        let r = int br.Color.R + amount |> clamp      
-        let g = int br.Color.G + amount |> clamp
-        let b = int br.Color.B + amount |> clamp
-        SolidColorBrush(Color.FromArgb(br.Color.A, r,g,b))
+        let r = int col.R + amount |> clamp      
+        let g = int col.G + amount |> clamp
+        let b = int col.B + amount |> clamp
+        Color.FromArgb(col.A, r,g,b)
     
     ///Adds bytes to each color channel to increase brightness
     /// result will be clamped between 0 and 255
-    let brighter (amount:int) (br:SolidColorBrush)  = changeLuminace amount br 
+    let brighter (amount:int) (br:SolidColorBrush)  = SolidColorBrush(changeLuminace amount br.Color) 
     
     ///Removes bytes from each color channel to increase darkness, 
     /// result will be clamped between 0 and 255
-    let darker  (amount:int) (br:SolidColorBrush)  = changeLuminace -amount br
+    let darker  (amount:int) (br:SolidColorBrush)  = SolidColorBrush(changeLuminace -amount br.Color) 
 
 module String =
         

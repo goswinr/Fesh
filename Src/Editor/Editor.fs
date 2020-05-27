@@ -18,7 +18,7 @@ open System
 type Editor private (code:string, config:Config, filePath:FilePath) = 
     let avaEdit =           new AvalonEdit.TextEditor()
     
-    let errorHighlighter =  new ErrorHighlighter(avaEdit)
+    let errorHighlighter =  new ErrorHighlighter(avaEdit, config.Log)
     let checker =           Checker.GetOrCreate(config)     
     let compls =            new Completions(avaEdit,config,checker,errorHighlighter)
     let folds =             new Foldings(avaEdit,errorHighlighter)

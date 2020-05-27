@@ -35,10 +35,10 @@ type SegmentToMark private (startOffset, length, message:string, undelineColor:M
              SegmentToMark (startOffset, length, message, Some Colors.Red , Some Colors.LightSalmon, false )
     
     static member CreateForWarning (startOffset, length, message) = 
-               SegmentToMark (startOffset, length, message, Some Colors.Green , Some Colors.LightSeaGreen, true)
+               SegmentToMark (startOffset, length, message, Some Colors.Green , Some (Colors.LightSeaGreen |> changeLuminace 50) , true)
 
 
-type ErrorRenderer (textEditor:TextEditor) = 
+type ErrorRenderer (textEditor:TextEditor, log:ISeffLog) = 
         
     let segments = new TextSegmentCollection<SegmentToMark>(textEditor.Document)
     let createPoints(start:Point , offset, count)=
@@ -46,44 +46,47 @@ type ErrorRenderer (textEditor:TextEditor) =
                                                     start.Y - if (i + 1) % 2 = 0 then offset else 0.) |]
 
     member this.Draw (textView:TextView , drawingContext:DrawingContext) = // for IBackgroundRenderer
-        let vls = textView.VisualLines  
-        if textView.VisualLinesValid  && vls.Count > 0 then
-            let  viewStart = vls.First().FirstDocumentLine.Offset
-            let  viewEnd =   vls.Last().LastDocumentLine.EndOffset
+        try
+            let vls = textView.VisualLines  
+            if textView.VisualLinesValid  && vls.Count > 0 then
+                let  viewStart = vls.First().FirstDocumentLine.Offset
+                let  viewEnd =   vls.Last().LastDocumentLine.EndOffset
             
-            for segment in segments.FindOverlappingSegments(viewStart, viewEnd - viewStart) do
-                // background
-                match segment.BackgroundColor with 
-                |None ->()
-                |Some backgroundColor ->                 
-                    let geoBuilder = new BackgroundGeometryBuilder (AlignToWholePixels = true, CornerRadius = 3.)
-                    geoBuilder.AddSegment(textView, segment) // TODO loop only over this line ,not the others ?
-                    let geometry = geoBuilder.CreateGeometry()
-                    let brush = new SolidColorBrush(backgroundColor)
-                    brush.Freeze()
-                    drawingContext.DrawGeometry(brush, null, geometry)
+                for segment in segments.FindOverlappingSegments(viewStart, viewEnd - viewStart) do
+                    // background
+                    match segment.BackgroundColor with 
+                    |None ->()
+                    |Some backgroundColor ->                 
+                        let geoBuilder = new BackgroundGeometryBuilder (AlignToWholePixels = true, CornerRadius = 3.)
+                        geoBuilder.AddSegment(textView, segment) // TODO loop only over this line ,not the others ?
+                        let geometry = geoBuilder.CreateGeometry()
+                        let brush = new SolidColorBrush(backgroundColor)
+                        brush.Freeze()
+                        drawingContext.DrawGeometry(brush, null, geometry)
 
-                //foreground
-                match segment.UnderlineColor with 
-                |None ->()
-                |Some underlineColor ->   
-                for r in BackgroundGeometryBuilder.GetRectsForSegment(textView, segment) do
-                    let  startPoint = r.BottomLeft
-                    let  endPoint = r.BottomRight
-                    let usedPen = new Pen(new SolidColorBrush(underlineColor), 1.)
-                    usedPen.Freeze()
-                    let offset = 2.5
-                    let count = max 4 (int((endPoint.X - startPoint.X)/offset) + 1)
+                    //foreground
+                    match segment.UnderlineColor with 
+                    |None ->()
+                    |Some underlineColor ->   
+                    for r in BackgroundGeometryBuilder.GetRectsForSegment(textView, segment) do
+                        let  startPoint = r.BottomLeft
+                        let  endPoint = r.BottomRight
+                        let usedPen = new Pen(new SolidColorBrush(underlineColor), 1.)
+                        usedPen.Freeze()
+                        let offset = 2.5
+                        let count = max 4 (int((endPoint.X - startPoint.X)/offset) + 1)
 
-                    let  geometry = new StreamGeometry()
+                        let  geometry = new StreamGeometry()
                         
-                    use ctx = geometry.Open()
-                    ctx.BeginFigure(startPoint, false, false)
-                    ctx.PolyLineTo(createPoints(startPoint, offset, count), true, false)                    
-                    geometry.Freeze()
-                    drawingContext.DrawGeometry(Brushes.Transparent, usedPen, geometry)
-                    //break //TODO why break in original code ? //https://stackoverflow.com/questions/11149907/showing-invalid-xml-syntax-with-avalonedit
-        
+                        use ctx = geometry.Open()
+                        ctx.BeginFigure(startPoint, false, false)
+                        ctx.PolyLineTo(createPoints(startPoint, offset, count), true, false)                    
+                        geometry.Freeze()
+                        drawingContext.DrawGeometry(Brushes.Transparent, usedPen, geometry)
+                        //break //TODO why break in original code ? //https://stackoverflow.com/questions/11149907/showing-invalid-xml-syntax-with-avalonedit
+        with ex -> 
+            log.PrintAppErrorMsg "ERROR in ErrorRenderer.Draw: %A" ex
+            
     member this.Layer = KnownLayer.Selection // for IBackgroundRenderer
     member this.Transform(context:ITextRunConstructionContext , elements:IList<VisualLineElement>)=() // needed ? // for IVisualLineTransformer
         
@@ -114,10 +117,10 @@ type ErrorRenderer (textEditor:TextEditor) =
         member this.Transform(ctx,es) = this.Transform(ctx,es)
 
 
-type ErrorHighlighter (ed:TextEditor) = 
+type ErrorHighlighter (ed:TextEditor, log:ISeffLog) = 
 
     let tView= ed.TextArea.TextView
-    let renderer = ErrorRenderer(ed)
+    let renderer = ErrorRenderer(ed,log)
     let tip = new ToolTip(IsOpen=false) // replace with something that can be pinned// TODO use popup instead of tooltip so it can be pinned?
 
     let drawnEv = new Event<IEditor>()
