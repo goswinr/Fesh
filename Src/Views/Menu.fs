@@ -15,7 +15,7 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, log:Log) =
     let bar = new Windows.Controls.Menu()
     
     // File menu: 
-    let fileMenu         =MenuItem(Header = "_File")                                                                        
+    let fileMenu = MenuItem(Header = "_File")                                                                        
    
     
     // TODO add  all built in  DocmentNavigatin shortcuts
@@ -70,7 +70,8 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, log:Log) =
                 menuItem cmds.Close
                 sep()
                 menuItem cmds.SaveLog
-                menuItem cmds.SaveLogSel ]
+                menuItem cmds.SaveLogSel 
+                sep() ]
             MenuItem(Header = "_Edit"),[                 
                 menuItem cmds.Copy     
                 menuItem cmds.Cut      
