@@ -141,8 +141,11 @@ type Log () =
             log.ScrollToEnd()
             if log.WordWrap then log.ScrollToEnd() //is needed a second time !
         with 
-            ex -> log.AppendText (sprintf "ERROR in printFromBufferAndScroll %A" ex)
-         
+            ex -> 
+                async{
+                    do! Async.SwitchToContext Sync.syncContext 
+                    log.AppendText (sprintf "ERROR in printFromBufferAndScroll %A" ex)
+                    }|> Async.StartImmediate 
 
 
     /// adds string on UI thread  every 150ms then scrolls to end after 300ms
