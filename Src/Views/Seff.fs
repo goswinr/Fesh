@@ -20,18 +20,15 @@ type Seff (config:Config,log:Log) =
     do
         dockP.Margin <- Thickness(tabsAndLog.GridSplitterSize)
         
-        commands.SetUpGestureInputBindings()
-        
+        commands.SetUpGestureInputBindings()        
         
         win.Window.Content <-   dockP   
         win.Window.Background  <- menu.Bar.Background // call after setting up content, otherwise space next to tab headers is in an odd color
               
-
         win.Window.Loaded.Add(fun _ -> log.PrintInfoMsg "* Time for loading  main window: %s"  Timer.InstanceStartup.tocEx) 
         
         win.Window.ContentRendered.Add(fun _ -> tabs.CurrAvaEdit.Focus() |> ignore )
-                   
-
+          
         win.Window.Closing.Add( fun e ->
             // first check for running FSI
             match tabs.Fsi.AskIfCancellingIsOk () with 
