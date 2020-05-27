@@ -31,6 +31,7 @@ type Seff (config:Config,log:Log) =
         win.Window.ContentRendered.Add(fun _ -> 
             //if not <| Tabs.Current.Editor.Focus() then log.PrintAppErrorMsg "Tabs.Current.Editor.Focus failed"  //or System.Windows.Input.FocusManager.SetFocusedElement(...)             
             log.PrintInfoMsg "* Time for loading and render main window: %s"  Timer.InstanceStartup.tocEx
+            tabs.CurrAvaEdit.Focus() |> ignore 
             ) 
                   
         win.Window.Closing.Add( fun e ->
