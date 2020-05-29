@@ -101,7 +101,7 @@ type StatusBar (grid:TabsAndLog, cmds:Commands)  = // TODO better make it depend
             |NotSet ->                 fsiState.Text <- "FSI is running ..." )
 
         fsi.OnIsReady.Add(fun _ -> 
-            fsiState.Text <- "FSI is ready!" 
+            fsiState.Text <- "FSI is ready" 
             fsiState.Background <- Brushes.Green |> brighter 120)
         
         tabs.OnTabChanged.Add (fun t -> updateCheckState(t.Editor))
