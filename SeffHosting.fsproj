@@ -1,15 +1,25 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<!--Win desktop needed so that rescources work with dotnet build:-->
-<Project Sdk="Microsoft.NET.Sdk.WindowsDesktop"> 
+<Project Sdk="Microsoft.NET.Sdk.WindowsDesktop"> <!--Win desktop needed so that rescources work with dotnet build:-->
   <PropertyGroup>
     <OutputType>Library</OutputType>
+    <UseWPF>true</UseWPF>
     <TargetFramework>net472</TargetFramework>    <!--472 to have fewer files, 461 ok too-->
     <LangVersion>preview</LangVersion>
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages> <!--to only have the english resources-->
-    <UseWPF>true</UseWPF>
-
     <RootNamespace>Seff</RootNamespace>
     <AssemblyName>Seff</AssemblyName>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NeutralLanguage>en</NeutralLanguage>
+
+    <Version>0.2.0.0</Version>
+    <AssemblyVersion>0.2.0.0</AssemblyVersion>
+    <FileVersion>0.2.0.0</FileVersion>
+
+    <Authors>Goswin Rothenthal</Authors>
+    <Product>Seff</Product> 
+    <Description>A hostable fsharp scripting editor </Description>
+    <Copyright>Copyright: Goswin Rothenthal 2020 </Copyright>
+    
     <ApplicationIcon>Media\LogoCursorTr.ico</ApplicationIcon>
     <Win32Resource>Media\LogoCursorTr.res</Win32Resource> <!--  for Application Icon in explorer-->    
   </PropertyGroup> 
@@ -53,6 +63,7 @@
     <Compile Include="Src\Timer.fs" />
     <Compile Include="Src\Model.fs" />
     <Compile Include="Src\Sync.fs" />
+
     <Compile Include="Src\Config\SaveWriter.fs" />
     <Compile Include="Src\Config\HostingInfo.fs" />
     <Compile Include="Src\Config\Settings.fs" />
@@ -62,7 +73,9 @@
     <Compile Include="Src\Config\AutoCompleteStatistic.fs" />
     <Compile Include="Src\Config\AssemblyReferenceStatistic.fs" />
     <Compile Include="Src\Config\Config.fs" />
+
     <Compile Include="Src\Fsi.fs" />
+
     <Compile Include="Src\Editor\Commenting.fs" />
     <Compile Include="Src\Editor\DocString.fs" />
     <Compile Include="Src\Editor\SyntaxHighlighting.fs" />
@@ -74,6 +87,7 @@
     <Compile Include="Src\Editor\ColumnRulers.fs" />
     <Compile Include="Src\Editor\Editor.fs" />
     <Compile Include="Src\Editor\UNUSEDNuget.fs" />
+
     <Compile Include="Src\Views\Views.Util.fs" />
     <Compile Include="Src\Views\Log.fs" />
     <Compile Include="Src\Views\Window.fs" />
@@ -85,6 +99,7 @@
     <Compile Include="Src\Views\StatusBar.fs" />
     <Compile Include="Src\Views\Menu.fs" />
     <Compile Include="Src\Views\Seff.fs" />
+
     <Compile Include="Src\Initialize.fs" />    
     <Compile Include="Src\App.fs" />
 
