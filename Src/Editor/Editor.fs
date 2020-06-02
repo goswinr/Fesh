@@ -228,9 +228,8 @@ type Editor private (code:string, config:Config, filePath:FilePath) =
             
             if e.RemovalLength >0 then compls.JustClosed<-false // in this case open window again?
 
-            if compls.IsOpen then   // just keep on tying in completion window, no type checking !
-                
-                if compls.HasItems then 
+            if compls.IsOpen then   // just keep on tying in completion window, no type checking !                
+                if compls.HasItems then // TODO, this code is duplicated in textChanged function
                     ()
                     //let currentText = getField(typeof<CodeCompletion.CompletionList>,w.CompletionList,"currentText") :?> string //this property schould be public !
                     //TODO close Window if w.CompletionList.SelectedItem.Text = currentText
