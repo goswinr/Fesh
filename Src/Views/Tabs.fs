@@ -13,6 +13,7 @@ open Seff.Style
 open Seff.Editor
 open System.Windows.Media
 
+
 /// A class holding the Tab Control
 /// Includes logic for saving and opening files
 /// Window ref neded for closing after last Tab closed
@@ -59,7 +60,7 @@ type Tabs(config:Config, win:Window) =
                 false
                 
 
-    /// returns true if saving operation was not canceled
+    /// returns false if saving operation was canceled or had an error, true on sucessfull saving
     let saveAsDialog (t:Tab) :bool=         
         let dlg = new Microsoft.Win32.SaveFileDialog()
         match t.FilePath with 
@@ -83,7 +84,8 @@ type Tabs(config:Config, win:Window) =
                 saveAt (t, fi)
         else
             false
-
+    
+    /// returns false if saving operation was canceled or had an error, true on sucessfull saving
     let trySave (t:Tab)=        
         match t.FilePath with
         |SetTo fi ->         
@@ -105,7 +107,7 @@ type Tabs(config:Config, win:Window) =
             let msg = sprintf "Do you want to save the changes to:\r\n%s\r\nbefore closing this tab?" t.FormatedFileName
             match MessageBox.Show(msg, Style.dialogCaption, MessageBoxButton.YesNoCancel, MessageBoxImage.Question) with
             | MessageBoxResult.Yes -> trySave t
-            | MessageBoxResult.No -> false
+            | MessageBoxResult.No -> true
             | _ -> false
 
     let closeTab(t:Tab)= 
