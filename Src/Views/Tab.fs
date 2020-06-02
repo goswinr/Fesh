@@ -55,9 +55,10 @@ type Tab (editor:Editor) =
             textBlock.ToolTip      <- "This file has not yet been saved to disk."
             textBlock.Text         <- sprintf "*unsaved-%d*" Counter.UnsavedFile  
             textBlock.Foreground   <- Brushes.Gray
+            headerShowsSaved        <- false
      
     let upadteIsCodeCaved(isSaved)=
-        if  not isSaved && headerShowsSaved then 
+        if not isSaved && headerShowsSaved then 
             isCodeSaved <- false
             setHeader()
         elif isSaved && not headerShowsSaved  then 
