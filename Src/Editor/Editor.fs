@@ -167,13 +167,13 @@ type Editor private (code:string, config:Config, filePath:FilePath) =
                             else
                                doCompl,false //not upper case, other 3 decide if anything is shown
 
-                    //log.PrintDebugMsg "isNotInString:%b; isNotAlreadyInComment:%b; isNotFunDeclaration:%b; isNotLetDeclaration:%b; doCompletionInPattern:%b, onlyDU:%b" isNotInString isNotAlreadyInComment isNotFunDecl isNotLetDecl doCompletionInPattern onlyDU
+                    //log.PrintDebugMsg "isNotAlreadyInComment:%b; isNotFunDeclaration:%b; isNotLetDeclaration:%b; doCompletionInPattern:%b(, onlyDU:%b)" isNotAlreadyInComment isNotFunDecl isNotLetDecl doCompletionInPattern onlyDU
                 
                     if (*isNotInString &&*) isNotAlreadyInComment && isNotFunDecl && isNotLetDecl && doCompletionInPattern then
                         let setback     = lastNonFSharpNameCharPosition line                
                         let query       = line.Substring(line.Length - setback)
                         let isKeyword   = keywords.Contains query
-                        //log.PrintDebugMsg "pos:%A setback='%d'" pos setback                
+                        log.PrintDebugMsg "pos:%A setback='%d'" pos setback                
                                            
                         let charBeforeQueryDU = 
                             let i = pos.column - setback - 1
@@ -183,11 +183,11 @@ type Editor private (code:string, config:Config, filePath:FilePath) =
                                 NotDot
 
                         if charBeforeQueryDU = NotDot && isKeyword then
-                            log.PrintDebugMsg "*2.1-textChanged highlighting with: query='%s', charBefore='%A', isKey=%b, setback='%d', line='%s' " query charBeforeQueryDU isKeyword setback line
+                            //log.PrintDebugMsg "*2.1-textChanged highlighting with: query='%s', charBefore='%A', isKey=%b, setback='%d', line='%s' " query charBeforeQueryDU isKeyword setback line
                             ed.Checker.CkeckHighlightAndFold(ed)
 
                         else 
-                            //log.PrintDebugMsg "*2.2-textChanged Completion window opening with: query='%s', charBefore='%A', isKey=%b, setback='%d', line='%s' change=%A" query charBeforeQueryDU isKeyword setback line change
+                           //log.PrintDebugMsg "*2.2-textChanged Completion window opening with: query='%s', charBefore='%A', isKey=%b, setback='%d', line='%s' change=%A" query charBeforeQueryDU isKeyword setback line change
                            Completions.TryShow(ed, compls, pos, change, setback, query, charBeforeQueryDU, onlyDU)
                     else
                         //checkForErrorsAndUpdateFoldings(tab)
@@ -247,7 +247,7 @@ type Editor private (code:string, config:Config, filePath:FilePath) =
                     if compls.JustClosed then                        textChanged (CompletionWinClosed)//check to avoid retrigger of window on single char completions
                     else                                                         
                         let c = txt.[0]                                          
-                        if Char.IsLetter(c) || c='_' || c='`' then   textChanged (EnteredOneIdentifierChar  )//complete
+                        if Char.IsLetter(c) || c='_' || c='`' then   textChanged (EnteredOneIdentifierChar  ) //complete
                         else                                         textChanged (EnteredOneNonIdentifierChar)//check
                                                                                  
                 | _  ->                                              textChanged (OtherChange               )//several charcters(paste) ,delete or completion window          

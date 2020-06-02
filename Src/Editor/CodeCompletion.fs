@@ -219,6 +219,7 @@ type Completions(avaEdit:TextEditor,config:Config, checker:Checker, errorHighlig
                 w.MinWidth  <- avaEdit.FontSize * 8.0
                 w.Closed.Add (fun _  -> 
                         compl.Close()
+                        compl.Checker.CkeckHighlightAndFold(iEditor) //needed ! because window might close immedeatly after showing if ther are no matches
                         //config.Log.PrintDebugMsg "Completion window just closed with selected item: %A " w.CompletionList.SelectedItem
                         )
                     
@@ -244,6 +245,7 @@ type Completions(avaEdit:TextEditor,config:Config, checker:Checker, errorHighlig
                     w.CompletionList.SelectItem(query) //to prefilter the list if query present
             
                 try
+                    //log.PrintDebugMsg "Show Completion Window with %d items" w.CompletionList.CompletionData.Count
                     w.Show()
                 with e -> 
                     log.PrintAppErrorMsg "Error in Showing Code Completion Window: %A" e
