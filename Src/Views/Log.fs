@@ -214,7 +214,11 @@ type Log () =
     
     /// to acces the underlying read-only Avalonedit Texteditor
     member this.ReadOnlyEditor = log
-        
+    
+    member this.Clear() = 
+        log.Clear()
+        lineColors.Clear()
+
     //used in FSI constructor:
     member this.TextWriterFsiStdOut    = textWriterFsiStdOut    
     member this.TextWriterFsiErrorOut  = textWriterFsiErrorOut  
