@@ -107,11 +107,13 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, log:Log) =
                 menuItem cmds.BoxSelToLineEnd ]
             MenuItem(Header = "F_SI", ToolTip="FSharp Interactive code evaluation"),[ 
                 menuItem cmds.RunAllText        
-                menuItem cmds.RunAllTextSave    
-                menuItem cmds.RunSelectedLines  
-                menuItem cmds.RunSelectedText                
+                menuItem cmds.RunAllTextSave
+                menuItem cmds.RunAllTxSaveClear
                 sep()
-                menuItem cmds.ClearFSI  
+                menuItem cmds.RunCurrentLines  
+                menuItem cmds.RunSelectedText
+                sep()
+                menuItem cmds.ClearLog 
                 menuItem cmds.CancelFSI 
                 menuItem cmds.ResetFSI  
                 if config.HostingInfo.IsHosted then
@@ -123,7 +125,7 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, log:Log) =
                 menuItem cmds.ToggleLogSize 
                 menuItem cmds.ToggleLogLineWrap 
                 sep()
-                menuItem cmds.ClearFSI
+                menuItem cmds.ClearLog
                 sep()
                 menuItem cmds.FontBigger
                 menuItem cmds.FontSmaller
@@ -149,7 +151,7 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, log:Log) =
                 menuItem cmds.UnComment
                 sep()
                 menuItem cmds.RunAllText
-                menuItem cmds.RunSelectedLines
+                menuItem cmds.RunCurrentLines
                 menuItem cmds.RunSelectedText                
                 sep()
                 menuItem cmds.UnDo
@@ -162,7 +164,7 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, log:Log) =
                 menuItem cmds.ToggleLogSize
                 menuItem cmds.ToggleLogLineWrap
                 sep()
-                menuItem cmds.ClearFSI
+                menuItem cmds.ClearLog
                 menuItem cmds.CancelFSI
                 menuItem cmds.ResetFSI
                 sep()

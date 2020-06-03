@@ -25,10 +25,11 @@ type Commands (grid:TabsAndLog)  =
     let fsi = tabs.Fsi
 
 
-    let evalAllText()        =                                  fsi.Evaluate {code=tabs.CurrAvaEdit.Text                                    ; file=tabs.Current.FilePath; allOfFile=true}                               
-    let evalAllTextSave()    =  if tabs.Save(tabs.Current) then fsi.Evaluate {code=tabs.CurrAvaEdit.Text                                    ; file=tabs.Current.FilePath; allOfFile=true} 
-    let evalSelectedLines()  =                                  fsi.Evaluate {code = Selection.expandSelectionToFullLines(tabs.CurrAvaEdit) ; file=tabs.Current.FilePath; allOfFile=false} 
-    let evalSelectedText()   =                                  fsi.Evaluate {code = tabs.CurrAvaEdit.SelectedText                          ; file=tabs.Current.FilePath; allOfFile=false} 
+    let evalAllText()          =                                  fsi.Evaluate {code=tabs.CurrAvaEdit.Text                                    ; file=tabs.Current.FilePath; allOfFile=true}                               
+    let evalAllTextSave()      =  if tabs.Save(tabs.Current) then fsi.Evaluate {code=tabs.CurrAvaEdit.Text                                    ; file=tabs.Current.FilePath; allOfFile=true} 
+    let evalAllTextSaveClear() =  if tabs.Save(tabs.Current) then log.Clear(); fsi.Evaluate {code=tabs.CurrAvaEdit.Text                       ; file=tabs.Current.FilePath; allOfFile=true} 
+    let evalSelectedLines()    =                                  fsi.Evaluate {code = Selection.expandSelectionToFullLines(tabs.CurrAvaEdit) ; file=tabs.Current.FilePath; allOfFile=false} 
+    let evalSelectedText()     =                                  fsi.Evaluate {code = tabs.CurrAvaEdit.SelectedText                          ; file=tabs.Current.FilePath; allOfFile=false} 
     
     //see https://github.com/icsharpcode/AvalonEdit/blob/697ff0d38c95c9e5a536fbc05ae2307ec9ef2a63/ICSharpCode.AvalonEdit/Editing/CaretNavigationCommandHandler.cs#L73
     //TODO these gets evaluated for each cmd on every mouse click or key perss . is this OK?  any lag ?? in Canexecute for commands
@@ -68,9 +69,10 @@ type Commands (grid:TabsAndLog)  =
     //FSI menu:                                                                                                                              
     member val RunAllText        = {name= "Run All Text"              ;gesture= "F5"             ;cmd= mkCmdSimple (fun _ -> evalAllText() )             ;tip= "Send all text in the current file to FSharp Interactive"                }
     member val RunAllTextSave    = {name= "Save and Run All Text"     ;gesture= "F6"             ;cmd= mkCmdSimple (fun _ -> evalAllTextSave())          ;tip= "First Save current File, then send all it's text to FSharp Interactive" }
-    member val RunSelectedLines  = {name= "Run Selected Lines"        ;gesture= "Ctrl + Enter"   ;cmd= mkCmdSimple (fun _ -> evalSelectedLines())        ;tip= "Sends the currently seleceted Lines in the editor to FSharp Interactive.\r\nIncludes partially selected lines in full."}
+    member val RunAllTxSaveClear = {name= "Save, Clear Log, Run All Text" ;gesture= "F7"         ;cmd= mkCmdSimple (fun _ -> evalAllTextSaveClear())     ;tip= "First Save current File, then Clear Log, then send all text to FSharp Interactive" }  
+    member val RunCurrentLines   = {name= "Run CurrentLines"          ;gesture= "Ctrl + Enter"   ;cmd= mkCmdSimple (fun _ -> evalSelectedLines())        ;tip= "Sends the currently seleceted Lines in the editor to FSharp Interactive.\r\nIncludes partially selected lines in full."}
     member val RunSelectedText   = {name= "Run Selected Text"         ;gesture= "Alt + Enter"    ;cmd= mkCmd isEse (fun _ -> evalSelectedText())         ;tip= "Sends the currently seleceted Text in the editor to FSharp Interactive" }// TODO mark evaluated code with grey background
-    member val ClearFSI          = {name= "Clear Log"                 ;gesture= "Ctrl + Alt + C" ;cmd= mkCmdSimple (fun _ -> log.ReadOnlyEditor.Clear()) ;tip= "Clear all text from FSI Log window"                                     }
+    member val ClearLog          = {name= "Clear Log"                 ;gesture= "Ctrl + Alt + C" ;cmd= mkCmdSimple (fun _ -> log.Clear())                ;tip= "Clear all text from FSI Log window"                                     }
     member val CancelFSI         = {name= "Cancel FSI"                ;gesture= "Ctrl + Break"   ;cmd= mkCmd isAsy (fun _ -> fsi.CancelIfAsync())        ;tip= "Cancel running FSI evaluation (only available in asynchronous mode)"    }
     member val ResetFSI          = {name= "Reset FSI"                 ;gesture= "Ctrl + Alt + R" ;cmd= mkCmdSimple (fun _ -> fsi.Reset())                ;tip= "Reset FSharp Interactive"                                               }
     member val ToggleSync        = {name= "Toggle Sync / Async"       ;gesture= ""               ;cmd= mkCmdSimple (fun _ -> fsi.ToggleSync())           ;tip= "Switch between synchronous and asynchronous evaluation in FSI, see status in StatusBar"} 
@@ -133,10 +135,11 @@ type Commands (grid:TabsAndLog)  =
                  //this.SelectLinesDown
                             
                  this.RunAllText       
-                 this.RunAllTextSave   
-                 this.RunSelectedLines 
+                 this.RunAllTextSave 
+                 this.RunAllTxSaveClear
+                 this.RunCurrentLines 
                  this.RunSelectedText  
-                 this.ClearFSI         
+                 this.ClearLog        
                  this.CancelFSI        
                  this.ResetFSI         
                  if config.HostingInfo.IsHosted then this.ToggleSync
