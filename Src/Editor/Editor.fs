@@ -173,7 +173,7 @@ type Editor private (code:string, config:Config, filePath:FilePath) =
                         let setback     = lastNonFSharpNameCharPosition line                
                         let query       = line.Substring(line.Length - setback)
                         let isKeyword   = keywords.Contains query
-                        log.PrintDebugMsg "pos:%A setback='%d'" pos setback                
+                        //log.PrintDebugMsg "pos:%A setback='%d'" pos setback                
                                            
                         let charBeforeQueryDU = 
                             let i = pos.column - setback - 1

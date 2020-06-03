@@ -216,6 +216,8 @@ type Log () =
     member this.ReadOnlyEditor = log
     
     member this.Clear() = 
+        log.SelectionStart <- 0
+        log.SelectionLength <- 0
         log.Clear()
         lineColors.Clear()
 
