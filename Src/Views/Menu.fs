@@ -113,6 +113,9 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, log:Log) =
                 menuItem cmds.RunCurrentLines  
                 menuItem cmds.RunSelectedText
                 sep()
+                menuItem cmds.RunTextTillCursor
+                menuItem cmds.RunTextFromCursor
+                sep()
                 menuItem cmds.ClearLog 
                 menuItem cmds.CancelFSI 
                 menuItem cmds.ResetFSI  
@@ -149,6 +152,9 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, log:Log) =
                 sep()
                 menuItem cmds.Comment
                 menuItem cmds.UnComment
+                sep()
+                menuItem cmds.RunTextTillCursor
+                menuItem cmds.RunTextFromCursor
                 sep()
                 menuItem cmds.RunAllText
                 menuItem cmds.RunCurrentLines

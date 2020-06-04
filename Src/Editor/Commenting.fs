@@ -57,6 +57,18 @@ module Selection =
         avaEdit.Select(stoff,en.EndOffset-stoff)
         avaEdit.SelectedText
 
+    let linesTillCursor(avaEdit:TextEditor) =
+        let doc = avaEdit.Document        
+        let en = doc.GetLineByOffset(avaEdit.SelectionStart + avaEdit.SelectionLength)
+        avaEdit.Select(0,en.EndOffset)
+        avaEdit.SelectedText
+
+    let linesFromCursor(avaEdit:TextEditor) =
+        let doc = avaEdit.Document
+        let st = doc.GetLineByOffset(avaEdit.SelectionStart)        
+        avaEdit.Select(st.Offset,avaEdit.Document.TextLength-1)
+        avaEdit.SelectedText
+
     let selectAll(avaEdit:TextEditor) = 
         let doc = avaEdit.Document
         avaEdit.Select(0,doc.TextLength)
