@@ -66,7 +66,7 @@ module Selection =
     let linesFromCursor(avaEdit:TextEditor) =
         let doc = avaEdit.Document
         let st = doc.GetLineByOffset(avaEdit.SelectionStart)        
-        avaEdit.Select(st.Offset,avaEdit.Document.TextLength-1)
+        avaEdit.Select(st.Offset,avaEdit.Document.TextLength-st.Offset)
         avaEdit.SelectedText
 
     let selectAll(avaEdit:TextEditor) = 
