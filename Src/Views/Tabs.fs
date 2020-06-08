@@ -296,11 +296,12 @@ type Tabs(config:Config, win:Window) =
     /// returns true if all files are saved or unsaved changes are ignored (closing not canceled by user).
     member this.AskIfClosingWindowIsOk()=             
         let openFs = allTabs |> Seq.filter (fun t -> not t.IsCodeSaved) 
+        //log.PrintDebugMsg "Unsaved files %d" (Seq.length openFs)
         if  Seq.isEmpty openFs then
             true
         else
             let msg = openFs  |> Seq.fold (fun m t -> 
-                let name  = match t.FilePath with NotSet ->t.FormatedFileName |SetTo fi ->fi.Name 
+                let name  = match t.FilePath with NotSet -> t.FormatedFileName |SetTo fi ->fi.Name 
                 sprintf "%s\r\n\r\n%s" m name) "Do you want to\r\nsave the changes to:" 
             match MessageBox.Show(msg, Style.dialogCaption, MessageBoxButton.YesNoCancel, MessageBoxImage.Question) with
             | MessageBoxResult.Yes -> 
