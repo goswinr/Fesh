@@ -51,8 +51,8 @@ type Tabs(config:Config, win:Window) =
                 IO.File.WriteAllText(fi.FullName, t.AvaEdit.Text)
                 t.IsCodeSaved <- true 
                 t.FilePath <- SetTo fi //this also updates the Tab header and set file info on editor
-                config.RecentlyUsedFiles.AddAndSave(fi)
-                config.OpenTabs.Save(t.FilePath , allFileInfos)                
+                config.RecentlyUsedFiles.AddAndSave(fi)          //TODO this fails if app closes afterward immideatly    
+                config.OpenTabs.Save(t.FilePath , allFileInfos)  //TODO this fails if app closes afterward immideatly              
                 log.PrintInfoMsg "File saved as:\r\n%s" fi.FullName
                 true
             with e -> 
