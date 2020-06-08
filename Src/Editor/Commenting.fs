@@ -13,25 +13,37 @@ module Commenting =
         let doc = avaEdit.Document
         let start = doc.GetLineByOffset(avaEdit.SelectionStart)
         let endeNext = doc.GetLineByOffset(avaEdit.SelectionStart + avaEdit.SelectionLength).NextLine            
-        let rec comm ln pos lineK= 
+        
+        let rec findIndent ln minInd= 
             if ln <> endeNext then 
                 let dl = doc.GetText(ln)
                 match Seq.tryFindIndex (fun c -> c <>' ')  dl with
                 | None ->
-                    comm ln.NextLine 0 lineK // do not comment empty lines
+                    findIndent ln.NextLine minInd // do not comment empty lines
                 | Some i -> 
-                    let ii = if lineK = 0 || i < pos then i else pos // use the indent on first line for position of comments markers unles line is more inside
-                    doc.Insert(ln.Offset + ii, "//")
-                    comm ln.NextLine ii (lineK+1)           
+                    findIndent ln.NextLine (min minInd i)
+            else
+                minInd        
+        let indent = findIndent start 99  
+        
+        let rec comm ln = 
+            if ln <> endeNext then 
+                let dl = doc.GetText(ln)
+                match Seq.tryFindIndex (fun c -> c <>' ')  dl with
+                | None ->
+                    comm ln.NextLine // do not comment empty lines
+                | Some i -> 
+                    doc.Insert(ln.Offset + indent, "//")
+                    comm ln.NextLine          
         doc.BeginUpdate() //avaEdit.Document.RunUpdate
-        comm start 0 0
+        comm start
         doc.EndUpdate()
         //FsService.textChanged (FsService.OtherChange, tab) // TODO needed ?        
         
     let unComment(avaEdit:TextEditor) =
         let doc = avaEdit.Document
         let start = doc.GetLineByOffset(avaEdit.SelectionStart)
-        let endeNext = doc.GetLineByOffset(avaEdit.SelectionStart + avaEdit.SelectionLength).NextLine            
+        let endeNext = doc.GetLineByOffset(avaEdit.SelectionStart + avaEdit.SelectionLength).NextLine   
         let rec ucomm ln = 
             if ln <> endeNext then 
                 let dl = doc.GetText(ln)                    
