@@ -11,21 +11,32 @@
     <RootNamespace>Seff</RootNamespace>
     <AssemblyName>Seff</AssemblyName>
     <ApplicationIcon>Media\LogoCursorTr.ico</ApplicationIcon>
-    <Win32Resource>Media\LogoCursorTr.res</Win32Resource> <!--  for Application Icon in explorer-->    
+    <Win32Resource>Media\LogoCursorTr.res</Win32Resource>      <!-- Win32Resource for Application Icon in explorer-->    
+    
+    <Platforms>AnyCPU;x86</Platforms>
+    <Configurations>Debug;Release</Configurations> 
   </PropertyGroup>
 
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-    <OutputPath>binStandalone\Debug\</OutputPath>
+    <OutputPath>binStandalone\Debug\AnyCPU\</OutputPath>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x86'">
+    <OutputPath>binStandalone\Debug\x86</OutputPath>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <OutputPath>binStandalone\Release\AnyCPU\</OutputPath>
   </PropertyGroup> 
   
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-    <OutputPath>binStandalone\Release\</OutputPath>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x86'">
+    <OutputPath>binStandalone\Release\x86\</OutputPath>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Update="FSharp.Core" Version="4.7.2" GeneratePathProperty="true" />    
-    <PackageReference Include="FSharp.Compiler.Service" Version="33.0.1" /><!--EPPlus fails with 35.0.0 ??-->
+    <PackageReference Include="FSharp.Compiler.Service" Version="33.0.1" /><!--EPPlus fails with 35.0.0 ?? try x86 version !-->
     <!--<PackageReference Include="FSharp.DependencyManager.Nuget" Version="35.0.0" />-->
   </ItemGroup>
 
