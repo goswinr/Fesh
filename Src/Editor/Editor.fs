@@ -209,17 +209,25 @@ type Editor private (code:string, config:Config, filePath:FilePath) =
         avaEdit.AllowDrop <- true  
         avaEdit.Drop.Add(fun e ->
             if e.Data.GetDataPresent DataFormats.FileDrop then
+                let isDll (p:string) = p.EndsWith(".dll", StringComparison.OrdinalIgnoreCase) ||  p.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)
+                
                 try
-                    (e.Data.GetData DataFormats.FileDrop :?> string []) // to get file path                    
-                    |> Array.iter (fun p ->
-                        try 
-                            if p.EndsWith(".dll", StringComparison.OrdinalIgnoreCase) ||  p.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) then 
-                                avaEdit.Document.Insert (0, sprintf "#r @\"%s\"\r\n" p)
-                            if p.EndsWith(".fsx", StringComparison.OrdinalIgnoreCase)  then 
-                                avaEdit.Document.Insert (0, sprintf "#load @\"%s\"\r\n" p)                            
+                    let fs = (e.Data.GetData DataFormats.FileDrop :?> string []) |> Array.sort |> Array.rev // to get file path 
+                    if fs.Length > 2 && Array.forall isDll fs then      // TODO make path relatriv to script location    
+                        for f in fs  do 
+                            let file = IO.Path.GetFileName(f)
+                            avaEdit.Document.Insert (0, sprintf "#r \"%s\"\r\n" file)
+                        let folder = IO.Path.GetDirectoryName(fs.[0])
+                        avaEdit.Document.Insert (0, sprintf "#I @\"%s\"\r\n" folder)                    
+                    else
+                        for f in fs do
+                            if isDll f then 
+                                avaEdit.Document.Insert (0, sprintf "#r @\"%s\"\r\n" f)
+                            elif f.EndsWith(".fsx", StringComparison.OrdinalIgnoreCase)  then 
+                                avaEdit.Document.Insert (0, sprintf "#load @\"%s\"\r\n" f)                            
                             else 
-                                avaEdit.Document.Insert (avaEdit.CaretOffset , sprintf " @\"%s\"\r\n" p)
-                        with e -> log.PrintIOErrorMsg "one drop failed: %A" e)
+                                avaEdit.Document.Insert (avaEdit.CaretOffset , sprintf " @\"%s\"\r\n" f)
+                            
                 with e -> log.PrintIOErrorMsg "full drop failed: %A" e
                 )
 

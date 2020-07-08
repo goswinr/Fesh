@@ -147,6 +147,7 @@ type Completions(avaEdit:TextEditor,config:Config, checker:Checker, errorHighlig
     member this.GetToolTip(it:FSharpDeclarationListItem)= 
         async{
             let raw = it.StructuredDescriptionText
+            //let! raw = it.StructuredDescriptionTextAsync
             let structured = 
                 if optArgsDict.ContainsKey it.FullName then  TypeInfo.getFormated (raw, optArgsDict.[it.FullName])
                 else                                         TypeInfo.getFormated (raw, ResizeArray(0))
