@@ -17,14 +17,14 @@ open ICSharpCode.AvalonEdit.Utils
 type ColumnRulers (editor:AvalonEdit.TextEditor, columnsInit: seq<int>)  as this =
     //https://github.com/icsharpcode/AvalonEdit/blob/master/ICSharpCode.AvalonEdit/Rendering/ColumnRulerRenderer.cs
     
-    let columnsInit = [ 0 ; 4; 8; 12 ; 16] 
+    let columnsInit = [ 0 ; 4; 8; 12 ; 16; 20; 24] 
     
-    let mutable color = Brushes.White |> darker 20
+    let mutable color = Brushes.White |> darker 25
 
     let pens =
         [ for col in columnsInit do             
             let p = new Pen(color, 1.0)
-            color <- color |>  brighter 4 // fade out rulers
+            color <- color |>  brighter 3 // fade out rulers
             p.Freeze()
             p
         ]
