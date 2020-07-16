@@ -157,7 +157,7 @@ type TypeInfo private () =
                             D.Add c.FullName
                             //log.PrintDebugMsg "optional full name: %s" c.FullName
             | _ -> ()
-        with e -> log.PrintAppErrorMsg "Error in TypeInfo.namesOfOptnlArgs: %A" e
+        with e -> log.PrintAppErrorMsg "Error while trying to show a Tool tip in Seff.\r\nYou can ignore this error.\r\nin TypeInfo.namesOfOptnlArgs: %A" e
         D
     
     //--------------public values and functions -----------------
