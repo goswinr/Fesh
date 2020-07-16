@@ -47,7 +47,7 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, log:Log) =
                 match fileOpeners.TryGetValue(lPath) with
                 |true , m -> fileMenu.Items.Add(m) |> ignore  
                 |_ -> 
-                    let openCom  = mkCmdSimple ( fun a -> tabs.AddFile(fi, true)) 
+                    let openCom  = mkCmdSimple ( fun a -> tabs.AddFile(fi, true)  |> ignore ) 
                     let mi = MenuItem (Header = fi.Name, ToolTip=fi.FullName, Command = openCom)
                     fileMenu.Items.Add(mi) |> ignore 
                     fileOpeners.[lPath] <- mi
