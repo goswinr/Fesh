@@ -13,13 +13,13 @@ type AssemblyReferenceStatistic  (log:ISeffLog, hostInfo:HostingInfo) =
     let filePath = hostInfo.GetPathToSaveAppData("AssemblyReferenceStatistic.txt")
         
     let assRefStats = 
-        let set = HashSet<string>() 
+        let set = HashSet<string>() //  full path
         async{
             try            
                 if IO.File.Exists filePath then 
                     for ln in  IO.File.ReadAllLines filePath do
-                        //TODO verify path exists
-                        set.Add(ln) |> ignore
+                        if IO.File.Exists ln then 
+                            set.Add (ln) |> ignore
             with e -> 
                 log.PrintAppErrorMsg "Error load assRefStatsStats: %A" e
             } |> Async.Start 
@@ -27,24 +27,25 @@ type AssemblyReferenceStatistic  (log:ISeffLog, hostInfo:HostingInfo) =
 
     let assRefStatsAsString () = 
         let sb = StringBuilder() 
-        for v in assRefStats do sb.AppendLine(v.ToString()) |> ignore
+        for fullPath in assRefStats do sb.AppendLine(fullPath) |> ignore
         sb.ToString() 
 
     let filePath = hostInfo.GetPathToSaveAppData("AssemblyReferenceStatistic.txt")
                      
     member this.Get = assRefStats
-            
+    
+    /// Checks if DDl file exists 
+    /// Retuens dict of filename and full path
+    member this.GetChecked = 
+        let D = Dictionary()
+        for fullPath in assRefStats do 
+            if IO.File.Exists(fullPath) then
+                D.[IO.Path.GetFileName fullPath] <- fullPath
+        D
+           
     member this.Save() =
         writer.WriteDelayed (filePath,assRefStatsAsString, 500)
-        
-    /// used as event delegate in log.print ?
-    member this.RecordFromlog = 
-        fun (s:string) -> 
-            if s.Contains "--> Referenced '" then // e.g.: --> Referenced 'C:\Program Files\Rhino 6\System\RhinoCommon.dll' (file may be locked by F# Interactive process)
-                let start = s.IndexOf(''') 
-                if start > -1 then 
-                    let ende = s.IndexOf(''', start + 2)
-                    if ende > start + 3 then
-                        let r = s.Substring(start + 1, ende - 1)
-                        assRefStats.Add (r)  |> ignore 
+            
+    member this.Add s =  // used as delegate to fsiSession.AssemblyReferenceAdded event
+        assRefStats.Add (s)  |> ignore 
    

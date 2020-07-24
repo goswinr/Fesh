@@ -95,7 +95,8 @@ type Fsi private (config:Config) =
                     if config.HostingInfo.IsHosted then 
                         match mode with
                         |Sync ->  log.PrintInfoMsg "FSharp Interactive will evaluate synchronously on UI Thread."
-                        |Async -> log.PrintInfoMsg "FSharp Interactive will evaluate asynchronously on new Thread."           
+                        |Async -> log.PrintInfoMsg "FSharp Interactive will evaluate asynchronously on new Thread."    
+                    fsiSession.AssemblyReferenceAdded.Add (config.AssemblyReferenceStatistic.Add)
                     do! Async.SwitchToContext Sync.syncContext 
                     isReadyEv.Trigger()
                     } |> Async.Start
