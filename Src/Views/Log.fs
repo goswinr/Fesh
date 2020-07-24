@@ -31,10 +31,10 @@ type LogMessageType =
         | FsiStdOut     ->Brushes.DarkGray |> Util.General.darker 20 // values printet by fsi iteself like "val it = ...."
         | FsiErrorOut   ->Brushes.DarkMagenta //are they all caught by evaluate non throwing ?
         | ConsoleOut    ->Brushes.Yellow // default black forground is used ; never used should  // the out from printfn
-        | ConsoleError  ->Brushes.LightSalmon // this is never used, only FsiErrorOut is used?
+        | ConsoleError  ->Brushes.OrangeRed // this is used by eprintfn 
         | InfoMsg       ->Brushes.LightSeaGreen
         | FsiErrorMsg   ->Brushes.Red
-        | AppErrorMsg   ->Brushes.DarkOrange
+        | AppErrorMsg   ->Brushes.LightSalmon
         | IOErrorMsg    ->Brushes.DarkRed
         | DebugMsg      ->Brushes.Green
         
