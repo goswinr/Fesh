@@ -108,7 +108,7 @@ type Log () =
     let mutable prevMsgType = IOErrorMsg
     let stopWatch = Stopwatch.StartNew()
     let buffer =  new StringBuilder()
-    let textAddEv = new Event<string> ()
+    //let textAddEv = new Event<string> ()
 
 
 
@@ -158,14 +158,14 @@ type Log () =
                 prevMsgType <- ty
 
             buffer.Append(s)  |> ignore 
-            textAddEv.Trigger(s)
+            //textAddEv.Trigger(s)
 
-            if stopWatch.ElapsedMilliseconds > 150L  && s.Contains(NewLine) then // print case 2, only add to document every 150ms
+            if stopWatch.ElapsedMilliseconds > 100L  then // print case 2, only add to document every 100ms  ( and  s.Contains(NewLine) ??)
                 printFromBufferAndScroll(ty)                
             else                        
                 let k = Interlocked.Increment printCallsCounter
-                do! Async.Sleep 300
-                if !printCallsCounter = k  then //print case 3, it is the last call for 300 ms
+                do! Async.Sleep 200
+                if !printCallsCounter = k  then //print case 3, it is the last call for 200 ms
                     printFromBufferAndScroll(ty)
                 
         } |> Async.StartImmediate 
@@ -179,8 +179,6 @@ type Log () =
             log.HorizontalScrollBarVisibility <- ScrollBarVisibility.Auto 
     
     
-
-   
 
     //used in FSI constructor:
     let textWriterFsiStdOut     = new FsxTextWriter(fun s -> printOrBuffer (s,FsiStdOut    ))
@@ -198,13 +196,12 @@ type Log () =
     //----------------------members:------------------------------------------    
     
     /// this event occures on ever call to print, NOT on the aggregated strings that are appened to Log
-    [<CLIEvent>]
-    member this.OnPrint = textAddEv.Publish
+    //[<CLIEvent>]member this.OnPrint = textAddEv.Publish
        
     member this.AdjustToSettingsInConfig(config:Config)=        
-        this.OnPrint.Add (config.AssemblyReferenceStatistic.RecordFromlog) // TODO: does this have print perfomance impact ? measure do async ?
+        //this.OnPrint.Add (config.AssemblyReferenceStatistic.RecordFromlog) // TODO: does this have print perfomance impact ? measure do async ?
         setLineWrap( config.Settings.GetBool "logHasLineWrap" true )
-        log.FontSize         <- config.Settings.GetFloat "FontSize" Seff.Style.fontSize                
+        log.FontSize  <- config.Settings.GetFloat "FontSize" Seff.Style.fontSize                
         
     member this.ToggleLineWrap(config:Config)=
         let newState = not  log.WordWrap 
