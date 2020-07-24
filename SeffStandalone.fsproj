@@ -67,6 +67,7 @@
     <Compile Include="Src\Config\HostingInfo.fs" />
     <Compile Include="Src\Config\Settings.fs" />
     <Compile Include="Src\Config\DefaultCode.fs" />
+    <Compile Include="Src\Config\FsiArugments.fs" />
     <Compile Include="Src\Config\OpenTabs.fs" />
     <Compile Include="Src\Config\RecentlyUsedFiles.fs" />
     <Compile Include="Src\Config\AutoCompleteStatistic.fs" />

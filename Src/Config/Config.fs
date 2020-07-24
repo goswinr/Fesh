@@ -15,6 +15,7 @@ type Config (log:ISeffLog, context:HostingMode, startupArgs:string[]) =
     member val DefaultCode                = DefaultCode                 (log, hostInfo)
     member val AutoCompleteStatistic      = AutoCompleteStatistic       (log, hostInfo)
     member val AssemblyReferenceStatistic = AssemblyReferenceStatistic  (log, hostInfo)
+    member val FsiArugments               = FsiArugments                (log, hostInfo)
     member val HostingInfo                = hostInfo      
     member val Log                        = log 
 
