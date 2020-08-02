@@ -232,9 +232,9 @@ type Editor private (code:string, config:Config, filePath:FilePath) =
                 )
 
         avaEdit.Document.Changed.Add(fun e -> 
-            //log.PrintDebugMsg "*Document.Changed Event: deleted %d '%s', inserted %d '%s' completion hasItems: %b and isOpen: %b" e.RemovalLength e.RemovedText.Text e.InsertionLength e.InsertedText.Text ed.Completions.HasItems ed.Completions.IsOpen
+            //log.PrintDebugMsg "*Document.Changed Event: deleted %d '%s', inserted %d '%s', completion hasItems: %b, isOpen: %b , Just closed: %b" e.RemovalLength e.RemovedText.Text e.InsertionLength e.InsertedText.Text ed.Completions.HasItems ed.Completions.IsOpen compls.JustClosed
             
-            if e.RemovalLength >0 then compls.JustClosed<-false // in this case open window again?
+            //DELETE: //if e.RemovalLength > 0 && e.RemovedText.Text <> e.InsertedText.Text then  compls.JustClosed<-false // in this case open window again?
 
             if compls.IsOpen then   // just keep on tying in completion window, no type checking !                
                 if compls.HasItems then // TODO, this code is duplicated in textChanged function
@@ -247,7 +247,7 @@ type Editor private (code:string, config:Config, filePath:FilePath) =
                 else 
                     compls.Close() 
             
-            else //no completion window open , do type check..
+            else //no completion window open , do type check..                
                 match e.InsertedText.Text with 
                 |"."  ->                                             textChanged (EnteredDot         )//complete
                 | txt when txt.Length = 1 ->                                     
@@ -257,7 +257,7 @@ type Editor private (code:string, config:Config, filePath:FilePath) =
                         if Char.IsLetter(c) || c='_' || c='`' then   textChanged (EnteredOneIdentifierChar  ) //complete
                         else                                         textChanged (EnteredOneNonIdentifierChar)//check
                                                                                  
-                | _  ->                                              textChanged (OtherChange               )//several charcters(paste) ,delete or completion window          
+                | _  ->                                              textChanged (OtherChange               )//several charcters(paste) ,delete or completion window insert         
                 
                 compls.JustClosed<-false
                 )
@@ -269,7 +269,9 @@ type Editor private (code:string, config:Config, filePath:FilePath) =
                 |"." -> compls.RequestInsertion(ev) // insert on dot too? 
                 |"(" -> compls.RequestInsertion(ev) // insert on open Bracket too? 
                 | _  -> () // other triggers https://github.com/icsharpcode/AvalonEdit/blob/28b887f78c821c7fede1d4fc461bde64f5f21bd1/ICSharpCode.AvalonEdit/CodeCompletion/CompletionList.cs#L171            
-            )
+            //else
+            //    compls.JustClosed<-false
+                )
 
         ed
 
