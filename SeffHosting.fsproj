@@ -1,9 +1,9 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project Sdk="Microsoft.NET.Sdk.WindowsDesktop"> <!--Win desktop needed so that rescources work with dotnet build:-->
+<Project Sdk="Microsoft.NET.Sdk.WindowsDesktop" > <!--WinDesktop is needed so that rescources work with dotnet build-->
   <PropertyGroup>
     <OutputType>Library</OutputType>
     <UseWPF>true</UseWPF>
-    <TargetFramework>net472</TargetFramework>    <!--472 to have fewer files, 461 ok too-->
+    <TargetFramework>net472</TargetFramework>   
     <LangVersion>preview</LangVersion>
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages> <!--to only have the english resources-->
     <RootNamespace>Seff</RootNamespace>
@@ -22,7 +22,7 @@
     
     <ApplicationIcon>Media\LogoCursorTr.ico</ApplicationIcon>
     <Win32Resource>Media\LogoCursorTr.res</Win32Resource>
-    <Configurations>Debug;Release</Configurations> <!--  for Application Icon in explorer-->    
+    <Configurations>Debug;Release</Configurations> <!--  for Application Icon in explorer-->      
   </PropertyGroup> 
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">

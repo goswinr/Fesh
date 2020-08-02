@@ -1,9 +1,9 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<!--Win desktop needed so that rescources work with dotnet build:-->
-<Project Sdk="Microsoft.NET.Sdk.WindowsDesktop"> 
+<Project Sdk="Microsoft.NET.Sdk.WindowsDesktop" > <!--WinDesktop is needed so that rescources work with dotnet build-->
+
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <TargetFramework>net472</TargetFramework> <!--less files when 472, net 461 for FSharp.Compiler.Service 35.0.0 /> -->
+    <TargetFramework>net472</TargetFramework> 
     <LangVersion>preview</LangVersion>
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages> <!--to only have the english resources-->
     <UseWPF>true</UseWPF>
@@ -15,8 +15,8 @@
     
     <Platforms>x64;x86</Platforms>
     <Configurations>Debug;Release</Configurations> 
+    
   </PropertyGroup>
-
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <OutputPath>binStandalone\Debug\x64\</OutputPath>
@@ -36,7 +36,7 @@
 
   <ItemGroup>
     <PackageReference Update="FSharp.Core" Version="4.7.2" GeneratePathProperty="true" />    
-    <PackageReference Include="FSharp.Compiler.Service" Version="33.0.1" /><!--EPPlus fails with 35.0.0 ?? try x86 version !-->
+    <PackageReference Include="FSharp.Compiler.Service" Version="33.0.1" /><!-- use 33.0.1 because EPPlus also fails with 35.0.0 (like Rhino) ?? try x86 version !-->
     <!--<PackageReference Include="FSharp.DependencyManager.Nuget" Version="35.0.0" />-->
   </ItemGroup>
 
