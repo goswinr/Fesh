@@ -49,7 +49,7 @@ type Tabs(config:Config, win:Window) =
             |None    -> None
 
 
-    let saveAt (t:Tab, fi:FileInfo) =                   
+    let saveAt (t:Tab, fi:FileInfo, updateTab) =                   
         fi.Refresh()
         if not <| fi.Directory.Exists then 
             log.PrintIOErrorMsg "saveAsPath: Directory does not exist:\r\n%s" fi.Directory.FullName 
@@ -58,11 +58,14 @@ type Tabs(config:Config, win:Window) =
             try
                 //t.AvaEdit.Save fi.FullName // fails, is it async ?
                 IO.File.WriteAllText(fi.FullName, t.AvaEdit.Text)
-                t.IsCodeSaved <- true 
-                t.FilePath <- SetTo fi //this also updates the Tab header and set file info on editor
-                config.RecentlyUsedFiles.AddAndSave(fi)          //TODO this fails if app closes afterward immideatly    
-                config.OpenTabs.Save(t.FilePath , allFileInfos)  //TODO this fails if app closes afterward immideatly              
-                log.PrintInfoMsg "File saved as:\r\n%s" fi.FullName
+                if updateTab then 
+                    t.IsCodeSaved <- true 
+                    t.FilePath <- SetTo fi //this also updates the Tab header and set file info on editor
+                    config.RecentlyUsedFiles.AddAndSave(fi)          //TODO this fails if app closes afterward immideatly    
+                    config.OpenTabs.Save(t.FilePath , allFileInfos)  //TODO this fails if app closes afterward immideatly              
+                    log.PrintInfoMsg "File saved as:\r\n%s" fi.FullName
+                else
+                    log.PrintInfoMsg "File exported to:\r\n%s" fi.FullName
                 true
             with e -> 
                 log.PrintIOErrorMsg "saveAt: %s failed with %A" fi.FullName e
@@ -70,7 +73,7 @@ type Tabs(config:Config, win:Window) =
                 
 
     /// returns false if saving operation was canceled or had an error, true on sucessfull saving
-    let saveAsDialog (t:Tab) :bool=         
+    let saveAsDialog (t:Tab, updateTab) :bool=         
         let dlg = new Microsoft.Win32.SaveFileDialog()
         match t.FilePath with 
         |NotSet ->() 
@@ -86,14 +89,18 @@ type Tabs(config:Config, win:Window) =
             if fi.Exists then 
                 let msg = sprintf "Do you want to overwrite the existing file?\r\n%s\r\nwith\r\n%s"fi.FullName t.FormatedFileName
                 match MessageBox.Show(msg, Style.dialogCaption, MessageBoxButton.YesNo, MessageBoxImage.Question) with
-                | MessageBoxResult.Yes -> saveAt (t, fi)
+                | MessageBoxResult.Yes -> saveAt (t, fi,updateTab)
                 | MessageBoxResult.No -> false
                 | _ -> false 
             else
-                saveAt (t, fi)
+                saveAt (t, fi, updateTab)
         else
             false
     
+
+    let export(t:Tab):bool= 
+        saveAsDialog (t, false)
+
     /// returns false if saving operation was canceled or had an error, true on sucessfull saving
     let trySave (t:Tab)=        
         match t.FilePath with
@@ -102,12 +109,12 @@ type Tabs(config:Config, win:Window) =
                 log.PrintInfoMsg "File already up to date:\r\n%s" fi.FullName
                 true
             elif (fi.Refresh(); fi.Exists) then
-                saveAt(t, fi)
+                saveAt(t, fi, true)
             else
                 log.PrintIOErrorMsg "File does not exist on drive anymore:\r\n%s" fi.FullName 
-                saveAsDialog(t)
+                saveAsDialog(t, true)
         |NotSet -> 
-                saveAsDialog(t)
+                saveAsDialog(t, true)
 
     /// returns true if file is saved or if closing ok (not canceled by user)
     let askIfClosingTabIsOk(t:Tab) :bool=  
@@ -275,13 +282,16 @@ type Tabs(config:Config, win:Window) =
     member this.OpenFile() = openFile()  |> ignore 
             
     /// Shows a file opening dialog
-    member this.SaveAs (t:Tab) = saveAsDialog(t)
+    member this.SaveAs (t:Tab) = saveAsDialog(t, true)
     
     /// also saves currently open files 
     member this.CloseTab(t) = closeTab(t) 
     
     /// returns true if saving operation was not canceled
     member this.Save(t:Tab) = trySave(t)    
+
+    /// returns true if saving operation was not canceled
+    member this.Export(t:Tab) = export(t)  
     
     /// returns true if saving operation was not canceled
     member this.SaveIncremental (t:Tab) = 
@@ -305,7 +315,7 @@ type Tabs(config:Config, win:Window) =
                 if fi.Exists then 
                     this.SaveAs(t)
                 else
-                    saveAt(t,fi)                
+                    saveAt(t,fi, true)                
          |NotSet ->
             log.PrintIOErrorMsg "can't Save Incrementing unsaved file"  
             this.SaveAs(t)

@@ -46,7 +46,8 @@ type Commands (grid:TabsAndLog)  =
     member val OpenFile          = {name= "Open File"                 ;gesture= "Ctrl + O"       ;cmd= mkCmdSimple (fun _ -> tabs.OpenFile())                                    ;tip= "Open a script file."                                                             }
     member val OpenTemplateFile  = {name= "Edit Template File"        ;gesture= ""               ;cmd= mkCmdSimple (fun _ -> tabs.AddFile(config.DefaultCode.FileInfo,true)|>ignore)     ;tip= "Opens the template file that is used when creating a New File ( Ctrl + N)."      }
     member val Save              = {name= "Save"                      ;gesture= "Ctrl + S"       ;cmd= mkCmdSimple (fun _ -> tabs.Save(tabs.Current) |> ignore )                 ;tip= "Saves the file. Shows a dialog only if the open file does not exist anymore."    }
-    member val SaveAs            = {name= "Save As"                   ;gesture= "Ctrl + Alt + S" ;cmd= mkCmdSimple (fun _ -> tabs.SaveAs(tabs.Current) |> ignore)                ;tip= "Shows a dialog to save the file at a new path or name."                          }
+    member val Export            = {name= "Export"                    ;gesture= ""               ;cmd= mkCmdSimple (fun _ -> tabs.Export(tabs.Current) |> ignore)                ;tip= "Shows a dialog to export the file at a new path or name. But keeps the file open at previous location."                          }
+    member val SaveAs            = {name= "Save As"                   ;gesture= "Ctrl + Alt + S" ;cmd= mkCmdSimple (fun _ -> tabs.SaveAs(tabs.Current) |> ignore)                ;tip= "Shows a dialog to save the file at a new path or name." }
     member val SaveIncrementing  = {name= "Save Incrementing"         ;gesture= ""               ;cmd= mkCmdSimple (fun _ -> tabs.SaveIncremental(tabs.Current) |> ignore)       ;tip= "Save with increased last character of filename.\r\nCan be alphabetic or numeric ( e.g.  d->e or 5->6).\r\nDoes not overwrite any existing file."}
     member val SaveAll           = {name= "Save All"                 ;gesture= "Ctrl + Shift + S";cmd= mkCmdSimple (fun _ -> for t in tabs.AllTabs do tabs.Save(t) |> ignore)    ;tip= "Saves all tabs. Shows a dialog only if the open file does not exist on disk."    }
     member val Close             = {name= "Close File"                ;gesture= "Ctrl + F4"      ;cmd= mkCmdSimple (fun _ -> tabs.CloseTab(tabs.Current))                        ;tip= "Closes the current tab, if there is only one tab then the window will be closed."}
@@ -123,7 +124,8 @@ type Commands (grid:TabsAndLog)  =
                  this.NewTab           
                  this.OpenFile         
                  this.OpenTemplateFile 
-                 this.Save             
+                 this.Save
+                 this.Export
                  this.SaveAs           
                  this.SaveIncrementing 
                  this.SaveAll          

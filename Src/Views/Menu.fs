@@ -64,6 +64,7 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, log:Log) =
                 menuItem cmds.OpenTemplateFile
                 sep()
                 menuItem cmds.Save
+                menuItem cmds.Export
                 menuItem cmds.SaveAs
                 menuItem cmds.SaveIncrementing
                 menuItem cmds.SaveAll
