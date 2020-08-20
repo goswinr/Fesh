@@ -12,20 +12,18 @@ open ICSharpCode.AvalonEdit.Rendering
 open ICSharpCode.AvalonEdit.Utils
 
 
-//TODO this si currently not used
-
 type ColumnRulers (editor:AvalonEdit.TextEditor, columnsInit: seq<int>)  as this =
     //https://github.com/icsharpcode/AvalonEdit/blob/master/ICSharpCode.AvalonEdit/Rendering/ColumnRulerRenderer.cs
     
-    let columnsInit = [ 0 ; 4; 8; 12 ; 16; 20; 24] 
+    let columnsInit = [ 0 ; 4; 8; 12 ; 16; 20; 24; 28; 32] 
     
-    let mutable color = Brushes.White |> darker 25
+    let mutable color = Brushes.White |> darker 35
 
     let pens =
-        [ for col in columnsInit do             
-            let p = new Pen(color, 1.0)
-            color <- color |>  brighter 3 // fade out rulers
+        [ for _ in columnsInit do             
+            let p = new Pen(color, 1.2)
             p.Freeze()
+            color <- brighter 3 color   // fade out next ruler        
             p
         ]
         
@@ -48,7 +46,7 @@ type ColumnRulers (editor:AvalonEdit.TextEditor, columnsInit: seq<int>)  as this
     member this.SetRulers( columnsNew: seq<int>) = // to be able to change them later
         if HashSet(columnsNew).SetEquals(columns) then 
             columns.Clear()
-            columns.AddRange(columnsNew)
+            columns.AddRange(columnsNew)            
             editor.TextArea.TextView.InvalidateLayer(this.Layer)
 
 
