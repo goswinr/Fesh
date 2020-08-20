@@ -14,7 +14,7 @@
   
   <!-- The named colors 'Comment' and 'String' are also used in SharpDevelop to detect if a line is inside a multiline string/comment -->
   <!--https://www.rapidtables.com/convert/color/rgb-to-hex.html-->
-  <Color name="Comment"             foreground="Green" />
+  <Color name="Comment"             foreground="#00AA00" />
   <Color name="String"              foreground="#AA1111" />
   <Color name="StringVerbatim"      foreground="#CC0000" />  
   <Color name="StringFormating"     foreground="#880088"  />
@@ -25,14 +25,15 @@
   <Color name="Attributes"          foreground="Purple" />  
   <Color name="Keywords"            foreground="#0000DD"  /> <!--fontWeight="bold" -->
   <Color name="ReservedKeywords"    foreground="#5555FF"/> <!--fontWeight="bold" -->
-  <Color name="MethodCall"          foreground="#0000AA" />  <!--fontWeight="bold" -->
+  <Color name="MethodCall"          foreground="#0000AA" />  <!-- fontWeight="bold" fontStyle="italic"-->
   <Color name="NumberLiteral"       foreground="#3399BB"/>
   <Color name="FailPath"            foreground="#888888"/>
   <Color name="FailString"          foreground="#D0A040"/>  
-  <Color name="PrintStatement"      foreground="#208080"/>
+  <Color name="PrintStatement"      foreground="#206060"/>
   <Color name="PrintString"         foreground="#F0A080"/>
-  <Color name="TrueCol"             foreground="#009000"/>
-  <Color name="FalseCol"            foreground="#A90039"/>
+  <Color name="TrueCol"             foreground="#008090" fontStyle="italic" fontWeight="bold" />
+  <Color name="FalseCol"            foreground="#A70090" fontStyle="italic" fontWeight="bold" />
+  <Color name="Semicolon"           foreground="#A0A0A0" />
   
   
   <!-- taken from https://github.com/icsharpcode/AvalonEdit/blob/master/ICSharpCode.AvalonEdit/Highlighting/Resources/XmlDoc.xshd-->
@@ -275,8 +276,10 @@
     <Rule color="NumberLiteral">\b0[xX][0-9a-fA-F_]+|\b0[bB][01_]+|((-\.|\.)[0-9_]+|(\b|-)[0-9_]+\.?[0-9_]*)([eE][+-]?[0-9]+)? </Rule>
       
     <Rule color="Punctuation">
-      [?,.;:()\[\]{}+\-/%*&lt;&gt;^+~!|&amp;]+
+      [?,.:()\[\]{}+\-/%*&lt;&gt;^+~!|&amp;]+
     </Rule>
+    
+    <Rule color="Semicolon">[;]+</Rule>
 
     <!--<Rule color = "Keywords">let!|return!|yield!|match!</Rule>      does not work-->
 
