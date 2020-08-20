@@ -16,19 +16,19 @@ open System
 
  /// The tab that holds the tab header and the code editor 
 type Editor private (code:string, config:Config, filePath:FilePath) = 
-    let avaEdit =           new AvalonEdit.TextEditor()
-    
+    let avaEdit = new AvalonEdit.TextEditor()
+
     let errorHighlighter =  new ErrorHighlighter(avaEdit, config.Log)
     let checker =           Checker.GetOrCreate(config)     
     let compls =            new Completions(avaEdit,config,checker,errorHighlighter)
     let folds =             new Foldings(avaEdit,errorHighlighter)
-    let rulers =            new ColumnRulers(avaEdit, [0; 4; 8])
+    let rulers =            new ColumnRulers(avaEdit, config.Log)
     
     let log = config.Log
     let id = Guid.NewGuid()
     let mutable checkState = FileCheckState.NotStarted
     let mutable filePath = filePath    
-    let mutable needsChecking = true // so that on a tab chnage a recheck is not triggered if not needed
+    //let mutable needsChecking = true // so that on a tab chnage a recheck is not triggered if not needed
 
     do
         avaEdit.BorderThickness <- new Thickness( 0.0)
@@ -69,7 +69,7 @@ type Editor private (code:string, config:Config, filePath:FilePath) =
                         e.Handled <- true )
 
 
-    member val IsCurrent = false with get,set // TODO really needed ? this is managed in Tabs.selectionChanged event handler 
+    member val IsCurrent = false with get,set //  this is managed in Tabs.selectionChanged event handler 
    
     member val TypeInfoTip = new Controls.ToolTip(IsOpen=false)
     
