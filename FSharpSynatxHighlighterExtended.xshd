@@ -17,17 +17,22 @@
   <Color name="Comment"             foreground="Green" />
   <Color name="String"              foreground="#AA1111" />
   <Color name="StringVerbatim"      foreground="#CC0000" />  
-  <Color name="StringFormating"     foreground="DarkMagenta"  />
-  <Color name="StringEscaped"       foreground="#7700BB"  />  
+  <Color name="StringFormating"     foreground="#880088"  />
+  <Color name="StringEscaped"       foreground="#7000BF"  />  
   <Color name="Char"                foreground="#FF0040" />
   <Color name="LoadDirectives"      foreground="#887766" />
   <Color name="Punctuation"         foreground="Purple" />
   <Color name="Attributes"          foreground="Purple" />  
-  <Color name="Keywords"            foreground="Blue"  /> <!--fontWeight="bold" -->
-  <Color name="ReservedKeywords"    foreground="LightBlue"/> <!--fontWeight="bold" -->
+  <Color name="Keywords"            foreground="#0000DD"  /> <!--fontWeight="bold" -->
+  <Color name="ReservedKeywords"    foreground="#5555FF"/> <!--fontWeight="bold" -->
   <Color name="MethodCall"          foreground="#0000AA" />  <!--fontWeight="bold" -->
-  <Color name="TrueFalse"           foreground="#0044CC" /> <!--fontWeight="bold" -->
   <Color name="NumberLiteral"       foreground="#3399BB"/>
+  <Color name="FailPath"            foreground="#888888"/>
+  <Color name="FailString"          foreground="#D0A040"/>  
+  <Color name="PrintStatement"      foreground="#208080"/>
+  <Color name="PrintString"         foreground="#F0A080"/>
+  <Color name="TrueCol"             foreground="#009000"/>
+  <Color name="FalseCol"            foreground="#A90039"/>
   
   
   <!-- taken from https://github.com/icsharpcode/AvalonEdit/blob/master/ICSharpCode.AvalonEdit/Highlighting/Resources/XmlDoc.xshd-->
@@ -94,10 +99,8 @@
 
   <!-- This is the main ruleset. -->
   <RuleSet>
-    <Keywords color="TrueFalse">
-      <Word>true</Word>
-      <Word>false</Word>
-    </Keywords>
+    <Keywords color="TrueCol">    <Word>true</Word>    </Keywords>  
+    <Keywords color="FalseCol">   <Word>false</Word>   </Keywords>
 
     <Keywords color="Keywords">
       <Word>__SOURCE_DIRECTORY__</Word>
@@ -208,6 +211,7 @@
       <Word>#I</Word>
     </Keywords>
 
+
     <Span color="Comment">
       <Begin color="DocComment">///(?!/)</Begin>
       <RuleSet>
@@ -257,13 +261,14 @@
     </Span>
 
     <!-- Mark previous rule, not ideal for F# since parens are optional for function calls
-    test on https://regexr.com/ \b[\d\w_]+(?=\s*\() -->
+    test on https://regexr.com/ \b[\d\w_]+(?=\s*\() 
     <Rule color="MethodCall">
       \b        # match before
       [\d\w_]+  # an identifier
       (?=\s*\() # followed by (
     </Rule>
-    
+    -->
+
     <!--<Rule color="MethodCall">(?<=let\s+)\b[\d\w_]+(?=\s+[\w\(])</Rule>  DOES NOT WORK a let bound function , (not a value)  -->
 
     <!-- a hex number | binary number | (number just starting with floating point | with optional inner floating point) and an optional exponent. https://regexr.com/52d6q -->
@@ -275,6 +280,40 @@
 
     <!--<Rule color = "Keywords">let!|return!|yield!|match!</Rule>      does not work-->
 
+    <Span color="FailString"  multiline="true" > 
+      <Begin color= "FailPath" >failwithf*\s*"</Begin>  <!-- regex for a " with any other character after-->
+      <End color= "FailPath" >"</End>      <!-- regex for a " with any other character before-->
+      <RuleSet>
+        <!-- span for escape sequences -->
+        <Span begin="\\" end="." color="StringEscaped" />
+        <Span begin="%" end="[sfd%bciuxXoeEfFgGeEgGMOAAat]" color="StringFormating" /> <!--%(\+?)( ?)(\-?)(\d*)(\.?)(\d*)[bcsdiuxXoeEfFgGeEfgGMOAAat]-->
+      </RuleSet>
+    </Span>
+
+
+    <Keywords color = "PrintStatement">
+      <Word>print</Word>
+      <Word>print2</Word>
+      <Word>print3</Word>
+      <Word>printf</Word>
+      <Word>printfn</Word>
+    </Keywords>
+
+    <Span color="PrintString"  multiline="true" > 
+      <!--<Begin color= "PrintStatement" >
+        \b                  # match before
+        [^s*printf*n*\s*]   # print printfn, but not sprintf
+        (?=")               # followed by "      
+      </Begin>   regex for a " with any other character after-->
+
+      <Begin color= "PrintStatement" >^s*printf*n*\s*"</Begin> 
+      <End color= "PrintStatement" >"</End>      <!-- regex for a " with any other character before-->
+      <RuleSet>
+        <!-- span for escape sequences -->
+        <Span begin="\\" end="." color="StringEscaped" />
+        <Span begin="%" end="[sfd%bciuxXoeEfFgGeEgGMOAAat]" color="StringFormating" /> <!--%(\+?)( ?)(\-?)(\d*)(\.?)(\d*)[bcsdiuxXoeEfFgGeEfgGMOAAat]-->
+      </RuleSet>
+    </Span>
 
   </RuleSet>
 
