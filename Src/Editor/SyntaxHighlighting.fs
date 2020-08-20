@@ -12,19 +12,21 @@ module SyntaxHighlighting =
     
     let mutable private fsHighlighting: IHighlightingDefinition option = None //use same highlighter for al tabs. load just once 
 
-    let setFSharp (ed:TextEditor,config:Config,forceReLoad) = //must be a function to be calld at later moment.
+    let setFSharp (ed:TextEditor, config:Config, forceReLoad) = //must be a function to be calld at later moment.
         if fsHighlighting.IsNone || forceReLoad then 
             async{
                 try
                     //let stream = Reflection.Assembly.GetExecutingAssembly().GetManifestResourceStream("FSharpSynatxHighlighter2.xshd") // Build action : Embeded Resource; Copy to ouput Dir: NO 
-                    let assemblyLocation = IO.Path.GetDirectoryName(Reflection.Assembly.GetExecutingAssembly().Location)                    
-                    let stream = new StreamReader(Path.Combine(assemblyLocation,"FSharpSynatxHighlighterExtended.xshd"))//will be copied there after compiling recompiling
+                    let assemblyLocation = IO.Path.GetDirectoryName(Reflection.Assembly.GetExecutingAssembly().Location)
+                    let path = Path.Combine(assemblyLocation,"FSharpSynatxHighlighterExtended.xshd")
+                    let stream = new StreamReader(path)//will be copied there after compiling recompiling
                     use reader = new Xml.XmlTextReader(stream)
                     let fsh = Xshd.HighlightingLoader.Load(reader, HighlightingManager.Instance)
                     HighlightingManager.Instance.RegisterHighlighting("F#", [| ".fsx"; ".fs";".fsi" |], fsh)
                     fsHighlighting <- Some fsh                
                     do! Async.SwitchToContext Sync.syncContext
                     ed.SyntaxHighlighting <- fsh
+                    if forceReLoad then config.Log.PrintInfoMsg "loaded syntax highlighting from: %s" path
                 with e -> 
                     config.Log.PrintAppErrorMsg "Error loading Syntax Highlighting: %A" e
                 } |> Async.Start
