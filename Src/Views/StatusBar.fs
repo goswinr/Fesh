@@ -22,7 +22,6 @@ type FsiOutputQuiet (grid:TabsAndLog) as this =
     do     
         this.Padding <- Thickness(6. , 2. , 6., 2. ) //left ,top, right, bottom)
         this.Text <- "FSI output is on"
-        //this.ContextMenu = makeContextMenu [ menuItem cmds.CancelFSI ])
         this.ToolTip <- "Click here to enabel or disable the default output from fsi in the log window"
         this.MouseLeftButtonDown.Add ( fun a -> 
             if grid.Config.Settings.GetBool Settings.keyFsiQuiet false then 
