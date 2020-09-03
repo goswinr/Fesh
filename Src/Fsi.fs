@@ -51,7 +51,6 @@ type Fsi private (config:Config) =
 
     let mutable thread :Thread option = None
 
-    let mutable printQuietInfo = true
 
     let init() = 
 
@@ -72,12 +71,19 @@ type Fsi private (config:Config) =
                     // first arg is ignored: https://github.com/fsharp/FSharp.Compiler.Service/issues/420 
                     // and  https://github.com/fsharp/FSharp.Compiler.Service/issues/877 
                     // and  https://github.com/fsharp/FSharp.Compiler.Service/issues/878            
-                    let allArgs = config.FsiArugments.Get //[|"" ; "--langversion:preview" ; "--noninteractive" ; "--debug+"; "--debug:full" ;"--optimize+" ; "--gui-" ; "--nologo"|] // ; "--shadowcopyreferences" is ignored https://github.com/fsharp/FSharp.Compiler.Service/issues/292           
-                    if printQuietInfo then 
-                        printQuietInfo <- false // print just once:
-                        if allArgs |> Array.exists (fun a -> a.ToLower() =  "--quiet") then 
-                            log.PrintInfoMsg "This Fsi Log window will not print the default FSI output because the '--quite' flag is use as fsi arguments."
-                            log.PrintInfoMsg "See FsiArugments.txt file in Menu -> About -> Settings Folder"                        
+                    
+                    let allArgs = 
+                         // "--shadowcopyreferences" is ignored https://github.com/fsharp/FSharp.Compiler.Service/issues/292
+                        if config.Settings.GetBool Settings.keyFsiQuiet false then Array.append  config.FsiArugments.Get [| "--quiet"|] 
+                        else                                                                     config.FsiArugments.Get
+                        //|>> (String.concat "; " >> log.PrintDebugMsg "Fsi Args %s")
+                        
+                    
+                    //if printQuietInfo then 
+                    //    printQuietInfo <- false // print just once:
+                    //    if allArgs |> Array.exists (fun a -> a.ToLower() =  "--quiet") then 
+                    //        log.PrintInfoMsg "This Fsi Log window will not print the default FSI output because the '--quite' flag is use as fsi arguments."
+                    //        log.PrintInfoMsg "See FsiArugments.txt file in Menu -> About -> Settings Folder"                        
                     
                     let fsiConfig = FsiEvaluationSession.GetDefaultConfiguration() // https://github.com/dotnet/fsharp/blob/4978145c8516351b1338262b6b9bdf2d0372e757/src/fsharp/fsi/fsi.fs#L2839
                     let fsiSession = FsiEvaluationSession.Create(fsiConfig, allArgs, inStream, log.TextWriterFsiStdOut, log.TextWriterFsiErrorOut) //, collectible=false ??) //https://github.com/dotnet/fsharp/blob/6b0719845c928361e63f6e38a9cce4ae7d621fbf/src/fsharp/fsi/fsi.fs#L2440

@@ -9,11 +9,15 @@ type FsiArugments  (log:ISeffLog, hostInfo:HostingInfo) =
     
     let filePath = hostInfo.GetPathToSaveAppData("FsiArugments.txt")
 
+    // "--shadowcopyreferences" is ignored https://github.com/fsharp/FSharp.Compiler.Service/issues/292          
     let defaultArgs = [| "first arg is ignored" ; "--langversion:preview" ; "--noninteractive" ; "--debug+"; "--debug:full" ;"--optimize+" ; "--gui-" ; "--nologo"|]
 
     let get() = 
         let dict = new Collections.Concurrent.ConcurrentDictionary<string,string>()   
-        try IO.File.ReadAllLines filePath 
+        try 
+            IO.File.ReadAllLines filePath 
+            |> Array.map (fun s -> s.Trim())
+            |> Array.filter (fun a -> a.ToLower() <>  "--quiet") // this argument is managed seperatly in config.Settings and statusbar
         with 
             | :? IO.FileNotFoundException ->  
                 log.PrintInfoMsg      "FsiArugments file not found. (This is expected on first use of the App.)"

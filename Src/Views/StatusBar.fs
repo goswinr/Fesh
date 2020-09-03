@@ -15,6 +15,31 @@ open System.Windows.Automation.Peers
 open Seff.Config
 open Seff.Editor
 
+
+
+type FsiOutputQuiet (grid:TabsAndLog) as this = 
+    inherit TextBlock()
+    do     
+        this.Padding <- Thickness(6. , 2. , 6., 2. ) //left ,top, right, bottom)
+        this.Text <- "FSI output is on"
+        //this.ContextMenu = makeContextMenu [ menuItem cmds.CancelFSI ])
+        this.ToolTip <- "Click here to enabel or disable the default output from fsi in the log window"
+        this.MouseLeftButtonDown.Add ( fun a -> 
+            if grid.Config.Settings.GetBool Settings.keyFsiQuiet false then 
+                this.Text <- "FSI prints to log window"
+                grid.Config.Settings.SetBool Settings.keyFsiQuiet false
+                grid.Tabs.Fsi.Initalize()
+            else
+                this.Text <- "FSI is quiet"
+                grid.Config.Settings.SetBool Settings.keyFsiQuiet true
+                grid.Tabs.Fsi.Initalize()
+            )  
+            
+
+
+
+        
+
 type StatusBar (grid:TabsAndLog, cmds:Commands)  = // TODO better make it dependent on commands , not fsi
 
     let log = grid.Log
@@ -24,6 +49,7 @@ type StatusBar (grid:TabsAndLog, cmds:Commands)  = // TODO better make it depend
 
     let bar = new Primitives.StatusBar() 
    
+    
 
     let padding = Thickness(6. , 2. , 6., 2. ) //left ,top, right, bottom)
 
@@ -113,6 +139,8 @@ type StatusBar (grid:TabsAndLog, cmds:Commands)  = // TODO better make it depend
         bar.Items.Add compilerErrors          |> ignore 
         bar.Items.Add (new Separator())       |> ignore 
         bar.Items.Add fsiState                |> ignore 
+        bar.Items.Add (new Separator())       |> ignore 
+        bar.Items.Add (new FsiOutputQuiet(grid)) |> ignore 
         bar.Items.Add (new Separator())       |> ignore 
         
         //------- add Async or Sync state-------------

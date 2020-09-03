@@ -64,3 +64,6 @@ type Settings (log:ISeffLog, hostInfo:HostingInfo) =
     member this.GetFloat        key def = match this.Get key with Some v -> float v           | None -> def
     member this.GetInt          key def = match this.Get key with Some v -> int v             | None -> def
     member this.GetBool         key def = match this.Get key with Some v -> Boolean.Parse v   | None -> def
+
+
+    static member val keyFsiQuiet = "fsiOutputQuiet"
