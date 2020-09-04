@@ -110,17 +110,20 @@ type FsiRunStatus (grid:TabsAndLog, cmds:Commands) as this =
 
 type FsiOutputStatus (grid:TabsAndLog) as this = 
     inherit TextBlock()
+    let on = "FSI prints to log window"
+    let off = "FSI is quiet"
+    let isOff () = grid.Config.Settings.GetBool Settings.keyFsiQuiet false
     do     
         this.Padding <- StatusbarStyle.padding
-        this.Text <- "FSI output is on"
+        this.Text <- if isOff() then off else on
         this.ToolTip <- "Click here to enabel or disable the default output from fsi in the log window"
         this.MouseLeftButtonDown.Add ( fun a -> 
-            if grid.Config.Settings.GetBool Settings.keyFsiQuiet false then 
-                this.Text <- "FSI prints to log window"
+            if isOff() then 
+                this.Text <- on
                 grid.Config.Settings.SetBool Settings.keyFsiQuiet false
                 grid.Tabs.Fsi.Initalize()
             else
-                this.Text <- "FSI is quiet"
+                this.Text <- off
                 grid.Config.Settings.SetBool Settings.keyFsiQuiet true
                 grid.Tabs.Fsi.Initalize()
             )  
