@@ -230,6 +230,18 @@
       <End>\*\)</End>      
     </Span>
     
+
+    <Rule color="Char"> <!--   #Regex to match chars like  '*' or '\*' or '\''' -->
+      ('\\'')|('\S')|('\\\S')
+    </Rule>
+
+
+    <Span color="Char"><!-- to catch '"'  and not start a string span-->
+      <Begin>'"</Begin>
+      <End>'</End>      
+    </Span>
+
+
     <Span color="StringVerbatim" multiline="true">
       <Begin>@"</Begin>
       <End>"</End>      
@@ -251,10 +263,7 @@
       </RuleSet>
     </Span>
 
-
-    <Rule color="Char">
-      ('\\'')|('\S')|('\\\S')   #Regex to match chars like  '*' or '\*' or '\'''
-    </Rule>
+    
 
     <Span color="Attributes">
       <Begin>\[&lt;</Begin>
