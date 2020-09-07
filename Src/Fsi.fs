@@ -211,6 +211,7 @@ type Fsi private (config:Config) =
                     thread<-None
                     state<-Ready 
                     thr.Abort() // raises OperationCanceledException  
+                    // dsyme: Thread.Abort - it is needed in interruptible interactive execution scenarios: https://github.com/dotnet/fsharp/issues/9397#issuecomment-648376476
 
     member this.AskIfCancellingIsOk() = 
         match state with 
