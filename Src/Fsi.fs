@@ -152,7 +152,10 @@ type Fsi private (config:Config) =
                     | :? OperationCanceledException ->
                         canceledEv.Trigger()
                         isReadyEv.Trigger()
-                        log.PrintFsiErrorMsg "Fsi evaluation was canceled by user!" //: %A" exn                
+                        if config.HostingInfo.IsHosted && mode = FsiMode.Async && isNull exn.StackTrace  then 
+                            log.PrintFsiErrorMsg "FSI evaluation was canceled,\r\nif you did not trigger this cancellation try running FSI in Synchronos evaluation mode (instead of Async)."    
+                        else 
+                            log.PrintFsiErrorMsg "FSI evaluation was canceled by user!" //:\r\n%A" exn.StackTrace  //: %A" exn                
                            
                     | :? FsiCompilationException -> 
                         runtimeErrorEv.Trigger(exn)
@@ -292,11 +295,12 @@ type Fsi private (config:Config) =
     [<CLIEvent>]
     member this.OnCanceled = canceledEv.Publish
  
-    /// This event will be trigger after succesfull completion, NOT on runtime error or cancelling of Fsi
+    /// This event will  trigger after succesfull completion, NOT on runtime error or cancelling of Fsi
     [<CLIEvent>]
     member this.OnCompletedOk = completedOkEv.Publish
       
-    /// This event will be trigger after completion, runtime error or cancelling of Fsi
+    /// This event will trigger on the end of each fsi session, 
+    /// so after completion, runtime error or cancelling of Fsi
     [<CLIEvent>]
     member this.OnIsReady  = isReadyEv .Publish
      
@@ -304,7 +308,7 @@ type Fsi private (config:Config) =
     [<CLIEvent>]
     member this.OnReset  = resetEv.Publish   
     
-    ///Triggered whenever Fsi for evaluation mode changes
+    ///Triggered whenever Fsi for evaluation mode changes between Sync and Async
     [<CLIEvent>]
     member this.OnModeChanged = modeChangedEv.Publish
 
