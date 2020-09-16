@@ -33,16 +33,15 @@ type OccurenceHighlighter (ed:TextEditor) =
         if not <| isNull highTxt  then             
 
             let  lineStartOffset = line.Offset;
-            let  text = ed.Document.GetText(line)
-            let mutable  start = 0
-            let mutable  index = text.IndexOf(highTxt, start, StringComparison.Ordinal)
+            let  text = ed.Document.GetText(line)            
+            let mutable  index = text.IndexOf(highTxt, 0, StringComparison.Ordinal)
 
             while index >= 0 do      
                 let st = lineStartOffset + index  // startOffset
                 let en = lineStartOffset + index + highTxt.Length // endOffset
                 if selStart <> st  then // skip the actual current selection
                     base.ChangeLinePart( st,en, fun el -> el.TextRunProperties.SetBackgroundBrush(color))
-                start <- index + highTxt.Length // search for next occurrence
+                let start = index + highTxt.Length // search for next occurrence // TODO or just +1 ???????
                 index <- text.IndexOf(highTxt, start, StringComparison.Ordinal)
             
        
@@ -71,16 +70,33 @@ type OccurencesTracer () =
         ta.SelectionChanged.Add ( fun a -> 
             let ft = ed.SelectedText
             let sst= ed.SelectionStart
-            let t = ft.Trim()
-            let doHighlight = t.Length > 1 && not <| t.Contains("\n") // minimum 2 non whitecpace characters?
+            let highTxt = ft.Trim()
+            let doHighlight = highTxt.Length > 1 && not <| highTxt.Contains("\n") // minimum 2 non whitecpace characters?
             if doHighlight then 
-                oh.HighlightText <- t
+                oh.HighlightText <- highTxt
                 oh.SelectionStart <- sst
             else
                 oh.HighlightText <- null 
             ta.TextView.Redraw()
-            
             (*
+
+
+
+            Try dup[licat the code string so it is on this thredad ?????
+
+            match ch.Status with        
+            | NotStarted | Running _ | Failed -> 
+                () //OccurencesTracer.Instance.InfoText <- ""
+            | Done res -> 
+                match res.code with 
+                | FullCode code ->                     
+                    printfn "code.Length %d" code.Length
+                    //OccurencesTracer.Instance.Count <- k                    
+                    //OccurencesTracer.Instance.InfoText <- sprintf "%d x \"%s\"" k highTxt
+                    //OccurencesTracer.Instance.HighlightChangedEvent.Trigger()
+                | PartialCode _ -> ()
+            
+            
             /// for status bar :
             match ch.Status with        
             | NotStarted | Running _ | Failed -> 
@@ -88,18 +104,22 @@ type OccurencesTracer () =
             | Done res -> 
                 match res.code with 
                 | FullCode code -> 
-                    let mutable  index = code.IndexOf(t, 0, StringComparison.Ordinal)                
+                    let mutable  index = code.IndexOf(highTxt, 0, StringComparison.Ordinal)                
                     let mutable k = 0
                     while index >= 0 do        
                         k <- k+1                        
-                        let en =  index + t.Length // endOffset                        
-                        index <- code.IndexOf(t, en, StringComparison.Ordinal)
-                    //OccurencesTracer.Instance.Count <- k
-                    OccurencesTracer.Instance.InfoText <- sprintf "%d x \"%s\"" k t
-                    OccurencesTracer.Instance.HighlightChangedEvent.Trigger()
+                        let st =  index + highTxt.Length // endOffset // TODO or just +1 ???????
+                        if st >= code.Length then 
+                            index <- -99
+                        else
+                            index <- code.IndexOf(highTxt, st, StringComparison.Ordinal)
+                    printfn "found %d" k
+                    //OccurencesTracer.Instance.Count <- k                    
+                    //OccurencesTracer.Instance.InfoText <- sprintf "%d x \"%s\"" k highTxt
+                    //OccurencesTracer.Instance.HighlightChangedEvent.Trigger()
                 | PartialCode _ -> ()
-      
             *)
+            
             )
 
 
