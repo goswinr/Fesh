@@ -114,6 +114,11 @@ type Foldings(ed:TextEditor,errorHighlighter:ErrorHighlighter) =
         errorHighlighter.OnDrawn.Add(fold) 
 
     member this.Manager = manager
+
+    member this.ExpandAll() = for f in manager.AllFoldings do f.IsFolded <- false
+    
+    member this.CollapseAll() = for f in manager.AllFoldings do f.IsFolded <- true
+
     //let firstErrorOffset = -1 //The first position of a parse error. Existing foldings starting after this offset will be kept even if they don't appear in newFoldings. Use -1 for this parameter if there were no parse errors)                    
     //manager.UpdateFoldings(foldings,firstErrorOffset)
     

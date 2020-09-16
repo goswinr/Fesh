@@ -23,6 +23,7 @@ type Commands (grid:TabsAndLog)  =
     let log = grid.Log
     let config= grid.Config
     let fsi = tabs.Fsi
+    
 
 
     let evalAllText()          =                                  fsi.Evaluate {code=tabs.CurrAvaEdit.Text                                    ; file=tabs.Current.FilePath; allOfFile=true}                               
@@ -88,6 +89,8 @@ type Commands (grid:TabsAndLog)  =
     member val ToggleLogLineWrap = {name= "Toggle Line Wraping in Log";gesture= "Alt + Z"        ;cmd= mkCmdSimple (fun _ -> log.ToggleLineWrap(config)) ;tip= "Toggle Line Wraping in Log window"                                                  }  
     member val FontBigger        = {name= "Make Font Bigger"          ;gesture= "Ctrl + '+'"     ;cmd= mkCmdSimple (fun _ -> fonts.FontsBigger())         ;tip= "Increase Text Size for both Editor and Log"                                        }
     member val FontSmaller       = {name= "Make Font Smaller"         ;gesture= "Ctrl + '-'"     ;cmd= mkCmdSimple (fun _ -> fonts.FontsSmaller())        ;tip= "Decrease Text Size for both Editor and Log"                                        }
+    member val CollapseCode      = {name= "Collapse all Code Foldings" ;gesture= ""               ;cmd= mkCmdSimple (fun _ -> tabs.Current.Editor.Folds.CollapseAll()) ;tip= "Collapse all Code Foldings in this file"                                 }
+    member val ExpandCode        = {name= "Expand all Code Foldings"  ;gesture= ""               ;cmd= mkCmdSimple (fun _ -> tabs.Current.Editor.Folds.ExpandAll() ) ;tip= "Expand or unfold all Code Foldings in this file"                        }
                                                                                                                                      
     //Settings Menu                                                                                                                      
     member val SettingsFolder    = {name= "Open Settings Folder"      ;gesture= ""               ;cmd= mkCmdSimple (fun _ -> config.HostingInfo.OpenFolder())                             ;tip= "Opens the Folder where user settinsg such as default file content is saved."                                        }

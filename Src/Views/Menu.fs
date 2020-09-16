@@ -133,6 +133,9 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, log:Log) =
                 sep()
                 menuItem cmds.FontBigger
                 menuItem cmds.FontSmaller
+                sep()
+                menuItem cmds.CollapseCode
+                menuItem cmds.ExpandCode
                 ]
             MenuItem(Header = "_About"),[ //set top level refrence too
                 menuItem cmds.SettingsFolder
@@ -163,6 +166,9 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, log:Log) =
                 sep()
                 menuItem cmds.UnDo
                 menuItem cmds.ReDo
+                sep()
+                menuItem cmds.CollapseCode
+                menuItem cmds.ExpandCode
                 ]
                 
         log.ReadOnlyEditor.ContextMenu <- 

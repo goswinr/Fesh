@@ -77,6 +77,7 @@ type Editor private (code:string, config:Config, filePath:FilePath) =
     member this.ErrorHighlighter = errorHighlighter    
     member this.Completions = compls
     member this.Config = config
+    member this.Folds = folds
       
     member this.Log = log
 
