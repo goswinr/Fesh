@@ -78,6 +78,8 @@ type OccurencesTracer () =
             else
                 oh.HighlightText <- null 
             ta.TextView.Redraw()
+
+If dohighlt then 
             (*
 
 
