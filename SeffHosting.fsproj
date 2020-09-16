@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project Sdk="Microsoft.NET.Sdk.WindowsDesktop" > <!--WinDesktop is needed so that rescources work with dotnet build-->
+<Project Sdk="Microsoft.NET.Sdk.WindowsDesktop"> <!--WinDesktop is needed so that rescources work with dotnet build-->
   <PropertyGroup>
     <OutputType>Library</OutputType>
     <UseWPF>true</UseWPF>
@@ -86,6 +86,7 @@
     <Compile Include="Src\Editor\TypeInfo.fs" />
     <Compile Include="Src\Editor\CodeCompletion.fs" />
     <Compile Include="Src\Editor\Folding.fs" />
+    <Compile Include="Src\Editor\HighlightOccurences.fs" />
     <Compile Include="Src\Editor\ColumnRulers.fs" />
     <Compile Include="Src\Editor\Editor.fs" />
     <Compile Include="Src\Editor\UNUSEDNuget.fs" />

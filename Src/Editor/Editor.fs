@@ -23,6 +23,7 @@ type Editor private (code:string, config:Config, filePath:FilePath) =
     let compls =            new Completions(avaEdit,config,checker,errorHighlighter)
     let folds =             new Foldings(avaEdit,errorHighlighter)
     let rulers =            new ColumnRulers(avaEdit, config.Log)
+    let occurs =            OccurenceHighlighter.Setup(avaEdit)
     
     let log = config.Log
     let id = Guid.NewGuid()
