@@ -39,7 +39,13 @@ type ISeffLog =
 
 type CheckId = int64
 
-type CheckResults = { parseRes:FSharpParseFileResults; checkRes:FSharpCheckFileResults;  code:string ; checkId:CheckId} // to do remove till offset , not needed?
+type Code = 
+    FullCode of string | PartialCode of string
+    member this.Code = match this with  FullCode s -> s  | PartialCode s -> s
+       
+        
+
+type CheckResults = { parseRes:FSharpParseFileResults; checkRes:FSharpCheckFileResults;  code:Code ; checkId:CheckId} // to do remove till offset , not needed?
 
 type FilePath = SetTo of FileInfo | NotSet
 
@@ -54,7 +60,7 @@ type FileCheckState =
 type IEditor = 
     abstract member Id           : Guid
     abstract member AvaEdit      : AvalonEdit.TextEditor
-    abstract member CheckState   : FileCheckState with get , set //None means a check is running
+    abstract member CheckState   : FileCheckState //with get , set //None means a check is running
     abstract member FilePath     : FilePath     
 
 

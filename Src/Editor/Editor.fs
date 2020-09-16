@@ -23,11 +23,11 @@ type Editor private (code:string, config:Config, filePath:FilePath) =
     let compls =            new Completions(avaEdit,config,checker,errorHighlighter)
     let folds =             new Foldings(avaEdit,errorHighlighter)
     let rulers =            new ColumnRulers(avaEdit, config.Log)
-    let occurs =            OccurenceHighlighter.Setup(avaEdit)
+    let occurs =            OccurencesTracer.Setup(avaEdit,checker)
     
     let log = config.Log
     let id = Guid.NewGuid()
-    let mutable checkState = FileCheckState.NotStarted
+    //let mutable checkState = FileCheckState.NotStarted
     let mutable filePath = filePath    
     //let mutable needsChecking = true // so that on a tab chnage a recheck is not triggered if not needed
 
@@ -79,19 +79,20 @@ type Editor private (code:string, config:Config, filePath:FilePath) =
     member this.Completions = compls
     member this.Config = config
     member this.Folds = folds
-      
+    member this.Occurences = occurs
+    
     member this.Log = log
 
     member this.Id              = id
     member this.AvaEdit         = avaEdit
-    member this.CheckState      with get()=checkState    and  set(v) = checkState <- v
+    member this.CheckState      = checker.Status //with get()=checkState    and  set(v) = checkState <- v
     member this.FilePath        with get()=filePath      and  set(v) = filePath <- v // The Tab class containing this editor takes care of updating this 
 
     
     interface IEditor with
         member this.Id              = id
         member this.AvaEdit         = avaEdit
-        member this.CheckState        with get()=checkState and  set(v) = checkState <- v
+        member this.CheckState      = checker.Status //with get()=checkState and  set(v) = checkState <- v
         member this.FilePath        = filePath // interface does not need setter
       
     

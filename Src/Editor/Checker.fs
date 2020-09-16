@@ -25,12 +25,14 @@ type Checker private (config:Config)  =
     let mutable isFirstCheck = true
     let firstCheckDoneEv = new Event<unit>() // to first check file, then start FSI
 
+    let mutable status = FileCheckState.NotStarted
+
     /// to check full code use 0 as 'tillOffset', at the end either a event is raised or continuation called if present
     let check(iEditor:IEditor, tillOffset, continueOnThreadPool:Option<CheckResults->unit>) =         
         let thisId = Interlocked.Increment checkId
-        iEditor.CheckState <- Running thisId
+        status <- Running thisId        
         checkingEv.Trigger(iEditor) // to show in statusbar
-        let doc = iEditor.AvaEdit.Document // access documnet before starting async
+        let doc = iEditor.AvaEdit.Document // access documnet before starting async        
         async { 
             match checker with 
             | Some ch -> ()
@@ -44,8 +46,10 @@ type Checker private (config:Config)  =
             
             if !checkId = thisId then
                 let code = 
-                    if tillOffset = 0 then doc.CreateSnapshot().Text //the only threadsafe way to acces the code string
-                    else                   doc.CreateSnapshot(0, tillOffset).Text
+                    if tillOffset = 0 then 
+                        FullCode (doc.CreateSnapshot().Text) //the only threadsafe way to acces the code string                        
+                    else                   
+                        PartialCode (doc.CreateSnapshot(0, tillOffset).Text)
             
                 let fileFsx = 
                     match iEditor.FilePath with
@@ -57,7 +61,7 @@ type Checker private (config:Config)  =
                 if !checkId = thisId  then
                     try
                         
-                        let sourceText = Text.SourceText.ofString code
+                        let sourceText = Text.SourceText.ofString code.Code
                         let! options, optionsErr = checker.Value.GetProjectOptionsFromScript(fileFsx, sourceText, otherFlags = [| "--langversion:preview" |] ) // Gets additional script #load closure information if applicable.
                         for e in optionsErr do log.PrintAppErrorMsg "ERROR in GetProjectOptionsFromScript: %A" e //TODO make lo print
         
@@ -107,7 +111,8 @@ type Checker private (config:Config)  =
                                 | FSharpCheckFileAnswer.Succeeded checkRes ->   
                                     if !checkId = thisId  then // this ensures that stat get set to done ich no checker has started in the meantime
                                         let res = {parseRes = parseRes;  checkRes = checkRes;  code = code ; checkId=thisId }
-                                        iEditor.CheckState <- Done res
+                                        status <- Done res
+                                        //iEditor.CheckState <- status                                        
                                         match continueOnThreadPool with
                                         | Some f -> f(res)
                                         | None -> 
@@ -120,13 +125,13 @@ type Checker private (config:Config)  =
                 
                                 | FSharpCheckFileAnswer.Aborted  ->
                                     log.PrintAppErrorMsg "*ParseAndCheckFile code aborted"
-                                    iEditor.CheckState <-Failed                    
+                                    status <-Failed                                                      
                             with e ->
                                 log.PrintAppErrorMsg "Error in ParseAndCheckFileInProject Block.\r\nMaybe you are using another version of  FSharpCompilerService.dll than at compile time?\r\nOr the error is in the continuation.\r\nOr in the event handlers: %A" e
-                                iEditor.CheckState <-Failed          
+                                status <-Failed                                           
                     with e ->
                             log.PrintAppErrorMsg "Error in GetProjectOptionsFromScript Block.\r\nMaybe you are using another version of  FSharpCompilerService.dll than at compile time?: %A" e
-                            iEditor.CheckState <-Failed
+                            status <-Failed                             
                             
             } |> Async.Start
     
@@ -143,6 +148,9 @@ type Checker private (config:Config)  =
     
     /// this event is raised on UI thread    
     [<CLIEvent>] member this.OnFirstCheckDone = firstCheckDoneEv.Publish
+
+   
+    member this.Status = status
 
     /// ensures only one instance is created
     static member GetOrCreate(config) = 
