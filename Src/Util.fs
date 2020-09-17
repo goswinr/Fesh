@@ -129,6 +129,9 @@ module String =
                 s.Substring(start + a.Length, ende - start - a.Length),// finds text betwween two chars
                 s.Substring(ende + b.Length)
 
+
+
+
 (*
     
     open System.ComponentModel

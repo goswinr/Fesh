@@ -86,7 +86,7 @@
     <Compile Include="Src\Editor\TypeInfo.fs" />
     <Compile Include="Src\Editor\CodeCompletion.fs" />
     <Compile Include="Src\Editor\Folding.fs" />
-    <Compile Include="Src\Editor\HighlightOccurences.fs" />
+    <Compile Include="Src\Editor\SelectedTextTracer.fs" />
     <Compile Include="Src\Editor\ColumnRulers.fs" />
     <Compile Include="Src\Editor\Editor.fs" />
     <Compile Include="Src\Editor\UNUSEDNuget.fs" />

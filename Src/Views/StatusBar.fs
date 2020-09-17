@@ -4,6 +4,7 @@ open Seff
 open Seff.Util.General
 open System
 open System.Windows
+open System.Windows.Documents
 open System.Windows.Controls
 open System.Windows.Controls.Primitives // status bar
 open System.Windows.Media
@@ -14,6 +15,7 @@ open System.Windows.Automation.Peers
 
 open Seff.Config
 open Seff.Editor
+open Seff
 
 
 module private StatusbarStyle = 
@@ -144,38 +146,42 @@ type AsyncStatus (grid:TabsAndLog) as this =
         this.Padding <- StatusbarStyle.padding
         this.Text <- if set.GetBool "asyncFsi" true  then asyn else sync
         this.ToolTip <- "Click to switch between synchronous and asynchronous evaluation in FSI,\r\nsynchronous is needed for UI interaction,\r\nasynchronous allows easy cancellation and keeps the editor window alive"
-        this.MouseDown.Add(fun _ -> fsi.ToggleSync()) //done in fsi module      
+        this.MouseDown.Add(fun _ -> fsi.ToggleSync()) //done in fsi module      // TODO better make it dependent on commands , not fsi
         fsi.OnModeChanged.Add(function 
             | Sync  -> this.Text <- sync 
             | Async -> this.Text <- asyn  )
 
-type OccurStatus (grid:TabsAndLog) as this = 
+type SelectedTextStatus (grid:TabsAndLog) as this = 
     inherit TextBlock()        
     do     
         this.Padding <- StatusbarStyle.padding
-        this.Text <- ""
-        //this.ToolTip <- "Click to switch between synchronous and asynchronous evaluation in FSI,\r\nsynchronous is needed for UI interaction,\r\nasynchronous allows easy cancellation and keeps the editor window alive"
-        //this.MouseDown.Add(fun _ -> fsi.ToggleSync()) //done in fsi module
-        OccurencesTracer.Instance.HighlightChanged.Add ( fun () ->  this.Text <- OccurencesTracer.Instance.InfoText ) 
+        this.ToolTip <- "Countes the occurences of the currently selected Text.\r\nMinimum two characters. No line breaks"        
+        SelectedTextTracer.Instance.HighlightChanged.Add ( fun (highTxt,k ) -> 
+            this.Inlines.Clear()
+            this.Inlines.Add( new Run ("'"+highTxt+"'", FontFamily = Style.fontEditor))
+            this.Inlines.Add( sprintf " found %d times" k)
+            )
+        
+        grid.Tabs.OnTabChanged.Add ( fun _ -> this.Inlines.Clear())
 
-        grid.Tabs.OnTabChanged.Add ( fun _ -> this.Text <- "")
-
-type StatusBar (grid:TabsAndLog, cmds:Commands)  = // TODO better make it dependent on commands , not fsi
+type StatusBar (grid:TabsAndLog, cmds:Commands)  = 
 
     let bar = new Primitives.StatusBar()   
 
+    let sep() = new Separator()
+
     do 
-        bar.Items.Add (new CheckerStatus(grid))                                         |> ignore 
-        bar.Items.Add (new Separator())                                                 |> ignore 
-        bar.Items.Add (new FsiRunStatus (grid, cmds))                                   |> ignore 
-        bar.Items.Add (new Separator())                                                 |> ignore 
-        bar.Items.Add (new FsiOutputStatus(grid))                                       |> ignore 
-        bar.Items.Add (new Separator())                                                 |> ignore 
+        bar.Items.Add (new CheckerStatus(grid))       |> ignore 
+        bar.Items.Add (sep())                         |> ignore 
+        bar.Items.Add (new FsiRunStatus (grid, cmds)) |> ignore 
+        bar.Items.Add (sep())                         |> ignore 
+        bar.Items.Add (new FsiOutputStatus(grid))     |> ignore 
+        bar.Items.Add (sep())                         |> ignore 
         if grid.Config.HostingInfo.IsHosted then 
-            bar.Items.Add( new AsyncStatus(grid))                                       |> ignore
-            bar.Items.Add (new Separator())                                             |> ignore
-        bar.Items.Add (new OccurStatus(grid))                                           |> ignore
-        bar.Items.Add( new StatusBarItem())                                             |> ignore // to fill remaining space
+            bar.Items.Add( new AsyncStatus(grid))     |> ignore
+            bar.Items.Add (sep())                     |> ignore
+        bar.Items.Add (new SelectedTextStatus(grid))         |> ignore
+        bar.Items.Add( new StatusBarItem())           |> ignore // to fill remaining space
 
     member this.Bar =  bar
   

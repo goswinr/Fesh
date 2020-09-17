@@ -23,7 +23,7 @@ type Editor private (code:string, config:Config, filePath:FilePath) =
     let compls =            new Completions(avaEdit,config,checker,errorHighlighter)
     let folds =             new Foldings(avaEdit,errorHighlighter)
     let rulers =            new ColumnRulers(avaEdit, config.Log)
-    let occurs =            OccurencesTracer.Setup(avaEdit,checker)
+    let selText =           SelectedTextTracer.Setup(avaEdit,checker)
     
     let log = config.Log
     let id = Guid.NewGuid()
@@ -79,7 +79,7 @@ type Editor private (code:string, config:Config, filePath:FilePath) =
     member this.Completions = compls
     member this.Config = config
     member this.Folds = folds
-    member this.Occurences = occurs
+    
     
     member this.Log = log
 
