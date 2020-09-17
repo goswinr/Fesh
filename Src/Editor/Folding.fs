@@ -15,6 +15,7 @@ open FSharp.Compiler.SourceCodeServices
 open ICSharpCode.AvalonEdit.Folding
 
 
+
 type Foldings(ed:TextEditor,errorHighlighter:ErrorHighlighter) = 
     
     let minLinesForFold = 1
@@ -25,9 +26,9 @@ type Foldings(ed:TextEditor,errorHighlighter:ErrorHighlighter) =
     let mutable foldStateHash = 0
     
     /// poor man's hash function
-    let getFoldstate (xys: ResizeArray<int*int>) =
+    let getFoldstate (xys: ResizeArray<int*int*int>) =
         let mutable v = 0
-        for x,y in xys do   
+        for x,y,_ in xys do   
             v <- v + x
             v <- v + (y<<<16)
         v
@@ -39,7 +40,7 @@ type Foldings(ed:TextEditor,errorHighlighter:ErrorHighlighter) =
         | Done res -> 
             let id0 = res.checkId
             async{
-                let foldings=ResizeArray<int*int>()
+                let foldings=ResizeArray<int*int*int>()
 
                 // TODO compute update only for visible areas not allcode?
                 match res.code with 
@@ -69,7 +70,8 @@ type Foldings(ed:TextEditor,errorHighlighter:ErrorHighlighter) =
                                 
                                             let foldEnd = lastNotBlankLineEndOffset - 2 //-2 to skip over line break 
                                             //log.PrintDebugMsg "Folding from  line %d to %d : Offset %d to %d" foldStartLine lastNotBlankLineNum foldStartOfset foldEnd
-                                            let f = foldStartOfset, foldEnd
+                                            let foldedlines = lastNotBlankLineNum - foldStartLine
+                                            let f = foldStartOfset, foldEnd,  foldedlines
                                             foldings.Add f                            
                                             foldStartOfset <- -1
                                             foldStartLine  <- -1
@@ -89,7 +91,8 @@ type Foldings(ed:TextEditor,errorHighlighter:ErrorHighlighter) =
                         if foldStartOfset > 0 then                  
                             let foldEnd = lastNotBlankLineEndOffset - 2 //-2 to skip over line break
                             //log.PrintDebugMsg "Last Folding from  line %d to end : Offset %d to %d" foldStartLine  foldStartOfset foldEnd
-                            let f = foldStartOfset, foldEnd
+                            let foldedlines = lastNotBlankLineNum - foldStartLine
+                            let f = foldStartOfset, foldEnd , foldedlines
                             foldings.Add f                   
             
                         let state = getFoldstate foldings
@@ -103,8 +106,10 @@ type Foldings(ed:TextEditor,errorHighlighter:ErrorHighlighter) =
                             | Done r -> 
                                 if r.checkId = id0 then
                                     let folds=ResizeArray<NewFolding>()
-                                    for st,en in foldings do 
-                                        folds.Add(new NewFolding(st,en)) //if new folding type is created async a waiting symbol apears on top of it 
+                                    for st,en,length in foldings do 
+                                        let f = new NewFolding(st,en)
+                                        f.Name <- sprintf " ... %d Lines" length
+                                        folds.Add(f) //if new folding type is created async a waiting symbol apears on top of it 
                                     let firstErrorOffset = -1 //The first position of a parse error. Existing foldings starting after this offset will be kept even if they don't appear in newFoldings. Use -1 for this parameter if there were no parse errors) 
                                     manager.UpdateFoldings(folds,firstErrorOffset)
              } |>  Async.Start
