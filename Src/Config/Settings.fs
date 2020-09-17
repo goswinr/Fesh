@@ -7,6 +7,10 @@ open System.Text
  
 /// window size, layout and position, async state and more
 type Settings (log:ISeffLog, hostInfo:HostingInfo) = 
+    
+    let mutable selectAllOccurences = true // explict value for often accessd settings , skips parsing and dict
+    
+        
     let  sep = '=' // key value separatur like in ini files
     
     let filePath = hostInfo.GetPathToSaveAppData("Settings.txt")
@@ -32,6 +36,23 @@ type Settings (log:ISeffLog, hostInfo:HostingInfo) =
             sb.Append(k).Append(sep).AppendLine(v) |> ignore
         sb.ToString() 
     
+    let get k = 
+         match settingsDict.TryGetValue k with 
+         |true, v  -> 
+            //log.PrintDebugMsg "Get %s as %s" k v  //for DEBUG only
+            Some v
+         |false, _ -> 
+            //log.PrintDebugMsg "missing key %s " k  //for DEBUG only
+            None
+
+    let getFloat  key def = match get key with Some v -> float v           | None -> def
+    let getInt    key def = match get key with Some v -> int v             | None -> def
+    let getBool   key def = match get key with Some v -> Boolean.Parse v   | None -> def
+    
+    
+    do // do for often accessd settings , skips parsing and dict
+        selectAllOccurences <- getBool "selectAllOccurences"  true // true as default value
+
 
     member this.SetDelayed k v delay= 
         // delayed because the onMaximise of window event triggers first Loaction changed and then state changed, 
@@ -45,14 +66,7 @@ type Settings (log:ISeffLog, hostInfo:HostingInfo) =
         if v.IndexOf(sep) > -1 then log.PrintAppErrorMsg  "Settings value shall not contain '%c' : %s%c%s"  sep  k  sep  v 
         settingsDict.[k] <- v             
         
-    member this.Get k = 
-        match settingsDict.TryGetValue k with 
-        |true, v  -> 
-            //log.PrintDebugMsg "Get %s as %s" k v  //for DEBUG only
-            Some v
-        |false, _ -> 
-            //log.PrintDebugMsg "missing key %s " k  //for DEBUG only
-            None
+    //member this.Get k = get k        
 
     member this.Save () =                       
         writer.WriteDelayed (filePath, settingsAsString,  500)
@@ -61,9 +75,21 @@ type Settings (log:ISeffLog, hostInfo:HostingInfo) =
     member this.SetFloatDelayed key (v:float) delay = this.SetDelayed key (string v) delay
     member this.SetInt          key (v:int)         = this.Set key (string v)
     member this.SetBool         key (v:bool)        = this.Set key (string v)
-    member this.GetFloat        key def = match this.Get key with Some v -> float v           | None -> def
-    member this.GetInt          key def = match this.Get key with Some v -> int v             | None -> def
-    member this.GetBool         key def = match this.Get key with Some v -> Boolean.Parse v   | None -> def
+    member this.GetFloat        key def = getFloat key def
+    member this.GetInt          key def = getInt   key def
+    member this.GetBool         key def = getBool  key def
 
 
-    static member val keyFsiQuiet = "fsiOutputQuiet"
+    // Explicit values:
+
+    member this.SelectAllOccurences // do for often accessd settings , skips parsing and dict
+        with get () = selectAllOccurences
+        and set v = 
+            this.SetBool "selectAllOccurences" v
+            selectAllOccurences <- v
+    
+    static member val keyFsiQuiet = "fsiOutputQuiet" 
+    
+
+
+    
