@@ -12,42 +12,46 @@ open ICSharpCode.AvalonEdit.Rendering
 open ICSharpCode.AvalonEdit.Utils
 open ICSharpCode.AvalonEdit.Editing
 open ICSharpCode.AvalonEdit.Folding
+open System.Windows.Media
+open System.Windows.Media
+open System.Windows.Media
 
 
 type ColumnRulers (editor:AvalonEdit.TextEditor, log: ISeffLog)  as this =
     //https://github.com/icsharpcode/AvalonEdit/blob/master/ICSharpCode.AvalonEdit/Rendering/ColumnRulerRenderer.cs
     
-    let columnsInit = [ 0 ; 4; 8; 12 ; 16 ; 20 ; 24 ; 28 ; 32] 
+    let columnsInit = [ 0; 4; 8; 12 ; 16 ; 20 ; 24 ; 28 ; 32 ; 36] 
     
-    let mutable color = Brushes.White |> darker 35
+    let mutable color = Brushes.White |> darker 25
 
     let pens =
-        [ for _ in columnsInit do             
-            let p = new Pen(color, 1.2)
-            p.Freeze()
-            color <- brighter 3 color   // fade out next ruler        
-            p
+        [   
+            //let p = new Pen(Brushes.Black, 1.2) // first one black
+            //p.Freeze()
+            //p
+            for _ in columnsInit do             
+                let p = new Pen(color, 1.2)
+                p.Freeze()
+                color <- brighter 2 color   // fade out next ruler        
+                p
         ]
         
     let columns = ResizeArray(columnsInit)        
 
 
-    //TODO
-    //let updateMargins _ =
-    //    log.PrintInfoMsg "LineNumberMargin.TextView.VisualLinesChanged"
-    //    for uiElm in editor.TextArea.LeftMargins do
-    //        match uiElm with 
-    //        | :? LineNumberMargin as lnm  -> for ln in lnm.TextView.VisualLines do for el in ln.Elements do el.BackgroundBrush <- Brushes.LightGray /// this colors the editor
-    //        | :? FoldingMargin as fm ->      for ln in fm.TextView.VisualLines  do for el in ln.Elements do el.BackgroundBrush <- Brushes.LightGray
-    //        | x -> ()
 
     do
         editor.TextArea.TextView.BackgroundRenderers.Add(this)
-        //for uiElm in editor.TextArea.LeftMargins do
-        //    match uiElm with 
-        //    | :? LineNumberMargin as lnm  ->  lnm.TextView.VisualLinesChanged.Add updateMargins
-        // e.ShowLineNumbers <- true needs to be done before this event is attached
-        //    | x -> ()
+        
+        // set color in Margins
+        editor.ShowLineNumbers <- true //needs to be done before iterating margins
+        for uiElm in editor.TextArea.LeftMargins do 
+            let color =  Brushes.White |> darker 7 // set color
+            match uiElm with 
+            | :? LineNumberMargin as lnm  ->  lnm.BackbgroundColor <- color
+            | :? FoldingMargin as fm ->       fm.BackbgroundColor <- color
+            | _-> log.PrintAppErrorMsg "other left marging: %A" uiElm
+       
 
     member this.Layer = KnownLayer.Background
         
