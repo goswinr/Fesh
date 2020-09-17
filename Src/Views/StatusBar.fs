@@ -138,13 +138,13 @@ type FsiOutputStatus (grid:TabsAndLog) as this =
 type AsyncStatus (grid:TabsAndLog) as this = 
     inherit TextBlock()
     let fsi = grid.Tabs.Fsi
-    let set = grid.Config.Settings
+    let isAsync = grid.Config.Settings.GetBool "asyncFsi" true  
     let sync = "FSI evaluation mode: Synchronos" 
     let asyn = "FSI evaluation mode: Asynchronos"
         
     do     
         this.Padding <- StatusbarStyle.padding
-        this.Text <- if set.GetBool "asyncFsi" true  then asyn else sync
+        this.Text <- if isAsync then asyn else sync
         this.ToolTip <- "Click to switch between synchronous and asynchronous evaluation in FSI,\r\nsynchronous is needed for UI interaction,\r\nasynchronous allows easy cancellation and keeps the editor window alive"
         this.MouseDown.Add(fun _ -> fsi.ToggleSync()) //done in fsi module      // TODO better make it dependent on commands , not fsi
         fsi.OnModeChanged.Add(function 
@@ -152,17 +152,37 @@ type AsyncStatus (grid:TabsAndLog) as this =
             | Async -> this.Text <- asyn  )
 
 type SelectedTextStatus (grid:TabsAndLog) as this = 
-    inherit TextBlock()        
-    do     
+    inherit TextBlock()  
+    let desc = "Highlighting is "
+    let baseTxt = "Highlights and counts the occurences of the currently selected Text.\r\nMinimum two characters. No line breaks\r\nClick here to turn " 
+    do             
+        let isOn =  grid.Config.Settings.SelectAllOccurences 
         this.Padding <- StatusbarStyle.padding
-        this.ToolTip <- "Countes the occurences of the currently selected Text.\r\nMinimum two characters. No line breaks"        
-        SelectedTextTracer.Instance.HighlightChanged.Add ( fun (highTxt,k ) -> 
+        this.ToolTip <-  baseTxt + if isOn then "Off" else "On"         
+        this.Inlines.Add ( desc + if isOn then "On" else "Off")
+
+        SelectedTextTracer.Instance.HighlightChanged.Add ( fun (highTxt,k ) ->             
             this.Inlines.Clear()
-            this.Inlines.Add( new Run ("'"+highTxt+"'", FontFamily = Style.fontEditor))
-            this.Inlines.Add( sprintf " found %d times" k)
+            this.Inlines.Add( sprintf "%d of " k)
+            this.Inlines.Add( new Run ("'"+highTxt+"'", FontFamily = Style.fontEditor))            
             )
         
-        grid.Tabs.OnTabChanged.Add ( fun _ -> this.Inlines.Clear())
+        this.MouseDown.Add ( fun _ -> 
+            let mutable isOnn =  grid.Config.Settings.SelectAllOccurences
+            isOnn <- not isOnn // toggle            
+            this.Inlines.Clear()
+            this.Inlines.Add(desc +    if isOnn then "On" else "Off")
+            this.ToolTip <-  baseTxt + if isOnn then "Off" else "On" 
+            grid.Config.Settings.SelectAllOccurences <- isOnn 
+            //SelectedTextTracer.IsActive <- isOnn
+            )
+
+        grid.Tabs.OnTabChanged.Add ( fun _ -> 
+            let isO =  grid.Config.Settings.SelectAllOccurences 
+            this.Inlines.Clear()
+            this.Inlines.Add(desc +    if isO then "On" else "Off")
+            this.ToolTip <-  baseTxt + if isO then "Off" else "On" 
+            )
 
 type StatusBar (grid:TabsAndLog, cmds:Commands)  = 
 

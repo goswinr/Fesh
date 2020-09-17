@@ -1,7 +1,9 @@
 ﻿namespace Seff.Editor
 
 open Seff
+open Seff.Config
 open Seff.Util
+open Seff.Util.General
 open System
 open System.Windows
 open System.Windows.Controls
@@ -13,15 +15,19 @@ open ICSharpCode.AvalonEdit.Document
 open FSharp.Compiler
 open FSharp.Compiler.SourceCodeServices
 open ICSharpCode
+open ICSharpCode.AvalonEdit.Search
 
 /// Highlight-all-occurrences-of-selected-text in Text View
-type SelectedTextHighlighter (ed:TextEditor) = 
+type SelectedTextHighlighter (ed:TextEditor,folds:Foldings) = 
     inherit AvalonEdit.Rendering.DocumentColorizingTransformer()    
 
     let mutable highTxt = null
     let mutable curSelStart = -1
 
-    let color = Brushes.Yellow
+    static member val ColorHighlight =      Brushes.Yellow |> brighter 50
+    static member val ColorHighlightInBox = Brushes.Yellow |> brighter 50
+    static member val ColorFoldBox =        Brushes.Gray   //|> darker 30
+
 
     member this.HighlightText  with get() = highTxt and set v = highTxt <- v
     member this.CurrentSelectionStart  with get() = curSelStart and set v = curSelStart <- v
@@ -30,7 +36,7 @@ type SelectedTextHighlighter (ed:TextEditor) =
     override this.ColorizeLine(line:AvalonEdit.Document.DocumentLine) =       
         //  from https://stackoverflow.com/questions/9223674/highlight-all-occurrences-of-selected-word-in-avalonedit
         
-        if not <| isNull highTxt  then             
+        if notNull highTxt  then             
 
             let  lineStartOffset = line.Offset;
             let  text = ed.Document.GetText(line)            
@@ -38,9 +44,10 @@ type SelectedTextHighlighter (ed:TextEditor) =
 
             while index >= 0 do      
                 let st = lineStartOffset + index  // startOffset
-                let en = lineStartOffset + index + highTxt.Length // endOffset
+                let en = lineStartOffset + index + highTxt.Length // endOffset   
+
                 if curSelStart <> st  then // skip the actual current selection
-                    base.ChangeLinePart( st,en, fun el -> el.TextRunProperties.SetBackgroundBrush(color))
+                    base.ChangeLinePart( st,en, fun el -> el.TextRunProperties.SetBackgroundBrush(SelectedTextHighlighter.ColorHighlight))
                 let start = index + highTxt.Length // search for next occurrence // TODO or just +1 ???????
                 index <- text.IndexOf(highTxt, start, StringComparison.Ordinal)
                   
@@ -48,57 +55,76 @@ type SelectedTextHighlighter (ed:TextEditor) =
 /// Highlight-all-occurrences-of-selected-text in Text View and Statusbar
 type SelectedTextTracer () =   
     
-    // the only purpose of this singelyon is to rasie the HighlightChanged event to update the status bar
-    
     let highlightChangedEv  = new Event<string*int>()
-    
-    member this.ChangeInfoText(newInfoText,i) = highlightChangedEv.Trigger(newInfoText,i)  // will update status bar             
-
     [<CLIEvent>]
     member this.HighlightChanged = highlightChangedEv.Publish
-
+    member this.ChangeInfoText(newInfoText,i) = highlightChangedEv.Trigger(newInfoText,i)  // will update status bar             
+    
     static member val Instance = SelectedTextTracer() // singelton pattern
 
-    static member Setup(ed:TextEditor,ch:Checker) = 
+    static member Setup(ed:TextEditor,ch:Checker,folds:Foldings,config:Config) = 
+        Folding.FoldingElementGenerator.TextBrush <- SelectedTextHighlighter.ColorFoldBox
         let ta = ed.TextArea
-        let oh = new SelectedTextHighlighter(ed)
+        let oh = new SelectedTextHighlighter(ed,folds)
         ta.TextView.LineTransformers.Add(oh)
 
-        ta.SelectionChanged.Add ( fun a -> 
+        ta.SelectionChanged.Add ( fun a ->             
             
             // for text view:
             let highTxt = ed.SelectedText            
             let checkTx = highTxt.Trim()
-            let doHighlight = checkTx.Length > 1 && not <| checkTx.Contains("\n") // minimum 2 non whitecpace characters? no line beaks
+            let doHighlight = 
+                checkTx.Length > 1 // minimum 2 non whitecpace characters?
+                && not <| highTxt.Contains("\n")  //no line beaks          
+                && not <| highTxt.Contains("\r")  //no line beaks
+                && config.Settings.SelectAllOccurences
+            
             if doHighlight then 
                 oh.HighlightText <- highTxt
                 oh.CurrentSelectionStart <- ed.SelectionStart
-            else
-                oh.HighlightText <- null 
-            ta.TextView.Redraw()
+                ta.TextView.Redraw()
 
-            // for status bar :
-            if doHighlight then 
-               match ch.Status with       
-               | NotStarted | Running _ | Failed -> 
+                // for status bar :            
+                match ch.Status with       
+                | NotStarted | Running _ | Failed -> 
                     () //OccurencesTracer.Instance.InfoText <- ""
-               | Done res -> 
+                | Done res -> 
                     match res.code with 
                     | FullCode code -> 
                         let mutable  index = code.IndexOf(highTxt, 0, StringComparison.Ordinal)                
                         let mutable k = 0
+                        let mutable anyInFolding = false
                         while index >= 0 do        
-                            k <- k+1                        
+                            k <- k+1  
+
+                            // check for ttext that is folded away:
+                            let infs = folds.Manager.GetFoldingsContaining(index) 
+                            for inf in infs do 
+                                // if && infs.[0].IsFolded then 
+                                inf.BackbgroundColor <-  SelectedTextHighlighter.ColorHighlightInBox
+                                anyInFolding <- true
+                                
                             let st =  index + highTxt.Length // endOffset // TODO or just +1 ???????
                             if st >= code.Length then 
                                 index <- -99
-                                printfn "index  %d in %d ??" st code.Length    
+                                eprintfn "index  %d in %d ??" st code.Length    
                             else
                                 index <- code.IndexOf(highTxt, st, StringComparison.Ordinal)
                                    
-                        SelectedTextTracer.Instance.ChangeInfoText(highTxt, k  )          // will update status bar             
+                        SelectedTextTracer.Instance.ChangeInfoText(highTxt, k  )    // will update status bar 
+                        if anyInFolding then ta.TextView.Redraw()
                     | PartialCode _ -> ()
+
+            else
+                if notNull oh.HighlightText then // to ony redraw if it was not null before
+                    oh.HighlightText <- null 
+                    for f in folds.Manager.AllFoldings do  f.BackbgroundColor <- null 
+                    ta.TextView.Redraw() // to clear highlight
+
+           
+               
             )
+        
         SelectedTextTracer.Instance
 
 

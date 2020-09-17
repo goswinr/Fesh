@@ -18,12 +18,14 @@ open System
 type Editor private (code:string, config:Config, filePath:FilePath) = 
     let avaEdit = new AvalonEdit.TextEditor()
 
+    let search =            Search.SearchPanel.Install(avaEdit) 
     let errorHighlighter =  new ErrorHighlighter(avaEdit, config.Log)
     let checker =           Checker.GetOrCreate(config)     
     let compls =            new Completions(avaEdit,config,checker,errorHighlighter)
     let folds =             new Foldings(avaEdit,errorHighlighter)
-    let rulers =            new ColumnRulers(avaEdit, config.Log)
-    let selText =           SelectedTextTracer.Setup(avaEdit,checker)
+    let rulers =            new ColumnRulers(avaEdit, config.Log) // do foldings first
+    let selText =           SelectedTextTracer.Setup(avaEdit,checker,folds,config)
+    
     
     let log = config.Log
     let id = Guid.NewGuid()
@@ -34,7 +36,7 @@ type Editor private (code:string, config:Config, filePath:FilePath) =
     do
         avaEdit.BorderThickness <- new Thickness( 0.0)
         avaEdit.Text <- code
-        avaEdit.ShowLineNumbers <- true
+        avaEdit.ShowLineNumbers <- true // background color is set in ColoumnRulers.cs        
         avaEdit.VerticalScrollBarVisibility <- Controls.ScrollBarVisibility.Auto
         avaEdit.HorizontalScrollBarVisibility <- Controls.ScrollBarVisibility.Auto
         avaEdit.Options.HighlightCurrentLine <- true // http://stackoverflow.com/questions/5072761/avalonedit-highlight-current-line-even-when-not-focused
@@ -50,7 +52,6 @@ type Editor private (code:string, config:Config, filePath:FilePath) =
         avaEdit.TextArea.SelectionBorder <- null
         avaEdit.FontFamily <- Style.fontEditor
         avaEdit.FontSize <- config.Settings.GetFloat "FontSize" Seff.Style.fontSize 
-        Search.SearchPanel.Install(avaEdit) |> ignore
         SyntaxHighlighting.setFSharp(avaEdit,config,false)
 
         
@@ -79,6 +80,7 @@ type Editor private (code:string, config:Config, filePath:FilePath) =
     member this.Completions = compls
     member this.Config = config
     member this.Folds = folds
+    member this.Search = search
     
     
     member this.Log = log
