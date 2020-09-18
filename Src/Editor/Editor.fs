@@ -188,7 +188,7 @@ type Editor private (code:string, config:Config, filePath:FilePath) =
                                 NotDot
 
                         if charBeforeQueryDU = NotDot && isKeyword then
-                            //log.PrintDebugMsg "*2.1-textChanged highlighting with: query='%s', charBefore='%A', isKey=%b, setback='%d', line='%s' " query charBeforeQueryDU isKeyword setback line
+                            log.PrintDebugMsg "*2.1-textChanged highlighting with: query='%s', charBefore='%A', isKey=%b, setback='%d', line='%s' " query charBeforeQueryDU isKeyword setback line
                             ed.Checker.CkeckHighlightAndFold(ed)
 
                         else 

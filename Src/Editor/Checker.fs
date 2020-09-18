@@ -32,6 +32,7 @@ type Checker private (config:Config)  =
 
     /// to check full code use 0 as 'tillOffset', at the end either a event is raised or continuation called if present
     let check(iEditor:IEditor, tillOffset, continueOnThreadPool:Option<CheckResults->unit>) =         
+        log.PrintDebugMsg "***checking  %A in %A " iEditor.FilePath iEditor.CheckState
         let thisId = Interlocked.Increment checkId
         status <- GettingCode thisId        
         checkingEv.Trigger(iEditor) // to show in statusbar

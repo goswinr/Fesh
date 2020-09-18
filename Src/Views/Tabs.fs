@@ -167,10 +167,11 @@ type Tabs(config:Config, win:Window) =
                     config.RecentlyUsedFiles.AddAndSave(fi) // to move it up to top of stack
                     //config.OpenTabs.Save(t.FileInfo , allFileInfos) // done in SelectionChanged event below
                 true
-            | None -> 
+            | None -> // regular case, actually open file
                 try
                     let code = IO.File.ReadAllText fi.FullName
                     let t = new Tab(Editor.SetUp(code, config, SetTo fi))
+                    log.PrintDebugMsg "adding Tab %A in %A " t.FilePath t.Editor.CheckState
                     addTab(t,makeCurrent, moreTabsToCome)
                     true
                 with  e -> 
@@ -241,17 +242,19 @@ type Tabs(config:Config, win:Window) =
                 current <- tab
                 for t in allTabs do
                     t.IsCurrent <- false  // first set all false then one true              
-                tab.IsCurrent <-true                
+                tab.IsCurrent <-true 
                 currentTabChangedEv.Trigger(tab) // to update statusbar
-                if tab.Editor.CheckState = FileCheckState.NotStarted then tab.Editor.Checker.CkeckHighlightAndFold(tab.Editor)  // onlt actually highglights if editor has needsChecking=true              
+                log.PrintDebugMsg "New current Tab %A in %A " tab.FilePath tab.Editor.CheckState
+                if tab.Editor.CheckState = FileCheckState.NotStarted then 
+                    //log.PrintDebugMsg "FileCheckState.NotStarted: staring: %A " tab.FilePath
+                    tab.Editor.Checker.CkeckHighlightAndFold(tab.Editor)  // only actually highglights if editor has needsChecking=true              
                 config.OpenTabs.Save(tab.FilePath , allFileInfos)
                 
             )
        
         
 
-    //--------------- Public members------------------
-   
+    //--------------- Public members------------------   
     
        
     [<CLIEvent>]  member this.OnTabChanged = currentTabChangedEv.Publish 

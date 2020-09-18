@@ -33,7 +33,7 @@ module Initialize =
         if notNull Application.Current then // null if application is not yet created, or no application in hoted context
             Application.Current.DispatcherUnhandledException.Add(fun e ->  
                 if e <> null then 
-                    log.PrintDebugMsg "Application.Current.DispatcherUnhandledException in main Thread: %A" e.Exception           
+                    log.PrintAppErrorMsg "Application.Current.DispatcherUnhandledException in main Thread: %A" e.Exception           
                     e.Handled<- true)
         
         //catching unhandled exceptions generated from all threads running under the context of a specific application domain. 

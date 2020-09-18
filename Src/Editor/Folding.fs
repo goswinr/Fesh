@@ -36,7 +36,8 @@ type Foldings(ed:TextEditor,checker:Checker) =
         v
     
     ///Get foldings at every line that is followed by an indent
-    let fold (iEditor:IEditor) =
+    let foldEd (iEditor:IEditor) =
+        eprintfn "folding: %A" iEditor.FilePath
         async{            
             match iEditor.CheckState.FullCodeAndId with
             | NoCode ->()
@@ -110,7 +111,7 @@ type Foldings(ed:TextEditor,checker:Checker) =
         
         
     do        
-        checker.OnFullCodeAvailabe.Add fold
+        checker.OnFullCodeAvailabe.Add foldEd
 
     member this.Manager = manager
 
