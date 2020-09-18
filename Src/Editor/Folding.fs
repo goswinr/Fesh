@@ -18,7 +18,7 @@ open Seff.Util.General
 
 
 
-type Foldings(ed:TextEditor,errorHighlighter:ErrorHighlighter) = 
+type Foldings(ed:TextEditor,checker:Checker) = 
     
     let minLinesForFold = 1
 
@@ -37,10 +37,10 @@ type Foldings(ed:TextEditor,errorHighlighter:ErrorHighlighter) =
     
     ///Get foldings at every line that is followed by an indent
     let fold (iEditor:IEditor) =
-        match iEditor.CheckState.FullCodeAndId with
-        | NoCode ->()
-        | CodeID (code,id0) ->
-            async{
+        async{            
+            match iEditor.CheckState.FullCodeAndId with
+            | NoCode ->()
+            | CodeID (code,id0) ->                
                 // TODO compute update only for visible areas not allcode?
                 let foldings=ResizeArray<int*int*int>()
                 let lns = code.Split([|"\r\n"|],StringSplitOptions.None) // TODO better iterate without allocating an array of lines  
@@ -106,11 +106,11 @@ type Foldings(ed:TextEditor,errorHighlighter:ErrorHighlighter) =
                                 folds.Add(f) //if new folding type is created async a waiting symbol apears on top of it 
                             let firstErrorOffset = -1 //The first position of a parse error. Existing foldings starting after this offset will be kept even if they don't appear in newFoldings. Use -1 for this parameter if there were no parse errors) 
                             manager.UpdateFoldings(folds,firstErrorOffset)
-             } |>  Async.Start       
+            } |>  Async.Start       
         
         
-    do
-        errorHighlighter.OnDrawn.Add(fold) 
+    do        
+        checker.OnFullCodeAvailabe.Add fold
 
     member this.Manager = manager
 

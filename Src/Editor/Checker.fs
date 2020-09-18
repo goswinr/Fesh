@@ -9,6 +9,7 @@ open FSharp.Compiler.SourceCodeServices
 open ICSharpCode.AvalonEdit
 open System.Threading
 open Seff.Config
+open System.Windows.Threading
 
 type Checker private (config:Config)  = 
     
@@ -21,6 +22,8 @@ type Checker private (config:Config)  =
     let checkingEv = new Event< IEditor > () 
     
     let checkedEv = new Event< IEditor > ()
+
+    let fullCodeAvailabeEv = new Event< IEditor > ()
 
     let mutable isFirstCheck = true
     let firstCheckDoneEv = new Event<unit>() // to first check file, then start FSI
@@ -46,11 +49,17 @@ type Checker private (config:Config)  =
             
             if !checkId = thisId then
                 let code = 
-                    if tillOffset = 0 then 
-                        FullCode (doc.CreateSnapshot().Text) //the only threadsafe way to acces the code string                        
-                    else                   
-                        PartialCode (doc.CreateSnapshot(0, tillOffset).Text)
+                    if tillOffset = 0 then  FullCode    (doc.CreateSnapshot().Text)//the only threadsafe way to acces the code string  
+                    else                    PartialCode (doc.CreateSnapshot(0, tillOffset).Text)
+                
                 status <- Checking (thisId , code)   
+                
+                match code with 
+                |PartialCode _-> ()
+                |FullCode _ ->                 
+                    do! Async.SwitchToContext(Sync.syncContext)
+                    fullCodeAvailabeEv.Trigger(iEditor)
+                    do! Async.SwitchToThreadPool()
 
                 let fileFsx = 
                     match iEditor.FilePath with
@@ -143,6 +152,9 @@ type Checker private (config:Config)  =
         
     /// this event is raised on UI thread    
     [<CLIEvent>] member this.OnChecking = checkingEv.Publish
+
+    /// the async method doc.CreateSnapshot() completed   
+    [<CLIEvent>] member this.OnFullCodeAvailabe = fullCodeAvailabeEv.Publish
     
     /// this event is raised on UI thread    
     [<CLIEvent>] member this.OnChecked = checkedEv.Publish

@@ -22,7 +22,7 @@ type Editor private (code:string, config:Config, filePath:FilePath) =
     let errorHighlighter =  new ErrorHighlighter(avaEdit, config.Log)
     let checker =           Checker.GetOrCreate(config)     
     let compls =            new Completions(avaEdit,config,checker,errorHighlighter)
-    let folds =             new Foldings(avaEdit,errorHighlighter)
+    let folds =             new Foldings(avaEdit,checker)
     let rulers =            new ColumnRulers(avaEdit, config.Log) // do foldings first
     let selText =           SelectedTextTracer.Setup(avaEdit,checker,folds,config)
     
