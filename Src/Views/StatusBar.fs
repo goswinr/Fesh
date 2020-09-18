@@ -63,12 +63,14 @@ type CheckerStatus (grid:TabsAndLog) as this =
                         TextBlock(Text = tabs.Current.FormatedFileName, FontSize = 9.)
                         ]        
         
-        | Running id0->
+        | GettingCode id0
+        | Checking (id0,_) -> 
             async{
                 do! Async.Sleep 300 // delay  to only show check in progress massage if it takes long, otherwis just show results via on checked event
-                if iEditor.Id = tabs.Current.Editor.Id then // to cancel if tab changed
+                if iEditor.Id = tabs.Current.Editor.Id then // to cancel if tab changed  
                     match iEditor.CheckState with
-                    | Running id300 ->
+                    | GettingCode id300
+                    | Checking (id300,_) -> 
                         if id300 = id0 then // this is still the most recent checker
                             this.Text <- checkingTxt
                             this.Background <- originalBackGround 

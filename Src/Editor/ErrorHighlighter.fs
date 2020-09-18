@@ -174,7 +174,7 @@ type ErrorHighlighter (ed:TextEditor, log:ISeffLog) =
             renderer.Clear()
             renderer.AddSegments(res)
             drawnEv.Trigger(iEditor) // to update foldings now
-        | NotStarted | Running _ | Failed -> ()
+        | NotStarted | GettingCode _ | Checking _ | Failed -> ()
         
        
 

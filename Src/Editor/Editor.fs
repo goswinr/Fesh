@@ -87,14 +87,14 @@ type Editor private (code:string, config:Config, filePath:FilePath) =
 
     member this.Id              = id
     member this.AvaEdit         = avaEdit
-    member this.CheckState      = checker.Status //with get()=checkState    and  set(v) = checkState <- v
+    member this.CheckState      = checker.CheckState //with get()=checkState    and  set(v) = checkState <- v
     member this.FilePath        with get()=filePath      and  set(v) = filePath <- v // The Tab class containing this editor takes care of updating this 
 
     
     interface IEditor with
         member this.Id              = id
         member this.AvaEdit         = avaEdit
-        member this.CheckState      = checker.Status //with get()=checkState and  set(v) = checkState <- v
+        member this.CheckState      = checker.CheckState //with get()=checkState and  set(v) = checkState <- v
         member this.FilePath        = filePath // interface does not need setter
       
     

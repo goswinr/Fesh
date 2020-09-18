@@ -30,7 +30,7 @@ type Checker private (config:Config)  =
     /// to check full code use 0 as 'tillOffset', at the end either a event is raised or continuation called if present
     let check(iEditor:IEditor, tillOffset, continueOnThreadPool:Option<CheckResults->unit>) =         
         let thisId = Interlocked.Increment checkId
-        status <- Running thisId        
+        status <- GettingCode thisId        
         checkingEv.Trigger(iEditor) // to show in statusbar
         let doc = iEditor.AvaEdit.Document // access documnet before starting async        
         async { 
@@ -50,7 +50,8 @@ type Checker private (config:Config)  =
                         FullCode (doc.CreateSnapshot().Text) //the only threadsafe way to acces the code string                        
                     else                   
                         PartialCode (doc.CreateSnapshot(0, tillOffset).Text)
-            
+                status <- Checking (thisId , code)   
+
                 let fileFsx = 
                     match iEditor.FilePath with
                     |SetTo fi -> 
@@ -150,7 +151,7 @@ type Checker private (config:Config)  =
     [<CLIEvent>] member this.OnFirstCheckDone = firstCheckDoneEv.Publish
 
    
-    member this.Status = status
+    member this.CheckState = status
 
     /// ensures only one instance is created
     static member GetOrCreate(config) = 

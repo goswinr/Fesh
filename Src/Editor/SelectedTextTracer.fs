@@ -84,36 +84,34 @@ type SelectedTextTracer () =
                 oh.CurrentSelectionStart <- ed.SelectionStart
                 ta.TextView.Redraw()
 
+ 
                 // for status bar :            
-                match ch.Status with       
-                | NotStarted | Running _ | Failed -> 
-                    () //OccurencesTracer.Instance.InfoText <- ""
-                | Done res -> 
-                    match res.code with 
-                    | FullCode code -> 
-                        let mutable  index = code.IndexOf(highTxt, 0, StringComparison.Ordinal)                
-                        let mutable k = 0
-                        let mutable anyInFolding = false
-                        while index >= 0 do        
-                            k <- k+1  
+                match ch.CheckState.FullCodeAndId with 
+                | NoCode ->() //OccurencesTracer.Instance.InfoText <- ""
+                | CodeID (code,_) ->
+                    let mutable  index = code.IndexOf(highTxt, 0, StringComparison.Ordinal)                
+                    let mutable k = 0
+                    let mutable anyInFolding = false
+                    while index >= 0 do        
+                        k <- k+1  
 
-                            // check for ttext that is folded away:
-                            let infs = folds.Manager.GetFoldingsContaining(index) 
-                            for inf in infs do 
-                                // if && infs.[0].IsFolded then 
-                                inf.BackbgroundColor <-  SelectedTextHighlighter.ColorHighlightInBox
-                                anyInFolding <- true
+                        // check for ttext that is folded away:
+                        let infs = folds.Manager.GetFoldingsContaining(index) 
+                        for inf in infs do 
+                            // if && infs.[0].IsFolded then 
+                            inf.BackbgroundColor <-  SelectedTextHighlighter.ColorHighlightInBox
+                            anyInFolding <- true
                                 
-                            let st =  index + highTxt.Length // endOffset // TODO or just +1 ???????
-                            if st >= code.Length then 
-                                index <- -99
-                                eprintfn "index  %d in %d ??" st code.Length    
-                            else
-                                index <- code.IndexOf(highTxt, st, StringComparison.Ordinal)
+                        let st =  index + highTxt.Length // endOffset // TODO or just +1 ???????
+                        if st >= code.Length then 
+                            index <- -99
+                            eprintfn "index  %d in %d ??" st code.Length    
+                        else
+                            index <- code.IndexOf(highTxt, st, StringComparison.Ordinal)
                                    
-                        SelectedTextTracer.Instance.ChangeInfoText(highTxt, k  )    // will update status bar 
-                        if anyInFolding then ta.TextView.Redraw()
-                    | PartialCode _ -> ()
+                    SelectedTextTracer.Instance.ChangeInfoText(highTxt, k  )    // will update status bar 
+                    if anyInFolding then ta.TextView.Redraw()
+                    
 
             else
                 if notNull oh.HighlightText then // to ony redraw if it was not null before

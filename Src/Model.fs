@@ -42,18 +42,36 @@ type CheckId = int64
 type Code = 
     FullCode of string | PartialCode of string
     member this.Code = match this with  FullCode s -> s  | PartialCode s -> s
-       
+    //member this.FullOrNull = match this with  FullCode s -> s  | PartialCode _ -> null       
         
+type FullCodeAndId = 
+    | CodeID of string*CheckId
+    | NoCode
 
 type CheckResults = { parseRes:FSharpParseFileResults; checkRes:FSharpCheckFileResults;  code:Code ; checkId:CheckId} // to do remove till offset , not needed?
 
 type FilePath = SetTo of FileInfo | NotSet
 
+
 type FileCheckState = 
     | NotStarted 
-    | Running of CheckId
-    | Done of CheckResults // not global but local per file
+
+    /// getting the code form avalon edit  async
+    | GettingCode of CheckId 
+
+    /// got the code form avalon edit async, now running in FCS async
+    | Checking of CheckId*Code 
+
+    /// not global but local per file
+    | Done of CheckResults 
     | Failed 
+
+    member this.FullCodeAndId  =         
+        match this with
+        | NotStarted | GettingCode _  | Failed -> NoCode
+        | Checking (id, c)  ->  match c        with  FullCode s -> CodeID (s,id          )  | PartialCode _ -> NoCode
+        | Done res          ->  match res.code with  FullCode s -> CodeID (s,res.checkId )  | PartialCode _ -> NoCode
+        
 
 
 // so that the Editor can be used before declared
