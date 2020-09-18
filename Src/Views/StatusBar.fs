@@ -164,7 +164,8 @@ type SelectedTextStatus (grid:TabsAndLog) as this =
         SelectedTextTracer.Instance.HighlightChanged.Add ( fun (highTxt,k ) ->             
             this.Inlines.Clear()
             this.Inlines.Add( sprintf "%d of " k)
-            this.Inlines.Add( new Run ("'"+highTxt+"'", FontFamily = Style.fontEditor))            
+            this.Inlines.Add( new Run ("'"+highTxt+"'", FontFamily = Style.fontEditor))      
+            this.Inlines.Add( sprintf " (%d Chars) " highTxt.Length)
             )
         
         this.MouseDown.Add ( fun _ -> 
@@ -185,23 +186,29 @@ type SelectedTextStatus (grid:TabsAndLog) as this =
             )
 
 type StatusBar (grid:TabsAndLog, cmds:Commands)  = 
+    let bar = new Primitives.StatusBar() 
 
-    let bar = new Primitives.StatusBar()   
-
-    let sep() = new Separator()
+    let add (side:Dock) (e:UIElement) = 
+        let bi = new StatusBarItem(Content=e)
+        DockPanel.SetDock(bi,side)        
+        bar.Items.Add bi |> ignore         
+        
+        let s = new Separator() 
+        DockPanel.SetDock(s,side)
+        bar.Items.Add s |> ignore 
+    
 
     do 
-        bar.Items.Add (new CheckerStatus(grid))       |> ignore 
-        bar.Items.Add (sep())                         |> ignore 
-        bar.Items.Add (new FsiRunStatus (grid, cmds)) |> ignore 
-        bar.Items.Add (sep())                         |> ignore 
-        bar.Items.Add (new FsiOutputStatus(grid))     |> ignore 
-        bar.Items.Add (sep())                         |> ignore 
-        if grid.Config.HostingInfo.IsHosted then 
-            bar.Items.Add( new AsyncStatus(grid))     |> ignore
-            bar.Items.Add (sep())                     |> ignore
-        bar.Items.Add (new SelectedTextStatus(grid))         |> ignore
-        bar.Items.Add( new StatusBarItem())           |> ignore // to fill remaining space
+        add Dock.Left <| CheckerStatus(grid)    
+        add Dock.Left  <| FsiRunStatus (grid, cmds)
+        add Dock.Left  <| SelectedTextStatus(grid)
+
+        add Dock.Right  <| FsiOutputStatus(grid)
+        if grid.Config.HostingInfo.IsHosted then     add Dock.Right  <|  AsyncStatus(grid)    
+
+        bar.Items.Add (new StatusBarItem()) |> ignore // to fill remaining gap
+       
+       
 
     member this.Bar =  bar
   
