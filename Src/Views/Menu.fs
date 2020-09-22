@@ -20,6 +20,7 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, log:Log) =
     
     // TODO add  all built in  DocmentNavigatin shortcuts
     let maxFilesInRecentMenu = 30
+
     let fileOpeners = Dictionary<string,MenuItem>()    
     let mutable recentFilesInsertPosition = 0
     let sep() = Separator():> Control    

@@ -171,7 +171,7 @@ type Tabs(config:Config, win:Window) =
                 try
                     let code = IO.File.ReadAllText fi.FullName
                     let t = new Tab(Editor.SetUp(code, config, SetTo fi))
-                    log.PrintDebugMsg "adding Tab %A in %A " t.FilePath t.Editor.CheckState
+                    //log.PrintDebugMsg "adding Tab %A in %A " t.FilePath t.Editor.FileCheckState
                     addTab(t,makeCurrent, moreTabsToCome)
                     true
                 with  e -> 
@@ -244,9 +244,9 @@ type Tabs(config:Config, win:Window) =
                     t.IsCurrent <- false  // first set all false then one true              
                 tab.IsCurrent <-true 
                 currentTabChangedEv.Trigger(tab) // to update statusbar
-                log.PrintDebugMsg "New current Tab %A in %A " tab.FilePath tab.Editor.CheckState
-                if tab.Editor.CheckState = FileCheckState.NotStarted then 
-                    //log.PrintDebugMsg "FileCheckState.NotStarted: staring: %A " tab.FilePath
+                //log.PrintDebugMsg "New current Tab %A " tab.FilePath 
+                if tab.Editor.FileCheckState = FileCheckState.NotStarted then 
+                    //log.PrintDebugMsg "FileCheckState.NotStarted: starting: %A " tab.FilePath
                     tab.Editor.Checker.CkeckHighlightAndFold(tab.Editor)  // only actually highglights if editor has needsChecking=true              
                 config.OpenTabs.Save(tab.FilePath , allFileInfos)
                 

@@ -176,7 +176,7 @@ type TypeInfo private () =
         let doc = iEditor.AvaEdit.Document
         let pos = iEditor.AvaEdit.GetPositionFromPoint(e.GetPosition(iEditor.AvaEdit))
         if pos.HasValue then
-            match iEditor.CheckState with
+            match iEditor.FileCheckState with
             | GettingCode _ | Checking _ |Failed | NotStarted -> ()
             | Done res -> 
                 let line = pos.Value.Line            

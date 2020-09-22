@@ -29,7 +29,7 @@ type RecentlyUsedFiles  (log:ISeffLog, hostInfo:HostingInfo) =
 
         
     /// the maximum number of recxent files to be saved
-    /// the amount of files in the recently used menu can be controlled separetly
+    /// the amount of files in the recently used menu can be controlled separetly in menu.fs
     let maxCount = 70       
                 
 

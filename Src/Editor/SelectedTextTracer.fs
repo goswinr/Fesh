@@ -62,16 +62,16 @@ type SelectedTextTracer () =
     
     static member val Instance = SelectedTextTracer() // singelton pattern
 
-    static member Setup(ed:TextEditor,ch:Checker,folds:Foldings,config:Config) = 
+    static member Setup(ed:IEditor,folds:Foldings,config:Config) = 
         Folding.FoldingElementGenerator.TextBrush <- SelectedTextHighlighter.ColorFoldBox
-        let ta = ed.TextArea
-        let oh = new SelectedTextHighlighter(ed,folds)
+        let ta = ed.AvaEdit.TextArea
+        let oh = new SelectedTextHighlighter(ed.AvaEdit,folds)
         ta.TextView.LineTransformers.Add(oh)
 
         ta.SelectionChanged.Add ( fun a ->             
             
             // for text view:
-            let highTxt = ed.SelectedText            
+            let highTxt = ed.AvaEdit.SelectedText            
             let checkTx = highTxt.Trim()
             let doHighlight = 
                 checkTx.Length > 1 // minimum 2 non whitecpace characters?
@@ -81,12 +81,12 @@ type SelectedTextTracer () =
             
             if doHighlight then 
                 oh.HighlightText <- highTxt
-                oh.CurrentSelectionStart <- ed.SelectionStart
+                oh.CurrentSelectionStart <- ed.AvaEdit.SelectionStart
                 ta.TextView.Redraw()
 
  
                 // for status bar :            
-                match ch.CheckState.FullCodeAndId with 
+                match ed.FileCheckState.FullCodeAndId with 
                 | NoCode ->() //OccurencesTracer.Instance.InfoText <- ""
                 | CodeID (code,_) ->
                     let mutable  index = code.IndexOf(highTxt, 0, StringComparison.Ordinal)                
@@ -123,6 +123,6 @@ type SelectedTextTracer () =
                
             )
         
-        SelectedTextTracer.Instance
+        //SelectedTextTracer.Instance
 
 

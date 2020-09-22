@@ -169,7 +169,7 @@ type ErrorHighlighter (ed:TextEditor, log:ISeffLog) =
     /// draws underlines
     /// theadsafe
     member this.Draw( iEditor: IEditor ) = // this is used as Checker.OnChecked event handler         
-        match iEditor.CheckState with        
+        match iEditor.FileCheckState with        
         | Done res -> 
             renderer.Clear()
             renderer.AddSegments(res)

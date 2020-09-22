@@ -15,22 +15,25 @@ open System
 
 
  /// The tab that holds the tab header and the code editor 
-type Editor private (code:string, config:Config, filePath:FilePath) = 
+type Editor private (code:string, config:Config, filePath:FilePath)  = 
     let avaEdit = new AvalonEdit.TextEditor()
-
-    let search =            Search.SearchPanel.Install(avaEdit) 
-    let errorHighlighter =  new ErrorHighlighter(avaEdit, config.Log)
-    let checker =           Checker.GetOrCreate(config)     
-    let compls =            new Completions(avaEdit,config,checker,errorHighlighter)
-    let folds =             new Foldings(avaEdit,checker)
-    let rulers =            new ColumnRulers(avaEdit, config.Log) // do foldings first
-    let selText =           SelectedTextTracer.Setup(avaEdit,checker,folds,config)
-    
-    
-    let log = config.Log
     let id = Guid.NewGuid()
-    //let mutable checkState = FileCheckState.NotStarted
+    let log = config.Log
+
+    let checker =           Checker.GetOrCreate(config)  
+
+    let search =            Search.SearchPanel.Install(avaEdit)
+    
+    let errorHighlighter =  new ErrorHighlighter(avaEdit, config.Log)       
+    let compls =            new Completions(avaEdit,config,checker,errorHighlighter)
+    let rulers =            new ColumnRulers(avaEdit, config.Log) // do foldings first
+    let folds =             new Foldings(avaEdit,checker, config, id)
+    //let selText =           SelectedTextTracer.Setup(this,folds,config) // moved to: static member SetUp(..) 
+    
+    
+    let mutable checkState = FileCheckState.NotStarted // local to this editor
     let mutable filePath = filePath    
+    
     //let mutable needsChecking = true // so that on a tab chnage a recheck is not triggered if not needed
 
     do
@@ -75,7 +78,9 @@ type Editor private (code:string, config:Config, filePath:FilePath) =
    
     member val TypeInfoTip = new Controls.ToolTip(IsOpen=false)
     
+    // all instances of Editor refer to the same checker instance
     member this.Checker = checker
+
     member this.ErrorHighlighter = errorHighlighter    
     member this.Completions = compls
     member this.Config = config
@@ -87,14 +92,17 @@ type Editor private (code:string, config:Config, filePath:FilePath) =
 
     member this.Id              = id
     member this.AvaEdit         = avaEdit
-    member this.CheckState      = checker.CheckState //with get()=checkState    and  set(v) = checkState <- v
+    
+    ///This CheckStat is local to the current editor
+    member this.FileCheckState  with get()=checkState    and  set(v) = checkState <- v
+    
     member this.FilePath        with get()=filePath      and  set(v) = filePath <- v // The Tab class containing this editor takes care of updating this 
 
     
     interface IEditor with
         member this.Id              = id
         member this.AvaEdit         = avaEdit
-        member this.CheckState      = checker.CheckState //with get()=checkState and  set(v) = checkState <- v
+        member this.FileCheckState  with get() = checkState and  set(v) = checkState <- v
         member this.FilePath        = filePath // interface does not need setter
       
     
@@ -106,10 +114,11 @@ type Editor private (code:string, config:Config, filePath:FilePath) =
     //member this.TriggerCompletionInserted x = completionInserted.Trigger x // to raise it after completion inserted ?
     
     /// sets up Text change event handlers
-    /// a statci method s o that an instance if IEditor can be used
+    /// a static method so that an instance if IEditor can be used
     static member SetUp  (code:string, config:Config, filePath:FilePath ) = 
         let ed = Editor(code, config, filePath )
-        
+        SelectedTextTracer.Setup(ed,ed.Folds,config)
+
         let avaEdit = ed.AvaEdit
         let compls = ed.Completions
         let log = ed.Log
@@ -188,7 +197,7 @@ type Editor private (code:string, config:Config, filePath:FilePath) =
                                 NotDot
 
                         if charBeforeQueryDU = NotDot && isKeyword then
-                            log.PrintDebugMsg "*2.1-textChanged highlighting with: query='%s', charBefore='%A', isKey=%b, setback='%d', line='%s' " query charBeforeQueryDU isKeyword setback line
+                            //log.PrintDebugMsg "*2.1-textChanged highlighting with: query='%s', charBefore='%A', isKey=%b, setback='%d', line='%s' " query charBeforeQueryDU isKeyword setback line
                             ed.Checker.CkeckHighlightAndFold(ed)
 
                         else 

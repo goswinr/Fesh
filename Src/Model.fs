@@ -16,7 +16,7 @@ module Style =
     let mutable fontLog         = FontFamily("Consolas") // used for startup only,
     let mutable fontToolTip     = FontFamily("Consolas") // used for startup only,
 
-    let mutable fontSize = 14.0 //will also be used for sizing tooltip text
+    let mutable fontSize = 14.0 // used for default startup only, will be set in Settings.fs
 
 
 type ISeffLog = 
@@ -50,7 +50,9 @@ type FullCodeAndId =
 
 type CheckResults = { parseRes:FSharpParseFileResults; checkRes:FSharpCheckFileResults;  code:Code ; checkId:CheckId} // to do remove till offset , not needed?
 
-type FilePath = SetTo of FileInfo | NotSet
+type FilePath = 
+    SetTo of FileInfo | NotSet
+    member this.File = match this with SetTo fi -> fi.Name |NotSet -> "*noName*"
 
 
 type FileCheckState = 
@@ -71,15 +73,24 @@ type FileCheckState =
         | NotStarted | GettingCode _  | Failed -> NoCode
         | Checking (id, c)  ->  match c        with  FullCode s -> CodeID (s,id          )  | PartialCode _ -> NoCode
         | Done res          ->  match res.code with  FullCode s -> CodeID (s,res.checkId )  | PartialCode _ -> NoCode
+
+    /// to compare FileCheckState with GlobalCheckState
+    member this.SameIdAndFullCode (globalChSt:FileCheckState) =  
+        match this.FullCodeAndId with
+        |NoCode -> NoCode
+        |CodeID (id, c)  ->
+            match globalChSt.FullCodeAndId with 
+            |NoCode -> NoCode
+            |CodeID (gid, _) as ci -> if gid=id then ci  else NoCode
         
 
 
 // so that the Editor can be used before declared
 type IEditor = 
-    abstract member Id           : Guid
-    abstract member AvaEdit      : AvalonEdit.TextEditor
-    abstract member CheckState   : FileCheckState //with get , set //None means a check is running
-    abstract member FilePath     : FilePath     
+    abstract member Id             : Guid
+    abstract member AvaEdit        : AvalonEdit.TextEditor
+    abstract member FileCheckState : FileCheckState with get , set //None means a check is running
+    abstract member FilePath       : FilePath     
 
 
 //---- Fsi types ------------

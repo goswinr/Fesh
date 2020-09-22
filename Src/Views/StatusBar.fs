@@ -36,7 +36,7 @@ type CheckerStatus (grid:TabsAndLog) as this =
                 
     let updateCheckState(iEditor:IEditor)= 
         //log.PrintDebugMsg "Setting errors for %A %A " iEditor.FileInfo iEditor.CheckRes.Value.checkRes.Errors.Length 
-        match iEditor.CheckState with
+        match iEditor.FileCheckState with
         | Done res ->                                            
                 let es = res.checkRes.Errors
                 if es.Length = 0 then 
@@ -68,7 +68,7 @@ type CheckerStatus (grid:TabsAndLog) as this =
             async{
                 do! Async.Sleep 300 // delay  to only show check in progress massage if it takes long, otherwis just show results via on checked event
                 if iEditor.Id = tabs.Current.Editor.Id then // to cancel if tab changed  
-                    match iEditor.CheckState with
+                    match iEditor.FileCheckState with
                     | GettingCode id300
                     | Checking (id300,_) -> 
                         if id300 = id0 then // this is still the most recent checker
