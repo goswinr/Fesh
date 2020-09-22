@@ -49,9 +49,10 @@ type RecentlyUsedFiles  (log:ISeffLog, hostInfo:HostingInfo) =
         sb.ToString()    
 
     member this.AddAndSave(fi:FileInfo) =         
-        recentFilesStack.Push fi 
-        //log.PrintDebugMsg "add recent file %s" fi.FullName
-        writer.WriteDelayed(filePath, getStringRaiseEvent, 1000)
+        if recentFilesStack.Peek().FullName <> fi.FullName then 
+            recentFilesStack.Push fi 
+            //log.PrintDebugMsg "add recent file %s" fi.FullName
+            writer.WriteDelayed(filePath, getStringRaiseEvent, 1000)
 
     member this.Save() =         
         writer.WriteDelayed(filePath, getStringRaiseEvent, 1000)
@@ -59,7 +60,8 @@ type RecentlyUsedFiles  (log:ISeffLog, hostInfo:HostingInfo) =
 
     /// does not save 
     member this.Add(fi:FileInfo) =         
-        recentFilesStack.Push fi
+        if recentFilesStack.Peek().FullName <> fi.FullName then 
+            recentFilesStack.Push fi
         
     /// the first elemnt in this array the top of stack
     member this.Get() = Array.ofSeq recentFilesStack
