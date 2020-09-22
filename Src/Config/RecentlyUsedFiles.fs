@@ -4,6 +4,7 @@ open Seff
 open System
 open System.Text
 open System.IO
+open System.Collections.ObjectModel
 
    
 type RecentlyUsedFiles  (log:ISeffLog, hostInfo:HostingInfo) =
@@ -35,8 +36,15 @@ type RecentlyUsedFiles  (log:ISeffLog, hostInfo:HostingInfo) =
 
     let getStringRaiseEvent() = 
         let sb = StringBuilder()
-        for fi in recentFilesStack |> Seq.truncate maxCount do   // iteration starts at top element of stack
-            sb.AppendLine(fi.FullName)  |> ignore
+        let Dup = Collections.Generic.HashSet()
+        let k = ref 0
+        for fi in recentFilesStack  do   // iteration starts at top element of stack
+            incr k
+            if !k < maxCount then 
+                if not <| Dup.Contains fi.FullName then 
+                    sb.AppendLine(fi.FullName)  |> ignore
+                    Dup.Add fi.FullName  |> ignore 
+
         recentFilesChangedEv.Trigger()  //this event will be triggered 1000 ms after new tabs are created
         sb.ToString()    
 
