@@ -46,11 +46,11 @@ type ColumnRulers (editor:AvalonEdit.TextEditor, log: ISeffLog)  as this =
         // set color in Margins
         editor.ShowLineNumbers <- true //needs to be done before iterating margins
         for uiElm in editor.TextArea.LeftMargins do 
-            let color =  Brushes.White |> darker 7 // set color
+            let marginCcolor =  Brushes.White |> darker 8 // set color
             match uiElm with 
-            | :? LineNumberMargin as lnm  ->  lnm.BackbgroundColor <- color
-            | :? FoldingMargin as fm ->       fm.BackbgroundColor <- color
-            | _-> () // log.PrintAppErrorMsg "other left marging: %A" uiElm // TODO other left marging: System.Windows.Shapes.Line
+            | :? LineNumberMargin as lnm  ->  lnm.BackbgroundColor <- marginCcolor
+            | :? FoldingMargin as fm ->       fm.BackbgroundColor <- marginCcolor
+            | _-> ()//log.PrintAppErrorMsg "other left marging: %A" uiElm // TODO other left marging: System.Windows.Shapes.Line
        
 
     member this.Layer = KnownLayer.Background

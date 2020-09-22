@@ -26,8 +26,8 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
     
     let errorHighlighter =  new ErrorHighlighter(avaEdit, config.Log)       
     let compls =            new Completions(avaEdit,config,checker,errorHighlighter)
-    let rulers =            new ColumnRulers(avaEdit, config.Log) // do foldings first
     let folds =             new Foldings(avaEdit,checker, config, id)
+    let rulers =            new ColumnRulers(avaEdit, config.Log) // do foldings first
     //let selText =           SelectedTextTracer.Setup(this,folds,config) // moved to: static member SetUp(..) 
     
     

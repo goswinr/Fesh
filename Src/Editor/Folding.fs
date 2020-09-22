@@ -23,7 +23,7 @@ type Foldings(ed:TextEditor,checker:Checker,config:Config, edId:Guid) =
     
     let minLinesForFold = 1
 
-    let manager = Folding.FoldingManager.Install(ed.TextArea)  
+    let manager = Folding.FoldingManager.Install(ed.TextArea)  // color of margin is set in ColoumRulers.fs
         
     /// a hash value to  see if folding state needs updating
     let mutable foldStateHash = 0
@@ -103,7 +103,7 @@ type Foldings(ed:TextEditor,checker:Checker,config:Config, edId:Guid) =
                         | CodeID _ ->                        
                             let folds=ResizeArray<NewFolding>()
                             for st,en,length in foldings do 
-                                let f = new NewFolding(st,en)
+                                let f = new NewFolding(st,en)                                
                                 f.Name <- sprintf " ... %d Lines " length
                                 folds.Add(f) //if new folding type is created async a waiting symbol apears on top of it 
                             let firstErrorOffset = -1 //The first position of a parse error. Existing foldings starting after this offset will be kept even if they don't appear in newFoldings. Use -1 for this parameter if there were no parse errors) 
@@ -117,6 +117,9 @@ type Foldings(ed:TextEditor,checker:Checker,config:Config, edId:Guid) =
         if not Foldings.EventIsSetUp then 
             checker.OnFullCodeAvailabe.Add foldEd
             Foldings.EventIsSetUp <-true // so the event is only attached once to checker
+        
+        
+
 
     member this.Manager = manager
 
