@@ -46,7 +46,7 @@ type ColumnRulers (editor:AvalonEdit.TextEditor, log: ISeffLog)  as this =
         // set color in Margins
         editor.ShowLineNumbers <- true //needs to be done before iterating margins
         for uiElm in editor.TextArea.LeftMargins do 
-            let marginCcolor =  Brushes.White |> darker 8 // set color
+            let marginCcolor =  Brushes.White |> darker 7 // set color
             match uiElm with 
             | :? LineNumberMargin as lnm  ->  lnm.BackbgroundColor <- marginCcolor
             | :? FoldingMargin as fm ->       fm.BackbgroundColor <- marginCcolor
