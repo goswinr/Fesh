@@ -110,15 +110,21 @@ type Foldings(ed:TextEditor,checker:Checker,config:Config, edId:Guid) =
                             manager.UpdateFoldings(folds,firstErrorOffset)
                 } |>  Async.Start       
         
-        
+    
+    static let mutable eventIsSetUp = false
+    
     do        
-        checker.OnFullCodeAvailabe.Add foldEd
+        if not Foldings.EventIsSetUp then 
+            checker.OnFullCodeAvailabe.Add foldEd
+            Foldings.EventIsSetUp <-true // so the event is only attached once to checker
 
     member this.Manager = manager
 
     member this.ExpandAll() = for f in manager.AllFoldings do f.IsFolded <- false
     
     member this.CollapseAll() = for f in manager.AllFoldings do f.IsFolded <- true
+
+    static member val private EventIsSetUp = false with get, set // so the event OnFullCodeAvailabe is only attached once to checker
 
     
 
