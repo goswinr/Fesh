@@ -48,7 +48,12 @@ module General =
     let darker  (amount:int) (br:SolidColorBrush)  = SolidColorBrush(changeLuminace -amount br.Color) 
 
 module String =
-        
+    
+    // ensures all lines end on Environment.NewLine
+    // code: s.Replace("\r\n", "\n").Replace("\r", "\n").Replace("\n", Environment.NewLine)
+    let unifyLineEndings (s:string) =
+        s.Replace("\r\n", "\n").Replace("\r", "\n").Replace("\n", Environment.NewLine)
+    
     let lastCharIs char (s:string)= 
         if isNull s then false
         elif s = "" then false

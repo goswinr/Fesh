@@ -40,20 +40,20 @@ type Foldings(ed:TextEditor,checker:Checker,config:Config, edId:Guid) =
     let foldEditor (iEditor:IEditor) =        
         //config.Log.PrintDebugMsg "folding: %s %A = %A" iEditor.FilePath.File edId iEditor.Id
         if edId=iEditor.Id then // will be called on each tab, to skips updating  if it is not current editor
-            //config.Log.PrintDebugMsg "folding: %s" iEditor.FilePath.File
+            //config.Log.PrintDebugMsg "folding1: %s" iEditor.FilePath.File
             async{            
                 match iEditor.FileCheckState.FullCodeAndId with
                 | NoCode ->()
-                | CodeID (code,id0) ->                
+                | CodeID (code,id0) ->                    
                     // TODO compute update only for visible areas not allcode?
                     let foldings=ResizeArray<int*int*int>()
-                    let lns = code.Split([|"\r\n"|],StringSplitOptions.None) // TODO better iterate without allocating an array of lines  
+                    let lns = code.Split([|Environment.NewLine|],StringSplitOptions.None) // TODO better iterate without allocating an array of lines  
                     let mutable currLnEndOffset = 0
                     let mutable foldStartOfset = -1
                     let mutable foldStartLine = -1
                     let mutable lastNotBlankLineEndOffset = -1
                     let mutable lastNotBlankLineNum = 0
-
+                    //config.Log.PrintDebugMsg "folding2: %d lines" lns.Length
                     for lni, ln in Seq.indexed lns do 
                         let lnNum = lni+1
                         currLnEndOffset <- currLnEndOffset + ln.Length + 2
@@ -67,7 +67,7 @@ type Foldings(ed:TextEditor,checker:Checker,config:Config, edId:Guid) =
                                     if foldStartLine <= lastNotBlankLineNum - minLinesForFold then                             
                                 
                                         let foldEnd = lastNotBlankLineEndOffset - 2 //-2 to skip over line break 
-                                        //log.PrintDebugMsg "Folding from  line %d to %d : Offset %d to %d" foldStartLine lastNotBlankLineNum foldStartOfset foldEnd
+                                        //config.Log.PrintDebugMsg "Folding from  line %d to %d : Offset %d to %d" foldStartLine lastNotBlankLineNum foldStartOfset foldEnd
                                         let foldedlines = lastNotBlankLineNum - foldStartLine
                                         let f = foldStartOfset, foldEnd,  foldedlines
                                         foldings.Add f                            

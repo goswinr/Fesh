@@ -169,7 +169,7 @@ type Tabs(config:Config, win:Window) =
                 true
             | None -> // regular case, actually open file
                 try
-                    let code = IO.File.ReadAllText fi.FullName
+                    let code = IO.File.ReadAllText fi.FullName |> Util.String.unifyLineEndings // unify so that folding works correctly
                     let t = new Tab(Editor.SetUp(code, config, SetTo fi))
                     //log.PrintDebugMsg "adding Tab %A in %A " t.FilePath t.Editor.FileCheckState
                     addTab(t,makeCurrent, moreTabsToCome)
