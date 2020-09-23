@@ -37,8 +37,9 @@ type Foldings(ed:TextEditor,checker:Checker,config:Config, edId:Guid) =
         v
     
     ///Get foldings at every line that is followed by an indent
-    let foldEd (iEditor:IEditor) =        
-        if edId=iEditor.Id then 
+    let foldEditor (iEditor:IEditor) =        
+        //config.Log.PrintDebugMsg "folding: %s %A = %A" iEditor.FilePath.File edId iEditor.Id
+        if edId=iEditor.Id then // will be called on each tab, to skips updating  if it is not current editor
             //config.Log.PrintDebugMsg "folding: %s" iEditor.FilePath.File
             async{            
                 match iEditor.FileCheckState.FullCodeAndId with
@@ -111,12 +112,10 @@ type Foldings(ed:TextEditor,checker:Checker,config:Config, edId:Guid) =
                 } |>  Async.Start       
         
     
-    static let mutable eventIsSetUp = false
+    
     
     do        
-        if not Foldings.EventIsSetUp then 
-            checker.OnFullCodeAvailabe.Add foldEd
-            Foldings.EventIsSetUp <-true // so the event is only attached once to checker
+        checker.OnFullCodeAvailabe.Add foldEditor // will add an event for each new tab, foldEditor skips updating  if it is not current editor
         
         
 
