@@ -24,6 +24,8 @@ type Foldings(ed:TextEditor,checker:Checker,config:Config, edId:Guid) =
     let minLinesForFold = 1
 
     let manager = Folding.FoldingManager.Install(ed.TextArea)  // color of margin is set in ColoumRulers.fs
+
+    // color for folding box is set in SelectedTextHighlighter
         
     /// a hash value to  see if folding state needs updating
     let mutable foldStateHash = 0
