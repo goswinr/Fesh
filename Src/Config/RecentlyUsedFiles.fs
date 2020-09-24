@@ -49,7 +49,7 @@ type RecentlyUsedFiles  (log:ISeffLog, hostInfo:HostingInfo) =
         sb.ToString()    
 
     member this.AddAndSave(fi:FileInfo) =         
-        if recentFilesStack.Peek().FullName <> fi.FullName then 
+        if recentFilesStack.Count = 0 || recentFilesStack.Peek().FullName <> fi.FullName then 
             recentFilesStack.Push fi 
             //log.PrintDebugMsg "add recent file %s" fi.FullName
             writer.WriteDelayed(filePath, getStringRaiseEvent, 1000)
