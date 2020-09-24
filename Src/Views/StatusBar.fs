@@ -155,6 +155,8 @@ type AsyncStatus (grid:TabsAndLog) as this =
 
 type SelectedTextStatus (grid:TabsAndLog) as this = 
     inherit TextBlock()  
+    let codeblock = Brushes.White   |> darker 70
+
     let desc = "Highlighting is "
     let baseTxt = "Highlights and counts the occurences of the currently selected Text.\r\nMinimum two characters. No line breaks\r\nClick here to turn " 
     do             
@@ -166,9 +168,16 @@ type SelectedTextStatus (grid:TabsAndLog) as this =
         SelectedTextTracer.Instance.HighlightChanged.Add ( fun (highTxt,k ) ->             
             this.Inlines.Clear()
             this.Inlines.Add( sprintf "%d of " k)
-            this.Inlines.Add( new Run ("'"+highTxt+"'", FontFamily = Style.fontEditor))      
+            this.Inlines.Add( new Run (highTxt, FontFamily = Style.fontEditor, Background = SelectedTextHighlighter.ColorHighlight))      
             this.Inlines.Add( sprintf " (%d Chars) " highTxt.Length)
             )
+        
+        grid.Log.SelectedTextHighLighter.HighlightChanged.Add( fun (highTxt,k ) ->             
+            this.Inlines.Clear()
+            this.Inlines.Add( sprintf "%d of " k)
+            this.Inlines.Add( new Run (highTxt, FontFamily = Style.fontEditor, Background = grid.Log.SelectedTextHighLighter.ColorHighlight))      
+            this.Inlines.Add( sprintf " (%d Chars) in Log" highTxt.Length)
+            ) 
         
         this.MouseDown.Add ( fun _ -> 
             let mutable isOnn =  grid.Config.Settings.SelectAllOccurences
