@@ -24,8 +24,8 @@ type SelectedTextHighlighter (ed:TextEditor,folds:Foldings) =
     let mutable highTxt = null
     let mutable curSelStart = -1
 
-    static member val ColorHighlight =      Brushes.Yellow |> brighter 50
-    static member val ColorHighlightInBox = Brushes.Yellow |> brighter 50
+    static member val ColorHighlight =      Brushes.Yellow |> brighter 60
+    static member val ColorHighlightInBox = Brushes.Yellow |> brighter 60
     static member val ColorFoldBox =        Brushes.Gray   //|> darker 30
 
 
