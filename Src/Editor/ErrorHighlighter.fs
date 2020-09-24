@@ -68,22 +68,22 @@ type ErrorRenderer (textEditor:TextEditor, log:ISeffLog) =
                     match segment.UnderlineColor with 
                     |None ->()
                     |Some underlineColor ->   
-                    for r in BackgroundGeometryBuilder.GetRectsForSegment(textView, segment) do
-                        let  startPoint = r.BottomLeft
-                        let  endPoint = r.BottomRight
-                        let usedPen = new Pen(new SolidColorBrush(underlineColor), 1.)
-                        usedPen.Freeze()
-                        let offset = 2.5
-                        let count = max 4 (int((endPoint.X - startPoint.X)/offset) + 1)
+                        for r in BackgroundGeometryBuilder.GetRectsForSegment(textView, segment) do
+                            let  startPoint = r.BottomLeft
+                            let  endPoint = r.BottomRight
+                            let usedPen = new Pen(new SolidColorBrush(underlineColor), 1.)
+                            usedPen.Freeze()
+                            let offset = 2.5
+                            let count = max 4 (int((endPoint.X - startPoint.X)/offset) + 1)
 
-                        let  geometry = new StreamGeometry()
+                            let  geometry = new StreamGeometry()
                         
-                        use ctx = geometry.Open()
-                        ctx.BeginFigure(startPoint, false, false)
-                        ctx.PolyLineTo(createPoints(startPoint, offset, count), true, false)                    
-                        geometry.Freeze()
-                        drawingContext.DrawGeometry(Brushes.Transparent, usedPen, geometry)
-                        //break //TODO why break in original code ? //https://stackoverflow.com/questions/11149907/showing-invalid-xml-syntax-with-avalonedit
+                            use ctx = geometry.Open()
+                            ctx.BeginFigure(startPoint, false, false)
+                            ctx.PolyLineTo(createPoints(startPoint, offset, count), true, false)                    
+                            geometry.Freeze()
+                            drawingContext.DrawGeometry(Brushes.Transparent, usedPen, geometry)
+                            //break //TODO why break in original code ? //https://stackoverflow.com/questions/11149907/showing-invalid-xml-syntax-with-avalonedit
         with ex -> 
             log.PrintAppErrorMsg "ERROR in ErrorRenderer.Draw: %A" ex
             
