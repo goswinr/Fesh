@@ -1,6 +1,8 @@
 ﻿namespace Seff.Views
 
 open Seff
+open Seff.Util.General
+open Seff.Util
 open Seff.Config
 open System
 open System.Environment
@@ -50,7 +52,7 @@ type FsxTextWriter(writeStr) =
     
     
 
-type LogLineColorizer(editor:AvalonEdit.TextEditor, lineColors:Collections.Generic.Dictionary<int,SolidColorBrush>) = 
+type LogLineColorizer(lg:AvalonEdit.TextEditor, lineColors:Collections.Generic.Dictionary<int,SolidColorBrush>) = 
     inherit AvalonEdit.Rendering.DocumentColorizingTransformer()
         
     /// This gets called for every visvble line on any view change
@@ -60,21 +62,103 @@ type LogLineColorizer(editor:AvalonEdit.TextEditor, lineColors:Collections.Gener
             // consider selection and exclude fom higlighting:
             let st=line.Offset
             let en=line.EndOffset
-            let selLen = editor.SelectionLength
+            let selLen = lg.SelectionLength
             if selLen < 1 then // no selection 
                 base.ChangeLinePart(st,en, fun element -> element.TextRunProperties.SetForegroundBrush(color)) // highlight full line
             else
-                let selSt = editor.SelectionStart
+                let selSt = lg.SelectionStart
                 let selEn = selSt + selLen
                 if selSt > en || selEn < st then // nothing slected on this line
                     base.ChangeLinePart(st,en, fun element -> element.TextRunProperties.SetForegroundBrush(color)) // highlight full line
                 else
                     // consider block or rectangle selection:
-                    for seg in editor.TextArea.Selection.Segments do
+                    for seg in lg.TextArea.Selection.Segments do
                         if st < seg.StartOffset && seg.StartOffset < en then base.ChangeLinePart(st, seg.StartOffset, fun element -> element.TextRunProperties.SetForegroundBrush(color))
                         if en > seg.EndOffset   && seg.EndOffset   > st then base.ChangeLinePart(seg.EndOffset,   en, fun element -> element.TextRunProperties.SetForegroundBrush(color))
     
 
+
+    
+/// Highlight-all-occurrences-of-selected-text in Log Text View
+type LogSelectedTextHighlighter (lg:AvalonEdit.TextEditor) = 
+    inherit AvalonEdit.Rendering.DocumentColorizingTransformer()    
+    
+    let mutable highTxt = null
+    let mutable curSelStart = -1
+    let highlightChangedEv  = new Event<string*int>()
+
+    let colorHighlight =      Brushes.Blue |> brighter 210    
+    
+    [<CLIEvent>]
+    member this.HighlightChanged = highlightChangedEv.Publish
+    member this.ColorHighlight = colorHighlight
+    
+    //member this.HighlightText  with get() = highTxt and set v = highTxt <- v
+    //member this.CurrentSelectionStart  with get() = curSelStart and set v = curSelStart <- v
+    
+    /// This gets called for every visvble line on any view change
+    override this.ColorizeLine(line:AvalonEdit.Document.DocumentLine) =       
+        //  from https://stackoverflow.com/questions/9223674/highlight-all-occurrences-of-selected-word-in-avalonedit
+            
+        if notNull highTxt  then             
+    
+            let  lineStartOffset = line.Offset;
+            let  text = lg.Document.GetText(line)            
+            let mutable  index = text.IndexOf(highTxt, 0, StringComparison.Ordinal)
+    
+            while index >= 0 do      
+                let st = lineStartOffset + index  // startOffset
+                let en = lineStartOffset + index + highTxt.Length // endOffset   
+    
+                if curSelStart <> st  then // skip the actual current selection
+                    base.ChangeLinePart( st,en, fun el -> el.TextRunProperties.SetBackgroundBrush(colorHighlight))
+                let start = index + highTxt.Length // search for next occurrence // TODO or just +1 ???????
+                index <- text.IndexOf(highTxt, start, StringComparison.Ordinal)
+        
+    member this.SelectionChangedDelegate ( a:EventArgs) =
+        // for text view:
+        let selTxt = lg.SelectedText            
+        let checkTx = selTxt.Trim()
+        let doHighlight = 
+            checkTx.Length > 1 // minimum 2 non whitecpace characters?
+            && not <| selTxt.Contains("\n")  //no line beaks          
+            && not <| selTxt.Contains("\r")  //no line beaks
+            //&& config.Settings.SelectAllOccurences
+            
+        if doHighlight then 
+            highTxt <- selTxt
+            curSelStart <- lg.SelectionStart
+            lg.TextArea.TextView.Redraw()
+        
+            // for status bar : 
+            let doc = lg.Document // get in sync first !
+            async{
+                let tx = doc.CreateSnapshot().Text
+                let mutable  index = tx.IndexOf(selTxt, 0, StringComparison.Ordinal)                
+                let mutable k = 0
+                let mutable anyInFolding = false
+                while index >= 0 do        
+                    k <- k+1 
+                                
+                    let st =  index + selTxt.Length // endOffset // TODO or just +1 ???????
+                    if st >= tx.Length then 
+                        index <- -99
+                        eprintfn "index  %d in %d ??" st tx.Length    
+                    else
+                        index <- tx.IndexOf(selTxt, st, StringComparison.Ordinal)
+                                   
+                do! Async.SwitchToContext Sync.syncContext
+                highlightChangedEv.Trigger(selTxt, k  )    // will update status bar 
+                }   |> Async.Start
+    
+        else
+            if notNull highTxt then // to ony redraw if it was not null before
+                highTxt <- null
+                lg.TextArea.TextView.Redraw() // to clear highlight
+    
+        
+    
+    
 
 /// A ReadOnly text AvalonEdit Editor that provides print formating methods 
 /// call ApplyConfig() once config is set up too, (config depends on this Log instance)
@@ -83,24 +167,33 @@ type Log () =
     /// Dictionary holding the color of all non standart lines
     let lineColors = new Collections.Generic.Dictionary<int,SolidColorBrush>() 
 
-    let log = 
-        let l = new AvalonEdit.TextEditor()
+    
+    let log =  new AvalonEdit.TextEditor()        
+    let hiLi = new LogSelectedTextHighlighter(log)
+    let colo = new LogLineColorizer(log,lineColors)
+    let search = AvalonEdit.Search.SearchPanel.Install(log) |> ignore //TODO disable search and replace ?
+    
+    do
         //styling: 
-        l.BorderThickness <- new Thickness( 0.5)
-        l.Padding         <- new Thickness( 0.7)
-        l.Margin          <- new Thickness( 0.7)
-        l.BorderBrush <- Brushes.Black
+        log.BorderThickness <- new Thickness( 0.5)
+        log.Padding         <- new Thickness( 0.7)
+        log.Margin          <- new Thickness( 0.7)
+        log.BorderBrush <- Brushes.Black
 
-        l.IsReadOnly <- true
-        l.Encoding <- Text.Encoding.Default
-        l.ShowLineNumbers  <- true
-        l.Options.EnableHyperlinks <- true 
-        l.TextArea.SelectionCornerRadius <- 0.0 
-        l.TextArea.SelectionBorder <- null         
-        l.TextArea.TextView.LinkTextForegroundBrush <- Brushes.Blue //Hyperlinks color        
-        l.TextArea.TextView.LineTransformers.Add(new LogLineColorizer(l,lineColors))
-        AvalonEdit.Search.SearchPanel.Install(l) |> ignore //TODO disable search and replace ?
-        l
+        log.IsReadOnly <- true
+        log.Encoding <- Text.Encoding.Default
+        log.ShowLineNumbers  <- true
+        log.Options.EnableHyperlinks <- true 
+        log.TextArea.SelectionCornerRadius <- 0.0 
+        log.TextArea.SelectionBorder <- null         
+        log.TextArea.TextView.LinkTextForegroundBrush <- Brushes.Blue //Hyperlinks color 
+        
+        log.TextArea.SelectionChanged.Add hiLi.SelectionChangedDelegate
+        log.TextArea.TextView.LineTransformers.Add(hiLi)
+        log.TextArea.TextView.LineTransformers.Add(colo)
+        
+        
+        
 
 
 
@@ -177,8 +270,7 @@ type Log () =
         else
             log.WordWrap         <- false 
             log.HorizontalScrollBarVisibility <- ScrollBarVisibility.Auto 
-    
-    
+        
 
     //used in FSI constructor:
     let textWriterFsiStdOut     = new FsxTextWriter(fun s -> printOrBuffer (s,FsiStdOut    ))
@@ -211,7 +303,9 @@ type Log () =
     
     /// to acces the underlying read-only Avalonedit Texteditor
     member this.ReadOnlyEditor = log
-    
+
+    member this.SelectedTextHighLighter = hiLi
+        
     member this.Clear() = 
         log.SelectionStart <- 0
         log.SelectionLength <- 0
