@@ -18,7 +18,7 @@ open ICSharpCode
 open ICSharpCode.AvalonEdit.Search
 
 /// Highlight-all-occurrences-of-selected-text in Text View
-type SelectedTextHighlighter (ed:TextEditor,folds:Foldings) = 
+type SelectedTextHighlighter (ed:TextEditor) = 
     inherit AvalonEdit.Rendering.DocumentColorizingTransformer()    
 
     let mutable highTxt = null
@@ -32,13 +32,13 @@ type SelectedTextHighlighter (ed:TextEditor,folds:Foldings) =
     member this.HighlightText  with get() = highTxt and set v = highTxt <- v
     member this.CurrentSelectionStart  with get() = curSelStart and set v = curSelStart <- v
 
-    /// This gets called for every visvble line on any view change
+    /// This gets called for every visible line on any view change
     override this.ColorizeLine(line:AvalonEdit.Document.DocumentLine) =       
         //  from https://stackoverflow.com/questions/9223674/highlight-all-occurrences-of-selected-word-in-avalonedit
         
         if notNull highTxt  then             
 
-            let  lineStartOffset = line.Offset;
+            let  lineStartOffset = line.Offset
             let  text = ed.Document.GetText(line)            
             let mutable  index = text.IndexOf(highTxt, 0, StringComparison.Ordinal)
 
@@ -47,6 +47,7 @@ type SelectedTextHighlighter (ed:TextEditor,folds:Foldings) =
                 let en = lineStartOffset + index + highTxt.Length // endOffset   
 
                 if curSelStart <> st  then // skip the actual current selection
+                    printfn "Sel %d to %d for %s" st en highTxt
                     base.ChangeLinePart( st,en, fun el -> el.TextRunProperties.SetBackgroundBrush(SelectedTextHighlighter.ColorHighlight))
                 let start = index + highTxt.Length // search for next occurrence // TODO or just +1 ???????
                 index <- text.IndexOf(highTxt, start, StringComparison.Ordinal)
@@ -65,7 +66,7 @@ type SelectedTextTracer () =
     static member Setup(ed:IEditor,folds:Foldings,config:Config) = 
         Folding.FoldingElementGenerator.TextBrush <- SelectedTextHighlighter.ColorFoldBox
         let ta = ed.AvaEdit.TextArea
-        let oh = new SelectedTextHighlighter(ed.AvaEdit,folds)
+        let oh = new SelectedTextHighlighter(ed.AvaEdit)
         ta.TextView.LineTransformers.Add(oh)
 
         ta.SelectionChanged.Add ( fun a ->             
@@ -104,8 +105,8 @@ type SelectedTextTracer () =
                                 
                         let st =  index + highTxt.Length // endOffset // TODO or just +1 ???????
                         if st >= code.Length then 
-                            index <- -99
-                            eprintfn "index  %d in %d ??" st code.Length    
+                            index <- -99 // this happens wen wor to highlight ia at document end
+                            //eprintfn "index  %d in %d ??" st code.Length    
                         else
                             index <- code.IndexOf(highTxt, st, StringComparison.Ordinal)
                                    

@@ -90,7 +90,8 @@ type IEditor =
     abstract member Id             : Guid
     abstract member AvaEdit        : AvalonEdit.TextEditor
     abstract member FileCheckState : FileCheckState with get , set //None means a check is running
-    abstract member FilePath       : FilePath     
+    abstract member FilePath       : FilePath 
+    abstract member Log            : ISeffLog 
 
 
 //---- Fsi types ------------

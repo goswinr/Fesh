@@ -55,24 +55,11 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
         avaEdit.TextArea.SelectionBorder <- null
         avaEdit.FontFamily <- Style.fontEditor
         avaEdit.FontSize <- config.Settings.GetFloat "FontSize" Seff.Style.fontSize 
-        SyntaxHighlighting.setFSharp(avaEdit,config,false)
-
+        SyntaxHighlighting.setFSharp(avaEdit,config,false)        
         
-        //remove 4 charactes (Options.IndentationSize) on pressing backspace key instead of one 
-        avaEdit.PreviewKeyDown.Add ( fun e -> 
-            if e.Key = Input.Key.Back then 
-                let line = avaEdit.Document.GetText(avaEdit.Document.GetLineByOffset(avaEdit.CaretOffset)) // = get current line
-                let car = avaEdit.TextArea.Caret.Column
-                let prevC = line.Substring(0 ,car-1)
-                //log.PrintDebugMsg "--Substring length %d: '%s'" prevC.Length prevC
-                if prevC.Length > 0 then 
-                    if isJustSpaceCharsOrEmpty prevC  then
-                        let dist = prevC.Length % avaEdit.Options.IndentationSize
-                        let clearCount = if dist = 0 then avaEdit.Options.IndentationSize else dist
-                        //log.PrintDebugMsg "--Clear length: %d " clearCount
-                        avaEdit.Document.Remove(avaEdit.CaretOffset - clearCount, clearCount)
-                        e.Handled <- true )
-
+        avaEdit.AllowDrop <- true  
+        avaEdit.Drop.Add(            fun e ->Cursor.dragAndDrop(avaEdit,log,e))       
+        avaEdit.PreviewKeyDown.Add ( fun e -> Cursor.previewKeyDown(avaEdit,e))   //to indent and dedent
 
     member val IsCurrent = false with get,set //  this is managed in Tabs.selectionChanged event handler 
    
@@ -88,23 +75,22 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
     member this.Search = search
     
     
-    member this.Log = log
+    
+    // IEditor members:
 
     member this.Id              = id
-    member this.AvaEdit         = avaEdit
-    
+    member this.AvaEdit         = avaEdit    
     ///This CheckStat is local to the current editor
-    member this.FileCheckState  with get()=checkState    and  set(v) = checkState <- v
-    
-    member this.FilePath        with get()=filePath      and  set(v) = filePath <- v // The Tab class containing this editor takes care of updating this 
-
+    member this.FileCheckState  with get() = checkState    and  set(v) = checkState <- v    
+    member this.FilePath        with get() = filePath      and  set(v) = filePath <- v // The Tab class containing this editor takes care of updating this 
+    member this.Log = log
     
     interface IEditor with
         member this.Id              = id
         member this.AvaEdit         = avaEdit
         member this.FileCheckState  with get() = checkState and  set(v) = checkState <- v
         member this.FilePath        = filePath // interface does not need setter
-      
+        member this.Log             = log
     
     
     // additional text change event:
@@ -117,7 +103,8 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
     /// a static method so that an instance if IEditor can be used
     static member SetUp  (code:string, config:Config, filePath:FilePath ) = 
         let ed = Editor(code, config, filePath )
-        SelectedTextTracer.Setup(ed,ed.Folds,config)
+        SelectedTextTracer.Setup(ed, ed.Folds, config)
+        BracketHighlighter.Setup(ed, ed.Checker)
 
         let avaEdit = ed.AvaEdit
         let compls = ed.Completions
@@ -220,30 +207,7 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
         avaEdit.TextArea.TextView.MouseHover.Add(fun e -> TypeInfo.mouseHover(e, ed, log, ed.TypeInfoTip))        
         avaEdit.TextArea.TextView.MouseHoverStopped.Add(fun _ -> ed.TypeInfoTip.IsOpen <- false )
 
-        avaEdit.AllowDrop <- true  
-        avaEdit.Drop.Add(fun e ->
-            if e.Data.GetDataPresent DataFormats.FileDrop then
-                let isDll (p:string) = p.EndsWith(".dll", StringComparison.OrdinalIgnoreCase) ||  p.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)
-                
-                try
-                    let fs = (e.Data.GetData DataFormats.FileDrop :?> string []) |> Array.sort |> Array.rev // to get file path 
-                    if fs.Length > 2 && Array.forall isDll fs then      // TODO make path relatriv to script location    
-                        for f in fs  do 
-                            let file = IO.Path.GetFileName(f)
-                            avaEdit.Document.Insert (0, sprintf "#r \"%s\"\r\n" file)
-                        let folder = IO.Path.GetDirectoryName(fs.[0])
-                        avaEdit.Document.Insert (0, sprintf "#I @\"%s\"\r\n" folder)                    
-                    else
-                        for f in fs do
-                            if isDll f then 
-                                avaEdit.Document.Insert (0, sprintf "#r @\"%s\"\r\n" f)
-                            elif f.EndsWith(".fsx", StringComparison.OrdinalIgnoreCase)  then 
-                                avaEdit.Document.Insert (0, sprintf "#load @\"%s\"\r\n" f)                            
-                            else 
-                                avaEdit.Document.Insert (avaEdit.CaretOffset , sprintf " @\"%s\"\r\n" f)
-                            
-                with e -> log.PrintIOErrorMsg "full drop failed: %A" e
-                )
+        
 
         avaEdit.Document.Changed.Add(fun e -> 
             //log.PrintDebugMsg "*Document.Changed Event: deleted %d '%s', inserted %d '%s', completion hasItems: %b, isOpen: %b , Just closed: %b" e.RemovalLength e.RemovedText.Text e.InsertionLength e.InsertedText.Text ed.Completions.HasItems ed.Completions.IsOpen compls.JustClosed
@@ -285,7 +249,7 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
                 | _  -> () // other triggers https://github.com/icsharpcode/AvalonEdit/blob/28b887f78c821c7fede1d4fc461bde64f5f21bd1/ICSharpCode.AvalonEdit/CodeCompletion/CompletionList.cs#L171            
             //else
             //    compls.JustClosed<-false
-                )
+            )
 
         ed
 

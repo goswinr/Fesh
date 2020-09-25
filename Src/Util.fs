@@ -58,6 +58,14 @@ module String =
         if isNull s then false
         elif s = "" then false
         else char = s.[s.Length-1]
+    
+    /// Counts spaces at start of string string 
+    let inline spacesAtStart (str:string) =        
+        let mutable i = 0
+        while i < str.Length && str.[i] = ' ' do
+            i <- i + 1                       
+        i
+
 
     /// checks if a string is just space characters or Empty string 
     let inline isJustSpaceCharsOrEmpty (str:string) =
