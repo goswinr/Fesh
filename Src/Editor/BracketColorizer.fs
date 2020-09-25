@@ -119,6 +119,7 @@ type BracketHighlighter (ed:TextEditor) =
             ed.Log.PrintDebugMsg "Brs %d Offs %d  Cols %d" Brs.Count Cols.Count  Offs.Count
             ed.AvaEdit.TextArea.TextView.Redraw() 
 
+    member val Log : ISeffLog option= None with get , set
             
 
     /// This gets called for every visible line on any view change
@@ -136,16 +137,17 @@ type BracketHighlighter (ed:TextEditor) =
                     | OpAnRec | OpArr | ClAnRec | ClArr                         -> base.ChangeLinePart( off,off+1, fun el -> el.TextRunProperties.SetForegroundBrush(Cols.[i]))                
                 
             else
-                eprintfn "Brs %d Offs %d  Cols %d" Brs.Count Cols.Count  Offs.Count
+                this.Log.Value.PrintDebugMsg "Brs %d Offs %d  Cols %d" Brs.Count Cols.Count  Offs.Count
 
     
     
     static member Setup(ed:IEditor, ch:Checker) =   
         let brh = BracketHighlighter(ed.AvaEdit)
+        brh.Log <- Some ed.Log
         ed.AvaEdit.TextArea.TextView.LineTransformers.Add(brh)
         ch.OnFullCodeAvailabe.Add ( fun ched ->
             if ched.Id = ed.Id then 
-                ed.Log.PrintDebugMsg "checking Breackets"
+                ed.Log.PrintInfoMsg "checking Breackets"
                 brh.FindBrackets(ed) )
         
 
