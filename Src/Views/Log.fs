@@ -143,7 +143,7 @@ type LogSelectedTextHighlighter (lg:AvalonEdit.TextEditor) =
                     let st =  index + selTxt.Length // endOffset // TODO or just +1 ???????
                     if st >= tx.Length then 
                         index <- -99
-                        eprintfn "index  %d in %d ??" st tx.Length    
+                        //eprintfn "index  %d in %d ??" st tx.Length    
                     else
                         index <- tx.IndexOf(selTxt, st, StringComparison.Ordinal)
                                    

@@ -24,8 +24,8 @@ type SelectedTextHighlighter (ed:TextEditor) =
     let mutable highTxt = null
     let mutable curSelStart = -1
 
-    static member val ColorHighlight =      Brushes.Yellow |> brighter 60
-    static member val ColorHighlightInBox = Brushes.Yellow |> brighter 60
+    static member val ColorHighlight =      Brushes.PaleTurquoise |> brighter 30
+    static member val ColorHighlightInBox = Brushes.PaleTurquoise |> brighter 30
     static member val ColorFoldBox =        Brushes.Gray   //|> darker 30
 
 
@@ -36,6 +36,7 @@ type SelectedTextHighlighter (ed:TextEditor) =
     override this.ColorizeLine(line:AvalonEdit.Document.DocumentLine) =       
         //  from https://stackoverflow.com/questions/9223674/highlight-all-occurrences-of-selected-word-in-avalonedit
         
+        //printfn "Sel in %s " <|  ed.Document.GetText(line)   
         if notNull highTxt  then             
 
             let  lineStartOffset = line.Offset
@@ -47,7 +48,7 @@ type SelectedTextHighlighter (ed:TextEditor) =
                 let en = lineStartOffset + index + highTxt.Length // endOffset   
 
                 if curSelStart <> st  then // skip the actual current selection
-                    printfn "Sel %d to %d for %s" st en highTxt
+                    //printfn "Sel %d to %d for %s" st en highTxt
                     base.ChangeLinePart( st,en, fun el -> el.TextRunProperties.SetBackgroundBrush(SelectedTextHighlighter.ColorHighlight))
                 let start = index + highTxt.Length // search for next occurrence // TODO or just +1 ???????
                 index <- text.IndexOf(highTxt, start, StringComparison.Ordinal)
@@ -83,7 +84,7 @@ type SelectedTextTracer () =
             if doHighlight then 
                 oh.HighlightText <- highTxt
                 oh.CurrentSelectionStart <- ed.AvaEdit.SelectionStart
-                ta.TextView.Redraw()
+                //ta.TextView.Redraw()
 
  
                 // for status bar :            
@@ -111,19 +112,17 @@ type SelectedTextTracer () =
                             index <- code.IndexOf(highTxt, st, StringComparison.Ordinal)
                                    
                     SelectedTextTracer.Instance.ChangeInfoText(highTxt, k  )    // will update status bar 
-                    if anyInFolding then ta.TextView.Redraw()
+                    //if anyInFolding then ta.TextView.Redraw()
                     
 
             else
                 if notNull oh.HighlightText then // to ony redraw if it was not null before
                     oh.HighlightText <- null 
                     for f in folds.Manager.AllFoldings do  f.BackbgroundColor <- null 
-                    ta.TextView.Redraw() // to clear highlight
-
+                    ///ta.TextView.Redraw() // to clear highlight
+            
+            ta.TextView.Redraw() //do just once at end ?
            
                
             )
-        
-        //SelectedTextTracer.Instance
-
-
+  
