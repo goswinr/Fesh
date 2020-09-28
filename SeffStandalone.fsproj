@@ -63,6 +63,7 @@
     <Compile Include="Src\Timer.fs" />
     <Compile Include="Src\Model.fs" />
     <Compile Include="Src\Sync.fs" />
+    
     <Compile Include="Src\Config\SaveWriter.fs" />
     <Compile Include="Src\Config\HostingInfo.fs" />
     <Compile Include="Src\Config\Settings.fs" />
@@ -73,8 +74,11 @@
     <Compile Include="Src\Config\AutoCompleteStatistic.fs" />
     <Compile Include="Src\Config\AssemblyReferenceStatistic.fs" />
     <Compile Include="Src\Config\Config.fs" />
+    
     <Compile Include="Src\Fsi.fs" />
+    
     <Compile Include="Src\Editor\Commenting.fs" />
+    <Compile Include="Src\Editor\CursorBehaviour.fs" />
     <Compile Include="Src\Editor\DocString.fs" />
     <Compile Include="Src\Editor\SyntaxHighlighting.fs" />
     <Compile Include="Src\Editor\ErrorHighlighter.fs" />
@@ -85,9 +89,9 @@
     <Compile Include="Src\Editor\SelectedTextTracer.fs" />
     <Compile Include="Src\Editor\BracketColorizer.fs" />
     <Compile Include="Src\Editor\ColumnRulers.fs" />
-    <Compile Include="Src\Editor\Cursor.fs" />
     <Compile Include="Src\Editor\Editor.fs" />
     <Compile Include="Src\Editor\UNUSEDNuget.fs" />
+    
     <Compile Include="Src\Views\Views.Util.fs" />
     <Compile Include="Src\Views\Log.fs" />
     <Compile Include="Src\Views\Window.fs" />
@@ -99,6 +103,7 @@
     <Compile Include="Src\Views\StatusBar.fs" />
     <Compile Include="Src\Views\Menu.fs" />
     <Compile Include="Src\Views\Seff.fs" />
+    
     <Compile Include="Src\Initialize.fs" />    
     <Compile Include="Src\App.fs" />
 

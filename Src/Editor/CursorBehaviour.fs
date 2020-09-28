@@ -12,7 +12,7 @@ open System.Windows
 open System.IO
 open System
 
-module Cursor  =
+module CursorBehaviour  =
     
     
     

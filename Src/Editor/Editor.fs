@@ -58,8 +58,8 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
         SyntaxHighlighting.setFSharp(avaEdit,config,false)        
         
         avaEdit.AllowDrop <- true  
-        avaEdit.Drop.Add(            fun e ->Cursor.dragAndDrop(avaEdit,log,e))       
-        avaEdit.PreviewKeyDown.Add ( fun e -> Cursor.previewKeyDown(avaEdit,e))   //to indent and dedent
+        avaEdit.Drop.Add(            fun e -> CursorBehaviour.dragAndDrop(avaEdit,log,e))       
+        avaEdit.PreviewKeyDown.Add ( fun e -> CursorBehaviour.previewKeyDown(avaEdit,e))   //to indent and dedent
 
     member val IsCurrent = false with get,set //  this is managed in Tabs.selectionChanged event handler 
    

@@ -222,14 +222,24 @@ type BracketHighlighter (ed:TextEditor) =
                 let off = Offs.[i]
                 if off = pos || off = pos - 1  then
                     //this.Log.Value.PrintDebugMsg "Bracket %d to %d on Line %d " off (off+1) line.LineNumber                
+                    
                     match Brs.[i] with 
                     | OpAnRec | OpArr | OpRect | OpCurly | OpRound   -> 
                         pairStart <- off
-                        pairEnd <- PairEnds.[pairStart].off
+                        let ok,pe = PairEnds.TryGetValue(pairStart)
+                        if ok then pairEnd <- pe.off
+                        else
+                            ed.Log.PrintAppErrorMsg "Cant find corresponding End bracket for %A in %s" Brs.[i] (Selection.currentLine ed.AvaEdit)
+                            pairEnd <- -1
                         
                     | ClRound | ClRect | ClCurly| ClAnRec | ClArr    ->
                         pairEnd <- off
-                        pairStart <- PairStarts.[pairEnd].off
+                        let ok,ps = PairStarts.TryGetValue(pairEnd)
+                        if ok then pairStart <- ps.off
+                        else
+                            ed.Log.PrintAppErrorMsg "Cant find corresponding Start bracket for %A in %s" Brs.[i] (Selection.currentLine ed.AvaEdit)
+                            pairStart <- -1
+
 
                     pairLen <- 
                         match Brs.[i] with 
@@ -237,7 +247,8 @@ type BracketHighlighter (ed:TextEditor) =
                         | OpAnRec | OpArr | ClAnRec | ClArr                         -> 2  
 
                     //ed.Log.PrintDebugMsg "pairStart %d pairEnd %d pairLen %d" pairStart pairEnd pairLen
-                    ed.AvaEdit.TextArea.TextView.Redraw() 
+                    if pairStart >=0 && pairEnd > pairStart then
+                        ed.AvaEdit.TextArea.TextView.Redraw() 
             
 
 
@@ -263,7 +274,7 @@ type BracketHighlighter (ed:TextEditor) =
             
             
             if pairStart >= st && pairStart < en then  base.ChangeLinePart( pairStart, pairStart+pairLen, fun el -> el.TextRunProperties.SetBackgroundBrush(pairBg))   
-            if pairEnd   >= st && pairEnd   < en then  base.ChangeLinePart( pairEnd  , pairEnd+pairLen, fun el -> el.TextRunProperties.SetBackgroundBrush(pairBg))   
+            if pairEnd   >= st && pairEnd   < en then  base.ChangeLinePart( pairEnd  , pairEnd+pairLen  , fun el -> el.TextRunProperties.SetBackgroundBrush(pairBg))   
                 
 
             //else this.Log.Value.PrintAppErrorMsg "Brs %d Offs %d Cols %d,  on Line %d " Brs.Count  Offs.Count Cols.Count  line.LineNumber

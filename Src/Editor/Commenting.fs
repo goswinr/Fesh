@@ -61,6 +61,14 @@ module Commenting =
 
 module Selection =
     
+    /// text of line at current Caret 
+    let currentLine (avaEdit:TextEditor) = // TODO move to other module ! not selection related
+        let offset = avaEdit.CaretOffset               
+        let  line = avaEdit.Document.GetLineByOffset(offset)
+        avaEdit.Document.GetText(line.Offset, line.Length)
+
+
+
     let expandSelectionToFullLines(avaEdit:TextEditor) =
         let doc = avaEdit.Document
         let st = doc.GetLineByOffset(avaEdit.SelectionStart)

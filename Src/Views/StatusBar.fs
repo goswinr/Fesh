@@ -16,15 +16,19 @@ open System.Windows.Automation.Peers
 open Seff.Config
 open Seff.Editor
 open Seff
+open System
 
 
 module private StatusbarStyle = 
-    let padding = Thickness(4. , 1. , 4., 1. ) //left ,top, right, bottom)
-    let okColor = Brushes.Green |> brighter 140
-    let errColor = Brushes.Red |> brighter 160
+    let textPadding = Thickness(4. , 1. , 4., 1. ) //left ,top, right, bottom)
+    let okColor =   Brushes.Green    |> brighter 140
+    let errColor =  Brushes.Red      |> brighter 160
     let warnColor = Brushes.Yellow   |> brighter 40  
     let activeCol = Brushes.Orange   |> brighter 20
     let failedCol = Brushes.Magenta 
+    let greyText =  Brushes.Gray
+
+open StatusbarStyle
 
 type CheckerStatus (grid:TabsAndLog) as this = 
     inherit TextBlock()
@@ -41,20 +45,20 @@ type CheckerStatus (grid:TabsAndLog) as this =
                 let es = res.checkRes.Errors
                 if es.Length = 0 then 
                     this.Text <- "No compiler errors"
-                    this.Background <- StatusbarStyle.okColor
-                    this.ToolTip <- "FSarp Compiler Service found no Errors in " + tabs.Current.FormatedFileName
+                    this.Background <- okColor
+                    this.ToolTip <- "FSarp Compiler Service found no Errors in"+ Environment.NewLine + tabs.Current.FormatedFileName
                 else 
                     let ers = es|> Seq.filter (fun e -> e.Severity = FSharpErrorSeverity.Error) |> Seq.length
                     let was = es.Length - ers
                     if ers = 0 then 
                         this.Text <- sprintf "Compiler warnings: %d" was
-                        this.Background <- StatusbarStyle.warnColor 
+                        this.Background <- warnColor 
                     elif was = 0 then
                         this.Text <- sprintf "Compiler errors: %d" ers
-                        this.Background <- StatusbarStyle.errColor
+                        this.Background <- errColor
                     else
                         this.Text <- sprintf "Compiler errors: %d, warnings: %d" ers was
-                        this.Background <- StatusbarStyle.errColor            
+                        this.Background <- errColor            
                     this.ToolTip <- makePanelVert [                         
                         if ers>0 then TextBlock(Text="Errors:", FontSize = 14. , FontWeight = FontWeights.Bold )
                         for e in es|> Seq.filter (fun e -> e.Severity = FSharpErrorSeverity.Error)  do new TextBlock(Text = sprintf "• Line %d: %s" e.StartLineAlternate e.Message)
@@ -83,11 +87,11 @@ type CheckerStatus (grid:TabsAndLog) as this =
         
         | Failed -> // these below never happen because event is only triggerd on success
             this.Text <- "Fs Checker failed to complete."
-            this.Background <- StatusbarStyle.failedCol
+            this.Background <- failedCol
     
 
     do     
-        this.Padding <-StatusbarStyle.padding
+        this.Padding <-textPadding
 
         this.Text <- checkingTxt
         
@@ -100,22 +104,28 @@ type CheckerStatus (grid:TabsAndLog) as this =
 type FsiRunStatus (grid:TabsAndLog, cmds:Commands) as this = 
     inherit TextBlock()
     do     
-        this.Padding <- StatusbarStyle.padding
-        this.Text <- "FSI is initializing ..."
+        this.Padding <- textPadding
+        this.Inlines.Add ("FSI is initializing ...")
         this.ContextMenu <- makeContextMenu [ menuItem cmds.CancelFSI ]
         //this.ToolTip <- "Click here to enabel or disable the default output from fsi in the log window"
               
         grid.Tabs.Fsi.OnStarted.Add(fun code -> 
-            this.Background <- StatusbarStyle.activeCol
+            this.Background <- activeCol
+            this.Inlines.Clear()
             match code.file with 
-            |SetTo fi -> 
-                if code.allOfFile then this.Text <- sprintf "FSI is running %s  ..." fi.Name
-                else                   this.Text <- sprintf "FSI is running selected code from file %s  ..." fi.Name
-            |NotSet ->                 this.Text <- "FSI is running ..." )
+            |SetTo fi ->                 
+                if code.allOfFile then this.Inlines.Add(new Run ("FSI is running a part of ", Foreground = greyText))
+                else                   this.Inlines.Add(new Run ("FSI is running "          , Foreground = greyText))
+                this.Inlines.Add( new Run (fi.Name, FontFamily = Style.fontEditor) )     
+                this.Inlines.Add( new Run (" ..."                                           , Foreground = greyText))
+            |NotSet ->                 
+                this.Inlines.Add( "FSI is running ..." )
+            )
 
         grid.Tabs.Fsi.OnIsReady.Add(fun _ -> 
-            this.Text <- "FSI is ready" 
-            this.Background <- StatusbarStyle.okColor)
+            this.Inlines.Clear()
+            this.Inlines.Add("FSI is ready") 
+            this.Background <- okColor)
 
 type FsiOutputStatus (grid:TabsAndLog) as this = 
     inherit TextBlock()
@@ -123,7 +133,7 @@ type FsiOutputStatus (grid:TabsAndLog) as this =
     let off = "FSI is quiet"
     let isOff () = grid.Config.Settings.GetBool Settings.keyFsiQuiet false
     do     
-        this.Padding <- StatusbarStyle.padding
+        this.Padding <- textPadding
         this.Text <- if isOff() then off else on
         this.ToolTip <- "Click here to enabel or disable the default output from fsi in the log window"
         this.MouseLeftButtonDown.Add ( fun a -> 
@@ -145,7 +155,7 @@ type AsyncStatus (grid:TabsAndLog) as this =
     let asyn = "FSI evaluation mode: Asynchronos"
         
     do     
-        this.Padding <- StatusbarStyle.padding
+        this.Padding <- textPadding
         this.Text <- if isAsync then asyn else sync
         this.ToolTip <- "Click to switch between synchronous and asynchronous evaluation in FSI,\r\nsynchronous is needed for UI interaction,\r\nasynchronous allows easy cancellation and keeps the editor window alive"
         this.MouseDown.Add(fun _ -> fsi.ToggleSync()) //done in fsi module      // TODO better make it dependent on commands , not fsi
@@ -161,7 +171,7 @@ type SelectedTextStatus (grid:TabsAndLog) as this =
     let baseTxt = "Highlights and counts the occurences of the currently selected Text.\r\nMinimum two characters. No line breaks\r\nClick here to turn " 
     do             
         let isOn =  grid.Config.Settings.SelectAllOccurences 
-        this.Padding <- StatusbarStyle.padding
+        this.Padding <- textPadding
         this.ToolTip <-  baseTxt + if isOn then "Off" else "On"         
         this.Inlines.Add ( desc + if isOn then "On" else "Off")
 
