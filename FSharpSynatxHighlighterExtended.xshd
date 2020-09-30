@@ -21,7 +21,7 @@
   <Color name="StringEscaped"       foreground="#7000BF"  />  
   <Color name="Char"                foreground="#FF0040" />
   <Color name="LoadDirectives"      foreground="#887766" />
-  <Color name="Punctuation"         foreground="#AA00AA" />
+  <Color name="Punctuation"         foreground="#0099CC" />
   <Color name="Attributes"          foreground="#AA00AA" />  
   <Color name="Keywords"            foreground="#0000DD"  /> <!--fontWeight="bold" -->
   <Color name="ReservedKeywords"    foreground="#7777FF"/> <!--fontWeight="bold" -->
@@ -293,7 +293,7 @@
 
     <Span color="TypeDefinition"> 
       <Begin color="Punctuation">:</Begin> 
-      <End color="Punctuation">[\)=]</End>  
+      <End color="Punctuation">[\),=]</End>  
        <RuleSet>
         <Rule color="Punctuation">[,:\[\]*&lt;&gt;]</Rule>
       </RuleSet>
