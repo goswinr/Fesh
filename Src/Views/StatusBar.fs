@@ -114,8 +114,8 @@ type FsiRunStatus (grid:TabsAndLog, cmds:Commands) as this =
             this.Inlines.Clear()
             match code.file with 
             |SetTo fi ->                 
-                if code.allOfFile then this.Inlines.Add(new Run ("FSI is running a part of ", Foreground = greyText))
-                else                   this.Inlines.Add(new Run ("FSI is running "          , Foreground = greyText))
+                if code.allOfFile then this.Inlines.Add(new Run ("FSI is running",             Foreground = greyText))
+                else                   this.Inlines.Add(new Run ("FSI is running  a part of ", Foreground = greyText))
                 this.Inlines.Add( new Run (fi.Name, FontFamily = Style.fontEditor) )     
                 this.Inlines.Add( new Run (" ..."                                           , Foreground = greyText))
             |NotSet ->                 
