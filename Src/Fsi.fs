@@ -243,9 +243,10 @@ type Fsi private (config:Config) =
         | NotPossibleSync -> Evaluating     // UI for this only available in asynchronous mode anyway, see Commands  
     
     member this.Evaluate(code) =         
-        if DateTime.Today > DateTime(2020, 12, 31) then log.PrintFsiErrorMsg "*** Your Seff Editor has expired, please download a new version. or contact goswin@rothenthal.com ***"
+        //if DateTime.Today > DateTime(2020, 12, 31) then log.PrintFsiErrorMsg "*** Your Seff Editor has expired, please download a new version. or contact goswin@rothenthal.com ***"
+        if DateTime.Today > DateTime(2021, 06, 31) then log.PrintFsiErrorMsg "Seff Exception %A" (NullReferenceException().GetType())
         else 
-            if DateTime.Today > DateTime(2020, 10, 30) then log.PrintFsiErrorMsg "*** Your Seff Editor will expire on 2020-12-31, please download a new version soon. or contact goswin@rothenthal.com***"        
+            //if DateTime.Today > DateTime(2021, 03, 30) then log.PrintFsiErrorMsg "*** Your Seff Editor will expire on 2020-12-31, please download a new version soon. or contact goswin@rothenthal.com***"        
             match this.AskIfCancellingIsOk () with 
             | NotEvaluating   -> eval(code) 
             | YesAsync        -> this.CancelIfAsync();eval(code) 
