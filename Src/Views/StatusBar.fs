@@ -26,7 +26,7 @@ module private StatusbarStyle =
     let warnColor = Brushes.Yellow   |> brighter 40  
     let activeCol = Brushes.Orange   |> brighter 20
     let failedCol = Brushes.Magenta 
-    let greyText =  Brushes.Gray
+    let greyText =  Brushes.Gray     |> darker 20
 
 open StatusbarStyle
 
@@ -114,8 +114,8 @@ type FsiRunStatus (grid:TabsAndLog, cmds:Commands) as this =
             this.Inlines.Clear()
             match code.file with 
             |SetTo fi ->                 
-                if code.allOfFile then this.Inlines.Add(new Run ("FSI is running",             Foreground = greyText))
-                else                   this.Inlines.Add(new Run ("FSI is running  a part of ", Foreground = greyText))
+                if code.allOfFile then this.Inlines.Add(new Run ("FSI is running ",             Foreground = greyText))
+                else                   this.Inlines.Add(new Run ("FSI is running a part of ", Foreground = greyText))
                 this.Inlines.Add( new Run (fi.Name, FontFamily = Style.fontEditor) )     
                 this.Inlines.Add( new Run (" ..."                                           , Foreground = greyText))
             |NotSet ->                 
