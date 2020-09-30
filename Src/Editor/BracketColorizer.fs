@@ -212,9 +212,7 @@ type BracketHighlighter (ed:TextEditor) =
                 UnclosedBr.Add e.bracket
 
             ed.AvaEdit.TextArea.TextView.Redraw() 
-
-  
-    
+ 
     member this.HighlightPair(ed:IEditor) =
         if ed.AvaEdit.TextArea.Selection.Length = 0 then
             let pos = ed.AvaEdit.TextArea.Caret.Offset
@@ -249,9 +247,7 @@ type BracketHighlighter (ed:TextEditor) =
                     //ed.Log.PrintDebugMsg "pairStart %d pairEnd %d pairLen %d" pairStart pairEnd pairLen
                     if pairStart >=0 && pairEnd > pairStart then
                         ed.AvaEdit.TextArea.TextView.Redraw() 
-            
-
-
+    
     /// This gets called for every visible line on any view change
     override this.ColorizeLine(line:Document.DocumentLine) =       
         if Brs.Count > 0 &&  Cols.Count = Offs.Count then 
@@ -277,7 +273,7 @@ type BracketHighlighter (ed:TextEditor) =
             if pairEnd   >= st && pairEnd   < en then  base.ChangeLinePart( pairEnd  , pairEnd+pairLen  , fun el -> el.TextRunProperties.SetBackgroundBrush(pairBg))   
                 
 
-            //else this.Log.Value.PrintAppErrorMsg "Brs %d Offs %d Cols %d,  on Line %d " Brs.Count  Offs.Count Cols.Count  line.LineNumber
+        //else this.Log.Value.PrintAppErrorMsg "Brs %d Offs %d Cols %d,  on Line %d " Brs.Count  Offs.Count Cols.Count  line.LineNumber
 
     
     

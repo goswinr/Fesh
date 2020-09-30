@@ -16,6 +16,7 @@ open FSharp.Compiler
 open FSharp.Compiler.SourceCodeServices
 open ICSharpCode
 open ICSharpCode.AvalonEdit.Search
+open ICSharpCode.AvalonEdit.Folding
 
 /// Highlight-all-occurrences-of-selected-text in Text View
 type SelectedTextHighlighter (ed:TextEditor) = 
@@ -24,9 +25,9 @@ type SelectedTextHighlighter (ed:TextEditor) =
     let mutable highTxt = null
     let mutable curSelStart = -1
 
-    static member val ColorHighlight =      Brushes.PaleTurquoise |> brighter 30
-    static member val ColorHighlightInBox = Brushes.PaleTurquoise |> brighter 30
-    static member val ColorFoldBox =        Brushes.Gray   //|> darker 30
+    static member val ColorHighlight =      Brushes.PaleTurquoise //|> brighter 30
+    static member val ColorHighlightInBox = Brushes.PaleTurquoise //|> brighter 30
+    static member val ColorFoldBoxOutline =        Brushes.Gray   //|> darker 30
 
 
     member this.HighlightText  with get() = highTxt and set v = highTxt <- v
@@ -65,7 +66,7 @@ type SelectedTextTracer () =
     static member val Instance = SelectedTextTracer() // singelton pattern
 
     static member Setup(ed:IEditor,folds:Foldings,config:Config) = 
-        Folding.FoldingElementGenerator.TextBrush <- SelectedTextHighlighter.ColorFoldBox
+        Folding.FoldingElementGenerator.TextBrush <- SelectedTextHighlighter.ColorFoldBoxOutline
         let ta = ed.AvaEdit.TextArea
         let oh = new SelectedTextHighlighter(ed.AvaEdit)
         ta.TextView.LineTransformers.Add(oh)
@@ -94,13 +95,13 @@ type SelectedTextTracer () =
                     let mutable  index = code.IndexOf(highTxt, 0, StringComparison.Ordinal)                
                     let mutable k = 0
                     let mutable anyInFolding = false
+                    for fold in folds.Manager.AllFoldings do  fold.BackbgroundColor <- null // reset all first, before setting some
                     while index >= 0 do        
                         k <- k+1  
-
-                        // check for ttext that is folded away:
+                        // check for text that is folded away:
                         let infs = folds.Manager.GetFoldingsContaining(index) 
-                        for inf in infs do 
-                            // if && infs.[0].IsFolded then 
+                        for inf in infs do // should be just one or none
+                            // if && infs.[0].IsFolded then // do always !
                             inf.BackbgroundColor <-  SelectedTextHighlighter.ColorHighlightInBox
                             anyInFolding <- true
                                 
