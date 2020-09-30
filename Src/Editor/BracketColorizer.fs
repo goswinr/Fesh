@@ -48,11 +48,12 @@ type BracketHighlighter (ed:TextEditor) =
     let pairBg =     Brushes.Moccasin// |> brighter 125
 
     let colors = [|
-        Brushes.Magenta |> darker 60
-        Brushes.Cyan    |> darker 70
+        null // the first one is null ( to keep the coloring from xshd file)
+        Brushes.Magenta //|> darker 60
+        Brushes.DarkGreen //    |> darker 70
         Brushes.DarkOrange
+        Brushes.Blue    |> brighter 40
         Brushes.Yellow  |> darker 40
-        Brushes.Blue    |> brighter 20
         |]
 
     let nextColor i = colors.[i % colors.Length] 
@@ -254,12 +255,13 @@ type BracketHighlighter (ed:TextEditor) =
             let st = line.Offset
             let en = line.EndOffset
             for i = 0 to Offs.Count - 1 do // or binary serach
-                let off = Offs.[i]
-                if off >= st && off < en then 
-                    //this.Log.Value.PrintDebugMsg "Bracket %d to %d on Line %d " off (off+1) line.LineNumber                
-                    match Brs.[i] with 
-                    | ClRound | OpRect | OpCurly | OpRound  | ClRect | ClCurly  -> base.ChangeLinePart( off,off+1, fun el -> el.TextRunProperties.SetForegroundBrush(Cols.[i]))   
-                    | OpAnRec | OpArr | ClAnRec | ClArr                         -> base.ChangeLinePart( off,off+2, fun el -> el.TextRunProperties.SetForegroundBrush(Cols.[i]))                
+                if notNull Cols.[i] then // the first one is null ( to keep the coloring from xshd file)
+                    let off = Offs.[i]
+                    if off >= st && off < en then 
+                        //this.Log.Value.PrintDebugMsg "Bracket %d to %d on Line %d " off (off+1) line.LineNumber                
+                        match Brs.[i] with 
+                        | ClRound | OpRect | OpCurly | OpRound  | ClRect | ClCurly  -> base.ChangeLinePart( off,off+1, fun el -> el.TextRunProperties.SetForegroundBrush(Cols.[i]))   
+                        | OpAnRec | OpArr | ClAnRec | ClArr                         -> base.ChangeLinePart( off,off+2, fun el -> el.TextRunProperties.SetForegroundBrush(Cols.[i]))                
                 
             for i = 0 to Unclosed.Count - 1 do // or binary serach
                 let off = Unclosed.[i]
