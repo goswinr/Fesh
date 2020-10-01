@@ -71,7 +71,8 @@ module String =
         elif s = "" then false
         else char = s.[s.Length-1]
     
-    /// Counts spaces at start of string string 
+    /// Counts spaces at start of string
+    /// returns 0 on empty string
     let inline spacesAtStart (str:string) =        
         let mutable i = 0
         while i < str.Length && str.[i] = ' ' do

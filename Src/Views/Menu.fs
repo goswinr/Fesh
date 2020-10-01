@@ -56,7 +56,7 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, log:Log) =
                         let ps = General.pathParts fi 
                         if ps.Length < 4 then             ps |> String.concat " \\ " // full path in this case
                         else "...\\ " + (ps |> Array.rev |> Seq.truncate 3 |> Seq.rev |> String.concat " \\ " ) // partial path
-                    let mi = MenuItem (Header = header, ToolTip=fi.FullName, Command = openCom)
+                    let mi = MenuItem (Header = new TextBlock (Text = header), ToolTip=fi.FullName, Command = openCom) // wrap in textblock to avoid Mnemonics (alt key access at underscore)
                     fileMenu.Items.Add(mi) |> ignore 
                     fileOpeners.[lPath] <- mi
                 
@@ -87,6 +87,7 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, log:Log) =
                 sep()
                 menuItem cmds.Comment
                 menuItem cmds.UnComment
+                menuItem cmds.ToggleComment
                 sep()
                 menuItem cmds.UnDo     
                 menuItem cmds.ReDo     
@@ -163,6 +164,7 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, log:Log) =
                 sep()
                 menuItem cmds.Comment
                 menuItem cmds.UnComment
+                menuItem cmds.ToggleComment
                 sep()
                 menuItem cmds.RunTextTillCursor
                 menuItem cmds.RunTextFromCursor
@@ -183,6 +185,7 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, log:Log) =
                 menuItem cmds.Copy
                 menuItem cmds.ToggleLogSize
                 menuItem cmds.ToggleLogLineWrap
+                menuItem cmds.ToggleSplit
                 sep()
                 menuItem cmds.ClearLog
                 menuItem cmds.CancelFSI

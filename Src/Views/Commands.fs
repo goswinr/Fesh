@@ -59,6 +59,8 @@ type Commands (grid:TabsAndLog)  =
     //Edit menu:                                                                                                                              
     member val Comment           = {name= "Comment"                   ;gesture= "Ctrl + K"       ;cmd= mkCmdSimple (fun _ -> Commenting.comment tabs.CurrAvaEdit)                ;tip= "Removes '//' at the beginning of current line, \r\nor from all line touched by current selection"   }
     member val UnComment         = {name= "Uncomment"                 ;gesture= "Ctrl + U"       ;cmd= mkCmdSimple (fun _ -> Commenting.unComment tabs.CurrAvaEdit)              ;tip= "Puts '//' at the beginning of current line, \r\nor all line touched by current selection"           }                                                                                     
+    member val ToggleComment     = {name= "Toggle Comment"            ;gesture= "Ctrl + T"       ;cmd= mkCmdSimple (fun _ -> Commenting.toggleComment tabs.CurrAvaEdit)          ;tip= "Swaps commented and not commented lines"           }                                                                                     
+    
     member val SwapLineUp        = {name= "Swap Line Up"              ;gesture= "Alt + Up"       ;cmd=AvalonEditCommands.SwapLinesUp                                             ;tip= "Swap the current line and the previous line."                                                       }                                                                                     
     member val SwapLineDown      = {name= "Swap Line Down"            ;gesture= "Alt + Down"     ;cmd=AvalonEditCommands.SwapLinesDown                                           ;tip= "Swap the current line and the next line."                                                           } 
     member val ToUppercase       = {name= "To UPPERCASE"              ;gesture= ""               ;cmd=AvalonEditCommands.ConvertToUppercase                                      ;tip= "Convertes the selected text to UPPERCASE."                                                          }     
@@ -84,8 +86,8 @@ type Commands (grid:TabsAndLog)  =
     member val ToggleSync        = {name= "Toggle Sync / Async"       ;gesture= ""               ;cmd= mkCmdSimple (fun _ -> fsi.ToggleSync())           ;tip= "Switch between synchronous and asynchronous evaluation in FSI, see status in StatusBar"} 
                                                                                                                                        
    //View menu:                                                                                                                        
-    member val ToggleSplit       = {name= "Toggle Window Split"       ;gesture= "Ctrl + T"       ;cmd= mkCmdSimple (fun _ -> grid.ToggleSplit())         ;tip= "Toggle between vertical and horizontal Screen Split of Editor and Log"              }
-    member val ToggleLogSize     = {name= "Toggle Log Maximased"      ;gesture= "Ctrl + M"       ;cmd= mkCmdSimple (fun _ -> grid.ToggleMaxLog())        ;tip= "Maximises or resets the size of the Log window. \r\n(depending on curren state)"    }
+    member val ToggleSplit       = {name= "Toggle Window Split"       ;gesture= ""       ;cmd= mkCmdSimple (fun _ -> grid.ToggleSplit())         ;tip= "Toggle between vertical and horizontal window arrangement of Editor and Log View"              }
+    member val ToggleLogSize     = {name= "Toggle Log Maximased"      ;gesture= "F11"            ;cmd= mkCmdSimple (fun _ -> grid.ToggleMaxLog())        ;tip= "Maximises or resets the size of the Log window. \r\n(depending on current state)"    }
     member val ToggleLogLineWrap = {name= "Toggle Line Wraping in Log";gesture= "Alt + Z"        ;cmd= mkCmdSimple (fun _ -> log.ToggleLineWrap(config)) ;tip= "Toggle Line Wraping in Log window"                                                  }  
     member val FontBigger        = {name= "Make Font Bigger"          ;gesture= "Ctrl + '+'"     ;cmd= mkCmdSimple (fun _ -> fonts.FontsBigger())         ;tip= "Increase Text Size for both Editor and Log"                                        }
     member val FontSmaller       = {name= "Make Font Smaller"         ;gesture= "Ctrl + '-'"     ;cmd= mkCmdSimple (fun _ -> fonts.FontsSmaller())        ;tip= "Decrease Text Size for both Editor and Log"                                        }
@@ -94,7 +96,7 @@ type Commands (grid:TabsAndLog)  =
                                                                                                                                      
     //Settings Menu                                                                                                                      
     member val SettingsFolder    = {name= "Open Settings Folder"      ;gesture= ""               ;cmd= mkCmdSimple (fun _ -> config.HostingInfo.OpenFolder())                             ;tip= "Opens the Folder where user settinsg such as default file content is saved."                                        }
-    member val ReloadXshdFile    = {name= "Reload Xshd File"          ;gesture= "F11"            ;cmd= mkCmdSimple (fun _ -> SyntaxHighlighting.setFSharp(tabs.CurrAvaEdit,config,true))  ;tip= "Reloads FSharpSynatxHighlighterExtended.xshd, this is useful for testing new highlighting files without a restart." }
+    member val ReloadXshdFile    = {name= "Reload Xshd File"          ;gesture= "F10"            ;cmd= mkCmdSimple (fun _ -> SyntaxHighlighting.setFSharp(tabs.CurrAvaEdit,config,true))  ;tip= "Reloads FSharpSynatxHighlighterExtended.xshd, this is useful for testing new highlighting files without a restart." }
 
     //--------------------------
     // Built in Commands from Avalonedit (listed as functiosn so the can be created more than once( eg for menu; and context menu)
@@ -138,7 +140,8 @@ type Commands (grid:TabsAndLog)  =
              
                  this.Comment          
                  this.UnComment
-             
+                 this.ToggleComment
+
                  this.SelectLine       
                  //this.SelectLinesUp  
                  //this.SelectLinesDown
