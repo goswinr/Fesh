@@ -2,6 +2,7 @@
 
 open System
 open System.Windows.Media
+open System.IO
 
 
 module General =    
@@ -46,6 +47,17 @@ module General =
     ///Removes bytes from each color channel to increase darkness, 
     /// result will be clamped between 0 and 255
     let darker  (amount:int) (br:SolidColorBrush)  = SolidColorBrush(changeLuminace -amount br.Color) 
+
+    /// splits a file path into an array:
+    /// like: [| "C:\" ; "folder1" ; "folder2" ; "file.ext" |]
+    let pathParts (f:FileInfo) =
+        let rec getParent (d:DirectoryInfo) ps =
+            if isNull d then ps
+            else getParent d.Parent (d.Name :: ps)
+
+        getParent f.Directory [f.Name]
+        |> List.toArray
+
 
 module String =
     

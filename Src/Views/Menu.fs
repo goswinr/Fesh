@@ -7,6 +7,7 @@ open System.Windows.Controls
 open Seff.Views.Util
 open Seff.Config
 open System.Collections.Generic
+open Seff.Util
 
 
 type HeaderGestureTooltip = {header:string; gesture:string; toolTip:string}
@@ -41,6 +42,7 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, log:Log) =
             ///first clear
             while fileMenu.Items.Count > recentFilesInsertPosition do 
                 fileMenu.Items.RemoveAt recentFilesInsertPosition
+            
             // then insert all again
             for fi in fis do                
                 let lPath = fi.FullName.ToLowerInvariant()
@@ -49,7 +51,11 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, log:Log) =
                 |true , m -> fileMenu.Items.Add(m) |> ignore  
                 |_ -> 
                     let openCom  = mkCmdSimple ( fun a -> tabs.AddFile(fi, true)  |> ignore ) 
-                    let mi = MenuItem (Header = fi.Name, ToolTip=fi.FullName, Command = openCom)
+                    let header = 
+                        let ps = General.pathParts fi |> Array.rev 
+                        if ps.Length < 4 then             ps |> String.concat "\\" // include last two parent directories
+                        else "...\\" + (ps |> Seq.truncate 3 |> String.concat "\\" )
+                    let mi = MenuItem (Header = header, ToolTip=fi.FullName, Command = openCom)
                     fileMenu.Items.Add(mi) |> ignore 
                     fileOpeners.[lPath] <- mi
                 
