@@ -34,10 +34,12 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, log:Log) =
         async{            
             let fis = 
                 config.RecentlyUsedFiles.Get()
-                |> Seq.filter ( fun fi -> IO.File.Exists(fi.FullName))
+                |> Seq.filter ( fun fi -> IO.File.Exists(fi.FullName)) // async IO calls (might time out too)
                 |> Seq.distinctBy( fun fi -> fi.FullName.ToLowerInvariant())
                 |> Seq.truncate maxFilesInRecentMenu
                 |> Seq.toArray
+            
+            
             do! Async.SwitchToContext Sync.syncContext
             ///first clear
             while fileMenu.Items.Count > recentFilesInsertPosition do 
@@ -45,24 +47,22 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, log:Log) =
             
             // then insert all again
             for fi in fis do                
-                let lPath = fi.FullName.ToLowerInvariant()
-                // reuse previosly creted MenuItems if possible
-                match fileOpeners.TryGetValue(lPath) with
+                let lPath = fi.FullName.ToLowerInvariant()                
+                match fileOpeners.TryGetValue(lPath) with // reuse previosly created MenuItems, if possible
                 |true , m -> fileMenu.Items.Add(m) |> ignore  
                 |_ -> 
                     let openCom  = mkCmdSimple ( fun a -> tabs.AddFile(fi, true)  |> ignore ) 
-                    let header = 
-                        let ps = General.pathParts fi |> Array.rev 
-                        if ps.Length < 4 then             ps |> String.concat "\\" // include last two parent directories
-                        else "...\\" + (ps |> Seq.truncate 3 |> String.concat "\\" )
+                    let header = // include last two parent directories
+                        let ps = General.pathParts fi 
+                        if ps.Length < 4 then             ps |> String.concat " \\ " // full path in this case
+                        else "...\\ " + (ps |> Array.rev |> Seq.truncate 3 |> Seq.rev |> String.concat " \\ " ) // partial path
                     let mi = MenuItem (Header = header, ToolTip=fi.FullName, Command = openCom)
                     fileMenu.Items.Add(mi) |> ignore 
                     fileOpeners.[lPath] <- mi
                 
         } |> Async.Start
 
-    do  
-        
+    do 
         
         updateMenu bar [// this function is called after window is layed out otherwise somehow the menu does not show. e.g.  if it is just a let value. // TODO still true ? 
             fileMenu,[
