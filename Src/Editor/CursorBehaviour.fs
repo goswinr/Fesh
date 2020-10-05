@@ -58,36 +58,16 @@ module CursorBehaviour  =
             let isDll (p:string) = p.EndsWith(".dll", StringComparison.OrdinalIgnoreCase) ||  p.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)
             let isFsx (p:string) = p.EndsWith(".fsx", StringComparison.OrdinalIgnoreCase) ||  p.EndsWith(".fs", StringComparison.OrdinalIgnoreCase)
 
-            let rec findLiteral (from:int) (t:string) =                
-                let p = t.IndexOf ("[<Literal>]", from)
-                if p > 0 then
-                    let ln = avaEdit.Document.GetText(avaEdit.Document.GetLineByOffset(p)).TrimStart()
-                    if ln.StartsWith "//" then
-                        findLiteral (p+6) t // search for next occurence of "[<Literal>]" that is not in a comment
-                    else
-                        let i = t.IndexOf ("=",StringComparison.Ordinal)                        
-                        if i > 0 then 
-                            let a = t.IndexOf ("@\"",StringComparison.Ordinal)
-                            if a > 0 && a-i < 20 then Some a // place it ahead of existing srting starting with @ symbol, if within 20 chars
-                            else  Some (i+1) // place it after = symbol
-                        else None                
-                else
-                    let p = t.IndexOf ("@\"", from)
-                    if p > 0 then
-                        let ln = avaEdit.Document.GetText(avaEdit.Document.GetLineByOffset(p)).TrimStart()
-                        if ln.StartsWith "//" then
-                            findLiteral (p+2) t // search for next occurence of @" that is not in a comment
-                        else
-                            let i = t.IndexOf ("=",StringComparison.Ordinal)                        
-                            if i > 0 then 
-                                let a = t.IndexOf ("@\"",StringComparison.Ordinal)
-                                if a > 0 && a-i < 20 then Some a // place it ahead of existing srting starting with @ symbol, if within 20 chars
-                                else  Some (i+1) // place it after = symbol
-                            else None
-                
-                
-                else
-                    None
+            let findInsertion (code:string) =    
+                match Util.Parse.findWordAhead "[<Literal>]" 0 code with 
+                | Some i  -> 
+                    Util.Parse.findWordAhead "@\"" i code 
+                | None -> 
+                    let rec allRefs off =                    
+                        match Util.Parse.findWordAhead "#" off code with
+                        | Some o -> allRefs (o + 4) // gap of 4 between #r and @"C:\...
+                        | None -> off
+                    Util.Parse.findWordAhead "@\"" (allRefs 0) code 
 
                 
             try
@@ -105,11 +85,18 @@ module CursorBehaviour  =
                         elif isFsx f  then 
                             avaEdit.Document.Insert (0, sprintf "#load @\"%s\"\r\n" f)                            
                         else 
-                            match findLiteral 0 avaEdit.Document.Text with 
-                            | Some i -> avaEdit.Document.Insert (i                   , sprintf " @\"%s\"%s" f Environment.NewLine)
+                            match findInsertion avaEdit.Document.Text with 
+                            | Some i -> 
+                                let line = avaEdit.Document.GetText(avaEdit.Document.GetLineByOffset(i)) // = get current line
+                                let isNewLn = line.TrimStart().StartsWith "@"
+                                if isNewLn then                                    
+                                    let st = String(' ',spacesAtStart line)
+                                    avaEdit.Document.Insert (i , sprintf "@\"%s\"%s%s//" f Environment.NewLine st ) 
+                                else
+                                    avaEdit.Document.Insert (i , sprintf "@\"%s\" //" f )
                             | None ->   avaEdit.Document.Insert (avaEdit.CaretOffset , sprintf " @\"%s\"%s" f Environment.NewLine)
                             
-            with e -> log.PrintIOErrorMsg "full drop failed: %A" e
+            with e -> log.PrintIOErrorMsg "drag and drop failed: %A" e
                 
 
 
