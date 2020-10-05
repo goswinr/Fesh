@@ -225,7 +225,7 @@ module Parse =
     /// Since it searches backward this allows to find ending blocks of strings and comments too
     /// returns offset 
     let findWordBackward (word:string) fromIdx (inText:string) =
-        let last = word.Length-1        
+        let last = word.Length-1       
     
         let search (i:int) =
             if i < last then false
@@ -250,10 +250,9 @@ module Parse =
     /// only starts search when not in comment or string literal
     /// returns offset 
     /// Since it searches forward this allows to find starting blocks of strings and comments too
-    let findWordAhead (word:string) fromIdx (inText:string) =
-        let last = word.Length-1 
+    let findWordAhead (word:string) fromIdx (inText:string) =        
         let max =  inText.Length-1
-    
+        
         let search (i:int) =            
             if i > max then false
             else
