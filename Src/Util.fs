@@ -156,7 +156,67 @@ module String =
                 s.Substring(ende + b.Length)
 
 
+module Parse = 
+    
+    type State =     
+        |Code
+        |InComment      
+        |InBlockComment 
+        |InString       
+        |InAtString      // with @
+        |InRawString     // with """
+    
+    let mutable private lineNumber = 0 
+    //let mutable private lineStart = 0 
 
+
+    let findInCode f (tx:string) = 
+        
+        let len = tx.Length
+        let mutable i = 0
+
+        let rec find state = 
+            i <- i+1
+            if i = len then () // end of string
+            else
+                let t = tx.[i]
+                match state with 
+
+                |Code -> 
+                    match t with 
+                    | '/' when i>2 && tx.[i-1] = '/'-> find InComment
+                    | '(' when i>2 && tx.[i-1] = '*'-> find InBlockComment
+                    | '"' when i>3 && tx.[i-1] = '"' && tx.[i-2] = '"'-> find InRawString
+                    | '"' when i>2 && tx.[i-1] = '@' -> find InAtString
+                    | '"' -> find InString
+                    | x -> if f(t) then find state else ()
+
+                | InComment -> 
+                    if  t='\n' then find Code 
+                    else find state 
+                
+                | InBlockComment ->
+                    if  t=')' && i>2 && tx.[i-1] = '*' then find Code 
+                    else  find state 
+
+                
+                | InString ->
+                    if  t='"' then 
+                        if i>2 && tx.[i-1] = '\\' then find state //an escaped quote in a string
+                        else find Code
+                    else
+                        find state               
+                
+                | InAtString ->
+                    if    t='"'  then find Code 
+                    else              find state              
+
+                | InRawString ->
+                    if   t='"' && i>3 && tx.[i-1] = '"' && tx.[i-2] = '"' then find Code
+                    else find state
+            
+        find Code     
+       
 
 (*
     
