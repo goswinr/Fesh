@@ -34,18 +34,20 @@
   <Color name="TrueCol"             foreground="#008090" fontStyle="italic" fontWeight="bold" />
   <Color name="FalseCol"            foreground="#A70090" fontStyle="italic" fontWeight="bold" />
   <Color name="Semicolon"           foreground="#A0A0A0" />
-  <Color name="TypeAnnotation"      foreground="#00A0A0" />
+  <Color name="TypeAnnotation"      foreground="#00C0A0" />
 
   <Color name="LetBinding"          foreground="#803060" />
-  <Color name="Let"                 foreground="#4500BE" />
+  <Color name="Let"                 foreground="#4500BE" />  
   
+  <Color name="XmlString"           foreground="#005500" /><!-- taken from https://github.com/icsharpcode/AvalonEdit/blob/master/ICSharpCode.AvalonEdit/Highlighting/Resources/XmlDoc.xshd-->
+  <Color name="DocComment"          foreground="#888888" />
+  <Color name="XmlPunctuation"      foreground="#666666" />
+  <Color name="KnownDocTags"        foreground="#666666" />
   
-  <!-- taken from https://github.com/icsharpcode/AvalonEdit/blob/master/ICSharpCode.AvalonEdit/Highlighting/Resources/XmlDoc.xshd-->
-  <Color name="XmlString"  foreground="#005500"   />
-  <Color name="DocComment" foreground="#888888" />
-  <Color name="XmlPunctuation"  />
-  <Color name="KnownDocTags"   />
-  
+
+  <!-- Rules that are listed higer have precedence of lower positions in this list
+  Spans aer overwriting rules !-->
+
   <RuleSet name="DocCommentSet">
     <Span color="DocComment">
       <Begin>&lt;</Begin>
@@ -128,9 +130,16 @@
 
 
 
-    <!--<Rule color = "Keywords">let!|return!|yield!|match!</Rule>      does not work-->
+    
 
     <Keywords color="Keywords">
+
+      <Word>match!</Word>  <!-- exclamation mark does not work ??-->
+      <Word>let!</Word>  
+      <Word>do!</Word>  
+      <Word>yield!</Word>  
+
+    
       <Word>__SOURCE_DIRECTORY__</Word>
       <Word>__SOURCE_FILE__</Word>
       <Word>__LINE__</Word>
@@ -167,8 +176,7 @@
       <Word>interface</Word>
       <Word>internal</Word>
       <Word>lazy</Word>
-      <!-- <Word>let</Word>  -->
-      <!-- let! (letbang) has sperate regex below -->
+      <!-- <Word>let</Word>  -->    <!-- has sperate color below in LetBindings-->
       <Word>match</Word>      
       <Word>member</Word>
       <Word>module</Word>
@@ -278,12 +286,18 @@
 
   </RuleSet>
   
-  <RuleSet >  <!--the main set (must not have a name attribute)-->
+  <RuleSet> <!--the main set (must not have a name attribute)-->
 
     <Import ruleSet="CommentSet"/> 
     <Import ruleSet="StringSet"/>
     <Import ruleSet="KeywordSet"/>
 
+    <!-- a hex number | binary number | (number just starting with floating point | with optional inner floating point) and an optional exponent. https://regexr.com/52d6q -->
+    <Rule color="NumberLiteral">\b0[xX][0-9a-fA-F_]+|\b0[bB][01_]+|((-\.|\.)[0-9_]+|(\b|-)[0-9_]+\.?[0-9_]*)([eE][+-]?[0-9]+)? </Rule>
+      
+    <Rule color="Punctuation">[?,.:()\[\]{}+\-/%*&lt;&gt;^+~!|&amp;]</Rule>
+    
+    <Rule color="Semicolon">;</Rule>
 
 
     <Span color="Attributes">
@@ -298,35 +312,28 @@
       [\d\w_]+  # an identifier
       (?=\s*\() # followed by (
     </Rule>
-    -->
-      
+    -->      
     
     <!--must be before punctuation rule below-->
     <!-- <Rule color="TypeAnnotation"> 
       &lt;[\s\w\d_,]+&gt;      
     </Rule>  -->
 
+
     <Span color="TypeAnnotation"> 
-      <Begin color="Punctuation">:^:</Begin> 
+      <!-- to match one colon but not two: negative look behind for a colon, the colon, negative look ahead for a colon. 
+           All that wraped in CDATA because xml readers fails on negative look behind tag  ?<!    -->
+      <Begin color="Punctuation"><![CDATA[(?<!:):(?!:)]]></Begin> 
       <End color="Punctuation">[\),=]</End>  
        <RuleSet>
-        <Rule color="Punctuation">[,:\[\]*&lt;&gt;]</Rule>
+        <Rule color="Punctuation">[,\[\]*&lt;&gt;]</Rule>
       </RuleSet>
     </Span>
 
     <Span color="LetBinding"> 
-      <Begin color= "Let" >let\s+</Begin> 
+      <Begin color= "Let" >\blet\b</Begin> 
       <End>[=\s\(]</End> 
     </Span>
-
-    <!-- a hex number | binary number | (number just starting with floating point | with optional inner floating point) and an optional exponent. https://regexr.com/52d6q -->
-    <Rule color="NumberLiteral">\b0[xX][0-9a-fA-F_]+|\b0[bB][01_]+|((-\.|\.)[0-9_]+|(\b|-)[0-9_]+\.?[0-9_]*)([eE][+-]?[0-9]+)? </Rule>
-      
-    <Rule color="Punctuation">
-      [?,.:()\[\]{}+\-/%*&lt;&gt;^+~!|&amp;]
-    </Rule>
-    
-    <Rule color="Semicolon">;</Rule>
 
  
     <Span color="FailString"  multiline="true" > 
@@ -340,27 +347,21 @@
     </Span>
 
 
-    <Keywords color = "PrintStatement">
+    <!-- <Keywords color = "PrintStatement">
       <Word>print</Word>
       <Word>print2</Word>
       <Word>print3</Word>
       <Word>printf</Word>
       <Word>printfn</Word>
-    </Keywords>
+    </Keywords> -->
 
-    <Span color="PrintString"  multiline="true" > 
-      <!--<Begin color= "PrintStatement" >
-        \b                  # match before
-        [^s*printf*n*\s*]   # print printfn, but not sprintf
-        (?=")               # followed by "      
-      </Begin>   regex for a " with any other character after-->
-
-      <Begin color= "PrintStatement" >^s*printf*n*\s*"</Begin> 
-      <End color= "PrintStatement" >"</End>      <!-- regex for a " with any other character before-->
+    <Span color="PrintString"  multiline="true" >
+      <Begin color= "PrintStatement" >\bprint2*f*n*\s*"</Begin> 
+      <End   color= "PrintStatement" >"</End>      <!-- regex for a " with any other character before-->
       <RuleSet>
         <!-- span for escape sequences -->
-        <Span begin="\\" end="." color="StringEscaped" />
-        <Span begin="%" end="[sfd%bciuxXoeEfFgGeEgGMOAAat]" color="StringFormating" /> <!--%(\+?)( ?)(\-?)(\d*)(\.?)(\d*)[bcsdiuxXoeEfFgGeEfgGMOAAat]-->
+        <Span begin="\\" end="."                             color="StringEscaped"   />
+        <Span begin="%"  end="[sfd%bciuxXoeEfFgGeEgGMOAAat]" color="StringFormating" /> <!--%(\+?)( ?)(\-?)(\d*)(\.?)(\d*)[bcsdiuxXoeEfFgGeEfgGMOAAat]-->
       </RuleSet>
     </Span>
 
