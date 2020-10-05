@@ -56,6 +56,39 @@ module CursorBehaviour  =
     let dragAndDrop (avaEdit:TextEditor, log:ISeffLog,  e:DragEventArgs) =
         if e.Data.GetDataPresent DataFormats.FileDrop then
             let isDll (p:string) = p.EndsWith(".dll", StringComparison.OrdinalIgnoreCase) ||  p.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)
+            let isFsx (p:string) = p.EndsWith(".fsx", StringComparison.OrdinalIgnoreCase) ||  p.EndsWith(".fs", StringComparison.OrdinalIgnoreCase)
+
+            let rec findLiteral (from:int) (t:string) =                
+                let p = t.IndexOf ("[<Literal>]", from)
+                if p > 0 then
+                    let ln = avaEdit.Document.GetText(avaEdit.Document.GetLineByOffset(p)).TrimStart()
+                    if ln.StartsWith "//" then
+                        findLiteral (p+6) t // search for next occurence of "[<Literal>]" that is not in a comment
+                    else
+                        let i = t.IndexOf ("=",StringComparison.Ordinal)                        
+                        if i > 0 then 
+                            let a = t.IndexOf ("@\"",StringComparison.Ordinal)
+                            if a > 0 && a-i < 20 then Some a // place it ahead of existing srting starting with @ symbol, if within 20 chars
+                            else  Some (i+1) // place it after = symbol
+                        else None                
+                else
+                    let p = t.IndexOf ("@\"", from)
+                    if p > 0 then
+                        let ln = avaEdit.Document.GetText(avaEdit.Document.GetLineByOffset(p)).TrimStart()
+                        if ln.StartsWith "//" then
+                            findLiteral (p+2) t // search for next occurence of @" that is not in a comment
+                        else
+                            let i = t.IndexOf ("=",StringComparison.Ordinal)                        
+                            if i > 0 then 
+                                let a = t.IndexOf ("@\"",StringComparison.Ordinal)
+                                if a > 0 && a-i < 20 then Some a // place it ahead of existing srting starting with @ symbol, if within 20 chars
+                                else  Some (i+1) // place it after = symbol
+                            else None
+                
+                
+                else
+                    None
+
                 
             try
                 let fs = (e.Data.GetData DataFormats.FileDrop :?> string []) |> Array.sort |> Array.rev // to get file path 
@@ -69,10 +102,12 @@ module CursorBehaviour  =
                     for f in fs do
                         if isDll f then 
                             avaEdit.Document.Insert (0, sprintf "#r @\"%s\"\r\n" f)
-                        elif f.EndsWith(".fsx", StringComparison.OrdinalIgnoreCase)  then 
+                        elif isFsx f  then 
                             avaEdit.Document.Insert (0, sprintf "#load @\"%s\"\r\n" f)                            
                         else 
-                            avaEdit.Document.Insert (avaEdit.CaretOffset , sprintf " @\"%s\"\r\n" f)
+                            match findLiteral 0 avaEdit.Document.Text with 
+                            | Some i -> avaEdit.Document.Insert (i                   , sprintf " @\"%s\"%s" f Environment.NewLine)
+                            | None ->   avaEdit.Document.Insert (avaEdit.CaretOffset , sprintf " @\"%s\"%s" f Environment.NewLine)
                             
             with e -> log.PrintIOErrorMsg "full drop failed: %A" e
                 
