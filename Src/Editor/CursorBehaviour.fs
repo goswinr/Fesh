@@ -83,13 +83,11 @@ module CursorBehaviour  =
                     avaEdit.Document.Insert (0, sprintf "#I @\"%s\"\r\n" folder)                    
                 else
                     for f in fs do
-                        if isDll f then 
-                            let lnNo = avaEdit.Document.GetLineByOffset(avaEdit.CaretOffset)
-                            ed.Log.PrintInfoMsg "Drag & Drop inserted at Line %d: %s" lnNo.LineNumber f
+                        if isDll f then                            
+                            ed.Log.PrintInfoMsg "Drag & Drop inserted at Line 0: %s" f
                             avaEdit.Document.Insert (0, sprintf "#r @\"%s\"\r\n" f)
-                        elif isFsx f  then 
-                            let lnNo = avaEdit.Document.GetLineByOffset(avaEdit.CaretOffset)
-                            ed.Log.PrintInfoMsg "Drag & Drop inserted at Line %d: %s" lnNo.LineNumber f                            
+                        elif isFsx f  then
+                            ed.Log.PrintInfoMsg "Drag & Drop inserted at Line 0: %s" f                            
                             avaEdit.Document.Insert (0, sprintf "#load @\"%s\"\r\n" f)                            
                         else 
                             match findInsertion avaEdit.Document.Text with 
