@@ -53,7 +53,8 @@ module CursorBehaviour  =
         | _ -> ()
 
 
-    let dragAndDrop (avaEdit:TextEditor, log:ISeffLog,  e:DragEventArgs) =
+    let dragAndDrop (ed:IEditor, log:ISeffLog,  e:DragEventArgs) =
+        let avaEdit = ed.AvaEdit
         if e.Data.GetDataPresent DataFormats.FileDrop then
             let isDll (p:string) = p.EndsWith(".dll", StringComparison.OrdinalIgnoreCase) ||  p.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)
             let isFsx (p:string) = p.EndsWith(".fsx", StringComparison.OrdinalIgnoreCase) ||  p.EndsWith(".fs", StringComparison.OrdinalIgnoreCase)
@@ -81,20 +82,30 @@ module CursorBehaviour  =
                 else
                     for f in fs do
                         if isDll f then 
+                            let lnNo = avaEdit.Document.GetLineByOffset(avaEdit.CaretOffset)
+                            ed.Log.PrintInfoMsg "inserted at Line %d: %s" lnNo.LineNumber f
                             avaEdit.Document.Insert (0, sprintf "#r @\"%s\"\r\n" f)
                         elif isFsx f  then 
+                            let lnNo = avaEdit.Document.GetLineByOffset(avaEdit.CaretOffset)
+                            ed.Log.PrintInfoMsg "inserted at Line %d: %s" lnNo.LineNumber f                            
                             avaEdit.Document.Insert (0, sprintf "#load @\"%s\"\r\n" f)                            
                         else 
                             match findInsertion avaEdit.Document.Text with 
                             | Some i -> 
-                                let line = avaEdit.Document.GetText(avaEdit.Document.GetLineByOffset(i)) // = get current line
+                                let lnNo = avaEdit.Document.GetLineByOffset(i)
+                                let line = avaEdit.Document.GetText(lnNo) // = get current line
                                 let isNewLn = line.TrimStart().StartsWith "@"
                                 if isNewLn then                                    
-                                    let st = String(' ',spacesAtStart line)
+                                    let st = String(' ',spacesAtStart line)                                    
+                                    ed.Log.PrintInfoMsg "inserted at Line %d: %s" lnNo.LineNumber f
                                     avaEdit.Document.Insert (i , sprintf "@\"%s\"%s%s//" f Environment.NewLine st ) 
                                 else
+                                    ed.Log.PrintInfoMsg "inserted at Line %d: %s" lnNo.LineNumber f
                                     avaEdit.Document.Insert (i , sprintf "@\"%s\" //" f )
-                            | None ->   avaEdit.Document.Insert (avaEdit.CaretOffset , sprintf " @\"%s\"%s" f Environment.NewLine)
+                            | None ->   
+                                let lnNo = avaEdit.Document.GetLineByOffset(avaEdit.CaretOffset)
+                                ed.Log.PrintInfoMsg "inserted at Line %d: %s" lnNo.LineNumber f
+                                avaEdit.Document.Insert (avaEdit.CaretOffset , sprintf " @\"%s\"%s" f Environment.NewLine)
                             
             with e -> log.PrintIOErrorMsg "drag and drop failed: %A" e
                 

@@ -57,9 +57,7 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
         avaEdit.FontSize <- config.Settings.GetFloat "FontSize" Seff.Style.fontSize 
         SyntaxHighlighting.setFSharp(avaEdit,config,false)        
         
-        avaEdit.AllowDrop <- true  
-        avaEdit.Drop.Add(            fun e -> CursorBehaviour.dragAndDrop(avaEdit,log,e))       
-        avaEdit.PreviewKeyDown.Add ( fun e -> CursorBehaviour.previewKeyDown(avaEdit,e))   //to indent and dedent
+
 
     member val IsCurrent = false with get,set //  this is managed in Tabs.selectionChanged event handler 
    
@@ -198,7 +196,10 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
         //----------------------------------
         //--FS Checker and Code completion--
         //----------------------------------  
+        avaEdit.AllowDrop <- true  
+        avaEdit.Drop.Add( fun e -> CursorBehaviour.dragAndDrop(ed,log,e)) 
         
+        avaEdit.PreviewKeyDown.Add ( fun e -> CursorBehaviour.previewKeyDown(avaEdit,e))   //to indent and dedent
         compls.OnShowing.Add(fun _ -> ed.ErrorHighlighter.ToolTip.IsOpen <- false)
         compls.OnShowing.Add(fun _ -> ed.TypeInfoTip.IsOpen        <- false)
 
