@@ -79,7 +79,12 @@ type CompletionItem (config:Config, getToolTip, it:FSharpDeclarationListItem, is
         //log.PrintDebugMsg "%s is %A and %A" it.Name it.Glyph it.Kind
         //textArea.Document.Replace(completionSegment.Offset + 1, completionSegment.Length, it.Name) //TODO Delete!
         //textArea.Caret.Offset <- completionSegment.Offset + it.Name.Length + 1  //TODO Delete!          
-        let compl = if it.Glyph = FSharpGlyph.Class && it.Name.EndsWith "Attribute" then "[<" + it.Name.Replace("Attribute",">]") else it.Name     //TODO move this logic out here      
+        let compl = 
+            if it.Glyph = FSharpGlyph.Class && it.Name.EndsWith "Attribute" then 
+                "[<" + it.Name.Replace("Attribute",">]") 
+            elif it.Name.IndexOfAny [|' ' ; '-' ; '+' ; '*' ;'=' ; ',' ; '%' ; '&' ; '@' ; '#' ; '|' ; '!' ; '?' ; '(' ; ')' ; '[' ; ']'; '<' ; '>' |] > 0 then 
+                "``" + it.Name + "``"
+            else it.Name     //TODO move this logic out here      
         textArea.Document.Replace(completionSegment, compl) 
         if not isDotCompletion then 
             config.AutoCompleteStatistic.Incr(it.Name)
