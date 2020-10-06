@@ -33,7 +33,7 @@ module General =
 
     ///Adds bytes to each color channel to increase brightness, negative values to make darker
     /// result will be clamped between 0 and 255
-    let changeLuminace (amount:int) (col:Color)=
+    let changeLuminace (amount:int) (col:Windows.Media.Color)=
         let inline clamp x = if x<0 then 0uy elif x>255 then 255uy else byte(x)
         let r = int col.R + amount |> clamp      
         let g = int col.G + amount |> clamp
@@ -166,60 +166,83 @@ module Parse =
         |InAtString      // with @
         |InRawString     // with """
     
+    type Position = {offset:int; line:int}
 
-    /// a search function that will automatically exlude string literals and code comments from search
+    /// a find function that will automatically exlude string , chactyer literals and  comments from search
     /// the search function shall return true on find sucess
     let findInCode search fromIdx (tx:string) = 
         
         // even if fromIdx is high value serch alwas starts from zero to have correct state
 
-        let len = tx.Length
+        let last = tx.Length-1
+        if fromIdx>last then eprintf "Search from index %d  is bigger than search string %d" fromIdx last
         let mutable i = -1
+        let mutable line = 1
 
-        let rec find state = 
-            i <- i+1
-            if i >= len then None // exit, end of string
+        let inline isCh (c:Char) off i =
+            i+off <= last && tx.[i+off] = c
+
+        let checklast state = 
+           if i > last then None 
+           else
+               let t = tx.[i]
+               match state with
+               |Code ->  if i >= fromIdx && search(i) then Some {offset=i; line=line} else None
+               | InComment  | InBlockComment  | InString  | InAtString  | InRawString -> None
+                
+
+        let rec find advance state : Position option = 
+            i <- i + advance
+            if i >= last then checklast state 
             else
                 let t = tx.[i]
+                let u = tx.[i+1]
                 match state with 
-
                 |Code -> 
-                    match t with 
-                    | '/' when i>0 && tx.[i-1] = '/'-> find InComment
-                    | '(' when i>0 && tx.[i-1] = '*'-> find InBlockComment
-                    | '"' when i>1 && tx.[i-1] = '"' && tx.[i-2] = '"'-> find InRawString
-                    | '"' when i>0 && tx.[i-1] = '@' -> find InAtString
-                    | x -> 
-                        if i >= fromIdx && search(i) then Some i //so that a search can als be startet at the begining of a string, (but not inside a string)
-                        else 
-                            if t = '"'then find InString
-                            else           find state                                
+                    if i >= fromIdx && search(i) then Some {offset=i; line=line}
+                    else                     
+                        match t,u with 
+                        | '"' , '"'  when  isCh '"' 2 i  -> find 3 InRawString
+                        | '/' , '/'   ->  find 2 InComment
+                        | '(' , '*'   ->  find 2 InBlockComment
+                        | '@' , '"'   ->  find 2 InAtString
+                        | '"' ,  _    ->  find 2 InString    
+                        // a char:
+                        | '\'', '\\' -> // a escaped character
+                            if   isCh 'u'  2 i  &&  isCh '\'' 7 i  then find 8 state  // a 16 bit unicode character
+                            elif isCh 'U'  2 i  &&  isCh '\'' 11 i then find 12 state // a 32 bit unicode character
+                            else find 4 state  // a simple escaped character
+                        | '\'', _ ->                 find 3 state    // jump over a regular  character, including quote "  
+                        | '\n', _ ->   line<-line+1 ;find 1 state    
+                        |  _      ->                 find 1 state                                
 
                 | InComment -> 
-                    if  t='\n' then find Code 
-                    else find state 
+                    if  t='\n' then line<-line+1 ; find 1 Code 
+                    else find 1 state 
             
                 | InBlockComment ->
-                    if  t=')' && i>0 && tx.[i-1] = '*' then find Code 
-                    else  find state 
+                    if   t = '*' && u = ')'  then find 2 Code 
+                    elif t =  '\n' then   line<-line+1 ;find 1 state
+                    else  find 1 state 
 
             
                 | InString ->
-                    if  t='"' then 
-                        if i>0 && tx.[i-1] = '\\' then find state //an escaped quote in a string
-                        else find Code
-                    else
-                        find state               
+                    match t,u with 
+                    | '\\' , '"'    -> find 2 state
+                    | '"'  , _      -> find 1 Code
+                    | _             -> find 1 state                             
             
                 | InAtString ->
-                    if    t='"'  then find Code 
-                    else              find state              
+                    if    t='"'  then find 1 Code 
+                    else              find 1 state              
 
                 | InRawString ->
-                    if   t='"' && i>1 && tx.[i-1] = '"' && tx.[i-2] = '"' then find Code
-                    else find state
+                    match t,u with 
+                    | '"' , '"'  when  isCh '"' 2 i  -> find 3 Code
+                    | '\n', _        ->   line<-line+1 ;find 1 state 
+                    | _                              -> find 1 state
         
-        find Code     
+        find 1 Code     
 
     /// Only starts search when not in comment or string literal
     /// Since it searches backward this allows to find ending blocks of strings and comments too
@@ -228,50 +251,46 @@ module Parse =
         let last = word.Length-1       
     
         let search (i:int) =
-            if i < last then false
-            else
-                //printfn "%d for %d" i last
+            if i < last then false // sreach term is bigger than space to serch back
+            else                
                 let mutable iw = last
                 let mutable it = i            
-                while iw >= 0 do
-                    //printfn "it %d iw %d" it iw
+                while iw >= 0 do                   
                     if inText.[it] = word.[iw] then 
                         iw <- iw-1
                         it <- it-1
                     else                             
-                        iw <- -99 //exit while
-                iw = -1            
-        
+                        iw <- Int32.MinValue //exit while
+                iw = -1 
     
-        match  findInCode search fromIdx inText with 
-        | None  ->   None
-        | Some  off -> Some (off - word.Length + 1 )
+        match findInCode search fromIdx inText with 
+        |Some p -> 
+            let off = p.offset - last
+            let ln = p.line - (String.countChar '\n' word ) 
+            Some {offset = off ; line = ln}
+        |None   -> None
 
     /// only starts search when not in comment or string literal
     /// returns offset 
     /// Since it searches forward this allows to find starting blocks of strings and comments too
     let findWordAhead (word:string) fromIdx (inText:string) =        
-        let max =  inText.Length-1
-        
+        let max = inText.Length-1
+        let len = word.Length
+
         let search (i:int) =            
-            if i > max then false
-            else
-                //printfn "%d for %d" i last
+            if i+len > max then false // serch would go over the end of text
+            else                
                 let mutable iw = 0
                 let mutable it = i            
-                while iw < word.Length do
-                    //printfn "it %d iw %d" it iw
+                while iw < len do                    
                     if inText.[it] = word.[iw] then 
                         iw <- iw+1
                         it <- it+1
                     else                             
                         iw <- Int32.MaxValue //exit while
-                iw = word.Length            
-        
-    
-        match  findInCode search fromIdx inText with 
-        | None ->   None
-        | Some  off -> Some off 
+                iw = len            
+            
+        findInCode search fromIdx inText 
 
 
 

@@ -61,12 +61,12 @@ module CursorBehaviour  =
 
             let findInsertion (code:string) =    
                 match Util.Parse.findWordAhead "[<Literal>]" 0 code with 
-                | Some i  -> 
-                    Util.Parse.findWordAhead "@\"" i code 
+                | Some p  -> 
+                    Util.Parse.findWordAhead "@\"" p.offset code 
                 | None -> 
                     let rec allRefs off =                    
                         match Util.Parse.findWordAhead "#" off code with
-                        | Some o -> allRefs (o + 4) // gap of 4 between #r and @"C:\...
+                        | Some p -> allRefs (p.offset + 5) // gap of 4 between #r and @"C:\...
                         | None -> off
                     Util.Parse.findWordAhead "@\"" (allRefs 0) code 
 
@@ -91,17 +91,17 @@ module CursorBehaviour  =
                             avaEdit.Document.Insert (0, sprintf "#load @\"%s\"\r\n" f)                            
                         else 
                             match findInsertion avaEdit.Document.Text with 
-                            | Some i -> 
-                                let lnNo = avaEdit.Document.GetLineByOffset(i)
+                            | Some p -> 
+                                let lnNo = avaEdit.Document.GetLineByOffset(p.offset)
                                 let line = avaEdit.Document.GetText(lnNo) // = get current line
                                 let isNewLn = line.TrimStart().StartsWith "@"
                                 if isNewLn then                                    
                                     let st = String(' ',spacesAtStart line)                                    
-                                    ed.Log.PrintInfoMsg "Drag & Drop inserted at Line %d: %s" lnNo.LineNumber f
-                                    avaEdit.Document.Insert (i , sprintf "@\"%s\"%s%s//" f Environment.NewLine st ) 
+                                    ed.Log.PrintInfoMsg "Drag & Drop inserted at Line %d: %s" p.line f
+                                    avaEdit.Document.Insert (p.offset , sprintf "@\"%s\"%s%s//" f Environment.NewLine st ) 
                                 else
                                     ed.Log.PrintInfoMsg "Drag & Drop inserted at Line %d: %s" lnNo.LineNumber f
-                                    avaEdit.Document.Insert (i , sprintf "@\"%s\" //" f )
+                                    avaEdit.Document.Insert (p.offset , sprintf "@\"%s\" //" f )
                             | None ->   
                                 let lnNo = avaEdit.Document.GetLineByOffset(avaEdit.CaretOffset)
                                 ed.Log.PrintInfoMsg "Drag & Drop inserted at Line %d: %s" lnNo.LineNumber f
