@@ -140,10 +140,12 @@ type FsiOutputStatus (grid:TabsAndLog) as this =
             if isOff() then 
                 this.Text <- on
                 grid.Config.Settings.SetBool Settings.keyFsiQuiet false
+                grid.Config.Settings.Save ()
                 grid.Tabs.Fsi.Initalize()
             else
                 this.Text <- off
                 grid.Config.Settings.SetBool Settings.keyFsiQuiet true
+                grid.Config.Settings.Save ()
                 grid.Tabs.Fsi.Initalize()
             )  
             
@@ -195,7 +197,8 @@ type SelectedTextStatus (grid:TabsAndLog) as this =
             this.Inlines.Clear()
             this.Inlines.Add(desc +    if isOnn then "On" else "Off")
             this.ToolTip <-  baseTxt + if isOnn then "Off" else "On" 
-            grid.Config.Settings.SelectAllOccurences <- isOnn 
+            grid.Config.Settings.SelectAllOccurences <- isOnn
+            grid.Config.Settings.Save ()
             //SelectedTextTracer.IsActive <- isOnn
             )
 
