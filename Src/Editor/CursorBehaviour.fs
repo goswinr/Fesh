@@ -64,9 +64,9 @@ module CursorBehaviour  =
                 | Some p  -> 
                     Util.Parse.findWordAhead "@\"" p.offset code 
                 | None -> 
-                    let rec allRefs off =                    
+                    let rec allRefs off =  // loop to skip over the #r and #I statments                   
                         match Util.Parse.findWordAhead "#" off code with
-                        | Some p -> allRefs (p.offset + 5) // gap of 4 between #r and @"C:\...
+                        | Some p -> allRefs (p.offset + 7)  // gap of 7 between #r or #load and @"C:\...
                         | None -> off
                     Util.Parse.findWordAhead "@\"" (allRefs 0) code 
 
