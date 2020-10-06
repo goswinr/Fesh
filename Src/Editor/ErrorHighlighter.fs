@@ -26,16 +26,16 @@ type SegmentToMark private (startOffset, length, message:string, undelineColor:M
     do
         this.StartOffset <- startOffset
         this.Length <- length
-    member val Message =                 message 
-    member val IsWarning =          isWarning
+    member val Message           =  message 
+    member val IsWarning         =  isWarning
     member val UnderlineColor    =  undelineColor
     member val BackgroundColor   =  backbroundColor
 
     static member CreateForError( startOffset, length, message) = 
-             SegmentToMark (startOffset, length, message, Some Colors.Red , Some Colors.LightSalmon, false )
+             SegmentToMark (startOffset, length, message, Some Colors.Red , Some (Colors.LightSalmon |> changeLuminace 40 ) , false )
     
     static member CreateForWarning (startOffset, length, message) = 
-               SegmentToMark (startOffset, length, message, Some Colors.Green , Some (Colors.LightSeaGreen |> changeLuminace 50) , true)
+               SegmentToMark (startOffset, length, message, Some Colors.Green , Some (Colors.LightSeaGreen |> changeLuminace 80 ), true)
 
 
 type ErrorRenderer (textEditor:TextEditor, log:ISeffLog) = 
@@ -58,13 +58,13 @@ type ErrorRenderer (textEditor:TextEditor, log:ISeffLog) =
                     |None ->()
                     |Some backgroundColor ->                 
                         let geoBuilder = new BackgroundGeometryBuilder (AlignToWholePixels = true, CornerRadius = 3.)
-                        geoBuilder.AddSegment(textView, segment) // TODO loop only over this line ,not the others ?
+                        geoBuilder.AddSegment(textView, segment) 
                         let geometry = geoBuilder.CreateGeometry()
                         let brush = new SolidColorBrush(backgroundColor)
                         brush.Freeze()
                         drawingContext.DrawGeometry(brush, null, geometry)
 
-                    //foreground
+                    //foreground, red squiggels below
                     match segment.UnderlineColor with 
                     |None ->()
                     |Some underlineColor ->   
@@ -91,8 +91,10 @@ type ErrorRenderer (textEditor:TextEditor, log:ISeffLog) =
     member this.Transform(context:ITextRunConstructionContext , elements:IList<VisualLineElement>)=() // needed ? // for IVisualLineTransformer
         
     member this.AddSegments( res: CheckResults )=        
-        for e in res.checkRes.Errors |> Seq.truncate 5 do // TODO Only highligth the first 3 Errors, Otherwise UI becomes unresponsive at 100 errors ( eg when pasting bad text)// TODO Test again        
-            //TODO as an alternative use Visualline transformers like in Log view, do they perform better ?
+        for e in res.checkRes.Errors |> Seq.truncate 9 do 
+            // TODO Only highligth the first 9 Errors, Otherwise UI becomes unresponsive at 100 or more errors ( eg when pasting bad text)
+            // TODO Test again        
+            // TODO as an alternative use Visualline transformers like in Log view, do they perform better ?
             let startOffset = textEditor.Document.GetOffset(new TextLocation(e.StartLineAlternate, e.StartColumn + 1 ))
             let endOffset   = textEditor.Document.GetOffset(new TextLocation(e.EndLineAlternate,   e.EndColumn   + 1 ))
             let length      = endOffset-startOffset
