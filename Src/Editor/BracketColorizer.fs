@@ -120,7 +120,7 @@ type BracketHighlighter (ed:TextEditor) =
                         if  ti='"' && tx.[i+1] = '"' && i+1 < len2 && tx.[i+2] = '"' then  inRawString <- false;    find (i+3)
                         else find (i+1)
                                 
-                    else 
+                    else // in Code
                         // opening brackets
                         if  ti='{' then
                             if  tx.[i+1] = '|' then Brs.Add  OpAnRec ; Offs.Add i ; find (i+2)
@@ -149,9 +149,19 @@ type BracketHighlighter (ed:TextEditor) =
                         elif  ti='@' && tx.[i+1] = '"' then inAtString <- true    ; find (i+2)
                         elif  ti='"' && tx.[i+1] = '"' && i+1 < len2 && tx.[i+2] = '"' then  inRawString <- true;    find (i+3)
                         elif  ti='"'  then inString <- true            ; find (i+1)
-                        elif  ti='/' && tx.[i+1] = '/'  then inComment <- true    ; find (i+2)
-                        elif  ti='\'' && tx.[i+1] = '"'  then                       find (i+2) // a quote as character does not start in string
-                        else                                             find (i+1)
+                        elif  ti='\''  then inString <- true            ; find (i+1)
+
+                        elif  ti='/'  && tx.[i+1] = '/'  then inComment <- true    ; find (i+2)
+                        
+                        // if char just jump over it 
+                        elif  ti='\'' then 
+                            if    i+1  < len2 && tx.[i+2] = '\''                     then   find (i+3) // a regular  character, including quote "
+                            elif  i+2  < len2 && tx.[i+1] = '\\' && tx.[i+3]  = '\'' then   find (i+4) // a simple escaped character
+                            elif  i+6  < len2 && tx.[i+1] = '\\' && tx.[i+2] = 'u' && tx.[i+7]  = '\'' then   find (i+8) // a 16 bit unicode character
+                            elif  i+10 < len2 && tx.[i+1] = '\\' && tx.[i+2] = 'U' && tx.[i+11] = '\'' then   find (i+12) // a 32 bit unicode character
+                            else find (i+1)
+                        else   
+                            find (i+1)
                
                 // check last char
                 elif i>2 && i = tx.Length - 1  && not inComment && not inString then 
