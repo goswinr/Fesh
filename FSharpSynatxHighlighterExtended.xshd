@@ -327,7 +327,7 @@
       <!-- to match one colon but not two: negative look behind for a colon, the colon, negative look ahead for a colon. 
            All that wraped in CDATA because xml readers fails on negative look behind tag  ?<!    -->
       <Begin color="Punctuation"><![CDATA[(?<!:):(?!:)]]></Begin> 
-      <End color="Punctuation">[\),=]</End>  
+      <End color="Punctuation">[\),;=]</End>  
        <RuleSet>
         <Rule color="Punctuation">[,\[\]*&lt;&gt;]</Rule>
       </RuleSet>
