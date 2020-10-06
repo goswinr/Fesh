@@ -245,8 +245,10 @@ module Parse =
         find 1 Code     
 
     /// Only starts search when not in comment or string literal
-    /// Since it searches backward this allows to find ending blocks of strings and comments too
-    /// returns offset 
+    /// Will search backwards from current position.
+    /// Last charcter of search shall not be a quote or other non search delimter.
+    /// Since it searches backward this allows to find ending blocks of strings and comments too,
+    /// but not if they are at last position in search query
     let findWordBackward (word:string) fromIdx (inText:string) =
         let last = word.Length-1       
     
@@ -270,8 +272,7 @@ module Parse =
             Some {offset = off ; line = ln}
         |None   -> None
 
-    /// only starts search when not in comment or string literal
-    /// returns offset 
+    /// Only starts search when not in comment or string literal
     /// Since it searches forward this allows to find starting blocks of strings and comments too
     let findWordAhead (word:string) fromIdx (inText:string) =        
         let max = inText.Length-1
