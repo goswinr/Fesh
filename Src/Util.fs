@@ -166,6 +166,7 @@ module Parse =
         |InAtString      // with @
         |InRawString     // with """
     
+    [<Struct>]
     type Position = {offset:int; line:int}
 
     /// a find function that will automatically exlude string , chactyer literals and  comments from search
@@ -175,7 +176,7 @@ module Parse =
         // even if fromIdx is high value serch alwas starts from zero to have correct state
 
         let last = tx.Length-1
-        if fromIdx>last then eprintf "Search from index %d  is bigger than search string %d" fromIdx last
+        if fromIdx>last then eprintf "Search from index %d  is bigger than search string last index %d" fromIdx last
         let mutable i = -1
         let mutable line = 1
 
@@ -183,15 +184,15 @@ module Parse =
             i+off <= last && tx.[i+off] = c
 
         let checklast state = 
-           if i > last then None 
+           if i > last then ValueNone 
            else
                let t = tx.[i]
                match state with
-               |Code ->  if i >= fromIdx && search(i) then Some {offset=i; line=line} else None
-               | InComment  | InBlockComment  | InString  | InAtString  | InRawString -> None
+               |Code ->  if i >= fromIdx && search(i) then ValueSome {offset=i; line=line} else ValueNone
+               | InComment  | InBlockComment  | InString  | InAtString  | InRawString -> ValueNone
                 
 
-        let rec find advance state : Position option = 
+        let rec find advance state  = 
             i <- i + advance
             if i >= last then checklast state 
             else
@@ -199,7 +200,7 @@ module Parse =
                 let u = tx.[i+1]
                 match state with 
                 |Code -> 
-                    if i >= fromIdx && search(i) then Some {offset=i; line=line}
+                    if i >= fromIdx && search(i) then ValueSome {offset=i; line=line}
                     else                     
                         match t,u with 
                         | '"' , '"'  when  isCh '"' 2 i  -> find 3 InRawString
@@ -243,6 +244,24 @@ module Parse =
                     | _                              -> find 1 state
         
         find 1 Code     
+    
+    /// a find function that will search full text from index
+    /// the search function shall return true on find sucess
+    let findInText search fromIdx (tx:string) =        
+
+        let len = tx.Length
+        if fromIdx > len-1 then eprintf "Search from index %d  is bigger than search string %d" fromIdx len
+        
+        let mutable line = 1                        
+
+        let rec find i  = 
+            if i = len then ValueNone 
+            else                
+                if search(i) then ValueSome {offset=i; line=line}
+                else 
+                    if tx.[i] = '\n' then line <-line + 1
+                    find (i+1)         
+        find fromIdx     
 
     /// Only starts search when not in comment or string literal
     /// Will search backwards from current position.
@@ -266,11 +285,11 @@ module Parse =
                 iw = -1 
     
         match findInCode search fromIdx inText with 
-        |Some p -> 
+        |ValueSome p -> 
             let off = p.offset - last
             let ln = p.line - (String.countChar '\n' word ) 
             Some {offset = off ; line = ln}
-        |None   -> None
+        |ValueNone   -> None
 
     /// Only starts search when not in comment or string literal
     /// Since it searches forward this allows to find starting blocks of strings and comments too
@@ -290,11 +309,32 @@ module Parse =
                     else                             
                         iw <- Int32.MaxValue //exit while
                 iw = len            
-            
-        findInCode search fromIdx inText 
+        
+        match findInCode search fromIdx inText with 
+        |ValueSome p -> Some p
+        |ValueNone   -> None    
+        
 
+    /// finds first a key chracter (like '\n') and then count how often the countCharcter (like ' ') apears directly afterwards
+    /// e.g.: used for indent counting and then folding..
+    /// does not exlude comments or strings
+    let countCharsAfterKey fromIdx keyChar countChar (inText:string) =
+        let max = inText.Length-1
+        let searchKey (i:int) = inText.[i] = keyChar
+        let searchCount (i:int) = inText.[i]= countChar
 
-
+        match findInText searchKey fromIdx inText with
+        |ValueNone -> None
+        |ValueSome p -> 
+            let mutable k = 0
+            let rec find fi = 
+                match findInText searchCount fi inText with
+                |ValueNone -> ()
+                |ValueSome pc -> 
+                    k <- k+1
+                    find (pc.offset+1)
+            find (p.offset+1)
+            Some k
 
 
 
