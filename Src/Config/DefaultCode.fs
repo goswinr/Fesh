@@ -32,7 +32,8 @@ type DefaultCode  (log:ISeffLog, hostInfo:HostingInfo) =
 
     ///loads sync
     member this.Get() =            
-        try IO.File.ReadAllText filePath |> Util.String.unifyLineEndings // unify so that folding works correctly
+        try 
+            IO.File.ReadAllText filePath
         with _ -> 
             writer.Write(filePath, defaultCodeOnFirstRun)// create file so it can be found and edited manually
             defaultCodeOnFirstRun

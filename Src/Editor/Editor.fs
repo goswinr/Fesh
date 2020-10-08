@@ -2,6 +2,7 @@
 
 
 open Seff
+open Seff.Util.String
 open ICSharpCode
 open ICSharpCode.AvalonEdit
 open System.Windows.Media
@@ -38,7 +39,7 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
 
     do
         avaEdit.BorderThickness <- new Thickness( 0.0)
-        avaEdit.Text <- code
+        avaEdit.Text <- code |> unifyLineEndings |> tabsToSpaces avaEdit.Options.IndentationSize
         avaEdit.ShowLineNumbers <- true // background color is set in ColoumnRulers.cs        
         avaEdit.VerticalScrollBarVisibility <- Controls.ScrollBarVisibility.Auto
         avaEdit.HorizontalScrollBarVisibility <- Controls.ScrollBarVisibility.Auto
