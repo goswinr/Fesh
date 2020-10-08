@@ -79,7 +79,6 @@ module String =
             i <- i + 1                       
         i
 
-
     /// checks if a string is just space characters or Empty string 
     let inline isJustSpaceCharsOrEmpty (str:string) =
         let mutable isSpace = true
@@ -106,6 +105,7 @@ module String =
             k <- k + 1
             i <- s.IndexOf(c,i + 1)
         k
+
     /// returns the remainder after the last substring found
     let stringAfterLast (sub:string) (s:string) =
         match s.LastIndexOf(sub) with
@@ -176,7 +176,7 @@ module Parse =
         // even if fromIdx is high value serch alwas starts from zero to have correct state
 
         let last = tx.Length-1
-        if fromIdx>last then eprintf "Search from index %d  is bigger than search string last index %d" fromIdx last
+        if fromIdx > last then eprintfn "findInCode: Search from index %d  is bigger than search string last index %d" fromIdx last
         let mutable i = -1
         let mutable line = 1
 
@@ -250,7 +250,7 @@ module Parse =
     let findInText search fromIdx (tx:string) =        
 
         let len = tx.Length
-        if fromIdx > len-1 then eprintf "Search from index %d  is bigger than search string %d" fromIdx len
+        if fromIdx > len-1 then eprintf "findInText:Search from index %d  is bigger than search string %d" fromIdx len
         
         let mutable line = 1                        
 
@@ -315,26 +315,6 @@ module Parse =
         |ValueNone   -> None    
         
 
-    /// finds first a key chracter (like '\n') and then count how often the countCharcter (like ' ') apears directly afterwards
-    /// e.g.: used for indent counting and then folding..
-    /// does not exlude comments or strings
-    let countCharsAfterKey fromIdx keyChar countChar (inText:string) =
-        let max = inText.Length-1
-        let searchKey (i:int) = inText.[i] = keyChar
-        let searchCount (i:int) = inText.[i]= countChar
-
-        match findInText searchKey fromIdx inText with
-        |ValueNone -> None
-        |ValueSome p -> 
-            let mutable k = 0
-            let rec find fi = 
-                match findInText searchCount fi inText with
-                |ValueNone -> ()
-                |ValueSome pc -> 
-                    k <- k+1
-                    find (pc.offset+1)
-            find (p.offset+1)
-            Some k
 
 
 
