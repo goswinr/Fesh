@@ -22,7 +22,7 @@
   <Color name="Char"                foreground="#FF0040" />
   <Color name="LoadDirectives"      foreground="#887766" />
   <Color name="Punctuation"         foreground="#0099EE" />
-  <Color name="Attributes"          foreground="#AA00AA" />  
+  <Color name="Attributes"          foreground="#AA88AA" />  
   <Color name="Keywords"            foreground="#0000DD" /> <!--fontWeight="bold" -->
   <Color name="ReservedKeywords"    foreground="#7777FF" /> <!--fontWeight="bold" -->
   <Color name="MethodCall"          foreground="#0000AA" /> <!-- fontWeight="bold" fontStyle="italic"-->
@@ -340,7 +340,7 @@
     <!--names in Records-->
     <Span color="RecordNames">
       <Begin color="Punctuation">\s*\{ |  ; </Begin> 
-      <End color="Punctuation">=</End> 
+      <End color="Punctuation">=|:</End> 
     </Span>
 
     <Span color="LetBinding"> 
