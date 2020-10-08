@@ -65,6 +65,9 @@ module String =
     // code: s.Replace("\r\n", "\n").Replace("\r", "\n").Replace("\n", Environment.NewLine)
     let unifyLineEndings (s:string) =
         s.Replace("\r\n", "\n").Replace("\r", "\n").Replace("\n", Environment.NewLine)
+
+    let tabsToSpaces spaces (s:string) = 
+        s.Replace("\t", String(' ',spaces))
     
     let lastCharIs char (s:string)= 
         if isNull s then false
@@ -78,6 +81,14 @@ module String =
         while i < str.Length && str.[i] = ' ' do
             i <- i + 1                       
         i
+    
+    /// Counts spaces fater a position
+    /// returns 0 if none string
+    let inline spacesAtOffset off (str:string) =        
+        let mutable i = off
+        while i < str.Length && str.[i] = ' ' do
+            i <- i + 1                       
+        i - off   
 
     /// checks if a string is just space characters or Empty string 
     let inline isJustSpaceCharsOrEmpty (str:string) =
@@ -318,8 +329,41 @@ module Parse =
         match findInCode search fromIdx inText with 
         |ValueSome p -> Some p
         |ValueNone   -> None    
-        
+    
 
+    [<Struct>]
+    /// the start of line offset and the indent, 
+    /// indent is -1 on empty line 
+    type Indent = { indent : int; offset:int}
+
+    /// Retuns list of Indents
+    /// item 0 it -99 because lincount starts at 1 not 0
+    /// white space lines are -1
+    let findIndents (tx:string) =
+        let I = ResizeArray()
+        I.Add { indent = -99; offset = -99}// dummy item for line 0 that does not exist in editor
+        let st = String.spacesAtStart tx
+        I.Add (if tx.[st]='\r' || tx.[st]='\n'then { indent = -1; offset= 0} else { indent = st; offset= 0} )
+    
+        let last = tx.Length - 1  
+        let rec find i =
+            match tx.IndexOf ('\n',i) with
+            | -1 -> ()
+            | n ->                
+                if n=last then 
+                    () //skip last line if empty (start offset would be bigger than text.length)
+                    //I.Add { indent = -1; offset= n} 
+                else
+                    let s = String.spacesAtOffset (n+1) tx                
+                    if tx.[n+s+1]='\r' || tx.[n+s+1]='\n'then                     
+                        I.Add { indent = -1; offset= n+1}  
+                        find (n+s+1)
+                    else                                  
+                        I.Add { indent = s; offset= n+1}   
+                        find (n+s+1)
+        
+        find st
+        I
 
 
 
