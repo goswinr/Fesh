@@ -4,8 +4,7 @@
   https://raw.githubusercontent.com/icsharpcode/AvalonEdit/master/ICSharpCode.AvalonEdit/Highlighting/Resources/CSharp-Mode.xshd 
   help:
   https://github.com/icsharpcode/SharpDevelop/wiki/XSHD-Tags
-  https://github.com/icsharpcode/SharpDevelop/wiki/Syntax-highlighting
-  
+  https://github.com/icsharpcode/SharpDevelop/wiki/Syntax-highlighting  
   -->
 
 
@@ -36,6 +35,7 @@
   <Color name="FalseCol"            foreground="#A70090" fontStyle="italic" fontWeight="bold" />
   <Color name="Semicolon"           foreground="#A0A0A0" />
   <Color name="TypeAnnotation"      foreground="#00C0A0" />
+  <Color name="RecordNames"         foreground="#008080" />
 
   <Color name="LetBinding"          foreground="#803060" />
   <Color name="Let"                 foreground="#4500BE" />  
@@ -46,8 +46,8 @@
   <Color name="KnownDocTags"        foreground="#666666" />
   
 
-  <!-- Rules that are listed higer have precedence of lower positions in this list
-  Spans aer overwriting rules !-->
+  <!-- Regexes that are listed higer have precedence of lower positions in this list
+  Spans aer overwriting rules  even if rule apers before the span!-->
 
   <RuleSet name="DocCommentSet">
     <Span color="DocComment">
@@ -92,7 +92,6 @@
       </RuleSet>
     </Span>
   </RuleSet>
-
   
   <RuleSet name="CommentMarkerSet">
     <Keywords fontWeight="bold" foreground="#AA0000">
@@ -104,7 +103,6 @@
       <Word>UNDONE</Word>
     </Keywords>
   </RuleSet >
-
   
   <RuleSet name="CommentSet">
     <Span color="DocComment">
@@ -244,14 +242,20 @@
     </Keywords>
   </RuleSet>
 
-  <RuleSet name="StringEscapeSet">    
-    <Span begin="\\" end="." color="StringEscaped" />
-    <!--TODO add unicode char escapes-->
+  <RuleSet name="StringEscapeSet"> 
+    <!-- using just a Rule does not work !-->
+    <!-- https://docs.microsoft.com/en-us/dotnet/fsharp/language-reference/strings -->    
+    <Span color="StringEscaped"><Begin>\\[abfnrtv\\"']  </Begin>  <End>(?=.)</End> </Span>
+    <!-- unicode characters  --> 
+    <Span color="StringEscaped"><Begin>\\[\d]{3}        </Begin>  <End>(?=.)</End> </Span> 
+    <Span color="StringEscaped"><Begin>\\U[0-9a-fA-F]{8}</Begin>  <End>(?=.)</End> </Span> 
+    <Span color="StringEscaped"><Begin>\\u[0-9a-fA-F]{4}</Begin>  <End>(?=.)</End> </Span> 
+    <Span color="StringEscaped"><Begin>\\x[0-9a-fA-F]{2}</Begin>  <End>(?=.)</End> </Span> 
   </RuleSet >
 
-
   <RuleSet name="StringFormatSet">
-    <Span begin="%" end="[sfd%bciuxXoeEfFgGeEgGMOAAat]" color="StringFormating" /> <!--%(\+?)( ?)(\-?)(\d*)(\.?)(\d*)[bcsdiuxXoeEfFgGeEfgGMOAAat]-->
+    <!-- using just a Rule does not work !-->
+    <Span color="StringEscaped"><Begin>%[sfd%bciuxXoeEfFgGeEgGMOAAat]</Begin>  <End>(?=.)</End> </Span> 
   </RuleSet >
 
 
@@ -264,14 +268,13 @@
     </Keywords>
    
 
-    <Rule color="Char"> <!--   #Regex to match chars like  '*' or '\*' or '\''' -->
-      ('\\'')|('\S')|('\\\S')
-    </Rule>
 
-
-    <Span color="Char"><!-- to catch '"'  and not start a string span-->
-      <Begin>'"</Begin>
-      <End>'</End>      
+    <Span color="Char" > 
+      <Begin>'</Begin>  
+      <End>'</End>     
+      <RuleSet>
+        <Import ruleSet="StringEscapeSet"/>
+      </RuleSet>
     </Span>
 
 
@@ -287,8 +290,8 @@
     </Span>
     
     <Span color="String" multiline="true"> 
-      <Begin>"</Begin>  <!-- regex for a " with any other character after-->
-      <End>"</End>      <!-- regex for a " with any other character before-->
+      <Begin>"</Begin>  
+      <End>"</End>    
       <RuleSet>
         <Import ruleSet="StringEscapeSet"/>
       </RuleSet>
@@ -305,7 +308,8 @@
     <!-- a hex number | binary number | (number just starting with floating point | with optional inner floating point) and an optional exponent. https://regexr.com/52d6q -->
     <Rule color="NumberLiteral">\b0[xX][0-9a-fA-F_]+|\b0[bB][01_]+|((-\.|\.)[0-9_]+|(\b|-)[0-9_]+\.?[0-9_]*)([eE][+-]?[0-9]+)? </Rule>
       
-    <Rule color="Punctuation">[?,.:()\[\]{}+\-/%*&lt;&gt;^+~!|&amp;]</Rule>
+   
+    <Rule color="Punctuation">[ \[ \]  \| \\ \( \) &lt; &gt; &amp; ? , . :  { } + \- * ^ ~ ! / % = ]</Rule>
     
     <Rule color="Semicolon">;</Rule>
 
@@ -333,6 +337,12 @@
       </RuleSet>
     </Span>
 
+    <!--names in Records-->
+    <Span color="RecordNames">
+      <Begin color="Punctuation">\s*\{ |  ; </Begin> 
+      <End color="Punctuation">=</End> 
+    </Span>
+
     <Span color="LetBinding"> 
       <Begin color= "Let" >\blet\b</Begin> 
       <End>[=\s\(]</End> 
@@ -340,7 +350,7 @@
 
  
     <Span color="FailString">   <!-- multiline="true"   -->
-      <Begin color= "FailPath" >failwithf*\s*"</Begin>  
+      <Begin color= "FailPath" >failwithf?\s*"</Begin>  
       <End   color= "FailPath" >"</End>      
       <RuleSet>
         <Import ruleSet="StringEscapeSet"/>
@@ -348,10 +358,20 @@
       </RuleSet>
     </Span>
 
+    <!-- incase they are followed by a name and not a literal string starting with "-->
+    <Keywords color = "PrintStatement">
+      <Word>print</Word> <!-- part of FsEx.dll-->
+      <Word>print2</Word>
+      <Word>print3</Word>
+      <Word>printFull</Word>
+      
+      <Word>printf</Word>
+      <Word>printfn</Word>
+    </Keywords>
 
-    <Span color="PrintString" >
-      <!-- <Begin color= "PrintStatement" >\bprint2*f*n*\s*(?=")</Begin>  -->
-      <Begin color= "PrintStatement" >\bprint2*f*n*\s*"</Begin> 
+
+    <Span color="PrintString" >      
+      <Begin color= "PrintStatement" >\bprint2?f?n?\s*"</Begin> 
       <End   color= "PrintStatement" >"</End>     
       <RuleSet>
         <Import ruleSet="StringEscapeSet"/>
