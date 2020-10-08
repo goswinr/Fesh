@@ -264,18 +264,17 @@ module Parse =
         find fromIdx     
 
     /// Only starts search when not in comment or string literal
-    /// Will search backwards from current position.
-    /// Last charcter of search shall not be a quote or other non search delimter.
+    /// Will search one char backward backwards from current position.
+    /// Last charcter of search can be a quote or other non search delimter.
     /// Since it searches backward this allows to find ending blocks of strings and comments too,
-    /// but not if they are at last position in search query
     let findWordBackward (word:string) fromIdx (inText:string) =
         let last = word.Length-1       
-    
+
         let search (i:int) =
-            if i < last then false // sreach term is bigger than space to serch back
+            if i-1 < last then false // word longer than index value
             else                
                 let mutable iw = last
-                let mutable it = i            
+                let mutable it = i-1            
                 while iw >= 0 do                   
                     if inText.[it] = word.[iw] then 
                         iw <- iw-1
@@ -283,22 +282,28 @@ module Parse =
                     else                             
                         iw <- Int32.MinValue //exit while
                 iw = -1 
-    
+
         match findInCode search fromIdx inText with 
         |ValueSome p -> 
-            let off = p.offset - last
+            let off = p.offset - last - 1
             let ln = p.line - (String.countChar '\n' word ) 
             Some {offset = off ; line = ln}
-        |ValueNone   -> None
+        |ValueNone   -> 
+            // it still might be at the end of string so do this extra search:
+            if inText.EndsWith word then 
+                let off = inText.Length - word.Length
+                let ln = 1 + (String.countChar '\n' inText) - (String.countChar  '\n' word) // line count starts at one
+                Some {offset = off ; line = ln}
+            else
+                None
 
     /// Only starts search when not in comment or string literal
     /// Since it searches forward this allows to find starting blocks of strings and comments too
-    let findWordAhead (word:string) fromIdx (inText:string) =        
-        let max = inText.Length-1
+    let findWordAhead (word:string) fromIdx (inText:string) =
         let len = word.Length
 
         let search (i:int) =            
-            if i+len > max then false // serch would go over the end of text
+            if i+len > inText.Length then false // serch would go over the end of text
             else                
                 let mutable iw = 0
                 let mutable it = i            
