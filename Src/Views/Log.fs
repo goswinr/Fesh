@@ -41,6 +41,25 @@ type LogMessageType =
         | DebugMsg      ->Brushes.Green
         
 
+[<Struct>]
+type ColorFromOffset = 
+    {off: int; brush: SolidColorBrush}
+    
+    /// does binary search
+    static member findCurrentInList (cs:ResizeArray<ColorFromOffset>) off = 
+        let last = cs.Count-1
+
+        let rec find lo hi =             
+            let mid = lo + (hi - lo) / 2          //TODO test edge conditions !!  
+            if cs.[mid].off <= off then 
+                if mid = last             then cs.[mid] // exit
+                elif cs.[mid+1].off > off then cs.[mid] // exit
+                else find (mid+1) hi
+            else
+                     find lo (mid-1)
+        
+        find 0 last
+
 
 /// A TextWriter that writes using a function (to an Avalonedit Control). used in FSI session constructor   
 type FsxTextWriter(writeStr) =
@@ -96,7 +115,7 @@ type LogSelectedTextHighlighter (lg:AvalonEdit.TextEditor) =
     //member this.HighlightText  with get() = highTxt and set v = highTxt <- v
     //member this.CurrentSelectionStart  with get() = curSelStart and set v = curSelStart <- v
     
-    /// This gets called for every visvble line on any view change
+    /// This gets called for every visible line on any view change
     override this.ColorizeLine(line:AvalonEdit.Document.DocumentLine) =       
         //  from https://stackoverflow.com/questions/9223674/highlight-all-occurrences-of-selected-word-in-avalonedit
             
@@ -166,6 +185,7 @@ type Log () =
     
     /// Dictionary holding the color of all non standart lines
     let lineColors = new Collections.Generic.Dictionary<int,SolidColorBrush>() 
+    let offsetColors = ResizeArray<ColorFromOffset>()
 
     
     let log =  new AvalonEdit.TextEditor()        
@@ -192,10 +212,7 @@ type Log () =
         log.TextArea.TextView.LineTransformers.Add(hiLi)
         log.TextArea.TextView.LineTransformers.Add(colo)
         
-        
-        
-
-
+     
 
     let printCallsCounter = ref 0L
     let mutable prevMsgType = IOErrorMsg
@@ -205,13 +222,13 @@ type Log () =
 
 
 
-    // The below functions are trying to work around double UI update in printfn for better UI performance, and the poor performance of log.ScrollToEnd().
+    // The below functions are trying to work around double UI update in printfn for better UI performance, 
+    // and the poor performance of log.ScrollToEnd().
     // see  https://github.com/dotnet/fsharp/issues/3712   
-    let printFromBufferAndScroll(ty:LogMessageType) =             
-        stopWatch.Restart()
+    let printFromBufferAndScroll(ty:LogMessageType) = 
         try
             //buffer.Insert(0,"£") |> ignore // Debug only
-            let txt = buffer.ToString()//.Replace(NewLine, sprintf "(%A)%s" ty NewLine)  //for DEBUG only           
+            let txt = buffer.ToString() //.Replace(NewLine, sprintf "(%A)%s" ty NewLine)  //for DEBUG only           
             buffer.Clear()  |> ignore 
             let start = log.Document.TextLength
             log.AppendText(txt)
@@ -239,7 +256,7 @@ type Log () =
                     do! Async.SwitchToContext Sync.syncContext 
                     log.AppendText (sprintf "ERROR in printFromBufferAndScroll %A" ex)
                     }|> Async.StartImmediate 
-
+        stopWatch.Restart()
 
     /// adds string on UI thread  every 150ms then scrolls to end after 300ms
     /// sets line color on LineColors dictionay for DocumentColorizingTransformer
@@ -253,12 +270,12 @@ type Log () =
             buffer.Append(s)  |> ignore 
             //textAddEv.Trigger(s)
 
-            if stopWatch.ElapsedMilliseconds > 100L  then // print case 2, only add to document every 100ms  ( and  s.Contains(NewLine) ??)
+            if stopWatch.ElapsedMilliseconds > 100L  then // print case 2, only add to document every 100ms  
                 printFromBufferAndScroll(ty)                
             else                        
                 let k = Interlocked.Increment printCallsCounter
-                do! Async.Sleep 200
-                if !printCallsCounter = k  then //print case 3, it is the last call for 200 ms
+                do! Async.Sleep 100
+                if !printCallsCounter = k  then //print case 3, it is the last call for 100 ms
                     printFromBufferAndScroll(ty)
                 
         } |> Async.StartImmediate 
@@ -287,7 +304,7 @@ type Log () =
     
     //----------------------members:------------------------------------------    
     
-    /// this event occures on ever call to print, NOT on the aggregated strings that are appened to Log
+    // this event occures on every call to print, NOT on the aggregated strings that are appened to Log
     //[<CLIEvent>]member this.OnPrint = textAddEv.Publish
        
     member this.AdjustToSettingsInConfig(config:Config)=        
