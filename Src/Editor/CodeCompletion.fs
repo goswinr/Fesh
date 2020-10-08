@@ -84,6 +84,7 @@ type CompletionItem (config:Config, getToolTip, it:FSharpDeclarationListItem, is
                 "[<" + it.Name.Replace("Attribute",">]") 
             elif it.Name.IndexOfAny [|' ' ; '-' ; '+' ; '*' ;'=' ; ',' ; '%' ; '&' ; '@' ; '#' ; '|' ; '!' ; '?' ; '(' ; ')' ; '[' ; ']'; '<' ; '>' |] > 0 then 
                 "``" + it.Name + "``"
+            elif it.Name = "struct" then "[<Struct>]"
             else it.Name     //TODO move this logic out here      
         textArea.Document.Replace(completionSegment, compl) 
         if not isDotCompletion then 
