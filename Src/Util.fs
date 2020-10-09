@@ -90,6 +90,15 @@ module String =
             i <- i + 1                       
         i - off   
 
+
+    /// backtrack till non Whitspace
+    /// returns new offset
+    let inline findBackNonWhiteFrom off (str:string) =        
+        let mutable i = off
+        while i > -1 && Char.IsWhiteSpace(str,i) do
+            i <- i - 1                       
+        i   
+
     /// checks if a string is just space characters or Empty string 
     let inline isJustSpaceCharsOrEmpty (str:string) =
         let mutable isSpace = true
