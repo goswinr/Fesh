@@ -17,7 +17,8 @@ open Seff.Util
 open Seff.Util.General
 open Seff.Config
 
-
+[<Struct>]
+type Folding = {startOff:int; endOff:int; linesInFold: int}
 
 type Foldings(ed:TextEditor,checker:Checker,config:Config, edId:Guid) = 
     
@@ -31,11 +32,11 @@ type Foldings(ed:TextEditor,checker:Checker,config:Config, edId:Guid) =
     let mutable foldStateHash = 0
     
     /// poor man's hash function
-    let getFoldstate (xys: ResizeArray<int*int*int>) =
+    let getFoldstate (xys: ResizeArray<Folding>) =
         let mutable v = 0
-        for x,y,_ in xys do   
-            v <- v + x
-            v <- v + (y<<<16)
+        for f in xys do   
+            v <- v +  f.startOff
+            v <- v + (f.endOff<<<16)
         v
     
     ///Get foldings at every line that is followed by an indent
@@ -46,7 +47,48 @@ type Foldings(ed:TextEditor,checker:Checker,config:Config, edId:Guid) =
             async{            
                 match iEditor.FileCheckState.FullCodeAndId with
                 | NoCode ->()
-                | CodeID (code,id0) ->                    
+                | CodeID (code,checkId) ->
+                    let indents = Parse.findIndents code 
+                    let foldings=ResizeArray<Folding>()
+
+                    let rec find stLn (st:Parse.Indent) (prev:Parse.Indent)  i=
+                        let this = indents.[i]
+                        if i < indents.Count-1 then // exclude last line                             
+
+                            if this.indent > 0 then // an indented line
+                                if prev.indent = 0 then 
+                                    find i this this (i+1)  // start new folding 
+                                else
+                                    find stLn st this (i+1) // search on 
+                            
+                            elif this.indent < 0 then // empty line 
+                                if prev.indent = 0 then 
+                                    find i this this (i+1) // start new folding 
+                                else
+                                    find stLn st this (i+1) // search on 
+                                    //find (i+1) stLn st prev // empty line, search on, dont use this line as prev 
+                            
+                            elif this.indent = 0 then 
+                                if prev.indent > 0 then // end new folding 
+                                    let startOff = String.findBackNonWhiteFrom (st.offset-1)   code 
+                                    let endOff   = String.findBackNonWhiteFrom (this.offset-1) code 
+                                    foldings.Add {startOff = startOff; endOff = endOff ; linesInFold= i-stLn}
+                                    find i this this  (i+1)
+                                else
+                                    find i this this  (i+1)
+                        
+                        else // close on last line 
+                            if prev.indent > 0 then 
+                                let startOff = String.findBackNonWhiteFrom (st.offset-1)   code 
+                                let endOff =   String.findBackNonWhiteFrom (this.offset-1) code 
+                                foldings.Add {startOff = startOff; endOff = endOff ; linesInFold = i-stLn}
+                            // exit recursion    
+
+                    find  1 {indent= -1; offset=0} {indent= -1; offset=0} 1// start from item 1 not 0, lines start at 1 too
+
+
+
+                    (*
                     // TODO compute update only for visible areas not allcode?
                     let foldings=ResizeArray<int*int*int>()
                     let lns = code.Split([|Environment.NewLine|],StringSplitOptions.None) // TODO better iterate without allocating an array of lines  
@@ -94,10 +136,11 @@ type Foldings(ed:TextEditor,checker:Checker,config:Config, edId:Guid) =
                         let foldedlines = lastNotBlankLineNum - foldStartLine
                         let f = foldStartOfset, foldEnd , foldedlines
                         foldings.Add f                   
-            
+                    *)
+
                     let state = getFoldstate foldings
                     if state = foldStateHash then 
-                        () // noch chnages in folding
+                        () // no chnages in folding
                     else
                         foldStateHash <- state
                         do! Async.SwitchToContext Sync.syncContext
@@ -105,10 +148,10 @@ type Foldings(ed:TextEditor,checker:Checker,config:Config, edId:Guid) =
                         | NoCode -> ()
                         | CodeID _ ->                        
                             let folds=ResizeArray<NewFolding>()
-                            for st,en,length in foldings do 
-                                let f = new NewFolding(st,en)                                
-                                f.Name <- sprintf " ... %d Lines " length
-                                folds.Add(f) //if new folding type is created async a waiting symbol apears on top of it 
+                            for f in foldings do 
+                                let fo = new NewFolding(f.startOff,f.endOff)                                
+                                fo.Name <- sprintf " ... %d Lines " f.linesInFold
+                                folds.Add(fo) //if new folding type is created async a waiting symbol apears on top of it 
                             let firstErrorOffset = -1 //The first position of a parse error. Existing foldings starting after this offset will be kept even if they don't appear in newFoldings. Use -1 for this parameter if there were no parse errors) 
                             manager.UpdateFoldings(folds,firstErrorOffset)
                 } |>  Async.Start       
