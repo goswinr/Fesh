@@ -373,7 +373,37 @@ module Parse =
         
         find st
         I
+    
+    [<Struct>]
+    /// the start of line offset and the indent, 
+    /// indent is -1 on empty line 
+    type IndentChange = { line:int; indent:int; offsetAtWord:int; endOffset:int}
 
+    /// Retuns list of Indents
+    /// item 0 it -99 because lincount starts at 1 not 0
+    /// white space lines are -1
+    let findIndentChanges (tx:string) =
+        let IC = ResizeArray()
+        let last = tx.Length-1
+        let mutable lineNo = 0
+
+        let rec find prevIndent pos =            
+            let inde = String.spacesAtOffset pos tx
+            let wordSt = pos + inde            
+            match tx.IndexOf ('\n', wordSt ) with
+            | -1 -> () // end of file
+            | newlineIdx -> 
+                lineNo <- lineNo + 1
+                if newlineIdx = last then ()// empty line at end of file
+                else
+                    let endOff = newlineIdx + 1                
+                    if newlineIdx <= wordSt + 1 then find prevIndent endOff// empty line, ignore offest use prev
+                    else                    
+                        if prevIndent <> inde then                         
+                            IC.Add { line=lineNo; indent=inde; offsetAtWord=wordSt; endOffset= endOff }   
+                        find inde endOff 
+            find 0 0
+        IC
 
 
 (*
