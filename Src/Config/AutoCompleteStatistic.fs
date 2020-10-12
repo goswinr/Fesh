@@ -30,7 +30,7 @@ type AutoCompleteStatistic  (log:ISeffLog, hostInfo:HostingInfo) =
 
     let completionStatsAsString () = 
         let sb = StringBuilder() 
-        for KeyValue(k,v) in completionStats do
+        for KeyValue(k,v) in completionStats |> Seq.sortByDescending (fun (KeyValue(k,v)) -> v) |> Seq.truncate 500  do // biggets number first, max 500 words
             sb.Append(k).Append(sep).AppendLine(v.ToString()) |> ignore
         sb.ToString() 
      
