@@ -17,8 +17,15 @@ open Seff.Util
 open Seff.Util.General
 open Seff.Config
 
+
 [<Struct>]
-type Folding = {startOff:int; endOff:int; linesInFold: int}
+type Fold = {foldStartOff:int; foldEndOff:int; linesInFold: int}
+
+[<Struct>]
+type FoldStart = {indent: int; lineEndOff:int; line: int}
+
+[<Struct>]
+type Indent = { indent: int; wordStartOff:int}
 
 type Foldings(ed:TextEditor,checker:Checker,config:Config, edId:Guid) = 
     
@@ -32,13 +39,76 @@ type Foldings(ed:TextEditor,checker:Checker,config:Config, edId:Guid) =
     let mutable foldStateHash = 0
     
     /// poor man's hash function
-    let getFoldstate (xys: ResizeArray<Folding>) =
+    let getFoldstate (xys: ResizeArray<Fold>) =
         let mutable v = 0
         for f in xys do   
-            v <- v +  f.startOff
-            v <- v + (f.endOff<<<16)
+            v <- v +  f.foldStartOff
+            v <- v + (f.foldEndOff <<< 16)
         v
     
+    
+    let findFolds (tx:string) =
+        
+        let St = Collections.Generic.Stack<FoldStart>()
+        let Fs = ResizeArray<Fold>()
+    
+        let mutable lineNo = 1
+        
+        // returns offset of first letter
+        // jumps over empty lines
+        let rec findLetter ind off =
+            if  off = tx.Length then  { indent = 0; wordStartOff = off-1}
+            else 
+                let c = tx.[off]
+                if   c = ' '   then                        findLetter (ind+1) (off+1)
+                elif c = '\r'  then                        findLetter 0       (off+1)        
+                elif c = '\n'  then  lineNo <- lineNo + 1; findLetter 0       (off+1)        
+                else                 { indent= ind; wordStartOff=off}
+            
+        // returns offset of '\n'
+        let rec findLineEnd off =
+            if  off = tx.Length then  off-1
+            else 
+                if tx.[off] = '\n'  then  off
+                else                      findLineEnd (off+1)  
+        
+        
+        let rec findFolds ind off =         
+            let no = lineNo
+            let en = findLineEnd off
+            if en > off then 
+                let le = findLetter 0 en
+                //printfn "le.indent: %i (ind %d)  in line %d" le.indent ind no
+                
+                if le.indent = ind then 
+                    findFolds le.indent le.wordStartOff
+                    
+                elif le.indent > ind then 
+                    St.Push {indent= ind; lineEndOff = en ; line = no}
+                    printfn " line: %d: indent %d start" no ind
+                    findFolds le.indent le.wordStartOff
+                
+                elif le.indent < ind then 
+                    //eprintfn "%A" St
+                    let mutable take = true 
+                    let insertAt = Fs.Count 
+                    while St.Count > 0 && take do                
+                        let st = St.Peek()                        
+                        if st.indent >= le.indent then 
+                            St.Pop()  |> ignore 
+                            let lines = no - st.line
+                            Fs.Insert(insertAt,  {foldStartOff = st.lineEndOff; foldEndOff = en ; linesInFold = lines })
+                            eprintfn "line: %d : indent %d end of %d lines " no st.indent lines
+                        else
+                            take <- false            
+                    findFolds le.indent le.wordStartOff        
+        
+        
+        let le = findLetter 0 0
+        findFolds le.indent le.wordStartOff
+        Fs
+
+
     ///Get foldings at every line that is followed by an indent
     let foldEditor (iEditor:IEditor) =        
         //config.Log.PrintDebugMsg "folding: %s %A = %A" iEditor.FilePath.File edId iEditor.Id
@@ -47,96 +117,8 @@ type Foldings(ed:TextEditor,checker:Checker,config:Config, edId:Guid) =
             async{            
                 match iEditor.FileCheckState.FullCodeAndId with
                 | NoCode ->()
-                | CodeID (code,checkId) ->
-                    let indents = Parse.findIndents code 
-                    let foldings=ResizeArray<Folding>()
-
-                    let rec find stLn (st:Parse.Indent) (prev:Parse.Indent)  i=
-                        let this = indents.[i]
-                        if i < indents.Count-1 then // exclude last line                             
-
-                            if this.indent > 0 then // an indented line
-                                if prev.indent = 0 then 
-                                    find i this this (i+1)  // start new folding 
-                                else
-                                    find stLn st this (i+1) // search on 
-                            
-                            elif this.indent < 0 then // empty line 
-                                if prev.indent = 0 then 
-                                    find i this this (i+1) // start new folding 
-                                else
-                                    find stLn st this (i+1) // search on 
-                                    //find (i+1) stLn st prev // empty line, search on, dont use this line as prev 
-                            
-                            elif this.indent = 0 then 
-                                if prev.indent > 0 then // end new folding 
-                                    let startOff = String.findBackNonWhiteFrom (st.offset-1)   code 
-                                    let endOff   = String.findBackNonWhiteFrom (this.offset-1) code 
-                                    foldings.Add {startOff = startOff; endOff = endOff ; linesInFold= i-stLn}
-                                    find i this this  (i+1)
-                                else
-                                    find i this this  (i+1)
-                        
-                        else // close on last line 
-                            if prev.indent > 0 then 
-                                let startOff = String.findBackNonWhiteFrom (st.offset-1)   code 
-                                let endOff =   String.findBackNonWhiteFrom (this.offset-1) code 
-                                foldings.Add {startOff = startOff; endOff = endOff ; linesInFold = i-stLn}
-                            // exit recursion    
-
-                    find  1 {indent= -1; offset=0} {indent= -1; offset=0} 1// start from item 1 not 0, lines start at 1 too
-
-
-
-                    (*
-                    // TODO compute update only for visible areas not allcode?
-                    let foldings=ResizeArray<int*int*int>()
-                    let lns = code.Split([|Environment.NewLine|],StringSplitOptions.None) // TODO better iterate without allocating an array of lines  
-                    let mutable currLnEndOffset = 0
-                    let mutable foldStartOfset = -1
-                    let mutable foldStartLine = -1
-                    let mutable lastNotBlankLineEndOffset = -1
-                    let mutable lastNotBlankLineNum = 0
-                    //config.Log.PrintDebugMsg "folding2: %d lines" lns.Length
-                    for lni, ln in Seq.indexed lns do 
-                        let lnNum = lni+1
-                        currLnEndOffset <- currLnEndOffset + ln.Length + 2
-                        let notBlank = not (String.isJustSpaceCharsOrEmpty ln)  
-                        if notBlank && ln.Length>0 then                         
-                            let firstChar = ln.[0]
-                            if firstChar <> ' ' then  
-                        
-                                //test for open folds
-                                if foldStartOfset > 0 then    
-                                    if foldStartLine <= lastNotBlankLineNum - minLinesForFold then                             
-                                
-                                        let foldEnd = lastNotBlankLineEndOffset - 2 //-2 to skip over line break 
-                                        //config.Log.PrintDebugMsg "Folding from  line %d to %d : Offset %d to %d" foldStartLine lastNotBlankLineNum foldStartOfset foldEnd
-                                        let foldedlines = lastNotBlankLineNum - foldStartLine
-                                        let f = foldStartOfset, foldEnd,  foldedlines
-                                        foldings.Add f                            
-                                        foldStartOfset <- -1
-                                        foldStartLine  <- -1
-                                    else
-                                        foldStartOfset <- -1
-                                        foldStartLine  <- -1
-                        
-                                //on then same line a new fold might open
-                                if foldStartOfset < 0 then                                                   
-                                    foldStartLine <- lnNum
-                                    foldStartOfset <- currLnEndOffset-2//-2 to skip over line break
-                            lastNotBlankLineEndOffset <- currLnEndOffset
-                            lastNotBlankLineNum <- lnNum
-                  
-            
-                    //close last folding
-                    if foldStartOfset > 0 then                  
-                        let foldEnd = lastNotBlankLineEndOffset - 2 //-2 to skip over line break
-                        //log.PrintDebugMsg "Last Folding from  line %d to end : Offset %d to %d" foldStartLine  foldStartOfset foldEnd
-                        let foldedlines = lastNotBlankLineNum - foldStartLine
-                        let f = foldStartOfset, foldEnd , foldedlines
-                        foldings.Add f                   
-                    *)
+                | CodeID (code,checkId) ->                    
+                    let foldings=findFolds code
 
                     let state = getFoldstate foldings
                     if state = foldStateHash then 
@@ -149,21 +131,18 @@ type Foldings(ed:TextEditor,checker:Checker,config:Config, edId:Guid) =
                         | CodeID _ ->                        
                             let folds=ResizeArray<NewFolding>()
                             for f in foldings do 
-                                let fo = new NewFolding(f.startOff,f.endOff)                                
+                                let fo = new NewFolding(f.foldStartOff, f.foldEndOff)                                
                                 fo.Name <- sprintf " ... %d Lines " f.linesInFold
                                 folds.Add(fo) //if new folding type is created async a waiting symbol apears on top of it 
                             let firstErrorOffset = -1 //The first position of a parse error. Existing foldings starting after this offset will be kept even if they don't appear in newFoldings. Use -1 for this parameter if there were no parse errors) 
                             manager.UpdateFoldings(folds,firstErrorOffset)
                 } |>  Async.Start       
-        
-    
     
     
     do        
         checker.OnFullCodeAvailabe.Add foldEditor // will add an event for each new tab, foldEditor skips updating  if it is not current editor
-        
-        
-
+        // 
+    
 
     member this.Manager = manager
 
