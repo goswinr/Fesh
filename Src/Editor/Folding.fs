@@ -18,11 +18,12 @@ open Seff.Util.General
 open Seff.Config
 
 
+    
 [<Struct>]
 type Fold = {foldStartOff:int; foldEndOff:int; linesInFold: int}
 
 [<Struct>]
-type FoldStart = {indent: int; lineEndOff:int; line: int}
+type FoldStart = {indent: int; lineEndOff:int; line: int; indexInFolds:int}
 
 [<Struct>]
 type Indent = { indent: int; wordStartOff:int}
@@ -46,67 +47,70 @@ type Foldings(ed:TextEditor,checker:Checker,config:Config, edId:Guid) =
             v <- v + (f.foldEndOff <<< 16)
         v
     
-    
+    let FoldingStack = Collections.Generic.Stack<FoldStart>()
+    let Folds = ResizeArray<Fold>()
+
     let findFolds (tx:string) =
-        
-        let St = Collections.Generic.Stack<FoldStart>()
-        let Fs = ResizeArray<Fold>()
     
+        FoldingStack.Clear()
+        Folds.Clear()
+
         let mutable lineNo = 1
-        
+    
         // returns offset of first letter
         // jumps over empty lines
         let rec findLetter ind off =
             if  off = tx.Length then  { indent = 0; wordStartOff = off-1}
             else 
                 let c = tx.[off]
-                if   c = ' '   then                        findLetter (ind+1) (off+1)
+                if   c = ' '   then                        findLetter (ind+1) (off+1) //TODO ignores tabs
                 elif c = '\r'  then                        findLetter 0       (off+1)        
                 elif c = '\n'  then  lineNo <- lineNo + 1; findLetter 0       (off+1)        
                 else                 { indent= ind; wordStartOff=off}
-            
+        
         // returns offset of '\n'
         let rec findLineEnd off =
             if  off = tx.Length then  off-1
             else 
                 if tx.[off] = '\n'  then  off
                 else                      findLineEnd (off+1)  
-        
-        
+    
+    
         let rec findFolds ind off =         
             let no = lineNo
             let en = findLineEnd off
             if en > off then 
                 let le = findLetter 0 en
                 //printfn "le.indent: %i (ind %d)  in line %d" le.indent ind no
-                
+            
                 if le.indent = ind then 
                     findFolds le.indent le.wordStartOff
-                    
-                elif le.indent > ind then 
-                    St.Push {indent= ind; lineEndOff = en ; line = no}
-                    printfn " line: %d: indent %d start" no ind
-                    findFolds le.indent le.wordStartOff
                 
+                elif le.indent > ind then 
+                    let index = Folds.Count
+                    Folds.Add {foldStartOff = -99; foldEndOff = -99 ; linesInFold = -99 } // dummy value to be mutated later 
+                    FoldingStack.Push {indent= ind; lineEndOff = en ; line = no ; indexInFolds = index}
+                    //printfn " line: %d: indent %d start" no ind
+                    findFolds le.indent le.wordStartOff
+            
                 elif le.indent < ind then 
                     //eprintfn "%A" St
-                    let mutable take = true 
-                    let insertAt = Fs.Count 
-                    while St.Count > 0 && take do                
-                        let st = St.Peek()                        
+                    let mutable take = true
+                    while FoldingStack.Count > 0 && take do                
+                        let st = FoldingStack.Peek()
                         if st.indent >= le.indent then 
-                            St.Pop()  |> ignore 
+                            FoldingStack.Pop()  |> ignore 
                             let lines = no - st.line
-                            Fs.Insert(insertAt,  {foldStartOff = st.lineEndOff; foldEndOff = en ; linesInFold = lines })
-                            eprintfn "line: %d : indent %d end of %d lines " no st.indent lines
+                            Folds.[st.indexInFolds] <- {foldStartOff = st.lineEndOff; foldEndOff = en ; linesInFold = lines }
+                            //eprintfn "line: %d : indent %d end of %d lines " no st.indent lines
                         else
                             take <- false            
                     findFolds le.indent le.wordStartOff        
-        
-        
+    
+    
         let le = findLetter 0 0
         findFolds le.indent le.wordStartOff
-        Fs
+        Folds
 
 
     ///Get foldings at every line that is followed by an indent
@@ -118,12 +122,13 @@ type Foldings(ed:TextEditor,checker:Checker,config:Config, edId:Guid) =
                 match iEditor.FileCheckState.FullCodeAndId with
                 | NoCode ->()
                 | CodeID (code,checkId) ->                    
-                    let foldings=findFolds code
+                    let foldings = findFolds code
 
                     let state = getFoldstate foldings
                     if state = foldStateHash then 
                         () // no chnages in folding
                     else
+                        //config.Log.PrintDebugMsg "%d Foldings found" foldings.Count
                         foldStateHash <- state
                         do! Async.SwitchToContext Sync.syncContext
                         match iEditor.FileCheckState.SameIdAndFullCode(checker.GlobalCheckState) with
@@ -135,6 +140,7 @@ type Foldings(ed:TextEditor,checker:Checker,config:Config, edId:Guid) =
                                 fo.Name <- sprintf " ... %d Lines " f.linesInFold
                                 folds.Add(fo) //if new folding type is created async a waiting symbol apears on top of it 
                             let firstErrorOffset = -1 //The first position of a parse error. Existing foldings starting after this offset will be kept even if they don't appear in newFoldings. Use -1 for this parameter if there were no parse errors) 
+                            config.Log.PrintDebugMsg "%d Foldings added" folds.Count
                             manager.UpdateFoldings(folds,firstErrorOffset)
                 } |>  Async.Start       
     
