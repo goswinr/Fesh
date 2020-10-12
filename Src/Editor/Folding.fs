@@ -137,7 +137,6 @@ type Foldings(ed:TextEditor,checker:Checker,config:Config, edId:Guid) =
                     if state = foldStateHash then 
                         () // no chnages in folding
                     else
-                        //config.Log.PrintDebugMsg "%d Foldings found" foldings.Count
                         foldStateHash <- state
                         do! Async.SwitchToContext Sync.syncContext
                         match iEditor.FileCheckState.SameIdAndFullCode(checker.GlobalCheckState) with
@@ -147,8 +146,8 @@ type Foldings(ed:TextEditor,checker:Checker,config:Config, edId:Guid) =
                             for f in foldings do 
                                 let fo = new NewFolding(f.foldStartOff, f.foldEndOff)                                
                                 fo.Name <- sprintf " ... %d Lines " f.linesInFold
-                                folds.Add(fo) //if new folding type is created async a waiting symbol apears on top of it 
-                                config.Log.PrintDebugMsg "Foldings from %d to %d  that is  %d lines" f.foldStartOff  f.foldEndOff f.linesInFold
+                                folds.Add(fo) //if NewFolding type is created async a waiting symbol apears on top of it 
+                                //config.Log.PrintDebugMsg "Foldings from %d to %d  that is  %d lines" f.foldStartOff  f.foldEndOff f.linesInFold
                             let firstErrorOffset = -1 //The first position of a parse error. Existing foldings starting after this offset will be kept even if they don't appear in newFoldings. Use -1 for this parameter if there were no parse errors) 
                             manager.UpdateFoldings(folds,firstErrorOffset)
                 } |>  Async.Start       
