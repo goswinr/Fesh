@@ -74,6 +74,7 @@
     <Compile Include="Src\Config\RecentlyUsedFiles.fs" />
     <Compile Include="Src\Config\AutoCompleteStatistic.fs" />
     <Compile Include="Src\Config\AssemblyReferenceStatistic.fs" />
+    <Compile Include="Src\Config\FoldingStatus.fs" />
     <Compile Include="Src\Config\Config.fs" />
 
     <Compile Include="Src\Fsi.fs" />
