@@ -12,8 +12,7 @@ type FsiArugments  (log:ISeffLog, hostInfo:HostingInfo) =
     // "--shadowcopyreferences" is ignored https://github.com/fsharp/FSharp.Compiler.Service/issues/292          
     let defaultArgs = [| "first arg is ignored" ; "--langversion:preview" ; "--noninteractive" ; "--debug+"; "--debug:full" ;"--optimize+" ; "--gui-" ; "--nologo"|]
 
-    let get() = 
-        let dict = new Collections.Concurrent.ConcurrentDictionary<string,string>()   
+    let get() =         
         try 
             IO.File.ReadAllLines filePath 
             |> Array.map (fun s -> s.Trim())

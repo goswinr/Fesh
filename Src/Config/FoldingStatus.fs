@@ -28,11 +28,12 @@ type FoldingStatus (log:ISeffLog, hostInfo:HostingInfo,recentlyUsedFiles:Recentl
                         //log.PrintDebugMsg "%s for %s" v k
                         let vs = Seq.map ( fun c -> if c = '0' then false elif c = '1' then true else failwithf "bad char %c in FoldingStatus" c) v |> Array.ofSeq
                         dict.[k] <- vs 
-                    | _ -> log.PrintAppErrorMsg "Bad line in FoldingStatus file : '%s'" ln                   
+                    | _ -> log.PrintAppErrorMsg "Bad line in FoldingStatus file : '%s'" ln 
+                waitingForFileRead <- false
             with e -> 
+                waitingForFileRead <- false
                 log.PrintAppErrorMsg "Error load FoldingStatus: %A"   e
-            } |> Async.Start 
-        waitingForFileRead <- false
+            } |> Async.Start
         dict
 
     let foldingStatusAsString () = 
