@@ -327,7 +327,7 @@
     </Rule>
     -->      
     
-    <Span color="TypeAnnotation"> 
+    <Span color="TypeAnnotation" multiline="false" > 
       <!-- to match one colon but not two: negative look behind for a colon, the colon, negative look ahead for a colon. 
            All that wraped in CDATA because xml readers fails on negative look behind tag  ?<!    -->
       <Begin color="Punctuation"><![CDATA[(?<!:):(?!:)]]></Begin> 
@@ -338,10 +338,10 @@
     </Span>
 
     <!--names in Records-->
-    <Span color="RecordNames">
-      <Begin color="Punctuation">\s*\{ |  ; </Begin> 
+    <Span color="RecordNames" multiline="false">
+      <Begin color="Punctuation">\s* \{ |  ; </Begin> 
       <End color="Punctuation">=|:</End> 
-    </Span>
+    </Span> 
 
     <Span color="LetBinding"> 
       <Begin color= "Let" >\blet\b</Begin> 
@@ -366,12 +366,14 @@
       <Word>printFull</Word>
       
       <Word>printf</Word>
-      <Word>printfn</Word>
+      <Word>printfn</Word>      
+      <Word>eprintf</Word>
+      <Word>eprintfn</Word>
     </Keywords>
 
 
     <Span color="PrintString" >      
-      <Begin color= "PrintStatement" >\bprint2?f?n?\s*"</Begin> 
+      <Begin color= "PrintStatement" >\be?print2?f?n?\s*"</Begin> 
       <End   color= "PrintStatement" >"</End>     
       <RuleSet>
         <Import ruleSet="StringEscapeSet"/>
