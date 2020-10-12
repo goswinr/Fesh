@@ -30,12 +30,11 @@ type Indent = { indent: int; wordStartOff:int}
 
 type Foldings(ed:TextEditor,checker:Checker,config:Config, edId:Guid) = 
     
-    let minLinesForFold = 1
-
     let manager = Folding.FoldingManager.Install(ed.TextArea)  // color of margin is set in ColoumRulers.fs
 
     // color for folding box is set in SelectedTextHighlighter
-        
+    
+    (*
     /// a hash value to  see if folding state needs updating
     let mutable foldStateHash = 0
     
@@ -45,21 +44,22 @@ type Foldings(ed:TextEditor,checker:Checker,config:Config, edId:Guid) =
         for f in xys do   
             v <- v +  f.foldStartOff
             v <- v + (f.foldEndOff <<< 16)
-        v
+        v *)
     
-    //let FoldingStack = Collections.Generic.Stack<FoldStart>()
-    //let Folds = ResizeArray<Fold>()
+    let FoldingStack = Collections.Generic.Stack<FoldStart>()
+    let Folds = ResizeArray<Fold>()
 
     /// maximum amount of nested foldings 
     let maxDepth = 1
 
+    let mutable isIntialLoad = true
 
     let findFolds (tx:string) =
     
-        //FoldingStack.Clear()
-        //Folds.Clear()
-        let FoldingStack = Collections.Generic.Stack<FoldStart>()
-        let Folds = ResizeArray<Fold>()
+        FoldingStack.Clear()
+        Folds.Clear()
+        //let FoldingStack = Collections.Generic.Stack<FoldStart>()
+        //let Folds = ResizeArray<Fold>()
 
         let mutable lineNo = 1
     
@@ -131,34 +131,57 @@ type Foldings(ed:TextEditor,checker:Checker,config:Config, edId:Guid) =
                 match iEditor.FileCheckState.FullCodeAndId with
                 | NoCode ->()
                 | CodeID (code,checkId) ->                    
-                    let foldings = findFolds code
+                        let foldings = findFolds code
 
-                    let state = getFoldstate foldings
-                    if state = foldStateHash then 
-                        () // no chnages in folding
-                    else
-                        foldStateHash <- state
+                    //let state = getFoldstate foldings
+                    //if state = foldStateHash then 
+                        //() // no chnages in folding
+                    //else
+                        //foldStateHash <- state
+
                         do! Async.SwitchToContext Sync.syncContext
                         match iEditor.FileCheckState.SameIdAndFullCode(checker.GlobalCheckState) with
                         | NoCode -> ()
-                        | CodeID _ ->                        
-                            let folds=ResizeArray<NewFolding>()
-                            for f in foldings do 
-                                let fo = new NewFolding(f.foldStartOff, f.foldEndOff)                                
-                                fo.Name <- sprintf " ... %d Lines " f.linesInFold
-                                folds.Add(fo) //if NewFolding type is created async a waiting symbol apears on top of it 
-                                //config.Log.PrintDebugMsg "Foldings from %d to %d  that is  %d lines" f.foldStartOff  f.foldEndOff f.linesInFold
-                            let firstErrorOffset = -1 //The first position of a parse error. Existing foldings starting after this offset will be kept even if they don't appear in newFoldings. Use -1 for this parameter if there were no parse errors) 
-                            manager.UpdateFoldings(folds,firstErrorOffset)
+                        | CodeID _ -> 
+                            if isIntialLoad then 
+                                while config.FoldingStatus.WaitingForFileRead do
+                                    config.Log.PrintDebugMsg "waiting to load last code folding status.. "
+                                    do! Async.Sleep 50
+                                let vs = config.FoldingStatus.Get(iEditor) 
+                                for f,folded in Seq.zip foldings vs do
+                                    let fs = manager.CreateFolding(f.foldStartOff, f.foldEndOff)
+                                    fs.IsFolded <- folded
+                                    fs.Title <- sprintf " ... %d Lines " f.linesInFold
+                                isIntialLoad <- false
+                            else
+                                let folds=ResizeArray<NewFolding>()
+                                for f in foldings do 
+                                    //config.Log.PrintDebugMsg "Foldings from %d to %d  that is  %d lines" f.foldStartOff  f.foldEndOff f.linesInFold
+                                    let fo = new NewFolding(f.foldStartOff, f.foldEndOff)                                
+                                    fo.Name <- sprintf " ... %d Lines " f.linesInFold
+                                    folds.Add(fo) //if NewFolding type is created async a waiting symbol apears on top of it 
+                                let firstErrorOffset = -1 //The first position of a parse error. Existing foldings starting after this offset will be kept even if they don't appear in newFoldings. Use -1 for this parameter if there were no parse errors) 
+                                manager.UpdateFoldings(folds,firstErrorOffset)
+                                
                 } |>  Async.Start       
     
     
     do        
         checker.OnFullCodeAvailabe.Add foldEditor // will add an event for each new tab, foldEditor skips updating  if it is not current editor
-        // 
-    
+        
+        // event for tracking folding status is attached in editor.setup()
+
+    member this.SetState(ied:IEditor) =
+        let vs = config.FoldingStatus.Get(ied)     
+        for f,s in Seq.zip manager.AllFoldings vs do f.IsFolded <- s
 
     member this.Manager = manager
+
+    member this.Margin = 
+        ed.TextArea.LeftMargins
+        |> Seq.tryFind ( fun m -> m :? Folding.FoldingMargin )
+        |> Option.defaultWith (fun () -> failwithf "Failed to find Folding.FoldingMargin")
+        :?> Folding.FoldingMargin
 
     member this.ExpandAll() = for f in manager.AllFoldings do f.IsFolded <- false
     

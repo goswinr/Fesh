@@ -193,14 +193,20 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
                         //checkForErrorsAndUpdateFoldings(tab)
                         //log.PrintDebugMsg "*2.3-textChanged didn't trigger of checker not needed? \r\n"
                         ()
-
-        //----------------------------------
-        //--FS Checker and Code completion--
-        //----------------------------------  
+        
         avaEdit.AllowDrop <- true  
         avaEdit.Drop.Add( fun e -> CursorBehaviour.dragAndDrop(ed,log,e)) 
         
         avaEdit.PreviewKeyDown.Add ( fun e -> CursorBehaviour.previewKeyDown(avaEdit,e))   //to indent and dedent
+        
+        // setup and tracking folding status, (needs a ref to file path:  )
+        ed.Folds.SetState( ed )              
+        ed.Folds.Margin.MouseUp.Add (fun e -> config.FoldingStatus.Set(ed,ed.Folds.Manager) )
+
+        //----------------------------------
+        //--FS Checker and Code completion--
+        //----------------------------------  
+        
         compls.OnShowing.Add(fun _ -> ed.ErrorHighlighter.ToolTip.IsOpen <- false)
         compls.OnShowing.Add(fun _ -> ed.TypeInfoTip.IsOpen        <- false)
 
