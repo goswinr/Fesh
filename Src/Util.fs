@@ -82,7 +82,7 @@ module String =
             i <- i + 1                       
         i
     
-    /// Counts spaces fater a position
+    /// Counts spaces after a position
     /// returns 0 if none string
     let inline spacesAtOffset off (str:string) =        
         let mutable i = off
