@@ -47,13 +47,19 @@ type Foldings(ed:TextEditor,checker:Checker,config:Config, edId:Guid) =
             v <- v + (f.foldEndOff <<< 16)
         v
     
-    let FoldingStack = Collections.Generic.Stack<FoldStart>()
-    let Folds = ResizeArray<Fold>()
+    //let FoldingStack = Collections.Generic.Stack<FoldStart>()
+    //let Folds = ResizeArray<Fold>()
+
+    /// maximum amount of nested foldings 
+    let maxDepth = 0
+
 
     let findFolds (tx:string) =
     
-        FoldingStack.Clear()
-        Folds.Clear()
+        //FoldingStack.Clear()
+        //Folds.Clear()
+        let FoldingStack = Collections.Generic.Stack<FoldStart>()
+        let Folds = ResizeArray<Fold>()
 
         let mutable lineNo = 1
     
@@ -87,10 +93,11 @@ type Foldings(ed:TextEditor,checker:Checker,config:Config, edId:Guid) =
                     findFolds le.indent le.wordStartOff
                 
                 elif le.indent > ind then 
-                    let index = Folds.Count
-                    Folds.Add {foldStartOff = -99; foldEndOff = -99 ; linesInFold = -99 } // dummy value to be mutated later 
-                    FoldingStack.Push {indent= ind; lineEndOff = en ; line = no ; indexInFolds = index}
-                    //printfn " line: %d: indent %d start" no ind
+                    if FoldingStack.Count <= maxDepth then 
+                        let index = Folds.Count
+                        Folds.Add {foldStartOff = -99; foldEndOff = -99 ; linesInFold = -99 } // dummy value to be mutated later 
+                        FoldingStack.Push {indent= ind; lineEndOff = en ; line = no ; indexInFolds = index}
+                        //printfn " line: %d: indent %d start" no ind
                     findFolds le.indent le.wordStartOff
             
                 elif le.indent < ind then 
