@@ -51,7 +51,7 @@ type Foldings(ed:TextEditor,checker:Checker,config:Config, edId:Guid) =
     //let Folds = ResizeArray<Fold>()
 
     /// maximum amount of nested foldings 
-    let maxDepth = 0
+    let maxDepth = 1
 
 
     let findFolds (tx:string) =
@@ -108,7 +108,9 @@ type Foldings(ed:TextEditor,checker:Checker,config:Config, edId:Guid) =
                         if st.indent >= le.indent then 
                             FoldingStack.Pop()  |> ignore 
                             let lines = no - st.line
-                            Folds.[st.indexInFolds] <- {foldStartOff = st.lineEndOff; foldEndOff = en ; linesInFold = lines }
+                            let foldStart = st.lineEndOff - 1 // the position of '\n' minus two ( does not work without the minus one)
+                            let foldEnd = en - 1 // the position of '\n' minus two
+                            Folds.[st.indexInFolds] <- {foldStartOff = foldStart; foldEndOff = foldEnd; linesInFold = lines }
                             //eprintfn "line: %d : indent %d end of %d lines " no st.indent lines
                         else
                             take <- false            
@@ -146,8 +148,8 @@ type Foldings(ed:TextEditor,checker:Checker,config:Config, edId:Guid) =
                                 let fo = new NewFolding(f.foldStartOff, f.foldEndOff)                                
                                 fo.Name <- sprintf " ... %d Lines " f.linesInFold
                                 folds.Add(fo) //if new folding type is created async a waiting symbol apears on top of it 
+                                config.Log.PrintDebugMsg "Foldings from %d to %d  that is  %d lines" f.foldStartOff  f.foldEndOff f.linesInFold
                             let firstErrorOffset = -1 //The first position of a parse error. Existing foldings starting after this offset will be kept even if they don't appear in newFoldings. Use -1 for this parameter if there were no parse errors) 
-                            config.Log.PrintDebugMsg "%d Foldings added" folds.Count
                             manager.UpdateFoldings(folds,firstErrorOffset)
                 } |>  Async.Start       
     
