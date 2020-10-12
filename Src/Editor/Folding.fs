@@ -106,6 +106,7 @@ type Foldings(ed:TextEditor,checker:Checker,config:Config, edId:Guid) =
                         | CodeID _ ->                        
                             let folds=ResizeArray<NewFolding>()
                             for st,en,length in foldings do 
+                                config.Log.PrintDebugMsg "Foldings from %d to %d  that is  %d lines" st en length
                                 let f = new NewFolding(st,en)                                
                                 f.Name <- sprintf " ... %d Lines " length
                                 folds.Add(f) //if new folding type is created async a waiting symbol apears on top of it 
