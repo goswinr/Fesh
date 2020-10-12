@@ -14,10 +14,9 @@ type RecentlyUsedFiles  (log:ISeffLog, hostInfo:HostingInfo) =
         
     let recentFilesChangedEv = new Event<unit>()
         
-    let recentFilesStack = 
-        // TODO this could be done async too?
+    let recentFilesStack : Collections.Generic.Stack<FileInfo> = 
+        // TODO this could be done async too?        
         
-        //let stack = new Collections.Concurrent.ConcurrentStack<FileInfo>()// might contain even files that dont exist(on a currently detached drive)
         let stack = Collections.Generic.Stack<FileInfo>()
         try            
             //if IO.File.Exists filePath then // do this check only when creating menu items
@@ -31,7 +30,7 @@ type RecentlyUsedFiles  (log:ISeffLog, hostInfo:HostingInfo) =
         
     /// the maximum number of recxent files to be saved
     /// the amount of files in the recently used menu can be controlled separetly in menu.fs
-    let maxCount = 70       
+    let maxCount = 100       
                 
 
     let getStringRaiseEvent() = 
@@ -66,6 +65,12 @@ type RecentlyUsedFiles  (log:ISeffLog, hostInfo:HostingInfo) =
     /// the first elemnt in this array the top of stack
     member this.Get() = Array.ofSeq recentFilesStack
 
+    member this.Contains(s:string) = 
+        recentFilesStack 
+        |> Seq.exists ( fun p -> 
+            let a = p.FullName.ToLowerInvariant()
+            let b = s.ToLowerInvariant()
+            a=b )
    
     [<CLIEvent>]
     /// this even is raised from UI thread 
