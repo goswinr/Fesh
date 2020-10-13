@@ -95,7 +95,7 @@ type Commands (grid:TabsAndLog)  =
     member val ExpandCode        = {name= "Expand all Code Foldings"  ;gesture= ""               ;cmd= mkCmdSimple (fun _ -> tabs.Current.Editor.Folds.ExpandAll() ) ;tip= "Expand or unfold all Code Foldings in this file"                        }
                                                                                                                                      
     //Settings Menu                                                                                                                      
-    member val SettingsFolder    = {name= "Open Settings Folder"      ;gesture= ""               ;cmd= mkCmdSimple (fun _ -> config.HostingInfo.OpenFolder())                             ;tip= "Opens the Folder where user settinsg such as default file content is saved."                                        }
+    member val SettingsFolder    = {name= "Open Settings Folder"      ;gesture= ""               ;cmd= mkCmdSimple (fun _ -> config.Hosting.OpenSettingsFolder())                         ;tip= "Opens the Folder where user settinsg such as default file content is saved."                                        }
     member val ReloadXshdFile    = {name= "Reload Xshd File"          ;gesture= "F10"            ;cmd= mkCmdSimple (fun _ -> SyntaxHighlighting.setFSharp(tabs.CurrAvaEdit,config,true))  ;tip= "Reloads FSharpSynatxHighlighterExtended.xshd, this is useful for testing new highlighting files without a restart." }
 
     //--------------------------
@@ -156,7 +156,7 @@ type Commands (grid:TabsAndLog)  =
                  this.ClearLog        
                  this.CancelFSI        
                  this.ResetFSI         
-                 if config.HostingInfo.IsHosted then this.ToggleSync
+                 if config.Hosting.IsHosted then this.ToggleSync
              
                  this.ToggleSplit      
                  this.ToggleLogSize    

@@ -4,7 +4,7 @@ open Seff
 open System
 
     
-type FsiArugments  (log:ISeffLog, hostInfo:HostingInfo) =
+type FsiArugments  (log:ISeffLog, hostInfo:Hosting) =
     let writer = SaveWriter(log)
     
     let filePath = hostInfo.GetPathToSaveAppData("FsiArugments.txt")

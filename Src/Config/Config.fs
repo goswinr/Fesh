@@ -5,20 +5,20 @@ open Seff
 
 
 
-type Config (log:ISeffLog, context:HostingMode, startupArgs:string[]) =
+type Config (log:ISeffLog, startUpData:HostedStartUpData option, startupArgs:string[]) =
     
-    let  hostInfo                   = HostingInfo                 (context)
-    let  settings                   = Settings                    (log, hostInfo)
-    let  recentlyUsedFiles          = RecentlyUsedFiles           (log, hostInfo)
-    let  openTabs                   = OpenTabs                    (log, hostInfo, startupArgs)
-    let  defaultCode                = DefaultCode                 (log, hostInfo)
-    let  autoCompleteStatistic      = AutoCompleteStatistic       (log, hostInfo)
-    let  assemblyReferenceStatistic = AssemblyReferenceStatistic  (log, hostInfo)
-    let  fsiArugments               = FsiArugments                (log, hostInfo)
-    let  foldingStatus              = FoldingStatus               (log, hostInfo, recentlyUsedFiles)
+    let  hosting                    = Hosting                     (startUpData)
+    let  settings                   = Settings                    (log, hosting)
+    let  recentlyUsedFiles          = RecentlyUsedFiles           (log, hosting)
+    let  openTabs                   = OpenTabs                    (log, hosting, startupArgs)
+    let  defaultCode                = DefaultCode                 (log, hosting)
+    let  autoCompleteStatistic      = AutoCompleteStatistic       (log, hosting)
+    let  assemblyReferenceStatistic = AssemblyReferenceStatistic  (log, hosting)
+    let  fsiArugments               = FsiArugments                (log, hosting)
+    let  foldingStatus              = FoldingStatus               (log, hosting, recentlyUsedFiles)
  
 
-    member this.HostingInfo                = hostInfo      
+    member this.Hosting                    = hosting     
     member this.Log                        = log 
     member this.Settings                   = settings                  
     member this.RecentlyUsedFiles          = recentlyUsedFiles         

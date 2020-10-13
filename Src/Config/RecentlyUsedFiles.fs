@@ -7,7 +7,7 @@ open System.IO
 open System.Collections.ObjectModel
 
    
-type RecentlyUsedFiles  (log:ISeffLog, hostInfo:HostingInfo) =
+type RecentlyUsedFiles  (log:ISeffLog, hostInfo:Hosting) =
     let writer = SaveWriter(log)
         
     let filePath = hostInfo.GetPathToSaveAppData("RecentlyUsedFiles.txt")

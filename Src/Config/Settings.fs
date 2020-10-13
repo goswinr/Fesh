@@ -6,7 +6,7 @@ open System.Text
 
  
 /// window size, layout and position, async state and more
-type Settings (log:ISeffLog, hostInfo:HostingInfo) = 
+type Settings (log:ISeffLog, hostInfo:Hosting) = 
     
     let mutable selectAllOccurences = true // explict value for often accessd settings , skips parsing and dict
     

@@ -8,7 +8,7 @@ open System.IO
 open ICSharpCode.AvalonEdit.Folding
    
 /// A class to hold the statistic of most used toplevel auto completions
-type FoldingStatus (log:ISeffLog, hostInfo:HostingInfo,recentlyUsedFiles:RecentlyUsedFiles) =
+type FoldingStatus (log:ISeffLog, hostInfo:Hosting, recentlyUsedFiles:RecentlyUsedFiles) =
     let writer = SaveWriter(log)
         
     let  sep = '|' // separator 

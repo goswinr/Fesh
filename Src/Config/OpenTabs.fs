@@ -10,7 +10,7 @@ open System.Collections.Generic
 type FileToOpen = {file:FileInfo; makeCurrent:bool}
 
 /// files that are open when closing the editor window, for next restart
-type OpenTabs  (log:ISeffLog, hostInfo:HostingInfo, startupArgs:string[]) = 
+type OpenTabs  (log:ISeffLog, hostInfo:Hosting, startupArgs:string[]) = 
     let writer = SaveWriter(log)
     
     let filePath = hostInfo.GetPathToSaveAppData("CurrentlyOpenFiles.txt")

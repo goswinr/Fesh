@@ -65,7 +65,7 @@
     <Compile Include="Src\Sync.fs" />
     
     <Compile Include="Src\Config\SaveWriter.fs" />
-    <Compile Include="Src\Config\HostingInfo.fs" />
+    <Compile Include="Src\Config\Hosting.fs" />
     <Compile Include="Src\Config\Settings.fs" />
     <Compile Include="Src\Config\DefaultCode.fs" />
     <Compile Include="Src\Config\FsiArugments.fs" />

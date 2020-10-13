@@ -228,7 +228,7 @@ type StatusBar (grid:TabsAndLog, cmds:Commands)  =
         add Dock.Left  <| SelectedTextStatus(grid)
 
         add Dock.Right  <| FsiOutputStatus(grid)
-        if grid.Config.HostingInfo.IsHosted then     add Dock.Right  <|  AsyncStatus(grid)    
+        if grid.Config.Hosting.IsHosted then     add Dock.Right  <|  AsyncStatus(grid)    
 
         bar.Items.Add (new StatusBarItem()) |> ignore // to fill remaining gap
        

@@ -7,7 +7,7 @@ open System.Collections.Generic
 
    
 /// A class to hold the statistic of most used toplevel auto completions
-type AutoCompleteStatistic  (log:ISeffLog, hostInfo:HostingInfo) =
+type AutoCompleteStatistic  (log:ISeffLog, hostInfo:Hosting) =
     let writer = SaveWriter(log)
         
     let  sep = '=' // key value separatur like in ini files

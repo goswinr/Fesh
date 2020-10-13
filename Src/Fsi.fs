@@ -90,7 +90,7 @@ type Fsi private (config:Config) =
                     if prevState = NotLoaded then () //log.PrintInfoMsg "FSharp Interactive session created in %s"  timer.tocEx  
                     else                          log.PrintInfoMsg "FSharp Interactive session reset." // in %s" timer.tocEx     
             
-                    if config.HostingInfo.IsHosted then 
+                    if config.Hosting.IsHosted then 
                         match mode with
                         |Sync ->  log.PrintInfoMsg "FSharp Interactive will evaluate synchronously on UI Thread."
                         |Async -> log.PrintInfoMsg "FSharp Interactive will evaluate asynchronously on new Thread."    
@@ -103,13 +103,18 @@ type Fsi private (config:Config) =
     [< Security.SecurityCritical >] // TODO do these Attributes appy in to async thread too ?
     [< Runtime.ExceptionServices.HandleProcessCorruptedStateExceptions >] //to handle AccessViolationException too //https://stackoverflow.com/questions/3469368/how-to-handle-accessviolationexception/4759831
     let eval(code:CodeToEval)=
-        state <- Evaluating
-        //fsiCancelScr <- Some (new CancellationTokenSource()) //does not work? needs Thread.Abort () ?
-        startedEv.Trigger(code) // do always sync
+        
+        
         if session.IsNone then 
             log.PrintInfoMsg "Please wait till FSI is initalized for running scripts"
-        else
         
+        elif not config.Hosting.FsiCanRun then 
+            log.PrintAppErrorMsg "The Hosting App has blocked Fsi from Running, maybe because the App is busy in another command or task."
+        
+        else            
+            state <- Evaluating
+            //fsiCancelScr <- Some (new CancellationTokenSource()) //does not work? needs Thread.Abort () ?
+            startedEv.Trigger(code) // do always sync
             //TODO https://github.com/dotnet/fsharp/blob/6b0719845c928361e63f6e38a9cce4ae7d621fbf/src/fsharp/fsi/fsi.fs#L2618
             // change via reflection??? 
             // let dummyScriptFileName = "input.fsx"
@@ -152,7 +157,7 @@ type Fsi private (config:Config) =
                     | :? OperationCanceledException ->
                         canceledEv.Trigger()
                         isReadyEv.Trigger()
-                        if config.HostingInfo.IsHosted && mode = FsiMode.Async && isNull exn.StackTrace  then 
+                        if config.Hosting.IsHosted && mode = FsiMode.Async && isNull exn.StackTrace  then 
                             log.PrintFsiErrorMsg "FSI evaluation was canceled,\r\nif you did not trigger this cancellation try running FSI in Synchronos evaluation mode (instead of Async)."    
                         else 
                             log.PrintFsiErrorMsg "FSI evaluation was canceled by user!" //:\r\n%A" exn.StackTrace  //: %A" exn                
@@ -183,7 +188,7 @@ type Fsi private (config:Config) =
         |Some fsi -> fsi
         |None -> singleInstance <- Some (new Fsi(config)); singleInstance.Value
         
-        //match config.HostingInfo.Mode with
+        //match config.Hosting.Mode with
         //|Hosted h when h= "Revit" ->
         //    config.Log.PrintInfoMsg "Fsi in Sync only mode for Revit"
         //    FsiSync.GetOrCreate(config)

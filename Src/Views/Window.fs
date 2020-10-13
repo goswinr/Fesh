@@ -23,9 +23,9 @@ type Window (config:Config)=
         win.ResizeMode  <- ResizeMode.CanResize  
         
         let plat = if Environment.Is64BitProcess then " - 64bit" else " - 32bit"
-        win.Title       <- match config.HostingInfo.Mode with 
-                           |Standalone -> "Seff | Scripting editor for fsharp"         + plat
-                           |Hosted n   -> "Seff | Scripting editor for fsharp in " + n + plat
+        win.Title       <- match config.Hosting.HostName with 
+                           |None     -> "Seff | Scripting editor for fsharp"         + plat
+                           |Some n   -> "Seff | Scripting editor for fsharp in " + n + plat
                 
         // delete if no bug//win.Loaded.Add(fun _ -> //---- load ICON ----
         try                 

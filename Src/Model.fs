@@ -42,13 +42,17 @@ type CheckId = int64
 type Code = 
     FullCode of string | PartialCode of string
     member this.Code = match this with  FullCode s -> s  | PartialCode s -> s
-    //member this.FullOrNull = match this with  FullCode s -> s  | PartialCode _ -> null       
+        
         
 type FullCodeAndId = 
-    | CodeID of string*CheckId
+    | CodeID of string * CheckId
     | NoCode
 
-type CheckResults = { parseRes:FSharpParseFileResults; checkRes:FSharpCheckFileResults;  code:Code ; checkId:CheckId} // to do remove till offset , not needed?
+type CheckResults = { 
+    parseRes    :FSharpParseFileResults 
+    checkRes    :FSharpCheckFileResults 
+    code        :Code 
+    checkId     :CheckId     } 
 
 type FilePath = 
     SetTo of FileInfo | NotSet
@@ -96,9 +100,7 @@ type IEditor =
 
 //---- Fsi types ------------
 
-type CodeToEval = {code:string; file:FilePath; allOfFile:bool}   
-
-type HostingMode = Standalone  | Hosted of string
+type CodeToEval = {code:string; file:FilePath; allOfFile:bool} 
 
 type FsiState =  Ready | Evaluating | Initalizing | NotLoaded
 

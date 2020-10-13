@@ -7,7 +7,7 @@ open System.Collections.Generic
 
            
 /// A class to hold the previously loaded assemble refrences for auto completions
-type AssemblyReferenceStatistic  (log:ISeffLog, hostInfo:HostingInfo) =
+type AssemblyReferenceStatistic  (log:ISeffLog, hostInfo:Hosting) =
     let writer = SaveWriter(log)
         
     let filePath = hostInfo.GetPathToSaveAppData("AssemblyReferenceStatistic.txt")

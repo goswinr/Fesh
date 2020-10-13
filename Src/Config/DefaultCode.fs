@@ -11,7 +11,7 @@ open System.IO
 
    
     
-type DefaultCode  (log:ISeffLog, hostInfo:HostingInfo) =
+type DefaultCode  (log:ISeffLog, hostInfo:Hosting) =
     let writer = SaveWriter(log)
     
     let filePath = hostInfo.GetPathToSaveAppData("DefaultCode.fsx")

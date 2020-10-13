@@ -9,8 +9,10 @@ open Seff.Util.General
 
 
 module Initialize =  
-    let everything(context:HostingMode, startupArgs:string[])=
-        if context = Standalone then Timer.InstanceStartup.tic()             // optional timer for full init process
+    let everything(mode:HostedStartUpData option, startupArgs:string[])=
+        
+        match mode with None ->  Timer.InstanceStartup.tic()   | _ -> ()  // optional timer for full init process
+        
         Sync.installSynchronizationContext()    // do first
 
         let en_US = Globalization.CultureInfo.CreateSpecificCulture("en-US")        
@@ -18,18 +20,20 @@ module Initialize =
         Globalization.CultureInfo.DefaultThreadCurrentUICulture <- en_US
         
 
-        Controls.ToolTipService.ShowOnDisabledProperty.OverrideMetadata(  typeof<Controls.Control>, new FrameworkPropertyMetadata(true)) // to still show-tooltip-when a button(or menu item )  is disabled-by-command //https://stackoverflow.com/questions/4153539/wpf-how-to-show-tooltip-when-button-disabled-by-command
+        // to still show-tooltip-when a button(or menu item )  is disabled-by-command 
+        //https://stackoverflow.com/questions/4153539/wpf-how-to-show-tooltip-when-button-disabled-by-command
+        Controls.ToolTipService.ShowOnDisabledProperty.OverrideMetadata(  typeof<Controls.Control>, new FrameworkPropertyMetadata(true)) 
         Controls.ToolTipService.ShowDurationProperty.OverrideMetadata(    typeof<DependencyObject>, new FrameworkPropertyMetadata(Int32.MaxValue))
         Controls.ToolTipService.InitialShowDelayProperty.OverrideMetadata(typeof<DependencyObject>, new FrameworkPropertyMetadata(50))
 
         /// ------------------ Log and Config --------------------
         
-        let log = new Log()        
-        let config = new Config(log,context,startupArgs)
+        let log    = new Log()        
+        let config = new Config(log, mode, startupArgs)
         log.AdjustToSettingsInConfig(config)
         
 
-        //--------------ERROR Handeling --------------------
+        //--------------Global ERROR Handeling --------------------
         if notNull Application.Current then // null if application is not yet created, or no application in hoted context
             Application.Current.DispatcherUnhandledException.Add(fun e ->  
                 if e <> null then 
