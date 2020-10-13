@@ -17,7 +17,6 @@ open System.Windows.Controls
 open System.Windows
 
 
-
 type LogMessageType = 
     | ConsoleOut
     | FsiStdOut 
@@ -29,42 +28,61 @@ type LogMessageType =
     | IOErrorMsg 
     | DebugMsg 
 
-    static member getColor = function
-        | ConsoleOut    ->Brushes.Yellow // default black forground is used ; never used should  // the out from printfn
-        | FsiStdOut     ->Brushes.DarkGray |> Util.General.darker 20 // values printet by fsi iteself like "val it = ...."
-        | FsiErrorOut   ->Brushes.DarkMagenta //are they all caught by evaluate non throwing ?
-        | ConsoleError  ->Brushes.OrangeRed // this is used by eprintfn 
-        | InfoMsg       ->Brushes.LightSeaGreen
-        | FsiErrorMsg   ->Brushes.Red
-        | AppErrorMsg   ->Brushes.LightSalmon
-        | IOErrorMsg    ->Brushes.DarkRed
-        | DebugMsg      ->Brushes.Green
+
+module LogColors = 
+    
+    let freeze(br:SolidColorBrush)= 
+        if br.CanFreeze then 
+            br.Freeze()
+        br
+
+    let consoleOut    = Brushes.Black |> freeze // default black forground is used ; never used should  // the out from printfn
+    let fsiStdOut     = Brushes.DarkGray |> Util.General.darker 20  |> freeze// values printet by fsi iteself like "val it = ...."
+    let fsiErrorOut   = Brushes.DarkMagenta  |> freeze//are they all caught by evaluate non throwing ?
+    let consoleError  = Brushes.OrangeRed  |> freeze// this is used by eprintfn 
+    let infoMsg       = Brushes.LightSeaGreen |> freeze
+    let fsiErrorMsg   = Brushes.Red |> freeze
+    let appErrorMsg   = Brushes.LightSalmon |> freeze
+    let iOErrorMsg    = Brushes.DarkRed |> freeze
+    let debugMsg      = Brushes.Green |> freeze
+
+    let inline getColor typ = 
+        match typ with 
+        | ConsoleOut    -> consoleOut  
+        | FsiStdOut     -> fsiStdOut   
+        | FsiErrorOut   -> fsiErrorOut 
+        | ConsoleError  -> consoleError
+        | InfoMsg       -> infoMsg     
+        | FsiErrorMsg   -> fsiErrorMsg 
+        | AppErrorMsg   -> appErrorMsg 
+        | IOErrorMsg    -> iOErrorMsg  
+        | DebugMsg      -> debugMsg    
         
 
 
 [<Struct>]
 type NewColor = 
-    {off: int; brush: SolidColorBrush}
+    {off: int; brush: LogMessageType}
     
     /// Does binary search to find an offset that is equal or smaller than off
     static member findCurrentInList (cs:ResizeArray<NewColor>) off = 
         //try        
-            let last = cs.Count-1
-            let rec find lo hi =             
-                let mid = lo + (hi - lo) / 2          //TODO test edge conditions !!  
-                if cs.[mid].off <= off then 
-                    if mid = last             then cs.[mid] // exit
-                    elif cs.[mid+1].off > off then cs.[mid] // exit
-                    else find (mid+1) hi
-                else
-                         find lo (mid-1)
+        let last = cs.Count-1
+        let rec find lo hi =             
+            let mid = lo + (hi - lo) / 2          //TODO test edge conditions !!  
+            if cs.[mid].off <= off then 
+                if mid = last             then cs.[mid] // exit
+                elif cs.[mid+1].off > off then cs.[mid] // exit
+                else find (mid+1) hi
+            else
+                        find lo (mid-1)
         
-            find 0 last
+        find 0 last
         //with _ ->             failwithf "Did not find off %d in cs of %d items %A" off cs.Count cs
 
 [<Struct>]
 type RangeColor = 
-    {start: int; ende:int; brush: SolidColorBrush}    
+    {start: int; ende:int; brush: LogMessageType}    
 
     static member getInRange (cs:ResizeArray<NewColor>) st en =     
         let rec mkList i ls = 
@@ -106,26 +124,38 @@ type LogLineColorizer(ed:AvalonEdit.TextEditor, offsetColors: ResizeArray<NewCol
     /// This gets called for every visible line on any view change
     override this.ColorizeLine(line:AvalonEdit.Document.DocumentLine) =     
         //try
-            if not line.IsDeleted then  
-                let stLn = line.Offset
-                let enLn = line.EndOffset
-                let cs = RangeColor.getInRange offsetColors stLn enLn
-                if selStart = selEnd  || selStart > enLn || selEnd < stLn then // no selection in general or on this line 
-                    for c in cs do 
-                        if notNull c.brush then
-                            base.ChangeLinePart(c.start, c.ende, fun element -> element.TextRunProperties.SetForegroundBrush(c.brush))
-                        else
-                            base.ChangeLinePart(c.start, c.ende, fun element -> element.TextRunProperties.SetForegroundBrush(Brushes.DarkGreen))
-                else
-                    for c in cs do 
-                        if notNull c.brush then 
-                            let st = c.start
-                            let en = c.ende
-                            // consider block or rectangle selection:
-                            for seg in ed.TextArea.Selection.Segments do
-                                if st < seg.StartOffset && seg.StartOffset < en then base.ChangeLinePart(st, seg.StartOffset, fun element -> element.TextRunProperties.SetForegroundBrush(c.brush))
-                                if en > seg.EndOffset   && seg.EndOffset   > st then base.ChangeLinePart(seg.EndOffset,   en, fun element -> element.TextRunProperties.SetForegroundBrush(c.brush))
-        //with e ->             failwithf "LogLineColorizer override this.ColorizeLine failed with %A" e
+        if not line.IsDeleted then  
+            let stLn = line.Offset
+            let enLn = line.EndOffset
+            let cs = RangeColor.getInRange offsetColors stLn enLn
+            let mutable any = false
+            if selStart = selEnd  || selStart > enLn || selEnd < stLn then // no selection in general or on this line 
+                
+                for c in cs do 
+                    if c.brush=ConsoleOut && any then //changing the bas fore ground is only nened if any other color laredy exists on this line                        
+                        base.ChangeLinePart(c.start, c.ende, fun element -> element.TextRunProperties.SetForegroundBrush(LogColors.getColor c.brush))
+                    else
+                        any <-true
+                        base.ChangeLinePart(c.start, c.ende, fun element -> element.TextRunProperties.SetForegroundBrush(LogColors.getColor c.brush))
+            else
+                for c in cs do
+                    if c.brush=ConsoleOut && any then //changing the bas fore ground is only nened if any other color laredy exists on this line                        
+                        let st = c.start
+                        let en = c.ende
+                        // now consider block or rectangle selection:
+                        for seg in ed.TextArea.Selection.Segments do
+                            if st < seg.StartOffset && seg.StartOffset < en then base.ChangeLinePart(st, seg.StartOffset, fun element -> element.TextRunProperties.SetForegroundBrush(LogColors.getColor c.brush))
+                            if en > seg.EndOffset   && seg.EndOffset   > st then base.ChangeLinePart(seg.EndOffset,   en, fun element -> element.TextRunProperties.SetForegroundBrush(LogColors.getColor c.brush))        
+                    else
+                        any <-true
+                        let st = c.start
+                        let en = c.ende
+                        // now consider block or rectangle selection:
+                        for seg in ed.TextArea.Selection.Segments do
+                            if st < seg.StartOffset && seg.StartOffset < en then base.ChangeLinePart(st, seg.StartOffset, fun element -> element.TextRunProperties.SetForegroundBrush(LogColors.getColor c.brush))
+                            if en > seg.EndOffset   && seg.EndOffset   > st then base.ChangeLinePart(seg.EndOffset,   en, fun element -> element.TextRunProperties.SetForegroundBrush(LogColors.getColor c.brush))
+        
+        //with e ->   failwithf "LogLineColorizer override this.ColorizeLine failed with %A" e
             
 
         
@@ -215,7 +245,7 @@ type LogSelectedTextHighlighter (lg:AvalonEdit.TextEditor) =
 /// call ApplyConfig() once config is set up too, (config depends on this Log instance)
 type Log () =    
       
-    let offsetColors = ResizeArray<NewColor>( [ {off=0; brush=null} ] )    
+    let offsetColors = ResizeArray<NewColor>( [ {off=0; brush=ConsoleOut} ] )    
     
     let log =  new AvalonEdit.TextEditor()        
     let hiLi = new LogSelectedTextHighlighter(log)
@@ -248,61 +278,49 @@ type Log () =
     let mutable prevMsgType = ConsoleOut // same as first default item in offsetColors
     let stopWatch = Stopwatch.StartNew()
     let buffer =  new StringBuilder()
+    let mutable docLength = 0 
 
 
     // The below functions are trying to work around double UI update in printfn for better UI performance, 
     // and the poor performance of log.ScrollToEnd().
     // see  https://github.com/dotnet/fsharp/issues/3712   
-    let printFromBuffer(scrollToo, typUpdate, newTy:LogMessageType, appendTxt:string) =        
-        
-        if buffer.Length <> 0 then  // it might be empty from flushing it at a color change            
-            let txt = buffer.ToString()
-            buffer.Clear()  |> ignore           
-            log.AppendText(txt)
-            if scrollToo then 
-                log.ScrollToEnd()
-                if log.WordWrap then log.ScrollToEnd() //this is needed a second time !
-            stopWatch.Restart()
-        
-        if typUpdate then 
-            buffer.Append(sprintf "-new: %A from %d ->" newTy log.Document.TextLength) |> ignore //Debug
-            if newTy = ConsoleOut then //exclude default print color, it should be same as foreground anyway                
-                offsetColors.Add { off = log.Document.TextLength; brush = null } 
-            else
-                offsetColors.Add { off = log.Document.TextLength ; brush = LogMessageType.getColor(newTy) } 
-        
-        if notNull appendTxt then //to ensure that append happens after the above lines
-            buffer.Append appendTxt |> ignore 
+    let printFromBuffer() =                  
+        let txt = buffer.ToString()
+        buffer.Clear()  |> ignore           
+        log.AppendText(txt)            
+        log.ScrollToEnd()
+        if log.WordWrap then log.ScrollToEnd() //this is needed a second time !
+        stopWatch.Restart() 
 
-    let printFromBufferSync(scrollToo, typUpdate, newTy:LogMessageType,appendTxt) =
-        async{
+    let printFromBufferSync() =
+        async {
             do! Async.SwitchToContext Sync.syncContext
-            printFromBuffer(scrollToo,typUpdate,newTy,appendTxt)
+            printFromBuffer()
             } |> Async.StartImmediate 
 
     /// adds string on UI thread  every 150ms then scrolls to end after 300ms
     /// sets line color on LineColors dictionay for DocumentColorizingTransformer
     let printOrBuffer (txt:string,typ:LogMessageType) =
-
-        if prevMsgType <> typ then // print case 1, color change            
-            // first print any potentially remainig stuff in buffer and then append string inside:
-            //buffer.Append(sprintf "-new: %A->" ty) |> ignore //Debug
-            printFromBufferSync(false, true, typ, txt)
-            prevMsgType <- typ               
-        else            
-            buffer.Append(txt)  |> ignore 
         
-        // star new if clause tu actaull print supplied string tx
-        if stopWatch.ElapsedMilliseconds > 100L  then // print case 2, only add to document every 100ms  
-            printFromBufferSync(true, false, typ, null)                
-        else
-            async {                        
-                let k = Interlocked.Increment printCallsCounter
-                do! Async.Sleep 100
-                if !printCallsCounter = k  then //print case 3, it is the last call for 100 ms
-                    do! Async.SwitchToContext Sync.syncContext
-                    printFromBuffer(true, false, typ, null)                
-                } |> Async.StartImmediate 
+        if prevMsgType <> typ then 
+            offsetColors.Add { off = docLength; brush = typ } 
+            prevMsgType <- typ 
+            
+        if txt.Length <> 0 then 
+            buffer.Append(txt)  |> ignore
+            docLength <- docLength + txt.Length
+
+            // star new if clause tu actaull print supplied string tx
+            if stopWatch.ElapsedMilliseconds > 100L  then // print case 2, only add to document every 100ms  
+                printFromBufferSync()                
+            else
+                async {                        
+                    let k = Interlocked.Increment printCallsCounter
+                    do! Async.Sleep 100
+                    if !printCallsCounter = k  then //print case 3, it is the last call for 100 ms
+                        do! Async.SwitchToContext Sync.syncContext
+                        printFromBuffer()                
+                    } |> Async.StartImmediate 
     
 
     let setLineWrap(v)=
