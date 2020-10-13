@@ -19,9 +19,9 @@ open System.Windows
 
 
 type LogMessageType = 
+    | ConsoleOut
     | FsiStdOut 
     | FsiErrorOut 
-    | ConsoleOut
     | ConsoleError
     | InfoMsg 
     | FsiErrorMsg 
@@ -30,9 +30,9 @@ type LogMessageType =
     | DebugMsg 
 
     static member getColor = function
+        | ConsoleOut    ->Brushes.Yellow // default black forground is used ; never used should  // the out from printfn
         | FsiStdOut     ->Brushes.DarkGray |> Util.General.darker 20 // values printet by fsi iteself like "val it = ...."
         | FsiErrorOut   ->Brushes.DarkMagenta //are they all caught by evaluate non throwing ?
-        | ConsoleOut    ->Brushes.Yellow // default black forground is used ; never used should  // the out from printfn
         | ConsoleError  ->Brushes.OrangeRed // this is used by eprintfn 
         | InfoMsg       ->Brushes.LightSeaGreen
         | FsiErrorMsg   ->Brushes.Red
@@ -41,24 +41,41 @@ type LogMessageType =
         | DebugMsg      ->Brushes.Green
         
 
+
 [<Struct>]
-type ColorFromOffset = 
+type NewColor = 
     {off: int; brush: SolidColorBrush}
     
-    /// does binary search
-    static member findCurrentInList (cs:ResizeArray<ColorFromOffset>) off = 
-        let last = cs.Count-1
-
-        let rec find lo hi =             
-            let mid = lo + (hi - lo) / 2          //TODO test edge conditions !!  
-            if cs.[mid].off <= off then 
-                if mid = last             then cs.[mid] // exit
-                elif cs.[mid+1].off > off then cs.[mid] // exit
-                else find (mid+1) hi
-            else
-                     find lo (mid-1)
+    /// Does binary search to find an offset that is equal or smaller than off
+    static member findCurrentInList (cs:ResizeArray<NewColor>) off = 
+        //try        
+            let last = cs.Count-1
+            let rec find lo hi =             
+                let mid = lo + (hi - lo) / 2          //TODO test edge conditions !!  
+                if cs.[mid].off <= off then 
+                    if mid = last             then cs.[mid] // exit
+                    elif cs.[mid+1].off > off then cs.[mid] // exit
+                    else find (mid+1) hi
+                else
+                         find lo (mid-1)
         
-        find 0 last
+            find 0 last
+        //with _ ->             failwithf "Did not find off %d in cs of %d items %A" off cs.Count cs
+
+[<Struct>]
+type RangeColor = 
+    {start: int; ende:int; brush: SolidColorBrush}    
+
+    static member getInRange (cs:ResizeArray<NewColor>) st en =     
+        let rec mkList i ls = 
+            let c = NewColor.findCurrentInList cs i
+            if c.off <= st then 
+                {start = st; ende=en; brush = c.brush} :: ls
+            else                 
+                mkList (i-1) ({start = i; ende=en; brush = c.brush}  :: ls)
+        mkList en [] 
+
+
 
 
 /// A TextWriter that writes using a function (to an Avalonedit Control). used in FSI session constructor   
@@ -71,45 +88,62 @@ type FsxTextWriter(writeStr) =
     
     
 
-type LogLineColorizer(lg:AvalonEdit.TextEditor, lineColors:Collections.Generic.Dictionary<int,SolidColorBrush>) = 
+type LogLineColorizer(ed:AvalonEdit.TextEditor, offsetColors: ResizeArray<NewColor>) =  
     inherit AvalonEdit.Rendering.DocumentColorizingTransformer()
-        
-    /// This gets called for every visvble line on any view change
-    override this.ColorizeLine(line:AvalonEdit.Document.DocumentLine) =       
-        let ok,color = lineColors.TryGetValue(line.LineNumber) // consoleOut line are missing in dict so skiped
-        if ok && not line.IsDeleted then                
-            // consider selection and exclude fom higlighting:
-            let st=line.Offset
-            let en=line.EndOffset
-            let selLen = lg.SelectionLength
-            if selLen < 1 then // no selection 
-                base.ChangeLinePart(st,en, fun element -> element.TextRunProperties.SetForegroundBrush(color)) // highlight full line
-            else
-                let selSt = lg.SelectionStart
-                let selEn = selSt + selLen
-                if selSt > en || selEn < st then // nothing slected on this line
-                    base.ChangeLinePart(st,en, fun element -> element.TextRunProperties.SetForegroundBrush(color)) // highlight full line
-                else
-                    // consider block or rectangle selection:
-                    for seg in lg.TextArea.Selection.Segments do
-                        if st < seg.StartOffset && seg.StartOffset < en then base.ChangeLinePart(st, seg.StartOffset, fun element -> element.TextRunProperties.SetForegroundBrush(color))
-                        if en > seg.EndOffset   && seg.EndOffset   > st then base.ChangeLinePart(seg.EndOffset,   en, fun element -> element.TextRunProperties.SetForegroundBrush(color))
     
+    let mutable selStart = -1
+    let mutable selEnd   = -1
 
+    member this.SelectionChangedDelegate ( a:EventArgs) =
+        if ed.SelectionLength = 0 then // no selection 
+            selStart <- -1
+            selEnd   <- -1
+        else 
+            selStart <- ed.SelectionStart
+            selEnd   <- selStart + ed.SelectionLength //TODO is this correct in case of block selection ?? use ed.TextArea.Selection.Segments ??
+     
 
+    /// This gets called for every visible line on any view change
+    override this.ColorizeLine(line:AvalonEdit.Document.DocumentLine) =     
+        //try
+            if not line.IsDeleted then  
+                let stLn = line.Offset
+                let enLn = line.EndOffset
+                let cs = RangeColor.getInRange offsetColors stLn enLn
+                if selStart = selEnd  || selStart > enLn || selEnd < stLn then // no selection in general or on this line 
+                    for c in cs do 
+                        if notNull c.brush then
+                            base.ChangeLinePart(c.start, c.ende, fun element -> element.TextRunProperties.SetForegroundBrush(c.brush))
+                        else
+                            base.ChangeLinePart(c.start, c.ende, fun element -> element.TextRunProperties.SetForegroundBrush(Brushes.DarkGreen))
+                else
+                    for c in cs do 
+                        if notNull c.brush then 
+                            let st = c.start
+                            let en = c.ende
+                            // consider block or rectangle selection:
+                            for seg in ed.TextArea.Selection.Segments do
+                                if st < seg.StartOffset && seg.StartOffset < en then base.ChangeLinePart(st, seg.StartOffset, fun element -> element.TextRunProperties.SetForegroundBrush(c.brush))
+                                if en > seg.EndOffset   && seg.EndOffset   > st then base.ChangeLinePart(seg.EndOffset,   en, fun element -> element.TextRunProperties.SetForegroundBrush(c.brush))
+        //with e ->             failwithf "LogLineColorizer override this.ColorizeLine failed with %A" e
+            
+
+        
     
 /// Highlight-all-occurrences-of-selected-text in Log Text View
 type LogSelectedTextHighlighter (lg:AvalonEdit.TextEditor) = 
     inherit AvalonEdit.Rendering.DocumentColorizingTransformer()    
     
+    let colorHighlight =      Brushes.Blue |> brighter 210  
+    
     let mutable highTxt = null
     let mutable curSelStart = -1
-    let highlightChangedEv  = new Event<string*int>()
 
-    let colorHighlight =      Brushes.Blue |> brighter 210    
     
+    let highlightChangedEv  = new Event<string*int>()
     [<CLIEvent>]
     member this.HighlightChanged = highlightChangedEv.Publish
+
     member this.ColorHighlight = colorHighlight
     
     //member this.HighlightText  with get() = highTxt and set v = highTxt <- v
@@ -118,21 +152,22 @@ type LogSelectedTextHighlighter (lg:AvalonEdit.TextEditor) =
     /// This gets called for every visible line on any view change
     override this.ColorizeLine(line:AvalonEdit.Document.DocumentLine) =       
         //  from https://stackoverflow.com/questions/9223674/highlight-all-occurrences-of-selected-word-in-avalonedit
-            
-        if notNull highTxt  then             
+        //try    
+            if notNull highTxt  then
+                let  lineStartOffset = line.Offset;
+                let  text = lg.Document.GetText(line)            
+                let mutable  index = text.IndexOf(highTxt, 0, StringComparison.Ordinal)
     
-            let  lineStartOffset = line.Offset;
-            let  text = lg.Document.GetText(line)            
-            let mutable  index = text.IndexOf(highTxt, 0, StringComparison.Ordinal)
+                while index >= 0 do      
+                    let st = lineStartOffset + index  // startOffset
+                    let en = lineStartOffset + index + highTxt.Length // endOffset   
     
-            while index >= 0 do      
-                let st = lineStartOffset + index  // startOffset
-                let en = lineStartOffset + index + highTxt.Length // endOffset   
-    
-                if curSelStart <> st  then // skip the actual current selection
-                    base.ChangeLinePart( st,en, fun el -> el.TextRunProperties.SetBackgroundBrush(colorHighlight))
-                let start = index + highTxt.Length // search for next occurrence // TODO or just +1 ???????
-                index <- text.IndexOf(highTxt, start, StringComparison.Ordinal)
+                    if curSelStart <> st  then // skip the actual current selection
+                        base.ChangeLinePart( st,en, fun el -> el.TextRunProperties.SetBackgroundBrush(colorHighlight))
+                    let start = index + highTxt.Length // search for next occurrence // TODO or just +1 ???????
+                    index <- text.IndexOf(highTxt, start, StringComparison.Ordinal)
+        
+        //with e ->            failwithf "LogSelectedTextHighlighter override this.ColorizeLine failed with %A" e
         
     member this.SelectionChangedDelegate ( a:EventArgs) =
         // for text view:
@@ -174,26 +209,20 @@ type LogSelectedTextHighlighter (lg:AvalonEdit.TextEditor) =
             if notNull highTxt then // to ony redraw if it was not null before
                 highTxt <- null
                 lg.TextArea.TextView.Redraw() // to clear highlight
-    
-        
-    
-    
+   
 
 /// A ReadOnly text AvalonEdit Editor that provides print formating methods 
 /// call ApplyConfig() once config is set up too, (config depends on this Log instance)
 type Log () =    
-    
-    /// Dictionary holding the color of all non standart lines
-    let lineColors = new Collections.Generic.Dictionary<int,SolidColorBrush>() 
-    let offsetColors = ResizeArray<ColorFromOffset>()
-
+      
+    let offsetColors = ResizeArray<NewColor>( [ {off=0; brush=null} ] )    
     
     let log =  new AvalonEdit.TextEditor()        
     let hiLi = new LogSelectedTextHighlighter(log)
-    let colo = new LogLineColorizer(log,lineColors)
+    let colo = new LogLineColorizer(log,offsetColors)    
     let search = AvalonEdit.Search.SearchPanel.Install(log) |> ignore //TODO disable search and replace ?
     
-    do
+    do        
         //styling: 
         log.BorderThickness <- new Thickness( 0.5)
         log.Padding         <- new Thickness( 0.7)
@@ -209,77 +238,73 @@ type Log () =
         log.TextArea.TextView.LinkTextForegroundBrush <- Brushes.Blue //Hyperlinks color 
         
         log.TextArea.SelectionChanged.Add hiLi.SelectionChangedDelegate
+        log.TextArea.SelectionChanged.Add colo.SelectionChangedDelegate
         log.TextArea.TextView.LineTransformers.Add(hiLi)
         log.TextArea.TextView.LineTransformers.Add(colo)
         
      
 
     let printCallsCounter = ref 0L
-    let mutable prevMsgType = IOErrorMsg
+    let mutable prevMsgType = ConsoleOut // same as first default item in offsetColors
     let stopWatch = Stopwatch.StartNew()
     let buffer =  new StringBuilder()
-    //let textAddEv = new Event<string> ()
-
 
 
     // The below functions are trying to work around double UI update in printfn for better UI performance, 
     // and the poor performance of log.ScrollToEnd().
     // see  https://github.com/dotnet/fsharp/issues/3712   
-    let printFromBufferAndScroll(ty:LogMessageType) = 
-        try
-            //buffer.Insert(0,"£") |> ignore // Debug only
-            let txt = buffer.ToString() //.Replace(NewLine, sprintf "(%A)%s" ty NewLine)  //for DEBUG only           
-            buffer.Clear()  |> ignore 
-            let start = log.Document.TextLength
+    let printFromBuffer(scrollToo, typUpdate, newTy:LogMessageType, appendTxt:string) =        
+        
+        if buffer.Length <> 0 then  // it might be empty from flushing it at a color change            
+            let txt = buffer.ToString()
+            buffer.Clear()  |> ignore           
             log.AppendText(txt)
-            let mutable line = log.Document.GetLineByOffset(start) 
-            if ty = ConsoleOut then //exclude default print color, it should be same as foreground anyway                
-                lineColors.Remove line.LineNumber |> ignore // clears any color that might exit from printing on same line before ( maybe just a return)
-            else                
-                //log.Document.Insert( line.EndOffset, sprintf "(%d:%A)" line.LineNumber ty) //for DEBUG only
-                //log.AppendText(sprintf "(1st Line %d, %d chars:%A)" line.LineNumber line.Length ty) //for DEBUG only
-                lineColors.[line.LineNumber] <- LogMessageType.getColor(ty) 
-                line <- line.NextLine                    
-                while line <> null  do
-                    if line.Length>0 then // to exclude empty lines 
-                        //log.Document.Insert( line.EndOffset, sprintf "(%d:%A)" line.LineNumber ty) //for DEBUG only
-                        //log.AppendText(sprintf "(Line %d, %d chars:%A)" line.LineNumber line.Length ty)//for DEBUG only
-                        lineColors.[line.LineNumber] <- LogMessageType.getColor(ty)
-                    line <- line.NextLine
+            if scrollToo then 
+                log.ScrollToEnd()
+                if log.WordWrap then log.ScrollToEnd() //this is needed a second time !
+            stopWatch.Restart()
+        
+        if typUpdate then 
+            buffer.Append(sprintf "-new: %A from %d ->" newTy log.Document.TextLength) |> ignore //Debug
+            if newTy = ConsoleOut then //exclude default print color, it should be same as foreground anyway                
+                offsetColors.Add { off = log.Document.TextLength; brush = null } 
+            else
+                offsetColors.Add { off = log.Document.TextLength ; brush = LogMessageType.getColor(newTy) } 
+        
+        if notNull appendTxt then //to ensure that append happens after the above lines
+            buffer.Append appendTxt |> ignore 
 
-            //log.AppendText("|-scroll->") //for DEBUG only
-            log.ScrollToEnd()
-            if log.WordWrap then log.ScrollToEnd() //is needed a second time !
-        with 
-            ex -> 
-                async{
-                    do! Async.SwitchToContext Sync.syncContext 
-                    log.AppendText (sprintf "ERROR in printFromBufferAndScroll %A" ex)
-                    }|> Async.StartImmediate 
-        stopWatch.Restart()
+    let printFromBufferSync(scrollToo, typUpdate, newTy:LogMessageType,appendTxt) =
+        async{
+            do! Async.SwitchToContext Sync.syncContext
+            printFromBuffer(scrollToo,typUpdate,newTy,appendTxt)
+            } |> Async.StartImmediate 
 
     /// adds string on UI thread  every 150ms then scrolls to end after 300ms
     /// sets line color on LineColors dictionay for DocumentColorizingTransformer
-    let printOrBuffer (s:string,ty:LogMessageType) =
-        async {
-            do! Async.SwitchToContext Sync.syncContext 
-            if prevMsgType<>ty then // print case 1, color change, do before append new string
-                printFromBufferAndScroll(prevMsgType) 
-                prevMsgType <- ty
+    let printOrBuffer (txt:string,typ:LogMessageType) =
 
-            buffer.Append(s)  |> ignore 
-            //textAddEv.Trigger(s)
-
-            if stopWatch.ElapsedMilliseconds > 100L  then // print case 2, only add to document every 100ms  
-                printFromBufferAndScroll(ty)                
-            else                        
+        if prevMsgType <> typ then // print case 1, color change            
+            // first print any potentially remainig stuff in buffer and then append string inside:
+            //buffer.Append(sprintf "-new: %A->" ty) |> ignore //Debug
+            printFromBufferSync(false, true, typ, txt)
+            prevMsgType <- typ               
+        else            
+            buffer.Append(txt)  |> ignore 
+        
+        // star new if clause tu actaull print supplied string tx
+        if stopWatch.ElapsedMilliseconds > 100L  then // print case 2, only add to document every 100ms  
+            printFromBufferSync(true, false, typ, null)                
+        else
+            async {                        
                 let k = Interlocked.Increment printCallsCounter
                 do! Async.Sleep 100
                 if !printCallsCounter = k  then //print case 3, it is the last call for 100 ms
-                    printFromBufferAndScroll(ty)
-                
-        } |> Async.StartImmediate 
+                    do! Async.SwitchToContext Sync.syncContext
+                    printFromBuffer(true, false, typ, null)                
+                } |> Async.StartImmediate 
     
+
     let setLineWrap(v)=
         if v then 
             log.WordWrap         <- true 
@@ -327,7 +352,7 @@ type Log () =
         log.SelectionStart <- 0
         log.SelectionLength <- 0
         log.Clear()
-        lineColors.Clear()
+        offsetColors.Clear()
 
     //used in FSI constructor:
     member this.TextWriterFsiStdOut    = textWriterFsiStdOut    
