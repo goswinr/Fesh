@@ -20,16 +20,25 @@ open Seff.Config
 
     
 [<Struct>]
-type Fold = {foldStartOff:int; foldEndOff:int; linesInFold: int}
+type Fold = {foldStartOff:int; foldEndOff:int; linesInFold: int ; nestingLevel:int}
 
 [<Struct>]
-type FoldStart = {indent: int; lineEndOff:int; line: int; indexInFolds:int}
+type FoldStart = {indent: int; lineEndOff:int; line: int; indexInFolds:int; nestingLevel:int}
 
 [<Struct>]
-type Indent = { indent: int; wordStartOff:int}
+type Indent = { indent: int; wordStartOff:int }
 
 type Foldings(ed:TextEditor,checker:Checker,config:Config, edId:Guid) = 
     
+    
+    let maxDepth = 1 // maximum amount of nested foldings 
+
+    let minLinesOutside = 2 // minimum line count for outer folding 
+
+    let minLinesNested = 3 // minimum line count for inner folding 
+
+    let minLineCountDiffToOuter = 4 // if inner folding is just 4 line shorte than outer folding dont doo it
+
     let manager = Folding.FoldingManager.Install(ed.TextArea)  // color of margin is set in ColoumRulers.fs
 
     // color for folding box is set in SelectedTextHighlighter
@@ -49,8 +58,6 @@ type Foldings(ed:TextEditor,checker:Checker,config:Config, edId:Guid) =
     let FoldingStack = Collections.Generic.Stack<FoldStart>()
     let Folds = ResizeArray<Fold>()
 
-    /// maximum amount of nested foldings 
-    let maxDepth = 1
 
     let mutable isIntialLoad = true
 
@@ -93,10 +100,11 @@ type Foldings(ed:TextEditor,checker:Checker,config:Config, edId:Guid) =
                     findFolds le.indent le.wordStartOff
                 
                 elif le.indent > ind then 
-                    if FoldingStack.Count <= maxDepth then 
+                    let nestingLevel = FoldingStack.Count
+                    if nestingLevel <= maxDepth then 
                         let index = Folds.Count
-                        Folds.Add {foldStartOff = -99; foldEndOff = -99 ; linesInFold = -99 } // dummy value to be mutated later 
-                        FoldingStack.Push {indent= ind; lineEndOff = en ; line = no ; indexInFolds = index}
+                        Folds.Add  {foldStartOff = -99; foldEndOff = -99 ; linesInFold = -99 ; nestingLevel = nestingLevel} // dummy value to be mutated later 
+                        FoldingStack.Push {indent= ind; lineEndOff = en ; line = no ; indexInFolds = index; nestingLevel = nestingLevel}
                         //printfn " line: %d: indent %d start" no ind
                     findFolds le.indent le.wordStartOff
             
@@ -108,10 +116,13 @@ type Foldings(ed:TextEditor,checker:Checker,config:Config, edId:Guid) =
                         if st.indent >= le.indent then 
                             FoldingStack.Pop()  |> ignore 
                             let lines = no - st.line
-                            let foldStart = st.lineEndOff - 1 // the position of '\n' minus two ( does not work without the minus one)
-                            let foldEnd = en - 1 // the position of '\n' minus two
-                            Folds.[st.indexInFolds] <- {foldStartOff = foldStart; foldEndOff = foldEnd; linesInFold = lines }
-                            //eprintfn "line: %d : indent %d end of %d lines " no st.indent lines
+                            if (st.nestingLevel = 0 && lines >= minLinesOutside)
+                            || (st.nestingLevel > 0 && lines >= minLinesNested ) then // only add if block has enoug lines outer wise leave dummy inside list                                
+                                
+                                let foldStart = st.lineEndOff - 1 // the position of '\n' minus two ( does not work without the minus one)
+                                let foldEnd = en - 1 // the position of '\n' minus two
+                                Folds.[st.indexInFolds] <- {foldStartOff = foldStart; foldEndOff = foldEnd; linesInFold = lines ;nestingLevel = st.nestingLevel}
+                                //eprintfn "line: %d : indent %d end of %d lines " no st.indent lines
                         else
                             take <- false            
                     findFolds le.indent le.wordStartOff        
@@ -131,14 +142,28 @@ type Foldings(ed:TextEditor,checker:Checker,config:Config, edId:Guid) =
                 match iEditor.FileCheckState.FullCodeAndId with
                 | NoCode ->()
                 | CodeID (code,checkId) ->                    
-                        let foldings = findFolds code
-
+                    let foldings = 
+                        let ffs = findFolds code
+                        let l = ffs.Count-1
+                        let fs = ResizeArray(l)
+                        let mutable lastOuter = {foldStartOff = -99; foldEndOff = -99 ; linesInFold = -99 ; nestingLevel = -99}
+                        for i=0 to l do
+                            let f = ffs.[i]
+                            if f.foldEndOff > 0 then // filter out to short blocks that are leeft as dummy
+                                if  f.nestingLevel = 0 then 
+                                    lastOuter <- f
+                                    fs.Add f
+                                elif f.linesInFold + minLineCountDiffToOuter > lastOuter.linesInFold then // filter out inner blocks that are almost the size of the outer block
+                                    fs.Add f 
+                        fs
+                        
                     //let state = getFoldstate foldings
                     //if state = foldStateHash then 
                         //() // no chnages in folding
                     //else
                         //foldStateHash <- state
 
+                    if foldings.Count>0 then 
                         do! Async.SwitchToContext Sync.syncContext
                         match iEditor.FileCheckState.SameIdAndFullCode(checker.GlobalCheckState) with
                         | NoCode -> ()
@@ -147,19 +172,23 @@ type Foldings(ed:TextEditor,checker:Checker,config:Config, edId:Guid) =
                                 while config.FoldingStatus.WaitingForFileRead do
                                     config.Log.PrintDebugMsg "waiting to load last code folding status.. "
                                     do! Async.Sleep 50
-                                let vs = config.FoldingStatus.Get(iEditor) 
-                                for f,folded in Seq.zip foldings vs do
+                                let vs = config.FoldingStatus.Get(iEditor)                                
+                                for i=0 to foldings.Count-1 do
+                                    let f = foldings.[i]
+                                    let folded = if  i < vs.Length then  vs.[i]  else false          
                                     let fs = manager.CreateFolding(f.foldStartOff, f.foldEndOff)
                                     fs.IsFolded <- folded
-                                    fs.Title <- sprintf " ... %d Lines " f.linesInFold
+                                    fs.Title <- sprintf " ... %d Lines " f.linesInFold                                        
                                 isIntialLoad <- false
+
                             else
                                 let folds=ResizeArray<NewFolding>()
-                                for f in foldings do 
+                                for f in foldings do                                 
                                     //config.Log.PrintDebugMsg "Foldings from %d to %d  that is  %d lines" f.foldStartOff  f.foldEndOff f.linesInFold
                                     let fo = new NewFolding(f.foldStartOff, f.foldEndOff)                                
                                     fo.Name <- sprintf " ... %d Lines " f.linesInFold
                                     folds.Add(fo) //if NewFolding type is created async a waiting symbol apears on top of it 
+                            
                                 let firstErrorOffset = -1 //The first position of a parse error. Existing foldings starting after this offset will be kept even if they don't appear in newFoldings. Use -1 for this parameter if there were no parse errors) 
                                 manager.UpdateFoldings(folds,firstErrorOffset)
                                 
