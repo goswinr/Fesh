@@ -98,83 +98,82 @@ type BracketHighlighter (ed:TextEditor) =
 
             let rec find i = 
                 if i < len2  then 
-                    let ti = tx.[i]
+                    let t0 = tx.[i]
+                    let t1 = tx.[i+1]
                     if inComment then 
-                        if  ti='\n' then inComment <- false          ; find (i+1)  
+                        if  t0='\n' then inComment <- false          ; find (i+1)  
                         else find (i+1)  
                     
                     elif inBlockComment then 
-                          if  ti='*' && tx.[i+1] = ')' then inBlockComment <- false  ; find (i+2)  
+                          if  t0='*' && t1 = ')' then inBlockComment <- false  ; find (i+2)  
                           else find (i+1)  
                         
                     elif inString then 
-                        if   ti='\\' && tx.[i+1] = '"'  then     find (i+2) //an escaped quote in a string
-                        elif ti= '"' then  inString <- false;    find (i+1)
+                        if   t0='\\' && t1 = '"'  then     find (i+2) //an escaped quote in a string
+                        elif t0= '"' then  inString <- false;    find (i+1)
                         else find (i+1)
                         
                     elif inAtString then
-                        if    ti= '"' then  inAtString <- false;    find (i+1)
+                        if    t0= '"' then  inAtString <- false;    find (i+1)
                         else find (i+1)
                             
                     elif inRawString then
-                        if  ti='"' && tx.[i+1] = '"' && i+1 < len2 && tx.[i+2] = '"' then  inRawString <- false;    find (i+3)
+                        if  t0='"' && t1 = '"' && i+1 < len2 && tx.[i+2] = '"' then  inRawString <- false;    find (i+3)
                         else find (i+1)
                                 
                     else // in Code
-                        // opening brackets
-                        if  ti='{' then
-                            if  tx.[i+1] = '|' then Brs.Add  OpAnRec ; Offs.Add i ; find (i+2)
+                        // opening brackets                        
+                        if  t0='{' then
+                            if  t1 = '|' then Brs.Add  OpAnRec ; Offs.Add i ; find (i+2)
                             else                    Brs.Add  OpCurly ; Offs.Add i ; find (i+1)
-                        elif  ti='[' then
-                            if   tx.[i+1] = '|' then Brs.Add  OpArr  ; Offs.Add i  ; find (i+2)
+                        elif  t0='[' then
+                            if   t1 = '|' then Brs.Add  OpArr  ; Offs.Add i  ; find (i+2)
                             else                     Brs.Add  OpRect ; Offs.Add i  ; find (i+1)
                         elif  
-                            ti='(' then
-                                if    tx.[i+1] = ')' then                             find (i+2) // skip '(' flollowed by ')'
-                                elif  tx.[i+1] = '*' then   inBlockComment <- true ;  find (i+2) // skip '(' flollowed by ')'
+                            t0='(' then
+                                if    t1 = ')' then                             find (i+2) // skip '(' flollowed by ')'
+                                elif  t1 = '*' then   inBlockComment <- true ;  find (i+2) // skip '(' flollowed by ')'
                                 
                                 else                     Brs.Add  OpRound ; Offs.Add i ; find (i+1)
 
                         // closing brackets
-                        elif ti = '|' then
-                            if   tx.[i+1] = ']' then Brs.Add ClArr  ; Offs.Add i  ; find (i+2)
-                            elif tx.[i+1] = '}' then Brs.Add ClRect ; Offs.Add i  ; find (i+2)
+                        elif t0 = '|' then
+                            if   t1 = ']' then Brs.Add ClArr  ; Offs.Add i  ; find (i+2)
+                            elif t1 = '}' then Brs.Add ClRect ; Offs.Add i  ; find (i+2)
                             else                                                    find (i+1)
 
-                        elif  ti='}' then Brs.Add ClCurly ; Offs.Add i ; find (i+1)
-                        elif  ti=']' then Brs.Add ClRect  ; Offs.Add i ; find (i+1)
-                        elif  ti=')' then Brs.Add ClRound ; Offs.Add i ; find (i+1)
-                        // escape cases:
-                        elif  ti='\n' then inComment <- false          ; find (i+1)
-                        elif  ti='@' && tx.[i+1] = '"' then inAtString <- true    ; find (i+2)
-                        elif  ti='"' && tx.[i+1] = '"' && i+1 < len2 && tx.[i+2] = '"' then  inRawString <- true;    find (i+3)
-                        elif  ti='"'  then inString <- true            ; find (i+1)
-                        elif  ti='\''  then inString <- true            ; find (i+1)
-
-                        elif  ti='/'  && tx.[i+1] = '/'  then inComment <- true    ; find (i+2)
+                        elif  t0='}' then Brs.Add ClCurly ; Offs.Add i ; find (i+1)
+                        elif  t0=']' then Brs.Add ClRect  ; Offs.Add i ; find (i+1)
+                        elif  t0=')' then Brs.Add ClRound ; Offs.Add i ; find (i+1)
                         
+                        // escape cases:                        
+
+                        elif  t0='@' && t1 = '"' then inAtString <- true    ; find (i+2)
+                        elif  t0='"' && t1 = '"' && i+1 < len2 && tx.[i+2] = '"' then  inRawString <- true;    find (i+3)
+                        elif  t0='"'  then inString <- true            ; find (i+1)
+                        elif  t0='/'  && t1 = '/'  then inComment <- true    ; find (i+2)                        
                         // if char just jump over it 
-                        elif  ti='\'' then 
+                        elif  t0='\'' then 
                             if    i+1  < len2 && tx.[i+2] = '\''                     then   find (i+3) // a regular  character, including quote "
-                            elif  i+2  < len2 && tx.[i+1] = '\\' && tx.[i+3]  = '\'' then   find (i+4) // a simple escaped character
-                            elif  i+6  < len2 && tx.[i+1] = '\\' && tx.[i+2] = 'u' && tx.[i+7]  = '\'' then   find (i+8) // a 16 bit unicode character
-                            elif  i+10 < len2 && tx.[i+1] = '\\' && tx.[i+2] = 'U' && tx.[i+11] = '\'' then   find (i+12) // a 32 bit unicode character
+                            elif  i+2  < len2 && t1 = '\\' && tx.[i+3]  = '\'' then   find (i+4) // a simple escaped character
+                            elif  i+6  < len2 && t1 = '\\' && tx.[i+2] = 'u' && tx.[i+7]  = '\'' then   find (i+8) // a 16 bit unicode character
+                            elif  i+10 < len2 && t1 = '\\' && tx.[i+2] = 'U' && tx.[i+11] = '\'' then   find (i+12) // a 32 bit unicode character
                             else find (i+1)
                         else   
                             find (i+1)
                
                 // check last char
                 elif i>2 && i = tx.Length - 1  && not inComment && not inString then 
-                    let ti = tx.[i]
+                    let t0 = tx.[i]
                     if tx.[i-1] = '|' then
-                        if   ti = ']' then Brs.Add ClArr  ; Offs.Add i  
-                        elif ti = '}' then Brs.Add ClRect ; Offs.Add i
-                    elif ti='{' then Brs.Add OpCurly ; Offs.Add i 
-                    elif ti='[' then Brs.Add OpRect  ; Offs.Add i  
-                    elif ti='(' then Brs.Add OpRound ; Offs.Add i                 
-                    elif ti='}' then Brs.Add ClCurly ; Offs.Add i 
-                    elif ti=']' then Brs.Add ClRect  ; Offs.Add i 
-                    elif ti=')' then Brs.Add ClRound ; Offs.Add i 
+                        if   t0 = ']' then Brs.Add ClArr  ; Offs.Add i  
+                        elif t0 = '}' then Brs.Add ClRect ; Offs.Add i
+                    elif t0='{' then Brs.Add OpCurly ; Offs.Add i 
+                    elif t0='[' then Brs.Add OpRect  ; Offs.Add i  
+                    elif t0='(' then Brs.Add OpRound ; Offs.Add i                 
+                    elif t0='}' then Brs.Add ClCurly ; Offs.Add i 
+                    elif t0=']' then Brs.Add ClRect  ; Offs.Add i 
+                    elif t0=')' then Brs.Add ClRound ; Offs.Add i 
                    
                     
             find 0     
