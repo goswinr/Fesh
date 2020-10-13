@@ -35,9 +35,11 @@ type Foldings(ed:TextEditor,checker:Checker,config:Config, edId:Guid) =
 
     let minLinesOutside = 2 // minimum line count for outer folding 
 
-    let minLinesNested = 3 // minimum line count for inner folding 
+    let minLinesNested = 4 // minimum line count for inner folding 
 
-    let minLineCountDiffToOuter = 4 // if inner folding is just 4 line shorte than outer folding dont doo it
+    let minLineCountDiffToOuter = 6 // if inner folding is just 6 line shorter than outer folding dont do it
+
+
 
     let manager = Folding.FoldingManager.Install(ed.TextArea)  // color of margin is set in ColoumRulers.fs
 
@@ -153,7 +155,7 @@ type Foldings(ed:TextEditor,checker:Checker,config:Config, edId:Guid) =
                                 if  f.nestingLevel = 0 then 
                                     lastOuter <- f
                                     fs.Add f
-                                elif f.linesInFold + minLineCountDiffToOuter > lastOuter.linesInFold then // filter out inner blocks that are almost the size of the outer block
+                                elif f.linesInFold + minLineCountDiffToOuter < lastOuter.linesInFold then // filter out inner blocks that are almost the size of the outer block
                                     fs.Add f 
                         fs
                         
@@ -196,9 +198,8 @@ type Foldings(ed:TextEditor,checker:Checker,config:Config, edId:Guid) =
     
     
     do        
-        checker.OnFullCodeAvailabe.Add foldEditor // will add an event for each new tab, foldEditor skips updating  if it is not current editor
-        
-        // event for tracking folding status is attached in editor.setup()
+        checker.OnFullCodeAvailabe.Add foldEditor // will add an event for each new tab, foldEditor skips updating  if it is not current editor        
+        // event for tracking folding status via mouse up in margin is attached in editor.setup()
 
     member this.SetState(ied:IEditor) =
         let vs = config.FoldingStatus.Get(ied)     
@@ -220,9 +221,6 @@ type Foldings(ed:TextEditor,checker:Checker,config:Config, edId:Guid) =
 
     
 
-    //let firstErrorOffset = -1 //The first position of a parse error. Existing foldings starting after this offset will be kept even if they don't appear in newFoldings. Use -1 for this parameter if there were no parse errors)                    
-    //manager.UpdateFoldings(foldings,firstErrorOffset)
-    
     // or walk AST ?
 
     //let visitDeclarations decls = 
