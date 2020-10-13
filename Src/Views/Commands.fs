@@ -8,9 +8,7 @@ open ICSharpCode.AvalonEdit.Editing
 
 open Seff.Editor
 open Seff
-open System.IO
 open Seff.Editor.Selection
-open System.Windows.Media
 open ICSharpCode.AvalonEdit
 
 

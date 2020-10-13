@@ -8,15 +8,12 @@ open System.Windows.Documents
 open System.Windows.Controls
 open System.Windows.Controls.Primitives // status bar
 open System.Windows.Media
-open ICSharpCode
 open Seff.Views.Util
 open FSharp.Compiler.SourceCodeServices
-open System.Windows.Automation.Peers
 
 open Seff.Config
 open Seff.Editor
-open Seff
-open System
+
 
 
 module private StatusbarStyle = 

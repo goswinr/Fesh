@@ -2,12 +2,8 @@
 
 open Seff
 open System
-open System.Windows.Input
-open System.Windows.Controls
-open Seff.Views.Util
 open Seff.Config
 open Seff.Util.General
-open System.Collections.Generic
 open System.Windows.Media
 
 type Fonts (grid:TabsAndLog) = // will be contructed as part of Commands class

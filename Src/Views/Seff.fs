@@ -22,7 +22,7 @@ type Seff (config:Config,log:Log) =
         
         commands.SetUpGestureInputBindings()        
         
-        win.Window.Content <-   dockP   
+        win.Window.Content     <- dockP   
         win.Window.Background  <- menu.Bar.Background // call after setting up content, otherwise space next to tab headers is in an odd color
               
         if config.Hosting.IsStandalone then win.Window.ContentRendered.Add(fun _ -> log.PrintInfoMsg "* Time for loading and rendering of main window: %s"  Timer.InstanceStartup.tocEx) 

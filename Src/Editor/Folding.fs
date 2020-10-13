@@ -1,21 +1,14 @@
 ﻿namespace Seff.Editor
 
-open Seff
-open Seff.Util
 open System
-open System.Windows
-open System.Windows.Controls
-open System.Windows.Media
 
-open ICSharpCode.AvalonEdit
-open ICSharpCode.AvalonEdit.Editing
-open ICSharpCode.AvalonEdit.Document
-open FSharp.Compiler
-open FSharp.Compiler.SourceCodeServices
-open ICSharpCode.AvalonEdit.Folding
+open Seff
 open Seff.Util
 open Seff.Util.General
 open Seff.Config
+
+open ICSharpCode.AvalonEdit
+open ICSharpCode.AvalonEdit.Folding
 
 
     

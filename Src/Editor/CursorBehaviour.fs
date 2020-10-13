@@ -2,14 +2,9 @@
 
 
 open Seff
-open ICSharpCode
 open ICSharpCode.AvalonEdit
-open System.Windows.Media
-open Seff.Config
 open Seff.Util.String
-open FSharp.Compiler.SourceCodeServices
 open System.Windows
-open System.IO
 open System
 
 module CursorBehaviour  =

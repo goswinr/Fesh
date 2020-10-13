@@ -58,13 +58,13 @@ type BracketHighlighter (ed:TextEditor) =
 
     let nextColor i = colors.[i % colors.Length] 
     
-    let Brs = ResizeArray<BracketKind>()
-    let Offs = ResizeArray<int>()
-    let Cols = ResizeArray<SolidColorBrush>()
-    let Unclosed    = ResizeArray<int>()
+    let Brs        = ResizeArray<BracketKind>()
+    let Offs       = ResizeArray<int>()
+    let Cols       = ResizeArray<SolidColorBrush>()
+    let Unclosed   = ResizeArray<int>()
     let UnclosedBr = ResizeArray<BracketKind>()
     let PairStarts = Dictionary<int,BracketInfo>()
-    let PairEnds = Dictionary<int,BracketInfo>()
+    let PairEnds   = Dictionary<int,BracketInfo>()
 
     let mutable pairStart = -1
     let mutable pairEnd = -1
@@ -86,14 +86,14 @@ type BracketHighlighter (ed:TextEditor) =
             PairStarts.Clear()
             PairEnds.Clear()
             pairStart <- -1
-            pairEnd <- -1
-            pairLen <- -1
+            pairEnd   <- -1
+            pairLen   <- -1
 
-            let mutable inComment = false
+            let mutable inComment      = false
             let mutable inBlockComment = false
-            let mutable inString = false
-            let mutable inAtString = false // with @
-            let mutable inRawString = false // with @
+            let mutable inString       = false
+            let mutable inAtString     = false // with @
+            let mutable inRawString    = false // with @
 
 
             let rec find i = 
@@ -270,19 +270,19 @@ type BracketHighlighter (ed:TextEditor) =
                     if off >= st && off < en then 
                         //this.Log.Value.PrintDebugMsg "Bracket %d to %d on Line %d " off (off+1) line.LineNumber                
                         match Brs.[i] with 
-                        | ClRound | OpRect | OpCurly | OpRound  | ClRect | ClCurly  -> base.ChangeLinePart( off,off+1, fun el -> el.TextRunProperties.SetForegroundBrush(Cols.[i]))   
-                        | OpAnRec | OpArr | ClAnRec | ClArr                         -> base.ChangeLinePart( off,off+2, fun el -> el.TextRunProperties.SetForegroundBrush(Cols.[i]))                
+                        | ClRound | OpRect | OpCurly | OpRound  | ClRect | ClCurly  -> base.ChangeLinePart( off, off+1, fun el -> el.TextRunProperties.SetForegroundBrush(Cols.[i]))   
+                        | OpAnRec | OpArr | ClAnRec | ClArr                         -> base.ChangeLinePart( off, off+2, fun el -> el.TextRunProperties.SetForegroundBrush(Cols.[i]))                
                 
             for i = 0 to Unclosed.Count - 1 do // or binary serach
                 let off = Unclosed.[i]
                 if off >= st && off < en then               
                     match UnclosedBr.[i] with 
-                    | ClRound | OpRect | OpCurly | OpRound  | ClRect | ClCurly  -> base.ChangeLinePart( off,off+1, fun el -> el.TextRunProperties.SetBackgroundBrush(unclosedBg))   
-                    | OpAnRec | OpArr | ClAnRec | ClArr                         -> base.ChangeLinePart( off,off+2, fun el -> el.TextRunProperties.SetBackgroundBrush(unclosedBg))  
+                    | ClRound | OpRect | OpCurly | OpRound  | ClRect | ClCurly  -> base.ChangeLinePart( off, off+1, fun el -> el.TextRunProperties.SetBackgroundBrush(unclosedBg))   
+                    | OpAnRec | OpArr | ClAnRec | ClArr                         -> base.ChangeLinePart( off, off+2, fun el -> el.TextRunProperties.SetBackgroundBrush(unclosedBg))  
             
             
-            if pairStart >= st && pairStart < en then  base.ChangeLinePart( pairStart, pairStart+pairLen, fun el -> el.TextRunProperties.SetBackgroundBrush(pairBg))   
-            if pairEnd   >= st && pairEnd   < en then  base.ChangeLinePart( pairEnd  , pairEnd+pairLen  , fun el -> el.TextRunProperties.SetBackgroundBrush(pairBg))   
+            if pairStart >= st && pairStart < en then  base.ChangeLinePart( pairStart, pairStart + pairLen, fun el -> el.TextRunProperties.SetBackgroundBrush(pairBg))   
+            if pairEnd   >= st && pairEnd   < en then  base.ChangeLinePart( pairEnd  , pairEnd   + pairLen, fun el -> el.TextRunProperties.SetBackgroundBrush(pairBg))   
                 
 
         //else this.Log.Value.PrintAppErrorMsg "Brs %d Offs %d Cols %d,  on Line %d " Brs.Count  Offs.Count Cols.Count  line.LineNumber

@@ -10,9 +10,9 @@ open ICSharpCode.AvalonEdit
 open ICSharpCode.AvalonEdit.Document
 open ICSharpCode.AvalonEdit.Rendering
 open FSharp.Compiler.SourceCodeServices
-open System.Linq // for First() and Last() on read only collections
+open System.Linq // for First() and Last() on read only collections //TODO replace
 open System.Windows.Controls
-open System.Text
+
 
 
 //read: http://danielgrunwald.de/coding/AvalonEdit/rendering.php
