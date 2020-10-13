@@ -140,7 +140,7 @@ type Foldings(ed:TextEditor,checker:Checker,config:Config, edId:Guid) =
                     let foldings = 
                         let ffs = findFolds code
                         let l = ffs.Count-1
-                        let fs = ResizeArray(l)
+                        let fs = ResizeArray(max 0 l)// would be -1 if no foldings
                         let mutable lastOuter = {foldStartOff = -99; foldEndOff = -99 ; linesInFold = -99 ; nestingLevel = -99}
                         for i=0 to l do
                             let f = ffs.[i]
