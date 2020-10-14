@@ -147,11 +147,11 @@ type LogLineColorizer(ed:AvalonEdit.TextEditor, offsetColors: ResizeArray<NewCol
                             elif seg.StartOffset > enLn then () // this segment is on another line 
                             else
                                 if   seg.StartOffset =   seg.EndOffset then base.ChangeLinePart(st,  en, fun el -> el.TextRunProperties.SetForegroundBrush(br)) // the selection segment is after the line end, this might happen in block selection
-                                elif seg.StartOffset >   en           then base.ChangeLinePart(st,  en, fun el -> el.TextRunProperties.SetForegroundBrush(br)) // the selection segment comes after this color section
-                                elif seg.EndOffset   <=  st           then base.ChangeLinePart(st,  en, fun el -> el.TextRunProperties.SetForegroundBrush(br)) // the selection segment comes before this color section
+                                elif seg.StartOffset >   en            then base.ChangeLinePart(st,  en, fun el -> el.TextRunProperties.SetForegroundBrush(br))  // the selection segment comes after this color section
+                                elif seg.EndOffset   <=  st            then base.ChangeLinePart(st,  en, fun el -> el.TextRunProperties.SetForegroundBrush(br))  // the selection segment comes before this color section
                                 else
                                     if st <  seg.StartOffset then base.ChangeLinePart(st           ,  seg.StartOffset, fun el -> el.TextRunProperties.SetForegroundBrush(br))
-                                    if en <= seg.EndOffset   then base.ChangeLinePart(seg.EndOffset,  en             , fun el -> el.TextRunProperties.SetForegroundBrush(br))
+                                    if en >  seg.EndOffset   then base.ChangeLinePart(seg.EndOffset,  en             , fun el -> el.TextRunProperties.SetForegroundBrush(br))
                             
  
             
@@ -385,18 +385,7 @@ type Log () =
     member this.PrintAppErrorMsg  s =  Printf.fprintfn textWriterAppErrorMsg  s
     member this.PrintIOErrorMsg   s =  Printf.fprintfn textWriterIOErrorMsg   s        
     member this.PrintDebugMsg     s =  Printf.fprintfn textWriterDebugMsg     s
-    /// prints without adding a new line at the end
-    member this.Print_InfoMsg      s =  Printf.fprintf textWriterInfoMsg      s
-    /// prints without adding a new line at the end
-    member this.Print_FsiErrorMsg  s =  Printf.fprintf textWriterFsiErrorMsg  s
-    /// prints without adding a new line at the end
-    member this.Print_AppErrorMsg  s =  Printf.fprintf textWriterAppErrorMsg  s
-    /// prints without adding a new line at the end
-    member this.Print_IOErrorMsg   s =  Printf.fprintf textWriterIOErrorMsg   s        
-    /// prints without adding a new line at the end
-    member this.Print_DebugMsg     s =  Printf.fprintf textWriterDebugMsg     s
-
-
+    
     /// Print using the Brush or color provided 
     /// at last custom printing call via PrintCustomBrush or PrintCustomColor 
     member this.PrintCustom s = 
@@ -417,6 +406,17 @@ type Log () =
         LogColors.custom.Freeze()
         Printf.fprintfn textWriterCustomColor s
 
+    /// Prints without adding a new line at the end
+    member this.Print_InfoMsg      s =  Printf.fprintf textWriterInfoMsg      s
+    /// Prints without adding a new line at the end
+    member this.Print_FsiErrorMsg  s =  Printf.fprintf textWriterFsiErrorMsg  s
+    /// Prints without adding a new line at the end
+    member this.Print_AppErrorMsg  s =  Printf.fprintf textWriterAppErrorMsg  s
+    /// Prints without adding a new line at the end
+    member this.Print_IOErrorMsg   s =  Printf.fprintf textWriterIOErrorMsg   s        
+    /// Prints without adding a new line at the end
+    member this.Print_DebugMsg     s =  Printf.fprintf textWriterDebugMsg     s
+    
     /// Print using the Brush or color provided 
     /// at last custom printing call via PrintCustomBrush or PrintCustomColor 
     /// without adding a new line at the end
@@ -446,21 +446,23 @@ type Log () =
         member this.TextWriterFsiErrorOut  = textWriterFsiErrorOut  :> TextWriter   
         member this.TextWriterConsoleOut   = textWriterConsoleOut   :> TextWriter   
         member this.TextWriterConsoleError = textWriterConsoleError :> TextWriter   
-        
+       
+
         member this.PrintInfoMsg     s = Printf.fprintfn textWriterInfoMsg      s
         member this.PrintFsiErrorMsg s = Printf.fprintfn textWriterFsiErrorMsg  s
         member this.PrintAppErrorMsg s = Printf.fprintfn textWriterAppErrorMsg  s
         member this.PrintIOErrorMsg  s = Printf.fprintfn textWriterIOErrorMsg   s 
         member this.PrintDebugMsg    s = Printf.fprintfn textWriterDebugMsg     s
+        member this.PrintCustom s = this.PrintCustom s
+        member this.PrintCustomBrush (br:SolidColorBrush) s = this.PrintCustomBrush (br:SolidColorBrush) s
+        member this.PrintCustomColor red green blue s =this.PrintCustomColor red green blue s
+
+        //withou the new line:
         member this.Print_InfoMsg      s =  Printf.fprintf textWriterInfoMsg      s
         member this.Print_FsiErrorMsg  s =  Printf.fprintf textWriterFsiErrorMsg  s
         member this.Print_AppErrorMsg  s =  Printf.fprintf textWriterAppErrorMsg  s
         member this.Print_IOErrorMsg   s =  Printf.fprintf textWriterIOErrorMsg   s
         member this.Print_DebugMsg     s =  Printf.fprintf textWriterDebugMsg     s
-
-        member this.PrintCustom s = this.PrintCustom s
-        member this.PrintCustomBrush (br:SolidColorBrush) s = this.PrintCustomBrush (br:SolidColorBrush) s
-        member this.PrintCustomColor red green blue s =this.PrintCustomColor red green blue s
         member this.Print_Custom s =  this.Print_Custom s
         member this.Print_CustomBrush (br:SolidColorBrush) s =this.Print_CustomBrush (br:SolidColorBrush) s
         member this.Print_CustomColor red green blue s = this.Print_CustomColor red green blue s

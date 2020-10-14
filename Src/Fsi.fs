@@ -173,8 +173,9 @@ type Fsi private (config:Config) =
                         runtimeErrorEv.Trigger(exn)
                         isReadyEv.Trigger()
                         log.PrintFsiErrorMsg "Runtime Error:" 
+                        
                         //highlight line number:
-                        let et = sprintf "%A" exn // TODO in exception the line endings are just \n
+                        let et = sprintf "%A" exn
                         let t,r = String.splitOnce ".fsx:" et
                         if r="" then 
                             log.PrintFsiErrorMsg "%s" et
