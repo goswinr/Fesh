@@ -33,11 +33,11 @@ module LogColors =
 
     let consoleOut    = Brushes.Black                     |> freeze // should be same as default  forground. is only used if a line has more than one color 
     let fsiStdOut     = Brushes.DarkGray |> darker 20     |> freeze // values printet by fsi iteself like "val it = ...."
-    let fsiErrorOut   = Brushes.DarkMagenta               |> freeze //are they all caught by evaluate non throwing ?
+    let fsiErrorOut   = Brushes.DarkMagenta               |> freeze //are they all caught by evaluate non throwing ? prints "Stopped due to error" on non compiling code
     let consoleError  = Brushes.OrangeRed                 |> freeze // this is used by eprintfn 
     let infoMsg       = Brushes.LightSeaGreen             |> freeze
-    let fsiErrorMsg   = Brushes.Red                       |> freeze
-    let appErrorMsg   = Brushes.LightSalmon               |> freeze
+    let fsiErrorMsg   = Brushes.Magenta                   |> freeze
+    let appErrorMsg   = Brushes.LightSalmon |> darker 20  |> freeze
     let iOErrorMsg    = Brushes.DarkRed                   |> freeze
     let debugMsg      = Brushes.Green                     |> freeze
     let mutable custom  = consoleOut // will be set in Log.PrintCustomBrush
@@ -62,6 +62,7 @@ type NewColor =
     /// Does binary search to find an offset that is equal or smaller than off
     static member findCurrentInList (cs:ResizeArray<NewColor>) off = 
         //try        
+        //with _ -> LogFile.Post (sprintf "findCurrentInList: Did not find off %d in ResizeArray<NewColor> of %d items: %A" off cs.Count cs );   cs.[0]
             let last = cs.Count-1
             let rec find lo hi =             
                 let mid = lo + (hi - lo) / 2          //TODO test edge conditions !!  
@@ -73,7 +74,6 @@ type NewColor =
                             find lo (mid-1)
         
             find 0 last
-        //with _ -> LogFile.Post (sprintf "findCurrentInList: Did not find off %d in ResizeArray<NewColor> of %d items: %A" off cs.Count cs );   cs.[0]
 
 [<Struct>]
 type RangeColor = 
@@ -119,6 +119,7 @@ type LogLineColorizer(ed:AvalonEdit.TextEditor, offsetColors: ResizeArray<NewCol
     /// This gets called for every visible line on any view change
     override this.ColorizeLine(line:AvalonEdit.Document.DocumentLine) =     
         //try
+        //with e -> LogFile.Post <| sprintf "LogLineColorizer override this.ColorizeLine failed with:\r\n %A" e
             if not line.IsDeleted then  
                 let stLn = line.Offset
                 let enLn = line.EndOffset
@@ -152,12 +153,7 @@ type LogLineColorizer(ed:AvalonEdit.TextEditor, offsetColors: ResizeArray<NewCol
                                     if st <  seg.StartOffset then base.ChangeLinePart(st           ,  seg.StartOffset, fun el -> el.TextRunProperties.SetForegroundBrush(br))
                                     if en <= seg.EndOffset   then base.ChangeLinePart(seg.EndOffset,  en             , fun el -> el.TextRunProperties.SetForegroundBrush(br))
                             
-                            
-        
-        //with e -> LogFile.Post <| sprintf "LogLineColorizer override this.ColorizeLine failed with:\r\n %A" e
-        
-            
-
+ 
             
 /// Highlight-all-occurrences-of-selected-text in Log Text View
 type LogSelectedTextHighlighter (lg:AvalonEdit.TextEditor) = 
@@ -389,6 +385,17 @@ type Log () =
     member this.PrintAppErrorMsg  s =  Printf.fprintfn textWriterAppErrorMsg  s
     member this.PrintIOErrorMsg   s =  Printf.fprintfn textWriterIOErrorMsg   s        
     member this.PrintDebugMsg     s =  Printf.fprintfn textWriterDebugMsg     s
+    /// prints without adding a new line at the end
+    member this.Print_InfoMsg      s =  Printf.fprintf textWriterInfoMsg      s
+    /// prints without adding a new line at the end
+    member this.Print_FsiErrorMsg  s =  Printf.fprintf textWriterFsiErrorMsg  s
+    /// prints without adding a new line at the end
+    member this.Print_AppErrorMsg  s =  Printf.fprintf textWriterAppErrorMsg  s
+    /// prints without adding a new line at the end
+    member this.Print_IOErrorMsg   s =  Printf.fprintf textWriterIOErrorMsg   s        
+    /// prints without adding a new line at the end
+    member this.Print_DebugMsg     s =  Printf.fprintf textWriterDebugMsg     s
+
 
     /// Print using the Brush or color provided 
     /// at last custom printing call via PrintCustomBrush or PrintCustomColor 
@@ -410,6 +417,27 @@ type Log () =
         LogColors.custom.Freeze()
         Printf.fprintfn textWriterCustomColor s
 
+    /// Print using the Brush or color provided 
+    /// at last custom printing call via PrintCustomBrush or PrintCustomColor 
+    /// without adding a new line at the end
+    member this.Print_Custom s = 
+        Printf.fprintf textWriterCustomColor s
+    
+    /// Change custom color to a new SolidColorBrush (e.g. from System.Windows.Media.Brushes)
+    /// This wil also freeze the Brush.
+    /// Then print without adding a new line at the end
+    member this.Print_CustomBrush (br:SolidColorBrush) s = 
+        LogColors.custom <- br
+        LogColors.custom.Freeze()
+        Printf.fprintf textWriterCustomColor s
+    
+    /// Change custom color to a RGB value ( each between 0 and 255) 
+    /// Then print without adding a new line at the end
+    member this.Print_CustomColor red green blue s = 
+        LogColors.custom <- SolidColorBrush(Color.FromRgb(byte red, byte green, byte blue))
+        LogColors.custom.Freeze()
+        Printf.fprintf textWriterCustomColor s
+
 
     interface Seff.ISeffLog with        
         member this.ReadOnlyEditor         = log
@@ -424,6 +452,20 @@ type Log () =
         member this.PrintAppErrorMsg s = Printf.fprintfn textWriterAppErrorMsg  s
         member this.PrintIOErrorMsg  s = Printf.fprintfn textWriterIOErrorMsg   s 
         member this.PrintDebugMsg    s = Printf.fprintfn textWriterDebugMsg     s
+        member this.Print_InfoMsg      s =  Printf.fprintf textWriterInfoMsg      s
+        member this.Print_FsiErrorMsg  s =  Printf.fprintf textWriterFsiErrorMsg  s
+        member this.Print_AppErrorMsg  s =  Printf.fprintf textWriterAppErrorMsg  s
+        member this.Print_IOErrorMsg   s =  Printf.fprintf textWriterIOErrorMsg   s
+        member this.Print_DebugMsg     s =  Printf.fprintf textWriterDebugMsg     s
+
+        member this.PrintCustom s = this.PrintCustom s
+        member this.PrintCustomBrush (br:SolidColorBrush) s = this.PrintCustomBrush (br:SolidColorBrush) s
+        member this.PrintCustomColor red green blue s =this.PrintCustomColor red green blue s
+        member this.Print_Custom s =  this.Print_Custom s
+        member this.Print_CustomBrush (br:SolidColorBrush) s =this.Print_CustomBrush (br:SolidColorBrush) s
+        member this.Print_CustomColor red green blue s = this.Print_CustomColor red green blue s
+
+
 
     
     member this.SaveAllText (pathHint: FilePath) = 
