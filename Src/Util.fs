@@ -58,6 +58,16 @@ module General =
         getParent f.Directory [f.Name]
         |> List.toArray
 
+    /// Post to this agent for writing a debug string to a desktop file. Only used for bugs that cant be logged to the UI.
+    let LogFile = // for async debug logging to a file (if the Log window fails to show)
+        let file = IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop),"Seff-Log.txt")
+        MailboxProcessor.Start(
+            fun inbox ->
+                let rec loop () = 
+                    async { let! msg = inbox.Receive()
+                            IO.File.AppendAllText(file, Environment.NewLine + msg)
+                            return! loop()}
+                loop() )
 
 module String =
     
