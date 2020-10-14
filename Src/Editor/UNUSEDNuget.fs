@@ -22,7 +22,7 @@ module Packages=
             let errTxt =  doc.GetText(startOffset, length)
             let errLine = doc.GetText(doc.GetLineByOffset(startOffset))
             if errLine.StartsWith "#r " then 
-                let _,name,_ = between "\"" "\"" errTxt
+                let _,name,_ = splitTwice "\"" "\"" errTxt
                 if  not (name.Contains ".dll")  &&
                     not (name.Contains "\\")    &&
                     not (name.Contains "/")     &&

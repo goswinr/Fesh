@@ -172,19 +172,30 @@ module String =
         '!'=c || '%'=c || '&'=c || '*'=c || '+'=c || '-'=c || '.'=c || '|'=c ||
         '/'=c || '<'=c || '='=c || '>'=c || '?'=c || '@'=c || '^'=c || '~'=c
 
-    // finds text between first occurance of two strings
-    let between (a:string) (b:string) (s:string) = 
-        //between "((" "))" "c((ab))c" = ("c", "ab", "c")
-        let start = s.IndexOf(a, StringComparison.Ordinal) 
-        if start = -1 then "","",""
-        else 
-            let ende = s.IndexOf(b, start + a.Length, StringComparison.Ordinal)
-            if ende = -1 then "","",""
-            else 
-                s.Substring(0,start ),
-                s.Substring(start + a.Length, ende - start - a.Length),// finds text betwween two chars
-                s.Substring(ende + b.Length)
 
+    /// split string into two elements, 
+    /// splitter is not included in the two return strings.
+    /// if splitter not found first string is same as input, second string is empty 
+    let splitOnce (spliter:string) (s:string) = 
+        let start = s.IndexOf(spliter, StringComparison.Ordinal) 
+        if start = -1 then s,""
+        else               s.Substring(0, start), s.Substring(start + spliter.Length)
+
+    /// finds text betwween two strings
+    /// between "X" "T" "cXabTk" = "c", "ab", "k"
+    /// delimiters are excluded
+    /// if not both splitters are found returns original string and two empty strings 
+    /// previously called between, but now with new retuen value on fail
+    let splitTwice (startChar:string) (endChar:string) (s:string) =         
+        let start = s.IndexOf(startChar, StringComparison.Ordinal) 
+        if start = -1 then s,"",""
+        else 
+            let ende = s.IndexOf(endChar, start + startChar.Length, StringComparison.Ordinal)
+            if ende = -1 then s,"",""
+            else 
+                s.Substring(0, start ),
+                s.Substring(start + startChar.Length, ende - start - startChar.Length),// finds text betwween two chars
+                s.Substring(ende + endChar.Length)
 
 module Parse = 
     
