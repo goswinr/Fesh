@@ -7,7 +7,8 @@ open System.IO
 open System.Threading
 open FSharp.Compiler.Interactive.Shell
 open Seff.Config
-open Seff.Util.General
+open Seff.Util
+open System.Windows.Media
 
 
 
@@ -171,7 +172,18 @@ type Fsi private (config:Config) =
                     | _ ->    
                         runtimeErrorEv.Trigger(exn)
                         isReadyEv.Trigger()
-                        log.PrintFsiErrorMsg "Runtime Error: %A" exn     
+                        log.PrintFsiErrorMsg "Runtime Error:" 
+                        //highlight line number:
+                        let et = sprintf "%A" exn // TODO in exception the line endings are just \n
+                        let t,r = String.splitOnce ".fsx:" et
+                        if r="" then 
+                            log.PrintFsiErrorMsg "%s" et
+                        else
+                            let ln,rr = String.splitOnce "\r\n" r                        
+                            log.Print_FsiErrorMsg "%s.fsx:" t
+                            log.PrintCustomBrush Brushes.Blue "%s" ln
+                            log.PrintFsiErrorMsg "%s" rr
+                              
                 } 
         
             //TODO trigger from a new thread even in Synchronous evaluation ?
