@@ -31,10 +31,10 @@ type LogKind =
 
 module LogColors = 
 
-    let consoleOut    = Brushes.Black                     |> freeze // default black forground is used ; never used should  // the out from printfn
-    let fsiStdOut     = Brushes.DarkGray |> darker 20     |> freeze// values printet by fsi iteself like "val it = ...."
-    let fsiErrorOut   = Brushes.DarkMagenta               |> freeze//are they all caught by evaluate non throwing ?
-    let consoleError  = Brushes.OrangeRed                 |> freeze// this is used by eprintfn 
+    let consoleOut    = Brushes.Black                     |> freeze // should be same as default  forground. is only used if a line has more than one color 
+    let fsiStdOut     = Brushes.DarkGray |> darker 20     |> freeze // values printet by fsi iteself like "val it = ...."
+    let fsiErrorOut   = Brushes.DarkMagenta               |> freeze //are they all caught by evaluate non throwing ?
+    let consoleError  = Brushes.OrangeRed                 |> freeze // this is used by eprintfn 
     let infoMsg       = Brushes.LightSeaGreen             |> freeze
     let fsiErrorMsg   = Brushes.Red                       |> freeze
     let appErrorMsg   = Brushes.LightSalmon               |> freeze
@@ -112,23 +112,29 @@ type LogLineColorizer(ed:AvalonEdit.TextEditor, offsetColors: ResizeArray<NewCol
             selStart <- ed.SelectionStart
             selEnd   <- selStart + ed.SelectionLength // this last selcetion in case of block selection too ! correct
         
+        //for seg in ed.TextArea.Selection.Segments do LogFile.Post(sprintf "Segment %d-%d" seg.StartOffset seg.EndOffset)
+        //for ln in ed.Document.Lines do LogFile.Post(sprintf "Line  %d-%d" ln.Offset ln.EndOffset)
         //LogFile.Post(sprintf "\r\nSelected Text:\r\n%s" ed.SelectedText)
 
     /// This gets called for every visible line on any view change
     override this.ColorizeLine(line:AvalonEdit.Document.DocumentLine) =     
-        try
+        //try
             if not line.IsDeleted then  
                 let stLn = line.Offset
                 let enLn = line.EndOffset
                 let cs = RangeColor.getInRange offsetColors stLn enLn
                 let mutable any = false
+                
+                // color non selected lines 
                 if selStart = selEnd  || selStart > enLn || selEnd < stLn then// no selection in general or on this line                 
                     for c in cs do 
-                        if c.brush=ConsoleOut && any then //changing the bas fore ground is only nened if any other color laredy exists on this line                        
+                        if c.brush=ConsoleOut && any then //changing the basefore ground is only needed if any other color already exists on this line                        
                             base.ChangeLinePart(c.start, c.ende, fun element -> element.TextRunProperties.SetForegroundBrush(LogColors.getColor c.brush))
                         else
                             any <-true
                             base.ChangeLinePart(c.start, c.ende, fun el -> el.TextRunProperties.SetForegroundBrush(LogColors.getColor c.brush))
+                
+                /// exclude selection from coloring: 
                 else                
                     for c in cs do
                         let br = LogColors.getColor c.brush
@@ -136,10 +142,19 @@ type LogLineColorizer(ed:AvalonEdit.TextEditor, offsetColors: ResizeArray<NewCol
                         let en = c.ende
                         // now consider block or rectangle selection:
                         for seg in ed.TextArea.Selection.Segments do
-                            if st < seg.StartOffset && seg.StartOffset < en then base.ChangeLinePart(st, seg.StartOffset, fun el -> el.TextRunProperties.SetForegroundBrush(br))
-                            if en > seg.EndOffset   && seg.EndOffset   > st then base.ChangeLinePart(seg.EndOffset,   en, fun el -> el.TextRunProperties.SetForegroundBrush(br))
+                            if   seg.EndOffset   < stLn then () // this segment is on another line 
+                            elif seg.StartOffset > enLn then () // this segment is on another line 
+                            else
+                                if   seg.StartOffset =   seg.EndOffset then base.ChangeLinePart(st,  en, fun el -> el.TextRunProperties.SetForegroundBrush(br)) // the selection segment is after the line end, this might happen in block selection
+                                elif seg.StartOffset >   en           then base.ChangeLinePart(st,  en, fun el -> el.TextRunProperties.SetForegroundBrush(br)) // the selection segment comes after this color section
+                                elif seg.EndOffset   <=  st           then base.ChangeLinePart(st,  en, fun el -> el.TextRunProperties.SetForegroundBrush(br)) // the selection segment comes before this color section
+                                else
+                                    if st <  seg.StartOffset then base.ChangeLinePart(st           ,  seg.StartOffset, fun el -> el.TextRunProperties.SetForegroundBrush(br))
+                                    if en <= seg.EndOffset   then base.ChangeLinePart(seg.EndOffset,  en             , fun el -> el.TextRunProperties.SetForegroundBrush(br))
+                            
+                            
         
-        with e -> LogFile.Post <| sprintf "LogLineColorizer override this.ColorizeLine failed with:\r\n %A" e
+        //with e -> LogFile.Post <| sprintf "LogLineColorizer override this.ColorizeLine failed with:\r\n %A" e
         
             
 
@@ -248,13 +263,14 @@ type Log () =
         log.ShowLineNumbers  <- true
         log.Options.EnableHyperlinks <- true 
         log.TextArea.SelectionCornerRadius <- 0.0 
-        log.TextArea.SelectionBorder <- null         
+        log.TextArea.SelectionBorder <- null 
+        //log.TextArea.SelectionBrush <- Brushes.Blue |> brighter 190|> freeze//Hyperlinks color 
         log.TextArea.TextView.LinkTextForegroundBrush <- Brushes.Blue |> freeze//Hyperlinks color 
         
         log.TextArea.SelectionChanged.Add colo.SelectionChangedDelegate
         log.TextArea.TextView.LineTransformers.Add(colo)
-        //log.TextArea.SelectionChanged.Add hiLi.SelectionChangedDelegate
-        //log.TextArea.TextView.LineTransformers.Add(hiLi)
+        log.TextArea.SelectionChanged.Add hiLi.SelectionChangedDelegate
+        log.TextArea.TextView.LineTransformers.Add(hiLi)
         
      
 
@@ -289,7 +305,7 @@ type Log () =
         if prevMsgType <> typ then 
             offsetColors.Add { off = docLength; brush = typ } 
             prevMsgType <- typ 
-            LogFile.Post <| sprintf "offset %d new color: %A" docLength typ
+            //LogFile.Post <| sprintf "offset %d new color: %A" docLength typ
             
         if txt.Length <> 0 then 
             buffer.Append(txt)  |> ignore
