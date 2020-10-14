@@ -12,7 +12,10 @@ module Util =
     /// used for evaluating results of win32 dialogs
     let inline isTrue (nb:Nullable<bool>) = nb.HasValue && nb.Value
 
-
+    let inline freeze(br:SolidColorBrush)= 
+        if br.CanFreeze then 
+            br.Freeze()
+        br
 
     //---------- creating UIElemnts --------------
 

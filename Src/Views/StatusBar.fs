@@ -16,14 +16,14 @@ open Seff.Editor
 
 
 
-module private StatusbarStyle = 
+module StatusbarStyle = 
     let textPadding = Thickness(4. , 1. , 4., 1. ) //left ,top, right, bottom)
-    let okColor =   Brushes.Green    |> brighter 140
-    let errColor =  Brushes.Red      |> brighter 160
-    let warnColor = Brushes.Yellow   |> brighter 40  
-    let activeCol = Brushes.Orange   |> brighter 20
-    let failedCol = Brushes.Magenta 
-    let greyText =  Brushes.Gray     |> darker 20
+    let okColor =   Brushes.Green    |> brighter 140   |> freeze
+    let errColor =  Brushes.Red      |> brighter 160   |> freeze
+    let warnColor = Brushes.Yellow   |> brighter 40    |> freeze
+    let activeCol = Brushes.Orange   |> brighter 20    |> freeze
+    let failedCol = Brushes.Magenta                    |> freeze
+    let greyText =  Brushes.Gray     |> darker 20      |> freeze
 
 open StatusbarStyle
 
