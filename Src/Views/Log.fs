@@ -17,7 +17,7 @@ open System.Windows.Controls
 open System.Windows
 
 
-type LogMessageType = 
+type LogKind = 
     | ConsoleOut
     | FsiStdOut 
     | FsiErrorOut 
@@ -29,8 +29,7 @@ type LogMessageType =
     | DebugMsg 
     | Custom
 
-
-module  LogColors = 
+module LogColors = 
 
     let consoleOut    = Brushes.Black                     |> freeze // default black forground is used ; never used should  // the out from printfn
     let fsiStdOut     = Brushes.DarkGray |> darker 20     |> freeze// values printet by fsi iteself like "val it = ...."
@@ -58,27 +57,27 @@ module  LogColors =
 
 [<Struct>]
 type NewColor = 
-    {off: int; brush: LogMessageType}
+    {off: int; brush: LogKind}
     
     /// Does binary search to find an offset that is equal or smaller than off
     static member findCurrentInList (cs:ResizeArray<NewColor>) off = 
         //try        
-        let last = cs.Count-1
-        let rec find lo hi =             
-            let mid = lo + (hi - lo) / 2          //TODO test edge conditions !!  
-            if cs.[mid].off <= off then 
-                if mid = last             then cs.[mid] // exit
-                elif cs.[mid+1].off > off then cs.[mid] // exit
-                else find (mid+1) hi
-            else
-                        find lo (mid-1)
+            let last = cs.Count-1
+            let rec find lo hi =             
+                let mid = lo + (hi - lo) / 2          //TODO test edge conditions !!  
+                if cs.[mid].off <= off then 
+                    if mid = last             then cs.[mid] // exit
+                    elif cs.[mid+1].off > off then cs.[mid] // exit
+                    else find (mid+1) hi
+                else
+                            find lo (mid-1)
         
-        find 0 last
-        //with _ ->             failwithf "Did not find off %d in cs of %d items %A" off cs.Count cs
+            find 0 last
+        //with _ -> LogFile.Post (sprintf "findCurrentInList: Did not find off %d in ResizeArray<NewColor> of %d items: %A" off cs.Count cs );   cs.[0]
 
 [<Struct>]
 type RangeColor = 
-    {start: int; ende:int; brush: LogMessageType}    
+    {start: int; ende:int; brush: LogKind}    
 
     static member getInRange (cs:ResizeArray<NewColor>) st en =     
         let rec mkList i ls = 
@@ -102,54 +101,46 @@ type FsxTextWriter(writeStr) =
 type LogLineColorizer(ed:AvalonEdit.TextEditor, offsetColors: ResizeArray<NewColor>) =  
     inherit AvalonEdit.Rendering.DocumentColorizingTransformer()
     
-    let mutable selStart = -1
-    let mutable selEnd   = -1
+    let mutable selStart = -9
+    let mutable selEnd   = -9
 
     member this.SelectionChangedDelegate ( a:EventArgs) =
         if ed.SelectionLength = 0 then // no selection 
-            selStart <- -1
-            selEnd   <- -1
-        else 
+            selStart <- -9
+            selEnd   <- -9
+        else
             selStart <- ed.SelectionStart
-            selEnd   <- selStart + ed.SelectionLength //TODO is this correct in case of block selection ?? use ed.TextArea.Selection.Segments ??
-     
+            selEnd   <- selStart + ed.SelectionLength // this last selcetion in case of block selection too ! correct
+        
+        //LogFile.Post(sprintf "\r\nSelected Text:\r\n%s" ed.SelectedText)
 
     /// This gets called for every visible line on any view change
     override this.ColorizeLine(line:AvalonEdit.Document.DocumentLine) =     
-        //try
-        if not line.IsDeleted then  
-            let stLn = line.Offset
-            let enLn = line.EndOffset
-            let cs = RangeColor.getInRange offsetColors stLn enLn
-            let mutable any = false
-            if selStart = selEnd  || selStart > enLn || selEnd < stLn then // no selection in general or on this line 
-                
-                for c in cs do 
-                    if c.brush=ConsoleOut && any then //changing the bas fore ground is only nened if any other color laredy exists on this line                        
-                        base.ChangeLinePart(c.start, c.ende, fun element -> element.TextRunProperties.SetForegroundBrush(LogColors.getColor c.brush))
-                    else
-                        any <-true
-                        base.ChangeLinePart(c.start, c.ende, fun element -> element.TextRunProperties.SetForegroundBrush(LogColors.getColor c.brush))
-            else
-                for c in cs do
-                    if c.brush=ConsoleOut && any then //changing the bas fore ground is only nened if any other color laredy exists on this line                        
+        try
+            if not line.IsDeleted then  
+                let stLn = line.Offset
+                let enLn = line.EndOffset
+                let cs = RangeColor.getInRange offsetColors stLn enLn
+                let mutable any = false
+                if selStart = selEnd  || selStart > enLn || selEnd < stLn then// no selection in general or on this line                 
+                    for c in cs do 
+                        if c.brush=ConsoleOut && any then //changing the bas fore ground is only nened if any other color laredy exists on this line                        
+                            base.ChangeLinePart(c.start, c.ende, fun element -> element.TextRunProperties.SetForegroundBrush(LogColors.getColor c.brush))
+                        else
+                            any <-true
+                            base.ChangeLinePart(c.start, c.ende, fun el -> el.TextRunProperties.SetForegroundBrush(LogColors.getColor c.brush))
+                else                
+                    for c in cs do
+                        let br = LogColors.getColor c.brush
                         let st = c.start
                         let en = c.ende
                         // now consider block or rectangle selection:
                         for seg in ed.TextArea.Selection.Segments do
-                            if st < seg.StartOffset && seg.StartOffset < en then base.ChangeLinePart(st, seg.StartOffset, fun element -> element.TextRunProperties.SetForegroundBrush(LogColors.getColor c.brush))
-                            if en > seg.EndOffset   && seg.EndOffset   > st then base.ChangeLinePart(seg.EndOffset,   en, fun element -> element.TextRunProperties.SetForegroundBrush(LogColors.getColor c.brush))        
-                    else
-                        any <-true
-                        let st = c.start
-                        let en = c.ende
-                        // now consider block or rectangle selection:
-                        for seg in ed.TextArea.Selection.Segments do
-                            if st < seg.StartOffset && seg.StartOffset < en then base.ChangeLinePart(st, seg.StartOffset, fun element -> element.TextRunProperties.SetForegroundBrush(LogColors.getColor c.brush))
-                            if en > seg.EndOffset   && seg.EndOffset   > st then base.ChangeLinePart(seg.EndOffset,   en, fun element -> element.TextRunProperties.SetForegroundBrush(LogColors.getColor c.brush))
+                            if st < seg.StartOffset && seg.StartOffset < en then base.ChangeLinePart(st, seg.StartOffset, fun el -> el.TextRunProperties.SetForegroundBrush(br))
+                            if en > seg.EndOffset   && seg.EndOffset   > st then base.ChangeLinePart(seg.EndOffset,   en, fun el -> el.TextRunProperties.SetForegroundBrush(br))
         
-        //with e ->   failwithf "LogLineColorizer override this.ColorizeLine failed with %A" e
-        ()
+        with e -> LogFile.Post <| sprintf "LogLineColorizer override this.ColorizeLine failed with:\r\n %A" e
+        
             
 
             
@@ -175,7 +166,7 @@ type LogSelectedTextHighlighter (lg:AvalonEdit.TextEditor) =
     /// This gets called for every visible line on any view change
     override this.ColorizeLine(line:AvalonEdit.Document.DocumentLine) =       
         //  from https://stackoverflow.com/questions/9223674/highlight-all-occurrences-of-selected-word-in-avalonedit
-        //try    
+        try    
             if notNull highTxt  then
                 let  lineStartOffset = line.Offset;
                 let  text = lg.Document.GetText(line)            
@@ -190,11 +181,11 @@ type LogSelectedTextHighlighter (lg:AvalonEdit.TextEditor) =
                     let start = index + highTxt.Length // search for next occurrence // TODO or just +1 ???????
                     index <- text.IndexOf(highTxt, start, StringComparison.Ordinal)
         
-        //with e ->            failwithf "LogSelectedTextHighlighter override this.ColorizeLine failed with %A" e
+        with e -> LogFile.Post <| sprintf "LogSelectedTextHighlighter override this.ColorizeLine failed with %A" e
         
     member this.SelectionChangedDelegate ( a:EventArgs) =
         // for text view:
-        let selTxt = lg.SelectedText            
+        let selTxt = lg.SelectedText    // for block selection this will contain everything from first segment till last segment, even the unselected.       
         let checkTx = selTxt.Trim()
         let doHighlight = 
             checkTx.Length > 1 // minimum 2 non whitecpace characters?
@@ -260,10 +251,10 @@ type Log () =
         log.TextArea.SelectionBorder <- null         
         log.TextArea.TextView.LinkTextForegroundBrush <- Brushes.Blue |> freeze//Hyperlinks color 
         
-        log.TextArea.SelectionChanged.Add hiLi.SelectionChangedDelegate
         log.TextArea.SelectionChanged.Add colo.SelectionChangedDelegate
-        log.TextArea.TextView.LineTransformers.Add(hiLi)
         log.TextArea.TextView.LineTransformers.Add(colo)
+        //log.TextArea.SelectionChanged.Add hiLi.SelectionChangedDelegate
+        //log.TextArea.TextView.LineTransformers.Add(hiLi)
         
      
 
@@ -271,7 +262,7 @@ type Log () =
     let mutable prevMsgType = ConsoleOut // same as first default item in offsetColors
     let stopWatch = Stopwatch.StartNew()
     let buffer =  new StringBuilder()
-    let mutable docLength = 0 
+    let mutable docLength = 0  //to be able to have the doc length async
 
 
     // The below functions are trying to work around double UI update in printfn for better UI performance, 
@@ -293,11 +284,12 @@ type Log () =
 
     /// adds string on UI thread  every 150ms then scrolls to end after 300ms
     /// sets line color on LineColors dictionay for DocumentColorizingTransformer
-    let printOrBuffer (txt:string,typ:LogMessageType) =
+    let printOrBuffer (txt:string,typ:LogKind) =
         
         if prevMsgType <> typ then 
             offsetColors.Add { off = docLength; brush = typ } 
             prevMsgType <- typ 
+            LogFile.Post <| sprintf "offset %d new color: %A" docLength typ
             
         if txt.Length <> 0 then 
             buffer.Append(txt)  |> ignore
@@ -362,10 +354,13 @@ type Log () =
     member this.SelectedTextHighLighter = hiLi
         
     member this.Clear() = 
-        log.SelectionStart <- 0
         log.SelectionLength <- 0
+        log.SelectionStart <- 0        
         log.Clear()
+        docLength <- 0
         offsetColors.Clear()
+        offsetColors.Add {off=0; brush=ConsoleOut}
+        
 
     //used in FSI constructor:
     member this.TextWriterFsiStdOut    = textWriterFsiStdOut    
@@ -435,6 +430,11 @@ type Log () =
     
     member this.SaveSelectedText (pathHint: FilePath) = 
         if log.SelectedText.Length > 0 then // this check is also done in "canexecute command"
+           let txt =
+                log.TextArea.Selection.Segments 
+                |> Seq.map (fun s -> log.Document.GetText(s)) // to ensure block selection is saved correctly
+                |> String.concat Environment.NewLine
+           
            let dlg = new Microsoft.Win32.SaveFileDialog()
            match pathHint with 
            |NotSet ->() 
@@ -447,7 +447,7 @@ type Log () =
            dlg.Filter <- "Text Files(*.txt)|*.txt|Text Files(*.csv)|*.csv|All Files(*.*)|*"
            if Util.isTrue (dlg.ShowDialog()) then                
               try 
-                   IO.File.WriteAllText(dlg.FileName, log.SelectedText) 
+                   IO.File.WriteAllText(dlg.FileName, txt) 
                    this.PrintInfoMsg "Selected text from Log saved as:\r\n%s" dlg.FileName
               with e -> 
                    this.PrintIOErrorMsg "Failed to save selected text from Log at :\r\n%s\r\n%A" dlg.FileName e
