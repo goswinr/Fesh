@@ -345,12 +345,12 @@
 
     <Span color="LetBinding"> 
       <Begin color= "LetRec" >\blet\s*rec\s*</Begin> 
-      <End>[=\s\(]</End> 
+      <End color="Punctuation" >[=\s\(]</End> 
     </Span>
 
     <Span color="LetBinding"> 
       <Begin color= "Let" >\blet\s*</Begin> 
-      <End>[=\s\(]</End> 
+      <End color="Punctuation" >[=\s\(]</End> 
     </Span>
 
     <Span color="FailString">   <!-- multiline="true"   -->
