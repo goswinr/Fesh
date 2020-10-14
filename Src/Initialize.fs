@@ -45,7 +45,7 @@ module Initialize =
         //https://stackoverflow.com/questions/14711633/my-c-sharp-application-is-returning-0xe0434352-to-windows-task-scheduler-but-it        
         AppDomain.CurrentDomain.UnhandledException.AddHandler (  new UnhandledExceptionEventHandler( ProcessCorruptedState(config).Handler)) 
 
-        // --------------- rest of views-------------------
+      
 
         Seff( config, log)
 
