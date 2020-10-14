@@ -2,7 +2,7 @@
 
 open Seff
 open Seff.Util.General
-open Seff.Util
+open Seff.Views.Util
 open Seff.Config
 open System
 open System.Environment
@@ -27,24 +27,21 @@ type LogMessageType =
     | AppErrorMsg 
     | IOErrorMsg 
     | DebugMsg 
+    | Custom
 
 
-module LogColors = 
-    
-    let freeze(br:SolidColorBrush)= 
-        if br.CanFreeze then 
-            br.Freeze()
-        br
+module  LogColors = 
 
-    let consoleOut    = Brushes.Black |> freeze // default black forground is used ; never used should  // the out from printfn
-    let fsiStdOut     = Brushes.DarkGray |> Util.General.darker 20  |> freeze// values printet by fsi iteself like "val it = ...."
-    let fsiErrorOut   = Brushes.DarkMagenta  |> freeze//are they all caught by evaluate non throwing ?
-    let consoleError  = Brushes.OrangeRed  |> freeze// this is used by eprintfn 
-    let infoMsg       = Brushes.LightSeaGreen |> freeze
-    let fsiErrorMsg   = Brushes.Red |> freeze
-    let appErrorMsg   = Brushes.LightSalmon |> freeze
-    let iOErrorMsg    = Brushes.DarkRed |> freeze
-    let debugMsg      = Brushes.Green |> freeze
+    let consoleOut    = Brushes.Black                     |> freeze // default black forground is used ; never used should  // the out from printfn
+    let fsiStdOut     = Brushes.DarkGray |> darker 20     |> freeze// values printet by fsi iteself like "val it = ...."
+    let fsiErrorOut   = Brushes.DarkMagenta               |> freeze//are they all caught by evaluate non throwing ?
+    let consoleError  = Brushes.OrangeRed                 |> freeze// this is used by eprintfn 
+    let infoMsg       = Brushes.LightSeaGreen             |> freeze
+    let fsiErrorMsg   = Brushes.Red                       |> freeze
+    let appErrorMsg   = Brushes.LightSalmon               |> freeze
+    let iOErrorMsg    = Brushes.DarkRed                   |> freeze
+    let debugMsg      = Brushes.Green                     |> freeze
+    let mutable custom  = consoleOut // will be set in Log.PrintCustomBrush
 
     let inline getColor typ = 
         match typ with 
@@ -56,9 +53,8 @@ module LogColors =
         | FsiErrorMsg   -> fsiErrorMsg 
         | AppErrorMsg   -> appErrorMsg 
         | IOErrorMsg    -> iOErrorMsg  
-        | DebugMsg      -> debugMsg    
-        
-
+        | DebugMsg      -> debugMsg
+        | Custom        -> custom
 
 [<Struct>]
 type NewColor = 
@@ -94,8 +90,6 @@ type RangeColor =
         mkList en [] 
 
 
-
-
 /// A TextWriter that writes using a function (to an Avalonedit Control). used in FSI session constructor   
 type FsxTextWriter(writeStr) =
     inherit TextWriter()
@@ -103,7 +97,6 @@ type FsxTextWriter(writeStr) =
     override this.Write     (s:string)  = writeStr (s)
     override this.WriteLine (s:string)  = writeStr (s + NewLine)    // actually never used see  https://github.com/dotnet/fsharp/issues/3712   
     override this.WriteLine ()          = writeStr (    NewLine)    
-    
     
 
 type LogLineColorizer(ed:AvalonEdit.TextEditor, offsetColors: ResizeArray<NewColor>) =  
@@ -156,15 +149,15 @@ type LogLineColorizer(ed:AvalonEdit.TextEditor, offsetColors: ResizeArray<NewCol
                             if en > seg.EndOffset   && seg.EndOffset   > st then base.ChangeLinePart(seg.EndOffset,   en, fun element -> element.TextRunProperties.SetForegroundBrush(LogColors.getColor c.brush))
         
         //with e ->   failwithf "LogLineColorizer override this.ColorizeLine failed with %A" e
+        ()
             
 
-        
-    
+            
 /// Highlight-all-occurrences-of-selected-text in Log Text View
 type LogSelectedTextHighlighter (lg:AvalonEdit.TextEditor) = 
     inherit AvalonEdit.Rendering.DocumentColorizingTransformer()    
     
-    let colorHighlight =      Brushes.Blue |> brighter 210  
+    let colorHighlight =      Brushes.Blue |> brighter 210  |> freeze
     
     let mutable highTxt = null
     let mutable curSelStart = -1
@@ -257,7 +250,7 @@ type Log () =
         log.BorderThickness <- new Thickness( 0.5)
         log.Padding         <- new Thickness( 0.7)
         log.Margin          <- new Thickness( 0.7)
-        log.BorderBrush <- Brushes.Black
+        log.BorderBrush <- Brushes.Black |> freeze
 
         log.IsReadOnly <- true
         log.Encoding <- Text.Encoding.Default
@@ -265,7 +258,7 @@ type Log () =
         log.Options.EnableHyperlinks <- true 
         log.TextArea.SelectionCornerRadius <- 0.0 
         log.TextArea.SelectionBorder <- null         
-        log.TextArea.TextView.LinkTextForegroundBrush <- Brushes.Blue //Hyperlinks color 
+        log.TextArea.TextView.LinkTextForegroundBrush <- Brushes.Blue |> freeze//Hyperlinks color 
         
         log.TextArea.SelectionChanged.Add hiLi.SelectionChangedDelegate
         log.TextArea.SelectionChanged.Add colo.SelectionChangedDelegate
@@ -344,6 +337,8 @@ type Log () =
     let textWriterAppErrorMsg   = new FsxTextWriter(fun s -> printOrBuffer (s,AppErrorMsg  ))
     let textWriterIOErrorMsg    = new FsxTextWriter(fun s -> printOrBuffer (s,IOErrorMsg   ))
     let textWriterDebugMsg      = new FsxTextWriter(fun s -> printOrBuffer (s,DebugMsg     ))
+
+    let textWriterCustomColor   = new FsxTextWriter(fun s -> printOrBuffer (s,Custom     ))
     
     //----------------------members:------------------------------------------    
     
@@ -383,6 +378,27 @@ type Log () =
     member this.PrintAppErrorMsg  s =  Printf.fprintfn textWriterAppErrorMsg  s
     member this.PrintIOErrorMsg   s =  Printf.fprintfn textWriterIOErrorMsg   s        
     member this.PrintDebugMsg     s =  Printf.fprintfn textWriterDebugMsg     s
+
+    /// Print using the Brush or color provided 
+    /// at last custom printing call via PrintCustomBrush or PrintCustomColor 
+    member this.PrintCustom s = 
+        Printf.fprintfn textWriterCustomColor s
+    
+    /// Change custom color to a new SolidColorBrush (e.g. from System.Windows.Media.Brushes)
+    /// This wil also freeze the Brush.
+    /// Then print 
+    member this.PrintCustomBrush (br:SolidColorBrush) s = 
+        LogColors.custom <- br
+        LogColors.custom.Freeze()
+        Printf.fprintfn textWriterCustomColor s
+    
+    /// Change custom color to a RGB value ( each between 0 and 255) 
+    /// Then print 
+    member this.PrintCustomColor red green blue s = 
+        LogColors.custom <- SolidColorBrush(Color.FromRgb(byte red, byte green, byte blue))
+        LogColors.custom.Freeze()
+        Printf.fprintfn textWriterCustomColor s
+
 
     interface Seff.ISeffLog with        
         member this.ReadOnlyEditor         = log
