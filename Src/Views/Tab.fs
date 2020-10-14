@@ -33,11 +33,14 @@ type Tab (editor:Editor) =
     let header = 
         let p = new StackPanel(
                         Margin = Thickness(4. , 2. , 2. , 2.),//left ,top, right, bottom)
-                        Orientation= Orientation.Horizontal) 
+                        Orientation = Orientation.Horizontal) 
         p.Children.Add textBlock  |> ignore
-        p.Children.Add closeButton |> ignore
+        p.Children.Add closeButton |> ignore 
         p
-        
+        //let bor = new Border()
+        //bor.Background <- Brushes.Blue
+        //bor.Child <- p
+        //bor 
         
     let setHeader() = 
         match editor.FilePath, isCodeSaved with 
@@ -67,9 +70,11 @@ type Tab (editor:Editor) =
     do
         base.Content <- editor.AvaEdit
         base.Header <- header
-        //base.BorderThickness <- Thickness(4.)// don't messes it all up 
-        //base.BorderBrush <- Brushes.Blue
-        //base.Margin <- Thickness(3., 0. , 0. , 0.) //left ,top, right, bottom) // don't messes it all up 
+        //base.Padding <- Thickness(2.)   // don't messes it all up 
+        //base.Margin <- Thickness(2.)   // don't messes it all up 
+        //base.BorderThickness <- Thickness(4.)       // don't messes it all up 
+        //base.BorderBrush <- Brushes.Blue            // don't messes it all up 
+        //base.Margin <- Thickness(3., 0. , 0. , 0.)  //left ,top, right, bottom) // don't messes it all up 
         setHeader()        
         editor.AvaEdit.TextChanged.Add(fun _ ->upadteIsCodeCaved(false)) 
 
