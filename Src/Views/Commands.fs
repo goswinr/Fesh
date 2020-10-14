@@ -26,7 +26,7 @@ type Commands (grid:TabsAndLog)  =
 
     let evalAllText()          =                                  fsi.Evaluate {code=tabs.CurrAvaEdit.Text                                    ; file=tabs.Current.FilePath; allOfFile=true}                               
     let evalAllTextSave()      =  if tabs.Save(tabs.Current) then fsi.Evaluate {code=tabs.CurrAvaEdit.Text                                    ; file=tabs.Current.FilePath; allOfFile=true} 
-    let evalAllTextSaveClear() =  if tabs.Save(tabs.Current) then log.Clear(); fsi.Evaluate {code=tabs.CurrAvaEdit.Text                       ; file=tabs.Current.FilePath; allOfFile=true} 
+    let evalAllTextSaveClear() =  log.Clear(); if tabs.Save(tabs.Current) then  fsi.Evaluate {code=tabs.CurrAvaEdit.Text                      ; file=tabs.Current.FilePath; allOfFile=true} // clear needs to be done first for correct coloring of log
     let evalSelectedLines()    =                                  fsi.Evaluate {code = Selection.expandSelectionToFullLines(tabs.CurrAvaEdit) ; file=tabs.Current.FilePath; allOfFile=false} 
     let evalSelectedText()     =                                  fsi.Evaluate {code = tabs.CurrAvaEdit.SelectedText                          ; file=tabs.Current.FilePath; allOfFile=false} 
     let evalTillCursor()       =                                  fsi.Evaluate {code = Selection.linesTillCursor(tabs.CurrAvaEdit)            ; file=tabs.Current.FilePath; allOfFile=false} 
