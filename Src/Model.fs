@@ -91,6 +91,7 @@ type CheckResults = {
 
 type FilePath = 
     SetTo of FileInfo | NotSet
+    /// returns file name or "*noName*"
     member this.File = match this with SetTo fi -> fi.Name |NotSet -> "*noName*"
 
 
@@ -135,7 +136,7 @@ type IEditor =
 
 //---- Fsi types ------------
 
-type CodeToEval = {code:string; file:FilePath; allOfFile:bool} 
+type CodeToEval = {code:string; file:FilePath; allOfFile:bool; fromLine:int} 
 
 type FsiState =  Ready | Evaluating | Initalizing | NotLoaded
 

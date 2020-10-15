@@ -24,13 +24,13 @@ type Commands (grid:TabsAndLog)  =
     
 
 
-    let evalAllText()          =                                  fsi.Evaluate {code=tabs.CurrAvaEdit.Text                                    ; file=tabs.Current.FilePath; allOfFile=true}                               
-    let evalAllTextSave()      =  if tabs.Save(tabs.Current) then fsi.Evaluate {code=tabs.CurrAvaEdit.Text                                    ; file=tabs.Current.FilePath; allOfFile=true} 
-    let evalAllTextSaveClear() =  log.Clear(); if tabs.Save(tabs.Current) then  fsi.Evaluate {code=tabs.CurrAvaEdit.Text                      ; file=tabs.Current.FilePath; allOfFile=true} // clear needs to be done first for correct coloring of log
-    let evalSelectedLines()    =                                  fsi.Evaluate {code = Selection.expandSelectionToFullLines(tabs.CurrAvaEdit) ; file=tabs.Current.FilePath; allOfFile=false} 
-    let evalSelectedText()     =                                  fsi.Evaluate {code = tabs.CurrAvaEdit.SelectedText                          ; file=tabs.Current.FilePath; allOfFile=false} 
-    let evalTillCursor()       =                                  fsi.Evaluate {code = Selection.linesTillCursor(tabs.CurrAvaEdit)            ; file=tabs.Current.FilePath; allOfFile=false} 
-    let evalFromCursor()       =                                  fsi.Evaluate {code = Selection.linesFromCursor(tabs.CurrAvaEdit)            ; file=tabs.Current.FilePath; allOfFile=false} 
+    let evalAllText()          =                                  fsi.Evaluate {code=tabs.CurrAvaEdit.Text                                    ; file=tabs.Current.FilePath; allOfFile=true ; fromLine = 1}                               
+    let evalAllTextSave()      =  if tabs.Save(tabs.Current) then fsi.Evaluate {code=tabs.CurrAvaEdit.Text                                    ; file=tabs.Current.FilePath; allOfFile=true ; fromLine = 1} 
+    let evalAllTextSaveClear() =  log.Clear(); if tabs.Save(tabs.Current) then  fsi.Evaluate {code=tabs.CurrAvaEdit.Text                      ; file=tabs.Current.FilePath; allOfFile=true ; fromLine = 1} // clear needs to be done first for correct coloring of log
+    let evalSelectedLines()    =                                  fsi.Evaluate {code = Selection.expandSelectionToFullLines(tabs.CurrAvaEdit) ; file=tabs.Current.FilePath; allOfFile=false; fromLine = 99}//DODO wrong 1 
+    let evalSelectedText()     =                                  fsi.Evaluate {code = tabs.CurrAvaEdit.SelectedText                          ; file=tabs.Current.FilePath; allOfFile=false; fromLine = 99}//DODO wrong 1 
+    let evalTillCursor()       =                                  fsi.Evaluate {code = Selection.linesTillCursor(tabs.CurrAvaEdit)            ; file=tabs.Current.FilePath; allOfFile=false; fromLine = 99}//DODO wrong 1 
+    let evalFromCursor()       =                                  fsi.Evaluate {code = Selection.linesFromCursor(tabs.CurrAvaEdit)            ; file=tabs.Current.FilePath; allOfFile=false; fromLine = 99}//DODO wrong 1 
     
     //see https://github.com/icsharpcode/AvalonEdit/blob/697ff0d38c95c9e5a536fbc05ae2307ec9ef2a63/ICSharpCode.AvalonEdit/Editing/CaretNavigationCommandHandler.cs#L73
     //TODO these gets evaluated for each cmd on every mouse click or key perss . is this OK?  any lag ?? in Canexecute for commands

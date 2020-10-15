@@ -48,9 +48,37 @@ type Fsi private (config:Config) =
 
     let mutable mode =  Async
     
-    let mutable session:FsiEvaluationSession option = None 
+    let mutable sessionOpt :FsiEvaluationSession option = None 
 
     let mutable thread :Thread option = None
+
+
+    let mutable currentDir = ""
+    let mutable currentFile = ""
+    let mutable currentTopLine = 0
+    
+    let setDir (session:FsiEvaluationSession) (fi:FileInfo) = 
+        try
+            let dir = fi.DirectoryName
+            if dir <> currentDir then 
+                let cd = sprintf "# silentCd @\"%s\" ;;" dir
+                session.EvalInteraction(cd)
+                currentDir <- dir
+                log.PrintInfoMsg "Current directory set to:\r\n%s\\" dir
+            else
+                log.PrintDebugMsg  "Current directory is already set to:\r\n%s\\" dir   
+        with e->            
+            log.PrintFsiErrorMsg "silentCD on FSI failed: %A" e 
+
+    let setFileAndLine (session:FsiEvaluationSession) (topLine:int) (fi:FileInfo) = 
+        try
+            let file = fi.Name
+            if file  <> currentFile || currentTopLine <> topLine then 
+                let ln = sprintf "# %d @\"%s\" " topLine file
+                session.EvalInteraction(ln)            
+        with e->
+            log.PrintFsiErrorMsg "setFileAndLine on FSI failed: %A" e 
+             
 
     let init() = 
 
@@ -63,8 +91,10 @@ type Fsi private (config:Config) =
                     //let timer = Seff.Timer()
                     //timer.tic()
                     if config.Settings.GetBool "asyncFsi" true then mode <- Async else mode <- FsiMode.Sync
-                    if session.IsSome then 
-                        session.Value.Interrupt()  //TODO does this cancel running session correctly ??         
+                    match sessionOpt with 
+                    |None -> ()
+                    |Some session ->
+                        session.Interrupt()  //TODO does this cancel running session correctly ??         
                         // TODO how to dispose previous session ?
           
                     let inStream = new StringReader("")
@@ -86,7 +116,7 @@ type Fsi private (config:Config) =
                     //if mode = Mode.Sync then do! Async.SwitchToContext Sync.syncContext            
                     //fsiSession.Run() // TODO ? dont do this it crashes the app when hosted in Rhino! 
                     state <- Ready
-                    session <- Some fsiSession
+                    sessionOpt <- Some fsiSession
                     //timer.stop()
                     if prevState = NotLoaded then () //log.PrintInfoMsg "FSharp Interactive session created in %s"  timer.tocEx  
                     else                          log.PrintInfoMsg "FSharp Interactive session reset." // in %s" timer.tocEx     
@@ -105,92 +135,97 @@ type Fsi private (config:Config) =
     [< Runtime.ExceptionServices.HandleProcessCorruptedStateExceptions >] //to handle AccessViolationException too //https://stackoverflow.com/questions/3469368/how-to-handle-accessviolationexception/4759831
     let eval(code:CodeToEval)=
         
-        
-        if session.IsNone then 
-            log.PrintInfoMsg "Please wait till FSI is initalized for running scripts"
-        
-        elif not config.Hosting.FsiCanRun then 
+        if not config.Hosting.FsiCanRun then 
             log.PrintAppErrorMsg "The Hosting App has blocked Fsi from Running, maybe because the App is busy in another command or task."
-        
-        else            
-            state <- Evaluating
-            //fsiCancelScr <- Some (new CancellationTokenSource()) //does not work? needs Thread.Abort () ?
-            startedEv.Trigger(code) // do always sync
-            //TODO https://github.com/dotnet/fsharp/blob/6b0719845c928361e63f6e38a9cce4ae7d621fbf/src/fsharp/fsi/fsi.fs#L2618
-            // change via reflection??? 
-            // let dummyScriptFileName = "input.fsx"
+        else
+            match sessionOpt with 
+            |None -> log.PrintInfoMsg "Please wait till FSI is initalized for running scripts"
+            |Some session ->
+                state <- Evaluating                
+                startedEv.Trigger(code) // do always sync
 
-            let asyncEval = async{
-                if mode = FsiMode.Sync then 
-                    do! Async.SwitchToContext Sync.syncContext 
-                    //TODO hide window while running !
+                //TODO https://github.com/dotnet/fsharp/blob/6b0719845c928361e63f6e38a9cce4ae7d621fbf/src/fsharp/fsi/fsi.fs#L2618
+                // change via reflection??? 
+                // let dummyScriptFileName = "input.fsx"
+
+                let asyncEval = async{
+                    if mode = FsiMode.Sync then 
+                        do! Async.SwitchToContext Sync.syncContext                         
                 
-                //Done already at startup, not neded here?
-                //if notNull Application.Current then // null if application is not yet created, or no application in hosted context
-                //    Application.Current.DispatcherUnhandledException.Add(fun e ->  //exceptions generated on the UI thread // TODO realy do this on every evaluataion?
-                //        log.PrintAppErrorMsg "Application.Current.DispatcherUnhandledException in fsi thread: %A" e.Exception        
-                //        e.Handled <- true)  
-                //     
-                //
-                //AppDomain.CurrentDomain.UnhandledException.AddHandler (//catching unhandled exceptions generated from all threads running under the context of a specific application domain. //https://dzone.com/articles/order-chaos-handling-unhandled
-                //    new UnhandledExceptionEventHandler( (new ProcessCorruptedState(config)).Handler)) //https://stackoverflow.com/questions/14711633/my-c-sharp-application-is-returning-0xe0434352-to-windows-task-scheduler-but-it
+                    //Done already at startup in Initalize.fs, not neded here?
+                    //if notNull Application.Current then // null if application is not yet created, or no application in hosted context
+                    //    Application.Current.DispatcherUnhandledException.Add(fun e ->  //exceptions generated on the UI thread // TODO realy do this on every evaluataion?
+                    //        log.PrintAppErrorMsg "Application.Current.DispatcherUnhandledException in fsi thread: %A" e.Exception        
+                    //        e.Handled <- true) 
+                    //AppDomain.CurrentDomain.UnhandledException.AddHandler (//catching unhandled exceptions generated from all threads running under the context of a specific application domain. //https://dzone.com/articles/order-chaos-handling-unhandled
+                    //    new UnhandledExceptionEventHandler( (new ProcessCorruptedState(config)).Handler)) //https://stackoverflow.com/questions/14711633/my-c-sharp-application-is-returning-0xe0434352-to-windows-task-scheduler-but-it
             
-                // TODO set current directory  form fileInfo
+                    // set current dir, file and Topline
+                    match code.file with 
+                    | NotSet -> () //setFileAndLine session code.fromLine "Unnamed File"
+                    | SetTo fi -> 
+                        setDir session fi
+                        //setFileAndLine session code.fromLine fi
 
-                let choice, errs =  
-                    try session.Value.EvalInteractionNonThrowing(code.code) //,fsiCancelScr.Value.Token)   // cancellation token here fails to cancel in sync, might still throw OperationCanceledException if async       
-                    with e -> Choice2Of2 e , [| |]
+                    let choice, errs =  
+                        try                             
+                            session.EvalInteractionNonThrowing(code.code) //,fsiCancelScr.Value.Token)   // cancellation token here fails to cancel in sync, might still throw OperationCanceledException if async       
+                        with e -> Choice2Of2 e , [| |]
                
-                if mode = Async then do! Async.SwitchToContext Sync.syncContext 
+                    if mode = Async then 
+                        do! Async.SwitchToContext Sync.syncContext 
                
-                thread <- None
-                state <- Ready //TODO reached when canceled ?                     
+                    thread <- None
+                    state <- Ready //TODO reached when canceled ?                     
                
-                match choice with //TODO move out of Thread?
-                |Choice1Of2 vo -> 
-                    completedOkEv.Trigger()
-                    isReadyEv.Trigger()
-                    for e in errs do log.PrintAppErrorMsg " **** Why Error? EvalInteractionNonThrowing should not have errors: %A" e
-                    //match vo with None-> () |Some v -> log.PrintDebugMsg "Interaction evaluted to %A <%A>" v.ReflectionValue v.ReflectionType
+                    match choice with //TODO move out of Thread?
+                    |Choice1Of2 vo -> 
+                        completedOkEv.Trigger()
+                        isReadyEv.Trigger()
+                        for e in errs do log.PrintAppErrorMsg "EvalInteractionNonThrowing should not have errors, but this happend: %A" e
+                        //match vo with None-> () |Some v -> log.PrintDebugMsg "Interaction evaluted to %A <%A>" v.ReflectionValue v.ReflectionType
                    
-                |Choice2Of2 exn ->     
-                    match exn with 
-                    | :? OperationCanceledException ->
-                        canceledEv.Trigger()
-                        isReadyEv.Trigger()
-                        if config.Hosting.IsHosted && mode = FsiMode.Async && isNull exn.StackTrace  then 
-                            log.PrintFsiErrorMsg "FSI evaluation was canceled,\r\nif you did not trigger this cancellation try running FSI in Synchronos evaluation mode (instead of Async)."    
-                        else 
-                            log.PrintFsiErrorMsg "FSI evaluation was canceled by user!" //:\r\n%A" exn.StackTrace  //: %A" exn                
+                    |Choice2Of2 exn ->     
+                        match exn with 
+                        | :? OperationCanceledException ->
+                            canceledEv.Trigger()
+                            isReadyEv.Trigger()
+                            if config.Hosting.IsHosted && mode = FsiMode.Async && isNull exn.StackTrace  then 
+                                log.PrintFsiErrorMsg "FSI evaluation was canceled,\r\nif you did not trigger this cancellation try running FSI in Synchronos evaluation mode (instead of Async)."    
+                            else 
+                                log.PrintFsiErrorMsg "FSI evaluation was canceled by user!" //:\r\n%A" exn.StackTrace  //: %A" exn                
                            
-                    | :? FsiCompilationException -> 
-                        runtimeErrorEv.Trigger(exn)
-                        isReadyEv.Trigger()
-                        log.PrintFsiErrorMsg "Compiler Error:"
-                        for e in errs do    
-                            log.PrintFsiErrorMsg "%A" e
-                    | _ ->    
-                        runtimeErrorEv.Trigger(exn)
-                        isReadyEv.Trigger()
-                        log.PrintFsiErrorMsg "Runtime Error:" 
+                        | :? FsiCompilationException -> 
+                            runtimeErrorEv.Trigger(exn)
+                            isReadyEv.Trigger()
+                            log.PrintFsiErrorMsg "Compiler Error:"
+                            for e in errs do    
+                                log.PrintFsiErrorMsg "%A" e
+                        | _ ->    
+                            runtimeErrorEv.Trigger(exn)
+                            isReadyEv.Trigger()
+                            log.PrintFsiErrorMsg "Runtime Error:" 
                         
-                        //highlight line number:
-                        let et = sprintf "%A" exn
-                        let t,r = String.splitOnce ".fsx:" et
-                        if r="" then 
-                            log.PrintFsiErrorMsg "%s" et
-                        else
-                            let ln,rr = String.splitOnce "\r\n" r                        
-                            log.Print_FsiErrorMsg "%s.fsx:" t
-                            log.PrintCustomBrush Brushes.Blue "%s" ln
-                            log.PrintFsiErrorMsg "%s" rr
+                            //highlight line number:
+                            let et = sprintf "%A" exn
+                            let t,r = String.splitOnce ".fsx:" et
+                            if r="" then 
+                                log.PrintFsiErrorMsg "%s" et
+                            else
+                                let ln,rr = String.splitOnce "\r\n" r                        
+                                log.Print_FsiErrorMsg "%s.fsx:" t
+                                log.PrintCustomBrush Brushes.Blue "%s" ln
+                                log.PrintFsiErrorMsg "%s" rr
                               
-                } 
+                    } 
         
-            //TODO trigger from a new thread even in Synchronous evaluation ?
-            let thr = new Thread(fun () -> Async.StartImmediate(asyncEval)) // a cancellation token here fails to cancel evaluation,
-            thread <- Some thr           
-            thr.Start()
+                //TODO trigger from a new thread even in Synchronous evaluation ?
+                let thr = new Thread(fun () -> 
+                    // a cancellation token here fails to cancel evaluation.
+                    // dsyme: Thread.Abort - it is needed in interruptible interactive execution scenarios: https://github.com/dotnet/fsharp/issues/9397#issuecomment-648376476
+                    Async.StartImmediate(asyncEval))  
+                thread <- Some thr           
+                thr.Start()
     
     
     static let mutable singleInstance:Fsi option  = None
