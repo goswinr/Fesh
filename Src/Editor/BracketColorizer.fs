@@ -237,7 +237,7 @@ type BracketHighlighter (ed:TextEditor) =
                         let ok,pe = PairEnds.TryGetValue(pairStart)
                         if ok then pairEnd <- pe.off
                         else
-                            ed.Log.PrintAppErrorMsg "Cant find corresponding End bracket for %A in %s" Brs.[i] (Selection.currentLine ed.AvaEdit)
+                            //ed.Log.PrintAppErrorMsg "Cant find corresponding End bracket for %A in %s" Brs.[i] (Selection.currentLine ed.AvaEdit)
                             pairEnd <- -1
                         
                     | ClRound | ClRect | ClCurly| ClAnRec | ClArr    ->
@@ -245,7 +245,7 @@ type BracketHighlighter (ed:TextEditor) =
                         let ok,ps = PairStarts.TryGetValue(pairEnd)
                         if ok then pairStart <- ps.off
                         else
-                            ed.Log.PrintAppErrorMsg "Cant find corresponding Start bracket for %A in %s" Brs.[i] (Selection.currentLine ed.AvaEdit)
+                            //ed.Log.PrintAppErrorMsg "Cant find corresponding Start bracket for %A in %s" Brs.[i] (Selection.currentLine ed.AvaEdit)
                             pairStart <- -1
 
 
