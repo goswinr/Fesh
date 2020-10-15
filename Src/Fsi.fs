@@ -164,7 +164,10 @@ type Fsi private (config:Config) =
                     //AppDomain.CurrentDomain.UnhandledException.AddHandler (//catching unhandled exceptions generated from all threads running under the context of a specific application domain. //https://dzone.com/articles/order-chaos-handling-unhandled
                     //    new UnhandledExceptionEventHandler( (new ProcessCorruptedState(config)).Handler)) //https://stackoverflow.com/questions/14711633/my-c-sharp-application-is-returning-0xe0434352-to-windows-task-scheduler-but-it
             
-                    // set current dir, file and Topline
+                    // set current dir, file and Topline TODO
+                    // TODO https://github.com/dotnet/fsharp/blob/6b0719845c928361e63f6e38a9cce4ae7d621fbf/src/fsharp/fsi/fsi.fs#L2618
+                    // change via reflection??? 
+                    // let dummyScriptFileName = "input.fsx"
                     match code.file with 
                     | NotSet -> () //setFileAndLine session code.fromLine "Unnamed File"
                     | SetTo fi -> 
