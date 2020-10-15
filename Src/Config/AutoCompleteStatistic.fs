@@ -9,7 +9,16 @@ open System.Collections.Generic
 /// A class to hold the statistic of most used toplevel auto completions
 type AutoCompleteStatistic  (log:ISeffLog, hostInfo:Hosting) =
     let writer = SaveWriter(log)
+    
+    let customPriorities = [ // fist item wil have higest prority
+        "printfn"
+        "sprintf"
+        "eprintfn" 
+        "failwithf"
+        ]
         
+
+
     let  sep = '=' // key value separatur like in ini files
     
     let filePath = hostInfo.GetPathToSaveAppData("AutoCompleteStatistic.txt")
@@ -25,6 +34,10 @@ type AutoCompleteStatistic  (log:ISeffLog, hostInfo:Hosting) =
                     | _       -> log.PrintAppErrorMsg "Bad line in CompletionStats file : '%s'" ln                   
             with e -> 
                 log.PrintAppErrorMsg "Error load fileCompletionStats: %A"   e
+            
+            customPriorities
+            |> List.iteri ( fun i s -> dict.[s] <- 999. - float i  )// decrement priority while iterating  
+            
             } |> Async.Start 
         dict
 
