@@ -39,6 +39,7 @@
 
   <Color name="LetBinding"          foreground="#A030A0" />
   <Color name="LetRec"              foreground="#B03060" />
+  <Color name="LetMutable"          foreground="#D08030" />
   <Color name="Let"                 foreground="#7700CC" />  
   
   <Color name="DocCommentStart"     foreground="#AACCAA" /><!-- taken from https://github.com/icsharpcode/AvalonEdit/blob/master/ICSharpCode.AvalonEdit/Highlighting/Resources/XmlDoc.xshd-->
@@ -343,13 +344,19 @@
 
    
 
-    <Span color="LetBinding"> 
-      <Begin color= "LetRec" >\blet\s*rec\s*</Begin> 
+    <Span color="LetMutable"> 
+      <Begin color= "Keywords" >\blet\s*mutable\s*</Begin> 
       <End color="Punctuation" >[=\s\(]</End> 
     </Span>
 
+    <Span color="LetRec"> 
+      <Begin color= "Keywords" >\blet\s*rec\s*</Begin> 
+      <End color="Punctuation" >[=\s\(]</End> 
+    </Span>
+
+    <!-- <Span color="LetBinding">  -->
     <Span color="LetBinding"> 
-      <Begin color= "Let" >\blet\s*</Begin> 
+      <Begin color= "Keywords" >\blet\s*</Begin> 
       <End color="Punctuation" >[=\s\(]</End> 
     </Span>
 
