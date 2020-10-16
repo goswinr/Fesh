@@ -29,6 +29,7 @@
   <Color name="NumberLiteral"       foreground="#880088" />
   <Color name="FailPath"            foreground="#888888" />
   <Color name="FailString"          foreground="#D0A040" />  
+  <Color name="Exception"           foreground="#C06030" />
   <Color name="PrintStatement"      foreground="#206060" />
   <Color name="PrintString"         foreground="#D09070" />
   <Color name="TrueCol"             foreground="#008090" fontStyle="italic" fontWeight="bold" />
@@ -268,7 +269,7 @@
 
 
     <Span color="Char" > 
-      <Begin>'</Begin>  
+      <Begin>'\\|'.(?=')</Begin>  <!-- ' floowoed by \ or ' then any char and then anoter ' in look ahead-->
       <End>'</End>     
       <RuleSet>
         <Import ruleSet="StringEscapeSet"/>
@@ -310,6 +311,10 @@
     <Rule color="Punctuation">[ \[ \]  \| \\ \( \) &lt; &gt; &amp; ? , . :  { } + \- * ^ ~ ! / % = ]</Rule>
     
     <Rule color="Semicolon">;</Rule>
+    
+    <Rule color="Exception">\b\w*\d*Exception</Rule>
+
+
 
     <Span color="Attributes">
       <Begin>\[&lt;</Begin>
@@ -324,16 +329,29 @@
       (?=\s*\() # followed by (
     </Rule>
     -->      
-    
     <Span color="TypeAnnotation" multiline="false" > 
-      <!-- to match one colon but not two: negative look behind for a colon, the colon, negative look ahead for a colon. 
+      <!-- to match one colon but not two: negative look behind for a colon, then the colon, then negative look ahead for a colon. 
+          then any char but not <>=); and then a look ahead for <
+           All that wraped in CDATA because xml readers fails on negative look behind tag  ?<!    -->
+      <Begin color="TypeAnnotation"><![CDATA[(?<!:):(?!:)[^<>=);]+(?=<)]]></Begin> 
+      <End color="Punctuation">&gt;</End>  
+      <!-- <End color="Punctuation">[ \) , ; = ]</End>   -->
+       <RuleSet>
+        <Rule color="Punctuation">[,\[\]*&lt;&gt;]</Rule>
+      </RuleSet>
+    </Span>    
+
+    <Span color="TypeAnnotation" multiline="false" > 
+      <!-- to match one colon but not two: negative look behind for a colon, then the colon, then negative look ahead for a colon. 
            All that wraped in CDATA because xml readers fails on negative look behind tag  ?<!    -->
       <Begin color="Punctuation"><![CDATA[(?<!:):(?!:)]]></Begin> 
-      <End color="Punctuation">[\),;=]</End>  
+      <End color="Punctuation">[\),;=&lt;]</End>  
+      <!-- <End color="Punctuation">[ \) , ; = ]</End>   -->
        <RuleSet>
         <Rule color="Punctuation">[,\[\]*&lt;&gt;]</Rule>
       </RuleSet>
     </Span>
+
 
     <!--names in Records-->
     <Span color="RecordNames" multiline="false">
