@@ -68,6 +68,9 @@ module General =
                             IO.File.AppendAllText(file, Environment.NewLine + msg)
                             return! loop()}
                 loop() )
+    
+    let sortInPlaceBy<'T, 'Key when 'Key : comparison>  (projection : 'T -> 'Key) (rarr : ResizeArray<'T>) =
+        rarr.Sort (fun x y -> compare (projection x) (projection y))
 
 module String =
     
