@@ -8,6 +8,7 @@ open Seff.Views.Util
 open Seff.Config
 open System.Collections.Generic
 open Seff.Util
+open System.Windows
 
 
 type HeaderGestureTooltip = {header:string; gesture:string; toolTip:string}
@@ -22,7 +23,6 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, log:Log) =
     // TODO add  all built in  DocmentNavigatin shortcuts
     let maxFilesInRecentMenu = 30
 
-    let fileOpeners = Dictionary<string,MenuItem>()    
     let mutable recentFilesInsertPosition = 0
     let sep() = Separator():> Control    
     let item (ngc: string * string * #ICommand * string) = 
@@ -32,33 +32,53 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, log:Log) =
     
     let setRecentFiles()=
         async{            
-            let fis = 
-                config.RecentlyUsedFiles.Get()
-                |> Seq.filter ( fun fi -> IO.File.Exists(fi.FullName)) // async IO calls (might time out too)
-                |> Seq.distinctBy( fun fi -> fi.FullName.ToLowerInvariant())
+            let ufs = 
+                config.RecentlyUsedFiles.GetUniqueExistingSorted()               
                 |> Seq.truncate maxFilesInRecentMenu
                 |> Seq.toArray
             
             
             do! Async.SwitchToContext Sync.syncContext
+            
             ///first clear
             while fileMenu.Items.Count > recentFilesInsertPosition do 
                 fileMenu.Items.RemoveAt recentFilesInsertPosition
             
+
+
+            let now  = DateTime.Now.DayOfYear
+            let year = DateTime.Now.Year
+            let mutable today  = false
+            let mutable yester = false
+            let mutable week   = false
+            let mutable month  = false
+            let mutable older  = false
+
+            let tb(s) = 
+                let tb = TextBlock (Text= "          -" + s + "-", FontWeight = FontWeights.Bold)                
+                let mi = MenuItem (Header = tb )
+                fileMenu.Items.Add( mi)  |> ignore 
+
             // then insert all again
-            for fi in fis do                
-                let lPath = fi.FullName.ToLowerInvariant()                
-                match fileOpeners.TryGetValue(lPath) with // reuse previosly created MenuItems, if possible
-                |true , m -> fileMenu.Items.Add(m) |> ignore  
-                |_ -> 
-                    let openCom  = mkCmdSimple ( fun a -> tabs.AddFile(fi, true)  |> ignore ) 
-                    let header = // include last two parent directories
-                        let ps = General.pathParts fi 
-                        if ps.Length < 4 then             ps |> String.concat " \\ " // full path in this case
-                        else "...\\ " + (ps |> Array.rev |> Seq.truncate 3 |> Seq.rev |> String.concat " \\ " ) // partial path
-                    let mi = MenuItem (Header = new TextBlock (Text = header), ToolTip=fi.FullName, Command = openCom) // wrap in textblock to avoid Mnemonics (alt key access at underscore)
-                    fileMenu.Items.Add(mi) |> ignore 
-                    fileOpeners.[lPath] <- mi
+            for uf in ufs do                
+                let d = uf.date.DayOfYear
+                let y = uf.date.Year
+                
+                if   y=year && d     = now &&              not today  then tb "today";       today <- true
+                elif y=year && d+1   = now &&              not yester then tb "yesterday";  yester <- true
+                elif y=year && d+7  >= now && d+1 < now && not week   then tb "this week" ;   week <- true
+                elif y=year && d+31 >= now && d+7 < now && not week   then tb "this month";  month <- true                  
+                elif  now > d+31                        && not older  then tb "older";       older <- true  
+              
+                let openCom  = mkCmdSimple ( fun a -> tabs.AddFile(uf.fileInfo, true)  |> ignore ) 
+                let header = // include last two parent directories
+                    let ps = General.pathParts uf.fileInfo 
+                    if ps.Length < 4 then             ps |> String.concat " \\ " // full path in this case
+                    else "...\\ " + (ps |> Array.rev |> Seq.truncate 3 |> Seq.rev |> String.concat " \\ " ) // partial path
+                let tt = uf.fileInfo.FullName + "\r\nlast used: " + uf.date.ToString("yyyy-MM-dd HH:mm")
+                let mi = MenuItem (Header = new TextBlock (Text = header), ToolTip=tt, Command = openCom) // wrap in textblock to avoid Mnemonics (alt key access at underscore)
+                fileMenu.Items.Add(mi) |> ignore 
+              
                 
         } |> Async.Start
 
