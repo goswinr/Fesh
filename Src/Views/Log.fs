@@ -275,14 +275,19 @@ type Log () =
     let stopWatch = Stopwatch.StartNew()
     let buffer =  new StringBuilder()
     let mutable docLength = 0  //to be able to have the doc length async
-
+    let rwl = new ReaderWriterLockSlim() 
 
     // The below functions are trying to work around double UI update in printfn for better UI performance, 
     // and the poor performance of log.ScrollToEnd().
     // see  https://github.com/dotnet/fsharp/issues/3712   
     let printFromBuffer() =                  
-        let txt = buffer.ToString()
-        buffer.Clear()  |> ignore           
+        let mutable txt = ""
+        rwl.EnterWriteLock() //https://stackoverflow.com/questions/23661863/f-synchronized-access-to-list
+        try
+            txt <- buffer.ToString()
+            buffer.Clear()  |> ignore  
+        finally
+            rwl.ExitWriteLock() 
         log.AppendText(txt)            
         log.ScrollToEnd()
         if log.WordWrap then log.ScrollToEnd() //this is needed a second time !
@@ -304,6 +309,7 @@ type Log () =
             //LogFile.Post <| sprintf "offset %d new color: %A" docLength typ
             
         if txt.Length <> 0 then 
+            // TODO rwl.EnterWriteLock() needed her too ?
             buffer.Append(txt)  |> ignore
             docLength <- docLength + txt.Length
 
