@@ -194,8 +194,8 @@ module DocString =
                 indentationSize, acc |> Map.add key (XmlDocMember(doc, indentationSize, xli.LinePosition - 3)) |> Some
               with
               | ex ->
-                printfn  "***Inner ERROR in reading xml file for tooltips, Current Name:\r\n%s" key /// TODO ad printing to LOG ?
-                printfn  "%A" ex
+                eprintfn  "***Inner ERROR in reading xml file for tooltips, Current Name:\r\n%s" key /// TODO ad printing to LOG directly?
+                eprintfn  "%A" ex
                 indentationSize, Some acc
         | _ -> indentationSize, Some acc
 
