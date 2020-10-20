@@ -11,6 +11,8 @@ type AutoCompleteStatistic  (log:ISeffLog, hostInfo:Hosting) =
     let writer = SaveWriter(log)
     
     let customPriorities = [ // fist item wil have higest prority
+        "true"
+        "false"
         "printfn"
         "sprintf"
         "eprintfn" 
