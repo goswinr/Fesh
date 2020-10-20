@@ -105,7 +105,8 @@ module CursorBehaviour  =
             with e -> log.PrintIOErrorMsg "drag and drop failed: %A" e
                 
 
-
-
-
+    let toggleBoolean(avaEdit:TextEditor) = 
+        for seg in avaEdit.TextArea.Selection.Segments do
+            if   seg.Length = 4 && avaEdit.Document.GetText(seg) = "true"  then avaEdit.Document.Replace(seg, "false")
+            elif seg.Length = 5 && avaEdit.Document.GetText(seg) = "false" then avaEdit.Document.Replace(seg, "true") 
 

@@ -124,7 +124,9 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, log:Log) =
                 menuItem cmds.SwapLineDown 
                 sep()
                 menuItem cmds.ToUppercase  
-                menuItem cmds.Tolowercase ]
+                menuItem cmds.Tolowercase 
+                sep()
+                menuItem cmds.ToggleBoolean]
             MenuItem(Header = "_Select"),[ 
                 menuItem cmds.SelectLine  ]
             MenuItem(Header = "_BoxSelect", ToolTip="Create a Box Selection by \r\n holding down the Alt key while selecting \r\n or pressing the middle mouse button."),[                 

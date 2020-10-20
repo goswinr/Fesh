@@ -63,6 +63,7 @@ type Commands (grid:TabsAndLog)  =
     member val SwapLineDown      = {name= "Swap Line Down"            ;gesture= "Alt + Down"     ;cmd=AvalonEditCommands.SwapLinesDown                                           ;tip= "Swap the current line and the next line."                                                           } 
     member val ToUppercase       = {name= "To UPPERCASE"              ;gesture= ""               ;cmd=AvalonEditCommands.ConvertToUppercase                                      ;tip= "Convertes the selected text to UPPERCASE."                                                          }     
     member val Tolowercase       = {name= "To lowercase"              ;gesture= ""               ;cmd=AvalonEditCommands.ConvertToLowercase                                      ;tip= "Convertes the selected text to lowercase."                                                          }     
+    member val ToggleBoolean     = {name= "Toggle bool literals"      ;gesture= "Ctrl + B"       ;cmd = mkCmdSimple (fun _ -> CursorBehaviour.toggleBoolean(tabs.CurrAvaEdit) )  ;tip= "Convertes a 'true' literal to 'false' and a 'false' literal to 'true' if they are currently selected exclusively"                                                          }     
 
                                                                                                                                              
     //Select menu:                                                                                                                               
@@ -139,6 +140,7 @@ type Commands (grid:TabsAndLog)  =
                  this.Comment          
                  this.UnComment
                  this.ToggleComment
+                 this.ToggleBoolean
 
                  this.SelectLine       
                  //this.SelectLinesUp  
