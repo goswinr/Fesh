@@ -206,8 +206,15 @@ type Fsi private (config:Config) =
                             runtimeErrorEv.Trigger(exn)
                             isReadyEv.Trigger()
                             log.PrintFsiErrorMsg "Compiler Error:"
+                            let mutable postMsg = ""
                             for e in errs do    
+                                let msg = sprintf "%A" e
+                                if msg.Contains "is defined in an assembly that is not referenced." then 
+                                    postMsg <- "For assembly refrence errors that are not shown by editor tooling try to rearrange the inlital loading sequens of '#r' statements"
                                 log.PrintFsiErrorMsg "%A" e
+                            if postMsg <> "" then 
+                                log.PrintCustomBrush Brushes.Blue "%s" postMsg
+
                         | _ ->    
                             runtimeErrorEv.Trigger(exn)
                             isReadyEv.Trigger()
