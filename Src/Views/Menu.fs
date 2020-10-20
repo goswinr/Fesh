@@ -37,13 +37,15 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, log:Log) =
                 |> Seq.truncate maxFilesInRecentMenu
                 |> Seq.toArray
             
+            let savetimes = 
+                ufs
+                |> Array.map ( fun uf -> uf.fileInfo.LastWriteTime) // get stil async
             
             do! Async.SwitchToContext Sync.syncContext
             
             ///first clear
             while fileMenu.Items.Count > recentFilesInsertPosition do 
-                fileMenu.Items.RemoveAt recentFilesInsertPosition
-            
+                fileMenu.Items.RemoveAt recentFilesInsertPosition            
 
 
             let now  = DateTime.Now.DayOfYear
@@ -55,16 +57,16 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, log:Log) =
             let mutable older  = false
 
             let tb(s) = 
-                let tb = TextBlock (Text= "          -" + s + "-", FontWeight = FontWeights.Bold)                
+                let tb = TextBlock (Text= "          - " + s + " -", FontWeight = FontWeights.Bold)                
                 let mi = MenuItem (Header = tb )
                 fileMenu.Items.Add( mi)  |> ignore 
 
             // then insert all again
-            for uf in ufs do                
+            for uf,savetime  in Seq.zip ufs savetimes do                
                 let d = uf.date.DayOfYear
                 let y = uf.date.Year
                 
-                if   y=year && d     = now &&              not today  then tb "today";       today <- true
+                if   y=year && d     = now &&              not today  then tb "last used today";       today <- true
                 elif y=year && d+1   = now &&              not yester then tb "yesterday";  yester <- true
                 elif y=year && d+7  >= now && d+1 < now && not week   then tb "this week" ;   week <- true
                 elif y=year && d+31 >= now && d+7 < now && not week   then tb "this month";  month <- true                  
@@ -75,7 +77,10 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, log:Log) =
                     let ps = General.pathParts uf.fileInfo 
                     if ps.Length < 4 then             ps |> String.concat " \\ " // full path in this case
                     else "...\\ " + (ps |> Array.rev |> Seq.truncate 3 |> Seq.rev |> String.concat " \\ " ) // partial path
-                let tt = uf.fileInfo.FullName + "\r\nlast used: " + uf.date.ToString("yyyy-MM-dd HH:mm")
+                let tt = 
+                    uf.fileInfo.FullName 
+                    + "\r\nlast  used: " + uf.date.ToString("yyyy-MM-dd HH:mm")
+                    + "\r\nlast saved: " + savetime.ToString("yyyy-MM-dd HH:mm")
                 let mi = MenuItem (Header = new TextBlock (Text = header), ToolTip=tt, Command = openCom) // wrap in textblock to avoid Mnemonics (alt key access at underscore)
                 fileMenu.Items.Add(mi) |> ignore 
               
