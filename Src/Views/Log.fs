@@ -17,21 +17,24 @@ open System.Windows.Controls
 open System.Windows
 
 
-type LogKind = 
-    | ConsoleOut
-    | FsiStdOut 
-    | FsiErrorOut 
-    | ConsoleError
-    | InfoMsg 
-    | FsiErrorMsg 
-    | AppErrorMsg 
-    | IOErrorMsg 
-    | DebugMsg 
-    | Custom
+//type LogKind = 
+//    | ConsoleOut
+//    | FsiStdOut 
+//    | FsiErrorOut 
+//    | ConsoleError
+//    | InfoMsg 
+//    | FsiErrorMsg 
+//    | AppErrorMsg 
+//    | IOErrorMsg 
+//    | DebugMsg 
+//    | Custom
+//
+//[<Struct>]
+//type LogColor = {red:byte; green:byte; blue:byte}
 
 module LogColors = 
 
-    let consoleOut    = Brushes.Black                     |> freeze // should be same as default  forground. is only used if a line has more than one color 
+    let mutable consoleOut    = Brushes.Black             |> freeze // should be same as default  forground. Will be set on foreground changes
     let fsiStdOut     = Brushes.DarkGray |> darker 20     |> freeze // values printet by fsi iteself like "val it = ...."
     let fsiErrorOut   = Brushes.DarkMagenta               |> freeze //are they all caught by evaluate non throwing ? prints "Stopped due to error" on non compiling code
     let consoleError  = Brushes.OrangeRed                 |> freeze // this is used by eprintfn 
@@ -40,24 +43,14 @@ module LogColors =
     let appErrorMsg   = Brushes.LightSalmon |> darker 20  |> freeze
     let iOErrorMsg    = Brushes.DarkRed                   |> freeze
     let debugMsg      = Brushes.Green                     |> freeze
-    let mutable custom  = consoleOut // will be set in Log.PrintCustomBrush
 
-    let inline getColor typ = 
-        match typ with 
-        | ConsoleOut    -> consoleOut  
-        | FsiStdOut     -> fsiStdOut   
-        | FsiErrorOut   -> fsiErrorOut 
-        | ConsoleError  -> consoleError
-        | InfoMsg       -> infoMsg     
-        | FsiErrorMsg   -> fsiErrorMsg 
-        | AppErrorMsg   -> appErrorMsg 
-        | IOErrorMsg    -> iOErrorMsg  
-        | DebugMsg      -> debugMsg
-        | Custom        -> custom
+    let mutable lastCustom     = Brushes.Black                     |> freeze
+    
+    //let Cache = Dictionary<LogColor,SolidColorBrush>(HashIdentity.Structural)
 
 [<Struct>]
 type NewColor = 
-    {off: int; brush: LogKind}
+    {off: int; brush: SolidColorBrush}
     
     /// Does binary search to find an offset that is equal or smaller than off
     static member findCurrentInList (cs:ResizeArray<NewColor>) off =         
@@ -74,7 +67,7 @@ type NewColor =
 
 [<Struct>]
 type RangeColor = 
-    {start: int; ende:int; brush: LogKind}    
+    {start: int; ende:int; brush: SolidColorBrush} // brush must be frozen to use async   
 
     static member getInRange (cs:ResizeArray<NewColor>) st en =     
         let rec mkList i ls = 
@@ -126,16 +119,16 @@ type LogLineColorizer(ed:AvalonEdit.TextEditor, offsetColors: ResizeArray<NewCol
                 // color non selected lines 
                 if selStart = selEnd  || selStart > enLn || selEnd < stLn then// no selection in general or on this line                 
                     for c in cs do 
-                        if c.brush=ConsoleOut && any then //changing the basefore ground is only needed if any other color already exists on this line                        
-                            base.ChangeLinePart(c.start, c.ende, fun element -> element.TextRunProperties.SetForegroundBrush(LogColors.getColor c.brush))
+                        if c.brush = null && any then //changing the basefore ground is only needed if any other color already exists on this line                        
+                            base.ChangeLinePart(c.start, c.ende, fun element -> element.TextRunProperties.SetForegroundBrush(LogColors.consoleOut))
                         else
                             any <-true
-                            base.ChangeLinePart(c.start, c.ende, fun el -> el.TextRunProperties.SetForegroundBrush(LogColors.getColor c.brush))
+                            base.ChangeLinePart(c.start, c.ende, fun el -> el.TextRunProperties.SetForegroundBrush(c.brush))
                 
                 /// exclude selection from coloring: 
                 else                
                     for c in cs do
-                        let br = LogColors.getColor c.brush
+                        let br = c.brush
                         let st = c.start
                         let en = c.ende
                         // now consider block or rectangle selection:
@@ -239,7 +232,7 @@ type Log () =
     
     static let mutable lgs = Unchecked.defaultof<Log>
     
-    let offsetColors = ResizeArray<NewColor>( [ {off=0; brush=ConsoleOut} ] )    
+    let offsetColors = ResizeArray<NewColor>( [ {off=0; brush=null} ] )    // null is console out //TODO use -1 instead?
     
     let log =  new AvalonEdit.TextEditor()        
     let hiLi = new LogSelectedTextHighlighter(log)
@@ -262,15 +255,17 @@ type Log () =
         //log.TextArea.SelectionBrush <- Brushes.Blue |> brighter 190|> freeze//Hyperlinks color 
         log.TextArea.TextView.LinkTextForegroundBrush <- Brushes.Blue |> freeze//Hyperlinks color 
         
+        
         log.TextArea.SelectionChanged.Add colo.SelectionChangedDelegate
         log.TextArea.TextView.LineTransformers.Add(colo)
         log.TextArea.SelectionChanged.Add hiLi.SelectionChangedDelegate
         log.TextArea.TextView.LineTransformers.Add(hiLi)
         
-     
+        LogColors.consoleOut <- (log.Foreground.Clone() :?> SolidColorBrush |> freeze) // just to be sure they are the same
+        //log.Foreground.Changed.Add ( fun _ -> LogColors.consoleOut <- (log.Foreground.Clone() :?> SolidColorBrush |> freeze)) // this eventy attaching can't  be done because it is already frozen
 
     let printCallsCounter = ref 0L
-    let mutable prevMsgType = ConsoleOut // same as first default item in offsetColors
+    let mutable prevMsgType = null //null is no color for console
     let stopWatch = Stopwatch.StartNew()
     let buffer =  new StringBuilder()
     let mutable docLength = 0  //to be able to have the doc length async
@@ -300,7 +295,7 @@ type Log () =
 
     /// adds string on UI thread  every 150ms then scrolls to end after 300ms
     /// sets line color on LineColors dictionay for DocumentColorizingTransformer
-    let printOrBuffer (txt:string,typ:LogKind) =
+    let printOrBuffer (txt:string, addNewLine:bool, typ:SolidColorBrush) =
         
         if prevMsgType <> typ then 
             offsetColors.Add { off = docLength; brush = typ } 
@@ -309,7 +304,8 @@ type Log () =
             
         if txt.Length <> 0 then 
             // TODO rwl.EnterWriteLock() needed her too ?
-            buffer.Append(txt)  |> ignore
+            if addNewLine then  buffer.AppendLine(txt)  |> ignore
+            else                buffer.Append(txt)  |> ignore
             docLength <- docLength + txt.Length
 
             // star new if clause tu actaull print supplied string tx
@@ -335,20 +331,12 @@ type Log () =
         
 
     //used in FSI constructor:
-    let textWriterFsiStdOut     = new FsxTextWriter(fun s -> printOrBuffer (s,FsiStdOut    ))
-    let textWriterFsiErrorOut   = new FsxTextWriter(fun s -> printOrBuffer (s,FsiErrorOut  ))
-    let textWriterConsoleOut    = new FsxTextWriter(fun s -> printOrBuffer (s,ConsoleOut   ))
-    let textWriterConsoleError  = new FsxTextWriter(fun s -> printOrBuffer (s,ConsoleError ))
-    
-    // used for printf formaters:                                          
-    let textWriterInfoMsg       = new FsxTextWriter(fun s -> printOrBuffer (s,InfoMsg      ))
-    let textWriterFsiErrorMsg   = new FsxTextWriter(fun s -> printOrBuffer (s,FsiErrorMsg  ))
-    let textWriterAppErrorMsg   = new FsxTextWriter(fun s -> printOrBuffer (s,AppErrorMsg  ))
-    let textWriterIOErrorMsg    = new FsxTextWriter(fun s -> printOrBuffer (s,IOErrorMsg   ))
-    let textWriterDebugMsg      = new FsxTextWriter(fun s -> printOrBuffer (s,DebugMsg     ))
-
-    let textWriterCustomColor   = new FsxTextWriter(fun s -> printOrBuffer (s,Custom     ))
-    
+    let textWriterFsiStdOut     = new FsxTextWriter(fun s -> printOrBuffer (s,false,LogColors.fsiStdOut    ))
+    let textWriterFsiErrorOut   = new FsxTextWriter(fun s -> printOrBuffer (s,false,LogColors.fsiErrorOut  ))
+    let textWriterConsoleOut    = new FsxTextWriter(fun s -> printOrBuffer (s,false,LogColors.consoleOut   ))
+    let textWriterConsoleError  = new FsxTextWriter(fun s -> printOrBuffer (s,false,LogColors.consoleError ))
+                                                                              
+     
     //----------------------members:------------------------------------------    
     
     // this event occures on every call to print, NOT on the aggregated strings that are appened to Log
@@ -376,7 +364,7 @@ type Log () =
         log.Clear()
         docLength <- 0
         offsetColors.Clear()
-        offsetColors.Add {off=0; brush=ConsoleOut}
+        offsetColors.Add {off=0; brush=null} //TODO use -1 instead?
         
 
     //used in FSI constructor:
@@ -385,63 +373,59 @@ type Log () =
     member this.TextWriterConsoleOut   = textWriterConsoleOut   
     member this.TextWriterConsoleError = textWriterConsoleError 
 
-    member this.PrintInfoMsg      s =  Printf.fprintfn textWriterInfoMsg      s
-    member this.PrintFsiErrorMsg  s =  Printf.fprintfn textWriterFsiErrorMsg  s
-    member this.PrintAppErrorMsg  s =  Printf.fprintfn textWriterAppErrorMsg  s
-    member this.PrintIOErrorMsg   s =  Printf.fprintfn textWriterIOErrorMsg   s        
-    member this.PrintDebugMsg     s =  Printf.fprintfn textWriterDebugMsg     s
+    member this.PrintInfoMsg      msg =  Printf.kprintf (fun s -> printOrBuffer (s,true,LogColors.infoMsg      ))  msg
+    member this.PrintFsiErrorMsg  msg =  Printf.kprintf (fun s -> printOrBuffer (s,true,LogColors.fsiErrorMsg  ))  msg
+    member this.PrintAppErrorMsg  msg =  Printf.kprintf (fun s -> printOrBuffer (s,true,LogColors.appErrorMsg  ))  msg
+    member this.PrintIOErrorMsg   msg =  Printf.kprintf (fun s -> printOrBuffer (s,true,LogColors.iOErrorMsg   ))  msg        
+    member this.PrintDebugMsg     msg =  Printf.kprintf (fun s -> printOrBuffer (s,true,LogColors.debugMsg     ))  msg
     
     /// Print using the Brush or color provided 
     /// at last custom printing call via PrintCustomBrush or PrintCustomColor 
-    member this.PrintCustom s = 
-        Printf.fprintfn textWriterCustomColor s
+    member this.PrintCustom s = Printf.kprintf (fun s -> printOrBuffer (s, true, LogColors.lastCustom ))  s
+       
     
     /// Change custom color to a new SolidColorBrush (e.g. from System.Windows.Media.Brushes)
     /// This wil also freeze the Brush.
     /// Then print 
-    member this.PrintCustomBrush (br:SolidColorBrush) s = 
-        LogColors.custom <- br
-        LogColors.custom.Freeze()
-        Printf.fprintfn textWriterCustomColor s
+    member this.PrintCustomBrush (br:SolidColorBrush) msg = 
+        LogColors.lastCustom  <- br |> freeze
+        Printf.kprintf (fun s -> printOrBuffer (s,true, LogColors.lastCustom ))  msg
     
     /// Change custom color to a RGB value ( each between 0 and 255) 
     /// Then print 
-    member this.PrintCustomColor red green blue s = 
-        LogColors.custom <- SolidColorBrush(Color.FromRgb(byte red, byte green, byte blue))
-        LogColors.custom.Freeze()
-        Printf.fprintfn textWriterCustomColor s
+    member this.PrintCustomColor red green blue msg = 
+        LogColors.lastCustom  <- new SolidColorBrush(Color.FromRgb(byte red, byte green, byte blue)) |> freeze
+        Printf.kprintf (fun s -> printOrBuffer (s,true, LogColors.lastCustom ))  msg
+    
 
+    member this.Print_InfoMsg      msg =  Printf.kprintf (fun s -> printOrBuffer (s,false, LogColors.infoMsg      ))  msg
     /// Prints without adding a new line at the end
-    member this.Print_InfoMsg      s =  Printf.fprintf textWriterInfoMsg      s
+    member this.Print_FsiErrorMsg  msg =  Printf.kprintf (fun s -> printOrBuffer (s,false, LogColors.fsiErrorMsg  ))  msg
     /// Prints without adding a new line at the end
-    member this.Print_FsiErrorMsg  s =  Printf.fprintf textWriterFsiErrorMsg  s
+    member this.Print_AppErrorMsg  msg =  Printf.kprintf (fun s -> printOrBuffer (s,false, LogColors.appErrorMsg  ))  msg
     /// Prints without adding a new line at the end
-    member this.Print_AppErrorMsg  s =  Printf.fprintf textWriterAppErrorMsg  s
+    member this.Print_IOErrorMsg   msg =  Printf.kprintf (fun s -> printOrBuffer (s,false, LogColors.iOErrorMsg   ))  msg
     /// Prints without adding a new line at the end
-    member this.Print_IOErrorMsg   s =  Printf.fprintf textWriterIOErrorMsg   s        
-    /// Prints without adding a new line at the end
-    member this.Print_DebugMsg     s =  Printf.fprintf textWriterDebugMsg     s
+    member this.Print_DebugMsg     msg =  Printf.kprintf (fun s -> printOrBuffer (s,false, LogColors.debugMsg     ))  msg
+    
     
     /// Print using the Brush or color provided 
     /// at last custom printing call via PrintCustomBrush or PrintCustomColor 
     /// without adding a new line at the end
-    member this.Print_Custom s = 
-        Printf.fprintf textWriterCustomColor s
-    
+    member this.Print_Custom msg = Printf.kprintf (fun s -> printOrBuffer (s, false, LogColors.lastCustom ))  msg
+            
     /// Change custom color to a new SolidColorBrush (e.g. from System.Windows.Media.Brushes)
     /// This wil also freeze the Brush.
     /// Then print without adding a new line at the end
-    member this.Print_CustomBrush (br:SolidColorBrush) s = 
-        LogColors.custom <- br
-        LogColors.custom.Freeze()
-        Printf.fprintf textWriterCustomColor s
+    member this.Print_CustomBrush (br:SolidColorBrush) msg = 
+        LogColors.lastCustom  <- br |> freeze
+        Printf.kprintf (fun s -> printOrBuffer (s,false, LogColors.lastCustom ))  msg
     
     /// Change custom color to a RGB value ( each between 0 and 255) 
     /// Then print without adding a new line at the end
-    member this.Print_CustomColor red green blue s = 
-        LogColors.custom <- SolidColorBrush(Color.FromRgb(byte red, byte green, byte blue))
-        LogColors.custom.Freeze()
-        Printf.fprintf textWriterCustomColor s
+    member this.Print_CustomColor red green blue msg = 
+        LogColors.lastCustom  <- new SolidColorBrush(Color.FromRgb(byte red, byte green, byte blue)) |> freeze
+        Printf.kprintf (fun s -> printOrBuffer (s,false, LogColors.lastCustom ))  msg
 
 
     interface Seff.ISeffLog with        
@@ -450,29 +434,30 @@ type Log () =
         member this.TextWriterFsiStdOut    = textWriterFsiStdOut    :> TextWriter   
         member this.TextWriterFsiErrorOut  = textWriterFsiErrorOut  :> TextWriter   
         member this.TextWriterConsoleOut   = textWriterConsoleOut   :> TextWriter   
-        member this.TextWriterConsoleError = textWriterConsoleError :> TextWriter   
-       
+        member this.TextWriterConsoleError = textWriterConsoleError :> TextWriter          
 
-        member this.PrintInfoMsg     s = Printf.fprintfn textWriterInfoMsg      s
-        member this.PrintFsiErrorMsg s = Printf.fprintfn textWriterFsiErrorMsg  s
-        member this.PrintAppErrorMsg s = Printf.fprintfn textWriterAppErrorMsg  s
-        member this.PrintIOErrorMsg  s = Printf.fprintfn textWriterIOErrorMsg   s 
-        member this.PrintDebugMsg    s = Printf.fprintfn textWriterDebugMsg     s
-        member this.PrintCustom s = this.PrintCustom s
-        member this.PrintCustomBrush (br:SolidColorBrush) s = this.PrintCustomBrush (br:SolidColorBrush) s
-        member this.PrintCustomColor red green blue s =this.PrintCustomColor red green blue s
+        member this.PrintInfoMsg     msg = Printf.kprintf (fun s -> printOrBuffer (s,true,LogColors.infoMsg      )) msg
+        member this.PrintFsiErrorMsg msg = Printf.kprintf (fun s -> printOrBuffer (s,true,LogColors.fsiErrorMsg  )) msg
+        member this.PrintAppErrorMsg msg = Printf.kprintf (fun s -> printOrBuffer (s,true,LogColors.appErrorMsg  )) msg
+        member this.PrintIOErrorMsg  msg = Printf.kprintf (fun s -> printOrBuffer (s,true,LogColors.iOErrorMsg   )) msg  
+        member this.PrintDebugMsg    msg = Printf.kprintf (fun s -> printOrBuffer (s,true,LogColors.debugMsg     )) msg
+        member this.PrintCustom      msg = Printf.kprintf (fun s -> printOrBuffer (s,true, LogColors.lastCustom  )) msg
+        member this.PrintCustomBrush (br:SolidColorBrush) msg = this.PrintCustomBrush (br:SolidColorBrush) msg
+        member this.PrintCustomColor red green blue msg =       this.PrintCustomColor red green blue msg
 
         //withou the new line:
-        member this.Print_InfoMsg      s =  Printf.fprintf textWriterInfoMsg      s
-        member this.Print_FsiErrorMsg  s =  Printf.fprintf textWriterFsiErrorMsg  s
-        member this.Print_AppErrorMsg  s =  Printf.fprintf textWriterAppErrorMsg  s
-        member this.Print_IOErrorMsg   s =  Printf.fprintf textWriterIOErrorMsg   s
-        member this.Print_DebugMsg     s =  Printf.fprintf textWriterDebugMsg     s
-        member this.Print_Custom s =  this.Print_Custom s
-        member this.Print_CustomBrush (br:SolidColorBrush) s =this.Print_CustomBrush (br:SolidColorBrush) s
-        member this.Print_CustomColor red green blue s = this.Print_CustomColor red green blue s
-
-
+        member this.Print_InfoMsg     msg = Printf.kprintf (fun s -> printOrBuffer (s,false,LogColors.infoMsg      )) msg
+        member this.Print_FsiErrorMsg msg = Printf.kprintf (fun s -> printOrBuffer (s,false,LogColors.fsiErrorMsg  )) msg
+        member this.Print_AppErrorMsg msg = Printf.kprintf (fun s -> printOrBuffer (s,false,LogColors.appErrorMsg  )) msg
+        member this.Print_IOErrorMsg  msg = Printf.kprintf (fun s -> printOrBuffer (s,false,LogColors.iOErrorMsg   )) msg  
+        member this.Print_DebugMsg    msg = Printf.kprintf (fun s -> printOrBuffer (s,false,LogColors.debugMsg     )) msg
+        member this.Print_Custom      msg = Printf.kprintf (fun s -> printOrBuffer (s,false, LogColors.lastCustom  )) msg    
+        member this.Print_CustomBrush (br:SolidColorBrush) msg = 
+            LogColors.lastCustom  <- br |> freeze
+            Printf.kprintf (fun s -> printOrBuffer (s,false, LogColors.lastCustom ))  msg
+        member this.Print_CustomColor red green blue msg =  
+            LogColors.lastCustom  <- new SolidColorBrush(Color.FromRgb(byte red, byte green, byte blue)) |> freeze
+            Printf.kprintf (fun s -> printOrBuffer (s,false, LogColors.lastCustom ))  msg
 
     
     member this.SaveAllText (pathHint: FilePath) = 

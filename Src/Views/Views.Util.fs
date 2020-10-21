@@ -13,8 +13,8 @@ module Util =
     let inline isTrue (nb:Nullable<bool>) = nb.HasValue && nb.Value
 
     let inline freeze(br:SolidColorBrush)= 
-        if br.CanFreeze then 
-            br.Freeze()
+        if br.CanFreeze && not br.IsFrozen then 
+             br.Freeze()
         else
             eprintfn "Could not freeze %A, this might be a threading problem. " br
         br
