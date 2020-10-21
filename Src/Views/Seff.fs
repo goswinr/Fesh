@@ -9,15 +9,20 @@ open System.Windows
 /// this is passed on to hosting apps
 type Seff (config:Config,log:Log) =
     
+    
     let win = new Views.Window(config)
     let tabs = new Tabs(config, win.Window)
     let tabsAndLog = new TabsAndLog(config, tabs, log, win)
+    
     let commands = Commands(tabsAndLog)
     let statusBar = StatusBar(tabsAndLog, commands)
     let menu = Menu(config, commands, tabs, log)
-    let dockP = Util.dockPanelVert(menu.Bar , tabsAndLog.Grid , statusBar.Bar)   
+    let dockP = Util.dockPanelVert(menu.Bar , tabsAndLog.Grid , statusBar.Bar) 
+    
     
     do
+        Log.setStatic(tabsAndLog.Log)
+
         dockP.Margin <- Thickness(tabsAndLog.GridSplitterSize)
         
         commands.SetUpGestureInputBindings()        
@@ -59,3 +64,5 @@ type Seff (config:Config,log:Log) =
     member this.Window = win.Window 
 
     member this.Commands = commands
+
+    

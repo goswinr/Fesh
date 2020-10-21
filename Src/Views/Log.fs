@@ -60,20 +60,17 @@ type NewColor =
     {off: int; brush: LogKind}
     
     /// Does binary search to find an offset that is equal or smaller than off
-    static member findCurrentInList (cs:ResizeArray<NewColor>) off = 
-        //try        
-        //with _ -> LogFile.Post (sprintf "findCurrentInList: Did not find off %d in ResizeArray<NewColor> of %d items: %A" off cs.Count cs );   cs.[0]
-            let last = cs.Count-1
-            let rec find lo hi =             
-                let mid = lo + (hi - lo) / 2          //TODO test edge conditions !!  
-                if cs.[mid].off <= off then 
-                    if mid = last             then cs.[mid] // exit
-                    elif cs.[mid+1].off > off then cs.[mid] // exit
-                    else find (mid+1) hi
-                else
-                            find lo (mid-1)
-        
-            find 0 last
+    static member findCurrentInList (cs:ResizeArray<NewColor>) off =         
+        let last = cs.Count-1
+        let rec find lo hi =             
+            let mid = lo + (hi - lo) / 2          //TODO test edge conditions !!  
+            if cs.[mid].off <= off then 
+                if mid = last             then cs.[mid] // exit
+                elif cs.[mid+1].off > off then cs.[mid] // exit
+                else find (mid+1) hi
+            else
+                        find lo (mid-1)        
+        find 0 last
 
 [<Struct>]
 type RangeColor = 
@@ -239,7 +236,9 @@ type LogSelectedTextHighlighter (lg:AvalonEdit.TextEditor) =
 /// A ReadOnly text AvalonEdit Editor that provides print formating methods 
 /// call ApplyConfig() once config is set up too, (config depends on this Log instance)
 type Log () =    
-      
+    
+    static let mutable lgs = Unchecked.defaultof<Log>
+    
     let offsetColors = ResizeArray<NewColor>( [ {off=0; brush=ConsoleOut} ] )    
     
     let log =  new AvalonEdit.TextEditor()        
@@ -517,3 +516,11 @@ type Log () =
                    this.PrintInfoMsg "Selected text from Log saved as:\r\n%s" dlg.FileName
               with e -> 
                    this.PrintIOErrorMsg "Failed to save selected text from Log at :\r\n%s\r\n%A" dlg.FileName e
+
+    
+    static member internal setStatic (l:Log) = lgs <- l
+
+    /// static access to Log view for printing    
+    static member printRed msg = lgs.PrintCustomColor 255 0 0 msg
+        
+

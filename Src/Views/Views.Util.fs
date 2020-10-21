@@ -15,6 +15,8 @@ module Util =
     let inline freeze(br:SolidColorBrush)= 
         if br.CanFreeze then 
             br.Freeze()
+        else
+            eprintfn "Could not freeze %A, this might be a threading problem. " br
         br
 
     //---------- creating UIElemnts --------------
