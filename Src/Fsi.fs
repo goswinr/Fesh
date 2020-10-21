@@ -85,7 +85,6 @@ type Fsi private (config:Config) =
              
 
     let init() = 
-
             match state with 
             | Initalizing -> log.PrintInfoMsg "FSI initialization can't be started because it is already in process.."
             | NotLoaded | Ready | Evaluating -> 
@@ -110,9 +109,26 @@ type Fsi private (config:Config) =
                         if config.Settings.GetBool Settings.keyFsiQuiet false then Array.append  config.FsiArugments.Get [| "--quiet"|] 
                         else                                                                     config.FsiArugments.Get
                         
-                    
-                    let fsiConfig = FsiEvaluationSession.GetDefaultConfiguration() // https://github.com/dotnet/fsharp/blob/4978145c8516351b1338262b6b9bdf2d0372e757/src/fsharp/fsi/fsi.fs#L2839
+                    let settings = Settings.fsi
+                    // Default: https://github.com/dotnet/fsharp/blob/c0d6f6abbf14a19c631cd647b6440ec2c63c668f/src/fsharp/fsi/fsi.fs#L3244
+                    // evLoop = (new SimpleEventLoop() :> IEventLoop)
+                    // showIDictionary = true
+                    // showDeclarationValues = true
+                    // args = Environment.GetCommandLineArgs()
+                    // fpfmt = "g10"
+                    // fp = (CultureInfo.InvariantCulture :> System.IFormatProvider)
+                    // printWidth = 78
+                    // printDepth = 100
+                    // printLength = 100
+                    // printSize = 10000
+                    // showIEnumerable = true
+                    // showProperties = true
+                    // addedPrinters = []
+                    settings.PrintWidth <-200
+                    settings.FloatingPointFormat <- "g7"
+                    let fsiConfig = FsiEvaluationSession.GetDefaultConfiguration(settings,false) // https://github.com/dotnet/fsharp/blob/4978145c8516351b1338262b6b9bdf2d0372e757/src/fsharp/fsi/fsi.fs#L2839                    
                     let fsiSession = FsiEvaluationSession.Create(fsiConfig, allArgs, inStream, log.TextWriterFsiStdOut, log.TextWriterFsiErrorOut) //, collectible=false ??) //https://github.com/dotnet/fsharp/blob/6b0719845c928361e63f6e38a9cce4ae7d621fbf/src/fsharp/fsi/fsi.fs#L2440
+                                        
                     //AppDomain.CurrentDomain.UnhandledException.AddHandler (new UnhandledExceptionEventHandler( (new ProcessCorruptedState(config)).Handler)) //Add(fun ex -> log.PrintFsiErrorMsg "*** FSI AppDomain.CurrentDomain.UnhandledException:\r\n %A" ex.ExceptionObject)
                     Console.SetOut  (log.TextWriterConsoleOut)   // TODO needed to redirect printfn or coverd by TextWriterFsiStdOut? //https://github.com/fsharp/FSharp.Compiler.Service/issues/201
                     Console.SetError(log.TextWriterConsoleError) // TODO needed if evaluate non throwing or coverd by TextWriterFsiErrorOut? 
