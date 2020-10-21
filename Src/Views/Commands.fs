@@ -59,11 +59,15 @@ type Commands (grid:TabsAndLog)  =
     member val UnComment         = {name= "Uncomment"                 ;gesture= "Ctrl + U"       ;cmd= mkCmdSimple (fun _ -> Commenting.unComment tabs.CurrAvaEdit)              ;tip= "Puts '//' at the beginning of current line, \r\nor all line touched by current selection"           }                                                                                     
     member val ToggleComment     = {name= "Toggle Comment"            ;gesture= "Ctrl + T"       ;cmd= mkCmdSimple (fun _ -> Commenting.toggleComment tabs.CurrAvaEdit)          ;tip= "Swaps commented and not commented lines"           }                                                                                     
     
-    member val SwapLineUp        = {name= "Swap Line Up"              ;gesture= "Alt + Up"       ;cmd=AvalonEditCommands.SwapLinesUp                                             ;tip= "Swap the current line and the previous line."                                                       }                                                                                     
-    member val SwapLineDown      = {name= "Swap Line Down"            ;gesture= "Alt + Down"     ;cmd=AvalonEditCommands.SwapLinesDown                                           ;tip= "Swap the current line and the next line."                                                           } 
+    //member val SwapLineUp        = {name= "Swap Line Up"              ;gesture= "Alt + Up"       ;cmd=AvalonEditCommands.SwapLinesUp                                             ;tip= "Swap the current line and the previous line."                                     }                                                                                     
+    member val SwapLineUpCtrl    = {name= "Swap Line Up"              ;gesture= "Ctrl + Up"      ;cmd=AvalonEditCommands.SwapLinesUp                                             ;tip= "Swap the current line and the previous line.'Alt + Up' is also a shortcut for this." } // extra because Alt Down fails in Rhino                                                                                 
+    //member val SwapLineDown      = {name= "Swap Line Down"            ;gesture= "Alt + Down"     ;cmd=AvalonEditCommands.SwapLinesDown                                           ;tip= "Swap the current line and the next line."                                         } 
+    member val SwapLineDownCtrl  = {name= "Swap Line Down"            ;gesture= "Ctrl + Down"    ;cmd=AvalonEditCommands.SwapLinesDown                                           ;tip= "Swap the current line and the next line. 'Alt + Down' is also a shortcut for this."  } // extra because Alt Down fails in Rhino
+    
+    
     member val ToUppercase       = {name= "To UPPERCASE"              ;gesture= ""               ;cmd=AvalonEditCommands.ConvertToUppercase                                      ;tip= "Convertes the selected text to UPPERCASE."                                                          }     
     member val Tolowercase       = {name= "To lowercase"              ;gesture= ""               ;cmd=AvalonEditCommands.ConvertToLowercase                                      ;tip= "Convertes the selected text to lowercase."                                                          }     
-    member val ToggleBoolean     = {name= "Toggle bool literals"      ;gesture= "Ctrl + B"       ;cmd = mkCmdSimple (fun _ -> CursorBehaviour.toggleBoolean(tabs.CurrAvaEdit) )  ;tip= "Convertes a 'true' literal to 'false' and a 'false' literal to 'true' if they are currently selected exclusively"                                                          }     
+    member val ToggleBoolean     = {name= "Toggle bool literals"      ;gesture= "Ctrl + B"       ;cmd = mkCmdSimple (fun _ -> CursorBehaviour.toggleBoolean(tabs.CurrAvaEdit) )  ;tip= "Convertes a 'true' literal to 'false' and a 'false' literal to 'true' if they are currently selected exclusively"   }     
 
                                                                                                                                              
     //Select menu:                                                                                                                               
@@ -142,6 +146,8 @@ type Commands (grid:TabsAndLog)  =
                  this.ToggleComment
                  this.ToggleBoolean
 
+                 //this.SwapLineDownCtrl // set up in avolonedit
+                 //this.SwapLineUpCtrl  // set up in avolonedit
                  this.SelectLine       
                  //this.SelectLinesUp  
                  //this.SelectLinesDown

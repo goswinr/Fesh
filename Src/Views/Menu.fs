@@ -120,8 +120,8 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, log:Log) =
                 menuItem cmds.Find     
                 menuItem cmds.Replace 
                 sep()
-                menuItem cmds.SwapLineUp   
-                menuItem cmds.SwapLineDown 
+                menuItem cmds.SwapLineUpCtrl   
+                menuItem cmds.SwapLineDownCtrl
                 sep()
                 menuItem cmds.ToUppercase  
                 menuItem cmds.Tolowercase 
