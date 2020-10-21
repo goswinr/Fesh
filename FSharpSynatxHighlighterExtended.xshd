@@ -12,7 +12,7 @@
   
   <!-- The named colors 'Comment' and 'String' are also used in SharpDevelop to detect if a line is inside a multiline string/comment -->
   <!--https://www.rapidtables.com/convert/color/rgb-to-hex.html-->
-  <Color name="Comment"             foreground="#00BB00" />
+  <Color name="Comment"             foreground="#11AA11" />
   <Color name="DocComment"          foreground="#007700" />
 
   <Color name="String"              foreground="#AA1111" />
@@ -20,7 +20,11 @@
   <Color name="StringFormating"     foreground="#990099" />
   <Color name="StringEscaped"       foreground="#7050DC" />  
   <Color name="Char"                foreground="#FF0040" />
-  <Color name="LoadDirectives"      foreground="#887766" />
+
+  <Color name="LoadDirectives"      foreground="#BB1111" /> <!-- the #r or #load-->
+  <Color name="LoadPath"            foreground="#AA8888" /> <!-- the directory path including the quotes-->
+  <Color name="LoadDll"             foreground="#DD20B0" /> <!-- the dll name -->
+
   <Color name="Punctuation"         foreground="#0099EE" />
   <Color name="Attributes"          foreground="#AA88AA" />  
   <Color name="Keywords"            foreground="#0000DD" /> <!--fontWeight="bold" -->
@@ -260,11 +264,33 @@
 
   <RuleSet name="StringSet">
 
-    <Keywords color = "LoadDirectives">
+
+    <Span color="LoadDll" multiline="false">
+      <Begin color="LoadDirectives">\#r\b|\#load\b</Begin> <!-- # nededs to be escaped to \# it is a comment  -->
+      <!-- <End color="LoadPath">"</End>  this sis acutally not needed-->
+      <RuleSet>
+        <Span color="LoadPath">
+          <Begin>@?".+\\|@?"</Begin>  
+          <End>(?=\w)</End> 
+        </Span> 
+      </RuleSet >  
+    </Span>
+
+    <Span color="LoadDll" multiline="false">
+      <Begin color="LoadDirectives">\#I\b</Begin>    <!-- In case of #I highlight the folder parh with color="LoadDll" -->
+      <RuleSet>
+        <Span color="LoadPath">
+          <Begin>@?"</Begin>  
+          <End>(?=\w)</End> 
+        </Span> 
+      </RuleSet >  
+    </Span>
+
+    <!-- <Keywords color = "LoadDirectives">
       <Word>#r</Word>
       <Word>#load</Word>
       <Word>#I</Word>
-    </Keywords>
+    </Keywords> -->
    
 
 
