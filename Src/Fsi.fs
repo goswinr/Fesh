@@ -73,7 +73,7 @@ type Fsi private (config:Config) =
             let file = fi.Name
             if file  <> currentFile || currentTopLine <> topLine then 
                 let ln = sprintf "# %d @\"%s\" " topLine file
-                session.EvalInteraction(ln)
+                session.EvalInteraction(ln) //TODO doesnt work! try writing to In stream instead ??
                 if file  <> currentFile then 
                     log.PrintInfoMsg "Current file set to: %s\\" file
                 currentFile <- file
@@ -97,9 +97,8 @@ type Fsi private (config:Config) =
                     if config.Settings.GetBool "asyncFsi" true then mode <- Async else mode <- FsiMode.Sync
                     match sessionOpt with 
                     |None -> ()
-                    |Some session ->
-                        session.Interrupt()  //TODO does this cancel running session correctly ??         
-                        // TODO how to dispose previous session ?
+                    |Some session -> session.Interrupt()  //TODO does this cancel running session correctly ?? // TODO how to dispose previous session ?        
+                        
           
                     let inStream = new StringReader("")
                     // first arg is ignored: https://github.com/fsharp/FSharp.Compiler.Service/issues/420 
@@ -164,6 +163,7 @@ type Fsi private (config:Config) =
                     //AppDomain.CurrentDomain.UnhandledException.AddHandler (//catching unhandled exceptions generated from all threads running under the context of a specific application domain. //https://dzone.com/articles/order-chaos-handling-unhandled
                     //    new UnhandledExceptionEventHandler( (new ProcessCorruptedState(config)).Handler)) //https://stackoverflow.com/questions/14711633/my-c-sharp-application-is-returning-0xe0434352-to-windows-task-scheduler-but-it
             
+
                     // set current dir, file and Topline TODO
                     // TODO https://github.com/dotnet/fsharp/blob/6b0719845c928361e63f6e38a9cce4ae7d621fbf/src/fsharp/fsi/fsi.fs#L2618
                     // change via reflection??? 
