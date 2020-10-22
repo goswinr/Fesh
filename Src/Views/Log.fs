@@ -359,7 +359,7 @@ type Log private () =
         offsetColors.Clear()
         //LogColors.lastCustom <- null // or remeber it
         offsetColors.Add {off = -1 ; brush=null} //TODO use -1 instead? // null check done in  this.ColorizeLine(line:AvalonEdit.Document.DocumentLine) .. 
-        
+       
 
     //used in FSI constructor:
     member this.TextWriterFsiStdOut    = textWriterFsiStdOut    
@@ -464,7 +464,7 @@ type Log private () =
         member this.PrintCustomBrush (br:SolidColorBrush) msg = this.PrintCustomBrush (br:SolidColorBrush) msg
         member this.PrintCustomColor red green blue msg =       this.PrintCustomColor red green blue msg
 
-        //withou the new line:
+                //without the new line:
         member this.Print_InfoMsg     msg = Printf.kprintf (fun s -> printOrBuffer (s,false,LogColors.infoMsg      )) msg
         member this.Print_FsiErrorMsg msg = Printf.kprintf (fun s -> printOrBuffer (s,false,LogColors.fsiErrorMsg  )) msg
         member this.Print_AppErrorMsg msg = Printf.kprintf (fun s -> printOrBuffer (s,false,LogColors.appErrorMsg  )) msg

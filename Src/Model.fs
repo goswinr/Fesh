@@ -29,6 +29,7 @@ type ISeffLog =
     abstract member PrintAppErrorMsg : Printf.StringFormat<'T,unit> -> 'T  
     abstract member PrintIOErrorMsg  : Printf.StringFormat<'T,unit> -> 'T  
     abstract member PrintDebugMsg    : Printf.StringFormat<'T,unit> -> 'T
+    
     /// Print using the Brush or color provided 
     /// at last custom printing call via PrintCustomBrush or PrintCustomColor 
     abstract member PrintCustom     : Printf.StringFormat<'T,unit> -> 'T
@@ -39,9 +40,9 @@ type ISeffLog =
     /// Change custom color to a RGB value ( each between 0 and 255) 
     /// Then print 
     abstract member PrintCustomColor : int ->  int ->  int ->  Printf.StringFormat<'T,unit> -> 'T 
-
-
-
+    
+    
+    
     /// Prints without adding a new line at the end
     abstract member Print_InfoMsg      : Printf.StringFormat<'T,unit> -> 'T  
     /// Prints without adding a new line at the end
