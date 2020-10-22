@@ -18,6 +18,9 @@ module General =
     let rand = new Random() // to give each error checking call a unique id
 
     let inline notNull x = match x with null -> false | _ -> true  //not (Object.ReferenceEquals(ob,null))
+
+    /// returns maybeNullvalue if it is not null, else alternativeValue 
+    let inline ifNull alternativeValue maybeNullvalue = match maybeNullvalue with null -> alternativeValue | _ -> maybeNullvalue  
     
     let inline isTrue (nb:Nullable<bool>) = nb.HasValue && nb.Value
 

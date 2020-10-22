@@ -28,7 +28,7 @@ module Initialize =
 
         /// ------------------ Log and Config --------------------
         
-        let log    = new Log()        
+        let log    = Log.Instance        
         let config = new Config(log, mode, startupArgs)
         log.AdjustToSettingsInConfig(config)
         

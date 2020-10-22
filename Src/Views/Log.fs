@@ -17,21 +17,6 @@ open System.Windows.Controls
 open System.Windows
 
 
-//type LogKind = 
-//    | ConsoleOut
-//    | FsiStdOut 
-//    | FsiErrorOut 
-//    | ConsoleError
-//    | InfoMsg 
-//    | FsiErrorMsg 
-//    | AppErrorMsg 
-//    | IOErrorMsg 
-//    | DebugMsg 
-//    | Custom
-//
-//[<Struct>]
-//type LogColor = {red:byte; green:byte; blue:byte}
-
 module LogColors = 
 
     let mutable consoleOut    = Brushes.Black             |> freeze // should be same as default  forground. Will be set on foreground changes
@@ -43,40 +28,48 @@ module LogColors =
     let appErrorMsg   = Brushes.LightSalmon |> darker 20  |> freeze
     let iOErrorMsg    = Brushes.DarkRed                   |> freeze
     let debugMsg      = Brushes.Green                     |> freeze
-
-    let mutable lastCustom     = Brushes.Black                     |> freeze
     
-    //let Cache = Dictionary<LogColor,SolidColorBrush>(HashIdentity.Structural)
+    let red           = Brushes.Red                     |> freeze
+    let green         = Brushes.Green                   |> freeze
+    let blue          = Brushes.Blue                    |> freeze
 
+    let mutable lastCustom     = Brushes.Black        |> freeze    
+   
+
+/// describes the position in text where a new color starts
 [<Struct>]
 type NewColor = 
     {off: int; brush: SolidColorBrush}
     
-    /// Does binary search to find an offset that is equal or smaller than off
-    static member findCurrentInList (cs:ResizeArray<NewColor>) off =         
+    /// Does binary search to find an offset that is equal or smaller than currOff
+    static member findCurrentInList (cs:ResizeArray<NewColor>) currOff =         
         let last = cs.Count-1
         let rec find lo hi =             
             let mid = lo + (hi - lo) / 2          //TODO test edge conditions !!  
-            if cs.[mid].off <= off then 
-                if mid = last             then cs.[mid] // exit
-                elif cs.[mid+1].off > off then cs.[mid] // exit
+            if cs.[mid].off <= currOff then 
+                if mid = last                 then cs.[mid] // exit
+                elif cs.[mid+1].off > currOff then cs.[mid] // exit
                 else find (mid+1) hi
             else
                         find lo (mid-1)        
         find 0 last
 
+/// describes the the start and end position of a color with one line
 [<Struct>]
 type RangeColor = 
     {start: int; ende:int; brush: SolidColorBrush} // brush must be frozen to use async   
 
-    static member getInRange (cs:ResizeArray<NewColor>) st en =     
+    /// Finds all the offset that apply to this line  which is defined by the range of  tOff to enOff 
+    /// even if the ResizeArray<NewColor> does not conrtain any offest between stOff and  enOff 
+    /// it still retuens the a list with one item. The closest previous offset
+    static member getInRange (cs:ResizeArray<NewColor>) stOff enOff =     
         let rec mkList i ls = 
             let c = NewColor.findCurrentInList cs i
-            if c.off <= st then 
-                {start = st; ende=en; brush = c.brush} :: ls
+            if c.off <= stOff  then 
+                {start = stOff ; ende = enOff ; brush = c.brush} :: ls
             else                 
-                mkList (i-1) ({start = i; ende=en; brush = c.brush}  :: ls)
-        mkList en [] 
+                mkList (i-1) ({start = i; ende = enOff ; brush = c.brush}  :: ls)
+        mkList enOff [] 
 
 
 /// A TextWriter that writes using a function (to an Avalonedit Control). used in FSI session constructor   
@@ -128,7 +121,7 @@ type LogLineColorizer(ed:AvalonEdit.TextEditor, offsetColors: ResizeArray<NewCol
                 /// exclude selection from coloring: 
                 else                
                     for c in cs do
-                        let br = c.brush
+                        let br = c.brush |> ifNull LogColors.consoleOut // null check
                         let st = c.start
                         let en = c.ende
                         // now consider block or rectangle selection:
@@ -142,9 +135,8 @@ type LogLineColorizer(ed:AvalonEdit.TextEditor, offsetColors: ResizeArray<NewCol
                                 else
                                     if st <  seg.StartOffset then base.ChangeLinePart(st           ,  seg.StartOffset, fun el -> el.TextRunProperties.SetForegroundBrush(br))
                                     if en >  seg.EndOffset   then base.ChangeLinePart(seg.EndOffset,  en             , fun el -> el.TextRunProperties.SetForegroundBrush(br))
-                            
  
-            
+ 
 /// Highlight-all-occurrences-of-selected-text in Log Text View
 type LogSelectedTextHighlighter (lg:AvalonEdit.TextEditor) = 
     inherit AvalonEdit.Rendering.DocumentColorizingTransformer()    
@@ -205,7 +197,7 @@ type LogSelectedTextHighlighter (lg:AvalonEdit.TextEditor) =
                 let tx = doc.CreateSnapshot().Text
                 let mutable  index = tx.IndexOf(selTxt, 0, StringComparison.Ordinal)                
                 let mutable k = 0
-                let mutable anyInFolding = false
+                //let mutable anyInFolding = false
                 while index >= 0 do        
                     k <- k+1 
                                 
@@ -228,11 +220,11 @@ type LogSelectedTextHighlighter (lg:AvalonEdit.TextEditor) =
 
 /// A ReadOnly text AvalonEdit Editor that provides print formating methods 
 /// call ApplyConfig() once config is set up too, (config depends on this Log instance)
-type Log () =    
+type Log private () =    
     
-    static let mutable lgs = Unchecked.defaultof<Log>
+    //static let mutable lgs = Unchecked.defaultof<Log>
     
-    let offsetColors = ResizeArray<NewColor>( [ {off=0; brush=null} ] )    // null is console out //TODO use -1 instead?
+    let offsetColors = ResizeArray<NewColor>( [ {off = -1 ; brush=null} ] )    // null is console out //TODO use -1 instead? // null check done in  this.ColorizeLine(line:AvalonEdit.Document.DocumentLine) .. 
     
     let log =  new AvalonEdit.TextEditor()        
     let hiLi = new LogSelectedTextHighlighter(log)
@@ -251,10 +243,8 @@ type Log () =
         log.ShowLineNumbers  <- true
         log.Options.EnableHyperlinks <- true 
         log.TextArea.SelectionCornerRadius <- 0.0 
-        log.TextArea.SelectionBorder <- null 
-        //log.TextArea.SelectionBrush <- Brushes.Blue |> brighter 190|> freeze//Hyperlinks color 
-        log.TextArea.TextView.LinkTextForegroundBrush <- Brushes.Blue |> freeze//Hyperlinks color 
-        
+        log.TextArea.SelectionBorder <- null         
+        log.TextArea.TextView.LinkTextForegroundBrush <- Brushes.Blue |> freeze//Hyperlinks color         
         
         log.TextArea.SelectionChanged.Add colo.SelectionChangedDelegate
         log.TextArea.TextView.LineTransformers.Add(colo)
@@ -265,7 +255,7 @@ type Log () =
         //log.Foreground.Changed.Add ( fun _ -> LogColors.consoleOut <- (log.Foreground.Clone() :?> SolidColorBrush |> freeze)) // this eventy attaching can't  be done because it is already frozen
 
     let printCallsCounter = ref 0L
-    let mutable prevMsgType = null //null is no color for console
+    let mutable prevMsgType = null //null is no color for console // null check done in  this.ColorizeLine(line:AvalonEdit.Document.DocumentLine) .. 
     let stopWatch = Stopwatch.StartNew()
     let buffer =  new StringBuilder()
     let mutable docLength = 0  //to be able to have the doc length async
@@ -304,18 +294,21 @@ type Log () =
             
         if txt.Length <> 0 then 
             // TODO rwl.EnterWriteLock() needed her too ?
-            if addNewLine then  buffer.AppendLine(txt)  |> ignore
-            else                buffer.Append(txt)  |> ignore
-            docLength <- docLength + txt.Length
+            if addNewLine then  
+                buffer.AppendLine(txt)  |> ignore
+                docLength <- docLength + txt.Length + 2 // TODO is new line always two ?
+            else                
+                buffer.Append(txt)  |> ignore
+                docLength <- docLength + txt.Length
 
-            // star new if clause tu actaull print supplied string tx
-            if stopWatch.ElapsedMilliseconds > 100L  then // print case 2, only add to document every 100ms  
+            
+            if stopWatch.ElapsedMilliseconds > 100L  then // print case 1, only add to document every 100ms  
                 printFromBufferSync()                
             else
                 async {                        
                     let k = Interlocked.Increment printCallsCounter
                     do! Async.Sleep 100
-                    if !printCallsCounter = k  then //print case 3, it is the last call for 100 ms
+                    if !printCallsCounter = k  then //print case 2, it is the last call for 100 ms
                         do! Async.SwitchToContext Sync.syncContext
                         printFromBuffer()                
                     } |> Async.StartImmediate 
@@ -334,15 +327,15 @@ type Log () =
     let textWriterFsiStdOut     = new FsxTextWriter(fun s -> printOrBuffer (s,false,LogColors.fsiStdOut    ))
     let textWriterFsiErrorOut   = new FsxTextWriter(fun s -> printOrBuffer (s,false,LogColors.fsiErrorOut  ))
     let textWriterConsoleOut    = new FsxTextWriter(fun s -> printOrBuffer (s,false,LogColors.consoleOut   ))
-    let textWriterConsoleError  = new FsxTextWriter(fun s -> printOrBuffer (s,false,LogColors.consoleError ))
-                                                                              
+    let textWriterConsoleError  = new FsxTextWriter(fun s -> printOrBuffer (s,false,LogColors.consoleError ))                                                                              
      
+    //-----------------------------------------------------------    
     //----------------------members:------------------------------------------    
+    //------------------------------------------------------------    
     
-    // this event occures on every call to print, NOT on the aggregated strings that are appened to Log
-    //[<CLIEvent>]member this.OnPrint = textAddEv.Publish
-       
-    member this.AdjustToSettingsInConfig(config:Config)=        
+    //member this.OffsetColors = offsetColors // TODO delete , for debug only
+
+    member internal this.AdjustToSettingsInConfig(config:Config)=        
         //this.OnPrint.Add (config.AssemblyReferenceStatistic.RecordFromlog) // TODO: does this have print perfomance impact ? measure do async ?
         setLineWrap( config.Settings.GetBool "logHasLineWrap" true )
         log.FontSize  <- config.Settings.GetFloat "FontSize" Seff.Style.fontSize                
@@ -364,7 +357,8 @@ type Log () =
         log.Clear()
         docLength <- 0
         offsetColors.Clear()
-        offsetColors.Add {off=0; brush=null} //TODO use -1 instead?
+        //LogColors.lastCustom <- null // or remeber it
+        offsetColors.Add {off = -1 ; brush=null} //TODO use -1 instead? // null check done in  this.ColorizeLine(line:AvalonEdit.Document.DocumentLine) .. 
         
 
     //used in FSI constructor:
@@ -381,8 +375,7 @@ type Log () =
     
     /// Print using the Brush or color provided 
     /// at last custom printing call via PrintCustomBrush or PrintCustomColor 
-    member this.PrintCustom s = Printf.kprintf (fun s -> printOrBuffer (s, true, LogColors.lastCustom ))  s
-       
+    member this.PrintCustom s = Printf.kprintf (fun s -> printOrBuffer (s, true, LogColors.lastCustom ))  s       
     
     /// Change custom color to a new SolidColorBrush (e.g. from System.Windows.Media.Brushes)
     /// This wil also freeze the Brush.
@@ -398,7 +391,7 @@ type Log () =
         Printf.kprintf (fun s -> printOrBuffer (s,true, LogColors.lastCustom ))  msg
     
 
-    member this.Print_InfoMsg      msg =  Printf.kprintf (fun s -> printOrBuffer (s,false, LogColors.infoMsg      ))  msg
+    member this.Print_InfoMsg  msg = Printf.kprintf (fun s -> printOrBuffer (s,false, LogColors.infoMsg ))  msg
     /// Prints without adding a new line at the end
     member this.Print_FsiErrorMsg  msg =  Printf.kprintf (fun s -> printOrBuffer (s,false, LogColors.fsiErrorMsg  ))  msg
     /// Prints without adding a new line at the end
@@ -428,6 +421,32 @@ type Log () =
         Printf.kprintf (fun s -> printOrBuffer (s,false, LogColors.lastCustom ))  msg
 
 
+    /// Print to the Log view in Red, then add New Line. Add a refrences to #r "PresentationCore"   
+    member this.PrintRed msg = Printf.kprintf (fun s -> printOrBuffer (s,true, LogColors.red))  msg
+    /// Print to the Log view in Green, then add New Line. Add a refrences to #r "PresentationCore"   
+    member this.PrintGreen msg = Printf.kprintf (fun s -> printOrBuffer (s, true, LogColors.green))  msg  
+    /// Print to the Log view in Blue, then add New Line. Add a refrences to #r "PresentationCore"    
+    member this.PrintBlue msg = Printf.kprintf (fun s -> printOrBuffer (s, true, LogColors.blue))  msg
+    /// Print to the Log view in a custom Color, then add New Line. 
+    /// using a System.Windows.Media.SolidColorBrush, add refrences to:
+    /// #r "PresentationCore"
+    /// #r "WindowsBase"
+    /// call .Freeze() on the Brush first to improove performance
+    member this.PrintColored (color:SolidColorBrush)  msg = Printf.kprintf (fun s -> printOrBuffer (s,true, color))  msg
+
+    /// Print to the Log view in Red, (Does NOT add a New Line). Add a refrences to #r "PresentationCore"
+    member this.Print_Red msg = Printf.kprintf   (fun s -> printOrBuffer (s, false, LogColors.red))  msg
+    /// Print to the Log view in Green, (Does NOT add a New Line). Add a refrences to #r "PresentationCore"
+    member this.Print_Green msg = Printf.kprintf (fun s -> printOrBuffer (s, false, LogColors.green))  msg  
+    /// Print to the Log view in Blue, (Does NOT add a New Line). Add a refrences to #r "PresentationCore"
+    member this.Print_Blue msg = Printf.kprintf  (fun s -> printOrBuffer (s, false, LogColors.blue))  msg
+    /// Print to the Log view in a custom Color, (Does NOT add a New Line )    
+    /// using a System.Windows.Media.SolidColorBrush, add refrences to:
+    /// #r "PresentationCore"
+    /// #r "WindowsBase"
+    /// call .Freeze() on the Brush first to improove performance
+    member this.Print_Colored (color:SolidColorBrush)  msg = Printf.kprintf (fun s -> printOrBuffer (s,false, color))  msg
+
     interface Seff.ISeffLog with        
         member this.ReadOnlyEditor         = log
         //used in FSI constructor:
@@ -451,7 +470,7 @@ type Log () =
         member this.Print_AppErrorMsg msg = Printf.kprintf (fun s -> printOrBuffer (s,false,LogColors.appErrorMsg  )) msg
         member this.Print_IOErrorMsg  msg = Printf.kprintf (fun s -> printOrBuffer (s,false,LogColors.iOErrorMsg   )) msg  
         member this.Print_DebugMsg    msg = Printf.kprintf (fun s -> printOrBuffer (s,false,LogColors.debugMsg     )) msg
-        member this.Print_Custom      msg = Printf.kprintf (fun s -> printOrBuffer (s,false, LogColors.lastCustom  )) msg    
+        member this.Print_Custom      msg = Printf.kprintf (fun s -> printOrBuffer (s,false,LogColors.lastCustom  )) msg    
         member this.Print_CustomBrush (br:SolidColorBrush) msg = 
             LogColors.lastCustom  <- br |> freeze
             Printf.kprintf (fun s -> printOrBuffer (s,false, LogColors.lastCustom ))  msg
@@ -477,14 +496,14 @@ type Log () =
                 this.PrintInfoMsg "Log File saved as:\r\n%s" dlg.FileName
             with e -> 
                 this.PrintIOErrorMsg "Failed to save text from Log at :\r\n%s\r\n%A" dlg.FileName e
-    
+   
     member this.SaveSelectedText (pathHint: FilePath) = 
         if log.SelectedText.Length > 0 then // this check is also done in "canexecute command"
            let txt =
                 log.TextArea.Selection.Segments 
                 |> Seq.map (fun s -> log.Document.GetText(s)) // to ensure block selection is saved correctly
                 |> String.concat Environment.NewLine
-           
+   
            let dlg = new Microsoft.Win32.SaveFileDialog()
            match pathHint with 
            |NotSet ->() 
@@ -501,11 +520,9 @@ type Log () =
                    this.PrintInfoMsg "Selected text from Log saved as:\r\n%s" dlg.FileName
               with e -> 
                    this.PrintIOErrorMsg "Failed to save selected text from Log at :\r\n%s\r\n%A" dlg.FileName e
-
-    
-    static member internal setStatic (l:Log) = lgs <- l
-
-    /// static access to Log view for printing    
-    static member printRed msg = lgs.PrintCustomColor 255 0 0 msg
-        
-
+                       
+    //--------------------------------------------------------------------------------------------------------------------------------------------
+    //-----------------------------Static members---------------------------------------------------------------------------------------------------------------
+    //--------------------------------------------------------------------------------------------------------------------------------------------
+ 
+    static member val Instance = Log()

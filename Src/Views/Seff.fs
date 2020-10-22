@@ -21,8 +21,7 @@ type Seff (config:Config,log:Log) =
     
     
     do
-        Log.setStatic(tabsAndLog.Log)
-
+        
         dockP.Margin <- Thickness(tabsAndLog.GridSplitterSize)
         
         commands.SetUpGestureInputBindings()        
