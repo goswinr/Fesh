@@ -36,7 +36,7 @@
 
   <ItemGroup>
     <!-- don't add explict ref to Fsharp.Core? https://github.com/dotnet/fsharp/issues/9064 -->
-    <!-- the combo 4.6.2 and 33.0.1 makes it work in Revit-->
+    <!-- only the combo 4.6.2 and 33.0.1 sems to make it work in Revit-->
     <PackageReference Update="FSharp.Core" Version="4.6.2" />
     <PackageReference Include="FSharp.Compiler.Service" Version="33.0.1" /> 
   </ItemGroup>
