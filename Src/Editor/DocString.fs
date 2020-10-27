@@ -76,7 +76,7 @@ module DocString =
                 let c = Regex.Replace(c,"""<code.*?>(.*?)<\/code>""", "`$1`")
                 let c = Regex.Replace(c,"""<\w+ \w+="(?:\w:){0,1}(.+?)">.*<\/\w+>""", "`$1`")
                 let c = Regex.Replace(c,"""<\w+ \w+="(?:\w:){0,1}(.+?)" />""", "`$1`")
-                let tableIndex = c.IndexOf("<table>")
+                let tableIndex = c.IndexOf("<table>",StringComparison.Ordinal)
                 let s =
                     if tableIndex > 0 then
                         let start = c.Substring(0, tableIndex)

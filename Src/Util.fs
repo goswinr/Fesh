@@ -144,7 +144,7 @@ module String =
 
     /// returns the remainder after the last substring found
     let stringAfterLast (sub:string) (s:string) =
-        match s.LastIndexOf(sub) with
+        match s.LastIndexOf(sub, StringComparison.Ordinal) with
         | -1 -> None
         | i  -> Some (s.Substring(i + sub.Length))
          /// retursn the remainder after the last substring found
