@@ -29,7 +29,7 @@ type SaveWriter  (log:ISeffLog)=
     /// getString will only be called (in sync) and file will only be written (async)
     ///if after the delay the counter value is the same as before. 
     ///( that means no more recent calls to this function have been made)
-    member this.WriteDelayed (path, getText: unit->string, delay) =
+    member this.WriteDelayed (path, getText: unit->string, delay:int) =
         async{
             let k = Interlocked.Increment counter
             do! Async.Sleep(delay) // delay to see if this is the last of many events (otherwise there is a noticable lag in dragging window around)

@@ -54,7 +54,7 @@ type Settings (log:ISeffLog, hostInfo:Hosting) =
         selectAllOccurences <- getBool "selectAllOccurences"  true // true as default value
 
 
-    member this.SetDelayed k v delay= 
+    member this.SetDelayed k v (delay:int)= 
         // delayed because the onMaximise of window event triggers first Loaction changed and then state changed, 
         // state change event should still be able to Get previous size and loaction that is not saved yet
         async{  do! Async.Sleep(delay) 
