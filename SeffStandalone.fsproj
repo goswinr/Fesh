@@ -35,8 +35,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Update="FSharp.Core" Version="4.7.2" GeneratePathProperty="true" />    
-    <PackageReference Include="FSharp.Compiler.Service" Version="33.0.1" /><!-- use 33.0.1 because EPPlus also fails with 35.0.0 (like Rhino) ?? try x86 version !-->
+    <PackageReference Update="FSharp.Core" Version="5.0.0" GeneratePathProperty="true" />    
+    <PackageReference Include="FSharp.Compiler.Service" Version="37.0.0" />    
+    <PackageReference Include="FSharp.DependencyManager.Nuget" Version="37.0.0" /><!-- use 33.0.1 because EPPlus also fails with 35.0.0 (like Rhino) ?? try x86 version !-->
     <!--<PackageReference Include="FSharp.DependencyManager.Nuget" Version="35.0.0" />-->
   </ItemGroup>
 
