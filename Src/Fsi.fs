@@ -145,7 +145,7 @@ type Fsi private (config:Config) =
                         match mode with
                         |Sync ->  log.PrintInfoMsg "FSharp Interactive will evaluate synchronously on UI Thread."
                         |Async -> log.PrintInfoMsg "FSharp Interactive will evaluate asynchronously on new Thread."    
-                    fsiSession.AssemblyReferenceAdded.Add (config.AssemblyReferenceStatistic.Add)  //TODO fails in FCS 37.0.0                  
+                    //fsiSession.AssemblyReferenceAdded.Add (config.AssemblyReferenceStatistic.Add)  //TODO fails in FCS 37.0.0                  
                     do! Async.SwitchToContext Sync.syncContext 
                     isReadyEv.Trigger()
                     } |> Async.Start
