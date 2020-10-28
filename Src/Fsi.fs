@@ -68,18 +68,19 @@ type Fsi private (config:Config) =
                 log.PrintDebugMsg  "Current directory is already set to:\r\n%s\\" dir   
         with e->            
             log.PrintFsiErrorMsg "silentCD on FSI failed: %A" e 
+    
     let setFileAndLine (session:FsiEvaluationSession) (topLine:int) (fi:FileInfo) = 
         try
             let file = fi.Name
             if file  <> currentFile || currentTopLine <> topLine then 
-                let ln = sprintf "# %d @\"%s\" " topLine file
+                let ln = sprintf "# %d @\"%s\"\n;;" topLine file
                 session.EvalInteraction(ln) //TODO doesnt work! try writing to In stream instead ??
                 if file  <> currentFile then 
                     log.PrintInfoMsg "Current file set to: %s\\" file
                 currentFile <- file
                 currentTopLine <- topLine
             else
-                log.PrintDebugMsg  "Current lien and file and is already set to Line %d for: %s\\" topLine file    
+                log.PrintDebugMsg  "Current lne and file and is already set to Line %d for: %s\\" topLine file    
         with e->
             log.PrintFsiErrorMsg "setFileAndLine on FSI failed: %A" e 
              
@@ -144,7 +145,7 @@ type Fsi private (config:Config) =
                         match mode with
                         |Sync ->  log.PrintInfoMsg "FSharp Interactive will evaluate synchronously on UI Thread."
                         |Async -> log.PrintInfoMsg "FSharp Interactive will evaluate asynchronously on new Thread."    
-                    fsiSession.AssemblyReferenceAdded.Add (config.AssemblyReferenceStatistic.Add)
+                    fsiSession.AssemblyReferenceAdded.Add (config.AssemblyReferenceStatistic.Add)  //TODO fails in FCS 37.0.0                  
                     do! Async.SwitchToContext Sync.syncContext 
                     isReadyEv.Trigger()
                     } |> Async.Start
