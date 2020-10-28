@@ -21,8 +21,9 @@
     <Copyright>Copyright: Goswin Rothenthal 2020 </Copyright>
     
     <ApplicationIcon>Media\LogoCursorTr.ico</ApplicationIcon>
-    <Win32Resource>Media\LogoCursorTr.res</Win32Resource>
-    <Configurations>Debug;Release</Configurations> <!--  for Application Icon in explorer-->      
+    <Win32Resource>Media\LogoCursorTr.res</Win32Resource><!--  for Application Icon in explorer-->   
+    <Configurations>Debug;Release</Configurations> 
+    <DefineConstants>FCS33</DefineConstants>  <!--FSharp.Compiler.Service 33.0.1--> 
   </PropertyGroup> 
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">

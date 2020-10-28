@@ -152,8 +152,12 @@ type Completions(avaEdit:TextEditor,config:Config, checker:Checker, errorHighlig
     /// retuns "loading" text and triggers async computation to get and update with actual text 
     member this.GetToolTip(it:FSharpDeclarationListItem)= 
         async{
-            //let raw = it.StructuredDescriptionText //FCS 33.0.1
-            let! raw = it.StructuredDescriptionTextAsync //FCS 37.0.0
+            #if FCS33
+            let raw = it.StructuredDescriptionText //FCS 33.0.1
+            #else
+            let! raw = it.StructuredDescriptionTextAsync //FCS 37.0.0 +
+            #endif 
+            
             let structured = 
                 if optArgsDict.ContainsKey it.FullName then  TypeInfo.getFormated (raw, optArgsDict.[it.FullName])
                 else                                         TypeInfo.getFormated (raw, ResizeArray(0))
