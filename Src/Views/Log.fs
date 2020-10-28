@@ -114,9 +114,10 @@ type LogLineColorizer(ed:AvalonEdit.TextEditor, offsetColors: ResizeArray<NewCol
                     for c in cs do 
                         if c.brush = null && any then //changing the basefore ground is only needed if any other color already exists on this line                        
                             base.ChangeLinePart(c.start, c.ende, fun element -> element.TextRunProperties.SetForegroundBrush(LogColors.consoleOut))
-                        else
-                            any <-true
-                            base.ChangeLinePart(c.start, c.ende, fun el -> el.TextRunProperties.SetForegroundBrush(c.brush))
+                        else                            
+                            if notNull c.brush then // might still happen on first line
+                                any <-true
+                                base.ChangeLinePart(c.start, c.ende, fun el -> el.TextRunProperties.SetForegroundBrush(c.brush))
                 
                 /// exclude selection from coloring: 
                 else                
