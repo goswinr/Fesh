@@ -53,6 +53,8 @@
   <Color name="XmlString"           foreground="#669966" />
   <Color name="XmlPunctuation"      foreground="#666666" />
   <Color name="KnownDocTags"        foreground="#666666" />
+
+  <Color name="NonEval"             foreground="#AACCAA" />
   
 
   <!-- Regexes that are listed higer have precedence of lower positions in this list
@@ -266,7 +268,7 @@
   <RuleSet name="LoadDllSet">
     <Span color="LoadDirectives" multiline="false">
       <Begin >\#r\b|\#load\b</Begin> <!-- # nededs to be escaped to \# it is a comment  -->
-      <!-- <End color="LoadPath">"</End>  this sis acutally not needed-->
+      <End>(?=(;;))</End> <!-- so that NonEval works -->
       <RuleSet>
         <Import ruleSet="CommentSet"/>
         <Span color="LoadDll" multiline="false">
@@ -279,6 +281,7 @@
 
     <Span color="LoadDirectives" multiline="false">
       <Begin>\#I\b</Begin>    <!-- In case of #I highlight the folder parh with color="LoadDll" -->
+      <End>(?=(;;))</End> <!-- so that NonEval works -->
       <RuleSet>
         <Import ruleSet="CommentSet"/>
         <Span color="LoadPath" multiline="false">
@@ -354,14 +357,18 @@
 
     <!-- a hex number | binary number | (number just starting with floating point | with optional inner floating point) and an optional exponent. https://regexr.com/52d6q -->
     <Rule color="NumberLiteral">\b0[xX][0-9a-fA-F_]+|\b0[bB][01_]+|((-\.|\.)[0-9_]+|(\b|-)[0-9_]+\.?[0-9_]*)([eE][+-]?[0-9]+)? </Rule>
-      
-   
+         
     <Rule color="Punctuation">[ \[ \]  \| \\ \( \) &lt; &gt; &amp; ? , . :  { } + \- * ^ ~ ! / % = ]</Rule>
     
     <Rule color="Semicolon">;</Rule>
     
     <Rule color="Exception">\b\w*\d*Exception</Rule>
 
+
+    <Span color="NonEval" multiline="true" > <!--anything after a double semicolon is ignored in FSI-->
+      <Begin>;;</Begin> 
+      <End>justAnyStringThatNeverHappens</End>
+    </Span> 
 
 
     <Span color="Attributes">
