@@ -115,7 +115,7 @@
   <Target Name="CopyFilesOverAfterBuild" BeforeTargets="AfterBuild">
     <!-- <Message Text="Copied FSharp.Core.xml file from $(PkgFSharp_Core) to output dir ." Importance="high"/> -->
     <!-- FSharp.Core.xml is missing otherwise ? to have it as intellisense provider-->
-    <Copy SourceFiles="$(PkgFSharp_Core)\lib\net45\FSharp.Core.xml" DestinationFiles="$(TargetDir)FSharp.Core.xml" ContinueOnError="false" />  
+    <Copy SourceFiles="$(PkgFSharp_Core)\lib\netstandard2.0\FSharp.Core.xml" DestinationFiles="$(TargetDir)FSharp.Core.xml" ContinueOnError="false" />  
   </Target>
 
 </Project>
