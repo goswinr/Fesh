@@ -24,13 +24,14 @@ type Commands (grid:TabsAndLog)  =
     
 
 
-    let evalAllText()          =                                  fsi.Evaluate {code=tabs.CurrAvaEdit.Text                                    ; file=tabs.Current.FilePath; allOfFile=true ; fromLine = 1}                               
-    let evalAllTextSave()      =  if tabs.Save(tabs.Current) then fsi.Evaluate {code=tabs.CurrAvaEdit.Text                                    ; file=tabs.Current.FilePath; allOfFile=true ; fromLine = 1} 
-    let evalAllTextSaveClear() =  log.Clear(); if tabs.Save(tabs.Current) then  fsi.Evaluate {code=tabs.CurrAvaEdit.Text                      ; file=tabs.Current.FilePath; allOfFile=true ; fromLine = 1} // clear needs to be done first for correct coloring of log
-    let evalSelectedLines()    =                                  fsi.Evaluate {code = Selection.expandSelectionToFullLines(tabs.CurrAvaEdit) ; file=tabs.Current.FilePath; allOfFile=false; fromLine = 99}//DODO wrong 1 
-    let evalSelectedText()     =                                  fsi.Evaluate {code = tabs.CurrAvaEdit.SelectedText                          ; file=tabs.Current.FilePath; allOfFile=false; fromLine = 99}//DODO wrong 1 
-    let evalTillCursor()       =                                  fsi.Evaluate {code = Selection.linesTillCursor(tabs.CurrAvaEdit)            ; file=tabs.Current.FilePath; allOfFile=false; fromLine = 99}//DODO wrong 1 
-    let evalFromCursor()       =                                  fsi.Evaluate {code = Selection.linesFromCursor(tabs.CurrAvaEdit)            ; file=tabs.Current.FilePath; allOfFile=false; fromLine = 99}//DODO wrong 1 
+    let evalAllText()          =                                                fsi.Evaluate {code=tabs.CurrAvaEdit.Text          ; file=tabs.Current.FilePath; allOfFile=true ; fromLine = 1}                               
+    let evalAllTextSave()      =  if tabs.Save(tabs.Current) then               fsi.Evaluate {code=tabs.CurrAvaEdit.Text          ; file=tabs.Current.FilePath; allOfFile=true ; fromLine = 1} 
+    let evalAllTextSaveClear() =  log.Clear(); if tabs.Save(tabs.Current) then  fsi.Evaluate {code=tabs.CurrAvaEdit.Text          ; file=tabs.Current.FilePath; allOfFile=true ; fromLine = 1} // clear needs to be done first for correct coloring of log
+
+    let evalSelectedLines()    =  let ln,tx = Selection.expandSelectionToFullLines(tabs.CurrAvaEdit)  in  fsi.Evaluate {code = tx ; file=tabs.Current.FilePath; allOfFile=false; fromLine = ln }
+    let evalSelectedText()     =  let ln,tx = Selection.current (tabs.CurrAvaEdit)                    in  fsi.Evaluate {code = tx ; file=tabs.Current.FilePath; allOfFile=false; fromLine = ln }   // null or empty check is done in fsi.Evaluate        
+    let evalTillCursor()       =  let ln,tx = Selection.linesTillCursor(tabs.CurrAvaEdit)             in  fsi.Evaluate {code = tx ; file=tabs.Current.FilePath; allOfFile=false; fromLine = ln }           
+    let evalFromCursor()       =  let ln,tx = Selection.linesFromCursor(tabs.CurrAvaEdit)             in  fsi.Evaluate {code = tx ; file=tabs.Current.FilePath; allOfFile=false; fromLine = ln }           
     
     //see https://github.com/icsharpcode/AvalonEdit/blob/697ff0d38c95c9e5a536fbc05ae2307ec9ef2a63/ICSharpCode.AvalonEdit/Editing/CaretNavigationCommandHandler.cs#L73
     //TODO these gets evaluated for each cmd on every mouse click or key perss . is this OK?  any lag ?? in Canexecute for commands
@@ -59,9 +60,9 @@ type Commands (grid:TabsAndLog)  =
     member val UnComment         = {name= "Uncomment"                 ;gesture= "Ctrl + U"       ;cmd= mkCmdSimple (fun _ -> Commenting.unComment tabs.CurrAvaEdit)              ;tip= "Puts '//' at the beginning of current line, \r\nor all line touched by current selection"           }                                                                                     
     member val ToggleComment     = {name= "Toggle Comment"            ;gesture= "Ctrl + T"       ;cmd= mkCmdSimple (fun _ -> Commenting.toggleComment tabs.CurrAvaEdit)          ;tip= "Swaps commented and not commented lines"           }                                                                                     
     
-    //member val SwapLineUp        = {name= "Swap Line Up"              ;gesture= "Alt + Up"       ;cmd=AvalonEditCommands.SwapLinesUp                                             ;tip= "Swap the current line and the previous line."                                     }                                                                                     
+    //member val SwapLineUp        = {name= "Swap Line Up"              ;gesture= "Alt + Up"       ;cmd=AvalonEditCommands.SwapLinesUp                                           ;tip= "Swap the current line and the previous line."                                     }                                                                                     
     member val SwapLineUpCtrl    = {name= "Swap Line Up"              ;gesture= "Ctrl + Up"      ;cmd=AvalonEditCommands.SwapLinesUp                                             ;tip= "Swap the current line and the previous line.'Alt + Up' is also a shortcut for this." } // extra because Alt Down fails in Rhino                                                                                 
-    //member val SwapLineDown      = {name= "Swap Line Down"            ;gesture= "Alt + Down"     ;cmd=AvalonEditCommands.SwapLinesDown                                           ;tip= "Swap the current line and the next line."                                         } 
+    //member val SwapLineDown      = {name= "Swap Line Down"            ;gesture= "Alt + Down"     ;cmd=AvalonEditCommands.SwapLinesDown                                         ;tip= "Swap the current line and the next line."                                         } 
     member val SwapLineDownCtrl  = {name= "Swap Line Down"            ;gesture= "Ctrl + Down"    ;cmd=AvalonEditCommands.SwapLinesDown                                           ;tip= "Swap the current line and the next line. 'Alt + Down' is also a shortcut for this."  } // extra because Alt Down fails in Rhino
     
     
@@ -85,11 +86,11 @@ type Commands (grid:TabsAndLog)  =
     member val RunTextFromCursor = {name= "Run Text from Cursor"      ;gesture= "F4"             ;cmd= mkCmdSimple (fun _ -> evalFromCursor())           ;tip= "Sends all lines from and including the current line  to FSharp Interactive" }    
     member val ClearLog          = {name= "Clear Log"                 ;gesture= "Ctrl + Alt + C" ;cmd= mkCmdSimple (fun _ -> log.Clear())                ;tip= "Clear all text from FSI Log window"                                         }
     member val CancelFSI         = {name= "Cancel FSI"                ;gesture= "Ctrl + Break"   ;cmd= mkCmd isAsy (fun _ -> fsi.CancelIfAsync())        ;tip= "Cancel running FSI evaluation (only available in asynchronous mode)"        }
-    member val ResetFSI          = {name= "Reset FSI"                 ;gesture= "Ctrl + Alt + R" ;cmd= mkCmdSimple (fun _ -> fsi.Reset())                ;tip= "Reset FSharp Interactive"                                                   }
+    member val ResetFSI          = {name= "Reset FSI"                 ;gesture= "Ctrl + Alt + R" ;cmd= mkCmdSimple (fun _ -> log.Clear();fsi.Reset())    ;tip= "Clear all text from FSI Log window and reset FSharp Interactive"                                                   }
     member val ToggleSync        = {name= "Toggle Sync / Async"       ;gesture= ""               ;cmd= mkCmdSimple (fun _ -> fsi.ToggleSync())           ;tip= "Switch between synchronous and asynchronous evaluation in FSI, see status in StatusBar"} 
                                                                                                                                        
    //View menu:                                                                                                                        
-    member val ToggleSplit       = {name= "Toggle Window Split"       ;gesture= ""       ;cmd= mkCmdSimple (fun _ -> grid.ToggleSplit())         ;tip= "Toggle between vertical and horizontal window arrangement of Editor and Log View"              }
+    member val ToggleSplit       = {name= "Toggle Window Split"       ;gesture= ""               ;cmd= mkCmdSimple (fun _ -> grid.ToggleSplit())         ;tip= "Toggle between vertical and horizontal window arrangement of Editor and Log View"              }
     member val ToggleLogSize     = {name= "Toggle Log Maximased"      ;gesture= "F11"            ;cmd= mkCmdSimple (fun _ -> grid.ToggleMaxLog())        ;tip= "Maximises or resets the size of the Log window. \r\n(depending on current state)"    }
     member val ToggleLogLineWrap = {name= "Toggle Line Wraping in Log";gesture= "Alt + Z"        ;cmd= mkCmdSimple (fun _ -> log.ToggleLineWrap(config)) ;tip= "Toggle Line Wraping in Log window"                                                  }  
     member val FontBigger        = {name= "Make Font Bigger"          ;gesture= "Ctrl + '+'"     ;cmd= mkCmdSimple (fun _ -> fonts.FontsBigger())         ;tip= "Increase Text Size for both Editor and Log"                                        }

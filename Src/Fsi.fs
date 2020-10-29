@@ -50,37 +50,37 @@ type Fsi private (config:Config) =
     
     let mutable sessionOpt :FsiEvaluationSession option = None 
 
-    let mutable thread :Thread option = None
+    let mutable thread : Thread option = None
 
 
     let mutable currentDir = ""
     let mutable currentFile = ""
-    let mutable currentTopLine = 0    
+    let mutable currentTopLine = 1    
     let setDir (session:FsiEvaluationSession) (fi:FileInfo) = 
         try
             let dir = fi.DirectoryName
             if dir <> currentDir then 
-                let cd = sprintf "# silentCd @\"%s\" ;;" dir
-                session.EvalInteraction(cd)
+                let cd = sprintf "# silentCd @\"%s\" \n ;;" dir
+                session.EvalInteraction(cd)//does it work ? see https://github.com/fsharp/FSharp.Compiler.Service/issues/957
                 currentDir <- dir
-                log.PrintInfoMsg "Current directory set to:\r\n%s\\" dir
+                log.PrintInfoMsg "Current directory set to:%s" dir
             else
-                log.PrintDebugMsg  "Current directory is already set to:\r\n%s\\" dir   
+                log.PrintDebugMsg  "Current directory is already set to:%s" dir   
         with e->            
             log.PrintFsiErrorMsg "silentCD on FSI failed: %A" e 
     
     let setFileAndLine (session:FsiEvaluationSession) (topLine:int) (fi:FileInfo) = 
         try
-            let file = fi.Name
+            let file = fi.FullName
             if file  <> currentFile || currentTopLine <> topLine then 
-                let ln = sprintf "# %d @\"%s\"\n;;" topLine file
-                session.EvalInteraction(ln) //TODO doesnt work! try writing to In stream instead ??
+                let ln = sprintf "# %d @\"%s\"  \n ;;" topLine file // then \n before the ;; is required somehow.
+                session.EvalInteraction(ln) //does it work ? see https://github.com/fsharp/FSharp.Compiler.Service/issues/957
                 if file  <> currentFile then 
-                    log.PrintInfoMsg "Current file set to: %s\\" file
+                    log.PrintInfoMsg "Current line set to %d , file set to:%s" topLine file
                 currentFile <- file
                 currentTopLine <- topLine
             else
-                log.PrintDebugMsg  "Current lne and file and is already set to Line %d for: %s\\" topLine file    
+                log.PrintDebugMsg  "Current line and file and is already set to Line %d for:%s" topLine file    
         with e->
             log.PrintFsiErrorMsg "setFileAndLine on FSI failed: %A" e 
              
@@ -147,6 +147,9 @@ type Fsi private (config:Config) =
                         |Async -> log.PrintInfoMsg "FSharp Interactive will evaluate asynchronously on new Thread."    
                     //fsiSession.AssemblyReferenceAdded.Add (config.AssemblyReferenceStatistic.Add)  //TODO fails in FCS 37.0.0                  
                     do! Async.SwitchToContext Sync.syncContext 
+                    currentDir <- ""
+                    currentFile <- ""
+                    currentTopLine <- 1 
                     isReadyEv.Trigger()
                     } |> Async.Start
     
@@ -155,7 +158,7 @@ type Fsi private (config:Config) =
     [< Security.SecurityCritical >] // TODO do these Attributes appy in to async thread too ?
     [< Runtime.ExceptionServices.HandleProcessCorruptedStateExceptions >] //to handle AccessViolationException too //https://stackoverflow.com/questions/3469368/how-to-handle-accessviolationexception/4759831
     let eval(code:CodeToEval)=
-        
+      if not (String.IsNullOrWhiteSpace code.code) then   
         if not config.Hosting.FsiCanRun then 
             log.PrintAppErrorMsg "The Hosting App has blocked Fsi from Running, maybe because the App is busy in another command or task."
         else
@@ -186,11 +189,12 @@ type Fsi private (config:Config) =
                     // TODO https://github.com/dotnet/fsharp/blob/6b0719845c928361e63f6e38a9cce4ae7d621fbf/src/fsharp/fsi/fsi.fs#L2618
                     // change via reflection??? 
                     // let dummyScriptFileName = "input.fsx"
+
                     match code.file with 
                     | NotSet -> () //setFileAndLine session code.fromLine "Unnamed File"
                     | SetTo fi -> 
                         //setDir session fi
-                        //setFileAndLine session code.fromLine fi
+                        //setFileAndLine session code.fromLine fi // TODO both fail ??
                         ()
 
                     let choice, errs =  
