@@ -43,7 +43,7 @@ type NewColor =
     
     /// Does binary search to find an offset that is equal or smaller than currOff
     static member findCurrentInList (cs:ResizeArray<NewColor>) currOff =         
-        let last = cs.Count-1
+        let last = cs.Count-1 //TODO is it possible that count increases while iterating?
         let rec find lo hi =             
             let mid = lo + (hi - lo) / 2          //TODO test edge conditions !!  
             if cs.[mid].off <= currOff then 
@@ -225,7 +225,7 @@ type Log private () =
     
     //static let mutable lgs = Unchecked.defaultof<Log>
     
-    let offsetColors = ResizeArray<NewColor>( [ {off = -1 ; brush=null} ] )    // null is console out //TODO use -1 instead? // null check done in  this.ColorizeLine(line:AvalonEdit.Document.DocumentLine) .. 
+    let offsetColors = ResizeArray<NewColor>( [ {off = -1 ; brush=null} ] )    // null is console out // null check done in  this.ColorizeLine(line:AvalonEdit.Document.DocumentLine) .. 
     
     let log =  new AvalonEdit.TextEditor()        
     let hiLi = new LogSelectedTextHighlighter(log)
@@ -260,22 +260,21 @@ type Log private () =
     let stopWatch = Stopwatch.StartNew()
     let buffer =  new StringBuilder()
     let mutable docLength = 0  //to be able to have the doc length async
-    let rwl = new ReaderWriterLockSlim() 
+    
+    let getBufferText () =
+        let txt = buffer.ToString()
+        buffer.Clear()  |> ignore 
+        txt
 
     // The below functions are trying to work around double UI update in printfn for better UI performance, 
     // and the poor performance of log.ScrollToEnd().
-    // see  https://github.com/dotnet/fsharp/issues/3712   
-    let printFromBuffer() =                  
-        let mutable txt = ""
-        rwl.EnterWriteLock() //https://stackoverflow.com/questions/23661863/f-synchronized-access-to-list
-        try
-            txt <- buffer.ToString()
-            buffer.Clear()  |> ignore  
-        finally
-            rwl.ExitWriteLock() 
-        log.AppendText(txt)            
+    // see  https://github.com/dotnet/fsharp/issues/3712  
+    let printFromBuffer() = 
+        let txt = lock buffer getBufferText //lock for safe access    // or rwl.EnterWriteLock() //https://stackoverflow.com/questions/23661863/f-synchronized-access-to-list
+        log.AppendText(txt)       
         log.ScrollToEnd()
-        if log.WordWrap then log.ScrollToEnd() //this is needed a second time !
+        if log.WordWrap then 
+            log.ScrollToEnd() //this is needed a second time. see  https://github.com/dotnet/fsharp/issues/3712  
         stopWatch.Restart() 
 
     let printFromBufferSync() =
@@ -289,20 +288,21 @@ type Log private () =
     let printOrBuffer (txt:string, addNewLine:bool, typ:SolidColorBrush) =
         
         if prevMsgType <> typ then 
-            offsetColors.Add { off = docLength; brush = typ } 
-            prevMsgType <- typ 
+            lock buffer (fun () -> 
+                offsetColors.Add { off = docLength; brush = typ } 
+                prevMsgType <- typ )
             //LogFile.Post <| sprintf "offset %d new color: %A" docLength typ
             
-        if txt.Length <> 0 then 
-            // TODO rwl.EnterWriteLock() needed her too ?
-            if addNewLine then  
-                buffer.AppendLine(txt)  |> ignore
-                docLength <- docLength + txt.Length + 2 // TODO is new line always two ?
+        if txt.Length <> 0 then
+            if addNewLine then 
+                lock buffer (fun () -> 
+                    buffer.AppendLine(txt)  |> ignore
+                    docLength <- docLength + txt.Length + 2) // TODO, is a new line always two ?
             else                
-                buffer.Append(txt)  |> ignore
-                docLength <- docLength + txt.Length
-
-            
+                lock buffer (fun () -> 
+                    buffer.Append(txt)  |> ignore
+                    docLength <- docLength + txt.Length   ) 
+                        
             if stopWatch.ElapsedMilliseconds > 100L  then // print case 1, only add to document every 100ms  
                 printFromBufferSync()                
             else
