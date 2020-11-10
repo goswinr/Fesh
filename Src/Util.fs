@@ -125,7 +125,7 @@ module String =
         isSpace
 
     /// counts how many time a substring occures in a string 
-    let countSubString (sub:string) (s:string) =
+    let inline countSubString (sub:string) (s:string) =
         let mutable k =  0
         let mutable i = s.IndexOf(sub, StringComparison.Ordinal)
         while i >= 0 do
@@ -134,7 +134,7 @@ module String =
         k
     
     /// counts how many time a character occures in a string 
-    let countChar (c:char) (s:string) =
+    let inline countChar (c:char) (s:string) =
         let mutable k =  0
         let mutable i = s.IndexOf(c)
         while i >= 0 do

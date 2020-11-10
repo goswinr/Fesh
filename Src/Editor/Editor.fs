@@ -188,11 +188,13 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
                             ed.Checker.CkeckHighlightAndFold(ed)
 
                         else 
+                           
+                           
                            //log.PrintDebugMsg "*2.2-textChanged Completion window opening with: query='%s', charBefore='%A', isKey=%b, setback='%d', line='%s' change=%A" query charBeforeQueryDU isKeyword setback line change
                            Completions.TryShow(ed, compls, pos, change, setback, query, charBeforeQueryDU, onlyDU)
                     else
-                        //checkForErrorsAndUpdateFoldings(tab)
-                        //log.PrintDebugMsg "*2.3-textChanged didn't trigger of checker not needed? \r\n"
+                        //log.PrintDebugMsg "*2.3-textChanged didn't trigger of checker not needed? isNotAlreadyInComment = %b;isNotFunDecl = %b; isNotLetDecl = %b; doCompletionInPattern = %b" isNotAlreadyInComment  isNotFunDecl  isNotLetDecl  doCompletionInPattern
+                        ed.Checker.CkeckHighlightAndFold(ed)
                         ()
         
         avaEdit.AllowDrop <- true  

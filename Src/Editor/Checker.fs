@@ -41,6 +41,7 @@ type Checker private (config:Config)  =
         checkingEv.Trigger(iEditor) // to show in statusbar
         let doc = iEditor.AvaEdit.Document // access document before starting async        
         async { 
+            do! Async.Sleep 200 // TODO add lag so that the checker does not run all the time while typing??
             match checker with 
             | Some ch -> ()
             | None ->             
