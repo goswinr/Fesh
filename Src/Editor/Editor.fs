@@ -2,6 +2,7 @@
 
 
 open Seff
+open Seff.Model
 open Seff.Util.String
 open ICSharpCode
 open ICSharpCode.AvalonEdit

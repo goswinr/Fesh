@@ -1,6 +1,7 @@
 ﻿namespace Seff.Editor
 
 open Seff
+open Seff.Model
 open System
 open System.Windows
 open System.Windows.Media

@@ -1,6 +1,7 @@
 ﻿namespace Seff.Views
 
 open Seff.Editor
+open Seff.Model
 open System.IO
 open System.Windows.Controls
 open System.Windows

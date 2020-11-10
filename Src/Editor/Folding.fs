@@ -3,6 +3,7 @@
 open System
 
 open Seff
+open Seff.Model
 open Seff.Util
 open Seff.Util.General
 open Seff.Config

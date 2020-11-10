@@ -1,6 +1,7 @@
 ﻿namespace Seff.Editor
 
 open Seff
+open Seff.Model
 open Seff.Config
 open Seff.Util
 open Seff.Util.General

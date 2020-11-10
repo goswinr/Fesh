@@ -37,7 +37,7 @@
   <Color name="FailString"          foreground="#D0A040" />  
   <Color name="Exception"           foreground="#C06030" />
   <Color name="PrintStatement"      foreground="#206060" />
-  <Color name="PrintString"         foreground="#D09070" />
+  <Color name="PrintString"         foreground="#E08070" />
   <Color name="TrueCol"             foreground="#008090" fontStyle="italic" fontWeight="bold" />
   <Color name="FalseCol"            foreground="#A70090" fontStyle="italic" fontWeight="bold" />
   <Color name="Semicolon"           foreground="#A0A0A0" />
@@ -262,7 +262,7 @@
 
   <RuleSet name="StringFormatSet">
     <!-- using just a Rule does not work !-->
-    <Span color="StringEscaped"><Begin>%[sfd%bciuxXoeEfFgGeEgGMOAAat]</Begin>  <End>(?=.)</End> </Span> 
+    <Span color="StringEscaped"><Begin>%</Begin>  <End>[sfd%bciuxXoeEfFgGeEgGMOAAat]</End> </Span> 
   </RuleSet >
 
   <RuleSet name="LoadDllSet">

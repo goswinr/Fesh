@@ -1,6 +1,7 @@
 ﻿namespace Seff.Views
 
 open Seff
+open Seff.Model
 open Seff.Util.General
 open Seff.Views.Util
 open Seff.Config
@@ -448,7 +449,7 @@ type Log private () =
     /// call .Freeze() on the Brush first to improove performance
     member this.Print_Colored (color:SolidColorBrush)  msg = Printf.kprintf (fun s -> printOrBuffer (s,false, color))  msg
 
-    interface Seff.ISeffLog with        
+    interface ISeffLog with        
         member this.ReadOnlyEditor         = log
         //used in FSI constructor:
         member this.TextWriterFsiStdOut    = textWriterFsiStdOut    :> TextWriter   

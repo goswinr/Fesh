@@ -3,7 +3,7 @@
 open Seff
 open System
 open System.Text
-
+open Seff.Model
  
 /// window size, layout and position, async state and more
 type Settings (log:ISeffLog, hostInfo:Hosting) = 

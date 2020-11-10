@@ -3,6 +3,7 @@
 open Seff
 
 open Seff.Editor
+open Seff.Model
 open System
 open System.IO
 open System.Windows.Controls

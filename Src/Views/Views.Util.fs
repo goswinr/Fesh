@@ -1,5 +1,7 @@
 ﻿namespace Seff.Views
+
 open Seff
+open Seff.Model
 
 
 module Util = 

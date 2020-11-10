@@ -2,6 +2,7 @@
 
 open Seff
 open System
+open Seff.Model
 
     
 type FsiArugments  (log:ISeffLog, hostInfo:Hosting) =

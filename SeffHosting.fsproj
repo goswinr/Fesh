@@ -63,6 +63,7 @@
 
     <Compile Include="Src\Util.fs" />
     <Compile Include="Src\Timer.fs" />
+    <Compile Include="Src\Style.fs" />
     <Compile Include="Src\Model.fs" />
     <Compile Include="Src\Sync.fs" />
 

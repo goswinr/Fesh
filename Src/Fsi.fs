@@ -6,6 +6,7 @@ open System.Windows
 open System.IO
 open System.Threading
 open FSharp.Compiler.Interactive.Shell
+open Seff.Model
 open Seff.Config
 open Seff.Util
 open System.Windows.Media
@@ -265,7 +266,7 @@ type Fsi private (config:Config) =
                     // dsyme: Thread.Abort - it is needed in interruptible interactive execution scenarios: https://github.com/dotnet/fsharp/issues/9397#issuecomment-648376476
                     Async.StartImmediate(asyncEval))  
                 thread <- Some thr           
-                thr.SetApartmentState(ApartmentState.STA) //TODO always ok ? neded to run WPF?
+                thr.SetApartmentState(ApartmentState.STA) //TODO always ok ? needed to run WPF? https://stackoverflow.com/questions/127188/could-you-explain-sta-and-mta
                 thr.Start()
     
     

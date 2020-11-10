@@ -7,6 +7,7 @@ open Seff.Views.Util
 open ICSharpCode.AvalonEdit.Editing
 
 open Seff.Editor
+open Seff.Model
 open Seff
 open Seff.Editor.Selection
 open ICSharpCode.AvalonEdit

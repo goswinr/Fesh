@@ -2,6 +2,7 @@
 
 open System
 open Seff
+open Seff.Model
 
 
 

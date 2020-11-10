@@ -1,6 +1,7 @@
 ﻿namespace Seff.Config
 
 open Seff
+open Seff.Model
 open System
 open System.IO
 open System.Text

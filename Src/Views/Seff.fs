@@ -4,6 +4,7 @@ open Seff.Views
 open Seff.Config
 open Seff.Editor
 open System.Windows
+open Seff.Model
 
 /// the main App holding all UI and interaction ellements
 /// this is passed on to hosting apps

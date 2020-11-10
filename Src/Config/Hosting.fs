@@ -1,7 +1,7 @@
 ﻿namespace Seff.Config
 
 open System
-
+open Seff.Model
 
 
 /// mainWindowHandle: Pointer to main window(nativeInt), 

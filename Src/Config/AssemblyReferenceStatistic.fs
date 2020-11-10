@@ -1,6 +1,6 @@
 ﻿namespace Seff.Config
 
-open Seff
+open Seff.Model
 open System
 open System.Text
 open System.Collections.Generic
