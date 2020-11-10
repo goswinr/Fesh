@@ -232,7 +232,11 @@ type Fsi private (config:Config) =
                             for e in errs do    
                                 let msg = sprintf "%A" e
                                 if msg.Contains "is defined in an assembly that is not referenced." then 
-                                    postMsg <- "For assembly refrence errors that are not shown by editor tooling try to rearrange the inlital loading sequens of '#r' statements"
+                                    postMsg <- 
+                                        "Fix:\r\n" + 
+                                        "  For assembly refrence errors that are not shown by editor tooling try to re-arrange the inlital loading sequens of '#r' statements\n\r" +
+                                        "  This error might happen when you are loading a dll with #r that is already loaded, but from a diffrent location\n\r" +
+                                        "  E.G. as a dependency from a already loaded dll."
                                 log.PrintFsiErrorMsg "%A" e
                             if postMsg <> "" then 
                                 log.PrintCustomBrush blue "%s" postMsg

@@ -23,7 +23,7 @@ type DefaultCode  (log:ISeffLog, hostInfo:Hosting) =
         //"tips: // https://panesofglass.github.io/scripting-workshop/#/" 
         //"tips: // http://brandewinder.com/2016/02/06/10-fsharp-scripting-tips/"        
         "open System"
-        // "Environment.CurrentDirectory <- __SOURCE_DIRECTORY__"
+        // "Environment.CurrentDirectory <- __SOURCE_DIRECTORY__" //this fails !
         ""
         ] 
         |> String.concat Environment.NewLine
