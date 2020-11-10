@@ -87,6 +87,7 @@ type LogLineColorizer(ed:AvalonEdit.TextEditor, offsetColors: ResizeArray<NewCol
     
     let mutable selStart = -9
     let mutable selEnd   = -9
+    let mutable any = false
 
     member this.SelectionChangedDelegate ( a:EventArgs) =
         if ed.SelectionLength = 0 then // no selection 
@@ -108,7 +109,7 @@ type LogLineColorizer(ed:AvalonEdit.TextEditor, offsetColors: ResizeArray<NewCol
                 let stLn = line.Offset
                 let enLn = line.EndOffset
                 let cs = RangeColor.getInRange offsetColors stLn enLn
-                let mutable any = false
+                any <- false
                 
                 // color non selected lines 
                 if selStart = selEnd  || selStart > enLn || selEnd < stLn then// no selection in general or on this line                 
@@ -161,7 +162,7 @@ type LogSelectedTextHighlighter (lg:AvalonEdit.TextEditor) =
     /// This gets called for every visible line on any view change
     override this.ColorizeLine(line:AvalonEdit.Document.DocumentLine) =       
         //  from https://stackoverflow.com/questions/9223674/highlight-all-occurrences-of-selected-word-in-avalonedit
-        try    
+        //try    
             if notNull highTxt  then
                 let  lineStartOffset = line.Offset;
                 let  text = lg.Document.GetText(line)            
@@ -176,7 +177,7 @@ type LogSelectedTextHighlighter (lg:AvalonEdit.TextEditor) =
                     let start = index + highTxt.Length // search for next occurrence // TODO or just +1 ???????
                     index <- text.IndexOf(highTxt, start, StringComparison.Ordinal)
         
-        with e -> LogFile.Post <| sprintf "LogSelectedTextHighlighter override this.ColorizeLine failed with %A" e
+        //with e -> LogFile.Post <| sprintf "LogSelectedTextHighlighter override this.ColorizeLine failed with %A" e
         
     member this.SelectionChangedDelegate ( a:EventArgs) =
         // for text view:
@@ -358,6 +359,7 @@ type Log private () =
         log.SelectionStart <- 0        
         log.Clear()
         docLength <- 0
+        prevMsgType <- null
         offsetColors.Clear()
         //LogColors.lastCustom <- null // or remeber it
         offsetColors.Add {off = -1 ; brush=null} //TODO use -1 instead? // null check done in  this.ColorizeLine(line:AvalonEdit.Document.DocumentLine) .. 
