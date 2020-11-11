@@ -6,7 +6,6 @@ open Seff.Util.General
 open Seff.Views.Util
 open Seff.Config
 open System
-open System.Environment
 open System.IO
 open System.Threading
 open ICSharpCode
@@ -78,8 +77,8 @@ type FsxTextWriter(writeStr) =
     inherit TextWriter()
     override this.Encoding =  Text.Encoding.Default
     override this.Write     (s:string)  = writeStr (s)
-    override this.WriteLine (s:string)  = writeStr (s + NewLine)    // actually never used see  https://github.com/dotnet/fsharp/issues/3712   
-    override this.WriteLine ()          = writeStr (    NewLine)    
+    override this.WriteLine (s:string)  = writeStr (s + Environment.NewLine)    // actually never used see  https://github.com/dotnet/fsharp/issues/3712   
+    override this.WriteLine ()          = writeStr (    Environment.NewLine)    
     
 
 type LogLineColorizer(ed:AvalonEdit.TextEditor, offsetColors: ResizeArray<NewColor>) =  
