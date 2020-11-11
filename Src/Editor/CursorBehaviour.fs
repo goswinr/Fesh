@@ -106,13 +106,13 @@ module CursorBehaviour  =
                                     ed.Log.PrintInfoMsg "Drag & Drop inserted at Line %d:" p.line 
                                     ed.Log.PrintCustomBrush insertColor "  %s" f
                                     ed.Log.PrintInfoMsg "  Previous Line at that position is commented out below:"
-                                    ed.Log.PrintCustomColor 80 80 80 "  %s" prev
+                                    ed.Log.PrintCustomColor 120 120 120 "  %s" prev
                                 else
                                     avaEdit.Document.Insert (p.offset , sprintf "@\"%s\" //" f )
                                     ed.Log.PrintInfoMsg "Drag & Drop inserted at Line %d:" lnNo.LineNumber
                                     ed.Log.PrintCustomBrush insertColor "  %s" f
                                     ed.Log.PrintInfoMsg "  Previous Line content is commented out:" 
-                                    ed.Log.PrintCustomColor 80 80 80  "  %s" prev
+                                    ed.Log.PrintCustomColor 120 120 120  "  %s" prev
                             | None ->   
                                 let lnNo = avaEdit.Document.GetLineByOffset(avaEdit.CaretOffset)
                                 ed.Log.PrintInfoMsg "Drag & Drop inserted at Line %d:" lnNo.LineNumber

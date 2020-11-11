@@ -81,7 +81,7 @@ type CheckerStatus (grid:TabsAndLog) as this =
             } |> Async.StartImmediate 
         
         | NotStarted -> // these below never happen because event is only triggerd on success
-            this.Text <- "Initializing compiler ..."
+            this.Text <- "Initializing compiler . . ."
             this.Background <- waitCol //originalBackGround 
         
         | Failed -> // these below never happen because event is only triggerd on success
@@ -102,7 +102,7 @@ type FsiRunStatus (grid:TabsAndLog, cmds:Commands) as this =
     inherit TextBlock()
     do     
         this.Padding <- textPadding
-        this.Inlines.Add ("FSI is initializing ...")
+        this.Inlines.Add ("FSI is initializing . . .")
         this.Background <- waitCol //originalBackGround 
         this.ContextMenu <- makeContextMenu [ menuItem cmds.CancelFSI ]
         //this.ToolTip <- "Click here to enabel or disable the default output from fsi in the log window"
@@ -115,9 +115,9 @@ type FsiRunStatus (grid:TabsAndLog, cmds:Commands) as this =
                 if code.allOfFile then this.Inlines.Add(new Run ("FSI is running ",             Foreground = greyText))
                 else                   this.Inlines.Add(new Run ("FSI is running a part of ", Foreground = greyText))
                 this.Inlines.Add( new Run (fi.Name, FontFamily = Style.fontEditor) )     
-                this.Inlines.Add( new Run (" ..."                                           , Foreground = greyText))
+                this.Inlines.Add( new Run (" . . ."                                           , Foreground = greyText))
             |NotSet ->                 
-                this.Inlines.Add( "FSI is running ..." )
+                this.Inlines.Add( "FSI is running . . ." )
             )
 
         grid.Tabs.Fsi.OnIsReady.Add(fun _ -> 
