@@ -59,9 +59,15 @@ type SelectedTextHighlighter (ed:TextEditor) =
 /// Highlight-all-occurrences-of-selected-text in Text View and Statusbar
 type SelectedTextTracer () =   
     
+    let highlightClearedEv  = new Event<unit>()
     let highlightChangedEv  = new Event<string*int>()
+
     [<CLIEvent>]
-    member this.HighlightChanged = highlightChangedEv.Publish
+    member this.OnHighlightCleared = highlightClearedEv.Publish
+    member this.TriggerOnHighlightCleared() = highlightClearedEv.Trigger()  // will update status bar  
+
+    [<CLIEvent>]
+    member this.OnHighlightChanged = highlightChangedEv.Publish
     member this.ChangeInfoText(newInfoText,i) = highlightChangedEv.Trigger(newInfoText,i)  // will update status bar             
     
     static member val Instance = SelectedTextTracer() // singelton pattern
@@ -89,7 +95,7 @@ type SelectedTextTracer () =
                 //ta.TextView.Redraw()
 
  
-                // for status bar :            
+                // for status bar and folds :            
                 match ed.FileCheckState.FullCodeAndId with 
                 | NoCode ->() //OccurencesTracer.Instance.InfoText <- ""
                 | CodeID (code,_) ->
@@ -113,7 +119,7 @@ type SelectedTextTracer () =
                         else
                             index <- code.IndexOf(highTxt, st, StringComparison.Ordinal)
                                    
-                    SelectedTextTracer.Instance.ChangeInfoText(highTxt, k  )    // will update status bar 
+                    SelectedTextTracer.Instance.ChangeInfoText(highTxt, k  )    // this will update status bar 
                     //if anyInFolding then ta.TextView.Redraw()
                     
 
@@ -121,6 +127,7 @@ type SelectedTextTracer () =
                 if notNull oh.HighlightText then // to ony redraw if it was not null before
                     oh.HighlightText <- null 
                     for f in folds.Manager.AllFoldings do  f.BackbgroundColor <- null 
+                    SelectedTextTracer.Instance.TriggerOnHighlightCleared()
                     ///ta.TextView.Redraw() // to clear highlight
             
             ta.TextView.Redraw() //do just once at end ?
