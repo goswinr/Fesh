@@ -14,7 +14,7 @@
   <Color name="Comment"             foreground="#11AA11" />
   <Color name="DocComment"          foreground="#007700" />
   <Color name="TODO"                foreground="#EE0000"  fontWeight="bold"/>
-  <Color name="HACK"                foreground="#E0E000"  fontWeight="bold"/>
+  <Color name="HACK"                foreground="#D0D000"  fontWeight="bold"/>
 
   <Color name="String"              foreground="#AA1111" />
   <Color name="StringVerbatim"      foreground="#CC0000" />  
@@ -108,10 +108,12 @@
     <Keywords color="TODO">
       <Word>TODO</Word>
       <Word>FIXME</Word>
+      <Word>?</Word>  
+      <Word>!</Word>    
     </Keywords>
     <Keywords color="HACK">
       <Word>HACK</Word>
-      <Word>UNDONE</Word>
+      <Word>UNDONE</Word>      
     </Keywords>
   </RuleSet >
   
@@ -138,13 +140,12 @@
     <Keywords color="TrueCol">    <Word>true</Word>    </Keywords>  
     <Keywords color="FalseCol">   <Word>false</Word>   </Keywords>
 
+    <Rule color="Keywords">match!</Rule><!-- beacuse exclamation mark does not work in <Word> -->
+    <Rule color="Keywords">let!</Rule>
+    <Rule color="Keywords">do!</Rule>
+    <Rule color="Keywords">yield!</Rule>
+
     <Keywords color="Keywords">
-
-      <Word>match!</Word>  <!-- exclamation mark does not work ??-->
-      <Word>let!</Word>  
-      <Word>do!</Word>  
-      <Word>yield!</Word>  
-
     
       <Word>__SOURCE_DIRECTORY__</Word>
       <Word>__SOURCE_FILE__</Word>
@@ -267,7 +268,7 @@
 
   <RuleSet name="LoadDllSet">
     <Span color="LoadDirectives" multiline="false">
-      <Begin >\#r\b|\#load\b</Begin> <!-- # nededs to be escaped to \# it is a comment  -->
+      <Begin >\#r\b|\#load\b|\#nowarn\b</Begin> <!-- # neededs to be escaped too \# ! it is a regex comment  -->
       <End>(?=(;;))</End> <!-- so that NonEval works -->
       <RuleSet>
         <Import ruleSet="CommentSet"/>
@@ -383,7 +384,8 @@
       [\d\w_]+  # an identifier
       (?=\s*\() # followed by (
     </Rule>
-    -->      
+    -->   
+       
     <Span color="TypeAnnotation" multiline="false" > 
       <!-- to match one colon but not two: negative look behind for a colon, then the colon, then negative look ahead for a colon. 
           then any char but not <>=); and then a look ahead for <

@@ -25,6 +25,7 @@ module StatusbarStyle =
     let activeCol = Brushes.Orange   |> brighter 20    |> freeze
     let failedCol = Brushes.Magenta                    |> freeze
     let greyText =  Brushes.Gray     |> darker 20      |> freeze
+    let waitCol  =  Brushes.HotPink  |> brighter 80    |> freeze
 
 open StatusbarStyle
 
@@ -32,7 +33,7 @@ type CheckerStatus (grid:TabsAndLog) as this =
     inherit TextBlock()
     
     let tabs = grid.Tabs
-    let checkingTxt = "checking for Errors ..."
+    let checkingTxt = "Checking for Errors ..."
     let checker = Checker.GetOrCreate(grid.Config)
     let originalBackGround = this.Background
                 
@@ -75,13 +76,13 @@ type CheckerStatus (grid:TabsAndLog) as this =
                     | Checking (id300,_) -> 
                         if id300 = id0 then // this is still the most recent checker
                             this.Text <- checkingTxt
-                            this.Background <- originalBackGround 
+                            this.Background <- waitCol //originalBackGround 
                     | Done _ | NotStarted | Failed -> ()
             } |> Async.StartImmediate 
         
         | NotStarted -> // these below never happen because event is only triggerd on success
-            this.Text <- "Initializing compiler.."
-            this.Background <- originalBackGround 
+            this.Text <- "Initializing compiler ..."
+            this.Background <- waitCol //originalBackGround 
         
         | Failed -> // these below never happen because event is only triggerd on success
             this.Text <- "Fs Checker failed to complete."
@@ -90,13 +91,11 @@ type CheckerStatus (grid:TabsAndLog) as this =
 
     do     
         this.Padding <-textPadding
-
         this.Text <- checkingTxt
-        
-        tabs.OnTabChanged.Add (fun t -> updateCheckState(t.Editor))
-            
-        checker.OnChecked.Add updateCheckState
+        this.Background <- waitCol //originalBackGround 
 
+        tabs.OnTabChanged.Add (fun t -> updateCheckState(t.Editor))            
+        checker.OnChecked.Add  updateCheckState
         checker.OnChecking.Add updateCheckState
  
 type FsiRunStatus (grid:TabsAndLog, cmds:Commands) as this = 
@@ -104,6 +103,7 @@ type FsiRunStatus (grid:TabsAndLog, cmds:Commands) as this =
     do     
         this.Padding <- textPadding
         this.Inlines.Add ("FSI is initializing ...")
+        this.Background <- waitCol //originalBackGround 
         this.ContextMenu <- makeContextMenu [ menuItem cmds.CancelFSI ]
         //this.ToolTip <- "Click here to enabel or disable the default output from fsi in the log window"
               
@@ -127,21 +127,21 @@ type FsiRunStatus (grid:TabsAndLog, cmds:Commands) as this =
 
 type FsiOutputStatus (grid:TabsAndLog) as this = 
     inherit TextBlock()
-    let on = "FSI prints to log window"
-    let off = "FSI is quiet"
+    let onTxt = "FSI prints to log window"
+    let offTxt = "FSI is quiet"
     let isOff () = grid.Config.Settings.GetBool Settings.keyFsiQuiet false
     do     
         this.Padding <- textPadding
-        this.Text <- if isOff() then off else on
+        this.Text <- if isOff() then offTxt else onTxt
         this.ToolTip <- "Click here to enabel or disable the default output from fsi in the log window"
         this.MouseLeftButtonDown.Add ( fun a -> 
             if isOff() then 
-                this.Text <- on
+                this.Text <- onTxt
                 grid.Config.Settings.SetBool Settings.keyFsiQuiet false
                 grid.Config.Settings.Save ()
                 grid.Tabs.Fsi.Initalize()
             else
-                this.Text <- off
+                this.Text <- offTxt
                 grid.Config.Settings.SetBool Settings.keyFsiQuiet true
                 grid.Config.Settings.Save ()
                 grid.Tabs.Fsi.Initalize()
@@ -167,21 +167,27 @@ type SelectedTextStatus (grid:TabsAndLog) as this =
     inherit TextBlock()  
     let codeblock = Brushes.White   |> darker 70
 
-    let desc = "Highlighting is "
+    let onTxt ="ON"
+    let offTxt = "OFF"
+    let desc = "Highlighting is " // with trailing space
     let baseTxt = "Highlights and counts the occurences of the currently selected Text.\r\nMinimum two characters. No line breaks\r\nClick here to turn " 
     do             
         let isOn =  grid.Config.Settings.SelectAllOccurences 
         this.Padding <- textPadding
-        this.ToolTip <-  baseTxt + if isOn then "Off" else "On"         
-        this.Inlines.Add ( desc + if isOn then "On" else "Off")
+        this.ToolTip <-  baseTxt + if isOn then offTxt else onTxt        
+        this.Inlines.Add ( desc + if isOn then onTxt else offTxt)
 
-        SelectedTextTracer.Instance.HighlightChanged.Add ( fun (highTxt,k ) ->             
+        SelectedTextTracer.Instance.OnHighlightChanged.Add ( fun (highTxt,k ) ->             
             this.Inlines.Clear()
             this.Inlines.Add( sprintf "%d of " k)
             this.Inlines.Add( new Run (highTxt, FontFamily = Style.fontEditor, Background = SelectedTextHighlighter.ColorHighlight))      
             this.Inlines.Add( sprintf " (%d Chars) " highTxt.Length)
             )
-        
+        SelectedTextTracer.Instance.OnHighlightCleared.Add ( fun () ->  
+            this.Inlines.Clear()
+            this.Inlines.Add ( desc + if isOn then onTxt else offTxt)
+            )
+
         grid.Log.SelectedTextHighLighter.HighlightChanged.Add( fun (highTxt,k ) ->             
             this.Inlines.Clear()
             this.Inlines.Add( sprintf "%d of " k)
@@ -193,8 +199,8 @@ type SelectedTextStatus (grid:TabsAndLog) as this =
             let mutable isOnn =  grid.Config.Settings.SelectAllOccurences
             isOnn <- not isOnn // toggle            
             this.Inlines.Clear()
-            this.Inlines.Add(desc +    if isOnn then "On" else "Off")
-            this.ToolTip <-  baseTxt + if isOnn then "Off" else "On" 
+            this.Inlines.Add(desc +    if isOnn then onTxt else offTxt)
+            this.ToolTip <-  baseTxt + if isOnn then offTxt else onTxt
             grid.Config.Settings.SelectAllOccurences <- isOnn
             grid.Config.Settings.Save ()
             //SelectedTextTracer.IsActive <- isOnn
@@ -203,8 +209,8 @@ type SelectedTextStatus (grid:TabsAndLog) as this =
         grid.Tabs.OnTabChanged.Add ( fun _ -> 
             let isO =  grid.Config.Settings.SelectAllOccurences 
             this.Inlines.Clear()
-            this.Inlines.Add(desc +    if isO then "On" else "Off")
-            this.ToolTip <-  baseTxt + if isO then "Off" else "On" 
+            this.Inlines.Add(desc +    if isO then onTxt else offTxt)
+            this.ToolTip <-  baseTxt + if isO then offTxt else onTxt
             )
 
 type StatusBar (grid:TabsAndLog, cmds:Commands)  = 
