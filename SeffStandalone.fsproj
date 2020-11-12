@@ -41,12 +41,10 @@
     <!--<PackageReference Include="FSharp.DependencyManager.Nuget" Version="35.0.0" />-->
   </ItemGroup>
 
-
-  <ItemGroup>
-    <ProjectReference Include="..\AvalonEdit\ICSharpCode.AvalonEdit\ICSharpCode.AvalonEdit.csproj" />    <!-- take from https://github.com/goswinr/AvalonEdit -->
-  </ItemGroup>
-
   <ItemGroup>        
+    <Reference Include="ICSharpCode.AvalonEdit">      <!-- build from https://github.com/goswinr/AvalonEdit -->
+      <HintPath>..\AvalonEdit\ICSharpCode.AvalonEdit\bin\Release\net472\ICSharpCode.AvalonEdit.dll</HintPath> 
+    </Reference>        
     <Reference Include="WindowsBase" />
     <Reference Include="PresentationCore" />
     <Reference Include="PresentationFramework" />
