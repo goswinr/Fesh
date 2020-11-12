@@ -268,8 +268,18 @@
   </RuleSet >
 
   <RuleSet name="LoadDllSet">
+    
     <Span color="LoadDirectives" multiline="false">
-      <Begin >\#r\b|\#load\b|\#nowarn\b</Begin> <!-- # neededs to be escaped too \# ! it is a regex comment  -->
+      <Begin color="LoadDll">\#if\b </Begin> <!-- # neededs to be escaped too \# ! it is a regex comment  -->      
+      <RuleSet>
+        <Import ruleSet="CommentSet"/>        
+      </RuleSet >  
+    </Span>
+    <Rule color="LoadDll">\#endif\b</Rule>
+    <Rule color="LoadDll">\#else\b</Rule>
+    
+    <Span color="LoadDirectives" multiline="false">
+      <Begin >\#r\b|\#load\b|\#nowarn\b </Begin> <!-- # neededs to be escaped too \# ! it is a regex comment  -->
       <End>(?=(;;))</End> <!-- so that NonEval works -->
       <RuleSet>
         <Import ruleSet="CommentSet"/>
@@ -296,33 +306,8 @@
 
   <RuleSet name="StringSet">
 
-    <Span color="LoadDirectives" multiline="false">
-      <Begin >\#r\b|\#load\b</Begin> <!-- # nededs to be escaped to \# it is a comment  -->
-      <!-- <End color="LoadPath">"</End>  this sis acutally not needed-->
-      <RuleSet>
-        <Import ruleSet="CommentSet"/>
-        <Span color="LoadDll" multiline="false">
-          <Begin color="LoadDllPath">@?"[^\s\/][^"]+(\\|\/)|@?"(?=[^\s\/])</Begin>  
-          <End color="LoadDllPath">"</End> 
-        </Span> 
-
-      </RuleSet >  
-    </Span>
-
-    <Span color="LoadDirectives" multiline="false">
-      <Begin>\#I\b</Begin>    <!-- In case of #I highlight the folder parh with color="LoadDll" -->
-      <RuleSet>
-        <Import ruleSet="CommentSet"/>
-        <Span color="LoadPath" multiline="false">
-          <Begin color="LoadDllPath">@?"</Begin>  
-          <End color="LoadDllPath">"</End> 
-        </Span> 
-      </RuleSet >  
-    </Span>
-
-
     <Span color="Char" > 
-      <Begin>'\\|'.(?=')</Begin>  <!-- ' floowoed by \ or ' then any char and then anoter ' in look ahead-->
+      <Begin>'</Begin>  <!-- a ' followed by one or zero \ then any char and then anoter ' in look ahead-->
       <End>'</End>     
       <RuleSet>
         <Import ruleSet="StringEscapeSet"/>
@@ -414,8 +399,8 @@
 
     <!--Records instances-->
     <Span color="RecordNames" multiline="true">     
-       <!-- ( some space and an open bracket) OR (a semicolon followed by a closing bracket but without a opening bracket before) -->      
-      <Begin color="Punctuation">\s* \{ | ;(?=[^\{]+\}) </Begin> 
+       <!-- ( a non letter, some space and an open bracket) OR (a semicolon followed by a closing bracket but without a opening bracket before) -->      
+      <Begin color="Punctuation">\W\s* \{ | ;(?=[^\{]+\}) </Begin> 
       <End color="Punctuation">=|\}</End> 
       <RuleSet>
         <Import ruleSet="TypeAnnotationSet"/>   
