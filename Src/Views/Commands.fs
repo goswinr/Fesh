@@ -59,7 +59,8 @@ type Commands (grid:TabsAndLog)  =
     //Edit menu:                                                                                                                              
     member val Comment           = {name= "Comment"                   ;gesture= "Ctrl + K"       ;cmd= mkCmdSimple (fun _ -> Commenting.comment tabs.CurrAvaEdit)                ;tip= "Removes '//' at the beginning of current line, \r\nor from all line touched by current selection"   }
     member val UnComment         = {name= "Uncomment"                 ;gesture= "Ctrl + U"       ;cmd= mkCmdSimple (fun _ -> Commenting.unComment tabs.CurrAvaEdit)              ;tip= "Puts '//' at the beginning of current line, \r\nor all line touched by current selection"           }                                                                                     
-    member val ToggleComment     = {name= "Toggle Comment"            ;gesture= "Ctrl + T"       ;cmd= mkCmdSimple (fun _ -> Commenting.toggleComment tabs.CurrAvaEdit)          ;tip= "Swaps commented and not commented lines"           }                                                                                     
+    //member val ToggleComment     = {name= "Toggle Comment"            ;gesture= "Ctrl + T"       ;cmd= mkCmdSimple (fun _ -> Commenting.toggleComment tabs.CurrAvaEdit)          ;tip= "Swaps commented and not commented lines"           }                                                                                     
+    member val ToggleComment2    = {name= "Toggle Comment"            ;gesture= "Ctrl + /"       ;cmd= mkCmdSimple (fun _ -> Commenting.toggleComment tabs.CurrAvaEdit)          ;tip= "Swaps commented and not commented lines"           }                                                                                     
     
     //member val SwapLineUp        = {name= "Swap Line Up"              ;gesture= "Alt + Up"       ;cmd=AvalonEditCommands.SwapLinesUp                                           ;tip= "Swap the current line and the previous line."                                     }                                                                                     
     member val SwapLineUpCtrl    = {name= "Swap Line Up"              ;gesture= "Ctrl + Up"      ;cmd=AvalonEditCommands.SwapLinesUp                                             ;tip= "Swap the current line and the previous line.'Alt + Up' is also a shortcut for this." } // extra because Alt Down fails in Rhino                                                                                 
@@ -145,7 +146,8 @@ type Commands (grid:TabsAndLog)  =
              
                  this.Comment          
                  this.UnComment
-                 this.ToggleComment
+                 //this.ToggleComment
+                 this.ToggleComment2
                  this.ToggleBoolean
 
                  //this.SwapLineDownCtrl // set up in avolonedit
@@ -185,6 +187,7 @@ type Commands (grid:TabsAndLog)  =
                 |"Break" -> Key.Cancel
                 |"Up"    -> Key.Up
                 |"Down"  -> Key.Down
+                |"/"     -> Key.OemQuestion // the '/' key next to right shift
                 | x -> match Key.TryParse(x,true) with
                        |true, k -> k
                        | _ -> log.PrintAppErrorMsg "*AllInputBindings: failed to parse cmd Key '%A'" x; Key.NoName

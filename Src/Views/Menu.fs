@@ -112,7 +112,7 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, log:Log) =
                 sep()
                 menuItem cmds.Comment
                 menuItem cmds.UnComment
-                menuItem cmds.ToggleComment
+                menuItem cmds.ToggleComment2
                 sep()
                 menuItem cmds.UnDo     
                 menuItem cmds.ReDo     
@@ -191,7 +191,7 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, log:Log) =
                 sep()
                 menuItem cmds.Comment
                 menuItem cmds.UnComment
-                menuItem cmds.ToggleComment
+                menuItem cmds.ToggleComment2
                 sep()
                 menuItem cmds.RunTextTillCursor
                 menuItem cmds.RunTextFromCursor
