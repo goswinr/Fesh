@@ -10,7 +10,8 @@
   The named colors 'Comment' and 'String' are also used in SharpDevelop to detect if a line is inside a multiline string/comment 
   -->
  
-
+  <!-- use this extension to show colors in code:
+   https://marketplace.visualstudio.com/items?itemName=kamikillerto.vscode-colorize  -->
   <Color name="Comment"             foreground="#11AA11" />
   <Color name="DocComment"          foreground="#007700" />
   <Color name="TODO"                foreground="#EE0000"  fontWeight="bold"/>
@@ -41,7 +42,7 @@
   <Color name="TrueCol"             foreground="#008090" fontStyle="italic" fontWeight="bold" />
   <Color name="FalseCol"            foreground="#A70090" fontStyle="italic" fontWeight="bold" />
   <Color name="Semicolon"           foreground="#A0A0A0" />
-  <Color name="TypeAnnotation"      foreground="#00C0A0" />
+  <Color name="TypeAnnotation"      foreground="#00B090" />
   <Color name="RecordNames"         foreground="#808080" />
 
   <Color name="LetBinding"          foreground="#A030A0" />
@@ -349,12 +350,37 @@
     </Span>
 
   </RuleSet>
-  
+
+  <RuleSet name="TypeAnnotationSet">         
+    <Span color="TypeAnnotation" multiline="false" > 
+      <!-- to match one colon but not two: negative look behind for a colon, then the colon, then negative look ahead for a colon. 
+          then any char but not <>=); and then a look ahead for <
+           All that wraped in CDATA because xml readers fails on negative look behind tag  ?<!    -->
+      <Begin color="TypeAnnotation"><![CDATA[(?<!:):(?!:)[^<>=);]+(?=<)]]></Begin> 
+      <End color="Punctuation">&gt;|\}</End>  
+      <!-- <End color="Punctuation">[ \) , ; = ]</End>   -->
+       <RuleSet>
+        <Rule color="Punctuation">[,\[\]*&lt;&gt;]</Rule>
+      </RuleSet>
+    </Span>    
+
+    <Span color="TypeAnnotation" multiline="false" > 
+      <!-- to match one colon but not two: negative look behind for a colon, then the colon, then negative look ahead for a colon. 
+           All that wraped in CDATA because xml readers fails on negative look behind tag  ?<!    -->
+      <Begin color="Punctuation"><![CDATA[(?<!:):(?!:)]]></Begin> 
+      <End color="Punctuation">[ \) , ; = &lt; \} ]</End>
+       <RuleSet>
+        <Rule color="Punctuation">[ , \[ \] * &lt; &gt; ]</Rule>
+      </RuleSet>
+    </Span>
+  </RuleSet>
+
   <RuleSet> <!--the main set (must not have a name attribute)-->
     <Import ruleSet="LoadDllSet"/> 
     <Import ruleSet="CommentSet"/> 
     <Import ruleSet="StringSet"/>
     <Import ruleSet="KeywordSet"/>
+    <Import ruleSet="TypeAnnotationSet"/>
 
     <!-- a hex number | binary number | (number just starting with floating point | with optional inner floating point) and an optional exponent. https://regexr.com/52d6q -->
     <Rule color="NumberLiteral">\b0[xX][0-9a-fA-F_]+|\b0[bB][01_]+|((-\.|\.)[0-9_]+|(\b|-)[0-9_]+\.?[0-9_]*)([eE][+-]?[0-9]+)? </Rule>
@@ -371,7 +397,6 @@
       <End>justAnyStringThatNeverHappens</End>
     </Span> 
 
-
     <Span color="Attributes">
       <Begin>\[&lt;</Begin>
       <End>&gt;\]</End>
@@ -385,40 +410,18 @@
       (?=\s*\() # followed by (
     </Rule>
     -->   
-       
-    <Span color="TypeAnnotation" multiline="false" > 
-      <!-- to match one colon but not two: negative look behind for a colon, then the colon, then negative look ahead for a colon. 
-          then any char but not <>=); and then a look ahead for <
-           All that wraped in CDATA because xml readers fails on negative look behind tag  ?<!    -->
-      <Begin color="TypeAnnotation"><![CDATA[(?<!:):(?!:)[^<>=);]+(?=<)]]></Begin> 
-      <End color="Punctuation">&gt;</End>  
-      <!-- <End color="Punctuation">[ \) , ; = ]</End>   -->
-       <RuleSet>
-        <Rule color="Punctuation">[,\[\]*&lt;&gt;]</Rule>
-      </RuleSet>
-    </Span>    
-
-    <Span color="TypeAnnotation" multiline="false" > 
-      <!-- to match one colon but not two: negative look behind for a colon, then the colon, then negative look ahead for a colon. 
-           All that wraped in CDATA because xml readers fails on negative look behind tag  ?<!    -->
-      <Begin color="Punctuation"><![CDATA[(?<!:):(?!:)]]></Begin> 
-      <End color="Punctuation">[\),;=&lt;]</End>  
-      <!-- <End color="Punctuation">[ \) , ; = ]</End>   -->
-       <RuleSet>
-        <Rule color="Punctuation">[,\[\]*&lt;&gt;]</Rule>
-      </RuleSet>
-    </Span>
 
 
-    <!--names in Records-->
-    <Span color="RecordNames" multiline="false">
-      <!-- some space and an open bracket OR a semicolon folowed by a closing bracket but without a opening bracket before -->
+    <!--Records instances-->
+    <Span color="RecordNames" multiline="true">     
+       <!-- ( some space and an open bracket) OR (a semicolon followed by a closing bracket but without a opening bracket before) -->      
       <Begin color="Punctuation">\s* \{ | ;(?=[^\{]+\}) </Begin> 
-      <End color="Punctuation">=|:</End> 
+      <End color="Punctuation">=|\}</End> 
+      <RuleSet>
+        <Import ruleSet="TypeAnnotationSet"/>   
+      </RuleSet>
     </Span> 
-
-   
-
+  
     <Span color="LetMutable"> 
       <Begin color= "Keywords" >\blet\s*mutable\s*</Begin> 
       <End color="Punctuation" >[=\s\(]</End> 
@@ -429,9 +432,14 @@
       <End color="Punctuation" >[=\s\(]</End> 
     </Span>
 
-    <!-- <Span color="LetBinding">  -->
+   <Span color="TypeAnnotation"> 
+      <Begin color= "Keywords" >\btype\s*</Begin> <!-- type declarations -->
+      <End color="Punctuation" >[=\s\(]</End> 
+    </Span>
+
+   
     <Span color="LetBinding"> 
-      <Begin color= "Keywords" >\blet\s*</Begin> 
+      <Begin color= "Keywords" >\blet\s*</Begin> <!-- let bindings -->
       <End color="Punctuation" >[=\s\(]</End> 
     </Span>
 
