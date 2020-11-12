@@ -10,8 +10,8 @@
 
     <RootNamespace>Seff</RootNamespace>
     <AssemblyName>Seff</AssemblyName>
-    <ApplicationIcon>Media\LogoCursorTr.ico</ApplicationIcon>
-    <Win32Resource>Media\LogoCursorTr.res</Win32Resource>      <!-- Win32Resource for Application Icon in explorer-->    
+    <ApplicationIcon>Media/LogoCursorTr.ico</ApplicationIcon>
+    <Win32Resource>Media/LogoCursorTr.res</Win32Resource>      <!-- Win32Resource for Application Icon in explorer-->    
     
     <Platforms>x64;x86</Platforms>
     <Configurations>Debug;Release</Configurations> 
@@ -19,31 +19,32 @@
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <OutputPath>binStandalone\Debug\x64\</OutputPath>
+    <OutputPath>binStandalone/Debug/x64/</OutputPath>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x86'">
-    <OutputPath>binStandalone\Debug\x86</OutputPath>
+    <OutputPath>binStandalone/Debug/x86</OutputPath>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <OutputPath>binStandalone\Release\x64\</OutputPath>
+    <OutputPath>binStandalone/Release/x64/</OutputPath>
   </PropertyGroup> 
   
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x86'">
-    <OutputPath>binStandalone\Release\x86\</OutputPath>
+    <OutputPath>binStandalone/Release/x86/</OutputPath>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Update="FSharp.Core" Version="5.0.0" GeneratePathProperty="true" />    
+    <PackageReference Update="FSharp.Core" Version="5.0.0" GeneratePathProperty="true" />  
+    <!-- use 33.0.1 because EPPlus also fails with 35.0.0 (like Rhino) ?? try x86 version !-->
     <PackageReference Include="FSharp.Compiler.Service" Version="37.0.0" />    
-    <PackageReference Include="FSharp.DependencyManager.Nuget" Version="37.0.0" /><!-- use 33.0.1 because EPPlus also fails with 35.0.0 (like Rhino) ?? try x86 version !-->
+    <!--<PackageReference Include="FSharp.DependencyManager.Nuget" Version="37.0.0" />-->
     <!--<PackageReference Include="FSharp.DependencyManager.Nuget" Version="35.0.0" />-->
   </ItemGroup>
 
   <ItemGroup>        
     <Reference Include="ICSharpCode.AvalonEdit">      <!-- build from https://github.com/goswinr/AvalonEdit -->
-      <HintPath>..\AvalonEdit\ICSharpCode.AvalonEdit\bin\Release\net472\ICSharpCode.AvalonEdit.dll</HintPath> 
+      <HintPath>../AvalonEdit/ICSharpCode.AvalonEdit/bin/Release/net472/ICSharpCode.AvalonEdit.dll</HintPath> 
     </Reference>        
     <Reference Include="WindowsBase" />
     <Reference Include="PresentationCore" />
@@ -53,60 +54,60 @@
 
   <ItemGroup>
 
-    <EmbeddedResource Include="Media\LogoCursorTr.res" /> <!--  for Application Icon in explorer-->   
-    <Resource Include="Media\LogoCursorTr.ico" />    
-    <Resource Include="Media\FiraCode-Regular.ttf" />  
+    <EmbeddedResource Include="Media/LogoCursorTr.res" /> <!--  for Application Icon in explorer-->   
+    <Resource Include="Media/LogoCursorTr.ico" />    
+    <Resource Include="Media/FiraCode-Regular.ttf" />  
     <None Include="FSharpSynatxHighlighterExtended.xshd">    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>    </None>
 
-    <Compile Include="Src\Util.fs" />
-    <Compile Include="Src\Timer.fs" />
-    <Compile Include="Src\Style.fs" />
-    <Compile Include="Src\Model.fs" />
-    <Compile Include="Src\Sync.fs" />
+    <Compile Include="Src/Util.fs" />
+    <Compile Include="Src/Timer.fs" />
+    <Compile Include="Src/Style.fs" />
+    <Compile Include="Src/Model.fs" />
+    <Compile Include="Src/Sync.fs" />
     
-    <Compile Include="Src\Config\SaveWriter.fs" />
-    <Compile Include="Src\Config\Hosting.fs" />
-    <Compile Include="Src\Config\Settings.fs" />
-    <Compile Include="Src\Config\DefaultCode.fs" />
-    <Compile Include="Src\Config\FsiArugments.fs" />
-    <Compile Include="Src\Config\OpenTabs.fs" />
-    <Compile Include="Src\Config\RecentlyUsedFiles.fs" />
-    <Compile Include="Src\Config\AutoCompleteStatistic.fs" />
-    <Compile Include="Src\Config\AssemblyReferenceStatistic.fs" />
-    <Compile Include="Src\Config\FoldingStatus.fs" />
-    <Compile Include="Src\Config\Config.fs" />
+    <Compile Include="Src/Config/SaveWriter.fs" />
+    <Compile Include="Src/Config/Hosting.fs" />
+    <Compile Include="Src/Config/Settings.fs" />
+    <Compile Include="Src/Config/DefaultCode.fs" />
+    <Compile Include="Src/Config/FsiArugments.fs" />
+    <Compile Include="Src/Config/OpenTabs.fs" />
+    <Compile Include="Src/Config/RecentlyUsedFiles.fs" />
+    <Compile Include="Src/Config/AutoCompleteStatistic.fs" />
+    <Compile Include="Src/Config/AssemblyReferenceStatistic.fs" />
+    <Compile Include="Src/Config/FoldingStatus.fs" />
+    <Compile Include="Src/Config/Config.fs" />
     
-    <Compile Include="Src\Fsi.fs" />
+    <Compile Include="Src/Fsi.fs" />
     
-    <Compile Include="Src\Editor\Commenting.fs" />
-    <Compile Include="Src\Editor\CursorBehaviour.fs" />
-    <Compile Include="Src\Editor\DocString.fs" />
-    <Compile Include="Src\Editor\SyntaxHighlighting.fs" />
-    <Compile Include="Src\Editor\ErrorHighlighter.fs" />
-    <Compile Include="Src\Editor\Checker.fs" />
-    <Compile Include="Src\Editor\TypeInfo.fs" />
-    <Compile Include="Src\Editor\CodeCompletion.fs" />
-    <Compile Include="Src\Editor\Folding.fs" />
-    <Compile Include="Src\Editor\SelectedTextTracer.fs" />
-    <Compile Include="Src\Editor\BracketColorizer.fs" />
-    <Compile Include="Src\Editor\ColumnRulers.fs" />
-    <Compile Include="Src\Editor\Editor.fs" />
-    <Compile Include="Src\Editor\UNUSEDNuget.fs" />
+    <Compile Include="Src/Editor/Commenting.fs" />
+    <Compile Include="Src/Editor/CursorBehaviour.fs" />
+    <Compile Include="Src/Editor/DocString.fs" />
+    <Compile Include="Src/Editor/SyntaxHighlighting.fs" />
+    <Compile Include="Src/Editor/ErrorHighlighter.fs" />
+    <Compile Include="Src/Editor/Checker.fs" />
+    <Compile Include="Src/Editor/TypeInfo.fs" />
+    <Compile Include="Src/Editor/CodeCompletion.fs" />
+    <Compile Include="Src/Editor/Folding.fs" />
+    <Compile Include="Src/Editor/SelectedTextTracer.fs" />
+    <Compile Include="Src/Editor/BracketColorizer.fs" />
+    <Compile Include="Src/Editor/ColumnRulers.fs" />
+    <Compile Include="Src/Editor/Editor.fs" />
+    <Compile Include="Src/Editor/UNUSEDNuget.fs" />
     
-    <Compile Include="Src\Views\Views.Util.fs" />
-    <Compile Include="Src\Views\Log.fs" />
-    <Compile Include="Src\Views\Window.fs" />
-    <Compile Include="Src\Views\Tab.fs" />
-    <Compile Include="Src\Views\Tabs.fs" />
-    <Compile Include="Src\Views\TabsAndLog.fs" />
-    <Compile Include="Src\Views\Fonts.fs" />
-    <Compile Include="Src\Views\Commands.fs" />
-    <Compile Include="Src\Views\StatusBar.fs" />
-    <Compile Include="Src\Views\Menu.fs" />
-    <Compile Include="Src\Views\Seff.fs" />
+    <Compile Include="Src/Views/Views.Util.fs" />
+    <Compile Include="Src/Views/Log.fs" />
+    <Compile Include="Src/Views/Window.fs" />
+    <Compile Include="Src/Views/Tab.fs" />
+    <Compile Include="Src/Views/Tabs.fs" />
+    <Compile Include="Src/Views/TabsAndLog.fs" />
+    <Compile Include="Src/Views/Fonts.fs" />
+    <Compile Include="Src/Views/Commands.fs" />
+    <Compile Include="Src/Views/StatusBar.fs" />
+    <Compile Include="Src/Views/Menu.fs" />
+    <Compile Include="Src/Views/Seff.fs" />
     
-    <Compile Include="Src\Initialize.fs" />    
-    <Compile Include="Src\App.fs" />
+    <Compile Include="Src/Initialize.fs" />    
+    <Compile Include="Src/App.fs" />
 
   </ItemGroup>
 
@@ -114,7 +115,7 @@
   <Target Name="CopyFilesOverAfterBuild" BeforeTargets="AfterBuild">
     <!-- <Message Text="Copied FSharp.Core.xml file from $(PkgFSharp_Core) to output dir ." Importance="high"/> -->
     <!-- FSharp.Core.xml is missing otherwise ? to have it as intellisense provider-->
-    <Copy SourceFiles="$(PkgFSharp_Core)\lib\netstandard2.0\FSharp.Core.xml" DestinationFiles="$(TargetDir)FSharp.Core.xml" ContinueOnError="false" />  
+    <Copy SourceFiles="$(PkgFSharp_Core)/lib/netstandard2.0/FSharp.Core.xml" DestinationFiles="$(TargetDir)FSharp.Core.xml" ContinueOnError="false" />  
   </Target>
 
 </Project>

@@ -20,18 +20,18 @@
     <Description>A hostable fsharp scripting editor </Description>
     <Copyright>Copyright: Goswin Rothenthal 2020 </Copyright>
     
-    <ApplicationIcon>Media\LogoCursorTr.ico</ApplicationIcon>
-    <Win32Resource>Media\LogoCursorTr.res</Win32Resource><!--  for Application Icon in explorer-->   
+    <ApplicationIcon>Media/LogoCursorTr.ico</ApplicationIcon>
+    <Win32Resource>Media/LogoCursorTr.res</Win32Resource><!--  for Application Icon in explorer-->   
     <Configurations>Debug;Release</Configurations> 
     <DefineConstants>FCS33</DefineConstants>  <!--FSharp.Compiler.Service 33.0.1--> 
   </PropertyGroup> 
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-    <OutputPath>binHosting\Debug\</OutputPath>
+    <OutputPath>binHosting/Debug/</OutputPath>
   </PropertyGroup> 
   
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-    <OutputPath>binHosting\Release\</OutputPath>
+    <OutputPath>binHosting/Release/</OutputPath>
   </PropertyGroup>
 
 
@@ -42,12 +42,10 @@
     <PackageReference Include="FSharp.Compiler.Service" Version="33.0.1" /> 
   </ItemGroup>
 
-
   <ItemGroup>
-    <ProjectReference Include="..\AvalonEdit\ICSharpCode.AvalonEdit\ICSharpCode.AvalonEdit.csproj" />    <!-- take from https://github.com/goswinr/AvalonEdit -->
-  </ItemGroup>
-
-  <ItemGroup>        
+    <Reference Include="ICSharpCode.AvalonEdit">      <!-- build from https://github.com/goswinr/AvalonEdit -->
+      <HintPath>../AvalonEdit/ICSharpCode.AvalonEdit/bin/Release/net472/ICSharpCode.AvalonEdit.dll</HintPath> 
+    </Reference> 
     <Reference Include="WindowsBase" />
     <Reference Include="PresentationCore" />
     <Reference Include="PresentationFramework" />
@@ -56,60 +54,60 @@
 
   <ItemGroup>
 
-    <EmbeddedResource Include="Media\LogoCursorTr.res" /> <!--  for Application Icon in explorer-->   
-    <Resource Include="Media\LogoCursorTr.ico" />    
-    <Resource Include="Media\FiraCode-Regular.ttf" />  
+    <EmbeddedResource Include="Media/LogoCursorTr.res" /> <!--  for Application Icon in explorer-->   
+    <Resource Include="Media/LogoCursorTr.ico" />    
+    <Resource Include="Media/FiraCode-Regular.ttf" />  
     <None Include="FSharpSynatxHighlighterExtended.xshd">    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>    </None>
 
-    <Compile Include="Src\Util.fs" />
-    <Compile Include="Src\Timer.fs" />
-    <Compile Include="Src\Style.fs" />
-    <Compile Include="Src\Model.fs" />
-    <Compile Include="Src\Sync.fs" />
+    <Compile Include="Src/Util.fs" />
+    <Compile Include="Src/Timer.fs" />
+    <Compile Include="Src/Style.fs" />
+    <Compile Include="Src/Model.fs" />
+    <Compile Include="Src/Sync.fs" />
 
-    <Compile Include="Src\Config\SaveWriter.fs" />
-    <Compile Include="Src\Config\Hosting.fs" />
-    <Compile Include="Src\Config\Settings.fs" />
-    <Compile Include="Src\Config\DefaultCode.fs" />
-    <Compile Include="Src\Config\FsiArugments.fs" />
-    <Compile Include="Src\Config\OpenTabs.fs" />
-    <Compile Include="Src\Config\RecentlyUsedFiles.fs" />
-    <Compile Include="Src\Config\AutoCompleteStatistic.fs" />
-    <Compile Include="Src\Config\AssemblyReferenceStatistic.fs" />
-    <Compile Include="Src\Config\FoldingStatus.fs" />
-    <Compile Include="Src\Config\Config.fs" />
+    <Compile Include="Src/Config/SaveWriter.fs" />
+    <Compile Include="Src/Config/Hosting.fs" />
+    <Compile Include="Src/Config/Settings.fs" />
+    <Compile Include="Src/Config/DefaultCode.fs" />
+    <Compile Include="Src/Config/FsiArugments.fs" />
+    <Compile Include="Src/Config/OpenTabs.fs" />
+    <Compile Include="Src/Config/RecentlyUsedFiles.fs" />
+    <Compile Include="Src/Config/AutoCompleteStatistic.fs" />
+    <Compile Include="Src/Config/AssemblyReferenceStatistic.fs" />
+    <Compile Include="Src/Config/FoldingStatus.fs" />
+    <Compile Include="Src/Config/Config.fs" />
 
-    <Compile Include="Src\Fsi.fs" />
+    <Compile Include="Src/Fsi.fs" />
     
-    <Compile Include="Src\Editor\Commenting.fs" />
-    <Compile Include="Src\Editor\CursorBehaviour.fs" />
-    <Compile Include="Src\Editor\DocString.fs" />
-    <Compile Include="Src\Editor\SyntaxHighlighting.fs" />
-    <Compile Include="Src\Editor\ErrorHighlighter.fs" />
-    <Compile Include="Src\Editor\Checker.fs" />
-    <Compile Include="Src\Editor\TypeInfo.fs" />
-    <Compile Include="Src\Editor\CodeCompletion.fs" />
-    <Compile Include="Src\Editor\Folding.fs" />
-    <Compile Include="Src\Editor\SelectedTextTracer.fs" />
-    <Compile Include="Src\Editor\BracketColorizer.fs" />
-    <Compile Include="Src\Editor\ColumnRulers.fs" />
-    <Compile Include="Src\Editor\Editor.fs" />
-    <Compile Include="Src\Editor\UNUSEDNuget.fs" />
+    <Compile Include="Src/Editor/Commenting.fs" />
+    <Compile Include="Src/Editor/CursorBehaviour.fs" />
+    <Compile Include="Src/Editor/DocString.fs" />
+    <Compile Include="Src/Editor/SyntaxHighlighting.fs" />
+    <Compile Include="Src/Editor/ErrorHighlighter.fs" />
+    <Compile Include="Src/Editor/Checker.fs" />
+    <Compile Include="Src/Editor/TypeInfo.fs" />
+    <Compile Include="Src/Editor/CodeCompletion.fs" />
+    <Compile Include="Src/Editor/Folding.fs" />
+    <Compile Include="Src/Editor/SelectedTextTracer.fs" />
+    <Compile Include="Src/Editor/BracketColorizer.fs" />
+    <Compile Include="Src/Editor/ColumnRulers.fs" />
+    <Compile Include="Src/Editor/Editor.fs" />
+    <Compile Include="Src/Editor/UNUSEDNuget.fs" />
 
-    <Compile Include="Src\Views\Views.Util.fs" />
-    <Compile Include="Src\Views\Log.fs" />
-    <Compile Include="Src\Views\Window.fs" />
-    <Compile Include="Src\Views\Tab.fs" />
-    <Compile Include="Src\Views\Tabs.fs" />
-    <Compile Include="Src\Views\TabsAndLog.fs" />
-    <Compile Include="Src\Views\Fonts.fs" />
-    <Compile Include="Src\Views\Commands.fs" />
-    <Compile Include="Src\Views\StatusBar.fs" />
-    <Compile Include="Src\Views\Menu.fs" />
-    <Compile Include="Src\Views\Seff.fs" />
+    <Compile Include="Src/Views/Views.Util.fs" />
+    <Compile Include="Src/Views/Log.fs" />
+    <Compile Include="Src/Views/Window.fs" />
+    <Compile Include="Src/Views/Tab.fs" />
+    <Compile Include="Src/Views/Tabs.fs" />
+    <Compile Include="Src/Views/TabsAndLog.fs" />
+    <Compile Include="Src/Views/Fonts.fs" />
+    <Compile Include="Src/Views/Commands.fs" />
+    <Compile Include="Src/Views/StatusBar.fs" />
+    <Compile Include="Src/Views/Menu.fs" />
+    <Compile Include="Src/Views/Seff.fs" />
 
-    <Compile Include="Src\Initialize.fs" />    
-    <Compile Include="Src\App.fs" />
+    <Compile Include="Src/Initialize.fs" />    
+    <Compile Include="Src/App.fs" />
 
   </ItemGroup>
 
