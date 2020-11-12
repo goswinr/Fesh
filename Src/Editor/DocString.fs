@@ -255,7 +255,7 @@ module DocString =
     // --------------------------------------------------------------------------------------
     let  buildFormatComment (cmt:FSharpXmlDoc) (isEnhanced : bool) (typeDoc: string option) =
         match cmt with
-        | FSharpXmlDoc.Text s -> s
+        | FSharpXmlDoc.Text (s) -> s //Changes in FCS 38.0.0
         | FSharpXmlDoc.XmlDocFileSignature(dllFile, memberName) ->
             match getXmlDoc dllFile with
             | Some doc ->

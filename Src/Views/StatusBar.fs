@@ -176,7 +176,8 @@ type SelectedTextStatus (grid:TabsAndLog) as this =
         this.Padding <- textPadding
         this.ToolTip <-  baseTxt + if isOn then offTxt else onTxt        
         this.Inlines.Add ( desc + if isOn then onTxt else offTxt)
-
+        
+        //Editor events
         SelectedTextTracer.Instance.OnHighlightChanged.Add ( fun (highTxt,k ) ->             
             this.Inlines.Clear()
             this.Inlines.Add( sprintf "%d of " k)
@@ -187,13 +188,20 @@ type SelectedTextStatus (grid:TabsAndLog) as this =
             this.Inlines.Clear()
             this.Inlines.Add ( desc + if isOn then onTxt else offTxt)
             )
-
-        grid.Log.SelectedTextHighLighter.HighlightChanged.Add( fun (highTxt,k ) ->             
+        
+        //Log events 
+        grid.Log.SelectedTextHighLighter.OnHighlightChanged.Add( fun (highTxt,k ) ->             
             this.Inlines.Clear()
             this.Inlines.Add( sprintf "%d of " k)
             this.Inlines.Add( new Run (highTxt, FontFamily = Style.fontEditor, Background = grid.Log.SelectedTextHighLighter.ColorHighlight))      
             this.Inlines.Add( sprintf " (%d Chars) in Log" highTxt.Length)
             ) 
+        grid.Log.SelectedTextHighLighter.OnHighlightCleared.Add ( fun () ->  
+            this.Inlines.Clear()
+            this.Inlines.Add ( desc + if isOn then onTxt else offTxt)
+            )
+
+
         
         this.MouseDown.Add ( fun _ -> 
             let mutable isOnn =  grid.Config.Settings.SelectAllOccurences

@@ -59,13 +59,12 @@ type SelectedTextHighlighter (ed:TextEditor) =
 /// Highlight-all-occurrences-of-selected-text in Text View and Statusbar
 type SelectedTextTracer () =   
     
+    // events for status bar
     let highlightClearedEv  = new Event<unit>()
     let highlightChangedEv  = new Event<string*int>()
-
     [<CLIEvent>]
     member this.OnHighlightCleared = highlightClearedEv.Publish
     member this.TriggerOnHighlightCleared() = highlightClearedEv.Trigger()  // will update status bar  
-
     [<CLIEvent>]
     member this.OnHighlightChanged = highlightChangedEv.Publish
     member this.ChangeInfoText(newInfoText,i) = highlightChangedEv.Trigger(newInfoText,i)  // will update status bar             

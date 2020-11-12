@@ -148,10 +148,14 @@ type LogSelectedTextHighlighter (lg:AvalonEdit.TextEditor) =
     let mutable highTxt = null
     let mutable curSelStart = -1
 
-    
+    // events for status bar
+    let highlightClearedEv  = new Event<unit>()
     let highlightChangedEv  = new Event<string*int>()
     [<CLIEvent>]
-    member this.HighlightChanged = highlightChangedEv.Publish
+    member this.OnHighlightCleared = highlightClearedEv.Publish
+    [<CLIEvent>]
+    member this.OnHighlightChanged = highlightChangedEv.Publish
+   
 
     member this.ColorHighlight = colorHighlight
     
@@ -217,6 +221,7 @@ type LogSelectedTextHighlighter (lg:AvalonEdit.TextEditor) =
         else
             if notNull highTxt then // to ony redraw if it was not null before
                 highTxt <- null
+                highlightClearedEv.Trigger()
                 lg.TextArea.TextView.Redraw() // to clear highlight
    
 
