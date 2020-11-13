@@ -174,7 +174,7 @@ type Foldings(ed:TextEditor,checker:Checker,config:Config, edId:Guid) =
                                     let folded = if  i < vs.Length then  vs.[i]  else false          
                                     let fs = manager.CreateFolding(f.foldStartOff, f.foldEndOff)
                                     fs.IsFolded <- folded
-                                    fs.Title <- sprintf " ... %d Lines " f.linesInFold                                        
+                                    fs.Title <- sprintf " ... %d folded lines " f.linesInFold                                        
                                 isIntialLoad <- false
 
                             else
@@ -182,7 +182,7 @@ type Foldings(ed:TextEditor,checker:Checker,config:Config, edId:Guid) =
                                 for f in foldings do                                 
                                     //config.Log.PrintDebugMsg "Foldings from %d to %d  that is  %d lines" f.foldStartOff  f.foldEndOff f.linesInFold
                                     let fo = new NewFolding(f.foldStartOff, f.foldEndOff)                                
-                                    fo.Name <- sprintf " ... %d Lines " f.linesInFold
+                                    fo.Name <- sprintf " ... %d folded lines " f.linesInFold
                                     folds.Add(fo) //if NewFolding type is created async a waiting symbol apears on top of it 
                             
                                 let firstErrorOffset = -1 //The first position of a parse error. Existing foldings starting after this offset will be kept even if they don't appear in newFoldings. Use -1 for this parameter if there were no parse errors) 
