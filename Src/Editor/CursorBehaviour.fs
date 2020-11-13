@@ -32,13 +32,19 @@ module CursorBehaviour  =
 
         // add indent after do, for , ->, =
         |Input.Key.Return ->
-            let line = avaEdit.Document.GetText(avaEdit.Document.GetLineByOffset(avaEdit.CaretOffset)) // = get current line
-            if     line.EndsWith " do"
-                || line.EndsWith " then"
-                || line.EndsWith " else"
-                || line.EndsWith "="
-                || line.EndsWith "->" then                    
-                    let st = spacesAtStart line
+            let caret = avaEdit.CaretOffset
+            let line = avaEdit.Document.GetLineByOffset(caret)            
+            let txt = avaEdit.Document.GetText(line) // = get current line
+            let caretPosInLine = caret - line.Offset
+            let isCaretAtEnd = String.IsNullOrWhiteSpace (txt.[caretPosInLine .. line.EndOffset]) // ensure caret is at end off line !
+            if 
+                isCaretAtEnd
+                && txt.EndsWith " do"
+                || txt.EndsWith " then"
+                || txt.EndsWith " else"
+                || txt.EndsWith "="
+                || txt.EndsWith "->" then                    
+                    let st = spacesAtStart txt
                     let rem = st % avaEdit.Options.IndentationSize
                     let ind = 
                         if rem  = 0 then  st + avaEdit.Options.IndentationSize // enure new indent is a multiple of avaEdit.Options.IndentationSize
