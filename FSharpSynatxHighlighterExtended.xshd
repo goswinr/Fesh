@@ -33,7 +33,7 @@
   <Color name="Keywords"            foreground="#0000DD" /> <!--fontWeight="bold" -->
   <Color name="ReservedKeywords"    foreground="#7777FF" /> <!--fontWeight="bold" -->
   <Color name="MethodCall"          foreground="#0000AA" /> <!-- fontWeight="bold" fontStyle="italic"-->
-  <Color name="NumberLiteral"       foreground="#880088" />
+  <Color name="NumberLiteral"       foreground="#990077" />
   <Color name="FailPath"            foreground="#888888" />
   <Color name="FailString"          foreground="#D0A040" />  
   <Color name="Exception"           foreground="#C06030" />
@@ -45,10 +45,10 @@
   <Color name="TypeAnnotation"      foreground="#00B090" />
   <Color name="RecordNames"         foreground="#808080" />
 
-  <Color name="LetBinding"          foreground="#A030A0" />
+  <Color name="LetBinding"          foreground="#7030A0" />
   <Color name="LetRec"              foreground="#B03060" />
   <Color name="LetMutable"          foreground="#D08030" />
-  <Color name="Let"                 foreground="#7700CC" />  
+  <!-- <Color name="Let"                 foreground="#7700CC" />   -->
   
   <Color name="DocCommentStart"     foreground="#AACCAA" /> <!-- taken from https://github.com/icsharpcode/AvalonEdit/blob/master/ICSharpCode.AvalonEdit/Highlighting/Resources/XmlDoc.xshd-->
   <Color name="XmlString"           foreground="#669966" />
@@ -425,7 +425,7 @@
    
     <Span color="LetBinding"> 
       <Begin color= "Keywords" >\blet\s*</Begin> <!-- let bindings -->
-      <End color="Punctuation" >[=\s\(]</End> 
+      <End color="Punctuation" >[ = \s \( ]</End> 
     </Span>
 
     <Span color="FailString">   <!-- multiline="true"   -->
