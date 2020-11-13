@@ -11,9 +11,7 @@ open System.Windows.Media
 
 module CursorBehaviour  =
     
-    
-    
-    let previewKeyDown (avaEdit:TextEditor, e: Input.KeyEventArgs) =  
+    let previewKeyDown (avaEdit:TextEditor,log:ISeffLog, e: Input.KeyEventArgs) =  
 
         match e.Key with
         /// Removes 4 charactes (Options.IndentationSize) on pressing backspace key instead of one 
@@ -37,21 +35,27 @@ module CursorBehaviour  =
             let txt = avaEdit.Document.GetText(line) // = get current line
             let caretPosInLine = caret - line.Offset
             let isCaretAtEnd = String.IsNullOrWhiteSpace (txt.[caretPosInLine .. line.EndOffset]) // ensure caret is at end off line !
-            if 
-                isCaretAtEnd
-                && txt.EndsWith " do"
-                || txt.EndsWith " then"
-                || txt.EndsWith " else"
-                || txt.EndsWith "="
-                || txt.EndsWith "->" then                    
-                    let st = spacesAtStart txt
-                    let rem = st % avaEdit.Options.IndentationSize
-                    let ind = 
-                        if rem  = 0 then  st + avaEdit.Options.IndentationSize // enure new indent is a multiple of avaEdit.Options.IndentationSize
-                        elif rem = 1 then st + avaEdit.Options.IndentationSize + avaEdit.Options.IndentationSize - 1 // to indent always at leat 2 chars
-                        else              st + avaEdit.Options.IndentationSize - rem
-                    avaEdit.Document.Insert(avaEdit.CaretOffset, Environment.NewLine + String(' ',ind))
-                    e.Handled <- true // to not actually add anothe new line
+            //log.PrintDebugMsg "line:%s" txt
+            //log.PrintDebugMsg "caretPosInLine:%d isCaretAtEnd:%b" caretPosInLine isCaretAtEnd
+            let trimmed = txt.TrimEnd()
+            if isCaretAtEnd then 
+                if     trimmed.EndsWith " do"
+                    || trimmed.EndsWith " then"
+                    || trimmed.EndsWith " else"
+                    || trimmed.EndsWith "="
+                    || trimmed.EndsWith "("
+                    || trimmed.EndsWith "["
+                    || trimmed.EndsWith "{"
+                    || trimmed.EndsWith "[|"
+                    || trimmed.EndsWith "->" then                    
+                        let st = spacesAtStart trimmed
+                        let rem = st % avaEdit.Options.IndentationSize
+                        let ind = 
+                            if rem  = 0 then  st + avaEdit.Options.IndentationSize // enure new indent is a multiple of avaEdit.Options.IndentationSize
+                            elif rem = 1 then st + avaEdit.Options.IndentationSize + avaEdit.Options.IndentationSize - 1 // to indent always at leat 2 chars
+                            else              st + avaEdit.Options.IndentationSize - rem
+                        avaEdit.Document.Insert(avaEdit.CaretOffset, Environment.NewLine + String(' ',ind))
+                        e.Handled <- true // to not actually add anothe new line
 
         | _ -> ()
 
