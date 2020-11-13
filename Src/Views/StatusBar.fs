@@ -41,7 +41,8 @@ type CheckerStatus (grid:TabsAndLog) as this =
         //log.PrintDebugMsg "Setting errors for %A %A " iEditor.FileInfo iEditor.CheckRes.Value.checkRes.Errors.Length 
         match iEditor.FileCheckState with
         | Done res ->                                            
-                let es = res.checkRes.Errors
+                let es = res.checkRes.Errors 
+                es|> Array.sortInPlaceBy (fun e -> e.StartLineAlternate)
                 if es.Length = 0 then 
                     this.Text <- "No compiler errors"
                     this.Background <- okColor

@@ -92,6 +92,7 @@ type ErrorRenderer (textEditor:TextEditor, log:ISeffLog) =
     member this.Transform(context:ITextRunConstructionContext , elements:IList<VisualLineElement>)=() // needed ? // for IVisualLineTransformer
         
     member this.AddSegments( res: CheckResults )=        
+        res.checkRes.Errors|> Array.sortInPlaceBy (fun e -> e.StartLineAlternate)
         for e in res.checkRes.Errors |> Seq.truncate 9 do 
             // TODO Only highligth the first 9 Errors, Otherwise UI becomes unresponsive at 100 or more errors ( eg when pasting bad text)
             // TODO Test again        
