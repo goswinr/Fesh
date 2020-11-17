@@ -243,7 +243,7 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
                     if compls.JustClosed then                        textChanged (CompletionWinClosed)//check to avoid retrigger of window on single char completions
                     else                                                         
                         let c = txt.[0]                                          
-                        if Char.IsLetter(c) || c='_' || c='`' then   textChanged (EnteredOneIdentifierChar  ) //complete
+                        if Char.IsLetter(c) || c='_' || c='`' || c='#'  then   textChanged (EnteredOneIdentifierChar  ) //complete (# for #if directives)
                         else                                         textChanged (EnteredOneNonIdentifierChar)//check
                                                                                  
                 | _  ->                                              textChanged (OtherChange               )//several charcters(paste) ,delete or completion window insert         
