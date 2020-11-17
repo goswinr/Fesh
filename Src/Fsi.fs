@@ -108,7 +108,7 @@ type Fsi private (config:Config) =
                     
                     let allArgs = 
                          // "--shadowcopyreferences" is ignored https://github.com/fsharp/FSharp.Compiler.Service/issues/292
-                        if config.Settings.GetBool Settings.keyFsiQuiet false then Array.append  config.FsiArugments.Get [| "--quiet"|] 
+                        if config.Settings.GetBool Settings.keyFsiQuiet false then Array.append  config.FsiArugments.Get [| "--quiet"|] // TODO or fsi.ShowDeclarationValues <- false ??
                         else                                                                     config.FsiArugments.Get
                         
                     let settings = Settings.fsi

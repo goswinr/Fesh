@@ -386,7 +386,7 @@ type Log private () =
     member this.PrintCustom s = Printf.kprintf (fun s -> printOrBuffer (s, true, LogColors.lastCustom ))  s       
     
     /// Change custom color to a new SolidColorBrush (e.g. from System.Windows.Media.Brushes)
-    /// This wil also freeze the Brush.
+    /// This will also freeze the Brush.
     /// Then print 
     member this.PrintCustomBrush (br:SolidColorBrush) msg = 
         LogColors.lastCustom  <- br |> freeze
@@ -416,7 +416,7 @@ type Log private () =
     member this.Print_Custom msg = Printf.kprintf (fun s -> printOrBuffer (s, false, LogColors.lastCustom ))  msg
             
     /// Change custom color to a new SolidColorBrush (e.g. from System.Windows.Media.Brushes)
-    /// This wil also freeze the Brush.
+    /// This will also freeze the Brush.
     /// Then print without adding a new line at the end
     member this.Print_CustomBrush (br:SolidColorBrush) msg = 
         LogColors.lastCustom  <- br |> freeze
@@ -428,13 +428,14 @@ type Log private () =
         LogColors.lastCustom  <- new SolidColorBrush(Color.FromRgb(byte red, byte green, byte blue)) |> freeze
         Printf.kprintf (fun s -> printOrBuffer (s,false, LogColors.lastCustom ))  msg
 
-
     /// Print to the Log view in Red, then add New Line. Add a refrences to #r "PresentationCore"   
     member this.PrintRed msg = Printf.kprintf (fun s -> printOrBuffer (s,true, LogColors.red))  msg
     /// Print to the Log view in Green, then add New Line. Add a refrences to #r "PresentationCore"   
     member this.PrintGreen msg = Printf.kprintf (fun s -> printOrBuffer (s, true, LogColors.green))  msg  
     /// Print to the Log view in Blue, then add New Line. Add a refrences to #r "PresentationCore"    
     member this.PrintBlue msg = Printf.kprintf (fun s -> printOrBuffer (s, true, LogColors.blue))  msg
+
+    (*
     /// Print to the Log view in a custom Color, then add New Line. 
     /// using a System.Windows.Media.SolidColorBrush, add refrences to:
     /// #r "PresentationCore"
@@ -454,6 +455,7 @@ type Log private () =
     /// #r "WindowsBase"
     /// call .Freeze() on the Brush first to improove performance
     member this.Print_Colored (color:SolidColorBrush)  msg = Printf.kprintf (fun s -> printOrBuffer (s,false, color))  msg
+    *)
 
     interface ISeffLog with        
         member this.ReadOnlyEditor         = log
