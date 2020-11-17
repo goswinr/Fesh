@@ -34,6 +34,7 @@ type Commands (grid:TabsAndLog)  =
     let evalTillCursor()       =  let ln,tx = Selection.linesTillCursor(tabs.CurrAvaEdit)             in  fsi.Evaluate {code = tx ; file=tabs.Current.FilePath; allOfFile=false; fromLine = ln }           
     let evalFromCursor()       =  let ln,tx = Selection.linesFromCursor(tabs.CurrAvaEdit)             in  fsi.Evaluate {code = tx ; file=tabs.Current.FilePath; allOfFile=false; fromLine = ln }           
     
+    let compileScript() = CompileScript.createFsproj(tabs.CurrAvaEdit.Text , tabs.Current.FilePath, grid.Log, true) 
     //see https://github.com/icsharpcode/AvalonEdit/blob/697ff0d38c95c9e5a536fbc05ae2307ec9ef2a63/ICSharpCode.AvalonEdit/Editing/CaretNavigationCommandHandler.cs#L73
     //TODO these gets evaluated for each cmd on every mouse click or key perss . is this OK?  any lag ?? in Canexecute for commands
 
@@ -90,6 +91,7 @@ type Commands (grid:TabsAndLog)  =
     member val CancelFSI         = {name= "Cancel FSI"                ;gesture= "Ctrl + Break"   ;cmd= mkCmd isAsy (fun _ -> fsi.CancelIfAsync())        ;tip= "Cancel running FSI evaluation (only available in asynchronous mode)"        }
     member val ResetFSI          = {name= "Reset FSI"                 ;gesture= "Ctrl + Alt + R" ;cmd= mkCmdSimple (fun _ -> log.Clear();fsi.Reset())    ;tip= "Clear all text from FSI Log window and reset FSharp Interactive"                                                   }
     member val ToggleSync        = {name= "Toggle Sync / Async"       ;gesture= ""               ;cmd= mkCmdSimple (fun _ -> fsi.ToggleSync())           ;tip= "Switch between synchronous and asynchronous evaluation in FSI, see status in StatusBar"} 
+    member val CompileScript     = {name= "Compile Script"            ;gesture= ""               ;cmd= mkCmdSimple (fun _ -> compileScript())            ;tip= "Create an fsproj that and build it via dotnet build"} 
                                                                                                                                        
    //View menu:                                                                                                                        
     member val ToggleSplit       = {name= "Toggle Window Split"       ;gesture= ""               ;cmd= mkCmdSimple (fun _ -> grid.ToggleSplit())         ;tip= "Toggle between vertical and horizontal window arrangement of Editor and Log View"              }

@@ -126,7 +126,8 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, log:Log) =
                 menuItem cmds.ToUppercase  
                 menuItem cmds.Tolowercase 
                 sep()
-                menuItem cmds.ToggleBoolean]
+                menuItem cmds.ToggleBoolean
+                ]
             MenuItem(Header = "_Select"),[ 
                 menuItem cmds.SelectLine  ]
             MenuItem(Header = "_BoxSelect", ToolTip="Create a Box Selection by \r\n holding down the Alt key while selecting \r\n or pressing the middle mouse button."),[                 
@@ -158,6 +159,8 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, log:Log) =
                 if config.Hosting.IsHosted then
                     sep()
                     menuItem cmds.ToggleSync
+                sep()
+                menuItem cmds.CompileScript
                 ]
             MenuItem(Header = "_View"),[                 
                 menuItem cmds.ToggleSplit 
