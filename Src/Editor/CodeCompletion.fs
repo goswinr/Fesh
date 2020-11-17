@@ -206,6 +206,9 @@ type Completions(avaEdit:TextEditor,config:Config, checker:Checker, errorHighlig
 
             let completionLines = ResizeArray<ICompletionData>()                                
             if not onlyDU && charBefore = NotDot then
+                completionLines.Add( CompletionItemForKeyWord(config,"#if INTERACTIVE",     "Compiler directive to exclude code in compiled form, close with #endif" ) :> ICompletionData)    |>ignore
+                completionLines.Add( CompletionItemForKeyWord(config,"#else",               "else of compiler directive " ) :> ICompletionData)    |>ignore
+                completionLines.Add( CompletionItemForKeyWord(config,"#endif",              "End of compiler directive " ) :> ICompletionData)    |>ignore
                 completionLines.Add( CompletionItemForKeyWord(config,"__SOURCE_DIRECTORY__","Evaluates to the current full path of the source directory" ) :> ICompletionData)    |>ignore
                 completionLines.Add( CompletionItemForKeyWord(config,"__SOURCE_FILE__"     ,"Evaluates to the current source file name, without its path") :> ICompletionData)    |>ignore
                 completionLines.Add( CompletionItemForKeyWord(config,"__LINE__",            "Evaluates to the current line number") :> ICompletionData)    |>ignore
