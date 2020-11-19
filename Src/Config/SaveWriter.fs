@@ -30,10 +30,10 @@ type SaveWriter  (log:ISeffLog)=
     /// getString will only be called (in sync) and file will only be written (async)
     ///if after the delay the counter value is the same as before. 
     ///( that means no more recent calls to this function have been made)
-    member this.WriteDelayed (path, getText: unit->string, delay:int) =
+    member this.WriteDelayed (path, getText: unit->string, delayMillisSeconds:int) =
         async{
             let k = Interlocked.Increment counter
-            do! Async.Sleep(delay) // delay to see if this is the last of many events (otherwise there is a noticable lag in dragging window around)
+            do! Async.Sleep(delayMillisSeconds) // delay to see if this is the last of many events (otherwise there is a noticable lag in dragging window around)
             if !counter = k then //k > 2L &&   //do not save on startup && only save last event after a delay if there are many save events in a row ( eg from window size change)(ignore first two event from creating window)
                 try 
                     let text = getText()               
