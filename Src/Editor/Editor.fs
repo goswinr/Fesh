@@ -218,7 +218,7 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
         avaEdit.TextArea.TextView.MouseHover.Add(fun e -> TypeInfo.mouseHover(e, ed, log, ed.TypeInfoTip))        
         avaEdit.TextArea.TextView.MouseHoverStopped.Add(fun _ -> ed.TypeInfoTip.IsOpen <- false )
 
-        
+        avaEdit.TextArea.PreviewTextInput.Add (fun a -> CursorBehaviour.previewTextInput(avaEdit,a))
 
         avaEdit.Document.Changed.Add(fun e -> 
             //log.PrintDebugMsg "*Document.Changed Event: deleted %d '%s', inserted %d '%s', completion hasItems: %b, isOpen: %b , Just closed: %b" e.RemovalLength e.RemovedText.Text e.InsertionLength e.InsertedText.Text ed.Completions.HasItems ed.Completions.IsOpen compls.JustClosed

@@ -11,6 +11,35 @@ open System.Windows.Media
 
 module CursorBehaviour  =
     
+    let toggleBoolean(avaEdit:TextEditor) = 
+        for seg in avaEdit.TextArea.Selection.Segments do
+            if   seg.Length = 4 && avaEdit.Document.GetText(seg) = "true"  then avaEdit.Document.Replace(seg, "false")
+            elif seg.Length = 5 && avaEdit.Document.GetText(seg) = "false" then avaEdit.Document.Replace(seg, "true") 
+    
+
+
+    let previewTextInput(avaEdit:TextEditor, a:Input.TextCompositionEventArgs) = 
+        match a.Text with 
+        // space before and after:
+        | "="
+        | "+"  as c -> 
+            avaEdit.Document.Insert(avaEdit.TextArea.Caret.Offset, " "+c+" ") // space before and after
+            a.Handled <- true
+        
+        // space  before:
+        | "-" as c -> //not both because of -> and -1
+            avaEdit.Document.Insert(avaEdit.TextArea.Caret.Offset, " "+c)
+            a.Handled <- true
+        
+        // space  after:
+        | ")"
+        | ","
+        | ";"  as c -> 
+            avaEdit.Document.Insert(avaEdit.TextArea.Caret.Offset, c+" ")
+            a.Handled <- true
+
+        | _ -> ()
+
     let previewKeyDown (avaEdit:TextEditor,log:ISeffLog, e: Input.KeyEventArgs) =  
 
         match e.Key with
@@ -131,9 +160,3 @@ module CursorBehaviour  =
                             
             with e -> log.PrintIOErrorMsg "drag and drop failed: %A" e
                 
-
-    let toggleBoolean(avaEdit:TextEditor) = 
-        for seg in avaEdit.TextArea.Selection.Segments do
-            if   seg.Length = 4 && avaEdit.Document.GetText(seg) = "true"  then avaEdit.Document.Replace(seg, "false")
-            elif seg.Length = 5 && avaEdit.Document.GetText(seg) = "false" then avaEdit.Document.Replace(seg, "true") 
-
