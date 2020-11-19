@@ -110,7 +110,7 @@
       <Word>TODO</Word>
       <Word>FIXME</Word>
       <Word>?</Word>  
-      <Word>!</Word>    
+      <Word>!!</Word>    
     </Keywords>
     <Keywords color="HACK">
       <Word>HACK</Word>
@@ -401,7 +401,7 @@
     <Span color="RecordNames" multiline="true">     
        <!-- ( a non letter, some space and an open bracket) OR (a semicolon followed by a closing bracket but without a opening bracket before) -->      
       <Begin color="Punctuation">\W\s* \{ | ;(?=[^\{]+\}) </Begin> 
-      <End color="Punctuation">=|\}</End> 
+      <End color="Punctuation">(with)|=|\}</End> 
       <RuleSet>
         <Import ruleSet="TypeAnnotationSet"/>   
       </RuleSet>
