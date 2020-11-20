@@ -29,9 +29,9 @@ type Foldings(ed:TextEditor,checker:Checker,config:Config, edId:Guid) =
 
     let minLinesOutside = 2 // minimum line count for outer folding 
 
-    let minLinesNested = 4 // minimum line count for inner folding 
+    let minLinesNested = 3 // minimum line count for inner folding 
 
-    let minLineCountDiffToOuter = 6 // if inner folding is just 6 line shorter than outer folding dont do it
+    let minLineCountDiffToOuter = 9 // if inner folding is just 6 line shorter than outer folding dont do it
 
 
 
