@@ -307,7 +307,7 @@
   <RuleSet name="StringSet">
 
     <Span color="Char" > 
-      <Begin>'</Begin>  <!-- a ' followed by one or zero \ then any char and then anoter ' in look ahead-->
+      <Begin>'(?=\\)|'.(?=')</Begin>  <!-- a ' followed by one or zero \ then any char and then anoter ' in look ahead-->
       <End>'</End>     
       <RuleSet>
         <Import ruleSet="StringEscapeSet"/>
@@ -397,7 +397,7 @@
     -->   
 
 
-    <!--Records instances-->
+    <!--Records instances TODO does not work well fails on 'seq {..}' -->
     <Span color="RecordNames" multiline="true">     
        <!-- ( a non letter, some space and an open bracket) OR (a semicolon followed by a closing bracket but without a opening bracket before) -->      
       <Begin color="Punctuation">\W\s* \{ | ;(?=[^\{]+\}) </Begin> 
