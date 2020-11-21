@@ -164,7 +164,7 @@ type Fsi private (config:Config) =
             log.PrintAppErrorMsg "The Hosting App has blocked Fsi from Running, maybe because the App is busy in another command or task."
         else
             match sessionOpt with 
-            |None -> log.PrintInfoMsg "Please wait till FSI is initalized for running scripts"
+            |None -> log.PrintFsiErrorMsg "Please wait till FSI is initalized for running scripts"
             |Some session ->
                 state <- Evaluating                
                 startedEv.Trigger(code) // do always sync
