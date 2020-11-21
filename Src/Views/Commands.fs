@@ -104,7 +104,8 @@ type Commands (grid:TabsAndLog)  =
                                                                                                                                      
     //Settings Menu                                                                                                                      
     member val SettingsFolder    = {name= "Open Settings Folder"      ;gesture= ""               ;cmd= mkCmdSimple (fun _ -> config.Hosting.OpenSettingsFolder())                         ;tip= "Opens the Folder where user settinsg such as default file content is saved."                                        }
-    member val ReloadXshdFile    = {name= "Reload Xshd File"          ;gesture= "F10"            ;cmd= mkCmdSimple (fun _ -> SyntaxHighlighting.setFSharp(tabs.CurrAvaEdit,config,true))  ;tip= "Reloads FSharpSynatxHighlighterExtended.xshd, this is useful for testing new highlighting files without a restart." }
+    member val ReloadXshdFile    = {name= "Reload SyntaxHighlighting" ;gesture= "F10"            ;cmd= mkCmdSimple (fun _ -> SyntaxHighlighting.setFSharp(tabs.CurrAvaEdit,config,true))  ;tip= "Reloads FSharpSynatxHighlighterExtended.xshd, this is useful for testing new highlighting files without a restart." }
+    member val OpenXshdFile      = {name= "Open SyntaxHighlighting in VsCode" ;gesture= ""       ;cmd= mkCmdSimple (fun _ -> SyntaxHighlighting.openVSCode(log))                          ;tip= "Opens the FSharpSynatxHighlighterExtended.xshd, file in VsCode." }
 
     //--------------------------
     // Built in Commands from Avalonedit (listed as functiosn so the can be created more than once( eg for menu; and context menu)

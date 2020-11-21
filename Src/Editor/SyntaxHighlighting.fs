@@ -4,6 +4,8 @@ open Seff
 open Seff.Config
 open System
 open System.Drawing
+open Seff.Model
+open System.Windows
 
 module SyntaxHighlighting = 
     open ICSharpCode.AvalonEdit
@@ -12,6 +14,8 @@ module SyntaxHighlighting =
     
     let mutable private fsHighlighting: IHighlightingDefinition option = None //use same highlighter for al tabs. load just once 
 
+    let mutable filePath = ""
+
     let setFSharp (ed:TextEditor, config:Config, forceReLoad) = //must be a function to be calld at later moment.
         if fsHighlighting.IsNone || forceReLoad then 
             async{
@@ -19,6 +23,7 @@ module SyntaxHighlighting =
                     //let stream = Reflection.Assembly.GetExecutingAssembly().GetManifestResourceStream("FSharpSynatxHighlighter2.xshd") // Build action : Embeded Resource; Copy to ouput Dir: NO 
                     let assemblyLocation = IO.Path.GetDirectoryName(Reflection.Assembly.GetExecutingAssembly().Location)
                     let path = Path.Combine(assemblyLocation,"FSharpSynatxHighlighterExtended.xshd")
+                    filePath <- path
                     let stream = new StreamReader(path)//will be copied there after compiling recompiling
                     use reader = new Xml.XmlTextReader(stream)
                     let fsh = Xshd.HighlightingLoader.Load(reader, HighlightingManager.Instance)
@@ -32,7 +37,33 @@ module SyntaxHighlighting =
                 } |> Async.Start
         else 
             ed.SyntaxHighlighting <- fsHighlighting.Value
-
+    
+    
+    let openVSCode(log:ISeffLog) = 
+        async{
+            try
+                if IO.File.Exists filePath then 
+                    let p = new System.Diagnostics.Process()
+                    p.StartInfo.FileName <- "code"
+                    let inQuotes = "\"" + filePath + "\"" 
+                    p.StartInfo.Arguments <- String.concat " " [inQuotes;  "--reuse-window"]
+                    log.PrintCustomBrush Media.Brushes.DarkBlue "command:\r\n%s %s" p.StartInfo.FileName p.StartInfo.Arguments
+                    //p.StartInfo.UseShellExecute <- false
+                    //p.StartInfo.CreateNoWindow <- true //true if the process should be started without creating a new window to contain it
+                    //p.StartInfo.RedirectStandardError <-true
+                    //p.StartInfo.RedirectStandardOutput <-true
+                    //p.OutputDataReceived.Add ( fun d -> log.PrintCustomBrush Media.Brushes.Red   "%s" d.Data)
+                    //p.ErrorDataReceived.Add (  fun d -> log.PrintAppErrorMsg "%s" d.Data)               
+                    //p.Exited.Add( fun _ -> log.PrintInfoMsg  "opend XSHD")
+                    p.Start() |> ignore
+                    //p.BeginOutputReadLine()
+                    //p.BeginErrorReadLine()
+                    //p.WaitForExit()
+                else
+                   log.PrintIOErrorMsg "File not found: %s" filePath    
+            with e -> 
+                log.PrintIOErrorMsg "Failed opening VS Code: %A" e                
+            } |> Async.Start
     
     // TODO take colors from https://github.com/johnpapa/vscode-winteriscoming/blob/master/themes/WinterIsComing-light-color-theme.json
 

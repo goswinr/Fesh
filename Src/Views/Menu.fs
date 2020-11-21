@@ -176,10 +176,12 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, log:Log) =
                 menuItem cmds.CollapseCode
                 ]
             MenuItem(Header = "_About"),[ //set top level refrence too
-                menuItem cmds.SettingsFolder
                 MenuItem(Header = "_Help?")
                 MenuItem(Header = "_Version 0.?.?")
-                menuItem cmds.ReloadXshdFile      
+                sep()
+                menuItem cmds.SettingsFolder
+                menuItem cmds.OpenXshdFile
+                menuItem cmds.ReloadXshdFile                 
                 ]
             ]
         recentFilesInsertPosition <- fileMenu.Items.Count // to put recent files at bottom of file menu
