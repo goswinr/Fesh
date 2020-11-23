@@ -28,11 +28,11 @@ module CursorBehaviour  =
     let previewTextInput(avaEdit:TextEditor, a:Input.TextCompositionEventArgs) = 
         match a.Text with 
         // space before and after:
-        | "=" //TODO check previous char is not punctuation for <=
+        //| "=" //TODO check previous char is not punctuation for <=
         //| ">" //TODO check previous char is not punctuation
-        | "+"  as c -> 
-            avaEdit.Document.Insert(avaEdit.TextArea.Caret.Offset, " "+c+" ") // space before and after
-            a.Handled <- true
+        //| "+"  as c -> 
+            //avaEdit.Document.Insert(avaEdit.TextArea.Caret.Offset, " "+c+" ") // space before and after
+            //a.Handled <- true
         
         //TODO check previous char is not punctuation
         // space  before:
@@ -92,7 +92,7 @@ module CursorBehaviour  =
                             if rem  = 0 then  st + avaEdit.Options.IndentationSize // enure new indent is a multiple of avaEdit.Options.IndentationSize
                             elif rem = 1 then st + avaEdit.Options.IndentationSize + avaEdit.Options.IndentationSize - 1 // to indent always at leat 2 chars
                             else              st + avaEdit.Options.IndentationSize - rem
-                        avaEdit.Document.Insert(avaEdit.CaretOffset, Environment.NewLine + String(' ',ind))
+                        avaEdit.Document.Insert(avaEdit.CaretOffset, " " + Environment.NewLine + String(' ',ind)) // add space before to for nice position of folding block
                         e.Handled <- true // to not actually add anothe new line
 
         | _ -> ()
