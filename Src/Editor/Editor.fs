@@ -159,6 +159,7 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
                         |Some s  -> 
                             let doCompl = 
                                 s.Contains "->"             || // name binding already happend 
+                                s.Contains " when "         || // name binding already happend now in when clause
                                 isOperator s.[0]            || // not in pattern matching 
                                 s.[0]=']'                   || // not in pattern matching 
                                 (s.Contains " :?" && not <| s.Contains " as ")  // auto complete desired  after '| :?" type check but not after 'as' 
