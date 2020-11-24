@@ -6,10 +6,11 @@ open System
 open System.Windows.Controls
 open System.Windows
 open Seff.Views.Util
+open FSharp.Compiler.SourceCodeServices
 
 /// A class holding the main grid of Tabs and the log Window
 /// Includes logic for toggeling the view split and saving and restoring size and position
-type TabsAndLog (config:Config, tabs:Tabs, log:Log, win:Views.Window) =
+type TabsAndLog (config:Config, tabs:Tabs, log:Log, win:Views.Window) as this =
     
     let gridSplitterSize = 4.0
 
@@ -38,8 +39,10 @@ type TabsAndLog (config:Config, tabs:Tabs, log:Log, win:Views.Window) =
             log.ReadOnlyEditor  :> UIElement, logColumnWidth 
             ]
   
-
+    static let mutable instance = Unchecked.defaultof<TabsAndLog>
+    
     do
+        TabsAndLog.Instance <- this
         if config.Settings.GetBool "isVertSplit" true then setGridVert()            
         else                                               setGridHor()
 
@@ -70,6 +73,10 @@ type TabsAndLog (config:Config, tabs:Tabs, log:Log, win:Views.Window) =
                 config.Settings.SetFloat "LogWidth"         logColumnWidth.ActualWidth            
                 config.Settings.Save ()
                 )
+    
+    static member Instance 
+        with get() = instance
+        and set v = instance <- v
 
     member this.ToggleSplit() = 
         if config.Settings.GetBool "isVertSplit" true then setGridHor()            
