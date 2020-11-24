@@ -141,7 +141,7 @@ module CompileScript =
                     p.EnableRaisingEvents <- true
                     p.StartInfo.FileName <- "dotnet"
                     let fsProjinQuotes = "\"" + fsProj + "\"" 
-                    p.StartInfo.Arguments <- String.concat " " ["build"; fsProjinQuotes;  "--configuration Release"]
+                    p.StartInfo.Arguments <- String.concat " " ["build"; fsProjinQuotes;  "--configuration Debug"]
                     log.PrintCustomBrush Media.Brushes.DarkBlue "%s %s" p.StartInfo.FileName p.StartInfo.Arguments
                     p.StartInfo.UseShellExecute <- false
                     p.StartInfo.CreateNoWindow <- true //true if the process should be started without creating a new window to contain it
