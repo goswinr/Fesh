@@ -15,20 +15,22 @@ open System.Windows.Media
 
 
 /// A class to provide an Error Handler that can catch currupted state or access violation errors frim FSI threads too
-type ProcessCorruptedState(config:Config) = 
-      
+type ProcessCorruptedState(config:Config) =      
     // TODO ingerate handler info FSI
-    [< Security.SecurityCritical; Runtime.ExceptionServices.HandleProcessCorruptedStateExceptions >] //to handle AccessViolationException too //https://stackoverflow.com/questions/3469368/how-to-handle-accessviolationexception/4759831
+    [< Security.SecurityCritical >]//to handle AccessViolationException too 
+    [< Runtime.ExceptionServices.HandleProcessCorruptedStateExceptions >] //https://stackoverflow.com/questions/3469368/how-to-handle-accessviolationexception/4759831
     member this.Handler (sender:obj) (e: UnhandledExceptionEventArgs) = 
             // Starting with the .NET Framework 4, this event is not raised for exceptions that corrupt the state of the process, 
             // such as stack overflows or access violations, unless the event handler is security-critical and has the HandleProcessCorruptedStateExceptionsAttribute attribute.
             // https://docs.microsoft.com/en-us/dotnet/api/system.appdomain.unhandledexception?redirectedfrom=MSDN&view=netframework-4.8
             // https://docs.microsoft.com/en-us/archive/msdn-magazine/2009/february/clr-inside-out-handling-corrupted-state-exceptions
-            let t = DateTime.UtcNow.ToString("yyyy-MM-dd_HH-mm-ss-fff")
-            let err = sprintf "ProcessCorruptedState Special Handler: AppDomain.CurrentDomain.UnhandledException: isTerminating: %b : time: %s\r\n%A" e.IsTerminating t e.ExceptionObject
-            let filename = sprintf "Seff-UnhandledException-%s.txt" t
-            let file = IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop),filename)
-            async {try  IO.File.WriteAllText(file, err) with _ -> ()} |> Async.Start // file might be open and locked
+            let time = DateTime.UtcNow.ToString("yyyy-MM-dd_HH-mm-ss-fff")
+            let err = sprintf "ProcessCorruptedState Special Handler: AppDomain.CurrentDomain.UnhandledException: isTerminating: %b : time: %s\r\n%A" e.IsTerminating time e.ExceptionObject
+            async {                
+                let filename = sprintf "Seff-UnhandledException-%s.txt" time
+                let file = IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop),filename)
+                try  IO.File.WriteAllText(file, err) with _ -> () // file might be open and locked
+                } |> Async.Start
             config.Log.PrintAppErrorMsg "%s" err
  
 
@@ -37,7 +39,7 @@ type Fsi private (config:Config) =
     let log = config.Log
     
     ///FSI events
-    let startedEv        = new Event<CodeToEval>()      //TODO why include mode in event arg ?
+    let startedEv        = new Event<CodeToEval>()      
     let runtimeErrorEv   = new Event<Exception>() 
     let canceledEv       = new Event<unit>() 
     let completedOkEv    = new Event<unit>()
@@ -87,74 +89,74 @@ type Fsi private (config:Config) =
              
 
     let init() = 
-            match state with 
-            | Initalizing -> log.PrintInfoMsg "FSI initialization can't be started because it is already in process.."
-            | NotLoaded | Ready | Evaluating -> 
-                let  prevState = state
-                state <- Initalizing
-                async{
-                    //let timer = Seff.Timer()
-                    //timer.tic()
-                    if config.Settings.GetBool "asyncFsi" true then mode <- Async else mode <- FsiMode.Sync
-                    match sessionOpt with 
-                    |None -> ()
-                    |Some session -> session.Interrupt()  //TODO does this cancel running session correctly ?? // TODO how to dispose previous session ?        
+        match state with 
+        | Initalizing -> log.PrintInfoMsg "FSI initialization can't be started because it is already in process.."
+        | NotLoaded | Ready | Evaluating -> 
+            let  prevState = state
+            state <- Initalizing
+            async{
+                //let timer = Seff.Timer()
+                //timer.tic()
+                if config.Settings.GetBool "asyncFsi" true then mode <- Async else mode <- FsiMode.Sync
+                match sessionOpt with 
+                |None -> ()
+                |Some session -> session.Interrupt()  //TODO does this cancel running session correctly ?? // TODO how to dispose previous session ?        
                         
           
-                    let inStream = new StringReader("")
-                    // first arg is ignored: https://github.com/fsharp/FSharp.Compiler.Service/issues/420 
-                    // and  https://github.com/fsharp/FSharp.Compiler.Service/issues/877 
-                    // and  https://github.com/fsharp/FSharp.Compiler.Service/issues/878            
+                let inStream = new StringReader("")
+                // first arg is ignored: https://github.com/fsharp/FSharp.Compiler.Service/issues/420 
+                // and  https://github.com/fsharp/FSharp.Compiler.Service/issues/877 
+                // and  https://github.com/fsharp/FSharp.Compiler.Service/issues/878            
                     
-                    let allArgs = 
-                         // "--shadowcopyreferences" is ignored https://github.com/fsharp/FSharp.Compiler.Service/issues/292
-                        if config.Settings.GetBool Settings.keyFsiQuiet false then Array.append  config.FsiArugments.Get [| "--quiet"|] // TODO or fsi.ShowDeclarationValues <- false ??
-                        else                                                                     config.FsiArugments.Get
+                let allArgs = 
+                        // "--shadowcopyreferences" is ignored https://github.com/fsharp/FSharp.Compiler.Service/issues/292
+                    if config.Settings.GetBool Settings.keyFsiQuiet false then Array.append  config.FsiArugments.Get [| "--quiet"|] // TODO or fsi.ShowDeclarationValues <- false ??
+                    else                                                                     config.FsiArugments.Get
                         
-                    let settings = Settings.fsi
-                    // Default: https://github.com/dotnet/fsharp/blob/c0d6f6abbf14a19c631cd647b6440ec2c63c668f/src/fsharp/fsi/fsi.fs#L3244
-                    // evLoop = (new SimpleEventLoop() :> IEventLoop)
-                    // showIDictionary = true
-                    // showDeclarationValues = true
-                    // args = Environment.GetCommandLineArgs()
-                    // fpfmt = "g10"
-                    // fp = (CultureInfo.InvariantCulture :> System.IFormatProvider)
-                    // printWidth = 78
-                    // printDepth = 100
-                    // printLength = 100
-                    // printSize = 10000
-                    // showIEnumerable = true
-                    // showProperties = true
-                    // addedPrinters = []
-                    settings.PrintWidth <-200
-                    settings.FloatingPointFormat <- "g7"
-                    let fsiConfig = FsiEvaluationSession.GetDefaultConfiguration(settings,false) // https://github.com/dotnet/fsharp/blob/4978145c8516351b1338262b6b9bdf2d0372e757/src/fsharp/fsi/fsi.fs#L2839                    
-                    let fsiSession = FsiEvaluationSession.Create(fsiConfig, allArgs, inStream, log.TextWriterFsiStdOut, log.TextWriterFsiErrorOut) //, collectible=false ??) //https://github.com/dotnet/fsharp/blob/6b0719845c928361e63f6e38a9cce4ae7d621fbf/src/fsharp/fsi/fsi.fs#L2440
+                let settings = Settings.fsi
+                // Default: https://github.com/dotnet/fsharp/blob/c0d6f6abbf14a19c631cd647b6440ec2c63c668f/src/fsharp/fsi/fsi.fs#L3244
+                // evLoop = (new SimpleEventLoop() :> IEventLoop)
+                // showIDictionary = true
+                // showDeclarationValues = true
+                // args = Environment.GetCommandLineArgs()
+                // fpfmt = "g10"
+                // fp = (CultureInfo.InvariantCulture :> System.IFormatProvider)
+                // printWidth = 78
+                // printDepth = 100
+                // printLength = 100
+                // printSize = 10000
+                // showIEnumerable = true
+                // showProperties = true
+                // addedPrinters = []
+                settings.PrintWidth <-200 //TODO adapt to Log view size taking fontsize into account
+                settings.FloatingPointFormat <- "g7"
+                let fsiConfig = FsiEvaluationSession.GetDefaultConfiguration(settings,false) // https://github.com/dotnet/fsharp/blob/4978145c8516351b1338262b6b9bdf2d0372e757/src/fsharp/fsi/fsi.fs#L2839                    
+                let fsiSession = FsiEvaluationSession.Create(fsiConfig, allArgs, inStream, log.TextWriterFsiStdOut, log.TextWriterFsiErrorOut) //, collectible=false ??) //https://github.com/dotnet/fsharp/blob/6b0719845c928361e63f6e38a9cce4ae7d621fbf/src/fsharp/fsi/fsi.fs#L2440
                                         
-                    //AppDomain.CurrentDomain.UnhandledException.AddHandler (new UnhandledExceptionEventHandler( (new ProcessCorruptedState(config)).Handler)) //Add(fun ex -> log.PrintFsiErrorMsg "*** FSI AppDomain.CurrentDomain.UnhandledException:\r\n %A" ex.ExceptionObject)
-                    Console.SetOut  (log.TextWriterConsoleOut)   // TODO needed to redirect printfn or coverd by TextWriterFsiStdOut? //https://github.com/fsharp/FSharp.Compiler.Service/issues/201
-                    Console.SetError(log.TextWriterConsoleError) // TODO needed if evaluate non throwing or coverd by TextWriterFsiErrorOut? 
-                    //if mode = Mode.Sync then do! Async.SwitchToContext Sync.syncContext            
-                    //fsiSession.Run() // TODO ? dont do this it crashes the app when hosted in Rhino! 
-                    state <- Ready
-                    sessionOpt <- Some fsiSession
-                    //timer.stop()
-                    if prevState = NotLoaded then () //log.PrintInfoMsg "FSharp Interactive session created in %s"  timer.tocEx  
-                    else                          log.PrintInfoMsg "FSharp Interactive session reset." // in %s" timer.tocEx     
+                //AppDomain.CurrentDomain.UnhandledException.AddHandler (new UnhandledExceptionEventHandler( (new ProcessCorruptedState(config)).Handler)) //Add(fun ex -> log.PrintFsiErrorMsg "*** FSI AppDomain.CurrentDomain.UnhandledException:\r\n %A" ex.ExceptionObject)
+                Console.SetOut  (log.TextWriterConsoleOut)   // TODO needed to redirect printfn or coverd by TextWriterFsiStdOut? //https://github.com/fsharp/FSharp.Compiler.Service/issues/201
+                Console.SetError(log.TextWriterConsoleError) // TODO needed if evaluate non throwing or coverd by TextWriterFsiErrorOut? 
+                //if mode = Mode.Sync then do! Async.SwitchToContext Sync.syncContext            
+                //fsiSession.Run() // TODO ? dont do this it crashes the app when hosted in Rhino! 
+                state <- Ready
+                sessionOpt <- Some fsiSession
+                //timer.stop()
+                if prevState = NotLoaded then () //log.PrintInfoMsg "FSharp Interactive session created in %s"  timer.tocEx  
+                else                          log.PrintInfoMsg "FSharp Interactive session reset." // in %s" timer.tocEx     
             
-                    if config.Hosting.IsHosted then 
-                        match mode with
-                        |Sync ->  log.PrintInfoMsg "FSharp Interactive will evaluate synchronously on UI Thread."
-                        |Async -> log.PrintInfoMsg "FSharp Interactive will evaluate asynchronously on new Thread."    
-                    //fsiSession.AssemblyReferenceAdded.Add (config.AssemblyReferenceStatistic.Add)  //TODO fails in FCS 37.0.0                  
-                    do! Async.SwitchToContext Sync.syncContext 
-                    currentDir <- ""
-                    currentFile <- ""
-                    currentTopLine <- 1 
-                    isReadyEv.Trigger()
-                    } |> Async.Start
+                if config.Hosting.IsHosted then 
+                    match mode with
+                    |Sync ->  log.PrintInfoMsg "FSharp Interactive will evaluate synchronously on UI Thread."
+                    |Async -> log.PrintInfoMsg "FSharp Interactive will evaluate asynchronously on new Thread."    
+                //fsiSession.AssemblyReferenceAdded.Add (config.AssemblyReferenceStatistic.Add)  //TODO fails in FCS 37.0.0                  
+                do! Async.SwitchToContext Sync.syncContext 
+                currentDir <- ""
+                currentFile <- ""
+                currentTopLine <- 1 
+                isReadyEv.Trigger()
+                } |> Async.Start
     
-    let blue = let bl = Brushes.Blue  in bl.Freeze(); bl
+    let blue = let bl = Brushes.Blue in bl.Freeze() ; bl
 
     [< Security.SecurityCritical >] // TODO do these Attributes appy in to async thread too ?
     [< Runtime.ExceptionServices.HandleProcessCorruptedStateExceptions >] //to handle AccessViolationException too //https://stackoverflow.com/questions/3469368/how-to-handle-accessviolationexception/4759831
@@ -175,6 +177,7 @@ type Fsi private (config:Config) =
 
                 let asyncEval = async{
                     if mode = FsiMode.Sync then 
+                        do! Async.Sleep 40 // this helps to show "FSI is running" immediatly
                         do! Async.SwitchToContext Sync.syncContext                         
                 
                     //Done already at startup in Initalize.fs, not neded here?
@@ -266,7 +269,7 @@ type Fsi private (config:Config) =
                     // dsyme: Thread.Abort - it is needed in interruptible interactive execution scenarios: https://github.com/dotnet/fsharp/issues/9397#issuecomment-648376476
                     Async.StartImmediate(asyncEval))  
                 thread <- Some thr           
-                thr.SetApartmentState(ApartmentState.STA) //TODO always ok ? needed to run WPF? https://stackoverflow.com/questions/127188/could-you-explain-sta-and-mta
+                if mode = Async then thr.SetApartmentState(ApartmentState.STA) //TODO always ok ? needed to run WPF? https://stackoverflow.com/questions/127188/could-you-explain-sta-and-mta
                 thr.Start()
     
     
