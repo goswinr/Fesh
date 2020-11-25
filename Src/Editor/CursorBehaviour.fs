@@ -11,6 +11,7 @@ open System.Windows.Media
 
 module CursorBehaviour  =
     
+    ///replace 'true' with 'false' and vice versa
     let toggleBoolean(avaEdit:TextEditor) = 
         let doc = avaEdit.Document
         for seg in avaEdit.TextArea.Selection.Segments do
@@ -23,12 +24,21 @@ module CursorBehaviour  =
                 if doc.TextLength > afterOff && doc.GetCharAt(afterOff) = ' ' then // try to keep total length the same                    
                     doc.Remove(afterOff,1)
                 doc.Replace(seg, "false")
+                    
 
+    let insertAtCaretOrSelections (avaEdit:TextEditor, tx:string) = 
+        if avaEdit.TextArea.Selection.IsEmpty then
+            avaEdit.Document.Insert(avaEdit.TextArea.Caret.Offset, tx)
+        else 
+            avaEdit.Document.BeginUpdate()
+            for seg in avaEdit.TextArea.Selection.Segments do
+                avaEdit.Document.Replace(seg, tx)
+            avaEdit.Document.EndUpdate()
 
-    let previewTextInput(avaEdit:TextEditor, a:Input.TextCompositionEventArgs) = 
-        match a.Text with 
+    let previewTextInput(avaEdit:TextEditor, e:Input.TextCompositionEventArgs) = 
+        match e.Text with 
         // space before and after:
-        //| "=" //TODO check previous char is not punctuation for <=
+        //| "=" //TODO check previous char is not punctuation for <= // space is added in previewKeyDown before return 
         //| ">" //TODO check previous char is not punctuation
         //| "+"  as c -> 
             //avaEdit.Document.Insert(avaEdit.TextArea.Caret.Offset, " "+c+" ") // space before and after
@@ -44,8 +54,8 @@ module CursorBehaviour  =
         | ")"
         | ","
         | ";"  as c -> 
-            avaEdit.Document.Insert(avaEdit.TextArea.Caret.Offset, c+" ")
-            a.Handled <- true
+            insertAtCaretOrSelections (avaEdit, c+" ")
+            e.Handled <- true
         
         | _ -> ()
 
@@ -58,7 +68,7 @@ module CursorBehaviour  =
             let car = avaEdit.TextArea.Caret.Column
             let prevC = line.Substring(0 ,car-1)
             //log.PrintDebugMsg "--Substring length %d: '%s'" prevC.Length prevC
-            if prevC.Length > 0 then 
+            if prevC.Length > 0 && avaEdit.TextArea.Selection.IsEmpty then //TODO or also use to replace selected text ??
                 if isJustSpaceCharsOrEmpty prevC  then
                     let dist = prevC.Length % avaEdit.Options.IndentationSize
                     let clearCount = if dist = 0 then avaEdit.Options.IndentationSize else dist
@@ -76,7 +86,7 @@ module CursorBehaviour  =
             //log.PrintDebugMsg "line:%s" txt
             //log.PrintDebugMsg "caretPosInLine:%d isCaretAtEnd:%b" caretPosInLine isCaretAtEnd
             let trimmed = txt.TrimEnd()
-            if isCaretAtEnd then 
+            if isCaretAtEnd && avaEdit.TextArea.Selection.IsEmpty then //TODO or also use to replace selected text ??
                 if     trimmed.EndsWith " do"
                     || trimmed.EndsWith " then"
                     || trimmed.EndsWith " else"
@@ -92,7 +102,7 @@ module CursorBehaviour  =
                             if rem  = 0 then  st + avaEdit.Options.IndentationSize // enure new indent is a multiple of avaEdit.Options.IndentationSize
                             elif rem = 1 then st + avaEdit.Options.IndentationSize + avaEdit.Options.IndentationSize - 1 // to indent always at leat 2 chars
                             else              st + avaEdit.Options.IndentationSize - rem
-                        avaEdit.Document.Insert(avaEdit.CaretOffset, " " + Environment.NewLine + String(' ',ind)) // add space before to for nice position of folding block
+                        avaEdit.Document.Insert(avaEdit.CaretOffset, " " + Environment.NewLine + String(' ',ind)) // add space before too for nice position of folding block
                         e.Handled <- true // to not actually add anothe new line
 
         | _ -> ()
