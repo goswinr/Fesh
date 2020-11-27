@@ -51,6 +51,11 @@ module CompileScript =
           <ItemGroup>
             <Compile Include="pathToFsx" /><!-- set by Seff scriptcompiler-->
           </ItemGroup>
+
+          <Target Name="DeleteObjFolder" BeforeTargets="AfterBuild"> 
+            <RemoveDir Directories="obj" ContinueOnError="true"/> 
+          </Target>
+
         </Project>
         """
                   
