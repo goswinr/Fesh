@@ -68,7 +68,8 @@ type Fonts (grid:TabsAndLog) = // will be contructed as part of Commands class
     
     //----- init ---------
     do        
-        setEditor(fromRescources("Fira Code", "Consolas"))
+        //setEditor(fromRescources("Fira Code", "Consolas")) // too slow on big files
+        setEditor(  FontFamily ("Consolas")|>> verifyFont)
         setLog(     FontFamily ("Consolas")|>> verifyFont)  
         setToolTip( FontFamily ("Verdana") |>> verifyFont) // or FontFamily("Andale Mono")
       
