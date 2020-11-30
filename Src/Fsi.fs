@@ -267,6 +267,8 @@ type Fsi private (config:Config) =
                 let thr = new Thread(fun () -> 
                     // a cancellation token here fails to cancel evaluation.
                     // dsyme: Thread.Abort - it is needed in interruptible interactive execution scenarios: https://github.com/dotnet/fsharp/issues/9397#issuecomment-648376476
+                    // Thread.Abort method is not supported in .NET 5 (including .NET Core)
+                    //https://github.com/dotnet/runtime/issues/41291
                     Async.StartImmediate(asyncEval))  
                 thread <- Some thr           
                 if mode = Async then thr.SetApartmentState(ApartmentState.STA) //TODO always ok ? needed to run WPF? https://stackoverflow.com/questions/127188/could-you-explain-sta-and-mta
@@ -312,6 +314,8 @@ type Fsi private (config:Config) =
                     thread<-None
                     state<-Ready 
                     thr.Abort() // raises OperationCanceledException  
+                    // Thread.Abort method is not supported in .NET 5 (including .NET Core)
+                    // https://github.com/dotnet/runtime/issues/41291
                     // dsyme: Thread.Abort - it is needed in interruptible interactive execution scenarios: https://github.com/dotnet/fsharp/issues/9397#issuecomment-648376476
 
     member this.AskIfCancellingIsOk() = 
