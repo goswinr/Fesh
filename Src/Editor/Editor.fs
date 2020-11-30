@@ -49,7 +49,7 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
         avaEdit.TextArea.TextView.LinkTextForegroundBrush <- Brushes.DarkGreen
         avaEdit.Options.EnableTextDragDrop <- true //TODO add implementation
         avaEdit.Options.ShowSpaces <- false //true
-        avaEdit.Options.ShowTabs <- true
+        avaEdit.Options.ShowTabs <- false // they are always converted to spaces, see above
         avaEdit.Options.ConvertTabsToSpaces <- true
         avaEdit.Options.IndentationSize <- 4
         avaEdit.Options.HideCursorWhileTyping <- false
