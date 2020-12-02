@@ -3,7 +3,7 @@
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <TargetFramework>net472</TargetFramework> 
+    <TargetFramework>net472</TargetFramework>    <!-- no net50-windows because no Thread.Abort() for fsi-->
     <LangVersion>preview</LangVersion>
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages> <!--to only have the english resources-->
     <UseWPF>true</UseWPF>
@@ -38,8 +38,7 @@
     <PackageReference Update="FSharp.Core" Version="5.0.0" GeneratePathProperty="true" />  
     <!-- use 33.0.1 because EPPlus also fails with 35.0.0 (like Rhino) ?? try x86 version !-->
     <PackageReference Include="FSharp.Compiler.Service" Version="37.0.0" />    
-    <!--<PackageReference Include="FSharp.DependencyManager.Nuget" Version="37.0.0" />-->
-    <!--<PackageReference Include="FSharp.DependencyManager.Nuget" Version="35.0.0" />-->
+    <!--<PackageReference Include="FSharp.DependencyManager.Nuget" Version="38.0.0" />-->    
   </ItemGroup>
 
   <ItemGroup>        
