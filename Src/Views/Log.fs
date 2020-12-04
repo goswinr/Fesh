@@ -266,7 +266,9 @@ type Log private () =
     let stopWatch = Stopwatch.StartNew()
     let buffer =  new StringBuilder()
     let mutable docLength = 0  //to be able to have the doc length async
-    
+    let maxCharsInLog = 1_000_000 // about 10k line with 100 chars each
+    let mutable stillLessThanMaxChars = true
+
     let getBufferText () =
         let txt = buffer.ToString()
         buffer.Clear()  |> ignore 
@@ -281,44 +283,56 @@ type Log private () =
         log.ScrollToEnd()
         if log.WordWrap then 
             log.ScrollToEnd() //this is needed a second time. see  https://github.com/dotnet/fsharp/issues/3712  
-        stopWatch.Restart() 
+        stopWatch.Restart()
+
+        if docLength > maxCharsInLog then // neded when log gets piled up with exception messages form Avalonedit rendering pipeline.
+            stillLessThanMaxChars <- false
+            log.AppendText(sprintf "\r\n\r\n  *** STOP OF LOGGING *** Log has more than %d characters! clear Log view first" maxCharsInLog)
+            log.ScrollToEnd()
+            log.ScrollToEnd()
+            log.ScrollToEnd()
+
+
 
     let printFromBufferSync() =
         async {
             do! Async.SwitchToContext Sync.syncContext
             printFromBuffer()
             } |> Async.StartImmediate 
-
+    
+    
     /// adds string on UI thread  every 150ms then scrolls to end after 300ms
     /// sets line color on LineColors dictionay for DocumentColorizingTransformer
     let printOrBuffer (txt:string, addNewLine:bool, typ:SolidColorBrush) =
-        
-        if prevMsgType <> typ then 
-            lock buffer (fun () -> 
-                offsetColors.Add { off = docLength; brush = typ } 
-                prevMsgType <- typ )
-            //LogFile.Post <| sprintf "offset %d new color: %A" docLength typ
+        if stillLessThanMaxChars then 
+            if prevMsgType <> typ then 
+                lock buffer (fun () -> 
+                    offsetColors.Add { off = docLength; brush = typ } // TODO filter out ANSI escape chars first or just keep them in the doc but not in the visual line ??
+                    prevMsgType <- typ )
+                //LogFile.Post <| sprintf "offset %d new color: %A" docLength typ
             
-        if txt.Length <> 0 then
-            if addNewLine then 
-                lock buffer (fun () -> 
-                    buffer.AppendLine(txt)  |> ignore
-                    docLength <- docLength + txt.Length + 2) // TODO, is a new line always two ?
-            else                
-                lock buffer (fun () -> 
-                    buffer.Append(txt)  |> ignore
-                    docLength <- docLength + txt.Length   ) 
+            if txt.Length <> 0 then
+                if addNewLine then 
+                    lock buffer (fun () -> 
+                        buffer.AppendLine(txt)  |> ignore
+                        docLength <- docLength + txt.Length + 2) // TODO, is a new line always two ?
+                else                
+                    lock buffer (fun () -> 
+                        buffer.Append(txt)  |> ignore
+                        docLength <- docLength + txt.Length   ) 
                         
-            if stopWatch.ElapsedMilliseconds > 100L  then // print case 1, only add to document every 100ms  
-                printFromBufferSync()                
-            else
-                async {                        
-                    let k = Interlocked.Increment printCallsCounter
-                    do! Async.Sleep 100
-                    if !printCallsCounter = k  then //print case 2, it is the last call for 100 ms
-                        do! Async.SwitchToContext Sync.syncContext
-                        printFromBuffer()                
-                    } |> Async.StartImmediate 
+                if stopWatch.ElapsedMilliseconds > 100L  then // print case 1, only add to document every 100ms  
+                    printFromBufferSync()                
+                else
+                    async {                        
+                        let k = Interlocked.Increment printCallsCounter
+                        do! Async.Sleep 100
+                        if !printCallsCounter = k  then //print case 2, it is the last call for 100 ms
+                            do! Async.SwitchToContext Sync.syncContext
+                            printFromBuffer()                
+                        } |> Async.StartImmediate 
+
+                
     
 
     let setLineWrap(v)=
@@ -364,6 +378,7 @@ type Log private () =
         log.Clear()
         docLength <- 0
         prevMsgType <- null
+        stillLessThanMaxChars <- true
         offsetColors.Clear()
         //LogColors.lastCustom <- null // or remeber it
         offsetColors.Add {off = -1 ; brush=null} //TODO use -1 instead? // null check done in  this.ColorizeLine(line:AvalonEdit.Document.DocumentLine) .. 
