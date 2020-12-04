@@ -57,7 +57,7 @@ type Foldings(ed:TextEditor,checker:Checker,config:Config, edId:Guid) =
 
     let mutable isIntialLoad = true
 
-    let findFolds (tx:string) =
+    let findFoldings (tx:string) =
     
         FoldingStack.Clear()
         Folds.Clear()
@@ -66,30 +66,31 @@ type Foldings(ed:TextEditor,checker:Checker,config:Config, edId:Guid) =
 
         let mutable lineNo = 1
     
-        // returns offset of first letter
+        // returns offset of first VisibleChar
         // jumps over empty lines
-        let rec findLetter ind off =
+        let rec findVisibleChar ind off =
             if  off = tx.Length then  { indent = 0; wordStartOff = off-1}
             else 
                 let c = tx.[off]
-                if   c = ' '   then                        findLetter (ind+1) (off+1) //TODO ignores tabs
-                elif c = '\r'  then                        findLetter 0       (off+1)        
-                elif c = '\n'  then  lineNo <- lineNo + 1; findLetter 0       (off+1)        
+                if   c = ' '   then                        findVisibleChar (ind+1) (off+1) //TODO ignores tabs
+                elif c = '\r'  then                        findVisibleChar 0       (off+1)        
+                elif c = '\n'  then  lineNo <- lineNo + 1; findVisibleChar 0       (off+1)        
                 else                 { indent= ind; wordStartOff=off}
         
         // returns offset of '\n'
-        let rec findLineEnd off =
+        let rec findLineEnd off =            
             if  off = tx.Length then  off-1
             else 
                 if tx.[off] = '\n'  then  off
-                else                      findLineEnd (off+1)  
+                else                      findLineEnd (off+1) 
+          
     
     
         let rec findFolds ind off =         
             let no = lineNo
             let en = findLineEnd off
             if en > off then 
-                let le = findLetter 0 en
+                let le = findVisibleChar 0 en
                 //printfn "le.indent: %i (ind %d)  in line %d" le.indent ind no
             
                 if le.indent = ind then 
@@ -123,9 +124,9 @@ type Foldings(ed:TextEditor,checker:Checker,config:Config, edId:Guid) =
                             take <- false            
                     findFolds le.indent le.wordStartOff        
     
-    
-        let le = findLetter 0 0
-        findFolds le.indent le.wordStartOff
+        if tx.Length > 0 then // scheck neded for empty string            
+            let le = findVisibleChar 0 0
+            findFolds le.indent le.wordStartOff
         Folds
 
 
@@ -137,9 +138,10 @@ type Foldings(ed:TextEditor,checker:Checker,config:Config, edId:Guid) =
             async{            
                 match iEditor.FileCheckState.FullCodeAndId with
                 | NoCode ->()
-                | CodeID (code,checkId) ->                    
+                | CodeID (code,checkId) -> 
+
                     let foldings = 
-                        let ffs = findFolds code
+                        let ffs = findFoldings code
                         let l = ffs.Count-1
                         let fs = ResizeArray(max 0 l)// would be -1 if no foldings
                         let mutable lastOuter = {foldStartOff = -99; foldEndOff = -99 ; linesInFold = -99 ; nestingLevel = -99}
@@ -153,12 +155,7 @@ type Foldings(ed:TextEditor,checker:Checker,config:Config, edId:Guid) =
                                     fs.Add f 
                         fs
                         
-                    //let state = getFoldstate foldings
-                    //if state = foldStateHash then 
-                        //() // no chnages in folding
-                    //else
-                        //foldStateHash <- state
-
+                    
                     if foldings.Count>0 then 
                         do! Async.SwitchToContext Sync.syncContext
                         match iEditor.FileCheckState.SameIdAndFullCode(checker.GlobalCheckState) with
