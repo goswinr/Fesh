@@ -13,28 +13,6 @@ open System.Windows.Media
 
 
 
-
-/// A class to provide an Error Handler that can catch currupted state or access violation errors frim FSI threads too
-type ProcessCorruptedState(config:Config) =      
-    // TODO ingerate handler info FSI
-    [< Security.SecurityCritical >]//to handle AccessViolationException too 
-    [< Runtime.ExceptionServices.HandleProcessCorruptedStateExceptions >] //https://stackoverflow.com/questions/3469368/how-to-handle-accessviolationexception/4759831
-    member this.Handler (sender:obj) (e: UnhandledExceptionEventArgs) = 
-            // Starting with the .NET Framework 4, this event is not raised for exceptions that corrupt the state of the process, 
-            // such as stack overflows or access violations, unless the event handler is security-critical and has the HandleProcessCorruptedStateExceptionsAttribute attribute.
-            // https://docs.microsoft.com/en-us/dotnet/api/system.appdomain.unhandledexception?redirectedfrom=MSDN&view=netframework-4.8
-            // https://docs.microsoft.com/en-us/archive/msdn-magazine/2009/february/clr-inside-out-handling-corrupted-state-exceptions
-            let time = DateTime.UtcNow.ToString("yyyy-MM-dd_HH-mm-ss-fff")
-            let err = sprintf "ProcessCorruptedState Special Handler: AppDomain.CurrentDomain.UnhandledException: isTerminating: %b : time: %s\r\n%A" e.IsTerminating time e.ExceptionObject
-            async {                
-                let filename = sprintf "Seff-UnhandledException-%s.txt" time
-                let file = IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop),filename)
-                try  IO.File.WriteAllText(file, err) with _ -> () // file might be open and locked
-                } |> Async.Start
-            config.Log.PrintAppErrorMsg "%s" err
- 
-
-
 type Fsi private (config:Config) =    
     let log = config.Log
     

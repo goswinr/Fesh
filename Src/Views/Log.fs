@@ -382,6 +382,8 @@ type Log private () =
         offsetColors.Clear()
         //LogColors.lastCustom <- null // or remeber it
         offsetColors.Add {off = -1 ; brush=null} //TODO use -1 instead? // null check done in  this.ColorizeLine(line:AvalonEdit.Document.DocumentLine) .. 
+        log.TextArea.TextView.linesCollapsedVisualPosOffThrowCount <- 0 // custom property in Avalonedit to avoid throwing too many exceptions. set 0 so exceptions appear again
+        GlobalErrorHandeling.throwCount <- 0 // set 0 so exceptions appear again
        
 
     //used in FSI constructor:

@@ -63,6 +63,7 @@
     <Compile Include="Src/Timer.fs" />
     <Compile Include="Src/Style.fs" />
     <Compile Include="Src/Model.fs" />
+    <Compile Include="Src/GlobalErrorHandeling.fs" />
     <Compile Include="Src/Sync.fs" />
 
     <Compile Include="Src/Config/SaveWriter.fs" />
