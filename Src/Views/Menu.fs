@@ -190,6 +190,9 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, log:Log) =
 
         tabs.Control.ContextMenu <- // TODO or attach to each new editor window ?
             makeContextMenu [
+                menuItem cmds.ExpandCode
+                menuItem cmds.CollapseCode
+                sep()
                 menuItem cmds.Copy 
                 menuItem cmds.Cut
                 menuItem cmds.Paste
@@ -207,21 +210,20 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, log:Log) =
                 sep()
                 menuItem cmds.UnDo
                 menuItem cmds.ReDo
-                sep()
-                menuItem cmds.ExpandCode
-                menuItem cmds.CollapseCode
+                //sep()
                 ]
                 
         log.ReadOnlyEditor.ContextMenu <- 
             makeContextMenu [
-                menuItem cmds.Copy
-                menuItem cmds.ToggleLogSize
-                menuItem cmds.ToggleLogLineWrap
-                menuItem cmds.ToggleSplit
-                sep()
                 menuItem cmds.ClearLog
                 menuItem cmds.CancelFSI
                 menuItem cmds.ResetFSI
+                sep()
+                menuItem cmds.ToggleLogSize
+                menuItem cmds.ToggleSplit
+                menuItem cmds.ToggleLogLineWrap
+                sep()                
+                menuItem cmds.Copy
                 sep()
                 menuItem cmds.SaveLog
                 menuItem cmds.SaveLogSel
