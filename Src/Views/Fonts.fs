@@ -72,6 +72,7 @@ type Fonts (grid:TabsAndLog) = // will be contructed as part of Commands class
 
         //setEditor(fromRescources("Fira Code", "Consolas")) // too slow on big files, Cascadia Mono is just as bad
         setEditor(  FontFamily ("Consolas")|>> verifyFont)  // only consolas renders fast      
+        //setEditor(  FontFamily ("JetBrains Mono")|>> verifyFont)  // only consolas renders fast      
         setLog(     FontFamily ("Consolas")|>> verifyFont)  
         setToolTip( FontFamily ("Verdana") |>> verifyFont) // or FontFamily("Andale Mono")?
       
