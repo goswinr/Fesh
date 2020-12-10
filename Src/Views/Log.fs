@@ -301,7 +301,8 @@ type Log private () =
             } |> Async.StartImmediate 
     
     
-    /// adds string on UI thread  every 150ms then scrolls to end after 300ms
+    /// adds string on UI thread  every 150ms then scrolls to end after 300ms.
+    /// otipnally adds new line at end
     /// sets line color on LineColors dictionay for DocumentColorizingTransformer
     let printOrBuffer (txt:string, addNewLine:bool, typ:SolidColorBrush) =
         if stillLessThanMaxChars then 
@@ -444,6 +445,22 @@ type Log private () =
     member this.Print_CustomColor red green blue msg = 
         LogColors.lastCustom  <- new SolidColorBrush(Color.FromRgb(byte red, byte green, byte blue)) |> freeze
         Printf.kprintf (fun s -> printOrBuffer (s,false, LogColors.lastCustom ))  msg
+    
+    // for use from Seff.Rhino:
+
+    /// Change custom color to a RGB value ( each between 0 and 255) 
+    /// Then print without adding a new line at the end
+    member this.PrintDirektCustomColor red green blue s = 
+        LogColors.lastCustom  <- new SolidColorBrush(Color.FromRgb(byte red, byte green, byte blue)) |> freeze
+        printOrBuffer (s,false, LogColors.lastCustom )    
+       
+    /// Change custom color to a RGB value ( each between 0 and 255) 
+    /// Adds a new line at the end
+    member this.PrintDirektNlCustomColor red green blue s = 
+        LogColors.lastCustom  <- new SolidColorBrush(Color.FromRgb(byte red, byte green, byte blue)) |> freeze
+        printOrBuffer (s,true, LogColors.lastCustom ) 
+    
+    (*
 
     /// Print to the Log view in Red, then add New Line. Add a refrences to #r "PresentationCore"   
     member this.PrintRed msg = Printf.kprintf (fun s -> printOrBuffer (s,true, LogColors.red))  msg
@@ -452,7 +469,8 @@ type Log private () =
     /// Print to the Log view in Blue, then add New Line. Add a refrences to #r "PresentationCore"    
     member this.PrintBlue msg = Printf.kprintf (fun s -> printOrBuffer (s, true, LogColors.blue))  msg
 
-    (*
+
+    
     /// Print to the Log view in a custom Color, then add New Line. 
     /// using a System.Windows.Media.SolidColorBrush, add refrences to:
     /// #r "PresentationCore"
@@ -491,12 +509,12 @@ type Log private () =
         member this.PrintCustomBrush (br:SolidColorBrush) msg = this.PrintCustomBrush (br:SolidColorBrush) msg
         member this.PrintCustomColor red green blue msg =       this.PrintCustomColor red green blue msg
 
-                //without the new line:
+        //without the new line:
         member this.Print_InfoMsg     msg = Printf.kprintf (fun s -> printOrBuffer (s,false,LogColors.infoMsg      )) msg
         member this.Print_FsiErrorMsg msg = Printf.kprintf (fun s -> printOrBuffer (s,false,LogColors.fsiErrorMsg  )) msg
         member this.Print_AppErrorMsg msg = Printf.kprintf (fun s -> printOrBuffer (s,false,LogColors.appErrorMsg  )) msg
         member this.Print_IOErrorMsg  msg = Printf.kprintf (fun s -> printOrBuffer (s,false,LogColors.iOErrorMsg   )) msg  
-        member this.Print_DebugMsg    msg = Printf.kprintf (fun s -> printOrBuffer (s,false,LogColors.debugMsg     )) msg
+        member this.Print_DebugMsg    msg = Printf.kprintf (fun s -> printOrBuffer (s,false,LogColors.debugMsg     )) msg       
         member this.Print_Custom      msg = Printf.kprintf (fun s -> printOrBuffer (s,false,LogColors.lastCustom  )) msg    
         member this.Print_CustomBrush (br:SolidColorBrush) msg = 
             LogColors.lastCustom  <- br |> freeze
