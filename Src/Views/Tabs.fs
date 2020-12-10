@@ -130,14 +130,19 @@ type Tabs(config:Config, win:Window) =
     let closeTab(t:Tab)= 
         if askIfClosingTabIsOk(t) then 
             tabs.Items.Remove(t)            
-            config.OpenTabs.Save (t.FilePath , allFileInfos)//saving removed file, not added 
+            config.OpenTabs.Save (t.FilePath , allFileInfos) //saving removed file, not added 
     
     ///tab:Tab, makeCurrent, moreTabsToCome
     let addTab(tab:Tab, makeCurrent, moreTabsToCome) = 
         let ix = tabs.Items.Add tab        
         if makeCurrent then  
             tabs.SelectedIndex <- ix
-            current <-  tab        
+            current <-  tab            
+            // also close any tab that only has default code:
+            if tab.FilePath <> NotSet then 
+                let rems = allTabs  |> Seq.filter ( fun (t:Tab) -> t.FilePath = NotSet && t.IsCodeSaved=true ) |> Array.ofSeq // force enumeration                
+                for rem in rems do tabs.Items.Remove rem
+
         match tab.FilePath with 
         |SetTo fi -> 
             if moreTabsToCome then 
@@ -226,15 +231,10 @@ type Tabs(config:Config, win:Window) =
         //then set up events
         tabs.SelectionChanged.Add( fun _-> // triggered an all tabs on startup ???// when closing, opening or changing tabs  attach first so it will be triggered below when adding files
             if tabs.Items.Count = 0 then //  happens when closing the last open tab
-                let didOpen = openFile()
-                if not didOpen  then 
-                    win.Close() // exit App ? (chrome and edge also closes when closing the last tab, Visual Studio not)                
-                    // in case closing gets canceled via an event handler:
-                    if win.IsLoaded then 
-                        let t = new Tab(Editor.New(config))
-                        addTab(t, true, true) |> ignore 
-                else
-                    if tabs.Items.Count = 0 then log.PrintAppErrorMsg "If no tab is open Window should be closed !!"
+                
+                //create new tab
+                addTab(new Tab(Editor.New(config)), true, false)                
+
             else
                 let tab = 
                     if isNull tabs.SelectedItem then tabs.Items.[0] //log.PrintAppErrorMsg "Tabs SelectionChanged handler: there was no tab selected by default" //  does happen 

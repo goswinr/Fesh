@@ -55,11 +55,17 @@ type Tab (editor:Editor) =
             textBlock.Text          <- fi.Name + "*"
             textBlock.Foreground    <- Brushes.DarkRed
             headerShowsSaved        <- false
-        |NotSet,_    -> 
-            textBlock.ToolTip      <- "This file has not yet been saved to disk."
-            textBlock.Text         <- sprintf "*unsaved-%d*" Counter.UnsavedFile  
+        |NotSet,true    -> 
+            textBlock.ToolTip      <- "This file just shows the default code for every new file."
+            textBlock.Text         <- sprintf "-unsaved-%d-" Counter.UnsavedFile  
             textBlock.Foreground   <- Brushes.Gray
+            headerShowsSaved       <- true
+        |NotSet,false    -> 
+            textBlock.ToolTip      <- "This file has not yet been saved to disk."
+            if not ( textBlock.Text.EndsWith "*") then textBlock.Text <- textBlock.Text + "*"
+            textBlock.Foreground   <- Brushes.DarkRed
             headerShowsSaved       <- false
+
      
     let upadteIsCodeCaved(isSaved)=
         isCodeSaved <- isSaved
@@ -77,7 +83,7 @@ type Tab (editor:Editor) =
         //base.BorderBrush <- Brushes.Blue            // don't messes it all up 
         //base.Margin <- Thickness(3., 0. , 0. , 0.)  //left ,top, right, bottom) // don't messes it all up 
         setHeader()        
-        editor.AvaEdit.TextChanged.Add(fun _ ->upadteIsCodeCaved(false)) 
+        editor.AvaEdit.TextChanged.Add(fun _ -> upadteIsCodeCaved(false)) 
 
     member this.IsCodeSaved 
         with get()       = isCodeSaved 
