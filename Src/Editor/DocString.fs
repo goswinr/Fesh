@@ -15,7 +15,7 @@ open System.Text.RegularExpressions
 open FSharp.Compiler.SourceCodeServices
 
 
-/// taken and adapeted from FsAutoComplete
+/// taken and adapeted from FsAutoComplete in 2019
 module DocString =
 
     module private Section =
@@ -148,7 +148,7 @@ module DocString =
              else nl + nl + "Exceptions:" + nl +
                     (exceptions |> Seq.map (fun kv -> "\t" + "`" + snd kv.Key + "`" + ": " + kv.Value) |> String.concat nl))
 
-        member __.ToEnhancedString() =
+        member __.ToFullEnhancedString() =
             "" // "**Description**" + nl + nl  //original markdown
             + summary
             + Section.fromList "" remarks
@@ -263,11 +263,11 @@ module DocString =
                     let typeDoc =
                         match typeDoc with
                         | Some s when doc.ContainsKey s ->
-                            if isEnhanced then doc.[s].ToEnhancedString() else string doc.[s]
+                            if isEnhanced then doc.[s].ToFullEnhancedString() else string doc.[s]
                         | _ -> ""
                     let typeDoc = typeDoc.Replace("**Description**", "**Type Description**")
                     if isEnhanced then
-                        doc.[memberName].ToEnhancedString() + (if typeDoc <> "" then "\n\n" + typeDoc else "")
+                        doc.[memberName].ToFullEnhancedString() + (if typeDoc <> "" then "\n\n" + typeDoc else "")
                     else
                         string doc.[memberName] + (if typeDoc <> "" then "\n\n" + typeDoc else "")
                 else 

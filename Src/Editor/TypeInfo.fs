@@ -99,6 +99,15 @@ type TypeInfo private () =
     // Seff Formatting of tool-tip information displayed in F# IntelliSense
     // --------------------------------------------------------------------------------------
     
+    
+    static let unEscapeXml(txt:string) =
+         txt.Replace("&lt;"   ,"<" )
+            .Replace("&gt;"   ,">" )
+            .Replace("&quot;" ,"\"")
+            .Replace("&apos;" ,"'" )
+            .Replace("&amp;"  ,"&" )    
+    
+
     static let buildFormatComment (cmt:FSharpXmlDoc) =
         match cmt with
         | FSharpXmlDoc.Text s -> Ok (s,"") // "plain text Doc: \r\n" + s
@@ -106,10 +115,10 @@ type TypeInfo private () =
         | FSharpXmlDoc.XmlDocFileSignature(dllFile, memberName) ->
            match DocString.getXmlDoc dllFile with
            | Some doc ->
-                if doc.ContainsKey memberName then 
-                    let docText = doc.[memberName].ToEnhancedString()
-                    //let docText =  doc.[memberName].ToString()
-                    Ok (docText  , dllFile)
+                if doc.ContainsKey memberName then
+                    let docText = doc.[memberName].ToFullEnhancedString() 
+                    let unEscDocText = unEscapeXml docText
+                    Ok (unEscDocText  , dllFile)
                 else 
                     let xmlf = Path.ChangeExtension(dllFile, ".xml")
                     let err = "no xml doc found for member'"+memberName+"' in \r\n"+xmlf+"\r\n"
