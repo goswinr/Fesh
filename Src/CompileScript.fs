@@ -11,6 +11,7 @@ open Seff.Config
 open Seff.Util
 open System.Windows.Media
 open System.Drawing
+open System.Windows.Forms
 
 
 
@@ -106,15 +107,32 @@ module CompileScript =
                         refs.Add(name, "", true) // for BCL dlls of the  .Net framework
         refs
                 
-    let mutable version = "0.0.0.1"
+    let mutable version = "0.1.0.0" // TODO find way to increment
+
+    //if last write is more than 1h agao ask for overwrite permissions
+    let overWriteExisting fsProj =
+        let maxAgeHours = 1.0
+        let fi = FileInfo(fsProj)
+        if fi.Exists then             
+            let age = DateTime.UtcNow - fi.LastWriteTimeUtc
+            if age > (TimeSpan.FromHours maxAgeHours) then
+                let msg = sprintf "Do you want to recompile and overwrite the existing files?\r\n\r\n%s\r\n\r\nthat are %.1f days old?\r\n\r\n(This dialog only shows if the last compilation was more than %.1f hours ago.)"fi.FullName age.TotalDays  maxAgeHours              
+                match MessageBox.Show(msg, Style.dialogCaption, MessageBoxButtons.YesNo, MessageBoxIcon.Exclamation, MessageBoxDefaultButton.Button2) with                
+                | DialogResult.Yes-> true
+                | DialogResult.No-> false
+                | _ -> false 
+            else
+                true
+        else
+            true
+
 
     let createFsproj(code, fp:FilePath, log:ISeffLog, copyDlls) =
         match fp with 
         | NotSet -> log.PrintAppErrorMsg "Cannot compile an unsaved script save it first"
         |SetTo fi ->
             async{
-                log.PrintInfoMsg "compiling %s ..." fi.Name
-                let version = "0.0.0.1"
+                log.PrintInfoMsg "compiling %s ..." fi.Name                
                 let name = fi.Name.Replace(".fsx","")
                 let nameSpace = name |> toCamelCase |> up1
                 let projFolder = IO.Path.Combine(fi.DirectoryName,name) 
@@ -122,45 +140,46 @@ module CompileScript =
                 if libFolder<>"" then  IO.Directory.CreateDirectory(libFolder)  |> ignore 
                 IO.Directory.CreateDirectory(projFolder)  |> ignore            
                 let fsProj = IO.Path.Combine(projFolder,nameSpace + ".fsproj")
-                let fsxName = nameSpace + ".fsx"
-                let fsxPath = IO.Path.Combine(projFolder,fsxName)
-                IO.File.WriteAllText(fsxPath,code)
-                let refs = 
-                    getRefs (code ,libFolder,log)
-                    |> Seq.map getRefXml
-                    |> String.concat Environment.NewLine
-                baseXml
-                |> replace "        " "" //cler white space at beginning of lines
-                |> replace "rootNamespace" nameSpace
-                |> replace "assemblyName" nameSpace
-                |> replace "9.7.8.6.5.1" version
-                |> replace "9.7.8.6.5.2" version
-                |> replace "9.7.8.6.5.3" version
-                |> replace "<!--references-->" refs
-                |> replace "pathToFsx" fsxName
-                |> fun s -> 
-                    IO.File.WriteAllText(fsProj,s,Text.Encoding.UTF8)
-                    log.PrintInfoMsg "project created at %s\r\nstarting dotnet build ..." fsProj
-                    //https://stackoverflow.com/questions/1145969/processinfo-and-redirectstandardoutput
-                    let p = new System.Diagnostics.Process()
-                    p.EnableRaisingEvents <- true
-                    p.StartInfo.FileName <- "dotnet"
-                    let fsProjinQuotes = "\"" + fsProj + "\"" 
-                    p.StartInfo.Arguments <- String.concat " " ["build"; fsProjinQuotes;  "--configuration Debug"]
-                    log.PrintCustomColor 0 0 200 "%s %s" p.StartInfo.FileName p.StartInfo.Arguments
-                    p.StartInfo.UseShellExecute <- false
-                    p.StartInfo.CreateNoWindow <- true //true if the process should be started without creating a new window to contain it
-                    p.StartInfo.RedirectStandardError <-true
-                    p.StartInfo.RedirectStandardOutput <-true
-                    p.OutputDataReceived.Add ( fun d -> log.PrintCustomColor 50 150 0 "%s" d.Data)
-                    p.ErrorDataReceived.Add (  fun d -> log.PrintAppErrorMsg "%s" d.Data)               
-                    p.Exited.Add( fun _ -> log.PrintInfoMsg  "Build finnished!")
-                    p.Start() |> ignore
-                    p.BeginOutputReadLine()
-                    p.BeginErrorReadLine()
-                    //log.PrintInfoMsg "compiling to %s" (IO.Path.Combine(projFolder,"bin","Release","netstandard2.0",nameSpace+".dll")) 
-                    p.WaitForExit()
-                    } |> Async.Start
+                if overWriteExisting fsProj then 
+                    let fsxName = nameSpace + ".fsx"
+                    let fsxPath = IO.Path.Combine(projFolder,fsxName)
+                    IO.File.WriteAllText(fsxPath,code)
+                    let refs = 
+                        getRefs (code ,libFolder,log)
+                        |> Seq.map getRefXml
+                        |> String.concat Environment.NewLine
+                    baseXml
+                    |> replace "        " "" //cler white space at beginning of lines
+                    |> replace "rootNamespace" nameSpace
+                    |> replace "assemblyName" nameSpace
+                    |> replace "9.7.8.6.5.1" version
+                    |> replace "9.7.8.6.5.2" version
+                    |> replace "9.7.8.6.5.3" version
+                    |> replace "<!--references-->" refs
+                    |> replace "pathToFsx" fsxName
+                    |> fun s -> 
+                        IO.File.WriteAllText(fsProj,s,Text.Encoding.UTF8)
+                        log.PrintInfoMsg "project created at %s\r\nstarting dotnet build ..." fsProj
+                        //https://stackoverflow.com/questions/1145969/processinfo-and-redirectstandardoutput
+                        let p = new System.Diagnostics.Process()
+                        p.EnableRaisingEvents <- true
+                        p.StartInfo.FileName <- "dotnet"
+                        let fsProjinQuotes = "\"" + fsProj + "\"" 
+                        p.StartInfo.Arguments <- String.concat " " ["build"; fsProjinQuotes;  "--configuration Debug"]
+                        log.PrintCustomColor 0 0 200 "%s %s" p.StartInfo.FileName p.StartInfo.Arguments
+                        p.StartInfo.UseShellExecute <- false
+                        p.StartInfo.CreateNoWindow <- true //true if the process should be started without creating a new window to contain it
+                        p.StartInfo.RedirectStandardError <-true
+                        p.StartInfo.RedirectStandardOutput <-true
+                        p.OutputDataReceived.Add ( fun d -> log.PrintCustomColor 50 150 0 "%s" d.Data)
+                        p.ErrorDataReceived.Add (  fun d -> log.PrintAppErrorMsg "%s" d.Data)               
+                        p.Exited.Add( fun _ -> log.PrintInfoMsg  "Build finnished!")
+                        p.Start() |> ignore
+                        p.BeginOutputReadLine()
+                        p.BeginErrorReadLine()
+                        //log.PrintInfoMsg "compiling to %s" (IO.Path.Combine(projFolder,"bin","Release","netstandard2.0",nameSpace+".dll")) 
+                        p.WaitForExit()
+                        } |> Async.Start
 
 
            
