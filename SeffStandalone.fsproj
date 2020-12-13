@@ -82,6 +82,7 @@
     
     <Compile Include="Src/Editor/Commenting.fs" />
     <Compile Include="Src/Editor/CursorBehaviour.fs" />
+    <Compile Include="Src/Editor/DocStringNew.fs" />
     <Compile Include="Src/Editor/DocString.fs" />
     <Compile Include="Src/Editor/SyntaxHighlighting.fs" />
     <Compile Include="Src/Editor/ErrorHighlighter.fs" />
