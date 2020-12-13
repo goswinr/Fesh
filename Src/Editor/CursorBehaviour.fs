@@ -127,8 +127,8 @@ module CursorBehaviour  =
 
                 
             try
-                let insertColor = Brushes.DarkGreen
-                insertColor.Freeze()
+                let printGreen = ed.Log.PrintCustomColor 0 150 0
+               
 
                 let fs = (e.Data.GetData DataFormats.FileDrop :?> string []) |> Array.sort |> Array.rev // to get file path 
                 if fs.Length > 2 && Array.forall isDll fs then      // TODO make path relatriv to script location    
@@ -145,12 +145,12 @@ module CursorBehaviour  =
                             let txt = sprintf "#r @\"%s\"\r\n" f
                             avaEdit.Document.Insert (0, txt )
                             ed.Log.PrintInfoMsg "Drag & Drop inserted at Line 0:"
-                            ed.Log.PrintCustomBrush insertColor "  %s" txt
+                            printGreen "  %s" txt
                         elif isFsx f  then
                             let txt = sprintf "#load @\"%s\"\r\n" f
                             avaEdit.Document.Insert (0, txt)                            
                             ed.Log.PrintInfoMsg "Drag & Drop inserted at Line 0:" 
-                            ed.Log.PrintCustomBrush insertColor "  %s" txt
+                            printGreen "  %s" txt
                         else 
                             match findInsertion avaEdit.Document.Text with 
                             | Some p -> 
@@ -162,19 +162,19 @@ module CursorBehaviour  =
                                     let st = String(' ',spacesAtStart line)                                    
                                     avaEdit.Document.Insert (p.offset , sprintf "@\"%s\"%s%s//" f Environment.NewLine st ) 
                                     ed.Log.PrintInfoMsg "Drag & Drop inserted at Line %d:" p.line 
-                                    ed.Log.PrintCustomBrush insertColor "  %s" f
+                                    printGreen "  %s" f
                                     ed.Log.PrintInfoMsg "  Previous Line at that position is commented out below:"
                                     ed.Log.PrintCustomColor 120 120 120 "  %s" prev
                                 else
                                     avaEdit.Document.Insert (p.offset , sprintf "@\"%s\" //" f )
                                     ed.Log.PrintInfoMsg "Drag & Drop inserted at Line %d:" lnNo.LineNumber
-                                    ed.Log.PrintCustomBrush insertColor "  %s" f
+                                    printGreen "  %s" f
                                     ed.Log.PrintInfoMsg "  Previous Line content is commented out:" 
                                     ed.Log.PrintCustomColor 120 120 120  "  %s" prev
                             | None ->   
                                 let lnNo = avaEdit.Document.GetLineByOffset(avaEdit.CaretOffset)
                                 ed.Log.PrintInfoMsg "Drag & Drop inserted at Line %d:" lnNo.LineNumber
-                                ed.Log.PrintCustomBrush insertColor "  %s" f
+                                printGreen "  %s" f
                                 avaEdit.Document.Insert (avaEdit.CaretOffset , sprintf " @\"%s\"%s" f Environment.NewLine)
                             
             with e -> log.PrintIOErrorMsg "drag and drop failed: %A" e

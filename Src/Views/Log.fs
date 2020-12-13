@@ -33,7 +33,15 @@ module LogColors =
     let green         = Brushes.Green                   |> freeze
     let blue          = Brushes.Blue                    |> freeze
 
-    let mutable lastCustom     = Brushes.Black        |> freeze    
+    let mutable customColor     = Brushes.Black        |> freeze   
+    
+    let setcustomColor(red,green,blue) = 
+        let r = byte red
+        let g = byte green
+        let b = byte blue
+        let col = customColor.Color
+        if col.R <> r || col.G <> g || col.B <> b then // only chnage if different
+            customColor  <- freeze (new SolidColorBrush(Color.FromRgb(r,g,b)))  
    
 
 /// describes the position in text where a new color starts
@@ -381,7 +389,7 @@ type Log private () =
         prevMsgType <- null
         stillLessThanMaxChars <- true
         offsetColors.Clear()
-        //LogColors.lastCustom <- null // or remeber it
+        LogColors.customColor <- Brushes.Black        |> freeze     // or remeber it?
         offsetColors.Add {off = -1 ; brush=null} //TODO use -1 instead? // null check done in  this.ColorizeLine(line:AvalonEdit.Document.DocumentLine) .. 
         log.TextArea.TextView.linesCollapsedVisualPosOffThrowCount <- 0 // custom property in Avalonedit to avoid throwing too many exceptions. set 0 so exceptions appear again
         GlobalErrorHandeling.throwCount <- 0 // set 0 so exceptions appear again
@@ -401,20 +409,22 @@ type Log private () =
     
     /// Print using the Brush or color provided 
     /// at last custom printing call via PrintCustomBrush or PrintCustomColor 
-    member this.PrintCustom s = Printf.kprintf (fun s -> printOrBuffer (s, true, LogColors.lastCustom ))  s       
+    member this.PrintCustom s = Printf.kprintf (fun s -> printOrBuffer (s, true, LogColors.customColor ))  s       
     
+    (*
     /// Change custom color to a new SolidColorBrush (e.g. from System.Windows.Media.Brushes)
     /// This will also freeze the Brush.
     /// Then print 
     member this.PrintCustomBrush (br:SolidColorBrush) msg = 
-        LogColors.lastCustom  <- br |> freeze
-        Printf.kprintf (fun s -> printOrBuffer (s,true, LogColors.lastCustom ))  msg
+        LogColors.customColor  <- br |> freeze
+        Printf.kprintf (fun s -> printOrBuffer (s,true, LogColors.customColor ))  msg
+    *)
     
     /// Change custom color to a RGB value ( each between 0 and 255) 
     /// Then print 
     member this.PrintCustomColor red green blue msg = 
-        LogColors.lastCustom  <- new SolidColorBrush(Color.FromRgb(byte red, byte green, byte blue)) |> freeze
-        Printf.kprintf (fun s -> printOrBuffer (s,true, LogColors.lastCustom ))  msg
+        LogColors.setcustomColor (red,green,blue)
+        Printf.kprintf (fun s -> printOrBuffer (s,true, LogColors.customColor ))  msg
     
 
     member this.Print_InfoMsg  msg = Printf.kprintf (fun s -> printOrBuffer (s,false, LogColors.infoMsg ))  msg
@@ -431,34 +441,36 @@ type Log private () =
     /// Print using the Brush or color provided 
     /// at last custom printing call via PrintCustomBrush or PrintCustomColor 
     /// without adding a new line at the end
-    member this.Print_Custom msg = Printf.kprintf (fun s -> printOrBuffer (s, false, LogColors.lastCustom ))  msg
-            
+    member this.Print_Custom msg = Printf.kprintf (fun s -> printOrBuffer (s, false, LogColors.customColor ))  msg
+    
+    (*
     /// Change custom color to a new SolidColorBrush (e.g. from System.Windows.Media.Brushes)
     /// This will also freeze the Brush.
     /// Then print without adding a new line at the end
     member this.Print_CustomBrush (br:SolidColorBrush) msg = 
-        LogColors.lastCustom  <- br |> freeze
-        Printf.kprintf (fun s -> printOrBuffer (s,false, LogColors.lastCustom ))  msg
-    
+        LogColors.customColor  <- br |> freeze
+        Printf.kprintf (fun s -> printOrBuffer (s,false, LogColors.customColor ))  msg
+    *)
+
     /// Change custom color to a RGB value ( each between 0 and 255) 
     /// Then print without adding a new line at the end
     member this.Print_CustomColor red green blue msg = 
-        LogColors.lastCustom  <- new SolidColorBrush(Color.FromRgb(byte red, byte green, byte blue)) |> freeze
-        Printf.kprintf (fun s -> printOrBuffer (s,false, LogColors.lastCustom ))  msg
+        LogColors.setcustomColor (red,green,blue)
+        Printf.kprintf (fun s -> printOrBuffer (s,false, LogColors.customColor ))  msg
     
     // for use from Seff.Rhino:
 
     /// Change custom color to a RGB value ( each between 0 and 255) 
     /// Then print without adding a new line at the end
     member this.PrintDirektCustomColor red green blue s = 
-        LogColors.lastCustom  <- new SolidColorBrush(Color.FromRgb(byte red, byte green, byte blue)) |> freeze
-        printOrBuffer (s,false, LogColors.lastCustom )    
+        LogColors.setcustomColor (red,green,blue)
+        printOrBuffer (s,false, LogColors.customColor )    
        
     /// Change custom color to a RGB value ( each between 0 and 255) 
     /// Adds a new line at the end
     member this.PrintDirektNlCustomColor red green blue s = 
-        LogColors.lastCustom  <- new SolidColorBrush(Color.FromRgb(byte red, byte green, byte blue)) |> freeze
-        printOrBuffer (s,true, LogColors.lastCustom ) 
+        LogColors.setcustomColor (red,green,blue)
+        printOrBuffer (s,true, LogColors.customColor ) 
     
     (*
 
@@ -505,8 +517,8 @@ type Log private () =
         member this.PrintAppErrorMsg msg = Printf.kprintf (fun s -> printOrBuffer (s,true,LogColors.appErrorMsg  )) msg
         member this.PrintIOErrorMsg  msg = Printf.kprintf (fun s -> printOrBuffer (s,true,LogColors.iOErrorMsg   )) msg  
         member this.PrintDebugMsg    msg = Printf.kprintf (fun s -> printOrBuffer (s,true,LogColors.debugMsg     )) msg
-        member this.PrintCustom      msg = Printf.kprintf (fun s -> printOrBuffer (s,true, LogColors.lastCustom  )) msg
-        member this.PrintCustomBrush (br:SolidColorBrush) msg = this.PrintCustomBrush (br:SolidColorBrush) msg
+        member this.PrintCustom      msg = Printf.kprintf (fun s -> printOrBuffer (s,true, LogColors.customColor  )) msg
+        //member this.PrintCustomBrush (br:SolidColorBrush) msg = this.PrintCustomBrush (br:SolidColorBrush) msg
         member this.PrintCustomColor red green blue msg =       this.PrintCustomColor red green blue msg
 
         //without the new line:
@@ -515,13 +527,13 @@ type Log private () =
         member this.Print_AppErrorMsg msg = Printf.kprintf (fun s -> printOrBuffer (s,false,LogColors.appErrorMsg  )) msg
         member this.Print_IOErrorMsg  msg = Printf.kprintf (fun s -> printOrBuffer (s,false,LogColors.iOErrorMsg   )) msg  
         member this.Print_DebugMsg    msg = Printf.kprintf (fun s -> printOrBuffer (s,false,LogColors.debugMsg     )) msg       
-        member this.Print_Custom      msg = Printf.kprintf (fun s -> printOrBuffer (s,false,LogColors.lastCustom  )) msg    
-        member this.Print_CustomBrush (br:SolidColorBrush) msg = 
-            LogColors.lastCustom  <- br |> freeze
-            Printf.kprintf (fun s -> printOrBuffer (s,false, LogColors.lastCustom ))  msg
+        member this.Print_Custom      msg = Printf.kprintf (fun s -> printOrBuffer (s,false,LogColors.customColor  )) msg    
+        //member this.Print_CustomBrush (br:SolidColorBrush) msg = 
+        //    LogColors.customColor  <- br |> freeze
+        //    Printf.kprintf (fun s -> printOrBuffer (s,false, LogColors.customColor ))  msg
         member this.Print_CustomColor red green blue msg =  
-            LogColors.lastCustom  <- new SolidColorBrush(Color.FromRgb(byte red, byte green, byte blue)) |> freeze
-            Printf.kprintf (fun s -> printOrBuffer (s,false, LogColors.lastCustom ))  msg
+            LogColors.setcustomColor (red,green,blue)
+            Printf.kprintf (fun s -> printOrBuffer (s,false, LogColors.customColor ))  msg
 
     
     member this.SaveAllText (pathHint: FilePath) = 

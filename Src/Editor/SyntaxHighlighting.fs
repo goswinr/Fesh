@@ -47,7 +47,7 @@ module SyntaxHighlighting =
                     p.StartInfo.FileName <- "code"
                     let inQuotes = "\"" + filePath + "\"" 
                     p.StartInfo.Arguments <- String.concat " " [inQuotes;  "--reuse-window"]
-                    log.PrintCustomBrush Media.Brushes.DarkBlue "command:\r\n%s %s" p.StartInfo.FileName p.StartInfo.Arguments
+                    log.PrintCustomColor 0 0 200 "command:\r\n%s %s" p.StartInfo.FileName p.StartInfo.Arguments
                     //p.StartInfo.UseShellExecute <- false
                     //p.StartInfo.CreateNoWindow <- true //true if the process should be started without creating a new window to contain it
                     //p.StartInfo.RedirectStandardError <-true

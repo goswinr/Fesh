@@ -134,7 +134,7 @@ type Fsi private (config:Config) =
                 isReadyEv.Trigger()
                 } |> Async.Start
     
-    let blue = let bl = Brushes.Blue in bl.Freeze() ; bl
+
 
     [< Security.SecurityCritical >] // TODO do these Attributes appy in to async thread too ?
     [< Runtime.ExceptionServices.HandleProcessCorruptedStateExceptions >] //to handle AccessViolationException too //https://stackoverflow.com/questions/3469368/how-to-handle-accessviolationexception/4759831
@@ -221,7 +221,7 @@ type Fsi private (config:Config) =
                                         "  E.G. as a dependency from a already loaded dll."
                                 log.PrintFsiErrorMsg "%A" e
                             if postMsg <> "" then 
-                                log.PrintCustomBrush blue "%s" postMsg
+                                log.PrintCustomColor 0 0 200 "%s" postMsg
 
                         | _ ->    
                             runtimeErrorEv.Trigger(exn)
@@ -236,7 +236,7 @@ type Fsi private (config:Config) =
                             else
                                 let ln,rr = String.splitOnce "\r\n" r                        
                                 log.Print_FsiErrorMsg "%s.fsx:" t
-                                log.PrintCustomBrush blue "%s" ln
+                                log.PrintCustomColor 0 0 200 "%s" ln
                                 log.PrintFsiErrorMsg "%s" rr
                               
                     } 

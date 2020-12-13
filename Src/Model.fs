@@ -22,10 +22,12 @@ type ISeffLog =
     /// Print using the Brush or color provided 
     /// at last custom printing call via PrintCustomBrush or PrintCustomColor 
     abstract member PrintCustom     : Printf.StringFormat<'T,unit> -> 'T
-    /// Change custom color to a new SolidColorBrush (e.g. from System.Windows.Media.Brushes)
-    /// This will also freeze the Brush.
-    /// Then print 
-    abstract member PrintCustomBrush : SolidColorBrush -> Printf.StringFormat<'T,unit> -> 'T 
+
+        // Change custom color to a new SolidColorBrush (e.g. from System.Windows.Media.Brushes)
+        // This will also freeze the Brush.
+        // Then print 
+        //abstract member PrintCustomBrush : SolidColorBrush -> Printf.StringFormat<'T,unit> -> 'T 
+
     /// Change custom color to a RGB value ( each between 0 and 255) 
     /// Then print 
     abstract member PrintCustomColor : int ->  int ->  int ->  Printf.StringFormat<'T,unit> -> 'T 
@@ -46,10 +48,12 @@ type ISeffLog =
     /// at last custom printing call via PrintCustomBrush or PrintCustomColor 
     /// without adding a new line at the end
     abstract member Print_Custom : Printf.StringFormat<'T,unit> -> 'T
-    /// Change custom color to a new SolidColorBrush (e.g. from System.Windows.Media.Brushes)
-    /// This will also freeze the Brush.
-    /// Then print without adding a new line at the end
-    abstract member Print_CustomBrush : SolidColorBrush -> Printf.StringFormat<'T,unit> -> 'T 
+
+            // Change custom color to a new SolidColorBrush (e.g. from System.Windows.Media.Brushes)
+            // This will also freeze the Brush.
+            // Then print without adding a new line at the end
+            //abstract member Print_CustomBrush : SolidColorBrush -> Printf.StringFormat<'T,unit> -> 'T 
+
     /// Change custom color to a RGB value ( each between 0 and 255) 
     /// Then print without adding a new line at the end
     abstract member Print_CustomColor : int ->  int ->  int ->  Printf.StringFormat<'T,unit> -> 'T 
