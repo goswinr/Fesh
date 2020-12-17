@@ -8,6 +8,8 @@ open Seff.Util.String
 open System.Windows
 open System
 open System.Windows.Media
+open ICSharpCode.AvalonEdit.Editing
+open ICSharpCode.AvalonEdit.Document
 
 module CursorBehaviour  =
     
@@ -31,8 +33,11 @@ module CursorBehaviour  =
             avaEdit.Document.Insert(avaEdit.TextArea.Caret.Offset, tx)
         else 
             avaEdit.Document.BeginUpdate()
+            let mutable shift = 0
             for seg in avaEdit.TextArea.Selection.Segments do
-                avaEdit.Document.Replace(seg, tx)
+                let segShifted = new SelectionSegment(seg.StartOffset+shift, seg.EndOffset+shift)
+                avaEdit.Document.Replace(segShifted, tx) // becaus the next segment will not be correcty anymore after this insert
+                shift <- shift - seg.Length + tx.Length
             avaEdit.Document.EndUpdate()
 
     let previewTextInput(avaEdit:TextEditor, e:Input.TextCompositionEventArgs) = 
@@ -63,47 +68,60 @@ module CursorBehaviour  =
 
         match e.Key with
         /// Removes 4 charactes (Options.IndentationSize) on pressing backspace key instead of one 
-        |Input.Key.Back ->
-            let line = avaEdit.Document.GetText(avaEdit.Document.GetLineByOffset(avaEdit.CaretOffset)) // = get current line
-            let car = avaEdit.TextArea.Caret.Column
-            let prevC = line.Substring(0 ,car-1)
-            //log.PrintDebugMsg "--Substring length %d: '%s'" prevC.Length prevC
-            if prevC.Length > 0 && avaEdit.TextArea.Selection.IsEmpty then //TODO or also use to replace selected text ??
-                if isJustSpaceCharsOrEmpty prevC  then
-                    let dist = prevC.Length % avaEdit.Options.IndentationSize
-                    let clearCount = if dist = 0 then avaEdit.Options.IndentationSize else dist
-                    //log.PrintDebugMsg "--Clear length: %d " clearCount
-                    avaEdit.Document.Remove(avaEdit.CaretOffset - clearCount, clearCount)
+        |Input.Key.Back -> 
+            if avaEdit.SelectionLength = 0 then // TODO what happens if there is a selction ??
+                let line = avaEdit.Document.GetText(avaEdit.Document.GetLineByOffset(avaEdit.CaretOffset)) // = get current line
+                let car = avaEdit.TextArea.Caret.Column
+                let prevC = line.Substring(0 ,car-1)
+                //log.PrintDebugMsg "--Substring length %d: '%s'" prevC.Length prevC
+                if prevC.Length > 0 && avaEdit.TextArea.Selection.IsEmpty then //TODO or also use to replace selected text ??
+                    if isJustSpaceCharsOrEmpty prevC  then
+                        let dist = prevC.Length % avaEdit.Options.IndentationSize
+                        let clearCount = if dist = 0 then avaEdit.Options.IndentationSize else dist
+                        //log.PrintDebugMsg "--Clear length: %d " clearCount
+                        avaEdit.Document.Remove(avaEdit.CaretOffset - clearCount, clearCount)
+                        e.Handled <- true // to not actually delete one char
+        
+        /// Removes rest of line too if only whitespacxe
+        |Input.Key.Delete ->
+            if avaEdit.SelectionLength = 0 then // TODO what happens if there is a selction ??
+                let line = avaEdit.Document.GetLineByOffset(avaEdit.CaretOffset) // = get current line 
+                let len = line.EndOffset - avaEdit.CaretOffset
+                let txt = avaEdit.Document.GetText(avaEdit.CaretOffset,len)
+                if isJustSpaceCharsOrEmpty txt  then
+                    avaEdit.Document.Remove(avaEdit.CaretOffset, line.EndOffset - avaEdit.CaretOffset + 2 ) // + 2 for \r\n
                     e.Handled <- true // to not actually delete one char
+
 
         // add indent after do, for , ->, =
         |Input.Key.Return ->
-            let caret = avaEdit.CaretOffset
-            let line = avaEdit.Document.GetLineByOffset(caret)            
-            let txt = avaEdit.Document.GetText(line) // = get current line
-            let caretPosInLine = caret - line.Offset
-            let isCaretAtEnd = String.IsNullOrWhiteSpace (txt.[caretPosInLine .. line.EndOffset]) // ensure caret is at end off line !
-            //log.PrintDebugMsg "line:%s" txt
-            //log.PrintDebugMsg "caretPosInLine:%d isCaretAtEnd:%b" caretPosInLine isCaretAtEnd
-            let trimmed = txt.TrimEnd()
-            if isCaretAtEnd && avaEdit.TextArea.Selection.IsEmpty then //TODO or also use to replace selected text ??
-                if     trimmed.EndsWith " do"
-                    || trimmed.EndsWith " then"
-                    || trimmed.EndsWith " else"
-                    || trimmed.EndsWith "="
-                    || trimmed.EndsWith "("
-                    || trimmed.EndsWith "["
-                    || trimmed.EndsWith "{"
-                    || trimmed.EndsWith "[|"
-                    || trimmed.EndsWith "->" then                    
-                        let st = spacesAtStart trimmed
-                        let rem = st % avaEdit.Options.IndentationSize
-                        let ind = 
-                            if rem  = 0 then  st + avaEdit.Options.IndentationSize // enure new indent is a multiple of avaEdit.Options.IndentationSize
-                            elif rem = 1 then st + avaEdit.Options.IndentationSize + avaEdit.Options.IndentationSize - 1 // to indent always at leat 2 chars
-                            else              st + avaEdit.Options.IndentationSize - rem
-                        avaEdit.Document.Insert(avaEdit.CaretOffset, " " + Environment.NewLine + String(' ',ind)) // add space before too for nice position of folding block
-                        e.Handled <- true // to not actually add anothe new line
+            if avaEdit.SelectionLength = 0 then // TODO what happens if there is a selction ??
+                let caret = avaEdit.CaretOffset
+                let line = avaEdit.Document.GetLineByOffset(caret)            
+                let txt = avaEdit.Document.GetText(line) // = get current line
+                let caretPosInLine = caret - line.Offset
+                let isCaretAtEnd = String.IsNullOrWhiteSpace (txt.[caretPosInLine .. line.EndOffset]) // ensure caret is at end off line !
+                //log.PrintDebugMsg "line:%s" txt
+                //log.PrintDebugMsg "caretPosInLine:%d isCaretAtEnd:%b" caretPosInLine isCaretAtEnd
+                let trimmed = txt.TrimEnd()
+                if isCaretAtEnd && avaEdit.TextArea.Selection.IsEmpty then //TODO or also use to replace selected text ??
+                    if     trimmed.EndsWith " do"
+                        || trimmed.EndsWith " then"
+                        || trimmed.EndsWith " else"
+                        || trimmed.EndsWith "="
+                        || trimmed.EndsWith "("
+                        || trimmed.EndsWith "["
+                        || trimmed.EndsWith "{"
+                        || trimmed.EndsWith "[|"
+                        || trimmed.EndsWith "->" then                    
+                            let st = spacesAtStart trimmed
+                            let rem = st % avaEdit.Options.IndentationSize
+                            let ind = 
+                                if rem  = 0 then  st + avaEdit.Options.IndentationSize // enure new indent is a multiple of avaEdit.Options.IndentationSize
+                                elif rem = 1 then st + avaEdit.Options.IndentationSize + avaEdit.Options.IndentationSize - 1 // to indent always at leat 2 chars
+                                else              st + avaEdit.Options.IndentationSize - rem
+                            avaEdit.Document.Insert(avaEdit.CaretOffset, " " + Environment.NewLine + String(' ',ind)) // add space before too for nice position of folding block
+                            e.Handled <- true // to not actually add anothe new line
 
         | _ -> ()
 
