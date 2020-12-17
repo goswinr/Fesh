@@ -153,7 +153,8 @@ type Completions(avaEdit:TextEditor,config:Config, checker:Checker, errorHighlig
     /// retuns "loading" text and triggers async computation to get and update with actual text 
     member this.GetToolTip(it:FSharpDeclarationListItem)= 
         async{
-            #if FCS33
+            
+            #if HOSTED
             let raw = it.StructuredDescriptionText //FCS 33.0.1
             #else
             let! raw = it.StructuredDescriptionTextAsync //FCS 37.0.0 +

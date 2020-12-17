@@ -3,27 +3,31 @@
   <PropertyGroup>
     <OutputType>Library</OutputType>
     <UseWPF>true</UseWPF>
-    <TargetFramework>net472</TargetFramework>   
+    <UseWinForms>true</UseWinForms> <!--only for some message boxes ? -->
+    <TargetFramework>net472</TargetFramework>    <!-- no net50-windows because no Thread.Abort() for fsi, Rhino can only host netFramwork apps-->
     <LangVersion>preview</LangVersion>
+
+    <NeutralLanguage>en</NeutralLanguage>
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages> <!--to only have the english resources-->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    
     <RootNamespace>Seff</RootNamespace>
     <AssemblyName>Seff</AssemblyName>
-    <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <NeutralLanguage>en</NeutralLanguage>
-
     <Version>0.2.0.0</Version>
     <AssemblyVersion>0.2.0.0</AssemblyVersion>
     <FileVersion>0.2.0.0</FileVersion>
 
     <Authors>Goswin Rothenthal</Authors>
     <Product>Seff</Product> 
-    <Description>A hostable fsharp scripting editor </Description>
-    <Copyright>Copyright: Goswin Rothenthal 2020 </Copyright>
+    <Description>A hostable fsharp scripting editor for Windows</Description>
+    <Copyright>Copyright: Goswin Rothenthal 2021 </Copyright>
     
     <ApplicationIcon>Media/LogoCursorTr.ico</ApplicationIcon>
     <Win32Resource>Media/LogoCursorTr.res</Win32Resource><!--  for Application Icon in explorer-->   
-    <Configurations>Debug;Release</Configurations> 
-    <DefineConstants>FCS33</DefineConstants>  <!--FSharp.Compiler.Service 33.0.1--> 
+    
+    <Configurations>Debug;Release</Configurations>
+
+    <DefineConstants>HOSTED</DefineConstants>  <!-- for FSharp.Compiler.Service 33.0.1--> 
   </PropertyGroup> 
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
@@ -43,7 +47,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Reference Include="ICSharpCode.AvalonEdit">      <!-- build from https://github.com/goswinr/AvalonEdit -->
+    <Reference Include="ICSharpCode.AvalonEdit">      <!-- must be build from dev branch of fork https://github.com/goswinr/AvalonEdit -->
       <HintPath>../AvalonEdit/ICSharpCode.AvalonEdit/bin/Release/net472/ICSharpCode.AvalonEdit.dll</HintPath> 
     </Reference>
     <Reference Include="System.Windows.Forms" /> 

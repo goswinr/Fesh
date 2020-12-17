@@ -253,9 +253,22 @@ module DocString =
     // --------------------------------------------------------------------------------------
     // Formatting of tool-tip information displayed in F# IntelliSense
     // --------------------------------------------------------------------------------------
-    let  buildFormatComment (cmt:FSharpXmlDoc) (isEnhanced : bool) (typeDoc: string option) =
+    let buildFormatComment (cmt:FSharpXmlDoc) (isEnhanced : bool) (typeDoc: string option) :string =        
         match cmt with
-        | FSharpXmlDoc.Text (s) -> s //Changes in FCS 38.0.0
+        //#if HOSTED 
+        | FSharpXmlDoc.Text (s) -> s // FCS 33.0.1
+        //#else 
+        //| FSharpXmlDoc.Text (unprocessedLines,elaboratedXmlLines) ->  //FCS 38.0.0
+        //    String.concat Environment.NewLine elaboratedXmlLines //https://github.com/dotnet/fsharp/blob/3c3c513dd3a90fb084eaf2055eb234a3819ee411/src/fsharp/symbols/SymbolHelpers.fs#L229
+        //
+        //     // TODO compare 
+        //     //• VS studio          https://github.com/dotnet/fsharp/blob/8b361cfc6eecbccfb2dc625faa7ff66e7e621be5/vsintegration/src/FSharp.Editor/DocComments/XMLDocumentation.fs#L289
+        //     //• fsautocomplte      https://github.com/fsharp/FsAutoComplete/blob/6c9c2c28258b77420f41fc5d2022ce0fb4f96431/src/FsAutoComplete.Core/TipFormatter.fs#L960
+        //     //• rider fs plugin
+        //
+        //     //see TypeInfo.fs at line 120
+        //
+        //#endif
         | FSharpXmlDoc.XmlDocFileSignature(dllFile, memberName) ->
             match getXmlDoc dllFile with
             | Some doc ->
@@ -264,7 +277,8 @@ module DocString =
                         match typeDoc with
                         | Some s when doc.ContainsKey s ->
                             if isEnhanced then doc.[s].ToFullEnhancedString() else string doc.[s]
-                        | _ -> ""
+                        | Some x -> ""
+                        | None -> ""
                     let typeDoc = typeDoc.Replace("**Description**", "**Type Description**")
                     if isEnhanced then
                         doc.[memberName].ToFullEnhancedString() + (if typeDoc <> "" then "\n\n" + typeDoc else "")
@@ -273,8 +287,10 @@ module DocString =
                 else 
                     sprintf "'%s' not found in doc"memberName
             | None -> ""
-        | _ -> ""
-
+        | FSharpXmlDoc.None -> ""
+        
+        
+    (*
     let private buildFormatDocumentation cmt =
         match cmt with
         | FSharpXmlDoc.Text s -> s
@@ -283,7 +299,7 @@ module DocString =
            | Some doc when doc.ContainsKey memberName ->
                 doc.[memberName].ToDocumentationString()
            | _ -> ""
-        | _ -> ""
+        | _ -> "" *)
 
     let private formatGenericParamInfo cmt =
       let m = Regex.Match(cmt, """(.*) is (.*)""")

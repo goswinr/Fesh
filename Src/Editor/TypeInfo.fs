@@ -110,7 +110,22 @@ type TypeInfo private () =
 
     static let buildFormatComment (cmt:FSharpXmlDoc) =
         match cmt with
-        | FSharpXmlDoc.Text s -> Ok (s,"") // "plain text Doc: \r\n" + s
+        //#if HOSTED 
+        | FSharpXmlDoc.Text (s) -> Ok (s,"") // "plain text Doc: \r\n" + s // FCS 33.0.1
+        //#else 
+        //| FSharpXmlDoc.Text (unprocessedLines,elaboratedXmlLines) ->  //FCS 38.0.0
+        //    Ok (String.concat Environment.NewLine elaboratedXmlLines, "") //https://github.com/dotnet/fsharp/blob/3c3c513dd3a90fb084eaf2055eb234a3819ee411/src/fsharp/symbols/SymbolHelpers.fs#L229
+        //
+        //     // TODO compare 
+        //     //• VS studio          https://github.com/dotnet/fsharp/blob/8b361cfc6eecbccfb2dc625faa7ff66e7e621be5/vsintegration/src/FSharp.Editor/DocComments/XMLDocumentation.fs#L289
+        //     //• fsautocomplte      https://github.com/fsharp/FsAutoComplete/blob/6c9c2c28258b77420f41fc5d2022ce0fb4f96431/src/FsAutoComplete.Core/TipFormatter.fs#L960
+        //     //• rider fs plugin
+        //
+        //     //see DocString.fs at line 260
+        //
+        //#endif
+        
+        
         | FSharpXmlDoc.None -> Error "*FSharpXmlDoc.None*"
         | FSharpXmlDoc.XmlDocFileSignature(dllFile, memberName) ->
            match DocString.getXmlDoc dllFile with

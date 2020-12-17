@@ -17,6 +17,9 @@ open FSharp.Compiler.SourceCodeServices
 
 
 /// taken and adapeted from FsAutoComplete in Dec 2020
+(*
+
+
 module DocStringNewUNUSEDYET =
     let inline nl<'T> = Environment.NewLine
 
@@ -969,6 +972,8 @@ module DocStringNewUNUSEDYET =
     // --------------------------------------------------------------------------------------
     let private buildFormatComment cmt (formatStyle : FormatCommentStyle) (typeDoc: string option) =
         match cmt with
+
+
         //| FSharpXmlDoc.Text (unprocessed, processed) -> //--modified for Seff--
         | FSharpXmlDoc.Text (document) -> // back to FCS 33.0.1
             try
@@ -1134,3 +1139,5 @@ module DocStringNewUNUSEDYET =
         |> Seq.tryPick firstResult
         |> Option.defaultValue []
 
+
+        *)

@@ -142,11 +142,11 @@ type Checker private (config:Config)  =
                                                     isFirstCheck <- false
                 
                                 | FSharpCheckFileAnswer.Aborted  ->
-                                    log.PrintAppErrorMsg "*ParseAndCheckFile code aborted"
+                                    log.PrintAppErrorMsg "FSharpChecker.ParseAndCheckFileInProject(filepath, 0, sourceText , options) returned: FSharpCheckFileAnswer.Aborted\r\nFSharpParseFileResults is: %A" parseRes
                                     globalCheckState <-Failed
                                     iEditor.FileCheckState <- globalCheckState
                             with e ->
-                                log.PrintAppErrorMsg "Error in ParseAndCheckFileInProject Block.\r\nMaybe you are using another version of  FSharpCompilerService.dll than at compile time?\r\nOr the error is in the continuation.\r\nOr in the event handlers: %A" e
+                                log.PrintAppErrorMsg "Error in ParseAndCheckFileInProject Block.\r\nMaybe you are using another version of  FSharpCompilerService.dll than at compile time?\r\nOr the error is in the continuation.\r\nOr in the event handlers:\r\n\r\n%A" e
                                 globalCheckState <-Failed
                                 iEditor.FileCheckState <- globalCheckState
                     with e ->

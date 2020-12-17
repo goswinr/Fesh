@@ -6,12 +6,22 @@ open System.Windows.Media // for color brushes
 open System.Windows.Input
 open ICSharpCode
 open FSharp.Compiler.SourceCodeServices
+open System.Text
 
 
 type ISeffLog = 
     // this interface allows the Config to be declared before the Log
     // the Log is created first with this interface and then Config gets it in the constructor
+    
+    /// The log editor is readOnly for users , not for the API
     abstract member ReadOnlyEditor   : AvalonEdit.TextEditor
+    
+    /// The log editor and document is readOnly for users , not for the API
+    /// use this to call doc.CreateSnapshot().Text  from other threads
+    abstract member ReadOnlyDoc   : AvalonEdit.Document.TextDocument 
+
+    abstract member FsiErrorStream     : StringBuilder
+    
 
     abstract member PrintInfoMsg     : Printf.StringFormat<'T,unit> -> 'T 
     abstract member PrintFsiErrorMsg : Printf.StringFormat<'T,unit> -> 'T  

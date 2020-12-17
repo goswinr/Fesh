@@ -3,19 +3,33 @@
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
+    <UseWPF>true</UseWPF>
+    <UseWinForms>true</UseWinForms>    <!--only for some message boxes ? -->
     <TargetFramework>net472</TargetFramework>    <!-- no net50-windows because no Thread.Abort() for fsi-->
     <LangVersion>preview</LangVersion>
-    <SatelliteResourceLanguages>en</SatelliteResourceLanguages> <!--to only have the english resources-->
-    <UseWPF>true</UseWPF>
+    
+    <NeutralLanguage>en</NeutralLanguage>
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>    <!--to only have the english resources-->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
 
     <RootNamespace>Seff</RootNamespace>
     <AssemblyName>Seff</AssemblyName>
+    <Version>0.2.0.0</Version>
+    <AssemblyVersion>0.2.0.0</AssemblyVersion>
+    <FileVersion>0.2.0.0</FileVersion>
+    
+    <Authors>Goswin Rothenthal</Authors>
+    <Product>Seff</Product>
+    <Description>A hostable fsharp scripting editor for Windows</Description>
+    <Copyright>Copyright: Goswin Rothenthal 2021 </Copyright>
+    
     <ApplicationIcon>Media/LogoCursorTr.ico</ApplicationIcon>
     <Win32Resource>Media/LogoCursorTr.res</Win32Resource>      <!-- Win32Resource for Application Icon in explorer-->    
     
     <Platforms>x64;x86</Platforms>
-    <Configurations>Debug;Release</Configurations> 
-    
+    <Configurations>Debug;Release</Configurations>
+
+    <DefineConstants>STANDALONE</DefineConstants>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -38,13 +52,15 @@
     <PackageReference Update="FSharp.Core" Version="5.0.0" GeneratePathProperty="true" />  
     <!-- use 33.0.1 because EPPlus also fails with 35.0.0 (like Rhino) ?? try x86 version !-->
     <PackageReference Include="FSharp.Compiler.Service" Version="37.0.0" />    
-    <!--<PackageReference Include="FSharp.DependencyManager.Nuget" Version="38.0.0" />-->    
+    <!--<PackageReference Include="FSharp.DependencyManager.Nuget" Version="38.0.0" />-->
+    <PackageReference Include="Microsoft.Build.Utilities.Core" Version="16.8.0" /><!--needed for FCS 38.0.0-->
   </ItemGroup>
 
   <ItemGroup>        
-    <Reference Include="ICSharpCode.AvalonEdit">      <!-- build from https://github.com/goswinr/AvalonEdit -->
+    <Reference Include="ICSharpCode.AvalonEdit">      <!-- must be build from dev branch of fork https://github.com/goswinr/AvalonEdit -->
       <HintPath>../AvalonEdit/ICSharpCode.AvalonEdit/bin/Release/net472/ICSharpCode.AvalonEdit.dll</HintPath> 
     </Reference>        
+    <Reference Include="System.Windows.Forms" />        
     <Reference Include="WindowsBase" />
     <Reference Include="PresentationCore" />
     <Reference Include="PresentationFramework" />

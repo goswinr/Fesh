@@ -65,7 +65,8 @@ type Fsi private (config:Config) =
         with e->
             log.PrintFsiErrorMsg "setFileAndLine on FSI failed: %A" e 
              
-
+    [< Security.SecurityCritical >] // TODO do these Attributes appy in to async thread too ?
+    [< Runtime.ExceptionServices.HandleProcessCorruptedStateExceptions >] //to handle AccessViolationException too //https://stackoverflow.com/questions/3469368/how-to-handle-accessviolationexception/4759831
     let init() = 
         match state with 
         | Initalizing -> log.PrintInfoMsg "FSI initialization can't be started because it is already in process.."
@@ -144,7 +145,9 @@ type Fsi private (config:Config) =
             log.PrintAppErrorMsg "The Hosting App has blocked Fsi from Running, maybe because the App is busy in another command or task."
         else
             match sessionOpt with 
-            |None -> log.PrintFsiErrorMsg "Please wait till FSI is initalized for running scripts"
+            |None -> 
+                init()
+                log.PrintFsiErrorMsg "Please wait till FSI is initalized for running scripts"
             |Some session ->
                 state <- Evaluating                
                 startedEv.Trigger(code) // do always sync
