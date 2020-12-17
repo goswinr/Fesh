@@ -153,9 +153,9 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
                     // TODO add check for "for" declaration
                     let isNotFunDecl            = let fk = (countSubString "fun " line) + (countSubString "fun(" line) in fk <= (countSubString "->" line)|| fk <= (countSubString ":" line)
                     let doCompletionInPattern, onlyDU   =  
-                        match stringAfterLast " |" (" "+line) with // add starting step to not fail at start of line with "|"
+                        match stringAfterLast " |" (" "+line) with // add starting step to not fail at start of line with "|" //TODO FIX
                         |None    -> true,false 
-                        |Some "" -> log.PrintDebugMsg " this schould never happen since we get here only with letters, but not typing '|'" ; false, false // most comen case: '|" was just typed, next pattern declaration starts after next car
+                        |Some "" -> log.PrintDebugMsg " log.PrintDebugMsg: this schould never happen since we get here only with letters, but not typing '|'" ; false, false // most comen case: '|" was just typed, next pattern declaration starts after next car
                         |Some s  -> 
                             let doCompl = 
                                 s.Contains "->"             || // name binding already happend 
