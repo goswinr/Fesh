@@ -53,7 +53,7 @@ type ColumnRulers (editor:AvalonEdit.TextEditor, log: ISeffLog)  as this =
             match uiElm with 
             | :? LineNumberMargin as lnm  ->  lnm.BackbgroundColor <- marginCcolor
             | :? FoldingMargin as fm ->       fm.BackbgroundColor <- marginCcolor
-            | _-> ()//log.PrintAppErrorMsg "other left marging: %A" uiElm // TODO other left marging: System.Windows.Shapes.Line
+            | _-> ()//log.PrintfnAppErrorMsg "other left marging: %A" uiElm // TODO other left marging: System.Windows.Shapes.Line
        
 
     member this.Layer = KnownLayer.Background

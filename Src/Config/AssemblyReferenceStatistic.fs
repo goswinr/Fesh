@@ -21,7 +21,7 @@ type AssemblyReferenceStatistic  (log:ISeffLog, hostInfo:Hosting) =
                         if IO.File.Exists ln then 
                             set.Add (ln) |> ignore
             with e -> 
-                log.PrintAppErrorMsg "Error load assRefStatsStats: %A" e
+                log.PrintfnAppErrorMsg "Error load assRefStatsStats: %A" e
             } |> Async.Start 
         set
 

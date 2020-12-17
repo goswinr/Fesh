@@ -53,7 +53,7 @@ type Tabs(config:Config, win:Window) =
     let saveAt (t:Tab, fi:FileInfo, updateTab) =                   
         fi.Refresh()
         if not <| fi.Directory.Exists then 
-            log.PrintIOErrorMsg "saveAsPath: Directory does not exist:\r\n%s" fi.Directory.FullName 
+            log.PrintfnIOErrorMsg "saveAsPath: Directory does not exist:\r\n%s" fi.Directory.FullName 
             false
         else            
             try
@@ -64,12 +64,12 @@ type Tabs(config:Config, win:Window) =
                     t.FilePath <- SetTo fi //this also updates the Tab header and set file info on editor
                     config.RecentlyUsedFiles.AddAndSave(fi)          //TODO this fails if app closes afterward immideatly    
                     config.OpenTabs.Save(t.FilePath , allFileInfos)  //TODO this fails if app closes afterward immideatly              
-                    log.PrintInfoMsg "File saved as:\r\n%s" fi.FullName
+                    log.PrintfnInfoMsg "File saved as:\r\n%s" fi.FullName
                 else
-                    log.PrintInfoMsg "File exported to:\r\n%s" fi.FullName
+                    log.PrintfnInfoMsg "File exported to:\r\n%s" fi.FullName
                 true
             with e -> 
-                log.PrintIOErrorMsg "saveAt: %s failed with %A" fi.FullName e
+                log.PrintfnIOErrorMsg "saveAt: %s failed with %A" fi.FullName e
                 false
                 
 
@@ -107,12 +107,12 @@ type Tabs(config:Config, win:Window) =
         match t.FilePath with
         |SetTo fi ->         
             if  t.IsCodeSaved then 
-                log.PrintInfoMsg "File already up to date:\r\n%s" fi.FullName
+                log.PrintfnInfoMsg "File already up to date:\r\n%s" fi.FullName
                 true
             elif (fi.Refresh(); fi.Exists) then
                 saveAt(t, fi, true)
             else
-                log.PrintIOErrorMsg "File does not exist on drive anymore:\r\n%s" fi.FullName 
+                log.PrintfnIOErrorMsg "File does not exist on drive anymore:\r\n%s" fi.FullName 
                 saveAsDialog(t, true)
         |NotSet -> 
                 saveAsDialog(t, true)
@@ -177,14 +177,14 @@ type Tabs(config:Config, win:Window) =
                 try
                     let code =  IO.File.ReadAllText fi.FullName 
                     let t = new Tab(Editor.SetUp(code, config, SetTo fi))
-                    //log.PrintDebugMsg "adding Tab %A in %A " t.FilePath t.Editor.FileCheckState
+                    //log.PrintfnDebugMsg "adding Tab %A in %A " t.FilePath t.Editor.FileCheckState
                     addTab(t,makeCurrent, moreTabsToCome)
                     true
                 with  e -> 
-                    log.PrintIOErrorMsg "Error reading and adding :\r\n%s\r\n%A" fi.FullName e
+                    log.PrintfnIOErrorMsg "Error reading and adding :\r\n%s\r\n%A" fi.FullName e
                     false
         else
-            log.PrintIOErrorMsg "File not found:\r\n%s" fi.FullName
+            log.PrintfnIOErrorMsg "File not found:\r\n%s" fi.FullName
             MessageBox.Show("File not found:\r\n"+fi.FullName , dialogCaption, MessageBoxButton.OK, MessageBoxImage.Error) |> ignore
             false
 
@@ -237,7 +237,7 @@ type Tabs(config:Config, win:Window) =
 
             else
                 let tab = 
-                    if isNull tabs.SelectedItem then tabs.Items.[0] //log.PrintAppErrorMsg "Tabs SelectionChanged handler: there was no tab selected by default" //  does happen 
+                    if isNull tabs.SelectedItem then tabs.Items.[0] //log.PrintfnAppErrorMsg "Tabs SelectionChanged handler: there was no tab selected by default" //  does happen 
                     else                             tabs.SelectedItem                 
                 let tab = tab :?> Tab
                 current <- tab
@@ -245,9 +245,9 @@ type Tabs(config:Config, win:Window) =
                     t.IsCurrent <- false  // first set all false then one true              
                 tab.IsCurrent <-true 
                 currentTabChangedEv.Trigger(tab) // to update statusbar
-                //log.PrintDebugMsg "New current Tab %A " tab.FilePath 
+                //log.PrintfnDebugMsg "New current Tab %A " tab.FilePath 
                 if tab.Editor.FileCheckState = FileCheckState.NotStarted then 
-                    //log.PrintDebugMsg "FileCheckState.NotStarted: starting: %A " tab.FilePath
+                    //log.PrintfnDebugMsg "FileCheckState.NotStarted: starting: %A " tab.FilePath
                     tab.Editor.Checker.CkeckHighlightAndFold(tab.Editor)  // only actually highglights if editor has needsChecking=true              
                 config.OpenTabs.Save(tab.FilePath , allFileInfos)
                 
@@ -304,10 +304,10 @@ type Tabs(config:Config, win:Window) =
             let fn = fi.FullName
             let last = fn.[fn.Length-5]
             if not <| Char.IsLetterOrDigit last then 
-                log.PrintInfoMsg "Save Incrementing failed on last value: '%c' on: \r\n%s" last fn
+                log.PrintfnInfoMsg "Save Incrementing failed on last value: '%c' on: \r\n%s" last fn
                 this.Save(t)
             elif last = 'z' || last = 'Z' || last = '9' then                
-                log.PrintInfoMsg "Save Incrementing reached last value: '%c' on: \r\n%s" last fn
+                log.PrintfnInfoMsg "Save Incrementing reached last value: '%c' on: \r\n%s" last fn
                 this.SaveAs(t)
             else
                 let newLast = char(int(last)+1)
@@ -321,13 +321,13 @@ type Tabs(config:Config, win:Window) =
                 else
                     saveAt(t,fi, true)                
          |NotSet ->
-            log.PrintIOErrorMsg "can't Save Incrementing unsaved file"  
+            log.PrintfnIOErrorMsg "can't Save Incrementing unsaved file"  
             this.SaveAs(t)
    
     /// returns true if all files are saved or unsaved changes are ignored (closing not canceled by user).
     member this.AskIfClosingWindowIsOk()=             
         let openFs = allTabs |> Seq.filter (fun t -> not t.IsCodeSaved) 
-        //log.PrintDebugMsg "Unsaved files %d" (Seq.length openFs)
+        //log.PrintfnDebugMsg "Unsaved files %d" (Seq.length openFs)
         if  Seq.isEmpty openFs then
             true
         else

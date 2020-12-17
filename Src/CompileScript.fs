@@ -99,7 +99,7 @@ module CompileScript =
                                     if IO.File.Exists (pdb) then IO.File.Copy(pdb, pdbn)
 
                                 with e ->
-                                    log.PrintIOErrorMsg "Error in getting refrences: %A" e
+                                    log.PrintfnIOErrorMsg "Error in getting refrences: %A" e
                                 refs.Add(name, libFolderName+"/"+nameDll, true)
                             else
                                 refs.Add(name, path, true)
@@ -129,10 +129,10 @@ module CompileScript =
 
     let createFsproj(code, fp:FilePath, log:ISeffLog, copyDlls) =
         match fp with 
-        | NotSet -> log.PrintAppErrorMsg "Cannot compile an unsaved script save it first"
+        | NotSet -> log.PrintfnAppErrorMsg "Cannot compile an unsaved script save it first"
         |SetTo fi ->
             async{
-                log.PrintInfoMsg "compiling %s ..." fi.Name                
+                log.PrintfnInfoMsg "compiling %s ..." fi.Name                
                 let name = fi.Name.Replace(".fsx","")
                 let nameSpace = name |> toCamelCase |> up1
                 let projFolder = IO.Path.Combine(fi.DirectoryName,name) 
@@ -159,25 +159,25 @@ module CompileScript =
                     |> replace "pathToFsx" fsxName
                     |> fun s -> 
                         IO.File.WriteAllText(fsProj,s,Text.Encoding.UTF8)
-                        log.PrintInfoMsg "project created at %s\r\nstarting dotnet build ..." fsProj
+                        log.PrintfnInfoMsg "project created at %s\r\nstarting dotnet build ..." fsProj
                         //https://stackoverflow.com/questions/1145969/processinfo-and-redirectstandardoutput
                         let p = new System.Diagnostics.Process()
                         p.EnableRaisingEvents <- true
                         p.StartInfo.FileName <- "dotnet"
                         let fsProjinQuotes = "\"" + fsProj + "\"" 
                         p.StartInfo.Arguments <- String.concat " " ["build"; fsProjinQuotes;  "--configuration Debug"]
-                        log.PrintCustomColor 0 0 200 "%s %s" p.StartInfo.FileName p.StartInfo.Arguments
+                        log.PrintfnCustomColor 0 0 200 "%s %s" p.StartInfo.FileName p.StartInfo.Arguments
                         p.StartInfo.UseShellExecute <- false
                         p.StartInfo.CreateNoWindow <- true //true if the process should be started without creating a new window to contain it
                         p.StartInfo.RedirectStandardError <-true
                         p.StartInfo.RedirectStandardOutput <-true
-                        p.OutputDataReceived.Add ( fun d -> log.PrintCustomColor 50 150 0 "%s" d.Data)
-                        p.ErrorDataReceived.Add (  fun d -> log.PrintAppErrorMsg "%s" d.Data)               
-                        p.Exited.Add( fun _ -> log.PrintInfoMsg  "Build finnished!")
+                        p.OutputDataReceived.Add ( fun d -> log.PrintfnCustomColor 50 150 0 "%s" d.Data)
+                        p.ErrorDataReceived.Add (  fun d -> log.PrintfnAppErrorMsg "%s" d.Data)               
+                        p.Exited.Add( fun _ -> log.PrintfnInfoMsg  "Build finnished!")
                         p.Start() |> ignore
                         p.BeginOutputReadLine()
                         p.BeginErrorReadLine()
-                        //log.PrintInfoMsg "compiling to %s" (IO.Path.Combine(projFolder,"bin","Release","netstandard2.0",nameSpace+".dll")) 
+                        //log.PrintfnInfoMsg "compiling to %s" (IO.Path.Combine(projFolder,"bin","Release","netstandard2.0",nameSpace+".dll")) 
                         p.WaitForExit()
                         } |> Async.Start
 

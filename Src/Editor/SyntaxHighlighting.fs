@@ -31,9 +31,9 @@ module SyntaxHighlighting =
                     fsHighlighting <- Some fsh                
                     do! Async.SwitchToContext Sync.syncContext
                     ed.SyntaxHighlighting <- fsh
-                    if forceReLoad then config.Log.PrintInfoMsg "loaded syntax highlighting from: %s" path
+                    if forceReLoad then config.Log.PrintfnInfoMsg "loaded syntax highlighting from: %s" path
                 with e -> 
-                    config.Log.PrintAppErrorMsg "Error loading Syntax Highlighting: %A" e
+                    config.Log.PrintfnAppErrorMsg "Error loading Syntax Highlighting: %A" e
                 } |> Async.Start
         else 
             ed.SyntaxHighlighting <- fsHighlighting.Value
@@ -47,22 +47,22 @@ module SyntaxHighlighting =
                     p.StartInfo.FileName <- "code"
                     let inQuotes = "\"" + filePath + "\"" 
                     p.StartInfo.Arguments <- String.concat " " [inQuotes;  "--reuse-window"]
-                    log.PrintCustomColor 0 0 200 "command:\r\n%s %s" p.StartInfo.FileName p.StartInfo.Arguments
+                    log.PrintfnCustomColor 0 0 200 "command:\r\n%s %s" p.StartInfo.FileName p.StartInfo.Arguments
                     //p.StartInfo.UseShellExecute <- false
                     //p.StartInfo.CreateNoWindow <- true //true if the process should be started without creating a new window to contain it
                     //p.StartInfo.RedirectStandardError <-true
                     //p.StartInfo.RedirectStandardOutput <-true
-                    //p.OutputDataReceived.Add ( fun d -> log.PrintCustomBrush Media.Brushes.Red   "%s" d.Data)
-                    //p.ErrorDataReceived.Add (  fun d -> log.PrintAppErrorMsg "%s" d.Data)               
-                    //p.Exited.Add( fun _ -> log.PrintInfoMsg  "opend XSHD")
+                    //p.OutputDataReceived.Add ( fun d -> log.PrintfnCustomBrush Media.Brushes.Red   "%s" d.Data)
+                    //p.ErrorDataReceived.Add (  fun d -> log.PrintfnAppErrorMsg "%s" d.Data)               
+                    //p.Exited.Add( fun _ -> log.PrintfnInfoMsg  "opend XSHD")
                     p.Start() |> ignore
                     //p.BeginOutputReadLine()
                     //p.BeginErrorReadLine()
                     //p.WaitForExit()
                 else
-                   log.PrintIOErrorMsg "File not found: %s" filePath    
+                   log.PrintfnIOErrorMsg "File not found: %s" filePath    
             with e -> 
-                log.PrintIOErrorMsg "Failed opening VS Code: %A" e                
+                log.PrintfnIOErrorMsg "Failed opening VS Code: %A" e                
             } |> Async.Start
     
     // TODO take colors from https://github.com/johnpapa/vscode-winteriscoming/blob/master/themes/WinterIsComing-light-color-theme.json

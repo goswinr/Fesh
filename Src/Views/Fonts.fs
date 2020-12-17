@@ -21,7 +21,7 @@ type Fonts (grid:TabsAndLog) = // will be contructed as part of Commands class
         config.Settings.SetFloat "FontSize" newSize 
         Style.fontSize <- newSize
         config.Settings.Save ()
-        log.PrintInfoMsg "new Fontsize: %.1f" newSize
+        log.PrintfnInfoMsg "new Fontsize: %.1f" newSize
     
 
     let verifyFont(f:FontFamily) =
@@ -29,10 +29,10 @@ type Fonts (grid:TabsAndLog) = // will be contructed as part of Commands class
         if f.Source.Contains(n) then  // scource migth stat with ./#
             true
         else
-            log.PrintAppErrorMsg "Font '%s' could not be loaded. Loaded '%s' instead." f.Source n
-            log.PrintAppErrorMsg "Fonts found in Rescources in folder Media:"
+            log.PrintfnAppErrorMsg "Font '%s' could not be loaded. Loaded '%s' instead." f.Source n
+            log.PrintfnAppErrorMsg "Fonts found in Rescources in folder Media:"
             for fo in Fonts.GetFontFamilies(fontsUri) do
-                log.PrintAppErrorMsg "'%s'" fo.Source    
+                log.PrintfnAppErrorMsg "'%s'" fo.Source    
             false
 
     let setLog(font:FontFamily) = // on log and all tabs
@@ -63,7 +63,7 @@ type Fonts (grid:TabsAndLog) = // will be contructed as part of Commands class
             else
                 f
         with e -> 
-            log.PrintAppErrorMsg "Fonts.load(\"%s\",\"%s\") failed : %A" name alternative e
+            log.PrintfnAppErrorMsg "Fonts.load(\"%s\",\"%s\") failed : %A" name alternative e
             new FontFamily(alternative) |>> verifyFont 
     
     //----- init ---------

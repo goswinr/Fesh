@@ -36,7 +36,7 @@ type Window (config:Config)=
             //win.Icon <-  BitmapFrame.Create(Uri("pack://application:,,,/Media/LogoCursorTr.ico"))//Build action : "Resource"
             win.Icon <-  BitmapFrame.Create(Uri("pack://application:,,,/Seff;component/Media/LogoCursorTr.ico")) // so that it works hosted in other dlls too?
         with ex -> 
-            log.PrintAppErrorMsg  "Failed to load Media/LogoCursorTr.ico from Application.ResourceStream : %A" ex 
+            log.PrintfnAppErrorMsg  "Failed to load Media/LogoCursorTr.ico from Application.ResourceStream : %A" ex 
         //)    
       
         //----------------------------------------------
@@ -72,7 +72,7 @@ type Window (config:Config)=
                         config.Settings.SetFloatDelayed "WindowTop"  win.Top  89 // get float in statchange maximised needs to access this before 350 ms pass
                         config.Settings.SetFloatDelayed "WindowLeft" win.Left 95
                         config.Settings.Save ()
-                        //log.PrintDebugMsg  "%s Location Changed: Top=%.0f Left=%.0f State=%A" Time.nowStrMilli win.Top win.Left win.WindowState
+                        //log.PrintfnDebugMsg  "%s Location Changed: Top=%.0f Left=%.0f State=%A" Time.nowStrMilli win.Top win.Left win.WindowState
                 }
                 |> Async.StartImmediate
             )
@@ -87,22 +87,22 @@ type Window (config:Config)=
                 config.Settings.SetBool  "WindowIsMax" false
                 isMinOrMax <- false
                 config.Settings.Save ()
-                //log.PrintDebugMsg "Normal: %s State changed=%A Top=%.0f Left=%.0f Width=%.0f Height=%.0f" Time.nowStrMilli win.WindowState win.Top win.Left win.ActualWidth win.ActualHeight 
+                //log.PrintfnDebugMsg "Normal: %s State changed=%A Top=%.0f Left=%.0f Width=%.0f Height=%.0f" Time.nowStrMilli win.WindowState win.Top win.Left win.ActualWidth win.ActualHeight 
 
             | WindowState.Maximized ->
                 // normally the state change event comes after the location change event but before size changed. async sleep in LocationChanged prevents this
                 isMinOrMax  <- true
                 config.Settings.SetBool  "WindowIsMax" true
                 config.Settings.Save  ()    
-                //log.PrintDebugMsg "Maximised: %s State changed=%A Top=%.0f Left=%.0f Width=%.0f Height=%.0f" Time.nowStrMilli win.WindowState win.Top win.Left win.ActualWidth win.ActualHeight 
+                //log.PrintfnDebugMsg "Maximised: %s State changed=%A Top=%.0f Left=%.0f Width=%.0f Height=%.0f" Time.nowStrMilli win.WindowState win.Top win.Left win.ActualWidth win.ActualHeight 
                           
 
             |WindowState.Minimized ->                 
                 isMinOrMax  <- true
-                //log.PrintDebugMsg "Minimised: %s State changed=%A Top=%.0f Left=%.0f Width=%.0f Height=%.0f" Time.nowStrMilli win.WindowState win.Top win.Left win.ActualWidth win.ActualHeight 
+                //log.PrintfnDebugMsg "Minimised: %s State changed=%A Top=%.0f Left=%.0f Width=%.0f Height=%.0f" Time.nowStrMilli win.WindowState win.Top win.Left win.ActualWidth win.ActualHeight 
                
             |wch -> 
-                log.PrintAppErrorMsg "unknown WindowState State change=%A" wch
+                log.PrintfnAppErrorMsg "unknown WindowState State change=%A" wch
                 isMinOrMax  <- true
             )
 

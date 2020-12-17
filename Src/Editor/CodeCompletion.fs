@@ -69,7 +69,7 @@ type CompletionItem (config:Config, getToolTip, it:FSharpDeclarationListItem, is
 
     let priority = //if it.IsOwnMember then 1. else 1. 
         if isDotCompletion then 1.0// not on Dot completion             
-        else                    1.0 + config.AutoCompleteStatistic.Get(it.Name) //if p>1.0 then log.PrintDebugMsg "%s %g" it.Name p
+        else                    1.0 + config.AutoCompleteStatistic.Get(it.Name) //if p>1.0 then log.PrintfnDebugMsg "%s %g" it.Name p
       
     member this.Content = tb :> obj
     member this.Description = getToolTip(it) // this gets called on demand only, not when initally filling the list.
@@ -77,7 +77,7 @@ type CompletionItem (config:Config, getToolTip, it:FSharpDeclarationListItem, is
     member this.Priority = priority
     member this.Text = it.Name
     member this.Complete (textArea:TextArea, completionSegment:ISegment, e ) = 
-        //log.PrintDebugMsg "%s is %A and %A" it.Name it.Glyph it.Kind
+        //log.PrintfnDebugMsg "%s is %A and %A" it.Name it.Glyph it.Kind
         //textArea.Document.Replace(completionSegment.Offset + 1, completionSegment.Length, it.Name) //TODO Delete!
         //textArea.Caret.Offset <- completionSegment.Offset + it.Name.Length + 1  //TODO Delete!          
         let compl = 
@@ -189,7 +189,7 @@ type Completions(avaEdit:TextEditor,config:Config, checker:Checker, errorHighlig
         let log = compl.Log
         let config = compl.Config
         let avaEdit = iEditor.AvaEdit
-        //log.PrintDebugMsg "TryShow Completion Window for '%s'" pos.lineToCaret
+        //log.PrintfnDebugMsg "TryShow Completion Window for '%s'" pos.lineToCaret
         let ifDotSetback = if charBefore = Dot then setback else 0
 
         //let prevCursor = avaEdit.Editor.Cursor
@@ -236,7 +236,7 @@ type Completions(avaEdit:TextEditor,config:Config, checker:Checker, errorHighlig
                 w.Closed.Add (fun _  -> 
                         compl.Close()
                         compl.Checker.CkeckHighlightAndFold(iEditor) //needed ! because window might close immedeatly after showing if ther are no matches
-                        //config.Log.PrintDebugMsg "Completion window just closed with selected item: %A " w.CompletionList.SelectedItem
+                        //config.Log.PrintfnDebugMsg "Completion window just closed with selected item: %A " w.CompletionList.SelectedItem
                         )
                     
                 w.CompletionList.SelectionChanged.Add(fun _ -> if w.CompletionList.ListBox.Items.Count=0 then w.Close()) // otherwise empty box might be shown and only get closed on second character
@@ -249,7 +249,7 @@ type Completions(avaEdit:TextEditor,config:Config, checker:Checker, errorHighlig
 
                 //w.CompletionList.ListBox.SelectionChanged.Add (fun e -> //TODO this is not the correct event to hook up to
                 //    try if not w.CompletionList.ListBox.HasItems then w.Close() 
-                //    with  _ -> log.PrintDebugMsg "Null ref HasItems")// because sometime empty completion window stays open
+                //    with  _ -> log.PrintfnDebugMsg "Null ref HasItems")// because sometime empty completion window stays open
 
                 
                 w.StartOffset <- w.StartOffset - setback // to maybe replace some previous characters too           
@@ -261,10 +261,10 @@ type Completions(avaEdit:TextEditor,config:Config, checker:Checker, errorHighlig
                     w.CompletionList.SelectItem(query) //to prefilter the list if query present
             
                 try
-                    //log.PrintDebugMsg "Show Completion Window with %d items" w.CompletionList.CompletionData.Count
+                    //log.PrintfnDebugMsg "Show Completion Window with %d items" w.CompletionList.CompletionData.Count
                     w.Show()
                 with e -> 
-                    log.PrintAppErrorMsg "Error in Showing Code Completion Window: %A" e
+                    log.PrintfnAppErrorMsg "Error in Showing Code Completion Window: %A" e
 
                 // Event sequence on pressing enter in completion window:
                 // (1)Close window

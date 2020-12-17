@@ -31,7 +31,7 @@ type RecentlyUsedFiles  (log:ISeffLog, hostInfo:Hosting) =
                 | _ ->          stack.Push( {fileInfo=FileInfo(path) ; date=DateTime.MinValue}) |> ignore 
                                   
         with e -> 
-            log.PrintInfoMsg "No recently used files found. (This is expected on first use of the App)"  
+            log.PrintfnInfoMsg "No recently used files found. (This is expected on first use of the App)"  
                   
         stack   
 

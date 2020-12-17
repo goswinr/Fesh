@@ -407,60 +407,60 @@ type Log private () =
     member this.TextWriterConsoleOut   = textWriterConsoleOut   
     member this.TextWriterConsoleError = textWriterConsoleError 
 
-    member this.PrintInfoMsg      msg =  Printf.kprintf (fun s -> printOrBuffer (s,true,LogColors.infoMsg      ))  msg
-    member this.PrintFsiErrorMsg  msg =  Printf.kprintf (fun s -> printOrBuffer (s,true,LogColors.fsiErrorMsg  ))  msg
-    member this.PrintAppErrorMsg  msg =  Printf.kprintf (fun s -> printOrBuffer (s,true,LogColors.appErrorMsg  ))  msg
-    member this.PrintIOErrorMsg   msg =  Printf.kprintf (fun s -> printOrBuffer (s,true,LogColors.iOErrorMsg   ))  msg        
-    member this.PrintDebugMsg     msg =  Printf.kprintf (fun s -> printOrBuffer (s,true,LogColors.debugMsg     ))  msg
+    member this.PrintfnInfoMsg      msg =  Printf.kprintf (fun s -> printOrBuffer (s,true,LogColors.infoMsg      ))  msg
+    member this.PrintfnFsiErrorMsg  msg =  Printf.kprintf (fun s -> printOrBuffer (s,true,LogColors.fsiErrorMsg  ))  msg
+    member this.PrintfnAppErrorMsg  msg =  Printf.kprintf (fun s -> printOrBuffer (s,true,LogColors.appErrorMsg  ))  msg
+    member this.PrintfnIOErrorMsg   msg =  Printf.kprintf (fun s -> printOrBuffer (s,true,LogColors.iOErrorMsg   ))  msg        
+    member this.PrintfnDebugMsg     msg =  Printf.kprintf (fun s -> printOrBuffer (s,true,LogColors.debugMsg     ))  msg
     
     /// Print using the Brush or color provided 
-    /// at last custom printing call via PrintCustomBrush or PrintCustomColor 
-    member this.PrintCustom s = Printf.kprintf (fun s -> printOrBuffer (s, true, LogColors.customColor ))  s       
+    /// at last custom printing call via.PrintfnCustomBrush or.PrintfnCustomColor 
+    member this.PrintfnCustom s = Printf.kprintf (fun s -> printOrBuffer (s, true, LogColors.customColor ))  s       
     
     (*
     /// Change custom color to a new SolidColorBrush (e.g. from System.Windows.Media.Brushes)
     /// This will also freeze the Brush.
     /// Then print 
-    member this.PrintCustomBrush (br:SolidColorBrush) msg = 
+    member this.PrintfnCustomBrush (br:SolidColorBrush) msg = 
         LogColors.customColor  <- br |> freeze
         Printf.kprintf (fun s -> printOrBuffer (s,true, LogColors.customColor ))  msg
     *)
     
     /// Change custom color to a RGB value ( each between 0 and 255) 
     /// Then print 
-    member this.PrintCustomColor red green blue msg = 
+    member this.PrintfnCustomColor red green blue msg = 
         LogColors.setcustomColor (red,green,blue)
         Printf.kprintf (fun s -> printOrBuffer (s,true, LogColors.customColor ))  msg
     
 
-    member this.Print_InfoMsg  msg = Printf.kprintf (fun s -> printOrBuffer (s,false, LogColors.infoMsg ))  msg
+    member this.PrintfInfoMsg  msg = Printf.kprintf (fun s -> printOrBuffer (s,false, LogColors.infoMsg ))  msg
     /// Prints without adding a new line at the end
-    member this.Print_FsiErrorMsg  msg =  Printf.kprintf (fun s -> printOrBuffer (s,false, LogColors.fsiErrorMsg  ))  msg
+    member this.PrintfFsiErrorMsg  msg =  Printf.kprintf (fun s -> printOrBuffer (s,false, LogColors.fsiErrorMsg  ))  msg
     /// Prints without adding a new line at the end
-    member this.Print_AppErrorMsg  msg =  Printf.kprintf (fun s -> printOrBuffer (s,false, LogColors.appErrorMsg  ))  msg
+    member this.PrintfAppErrorMsg  msg =  Printf.kprintf (fun s -> printOrBuffer (s,false, LogColors.appErrorMsg  ))  msg
     /// Prints without adding a new line at the end
-    member this.Print_IOErrorMsg   msg =  Printf.kprintf (fun s -> printOrBuffer (s,false, LogColors.iOErrorMsg   ))  msg
+    member this.PrintfIOErrorMsg   msg =  Printf.kprintf (fun s -> printOrBuffer (s,false, LogColors.iOErrorMsg   ))  msg
     /// Prints without adding a new line at the end
-    member this.Print_DebugMsg     msg =  Printf.kprintf (fun s -> printOrBuffer (s,false, LogColors.debugMsg     ))  msg
+    member this.PrintfDebugMsg     msg =  Printf.kprintf (fun s -> printOrBuffer (s,false, LogColors.debugMsg     ))  msg
     
     
     /// Print using the Brush or color provided 
-    /// at last custom printing call via PrintCustomBrush or PrintCustomColor 
+    /// at last custom printing call via.PrintfnCustomBrush or.PrintfnCustomColor 
     /// without adding a new line at the end
-    member this.Print_Custom msg = Printf.kprintf (fun s -> printOrBuffer (s, false, LogColors.customColor ))  msg
+    member this.PrintfCustom msg = Printf.kprintf (fun s -> printOrBuffer (s, false, LogColors.customColor ))  msg
     
     (*
     /// Change custom color to a new SolidColorBrush (e.g. from System.Windows.Media.Brushes)
     /// This will also freeze the Brush.
     /// Then print without adding a new line at the end
-    member this.Print_CustomBrush (br:SolidColorBrush) msg = 
+    member this.PrintfCustomBrush (br:SolidColorBrush) msg = 
         LogColors.customColor  <- br |> freeze
         Printf.kprintf (fun s -> printOrBuffer (s,false, LogColors.customColor ))  msg
     *)
 
     /// Change custom color to a RGB value ( each between 0 and 255) 
     /// Then print without adding a new line at the end
-    member this.Print_CustomColor red green blue msg = 
+    member this.PrintfCustomColor red green blue msg = 
         LogColors.setcustomColor (red,green,blue)
         Printf.kprintf (fun s -> printOrBuffer (s,false, LogColors.customColor ))  msg
     
@@ -468,44 +468,44 @@ type Log private () =
 
     /// Change custom color to a RGB value ( each between 0 and 255) 
     /// Then print without adding a new line at the end
-    member this.PrintDirektCustomColor red green blue s = 
+    member this.PrintfnDirektCustomColor red green blue s = 
         LogColors.setcustomColor (red,green,blue)
         printOrBuffer (s,false, LogColors.customColor )    
        
     /// Change custom color to a RGB value ( each between 0 and 255) 
     /// Adds a new line at the end
-    member this.PrintDirektNlCustomColor red green blue s = 
+    member this.PrintfnDirektNlCustomColor red green blue s = 
         LogColors.setcustomColor (red,green,blue)
         printOrBuffer (s,true, LogColors.customColor ) 
     
     (*
 
     /// Print to the Log view in Red, then add New Line. Add a refrences to #r "PresentationCore"   
-    member this.PrintRed msg = Printf.kprintf (fun s -> printOrBuffer (s,true, LogColors.red))  msg
+    member this.PrintfnRed msg = Printf.kprintf (fun s -> printOrBuffer (s,true, LogColors.red))  msg
     /// Print to the Log view in Green, then add New Line. Add a refrences to #r "PresentationCore"   
-    member this.PrintGreen msg = Printf.kprintf (fun s -> printOrBuffer (s, true, LogColors.green))  msg  
+    member this.PrintfnGreen msg = Printf.kprintf (fun s -> printOrBuffer (s, true, LogColors.green))  msg  
     /// Print to the Log view in Blue, then add New Line. Add a refrences to #r "PresentationCore"    
-    member this.PrintBlue msg = Printf.kprintf (fun s -> printOrBuffer (s, true, LogColors.blue))  msg
+    member this.PrintfnBlue msg = Printf.kprintf (fun s -> printOrBuffer (s, true, LogColors.blue))  msg
 
     /// Print to the Log view in a custom Color, then add New Line. 
     /// using a System.Windows.Media.SolidColorBrush, add refrences to:
     /// #r "PresentationCore"
     /// #r "WindowsBase"
     /// call .Freeze() on the Brush first to improove performance
-    member this.PrintColored (color:SolidColorBrush)  msg = Printf.kprintf (fun s -> printOrBuffer (s,true, color))  msg
+    member this.PrintfnColored (color:SolidColorBrush)  msg = Printf.kprintf (fun s -> printOrBuffer (s,true, color))  msg
 
     /// Print to the Log view in Red, (Does NOT add a New Line). Add a refrences to #r "PresentationCore"
-    member this.Print_Red msg = Printf.kprintf   (fun s -> printOrBuffer (s, false, LogColors.red))  msg
+    member this.PrintfRed msg = Printf.kprintf   (fun s -> printOrBuffer (s, false, LogColors.red))  msg
     /// Print to the Log view in Green, (Does NOT add a New Line). Add a refrences to #r "PresentationCore"
-    member this.Print_Green msg = Printf.kprintf (fun s -> printOrBuffer (s, false, LogColors.green))  msg  
+    member this.PrintfGreen msg = Printf.kprintf (fun s -> printOrBuffer (s, false, LogColors.green))  msg  
     /// Print to the Log view in Blue, (Does NOT add a New Line). Add a refrences to #r "PresentationCore"
-    member this.Print_Blue msg = Printf.kprintf  (fun s -> printOrBuffer (s, false, LogColors.blue))  msg
+    member this.PrintfBlue msg = Printf.kprintf  (fun s -> printOrBuffer (s, false, LogColors.blue))  msg
     /// Print to the Log view in a custom Color, (Does NOT add a New Line )    
     /// using a System.Windows.Media.SolidColorBrush, add refrences to:
     /// #r "PresentationCore"
     /// #r "WindowsBase"
     /// call .Freeze() on the Brush first to improove performance
-    member this.Print_Colored (color:SolidColorBrush)  msg = Printf.kprintf (fun s -> printOrBuffer (s,false, color))  msg
+    member this.PrintfColored (color:SolidColorBrush)  msg = Printf.kprintf (fun s -> printOrBuffer (s,false, color))  msg
     *)
 
     interface ISeffLog with        
@@ -519,24 +519,24 @@ type Log private () =
         member _.TextWriterConsoleOut   = textWriterConsoleOut   :> TextWriter   
         member _.TextWriterConsoleError = textWriterConsoleError :> TextWriter          
 
-        member _.PrintInfoMsg     msg = Printf.kprintf (fun s -> printOrBuffer (s,true,LogColors.infoMsg      )) msg
-        member _.PrintFsiErrorMsg msg = Printf.kprintf (fun s -> printOrBuffer (s,true,LogColors.fsiErrorMsg  )) msg
-        member _.PrintAppErrorMsg msg = Printf.kprintf (fun s -> printOrBuffer (s,true,LogColors.appErrorMsg  )) msg
-        member _.PrintIOErrorMsg  msg = Printf.kprintf (fun s -> printOrBuffer (s,true,LogColors.iOErrorMsg   )) msg  
-        member _.PrintDebugMsg    msg = Printf.kprintf (fun s -> printOrBuffer (s,true,LogColors.debugMsg     )) msg
-        member _.PrintCustom      msg = Printf.kprintf (fun s -> printOrBuffer (s,true, LogColors.customColor  )) msg
-        member _.PrintCustomColor red green blue msg =   LogColors.setcustomColor (red,green,blue) ;  Printf.kprintf (fun s -> printOrBuffer (s,true, LogColors.customColor ))  msg
-        //member _.PrintCustomBrush (br:SolidColorBrush) msg = _.PrintCustomBrush (br:SolidColorBrush) msg
+        member _.PrintfnInfoMsg     msg = Printf.kprintf (fun s -> printOrBuffer (s,true,LogColors.infoMsg      )) msg
+        member _.PrintfnFsiErrorMsg msg = Printf.kprintf (fun s -> printOrBuffer (s,true,LogColors.fsiErrorMsg  )) msg
+        member _.PrintfnAppErrorMsg msg = Printf.kprintf (fun s -> printOrBuffer (s,true,LogColors.appErrorMsg  )) msg
+        member _.PrintfnIOErrorMsg  msg = Printf.kprintf (fun s -> printOrBuffer (s,true,LogColors.iOErrorMsg   )) msg  
+        member _.PrintfnDebugMsg    msg = Printf.kprintf (fun s -> printOrBuffer (s,true,LogColors.debugMsg     )) msg
+        member _.PrintfnCustom      msg = Printf.kprintf (fun s -> printOrBuffer (s,true, LogColors.customColor  )) msg
+        member _.PrintfnCustomColor red green blue msg =   LogColors.setcustomColor (red,green,blue) ;  Printf.kprintf (fun s -> printOrBuffer (s,true, LogColors.customColor ))  msg
+        //member _.PrintfnCustomBrush (br:SolidColorBrush) msg = _.PrintfnCustomBrush (br:SolidColorBrush) msg
 
         //without the new line:
-        member _.Print_InfoMsg     msg = Printf.kprintf (fun s -> printOrBuffer (s,false,LogColors.infoMsg      )) msg
-        member _.Print_FsiErrorMsg msg = Printf.kprintf (fun s -> printOrBuffer (s,false,LogColors.fsiErrorMsg  )) msg
-        member _.Print_AppErrorMsg msg = Printf.kprintf (fun s -> printOrBuffer (s,false,LogColors.appErrorMsg  )) msg
-        member _.Print_IOErrorMsg  msg = Printf.kprintf (fun s -> printOrBuffer (s,false,LogColors.iOErrorMsg   )) msg  
-        member _.Print_DebugMsg    msg = Printf.kprintf (fun s -> printOrBuffer (s,false,LogColors.debugMsg     )) msg       
-        member _.Print_Custom      msg = Printf.kprintf (fun s -> printOrBuffer (s,false,LogColors.customColor  )) msg    
-        member _.Print_CustomColor red green blue msg =  LogColors.setcustomColor (red,green,blue); Printf.kprintf (fun s -> printOrBuffer (s,false, LogColors.customColor ))  msg        
-        //member this.Print_CustomBrush (br:SolidColorBrush) msg =  LogColors.customColor  <- br |> freeze;  Printf.kprintf (fun s -> printOrBuffer (s,false, LogColors.customColor ))  msg
+        member _.PrintfInfoMsg     msg = Printf.kprintf (fun s -> printOrBuffer (s,false,LogColors.infoMsg      )) msg
+        member _.PrintfFsiErrorMsg msg = Printf.kprintf (fun s -> printOrBuffer (s,false,LogColors.fsiErrorMsg  )) msg
+        member _.PrintfAppErrorMsg msg = Printf.kprintf (fun s -> printOrBuffer (s,false,LogColors.appErrorMsg  )) msg
+        member _.PrintfIOErrorMsg  msg = Printf.kprintf (fun s -> printOrBuffer (s,false,LogColors.iOErrorMsg   )) msg  
+        member _.PrintfDebugMsg    msg = Printf.kprintf (fun s -> printOrBuffer (s,false,LogColors.debugMsg     )) msg       
+        member _.PrintfCustom      msg = Printf.kprintf (fun s -> printOrBuffer (s,false,LogColors.customColor  )) msg    
+        member _.PrintfCustomColor red green blue msg =  LogColors.setcustomColor (red,green,blue); Printf.kprintf (fun s -> printOrBuffer (s,false, LogColors.customColor ))  msg        
+        //member this.PrintfCustomBrush (br:SolidColorBrush) msg =  LogColors.customColor  <- br |> freeze;  Printf.kprintf (fun s -> printOrBuffer (s,false, LogColors.customColor ))  msg
 
     
     member this.SaveAllText (pathHint: FilePath) = 
@@ -553,9 +553,9 @@ type Log private () =
         if Util.isTrue (dlg.ShowDialog()) then                
             try
                 IO.File.WriteAllText(dlg.FileName, log.Text) 
-                this.PrintInfoMsg "Log File saved as:\r\n%s" dlg.FileName
+                this.PrintfnInfoMsg "Log File saved as:\r\n%s" dlg.FileName
             with e -> 
-                this.PrintIOErrorMsg "Failed to save text from Log at :\r\n%s\r\n%A" dlg.FileName e
+                this.PrintfnIOErrorMsg "Failed to save text from Log at :\r\n%s\r\n%A" dlg.FileName e
    
     member this.SaveSelectedText (pathHint: FilePath) = 
         if log.SelectedText.Length > 0 then // this check is also done in "canexecute command"
@@ -577,9 +577,9 @@ type Log private () =
            if Util.isTrue (dlg.ShowDialog()) then                
               try 
                    IO.File.WriteAllText(dlg.FileName, txt) 
-                   this.PrintInfoMsg "Selected text from Log saved as:\r\n%s" dlg.FileName
+                   this.PrintfnInfoMsg "Selected text from Log saved as:\r\n%s" dlg.FileName
               with e -> 
-                   this.PrintIOErrorMsg "Failed to save selected text from Log at :\r\n%s\r\n%A" dlg.FileName e
+                   this.PrintfnIOErrorMsg "Failed to save selected text from Log at :\r\n%s\r\n%A" dlg.FileName e
                        
     //--------------------------------------------------------------------------------------------------------------------------------------------
     //-----------------------------Static members---------------------------------------------------------------------------------------------------------------

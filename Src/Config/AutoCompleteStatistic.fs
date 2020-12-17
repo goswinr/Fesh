@@ -34,9 +34,9 @@ type AutoCompleteStatistic  (log:ISeffLog, hostInfo:Hosting) =
                     for ln in  IO.File.ReadAllLines filePath do
                     match ln.Split(sep) with
                     | [|k;v|] -> dict.[k] <- float v // TODO allow for comments? use ini format ??
-                    | _       -> log.PrintAppErrorMsg "Bad line in CompletionStats file : '%s'" ln                   
+                    | _       -> log.PrintfnAppErrorMsg "Bad line in CompletionStats file : '%s'" ln                   
             with e -> 
-                log.PrintAppErrorMsg "Error load fileCompletionStats: %A"   e
+                log.PrintfnAppErrorMsg "Error load fileCompletionStats: %A"   e
             
             customPriorities
             |> List.iteri ( fun i s -> dict.[s] <- 999. - float i  )// decrement priority while iterating  

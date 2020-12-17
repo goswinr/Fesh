@@ -26,14 +26,14 @@ type FoldingStatus (log:ISeffLog, hostInfo:Hosting, recentlyUsedFiles:RecentlyUs
                     for ln in  IO.File.ReadAllLines filePath do
                     match ln.Split(sep) with
                     | [|k;v|] -> 
-                        //log.PrintDebugMsg "%s for %s" v k
+                        //log.PrintfnDebugMsg "%s for %s" v k
                         let vs = Seq.map ( fun c -> if c = '0' then false elif c = '1' then true else failwithf "bad char %c in FoldingStatus" c) v |> Array.ofSeq
                         dict.[k] <- vs 
-                    | _ -> log.PrintAppErrorMsg "Bad line in FoldingStatus file : '%s'" ln 
+                    | _ -> log.PrintfnAppErrorMsg "Bad line in FoldingStatus file : '%s'" ln 
                 waitingForFileRead <- false
             with e -> 
                 waitingForFileRead <- false
-                log.PrintAppErrorMsg "Error load FoldingStatus: %A"   e
+                log.PrintfnAppErrorMsg "Error load FoldingStatus: %A"   e
             } |> Async.Start
         dict
 

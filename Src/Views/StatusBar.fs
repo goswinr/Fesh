@@ -38,7 +38,7 @@ type CheckerStatus (grid:TabsAndLog) as this =
     let originalBackGround = this.Background
                 
     let updateCheckState(iEditor:IEditor)= 
-        //log.PrintDebugMsg "Setting errors for %A %A " iEditor.FileInfo iEditor.CheckRes.Value.checkRes.Errors.Length 
+        //log.PrintfnDebugMsg "Setting errors for %A %A " iEditor.FileInfo iEditor.CheckRes.Value.checkRes.Errors.Length 
         match iEditor.FileCheckState with
         | Done res ->                                            
                 let es = res.checkRes.Errors 

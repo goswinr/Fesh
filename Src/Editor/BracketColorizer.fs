@@ -208,14 +208,14 @@ type BracketHighlighter (ed:TextEditor) =
                         else
                             Cols.Add colErr
 
-            //for k in PairEnds.Keys do   ed.Log.PrintDebugMsg   "start %d end  %d" k PairEnds.[k]
-            //for k in PairStarts.Keys do   ed.Log.PrintDebugMsg "end  %d start  %d" k PairStarts.[k]
+            //for k in PairEnds.Keys do   ed.Log.PrintfnDebugMsg   "start %d end  %d" k PairEnds.[k]
+            //for k in PairStarts.Keys do   ed.Log.PrintfnDebugMsg "end  %d start  %d" k PairStarts.[k]
 
             
 
-            //for i=0 to Cols.Count-1 do ed.Log.PrintDebugMsg "%A in %A at %d" Brs.[i] Cols.[i] Offs.[i]
-            //ed.Log.PrintDebugMsg "%d Brackets" Brs.Count
-            //if Brs.Count = 0 then ed.Log.PrintDebugMsg "inComment   inBlockComment  inString  %b %b %b" inComment   inBlockComment  inString 
+            //for i=0 to Cols.Count-1 do ed.Log.PrintfnDebugMsg "%A in %A at %d" Brs.[i] Cols.[i] Offs.[i]
+            //ed.Log.PrintfnDebugMsg "%d Brackets" Brs.Count
+            //if Brs.Count = 0 then ed.Log.PrintfnDebugMsg "inComment   inBlockComment  inString  %b %b %b" inComment   inBlockComment  inString 
 
             // find error in remainig stack items:
             for e in st do
@@ -230,7 +230,7 @@ type BracketHighlighter (ed:TextEditor) =
             for i = 0 to Offs.Count - 1 do // or binary serach
                 let off = Offs.[i]
                 if off = pos || off = pos - 1  then
-                    //this.Log.Value.PrintDebugMsg "Bracket %d to %d on Line %d " off (off+1) line.LineNumber                
+                    //this.Log.Value.PrintfnDebugMsg "Bracket %d to %d on Line %d " off (off+1) line.LineNumber                
                     
                     match Brs.[i] with 
                     | OpAnRec | OpArr | OpRect | OpCurly | OpRound   -> 
@@ -238,7 +238,7 @@ type BracketHighlighter (ed:TextEditor) =
                         let ok,pe = PairEnds.TryGetValue(pairStart)
                         if ok then pairEnd <- pe.off
                         else
-                            //ed.Log.PrintAppErrorMsg "Cant find corresponding End bracket for %A in %s" Brs.[i] (Selection.currentLine ed.AvaEdit)
+                            //ed.Log.PrintfnAppErrorMsg "Cant find corresponding End bracket for %A in %s" Brs.[i] (Selection.currentLine ed.AvaEdit)
                             pairEnd <- -1
                         
                     | ClRound | ClRect | ClCurly| ClAnRec | ClArr    ->
@@ -246,7 +246,7 @@ type BracketHighlighter (ed:TextEditor) =
                         let ok,ps = PairStarts.TryGetValue(pairEnd)
                         if ok then pairStart <- ps.off
                         else
-                            //ed.Log.PrintAppErrorMsg "Cant find corresponding Start bracket for %A in %s" Brs.[i] (Selection.currentLine ed.AvaEdit)
+                            //ed.Log.PrintfnAppErrorMsg "Cant find corresponding Start bracket for %A in %s" Brs.[i] (Selection.currentLine ed.AvaEdit)
                             pairStart <- -1
 
 
@@ -255,7 +255,7 @@ type BracketHighlighter (ed:TextEditor) =
                         | ClRound | OpRect | OpCurly | OpRound  | ClRect | ClCurly  -> 1   
                         | OpAnRec | OpArr | ClAnRec | ClArr                         -> 2  
 
-                    //ed.Log.PrintDebugMsg "pairStart %d pairEnd %d pairLen %d" pairStart pairEnd pairLen
+                    //ed.Log.PrintfnDebugMsg "pairStart %d pairEnd %d pairLen %d" pairStart pairEnd pairLen
                     if pairStart >=0 && pairEnd > pairStart then
                         ed.AvaEdit.TextArea.TextView.Redraw() 
     
@@ -268,7 +268,7 @@ type BracketHighlighter (ed:TextEditor) =
                 if notNull Cols.[i] then // the first one is null ( to keep the coloring from xshd file)
                     let off = Offs.[i]
                     if off >= st && off < en then 
-                        //this.Log.Value.PrintDebugMsg "Bracket %d to %d on Line %d " off (off+1) line.LineNumber                
+                        //this.Log.Value.PrintfnDebugMsg "Bracket %d to %d on Line %d " off (off+1) line.LineNumber                
                         match Brs.[i] with 
                         | ClRound | OpRect | OpCurly | OpRound  | ClRect | ClCurly  -> base.ChangeLinePart( off, off+1, fun el -> el.TextRunProperties.SetForegroundBrush(Cols.[i]))   
                         | OpAnRec | OpArr | ClAnRec | ClArr                         -> base.ChangeLinePart( off, off+2, fun el -> el.TextRunProperties.SetForegroundBrush(Cols.[i]))                
@@ -285,7 +285,7 @@ type BracketHighlighter (ed:TextEditor) =
             if pairEnd   >= st && pairEnd   < en then  base.ChangeLinePart( pairEnd  , pairEnd   + pairLen, fun el -> el.TextRunProperties.SetBackgroundBrush(pairBg))   
                 
 
-        //else this.Log.Value.PrintAppErrorMsg "Brs %d Offs %d Cols %d,  on Line %d " Brs.Count  Offs.Count Cols.Count  line.LineNumber
+        //else this.Log.Value.PrintfnAppErrorMsg "Brs %d Offs %d Cols %d,  on Line %d " Brs.Count  Offs.Count Cols.Count  line.LineNumber
 
     
     
@@ -297,7 +297,7 @@ type BracketHighlighter (ed:TextEditor) =
         
             ch.OnFullCodeAvailabe.Add( fun ched ->
               if ched.Id = ed.Id then 
-                  //ed.Log.PrintInfoMsg "OnFullCodeAvailabe checking Breackets"
+                  //ed.Log.PrintfnInfoMsg "OnFullCodeAvailabe checking Breackets"
                   brh.FindBrackets(ed) )
         
             ed.AvaEdit.TextArea.Caret.PositionChanged.Add ( fun e -> brh.HighlightPair(ed))

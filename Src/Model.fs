@@ -23,50 +23,50 @@ type ISeffLog =
     abstract member FsiErrorStream     : StringBuilder
     
 
-    abstract member PrintInfoMsg     : Printf.StringFormat<'T,unit> -> 'T 
-    abstract member PrintFsiErrorMsg : Printf.StringFormat<'T,unit> -> 'T  
-    abstract member PrintAppErrorMsg : Printf.StringFormat<'T,unit> -> 'T  
-    abstract member PrintIOErrorMsg  : Printf.StringFormat<'T,unit> -> 'T  
-    abstract member PrintDebugMsg    : Printf.StringFormat<'T,unit> -> 'T
+    abstract member PrintfnInfoMsg     : Printf.StringFormat<'T,unit> -> 'T 
+    abstract member PrintfnFsiErrorMsg : Printf.StringFormat<'T,unit> -> 'T  
+    abstract member PrintfnAppErrorMsg : Printf.StringFormat<'T,unit> -> 'T  
+    abstract member PrintfnIOErrorMsg  : Printf.StringFormat<'T,unit> -> 'T  
+    abstract member PrintfnDebugMsg    : Printf.StringFormat<'T,unit> -> 'T
     
     /// Print using the Brush or color provided 
-    /// at last custom printing call via PrintCustomBrush or PrintCustomColor 
-    abstract member PrintCustom     : Printf.StringFormat<'T,unit> -> 'T
+    /// at last custom printing call via.PrintfnCustomBrush or.PrintfnCustomColor 
+    abstract member PrintfnCustom     : Printf.StringFormat<'T,unit> -> 'T
 
         // Change custom color to a new SolidColorBrush (e.g. from System.Windows.Media.Brushes)
         // This will also freeze the Brush.
         // Then print 
-        //abstract member PrintCustomBrush : SolidColorBrush -> Printf.StringFormat<'T,unit> -> 'T 
+        //abstract member PrintfnCustomBrush : SolidColorBrush -> Printf.StringFormat<'T,unit> -> 'T 
 
     /// Change custom color to a RGB value ( each between 0 and 255) 
     /// Then print 
-    abstract member PrintCustomColor : int ->  int ->  int ->  Printf.StringFormat<'T,unit> -> 'T 
+    abstract member PrintfnCustomColor : int ->  int ->  int ->  Printf.StringFormat<'T,unit> -> 'T 
     
     
     
     /// Prints without adding a new line at the end
-    abstract member Print_InfoMsg      : Printf.StringFormat<'T,unit> -> 'T  
+    abstract member PrintfInfoMsg      : Printf.StringFormat<'T,unit> -> 'T  
     /// Prints without adding a new line at the end
-    abstract member Print_FsiErrorMsg  : Printf.StringFormat<'T,unit> -> 'T  
+    abstract member PrintfFsiErrorMsg  : Printf.StringFormat<'T,unit> -> 'T  
     /// Prints without adding a new line at the end
-    abstract member Print_AppErrorMsg  : Printf.StringFormat<'T,unit> -> 'T  
+    abstract member PrintfAppErrorMsg  : Printf.StringFormat<'T,unit> -> 'T  
     /// Prints without adding a new line at the end
-    abstract member Print_IOErrorMsg   : Printf.StringFormat<'T,unit> -> 'T         
+    abstract member PrintfIOErrorMsg   : Printf.StringFormat<'T,unit> -> 'T         
     /// Prints without adding a new line at the end
-    abstract member Print_DebugMsg     : Printf.StringFormat<'T,unit> -> 'T     
+    abstract member PrintfDebugMsg     : Printf.StringFormat<'T,unit> -> 'T     
     /// Print using the Brush or color provided 
-    /// at last custom printing call via PrintCustomBrush or PrintCustomColor 
+    /// at last custom printing call via.PrintfnCustomBrush or.PrintfnCustomColor 
     /// without adding a new line at the end
-    abstract member Print_Custom : Printf.StringFormat<'T,unit> -> 'T
+    abstract member PrintfCustom : Printf.StringFormat<'T,unit> -> 'T
 
             // Change custom color to a new SolidColorBrush (e.g. from System.Windows.Media.Brushes)
             // This will also freeze the Brush.
             // Then print without adding a new line at the end
-            //abstract member Print_CustomBrush : SolidColorBrush -> Printf.StringFormat<'T,unit> -> 'T 
+            //abstract member PrintfCustomBrush : SolidColorBrush -> Printf.StringFormat<'T,unit> -> 'T 
 
     /// Change custom color to a RGB value ( each between 0 and 255) 
     /// Then print without adding a new line at the end
-    abstract member Print_CustomColor : int ->  int ->  int ->  Printf.StringFormat<'T,unit> -> 'T 
+    abstract member PrintfCustomColor : int ->  int ->  int ->  Printf.StringFormat<'T,unit> -> 'T 
 
     //used in FSI constructor:
     abstract member TextWriterFsiStdOut    : TextWriter

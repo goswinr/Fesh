@@ -73,12 +73,12 @@ module CursorBehaviour  =
                 let line = avaEdit.Document.GetText(avaEdit.Document.GetLineByOffset(avaEdit.CaretOffset)) // = get current line
                 let car = avaEdit.TextArea.Caret.Column
                 let prevC = line.Substring(0 ,car-1)
-                //log.PrintDebugMsg "--Substring length %d: '%s'" prevC.Length prevC
+                //log.PrintfnDebugMsg "--Substring length %d: '%s'" prevC.Length prevC
                 if prevC.Length > 0 && avaEdit.TextArea.Selection.IsEmpty then //TODO or also use to replace selected text ??
                     if isJustSpaceCharsOrEmpty prevC  then
                         let dist = prevC.Length % avaEdit.Options.IndentationSize
                         let clearCount = if dist = 0 then avaEdit.Options.IndentationSize else dist
-                        //log.PrintDebugMsg "--Clear length: %d " clearCount
+                        //log.PrintfnDebugMsg "--Clear length: %d " clearCount
                         avaEdit.Document.Remove(avaEdit.CaretOffset - clearCount, clearCount)
                         e.Handled <- true // to not actually delete one char
         
@@ -101,8 +101,8 @@ module CursorBehaviour  =
                 let txt = avaEdit.Document.GetText(line) // = get current line
                 let caretPosInLine = caret - line.Offset
                 let isCaretAtEnd = String.IsNullOrWhiteSpace (txt.[caretPosInLine .. line.EndOffset]) // ensure caret is at end off line !
-                //log.PrintDebugMsg "line:%s" txt
-                //log.PrintDebugMsg "caretPosInLine:%d isCaretAtEnd:%b" caretPosInLine isCaretAtEnd
+                //log.PrintfnDebugMsg "line:%s" txt
+                //log.PrintfnDebugMsg "caretPosInLine:%d isCaretAtEnd:%b" caretPosInLine isCaretAtEnd
                 let trimmed = txt.TrimEnd()
                 if isCaretAtEnd && avaEdit.TextArea.Selection.IsEmpty then //TODO or also use to replace selected text ??
                     if     trimmed.EndsWith " do"
@@ -145,7 +145,7 @@ module CursorBehaviour  =
 
                 
             try
-                let printGreen = ed.Log.PrintCustomColor 0 150 0
+                let printGreen = ed.Log.PrintfnCustomColor 0 150 0
                
 
                 let fs = (e.Data.GetData DataFormats.FileDrop :?> string []) |> Array.sort |> Array.rev // to get file path 
@@ -153,21 +153,21 @@ module CursorBehaviour  =
                     for f in fs  do 
                         let file = IO.Path.GetFileName(f)
                         avaEdit.Document.Insert (0, sprintf "#r \"%s\"\r\n" file)
-                        ed.Log.PrintInfoMsg "Drag & Drop inserted at Line 0: %s"  file
+                        ed.Log.PrintfnInfoMsg "Drag & Drop inserted at Line 0: %s"  file
                     let folder = IO.Path.GetDirectoryName(fs.[0])
                     avaEdit.Document.Insert (0, sprintf "#I @\"%s\"\r\n" folder)                    
-                    ed.Log.PrintInfoMsg "Drag & Drop inserted at Line 0: %s"  folder
+                    ed.Log.PrintfnInfoMsg "Drag & Drop inserted at Line 0: %s"  folder
                 else
                     for f in fs do
                         if isDll f then                            
                             let txt = sprintf "#r @\"%s\"\r\n" f
                             avaEdit.Document.Insert (0, txt )
-                            ed.Log.PrintInfoMsg "Drag & Drop inserted at Line 0:"
+                            ed.Log.PrintfnInfoMsg "Drag & Drop inserted at Line 0:"
                             printGreen "  %s" txt
                         elif isFsx f  then
                             let txt = sprintf "#load @\"%s\"\r\n" f
                             avaEdit.Document.Insert (0, txt)                            
-                            ed.Log.PrintInfoMsg "Drag & Drop inserted at Line 0:" 
+                            ed.Log.PrintfnInfoMsg "Drag & Drop inserted at Line 0:" 
                             printGreen "  %s" txt
                         else 
                             match findInsertion avaEdit.Document.Text with 
@@ -179,21 +179,21 @@ module CursorBehaviour  =
                                 if isNewLn then                                    
                                     let st = String(' ',spacesAtStart line)                                    
                                     avaEdit.Document.Insert (p.offset , sprintf "@\"%s\"%s%s//" f Environment.NewLine st ) 
-                                    ed.Log.PrintInfoMsg "Drag & Drop inserted at Line %d:" p.line 
+                                    ed.Log.PrintfnInfoMsg "Drag & Drop inserted at Line %d:" p.line 
                                     printGreen "  %s" f
-                                    ed.Log.PrintInfoMsg "  Previous Line at that position is commented out below:"
-                                    ed.Log.PrintCustomColor 120 120 120 "  %s" prev
+                                    ed.Log.PrintfnInfoMsg "  Previous Line at that position is commented out below:"
+                                    ed.Log.PrintfnCustomColor 120 120 120 "  %s" prev
                                 else
                                     avaEdit.Document.Insert (p.offset , sprintf "@\"%s\" //" f )
-                                    ed.Log.PrintInfoMsg "Drag & Drop inserted at Line %d:" lnNo.LineNumber
+                                    ed.Log.PrintfnInfoMsg "Drag & Drop inserted at Line %d:" lnNo.LineNumber
                                     printGreen "  %s" f
-                                    ed.Log.PrintInfoMsg "  Previous Line content is commented out:" 
-                                    ed.Log.PrintCustomColor 120 120 120  "  %s" prev
+                                    ed.Log.PrintfnInfoMsg "  Previous Line content is commented out:" 
+                                    ed.Log.PrintfnCustomColor 120 120 120  "  %s" prev
                             | None ->   
                                 let lnNo = avaEdit.Document.GetLineByOffset(avaEdit.CaretOffset)
-                                ed.Log.PrintInfoMsg "Drag & Drop inserted at Line %d:" lnNo.LineNumber
+                                ed.Log.PrintfnInfoMsg "Drag & Drop inserted at Line %d:" lnNo.LineNumber
                                 printGreen "  %s" f
                                 avaEdit.Document.Insert (avaEdit.CaretOffset , sprintf " @\"%s\"%s" f Environment.NewLine)
                             
-            with e -> log.PrintIOErrorMsg "drag and drop failed: %A" e
+            with e -> log.PrintfnIOErrorMsg "drag and drop failed: %A" e
                 

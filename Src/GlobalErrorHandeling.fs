@@ -44,7 +44,7 @@ module GlobalErrorHandeling =
                 try IO.File.WriteAllText(file, err) with _ -> () // file might be open and locked               
                 //    } |> Async.Start
 
-                log.PrintAppErrorMsg "%s" err
+                log.PrintfnAppErrorMsg "%s" err
   
 
     let setup(log:ISeffLog) = 
@@ -56,14 +56,14 @@ module GlobalErrorHandeling =
                     if throwCount < maxThrowCount then // reduce printing to Log UI, it might crash from printing too much
                         throwCount <- throwCount + 1                
                         if e <> null then 
-                            log.PrintAppErrorMsg "Application.Current.DispatcherUnhandledException in main Thread: %A" e.Exception           
+                            log.PrintfnAppErrorMsg "Application.Current.DispatcherUnhandledException in main Thread: %A" e.Exception           
                             e.Handled<- true
                         else
-                            log.PrintAppErrorMsg "Application.Current.DispatcherUnhandledException in main Thread: *null* Exception Obejct"
+                            log.PrintfnAppErrorMsg "Application.Current.DispatcherUnhandledException in main Thread: *null* Exception Obejct"
                     else 
                         print <- false
-                        log.PrintAppErrorMsg "\r\nMORE THAN %d Application.Current.DispatcherUnhandledExceptions"    maxThrowCount
-                        log.PrintAppErrorMsg "\r\n\r\n   *** LOGGING STOPPED. CLEAR LOG FIRST TO START PRINTING AGAIN *** "    
+                        log.PrintfnAppErrorMsg "\r\nMORE THAN %d Application.Current.DispatcherUnhandledExceptions"    maxThrowCount
+                        log.PrintfnAppErrorMsg "\r\n\r\n   *** LOGGING STOPPED. CLEAR LOG FIRST TO START PRINTING AGAIN *** "    
                          )
         
         //catching unhandled exceptions generated from all threads running under the context of a specific application domain. 

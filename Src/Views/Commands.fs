@@ -193,13 +193,13 @@ type Commands (grid:TabsAndLog)  =
                 |"/"     -> Key.OemQuestion // the '/' key next to right shift
                 | x -> match Key.TryParse(x,true) with
                        |true, k -> k
-                       | _ -> log.PrintAppErrorMsg "*AllInputBindings: failed to parse cmd Key '%A'" x; Key.NoName
+                       | _ -> log.PrintfnAppErrorMsg "*AllInputBindings: failed to parse cmd Key '%A'" x; Key.NoName
         
             let getModKey = function
                 |"Ctrl"     -> ModifierKeys.Control        
                 | x -> match ModifierKeys.TryParse(x,true) with
                        |true, k -> k
-                       | _ -> log.PrintAppErrorMsg "*AllInputBindings: failed to parse ModifierKey '%A'" x; ModifierKeys.None
+                       | _ -> log.PrintfnAppErrorMsg "*AllInputBindings: failed to parse ModifierKey '%A'" x; ModifierKeys.None
         
         
             try
@@ -216,7 +216,7 @@ type Commands (grid:TabsAndLog)  =
                                     | [| m; k |]        -> InputBinding(cmd.cmd,  KeyGesture(getKey k, getModKey m))
                                     | [| k |]           -> InputBinding(cmd.cmd,  KeyGesture(getKey k))
                                     | _ -> 
-                                        log.PrintAppErrorMsg "*SetUpGestureInputBindings: failed to parse cmd Input gesture '%s'" cmd.gesture
+                                        log.PrintfnAppErrorMsg "*SetUpGestureInputBindings: failed to parse cmd Input gesture '%s'" cmd.gesture
                                         InputBinding(cmd.cmd,  KeyGesture(Key.None))
                     |]
                 grid.Window.Window.InputBindings.AddRange (bindings)
@@ -224,7 +224,7 @@ type Commands (grid:TabsAndLog)  =
                 grid.Tabs.Control.InputBindings.Add (InputBinding(this.RunSelectedText.cmd, KeyGesture(Key.Return , ModifierKeys.Alt))) |> ignore 
                 grid.Tabs.Control.InputBindings.Add (InputBinding(this.RunSelectedText.cmd, KeyGesture(Key.Enter  , ModifierKeys.Alt))) |> ignore 
             with e -> 
-                log.PrintAppErrorMsg "*AllInputBindings: failed to create keyboard shortcuts: %A"e
+                log.PrintfnAppErrorMsg "*AllInputBindings: failed to create keyboard shortcuts: %A"e
          
     
 

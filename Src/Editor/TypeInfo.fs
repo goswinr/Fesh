@@ -137,7 +137,7 @@ type TypeInfo private () =
                 else 
                     let xmlf = Path.ChangeExtension(dllFile, ".xml")
                     let err = "no xml doc found for member'"+memberName+"' in \r\n"+xmlf+"\r\n"
-                    //log.PrintDebugMsg "%s" err                    
+                    //log.PrintfnDebugMsg "%s" err                    
                     Error (err)
            | None -> 
                 Error ("xml doc file not found for: "+dllFile+"\r\n")
@@ -180,9 +180,9 @@ type TypeInfo private () =
                     for c in cs do 
                         if c.IsOptionalArg then                         
                             D.Add c.FullName
-                            //log.PrintDebugMsg "optional full name: %s" c.FullName
+                            //log.PrintfnDebugMsg "optional full name: %s" c.FullName
             | _ -> ()
-        with e -> log.PrintAppErrorMsg "Error while trying to show a Tool tip in Seff.\r\nYou can ignore this error.\r\nin TypeInfo.namesOfOptnlArgs: %A" e
+        with e -> log.PrintfnAppErrorMsg "Error while trying to show a Tool tip in Seff.\r\nYou can ignore this error.\r\nin TypeInfo.namesOfOptnlArgs: %A" e
         D
     
     //--------------public values and functions -----------------
@@ -218,7 +218,7 @@ type TypeInfo private () =
                     let endCol = endOffset - docLine.Offset
                     let lineTxt = doc.GetText(docLine)          
                     let word = doc.GetText(max 0 startOffset, endOffset-startOffset) // max function to avoid -1
-                    //log.PrintDebugMsg "word = '%s' Line:%d starting at %d get from %d to %d: in '%s'" word line docLine.Offset startOffset endOffset lineTxt
+                    //log.PrintfnDebugMsg "word = '%s' Line:%d starting at %d get from %d to %d: in '%s'" word line docLine.Offset startOffset endOffset lineTxt
                 
                     tip.Content <- loadingTxt
                     tip.PlacementTarget <- iEditor.AvaEdit // required for property inheritance

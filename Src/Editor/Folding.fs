@@ -132,9 +132,9 @@ type Foldings(ed:TextEditor,checker:Checker,config:Config, edId:Guid) =
 
     ///Get foldings at every line that is followed by an indent
     let foldEditor (iEditor:IEditor) =        
-        //config.Log.PrintDebugMsg "folding: %s %A = %A" iEditor.FilePath.File edId iEditor.Id
+        //config.Log.PrintfnDebugMsg "folding: %s %A = %A" iEditor.FilePath.File edId iEditor.Id
         if edId=iEditor.Id then // will be called on each tab, to skips updating  if it is not current editor
-            //config.Log.PrintDebugMsg "folding1: %s" iEditor.FilePath.File
+            //config.Log.PrintfnDebugMsg "folding1: %s" iEditor.FilePath.File
             async{            
                 match iEditor.FileCheckState.FullCodeAndId with
                 | NoCode ->()
@@ -163,7 +163,7 @@ type Foldings(ed:TextEditor,checker:Checker,config:Config, edId:Guid) =
                         | CodeID _ -> 
                             if isIntialLoad then 
                                 while config.FoldingStatus.WaitingForFileRead do
-                                    config.Log.PrintDebugMsg "waiting to load last code folding status.. "
+                                    config.Log.PrintfnDebugMsg "waiting to load last code folding status.. "
                                     do! Async.Sleep 50
                                 let vs = config.FoldingStatus.Get(iEditor)                                
                                 for i=0 to foldings.Count-1 do
@@ -177,7 +177,7 @@ type Foldings(ed:TextEditor,checker:Checker,config:Config, edId:Guid) =
                             else
                                 let folds=ResizeArray<NewFolding>()
                                 for f in foldings do                                 
-                                    //config.Log.PrintDebugMsg "Foldings from %d to %d  that is  %d lines" f.foldStartOff  f.foldEndOff f.linesInFold
+                                    //config.Log.PrintfnDebugMsg "Foldings from %d to %d  that is  %d lines" f.foldStartOff  f.foldEndOff f.linesInFold
                                     let fo = new NewFolding(f.foldStartOff, f.foldEndOff)                                
                                     fo.Name <- sprintf " ... %d folded lines " f.linesInFold
                                     folds.Add(fo) //if NewFolding type is created async a waiting symbol apears on top of it 
@@ -222,7 +222,7 @@ type Foldings(ed:TextEditor,checker:Checker,config:Config, edId:Guid) =
     //        // as an expression (in visitExpression), but has no body
     //        for binding in bindings do
     //          let (Binding(access, kind, inlin, mutabl, attrs, xmlDoc, data, pat, retInfo, body, range, sp)) = binding
-    //          log.PrintDebugMsg "Binding: %A  from %d to %d:" kind  range.StartLine range.EndLine             
+    //          log.PrintfnDebugMsg "Binding: %A  from %d to %d:" kind  range.StartLine range.EndLine             
     //    | _ -> printfn " - not supported declaration: %A" declaration
 
     //match parseRes.ParseTree with 
@@ -234,7 +234,7 @@ type Foldings(ed:TextEditor,checker:Checker,config:Config, edId:Guid) =
     //        let (ParsedImplFileInput(fn, script, name, _, _, modulesOrNss, _)) = implFile
     //        for moduleOrNs in modulesOrNss do
     //            let (SynModuleOrNamespace(lid, isRec, isMod, decls, xml, attrs, sao, range)) = moduleOrNs
-    //            log.PrintDebugMsg "Namespace or module: %A : %A from %d to %d" lid isMod range.StartLine range.EndLine   
+    //            log.PrintfnDebugMsg "Namespace or module: %A : %A from %d to %d" lid isMod range.StartLine range.EndLine   
     //            visitDeclarations decls
     //    | _ -> failwith "F# Interface file (*.fsi) not supported."
 

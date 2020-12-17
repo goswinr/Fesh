@@ -86,7 +86,7 @@ type ErrorRenderer (textEditor:TextEditor, log:ISeffLog) =
                             drawingContext.DrawGeometry(Brushes.Transparent, usedPen, geometry)
                             //break //TODO why break in original code ? //https://stackoverflow.com/questions/11149907/showing-invalid-xml-syntax-with-avalonedit
         with ex -> 
-            log.PrintAppErrorMsg "ERROR in ErrorRenderer.Draw: %A" ex
+            log.PrintfnAppErrorMsg "ERROR in ErrorRenderer.Draw: %A" ex
             
     member this.Layer = KnownLayer.Selection // for IBackgroundRenderer
     member this.Transform(context:ITextRunConstructionContext , elements:IList<VisualLineElement>)=() // needed ? // for IVisualLineTransformer

@@ -125,20 +125,20 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
         let keywords = Keywords.KeywordsWithDescription |> List.map fst |> Collections.Generic.HashSet // used in analysing text change
 
         let textChanged (change:TextChange) =        
-            //log.PrintDebugMsg "*1-textChanged because of %A" change 
+            //log.PrintfnDebugMsg "*1-textChanged because of %A" change 
             if not compls.IsOpen then 
                 if compls.HasItems then 
-                    //log.PrintDebugMsg "*1.2-textChanged not highlighting because  compls.HasItems"
+                    //log.PrintfnDebugMsg "*1.2-textChanged not highlighting because  compls.HasItems"
                     //TODO check text is full mtch and close completion window ?
                     // just keep on tying in completion window, no type checking !
                     ()
                 else 
-                    //log.PrintDebugMsg "*1.1-textChanged: closing empty completion window(change: %A)" change 
+                    //log.PrintfnDebugMsg "*1.1-textChanged: closing empty completion window(change: %A)" change 
                     compls.Close() 
 
                 match change with             
                 | OtherChange | CompletionWinClosed  | EnteredOneNonIdentifierChar -> //TODO maybe do less call to error highlighter when typing in string or comment ?
-                    //log.PrintDebugMsg "*1.2-textChanged highlighting for  %A" change
+                    //log.PrintfnDebugMsg "*1.2-textChanged highlighting for  %A" change
                     ed.Checker.CkeckHighlightAndFold(ed)
                     //TODO trigger here UpdateFoldings(tab,None) or use event
 
@@ -155,7 +155,7 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
                     let doCompletionInPattern, onlyDU   =  
                         match stringAfterLast " |" (" "+line) with // add starting step to not fail at start of line with "|" //TODO FIX
                         |None    -> true,false 
-                        |Some "" -> log.PrintDebugMsg " log.PrintDebugMsg: this schould never happen since we get here only with letters, but not typing '|'" ; false, false // most comen case: '|" was just typed, next pattern declaration starts after next car
+                        |Some "" -> log.PrintfnDebugMsg " log.PrintfnDebugMsg: this schould never happen since we get here only with letters, but not typing '|'" ; false, false // most comen case: '|" was just typed, next pattern declaration starts after next car
                         |Some s  -> 
                             let doCompl = 
                                 s.Contains "->"             || // name binding already happend 
@@ -169,13 +169,13 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
                             else
                                doCompl,false //not upper case, other 3 decide if anything is shown
 
-                    //log.PrintDebugMsg "isNotAlreadyInComment:%b; isNotFunDeclaration:%b; isNotLetDeclaration:%b; doCompletionInPattern:%b(, onlyDU:%b)" isNotAlreadyInComment isNotFunDecl isNotLetDecl doCompletionInPattern onlyDU
+                    //log.PrintfnDebugMsg "isNotAlreadyInComment:%b; isNotFunDeclaration:%b; isNotLetDeclaration:%b; doCompletionInPattern:%b(, onlyDU:%b)" isNotAlreadyInComment isNotFunDecl isNotLetDecl doCompletionInPattern onlyDU
                 
                     if (*isNotInString &&*) isNotAlreadyInComment && isNotFunDecl && isNotLetDecl && doCompletionInPattern then
                         let setback     = lastNonFSharpNameCharPosition line                
                         let query       = line.Substring(line.Length - setback)
                         let isKeyword   = keywords.Contains query
-                        //log.PrintDebugMsg "pos:%A setback='%d'" pos setback                
+                        //log.PrintfnDebugMsg "pos:%A setback='%d'" pos setback                
                                            
                         let charBeforeQueryDU = 
                             let i = pos.column - setback - 1
@@ -185,16 +185,16 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
                                 NotDot
 
                         if charBeforeQueryDU = NotDot && isKeyword then
-                            //log.PrintDebugMsg "*2.1-textChanged highlighting with: query='%s', charBefore='%A', isKey=%b, setback='%d', line='%s' " query charBeforeQueryDU isKeyword setback line
+                            //log.PrintfnDebugMsg "*2.1-textChanged highlighting with: query='%s', charBefore='%A', isKey=%b, setback='%d', line='%s' " query charBeforeQueryDU isKeyword setback line
                             ed.Checker.CkeckHighlightAndFold(ed)
 
                         else 
                            
                            
-                           //log.PrintDebugMsg "*2.2-textChanged Completion window opening with: query='%s', charBefore='%A', isKey=%b, setback='%d', line='%s' change=%A" query charBeforeQueryDU isKeyword setback line change
+                           //log.PrintfnDebugMsg "*2.2-textChanged Completion window opening with: query='%s', charBefore='%A', isKey=%b, setback='%d', line='%s' change=%A" query charBeforeQueryDU isKeyword setback line change
                            Completions.TryShow(ed, compls, pos, change, setback, query, charBeforeQueryDU, onlyDU)
                     else
-                        //log.PrintDebugMsg "*2.3-textChanged didn't trigger of checker not needed? isNotAlreadyInComment = %b;isNotFunDecl = %b; isNotLetDecl = %b; doCompletionInPattern = %b" isNotAlreadyInComment  isNotFunDecl  isNotLetDecl  doCompletionInPattern
+                        //log.PrintfnDebugMsg "*2.3-textChanged didn't trigger of checker not needed? isNotAlreadyInComment = %b;isNotFunDecl = %b; isNotLetDecl = %b; doCompletionInPattern = %b" isNotAlreadyInComment  isNotFunDecl  isNotLetDecl  doCompletionInPattern
                         ed.Checker.CkeckHighlightAndFold(ed)
                         ()
         
@@ -222,7 +222,7 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
         avaEdit.TextArea.PreviewTextInput.Add (fun a -> CursorBehaviour.previewTextInput(avaEdit,a))
 
         avaEdit.Document.Changed.Add(fun e -> 
-            //log.PrintDebugMsg "*Document.Changed Event: deleted %d '%s', inserted %d '%s', completion hasItems: %b, isOpen: %b , Just closed: %b" e.RemovalLength e.RemovedText.Text e.InsertionLength e.InsertedText.Text ed.Completions.HasItems ed.Completions.IsOpen compls.JustClosed
+            //log.PrintfnDebugMsg "*Document.Changed Event: deleted %d '%s', inserted %d '%s', completion hasItems: %b, isOpen: %b , Just closed: %b" e.RemovalLength e.RemovedText.Text e.InsertionLength e.InsertedText.Text ed.Completions.HasItems ed.Completions.IsOpen compls.JustClosed
             
             //DELETE: //if e.RemovalLength > 0 && e.RemovedText.Text <> e.InsertedText.Text then  compls.JustClosed<-false // in this case open window again?
 
@@ -232,8 +232,8 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
                     //let currentText = getField(typeof<CodeCompletion.CompletionList>,w.CompletionList,"currentText") :?> string //this property schould be public !
                     //TODO close Window if w.CompletionList.SelectedItem.Text = currentText
                     //TODO ther is a bug in current text when deliting chars
-                    //log.PrintDebugMsg "currentText: '%s'" currentText
-                    //log.PrintDebugMsg "w.CompletionList.CompletionData.Count:%d" w.CompletionList.ListBox.VisibleItemCount
+                    //log.PrintfnDebugMsg "currentText: '%s'" currentText
+                    //log.PrintfnDebugMsg "w.CompletionList.CompletionData.Count:%d" w.CompletionList.ListBox.VisibleItemCount
                 else 
                     compls.Close() 
             

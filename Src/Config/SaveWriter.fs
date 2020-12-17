@@ -21,7 +21,7 @@ type SaveWriter  (log:ISeffLog)=
                 try
                     IO.File.WriteAllText(path,text)
                 with ex ->            
-                    log.PrintIOErrorMsg "Write.toFileAsyncLocked failed with: %A \r\n while writing:\r\n%s" ex text
+                    log.PrintfnIOErrorMsg "Write.toFileAsyncLocked failed with: %A \r\n while writing:\r\n%s" ex text
             finally
                 readerWriterLock.ExitWriteLock()
             } |> Async.Start
@@ -39,7 +39,7 @@ type SaveWriter  (log:ISeffLog)=
                     let text = getText()               
                     this.Write (path, text) 
                 with ex -> 
-                    log.PrintAppErrorMsg "getText() in Write.toFileDelayed failed: %A" ex                 
+                    log.PrintfnAppErrorMsg "getText() in Write.toFileDelayed failed: %A" ex                 
             } |> Async.StartImmediate
         
     

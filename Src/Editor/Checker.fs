@@ -33,7 +33,7 @@ type Checker private (config:Config)  =
 
     /// to check full code use 0 as 'tillOffset', at the end either a event is raised or continuation called if present
     let check(iEditor:IEditor, tillOffset, continueOnThreadPool:Option<CheckResults->unit>) =         
-        //log.PrintDebugMsg "***checking file  %s " iEditor.FilePath.File //iEditor.CheckState
+        //log.PrintfnDebugMsg "***checking file  %s " iEditor.FilePath.File //iEditor.CheckState
         let thisId = Interlocked.Increment checkId
         globalCheckState <- GettingCode thisId
         iEditor.FileCheckState <- globalCheckState
@@ -65,7 +65,7 @@ type Checker private (config:Config)  =
                 |FullCode _ ->                 
                     do! Async.SwitchToContext(Sync.syncContext)
                     if !checkId = thisId then 
-                        //log.PrintDebugMsg "***fullCodeAvailabeEv  %s " iEditor.FilePath.File //iEditor.CheckState
+                        //log.PrintfnDebugMsg "***fullCodeAvailabeEv  %s " iEditor.FilePath.File //iEditor.CheckState
                         fullCodeAvailabeEv.Trigger(iEditor)
                     do! Async.SwitchToThreadPool()
 
@@ -80,7 +80,7 @@ type Checker private (config:Config)  =
                     try                        
                         let sourceText = Text.SourceText.ofString code.Code
                         let! options, optionsErr = checker.Value.GetProjectOptionsFromScript(fileFsx, sourceText, otherFlags = [| "--langversion:preview" |] ) // Gets additional script #load closure information if applicable.
-                        for e in optionsErr do log.PrintAppErrorMsg "ERROR in GetProjectOptionsFromScript: %A" e //TODO make lo print
+                        for e in optionsErr do log.PrintfnAppErrorMsg "ERROR in GetProjectOptionsFromScript: %A" e //TODO make lo print
         
                         // "filename">The name of the file in the project whose source is being checked
                         // "fileversion">An integer that can be used to indicate the version of the file. This will be returned by TryGetRecentCheckResultsForFile when looking up the file.
@@ -122,7 +122,7 @@ type Checker private (config:Config)  =
                                 *)
                         if !checkId = thisId  then
                             try
-                                //log.PrintDebugMsg "checking %A" iEditor.FileInfo
+                                //log.PrintfnDebugMsg "checking %A" iEditor.FileInfo
                                 let! parseRes , checkAnswer = checker.Value.ParseAndCheckFileInProject(fileFsx, 0, sourceText, options) // can also be done in two  calls   //TODO really use check file in project for scripts?? 
                                 match checkAnswer with
                                 | FSharpCheckFileAnswer.Succeeded checkRes ->   
@@ -142,15 +142,15 @@ type Checker private (config:Config)  =
                                                     isFirstCheck <- false
                 
                                 | FSharpCheckFileAnswer.Aborted  ->
-                                    log.PrintAppErrorMsg "FSharpChecker.ParseAndCheckFileInProject(filepath, 0, sourceText , options) returned: FSharpCheckFileAnswer.Aborted\r\nFSharpParseFileResults is: %A" parseRes
+                                    log.PrintfnAppErrorMsg "FSharpChecker.ParseAndCheckFileInProject(filepath, 0, sourceText , options) returned: FSharpCheckFileAnswer.Aborted\r\nFSharpParseFileResults is: %A" parseRes
                                     globalCheckState <-Failed
                                     iEditor.FileCheckState <- globalCheckState
                             with e ->
-                                log.PrintAppErrorMsg "Error in ParseAndCheckFileInProject Block.\r\nMaybe you are using another version of  FSharpCompilerService.dll than at compile time?\r\nOr the error is in the continuation.\r\nOr in the event handlers:\r\n\r\n%A" e
+                                log.PrintfnAppErrorMsg "Error in ParseAndCheckFileInProject Block.\r\nMaybe you are using another version of  FSharpCompilerService.dll than at compile time?\r\nOr the error is in the continuation.\r\nOr in the event handlers:\r\n\r\n%A" e
                                 globalCheckState <-Failed
                                 iEditor.FileCheckState <- globalCheckState
                     with e ->
-                            log.PrintAppErrorMsg "Error in GetProjectOptionsFromScript Block.\r\nMaybe you are using another version of  FSharpCompilerService.dll than at compile time?: %A" e
+                            log.PrintfnAppErrorMsg "Error in GetProjectOptionsFromScript Block.\r\nMaybe you are using another version of  FSharpCompilerService.dll than at compile time?: %A" e
                             globalCheckState <-Failed
                             iEditor.FileCheckState <- globalCheckState
                             
@@ -198,8 +198,8 @@ type Checker private (config:Config)  =
             async{
                 let colSetBack = pos.column - ifDotSetback
                 let partialLongName = QuickParse.GetPartialLongNameEx(pos.lineToCaret, colSetBack - 1) //- 1) ??TODO is minus one correct ? https://github.com/fsharp/FSharp.Compiler.Service/issues/837
-                //log.PrintDebugMsg "GetPartialLongNameEx on: '%s' setback: %d is:\r\n%A" pos.lineToCaret colSetBack partialLongName  
-                //log.PrintDebugMsg "GetDeclarationListInfo on: '%s' row: %d, col: %d, colSetBack:%d, ifDotSetback:%d\r\n" pos.lineToCaret pos.row pos.column colSetBack ifDotSetback          
+                //log.PrintfnDebugMsg "GetPartialLongNameEx on: '%s' setback: %d is:\r\n%A" pos.lineToCaret colSetBack partialLongName  
+                //log.PrintfnDebugMsg "GetDeclarationListInfo on: '%s' row: %d, col: %d, colSetBack:%d, ifDotSetback:%d\r\n" pos.lineToCaret pos.row pos.column colSetBack ifDotSetback          
                 if !checkId = thisId  then 
                     let! symUse = 
                         res.checkRes.GetDeclarationListSymbols(
@@ -219,7 +219,7 @@ type Checker private (config:Config)  =
                                 ( fun _ -> [] )     // getAllEntities: (unit -> AssemblySymbol list) 
                                 )
                         if !checkId = thisId  then
-                            if decls.IsError then log.PrintAppErrorMsg "*ERROR in GetDeclarationListInfo: %A" decls //TODO use log
+                            if decls.IsError then log.PrintfnAppErrorMsg "*ERROR in GetDeclarationListInfo: %A" decls //TODO use log
                             else
                                 do! Async.SwitchToContext Sync.syncContext 
                                 continueOnUI( decls, symUse)

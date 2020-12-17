@@ -21,11 +21,11 @@ type Settings (log:ISeffLog, hostInfo:Hosting) =
             for ln in  IO.File.ReadAllLines filePath do
                 match ln.Split(sep) with
                 | [|k;v|] -> dict.[k] <- v // TODO allow for comments? use ini format ??
-                | _       -> log.PrintAppErrorMsg "Bad line in settings file file: '%s'" ln
-                //log.PrintDebugMsg "on File: %s" ln
+                | _       -> log.PrintfnAppErrorMsg "Bad line in settings file file: '%s'" ln
+                //log.PrintfnDebugMsg "on File: %s" ln
         with 
-            | :? IO.FileNotFoundException ->  log.PrintInfoMsg   "Settings file not found. (This is expected on first use of the App.)"
-            | e ->                            log.PrintAppErrorMsg  "Problem reading or initalizing settings file: %A"  e
+            | :? IO.FileNotFoundException ->  log.PrintfnInfoMsg   "Settings file not found. (This is expected on first use of the App.)"
+            | e ->                            log.PrintfnAppErrorMsg  "Problem reading or initalizing settings file: %A"  e
         dict
 
     let writer = SaveWriter(log)
@@ -39,10 +39,10 @@ type Settings (log:ISeffLog, hostInfo:Hosting) =
     let get k = 
          match settingsDict.TryGetValue k with 
          |true, v  -> 
-            //log.PrintDebugMsg "Get %s as %s" k v  //for DEBUG only
+            //log.PrintfnDebugMsg "Get %s as %s" k v  //for DEBUG only
             Some v
          |false, _ -> 
-            //log.PrintDebugMsg "missing key %s " k  //for DEBUG only
+            //log.PrintfnDebugMsg "missing key %s " k  //for DEBUG only
             None
 
     let getFloat  key def = match get key with Some v -> float v           | None -> def
@@ -62,8 +62,8 @@ type Settings (log:ISeffLog, hostInfo:Hosting) =
                 } |> Async.Start
         
     member this.Set (k:string) (v:string) = 
-        if k.IndexOf(sep) > -1 then log.PrintAppErrorMsg  "Settings key shall not contain '%c' : %s%c%s"  sep  k  sep  v            
-        if v.IndexOf(sep) > -1 then log.PrintAppErrorMsg  "Settings value shall not contain '%c' : %s%c%s"  sep  k  sep  v 
+        if k.IndexOf(sep) > -1 then log.PrintfnAppErrorMsg  "Settings key shall not contain '%c' : %s%c%s"  sep  k  sep  v            
+        if v.IndexOf(sep) > -1 then log.PrintfnAppErrorMsg  "Settings value shall not contain '%c' : %s%c%s"  sep  k  sep  v 
         settingsDict.[k] <- v             
         
     //member this.Get k = get k        

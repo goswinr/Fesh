@@ -20,11 +20,11 @@ type FsiArugments  (log:ISeffLog, hostInfo:Hosting) =
             |> Array.filter (fun a -> a.ToLower() <>  "--quiet") // this argument is managed seperatly in config.Settings and statusbar
         with 
             | :? IO.FileNotFoundException ->  
-                log.PrintInfoMsg      "FsiArugments file not found. (This is expected on first use of the App.)"
+                log.PrintfnInfoMsg      "FsiArugments file not found. (This is expected on first use of the App.)"
                 try IO.File.WriteAllLines(filePath,defaultArgs) with _ -> ()
                 defaultArgs
             | e ->                            
-                log.PrintAppErrorMsg  "Problem reading or initalizing FsiArugments file: %A"  e
+                log.PrintfnAppErrorMsg  "Problem reading or initalizing FsiArugments file: %A"  e
                 defaultArgs
      
     let mutable args = [||]

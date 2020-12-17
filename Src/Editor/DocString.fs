@@ -232,7 +232,7 @@ module DocString =
                 // Prevent other threads from trying to add the same doc simultaneously
                 xmlDocCache.AddOrUpdate(xmlFile, Map.empty, fun _ _ -> Map.empty) |> ignore
                 try
-                    //log.PrintDebugMsg "reading %s" actualXmlFile
+                    //log.PrintfnDebugMsg "reading %s" actualXmlFile
                     let cnt = File.ReadAllText actualXmlFile 
                     let cnt = 
                         if actualXmlFile.Contains "netstandard.xml" then //Workaround for netstandard xmlDoc

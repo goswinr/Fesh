@@ -37,8 +37,8 @@
   <Color name="FailPath"            foreground="#888888" />
   <Color name="FailString"          foreground="#D0A040" />  
   <Color name="Exception"           foreground="#C06030" />
-  <Color name="PrintStatement"      foreground="#206060" />
-  <Color name="PrintString"         foreground="#E08070" />
+  <Color name=.PrintfnStatement"      foreground="#206060" />
+  <Color name=.PrintfnString"         foreground="#E08070" />
   <Color name="TrueCol"             foreground="#008090" fontStyle="italic" fontWeight="bold" />
   <Color name="FalseCol"            foreground="#A70090" fontStyle="italic" fontWeight="bold" />
   <Color name="Semicolon"           foreground="#A0A0A0" />
@@ -438,7 +438,7 @@
     </Span>
 
     <!-- incase they are followed by a name and not a literal string starting with "-->
-    <Keywords color = "PrintStatement">
+    <Keywords color = .PrintfnStatement">
       <Word>print</Word> <!-- part of FsEx.dll-->
       <Word>print2</Word>
       <Word>print3</Word>
@@ -451,9 +451,9 @@
     </Keywords>
 
 
-    <Span color="PrintString" >      
-      <Begin color= "PrintStatement" >\be?print2?f?n?\s*"</Begin> 
-      <End   color= "PrintStatement" >"</End>     
+    <Span color=.PrintfnString" >      
+      <Begin color= .PrintfnStatement" >\be?print2?f?n?\s*"</Begin> 
+      <End   color= .PrintfnStatement" >"</End>     
       <RuleSet>
         <Import ruleSet="StringEscapeSet"/>
         <Import ruleSet="StringFormatSet"/>

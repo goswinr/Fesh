@@ -49,7 +49,7 @@ type OpenTabs  (log:ISeffLog, hostInfo:Hosting, startupArgs:string[]) =
                         files.Add fi
                   
         with e -> 
-            log.PrintAppErrorMsg "Error getFilesfileOnClosingOpen: %A"  e
+            log.PrintfnAppErrorMsg "Error getFilesfileOnClosingOpen: %A"  e
         
         [|  
         for fi in files do 
@@ -68,7 +68,7 @@ type OpenTabs  (log:ISeffLog, hostInfo:Hosting, startupArgs:string[]) =
     member this.Save (currentFileO:FilePath , allFilesO: seq<FileInfo>) =         
         currentFile<-currentFileO
         allFiles<-allFilesO
-        //log.PrintDebugMsg "Save tabs %A, curent %A" allFiles currentFile
+        //log.PrintfnDebugMsg "Save tabs %A, curent %A" allFiles currentFile
         writer.WriteDelayed  (filePath, getText ,500)
       
     /// second item in tuple indicates current tab
