@@ -63,7 +63,7 @@ type FoldingStatus (log:ISeffLog, hostInfo:Hosting, recentlyUsedFiles:RecentlyUs
         match ed.FilePath with
         | NotSet -> ()
         | SetTo fi -> 
-            let vs = [| for f in ed.Folds.AllFoldings do f.IsFolded |]
+            let vs = [| for f in ed.FoldingManager.AllFoldings do f.IsFolded |]
             foldingStatus.[fi.FullName] <- vs
             foldingStatus.[fi.Name] <- vs
             writer.WriteDelayed (filePath, foldingStatusAsString, 800)

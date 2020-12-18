@@ -71,6 +71,7 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
     member this.ErrorHighlighter = errorHighlighter    
     member this.Completions = compls
     member this.Config = config
+    
     member this.Folds = folds
     member this.Search = search
     
@@ -91,6 +92,7 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
         member this.FileCheckState  with get() = checkState and  set(v) = checkState <- v
         member this.FilePath        = filePath // interface does not need setter
         member this.Log             = log
+        member this.FoldingManager  = folds.Manager
     
     
     // additional text change event:
@@ -205,7 +207,7 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
         
         // setup and tracking folding status, (needs a ref to file path:  )
         ed.Folds.SetState( ed )              
-        ed.Folds.Margin.MouseUp.Add (fun e -> config.FoldingStatus.Set(ed,ed.Folds.Manager) )
+        ed.Folds.Margin.MouseUp.Add (fun e -> config.FoldingStatus.Set(ed) )
 
         //----------------------------------
         //--FS Checker and Code completion--

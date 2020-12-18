@@ -137,7 +137,7 @@ type IEditor =
     abstract member FileCheckState : FileCheckState with get , set //None means a check is running
     abstract member FilePath       : FilePath 
     abstract member Log            : ISeffLog 
-    abstract member Folds          : FoldingManager 
+    abstract member FoldingManager : FoldingManager 
 
 
 //---- Fsi types ------------
