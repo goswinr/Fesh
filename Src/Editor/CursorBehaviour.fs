@@ -5,6 +5,7 @@ open Seff
 open Seff.Model
 open ICSharpCode.AvalonEdit
 open Seff.Util.String
+open Seff.Util
 open System.Windows
 open System
 open System.Windows.Media
@@ -83,13 +84,32 @@ module CursorBehaviour  =
                         e.Handled <- true // to not actually delete one char
         
         /// Removes rest of line too if only whitespacxe
+        /// also remove whitespace at stert of next line 
         |Input.Key.Delete ->
             if avaEdit.SelectionLength = 0 then // TODO what happens if there is a selction ??
-                let line = avaEdit.Document.GetLineByOffset(avaEdit.CaretOffset) // = get current line 
-                let len = line.EndOffset - avaEdit.CaretOffset
-                let txt = avaEdit.Document.GetText(avaEdit.CaretOffset,len)
+                let caretOff = avaEdit.CaretOffset
+                let line = avaEdit.Document.GetLineByOffset(caretOff) // = get current line 
+                let endOff = line.EndOffset 
+                let len = endOff - caretOff
+                let txt = avaEdit.Document.GetText(caretOff,len)
                 if isJustSpaceCharsOrEmpty txt  then
-                    avaEdit.Document.Remove(avaEdit.CaretOffset, line.EndOffset - avaEdit.CaretOffset + 2 ) // + 2 for \r\n
+                    // also remove spaces at start of next line up to current caret position only though ?
+                    let caretPosInLine = caretOff - line.Offset
+                    let nextLine = line.NextLine
+                    let nextTxt = avaEdit.Document.GetText(endOff+2 , caretPosInLine) // + 2 for \r\n
+                    let nextspacesAtStart = spacesAtStart(nextTxt)    
+                    
+                    let lenToDelete = endOff - caretOff + 2 + nextspacesAtStart // + 2 for \r\n
+                    avaEdit.Document.Remove(caretOff, lenToDelete)
+                    
+                    // now after this change ensure one space remains at caret
+                    let prev = avaEdit.Document.GetCharAt(caretOff-1)
+                    let next = avaEdit.Document.GetCharAt(caretOff)
+                    let prevIsChar = not (Char.IsWhiteSpace(prev))
+                    let nextIsChar = not (Char.IsWhiteSpace(next))
+                    if  prevIsChar && nextIsChar then 
+                        avaEdit.Document.Insert(caretOff, " ") 
+                    
                     e.Handled <- true // to not actually delete one char
 
 
