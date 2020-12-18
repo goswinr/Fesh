@@ -93,12 +93,16 @@ module CursorBehaviour  =
                 let len = endOff - caretOff
                 let txt = avaEdit.Document.GetText(caretOff,len)
                 if isJustSpaceCharsOrEmpty txt  then
-                    // also remove spaces at start of next line up to current caret position only though ?
-                    let caretPosInLine = caretOff - line.Offset
-                    let nextLine = line.NextLine
-                    let nextTxt = avaEdit.Document.GetText(endOff+2 , caretPosInLine) // + 2 for \r\n
-                    let nextspacesAtStart = spacesAtStart(nextTxt)    
+                    // also remove spaces at start of next line 
                     
+                    //up to caret pos on next line: 
+                    let caretPosInLine = caretOff - line.Offset
+                    let nextTxt = avaEdit.Document.GetText(endOff+2 , caretPosInLine) // + 2 for \r\n . to jump from prev line to next line
+                    
+                    // or all white space:
+                    //let nextTxt = avaEdit.Document.GetText(line.NextLine) 
+                    
+                    let nextspacesAtStart = spacesAtStart(nextTxt) 
                     let lenToDelete = endOff - caretOff + 2 + nextspacesAtStart // + 2 for \r\n
                     avaEdit.Document.Remove(caretOff, lenToDelete)
                     
