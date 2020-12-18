@@ -10,6 +10,7 @@ open ICSharpCode.AvalonEdit.Folding
    
 /// A class to hold the statistic of most used toplevel auto completions
 type FoldingStatus (log:ISeffLog, hostInfo:Hosting, recentlyUsedFiles:RecentlyUsedFiles) =
+    
     let writer = SaveWriter(log)
         
     let  sep = '|' // separator 
@@ -58,14 +59,14 @@ type FoldingStatus (log:ISeffLog, hostInfo:Hosting, recentlyUsedFiles:RecentlyUs
                 |true,vs -> vs
                 |_      -> [| |]    
 
-    member this.Set(ed:IEditor, folds:FoldingManager) =
+    member this.Set(ed:IEditor) =
         match ed.FilePath with
         | NotSet -> ()
         | SetTo fi -> 
-            let vs = [| for f in folds.AllFoldings do f.IsFolded |]
+            let vs = [| for f in ed.Folds.AllFoldings do f.IsFolded |]
             foldingStatus.[fi.FullName] <- vs
             foldingStatus.[fi.Name] <- vs
-            writer.WriteDelayed (filePath, foldingStatusAsString, 500)
+            writer.WriteDelayed (filePath, foldingStatusAsString, 800)
         
     member this.Save() =
-        writer.WriteDelayed (filePath, foldingStatusAsString, 500)
+        writer.WriteDelayed (filePath, foldingStatusAsString, 800)

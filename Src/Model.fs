@@ -7,6 +7,7 @@ open System.Windows.Input
 open ICSharpCode
 open FSharp.Compiler.SourceCodeServices
 open System.Text
+open ICSharpCode.AvalonEdit.Folding
 
 
 type ISeffLog = 
@@ -136,6 +137,7 @@ type IEditor =
     abstract member FileCheckState : FileCheckState with get , set //None means a check is running
     abstract member FilePath       : FilePath 
     abstract member Log            : ISeffLog 
+    abstract member Folds          : FoldingManager 
 
 
 //---- Fsi types ------------
