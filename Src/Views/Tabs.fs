@@ -15,6 +15,8 @@ open Seff.Editor
 open System.Windows.Media
 
 
+type SavingKind = SaveInPlace | SaveNewLocation | SaveExport
+
 /// A class holding the Tab Control
 /// Includes logic for saving and opening files
 /// Window ref neded for closing after last Tab closed
@@ -50,7 +52,7 @@ type Tabs(config:Config, win:Window) =
             |None    -> None
 
 
-    let saveAt (t:Tab, fi:FileInfo, updateTab) =                   
+    let saveAt (t:Tab, fi:FileInfo, saveKind:SavingKind) =                   
         fi.Refresh()
         if not <| fi.Directory.Exists then 
             log.PrintfnIOErrorMsg "saveAsPath: Directory does not exist:\r\n%s" fi.Directory.FullName 
@@ -59,13 +61,19 @@ type Tabs(config:Config, win:Window) =
             try
                 //t.AvaEdit.Save fi.FullName // fails, is it async ?
                 IO.File.WriteAllText(fi.FullName, t.AvaEdit.Text)
-                if updateTab then 
+                match saveKind with 
+                |SaveNewLocation -> 
                     t.IsCodeSaved <- true 
                     t.FilePath <- SetTo fi //this also updates the Tab header and set file info on editor
-                    config.RecentlyUsedFiles.AddAndSave(fi)          //TODO this fails if app closes afterward immideatly    
-                    config.OpenTabs.Save(t.FilePath , allFileInfos)  //TODO this fails if app closes afterward immideatly              
+                    config.RecentlyUsedFiles.AddAndSave(fi)          //TODO this fails if app closes afterward immideatly  ? 
+                    config.OpenTabs.Save(t.FilePath , allFileInfos)  //TODO this fails if app closes afterward immideatly  ?
+                    config.FoldingStatus.Set(t.Editor) // otherwise no record would exist for the new file name
                     log.PrintfnInfoMsg "File saved as:\r\n%s" fi.FullName
-                else
+                |SaveInPlace ->
+                    t.IsCodeSaved <- true
+                    log.PrintfnInfoMsg "File saved"
+                |SaveExport -> 
+                    config.FoldingStatus.Set(t.Editor) // otherwise no record would exist for the new file name
                     log.PrintfnInfoMsg "File exported to:\r\n%s" fi.FullName
                 true
             with e -> 
@@ -74,7 +82,7 @@ type Tabs(config:Config, win:Window) =
                 
 
     /// returns false if saving operation was canceled or had an error, true on sucessfull saving
-    let saveAsDialog (t:Tab, updateTab) :bool=         
+    let saveAsDialog (t:Tab, saveKind:SavingKind) :bool=         
         let dlg = new Microsoft.Win32.SaveFileDialog()
         match t.FilePath with 
         |NotSet ->() 
@@ -90,17 +98,17 @@ type Tabs(config:Config, win:Window) =
             if fi.Exists then 
                 let msg = sprintf "Do you want to overwrite the existing file?\r\n%s\r\nwith\r\n%s"fi.FullName t.FormatedFileName
                 match MessageBox.Show(msg, Style.dialogCaption, MessageBoxButton.YesNo, MessageBoxImage.Question) with
-                | MessageBoxResult.Yes -> saveAt (t, fi,updateTab)
+                | MessageBoxResult.Yes -> saveAt (t, fi, saveKind)
                 | MessageBoxResult.No -> false
                 | _ -> false 
             else
-                saveAt (t, fi, updateTab)
+                saveAt (t, fi, saveKind)
         else
             false
     
 
     let export(t:Tab):bool= 
-        saveAsDialog (t, false)
+        saveAsDialog (t, SaveExport)
 
     /// returns false if saving operation was canceled or had an error, true on sucessfull saving
     let trySave (t:Tab)=        
@@ -110,12 +118,12 @@ type Tabs(config:Config, win:Window) =
                 log.PrintfnInfoMsg "File already up to date:\r\n%s" fi.FullName
                 true
             elif (fi.Refresh(); fi.Exists) then
-                saveAt(t, fi, true)
+                saveAt(t, fi, SaveInPlace)
             else
                 log.PrintfnIOErrorMsg "File does not exist on drive anymore:\r\n%s" fi.FullName 
-                saveAsDialog(t, true)
+                saveAsDialog(t, SaveNewLocation)
         |NotSet -> 
-                saveAsDialog(t, true)
+                saveAsDialog(t, SaveNewLocation)
 
     /// returns true if file is saved or if closing ok (not canceled by user)
     let askIfClosingTabIsOk(t:Tab) :bool=  
@@ -274,7 +282,7 @@ type Tabs(config:Config, win:Window) =
 
     member this.AllTabs = allTabs
     
-    member this.AddTab(tab:Tab, makeCurrent) = addTab(tab, makeCurrent,false)
+    member this.AddTab(tab:Tab, makeCurrent) = addTab(tab, makeCurrent, false)
 
     /// Checks if file is open already then calls addTtab
     member this.AddFile(fi:FileInfo, makeCurrent) =  tryAddFile(fi, makeCurrent,false)
@@ -286,7 +294,7 @@ type Tabs(config:Config, win:Window) =
     member this.OpenFile() = openFile()  |> ignore 
             
     /// Shows a file opening dialog
-    member this.SaveAs (t:Tab) = saveAsDialog(t, true)
+    member this.SaveAs (t:Tab) = saveAsDialog(t, SaveNewLocation)
     
     /// also saves currently open files 
     member this.CloseTab(t) = closeTab(t) 
@@ -319,7 +327,7 @@ type Tabs(config:Config, win:Window) =
                 if fi.Exists then 
                     this.SaveAs(t)
                 else
-                    saveAt(t,fi, true)                
+                    saveAt(t,fi, SaveNewLocation)                
          |NotSet ->
             log.PrintfnIOErrorMsg "can't Save Incrementing unsaved file"  
             this.SaveAs(t)
