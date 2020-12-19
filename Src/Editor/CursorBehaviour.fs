@@ -11,12 +11,15 @@ open System
 open System.Windows.Media
 open ICSharpCode.AvalonEdit.Editing
 open ICSharpCode.AvalonEdit.Document
+open Seff.Util
+open Seff.Util.General
 
 module CursorBehaviour  =
     
     ///replace 'true' with 'false' and vice versa
     let toggleBoolean(avaEdit:TextEditor) = 
         let doc = avaEdit.Document
+        doc.BeginUpdate()//avaEdit.Document.RunUpdate
         for seg in avaEdit.TextArea.Selection.Segments do
             if seg.Length = 5 then 
                 let tx = doc.GetText(seg)
@@ -24,10 +27,10 @@ module CursorBehaviour  =
                 elif tx = "true " then doc.Replace(seg, "false") // true with a space, so that it works in block selection
             elif seg.Length = 4 && doc.GetText(seg) = "true"  then 
                 let afterOff = seg.EndOffset // do not add +1
-                if doc.TextLength > afterOff && doc.GetCharAt(afterOff) = ' ' then // try to keep total length the same                    
+                if doc.TextLength > (afterOff+1) && doc.GetCharAt(afterOff) = ' '  && not (Char.IsLetter(doc.GetCharAt(afterOff+1))) then // try to keep total length the same                    
                     doc.Remove(afterOff,1)
                 doc.Replace(seg, "false")
-                    
+        doc.EndUpdate()                    
 
     let insertAtCaretOrSelections (avaEdit:TextEditor, tx:string) = 
         if avaEdit.TextArea.Selection.IsEmpty then
@@ -148,6 +151,94 @@ module CursorBehaviour  =
                             e.Handled <- true // to not actually add anothe new line
 
         | _ -> ()
+    
+    [<Struct>] 
+    type Seg = 
+        {st:int;en:int}
+        member s.len = s.en-s.st
+
+    let swapLinesUp(avaEdit:TextEditor, log:ISeffLog) =
+        let doc=avaEdit.Document
+        let ta = avaEdit.TextArea
+        let caret = avaEdit.CaretOffset
+        let selections = 
+            ta.Selection.Segments
+            |> Seq.map (fun s -> {st=s.StartOffset; en=s.EndOffset})
+            |> Array.ofSeq
+
+        let lnAbove, selectedLines =
+            if selections.Length = 0 then 
+                let ln = doc.GetLineByOffset(caret)
+                let prev = ln.PreviousLine
+                //if notNull prev then                     
+                //    log.PrintfnDebugMsg "caret %d " caret
+                //    log.PrintfnDebugMsg "prev %d - %d" prev.Offset prev.EndOffset
+                //    log.PrintfnDebugMsg "this %d - %d" ln.Offset ln.EndOffset
+                prev, { st = ln.Offset; en = ln.EndOffset}
+            else 
+                let firstLn = doc.GetLineByOffset(selections.[0].st)
+                let lastLn =  doc.GetLineByOffset(selections.[selections.Length-1].en)
+                firstLn.PreviousLine, { st = firstLn.Offset; en = lastLn.EndOffset} 
+        
+        if notNull lnAbove then 
+            let txtAbove = doc.GetText(lnAbove)
+            let txtSelection = doc.GetText(selectedLines.st,selectedLines.len)
+            let ins = lnAbove.Offset
+            let aboveLen = lnAbove.Length
+            doc.BeginUpdate()//avaEdit.Document.RunUpdate
+            ta.ClearSelection()        
+            doc.Remove(ins, aboveLen + 2 + selectedLines.len)            
+            doc.Insert(ins, txtSelection + "\r\n" + txtAbove)
+            if selections.Length>0 then 
+                //for s in selections do avaEdit.Select(s.st - (aboveLen+2) , s.len) // TODO this does not re create box selections
+                let selSt = selections.[0].st - (aboveLen+2)
+                let selLen = selections.[selections.Length-1].en - selections.[0].st
+                avaEdit.Select(selSt , selLen) // TODO if there was a block selection before it is no a single selection
+            avaEdit.CaretOffset <- caret - (aboveLen+2)
+            doc.EndUpdate()
+      
+    let swapLinesDown(avaEdit:TextEditor, log:ISeffLog) =
+        let doc=avaEdit.Document
+        let ta = avaEdit.TextArea
+        let caret = avaEdit.CaretOffset
+        let selections = 
+            ta.Selection.Segments
+            |> Seq.map (fun s -> {st=s.StartOffset; en=s.EndOffset})
+            |> Array.ofSeq
+
+        let lnBelow, selectedLines =
+            if selections.Length = 0 then 
+                let ln = doc.GetLineByOffset(caret)
+                let next = ln.NextLine
+                //if notNull prev then                     
+                //    log.PrintfnDebugMsg "caret %d " caret
+                //    log.PrintfnDebugMsg "prev %d - %d" prev.Offset prev.EndOffset
+                //    log.PrintfnDebugMsg "this %d - %d" ln.Offset ln.EndOffset
+                next, { st = ln.Offset; en = ln.EndOffset}
+            else 
+                let firstLn = doc.GetLineByOffset(selections.[0].st)
+                let lastLn =  doc.GetLineByOffset(selections.[selections.Length-1].en)
+                lastLn.NextLine, { st = firstLn.Offset; en = lastLn.EndOffset} 
+    
+        if notNull lnBelow then 
+            let txtBelow = doc.GetText(lnBelow)
+            let txtSelection = doc.GetText(selectedLines.st,selectedLines.len)
+            let ins = selectedLines.st
+            let belowLen = lnBelow.Length
+            doc.BeginUpdate()//avaEdit.Document.RunUpdate
+            ta.ClearSelection()        
+            doc.Remove(ins, selectedLines.len + 2 + belowLen)            
+            doc.Insert(ins, txtBelow + "\r\n" + txtSelection)
+            if selections.Length > 0 then                 
+                //for s in selections do  avaEdit.Select(s.st + (belowLen+2) , s.len)// TODO this does not re create box selections
+                let selSt = selections.[0].st + (belowLen+2)
+                let selLen = selections.[selections.Length-1].en - selections.[0].st
+                avaEdit.Select(selSt , selLen) // TODO if there was a block selection before it is no a single selection
+            
+            avaEdit.CaretOffset <- caret + (belowLen+2)
+            doc.EndUpdate()
+        
+
 
 
     let dragAndDrop (ed:IEditor, log:ISeffLog,  e:DragEventArgs) =

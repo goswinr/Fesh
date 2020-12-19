@@ -63,10 +63,10 @@ type Commands (grid:TabsAndLog)  =
     //member val ToggleComment     = {name= "Toggle Comment"            ;gesture= "Ctrl + T"       ;cmd= mkCmdSimple (fun _ -> Commenting.toggleComment tabs.CurrAvaEdit)          ;tip= "Swaps commented and not commented lines"           }                                                                                     
     member val ToggleComment2    = {name= "Toggle Comment"            ;gesture= "Ctrl + /"       ;cmd= mkCmdSimple (fun _ -> Commenting.toggleComment tabs.CurrAvaEdit)          ;tip= "Swaps commented and not commented lines"           }                                                                                     
     
-    //member val SwapLineUp        = {name= "Swap Line Up"              ;gesture= "Alt + Up"       ;cmd=AvalonEditCommands.SwapLinesUp                                           ;tip= "Swap the current line and the previous line."                                     }                                                                                     
-    member val SwapLineUpCtrl    = {name= "Swap Line Up"              ;gesture= "Ctrl + Up"      ;cmd=AvalonEditCommands.SwapLinesUp                                             ;tip= "Swap the current line and the previous line.'Alt + Up' is also a shortcut for this." } // extra because Alt Down fails in Rhino                                                                                 
-    //member val SwapLineDown      = {name= "Swap Line Down"            ;gesture= "Alt + Down"     ;cmd=AvalonEditCommands.SwapLinesDown                                         ;tip= "Swap the current line and the next line."                                         } 
-    member val SwapLineDownCtrl  = {name= "Swap Line Down"            ;gesture= "Ctrl + Down"    ;cmd=AvalonEditCommands.SwapLinesDown                                           ;tip= "Swap the current line and the next line. 'Alt + Down' is also a shortcut for this."  } // extra because Alt Down fails in Rhino
+    member val SwapLineUp        = {name= "Swap Line Up"             ;gesture= "Alt + Up"        ;cmd=mkCmdSimple (fun _ -> CursorBehaviour.swapLinesUp(tabs.CurrAvaEdit,log))   ;tip= "Swap the current line(s) with the previous line."                                     }                                                                                     
+    member val SwapLineUpCtrl    = {name= "Swap Line Up"              ;gesture= "Ctrl + Up"      ;cmd=mkCmdSimple (fun _ -> CursorBehaviour.swapLinesUp(tabs.CurrAvaEdit,log))   ;tip= "Swap the current line(s) with the previous line.'Alt + Up' is also a shortcut for this." } // extra because Alt Down fails in Rhino                                                                                 
+    member val SwapLineDown      = {name= "Swap Line Down"            ;gesture= "Alt + Down"     ;cmd=mkCmdSimple (fun _ -> CursorBehaviour.swapLinesDown(tabs.CurrAvaEdit,log)) ;tip= "Swap the current line(s) with the next line."                                         } 
+    member val SwapLineDownCtrl  = {name= "Swap Line Down"            ;gesture= "Ctrl + Down"    ;cmd=mkCmdSimple (fun _ -> CursorBehaviour.swapLinesDown(tabs.CurrAvaEdit,log)) ;tip= "Swap the current line(s) with the next line. 'Alt + Down' is also a shortcut for this."  } // extra because Alt Down fails in Rhino
     
     
     member val ToUppercase       = {name= "To UPPERCASE"              ;gesture= ""               ;cmd=AvalonEditCommands.ConvertToUppercase                                      ;tip= "Convertes the selected text to UPPERCASE."                                                          }     
@@ -153,8 +153,11 @@ type Commands (grid:TabsAndLog)  =
                  this.ToggleComment2
                  this.ToggleBoolean
 
-                 //this.SwapLineDownCtrl // set up in avolonedit
-                 //this.SwapLineUpCtrl  // set up in avolonedit
+                 this.SwapLineDown
+                 this.SwapLineDownCtrl
+                 this.SwapLineUp 
+                 this.SwapLineUpCtrl  
+
                  this.SelectLine       
                  //this.SelectLinesUp  
                  //this.SelectLinesDown
