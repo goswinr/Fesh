@@ -100,6 +100,7 @@
     <Compile Include="Src/Editor/BracketColorizer.fs" />
     <Compile Include="Src/Editor/ColumnRulers.fs" />
     <Compile Include="Src/Editor/Editor.fs" />
+    <Compile Include="Src/Editor/SwapLines.fs" />
     <Compile Include="Src/Editor/UNUSEDNuget.fs" />
 
     <Compile Include="Src/Views/Views.Util.fs" />
