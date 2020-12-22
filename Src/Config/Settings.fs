@@ -44,6 +44,7 @@ type Settings (log:ISeffLog, hostInfo:Hosting) =
          |false, _ -> 
             //log.PrintfnDebugMsg "missing key %s " k  //for DEBUG only
             None
+    
 
     let getFloat  key def = match get key with Some v -> float v           | None -> def
     let getInt    key def = match get key with Some v -> int v             | None -> def
@@ -52,7 +53,10 @@ type Settings (log:ISeffLog, hostInfo:Hosting) =
     
     do // do for often accessd settings , skips parsing and dict
         selectAllOccurences <- getBool "selectAllOccurences"  true // true as default value
-
+    
+    member this.roundToOneDigitBehindComa (unRounded:float) = 
+        // 17.0252982466288 this fonsize makes block selection delete fail on the last line: 17.0252982466288
+        Math.Round(unRounded,1)
 
     member this.SetDelayed k v (delay:int)= 
         // delayed because the onMaximise of window event triggers first Loaction changed and then state changed, 
@@ -78,7 +82,9 @@ type Settings (log:ISeffLog, hostInfo:Hosting) =
     member this.GetFloat        key def = getFloat key def
     member this.GetInt          key def = getInt   key def
     member this.GetBool         key def = getBool  key def
-
+    
+    /// with just one digit behind comma (eg. for font sizes)
+    member this.GetFloatRounded  key def = getFloat key def |> this.roundToOneDigitBehindComa
 
     // Explicit values:
 

@@ -14,7 +14,12 @@ type Fonts (grid:TabsAndLog) = // will be contructed as part of Commands class
     let fontsUri =  new Uri("pack://application:,,,/Seff;component/Media/#")
     let mediaUri =  new Uri("pack://application:,,,/Seff;component/Media/")
 
-    let setSize (newSize) = // on log and all tabs
+
+    let setSize (newSizeUnRounded:float) = // on log and all tabs
+        
+        // 17.0252982466288 this fonsize makes block selection delete fail on the last line: 17.0252982466288
+        let newSize = grid.Config.Settings.roundToOneDigitBehindComa(newSizeUnRounded)
+        
         log.ReadOnlyEditor.FontSize <- newSize
         for t in tabs.AllTabs do                
             t.Editor.AvaEdit.FontSize  <- newSize        
@@ -75,7 +80,9 @@ type Fonts (grid:TabsAndLog) = // will be contructed as part of Commands class
         //setEditor(  FontFamily ("JetBrains Mono")|>> verifyFont)  // only consolas renders fast      
         setLog(     FontFamily ("Consolas")|>> verifyFont)  
         setToolTip( FontFamily ("Verdana") |>> verifyFont) // or FontFamily("Andale Mono")?
-      
+    
+    
+    // this fonsize makes block selection delete fail on the last line: 17.0252982466288
           
     /// affects Editor and Log    
     member this.FontsBigger()= 
