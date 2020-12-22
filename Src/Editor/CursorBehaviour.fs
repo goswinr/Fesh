@@ -16,6 +16,20 @@ open Seff.Util.General
 
 module CursorBehaviour  =
     
+
+    /// retuns true if nothin is selected in textarea
+    let hasNoSelection (ta:TextArea) =
+        match ta.Selection with
+        | null -> true  // does this actually happen?
+        | :? EmptySelection -> true  
+        | :? RectangleSelection -> false
+        | :? SimpleSelection  -> false
+        | x ->             
+            eprintf "Unknown selction class in CursorBehaviour.hasNoSelection: %A" x
+            false
+
+
+
     ///replace 'true' with 'false' and vice versa
     let toggleBoolean(avaEdit:TextEditor) = 
         let doc = avaEdit.Document
@@ -64,16 +78,16 @@ module CursorBehaviour  =
         | ","
         | ";"  as c -> 
             insertAtCaretOrSelections (avaEdit, c+" ")
-            e.Handled <- true
-        
+            e.Handled <- true        
         | _ -> ()
 
     let previewKeyDown (avaEdit:TextEditor,log:ISeffLog, e: Input.KeyEventArgs) =  
 
         match e.Key with
+        
         /// Removes 4 charactes (Options.IndentationSize) on pressing backspace key instead of one 
         |Input.Key.Back -> 
-            if avaEdit.SelectionLength = 0 then // TODO what happens if there is a selction ??
+            if hasNoSelection avaEdit.TextArea  then // TODO what happens if there is a selction ??
                 let line = avaEdit.Document.GetText(avaEdit.Document.GetLineByOffset(avaEdit.CaretOffset)) // = get current line
                 let car = avaEdit.TextArea.Caret.Column
                 let prevC = line.Substring(0 ,car-1)
@@ -89,40 +103,43 @@ module CursorBehaviour  =
         /// Removes rest of line too if only whitespacxe
         /// also remove whitespace at stert of next line 
         |Input.Key.Delete ->
-            if avaEdit.SelectionLength = 0 then // TODO what happens if there is a selction ??
+            if hasNoSelection avaEdit.TextArea then // TODO what happens if there is a selction ??
                 let caretOff = avaEdit.CaretOffset
                 let line = avaEdit.Document.GetLineByOffset(caretOff) // = get current line 
                 let endOff = line.EndOffset 
                 let len = endOff - caretOff
-                let txt = avaEdit.Document.GetText(caretOff,len)
+                let txt = avaEdit.Document.GetText(caretOff,len)                
                 if isJustSpaceCharsOrEmpty txt  then
-                    // also remove spaces at start of next line 
+                    let nextLine = line.NextLine
+                    if notNull nextLine then 
+                        // also remove spaces at start of next line 
                     
-                    //up to caret pos on next line: 
-                    let caretPosInLine = caretOff - line.Offset
-                    let nextTxt = avaEdit.Document.GetText(endOff+2 , caretPosInLine) // + 2 for \r\n . to jump from prev line to next line
-                    
-                    // or all white space:
-                    //let nextTxt = avaEdit.Document.GetText(line.NextLine) 
-                    
-                    let nextspacesAtStart = spacesAtStart(nextTxt) 
-                    let lenToDelete = endOff - caretOff + 2 + nextspacesAtStart // + 2 for \r\n
-                    avaEdit.Document.Remove(caretOff, lenToDelete)
-                    
-                    // now after this change ensure one space remains at caret
-                    let prev = avaEdit.Document.GetCharAt(caretOff-1)
-                    let next = avaEdit.Document.GetCharAt(caretOff)
-                    let prevIsChar = not (Char.IsWhiteSpace(prev))
-                    let nextIsChar = not (Char.IsWhiteSpace(next))
-                    if  prevIsChar && nextIsChar then 
-                        avaEdit.Document.Insert(caretOff, " ") 
-                    
-                    e.Handled <- true // to not actually delete one char
+                        //delete max up to caret pos on next line: 
+                        let caretPosInLine = caretOff - line.Offset
+                        let nextTxt = avaEdit.Document.GetText(line.NextLine) 
+                        let nextLnSpacesAtStart = spacesAtStart(nextTxt) 
 
+                        let delLengthOnNextLine = min nextLnSpacesAtStart caretPosInLine // to NOT delete all starting whispace on next line
+                        //let delLengthOnNextLine = nextLnSpacesAtStart // to  delete all starting whispace on next line
+
+                        let lenToDelete = endOff - caretOff + 2 + delLengthOnNextLine // + 2 for \r\n
+                        avaEdit.Document.Remove(caretOff, lenToDelete)
+                    
+                        // now after this change ensure one space remains at caret
+                        let prev = avaEdit.Document.GetCharAt(caretOff-1)
+                        let next = avaEdit.Document.GetCharAt(caretOff)
+                        let prevIsChar = not (Char.IsWhiteSpace(prev))
+                        let nextIsChar = not (Char.IsWhiteSpace(next))
+                        if  prevIsChar && nextIsChar then 
+                            avaEdit.Document.Insert(caretOff, " ") 
+                    
+                        e.Handled <- true // to not actually delete one char
+
+        
 
         // add indent after do, for , ->, =
         |Input.Key.Return ->
-            if avaEdit.SelectionLength = 0 then // TODO what happens if there is a selction ??
+            if hasNoSelection avaEdit.TextArea  then // TODO what happens if there is a selction ??
                 let caret = avaEdit.CaretOffset
                 let line = avaEdit.Document.GetLineByOffset(caret)            
                 let txt = avaEdit.Document.GetText(line) // = get current line
@@ -149,6 +166,8 @@ module CursorBehaviour  =
                                 else              st + avaEdit.Options.IndentationSize - rem
                             avaEdit.Document.Insert(avaEdit.CaretOffset, " " + Environment.NewLine + String(' ',ind)) // add space before too for nice position of folding block
                             e.Handled <- true // to not actually add anothe new line
+        
+        
 
         | _ -> ()
     

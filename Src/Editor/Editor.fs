@@ -13,6 +13,8 @@ open FSharp.Compiler.SourceCodeServices
 open System.Windows
 open System.IO
 open System
+open ICSharpCode.AvalonEdit.Document
+open System.Windows.Input
 
 
 
@@ -105,6 +107,7 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
     /// a static method so that an instance if IEditor can be used
     static member SetUp  (code:string, config:Config, filePath:FilePath ) = 
         let ed = Editor(code, config, filePath )
+        
         SelectedTextTracer.Setup(ed, ed.Folds, config)
         BracketHighlighter.Setup(ed, ed.Checker)
 
@@ -112,13 +115,13 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
         let compls = ed.Completions
         let log = ed.Log
         
+        /// this line will include the charcater that trigger auto completion(dot or first letter)
         let currentLineBeforeCaret()=
             let doc = avaEdit.Document
             let car = avaEdit.TextArea.Caret
             let caretOffset = car.Offset
             let ln = doc.GetLineByOffset(caretOffset)
-            let caretOffsetInThisLine = caretOffset - ln.Offset
-            
+            let caretOffsetInThisLine = caretOffset - ln.Offset            
             { lineToCaret = doc.GetText(ln.Offset, caretOffsetInThisLine) 
               row =    car.Line  
               column = caretOffsetInThisLine // equal to amount of characters in lineToCaret
@@ -200,61 +203,39 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
                         ed.Checker.CkeckHighlightAndFold(ed)
                         ()
         
-        avaEdit.AllowDrop <- true  
-        avaEdit.Drop.Add( fun e -> CursorBehaviour.dragAndDrop(ed,log,e)) 
+
+        let docChanged (e:DocumentChangeEventArgs) = 
+                    //log.PrintfnDebugMsg "*Document.Changed Event: deleted %d '%s', inserted %d '%s', completion hasItems: %b, isOpen: %b , Just closed: %b" e.RemovalLength e.RemovedText.Text e.InsertionLength e.InsertedText.Text ed.Completions.HasItems ed.Completions.IsOpen compls.JustClosed
+                   
+                   //DELETE: //if e.RemovalLength > 0 && e.RemovedText.Text <> e.InsertedText.Text then  compls.JustClosed<-false // in this case open window again?
+
+                   if compls.IsOpen then   // just keep on tying in completion window, no type checking !                
+                       if compls.HasItems then // TODO, this code is duplicated in textChanged function
+                           ()
+                           //let currentText = getField(typeof<CodeCompletion.CompletionList>,w.CompletionList,"currentText") :?> string //this property schould be public !
+                           //TODO close Window if w.CompletionList.SelectedItem.Text = currentText
+                           //TODO ther is a bug in current text when deliting chars
+                           //log.PrintfnDebugMsg "currentText: '%s'" currentText
+                           //log.PrintfnDebugMsg "w.CompletionList.CompletionData.Count:%d" w.CompletionList.ListBox.VisibleItemCount
+                       else 
+                           compls.Close() 
+                   
+                   else //no completion window open , do type check..                
+                       match e.InsertedText.Text with 
+                       |"."  ->                                             textChanged (EnteredDot         )//complete
+                       | txt when txt.Length = 1 ->                                     
+                           if compls.JustClosed then                        textChanged (CompletionWinClosed)//check to avoid retrigger of window on single char completions
+                           else                                                         
+                               let c = txt.[0]                                          
+                               if Char.IsLetter(c) || c='_' || c='`' || c='#'  then   textChanged (EnteredOneIdentifierChar  ) //complete (# for #if directives)
+                               else                                         textChanged (EnteredOneNonIdentifierChar)//check
+                                                                                        
+                       | _  ->                                              textChanged (OtherChange               )//several charcters(paste) ,delete or completion window insert         
+                       
+                       compls.JustClosed<-false
         
-        avaEdit.PreviewKeyDown.Add ( fun e -> CursorBehaviour.previewKeyDown(avaEdit,log,e))   //to indent and dedent
-        
-        // setup and tracking folding status, (needs a ref to file path:  )
-        ed.Folds.SetState( ed )              
-        ed.Folds.Margin.MouseUp.Add (fun e -> config.FoldingStatus.Set(ed) )
-
-        //----------------------------------
-        //--FS Checker and Code completion--
-        //----------------------------------  
-        
-        compls.OnShowing.Add(fun _ -> ed.ErrorHighlighter.ToolTip.IsOpen <- false)
-        compls.OnShowing.Add(fun _ -> ed.TypeInfoTip.IsOpen        <- false)
-
-        ed.Checker.OnChecked.Add(fun iEditor -> ed.ErrorHighlighter.Draw(ed)) // this then trigger folding too, stusbar update is added in statusbar
-
-        avaEdit.TextArea.TextView.MouseHover.Add(fun e -> TypeInfo.mouseHover(e, ed, log, ed.TypeInfoTip))        
-        avaEdit.TextArea.TextView.MouseHoverStopped.Add(fun _ -> ed.TypeInfoTip.IsOpen <- false )
-
-        avaEdit.TextArea.PreviewTextInput.Add (fun a -> CursorBehaviour.previewTextInput(avaEdit,a))
-
-        avaEdit.Document.Changed.Add(fun e -> 
-            //log.PrintfnDebugMsg "*Document.Changed Event: deleted %d '%s', inserted %d '%s', completion hasItems: %b, isOpen: %b , Just closed: %b" e.RemovalLength e.RemovedText.Text e.InsertionLength e.InsertedText.Text ed.Completions.HasItems ed.Completions.IsOpen compls.JustClosed
-            
-            //DELETE: //if e.RemovalLength > 0 && e.RemovedText.Text <> e.InsertedText.Text then  compls.JustClosed<-false // in this case open window again?
-
-            if compls.IsOpen then   // just keep on tying in completion window, no type checking !                
-                if compls.HasItems then // TODO, this code is duplicated in textChanged function
-                    ()
-                    //let currentText = getField(typeof<CodeCompletion.CompletionList>,w.CompletionList,"currentText") :?> string //this property schould be public !
-                    //TODO close Window if w.CompletionList.SelectedItem.Text = currentText
-                    //TODO ther is a bug in current text when deliting chars
-                    //log.PrintfnDebugMsg "currentText: '%s'" currentText
-                    //log.PrintfnDebugMsg "w.CompletionList.CompletionData.Count:%d" w.CompletionList.ListBox.VisibleItemCount
-                else 
-                    compls.Close() 
-            
-            else //no completion window open , do type check..                
-                match e.InsertedText.Text with 
-                |"."  ->                                             textChanged (EnteredDot         )//complete
-                | txt when txt.Length = 1 ->                                     
-                    if compls.JustClosed then                        textChanged (CompletionWinClosed)//check to avoid retrigger of window on single char completions
-                    else                                                         
-                        let c = txt.[0]                                          
-                        if Char.IsLetter(c) || c='_' || c='`' || c='#'  then   textChanged (EnteredOneIdentifierChar  ) //complete (# for #if directives)
-                        else                                         textChanged (EnteredOneNonIdentifierChar)//check
-                                                                                 
-                | _  ->                                              textChanged (OtherChange               )//several charcters(paste) ,delete or completion window insert         
-                
-                compls.JustClosed<-false
-                )
-        
-        avaEdit.TextArea.TextEntering.Add (fun ev ->  //http://avalonedit.net/documentation/html/47c58b63-f30c-4290-a2f2-881d21227446.htm          
+        /// for closing and inserting from completion window
+        let textEntering (ev:TextCompositionEventArgs) =          
             if compls.IsOpen then 
                 match ev.Text with              //this is not needed  for  general insertion,  insertion with Tab or Enter is built in !!
                 |" " -> compls.Close()
@@ -263,7 +244,35 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
                 | _  -> () // other triggers https://github.com/icsharpcode/AvalonEdit/blob/28b887f78c821c7fede1d4fc461bde64f5f21bd1/ICSharpCode.AvalonEdit/CodeCompletion/CompletionList.cs#L171            
             //else
             //    compls.JustClosed<-false
-            )
+               
+        avaEdit.AllowDrop <- true  
+        avaEdit.Drop.Add( fun e -> CursorBehaviour.dragAndDrop(ed,log,e)) 
+        
+        avaEdit.PreviewKeyDown.Add           ( fun e -> CursorBehaviour.previewKeyDown(avaEdit,log,e))   //to indent and dedent
+        avaEdit.TextArea.PreviewTextInput.Add (fun a -> CursorBehaviour.previewTextInput(avaEdit,a))
+        
+        // setup and tracking folding status, (needs a ref to file path:  )
+        ed.Folds.SetState( ed )              
+        ed.Folds.Margin.MouseUp.Add (fun e -> config.FoldingStatus.Set(ed) )
+
+        //----------------------------------
+        //--FS Checker and Code completion--
+        //---------------------------------- 
+
+        avaEdit.Document.Changed.Add(docChanged)
+        avaEdit.TextArea.TextEntering.Add (textEntering)
+
+        ed.Checker.OnChecked.Add(fun iEditor -> ed.ErrorHighlighter.Draw(ed)) // this then trigger folding too, stusbar update is added in statusbar
+        
+        compls.OnShowing.Add(fun _ -> ed.ErrorHighlighter.ToolTip.IsOpen <- false)
+        compls.OnShowing.Add(fun _ -> ed.TypeInfoTip.IsOpen        <- false)
+
+
+        // Mouse Hover:
+
+        avaEdit.TextArea.TextView.MouseHover.Add(fun e -> TypeInfo.mouseHover(e, ed, log, ed.TypeInfoTip))        
+        avaEdit.TextArea.TextView.MouseHoverStopped.Add(fun _ -> ed.TypeInfoTip.IsOpen <- false )
+                
 
         ed
 
