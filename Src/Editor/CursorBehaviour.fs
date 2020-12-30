@@ -70,9 +70,7 @@ module CursorBehaviour  =
         | _ -> ()
 
     let previewKeyDown (avaEdit:TextEditor, compls:Completions, log:ISeffLog, e: Input.KeyEventArgs) =  
-
-        match e.Key with        
-        
+        match e.Key with  
         |Input.Key.Back -> 
             if compls.IsNotOpen then 
                 match getSelection(avaEdit.TextArea,log) with 

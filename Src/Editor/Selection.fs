@@ -143,6 +143,7 @@ module RectangleSelection =
     /// when pressing delet key on empty rect selection 
     /// deal with bug that at some fontsizes (like 17.5) deleting rect selction jumps up line by line            
     let deleteKeyEmpty (s:Selection.SelPos, avaEdit:TextEditor, log:ISeffLog) =                     
+        //log.PrintfnDebugMsg "\r\del: \r\n%A" s 
         let doc = avaEdit.Document
         let col = min s.stp.VisualColumn s.enp.VisualColumn
         doc.BeginUpdate()
