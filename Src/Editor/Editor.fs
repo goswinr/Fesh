@@ -51,12 +51,12 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
         avaEdit.Options.EnableHyperlinks <- true
         avaEdit.TextArea.TextView.LinkTextForegroundBrush <- Brushes.DarkGreen
         avaEdit.Options.EnableTextDragDrop <- true //TODO add implementation
-        avaEdit.Options.ShowSpaces <- false //true
+        avaEdit.Options.ShowSpaces <- true
         avaEdit.Options.ShowTabs <- false // they are always converted to spaces, see above
         avaEdit.Options.ConvertTabsToSpaces <- true
         avaEdit.Options.IndentationSize <- 4
         avaEdit.Options.HideCursorWhileTyping <- false
-        avaEdit.Options.EnableVirtualSpace <- true 
+        //avaEdit.Options.EnableVirtualSpace <- true // to postion caret anywher in editor
         avaEdit.TextArea.SelectionCornerRadius <- 0.0 
         avaEdit.TextArea.SelectionBorder <- null
         avaEdit.FontFamily <- Style.fontEditor

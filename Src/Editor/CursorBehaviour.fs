@@ -10,6 +10,8 @@ open Seff.Util.General
 open System.Windows
 open System
 open ICSharpCode.AvalonEdit.Editing
+open ICSharpCode.AvalonEdit
+open ICSharpCode.AvalonEdit.Editing
 
 
 module CursorBehaviour  =
@@ -88,9 +90,14 @@ module CursorBehaviour  =
                         avaEdit.Document.Remove(avaEdit.CaretOffset - clearCount, clearCount)
                         e.Handled <- true // to not actually delete one char
 
-            | RectSelEmpty s ->()
+            | RectSelEmpty s ->
+                RectangleSelection.backSpaceEmpty(s,avaEdit,log)
+                e.Handled <- true // to not use the avaedit delete 
 
-            | RectSel _ -> ()
+            | RectSel s -> 
+                RectangleSelection.deleteNonEmpty(s,avaEdit,log)
+                e.Handled <- true // to not use the avaedit delete 
+
             | RegSel _ -> ()
         
        
@@ -132,8 +139,14 @@ module CursorBehaviour  =
                         e.Handled <- true // to not actually delete one char
                         //avaEdit.Document.EndUpdate()
 
-            | RectSelEmpty es -> ()
-            | RectSel _ -> ()
+            | RectSelEmpty s ->
+                RectangleSelection.deleteKeyEmpty(s,avaEdit,log)
+                e.Handled <- true
+
+            | RectSel s -> 
+                RectangleSelection.deleteNonEmpty(s,avaEdit,log)
+                e.Handled <- true
+
             | RegSel _ -> ()
 
         
