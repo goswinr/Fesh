@@ -15,6 +15,7 @@ open System.IO
 open System
 open ICSharpCode.AvalonEdit.Document
 open System.Windows.Input
+open ICSharpCode.AvalonEdit.Utils
 
 
 
@@ -55,10 +56,11 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
         avaEdit.Options.ConvertTabsToSpaces <- true
         avaEdit.Options.IndentationSize <- 4
         avaEdit.Options.HideCursorWhileTyping <- false
+        avaEdit.Options.EnableVirtualSpace <- true 
         avaEdit.TextArea.SelectionCornerRadius <- 0.0 
         avaEdit.TextArea.SelectionBorder <- null
         avaEdit.FontFamily <- Style.fontEditor
-        avaEdit.FontSize <- config.Settings.GetFloatRounded "FontSize" Seff.Style.fontSize // raounded! because odd sizes like  17.0252982466288  makes block selection delete fail on the last line
+        avaEdit.FontSize <- config.Settings.GetFloat"FontSize" Seff.Style.fontSize // TODO odd sizes like  17.0252982466288  makes block selection delete fail on the last line
         SyntaxHighlighting.setFSharp(avaEdit,config,false)        
         
 
@@ -114,6 +116,8 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
         let avaEdit = ed.AvaEdit
         let compls = ed.Completions
         let log = ed.Log
+
+        Logging.LogAction <- new Action<string>( fun (s:string) -> log.PrintfnDebugMsg "Logging.Log: %s" s)
         
         /// this line will include the charcater that trigger auto completion(dot or first letter)
         let currentLineBeforeCaret()=

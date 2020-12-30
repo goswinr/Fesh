@@ -4,30 +4,16 @@
 open Seff
 open Seff.Model
 open ICSharpCode.AvalonEdit
-open Seff.Util.String
 open Seff.Util
+open Seff.Util.String
+open Seff.Util.General
 open System.Windows
 open System
-open System.Windows.Media
 open ICSharpCode.AvalonEdit.Editing
-open ICSharpCode.AvalonEdit.Document
-open Seff.Util
-open Seff.Util.General
+
 
 module CursorBehaviour  =
-    
-
-    /// retuns true if nothin is selected in textarea
-    let hasNoSelection (ta:TextArea) =
-        match ta.Selection with
-        | null -> true  // does this actually happen?
-        | :? EmptySelection -> true  
-        | :? RectangleSelection -> false
-        | :? SimpleSelection  -> false
-        | x ->             
-            eprintf "Unknown selction class in CursorBehaviour.hasNoSelection: %A" x
-            false
-
+    open Selection
 
 
     ///replace 'true' with 'false' and vice versa
@@ -83,11 +69,13 @@ module CursorBehaviour  =
 
     let previewKeyDown (avaEdit:TextEditor,log:ISeffLog, e: Input.KeyEventArgs) =  
 
-        match e.Key with
+        match e.Key with        
         
-        /// Removes 4 charactes (Options.IndentationSize) on pressing backspace key instead of one 
         |Input.Key.Back -> 
-            if hasNoSelection avaEdit.TextArea  then // TODO what happens if there is a selction ??
+            match getSelection(avaEdit.TextArea,log) with 
+            | NoSel -> 
+                // --- Removes 4 charactes (Options.IndentationSize) ---
+                // --- on pressing backspace key instead of one ---                
                 let line = avaEdit.Document.GetText(avaEdit.Document.GetLineByOffset(avaEdit.CaretOffset)) // = get current line
                 let car = avaEdit.TextArea.Caret.Column
                 let prevC = line.Substring(0 ,car-1)
@@ -99,11 +87,18 @@ module CursorBehaviour  =
                         //log.PrintfnDebugMsg "--Clear length: %d " clearCount
                         avaEdit.Document.Remove(avaEdit.CaretOffset - clearCount, clearCount)
                         e.Handled <- true // to not actually delete one char
+
+            | RectSelEmpty s ->()
+
+            | RectSel _ -> ()
+            | RegSel _ -> ()
         
-        /// Removes rest of line too if only whitespacxe
-        /// also remove whitespace at stert of next line 
+       
         |Input.Key.Delete ->
-            if hasNoSelection avaEdit.TextArea then // TODO what happens if there is a selction ??
+            match getSelection(avaEdit.TextArea,log) with 
+            | NoSel -> 
+                 // --- Removes rest of line too if only whitespacxe ---
+                 // --- also remove whitespace at stert of next line  ---               
                 let caretOff = avaEdit.CaretOffset
                 let line = avaEdit.Document.GetLineByOffset(caretOff) // = get current line 
                 let endOff = line.EndOffset 
@@ -112,6 +107,7 @@ module CursorBehaviour  =
                 if isJustSpaceCharsOrEmpty txt  then
                     let nextLine = line.NextLine
                     if notNull nextLine then 
+                        //avaEdit.Document.BeginUpdate()
                         // also remove spaces at start of next line 
                     
                         //delete max up to caret pos on next line: 
@@ -134,6 +130,11 @@ module CursorBehaviour  =
                             avaEdit.Document.Insert(caretOff, " ") 
                     
                         e.Handled <- true // to not actually delete one char
+                        //avaEdit.Document.EndUpdate()
+
+            | RectSelEmpty es -> ()
+            | RectSel _ -> ()
+            | RegSel _ -> ()
 
         
 

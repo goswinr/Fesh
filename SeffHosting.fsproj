@@ -86,6 +86,7 @@
     <Compile Include="Src/Fsi.fs" />
     <Compile Include="Src/CompileScript.fs" /> 
     
+     <Compile Include="Src/Editor/Selection.fs" />  
     <Compile Include="Src/Editor/Commenting.fs" />
     <Compile Include="Src/Editor/CursorBehaviour.fs" />
     <Compile Include="Src/Editor/DocStringNew.fs" />

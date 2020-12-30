@@ -1,51 +1,17 @@
 ﻿namespace Seff.Editor
 
-open Seff
-open Seff.Model
-open ICSharpCode.AvalonEdit
-open Seff.Util.String
-open Seff.Util
-open System.Windows
-open System
-open System.Windows.Media
+
 open ICSharpCode.AvalonEdit.Editing
-open ICSharpCode.AvalonEdit.Document
-open Seff.Util
-open Seff.Util.General
-open ICSharpCode.AvalonEdit.Folding
 
 module SwapLines =
-    type Seg = 
-        {st:int;en:int}
-        member s.len = s.en - s.st
-  
-    type SelPos = {stp:TextViewPosition ; enp:TextViewPosition}
-            
-    type Sel = 
-        |NoSel
-        |RegSel  of SelPos
-        |RectSel of SelPos
-  
+    open Selection
+
     type SwapPair = 
         |ThisAndOther of Seg * Seg
         |EndOrStartOfDoc
-  
+
+        
     /// TODO jump over folded block !
-
-
-    let getSelection (ta:TextArea,log:ISeffLog) = 
-        match ta.Selection with
-        | null -> NoSel   
-        | :? EmptySelection -> NoSel   
-        | :? RectangleSelection as rs -> 
-            let st = rs.StartPosition
-            let en = rs.EndPosition 
-            if st.Line <= en.Line then  RectSel {stp = st ; enp = en }
-            else                        RectSel {stp = en ; enp = st } // for a block selection that has the caret at the beginning
-        | :? SimpleSelection    as ss -> RegSel  {stp = ss.StartPosition ; enp = ss.EndPosition }
-        | x ->             
-            log.PrintfnAppErrorMsg "Unknown selction class in swapLinesUp: %A" x
-            NoSel
 
 
     let swapLinesUp(ed:Editor) =
@@ -79,7 +45,9 @@ module SwapLines =
                     let segAbove = { st = prevLn.Offset; en = prevLn.EndOffset}
                     let segThis  = { st = thisLn.Offset; en = thisLn.EndOffset}
                     ThisAndOther (segThis,segAbove)
+            
             | RectSel s 
+            | RectSelEmpty s
             | RegSel s ->
                 let firstLn = doc.GetLineByNumber(s.stp.Line)
                 let lastLn =  doc.GetLineByNumber(s.enp.Line)
@@ -106,6 +74,7 @@ module SwapLines =
             
             match selection with
             | NoSel -> () // just change carte below
+            
             | RegSel sel ->  
                 let mutable startPos = sel.stp
                 let mutable endPos   = sel.enp
@@ -114,6 +83,8 @@ module SwapLines =
                 let newSel = new SimpleSelection(ta,startPos,endPos)
                 //log.PrintfnDebugMsg "new selection: %A" newSel
                 ta.Selection <- newSel
+            
+            | RectSelEmpty rectSel
             | RectSel rectSel ->
                 let mutable startPos = rectSel.stp
                 let mutable endPos   = rectSel.enp
@@ -142,6 +113,7 @@ module SwapLines =
                     let segThis  = { st = thisLn.Offset; en = thisLn.EndOffset}
                     ThisAndOther (segThis,segBelow)
             | RectSel s 
+            | RectSelEmpty s
             | RegSel s ->
                 let firstLn = doc.GetLineByNumber(s.stp.Line)
                 let lastLn =  doc.GetLineByNumber(s.enp.Line)
@@ -177,6 +149,8 @@ module SwapLines =
                 let newSel = new SimpleSelection(ta,startPos,endPos)
                 //log.PrintfnDebugMsg "new selection: %A" newSel
                 ta.Selection <- newSel
+            
+            | RectSelEmpty rectSel
             | RectSel rectSel ->
                 let mutable startPos = rectSel.stp
                 let mutable endPos   = rectSel.enp

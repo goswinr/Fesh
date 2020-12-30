@@ -15,10 +15,10 @@ type Fonts (grid:TabsAndLog) = // will be contructed as part of Commands class
     let mediaUri =  new Uri("pack://application:,,,/Seff;component/Media/")
 
 
-    let setSize (newSizeUnRounded:float) = // on log and all tabs
+    let setSize (newSize:float) = // on log and all tabs
         
         // 17.0252982466288 this fonsize makes block selection delete fail on the last line: 17.0252982466288
-        let newSize = grid.Config.Settings.roundToOneDigitBehindComa(newSizeUnRounded)
+        //let newSize = grid.Config.Settings.roundToOneDigitBehindComa(newSizeUnRounded)
         
         log.ReadOnlyEditor.FontSize <- newSize
         for t in tabs.AllTabs do                
@@ -82,7 +82,7 @@ type Fonts (grid:TabsAndLog) = // will be contructed as part of Commands class
         setToolTip( FontFamily ("Verdana") |>> verifyFont) // or FontFamily("Andale Mono")?
     
     
-    // this fonsize makes block selection delete fail on the last line: 17.0252982466288
+    // this fonsize makes block selection delete fail on the last line: 17.0252982466288 happens at 17.5 too
           
     /// affects Editor and Log    
     member this.FontsBigger()= 
