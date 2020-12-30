@@ -86,9 +86,8 @@
     <Compile Include="Src/Fsi.fs" />
     <Compile Include="Src/CompileScript.fs" /> 
     
-     <Compile Include="Src/Editor/Selection.fs" />  
+    <Compile Include="Src/Editor/Selection.fs" />  
     <Compile Include="Src/Editor/Commenting.fs" />
-    <Compile Include="Src/Editor/CursorBehaviour.fs" />
     <Compile Include="Src/Editor/DocStringNew.fs" />
     <Compile Include="Src/Editor/DocString.fs" />
     <Compile Include="Src/Editor/SyntaxHighlighting.fs" />
@@ -100,6 +99,7 @@
     <Compile Include="Src/Editor/SelectedTextTracer.fs" />
     <Compile Include="Src/Editor/BracketColorizer.fs" />
     <Compile Include="Src/Editor/ColumnRulers.fs" />
+    <Compile Include="Src/Editor/CursorBehaviour.fs" />
     <Compile Include="Src/Editor/Editor.fs" />
     <Compile Include="Src/Editor/SwapLines.fs" />
     <Compile Include="Src/Editor/UNUSEDNuget.fs" />

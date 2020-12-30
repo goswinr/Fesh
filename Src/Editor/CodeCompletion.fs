@@ -131,6 +131,8 @@ type Completions(avaEdit:TextEditor,config:Config, checker:Checker, errorHighlig
             | i -> i.Text
     
     member this.IsOpen = win.IsSome
+
+    member this.IsNotOpen = win.IsNone
     
     /// returns  win.CompletionList.ListBox.HasItems
     member this.HasItems = win.IsSome && win.Value.CompletionList.ListBox.HasItems

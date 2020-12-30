@@ -69,85 +69,87 @@ module CursorBehaviour  =
             e.Handled <- true        
         | _ -> ()
 
-    let previewKeyDown (avaEdit:TextEditor,log:ISeffLog, e: Input.KeyEventArgs) =  
+    let previewKeyDown (avaEdit:TextEditor, compls:Completions, log:ISeffLog, e: Input.KeyEventArgs) =  
 
         match e.Key with        
         
         |Input.Key.Back -> 
-            match getSelection(avaEdit.TextArea,log) with 
-            | NoSel -> 
-                // --- Removes 4 charactes (Options.IndentationSize) ---
-                // --- on pressing backspace key instead of one ---                
-                let line = avaEdit.Document.GetText(avaEdit.Document.GetLineByOffset(avaEdit.CaretOffset)) // = get current line
-                let car = avaEdit.TextArea.Caret.Column
-                let prevC = line.Substring(0 ,car-1)
-                //log.PrintfnDebugMsg "--Substring length %d: '%s'" prevC.Length prevC
-                if prevC.Length > 0 && avaEdit.TextArea.Selection.IsEmpty then //TODO or also use to replace selected text ??
-                    if isJustSpaceCharsOrEmpty prevC  then
-                        let dist = prevC.Length % avaEdit.Options.IndentationSize
-                        let clearCount = if dist = 0 then avaEdit.Options.IndentationSize else dist
-                        //log.PrintfnDebugMsg "--Clear length: %d " clearCount
-                        avaEdit.Document.Remove(avaEdit.CaretOffset - clearCount, clearCount)
-                        e.Handled <- true // to not actually delete one char
+            if compls.IsNotOpen then 
+                match getSelection(avaEdit.TextArea,log) with 
+                | NoSel -> 
+                    // --- Removes 4 charactes (Options.IndentationSize) ---
+                    // --- on pressing backspace key instead of one ---                
+                    let line = avaEdit.Document.GetText(avaEdit.Document.GetLineByOffset(avaEdit.CaretOffset)) // = get current line
+                    let car = avaEdit.TextArea.Caret.Column
+                    let prevC = line.Substring(0 ,car-1)
+                    //log.PrintfnDebugMsg "--Substring length %d: '%s'" prevC.Length prevC
+                    if prevC.Length > 0 && avaEdit.TextArea.Selection.IsEmpty then //TODO or also use to replace selected text ??
+                        if isJustSpaceCharsOrEmpty prevC  then
+                            let dist = prevC.Length % avaEdit.Options.IndentationSize
+                            let clearCount = if dist = 0 then avaEdit.Options.IndentationSize else dist
+                            //log.PrintfnDebugMsg "--Clear length: %d " clearCount
+                            avaEdit.Document.Remove(avaEdit.CaretOffset - clearCount, clearCount)
+                            e.Handled <- true // to not actually delete one char
 
-            | RectSelEmpty s ->
-                RectangleSelection.backSpaceEmpty(s,avaEdit,log)
-                e.Handled <- true // to not use the avaedit delete 
+                | RectSelEmpty s ->
+                    RectangleSelection.backSpaceEmpty(s,avaEdit,log)
+                    e.Handled <- true // to not use the avaedit delete 
 
-            | RectSel s -> 
-                RectangleSelection.deleteNonEmpty(s,avaEdit,log)
-                e.Handled <- true // to not use the avaedit delete 
+                | RectSel s -> 
+                    RectangleSelection.deleteNonEmpty(s,avaEdit,log)
+                    e.Handled <- true // to not use the avaedit delete 
 
-            | RegSel _ -> ()
+                | RegSel _ -> ()
         
        
         |Input.Key.Delete ->
-            match getSelection(avaEdit.TextArea,log) with 
-            | NoSel -> 
-                 // --- Removes rest of line too if only whitespacxe ---
-                 // --- also remove whitespace at stert of next line  ---               
-                let caretOff = avaEdit.CaretOffset
-                let line = avaEdit.Document.GetLineByOffset(caretOff) // = get current line 
-                let endOff = line.EndOffset 
-                let len = endOff - caretOff
-                let txt = avaEdit.Document.GetText(caretOff,len)                
-                if isJustSpaceCharsOrEmpty txt  then
-                    let nextLine = line.NextLine
-                    if notNull nextLine then 
-                        //avaEdit.Document.BeginUpdate()
-                        // also remove spaces at start of next line 
+            if compls.IsNotOpen then 
+                match getSelection(avaEdit.TextArea,log) with 
+                | NoSel -> 
+                     // --- Removes rest of line too if only whitespacxe ---
+                     // --- also remove whitespace at stert of next line  ---               
+                    let caretOff = avaEdit.CaretOffset
+                    let line = avaEdit.Document.GetLineByOffset(caretOff) // = get current line 
+                    let endOff = line.EndOffset 
+                    let len = endOff - caretOff
+                    let txt = avaEdit.Document.GetText(caretOff,len)                
+                    if isJustSpaceCharsOrEmpty txt  then
+                        let nextLine = line.NextLine
+                        if notNull nextLine then 
+                            //avaEdit.Document.BeginUpdate()
+                            // also remove spaces at start of next line 
                     
-                        //delete max up to caret pos on next line: 
-                        let caretPosInLine = caretOff - line.Offset
-                        let nextTxt = avaEdit.Document.GetText(line.NextLine) 
-                        let nextLnSpacesAtStart = spacesAtStart(nextTxt) 
+                            //delete max up to caret pos on next line: 
+                            let caretPosInLine = caretOff - line.Offset
+                            let nextTxt = avaEdit.Document.GetText(line.NextLine) 
+                            let nextLnSpacesAtStart = spacesAtStart(nextTxt) 
 
-                        let delLengthOnNextLine = min nextLnSpacesAtStart caretPosInLine // to NOT delete all starting whispace on next line
-                        //let delLengthOnNextLine = nextLnSpacesAtStart // to  delete all starting whispace on next line
+                            let delLengthOnNextLine = min nextLnSpacesAtStart caretPosInLine // to NOT delete all starting whispace on next line
+                            //let delLengthOnNextLine = nextLnSpacesAtStart // to  delete all starting whispace on next line
 
-                        let lenToDelete = endOff - caretOff + 2 + delLengthOnNextLine // + 2 for \r\n
-                        avaEdit.Document.Remove(caretOff, lenToDelete)
+                            let lenToDelete = endOff - caretOff + 2 + delLengthOnNextLine // + 2 for \r\n
+                            avaEdit.Document.Remove(caretOff, lenToDelete)
                     
-                        // now after this change ensure one space remains at caret
-                        let prev = avaEdit.Document.GetCharAt(caretOff-1)
-                        let next = avaEdit.Document.GetCharAt(caretOff)
-                        let prevIsChar = not (Char.IsWhiteSpace(prev))
-                        let nextIsChar = not (Char.IsWhiteSpace(next))
-                        if  prevIsChar && nextIsChar then 
-                            avaEdit.Document.Insert(caretOff, " ") 
+                            // now after this change ensure one space remains at caret
+                            let prev = avaEdit.Document.GetCharAt(caretOff-1)
+                            let next = avaEdit.Document.GetCharAt(caretOff)
+                            let prevIsChar = not (Char.IsWhiteSpace(prev))
+                            let nextIsChar = not (Char.IsWhiteSpace(next))
+                            if  prevIsChar && nextIsChar then 
+                                avaEdit.Document.Insert(caretOff, " ") 
                     
-                        e.Handled <- true // to not actually delete one char
-                        //avaEdit.Document.EndUpdate()
+                            e.Handled <- true // to not actually delete one char
+                            //avaEdit.Document.EndUpdate()
 
-            | RectSelEmpty s ->
-                RectangleSelection.deleteKeyEmpty(s,avaEdit,log)
-                e.Handled <- true
+                | RectSelEmpty s ->
+                    RectangleSelection.deleteKeyEmpty(s,avaEdit,log)
+                    e.Handled <- true
 
-            | RectSel s -> 
-                RectangleSelection.deleteNonEmpty(s,avaEdit,log)
-                e.Handled <- true
+                | RectSel s -> 
+                    RectangleSelection.deleteNonEmpty(s,avaEdit,log)
+                    e.Handled <- true
 
-            | RegSel _ -> ()
+                | RegSel _ -> ()
 
         
 

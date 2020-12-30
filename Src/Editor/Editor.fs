@@ -50,8 +50,8 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
         avaEdit.Options.HighlightCurrentLine <- true // http://stackoverflow.com/questions/5072761/avalonedit-highlight-current-line-even-when-not-focused
         avaEdit.Options.EnableHyperlinks <- true
         avaEdit.TextArea.TextView.LinkTextForegroundBrush <- Brushes.DarkGreen
-        avaEdit.Options.EnableTextDragDrop <- true //TODO add implementation
-        avaEdit.Options.ShowSpaces <- true
+        avaEdit.Options.EnableTextDragDrop <- true 
+        avaEdit.Options.ShowSpaces <- false
         avaEdit.Options.ShowTabs <- false // they are always converted to spaces, see above
         avaEdit.Options.ConvertTabsToSpaces <- true
         avaEdit.Options.IndentationSize <- 4
@@ -252,7 +252,7 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
         avaEdit.AllowDrop <- true  
         avaEdit.Drop.Add( fun e -> CursorBehaviour.dragAndDrop(ed,log,e)) 
         
-        avaEdit.PreviewKeyDown.Add           ( fun e -> CursorBehaviour.previewKeyDown(avaEdit,log,e))   //to indent and dedent
+        avaEdit.PreviewKeyDown.Add           ( fun e -> CursorBehaviour.previewKeyDown(avaEdit,compls,log,e))   //to indent and dedent, and change blockse lection deleting behaviour
         avaEdit.TextArea.PreviewTextInput.Add (fun a -> CursorBehaviour.previewTextInput(avaEdit,a))
         
         // setup and tracking folding status, (needs a ref to file path:  )
