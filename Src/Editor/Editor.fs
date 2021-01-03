@@ -61,6 +61,7 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
         avaEdit.TextArea.SelectionBorder <- null
         avaEdit.FontFamily <- Style.fontEditor
         avaEdit.FontSize <- config.Settings.GetFloat"FontSize" Seff.Style.fontSize // TODO odd sizes like  17.0252982466288  makes block selection delete fail on the last line
+        avaEdit.AllowDrop <- true  
         SyntaxHighlighting.setFSharp(avaEdit,config,false)        
         
 
@@ -239,7 +240,7 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
                        compls.JustClosed<-false
         
         /// for closing and inserting from completion window
-        let textEntering (ev:TextCompositionEventArgs) =          
+        let checkIfCompletionWindowShouldClose (ev:TextCompositionEventArgs) =          
             if compls.IsOpen then 
                 match ev.Text with              //this is not needed  for  general insertion,  insertion with Tab or Enter is built in !!
                 |" " -> compls.Close()
@@ -249,11 +250,11 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
             //else
             //    compls.JustClosed<-false
                
-        avaEdit.AllowDrop <- true  
+        
         avaEdit.Drop.Add( fun e -> CursorBehaviour.dragAndDrop(ed,log,e)) 
         
-        avaEdit.PreviewKeyDown.Add           ( fun e -> CursorBehaviour.previewKeyDown(avaEdit,compls,log,e))   //to indent and dedent, and change blockse lection deleting behaviour
-        avaEdit.TextArea.PreviewTextInput.Add (fun a -> CursorBehaviour.previewTextInput(avaEdit,a))
+        avaEdit.PreviewKeyDown.Add           ( fun e -> CursorBehaviour.previewKeyDown(avaEdit,compls,log,e))   //to indent and dedent, and change block selection dele behaviour
+        avaEdit.TextArea.PreviewTextInput.Add (fun a -> CursorBehaviour.previewTextInput(avaEdit,a))            //to change block selection delete behaviour
         
         // setup and tracking folding status, (needs a ref to file path:  )
         ed.Folds.SetState( ed )              
@@ -264,7 +265,7 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
         //---------------------------------- 
 
         avaEdit.Document.Changed.Add(docChanged)
-        avaEdit.TextArea.TextEntering.Add (textEntering)
+        avaEdit.TextArea.TextEntering.Add (checkIfCompletionWindowShouldClose)
 
         ed.Checker.OnChecked.Add(fun iEditor -> ed.ErrorHighlighter.Draw(ed)) // this then trigger folding too, stusbar update is added in statusbar
         

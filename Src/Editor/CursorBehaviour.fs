@@ -46,29 +46,49 @@ module CursorBehaviour  =
                 shift <- shift - seg.Length + tx.Length
             avaEdit.Document.EndUpdate()
 
-    let previewTextInput(avaEdit:TextEditor, e:Input.TextCompositionEventArgs) = 
-        match e.Text with 
-        // space before and after:
-        //| "=" //TODO check previous char is not punctuation for <= // space is added in previewKeyDown before return 
-        //| ">" //TODO check previous char is not punctuation
-        //| "+"  as c -> 
-            //avaEdit.Document.Insert(avaEdit.TextArea.Caret.Offset, " "+c+" ") // space before and after
-            //a.Handled <- true
+    let previewTextInput(avaEdit:TextEditor,log:ISeffLog, e:Input.TextCompositionEventArgs) = 
+        match getSelection(avaEdit.TextArea,log) with 
+        | NoSel -> 
+            match e.Text with 
+            // space before and after:
+            //| "=" //TODO check previous char is not punctuation for <= // space is added in previewKeyDown before return 
+            //| ">" //TODO check previous char is not punctuation
+            //| "+"  as c -> 
+                //avaEdit.Document.Insert(avaEdit.TextArea.Caret.Offset, " "+c+" ") // space before and after
+                //a.Handled <- true
+            
+            //TODO check previous char is not punctuation
+            // space  before:
+            //| "-" as c -> //not both because of -> and -1
+            //    avaEdit.Document.Insert(avaEdit.TextArea.Caret.Offset, " "+c)
+            //    a.Handled <- true
+            
+            // space  after:
+            | ")"
+            | ","
+            | ";"  as c -> 
+                insertAtCaretOrSelections (avaEdit, c+" ")
+                e.Handled <- true     
+                // TODO raise TextArea.TextEntered Event ?
+            | _ -> ()
         
-        //TODO check previous char is not punctuation
-        // space  before:
-        //| "-" as c -> //not both because of -> and -1
-        //    avaEdit.Document.Insert(avaEdit.TextArea.Caret.Offset, " "+c)
-        //    a.Handled <- true
-        
-        // space  after:
-        | ")"
-        | ","
-        | ";"  as c -> 
-            insertAtCaretOrSelections (avaEdit, c+" ")
-            e.Handled <- true        
-        | _ -> ()
+        | RegSel _ -> ()
 
+        | RectSelEmpty rs ->
+            let s = Selection.getRectSelPos rs
+            RectangleSelection.previewTextInput(e.Text,s,avaEdit,log)
+            e.Handled <- true 
+            // TODO raise TextArea.TextEntered Event ?
+           
+
+        | RectSel rs -> 
+            let s = Selection.getRectSelPos rs
+            RectangleSelection.previewTextInputNonEmpty(e.Text,s,avaEdit,log)
+            e.Handled <- true 
+            // TODO raise TextArea.TextEntered Event ?
+            
+
+        
     let previewKeyDown (avaEdit:TextEditor, compls:Completions, log:ISeffLog, e: Input.KeyEventArgs) =  
         match e.Key with  
         |Input.Key.Back -> 
@@ -89,13 +109,19 @@ module CursorBehaviour  =
                             avaEdit.Document.Remove(avaEdit.CaretOffset - clearCount, clearCount)
                             e.Handled <- true // to not actually delete one char
 
-                | RectSelEmpty s ->
+                | RectSelEmpty rs ->
+                    let s = Selection.getRectSelPos rs
                     RectangleSelection.backSpaceEmpty(s,avaEdit,log)
                     e.Handled <- true // to not use the avaedit delete 
+                    // TODO raise TextEntered Event ?
+                    ()
 
-                | RectSel s -> 
+                | RectSel rs ->
+                    let s = Selection.getRectSelPos rs
                     RectangleSelection.deleteNonEmpty(s,avaEdit,log)
                     e.Handled <- true // to not use the avaedit delete 
+                    // TODO raise TextEntered Event ?
+                    ()
 
                 | RegSel _ -> ()
         
@@ -139,20 +165,27 @@ module CursorBehaviour  =
                             e.Handled <- true // to not actually delete one char
                             //avaEdit.Document.EndUpdate()
 
-                | RectSelEmpty s ->
+                | RectSelEmpty rs ->
+                    let s = Selection.getRectSelPos rs
                     RectangleSelection.deleteKeyEmpty(s,avaEdit,log)
                     e.Handled <- true
+                    // TODO raise TextEntered Event ?
+                    ()
 
-                | RectSel s -> 
+                | RectSel rs -> 
+                    let s = Selection.getRectSelPos rs
                     RectangleSelection.deleteNonEmpty(s,avaEdit,log)
                     e.Handled <- true
+                    // TODO raise TextEntered Event ?
+                    ()
 
                 | RegSel _ -> ()
 
         
 
         // add indent after do, for , ->, =
-        |Input.Key.Return ->
+        |Input.Key.Return 
+        |Input.Key.Enter ->
             if hasNoSelection avaEdit.TextArea  then // TODO what happens if there is a selction ??
                 let caret = avaEdit.CaretOffset
                 let line = avaEdit.Document.GetLineByOffset(caret)            
@@ -180,7 +213,7 @@ module CursorBehaviour  =
                                 else              st + avaEdit.Options.IndentationSize - rem
                             avaEdit.Document.Insert(avaEdit.CaretOffset, " " + Environment.NewLine + String(' ',ind)) // add space before too for nice position of folding block
                             e.Handled <- true // to not actually add anothe new line
-        
+                            // TODO raise TextEntered Event ?
         
 
         | _ -> ()

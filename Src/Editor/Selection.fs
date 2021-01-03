@@ -1,5 +1,6 @@
 ﻿namespace Seff.Editor
 
+open System
 open Seff.Model
 open ICSharpCode.AvalonEdit
 open ICSharpCode.AvalonEdit.Editing
@@ -19,10 +20,47 @@ module Selection =
     /// a DU represneting all possible kinds of the current selection
     type Sel = 
         |NoSel
-        |RegSel  of SelPos
-        |RectSel of SelPos 
-        |RectSelEmpty of SelPos 
-         
+        |RegSel       of SimpleSelection
+        |RectSel      of RectangleSelection 
+        |RectSelEmpty of RectangleSelection 
+    
+
+    let getRectSelPos (rs:RectangleSelection) = 
+        let st = rs.StartPosition
+        let en = rs.EndPosition
+                   
+        if rs.IsEmpty then 
+            //if st.Column <> en.Column then log.PrintfnAppErrorMsg "empty rect selection columns dont match:\r\n%A\r\n%A :" st  en // happens whe rectangular selection is beyond line end, then only use visual columns
+            if st.Line > en.Line then  {stp = en ; enp = st } // reverse order 
+            else                       {stp = st ; enp = en }
+        else
+            if st.Line > en.Line then                              {stp = en ; enp = st } // reverse order 
+            elif st.Line = en.Line && en.Column < st.Column then   {stp = en ; enp = st } // reverse order 
+            else                                                   {stp = st ; enp = en }   
+
+
+    let getSimpleSelPos (ss:SimpleSelection) = 
+        let st = ss.StartPosition
+        let en = ss.EndPosition 
+        if st.Line > en.Line then                              {stp = en ; enp = st } // reverse order 
+        elif st.Line = en.Line && en.Column < st.Column then   {stp = en ; enp = st } // reverse order 
+        else                                                   {stp = st ; enp = en }
+    
+    let getPos(s:Selection,log:ISeffLog) = 
+        match ta.Selection with               
+        | null ->  log.PrintfnAppErrorMsg "null selction class in Text Area"
+            NoSel 
+        | :? EmptySelection -> NoSel   
+        
+        | :? SimpleSelection    as ss -> RegSel ss
+                                   
+        | :? RectangleSelection as rs -> 
+            if rs.IsEmpty then RectSelEmpty rs
+            else               RectSel      rs
+               
+        | x ->             
+            log.PrintfnAppErrorMsg "Unknown selction class in swapLinesUp: %A" x
+            NoSel 
 
     let getSelection (ta:TextArea,log:ISeffLog) = 
         match ta.Selection with
@@ -32,27 +70,12 @@ module Selection =
             NoSel  
                
         | :? EmptySelection -> NoSel   
-               
+        
+        | :? SimpleSelection    as ss -> RegSel ss
+                                   
         | :? RectangleSelection as rs -> 
-            let st = rs.StartPosition
-            let en = rs.EndPosition
-                   
-            if rs.IsEmpty then 
-                //if st.Column <> en.Column then log.PrintfnAppErrorMsg "empty rect selection columns dont match:\r\n%A\r\n%A :" st  en // happens whe rectangular selection is beyond line end, then only use visual columns
-                if st.Line > en.Line then  RectSelEmpty {stp = en ; enp = st } // reverse order 
-                else                       RectSelEmpty {stp = st ; enp = en }
-            else
-                if st.Line > en.Line then                              RectSel {stp = en ; enp = st } // reverse order 
-                elif st.Line = en.Line && en.Column < st.Column then   RectSel {stp = en ; enp = st } // reverse order 
-                else                                                   RectSel {stp = st ; enp = en }
-
-        | :? SimpleSelection    as ss -> 
-            let st = ss.StartPosition
-            let en = ss.EndPosition 
-            if st.Line > en.Line then                              RegSel {stp = en ; enp = st } // reverse order 
-            elif st.Line = en.Line && en.Column < st.Column then   RegSel {stp = en ; enp = st } // reverse order 
-            else                                                   RegSel {stp = st ; enp = en }
-                                         
+            if rs.IsEmpty then RectSelEmpty rs
+            else               RectSel      rs
                
         | x ->             
             log.PrintfnAppErrorMsg "Unknown selction class in swapLinesUp: %A" x
@@ -113,6 +136,9 @@ module Selection =
 
 module RectangleSelection = 
     
+    //all this functions is neded because ReplaceSelectionWithText of rectangular selection does nort work wel on al fint e.g. consolas 17.5
+
+
     /// when pressing backspace key on empty rect selection 
     /// deal with bug that at some fontsizes (like 17.5) deleting rect selction jumps up line by line 
     let backSpaceEmpty (s:Selection.SelPos, avaEdit:TextEditor, log:ISeffLog) =
@@ -185,4 +211,82 @@ module RectangleSelection =
         avaEdit.TextArea.Selection <- new RectangleSelection(avaEdit.TextArea,st,en) 
         avaEdit.TextArea.Caret.VisualColumn <- minVisCol
         
-      
+    /// when pressing delet or backspace key on regular rect selection 
+    /// deal with bug that at some fontsizes (like 17.5) deleting rect selction jumps up line by line 
+    let previewTextInput (text:string, s:Selection.SelPos, avaEdit:TextEditor, log:ISeffLog) =
+        let doc = avaEdit.Document
+        //log.PrintfnDebugMsg "\r\nback: \r\n%A" s        
+        
+        let minVisCol = min s.stp.VisualColumn s.enp.VisualColumn
+        let maxVisCol = max s.stp.VisualColumn s.enp.VisualColumn        
+        let delLen    = maxVisCol - minVisCol
+        
+        //log.PrintfnDebugMsg "minCol:%d, maxCol %d " minCol maxCol
+        
+        doc.BeginUpdate()
+        for li = s.enp.Line downto s.stp.Line do // move from bottom up
+            let ln = doc.GetLineByNumber(li)             
+            let delLenLoc =  min (ln.Length - minVisCol) delLen // in case if line is shorter than block selection
+            //log.PrintfnDebugMsg "delLenLoc:%d, ln %d " delLenLoc li
+            if delLenLoc > 0 then 
+                doc.Remove(ln.Offset + minVisCol , delLenLoc)
+            
+            let spacesToAdd = minVisCol - ln.Length 
+            if spacesToAdd > 0 then // in case this line is shorten than the visual colum with virtual white space
+                doc.Insert(ln.EndOffset , new String(' ', spacesToAdd) )
+                doc.Insert(ln.EndOffset + spacesToAdd , text)
+            else
+                doc.Insert(ln.Offset + minVisCol , text)
+        
+        doc.EndUpdate() // finsh doc update beforee recreating selecltion
+        
+        // collapse selection too
+        let mutable st = s.stp
+        let mutable en = s.enp
+        st.VisualColumn <-  minVisCol + text.Length
+        en.VisualColumn <-  minVisCol + text.Length
+        st.Column <- min (minVisCol + 1 + text.Length) st.Column
+        en.Column <- min (minVisCol + 1 + text.Length) en.Column
+        //log.PrintfnDebugMsg "new pos: \r\n%A \r\n%A" st en 
+        avaEdit.TextArea.Selection <- new RectangleSelection(avaEdit.TextArea,st,en) 
+        avaEdit.TextArea.Caret.VisualColumn <- minVisCol    
+
+    /// when pressing delet or backspace key on regular rect selection 
+    /// deal with bug that at some fontsizes (like 17.5) deleting rect selction jumps up line by line 
+    let previewTextInputNonEmpty (text:string, s:Selection.SelPos, avaEdit:TextEditor, log:ISeffLog) =
+        let doc = avaEdit.Document
+        //log.PrintfnDebugMsg "\r\nback: \r\n%A" s        
+        
+        let minVisCol = min s.stp.VisualColumn s.enp.VisualColumn
+        let maxVisCol = max s.stp.VisualColumn s.enp.VisualColumn        
+        let delLen    = maxVisCol - minVisCol
+        
+        //log.PrintfnDebugMsg "minCol:%d, maxCol %d " minCol maxCol
+        
+        doc.BeginUpdate()
+        for li = s.enp.Line downto s.stp.Line do // move from bottom up
+            let ln = doc.GetLineByNumber(li)             
+            let delLenLoc =  min (ln.Length - minVisCol) delLen // in case if line is shorter than block selection
+            //log.PrintfnDebugMsg "delLenLoc:%d, ln %d " delLenLoc li
+            if delLenLoc > 0 then 
+                doc.Remove(ln.Offset + minVisCol , delLenLoc)
+            
+            let spacesToAdd = minVisCol - ln.Length 
+            if spacesToAdd > 0 then // in case this line is shorten than the visual colum with virtual white space
+                doc.Insert(ln.EndOffset , new String(' ', spacesToAdd) )
+                doc.Insert(ln.EndOffset + spacesToAdd , text)
+            else
+                doc.Insert(ln.Offset + minVisCol , text)
+        
+        doc.EndUpdate() // finsh doc update beforee recreating selecltion
+        
+        // collapse selection too
+        let mutable st = s.stp
+        let mutable en = s.enp
+        st.VisualColumn <-  minVisCol + text.Length
+        en.VisualColumn <-  minVisCol + text.Length
+        st.Column <- min (minVisCol + 1 + text.Length) st.Column
+        en.Column <- min (minVisCol + 1 + text.Length) en.Column
+        //log.PrintfnDebugMsg "new pos: \r\n%A \r\n%A" st en 
+        avaEdit.TextArea.Selection <- new RectangleSelection(avaEdit.TextArea,st,en) 
+        avaEdit.TextArea.Caret.VisualColumn <- minVisCol    
