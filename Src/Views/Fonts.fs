@@ -88,22 +88,22 @@ type Fonts (grid:TabsAndLog) = // will be contructed as part of Commands class
     member this.FontsBigger()= 
         let cs = tabs.Current.Editor.AvaEdit.FontSize
         
-        let step = 0.1
+        //let step =
         //    if   cs >= 36. then 4. 
         //    elif cs >= 20. then 2. 
         //    else                1.
-        if cs < 112. then setSize(cs+step)
+        //if cs < 112. then setSize(cs+step)
         
-        //if cs < 250. then setSize(cs* 1.03) // 3% steps
+        if cs < 250. then setSize(cs * 1.03) // 3% steps
           
     /// affects Editor and Log
     member this.FontsSmaller()=
         let cs = tabs.Current.Editor.AvaEdit.FontSize
-        let step = 0.1
+        //let step = 
         //    if   cs >= 36. then 4. 
         //    elif cs >= 20. then 2. 
         //    else                1.
-        if cs > 5. then setSize(cs-step)
+        //if cs > 5. then setSize(cs-step)
 
-        //if cs > 3. then setSize(cs * 0.97) // 3% steps 
+        if cs > 3. then setSize(cs / 1.03) // 3% steps 
 

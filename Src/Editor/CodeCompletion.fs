@@ -16,8 +16,10 @@ open ICSharpCode.AvalonEdit.Document
 open FSharp.Compiler
 open FSharp.Compiler.SourceCodeServices
 open System.Collections.Generic
+open ICSharpCode.AvalonEdit.Editing
+open ICSharpCode.AvalonEdit.Editing
 
-type CompletionItemForKeyWord(config:Config, text:string, toolTip:string) =
+type CompletionItemForKeyWord(ed:IEditor,config:Config, text:string, toolTip:string) =
     //let col = Brushes.DarkBlue    // fails on selection, does not get color inverted//check  https://blogs.msdn.microsoft.com/text/2009/08/28/selection-brush/ ??
                 
     let style = FontStyles.Normal
@@ -38,9 +40,12 @@ type CompletionItemForKeyWord(config:Config, text:string, toolTip:string) =
     member this.Image = null
     member this.Priority = priority
     member this.Text = text
-    member this.Complete (textArea:TextArea, completionSegment:ISegment, e ) =       
-        textArea.Document.Replace(completionSegment, text) 
-        //Editor.current.TriggerCompletionInserted it.Name // to be able to rerun checking
+    member this.Complete (textArea:TextArea, completionSegment:ISegment, e:EventArgs ) =       
+        if Selection.getSelType textArea = Selection.RectSel then 
+            RectangleSelection.complete (ed, completionSegment, text)
+        else
+            textArea.Document.Replace(completionSegment, text) 
+        
 
     interface ICompletionData with // needed in F#: implementing the interface members as properties too: https://github.com/icsharpcode/AvalonEdit/issues/28
         member this.Complete(t,s,e) = this.Complete(t,s,e)            
@@ -50,7 +55,7 @@ type CompletionItemForKeyWord(config:Config, text:string, toolTip:string) =
         member this.Priority        = this.Priority
         member this.Text            = this.Text
 
-type CompletionItem (config:Config, getToolTip, it:FSharpDeclarationListItem, isDotCompletion:bool) =
+type CompletionItem (ed:IEditor,config:Config, getToolTip, it:FSharpDeclarationListItem, isDotCompletion:bool) =
 
     let style =         
         if it.IsOwnMember then FontStyles.Normal 
@@ -76,7 +81,7 @@ type CompletionItem (config:Config, getToolTip, it:FSharpDeclarationListItem, is
     member this.Image = null //TODO
     member this.Priority = priority
     member this.Text = it.Name
-    member this.Complete (textArea:TextArea, completionSegment:ISegment, e ) = 
+    member this.Complete (textArea:TextArea, completionSegment:ISegment, e:EventArgs) = 
         //log.PrintfnDebugMsg "%s is %A and %A" it.Name it.Glyph it.Kind
         //textArea.Document.Replace(completionSegment.Offset + 1, completionSegment.Length, it.Name) //TODO Delete!
         //textArea.Caret.Offset <- completionSegment.Offset + it.Name.Length + 1  //TODO Delete!          
@@ -87,7 +92,12 @@ type CompletionItem (config:Config, getToolTip, it:FSharpDeclarationListItem, is
                 "``" + it.Name + "``"
             elif it.Name = "struct" then "[<Struct>]"
             else it.Name     //TODO move this logic out here      
-        textArea.Document.Replace(completionSegment, compl) 
+        //config.Log.PrintfDebugMsg "completionSegment: '%s' : %A" (textArea.Document.GetText(completionSegment)) completionSegment
+        if Selection.getSelType textArea = Selection.RectSel then 
+            RectangleSelection.complete (ed, completionSegment, compl)
+        else
+            textArea.Document.Replace(completionSegment, compl) 
+        
         if not isDotCompletion then 
             config.AutoCompleteStatistic.Incr(it.Name)
             config.AutoCompleteStatistic.Save()
@@ -209,20 +219,20 @@ type Completions(avaEdit:TextEditor,config:Config, checker:Checker, errorHighlig
 
             let completionLines = ResizeArray<ICompletionData>()                                
             if not onlyDU && charBefore = NotDot then
-                completionLines.Add( CompletionItemForKeyWord(config,"#if INTERACTIVE",     "Compiler directive to exclude code in compiled form, close with #endif" ) :> ICompletionData)    |>ignore
-                completionLines.Add( CompletionItemForKeyWord(config,"#else",               "else of compiler directive " ) :> ICompletionData)    |>ignore
-                completionLines.Add( CompletionItemForKeyWord(config,"#endif",              "End of compiler directive " ) :> ICompletionData)    |>ignore
-                completionLines.Add( CompletionItemForKeyWord(config,"__SOURCE_DIRECTORY__","Evaluates to the current full path of the source directory" ) :> ICompletionData)    |>ignore
-                completionLines.Add( CompletionItemForKeyWord(config,"__SOURCE_FILE__"     ,"Evaluates to the current source file name, without its path") :> ICompletionData)    |>ignore
-                completionLines.Add( CompletionItemForKeyWord(config,"__LINE__",            "Evaluates to the current line number") :> ICompletionData)    |>ignore
+                completionLines.Add( CompletionItemForKeyWord(iEditor,config,"#if INTERACTIVE",     "Compiler directive to exclude code in compiled form, close with #endif" ) :> ICompletionData)    |>ignore
+                completionLines.Add( CompletionItemForKeyWord(iEditor,config,"#else",               "else of compiler directive " ) :> ICompletionData)    |>ignore
+                completionLines.Add( CompletionItemForKeyWord(iEditor,config,"#endif",              "End of compiler directive " ) :> ICompletionData)    |>ignore
+                completionLines.Add( CompletionItemForKeyWord(iEditor,config,"__SOURCE_DIRECTORY__","Evaluates to the current full path of the source directory" ) :> ICompletionData)    |>ignore
+                completionLines.Add( CompletionItemForKeyWord(iEditor,config,"__SOURCE_FILE__"     ,"Evaluates to the current source file name, without its path") :> ICompletionData)    |>ignore
+                completionLines.Add( CompletionItemForKeyWord(iEditor,config,"__LINE__",            "Evaluates to the current line number") :> ICompletionData)    |>ignore
                 for kw,desc in Keywords.KeywordsWithDescription  do // add keywords to list
-                    completionLines.Add( CompletionItemForKeyWord(config,kw,desc) :> ICompletionData) |>ignore
+                    completionLines.Add( CompletionItemForKeyWord(iEditor,config,kw,desc) :> ICompletionData) |>ignore
             
               
             for it in decls.Items do                    
                 match it.Glyph with 
-                |FSharpGlyph.Union|FSharpGlyph.Module | FSharpGlyph.EnumMember -> completionLines.Add (new CompletionItem(config, compl.GetToolTip, it, (changetype = EnteredDot))) // for DU completion add just some.
-                | _ -> if not onlyDU then                                         completionLines.Add (new CompletionItem(config, compl.GetToolTip, it, (changetype = EnteredDot))) // for normal completion add all others too.
+                |FSharpGlyph.Union|FSharpGlyph.Module | FSharpGlyph.EnumMember -> completionLines.Add (new CompletionItem(iEditor,config, compl.GetToolTip, it, (changetype = EnteredDot))) // for DU completion add just some.
+                | _ -> if not onlyDU then                                         completionLines.Add (new CompletionItem(iEditor,config, compl.GetToolTip, it, (changetype = EnteredDot))) // for normal completion add all others too.
               
             if completionLines.Count > 0 then 
                 compl.ShowingEv.Trigger() // to close error and type info tooltip

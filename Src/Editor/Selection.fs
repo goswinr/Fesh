@@ -29,6 +29,14 @@ module Selection =
         |NoSel
         |RegSel      
         |RectSel 
+
+    let getSelType (ta:TextArea) = 
+        match ta.Selection with               
+        | null -> failwithf "Unknown selection class in getSelection: null"
+        | :? EmptySelection   -> NoSel
+        | :? SimpleSelection  -> RegSel
+        | :? RectangleSelection -> RectSel
+        | x -> failwithf "Unknown selection class in getSelection: %A" x          
     
     /// returns selpos order top to left bottom right
     let makeTopDown(s:Selection)=
@@ -59,13 +67,6 @@ module Selection =
                
         | x -> failwithf "Unknown selection class in makeTopDown: %A" x
      
-    let getSelType (ta:TextArea) = 
-        match ta.Selection with               
-        | null -> failwithf "Unknown selection class in getSelection: null"
-        | :? EmptySelection   -> NoSel
-        | :? SimpleSelection  -> RegSel
-        | :? RectangleSelection -> RectSel
-        | x -> failwithf "Unknown selection class in getSelection: %A" x          
            
 
     /// retuns true if nothin is selected in textarea
@@ -239,6 +240,8 @@ module RectangleSelection =
             setNewEmpty (avaEdit.TextArea, s, nvcol,true)
                 
     
+    //TODO add check for beeing over folded block
+
     let deleteKey (ed:IEditor) =  
         let s = makeTopDown ed.AvaEdit.TextArea.Selection
         if s.stp.VisualColumn = s.enp.VisualColumn then 
@@ -260,3 +263,9 @@ module RectangleSelection =
             insert (ed, s, txt)
         else 
             replace (ed, s, txt)
+
+    let complete (ed:IEditor, completionSegment:ISegment, txt:string) =
+        let len = completionSegment.Length
+        let s = makeTopDown ed.AvaEdit.TextArea.Selection
+        let p = {s with stp = TextViewPosition( s.stp.Line,  s.stp.Column - len , s.stp.VisualColumn - len) }
+        replace (ed, p, txt)

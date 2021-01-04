@@ -88,7 +88,7 @@ module CursorBehaviour  =
                             let clearCount = if dist = 0 then ed.AvaEdit.Options.IndentationSize else dist
                             //log.PrintfnDebugMsg "--Clear length: %d " clearCount
                             doc.Remove(ta.Caret.Offset - clearCount, clearCount)
-                            e.Handled <- true // to not actually delete one char
+                            e.Handled <- true // TODO raise TextEntered Event ?
                 
                 | RegSel  -> ()
 
@@ -110,7 +110,7 @@ module CursorBehaviour  =
                     if isJustSpaceCharsOrEmpty txt  then
                         let nextLine = line.NextLine
                         if notNull nextLine then 
-                            //doc.BeginUpdate()
+                            doc.BeginUpdate()
                             // also remove spaces at start of next line 
                     
                             //delete max up to caret pos on next line: 
@@ -132,8 +132,8 @@ module CursorBehaviour  =
                             if  prevIsChar && nextIsChar then 
                                 doc.Insert(caretOff, " ") 
                     
-                            e.Handled <- true // to not actually delete one char
-                            //doc.EndUpdate()
+                            doc.EndUpdate()
+                            e.Handled <- true // TODO raise TextEntered Event ?
                 
                 | RegSel _ -> ()
 
