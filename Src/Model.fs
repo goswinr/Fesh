@@ -138,6 +138,7 @@ type IEditor =
     abstract member FilePath       : FilePath 
     abstract member Log            : ISeffLog 
     abstract member FoldingManager : FoldingManager 
+    abstract member IsComplWinOpen : bool 
 
 
 //---- Fsi types ------------

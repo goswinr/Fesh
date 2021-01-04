@@ -11,27 +11,28 @@ module SwapLines =
         |EndOrStartOfDoc
 
         
-    /// TODO jump over folded block !
+    /// TODO jump over folded block too !
 
 
     let swapLinesUp(ed:Editor) =
         let avaEdit = ed.AvaEdit
         let doc=avaEdit.Document
         let ta = avaEdit.TextArea
-        let caret = avaEdit.CaretOffset
-        
-        let selection = getSelection (ta,ed.Log)
-        
+        let caret = avaEdit.CaretOffset        
+        let sel = getSelType (ta)
+        let sp = Selection.makeTopDown ta.Selection
+
         let pair =
-            match selection with
+            match sel with
             | NoSel -> 
                 let thisLn = doc.GetLineByOffset(caret)
                 let prevLn = thisLn.PreviousLine
                 if isNull prevLn then 
                     EndOrStartOfDoc
                 else  
+                    // TODO finsh up swaping over folded lines
                     //let foldLine =
-                    //    let fs = ed.Folds.Manager.GetFoldingsContaining(prevLn.Offset) |> Seq.filter ( fun f -> f.IsFolded)  // TODO finsh up swaping over folded lines
+                    //    let fs = ed.Folds.Manager.GetFoldingsContaining(prevLn.Offset) |> Seq.filter ( fun f -> f.IsFolded)  
                     //    if Seq.isEmpty fs then 
                     //        None
                     //    else
@@ -46,11 +47,10 @@ module SwapLines =
                     let segThis  = { st = thisLn.Offset; en = thisLn.EndOffset}
                     ThisAndOther (segThis,segAbove)
             
-            | RectSel s 
-            | RectSelEmpty s
-            | RegSel s ->
-                let firstLn = doc.GetLineByNumber(s.stp.Line)
-                let lastLn =  doc.GetLineByNumber(s.enp.Line)
+            | RectSel  
+            | RegSel  ->                
+                let firstLn = doc.GetLineByNumber(sp.stp.Line)
+                let lastLn =  doc.GetLineByNumber(sp.enp.Line)
                 let prevLn = firstLn.PreviousLine
                 if isNull prevLn then 
                     EndOrStartOfDoc
@@ -62,8 +62,7 @@ module SwapLines =
         match pair with
         |EndOrStartOfDoc -> () // swap not possible
         |ThisAndOther ( lnsThis, lnAbove) -> 
-            let txtAbove = doc.GetText(lnAbove.st, lnAbove.len)
-            //log.PrintfnDebugMsg "doc.GetText(lnsThis.st %d, lnsThis.len %d)" lnsThis.st lnsThis.len
+            let txtAbove = doc.GetText(lnAbove.st, lnAbove.len)            
             let txtThis  = doc.GetText(lnsThis.st, lnsThis.len)
             
             doc.BeginUpdate()
@@ -72,22 +71,20 @@ module SwapLines =
             doc.Insert(lnAbove.st, txtThis + "\r\n" + txtAbove)
             avaEdit.CaretOffset <- caret - (lnAbove.len + 2)
             
-            match selection with
-            | NoSel -> () // just change carte below
+            match sel with
+            | NoSel -> () // just change caret below
             
-            | RegSel sel ->  
-                let mutable startPos = sel.stp
-                let mutable endPos   = sel.enp
+            | RegSel ->  
+                let mutable startPos = sp.stp
+                let mutable endPos   = sp.enp
                 startPos.Line <-  startPos.Line - 1
                 endPos.Line   <-  endPos.Line   - 1
-                let newSel = new SimpleSelection(ta,startPos,endPos)
-                //log.PrintfnDebugMsg "new selection: %A" newSel
-                ta.Selection <- newSel
+                let newSel = new SimpleSelection(ta,startPos,endPos)                
+                ta.Selection <- newSel            
             
-            | RectSelEmpty rectSel
-            | RectSel rectSel ->
-                let mutable startPos = rectSel.stp
-                let mutable endPos   = rectSel.enp
+            | RectSel ->
+                let mutable startPos = sp.stp
+                let mutable endPos   = sp.enp
                 startPos.Line <-  startPos.Line - 1
                 endPos.Line   <-  endPos.Line   - 1
                 ta.Selection <- new RectangleSelection(ta,startPos,endPos) 
@@ -98,25 +95,24 @@ module SwapLines =
         let doc=avaEdit.Document
         let ta = avaEdit.TextArea
         let caret = avaEdit.CaretOffset
-        
-        let selection = getSelection (ta,ed.Log)
+        let sel = getSelType (ta)
+        let sp = Selection.makeTopDown ta.Selection
         
         let pair =
-            match selection with
+            match sel with
             | NoSel -> 
                 let thisLn = doc.GetLineByOffset(caret)
                 let nextLn = thisLn.NextLine
                 if isNull nextLn then 
                     EndOrStartOfDoc
                 else                                      
-                    let segBelow= { st = nextLn.Offset; en = nextLn.EndOffset}
+                    let segBelow = { st = nextLn.Offset; en = nextLn.EndOffset}
                     let segThis  = { st = thisLn.Offset; en = thisLn.EndOffset}
                     ThisAndOther (segThis,segBelow)
-            | RectSel s 
-            | RectSelEmpty s
-            | RegSel s ->
-                let firstLn = doc.GetLineByNumber(s.stp.Line)
-                let lastLn =  doc.GetLineByNumber(s.enp.Line)
+            | RectSel 
+            | RegSel  ->
+                let firstLn = doc.GetLineByNumber(sp.stp.Line)
+                let lastLn =  doc.GetLineByNumber(sp.enp.Line)
                 let nextLn = lastLn.NextLine
                 if isNull nextLn then 
                     EndOrStartOfDoc
@@ -128,8 +124,7 @@ module SwapLines =
         match pair with
         |EndOrStartOfDoc -> () // swap not possible
         |ThisAndOther ( lnsThis, lnBelow) -> 
-            let txtBelow = doc.GetText(lnBelow.st, lnBelow.len)
-            //log.PrintfnDebugMsg "doc.GetText(lnsThis.st %d, lnsThis.len %d)" lnsThis.st lnsThis.len
+            let txtBelow = doc.GetText(lnBelow.st, lnBelow.len)            
             let txtThis  = doc.GetText(lnsThis.st, lnsThis.len)
             
             doc.BeginUpdate()
@@ -139,21 +134,19 @@ module SwapLines =
             doc.Insert(lnsThis.st, txtBelow + "\r\n" + txtThis)
             avaEdit.CaretOffset <- caret + (lnBelow.len + 2)
             
-            match selection with
+            match sel with
             | NoSel -> () // just change carte below
-            | RegSel sel ->  
-                let mutable startPos = sel.stp
-                let mutable endPos   = sel.enp
+            | RegSel  ->  
+                let mutable startPos = sp.stp
+                let mutable endPos   = sp.enp
                 startPos.Line <-  startPos.Line + 1
                 endPos.Line   <-  endPos.Line   + 1
-                let newSel = new SimpleSelection(ta,startPos,endPos)
-                //log.PrintfnDebugMsg "new selection: %A" newSel
+                let newSel = new SimpleSelection(ta,startPos,endPos)                
                 ta.Selection <- newSel
-            
-            | RectSelEmpty rectSel
-            | RectSel rectSel ->
-                let mutable startPos = rectSel.stp
-                let mutable endPos   = rectSel.enp
+                        
+            | RectSel  ->
+                let mutable startPos = sp.stp
+                let mutable endPos   = sp.enp
                 startPos.Line <-  startPos.Line + 1
                 endPos.Line   <-  endPos.Line   + 1
                 ta.Selection <- new RectangleSelection(ta,startPos,endPos) 

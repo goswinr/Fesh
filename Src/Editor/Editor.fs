@@ -90,7 +90,8 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
     member this.FileCheckState  with get() = checkState    and  set(v) = checkState <- v    
     member this.FilePath        with get() = filePath      and  set(v) = filePath <- v // The Tab class containing this editor takes care of updating this 
     member this.Log = log
-    
+    member this.IsComplWinOpen  = compls.IsOpen
+
     interface IEditor with
         member this.Id              = id
         member this.AvaEdit         = avaEdit
@@ -98,7 +99,7 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
         member this.FilePath        = filePath // interface does not need setter
         member this.Log             = log
         member this.FoldingManager  = folds.Manager
-    
+        member this.IsComplWinOpen  = compls.IsOpen
     
     // additional text change event:
     //let completionInserted = new Event<string>() // event needed because Text change event is not raised after completion insert    
@@ -247,14 +248,12 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
                 |"." -> compls.RequestInsertion(ev) // insert on dot too? 
                 |"(" -> compls.RequestInsertion(ev) // insert on open Bracket too? 
                 | _  -> () // other triggers https://github.com/icsharpcode/AvalonEdit/blob/28b887f78c821c7fede1d4fc461bde64f5f21bd1/ICSharpCode.AvalonEdit/CodeCompletion/CompletionList.cs#L171            
-            //else
-            //    compls.JustClosed<-false
-               
+            
+             //else compls.JustClosed<-false
         
-        avaEdit.Drop.Add( fun e -> CursorBehaviour.dragAndDrop(ed,log,e)) 
-        
-        avaEdit.PreviewKeyDown.Add           ( fun e -> CursorBehaviour.previewKeyDown(avaEdit,compls,log,e))   //to indent and dedent, and change block selection dele behaviour
-        avaEdit.TextArea.PreviewTextInput.Add (fun a -> CursorBehaviour.previewTextInput(avaEdit,a))            //to change block selection delete behaviour
+        avaEdit.Drop.Add                      (fun e -> CursorBehaviour.dragAndDrop(ed,e))         
+        avaEdit.PreviewKeyDown.Add            (fun e -> CursorBehaviour.previewKeyDown(  ed, e))   //to indent and dedent, and change block selection deltee behaviour
+        avaEdit.TextArea.PreviewTextInput.Add (fun e -> CursorBehaviour.previewTextInput(ed, e))   //to change block selection delete behaviour
         
         // setup and tracking folding status, (needs a ref to file path:  )
         ed.Folds.SetState( ed )              
