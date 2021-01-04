@@ -22,20 +22,15 @@ module Selection =
     
     /// ensure first is smaller or equal to second
     let inline sorted a b = if a>b then b,a else a,b
-
-    let setPos maxCol vcol (p:TextViewPosition) =  
-        TextViewPosition(
-            p.Line, 
-            min (vcol + 1) maxCol , 
-            vcol
-            )
+    
 
     /// a DU represneting all possible kinds of the current selection
     type Sel = 
         |NoSel
         |RegSel      
         |RectSel 
-
+    
+    /// returns selpos order top to left bottom right
     let makeTopDown(s:Selection)=
         match s with
         | null -> failwithf "Unknown selection class in makeTopDown: null"
@@ -53,11 +48,14 @@ module Selection =
         | :? RectangleSelection as rs -> 
             let s = rs.StartPosition
             let e = rs.EndPosition
-            let l1,l2 = sorted s.Line         e.Line 
-            let c1,c2 = sorted s.Column       e.Column
             let v1,v2 = sorted s.VisualColumn e.VisualColumn
-            {stp = TextViewPosition(l1,c1,v1) ; 
-             enp = TextViewPosition(l2,c2,v2) }
+            if s.Line <= e.Line then               
+               {stp = TextViewPosition(s.Line, s.Column, v1)  
+                enp = TextViewPosition(e.Line, e.Column, v2) }
+            else
+               {stp = TextViewPosition(e.Line, e.Column, v1) 
+                enp = TextViewPosition(s.Line, s.Column, v2) }
+
                
         | x -> failwithf "Unknown selection class in makeTopDown: %A" x
      
@@ -144,93 +142,64 @@ module RectangleSelection =
     open Selection
 
     //all this functions is neded because ReplaceSelectionWithText of rectangular selection does nort work wel on all font sizes e.g. consolas 17.5
+   
+    let setNewEmpty (ta:TextArea, s:SelPos, vcol, checkWithColInSelpos) = 
+        let st , en = 
+            if checkWithColInSelpos then 
+                TextViewPosition( s.stp.Line,  min (vcol + 1) s.stp.Column , vcol) , // use min function in case the  Visual coloumn is in virtual whitespace
+                TextViewPosition( s.enp.Line,  min (vcol + 1) s.enp.Column , vcol)
+            else
+                TextViewPosition( s.stp.Line,  vcol + 1   , vcol), // even if the Visual coloumn was in virtual whitespace, spaces to fill it wher added if len is bigger than 0
+                TextViewPosition( s.enp.Line,  vcol + 1   , vcol)
+        ta.Selection <- new RectangleSelection(ta, st, en)             
+        ta.Caret.VisualColumn <- vcol
 
     
-    let insert (text:string, s:Selection.SelPos, avaEdit:TextEditor, log:ISeffLog) =
-        let doc = avaEdit.Document
-        //log.PrintfnDebugMsg "\r\nback: \r\n%A" s        
-        
-        let minVisCol = min s.stp.VisualColumn s.enp.VisualColumn
-        let maxVisCol = max s.stp.VisualColumn s.enp.VisualColumn        
+    let insert (ed:IEditor, s:SelPos,text:string) =
+        let doc = ed.AvaEdit.Document        
+        let visCol = s.stp.VisualColumn 
+        doc.BeginUpdate()
+        for li = s.enp.Line downto s.stp.Line do // move from bottom up
+            let ln = doc.GetLineByNumber(li)
+            let len = ln.Length
+            let spacesToAdd = visCol - len
+            let stOff = ln.Offset
+            if spacesToAdd > 0 then // in case this line is shorten than the visual colum with virtual white space                
+                doc.Insert(stOff + len , new String(' ', spacesToAdd) )
+                doc.Insert(stOff + len + spacesToAdd , text)
+            else
+                doc.Insert(stOff + visCol , text)        
+        doc.EndUpdate()         
+        setNewEmpty (ed.AvaEdit.TextArea, s, visCol + text.Length, false)
+       
+
+    let replace (ed:IEditor, s:SelPos,text:string)  =
+        let doc = ed.AvaEdit.Document 
+        let minVisCol = s.stp.VisualColumn 
+        let maxVisCol = s.enp.VisualColumn        
         let delLen    = maxVisCol - minVisCol
-        
-        //log.PrintfnDebugMsg "minCol:%d, maxCol %d " minCol maxCol
         
         doc.BeginUpdate()
         for li = s.enp.Line downto s.stp.Line do // move from bottom up
-            let ln = doc.GetLineByNumber(li)             
-            let delLenLoc =  min (ln.Length - minVisCol) delLen // in case if line is shorter than block selection
-            //log.PrintfnDebugMsg "delLenLoc:%d, ln %d " delLenLoc li
+            let ln = doc.GetLineByNumber(li)
+            let len = ln.Length
+            let delLenLoc =  min (len - minVisCol) delLen // in case if line is shorter than block selection
+            let stOff = ln.Offset            
             if delLenLoc > 0 then 
-                doc.Remove(ln.Offset + minVisCol , delLenLoc)
+                doc.Remove(stOff + minVisCol , delLenLoc)
             
-            let spacesToAdd = minVisCol - ln.Length 
+            let spacesToAdd = minVisCol - len
             if spacesToAdd > 0 then // in case this line is shorten than the visual colum with virtual white space
-                doc.Insert(ln.EndOffset , new String(' ', spacesToAdd) )
-                doc.Insert(ln.EndOffset + spacesToAdd , text)
+                doc.Insert(stOff + len                , new String(' ', spacesToAdd) )
+                doc.Insert(stOff + len + spacesToAdd  , text)
             else
-                doc.Insert(ln.Offset + minVisCol , text)
-        
-        doc.EndUpdate() 
-        
-        
-        // move selection too
-        let ncol = minVisCol + text.Length
-        let st = shiftToVisCol ncol s.stp
-        let en = shiftToVisCol ncol s.enp
-
-        let mutable st = s.stp
-        let mutable en = s.enp
-        st.VisualColumn <-  minVisCol + text.Length
-        en.VisualColumn <-  minVisCol + text.Length
-        st.Column <- min (minVisCol + 1 + text.Length) st.Column
-        en.Column <- min (minVisCol + 1 + text.Length) en.Column
-        //log.PrintfnDebugMsg "new pos: \r\n%A \r\n%A" st en 
-        avaEdit.TextArea.Selection <- new RectangleSelection(avaEdit.TextArea,st,en) 
-        avaEdit.TextArea.Caret.VisualColumn <- minVisCol    
-
-    let replace (text:string, s:Selection.SelPos, avaEdit:TextEditor, log:ISeffLog) =
-        let doc = avaEdit.Document
-        //log.PrintfnDebugMsg "\r\nback: \r\n%A" s        
-        
-        let minVisCol = min s.stp.VisualColumn s.enp.VisualColumn
-        let maxVisCol = max s.stp.VisualColumn s.enp.VisualColumn        
-        let delLen    = maxVisCol - minVisCol
-        
-        //log.PrintfnDebugMsg "minCol:%d, maxCol %d " minCol maxCol
-        
-        doc.BeginUpdate()
-        for li = s.enp.Line downto s.stp.Line do // move from bottom up
-            let ln = doc.GetLineByNumber(li)             
-            let delLenLoc =  min (ln.Length - minVisCol) delLen // in case if line is shorter than block selection
-            //log.PrintfnDebugMsg "delLenLoc:%d, ln %d " delLenLoc li
-            if delLenLoc > 0 then 
-                doc.Remove(ln.Offset + minVisCol , delLenLoc)
-            
-            let spacesToAdd = minVisCol - ln.Length 
-            if spacesToAdd > 0 then // in case this line is shorten than the visual colum with virtual white space
-                doc.Insert(ln.EndOffset , new String(' ', spacesToAdd) )
-                doc.Insert(ln.EndOffset + spacesToAdd , text)
-            else
-                doc.Insert(ln.Offset + minVisCol , text)
-        
+                doc.Insert(stOff + minVisCol , text)        
         doc.EndUpdate() // finsh doc update beforee recreating selecltion
-        
-        // collapse selection too
-        let mutable st = s.stp
-        let mutable en = s.enp
-        st.VisualColumn <-  minVisCol + text.Length
-        en.VisualColumn <-  minVisCol + text.Length
-        st.Column <- min (minVisCol + 1 + text.Length) st.Column
-        en.Column <- min (minVisCol + 1 + text.Length) en.Column
-        //log.PrintfnDebugMsg "new pos: \r\n%A \r\n%A" st en 
-        avaEdit.TextArea.Selection <- new RectangleSelection(avaEdit.TextArea,st,en) 
-        avaEdit.TextArea.Caret.VisualColumn <- minVisCol    
+        setNewEmpty (ed.AvaEdit.TextArea, s, minVisCol + text.Length, false)
 
     
     let delete (ed:IEditor, s:SelPos) = 
-        let doc = ed.AvaEdit.Document
-        //log.PrintfnDebugMsg "\r\nback: \r\n%A" s
+        let doc = ed.AvaEdit.Document        
         let minVisCol = s.stp.VisualColumn 
         let maxVisCol = s.enp.VisualColumn        
         let delLen    = maxVisCol - minVisCol
@@ -238,18 +207,11 @@ module RectangleSelection =
         doc.BeginUpdate()
         for li = s.enp.Line downto s.stp.Line do // move from bottom up
             let ln = doc.GetLineByNumber(li) 
-            let delLenLoc =  min (ln.Length - minVisCol) delLen // in case if line is shorter than block selection
-            //log.PrintfnDebugMsg "delLenLoc:%d, ln %d " delLenLoc li
+            let delLenLoc =  min (ln.Length - minVisCol) delLen // in case if line is shorter than block selection            
             if delLenLoc > 0 then 
                 doc.Remove(ln.Offset + minVisCol , delLenLoc)
-        doc.EndUpdate() // finsh doc update before recreating selection
-        
-        // collapse selection too
-        let st = shiftToVisCol minVisCol s.stp
-        let en = shiftToVisCol minVisCol s.enp
-        //log.PrintfnDebugMsg "new pos: \r\n%A \r\n%A" st en 
-        ed.AvaEdit.TextArea.Selection <- new RectangleSelection(ed.AvaEdit.TextArea,st,en) 
-        ed.AvaEdit.TextArea.Caret.VisualColumn <- minVisCol
+        doc.EndUpdate() // finsh doc update before recreating selection        
+        setNewEmpty (ed.AvaEdit.TextArea, s, minVisCol,true)
 
 
     /// when pressing delete key on empty rect selection, delet on char on right      
@@ -273,14 +235,9 @@ module RectangleSelection =
                 let ln = doc.GetLineByNumber(li) 
                 if ln.Length - vcol >= 0 then// in case if line is shorter than block selection
                     doc.Remove(ln.Offset + nvcol , 1)
-            doc.EndUpdate() // finsh doc update before recreating selection
-    
-            // move selection too
-            let st = shiftToVisCol ncol s.stp
-            let en = shiftToVisCol ncol s.enp
-            avaEdit.TextArea.Selection <- new RectangleSelection(avaEdit.TextArea, st, en)             
-            avaEdit.TextArea.Caret.VisualColumn <- nvcol
-    
+            doc.EndUpdate()          
+            setNewEmpty (avaEdit.TextArea, s, nvcol,true)
+                
     
     let deleteKey (ed:IEditor) =  
         let s = makeTopDown ed.AvaEdit.TextArea.Selection

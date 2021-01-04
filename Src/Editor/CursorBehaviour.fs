@@ -37,7 +37,7 @@ module CursorBehaviour  =
 
 
     let previewTextInput(ed:IEditor, e:Input.TextCompositionEventArgs) = 
-         if not ed.IsComplWinOpen then  
+         //if not ed.IsComplWinOpen then  
             match getSelType(ed.AvaEdit.TextArea) with 
             | NoSel 
             | RegSel -> 
@@ -69,7 +69,7 @@ module CursorBehaviour  =
         
         
     let previewKeyDown (ed:IEditor, e: Input.KeyEventArgs) =  
-        if not ed.IsComplWinOpen then  
+        //if not ed.IsComplWinOpen then  
             match e.Key with  
             |Input.Key.Back ->           
                 let ta = ed.AvaEdit.TextArea
@@ -92,7 +92,7 @@ module CursorBehaviour  =
                 
                 | RegSel  -> ()
 
-                | RectSel ->  RectangleSelection.backspaceKey(ed, e) ; e.Handled <- true 
+                | RectSel ->  RectangleSelection.backspaceKey(ed) ; e.Handled <- true 
 
         
        
@@ -137,7 +137,7 @@ module CursorBehaviour  =
                 
                 | RegSel _ -> ()
 
-                | RectSel ->  RectangleSelection.deleteKey(ed, e) ; e.Handled <- true 
+                | RectSel ->  RectangleSelection.deleteKey(ed) ; e.Handled <- true 
 
 
         
