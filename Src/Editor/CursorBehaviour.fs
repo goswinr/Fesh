@@ -65,7 +65,19 @@ module CursorBehaviour  =
                 | _ -> ()
         
 
-            | RectSel ->  RectangleSelection.insertText(ed, e.Text) ; e.Handled <- true 
+            | RectSel ->  
+                match e.Text with 
+                | null | "" | "\x1b" | "\b" -> ()  
+                // ASCII 0x1b = ESC. 
+                // also see TextArea.OnTextInput implementation 
+                // WPF produces a TextInput event with that old ASCII control char
+                // when Escape is pressed. We'll just ignore it.
+                // A deadkey followed by backspace causes a textinput event for the BS character.
+                // Similarly, some shortcuts like Alt+Space produce an empty TextInput event.
+                // We have to ignore those (not handle them) to keep the shortcut working.                
+                | txt -> 
+                    RectangleSelection.insertText(ed, txt) 
+                    e.Handled <- true 
         
         
     let previewKeyDown (ed:IEditor, e: Input.KeyEventArgs) =  
@@ -92,7 +104,8 @@ module CursorBehaviour  =
                 
                 | RegSel  -> ()
 
-                | RectSel ->  RectangleSelection.backspaceKey(ed) ; e.Handled <- true 
+                | RectSel ->  
+                    RectangleSelection.backspaceKey(ed) ; e.Handled <- true 
 
         
        
@@ -100,7 +113,7 @@ module CursorBehaviour  =
                 match getSelType(ed.AvaEdit.TextArea) with 
                 | NoSel -> 
                     // --- Removes rest of line too if only whitespacxe ---
-                    // --- also remove whitespace at stert of next line  ---               
+                    // --- also remove whitespace at start of next line  ---               
                     let doc = ed.AvaEdit.Document
                     let caretOff = ed.AvaEdit.CaretOffset
                     let line = doc.GetLineByOffset(caretOff) // = get current line 
@@ -121,8 +134,10 @@ module CursorBehaviour  =
                             let delLengthOnNextLine = min nextLnSpacesAtStart caretPosInLine // to NOT delete all starting whispace on next line
                             //let delLengthOnNextLine = nextLnSpacesAtStart // to  delete all starting whispace on next line
 
-                            let lenToDelete = endOff - caretOff + 2 + delLengthOnNextLine // + 2 for \r\n
-                            doc.Remove(caretOff, lenToDelete)
+                            let lenToDelete0 = endOff - caretOff + 2 + delLengthOnNextLine // + 2 for \r\n
+                            let lenTillEnd = doc.TextLength - caretOff - 1
+                            let lenToDeleteCheckedForEnd = min lenToDelete0 lenTillEnd // check for overflow at end of file
+                            doc.Remove(caretOff, lenToDeleteCheckedForEnd)
                     
                             // now after this change ensure one space remains at caret
                             let prev = doc.GetCharAt(caretOff-1)
@@ -137,7 +152,8 @@ module CursorBehaviour  =
                 
                 | RegSel _ -> ()
 
-                | RectSel ->  RectangleSelection.deleteKey(ed) ; e.Handled <- true 
+                | RectSel -> 
+                    RectangleSelection.deleteKey(ed) ; e.Handled <- true 
 
 
         
