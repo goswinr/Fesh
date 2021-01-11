@@ -75,6 +75,11 @@ type ISeffLog =
     abstract member TextWriterConsoleOut   : TextWriter
     abstract member TextWriterConsoleError : TextWriter
 
+module ISeffLog = 
+    /// a refrence to the global single instance of the Log view, will be set immediatly after construction
+    /// declared here  in Utils so it can be used in othet moduled that are declared before Log view
+    let mutable log = Unchecked.defaultof<ISeffLog>
+
 /// ---- Editor types -----------
 
 type CheckId = int64
