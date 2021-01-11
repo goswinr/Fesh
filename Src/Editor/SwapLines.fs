@@ -20,7 +20,7 @@ module SwapLines =
         let ta = avaEdit.TextArea
         let caret = avaEdit.CaretOffset        
         let sel = getSelType (ta)
-        let sp = Selection.makeTopDown ta.Selection
+        let sp = Selection.getSelectionOrdered ta
 
         let pair =
             match sel with
@@ -96,7 +96,7 @@ module SwapLines =
         let ta = avaEdit.TextArea
         let caret = avaEdit.CaretOffset
         let sel = getSelType (ta)
-        let sp = Selection.makeTopDown ta.Selection
+        let sp = Selection.getSelectionOrdered ta
         
         let pair =
             match sel with

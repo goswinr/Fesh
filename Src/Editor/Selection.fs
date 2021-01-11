@@ -19,7 +19,7 @@ module Selection =
         {st:int;en:int}
         member s.len = s.en - s.st
          
-    type SelPos = {stp:TextViewPosition ; enp:TextViewPosition}
+    type SelPos = {stp:TextViewPosition ; enp:TextViewPosition; caret:TextViewPosition}
     
     /// ensure first is smaller or equal to second
     let inline sorted a b = if a>b then b,a else a,b
@@ -40,30 +40,34 @@ module Selection =
         | x -> failwithf "Unknown selection class in getSelection: %A" x          
     
     /// returns selpos order top to left bottom right
-    let makeTopDown(s:Selection)=
-        match s with
+    let getSelectionOrdered(ta:TextArea)=
+        match ta.Selection with
         | null -> failwithf "Unknown selection class in makeTopDown: null"
-        | :? EmptySelection as es -> 
-            if es.StartPosition <> es.EndPosition  then eprintf "makeTopDown es.StartPosition <> es.EndPosition " //TODO Remove 
-            {stp = es.StartPosition ; enp = es.EndPosition }
+        | :? EmptySelection  ->             
+            let p = ta.Caret.Position
+            {stp = p ; enp = p; caret = p }
         
-        | :? SimpleSelection    as ss -> 
+        | :? SimpleSelection  as ss -> 
             let st = ss.StartPosition
             let en = ss.EndPosition 
-            if st.Line > en.Line then                              {stp = en ; enp = st } // reversed order 
-            elif st.Line = en.Line && en.Column < st.Column then   {stp = en ; enp = st } // reversed order 
-            else                                                   {stp = st ; enp = en }
+            let car = ta.Caret.Position
+            if st.Line > en.Line then                              {stp = en ; enp = st; caret = car } // reversed order 
+            elif st.Line = en.Line && en.Column < st.Column then   {stp = en ; enp = st; caret = car  } // reversed order 
+            else                                                   {stp = st ; enp = en; caret = car  }
                                    
         | :? RectangleSelection as rs -> 
             let s = rs.StartPosition
             let e = rs.EndPosition
+            let car = ta.Caret.Position
             let v1,v2 = sorted s.VisualColumn e.VisualColumn
             if s.Line <= e.Line then               
                {stp = TextViewPosition(s.Line, s.Column, v1)  
-                enp = TextViewPosition(e.Line, e.Column, v2) }
+                enp = TextViewPosition(e.Line, e.Column, v2)
+                caret = car }
             else
                {stp = TextViewPosition(e.Line, e.Column, v1) 
-                enp = TextViewPosition(s.Line, s.Column, v2) }
+                enp = TextViewPosition(s.Line, s.Column, v2)
+                caret = car }
 
                
         | x -> failwithf "Unknown selection class in makeTopDown: %A" x
@@ -146,39 +150,22 @@ module RectangleSelection =
     //all this functions is neded because ReplaceSelectionWithText of rectangular selection does nort work wel on all font sizes e.g. consolas 17.5
    
     let private setNewEmpty (ta:TextArea, s:SelPos, vcol, checkWithColInSelpos) = 
+        //ISeffLog.log.PrintfnDebugMsg "caret2: %A "ta.Caret.Position
         let st , en = 
             if checkWithColInSelpos then 
                 TextViewPosition( s.stp.Line,  min (vcol + 1) s.stp.Column , vcol) , // use min function in case the  Visual coloumn is in virtual whitespace
                 TextViewPosition( s.enp.Line,  min (vcol + 1) s.enp.Column , vcol)
             else
-                TextViewPosition( s.stp.Line,  vcol + 1   , vcol), // even if the Visual coloumn was in virtual whitespace, spaces to fill it wher added if len is bigger than 0
+                TextViewPosition( s.stp.Line,  vcol + 1   , vcol), // even if the Visual coloumn was in virtual whitespace, spaces to fill it where added, if len is bigger than 0
                 TextViewPosition( s.enp.Line,  vcol + 1   , vcol)
-        ta.Selection <- new RectangleSelection(ta, st, en)             
-        ta.Caret.VisualColumn <- vcol
+        ta.Selection <- new RectangleSelection(ta, st, en)        
+        if s.caret.Line = s.stp.Line then 
+            ta.Caret.Position <- st
+        else
+            ta.Caret.Position <- en
+        //ISeffLog.log.PrintfnDebugMsg "caret3: %A "ta.Caret.Position
 
-    (*
-    let insertOLDSLOW (ed:IEditor, s:SelPos,text:string) =
-        let doc = ed.AvaEdit.Document        
-        let visCol = s.stp.VisualColumn 
-        doc.BeginUpdate()
-        //let t = Seff.Timer()
-        //t.tic()
-        for li = s.enp.Line downto s.stp.Line do // move from bottom up
-            let ln = doc.GetLineByNumber(li)
-            let len = ln.Length
-            let spacesToAdd = visCol - len
-            let stOff = ln.Offset
-            if spacesToAdd > 0 then // in case this line is shorten than the visual colum with virtual white space                
-                doc.Insert(stOff + len , new String(' ', spacesToAdd) )
-                doc.Insert(stOff + len + spacesToAdd , text)
-            else
-                doc.Insert(stOff + visCol , text)        
-        //let ti = t.toc
-        //ed.Log.PrintfnDebugMsg "DocUpdate %s" ti
-        doc.EndUpdate()         
-        setNewEmpty (ed.AvaEdit.TextArea, s, visCol + text.Length, false)
-    *)
-   
+
     let private insert (ed:IEditor, s:SelPos,text:string) =
         let doc = ed.AvaEdit.Document        
         let visCol = s.stp.VisualColumn
@@ -228,32 +215,6 @@ module RectangleSelection =
         doc.EndUpdate()          
         setNewEmpty (ed.AvaEdit.TextArea, s, visCol + text.Length, false)
       
-    (*
-    let replaceOLDSLOW (ed:IEditor, s:SelPos,text:string)  =
-        let doc = ed.AvaEdit.Document 
-        let minVisCol = s.stp.VisualColumn 
-        let maxVisCol = s.enp.VisualColumn        
-        let delLen    = maxVisCol - minVisCol
-        
-        doc.BeginUpdate()
-        for li = s.enp.Line downto s.stp.Line do // move from bottom up
-            let ln = doc.GetLineByNumber(li)
-            let len = ln.Length
-            let delLenLoc =  min (len - minVisCol) delLen // in case if line is shorter than block selection
-            let stOff = ln.Offset            
-            if delLenLoc > 0 then 
-                doc.Remove(stOff + minVisCol , delLenLoc)
-            
-            let spacesToAdd = minVisCol - len
-            if spacesToAdd > 0 then // in case this line is shorten than the visual colum with virtual white space
-                doc.Insert(stOff + len                , new String(' ', spacesToAdd) )
-                doc.Insert(stOff + len + spacesToAdd  , text)
-            else
-                doc.Insert(stOff + minVisCol , text)        
-        doc.EndUpdate() // finsh doc update beforee recreating selecltion
-        setNewEmpty (ed.AvaEdit.TextArea, s, minVisCol + text.Length, false)
-    *)
-
     let private replace (ed:IEditor, s:SelPos,text:string)  =
         let doc = ed.AvaEdit.Document 
         let minVisCol = s.stp.VisualColumn 
@@ -262,7 +223,7 @@ module RectangleSelection =
         doc.BeginUpdate()
         if lineK > 1 then 
             let stOff = doc.GetLineByNumber(s.stp.Line).Offset
-            let enOff = doc.GetLineByNumber(s.enp.Line-1).EndOffset
+            let enOff = doc.GetLineByNumber(s.enp.Line-1).EndOffset//do last line individual to trigger potential autocompletion:
             let len = enOff-stOff
             let txt = doc.GetText(stOff, len)        
             let sb = StringBuilder()       
@@ -310,98 +271,16 @@ module RectangleSelection =
         doc.EndUpdate() // finsh doc update beforee recreating selecltion
         setNewEmpty (ed.AvaEdit.TextArea, s, minVisCol + text.Length, false)
 
-    (*
-    let delete (ed:IEditor, s:SelPos) = 
-        let doc = ed.AvaEdit.Document        
-        let minVisCol = s.stp.VisualColumn 
-        let maxVisCol = s.enp.VisualColumn        
-        let delLen    = maxVisCol - minVisCol
-
-        doc.BeginUpdate()
-        for li = s.enp.Line downto s.stp.Line do // move from bottom up
-            let ln = doc.GetLineByNumber(li) 
-            let delLenLoc =  min (ln.Length - minVisCol) delLen // in case if line is shorter than block selection            
-            if delLenLoc > 0 then 
-                doc.Remove(ln.Offset + minVisCol , delLenLoc)
-        doc.EndUpdate() // finsh doc update before recreating selection        
-        setNewEmpty (ed.AvaEdit.TextArea, s, minVisCol,true)
-    *)
-    
+      
     let private delete (ed:IEditor, s:SelPos) = 
         let doc = ed.AvaEdit.Document        
         let minVisCol = s.stp.VisualColumn 
         let maxVisCol = s.enp.VisualColumn 
         let stOff = doc.GetLineByNumber(s.stp.Line).Offset
-        let enOff = doc.GetLineByNumber(s.enp.Line).EndOffset
-        let len = enOff-stOff
-        let txt = doc.GetText(stOff, len)        
-        let sb = StringBuilder()       
-        let rec loop i pos = 
-            if i<len then 
-                let c = txt.[i]                              
-                if c = '\r' then                    
-                    sb.Append(Environment.NewLine) |> ignore
-                    loop (i+2) 0
-                else
-                    if  pos < minVisCol || pos >= maxVisCol then // to delete
-                        sb.Append(c) |> ignore 
-                    loop (i+1) (pos+1)            
-        loop 0 0
-        let nt = sb.ToString()        
-        doc.Replace(stOff,len,nt)        
-        setNewEmpty (ed.AvaEdit.TextArea, s, minVisCol,true)
-
-
-    /// when pressing delete key on empty rect selection, delet on char on right      
-    let private deleteRight (ed:IEditor, s:SelPos) =
-        let doc = ed.AvaEdit.Document
-        let col = s.stp.VisualColumn 
-        (*
+        let enOff = doc.GetLineByNumber(s.enp.Line-1).EndOffset // -1 to do last line individual to trigger potential autocompletion:
+        let lineK = s.enp.Line - s.stp.Line       
         doc.BeginUpdate()
-        for li = s.enp.Line downto s.stp.Line do // move from bottom up
-            let ln = doc.GetLineByNumber(li) 
-            if ln.Length - col > 0 then // in case if line is shorter than block selection
-                doc.Remove(ln.Offset + col , 1)
-        doc.EndUpdate() 
-        *)
-        let stOff = doc.GetLineByNumber(s.stp.Line).Offset
-        let enOff = doc.GetLineByNumber(s.enp.Line).EndOffset
-        let len = enOff-stOff
-        let txt = doc.GetText(stOff, len)        
-        let sb = StringBuilder()       
-        let rec loop i pos = 
-            if i<len then 
-                let c = txt.[i]                              
-                if c = '\r' then                    
-                    sb.Append(Environment.NewLine) |> ignore
-                    loop (i+2) 0
-                else
-                    if  pos < col || pos > col then // to delete
-                        sb.Append(c) |> ignore 
-                    loop (i+1) (pos+1)            
-        loop 0 0
-        let nt = sb.ToString()  
-        ed.Log.PrintfDebugMsg "nt: %s" nt
-        doc.Replace(stOff,len,nt)        
-        setNewEmpty (ed.AvaEdit.TextArea, s, col,true)// neede in manual version
-
-
-
-    let private deleteLeft (ed:IEditor, s:SelPos) =
-        let doc = ed.AvaEdit.Document
-        let vcol = s.stp.VisualColumn
-        let nvcol = vcol - 1
-        if vcol > 0 then
-            (*
-            doc.BeginUpdate()
-            for li = s.enp.Line downto s.stp.Line do // move from bottom up
-                let ln = doc.GetLineByNumber(li) 
-                if ln.Length - vcol >= 0 then// in case if line is shorter than block selection
-                    doc.Remove(ln.Offset + nvcol , 1)
-            doc.EndUpdate()          
-            *)
-            let stOff = doc.GetLineByNumber(s.stp.Line).Offset
-            let enOff = doc.GetLineByNumber(s.enp.Line).EndOffset
+        if lineK > 1 then
             let len = enOff-stOff
             let txt = doc.GetText(stOff, len)        
             let sb = StringBuilder()       
@@ -412,27 +291,102 @@ module RectangleSelection =
                         sb.Append(Environment.NewLine) |> ignore
                         loop (i+2) 0
                     else
-                        if  pos < nvcol || pos > nvcol then // to delete
+                        if  pos < minVisCol || pos >= maxVisCol then // to delete
                             sb.Append(c) |> ignore 
                         loop (i+1) (pos+1)            
             loop 0 0
-            let nt = sb.ToString()  
-            ed.Log.PrintfDebugMsg "nt: %s" nt
-            doc.Replace(stOff,len,nt)  
-            setNewEmpty (ed.AvaEdit.TextArea, s, nvcol,true)
+            let nt = sb.ToString()        
+            doc.Replace(stOff,len,nt)
+        
+        //do last line individual to trigger potential autocompletion:
+        let delLen    = maxVisCol - minVisCol
+        let ln = doc.GetLineByNumber(s.enp.Line) 
+        let delLenLoc =  min (ln.Length - minVisCol) delLen // in case if line is shorter than block selection            
+        if delLenLoc > 0 then 
+            doc.Remove(ln.Offset + minVisCol , delLenLoc)        
+        doc.EndUpdate()   
+        setNewEmpty (ed.AvaEdit.TextArea, s, minVisCol,true)
+
+
+    /// when pressing delete key on empty rect selection, delet on char on right      
+    let private deleteRight (ed:IEditor, s:SelPos) =
+        let doc = ed.AvaEdit.Document
+        let col = s.stp.VisualColumn 
+        let stOff = doc.GetLineByNumber(s.stp.Line).Offset
+        let enOff = doc.GetLineByNumber(s.enp.Line-1).EndOffset // -1 to do last line individual to trigger potential autocompletion:
+        let lineK = s.enp.Line - s.stp.Line       
+        doc.BeginUpdate()
+        if lineK > 1 then
+            let len = enOff-stOff
+            let txt = doc.GetText(stOff, len)        
+            let sb = StringBuilder()       
+            let rec loop i pos = 
+                if i<len then 
+                    let c = txt.[i]                              
+                    if c = '\r' then                    
+                        sb.Append(Environment.NewLine) |> ignore
+                        loop (i+2) 0
+                    else
+                        if  pos < col || pos > col then // to delete
+                            sb.Append(c) |> ignore 
+                        loop (i+1) (pos+1)            
+            loop 0 0
+            let nt = sb.ToString()           
+            doc.Replace(stOff,len,nt) 
+        //do last line individual to trigger potential autocompletion:
+        let ln = doc.GetLineByNumber(s.enp.Line) 
+        if ln.Length - col > 0 then // in case if line is shorter than block selection
+            doc.Remove(ln.Offset + col , 1) 
+        doc.EndUpdate() 
+        setNewEmpty (ed.AvaEdit.TextArea, s, col,true)// neede in manual version
+
+
+
+    let private deleteLeft (ed:IEditor, s:SelPos) =        
+        let doc = ed.AvaEdit.Document
+        let vcol = s.stp.VisualColumn
+        let nvcol = vcol - 1
+        if vcol > 0 then           
+            let stOff = doc.GetLineByNumber(s.stp.Line).Offset
+            let enOff = doc.GetLineByNumber(s.enp.Line-1).EndOffset // -1 to do last line individual to trigger potential autocompletion:
+            let lineK = s.enp.Line - s.stp.Line       
+            doc.BeginUpdate()
+            if lineK > 1 then
+                let len = enOff-stOff
+                let txt = doc.GetText(stOff, len)        
+                let sb = StringBuilder()       
+                let rec loop i pos = 
+                    if i<len then 
+                        let c = txt.[i]                              
+                        if c = '\r' then                    
+                            sb.Append(Environment.NewLine) |> ignore
+                            loop (i+2) 0
+                        else
+                            if  pos < nvcol || pos > nvcol then // to delete
+                                sb.Append(c) |> ignore 
+                            loop (i+1) (pos+1)            
+                loop 0 0
+                let nt = sb.ToString()                  
+                doc.Replace(stOff,len,nt)  
+            //do last line individual to trigger potential autocompletion:
+            let ln = doc.GetLineByNumber(s.enp.Line) 
+            if ln.Length - vcol >= 0 then// in case if line is shorter than block selection
+                doc.Remove(ln.Offset + nvcol , 1)
+            doc.EndUpdate() 
+            setNewEmpty (ed.AvaEdit.TextArea, s, nvcol, true)
                 
     
     //TODO add check for beeing over folded block
 
     let deleteKey (ed:IEditor) =  
-        let s = makeTopDown ed.AvaEdit.TextArea.Selection
+        let s = getSelectionOrdered ed.AvaEdit.TextArea
         if s.stp.VisualColumn = s.enp.VisualColumn then 
             deleteRight (ed, s)
         else 
             delete (ed, s)
     
     let backspaceKey (ed:IEditor) = 
-        let s = makeTopDown ed.AvaEdit.TextArea.Selection
+        let s = getSelectionOrdered ed.AvaEdit.TextArea
         if s.stp.VisualColumn = s.enp.VisualColumn then 
             deleteLeft (ed, s)
         else 
@@ -440,15 +394,14 @@ module RectangleSelection =
    
     
     let insertText (ed:IEditor, txt: string) = 
-        let s = makeTopDown ed.AvaEdit.TextArea.Selection
+        let s = getSelectionOrdered ed.AvaEdit.TextArea
         if s.stp.VisualColumn = s.enp.VisualColumn then 
             insert (ed, s, txt)
-        else 
-            //ed.Log.PrintfDebugMsg "repl %A" s
+        else             
             replace (ed, s, txt)
 
     let complete (ed:IEditor, completionSegment:ISegment, txt:string) =
         let len = completionSegment.Length
-        let s = makeTopDown ed.AvaEdit.TextArea.Selection
+        let s = getSelectionOrdered ed.AvaEdit.TextArea
         let p = {s with stp = TextViewPosition( s.stp.Line,  s.stp.Column - len , s.stp.VisualColumn - len) }
         replace (ed, p, txt)

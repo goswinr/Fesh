@@ -30,7 +30,7 @@ module Initialize =
 
         /// ------------------ Log and Config --------------------
         
-        let log    = Log.Instance        
+        let log    = Log.Create()       
         GlobalErrorHandeling.setup(log) // do as soon as log exists
 
         let config = new Config(log, mode, startupArgs)
