@@ -241,12 +241,12 @@ type Log private () =
     
     let offsetColors = ResizeArray<NewColor>( [ {off = -1 ; brush=null} ] )    // null is console out // null check done in  this.ColorizeLine(line:AvalonEdit.Document.DocumentLine) .. 
     
-    let log =  new AvalonEdit.TextEditor()        
+    let log =  new AvalonEdit.TextEditor()    
     let hiLi = new LogSelectedTextHighlighter(log)
     let colo = new LogLineColorizer(log,offsetColors)    
     let search = AvalonEdit.Search.SearchPanel.Install(log) |> ignore //TODO disable search and replace ?
     
-    do        
+    do    
         //styling: 
         log.BorderThickness <- new Thickness( 0.5)
         log.Padding         <- new Thickness( 0.7)
@@ -584,5 +584,9 @@ type Log private () =
     //--------------------------------------------------------------------------------------------------------------------------------------------
     //-----------------------------Static members---------------------------------------------------------------------------------------------------------------
     //--------------------------------------------------------------------------------------------------------------------------------------------
- 
-    static member val Instance = Log()
+    
+    /// creates one instance
+    static member Create() = 
+        let l = Log()
+        ISeffLog.log <- l
+        l
