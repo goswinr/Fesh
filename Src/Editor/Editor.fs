@@ -251,7 +251,7 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
             
              //else compls.JustClosed<-false
         
-        avaEdit.Drop.Add                      (fun e -> CursorBehaviour.dragAndDrop(ed,e))         
+        avaEdit.Drop.Add                      (fun e -> CursorBehaviour.dragAndDrop(      ed,e))         
         avaEdit.PreviewKeyDown.Add            (fun e -> CursorBehaviour.previewKeyDown(  ed, e))   //to indent and dedent, and change block selection deltee behaviour
         avaEdit.TextArea.PreviewTextInput.Add (fun e -> CursorBehaviour.previewTextInput(ed, e))   //to change block selection delete behaviour
         
@@ -266,7 +266,7 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
         avaEdit.Document.Changed.Add(docChanged)
         avaEdit.TextArea.TextEntering.Add (checkIfCompletionWindowShouldClose)
 
-        ed.Checker.OnChecked.Add(fun iEditor -> ed.ErrorHighlighter.Draw(ed)) // this then trigger folding too, stusbar update is added in statusbar
+        ed.Checker.OnChecked.Add(fun iEditor -> ed.ErrorHighlighter.Draw(ed)) // this then trigger folding too, statusbar update is added in statusbar
         
         compls.OnShowing.Add(fun _ -> ed.ErrorHighlighter.ToolTip.IsOpen <- false)
         compls.OnShowing.Add(fun _ -> ed.TypeInfoTip.IsOpen        <- false)
