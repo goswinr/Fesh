@@ -59,6 +59,7 @@ module Selection =
             let s = rs.StartPosition
             let e = rs.EndPosition
             let car = ta.Caret.Position
+            //ISeffLog.log.PrintfnDebugMsg "caret0: %A "car
             let v1,v2 = sorted s.VisualColumn e.VisualColumn
             if s.Line <= e.Line then               
                {stp = TextViewPosition(s.Line, s.Column, v1)  

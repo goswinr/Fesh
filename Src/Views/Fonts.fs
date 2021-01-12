@@ -17,7 +17,7 @@ type Fonts (grid:TabsAndLog) = // will be contructed as part of Commands class
 
     let setSize (newSize:float) = // on log and all tabs
         
-        // 17.0252982466288 this fonsize makes block selection delete fail on the last line: 17.0252982466288
+        // 17.0252982466288 this fontsize makes block selection delete fail on the last line: 17.0252982466288
         //let newSize = grid.Config.Settings.roundToOneDigitBehindComa(newSizeUnRounded)
         
         log.ReadOnlyEditor.FontSize <- newSize
@@ -94,16 +94,17 @@ type Fonts (grid:TabsAndLog) = // will be contructed as part of Commands class
         //    else                1.
         //if cs < 112. then setSize(cs+step)
         
-        if cs < 250. then setSize(cs * 1.03) // 3% steps
+        if cs < 250. then setSize(cs * 1.02) // 2% steps
           
     /// affects Editor and Log
     member this.FontsSmaller()=
         let cs = tabs.Current.Editor.AvaEdit.FontSize
+
         //let step = 
         //    if   cs >= 36. then 4. 
         //    elif cs >= 20. then 2. 
         //    else                1.
         //if cs > 5. then setSize(cs-step)
 
-        if cs > 3. then setSize(cs / 1.03) // 3% steps 
+        if cs > 3. then setSize(cs / 1.02) // 2% steps 
 

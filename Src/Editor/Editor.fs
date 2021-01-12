@@ -254,6 +254,9 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
         avaEdit.Drop.Add                      (fun e -> CursorBehaviour.TextAreaDragAndDrop( ed,e))         
         avaEdit.PreviewKeyDown.Add            (fun e -> CursorBehaviour.previewKeyDown(      ed, e))   //to indent and dedent, and change block selection deltee behaviour
         avaEdit.TextArea.PreviewTextInput.Add (fun e -> CursorBehaviour.previewTextInput(    ed, e))   //to change block selection delete behaviour
+        avaEdit.TextArea.AlternativeRectangularPaste <- Action<string,bool>( fun txt txtIsFromOtherRectSel -> RectangleSelection.insertText(ed,txt)) //TODO check txtIsFromOtherRectSel on pasting
+       
+
         
         // setup and tracking folding status, (needs a ref to file path:  )
         ed.Folds.SetState( ed )              
