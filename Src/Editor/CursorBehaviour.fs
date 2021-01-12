@@ -196,7 +196,7 @@ module CursorBehaviour  =
             | _ -> ()
     
      
-    let dragAndDrop (ed:IEditor,  e:DragEventArgs) =        
+    let TextAreaDragAndDrop (ed:IEditor,  e:DragEventArgs) =        
         let doc = ed.AvaEdit.Document
         if e.Data.GetDataPresent DataFormats.FileDrop then
             let isDll (p:string) = p.EndsWith(".dll", StringComparison.OrdinalIgnoreCase) ||  p.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)
@@ -264,6 +264,25 @@ module CursorBehaviour  =
                                 ed.Log.PrintfnInfoMsg "Drag & Drop inserted at Line %d:" lnNo.LineNumber
                                 printGreen "  %s" f
                                 doc.Insert (ed.AvaEdit.CaretOffset , sprintf " @\"%s\"%s" f Environment.NewLine)
-                            
-            with e -> ed.Log.PrintfnIOErrorMsg "drag and drop failed: %A" e
+                    
+                    e.Handled <- true
 
+            with er -> ed.Log.PrintfnIOErrorMsg "Drag & Drop in TextArea failed: %A" er
+
+    let TabBarDragAndDrop (log:ISeffLog, openFiles: string[]->bool, e:DragEventArgs) = 
+        if e.Data.GetDataPresent DataFormats.FileDrop then            
+            let isFsx (p:string) = p.EndsWith(".fsx", StringComparison.OrdinalIgnoreCase) ||  p.EndsWith(".fs", StringComparison.OrdinalIgnoreCase)                        
+            try                 
+                let fs = (e.Data.GetData DataFormats.FileDrop :?> string []) 
+                fs
+                |> Array.filter isFsx
+                |> openFiles
+                |> ignore
+
+                fs
+                |> Seq.filter (not << isFsx)
+                |> Seq.iter (log.PrintfnIOErrorMsg "skiped opening  file in drag and drop: %s")
+                
+                e.Handled <- true
+
+            with er -> log.PrintfnIOErrorMsg "Other Drag & Drop failed: %A" er

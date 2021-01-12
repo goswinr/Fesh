@@ -251,9 +251,9 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
             
              //else compls.JustClosed<-false
         
-        avaEdit.Drop.Add                      (fun e -> CursorBehaviour.dragAndDrop(      ed,e))         
-        avaEdit.PreviewKeyDown.Add            (fun e -> CursorBehaviour.previewKeyDown(  ed, e))   //to indent and dedent, and change block selection deltee behaviour
-        avaEdit.TextArea.PreviewTextInput.Add (fun e -> CursorBehaviour.previewTextInput(ed, e))   //to change block selection delete behaviour
+        avaEdit.Drop.Add                      (fun e -> CursorBehaviour.TextAreaDragAndDrop( ed,e))         
+        avaEdit.PreviewKeyDown.Add            (fun e -> CursorBehaviour.previewKeyDown(      ed, e))   //to indent and dedent, and change block selection deltee behaviour
+        avaEdit.TextArea.PreviewTextInput.Add (fun e -> CursorBehaviour.previewTextInput(    ed, e))   //to change block selection delete behaviour
         
         // setup and tracking folding status, (needs a ref to file path:  )
         ed.Folds.SetState( ed )              

@@ -46,6 +46,9 @@ type Seff (config:Config,log:Log) =
             let canClose = tabs.AskIfClosingWindowIsOk() 
             if not canClose then e.Cancel <- true // dont close window  
             ) 
+        
+        win.Window.AllowDrop <- true // so it works on tab bar 
+        win.Window.Drop.Add (fun e -> CursorBehaviour.TabBarDragAndDrop(log,tabs.AddFiles, e)) // text editor has it own drag event, this aplies to all other area ( eg log, tab bar) except the editor
 
     member this.Config = config
 

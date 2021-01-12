@@ -163,6 +163,7 @@ type Tabs(config:Config, win:Window) =
         tab.CloseButton.Click.Add (fun _ -> closeTab(tab))
         
     /// checks if file is open already then calls addTtab
+    /// tryAddFile(fi:FileInfo, makeCurrent, moreTabsToCome)
     let tryAddFile(fi:FileInfo, makeCurrent, moreTabsToCome) :bool =            
         let areFilesSame (a:FileInfo) (b:FileInfo) = a.FullName.ToLowerInvariant() = b.FullName.ToLowerInvariant()
         
@@ -195,6 +196,19 @@ type Tabs(config:Config, win:Window) =
             log.PrintfnIOErrorMsg "File not found:\r\n%s" fi.FullName
             MessageBox.Show("File not found:\r\n"+fi.FullName , dialogCaption, MessageBoxButton.OK, MessageBoxImage.Error) |> ignore
             false
+    
+    /// return true if at least one file was opend correctly
+    let tryAddFiles(paths:string[]) = 
+        let last = paths.Length - 1
+        paths
+        |> Seq.indexed
+        |> Seq.map (fun (num,f) ->            
+            if num = last then  tryAddFile (FileInfo f, true,  false) 
+            else                tryAddFile (FileInfo f, false, true ) )
+        |> Seq.exists id //check if at least one file was opend OK, then true
+
+
+
 
     /// Shows a file opening dialog
     let openFile() : bool =
@@ -207,13 +221,7 @@ type Tabs(config:Config, win:Window) =
         dlg.Title <- "Open file for " + Style.dialogCaption
         dlg.Filter <- "FSharp Files(*.fsx, *.fs)|*.fsx;*.fs|Text Files(*.txt)|*.txt|All Files(*.*)|*"
         if isTrue (dlg.ShowDialog()) then
-            dlg.FileNames
-            |> Seq.indexed
-            |> Seq.map (fun (num,f) ->
-                let fi = new FileInfo(f)
-                if num = 0 then  tryAddFile (fi, true,false) 
-                else             tryAddFile (fi, false,false) )
-            |> Seq.exists id //check if at least one file was opend OK, then true
+            tryAddFiles dlg.FileNames
         else
             false
     
@@ -286,6 +294,11 @@ type Tabs(config:Config, win:Window) =
 
     /// Checks if file is open already then calls addTtab
     member this.AddFile(fi:FileInfo, makeCurrent) =  tryAddFile(fi, makeCurrent,false)
+    
+    /// Checks if file is open already 
+    /// last file will be set current
+    /// ture if atleast one opened
+    member this.AddFiles(paths: string []) =  tryAddFiles(paths)
     
     /// Gets the most recently used folder if possible
     member this.WorkingDirectory = workingDirectory()
