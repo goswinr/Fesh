@@ -225,7 +225,7 @@ module CursorBehaviour  =
 
                 
             try
-                let printGreen = ed.Log.PrintfnCustomColor 0 150 0
+                let printGreen = ed.Log.PrintfnColor 0 150 0
                
 
                 let fs = (e.Data.GetData DataFormats.FileDrop :?> string []) |> Array.sort |> Array.rev // to get file path 
@@ -262,13 +262,13 @@ module CursorBehaviour  =
                                     ed.Log.PrintfnInfoMsg "Drag & Drop inserted at Line %d:" p.line 
                                     printGreen "  %s" f
                                     ed.Log.PrintfnInfoMsg "  Previous Line at that position is commented out below:"
-                                    ed.Log.PrintfnCustomColor 120 120 120 "  %s" prev
+                                    ed.Log.PrintfnColor 120 120 120 "  %s" prev
                                 else
                                     doc.Insert (p.offset , sprintf "@\"%s\" //" f )
                                     ed.Log.PrintfnInfoMsg "Drag & Drop inserted at Line %d:" lnNo.LineNumber
                                     printGreen "  %s" f
                                     ed.Log.PrintfnInfoMsg "  Previous Line content is commented out:" 
-                                    ed.Log.PrintfnCustomColor 120 120 120  "  %s" prev
+                                    ed.Log.PrintfnColor 120 120 120  "  %s" prev
                             | None ->   
                                 let lnNo = doc.GetLineByOffset(ed.AvaEdit.CaretOffset)
                                 ed.Log.PrintfnInfoMsg "Drag & Drop inserted at Line %d:" lnNo.LineNumber

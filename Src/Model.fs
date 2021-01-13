@@ -30,44 +30,36 @@ type ISeffLog =
     abstract member PrintfnIOErrorMsg  : Printf.StringFormat<'T,unit> -> 'T  
     abstract member PrintfnDebugMsg    : Printf.StringFormat<'T,unit> -> 'T
     
-    /// Print using the Brush or color provided 
-    /// at last custom printing call via.PrintfnCustomBrush or.PrintfnCustomColor 
-    abstract member PrintfnCustom     : Printf.StringFormat<'T,unit> -> 'T
+    /// Print using the same color as in last print call
+    abstract member PrintfnLastColor     : Printf.StringFormat<'T,unit> -> 'T
 
-        // Change custom color to a new SolidColorBrush (e.g. from System.Windows.Media.Brushes)
-        // This will also freeze the Brush.
-        // Then print 
-        //abstract member PrintfnCustomBrush : SolidColorBrush -> Printf.StringFormat<'T,unit> -> 'T 
+    /// Change custom color to a RGB value ( each between 0 and 255) , then print 
+    abstract member PrintfnColor : int ->  int ->  int ->  Printf.StringFormat<'T,unit> -> 'T 
+    
+    //--- without new line: --------------
 
-    /// Change custom color to a RGB value ( each between 0 and 255) 
-    /// Then print 
-    abstract member PrintfnCustomColor : int ->  int ->  int ->  Printf.StringFormat<'T,unit> -> 'T 
-    
-    
-    
     /// Prints without adding a new line at the end
     abstract member PrintfInfoMsg      : Printf.StringFormat<'T,unit> -> 'T  
+    
     /// Prints without adding a new line at the end
     abstract member PrintfFsiErrorMsg  : Printf.StringFormat<'T,unit> -> 'T  
+    
     /// Prints without adding a new line at the end
     abstract member PrintfAppErrorMsg  : Printf.StringFormat<'T,unit> -> 'T  
+    
     /// Prints without adding a new line at the end
     abstract member PrintfIOErrorMsg   : Printf.StringFormat<'T,unit> -> 'T         
+    
     /// Prints without adding a new line at the end
     abstract member PrintfDebugMsg     : Printf.StringFormat<'T,unit> -> 'T     
-    /// Print using the Brush or color provided 
-    /// at last custom printing call via.PrintfnCustomBrush or.PrintfnCustomColor 
+    
+    /// Print using the same color as in last print call
     /// without adding a new line at the end
-    abstract member PrintfCustom : Printf.StringFormat<'T,unit> -> 'T
-
-            // Change custom color to a new SolidColorBrush (e.g. from System.Windows.Media.Brushes)
-            // This will also freeze the Brush.
-            // Then print without adding a new line at the end
-            //abstract member PrintfCustomBrush : SolidColorBrush -> Printf.StringFormat<'T,unit> -> 'T 
+    abstract member PrintfLastColor : Printf.StringFormat<'T,unit> -> 'T
 
     /// Change custom color to a RGB value ( each between 0 and 255) 
     /// Then print without adding a new line at the end
-    abstract member PrintfCustomColor : int ->  int ->  int ->  Printf.StringFormat<'T,unit> -> 'T 
+    abstract member PrintfColor : int ->  int ->  int ->  Printf.StringFormat<'T,unit> -> 'T 
 
     //used in FSI constructor:
     abstract member TextWriterFsiStdOut    : TextWriter
@@ -75,10 +67,23 @@ type ISeffLog =
     abstract member TextWriterConsoleOut   : TextWriter
     abstract member TextWriterConsoleError : TextWriter
 
+[<CompiledName("ISeffLogModule")>]//don't rename used via reflection in FsEx 
 module ISeffLog = 
+
     /// a refrence to the global single instance of the Log view, will be set immediatly after construction
     /// declared here  in Utils so it can be used in othet moduled that are declared before Log view
-    let mutable log = Unchecked.defaultof<ISeffLog>
+    let mutable log = 
+        Unchecked.defaultof<ISeffLog> //set when Log instance is created
+    
+    //let mutable printfCustomColor  : int ->  int ->  int ->  Printf.StringFormat<'T,unit> -> 'T  = fun red green blue msg ->  Printf.kprintf (fun s -> printf "%s" s)  msg 
+
+    //let mutable PrintfnColor : int ->  int ->  int ->  Printf.StringFormat<'T,unit> -> 'T =  fun red green blue msg ->  Printf.kprintf (fun s -> printfn "%s" s)  msg 
+
+    let mutable printColor : int-> int -> int -> string -> unit = //don't rename used via reflection in FsEx //reset when Log instance is created
+        fun r g b s -> printf "%s" s    
+  
+    let mutable printnColor : int-> int -> int -> string -> unit = //don't rename used via reflection in FsEx //reset when Log instance is created
+        fun r g b s -> printfn "%s" s
 
 /// ---- Editor types -----------
 

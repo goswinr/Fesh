@@ -47,7 +47,7 @@ module SyntaxHighlighting =
                     p.StartInfo.FileName <- "code"
                     let inQuotes = "\"" + filePath + "\"" 
                     p.StartInfo.Arguments <- String.concat " " [inQuotes;  "--reuse-window"]
-                    log.PrintfnCustomColor 0 0 200 "command:\r\n%s %s" p.StartInfo.FileName p.StartInfo.Arguments
+                    log.PrintfnColor 0 0 200 "command:\r\n%s %s" p.StartInfo.FileName p.StartInfo.Arguments
                     //p.StartInfo.UseShellExecute <- false
                     //p.StartInfo.CreateNoWindow <- true //true if the process should be started without creating a new window to contain it
                     //p.StartInfo.RedirectStandardError <-true
@@ -56,7 +56,7 @@ module SyntaxHighlighting =
                     //p.ErrorDataReceived.Add (  fun d -> log.PrintfnAppErrorMsg "%s" d.Data)               
                     //p.Exited.Add( fun _ -> log.PrintfnInfoMsg  "opend XSHD")
                     p.Start() |> ignore
-                    //p.BeginOutputReadLine()
+                    //p.BeginOutputReadLine() 
                     //p.BeginErrorReadLine()
                     //p.WaitForExit()
                 else

@@ -224,7 +224,7 @@ type Fsi private (config:Config) =
                                         "  E.G. as a dependency from a already loaded dll."
                                 log.PrintfnFsiErrorMsg "%A" e
                             if postMsg <> "" then 
-                                log.PrintfnCustomColor 0 0 200 "%s" postMsg
+                                log.PrintfnColor 0 0 200 "%s" postMsg
 
                         | _ ->    
                             runtimeErrorEv.Trigger(exn)
@@ -239,7 +239,7 @@ type Fsi private (config:Config) =
                             else
                                 let ln,rr = String.splitOnce "\r\n" r                        
                                 log.PrintfFsiErrorMsg "%s.fsx:" t
-                                log.PrintfnCustomColor 0 0 200 "%s" ln
+                                log.PrintfnColor 0 0 200 "%s" ln
                                 log.PrintfnFsiErrorMsg "%s" rr
                               
                     } 

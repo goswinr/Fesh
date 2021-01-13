@@ -166,12 +166,12 @@ module CompileScript =
                         p.StartInfo.FileName <- "dotnet"
                         let fsProjinQuotes = "\"" + fsProj + "\"" 
                         p.StartInfo.Arguments <- String.concat " " ["build"; fsProjinQuotes;  "--configuration Debug"]
-                        log.PrintfnCustomColor 0 0 200 "%s %s" p.StartInfo.FileName p.StartInfo.Arguments
+                        log.PrintfnColor 0 0 200 "%s %s" p.StartInfo.FileName p.StartInfo.Arguments
                         p.StartInfo.UseShellExecute <- false
                         p.StartInfo.CreateNoWindow <- true //true if the process should be started without creating a new window to contain it
                         p.StartInfo.RedirectStandardError <-true
                         p.StartInfo.RedirectStandardOutput <-true
-                        p.OutputDataReceived.Add ( fun d -> log.PrintfnCustomColor 50 150 0 "%s" d.Data)
+                        p.OutputDataReceived.Add ( fun d -> log.PrintfnColor 50 150 0 "%s" d.Data)
                         p.ErrorDataReceived.Add (  fun d -> log.PrintfnAppErrorMsg "%s" d.Data)               
                         p.Exited.Add( fun _ -> log.PrintfnInfoMsg  "Build finnished!")
                         p.Start() |> ignore
