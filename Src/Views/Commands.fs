@@ -153,10 +153,10 @@ type Commands (grid:TabsAndLog)  =
                  this.ToggleComment2
                  this.ToggleBoolean
 
-                 this.SwapLineDown
-                 this.SwapLineDownCtrl
+                 this.SwapLineDown     
+                 this.SwapLineDownCtrl // key gesture handeled via previewKeyDown evemt in CyrsorBehaviour
                  this.SwapLineUp 
-                 this.SwapLineUpCtrl  
+                 this.SwapLineUpCtrl  // key gesture handeled via previewKeyDown evemt in CyrsorBehaviour
 
                  this.SelectLine       
                  //this.SelectLinesUp  
@@ -212,7 +212,7 @@ type Commands (grid:TabsAndLog)  =
                             |"" -> ()
                             | "Ctrl + '+'" | "Ctrl + +" | "Ctrl +" -> // because  gg.Split('+') would fail
                                 yield InputBinding(cmd.cmd,  KeyGesture(Key.Add,ModifierKeys.Control)) 
-                            | gg -> 
+                            | gg ->
                                 yield
                                     match gg.Split('+') |> Array.map ( fun k -> k.Trim()) with
                                     | [| m1; m2; k |]   -> InputBinding(cmd.cmd,  KeyGesture(getKey k, getModKey m1 + getModKey m2))
@@ -221,8 +221,10 @@ type Commands (grid:TabsAndLog)  =
                                     | _ -> 
                                         log.PrintfnAppErrorMsg "*SetUpGestureInputBindings: failed to parse cmd Input gesture '%s'" cmd.gesture
                                         InputBinding(cmd.cmd,  KeyGesture(Key.None))
+
                     |]
                 grid.Window.Window.InputBindings.AddRange (bindings)
+                
                 // to no redirect alt to the menu bar :
                 grid.Tabs.Control.InputBindings.Add (InputBinding(this.RunSelectedText.cmd, KeyGesture(Key.Return , ModifierKeys.Alt))) |> ignore 
                 grid.Tabs.Control.InputBindings.Add (InputBinding(this.RunSelectedText.cmd, KeyGesture(Key.Enter  , ModifierKeys.Alt))) |> ignore 

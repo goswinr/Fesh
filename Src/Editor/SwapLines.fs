@@ -1,6 +1,6 @@
 ﻿namespace Seff.Editor
 
-
+open Seff.Model
 open ICSharpCode.AvalonEdit.Editing
 
 module SwapLines =
@@ -14,7 +14,7 @@ module SwapLines =
     /// TODO jump over folded block too !
 
 
-    let swapLinesUp(ed:Editor) =
+    let swapLinesUp(ed:IEditor) =
         let avaEdit = ed.AvaEdit
         let doc=avaEdit.Document
         let ta = avaEdit.TextArea
@@ -90,7 +90,7 @@ module SwapLines =
                 ta.Selection <- new RectangleSelection(ta,startPos,endPos) 
             doc.EndUpdate()
       
-    let swapLinesDown(ed:Editor) =
+    let swapLinesDown(ed:IEditor) =
         let avaEdit = ed.AvaEdit
         let doc=avaEdit.Document
         let ta = avaEdit.TextArea

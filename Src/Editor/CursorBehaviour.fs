@@ -12,6 +12,7 @@ open System
 open ICSharpCode.AvalonEdit.Editing
 open ICSharpCode.AvalonEdit
 open ICSharpCode.AvalonEdit.Editing
+open System.Windows.Input
 
 
 module CursorBehaviour  =
@@ -192,6 +193,15 @@ module CursorBehaviour  =
                                 e.Handled <- true // to not actually add anothe new line
                                 // TODO raise TextEntered Event ?
         
+            | Input.Key.Down -> 
+                if  Keyboard.IsKeyDown(Key.LeftCtrl)then // also use Ctrl key for swaping since Alt key does not work in rhino, swaping with alt+up is set up in commands.fs via key gesteures
+                    SwapLines.swapLinesDown(ed)
+                    e.Handled <- true
+            
+            | Input.Key.Up -> 
+                if  Keyboard.IsKeyDown(Key.LeftCtrl)then 
+                    SwapLines.swapLinesUp(ed)
+                    e.Handled <- true
 
             | _ -> ()
     
