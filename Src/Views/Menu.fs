@@ -127,6 +127,8 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, log:Log) =
                 menuItem cmds.Tolowercase 
                 sep()
                 menuItem cmds.ToggleBoolean
+                sep()
+                menuItem cmds.AlignCode
                 ]
             MenuItem(Header = "_Select"),[ 
                 menuItem cmds.SelectLine  ]
@@ -192,6 +194,8 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, log:Log) =
             makeContextMenu [
                 menuItem cmds.ExpandCode
                 menuItem cmds.CollapseCode
+                sep()
+                menuItem cmds.AlignCode
                 sep()
                 menuItem cmds.Copy 
                 menuItem cmds.Cut

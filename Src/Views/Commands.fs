@@ -72,6 +72,8 @@ type Commands (grid:TabsAndLog)  =
     member val ToUppercase       = {name= "To UPPERCASE"              ;gesture= ""               ;cmd=AvalonEditCommands.ConvertToUppercase                                      ;tip= "Convertes the selected text to UPPERCASE."                                                          }     
     member val Tolowercase       = {name= "To lowercase"              ;gesture= ""               ;cmd=AvalonEditCommands.ConvertToLowercase                                      ;tip= "Convertes the selected text to lowercase."                                                          }     
     member val ToggleBoolean     = {name= "Toggle bool literals"      ;gesture= "Ctrl + B"       ;cmd = mkCmdSimple (fun _ -> CursorBehaviour.toggleBoolean(tabs.CurrAvaEdit) )  ;tip= "Convertes a 'true' literal to 'false' and a 'false' literal to 'true' if they are currently selected exclusively"   }     
+    
+    member val AlignCode         = {name= "Align Code"                ;gesture= "Ctrl + I"       ;cmd = mkCmdSimple (fun _ -> Formating.alignByNonLetters(tabs.Current.Editor))  ;tip= "Inserts spaces where required so that non leter symbols align verticaly"   }     
 
                                                                                                                                              
     //Select menu:                                                                                                                               
@@ -152,6 +154,7 @@ type Commands (grid:TabsAndLog)  =
                  //this.ToggleComment
                  this.ToggleComment2
                  this.ToggleBoolean
+                 this.AlignCode
 
                  this.SwapLineDown     
                  this.SwapLineDownCtrl // key gesture handeled via previewKeyDown evemt in CyrsorBehaviour
