@@ -6,7 +6,7 @@
       net 462 for revit 2018
       net 472 for Rhino and Netstandard2.0
       Rhino can only host netFramwork apps-, -->
-    <TargetFrameworks>net462;net472</TargetFrameworks>    
+    <TargetFramework>net462</TargetFramework>    
 
     <UseWPF>true</UseWPF>
     <UseWinForms>true</UseWinForms> <!--only for some message boxes ? -->
@@ -28,19 +28,20 @@
     <Copyright>Copyright: Goswin Rothenthal 2021 </Copyright>
     
     <ApplicationIcon>Media/LogoCursorTr.ico</ApplicationIcon>
-    <Win32Resource>Media/LogoCursorTr.res</Win32Resource><!--  for Application Icon in explorer-->   
+    <Win32Resource>Media/LogoCursorTr.res</Win32Resource><!--  for Application Icon in explorer-->  
     
-    <Configurations>Debug;Release</Configurations>
 
     <DefineConstants>HOSTED</DefineConstants>  <!-- for FSharp.Compiler.Service 33.0.1--> 
+
+    <Configurations>Debug;Release</Configurations>
   </PropertyGroup> 
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-    <OutputPath>binHosting/Debug/</OutputPath>
+    <OutputPath>binHostingRevit/Debug/</OutputPath>
   </PropertyGroup> 
   
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-    <OutputPath>binHosting/Release/</OutputPath>
+    <OutputPath>binHostingRevit/Release/</OutputPath>
   </PropertyGroup>
 
 
@@ -48,6 +49,7 @@
     <!-- don't add explict ref to Fsharp.Core? https://github.com/dotnet/fsharp/issues/9064 -->
     <!-- only the combo 4.6.2 and 33.0.1 sems to make it work in Revit-->
     <!--<PackageReference Update="FSharp.Core" Version="4.6.2" />-->
+    <PackageReference Update="FSharp.Core" Version="4.6.2" />    <!-- Inclde not Update ?-->
     <PackageReference Include="FSharp.Compiler.Service" Version="33.0.1" /> 
   </ItemGroup>
 
