@@ -18,8 +18,6 @@ open System.Text
 
 
 
-
-
 module Formating = 
     
     let findChar (c:Char) (fromIndex:int) (sb:StringBuilder) = 

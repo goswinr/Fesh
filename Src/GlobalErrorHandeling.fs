@@ -28,7 +28,7 @@ module GlobalErrorHandeling =
                 // https://docs.microsoft.com/en-us/archive/msdn-magazine/2009/february/clr-inside-out-handling-corrupted-state-exceptions
                 // https://stackoverflow.com/questions/39956163/gracefully-handling-corrupted-state-exceptions
                 
-                let time = DateTime.UtcNow.ToString("yyyy-MM-dd_HH-mm-ss-fff")
+                let time = DateTime.UtcNow.ToString("yyyy-MM-dd_HH-mm-ss-fff")// to ensure unique file names  
                 let filename = sprintf "Seff-UnhandledException-%s.txt" time
                 let file = IO.Path.Combine(desktop,filename)
 
