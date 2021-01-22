@@ -6,7 +6,7 @@
       net 462 for revit 2018
       net 472 for Rhino and Netstandard2.0
       Rhino can only host netFramwork apps-, -->
-    <TargetFrameworks>net462;net472</TargetFrameworks>    
+    <TargetFrameworks>net472</TargetFrameworks>    <!-- for net462 there is another fsproj file also using FSarp core 4.6.2-->
 
     <UseWPF>true</UseWPF>
     <UseWinForms>true</UseWinForms> <!--only for some message boxes ? -->
@@ -18,9 +18,9 @@
     
     <RootNamespace>Seff</RootNamespace>
     <AssemblyName>Seff</AssemblyName>
-    <Version>0.2.0.0</Version>
-    <AssemblyVersion>0.2.0.0</AssemblyVersion>
-    <FileVersion>0.2.0.0</FileVersion>
+    <Version>0.3.1.0</Version>
+    <AssemblyVersion>0.3.1.0</AssemblyVersion>
+    <FileVersion>0.3.1.0</FileVersion>
 
     <Authors>Goswin Rothenthal</Authors>
     <Product>Seff</Product> 
@@ -45,9 +45,7 @@
 
 
   <ItemGroup>
-    <!-- don't add explict ref to Fsharp.Core? https://github.com/dotnet/fsharp/issues/9064 -->
-    <!-- only the combo 4.6.2 and 33.0.1 sems to make it work in Revit-->
-    <!--<PackageReference Update="FSharp.Core" Version="4.6.2" />-->
+    <!-- don't add explict ref to Fsharp.Core? https://github.com/dotnet/fsharp/issues/9064 -->    
     <PackageReference Include="FSharp.Compiler.Service" Version="33.0.1" /> 
   </ItemGroup>
 
