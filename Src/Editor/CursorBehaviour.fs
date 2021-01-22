@@ -1,19 +1,120 @@
 ﻿namespace Seff.Editor
 
 
+open System
+open System.Windows
+open System.Windows.Input
+open ICSharpCode.AvalonEdit
+open ICSharpCode.AvalonEdit.Document
+open ICSharpCode.AvalonEdit.Editing
 open Seff
 open Seff.Model
-open ICSharpCode.AvalonEdit
 open Seff.Util
 open Seff.Util.String
 open Seff.Util.General
-open System.Windows
-open System
-open ICSharpCode.AvalonEdit.Editing
-open ICSharpCode.AvalonEdit
-open ICSharpCode.AvalonEdit.Editing
-open System.Windows.Input
 
+
+module Doc = 
+    
+    /// offset is at Line end
+    /// or only has spaces before line end
+    let inline offsetIsAtLineEnd offset (doc:TextDocument) =
+        let last = doc.TextLength - 1      
+        let rec isAtLineEnd off =  // or only has spaces before line end
+            if off > last then true
+            else
+                match doc.GetCharAt(off) with 
+                | ' ' -> isAtLineEnd (off+1)
+                | '\r' -> true
+                //| '\n' -> true // not needed line ends are always \r\n
+                | _ -> false
+        isAtLineEnd offset
+
+
+    /// does not look for spaces after caret
+    let inline spacesAtStartOfLineAndBeforeOffset offset (doc:TextDocument) =            
+        let rec find off  k =  // or only has spaces before line end
+            if off < 0 then k
+            else
+                match doc.GetCharAt(off) with 
+                | ' ' -> find (off-1) (k+1)
+                //| '\r' -> true // not needed line ends are always \r\n
+                | '\n' -> k
+                | _ -> find (off-1) 0
+        find (offset-1) 0
+    
+    (*
+    /// wil do a bound check and return less chars if needed
+    let inline getTextBeforOffset desiredCharsCount offset  (doc:TextDocument) =         
+        if desiredCharsCount = 0 then ""
+        elif desiredCharsCount < 0 then failwithf "getTextBeforOffset desiredCharsCount=%d" desiredCharsCount
+        else
+            let last = doc.TextLength  - 1 
+            let st = max 0 (offset - desiredCharsCount ) // - 1)
+            let en = min last (offset )//- 1) // only till char before offset 
+            let len = en-st
+            if len < 1 then 
+                "" //doc.GetText(st,0) fails !!  
+            else 
+                let t = doc.GetText(st,len)  
+                //ISeffLog.log.PrintfnDebugMsg "before Offset %d : doc.GetText(%d,%d)='%s'" offset st len t
+                t
+    *)
+
+    /// wil do a bound check and return less chars if needed
+    let inline getTextBeforOffsetSkipSpaces desiredCharsCount offset  (doc:TextDocument) =         
+        if desiredCharsCount = 0 then ""
+        elif desiredCharsCount < 0 then failwithf "getTextBeforOffset desiredCharsCount=%d" desiredCharsCount
+        else
+            let rec find off  =  
+                if off > 0 && doc.GetCharAt(off-1) = ' ' then find (off-1)
+                else off
+            let offNonWhite = find offset            
+
+            let st = max 0 (offNonWhite - desiredCharsCount ) // - 1)
+            let en = min (doc.TextLength  - 1 ) (offNonWhite )//- 1) // only till char before offset 
+            let len = en-st
+            if len < 1 then 
+                "" //doc.GetText(st,0) fails !!  
+            else 
+                let t = doc.GetText(st,len)  
+                //ISeffLog.log.PrintfnDebugMsg "before Offset %d : doc.GetText(%d,%d)='%s'" offset st len t
+                t
+    (*
+    /// returns offset of next non white char, pass ovver all line breaks topo
+    let inline nextNonWhiteChar offset (doc:TextDocument) =            
+        let last = doc.TextLength - 1  
+        let rec find off =  
+            if off > last then last
+            else
+                match doc.GetCharAt(off) with 
+                | ' '  | '\r' | '\n' -> find (off+1) 
+                | _ -> off
+        find offset
+    *)
+    
+    /// returns offset of next non white char, paasing max one line break
+    let inline nextNonWhiteCharOneLine offset (doc:TextDocument) =            
+        let len = doc.TextLength   
+        let rec find off rs =  
+            if off >= len then len
+            else
+                match doc.GetCharAt(off) with
+                | '\r' -> if rs then off else   find (off+1) true
+                | ' '  | '\n' ->                find (off+1) rs
+                | _ -> off 
+        find offset false
+
+    /// returns spaces till next non white char on same line, or 0 if the rest of the line is just whitespace
+    let inline countNextSpaces offset (doc:TextDocument) =            
+        let last = doc.TextLength - 1  
+        let rec find off  k =  
+            if off > last then k
+            else
+                match doc.GetCharAt(off) with 
+                | ' '  -> find (off+1) (k+1)
+                | _ -> k
+        find offset 0
 
 module CursorBehaviour  =
     open Selection
@@ -84,6 +185,7 @@ module CursorBehaviour  =
     let previewKeyDown (ed:IEditor, e: Input.KeyEventArgs) =  
         //if not ed.IsComplWinOpen then  
             match e.Key with  
+            
             |Input.Key.Back ->           
                 let ta = ed.AvaEdit.TextArea
                 match getSelType(ta) with 
@@ -113,43 +215,26 @@ module CursorBehaviour  =
             |Input.Key.Delete ->                
                 match getSelType(ed.AvaEdit.TextArea) with 
                 | NoSel -> 
-                    // --- Removes rest of line too if only whitespacxe ---
+                    // -----------------------------------------
+                    // --- Removes rest of line too if only whitespace ---
                     // --- also remove whitespace at start of next line  ---               
+                    // -----------------------------------------
                     let doc = ed.AvaEdit.Document
-                    let caretOff = ed.AvaEdit.CaretOffset
-                    let line = doc.GetLineByOffset(caretOff) // = get current line 
-                    let endOff = line.EndOffset 
-                    let len = endOff - caretOff
-                    let txt = doc.GetText(caretOff,len)                
-                    if isJustSpaceCharsOrEmpty txt  then
-                        let nextLine = line.NextLine
-                        if notNull nextLine then 
-                            doc.BeginUpdate()
-                            // also remove spaces at start of next line 
-                    
-                            //delete max up to caret pos on next line: 
-                            let caretPosInLine = caretOff - line.Offset
-                            let nextTxt = doc.GetText(line.NextLine) 
-                            let nextLnSpacesAtStart = spacesAtStart(nextTxt) 
-
-                            let delLengthOnNextLine = min nextLnSpacesAtStart caretPosInLine // to NOT delete all starting whispace on next line
-                            //let delLengthOnNextLine = nextLnSpacesAtStart // to  delete all starting whispace on next line
-
-                            let lenToDelete0 = endOff - caretOff + 2 + delLengthOnNextLine // + 2 for \r\n
-                            let lenTillEnd = doc.TextLength - caretOff - 1
-                            let lenToDeleteCheckedForEnd = min lenToDelete0 lenTillEnd // check for overflow at end of file
-                            doc.Remove(caretOff, lenToDeleteCheckedForEnd)
-                    
-                            // now after this change ensure one space remains at caret
-                            let prev = doc.GetCharAt(caretOff-1)
-                            let next = doc.GetCharAt(caretOff)
-                            let prevIsChar = not (Char.IsWhiteSpace(prev))
-                            let nextIsChar = not (Char.IsWhiteSpace(next))
-                            if  prevIsChar && nextIsChar then 
-                                doc.Insert(caretOff, " ") 
-                    
-                            doc.EndUpdate()
+                    let caret = ed.AvaEdit.CaretOffset
+                    if Doc.offsetIsAtLineEnd caret doc then     
+                        let nc = Doc.nextNonWhiteCharOneLine caret doc
+                        let len = nc - caret
+                        //ed.Log.PrintfnDebugMsg "remove len=%d "len
+                        if len>2 then // leave handeling  other cases especially the end of flie to avaedit
+                            if caret = 0  then 
+                                doc.Replace(caret,len  , " ")//  add space at start 
+                            else
+                                match doc.GetCharAt(caret-1) with 
+                                |' ' | '\n' -> doc.Remove(caret, len) // dont add space because there is already one before
+                                |_ -> doc.Replace(caret,len  , " ")//  add space 
+                        
                             e.Handled <- true // TODO raise TextEntered Event ?
+                    
                 
                 | RegSel _ -> ()
 
@@ -158,40 +243,43 @@ module CursorBehaviour  =
 
 
         
-
+            // -----------------------------------------
             // add indent after do, for , ->, =
+            // -----------------------------------------
             |Input.Key.Return 
             |Input.Key.Enter ->
-                if hasNoSelection ed.AvaEdit.TextArea  then // TODO what happens if there is a selction ??
+                if hasNoSelection ed.AvaEdit.TextArea  then // TODO what happens if there is a selction ?? or also use to replace selected text ??
                     let doc = ed.AvaEdit.Document
-                    let caret = ed.AvaEdit.CaretOffset
-                    let line = doc.GetLineByOffset(caret)            
-                    let txt = doc.GetText(line) // = get current line
-                    let caretPosInLine = caret - line.Offset
-                    let isCaretAtEnd = String.IsNullOrWhiteSpace (txt.[caretPosInLine .. line.EndOffset]) // ensure caret is at end off line !
-                    //log.PrintfnDebugMsg "line:%s" txt
-                    //log.PrintfnDebugMsg "caretPosInLine:%d isCaretAtEnd:%b" caretPosInLine isCaretAtEnd
-                    let trimmed = txt.TrimEnd()
-                    if isCaretAtEnd then //TODO or also use to replace selected text ??
-                        if     trimmed.EndsWith " do"
-                            || trimmed.EndsWith " then"
-                            || trimmed.EndsWith " else"
-                            || trimmed.EndsWith "="
-                            || trimmed.EndsWith "("
-                            || trimmed.EndsWith "["
-                            || trimmed.EndsWith "{"
-                            || trimmed.EndsWith "[|"
-                            || trimmed.EndsWith "->" then                    
-                                let st = spacesAtStart trimmed
-                                let indent = ed.AvaEdit.Options.IndentationSize
-                                let rem = st % indent
-                                let ind = 
-                                    if rem  = 0 then  st + indent // enure new indent is a multiple of avaEdit.Options.IndentationSize
-                                    elif rem = 1 then st + indent + indent - 1 // to indent always at leat 2 chars
-                                    else              st + indent - rem
-                                doc.Insert(ed.AvaEdit.CaretOffset, " " + Environment.NewLine + String(' ',ind)) // add space before too for nice position of folding block
-                                e.Handled <- true // to not actually add anothe new line
-                                // TODO raise TextEntered Event ?
+                    let caret = ed.AvaEdit.CaretOffset                    
+                    //if Doc.offsetIsAtLineEnd caret doc then                          
+                    //let trimmed = Doc.getTextBeforOffset 6 caret doc
+                    let trimmed = Doc.getTextBeforOffsetSkipSpaces 6 caret doc
+                    //ed.Log.PrintfnDebugMsg "trimmed='%s' (%d chars)" trimmed trimmed.Length
+                    if     trimmed.EndsWith " do"
+                        || trimmed.EndsWith " then"
+                        || trimmed.EndsWith " else"
+                        || trimmed.EndsWith "="
+                        || trimmed.EndsWith "("
+                        || trimmed.EndsWith "["
+                        || trimmed.EndsWith "{"
+                        || trimmed.EndsWith "[|"
+                        || trimmed.EndsWith "->" then                    
+                            let st = Doc.spacesAtStartOfLineAndBeforeOffset caret doc
+                            let indent = ed.AvaEdit.Options.IndentationSize
+                            let rem = st % indent
+                            let ind = 
+                                if rem  = 0 then  st + indent // enure new indent is a multiple of avaEdit.Options.IndentationSize
+                                elif rem = 1 then st + indent + indent - 1 // to indent always at leat 2 chars
+                                else              st + indent - rem
+                            let insertText = " " + Environment.NewLine + String(' ',ind)
+                            let spaces = Doc.countNextSpaces caret doc
+                            if spaces = 0 then 
+                                doc.Insert(caret,insertText) // add space before too for nice position of folding block
+                            else
+                                doc.Replace(caret,spaces,insertText)
+                            ed.AvaEdit.CaretOffset <- caret + insertText.Length //+ spaces
+                            e.Handled <- true // to not actually add another new line
+                            // TODO raise TextEntered Event ?
         
             | Input.Key.Down -> 
                 if  Keyboard.IsKeyDown(Key.LeftCtrl)then // also use Ctrl key for swaping since Alt key does not work in rhino, swaping with alt+up is set up in commands.fs via key gesteures

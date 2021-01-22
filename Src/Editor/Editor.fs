@@ -51,7 +51,9 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
         avaEdit.Options.EnableHyperlinks <- true
         avaEdit.TextArea.TextView.LinkTextForegroundBrush <- Brushes.DarkGreen
         avaEdit.Options.EnableTextDragDrop <- true 
+
         avaEdit.Options.ShowSpaces <- false
+
         avaEdit.Options.ShowTabs <- false // they are always converted to spaces, see above
         avaEdit.Options.ConvertTabsToSpaces <- true
         avaEdit.Options.IndentationSize <- 4
