@@ -282,9 +282,14 @@ module CursorBehaviour  =
                             // TODO raise TextEntered Event ?
         
             | Input.Key.Down -> 
-                if  Keyboard.IsKeyDown(Key.LeftCtrl)then // also use Ctrl key for swaping since Alt key does not work in rhino, swaping with alt+up is set up in commands.fs via key gesteures
-                    SwapLines.swapLinesDown(ed)
-                    e.Handled <- true
+                if Keyboard.IsKeyDown(Key.LeftCtrl)then
+                    if Keyboard.IsKeyDown(Key.LeftAlt)then 
+                        RectangleSelection.expandDown
+                    else  
+                        // also use Ctrl key for swaping since Alt key does not work in rhino, 
+                        // swaping with alt+up is set up in commands.fs via key gesteures                                        
+                        SwapLines.swapLinesDown(ed)
+                        e.Handled <- true
             
             | Input.Key.Up -> 
                 if  Keyboard.IsKeyDown(Key.LeftCtrl)then 
