@@ -151,8 +151,8 @@ module CursorBehaviour  =
                 doc.Replace(seg, "false")
         doc.EndUpdate() 
         
-    /// when pressing enter add indentation on next line if appropiate.
-    let private addIndentation(ed:IEditor,e:Input.KeyEventArgs) =
+    /// When pressing enter add indentation on next line if appropiate.
+    let internal addIndentation(ed:IEditor,e:Input.KeyEventArgs) =
         if hasNoSelection ed.AvaEdit.TextArea  then // TODO what happens if there is a selction ?? or also use to replace selected text ??
             let caret = ed.AvaEdit.CaretOffset                    
             let doc = ed.AvaEdit.Document
@@ -185,9 +185,9 @@ module CursorBehaviour  =
                     ed.AvaEdit.CaretOffset <- caret + insertText.Length //+ spaces
                     e.Handled <- true // to not actually add another new line // TODO raise TextArea.TextEntered Event ?
     
-    ///Removes 4 charactes (Options.IndentationSize) 
-    ///on pressing backspace key instead of one                       
-    let private backspace4Chars(ed:IEditor,e:Input.KeyEventArgs) =     
+    /// Removes 4 charactes (Options.IndentationSize) 
+    /// On pressing backspace key instead of one                       
+    let internal backspace4Chars(ed:IEditor,e:Input.KeyEventArgs) =     
         let doc = ed.AvaEdit.Document
         let ta = ed.AvaEdit.TextArea
         let line = doc.GetText(doc.GetLineByOffset(ta.Caret.Offset)) // = get current line
@@ -204,7 +204,7 @@ module CursorBehaviour  =
     
     /// Removes rest of line too if only whitespace 
     /// also remove whitespace at start of next line                
-    let deleteTillNonWhite(ed:IEditor,e:Input.KeyEventArgs)=
+    let internal deleteTillNonWhite(ed:IEditor,e:Input.KeyEventArgs)=
         let doc = ed.AvaEdit.Document
         let caret = ed.AvaEdit.CaretOffset
         if Doc.offsetIsAtLineEnd caret doc then     
@@ -221,50 +221,35 @@ module CursorBehaviour  =
         
                 e.Handled <- true // TODO raise TextArea.TextEntered Event ?
 
-
+    /// for no and regular selection                   
+    let addWhitespaceAfterChar(ed:IEditor, e:Input.TextCompositionEventArgs) = 
+            match e.Text with 
+            // space before and after:
+            //| "=" //TODO check previous char is not punctuation for <= // space is added in previewKeyDown before return 
+            //| ">" //TODO check previous char is not punctuation
+            //| "+"  as c -> 
+                //avaEdit.Document.Insert(avaEdit.TextArea.Caret.Offset, " "+c+" ") // space before and after
+                //a.Handled <- true
+            
+            //TODO check previous char is not punctuation
+            // space  before:
+            //| "-" as c -> //not both because of -> and -1
+            //    avaEdit.Document.Insert(avaEdit.TextArea.Caret.Offset, " "+c)
+            //    a.Handled <- true
+            
+            // space  after:
+            | ")"
+            | ","
+            | ";"  as c -> 
+                Selection.insertAtCaretOrSelection (ed.AvaEdit, c+" ")
+                e.Handled <- true // TODO raise TextArea.TextEntered Event ? 
+            | _ -> ()
 
     let previewTextInput(ed:IEditor, e:Input.TextCompositionEventArgs) = 
          //if not ed.IsComplWinOpen then  
             match getSelType(ed.AvaEdit.TextArea) with 
-            | NoSel 
-            | RegSel -> 
-                match e.Text with 
-                // space before and after:
-                //| "=" //TODO check previous char is not punctuation for <= // space is added in previewKeyDown before return 
-                //| ">" //TODO check previous char is not punctuation
-                //| "+"  as c -> 
-                    //avaEdit.Document.Insert(avaEdit.TextArea.Caret.Offset, " "+c+" ") // space before and after
-                    //a.Handled <- true
-            
-                //TODO check previous char is not punctuation
-                // space  before:
-                //| "-" as c -> //not both because of -> and -1
-                //    avaEdit.Document.Insert(avaEdit.TextArea.Caret.Offset, " "+c)
-                //    a.Handled <- true
-            
-                // space  after:
-                | ")"
-                | ","
-                | ";"  as c -> 
-                    Selection.insertAtCaretOrSelection (ed.AvaEdit, c+" ")
-                    e.Handled <- true // TODO raise TextArea.TextEntered Event ?    
-                
-                | _ -> ()
-        
-
-            | RectSel ->  
-                match e.Text with 
-                | null | "" | "\x1b" | "\b" -> ()  
-                // ASCII 0x1b = ESC. 
-                // also see TextArea.OnTextInput implementation 
-                // WPF produces a TextInput event with that old ASCII control char
-                // when Escape is pressed. We'll just ignore it.
-                // A deadkey followed by backspace causes a textinput event for the BS character.
-                // Similarly, some shortcuts like Alt+Space produce an empty TextInput event.
-                // We have to ignore those (not handle them) to keep the shortcut working.                
-                | txt -> 
-                    RectangleSelection.insertText(ed, txt) 
-                    e.Handled <- true 
+            | NoSel | RegSel ->     addWhitespaceAfterChar(ed,e)
+            | RectSel ->            RectangleSelection.insertText(ed, e.Text) ; e.Handled <- true // all input in rectangular selection is handeled here.
         
         
     let previewKeyDown (ed:IEditor, e: Input.KeyEventArgs) =  
@@ -275,8 +260,7 @@ module CursorBehaviour  =
                 match getSelType(ed.AvaEdit.TextArea) with 
                 | NoSel ->     backspace4Chars(ed,e)
                 | RectSel ->   RectangleSelection.backspaceKey(ed) ; e.Handled <- true 
-                | RegSel  ->   ()
-        
+                | RegSel  ->   ()        
        
             |Input.Key.Delete ->                
                 match getSelType(ed.AvaEdit.TextArea) with 
@@ -284,8 +268,7 @@ module CursorBehaviour  =
                 | RectSel ->  RectangleSelection.deleteKey(ed) ; e.Handled <- true 
                 | RegSel ->   ()
 
-
-            |Input.Key.Return | Input.Key.Enter ->
+            | Input.Key.Enter | Input.Key.Return ->
                 if isUp Ctrl // if alt or ctrl is down this means sending to fsi ...         
                 && isUp Alt 
                 && isUp Shift then addIndentation(ed,e)  // add indent after do, for , ->, =  
@@ -298,7 +281,7 @@ module CursorBehaviour  =
                         // also use Ctrl key for swaping since Alt key does not work in rhino, 
                         // swaping with alt+up is set up in commands.fs via key gesteures                                        
                         SwapLines.swapLinesDown(ed)
-                    e.Handled <- true
+                        e.Handled <- true
             
             | Input.Key.Up -> 
                 if isDown Ctrl && isUp Shift then
@@ -306,7 +289,7 @@ module CursorBehaviour  =
                         RectangleSelection.expandUp(ed)
                     else 
                         SwapLines.swapLinesUp(ed)
-                    e.Handled <- true
+                        e.Handled <- true
 
             | _ -> ()
     
@@ -326,12 +309,9 @@ module CursorBehaviour  =
                         match Util.Parse.findWordAhead "#" off code with
                         | Some p -> allRefs (p.offset + 7)  // gap of 7 between #r or #load and @"C:\...
                         | None -> off
-                    Util.Parse.findWordAhead "@\"" (allRefs 0) code 
-
-                
+                    Util.Parse.findWordAhead "@\"" (allRefs 0) code                 
             try
-                let printGreen = ed.Log.PrintfnColor 0 150 0
-               
+                let printGreen = ed.Log.PrintfnColor 0 150 0               
 
                 let fs = (e.Data.GetData DataFormats.FileDrop :?> string []) |> Array.sort |> Array.rev // to get file path 
                 if fs.Length > 2 && Array.forall isDll fs then      // TODO make path relatriv to script location    

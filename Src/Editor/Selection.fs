@@ -404,11 +404,22 @@ module RectangleSelection =
    
     
     let insertText (ed:IEditor, txt: string) = 
-        let s = getSelectionOrdered ed.AvaEdit.TextArea
-        if s.stp.VisualColumn = s.enp.VisualColumn then 
-            insert (ed, s, txt)
-        else             
-            replace (ed, s, txt)
+        match txt with 
+        | null | "" | "\x1b" | "\b" -> ()  
+        // ASCII 0x1b = ESC. 
+        // also see TextArea.OnTextInput implementation 
+        // WPF produces a TextInput event with that old ASCII control char
+        // when Escape is pressed. We'll just ignore it.
+        // A deadkey followed by backspace causes a textinput event for the BS character.
+        // Similarly, some shortcuts like Alt+Space produce an empty TextInput event.
+        // We have to ignore those (not handle them) to keep the shortcut working.   
+        
+        | _ -> 
+            let s = getSelectionOrdered ed.AvaEdit.TextArea
+            if s.stp.VisualColumn = s.enp.VisualColumn then 
+                insert (ed, s, txt)
+            else             
+                replace (ed, s, txt)
 
     let complete (ed:IEditor, completionSegment:ISegment, txt:string) =
         let len = completionSegment.Length
