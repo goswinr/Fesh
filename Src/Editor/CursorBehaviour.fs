@@ -116,11 +116,26 @@ module Doc =
                 | _ -> k
         find offset 0
 
+module Keys =
+    type CtrlKey = Ctrl | Alt | Shift
+    
+    let inline isUp k = 
+        match k with 
+        | Ctrl  ->  Keyboard.IsKeyUp Key.LeftCtrl  && Keyboard.IsKeyUp Key.RightCtrl
+        | Alt   ->  Keyboard.IsKeyUp Key.LeftAlt   && Keyboard.IsKeyUp Key.RightAlt
+        | Shift ->  Keyboard.IsKeyUp Key.LeftShift && Keyboard.IsKeyUp Key.RightShift
+    
+    let inline isDown k = 
+        match k with 
+        | Ctrl  ->  Keyboard.IsKeyDown Key.LeftCtrl  || Keyboard.IsKeyDown Key.RightCtrl
+        | Alt   ->  Keyboard.IsKeyDown Key.LeftAlt   || Keyboard.IsKeyDown Key.RightAlt
+        | Shift ->  Keyboard.IsKeyDown Key.LeftShift || Keyboard.IsKeyDown Key.RightShift
+
 module CursorBehaviour  =
     open Selection
-
-
-    ///replace 'true' with 'false' and vice versa
+    open Keys
+    
+    ///replace 'true' with 'false' and vice versa             
     let toggleBoolean(avaEdit:TextEditor) = 
         let doc = avaEdit.Document
         doc.BeginUpdate()//avaEdit.Document.RunUpdate
@@ -134,7 +149,77 @@ module CursorBehaviour  =
                 if doc.TextLength > (afterOff+1) && doc.GetCharAt(afterOff) = ' '  && not (Char.IsLetter(doc.GetCharAt(afterOff+1))) then // try to keep total length the same                    
                     doc.Remove(afterOff,1)
                 doc.Replace(seg, "false")
-        doc.EndUpdate()                    
+        doc.EndUpdate() 
+        
+    /// when pressing enter add indentation on next line if appropiate.
+    let private addIndentation(ed:IEditor,e:Input.KeyEventArgs) =
+        if hasNoSelection ed.AvaEdit.TextArea  then // TODO what happens if there is a selction ?? or also use to replace selected text ??
+            let caret = ed.AvaEdit.CaretOffset                    
+            let doc = ed.AvaEdit.Document
+            //if Doc.offsetIsAtLineEnd caret doc then                          
+            //let trimmed = Doc.getTextBeforOffset 6 caret doc
+            let trimmed = Doc.getTextBeforOffsetSkipSpaces 6 caret doc
+            //ed.Log.PrintfnDebugMsg "trimmed='%s' (%d chars)" trimmed trimmed.Length
+            if trimmed.EndsWith " do"
+                || trimmed.EndsWith " then"
+                || trimmed.EndsWith " else"
+                || trimmed.EndsWith "="
+                || trimmed.EndsWith "("
+                || trimmed.EndsWith "["
+                || trimmed.EndsWith "{"
+                || trimmed.EndsWith "[|"
+                || trimmed.EndsWith "->" then                    
+                    let st = Doc.spacesAtStartOfLineAndBeforeOffset caret doc
+                    let indent = ed.AvaEdit.Options.IndentationSize
+                    let rem = st % indent
+                    let ind = 
+                        if rem  = 0 then  st + indent // enure new indent is a multiple of avaEdit.Options.IndentationSize
+                        elif rem = 1 then st + indent + indent - 1 // to indent always at leat 2 chars
+                        else              st + indent - rem
+                    let insertText = " " + Environment.NewLine + String(' ',ind)
+                    let spaces = Doc.countNextSpaces caret doc
+                    if spaces = 0 then 
+                        doc.Insert(caret,insertText) // add space before too for nice position of folding block
+                    else
+                        doc.Replace(caret,spaces,insertText)
+                    ed.AvaEdit.CaretOffset <- caret + insertText.Length //+ spaces
+                    e.Handled <- true // to not actually add another new line // TODO raise TextArea.TextEntered Event ?
+    
+    ///Removes 4 charactes (Options.IndentationSize) 
+    ///on pressing backspace key instead of one                       
+    let private backspace4Chars(ed:IEditor,e:Input.KeyEventArgs) =     
+        let doc = ed.AvaEdit.Document
+        let ta = ed.AvaEdit.TextArea
+        let line = doc.GetText(doc.GetLineByOffset(ta.Caret.Offset)) // = get current line
+        let car = ta.Caret.Column
+        let prevC = line.Substring(0 ,car-1)
+        //log.PrintfnDebugMsg "--Substring length %d: '%s'" prevC.Length prevC
+        if prevC.Length > 0  then //TODO or also use to replace selected text ??
+            if isJustSpaceCharsOrEmpty prevC  then
+                let dist = prevC.Length % ed.AvaEdit.Options.IndentationSize
+                let clearCount = if dist = 0 then ed.AvaEdit.Options.IndentationSize else dist
+                //log.PrintfnDebugMsg "--Clear length: %d " clearCount
+                doc.Remove(ta.Caret.Offset - clearCount, clearCount)
+                e.Handled <- true // TODO raise TextArea.TextEntered Event ?
+    
+    /// Removes rest of line too if only whitespace 
+    /// also remove whitespace at start of next line                
+    let deleteTillNonWhite(ed:IEditor,e:Input.KeyEventArgs)=
+        let doc = ed.AvaEdit.Document
+        let caret = ed.AvaEdit.CaretOffset
+        if Doc.offsetIsAtLineEnd caret doc then     
+            let nc = Doc.nextNonWhiteCharOneLine caret doc
+            let len = nc - caret
+            //ed.Log.PrintfnDebugMsg "remove len=%d "len
+            if len>2 then // leave handeling  other cases especially the end of flie to avaedit
+                if caret = 0  then 
+                    doc.Replace(caret,len  , " ")//  add space at start 
+                else
+                    match doc.GetCharAt(caret-1) with 
+                    |' ' | '\n' -> doc.Remove(caret, len) // dont add space because there is already one before
+                    |_ -> doc.Replace(caret,len  , " ")//  add space 
+        
+                e.Handled <- true // TODO raise TextArea.TextEntered Event ?
 
 
 
@@ -186,114 +271,41 @@ module CursorBehaviour  =
         //if not ed.IsComplWinOpen then  
             match e.Key with  
             
-            |Input.Key.Back ->           
-                let ta = ed.AvaEdit.TextArea
-                match getSelType(ta) with 
-                | NoSel -> 
-                    // --- Removes 4 charactes (Options.IndentationSize) ---
-                    // --- on pressing backspace key instead of one ---                    
-                    let doc = ed.AvaEdit.Document
-                    let line = doc.GetText(doc.GetLineByOffset(ta.Caret.Offset)) // = get current line
-                    let car = ta.Caret.Column
-                    let prevC = line.Substring(0 ,car-1)
-                    //log.PrintfnDebugMsg "--Substring length %d: '%s'" prevC.Length prevC
-                    if prevC.Length > 0  then //TODO or also use to replace selected text ??
-                        if isJustSpaceCharsOrEmpty prevC  then
-                            let dist = prevC.Length % ed.AvaEdit.Options.IndentationSize
-                            let clearCount = if dist = 0 then ed.AvaEdit.Options.IndentationSize else dist
-                            //log.PrintfnDebugMsg "--Clear length: %d " clearCount
-                            doc.Remove(ta.Caret.Offset - clearCount, clearCount)
-                            e.Handled <- true // TODO raise TextEntered Event ?
-                
-                | RegSel  -> ()
-
-                | RectSel ->  
-                    RectangleSelection.backspaceKey(ed) ; e.Handled <- true 
-
+            |Input.Key.Back ->  
+                match getSelType(ed.AvaEdit.TextArea) with 
+                | NoSel ->     backspace4Chars(ed,e)
+                | RectSel ->   RectangleSelection.backspaceKey(ed) ; e.Handled <- true 
+                | RegSel  ->   ()
         
        
             |Input.Key.Delete ->                
                 match getSelType(ed.AvaEdit.TextArea) with 
-                | NoSel -> 
-                    // -----------------------------------------
-                    // --- Removes rest of line too if only whitespace ---
-                    // --- also remove whitespace at start of next line  ---               
-                    // -----------------------------------------
-                    let doc = ed.AvaEdit.Document
-                    let caret = ed.AvaEdit.CaretOffset
-                    if Doc.offsetIsAtLineEnd caret doc then     
-                        let nc = Doc.nextNonWhiteCharOneLine caret doc
-                        let len = nc - caret
-                        //ed.Log.PrintfnDebugMsg "remove len=%d "len
-                        if len>2 then // leave handeling  other cases especially the end of flie to avaedit
-                            if caret = 0  then 
-                                doc.Replace(caret,len  , " ")//  add space at start 
-                            else
-                                match doc.GetCharAt(caret-1) with 
-                                |' ' | '\n' -> doc.Remove(caret, len) // dont add space because there is already one before
-                                |_ -> doc.Replace(caret,len  , " ")//  add space 
-                        
-                            e.Handled <- true // TODO raise TextEntered Event ?
-                    
-                
-                | RegSel _ -> ()
-
-                | RectSel -> 
-                    RectangleSelection.deleteKey(ed) ; e.Handled <- true 
+                | NoSel  ->   deleteTillNonWhite(ed,e)                
+                | RectSel ->  RectangleSelection.deleteKey(ed) ; e.Handled <- true 
+                | RegSel ->   ()
 
 
-        
-            // -----------------------------------------
-            // add indent after do, for , ->, =
-            // -----------------------------------------
-            |Input.Key.Return 
-            |Input.Key.Enter ->
-                if hasNoSelection ed.AvaEdit.TextArea  then // TODO what happens if there is a selction ?? or also use to replace selected text ??
-                    let doc = ed.AvaEdit.Document
-                    let caret = ed.AvaEdit.CaretOffset                    
-                    //if Doc.offsetIsAtLineEnd caret doc then                          
-                    //let trimmed = Doc.getTextBeforOffset 6 caret doc
-                    let trimmed = Doc.getTextBeforOffsetSkipSpaces 6 caret doc
-                    //ed.Log.PrintfnDebugMsg "trimmed='%s' (%d chars)" trimmed trimmed.Length
-                    if     trimmed.EndsWith " do"
-                        || trimmed.EndsWith " then"
-                        || trimmed.EndsWith " else"
-                        || trimmed.EndsWith "="
-                        || trimmed.EndsWith "("
-                        || trimmed.EndsWith "["
-                        || trimmed.EndsWith "{"
-                        || trimmed.EndsWith "[|"
-                        || trimmed.EndsWith "->" then                    
-                            let st = Doc.spacesAtStartOfLineAndBeforeOffset caret doc
-                            let indent = ed.AvaEdit.Options.IndentationSize
-                            let rem = st % indent
-                            let ind = 
-                                if rem  = 0 then  st + indent // enure new indent is a multiple of avaEdit.Options.IndentationSize
-                                elif rem = 1 then st + indent + indent - 1 // to indent always at leat 2 chars
-                                else              st + indent - rem
-                            let insertText = " " + Environment.NewLine + String(' ',ind)
-                            let spaces = Doc.countNextSpaces caret doc
-                            if spaces = 0 then 
-                                doc.Insert(caret,insertText) // add space before too for nice position of folding block
-                            else
-                                doc.Replace(caret,spaces,insertText)
-                            ed.AvaEdit.CaretOffset <- caret + insertText.Length //+ spaces
-                            e.Handled <- true // to not actually add another new line
-                            // TODO raise TextEntered Event ?
+            |Input.Key.Return | Input.Key.Enter ->
+                if isUp Ctrl // if alt or ctrl is down this means sending to fsi ...         
+                && isUp Alt 
+                && isUp Shift then addIndentation(ed,e)  // add indent after do, for , ->, =  
         
             | Input.Key.Down -> 
-                if Keyboard.IsKeyDown(Key.LeftCtrl)then
-                    if Keyboard.IsKeyDown(Key.LeftAlt)then 
-                        RectangleSelection.expandDown
+                if isDown Ctrl && isUp Shift then
+                    if isDown Alt then
+                        RectangleSelection.expandDown(ed)
                     else  
                         // also use Ctrl key for swaping since Alt key does not work in rhino, 
                         // swaping with alt+up is set up in commands.fs via key gesteures                                        
                         SwapLines.swapLinesDown(ed)
-                        e.Handled <- true
+                    e.Handled <- true
             
             | Input.Key.Up -> 
-                if  Keyboard.IsKeyDown(Key.LeftCtrl)then 
-                    SwapLines.swapLinesUp(ed)
+                if isDown Ctrl && isUp Shift then
+                    if isDown Alt then
+                        RectangleSelection.expandUp(ed)
+                    else 
+                        SwapLines.swapLinesUp(ed)
                     e.Handled <- true
 
             | _ -> ()

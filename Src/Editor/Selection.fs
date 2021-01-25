@@ -37,7 +37,9 @@ module Selection =
         | :? EmptySelection   -> NoSel
         | :? SimpleSelection  -> RegSel
         | :? RectangleSelection -> RectSel
-        | x -> failwithf "Unknown selection class in getSelection: %A" x          
+        | x -> failwithf "Unknown selection class in getSelection: %A" x       
+        
+    
     
     /// returns selpos order top to left bottom right
     let getSelectionOrdered(ta:TextArea)=
@@ -377,6 +379,13 @@ module RectangleSelection =
             setNewEmpty (ed.AvaEdit.TextArea, s, nvcol, true)
                 
     
+
+    let expandDown(ed:IEditor) =()
+    
+    let expandUp(ed:IEditor) =() 
+        
+
+
     //TODO add check for beeing over folded block
 
     let deleteKey (ed:IEditor) =  
