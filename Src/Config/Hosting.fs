@@ -55,6 +55,18 @@ type Hosting (startUpData:HostedStartUpData option) =
     /// opens up Explorer.exe
     member this.OpenSettingsFolder()=               
         Diagnostics.Process.Start("explorer.exe", "\"" + configFolder+ "\"")        |> ignore
+
+    /// opens up Explorer.exe with folder of Seff.exe
+    member this.OpenAppFolder()=               
+        let ass = Reflection.Assembly.GetExecutingAssembly()
+        if isNull ass then 
+            ISeffLog.log.PrintfIOErrorMsg "OpenAppFolder: GetExecutingAssembly() is null"
+        else
+            if ass.IsDynamic then 
+                ISeffLog.log.PrintfIOErrorMsg "Can get path of %A" ass.FullName
+            else
+                let folder = IO.Path.GetDirectoryName( ass.Location)
+                Diagnostics.Process.Start("explorer.exe", "\"" + folder+ "\"")        |> ignore
    
 
     

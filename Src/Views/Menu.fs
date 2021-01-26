@@ -182,6 +182,7 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, log:Log) =
                 MenuItem(Header = "_Version 0.?.?")
                 sep()
                 menuItem cmds.SettingsFolder
+                menuItem cmds.AppFolder
                 menuItem cmds.OpenXshdFile
                 menuItem cmds.ReloadXshdFile                 
                 ]
