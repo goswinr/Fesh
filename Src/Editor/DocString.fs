@@ -17,12 +17,14 @@ open FSharp.Compiler.SourceCodeServices
 
 /// taken and adapeted from FsAutoComplete in 2019
 module DocString =
+    
+    let inline trim (s:string) = s.Trim() 
 
     module private Section =
 
         let inline nl<'T> = Environment.NewLine
 
-        let inline private addSectionOriginal (name : string) (content : string) = //original markdown
+        let inline private addSectionOriginalUNUSED (name : string) (content : string) = //original markdown
             if name <> "" then
                 nl + nl
                 + "**" + name + "**"
@@ -30,13 +32,13 @@ module DocString =
             else
                 nl + nl + content
 
-        let inline private addSection (name : string) (content : string) =
+        let inline private addSection (name : string) (content : string) = // by goswin with trim
             if name <> "" then
                 nl + nl
                 + name + ":"
-                + nl + content
+                + nl + (content.Trim())
             else
-                nl + nl +  content
+                nl + nl +  (content.Trim())
 
 
         let fromMap (name : string) (content : Map<int*string, string>) =
@@ -44,19 +46,19 @@ module DocString =
                 ""
             else
                 //addSection name (content |> Seq.map (fun kv -> "* `" + kv.Key + "`" + ": " + kv.Value) |> String.concat nl) //original markdown
-                addSection name (content |> Seq.map (fun kv -> "• `" + snd kv.Key + "`" + ": " + kv.Value) |> String.concat nl)
+                addSection name ((content |> Seq.map (fun kv -> "• `" + snd kv.Key + "`" + ": " + kv.Value) |> String.concat nl).Trim()) // trim() added by goswin
 
         let fromOption (name : string) (content : string option) =
             if content.IsNone then
                 ""
             else
-                addSection name content.Value
+                addSection name (content.Value.Trim()) // trim() added by goswin
 
         let fromList (name : string) (content : string seq) =
             if Seq.length content = 0 then
                 ""
             else
-                addSection name (content |> String.concat nl)
+                addSection name ((content |> String.concat nl).Trim())
 
     // TODO: Improve this parser. Is there any other XmlDoc parser available?    
     type XmlDocMember(doc: XmlDocument, indentationSize : int, columnOffset : int) =
