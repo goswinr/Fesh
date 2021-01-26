@@ -274,7 +274,7 @@ type Log private () =
     let stopWatch = Stopwatch.StartNew()
     let buffer =  new StringBuilder()
     let mutable docLength = 0  //to be able to have the doc length async
-    let maxCharsInLog = 1_000_000 // about 10k line with 100 chars each
+    let maxCharsInLog = 199_000 // about 2k lines with 100 chars each
     let mutable stillLessThanMaxChars = true
 
     let getBufferText () =
@@ -285,65 +285,65 @@ type Log private () =
     // The below functions are trying to work around double UI update in printfn for better UI performance, 
     // and the poor performance of log.ScrollToEnd().
     // see  https://github.com/dotnet/fsharp/issues/3712  
-    let printFromBuffer() = 
+    let printToLog() =          
         let txt = lock buffer getBufferText //lock for safe access    // or rwl.EnterWriteLock() //https://stackoverflow.com/questions/23661863/f-synchronized-access-to-list
         log.AppendText(txt)       
         log.ScrollToEnd()
-        if log.WordWrap then 
-            log.ScrollToEnd() //this is needed a second time. see  https://github.com/dotnet/fsharp/issues/3712  
+        if log.WordWrap then log.ScrollToEnd() //this is needed a second time. see  https://github.com/dotnet/fsharp/issues/3712  
         stopWatch.Restart()
 
-        if docLength > maxCharsInLog then // neded when log gets piled up with exception messages form Avalonedit rendering pipeline.
-            stillLessThanMaxChars <- false
-            log.AppendText(sprintf "\r\n\r\n  *** STOP OF LOGGING *** Log has more than %d characters! clear Log view first" maxCharsInLog)
-            log.ScrollToEnd()
-            log.ScrollToEnd()
-            log.ScrollToEnd()
-
-
-
-
-    let printFromBufferSync() =
-        async {
-            do! Async.SwitchToContext Sync.syncContext
-            printFromBuffer()
-            } |> Async.StartImmediate 
-    
     
     /// adds string on UI thread  every 150ms then scrolls to end after 300ms.
     /// otipnally adds new line at end
     /// sets line color on LineColors dictionay for DocumentColorizingTransformer
     /// printOrBuffer (txt:string, addNewLine:bool, typ:SolidColorBrush)
     let printOrBuffer (txt:string, addNewLine:bool, typ:SolidColorBrush) =
-        if stillLessThanMaxChars then 
+        if stillLessThanMaxChars && txt.Length <> 0 then
+            // Change color if needed:
             if prevMsgType <> typ then 
                 lock buffer (fun () -> 
                     offsetColors.Add { off = docLength; brush = typ } // TODO filter out ANSI escape chars first or just keep them in the doc but not in the visual line ??
                     prevMsgType <- typ )
                 //LogFile.Post <| sprintf "offset %d new color: %A" docLength typ
             
-            if txt.Length <> 0 then
-                if addNewLine then 
-                    lock buffer (fun () -> 
-                        buffer.AppendLine(txt)  |> ignore
-                        docLength <- docLength + txt.Length + 2) // TODO, is a new line always two ?
-                else                
-                    lock buffer (fun () -> 
-                        buffer.Append(txt)  |> ignore
-                        docLength <- docLength + txt.Length   ) 
-                        
-                if stopWatch.ElapsedMilliseconds > 100L  then // print case 1, only add to document every 100ms  
-                    printFromBufferSync()                
+            // add to buffer locked:
+            if addNewLine then 
+                lock buffer (fun () -> 
+                    buffer.AppendLine(txt)  |> ignore
+                    docLength <- docLength + txt.Length + 2) // TODO, is a new line always two ?
+            else                
+                lock buffer (fun () -> 
+                    buffer.Append(txt)  |> ignore
+                    docLength <- docLength + txt.Length   ) 
+            
+            // check if buffer is already to big , print it and then stop printing
+            if docLength > maxCharsInLog then // neded when log gets piled up with exception messages form Avalonedit rendering pipeline.
+                stillLessThanMaxChars <- false
+                async {
+                    do! Async.SwitchToContext Sync.syncContext
+                    printToLog()
+                    log.AppendText(sprintf "\r\n\r\n  *** STOP OF LOGGING *** Log has more than %d characters! clear Log view first" maxCharsInLog)
+                    log.ScrollToEnd()
+                    log.ScrollToEnd()
+                    } |> Async.StartImmediate
+            else
+                // check the two criteria for actually printing
+                // print case 1: sine the last printing more than 100ms have elapsed
+                // print case 2, wait 0.1 seconds and print if nothing els has been added to the buffer during the last 100 ms
+                if stopWatch.ElapsedMilliseconds > 100L  then // print case 1: only add to document every 100ms  
+                    async {
+                        do! Async.SwitchToContext Sync.syncContext
+                        printToLog()
+                        } |> Async.StartImmediate                 
                 else
                     async {                        
                         let k = Interlocked.Increment printCallsCounter
                         do! Async.Sleep 100
                         if !printCallsCounter = k  then //print case 2, it is the last call for 100 ms
                             do! Async.SwitchToContext Sync.syncContext
-                            printFromBuffer()                
+                            printToLog()                
                         } |> Async.StartImmediate 
-
-                
+               
     
 
     let setLineWrap(v)=
@@ -362,7 +362,7 @@ type Log private () =
     let textWriterFsiStdOut     = new FsxTextWriter(fun s -> printOrBuffer (s, false, LogColors.fsiStdOut    ))
     let textWriterFsiErrorOut   = new FsxTextWriter(fun s -> printOrBuffer (s, false, LogColors.fsiErrorOut  ); fsiErrorStream.Append(s)|> ignore )
 
-
+ 
      
     //-----------------------------------------------------------    
     //----------------------members:------------------------------------------    
@@ -408,63 +408,62 @@ type Log private () =
     member this.TextWriterConsoleOut   = textWriterConsoleOut   
     member this.TextWriterConsoleError = textWriterConsoleError 
 
-    member this.PrintfnInfoMsg      msg =  Printf.kprintf (fun s -> printOrBuffer (s,true,LogColors.infoMsg      ))  msg
-    member this.PrintfnFsiErrorMsg  msg =  Printf.kprintf (fun s -> printOrBuffer (s,true,LogColors.fsiErrorMsg  ))  msg
-    member this.PrintfnAppErrorMsg  msg =  Printf.kprintf (fun s -> printOrBuffer (s,true,LogColors.appErrorMsg  ))  msg
-    member this.PrintfnIOErrorMsg   msg =  Printf.kprintf (fun s -> printOrBuffer (s,true,LogColors.iOErrorMsg   ))  msg        
-    member this.PrintfnDebugMsg     msg =  Printf.kprintf (fun s -> printOrBuffer (s,true,LogColors.debugMsg     ))  msg
-    
+    member this.PrintfnInfoMsg      msg =  Printf.kprintf (fun s -> printOrBuffer (s, true, LogColors.infoMsg      ))  msg 
+    member this.PrintfnFsiErrorMsg  msg =  Printf.kprintf (fun s -> printOrBuffer (s, true, LogColors.fsiErrorMsg  ))  msg
+    member this.PrintfnAppErrorMsg  msg =  Printf.kprintf (fun s -> printOrBuffer (s, true, LogColors.appErrorMsg  ))  msg
+    member this.PrintfnIOErrorMsg   msg =  Printf.kprintf (fun s -> printOrBuffer (s, true, LogColors.iOErrorMsg   ))  msg        
+    member this.PrintfnDebugMsg     msg =  Printf.kprintf (fun s -> printOrBuffer (s, true, LogColors.debugMsg     ))  msg
+    member this.PrintfnLastColor    msg =  Printf.kprintf (fun s -> printOrBuffer (s, true, LogColors.customColor  ))  msg
     /// Print using the Brush or color provided 
     /// at last custom printing call via.PrintfnCustomBrush or.PrintfnColor 
-    member this.PrintfnCustom s = Printf.kprintf (fun s -> printOrBuffer (s, true, LogColors.customColor ))  s       
+    //member this.PrintfnCustom s = Printf.kprintf (fun s -> printOrBuffer (s, true, LogColors.customColor ))  s       
         
     /// Change custom color to a RGB value ( each between 0 and 255) 
     /// Then print 
-    member this.PrintfnColor red green blue msg = 
-        LogColors.setcustomColor (red,green,blue)
-        Printf.kprintf (fun s -> printOrBuffer (s,true, LogColors.customColor ))  msg        
+    member this.PrintfnColor red green blue msg =          
+            LogColors.setcustomColor (red,green,blue)
+            Printf.kprintf (fun s -> printOrBuffer (s,true, LogColors.customColor ))  msg        
 
      //--- without new line: --------------
 
-    member this.PrintfInfoMsg  msg = Printf.kprintf (fun s -> printOrBuffer (s,false, LogColors.infoMsg ))  msg
+    member this.PrintfInfoMsg  msg  =      Printf.kprintf (fun s -> printOrBuffer (s, false, LogColors.infoMsg     ))  msg 
 
     /// Prints without adding a new line at the end
-    member this.PrintfFsiErrorMsg  msg =  Printf.kprintf (fun s -> printOrBuffer (s,false, LogColors.fsiErrorMsg  ))  msg
+    member this.PrintfFsiErrorMsg  msg =  Printf.kprintf (fun s -> printOrBuffer (s, false, LogColors.fsiErrorMsg  ))  msg
 
     /// Prints without adding a new line at the end
-    member this.PrintfAppErrorMsg  msg =  Printf.kprintf (fun s -> printOrBuffer (s,false, LogColors.appErrorMsg  ))  msg
+    member this.PrintfAppErrorMsg  msg = Printf.kprintf (fun s -> printOrBuffer (s, false, LogColors.appErrorMsg  ))  msg
 
     /// Prints without adding a new line at the end
-    member this.PrintfIOErrorMsg   msg =  Printf.kprintf (fun s -> printOrBuffer (s,false, LogColors.iOErrorMsg   ))  msg
+    member this.PrintfIOErrorMsg   msg =   Printf.kprintf (fun s -> printOrBuffer (s, false, LogColors.iOErrorMsg   ))  msg
 
     /// Prints without adding a new line at the end
-    member this.PrintfDebugMsg     msg =  Printf.kprintf (fun s -> printOrBuffer (s,false, LogColors.debugMsg     ))  msg    
+    member this.PrintfDebugMsg     msg =  Printf.kprintf (fun s -> printOrBuffer (s, false, LogColors.debugMsg     ))  msg    
     
     /// Print using the Brush or color provided 
     /// at last custom printing call via.PrintfnCustomBrush or.PrintfnColor 
     /// without adding a new line at the end
-    member this.PrintfLastColor msg = Printf.kprintf (fun s -> printOrBuffer (s, false, LogColors.customColor ))  msg
+    member this.PrintfLastColor msg =     Printf.kprintf (fun s -> printOrBuffer (s, false, LogColors.customColor ))  msg
    
-
     /// Change custom color to a RGB value ( each between 0 and 255) 
     /// Then print without adding a new line at the end
-    member this.PrintfColor red green blue msg = 
-        LogColors.setcustomColor (red,green,blue)
-        Printf.kprintf (fun s -> printOrBuffer (s,false, LogColors.customColor ))  msg
+    member this.PrintfColor red green blue msg =
+            LogColors.setcustomColor (red,green,blue)
+            Printf.kprintf (fun s -> printOrBuffer (s,false, LogColors.customColor ))  msg
     
     // for use from Seff.Rhino:
 
     /// Change custom color to a RGB value ( each between 0 and 255) 
     /// Then print without adding a new line at the end
     member this.PrintColor red green blue s = 
-        LogColors.setcustomColor (red,green,blue)
-        printOrBuffer (s,false, LogColors.customColor )    
+            LogColors.setcustomColor (red,green,blue)
+            printOrBuffer (s,false, LogColors.customColor )    
        
     /// Change custom color to a RGB value ( each between 0 and 255) 
     /// Adds a new line at the end
-    member this.PrintnColor red green blue s = 
-        LogColors.setcustomColor (red,green,blue)
-        printOrBuffer (s,true, LogColors.customColor ) 
+    member this.PrintnColor red green blue s =
+            LogColors.setcustomColor (red,green,blue)
+            printOrBuffer (s,true, LogColors.customColor ) 
    
 
     interface ISeffLog with        
@@ -478,23 +477,23 @@ type Log private () =
         member _.TextWriterConsoleOut   = textWriterConsoleOut   :> TextWriter   
         member _.TextWriterConsoleError = textWriterConsoleError :> TextWriter          
 
-        member _.PrintfnInfoMsg     msg = Printf.kprintf (fun s -> printOrBuffer (s,true,LogColors.infoMsg      )) msg
-        member _.PrintfnFsiErrorMsg msg = Printf.kprintf (fun s -> printOrBuffer (s,true,LogColors.fsiErrorMsg  )) msg
-        member _.PrintfnAppErrorMsg msg = Printf.kprintf (fun s -> printOrBuffer (s,true,LogColors.appErrorMsg  )) msg
-        member _.PrintfnIOErrorMsg  msg = Printf.kprintf (fun s -> printOrBuffer (s,true,LogColors.iOErrorMsg   )) msg  
-        member _.PrintfnDebugMsg    msg = Printf.kprintf (fun s -> printOrBuffer (s,true,LogColors.debugMsg     )) msg
-        member _.PrintfnLastColor   msg = Printf.kprintf (fun s -> printOrBuffer (s,true, LogColors.customColor  )) msg
-        member _.PrintfnColor red green blue msg =   LogColors.setcustomColor (red,green,blue) ;  Printf.kprintf (fun s -> printOrBuffer (s,true, LogColors.customColor ))  msg
-        //member _.PrintfnCustomBrush (br:SolidColorBrush) msg = _.PrintfnCustomBrush (br:SolidColorBrush) msg
+        member this.PrintfnInfoMsg  msg =            this.PrintfnInfoMsg     msg
+        member this.PrintfnFsiErrorMsg msg =            this.PrintfnFsiErrorMsg msg
+        member this.PrintfnAppErrorMsg msg =            this.PrintfnAppErrorMsg msg
+        member this.PrintfnIOErrorMsg  msg =            this.PrintfnIOErrorMsg  msg
+        member this.PrintfnDebugMsg    msg =            this.PrintfnDebugMsg    msg
+        member this.PrintfnLastColor   msg =            this.PrintfnLastColor   msg
+        member this.PrintfnColor red green blue msg =   this.PrintfnColor red green blue msg 
+        //member this.PrintfnCustomBrush (br:SolidColorBrush) msg = this.PrintfnCustomBrush (br:SolidColorBrush) msg
 
         //without the new line:
-        member _.PrintfInfoMsg     msg = Printf.kprintf (fun s -> printOrBuffer (s,false,LogColors.infoMsg      )) msg
-        member _.PrintfFsiErrorMsg msg = Printf.kprintf (fun s -> printOrBuffer (s,false,LogColors.fsiErrorMsg  )) msg
-        member _.PrintfAppErrorMsg msg = Printf.kprintf (fun s -> printOrBuffer (s,false,LogColors.appErrorMsg  )) msg
-        member _.PrintfIOErrorMsg  msg = Printf.kprintf (fun s -> printOrBuffer (s,false,LogColors.iOErrorMsg   )) msg  
-        member _.PrintfDebugMsg    msg = Printf.kprintf (fun s -> printOrBuffer (s,false,LogColors.debugMsg     )) msg       
-        member _.PrintfLastColor   msg = Printf.kprintf (fun s -> printOrBuffer (s,false,LogColors.customColor  )) msg    
-        member _.PrintfColor red green blue msg =  LogColors.setcustomColor (red,green,blue); Printf.kprintf (fun s -> printOrBuffer (s,false, LogColors.customColor ))  msg        
+        member this.PrintfInfoMsg     msg          = this.PrintfInfoMsg     msg          
+        member this.PrintfFsiErrorMsg msg          = this.PrintfFsiErrorMsg msg          
+        member this.PrintfAppErrorMsg msg          = this.PrintfAppErrorMsg msg          
+        member this.PrintfIOErrorMsg  msg          = this.PrintfIOErrorMsg  msg          
+        member this.PrintfDebugMsg    msg          = this.PrintfDebugMsg    msg          
+        member this.PrintfLastColor   msg          = this.PrintfLastColor   msg          
+        member this.PrintfColor red green blue msg = this.PrintfColor red green blue msg        
         //member this.PrintfCustomBrush (br:SolidColorBrush) msg =  LogColors.customColor  <- br |> freeze;  Printf.kprintf (fun s -> printOrBuffer (s,false, LogColors.customColor ))  msg
 
     
