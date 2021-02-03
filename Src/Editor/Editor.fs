@@ -114,7 +114,7 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
     static member SetUp  (code:string, config:Config, filePath:FilePath ) = 
         let ed = Editor(code, config, filePath )
         
-        SelectedTextTracer.Setup(ed, ed.Folds, config)
+        SelectedTextTracer.Setup(ed, config)
         BracketHighlighter.Setup(ed, ed.Checker)
 
         let avaEdit = ed.AvaEdit

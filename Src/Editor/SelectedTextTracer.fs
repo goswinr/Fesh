@@ -57,7 +57,7 @@ type SelectedTextHighlighter (ed:TextEditor) =
                   
 
 /// Highlight-all-occurrences-of-selected-text in Text View and Statusbar
-type SelectedTextTracer () =   
+type SelectedTextTracer private () =   
     
     // events for status bar
     let highlightClearedEv  = new Event<unit>()
@@ -69,68 +69,73 @@ type SelectedTextTracer () =
     member this.OnHighlightChanged = highlightChangedEv.Publish
     member this.ChangeInfoText(newInfoText,i) = highlightChangedEv.Trigger(newInfoText,i)  // will update status bar             
     
+        
     static member val Instance = SelectedTextTracer() // singelton pattern
 
-    static member Setup(ed:IEditor,folds:Foldings,config:Config) = 
+
+    static member updateFromCurrentSelection(ed:IEditor,config:Config,oh:SelectedTextHighlighter)=
+        // for text view:
+        let highTxt = ed.AvaEdit.SelectedText            
+        let checkTx = highTxt.Trim()
+        let doHighlight = 
+            checkTx.Length > 1 // minimum 2 non whitecpace characters?
+            && not <| highTxt.Contains("\n")  //no line beaks          
+            && not <| highTxt.Contains("\r")  //no line beaks
+            && config.Settings.SelOcc 
+    
+        if doHighlight then 
+            oh.HighlightText <- highTxt
+            oh.CurrentSelectionStart <- ed.AvaEdit.SelectionStart
+            //ta.TextView.Redraw()
+             
+ 
+            // for status bar and folds :            
+            match ed.FileCheckState.FullCodeAndId with 
+            | NoCode ->() //OccurencesTracer.Instance.InfoText <- ""
+            | CodeID (code,_) ->
+                let mutable  index = code.IndexOf(highTxt, 0, StringComparison.Ordinal)                
+                let mutable k = 0
+                let mutable anyInFolding = false
+                for fold in ed.FoldingManager.AllFoldings do  fold.BackbgroundColor <- null // reset all first, before setting some
+                while index >= 0 do        
+                    k <- k+1  
+                    // check for text that is folded away:
+                    let infs = ed.FoldingManager.GetFoldingsContaining(index) 
+                    for inf in infs do // should be just one or none
+                        // if && infs.[0].IsFolded then // do always !
+                        inf.BackbgroundColor <-  SelectedTextHighlighter.ColorHighlightInBox
+                        anyInFolding <- true
+                        
+                    let st =  index + highTxt.Length // endOffset // TODO or just +1 ???????
+                    if st >= code.Length then 
+                        index <- -99 // this happens wen wor to highlight ia at document end
+                        //eprintfn "index  %d in %d ??" st code.Length    
+                    else
+                        index <- code.IndexOf(highTxt, st, StringComparison.Ordinal)
+                           
+                SelectedTextTracer.Instance.ChangeInfoText(highTxt, k  )    // this will update status bar 
+                //if anyInFolding then ta.TextView.Redraw()
+            
+
+        else
+            if notNull oh.HighlightText then // to ony redraw if it was not null before
+                oh.HighlightText <- null 
+                for f in ed.FoldingManager.AllFoldings do  f.BackbgroundColor <- null 
+                SelectedTextTracer.Instance.TriggerOnHighlightCleared()
+                ///ta.TextView.Redraw() // to clear highlight
+    
+        ed.AvaEdit.TextArea.TextView.Redraw() //do just once at end ?
+
+    static member Setup(ed:IEditor,config:Config) = 
         Folding.FoldingElementGenerator.TextBrush <- SelectedTextHighlighter.ColorFoldBoxOutline
         let ta = ed.AvaEdit.TextArea
         let oh = new SelectedTextHighlighter(ed.AvaEdit)
         ta.TextView.LineTransformers.Add(oh)
 
-        ta.SelectionChanged.Add ( fun a ->             
+        ta.SelectionChanged.Add ( fun a -> SelectedTextTracer.updateFromCurrentSelection(ed,config,oh))            
             
-            // for text view:
-            let highTxt = ed.AvaEdit.SelectedText            
-            let checkTx = highTxt.Trim()
-            let doHighlight = 
-                checkTx.Length > 1 // minimum 2 non whitecpace characters?
-                && not <| highTxt.Contains("\n")  //no line beaks          
-                && not <| highTxt.Contains("\r")  //no line beaks
-                && config.Settings.SelOcc
             
-            if doHighlight then 
-                oh.HighlightText <- highTxt
-                oh.CurrentSelectionStart <- ed.AvaEdit.SelectionStart
-                //ta.TextView.Redraw()
-
- 
-                // for status bar and folds :            
-                match ed.FileCheckState.FullCodeAndId with 
-                | NoCode ->() //OccurencesTracer.Instance.InfoText <- ""
-                | CodeID (code,_) ->
-                    let mutable  index = code.IndexOf(highTxt, 0, StringComparison.Ordinal)                
-                    let mutable k = 0
-                    let mutable anyInFolding = false
-                    for fold in folds.Manager.AllFoldings do  fold.BackbgroundColor <- null // reset all first, before setting some
-                    while index >= 0 do        
-                        k <- k+1  
-                        // check for text that is folded away:
-                        let infs = folds.Manager.GetFoldingsContaining(index) 
-                        for inf in infs do // should be just one or none
-                            // if && infs.[0].IsFolded then // do always !
-                            inf.BackbgroundColor <-  SelectedTextHighlighter.ColorHighlightInBox
-                            anyInFolding <- true
-                                
-                        let st =  index + highTxt.Length // endOffset // TODO or just +1 ???????
-                        if st >= code.Length then 
-                            index <- -99 // this happens wen wor to highlight ia at document end
-                            //eprintfn "index  %d in %d ??" st code.Length    
-                        else
-                            index <- code.IndexOf(highTxt, st, StringComparison.Ordinal)
-                                   
-                    SelectedTextTracer.Instance.ChangeInfoText(highTxt, k  )    // this will update status bar 
-                    //if anyInFolding then ta.TextView.Redraw()
-                    
-
-            else
-                if notNull oh.HighlightText then // to ony redraw if it was not null before
-                    oh.HighlightText <- null 
-                    for f in folds.Manager.AllFoldings do  f.BackbgroundColor <- null 
-                    SelectedTextTracer.Instance.TriggerOnHighlightCleared()
-                    ///ta.TextView.Redraw() // to clear highlight
-            
-            ta.TextView.Redraw() //do just once at end ?
            
                
-            )
+            
   

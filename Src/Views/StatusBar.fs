@@ -206,7 +206,7 @@ type SelectedTextStatus (grid:TabsAndLog) as this =
         
         this.MouseDown.Add ( fun _ -> 
             sett.SelOcc <- not sett.SelOcc // toggle 
-            this.Inlines.Clear()
+            this.Inlines.Clear()            
             this.Inlines.Add( desc +    if sett.SelOcc then onTxt else offTxt)
             this.ToolTip <-   baseTxt + if sett.SelOcc then offTxt else onTxt            
             grid.Config.Settings.Save ()            
