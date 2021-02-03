@@ -26,6 +26,12 @@ type Sync private () =
             try IO.File.WriteAllText(file, "Failed to get DispatcherSynchronizationContext") with _ -> () // file might be open or locked    
 
 
+    
+    static member doSync (f) = 
+        async {
+            do! Async.SwitchToContext ctx
+            f()
+            } |> Async.StartImmediate
 
         // see https://github.com/fsprojects/FsXaml/blob/c0979473eddf424f7df83e1b9222a8ca9707c45a/src/FsXaml.Wpf/Utilities.fs#L132
 

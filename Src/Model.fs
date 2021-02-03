@@ -67,6 +67,8 @@ type ISeffLog =
     abstract member TextWriterConsoleOut   : TextWriter
     abstract member TextWriterConsoleError : TextWriter
 
+    abstract member Clear : unit -> unit
+
 [<CompiledName("ISeffLogModule")>]//don't rename used via reflection in FsEx 
 module ISeffLog = 
 
@@ -84,6 +86,10 @@ module ISeffLog =
   
     let mutable printnColor : int-> int -> int -> string -> unit = //don't rename used via reflection in FsEx //reset when Log instance is created
         fun r g b s -> printfn "%s" s
+
+    let mutable clear : unit -> unit = fun () -> () //don't rename used via reflection in FsEx //reset when Log instance is created
+        
+
 
 /// ---- Editor types -----------
 

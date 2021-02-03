@@ -496,6 +496,7 @@ type Log private () =
         member this.PrintfColor red green blue msg = this.PrintfColor red green blue msg        
         //member this.PrintfCustomBrush (br:SolidColorBrush) msg =  LogColors.customColor  <- br |> freeze;  Printf.kprintf (fun s -> printOrBuffer (s,false, LogColors.customColor ))  msg
 
+        member this.Clear() = this.Clear()
     
     member this.SaveAllText (pathHint: FilePath) = 
         let dlg = new Microsoft.Win32.SaveFileDialog()
@@ -547,6 +548,7 @@ type Log private () =
     static member Create() = 
         let l = Log()
         ISeffLog.log <- l
-        ISeffLog.printColor <-  l.PrintColor
+        ISeffLog.printColor  <- l.PrintColor
         ISeffLog.printnColor <- l.PrintnColor
+        ISeffLog.clear       <- (fun () -> Sync.doSync l.Clear)
         l
