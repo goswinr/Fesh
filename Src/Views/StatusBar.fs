@@ -173,10 +173,11 @@ type SelectedTextStatus (grid:TabsAndLog) as this =
     let desc = "Highlighting is " // with trailing space
     let baseTxt = "Highlights and counts the occurences of the currently selected Text.\r\nMinimum two characters. No line breaks\r\nClick here to turn " 
     do             
-        let isOn =  grid.Config.Settings.SelectAllOccurences 
+        let sett = grid.Config.Settings
+        
         this.Padding <- textPadding
-        this.ToolTip <-  baseTxt + if isOn then offTxt else onTxt        
-        this.Inlines.Add ( desc + if isOn then onTxt else offTxt)
+        this.ToolTip <-  baseTxt + if sett.SelOcc then offTxt else onTxt        
+        this.Inlines.Add ( desc  + if sett.SelOcc then onTxt else offTxt)
         
         //Editor events
         SelectedTextTracer.Instance.OnHighlightChanged.Add ( fun (highTxt,k ) ->             
@@ -187,7 +188,7 @@ type SelectedTextStatus (grid:TabsAndLog) as this =
             )
         SelectedTextTracer.Instance.OnHighlightCleared.Add ( fun () ->  
             this.Inlines.Clear()
-            this.Inlines.Add ( desc + if isOn then onTxt else offTxt)
+            this.Inlines.Add ( desc + if sett.SelOcc then onTxt else offTxt)
             )
         
         //Log events 
@@ -197,29 +198,24 @@ type SelectedTextStatus (grid:TabsAndLog) as this =
             this.Inlines.Add( new Run (highTxt, FontFamily = Style.fontEditor, Background = grid.Log.SelectedTextHighLighter.ColorHighlight))      
             this.Inlines.Add( sprintf " (%d Chars) in Log" highTxt.Length)
             ) 
+        
         grid.Log.SelectedTextHighLighter.OnHighlightCleared.Add ( fun () ->  
             this.Inlines.Clear()
-            this.Inlines.Add ( desc + if isOn then onTxt else offTxt)
+            this.Inlines.Add ( desc + if sett.SelOcc then onTxt else offTxt)
             )
-
-
         
         this.MouseDown.Add ( fun _ -> 
-            let mutable isOnn =  grid.Config.Settings.SelectAllOccurences
-            isOnn <- not isOnn // toggle            
+            sett.SelOcc <- not sett.SelOcc // toggle 
             this.Inlines.Clear()
-            this.Inlines.Add(desc +    if isOnn then onTxt else offTxt)
-            this.ToolTip <-  baseTxt + if isOnn then offTxt else onTxt
-            grid.Config.Settings.SelectAllOccurences <- isOnn
-            grid.Config.Settings.Save ()
-            //SelectedTextTracer.IsActive <- isOnn
+            this.Inlines.Add( desc +    if sett.SelOcc then onTxt else offTxt)
+            this.ToolTip <-   baseTxt + if sett.SelOcc then offTxt else onTxt            
+            grid.Config.Settings.Save ()            
             )
 
-        grid.Tabs.OnTabChanged.Add ( fun _ -> 
-            let isO =  grid.Config.Settings.SelectAllOccurences 
+        grid.Tabs.OnTabChanged.Add ( fun _ ->             
             this.Inlines.Clear()
-            this.Inlines.Add(desc +    if isO then onTxt else offTxt)
-            this.ToolTip <-  baseTxt + if isO then offTxt else onTxt
+            this.Inlines.Add(desc +    if sett.SelOcc then onTxt else offTxt)
+            this.ToolTip <-  baseTxt + if sett.SelOcc then offTxt else onTxt
             )
 
 type StatusBar (grid:TabsAndLog, cmds:Commands)  = 
@@ -236,7 +232,7 @@ type StatusBar (grid:TabsAndLog, cmds:Commands)  =
     
 
     do 
-        add Dock.Left <| CheckerStatus(grid)    
+        add Dock.Left  <| CheckerStatus(grid)    
         add Dock.Left  <| FsiRunStatus (grid, cmds)
         add Dock.Left  <| SelectedTextStatus(grid)
 

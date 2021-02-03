@@ -86,9 +86,13 @@ type Settings (log:ISeffLog, hostInfo:Hosting) =
     //with just one digit behind comma (eg. for font sizes)
     //member this.GetFloatRounded  key def = getFloat key def |> this.roundToOneDigitBehindComa
 
+    // -------------------------------------------------------------------
     // Explicit values:
+    // for often accessd settings , skips parsing and dict
+    // -------------------------------------------------------------------
 
-    member this.SelectAllOccurences // do for often accessd settings , skips parsing and dict
+    /// Wheter to highlight and count the occurences of the currently selected Text.
+    member this.SelOcc
         with get () = selectAllOccurences
         and set v = 
             this.SetBool "selectAllOccurences" v

@@ -86,7 +86,7 @@ type SelectedTextTracer () =
                 checkTx.Length > 1 // minimum 2 non whitecpace characters?
                 && not <| highTxt.Contains("\n")  //no line beaks          
                 && not <| highTxt.Contains("\r")  //no line beaks
-                && config.Settings.SelectAllOccurences
+                && config.Settings.SelOcc
             
             if doHighlight then 
                 oh.HighlightText <- highTxt
