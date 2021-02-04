@@ -35,35 +35,51 @@ type CheckerStatus (grid:TabsAndLog) as this =
     let tabs = grid.Tabs
     let checkingTxt = "Checking for Errors ..."
     let checker = Checker.GetOrCreate(grid.Config)
-    let originalBackGround = this.Background
-                
+    //let originalBackGround = this.Background
+    
+    let mutable lastErrCount = -1
+    let mutable lastFile = Guid.Empty
+
     let updateCheckState(iEditor:IEditor)= 
         //log.PrintfnDebugMsg "Setting errors for %A %A " iEditor.FileInfo iEditor.CheckRes.Value.checkRes.Errors.Length 
         match iEditor.FileCheckState with
         | Done res ->                                            
-                let es = res.checkRes.Errors 
-                es|> Array.sortInPlaceBy (fun e -> e.StartLineAlternate)
+                let es = res.checkRes.Errors                
                 if es.Length = 0 then 
-                    this.Text <- "No compiler errors"
-                    this.Background <- okColor
-                    this.ToolTip <- "FSarp Compiler Service found no Errors in"+ Environment.NewLine + tabs.Current.FormatedFileName
+                    if lastErrCount <> 0  || lastFile <> tabs.Current.Editor.Id then // no UI update needed in this case
+                        this.Text <- "No compiler errors"
+                        this.Background <- okColor
+                        this.ToolTip <- "FSarp Compiler Service found no Errors in"+ Environment.NewLine + tabs.Current.FormatedFileName
+                        lastFile <- tabs.Current.Editor.Id
+                        lastErrCount <- 0
                 else 
-                    let ers = es|> Seq.filter (fun e -> e.Severity = FSharpErrorSeverity.Error) |> Seq.length
-                    let was = es.Length - ers
-                    if ers = 0 then 
-                        this.Text <- sprintf "Compiler warnings: %d" was
+                    lastFile <- tabs.Current.Editor.Id
+                    lastErrCount <- es.Length 
+                    let ers = es|> Array.filter (fun e -> e.Severity = FSharpErrorSeverity.Error) 
+                    let erk = ers.Length
+                    let was = es|> Array.filter (fun e -> e.Severity = FSharpErrorSeverity.Warning)
+                    let wak = was.Length
+                    if wak > 0 then 
+                        was|> Array.sortInPlaceBy (fun e -> e.StartLineAlternate)
+                        this.Text <- sprintf "Compiler warnings: %d from Line:%d" wak was.[0].StartLineAlternate
                         this.Background <- warnColor 
-                    elif was = 0 then
-                        this.Text <- sprintf "Compiler errors: %d" ers
+                    elif erk > 0 then
+                        ers|> Array.sortInPlaceBy (fun e -> e.StartLineAlternate)
+                        this.Text <- sprintf "Compiler errors: %d from Line:%d" erk ers.[0].StartLineAlternate
                         this.Background <- errColor
                     else
-                        this.Text <- sprintf "Compiler errors: %d, warnings: %d" ers was
+                        ers|> Array.sortInPlaceBy (fun e -> e.StartLineAlternate)
+                        was|> Array.sortInPlaceBy (fun e -> e.StartLineAlternate)
+                        this.Text <- sprintf "Compiler errors: %d, warnings: %d from Line:%d" erk wak (min ers.[0].StartLineAlternate was.[0].StartLineAlternate)
                         this.Background <- errColor            
+                    
                     this.ToolTip <- makePanelVert [                         
-                        if ers>0 then TextBlock(Text="Errors:", FontSize = 14. , FontWeight = FontWeights.Bold )
-                        for e in es|> Seq.filter (fun e -> e.Severity = FSharpErrorSeverity.Error)  do new TextBlock(Text = sprintf "• Line %d: %s" e.StartLineAlternate e.Message)
-                        if was>0 then TextBlock(Text="Warnings:", FontSize = 14. , FontWeight = FontWeights.Bold )
-                        for e in es|> Seq.filter (fun e -> e.Severity = FSharpErrorSeverity.Warning) do new TextBlock(Text = sprintf "• Line %d: %s" e.StartLineAlternate e.Message) 
+                        if erk>0 then       TextBlock(Text="Errors:", FontSize = 14. , FontWeight = FontWeights.Bold )
+                        for e in ers  do    TextBlock(Text = sprintf "• Line %d: %s" e.StartLineAlternate e.Message)
+                        
+                        if wak>0 then       TextBlock(Text="Warnings:", FontSize = 14. , FontWeight = FontWeights.Bold )
+                        for w in was do     TextBlock(Text = sprintf "• Line %d: %s" w.StartLineAlternate w.Message) 
+
                         TextBlock(Text = tabs.Current.FormatedFileName, FontSize = 9.)
                         ]        
         
