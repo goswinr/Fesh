@@ -184,6 +184,7 @@ type Foldings(ed:TextEditor,checker:Checker,config:Config, edId:Guid) =
                             
                                 let firstErrorOffset = -1 //The first position of a parse error. Existing foldings starting after this offset will be kept even if they don't appear in newFoldings. Use -1 for this parameter if there were no parse errors) 
                                 manager.UpdateFoldings(folds,firstErrorOffset)
+                                config.FoldingStatus.Set(iEditor) // so that when new flodings apear they are saved immedeatly
                                 
                 } |>  Async.Start       
     
@@ -208,7 +209,7 @@ type Foldings(ed:TextEditor,checker:Checker,config:Config, edId:Guid) =
     
     member this.CollapseAll() = for f in manager.AllFoldings do f.IsFolded <- true
 
-    static member val private EventIsSetUp = false with get, set // so the event OnFullCodeAvailabe is only attached once to checker
+    //static member val private EventIsSetUp = false with get, set // so the event OnFullCodeAvailabe is only attached once to checker
 
     
 

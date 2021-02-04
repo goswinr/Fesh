@@ -59,14 +59,16 @@ type FoldingStatus (log:ISeffLog, hostInfo:Hosting, recentlyUsedFiles:RecentlyUs
                 |true,vs -> vs
                 |_      -> [| |]    
 
-    member this.Set(ed:IEditor) =
+    member this.Set(ed:IEditor) = // gets call on every new folds found
         match ed.FilePath with
         | NotSet -> ()
         | SetTo fi -> 
             let vs = [| for f in ed.FoldingManager.AllFoldings do f.IsFolded |]
-            foldingStatus.[fi.FullName] <- vs
-            foldingStatus.[fi.Name] <- vs
-            writer.WriteDelayed (filePath, foldingStatusAsString, 800)
+            let ok, curr = foldingStatus.TryGetValue fi.Name
+            if not ok || curr <> vs then // only update if ther are changes or setting is missing.
+                foldingStatus.[fi.Name] <- vs
+                foldingStatus.[fi.FullName] <- vs
+                writer.WriteDelayed (filePath, foldingStatusAsString, 800)
         
     member this.Save() =
         writer.WriteDelayed (filePath, foldingStatusAsString, 800)
