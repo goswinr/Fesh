@@ -92,21 +92,25 @@ type CheckerStatus (grid:TabsAndLog) as this =
                     | GettingCode id300
                     | Checking (id300,_) -> 
                         if id300 = id0 then // this is still the most recent checker
+                            lastErrCount <- -1
                             this.Text <- checkingTxt
                             this.Background <- waitCol //originalBackGround 
                     | Done _ | NotStarted | Failed -> ()
             } |> Async.StartImmediate 
         
         | NotStarted -> // these below never happen because event is only triggerd on success
+            lastErrCount <- -1
             this.Text <- "Initializing compiler . . ."
             this.Background <- waitCol //originalBackGround 
         
         | Failed -> // these below never happen because event is only triggerd on success
+            lastErrCount <- -1
             this.Text <- "Fs Checker failed to complete."
             this.Background <- failedCol
     
 
     do     
+        lastErrCount <- -1
         this.Padding <-textPadding
         this.Text <- checkingTxt
         this.Background <- waitCol //originalBackGround 
