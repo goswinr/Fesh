@@ -19,7 +19,10 @@ module Selection =
         {st:int;en:int}
         member s.len = s.en - s.st
          
-    type SelPos = {stp:TextViewPosition ; enp:TextViewPosition; caret:TextViewPosition}
+    type SelPos = 
+        {stp:TextViewPosition ; enp:TextViewPosition; caret:TextViewPosition}
+        
+        member this.LineCount = this.enp.Line - this.stp.Line + 1 
     
     /// ensure first is smaller or equal to second
     let inline sorted a b = if a>b then b,a else a,b
@@ -171,10 +174,9 @@ module RectangleSelection =
 
     let private insert (ed:IEditor, s:SelPos,text:string) =
         let doc = ed.AvaEdit.Document        
-        let visCol = s.stp.VisualColumn
-        let lineK = s.enp.Line - s.stp.Line       
+        let visCol = s.stp.VisualColumn           
         doc.BeginUpdate()
-        if lineK > 1 then 
+        if s.LineCount > 1 then 
             let stOff = doc.GetLineByNumber(s.stp.Line).Offset
             let enOff = doc.GetLineByNumber(s.enp.Line-1).EndOffset
             let len = enOff-stOff
@@ -218,15 +220,14 @@ module RectangleSelection =
         doc.EndUpdate()          
         setNewEmpty (ed.AvaEdit.TextArea, s, visCol + text.Length, false)
       
-    let private replace (ed:IEditor, s:SelPos,text:string)  =
+    let private replace (ed:IEditor, s:SelPos, text:string)  =
         let doc = ed.AvaEdit.Document 
         let minVisCol = s.stp.VisualColumn 
-        let maxVisCol = s.enp.VisualColumn 
-        let lineK = s.enp.Line - s.stp.Line       
+        let maxVisCol = s.enp.VisualColumn             
         doc.BeginUpdate()
-        if lineK > 1 then 
+        if s.LineCount > 1 then 
             let stOff = doc.GetLineByNumber(s.stp.Line).Offset
-            let enOff = doc.GetLineByNumber(s.enp.Line-1).EndOffset//do last line individual to trigger potential autocompletion:
+            let enOff = doc.GetLineByNumber(s.enp.Line-1).EndOffset //do last line individualy to trigger potential autocompletion:
             let len = enOff-stOff
             let txt = doc.GetText(stOff, len)        
             let sb = StringBuilder()       
@@ -281,9 +282,8 @@ module RectangleSelection =
         let maxVisCol = s.enp.VisualColumn 
         let stOff = doc.GetLineByNumber(s.stp.Line).Offset
         let enOff = doc.GetLineByNumber(s.enp.Line-1).EndOffset // -1 to do last line individual to trigger potential autocompletion:
-        let lineK = s.enp.Line - s.stp.Line       
-        doc.BeginUpdate()
-        if lineK > 1 then
+        doc.BeginUpdate()  
+        if s.LineCount > 1 then
             let len = enOff-stOff
             let txt = doc.GetText(stOff, len)        
             let sb = StringBuilder()       
@@ -316,10 +316,9 @@ module RectangleSelection =
         let doc = ed.AvaEdit.Document
         let col = s.stp.VisualColumn 
         let stOff = doc.GetLineByNumber(s.stp.Line).Offset
-        let enOff = doc.GetLineByNumber(s.enp.Line-1).EndOffset // -1 to do last line individual to trigger potential autocompletion:
-        let lineK = s.enp.Line - s.stp.Line       
+        let enOff = doc.GetLineByNumber(s.enp.Line-1).EndOffset // -1 to do last line individual to trigger potential autocompletion: 
         doc.BeginUpdate()
-        if lineK > 1 then
+        if s.LineCount > 1 then            
             let len = enOff-stOff
             let txt = doc.GetText(stOff, len)        
             let sb = StringBuilder()       
@@ -351,10 +350,9 @@ module RectangleSelection =
         let nvcol = vcol - 1
         if vcol > 0 then           
             let stOff = doc.GetLineByNumber(s.stp.Line).Offset
-            let enOff = doc.GetLineByNumber(s.enp.Line-1).EndOffset // -1 to do last line individual to trigger potential autocompletion:
-            let lineK = s.enp.Line - s.stp.Line       
+            let enOff = doc.GetLineByNumber(s.enp.Line-1).EndOffset // -1 to do last line individual to trigger potential autocompletion:                 
             doc.BeginUpdate()
-            if lineK > 1 then
+            if s.LineCount > 1 then
                 let len = enOff-stOff
                 let txt = doc.GetText(stOff, len)        
                 let sb = StringBuilder()       
@@ -379,10 +377,21 @@ module RectangleSelection =
             setNewEmpty (ed.AvaEdit.TextArea, s, nvcol, true)
                 
     
+    /// when block selection is pasted into block selection do line by line 
+    let private pasteLinebyLine (ed:IEditor, fullText:string) =  
+        let lines = fullText.Split('\n') |> Array.map ( fun t -> t.Replace("\r",""))
+        let ta = ed.AvaEdit.TextArea
+        let doc = ed.AvaEdit.Document
+        doc.BeginUpdate()
+        for i,seg in ta.Selection.Segments |> Seq.indexed |> Seq.rev do // do from bottom up so tht the segments are alwas correct, otherwise they would need incrementing too
+            let newTxt = if lines.Length > i then lines.[i] else ""
+            doc.Replace(seg,newTxt)
+        doc.EndUpdate() 
 
-    let expandDown(ed:IEditor) =()
+
+    let expandDown(ed:IEditor) =() //TODO
     
-    let expandUp(ed:IEditor) =() 
+    let expandUp(ed:IEditor) =() //TODO
         
 
 
@@ -405,7 +414,7 @@ module RectangleSelection =
     
     let insertText (ed:IEditor, txt: string) = 
         match txt with 
-        | null | "" | "\x1b" | "\b" -> ()  
+        | null | "" | "\x1b" | "\b" -> ()  // see avalonedit scource
         // ASCII 0x1b = ESC. 
         // also see TextArea.OnTextInput implementation 
         // WPF produces a TextInput event with that old ASCII control char
@@ -420,6 +429,15 @@ module RectangleSelection =
                 insert (ed, s, txt)
             else             
                 replace (ed, s, txt)
+    
+    let paste(ed:IEditor, txt: string, txtIsFromOtherRectSel:bool)=
+        if not txtIsFromOtherRectSel then 
+            insertText (ed, txt)
+        else
+            if not <| txt.Contains("\n") && not <| txt.Contains("\r") then // TODO maybe only do line by line paste if the lines count in selection and text to paste is same or similar ??
+                insertText (ed, txt)  
+            else
+                pasteLinebyLine (ed, txt) 
 
     let complete (ed:IEditor, completionSegment:ISegment, txt:string) =
         let len = completionSegment.Length
