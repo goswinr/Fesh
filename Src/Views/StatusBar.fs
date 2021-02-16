@@ -61,24 +61,24 @@ type CheckerStatus (grid:TabsAndLog) as this =
                     let wak = was.Length
                     if wak > 0 then 
                         was|> Array.sortInPlaceBy (fun e -> e.StartLineAlternate)
-                        this.Text <- sprintf "Compiler warnings: %d from Line:%d" wak was.[0].StartLineAlternate
+                        this.Text <- sprintf " %d compiler warnings, first one on line %d" wak was.[0].StartLineAlternate
                         this.Background <- warnColor 
                     elif erk > 0 then
                         ers|> Array.sortInPlaceBy (fun e -> e.StartLineAlternate)
-                        this.Text <- sprintf "Compiler errors: %d from Line:%d" erk ers.[0].StartLineAlternate
+                        this.Text <- sprintf " %d compiler errors, first one on line: %d" erk ers.[0].StartLineAlternate
                         this.Background <- errColor
                     else
                         ers|> Array.sortInPlaceBy (fun e -> e.StartLineAlternate)
                         was|> Array.sortInPlaceBy (fun e -> e.StartLineAlternate)
-                        this.Text <- sprintf "Compiler errors: %d, warnings: %d from Line:%d" erk wak (min ers.[0].StartLineAlternate was.[0].StartLineAlternate)
+                        this.Text <- sprintf " %d compiler errors, %d warnings, first one on line: %d" erk wak (min ers.[0].StartLineAlternate was.[0].StartLineAlternate)
                         this.Background <- errColor            
                     
                     this.ToolTip <- makePanelVert [                         
                         if erk>0 then       TextBlock(Text="Errors:", FontSize = 14. , FontWeight = FontWeights.Bold )
-                        for e in ers  do    TextBlock(Text = sprintf "• Line %d: %s" e.StartLineAlternate e.Message)
+                        for e in ers  do    TextBlock(Text = sprintf "• line %d: %s" e.StartLineAlternate e.Message)
                         
                         if wak>0 then       TextBlock(Text="Warnings:", FontSize = 14. , FontWeight = FontWeights.Bold )
-                        for w in was do     TextBlock(Text = sprintf "• Line %d: %s" w.StartLineAlternate w.Message) 
+                        for w in was do     TextBlock(Text = sprintf "• line %d: %s" w.StartLineAlternate w.Message) 
 
                         TextBlock(Text = tabs.Current.FormatedFileName, FontSize = 9.)
                         ]        
