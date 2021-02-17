@@ -105,7 +105,7 @@
     <Compile Include="Src/Editor/Checker.fs" />
     <Compile Include="Src/Editor/TypeInfo.fs" />
     <Compile Include="Src/Editor/CodeCompletion.fs" />
-    <Compile Include="Src/Editor/Folding.fs" />
+    <Compile Include="Src\Editor\Foldings.fs" />
     <Compile Include="Src/Editor/SelectedTextTracer.fs" />
     <Compile Include="Src/Editor/BracketColorizer.fs" />
     <Compile Include="Src/Editor/ColumnRulers.fs" />

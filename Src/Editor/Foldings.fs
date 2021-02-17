@@ -22,7 +22,7 @@ type FoldStart = {indent: int; lineEndOff:int; line: int; indexInFolds:int; nest
 [<Struct>]
 type Indent = { indent: int; wordStartOff:int }
 
-type Foldings(ed:TextEditor,checker:Checker,config:Config, edId:Guid) = 
+type Foldings(ed:TextEditor, checker:Checker, config:Config, edId:Guid) = 
     
     
     let maxDepth = 1 // maximum amount of nested foldings 
@@ -205,39 +205,12 @@ type Foldings(ed:TextEditor,checker:Checker,config:Config, edId:Guid) =
         |> Option.defaultWith (fun () -> failwithf "Failed to find Folding.FoldingMargin")
         :?> Folding.FoldingMargin
 
-    member this.ExpandAll() = for f in manager.AllFoldings do f.IsFolded <- false
+    static member ExpandAll(ied:IEditor, config:Config) = 
+        for f in ied.FoldingManager.AllFoldings do 
+            f.IsFolded <- false
+        config.FoldingStatus.Set(ied) // so that they are saved immedeatly
     
-    member this.CollapseAll() = for f in manager.AllFoldings do f.IsFolded <- true
-
-    //static member val private EventIsSetUp = false with get, set // so the event OnFullCodeAvailabe is only attached once to checker
-
-    
-
-    // or walk AST ?
-
-    //let visitDeclarations decls = 
-    //  for declaration in decls do
-    //    match declaration with
-    //    | SynModuleDecl.Let(isRec, bindings, range) ->
-    //        // Let binding as a declaration is similar to let binding
-    //        // as an expression (in visitExpression), but has no body
-    //        for binding in bindings do
-    //          let (Binding(access, kind, inlin, mutabl, attrs, xmlDoc, data, pat, retInfo, body, range, sp)) = binding
-    //          log.PrintfnDebugMsg "Binding: %A  from %d to %d:" kind  range.StartLine range.EndLine             
-    //    | _ -> printfn " - not supported declaration: %A" declaration
-
-    //match parseRes.ParseTree with 
-    //|None -> ()
-    //|Some tree ->  
-    //match tree with
-    //    | ParsedInput.ImplFile(implFile) ->
-    //        // Extract declarations and walk over them
-    //        let (ParsedImplFileInput(fn, script, name, _, _, modulesOrNss, _)) = implFile
-    //        for moduleOrNs in modulesOrNss do
-    //            let (SynModuleOrNamespace(lid, isRec, isMod, decls, xml, attrs, sao, range)) = moduleOrNs
-    //            log.PrintfnDebugMsg "Namespace or module: %A : %A from %d to %d" lid isMod range.StartLine range.EndLine   
-    //            visitDeclarations decls
-    //    | _ -> failwith "F# Interface file (*.fsi) not supported."
-
-
-  
+    static member CollapseAll(ied:IEditor, config:Config) = 
+        for f in ied.FoldingManager.AllFoldings do 
+            f.IsFolded <- true
+        config.FoldingStatus.Set(ied) // so that they are saved immedeatly
