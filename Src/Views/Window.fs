@@ -39,9 +39,9 @@ type Window (config:Config)=
             log.PrintfnAppErrorMsg  "Failed to load Media/LogoCursorTr.ico from Application.ResourceStream : %A" ex 
         //)    
       
-        //----------------------------------------------
+        //-------------------------------------------------------------------------
         // -  all below code is for load and safe window location and size ---
-        //----------------------------------------------
+        //-------------------------------------------------------------------------
         
         if config.Settings.GetBool "WindowIsMax" false then
             win.WindowState <- WindowState.Maximized
@@ -49,19 +49,38 @@ type Window (config:Config)=
             wasMax <- true
         else
             win.WindowStartupLocation <- WindowStartupLocation.Manual
+            let winTop    = config.Settings.GetFloat "WindowTop"    0.0
+            let winLeft   = config.Settings.GetFloat "WindowLeft"   0.0 
+            let winHeight = config.Settings.GetFloat "WindowHeight" 800.0
+            let winWidth  = config.Settings.GetFloat "WindowWidth"  800.0
+
             //let maxW = float <| Array.sumBy (fun (sc:Forms.Screen) -> sc.WorkingArea.Width)  Forms.Screen.AllScreens  // neded for dual screens ?, needs wins.forms
             //let maxH = float <| Array.sumBy (fun (sc:Forms.Screen) -> sc.WorkingArea.Height) Forms.Screen.AllScreens //https://stackoverflow.com/questions/37927011/in-wpf-how-to-shift-a-win-onto-the-screen-if-it-is-off-the-screen/37927012#37927012
-    
-            let maxW = SystemParameters.VirtualScreenWidth   + 8.0
-            let maxH = SystemParameters.VirtualScreenHeight  + 8.0 // somehow a window docked on the right is 7 pix bigger than the screen ??
-            win.Top <-     config.Settings.GetFloat "WindowTop"    0.0
-            win.Left <-    config.Settings.GetFloat "WindowLeft"   0.0 
-            win.Height <-  config.Settings.GetFloat "WindowHeight" 800.0
-            win.Width <-   config.Settings.GetFloat "WindowWidth"  800.0
-            if  win.Top  < -8. || win.Height + win.Top  > maxH || // verify window fits screen (second screen might be off)
-                win.Left < -8. || win.Width  + win.Left > maxW then                    
-                    win.Top <-   0.0 ; win.Height <- 600.0
-                    win.Left <-  0.0 ; win.Width  <- 800.0
+            
+            let offTolerance = 25.0 // beeing 20 pixel off screen is still good enough for beeing on screen and beeing draggable
+
+            let maxW = SystemParameters.VirtualScreenWidth   + offTolerance
+            let maxH = SystemParameters.VirtualScreenHeight  + offTolerance // somehow a window docked on the right is 7 pix bigger than the screen ?? // TODO check dual screens !!
+            
+            win.Top <-     winTop 
+            win.Left <-    winLeft 
+            win.Height <-  winHeight
+            win.Width <-   winWidth
+
+            if  winTop  < -offTolerance || winHeight + winTop  > maxH then 
+                log.PrintfnAppErrorMsg "Could not restore previous Editor Window position:"
+                log.PrintfnAppErrorMsg "winTopPosition: %.1f  + winHeight: %.1f  = %.1f that is bigger than maxH: %.1f + %.1f tolerance" winTop winHeight   ( winHeight + winTop ) SystemParameters.VirtualScreenHeight offTolerance
+                win.WindowStartupLocation <- WindowStartupLocation.CenterScreen                
+                win.Height <- 600.0                
+                win.Width  <- 600.0
+
+            if winLeft < -offTolerance || winWidth  + winLeft > maxW then
+                log.PrintfnAppErrorMsg "Could not restore previous Editor Window position:"
+                log.PrintfnAppErrorMsg "winLeftPosition: %.1f  + winWidth: %.1f = %.1f that is bigger than maxW: %.1f + %.1f tolerance" winLeft winWidth ( winWidth +  winLeft) SystemParameters.VirtualScreenWidth offTolerance
+                win.WindowStartupLocation <- WindowStartupLocation.CenterScreen
+                win.Height <- 600.0                
+                win.Width  <- 600.0
+
 
         win.LocationChanged.Add(fun e -> // occures for every pixel moved
             async{
