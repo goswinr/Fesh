@@ -16,6 +16,7 @@ open System
 open ICSharpCode.AvalonEdit.Document
 open System.Windows.Input
 open ICSharpCode.AvalonEdit.Utils
+open FSharp.Compiler.AbstractIL.Internal.Library
 
 
 
@@ -73,7 +74,7 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
     member val TypeInfoTip = new Controls.ToolTip(IsOpen=false)
     
     // all instances of Editor refer to the same checker instance
-    member this.Checker = checker
+    member this.GlobalChecker = checker
 
     member this.ErrorHighlighter = errorHighlighter    
     member this.Completions = compls
@@ -115,7 +116,7 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
         let ed = Editor(code, config, filePath )
         
         SelectedTextTracer.Setup(ed, config)
-        BracketHighlighter.Setup(ed, ed.Checker)
+        BracketHighlighter.Setup(ed, ed.GlobalChecker)
 
         let avaEdit = ed.AvaEdit
         let compls = ed.Completions
@@ -152,21 +153,23 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
                 match change with             
                 | OtherChange | CompletionWinClosed  | EnteredOneNonIdentifierChar -> //TODO maybe do less call to error highlighter when typing in string or comment ?
                     //log.PrintfnDebugMsg "*1.2-textChanged highlighting for  %A" change
-                    ed.Checker.CkeckHighlightAndFold(ed)
+                    ed.GlobalChecker.CkeckHighlightAndFold(ed)
                     //TODO trigger here UpdateFoldings(tab,None) or use event
 
                 | EnteredOneIdentifierChar | EnteredDot -> 
                     let pos = currentLineBeforeCaret() // this line will include the charcater that trigger auto completion(dot or first letter)
-                    let line = pos.lineToCaret
+                    let lineTxt = pos.lineToCaret
                     
                     //possible cases where autocompletion is not desired:
                     //let isNotInString           = (countChar '"' line ) - (countSubString "\\\"" line) |> isEven && not <| line.Contains "print" // "\\\"" to ignore escaped quotes of form \" ; check if formating string
-                    let isNotAlreadyInComment   = countSubString "//"  line = 0  ||  lastCharIs '/' line   // to make sure comment was not just typed(then still check)
-                    let isNotLetDecl            = let lk = (countSubString "let " line) + (countSubString "let(" line) in lk <= (countSubString "=" line) || lk <= (countSubString ":" line)
+                    let isNotAlreadyInComment   = countSubString "//"  lineTxt = 0  ||  lastCharIs '/' lineTxt   // to make sure comment was not just typed(then still check)
+                    let isNotLetDecl            = let lk = (countSubString "let " lineTxt) + (countSubString "let(" lineTxt) in lk <= (countSubString "=" lineTxt) || lk <= (countSubString ":" lineTxt)
+                    //let isNotMemberDecl         = lineTxt. //TODO check if in Member name declaration
+
                     // TODO add check for "for" declaration
-                    let isNotFunDecl            = let fk = (countSubString "fun " line) + (countSubString "fun(" line) in fk <= (countSubString "->" line)|| fk <= (countSubString ":" line)
+                    let isNotFunDecl            = let fk = (countSubString "fun " lineTxt) + (countSubString "fun(" lineTxt) in fk <= (countSubString "->" lineTxt)|| fk <= (countSubString ":" lineTxt)
                     let doCompletionInPattern, onlyDU   =  
-                        match stringAfterLast " |" (" "+line) with // add starting step to not fail at start of line with "|" //TODO FIX
+                        match stringAfterLast " |" (" " + lineTxt) with // add starting step to not fail at start of line with "|" //TODO FIX
                         |None    -> true,false 
                         |Some "" -> log.PrintfnDebugMsg " log.PrintfnDebugMsg: this schould never happen since we get here only with letters, but not typing '|'" ; false, false // most comen case: '|" was just typed, next pattern declaration starts after next car
                         |Some s  -> 
@@ -185,21 +188,21 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
                     //log.PrintfnDebugMsg "isNotAlreadyInComment:%b; isNotFunDeclaration:%b; isNotLetDeclaration:%b; doCompletionInPattern:%b(, onlyDU:%b)" isNotAlreadyInComment isNotFunDecl isNotLetDecl doCompletionInPattern onlyDU
                 
                     if (*isNotInString &&*) isNotAlreadyInComment && isNotFunDecl && isNotLetDecl && doCompletionInPattern then
-                        let setback     = lastNonFSharpNameCharPosition line                
-                        let query       = line.Substring(line.Length - setback)
+                        let setback     = lastNonFSharpNameCharPosition lineTxt                
+                        let query       = lineTxt.Substring(lineTxt.Length - setback)
                         let isKeyword   = keywords.Contains query
                         //log.PrintfnDebugMsg "pos:%A setback='%d'" pos setback                
                                            
                         let charBeforeQueryDU = 
                             let i = pos.column - setback - 1
-                            if i >= 0 && i < line.Length then 
-                                if line.[i] = '.' then Dot else NotDot
+                            if i >= 0 && i < lineTxt.Length then 
+                                if lineTxt.[i] = '.' then Dot else NotDot
                             else
                                 NotDot
 
                         if charBeforeQueryDU = NotDot && isKeyword then
                             //log.PrintfnDebugMsg "*2.1-textChanged highlighting with: query='%s', charBefore='%A', isKey=%b, setback='%d', line='%s' " query charBeforeQueryDU isKeyword setback line
-                            ed.Checker.CkeckHighlightAndFold(ed)
+                            ed.GlobalChecker.CkeckHighlightAndFold(ed)
 
                         else 
                            
@@ -208,7 +211,7 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
                            Completions.TryShow(ed, compls, pos, change, setback, query, charBeforeQueryDU, onlyDU)
                     else
                         //log.PrintfnDebugMsg "*2.3-textChanged didn't trigger of checker not needed? isNotAlreadyInComment = %b;isNotFunDecl = %b; isNotLetDecl = %b; doCompletionInPattern = %b" isNotAlreadyInComment  isNotFunDecl  isNotLetDecl  doCompletionInPattern
-                        ed.Checker.CkeckHighlightAndFold(ed)
+                        ed.GlobalChecker.CkeckHighlightAndFold(ed)
                         ()
         
 
@@ -271,7 +274,7 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
         avaEdit.Document.Changed.Add(docChanged)
         avaEdit.TextArea.TextEntering.Add (checkIfCompletionWindowShouldClose)
 
-        ed.Checker.OnChecked.Add(fun iEditor -> ed.ErrorHighlighter.Draw(ed)) // this then trigger folding too, statusbar update is added in statusbar
+        ed.GlobalChecker.OnChecked.Add(fun iEditor -> if iEditor.Id = ed.Id then ed.ErrorHighlighter.Draw(ed)) // make sure it is only triggered on current editor!  this then trigger folding too, statusbar update is added in statusbar
         
         compls.OnShowing.Add(fun _ -> ed.ErrorHighlighter.ToolTip.IsOpen <- false)
         compls.OnShowing.Add(fun _ -> ed.TypeInfoTip.IsOpen        <- false)

@@ -240,7 +240,7 @@ type Tabs(config:Config, win:Window) =
             current <- Seq.head allTabs
         
         // then start highligh errors on current only
-        current.Editor.Checker.CkeckHighlightAndFold(current.Editor)  
+        current.Editor.GlobalChecker.CkeckHighlightAndFold(current.Editor)  
         config.RecentlyUsedFiles.Save() 
         config.OpenTabs.Save(current.FilePath , allFileInfos)
 
@@ -264,7 +264,7 @@ type Tabs(config:Config, win:Window) =
                 //log.PrintfnDebugMsg "New current Tab %A " tab.FilePath 
                 if tab.Editor.FileCheckState = FileCheckState.NotStarted then 
                     //log.PrintfnDebugMsg "FileCheckState.NotStarted: starting: %A " tab.FilePath
-                    tab.Editor.Checker.CkeckHighlightAndFold(tab.Editor)  // only actually highglights if editor has needsChecking=true              
+                    tab.Editor.GlobalChecker.CkeckHighlightAndFold(tab.Editor)  // only actually highglights if editor has needsChecking=true              
                 config.OpenTabs.Save(tab.FilePath , allFileInfos)
                 
             )

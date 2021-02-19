@@ -69,7 +69,7 @@ type ISeffLog =
 
     abstract member Clear : unit -> unit
 
-[<CompiledName("ISeffLogModule")>]//don't rename used via reflection in FsEx 
+[<CompiledName("ISeffLogModule")>] //don't rename used via reflection in FsEx.Print
 module ISeffLog = 
 
     /// a refrence to the global single instance of the Log view, will be set immediatly after construction
