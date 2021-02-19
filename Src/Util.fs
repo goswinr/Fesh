@@ -5,6 +5,7 @@ open System.Windows.Media
 open System.IO
 
 
+
 module General =    
 
     (*
@@ -78,13 +79,33 @@ module General =
 module String =
     
     // ensures all lines end on Environment.NewLine
-    // code: s.Replace("\r\n", "\n").Replace("\r", "\n").Replace("\n", Environment.NewLine)
+    // code: StringBuilder(s).Replace("\r\n", "\n").Replace("\r", "\n").Replace("\n", Environment.NewLine).ToString()
     let unifyLineEndings (s:string) =
-        s.Replace("\r\n", "\n").Replace("\r", "\n").Replace("\n", Environment.NewLine)
+        Text.StringBuilder(s).Replace("\r\n", "\n").Replace("\r", "\n").Replace("\n", Environment.NewLine).ToString()
 
     let tabsToSpaces spaces (s:string) = 
         s.Replace("\t", String(' ',spaces))
     
+
+    /// checks if stringToFind is part of stringToSearchIn
+    let inline contains (stringToFind:string) (stringToSearchIn:string) =
+        stringToSearchIn.Contains(stringToFind)
+
+    /// checks if stringToFind is NOT part of stringToSearchIn
+    let inline notContains (stringToFind:string) (stringToSearchIn:string) =
+        not (stringToSearchIn.Contains(stringToFind))
+
+    /// checks if charToFind is part of stringToSearchIn
+    let inline containsChar (charToFind:char) (stringToSearchIn:string) =
+        stringToSearchIn.IndexOf(charToFind) <> -1        
+
+    /// checks if stringToFind is NOT part of stringToSearchIn
+    let inline notContainsChar (charToFind:string) (stringToSearchIn:string) =
+        stringToSearchIn.IndexOf(charToFind) = -1
+
+
+    /// returns true if the last charcter of the string is equal to given char, 
+    /// false on null or empty string
     let lastCharIs char (s:string)= 
         if isNull s then false
         elif s = "" then false
@@ -123,6 +144,8 @@ module String =
             isSpace <- str.[i] = ' '
             i <- i + 1
         isSpace
+
+
 
     /// counts how many time a substring occures in a string 
     let inline countSubString (sub:string) (s:string) =
