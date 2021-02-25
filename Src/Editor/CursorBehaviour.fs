@@ -257,12 +257,14 @@ module CursorBehaviour  =
             match e.Key with  
             
             |Input.Key.Back ->  
+                /// TODO check for modifier keys like Alt or Ctrl ?
                 match getSelType(ed.AvaEdit.TextArea) with 
                 | NoSel ->     backspace4Chars(ed,e)
                 | RectSel ->   RectangleSelection.backspaceKey(ed) ; e.Handled <- true 
                 | RegSel  ->   ()        
        
             |Input.Key.Delete ->                
+                /// TODO check for modifier keys like Alt or Ctrl ?
                 match getSelType(ed.AvaEdit.TextArea) with 
                 | NoSel  ->   deleteTillNonWhite(ed,e)                
                 | RectSel ->  RectangleSelection.deleteKey(ed) ; e.Handled <- true 
@@ -290,6 +292,18 @@ module CursorBehaviour  =
                     else 
                         SwapLines.swapLinesUp(ed)
                         e.Handled <- true
+            
+            | Input.Key.Left -> 
+                if isDown Ctrl && isUp Shift then                
+                    match getSelType(ed.AvaEdit.TextArea) with 
+                    | RegSel ->   if SwapWords.left(ed.AvaEdit) then  e.Handled <- true
+                    | NoSel  | RectSel ->  ()
+            
+            | Input.Key.Right -> 
+                if isDown Ctrl && isUp Shift then                
+                    match getSelType(ed.AvaEdit.TextArea) with 
+                    | RegSel ->   if SwapWords.right(ed.AvaEdit) then  e.Handled <- true
+                    | NoSel  | RectSel ->  ()
 
             | _ -> ()
     
@@ -364,7 +378,7 @@ module CursorBehaviour  =
 
             with er -> ed.Log.PrintfnIOErrorMsg "Drag & Drop in TextArea failed: %A" er
 
-    let TabBarDragAndDrop (log:ISeffLog, openFiles: string[]->bool, e:DragEventArgs) = 
+    let TabBarDragAndDrop (log:ISeffLog, openFiles: string[] -> bool, e:DragEventArgs) = 
         if e.Data.GetDataPresent DataFormats.FileDrop then            
             let isFsx (p:string) = p.EndsWith(".fsx", StringComparison.OrdinalIgnoreCase) ||  p.EndsWith(".fs", StringComparison.OrdinalIgnoreCase)                        
             try                 

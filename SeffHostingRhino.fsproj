@@ -36,11 +36,11 @@
   </PropertyGroup> 
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-    <OutputPath>binHosting/Debug/</OutputPath>
+    <OutputPath>binHostingRhino/Debug/</OutputPath>
   </PropertyGroup> 
   
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-    <OutputPath>binHosting/Release/</OutputPath>
+    <OutputPath>binHostingRhino/Release/</OutputPath>
   </PropertyGroup>
 
 
@@ -89,7 +89,9 @@
     <Compile Include="Src/Fsi.fs" />
     <Compile Include="Src/CompileScript.fs" /> 
     
-    <Compile Include="Src/Editor/Selection.fs" />  
+    <Compile Include="Src/Editor/Selection.fs" />
+    <Compile Include="Src/Editor/RectangleSelection.fs" />
+    <Compile Include="Src/Editor/SwapWords.fs" />  
     <Compile Include="Src/Editor/Commenting.fs" />
     <Compile Include="Src/Editor/DocStringNew.fs" />
     <Compile Include="Src/Editor/DocString.fs" />

@@ -56,7 +56,7 @@ module Formating =
                     let diff = maxOff - foundPos
                     if diff>0 && foundPos>0 then 
                         //ed.Log.PrintfnAppErrorMsg " insert:%d spaces at max (from %d ,  pos %d)" diff from p
-                        sb.Insert(max serachFrom foundPos,String(' ', diff)) |> ignore 
+                        sb.Insert(max serachFrom foundPos,String(' ', diff)) |> ignoreObj 
                     //else ed.Log.PrintfnFsiErrorMsg " NO insert:%d spaces at max (from %d ,  pos %d)" diff from p
 
                 serachFrom <- maxOff

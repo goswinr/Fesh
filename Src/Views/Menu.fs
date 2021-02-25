@@ -131,7 +131,10 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, log:Log) =
                 menuItem cmds.AlignCode
                 ]
             MenuItem(Header = "_Select"),[ 
-                menuItem cmds.SelectLine  ]
+                menuItem cmds.SelectLine 
+                menuItem cmds.SwapWordLeft
+                menuItem cmds.SwapWordRight  
+                ]
             MenuItem(Header = "_BoxSelect", ToolTip="Create a Box Selection by \r\n holding down the Alt key while selecting \r\n or pressing the middle mouse button."),[                 
                 menuItem cmds.BoxSelLeftByCharacter   
                 menuItem cmds.BoxSelRightByCharacter
@@ -143,7 +146,8 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, log:Log) =
                 menuItem cmds.BoxSelDownByLine        
                 sep()
                 menuItem cmds.BoxSelToLineStart       
-                menuItem cmds.BoxSelToLineEnd ]
+                menuItem cmds.BoxSelToLineEnd 
+                ]
             MenuItem(Header = "F_SI", ToolTip="FSharp Interactive code evaluation"),[ 
                 menuItem cmds.RunAllText        
                 menuItem cmds.RunAllTextSave

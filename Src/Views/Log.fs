@@ -274,7 +274,7 @@ type Log private () =
     let stopWatch = Stopwatch.StartNew()
     let buffer =  new StringBuilder()
     let mutable docLength = 0  //to be able to have the doc length async
-    let maxCharsInLog = 199_000 // about 2k lines with 100 chars each
+    let maxCharsInLog = 512_000 // about 5k lines with 100 chars each
     let mutable stillLessThanMaxChars = true
 
     let getBufferText () =

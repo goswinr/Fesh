@@ -56,7 +56,7 @@ module GlobalErrorHandeling =
                     if throwCount < maxThrowCount then // reduce printing to Log UI, it might crash from printing too much
                         throwCount <- throwCount + 1                
                         if e <> null then 
-                            log.PrintfnAppErrorMsg "Application.Current.DispatcherUnhandledException in main Thread: %A" e.Exception           
+                            log.PrintfnAppErrorMsg "Application.Current.DispatcherUnhandledException in main Thread:\r\n%A" e.Exception           
                             e.Handled<- true
                         else
                             log.PrintfnAppErrorMsg "Application.Current.DispatcherUnhandledException in main Thread: *null* Exception Obejct"

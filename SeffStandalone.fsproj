@@ -96,7 +96,9 @@
     <Compile Include="Src/Fsi.fs" />    
     <Compile Include="Src/CompileScript.fs" />
 
-    <Compile Include="Src/Editor/Selection.fs" />     
+    <Compile Include="Src/Editor/Selection.fs" />
+    <Compile Include="Src/Editor/RectangleSelection.fs" />
+    <Compile Include="Src/Editor/SwapWords.fs" />     
     <Compile Include="Src/Editor/Commenting.fs" />
     <Compile Include="Src/Editor/DocStringNew.fs" />
     <Compile Include="Src/Editor/DocString.fs" />
@@ -105,7 +107,7 @@
     <Compile Include="Src/Editor/Checker.fs" />
     <Compile Include="Src/Editor/TypeInfo.fs" />
     <Compile Include="Src/Editor/CodeCompletion.fs" />
-    <Compile Include="Src\Editor\Foldings.fs" />
+    <Compile Include="Src/Editor/Foldings.fs" />
     <Compile Include="Src/Editor/SelectedTextTracer.fs" />
     <Compile Include="Src/Editor/BracketColorizer.fs" />
     <Compile Include="Src/Editor/ColumnRulers.fs" />

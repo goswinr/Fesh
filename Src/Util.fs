@@ -4,6 +4,16 @@ open System
 open System.Windows.Media
 open System.IO
 
+[<AutoOpen>]
+module Global =
+    /// This ignore only work on Value types, 
+    /// Objects and functions need to be ignored with 'ignoreObj'
+    /// This is to prevent accidetially ignoring partially aplied functions that would return struct
+    let inline ignore (x:'T when 'T: struct) = ()
+
+    /// Ignores any object (and struct)
+    /// For structs use 'ignore'
+    let inline ignoreObj (x:obj) = ()
 
 
 module General =    

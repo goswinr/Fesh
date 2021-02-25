@@ -137,8 +137,8 @@ module CompileScript =
                 let nameSpace = name |> toCamelCase |> up1
                 let projFolder = IO.Path.Combine(fi.DirectoryName,name) 
                 let libFolder = if copyDlls then IO.Path.Combine(projFolder,libFolderName) else "" 
-                if libFolder<>"" then  IO.Directory.CreateDirectory(libFolder)  |> ignore 
-                IO.Directory.CreateDirectory(projFolder)  |> ignore            
+                if libFolder<>"" then  IO.Directory.CreateDirectory(libFolder)  |> ignoreObj 
+                IO.Directory.CreateDirectory(projFolder)  |> ignoreObj            
                 let fsProj = IO.Path.Combine(projFolder,nameSpace + ".fsproj")
                 if overWriteExisting fsProj then 
                     let fsxName = nameSpace + ".fsx"

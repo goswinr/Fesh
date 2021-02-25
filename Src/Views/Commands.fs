@@ -42,11 +42,14 @@ type Commands (grid:TabsAndLog)  =
     let isLse a  = log.ReadOnlyEditor.SelectionLength > 0
     let isAsy a  = fsi.State = Evaluating && fsi.Mode = Async
 
-  
+    // NOTE :--------------------------------------------------------------------
+    // some more gestures and selection depending  ovewrites  are defined in CursorBehaviour.previewKeyDown
+    // NOTE :--------------------------------------------------------------------
+
     // File menu:                                                                          
     member val NewTab            = {name= "New File"                  ;gesture= "Ctrl + N"       ;cmd= mkCmdSimple (fun _ -> tabs.AddTab(new Tab(Editor.New(config)),true))      ;tip= "Create a new script file."                                                       }
     member val OpenFile          = {name= "Open File"                 ;gesture= "Ctrl + O"       ;cmd= mkCmdSimple (fun _ -> tabs.OpenFile())                                    ;tip= "Open a script file."                                                             }
-    member val OpenTemplateFile  = {name= "Edit Template File"        ;gesture= ""               ;cmd= mkCmdSimple (fun _ -> tabs.AddFile(config.DefaultCode.FileInfo,true)|>ignore)     ;tip= "Opens the template file that is used when creating a New File ( Ctrl + N)."      }
+    member val OpenTemplateFile  = {name= "Edit Template File"        ;gesture= ""               ;cmd= mkCmdSimple (fun _ -> tabs.AddFile(config.DefaultCode.FileInfo,true)|> ignore)     ;tip= "Opens the template file that is used when creating a New File ( Ctrl + N)."      }
     member val Save              = {name= "Save"                      ;gesture= "Ctrl + S"       ;cmd= mkCmdSimple (fun _ -> tabs.Save(tabs.Current) |> ignore )                 ;tip= "Saves the file. Shows a dialog only if the open file does not exist anymore."    }
     member val Export            = {name= "Export"                    ;gesture= ""               ;cmd= mkCmdSimple (fun _ -> tabs.Export(tabs.Current) |> ignore)                ;tip= "Shows a dialog to export the file at a new path or name. But keeps the file open at previous location."                          }
     member val SaveAs            = {name= "Save As"                   ;gesture= "Ctrl + Alt + S" ;cmd= mkCmdSimple (fun _ -> tabs.SaveAs(tabs.Current) |> ignore)                ;tip= "Shows a dialog to save the file at a new path or name." }
@@ -63,7 +66,7 @@ type Commands (grid:TabsAndLog)  =
     //member val ToggleComment     = {name= "Toggle Comment"            ;gesture= "Ctrl + T"       ;cmd= mkCmdSimple (fun _ -> Commenting.toggleComment tabs.CurrAvaEdit)          ;tip= "Swaps commented and not commented lines"           }                                                                                     
     member val ToggleComment2    = {name= "Toggle Comment"            ;gesture= "Ctrl + /"       ;cmd= mkCmdSimple (fun _ -> Commenting.toggleComment tabs.CurrAvaEdit)          ;tip= "Swaps commented and not commented lines"           }                                                                                     
     
-    member val SwapLineUp        = {name= "Swap Line Up"             ;gesture= "Alt + Up"        ;cmd=mkCmdSimple (fun _ -> SwapLines.swapLinesUp  (tabs.Current.Editor)) ;tip= "Swap the current line(s) with the previous line."                                     }                                                                                     
+    member val SwapLineUp        = {name= "Swap Line Up"              ;gesture= "Alt + Up"        ;cmd=mkCmdSimple (fun _ -> SwapLines.swapLinesUp  (tabs.Current.Editor)) ;tip= "Swap the current line(s) with the previous line."                                     }                                                                                     
     member val SwapLineUpCtrl    = {name= "Swap Line Up"              ;gesture= "Ctrl + Up"      ;cmd=mkCmdSimple (fun _ -> SwapLines.swapLinesUp  (tabs.Current.Editor)) ;tip= "Swap the current line(s) with the previous line.'Alt + Up' is also a shortcut for this." } // extra because Alt Down fails in Rhino                                                                                 
     member val SwapLineDown      = {name= "Swap Line Down"            ;gesture= "Alt + Down"     ;cmd=mkCmdSimple (fun _ -> SwapLines.swapLinesDown(tabs.Current.Editor)) ;tip= "Swap the current line(s) with the next line."                                         } 
     member val SwapLineDownCtrl  = {name= "Swap Line Down"            ;gesture= "Ctrl + Down"    ;cmd=mkCmdSimple (fun _ -> SwapLines.swapLinesDown(tabs.Current.Editor)) ;tip= "Swap the current line(s) with the next line. 'Alt + Down' is also a shortcut for this."  } // extra because Alt Down fails in Rhino
@@ -78,6 +81,10 @@ type Commands (grid:TabsAndLog)  =
                                                                                                                                              
     //Select menu:                                                                                                                               
     member val SelectLine        = {name= "Select Current Line"       ;gesture= "Ctrl  + L"      ;cmd= mkCmdSimple (fun _ -> expandSelectionToFullLines(tabs.CurrAvaEdit) |> ignore )  ;tip= "Select current line"} // TODO compare VSCODE shortcuts to  see https://github.com/icsharpcode/SharpDevelop/wiki/Keyboard-Shortcuts
+    member val SwapWordLeft      = {name= "Swap selected word left"   ;gesture= "Ctrl  + Left"   ;cmd= mkCmdSimple (fun _ -> SwapWords.left  tabs.CurrAvaEdit|> ignore )  ;tip= "Swaps the currently selected word with the word on the left. A word may include any letter, digit, underscore or dot. "} 
+    member val SwapWordRight     = {name= "Swap selected word right"  ;gesture= "Ctrl  + Right"  ;cmd= mkCmdSimple (fun _ -> SwapWords.right tabs.CurrAvaEdit|> ignore )  ;tip= "Swaps the currently selected word with the word on the right. A word may include any letter, digit, underscore or dot. "} 
+     
+    
     //member val SelectLinesUp      ={name= "Select Lines Upwards"      ;gesture= "Shift + Up"     ;cmd= mkCmdSimple (fun _ ->                                                           ;tip= "Not implemented yet"}
     //member val SelectLinesDown    ={name= "Select Lines Downwards"    ;gesture= "Shift + Down"   ;cmd= mkCmdSimple (fun _ ->                                                           ;tip= "Not implemented yet"} //TODO!   
                                                                                                                                          
@@ -113,22 +120,22 @@ type Commands (grid:TabsAndLog)  =
     //--------------------------
     // Built in Commands from Avalonedit (listed as functiosn so the can be created more than once( eg for menu; and context menu)
     //----------------------------
-    member val Copy      ={name= "Copy"     ;gesture=  "Ctrl + C"     ;cmd= ApplicationCommands.Copy   ; tip= "Copy selected text\r\nOr full current line if nothing is selceted." }
-    member val Cut       ={name= "Cut"      ;gesture=  "Ctrl + X"     ;cmd= ApplicationCommands.Cut    ; tip= "Cut selected text\r\nOr full current line if nothing is selceted."  }                       
-    member val Paste     ={name= "Paste"    ;gesture=  "Ctrl + V"     ;cmd= ApplicationCommands.Paste  ; tip= "Insert text from Clipboard."                                        }                     
-    member val UnDo      ={name= "UnDo"     ;gesture=  "Ctrl + Z"     ;cmd= ApplicationCommands.Undo   ; tip= "Undo last edit."                                                    }                      
-    member val ReDo      ={name= "ReDo"     ;gesture=  "Ctrl + Y"     ;cmd= ApplicationCommands.Redo   ; tip= "Undo last undo."                                                    }                      
-    member val Find      ={name= "Find"     ;gesture=  "Ctrl + F"     ;cmd= ApplicationCommands.Find   ; tip= "Find text of current selection."                                    }                      
-    member val Replace   ={name= "Replace"  ;gesture=  "Ctrl + H"     ;cmd= ApplicationCommands.Replace; tip= "Find and replace text of current selection."                        }   
+    member val Copy      = {name= "Copy"     ;gesture=  "Ctrl + C"     ;cmd= ApplicationCommands.Copy   ; tip= "Copy selected text\r\nOr full current line if nothing is selceted." }
+    member val Cut       = {name= "Cut"      ;gesture=  "Ctrl + X"     ;cmd= ApplicationCommands.Cut    ; tip= "Cut selected text\r\nOr full current line if nothing is selceted."  }                       
+    member val Paste     = {name= "Paste"    ;gesture=  "Ctrl + V"     ;cmd= ApplicationCommands.Paste  ; tip= "Insert text from Clipboard."                                        }                     
+    member val UnDo      = {name= "UnDo"     ;gesture=  "Ctrl + Z"     ;cmd= ApplicationCommands.Undo   ; tip= "Undo last edit."                                                    }                      
+    member val ReDo      = {name= "ReDo"     ;gesture=  "Ctrl + Y"     ;cmd= ApplicationCommands.Redo   ; tip= "Undo last undo."                                                    }                      
+    member val Find      = {name= "Find"     ;gesture=  "Ctrl + F"     ;cmd= ApplicationCommands.Find   ; tip= "Find text of current selection."                                    }                      
+    member val Replace   = {name= "Replace"  ;gesture=  "Ctrl + H"     ;cmd= ApplicationCommands.Replace; tip= "Find and replace text of current selection."                        }   
     
-    member val BoxSelLeftByCharacter  ={name= "Box Select Left By Character"  ;gesture=  "Alt + Shift + Left"       ;cmd= RectangleSelection.BoxSelectLeftByCharacter  ; tip= "Expands the selection left by one character; creating a rectangular selection."     }  
-    member val BoxSelRightByCharacter ={name= "Box Select Right By Character" ;gesture= "Alt + Shift + Right"       ;cmd= RectangleSelection.BoxSelectRightByCharacter ; tip= "Expands the selection right by one character; creating a rectangular selection."    }  
-    member val BoxSelLeftByWord       ={name= "Box Select Left By Word"       ;gesture= "Ctrl + Alt + Shift + Left" ;cmd= RectangleSelection.BoxSelectLeftByWord       ; tip= "Expands the selection left by one word; creating a rectangular selection."          }        
-    member val BoxSelRightByWord      ={name= "Box Select Right By Word"      ;gesture= "Ctrl + Alt + Shift + Right";cmd= RectangleSelection.BoxSelectRightByWord      ; tip= "Expands the selection right by one word; creating a rectangular selection."         }       
-    member val BoxSelUpByLine         ={name= "Box Select Up By Line"         ;gesture= "Alt + Shift + Up"          ;cmd= RectangleSelection.BoxSelectUpByLine         ; tip= "Expands the selection up by one line; creating a rectangular selection."            }          
-    member val BoxSelDownByLine       ={name= "Box Select Down By Line"       ;gesture= "Alt + Shift + Down"        ;cmd= RectangleSelection.BoxSelectDownByLine       ; tip= "Expands the selection down by one line; creating a rectangular selection."          }        
-    member val BoxSelToLineStart      ={name= "Box Select To Line Start"      ;gesture= "Alt + Shift + Home"        ;cmd= RectangleSelection.BoxSelectToLineStart      ; tip= "Expands the selection to the start of the line; creating a rectangular selection."  }       
-    member val BoxSelToLineEnd        ={name= "Box Select To Line End"        ;gesture= "Alt + Shift + End"         ;cmd= RectangleSelection.BoxSelectToLineEnd        ; tip= "Expands the selection to the end of the line; creating a rectangular selection."    }  
+    member val BoxSelLeftByCharacter  = {name= "Box Select Left By Character"  ;gesture=  "Alt + Shift + Left"       ;cmd= RectangleSelection.BoxSelectLeftByCharacter  ; tip= "Expands the selection left by one character; creating a rectangular selection."     }  
+    member val BoxSelRightByCharacter = {name= "Box Select Right By Character" ;gesture= "Alt + Shift + Right"       ;cmd= RectangleSelection.BoxSelectRightByCharacter ; tip= "Expands the selection right by one character; creating a rectangular selection."    }  
+    member val BoxSelLeftByWord       = {name= "Box Select Left By Word"       ;gesture= "Ctrl + Alt + Shift + Left" ;cmd= RectangleSelection.BoxSelectLeftByWord       ; tip= "Expands the selection left by one word; creating a rectangular selection."          }        
+    member val BoxSelRightByWord      = {name= "Box Select Right By Word"      ;gesture= "Ctrl + Alt + Shift + Right";cmd= RectangleSelection.BoxSelectRightByWord      ; tip= "Expands the selection right by one word; creating a rectangular selection."         }       
+    member val BoxSelUpByLine         = {name= "Box Select Up By Line"         ;gesture= "Alt + Shift + Up"          ;cmd= RectangleSelection.BoxSelectUpByLine         ; tip= "Expands the selection up by one line; creating a rectangular selection."            }          
+    member val BoxSelDownByLine       = {name= "Box Select Down By Line"       ;gesture= "Alt + Shift + Down"        ;cmd= RectangleSelection.BoxSelectDownByLine       ; tip= "Expands the selection down by one line; creating a rectangular selection."          }        
+    member val BoxSelToLineStart      = {name= "Box Select To Line Start"      ;gesture= "Alt + Shift + Home"        ;cmd= RectangleSelection.BoxSelectToLineStart      ; tip= "Expands the selection to the start of the line; creating a rectangular selection."  }       
+    member val BoxSelToLineEnd        = {name= "Box Select To Line End"        ;gesture= "Alt + Shift + End"         ;cmd= RectangleSelection.BoxSelectToLineEnd        ; tip= "Expands the selection to the end of the line; creating a rectangular selection."    }  
 
    // TODO add  all built in  DocmentNavigatin shortcuts
    
@@ -137,6 +144,10 @@ type Commands (grid:TabsAndLog)  =
     /// exluding the ones already provided by avalonedit
     member this.SetUpGestureInputBindings () =         
             
+            // NOTE :--------------------------------------------------------------------
+            // some more gestures and selection depending  ovewrites  are defined in CursorBehaviour.previewKeyDown
+            // NOTE :--------------------------------------------------------------------
+
             let allCustomCommands = [  //for seting up Key gestures below, exluding the ones already provided by avalonedit
                  this.NewTab           
                  this.OpenFile         
@@ -158,13 +169,15 @@ type Commands (grid:TabsAndLog)  =
                  this.AlignCode
 
                  this.SwapLineDown     
-                 this.SwapLineDownCtrl // key gesture handeled via previewKeyDown evemt in CyrsorBehaviour
                  this.SwapLineUp 
-                 this.SwapLineUpCtrl  // key gesture handeled via previewKeyDown evemt in CyrsorBehaviour
-
-                 this.SelectLine       
-                 //this.SelectLinesUp  
-                 //this.SelectLinesDown
+                 //this.SwapLineDownCtrl // key gesture handeled via previewKeyDown event in CursorBehaviour module
+                 //this.SwapLineUpCtrl  // key gesture handeled via previewKeyDown event in CursorBehaviour module
+                 
+                 this.SelectLine
+                 //this.SwapWordLeft // key gesture handeled via previewKeyDown event in CursorBehaviour module
+                 //this.SwapWordRight // key gesture handeled via previewKeyDown event in CursorBehaviour module
+                 //this.SelectLinesUp  // not implemnted
+                 //this.SelectLinesDown // not implemnted
                             
                  this.RunAllText       
                  this.RunAllTextSave 
