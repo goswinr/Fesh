@@ -9,9 +9,12 @@ open Seff.Config
 open System.Collections.Generic
 open Seff.Util
 open System.Windows
+open System.Collections.Generic
 
 
 type HeaderGestureTooltip = {header:string; gesture:string; toolTip:string}
+
+
 
 type Menu (config:Config,cmds:Commands, tabs:Tabs, log:Log) = 
     let bar = new Windows.Controls.Menu()
@@ -32,45 +35,44 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, log:Log) =
     
     let setRecentFiles()=
         async{            
-            let ufs = 
-                config.RecentlyUsedFiles.GetUniqueExistingSorted()               
+            let usedFiles = 
+                config.RecentlyUsedFiles.GetUniqueExistingSorted()     //youngest file is first       
                 |> Seq.truncate maxFilesInRecentMenu
                 |> Seq.toArray
             
-            let savetimes = 
-                ufs
-                |> Array.map ( fun uf -> uf.fileInfo.LastWriteTime) // get stil async
-            
+                       
             do! Async.SwitchToContext Sync.syncContext
             
             ///first clear
             while fileMenu.Items.Count > recentFilesInsertPosition do 
                 fileMenu.Items.RemoveAt recentFilesInsertPosition            
-
-
-            let now  = DateTime.Now.DayOfYear
-            let year = DateTime.Now.Year
-            let mutable today  = false
-            let mutable yester = false
-            let mutable week   = false
-            let mutable month  = false
-            let mutable older  = false
-
+            
+            let HeaderIsIn=HashSet()
+            
+            //create time separator if not existing yet
             let tb(s) = 
-                let tb = TextBlock (Text= "          - " + s + " -", FontWeight = FontWeights.Bold)                
-                let mi = MenuItem (Header = tb )
-                fileMenu.Items.Add( mi)  |> ignore 
+                if not<| HeaderIsIn.Contains s then // so that haeader appears only once
+                    HeaderIsIn.Add s  |> ignore 
+                    let tb = TextBlock (Text= "          - " + s + " -", FontWeight = FontWeights.Bold)                
+                    let mi = MenuItem (Header = tb )
+                    mi.Focusable <- false // to not highlight it ?                
+                    fileMenu.Items.Add( mi)  |> ignore  
 
             // then insert all again
-            for uf,savetime  in Seq.zip ufs savetimes do                
-                let d = uf.date.DayOfYear
-                let y = uf.date.Year
+            let now = DateTime.Now
+            let today = now.DayOfYear
+            let thisYear = now.Year
+            for uf in usedFiles  do       //must be ordered ,youngest file must be first             
+                let lol = uf.lastOpendUtc.ToLocalTime()
                 
-                if   y=year && d     = now &&              not today  then tb "last used today";       today <- true
-                elif y=year && d+1   = now &&              not yester then tb "yesterday";  yester <- true
-                elif y=year && d+7  >= now && d+1 < now && not week   then tb "this week" ;   week <- true
-                elif y=year && d+31 >= now && d+7 < now && not week   then tb "this month";  month <- true                  
-                elif  now > d+31                        && not older  then tb "older";       older <- true  
+                if   lol.Year = thisYear && lol.DayOfYear >= today      then tb "last used today"
+                elif lol.Year = thisYear && lol.DayOfYear  = today - 1  then tb "yesterday"
+                else
+                    let age = now - uf.lastOpendUtc
+                    if   age < TimeSpan.FromDays(7.0)  then  tb "up to a week ago"
+                    elif age < TimeSpan.FromDays(31.0) then  tb "up to a month ago"
+                    elif age < TimeSpan.FromDays(365.0) then tb "up to a year ago"
+                    else                                     tb "older"
               
                 let openCom  = mkCmdSimple ( fun a -> tabs.AddFile(uf.fileInfo, true)  |> ignore ) 
                 let header = // include last two parent directories
@@ -79,11 +81,13 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, log:Log) =
                     else "...\\ " + (ps |> Array.rev |> Seq.truncate 3 |> Seq.rev |> String.concat " \\ " ) // partial path
                 let tt = 
                     uf.fileInfo.FullName 
-                    + "\r\nlast  used: " + uf.date.ToString("yyyy-MM-dd HH:mm")
-                    + "\r\nlast saved: " + savetime.ToString("yyyy-MM-dd HH:mm")
+                    + "\r\nlast opend: " + uf.lastOpendUtc.ToString("yyyy-MM-dd HH:mm") + " (used for sorting in this menu)"
+                    + "\r\nlast saved: " + uf.fileInfo.LastWriteTime.ToString("yyyy-MM-dd HH:mm") 
                 let mi = MenuItem (Header = new TextBlock (Text = header), ToolTip=tt, Command = openCom) // wrap in textblock to avoid Mnemonics (alt key access at underscore)
                 fileMenu.Items.Add(mi) |> ignore 
-              
+
+
+
                 
         } |> Async.Start
 

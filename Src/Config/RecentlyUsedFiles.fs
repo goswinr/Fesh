@@ -9,7 +9,7 @@ open System.Collections.ObjectModel
 open System.Globalization
 open FSharp.Compiler.AbstractIL.Internal.Library
 
-type UsedFile = {fileInfo:FileInfo ; date:DateTime}
+type UsedFile = {fileInfo:FileInfo ; lastOpendUtc:DateTime}
    
 type RecentlyUsedFiles  (log:ISeffLog, hostInfo:Hosting) =
     let writer = SaveWriter(log)
@@ -26,9 +26,9 @@ type RecentlyUsedFiles  (log:ISeffLog, hostInfo:Hosting) =
             //if IO.File.Exists filePath then // do this check only when creating menu items
             for ln in  IO.File.ReadAllLines filePath |> Seq.rev do
                 let path , d = Util.String.splitOnce "|" ln                
-                match DateTime.TryParseExact(d, "yyyy-MM-dd HH:mm", null,  DateTimeStyles.None) with
-                | true, date -> stack.Push( {fileInfo=FileInfo(path) ; date=date}) |> ignore  
-                | _ ->          stack.Push( {fileInfo=FileInfo(path) ; date=DateTime.MinValue}) |> ignore 
+                match DateTime.TryParseExact(d, "yyyy-MM-dd HH:mm", null,  DateTimeStyles.None) with // TODO is this UTC ?
+                | true, date -> stack.Push( {fileInfo = FileInfo(path) ; lastOpendUtc = date}) |> ignore  
+                | _ ->          stack.Push( {fileInfo = FileInfo(path) ; lastOpendUtc = DateTime.MinValue}) |> ignore 
                                   
         with e -> 
             log.PrintfnInfoMsg "No recently used files found. (This is expected on first use of the App)"  
@@ -49,7 +49,7 @@ type RecentlyUsedFiles  (log:ISeffLog, hostInfo:Hosting) =
             incr k
             if !k < maxCount then 
                 if not <| Dup.Contains uf.fileInfo.FullName then 
-                    let date = uf.date.ToString("yyyy-MM-dd HH:mm")
+                    let date = uf.lastOpendUtc.ToString("yyyy-MM-dd HH:mm")
                     let file = uf.fileInfo.FullName
                     sb.AppendLine(file + "|" + date)  |> ignore
                     Dup.Add uf.fileInfo.FullName  |> ignore 
@@ -58,14 +58,14 @@ type RecentlyUsedFiles  (log:ISeffLog, hostInfo:Hosting) =
         sb.ToString()    
 
     
-      /// does not save 
+    /// does not save 
     member this.Add(fi:FileInfo) =         
         if recentFilesStack.Count = 0  then 
-            recentFilesStack.Push {fileInfo=fi ; date=DateTime.Now }
+            recentFilesStack.Push {fileInfo=fi ; lastOpendUtc=DateTime.UtcNow }
         else
             if recentFilesStack.Peek().fileInfo.FullName = fi.FullName then 
                 recentFilesStack.Pop()  |> ignore // pop old date add new date
-            recentFilesStack.Push {fileInfo=fi ; date=DateTime.Now }   
+            recentFilesStack.Push {fileInfo=fi ; lastOpendUtc=DateTime.UtcNow }   
     
     member this.Save() =         
         writer.WriteDelayed(filePath, getStringRaiseEvent, 500)
@@ -88,7 +88,7 @@ type RecentlyUsedFiles  (log:ISeffLog, hostInfo:Hosting) =
                 if File.Exists lc then // async is done in Menu.setRecentFiles()
                     xs.Add uf
         
-        xs |> Util.General.sortInPlaceBy ( fun uf -> uf.date)
+        xs |> Util.General.sortInPlaceBy ( fun uf -> uf.lastOpendUtc)
         xs.Reverse()
         xs                    
         

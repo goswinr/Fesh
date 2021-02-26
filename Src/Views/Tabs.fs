@@ -345,6 +345,8 @@ type Tabs(config:Config, win:Window) =
             log.PrintfnIOErrorMsg "can't Save Incrementing unsaved file"  
             this.SaveAs(t)
    
+    /// will display a dialog if there are unsaved files.
+    /// if user clicks yes it will attempt to save files.
     /// returns true if all files are saved or unsaved changes are ignored (closing not canceled by user).
     member this.AskIfClosingWindowIsOk()=             
         let openFs = allTabs |> Seq.filter (fun t -> not t.IsCodeSaved) 
@@ -357,8 +359,8 @@ type Tabs(config:Config, win:Window) =
                 sprintf "%s\r\n\r\n%s" m name) "Do you want to\r\nsave the changes to:" 
             match MessageBox.Show(msg, Style.dialogCaption, MessageBoxButton.YesNoCancel, MessageBoxImage.Question) with
             | MessageBoxResult.Yes -> 
-                let OKs = seq { for t in allTabs do if not t.IsCodeSaved then yield this.Save t }// if saving was canceled cancel closing
-                if Seq.exists ( fun OK -> OK = false) OKs then false else true // iterate unsafed files, if one file saving was canceled abort the closing of the main window                 
+                let OKs = seq { for t in allTabs do if not t.IsCodeSaved then yield this.Save t } // if saving was canceled ( eg, no filename picked) then cancel closing
+                if Seq.exists ( fun OK -> OK = false) OKs then false else true // iterate unsafed files, if one file saving was canceled retrun false,  so the closing of the main window can be aborted                
             | MessageBoxResult.No  -> true
             | _                    -> false 
     
