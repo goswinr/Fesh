@@ -15,7 +15,6 @@ open System.Collections.Generic
 type HeaderGestureTooltip = {header:string; gesture:string; toolTip:string}
 
 
-
 type Menu (config:Config,cmds:Commands, tabs:Tabs, log:Log) = 
     let bar = new Windows.Controls.Menu()
     
@@ -23,11 +22,13 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, log:Log) =
     let fileMenu = MenuItem(Header = "_File")                                                                        
    
     
-    // TODO add  all built in  DocmentNavigatin shortcuts
-    let maxFilesInRecentMenu = 30
+    // TODO add all built in  DocmentNavigatin shortcuts
+    let maxFilesInRecentMenu = 40
 
     let mutable recentFilesInsertPosition = 0
+    
     let sep() = Separator():> Control    
+    
     let item (ngc: string * string * #ICommand * string) = 
         let n,g,c,tt = ngc
         MenuItem(Header = n, InputGestureText = g, ToolTip = tt, Command = c):> Control
@@ -65,6 +66,7 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, log:Log) =
             for uf in usedFiles  do       //must be ordered ,youngest file must be first             
                 let lol = uf.lastOpendUtc.ToLocalTime()
                 
+                //create time separator if not existing yet:
                 if   lol.Year = thisYear && lol.DayOfYear >= today      then tb "last used today"
                 elif lol.Year = thisYear && lol.DayOfYear  = today - 1  then tb "yesterday"
                 else
@@ -73,7 +75,8 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, log:Log) =
                     elif age < TimeSpan.FromDays(31.0) then  tb "up to a month ago"
                     elif age < TimeSpan.FromDays(365.0) then tb "up to a year ago"
                     else                                     tb "older"
-              
+                
+                // create menu item:
                 let openCom  = mkCmdSimple ( fun a -> tabs.AddFile(uf.fileInfo, true)  |> ignore ) 
                 let header = // include last two parent directories
                     let ps = General.pathParts uf.fileInfo 
@@ -85,8 +88,6 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, log:Log) =
                     + "\r\nlast saved: " + uf.fileInfo.LastWriteTime.ToString("yyyy-MM-dd HH:mm") 
                 let mi = MenuItem (Header = new TextBlock (Text = header), ToolTip=tt, Command = openCom) // wrap in textblock to avoid Mnemonics (alt key access at underscore)
                 fileMenu.Items.Add(mi) |> ignore 
-
-
 
                 
         } |> Async.Start

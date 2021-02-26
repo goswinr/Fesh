@@ -45,14 +45,14 @@ type RecentlyUsedFiles  (log:ISeffLog, hostInfo:Hosting) =
         let sb = StringBuilder()
         let Dup = Collections.Generic.HashSet()
         let k = ref 0
-        for uf in recentFilesStack  do   // iteration starts at top element of stack
-            incr k
+        for uf in recentFilesStack  do   // iteration starts at top element of stack            
             if !k < maxCount then 
                 if not <| Dup.Contains uf.fileInfo.FullName then 
                     let date = uf.lastOpendUtc.ToString("yyyy-MM-dd HH:mm")
                     let file = uf.fileInfo.FullName
                     sb.AppendLine(file + "|" + date)  |> ignore
-                    Dup.Add uf.fileInfo.FullName  |> ignore 
+                    Dup.Add uf.fileInfo.FullName  |> ignore
+                    incr k
 
         recentFilesChangedEv.Trigger()  //this event will be triggered 1000 ms after new tabs are created
         sb.ToString()    
