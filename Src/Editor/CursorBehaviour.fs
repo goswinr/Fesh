@@ -115,6 +115,61 @@ module Doc =
                 | ' '  -> find (off+1) (k+1)
                 | _ -> k
         find offset 0
+    
+    /// State of the caret
+    // used in isCaretInStringOrChar
+    type internal State = 
+        |Code  // in code 
+        |Str   // in string  
+        |Chr   // in  character       
+        |ChrSt // at charcater start, needed because ''' and '\'' are both valid
+    
+    /// Checks if Caret is in String  or Character quotes: " or '
+    /// only checks current line
+    /// does not check for beeing in comment 
+    /// handels excaped quotes too
+    let isCaretInStringOrChar(ed:TextEditor)=
+        let caret = ed.TextArea.Caret.Offset
+        let doc = ed.Document
+        let rec getStart i =
+            if i<0 then 0
+            else
+                match doc.GetCharAt(i) with 
+                | '\n' -> i+1                
+                | _    -> getStart (i-1)
+        let startOffLine =  getStart (caret-1) 
+        let rec getState i state= 
+            if i >= caret then state
+            else
+                match doc.GetCharAt(i) with 
+                | '\'' -> 
+                    match state with 
+                    |Code  -> getState (i+1) ChrSt
+                    |Str   -> getState (i+1) Str
+                    |Chr   -> getState (i+1) Code 
+                    |ChrSt -> getState (i+1) Chr 
+                | '"' -> 
+                    match state with 
+                    |Code  -> getState (i+1) Str
+                    |Str   -> getState (i+1) Code
+                    |Chr   -> getState (i+1) Chr // never happens?
+                    |ChrSt -> getState (i+1) Chr       
+                | '\\' -> 
+                    match state with 
+                    |ChrSt -> getState (i+2) Chr   // incr 2, to skip next chars   
+                    | _    -> getState (i+2) state 
+                | _ -> 
+                    match state with 
+                    |ChrSt -> getState (i+1) Chr   // to swap from ChrSt to Chr
+                    | _    -> getState (i+1) state        
+        match getState startOffLine Code with
+        |Code -> false
+        |Str 
+        |Chr 
+        |ChrSt -> true
+
+
+            
 
 module Keys =
     type CtrlKey = Ctrl | Alt | Shift
@@ -241,8 +296,9 @@ module CursorBehaviour  =
             | ")"
             | ","
             | ";"  as c -> 
-                Selection.insertAtCaretOrSelection (ed.AvaEdit, c+" ")
-                e.Handled <- true // TODO raise TextArea.TextEntered Event ? 
+                if not <| Doc.isCaretInStringOrChar(ed.AvaEdit) then 
+                    Selection.insertAtCaretOrSelection (ed.AvaEdit, c+" ")
+                    e.Handled <- true // TODO raise TextArea.TextEntered Event ?                     
             | _ -> ()
 
     let previewTextInput(ed:IEditor, e:Input.TextCompositionEventArgs) = 
