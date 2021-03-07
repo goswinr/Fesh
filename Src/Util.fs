@@ -249,12 +249,11 @@ module Parse =
     [<Struct>]
     type Position = {offset:int; line:int}
 
-    /// a find function that will automatically exlude string , chactyer literals and  comments from search
+    /// a find function that will automatically exlude string , chacter literals and  comments from search
     /// the search function shall return true on find sucess
-    let findInCode search fromIdx (tx:string) = 
-        
-        // even if fromIdx is high value serch alwas starts from zero to have correct state
-
+    /// even if fromIdx is high value search always starts from zero to have correct state
+    let findInFsCode search fromIdx (tx:string) = 
+       
         let last = tx.Length-1
         if fromIdx > last then eprintfn "findInCode: Search from index %d  is bigger than search string last index %d" fromIdx last
         let mutable i = -1
@@ -287,13 +286,13 @@ module Parse =
                         | '/' , '/'   ->  find 2 InComment
                         | '(' , '*'   ->  find 2 InBlockComment
                         | '@' , '"'   ->  find 2 InAtString
-                        | '"' ,  _    ->  find 2 InString    
+                        | '"' ,  _    ->  find 1 InString    //advance just one next char might be escape char
                         // a char:
-                        | '\'', '\\' -> // a escaped character
-                            if   isCh 'u'  2 i  &&  isCh '\'' 7 i  then find 8 state  // a 16 bit unicode character
-                            elif isCh 'U'  2 i  &&  isCh '\'' 11 i then find 12 state // a 32 bit unicode character
+                        | ''' , '\\' -> // a escaped character
+                            if   isCh 'u'  2 i  &&  isCh ''' 7 i  then find 8 state  // a 16 bit unicode character
+                            elif isCh 'U'  2 i  &&  isCh ''' 11 i then find 12 state // a 32 bit unicode character
                             else find 4 state  // a simple escaped character
-                        | '\'', _ ->                 find 3 state    // jump over a regular  character, including quote "  
+                        | ''' , _ ->                 find 3 state    // jump over a regular  character, including quote " and quote ' 
                         | '\n', _ ->   line<-line+1 ;find 1 state    
                         |  _      ->                 find 1 state                                
 
@@ -311,19 +310,22 @@ module Parse =
                     match t,u with 
                     | '\\' , '"'    -> find 2 state
                     | '"'  , _      -> find 1 Code
+                    | '\n', _       -> line<-line+1 ;find 1 state  
                     | _             -> find 1 state                             
             
                 | InAtString ->
-                    if    t='"'  then find 1 Code 
-                    else              find 1 state              
+                    match t with 
+                    | '"'    -> find 1 Code 
+                    | '\n'   -> line<-line+1 ;find 1 state  
+                    | _      -> find 1 state       
 
                 | InRawString ->
                     match t,u with 
                     | '"' , '"'  when  isCh '"' 2 i  -> find 3 Code
-                    | '\n', _        ->   line<-line+1 ;find 1 state 
-                    | _                              -> find 1 state
+                    | '\n', _    ->   line<-line+1 ;find 1 state 
+                    | _                          -> find 1 state
         
-        find 1 Code     
+        find 0 Code     
     
     /// a find function that will search full text from index
     /// the search function shall return true on find sucess

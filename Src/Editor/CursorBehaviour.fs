@@ -296,8 +296,8 @@ module CursorBehaviour  =
             | ")"
             | ","
             | ";"  as c -> 
-                if not <| Doc.isCaretInStringOrChar(ed.AvaEdit) then 
-                    Selection.insertAtCaretOrSelection (ed.AvaEdit, c+" ")
+                if Selection.hasNoSelection ed.AvaEdit.TextArea && not <| Doc.isCaretInStringOrChar(ed.AvaEdit)  then 
+                    ed.AvaEdit.Document.Insert(ed.AvaEdit.TextArea.Caret.Offset, c + " ") // add trailing space
                     e.Handled <- true // TODO raise TextArea.TextEntered Event ?                     
             | _ -> ()
 

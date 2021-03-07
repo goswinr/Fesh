@@ -167,9 +167,7 @@ module Selection =
         avaEdit.Select(0,doc.TextLength)
     
     /// Fails on rectangular selection , use methods from RectangleSelection Module 
-    let insertAtCaretOrSelection (avaEdit:TextEditor, tx:string) = 
-        
-        
+    let insertAtCaretOrSimpleSelectionUNUSED (avaEdit:TextEditor, tx:string) = //TODO delete
         if avaEdit.TextArea.Selection.IsEmpty then
             avaEdit.Document.Insert(avaEdit.TextArea.Caret.Offset, tx)
         else 
