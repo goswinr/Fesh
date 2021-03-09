@@ -28,6 +28,11 @@ module Formating =
                 else find ( i+1)
         find fromIndex
 
+    /// align code by any of these characters
+    let isAlignmentChar (c:char) = 
+        c <>'.' // skip dots
+        && (Char.IsPunctuation c 
+         || Char.IsSymbol      c ) 
 
 
     let alignByNonLetters(ed:IEditor) = 
@@ -39,7 +44,7 @@ module Formating =
             let lns =   [| for i = s.stp.Line to s.enp.Line do  yield doc.GetText(doc.GetLineByNumber(i)) |]
             let spChars = 
                 lns 
-                |> Array.map ( fun s -> [| for c in s do if Char.IsPunctuation c || Char.IsSymbol c then c|] ) // get special chars only
+                |> Array.map ( fun s -> s.ToCharArray() |> Array.filter isAlignmentChar) // get special chars only, but not dot '.'
                 |> Array.maxBy Array.length
             
             let sbs = lns |> Array.map ( fun ln -> StringBuilder(ln))
