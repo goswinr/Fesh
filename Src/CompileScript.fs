@@ -76,35 +76,36 @@ module CompileScript =
                 let tln = ln.Trim()
                 if tln.StartsWith "#r " then 
                     let _,path,_ = String.splitTwice "\""  "\"" tln
-                    let p = path.Replace ('\\','/')
-                    let nameDll = p.Split('/') |> Seq.last 
-                    let name = nameDll |> replace ".dll" ""
-                    if p.Contains "/" || p.Contains "\\" then
-                        if p.Contains "/RhinoCommon.dll" then   refs.Add(name, path, false)
+                    if path <> "" then 
+                        let p = path.Replace ('\\','/')
+                        let nameDll = p.Split('/') |> Seq.last 
+                        let name = nameDll |> replace ".dll" ""
+                        if p.Contains "/" || p.Contains "\\" then
+                            if p.Contains "/RhinoCommon.dll" then   refs.Add(name, path, false)
+                            else 
+                                if libFolder <>"" then 
+                                    let newp = IO.Path.Combine(libFolder,nameDll)
+                                    try
+                                        if IO.File.Exists newp then IO.File.Delete newp
+                                        IO.File.Copy(path,newp )
+
+                                        let xml  = Path.ChangeExtension(path,"xml")
+                                        let xmln = Path.ChangeExtension(newp,"xml")
+                                        if IO.File.Exists xmln then IO.File.Delete xmln
+                                        if IO.File.Exists (xml) then IO.File.Copy(xml, xmln)
+
+                                        let pdb  = Path.ChangeExtension(path,"pdb")
+                                        let pdbn = Path.ChangeExtension(newp,"pdb")
+                                        if IO.File.Exists pdbn then IO.File.Delete pdbn
+                                        if IO.File.Exists (pdb) then IO.File.Copy(pdb, pdbn)
+
+                                    with e ->
+                                        log.PrintfnIOErrorMsg "Error in getting refrences: %A" e
+                                    refs.Add(name, libFolderName+"/"+nameDll, true)
+                                else
+                                    refs.Add(name, path, true)
                         else 
-                            if libFolder <>"" then 
-                                let newp = IO.Path.Combine(libFolder,nameDll)
-                                try
-                                    if IO.File.Exists newp then IO.File.Delete newp
-                                    IO.File.Copy(path,newp )
-
-                                    let xml  = Path.ChangeExtension(path,"xml")
-                                    let xmln = Path.ChangeExtension(newp,"xml")
-                                    if IO.File.Exists xmln then IO.File.Delete xmln
-                                    if IO.File.Exists (xml) then IO.File.Copy(xml, xmln)
-
-                                    let pdb  = Path.ChangeExtension(path,"pdb")
-                                    let pdbn = Path.ChangeExtension(newp,"pdb")
-                                    if IO.File.Exists pdbn then IO.File.Delete pdbn
-                                    if IO.File.Exists (pdb) then IO.File.Copy(pdb, pdbn)
-
-                                with e ->
-                                    log.PrintfnIOErrorMsg "Error in getting refrences: %A" e
-                                refs.Add(name, libFolderName+"/"+nameDll, true)
-                            else
-                                refs.Add(name, path, true)
-                    else 
-                        refs.Add(name, "", true) // for BCL dlls of the  .Net framework
+                            refs.Add(name, "", true) // for BCL dlls of the  .Net framework
         refs
                 
     let mutable version = "0.1.0.0" // TODO find way to increment

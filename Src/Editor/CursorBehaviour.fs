@@ -21,7 +21,7 @@ module Doc =
     let inline offsetIsAtLineEnd offset (doc:TextDocument) =
         let last = doc.TextLength - 1      
         let rec isAtLineEnd off =  // or only has spaces before line end
-            if off > last then true
+            if off > last then true // file end
             else
                 match doc.GetCharAt(off) with 
                 | ' ' -> isAtLineEnd (off+1)
@@ -414,7 +414,7 @@ module CursorBehaviour  =
                                 if isNewLn then                                    
                                     let st = String(' ',spacesAtStart line)                                    
                                     doc.Insert (p.offset , sprintf "@\"%s\"%s%s//" f Environment.NewLine st ) 
-                                    ed.Log.PrintfnInfoMsg "Drag & Drop inserted at Line %d:" p.line 
+                                    ed.Log.PrintfnInfoMsg "Drag & Drop inserted at Line %d:" p.line
                                     printGreen "  %s" f
                                     ed.Log.PrintfnInfoMsg "  Previous Line at that position is commented out below:"
                                     ed.Log.PrintfnColor 120 120 120 "  %s" prev

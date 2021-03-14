@@ -211,12 +211,12 @@ module String =
         '!'=c || '%'=c || '&'=c || '*'=c || '+'=c || '-'=c || '.'=c || '|'=c ||
         '/'=c || '<'=c || '='=c || '>'=c || '?'=c || '@'=c || '^'=c || '~'=c
 
-
+    
     /// split string into two elements, 
     /// splitter is not included in the two return strings.
     /// if splitter not found first string is same as input, second string is empty 
-    let splitOnce (spliter:string) (s:string) = 
-        let start = s.IndexOf(spliter, StringComparison.Ordinal) 
+    let splitOnce (spliter:string) (s:string) =  
+        let start = s.IndexOf(spliter, StringComparison.Ordinal) //TODO replace with name and implementation from FsEX
         if start = -1 then s,""
         else               s.Substring(0, start), s.Substring(start + spliter.Length)
 
@@ -235,6 +235,7 @@ module String =
                 s.Substring(0, start ),
                 s.Substring(start + startChar.Length, ende - start - startChar.Length),// finds text betwween two chars
                 s.Substring(ende + endChar.Length)
+    
 
 module Parse = 
     
@@ -249,9 +250,9 @@ module Parse =
     [<Struct>]
     type Position = {offset:int; line:int}
 
-    /// a find function that will automatically exlude string , chacter literals and  comments from search
+    /// a find function that will automatically exlude string , character literals and  comments from search
     /// the search function shall return true on find sucess
-    /// even if fromIdx is high value search always starts from zero to have correct state
+    /// even if fromIdx is a high value the search always starts from zero to have correct state
     let findInFsCode search fromIdx (tx:string) = 
        
         let last = tx.Length-1
@@ -365,7 +366,7 @@ module Parse =
                         iw <- Int32.MinValue //exit while
                 iw = -1 
 
-        match findInCode search fromIdx inText with 
+        match findInFsCode search fromIdx inText with 
         |ValueSome p -> 
             let off = p.offset - last - 1
             let ln = p.line - (String.countChar '\n' word ) 
@@ -397,7 +398,7 @@ module Parse =
                         iw <- Int32.MaxValue //exit while
                 iw = len            
         
-        match findInCode search fromIdx inText with 
+        match findInFsCode search fromIdx inText with 
         |ValueSome p -> Some p
         |ValueNone   -> None    
     
