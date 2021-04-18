@@ -19,7 +19,9 @@ module App =
         let seff = Initialize.everything (Some host , [| |])        
         current <- seff
         if host.mainWindowHandel <> IntPtr.Zero then 
-            Interop.WindowInteropHelper(seff.Window).Owner <- host.mainWindowHandel
+            // so that the editor window opens and closes at the same tiome as the main host window:
+            Interop.WindowInteropHelper(seff.Window).Owner <- host.mainWindowHandel 
+            
         //win.Show() // do in host instead, so that the host can control the window show time
         seff
 
