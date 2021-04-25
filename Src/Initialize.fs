@@ -34,15 +34,17 @@ module Initialize =
         
         let log    = Log.Create()       
         GlobalErrorHandeling.setup(log) // do as soon as log exists
+        
 
-        try
-            // so that wpf textboxes that are bound to floats can have a dot input too. see https://stackoverflow.com/a/35942615/969070
-            // setting this might fails when a hosting WPF process is alread up and running (eg loaded in another WPF thread)  
-            FrameworkCompatibilityPreferences.KeepTextBoxDisplaySynchronizedWithTextProperty <- false
-        with  _ ->
-            if FrameworkCompatibilityPreferences.KeepTextBoxDisplaySynchronizedWithTextProperty then 
-                log.PrintfnAppErrorMsg "could not set KeepTextBoxDisplaySynchronizedWithTextProperty to false "
-            
+        // not needed (yet)?
+        //try 
+        //    // so that wpf textboxes that are bound to floats can have a dot input too. see https://stackoverflow.com/a/35942615/969070
+        //    // setting this might fails when a hosting WPF process is alread up and running (eg loaded in another WPF thread)  
+        //    FrameworkCompatibilityPreferences.KeepTextBoxDisplaySynchronizedWithTextProperty <- false
+        //with  _ ->
+        //    if FrameworkCompatibilityPreferences.KeepTextBoxDisplaySynchronizedWithTextProperty then 
+        //        log.PrintfnAppErrorMsg "could not set KeepTextBoxDisplaySynchronizedWithTextProperty to false "
+        
 
 
 
