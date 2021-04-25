@@ -20,7 +20,7 @@ type Hosting (startUpData:HostedStartUpData option) =
         IO.Directory.CreateDirectory(p) |> ignore 
         p
 
-    let hostName = //to get a valid filename fom any host app name suplied
+    let hostName = //to get a valid filename fom any host app name suplied not allowed : < > : " / \ | ? *
         match startUpData with 
         |None ->  "Standalone" 
         |Some sd ->  
