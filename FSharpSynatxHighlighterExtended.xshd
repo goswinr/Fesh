@@ -28,7 +28,7 @@
   <Color name="LoadDll"             foreground="#DD20B0" /> <!-- #r the dll name -->
   <Color name="LoadPath"            foreground="#0000B0" /> <!-- for #I path -->
 
-  <Color name="Punctuation"         foreground="#0099EE" />
+  <Color name="Punctuation"         foreground="#0099FF" />
   <Color name="Attributes"          foreground="#AA88AA" />  
   <Color name="Keywords"            foreground="#0000DD" /> <!--fontWeight="bold" -->
   <Color name="ReservedKeywords"    foreground="#7777FF" /> <!--fontWeight="bold" -->
@@ -42,8 +42,8 @@
   <Color name="TrueCol"             foreground="#008090" fontStyle="italic" fontWeight="bold" />
   <Color name="FalseCol"            foreground="#A70090" fontStyle="italic" fontWeight="bold" />
   <Color name="Semicolon"           foreground="#A0A0A0" />
-  <Color name="TypeAnnotation"      foreground="#00B090" />
-  <Color name="RecordNames"         foreground="#808080" />
+  <Color name="TypeAnnotation"      foreground="#1080B0" />
+  <Color name="RecordNames"         foreground="#708070" />
 
   <Color name="LetBinding"          foreground="#7030A0" />
   <Color name="LetRec"              foreground="#B03060" />
@@ -109,7 +109,7 @@
     <Keywords color="TODO">
       <Word>TODO</Word>
       <Word>FIXME</Word>
-      <Word>?</Word>  
+      <Word>??</Word>  
       <Word>!!</Word>    
     </Keywords>
     <Keywords color="HACK">
@@ -141,7 +141,7 @@
     <Keywords color="TrueCol">    <Word>true</Word>    </Keywords>  
     <Keywords color="FalseCol">   <Word>false</Word>   </Keywords>
 
-    <Rule color="Keywords">match!</Rule><!-- beacuse exclamation mark does not work in <Word> -->
+    <Rule color="Keywords">match!</Rule> <!-- beacuse exclamation mark does not work in <Word> -->
     <Rule color="Keywords">let!</Rule>
     <Rule color="Keywords">do!</Rule>
     <Rule color="Keywords">yield!</Rule>
@@ -403,7 +403,8 @@
       <Begin color="Punctuation">\W\s* \{ | ;(?=[^\{]+\}) </Begin> 
       <End color="Punctuation">(with)|=|\}</End> 
       <RuleSet>
-        <Import ruleSet="TypeAnnotationSet"/>   
+        <Import ruleSet="TypeAnnotationSet"/>  
+        <Import ruleSet="CommentSet"/>  
       </RuleSet>
     </Span> 
   
