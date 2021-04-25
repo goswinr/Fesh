@@ -4,7 +4,6 @@ open System
 open System.IO
 open System.Windows.Media // for color brushes
 open System.Windows.Input
-open ICSharpCode
 open FSharp.Compiler.SourceCodeServices
 
 

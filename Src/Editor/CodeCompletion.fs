@@ -9,15 +9,15 @@ open System
 open System.IO
 open System.Windows
 open System.Windows.Media
-open ICSharpCode.AvalonEdit
-open ICSharpCode.AvalonEdit.CodeCompletion
-open ICSharpCode.AvalonEdit.Editing
-open ICSharpCode.AvalonEdit.Document
+open AvalonEditB
+open AvalonEditB.CodeCompletion
+open AvalonEditB.Editing
+open AvalonEditB.Document
 open FSharp.Compiler
 open FSharp.Compiler.SourceCodeServices
 open System.Collections.Generic
-open ICSharpCode.AvalonEdit.Editing
-open ICSharpCode.AvalonEdit.Editing
+open AvalonEditB.Editing
+open AvalonEditB.Editing
 
 type CompletionItemForKeyWord(ed:IEditor,config:Config, text:string, toolTip:string) =
     //let col = Brushes.DarkBlue    // fails on selection, does not get color inverted//check  https://blogs.msdn.microsoft.com/text/2009/08/28/selection-brush/ ??
@@ -105,7 +105,7 @@ type CompletionItem (ed:IEditor,config:Config, getToolTip, it:FSharpDeclarationL
         // (1)Close window
         // (2)insert text into editor (triggers completion if one char only)
         // (3)raise InsertionRequested event
-        // https://github.com/icsharpcode/AvalonEdit/blob/8fca62270d8ed3694810308061ff55c8820c8dfc/ICSharpCode.AvalonEdit/CodeCompletion/CompletionWindow.cs#L100
+        // https://github.com/icsharpcode/AvalonEdit/blob/8fca62270d8ed3694810308061ff55c8820c8dfc/AvalonEditB/CodeCompletion/CompletionWindow.cs#L100
         
     interface ICompletionData with 
         // Note that the CompletionList uses WPF data binding against the properties in this interface.
@@ -242,7 +242,7 @@ type Completions(avaEdit:TextEditor,config:Config, checker:Checker, errorHighlig
                 w.BorderThickness <- Thickness(0.0)
                 w.ResizeMode      <- ResizeMode.NoResize // needed to have no border!
                 w.WindowStyle     <- WindowStyle.None // = no border
-                w.SizeToContent   <- SizeToContent.WidthAndHeight //https://github.com/icsharpcode/AvalonEdit/blob/master/ICSharpCode.AvalonEdit/CodeCompletion/CompletionWindow.cs#L47
+                w.SizeToContent   <- SizeToContent.WidthAndHeight //https://github.com/icsharpcode/AvalonEdit/blob/master/AvalonEditB/CodeCompletion/CompletionWindow.cs#L47
                 w.MinHeight <- avaEdit.FontSize
                 w.MinWidth  <- avaEdit.FontSize * 8.0
                 w.Closed.Add (fun _  -> 
@@ -282,7 +282,7 @@ type Completions(avaEdit:TextEditor,config:Config, checker:Checker, errorHighlig
                 // (1)Close window
                 // (2)insert text into editor (triggers completion if one char only)
                 // (3)raise InsertionRequested event
-                // https://github.com/icsharpcode/AvalonEdit/blob/8fca62270d8ed3694810308061ff55c8820c8dfc/ICSharpCode.AvalonEdit/CodeCompletion/CompletionWindow.cs#L100
+                // https://github.com/icsharpcode/AvalonEdit/blob/8fca62270d8ed3694810308061ff55c8820c8dfc/AvalonEditB/CodeCompletion/CompletionWindow.cs#L100
             
             else
                 compl.Checker.CkeckHighlightAndFold(iEditor)// start new full check, this on was trimmed at offset.

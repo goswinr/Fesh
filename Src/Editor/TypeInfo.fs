@@ -9,10 +9,10 @@ open System.Windows.Media
 open System.IO
 open System.Xml
 open System.Text.RegularExpressions
-open ICSharpCode.AvalonEdit.CodeCompletion
-open ICSharpCode.AvalonEdit.Editing
-open ICSharpCode.AvalonEdit.Document
-open ICSharpCode.AvalonEdit
+open AvalonEditB.CodeCompletion
+open AvalonEditB.Editing
+open AvalonEditB.Document
+open AvalonEditB
 open FSharp.Compiler
 open FSharp.Compiler.SourceCodeServices
 open System.Windows.Input
@@ -196,7 +196,7 @@ type TypeInfo private () =
     static member namesOfOptionalArgs(fsu:FSharpSymbolUse,log:ISeffLog) = namesOfOptnlArgs(fsu,log)
 
     static member mouseHover(e: MouseEventArgs, iEditor:IEditor, log:ISeffLog, tip:ToolTip) =
-        // see https://github.com/icsharpcode/AvalonEdit/blob/master/ICSharpCode.AvalonEdit/Editing/SelectionMouseHandler.cs#L477
+        // see https://github.com/icsharpcode/AvalonEdit/blob/master/AvalonEditB/Editing/SelectionMouseHandler.cs#L477
                 
         let doc = iEditor.AvaEdit.Document
         let pos = iEditor.AvaEdit.GetPositionFromPoint(e.GetPosition(iEditor.AvaEdit))

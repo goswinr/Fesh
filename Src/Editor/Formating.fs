@@ -3,15 +3,15 @@
 
 open Seff
 open Seff.Model
-open ICSharpCode.AvalonEdit
+open AvalonEditB
 open Seff.Util
 open Seff.Util.String
 open Seff.Util.General
 open System.Windows
 open System
-open ICSharpCode.AvalonEdit.Editing
-open ICSharpCode.AvalonEdit
-open ICSharpCode.AvalonEdit.Editing
+open AvalonEditB.Editing
+open AvalonEditB
+open AvalonEditB.Editing
 open System.Windows.Input
 open System.Text
 

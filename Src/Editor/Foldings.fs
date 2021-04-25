@@ -8,8 +8,8 @@ open Seff.Util
 open Seff.Util.General
 open Seff.Config
 
-open ICSharpCode.AvalonEdit
-open ICSharpCode.AvalonEdit.Folding
+open AvalonEditB
+open AvalonEditB.Folding
 
 
     

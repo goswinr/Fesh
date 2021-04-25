@@ -50,9 +50,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Reference Include="ICSharpCode.AvalonEdit">      <!-- must be build from dev branch of fork https://github.com/goswinr/AvalonEdit -->
-      <HintPath>../AvalonEdit/ICSharpCode.AvalonEdit/bin/Release/net462/ICSharpCode.AvalonEdit.dll</HintPath> 
-    </Reference>
+    <Reference Include="AvalonEditB">      <!-- build from dev branch of https://github.com/goswinr/AvalonEditB -->
+      <HintPath>../AvalonEditB/AvalonEditB/bin/Release/net472/AvalonEditB.dll</HintPath> 
+    </Reference>     
     <Reference Include="System.Windows.Forms" /> 
     <Reference Include="WindowsBase" />
     <Reference Include="PresentationCore" />

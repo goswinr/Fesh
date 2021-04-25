@@ -7,9 +7,9 @@ open System
 open System.Windows
 open System.Windows.Media
 open System.Collections.Generic
-open ICSharpCode.AvalonEdit
-open ICSharpCode.AvalonEdit.Document
-open ICSharpCode.AvalonEdit.Rendering
+open AvalonEditB
+open AvalonEditB.Document
+open AvalonEditB.Rendering
 open FSharp.Compiler.SourceCodeServices
 open System.Linq // for First() and Last() on read only collections //TODO replace
 open System.Windows.Controls

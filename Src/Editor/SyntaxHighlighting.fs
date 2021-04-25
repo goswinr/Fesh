@@ -8,8 +8,8 @@ open Seff.Model
 open System.Windows
 
 module SyntaxHighlighting = 
-    open ICSharpCode.AvalonEdit
-    open ICSharpCode.AvalonEdit.Highlighting
+    open AvalonEditB
+    open AvalonEditB.Highlighting
     open System.IO
     
     let mutable private fsHighlighting: IHighlightingDefinition option = None //use same highlighter for al tabs. load just once 

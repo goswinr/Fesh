@@ -10,12 +10,11 @@ open System.Windows
 open System.Windows.Controls
 open System.Windows.Media
 
-open ICSharpCode.AvalonEdit
-open ICSharpCode.AvalonEdit.Editing
-open ICSharpCode.AvalonEdit.Document
+open AvalonEditB
+open AvalonEditB.Editing
+open AvalonEditB.Document
 open FSharp.Compiler
 open FSharp.Compiler.SourceCodeServices
-open ICSharpCode
 open System.Collections.Generic
 
 
@@ -40,7 +39,7 @@ type BracketInfo = {bracket: BracketKind; off:int;  color:SolidColorBrush; idx:i
 
 /// Highlight-all-occurrences-of-selected-text in Text View
 type BracketHighlighter (ed:TextEditor) = 
-    inherit AvalonEdit.Rendering.DocumentColorizingTransformer()    
+    inherit Rendering.DocumentColorizingTransformer()    
 
     let colErr = Brushes.Red
 

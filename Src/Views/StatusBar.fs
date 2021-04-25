@@ -12,6 +12,7 @@ open System.Windows.Media
 open Seff.Views.Util
 open FSharp.Compiler.SourceCodeServices
 
+open AvalonEditB
 open Seff.Config
 open Seff.Editor
 

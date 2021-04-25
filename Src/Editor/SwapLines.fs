@@ -1,7 +1,7 @@
 ﻿namespace Seff.Editor
 
 open Seff.Model
-open ICSharpCode.AvalonEdit.Editing
+open AvalonEditB.Editing
 
 module SwapLines =
     open Selection

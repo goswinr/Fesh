@@ -10,18 +10,18 @@ open System.Windows
 open System.Windows.Controls
 open System.Windows.Media
 
-open ICSharpCode.AvalonEdit
-open ICSharpCode.AvalonEdit.Editing
-open ICSharpCode.AvalonEdit.Document
+open AvalonEditB
+open AvalonEditB.Editing
+open AvalonEditB.Document
 open FSharp.Compiler
 open FSharp.Compiler.SourceCodeServices
-open ICSharpCode
-open ICSharpCode.AvalonEdit.Search
-open ICSharpCode.AvalonEdit.Folding
+open AvalonEditB
+open AvalonEditB.Search
+open AvalonEditB.Folding
 
 /// Highlight-all-occurrences-of-selected-text in Text View
 type SelectedTextHighlighter (ed:TextEditor) = 
-    inherit AvalonEdit.Rendering.DocumentColorizingTransformer()    
+    inherit Rendering.DocumentColorizingTransformer()    
 
     let mutable highTxt = null
     let mutable curSelStart = -1
@@ -35,7 +35,7 @@ type SelectedTextHighlighter (ed:TextEditor) =
     member this.CurrentSelectionStart  with get() = curSelStart and set v = curSelStart <- v
 
     /// This gets called for every visible line on any view change
-    override this.ColorizeLine(line:AvalonEdit.Document.DocumentLine) =       
+    override this.ColorizeLine(line:Document.DocumentLine) =       
         //  from https://stackoverflow.com/questions/9223674/highlight-all-occurrences-of-selected-word-in-avalonedit
         
         //printfn "Sel in %s " <|  ed.Document.GetText(line)   

@@ -4,9 +4,9 @@
 open System
 open System.Windows
 open System.Windows.Input
-open ICSharpCode.AvalonEdit
-open ICSharpCode.AvalonEdit.Document
-open ICSharpCode.AvalonEdit.Editing
+open AvalonEditB
+open AvalonEditB.Document
+open AvalonEditB.Editing
 open Seff
 open Seff.Model
 open Seff.Util

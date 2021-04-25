@@ -1,7 +1,7 @@
 ﻿namespace Seff.Editor
 
 open System
-open ICSharpCode.AvalonEdit
+open AvalonEditB
 open Seff.Util
 
 module Commenting =

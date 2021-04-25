@@ -8,14 +8,14 @@ open Seff.Config
 open System
 open System.IO
 open System.Threading
-open ICSharpCode
+open AvalonEditB
 open System.Windows.Media // for color brushes
 open System.Text
 open System.Diagnostics
 open System.Collections.Generic
 open System.Windows.Controls
 open System.Windows
-
+open AvalonEditB
 
 module LogColors = 
 
@@ -89,8 +89,8 @@ type FsxTextWriter(writeStr) =
     override this.WriteLine ()          = writeStr (    Environment.NewLine)    
     
 
-type LogLineColorizer(ed:AvalonEdit.TextEditor, offsetColors: ResizeArray<NewColor>) =  
-    inherit AvalonEdit.Rendering.DocumentColorizingTransformer()
+type LogLineColorizer(ed:TextEditor, offsetColors: ResizeArray<NewColor>) =  
+    inherit Rendering.DocumentColorizingTransformer()
     
     let mutable selStart = -9
     let mutable selEnd   = -9
@@ -109,7 +109,7 @@ type LogLineColorizer(ed:AvalonEdit.TextEditor, offsetColors: ResizeArray<NewCol
         //LogFile.Post(sprintf "\r\nSelected Text:\r\n%s" ed.SelectedText)
 
     /// This gets called for every visible line on any view change
-    override this.ColorizeLine(line:AvalonEdit.Document.DocumentLine) =     
+    override this.ColorizeLine(line:Document.DocumentLine) =     
         //try
         //with e -> LogFile.Post <| sprintf "LogLineColorizer override this.ColorizeLine failed with:\r\n %A" e
             if not line.IsDeleted then  
@@ -148,8 +148,8 @@ type LogLineColorizer(ed:AvalonEdit.TextEditor, offsetColors: ResizeArray<NewCol
  
  
 /// Highlight-all-occurrences-of-selected-text in Log Text View
-type LogSelectedTextHighlighter (lg:AvalonEdit.TextEditor) = 
-    inherit AvalonEdit.Rendering.DocumentColorizingTransformer()    
+type LogSelectedTextHighlighter (lg:TextEditor) = 
+    inherit Rendering.DocumentColorizingTransformer()    
     
     let colorHighlight =      Brushes.Blue |> brighter 210  |> freeze
     
@@ -159,8 +159,10 @@ type LogSelectedTextHighlighter (lg:AvalonEdit.TextEditor) =
     // events for status bar
     let highlightClearedEv  = new Event<unit>()
     let highlightChangedEv  = new Event<string*int>()
+    
     [<CLIEvent>]
     member this.OnHighlightCleared = highlightClearedEv.Publish
+    
     [<CLIEvent>]
     member this.OnHighlightChanged = highlightChangedEv.Publish
    
@@ -171,7 +173,7 @@ type LogSelectedTextHighlighter (lg:AvalonEdit.TextEditor) =
     //member this.CurrentSelectionStart  with get() = curSelStart and set v = curSelStart <- v
     
     /// This gets called for every visible line on any view change
-    override this.ColorizeLine(line:AvalonEdit.Document.DocumentLine) =       
+    override this.ColorizeLine(line:Document.DocumentLine) =       
         //  from https://stackoverflow.com/questions/9223674/highlight-all-occurrences-of-selected-word-in-avalonedit
         //try    
             if notNull highTxt  then
@@ -241,10 +243,10 @@ type Log private () =
     
     let offsetColors = ResizeArray<NewColor>( [ {off = -1 ; brush=null} ] )    // null is console out // null check done in  this.ColorizeLine(line:AvalonEdit.Document.DocumentLine) .. 
     
-    let log =  new AvalonEdit.TextEditor()    
+    let log =  new TextEditor()    
     let hiLi = new LogSelectedTextHighlighter(log)
     let colo = new LogLineColorizer(log,offsetColors)    
-    let search = AvalonEdit.Search.SearchPanel.Install(log) |> ignore //TODO disable search and replace ?
+    let search = Search.SearchPanel.Install(log) |> ignore //TODO disable search and replace ?
     
     do    
         //styling: 

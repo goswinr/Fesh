@@ -6,7 +6,7 @@ open System
 open System.Text
 open System.Collections.Generic
 open System.IO
-open ICSharpCode.AvalonEdit.Folding
+open AvalonEditB.Folding
    
 /// A class to hold the statistic of most used toplevel auto completions
 type FoldingStatus (log:ISeffLog, hostInfo:Hosting, recentlyUsedFiles:RecentlyUsedFiles) =

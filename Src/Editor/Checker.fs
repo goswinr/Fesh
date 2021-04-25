@@ -7,7 +7,7 @@ open System
 open System.IO
 open FSharp.Compiler
 open FSharp.Compiler.SourceCodeServices
-open ICSharpCode.AvalonEdit
+open AvalonEditB
 open System.Threading
 open Seff.Config
 open System.Windows.Threading

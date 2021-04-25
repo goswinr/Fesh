@@ -4,10 +4,10 @@ open System
 open System.IO
 open System.Windows.Media // for color brushes
 open System.Windows.Input
-open ICSharpCode
 open FSharp.Compiler.SourceCodeServices
 open System.Text
-open ICSharpCode.AvalonEdit.Folding
+open AvalonEditB
+open AvalonEditB.Folding
 
 
 type ISeffLog = 
@@ -15,11 +15,11 @@ type ISeffLog =
     // the Log is created first with this interface and then Config gets it in the constructor
     
     /// The log editor is readOnly for users , not for the API
-    abstract member ReadOnlyEditor   : AvalonEdit.TextEditor
+    abstract member ReadOnlyEditor   : TextEditor
     
     /// The log editor and document is readOnly for users , not for the API
     /// use this to call doc.CreateSnapshot().Text  from other threads
-    abstract member ReadOnlyDoc   : AvalonEdit.Document.TextDocument 
+    abstract member ReadOnlyDoc   : Document.TextDocument 
 
     abstract member FsiErrorStream     : StringBuilder
     
@@ -149,7 +149,7 @@ type FileCheckState =
 // so that the Editor can be used before declared
 type IEditor = 
     abstract member Id             : Guid
-    abstract member AvaEdit        : AvalonEdit.TextEditor
+    abstract member AvaEdit        : TextEditor
     abstract member FileCheckState : FileCheckState with get , set //None means a check is running
     abstract member FilePath       : FilePath 
     abstract member Log            : ISeffLog 

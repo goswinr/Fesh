@@ -4,13 +4,13 @@ open System
 open System.Windows.Input    
 open Seff.Config
 open Seff.Views.Util
-open ICSharpCode.AvalonEdit.Editing
+open AvalonEditB.Editing
 
 open Seff.Editor
 open Seff.Model
 open Seff
 open Seff.Editor.Selection
-open ICSharpCode.AvalonEdit
+open AvalonEditB
 
 
 
@@ -35,7 +35,7 @@ type Commands (grid:TabsAndLog)  =
     let evalFromCursor()       =  let ln,tx = Selection.linesFromCursor(tabs.CurrAvaEdit)             in  fsi.Evaluate {code = tx ; file=tabs.Current.FilePath; allOfFile=false; fromLine = ln }           
     
     let compileScript() = CompileScript.createFsproj(tabs.CurrAvaEdit.Text , tabs.Current.FilePath, grid.Log, true) 
-    //see https://github.com/icsharpcode/AvalonEdit/blob/697ff0d38c95c9e5a536fbc05ae2307ec9ef2a63/ICSharpCode.AvalonEdit/Editing/CaretNavigationCommandHandler.cs#L73
+    //see https://github.com/icsharpcode/AvalonEdit/blob/697ff0d38c95c9e5a536fbc05ae2307ec9ef2a63/AvalonEditB/Editing/CaretNavigationCommandHandler.cs#L73
     //TODO these gets evaluated for each cmd on every mouse click or key perss . is this OK?  any lag ?? in Canexecute for commands
 
     let isEse a  = tabs.Current.Editor.AvaEdit.SelectionLength > 0

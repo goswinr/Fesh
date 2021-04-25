@@ -4,8 +4,7 @@
 open Seff
 open Seff.Model
 open Seff.Util.String
-open ICSharpCode
-open ICSharpCode.AvalonEdit
+open AvalonEditB
 open System.Windows.Media
 open Seff.Config
 open Seff.Util.String
@@ -13,16 +12,16 @@ open FSharp.Compiler.SourceCodeServices
 open System.Windows
 open System.IO
 open System
-open ICSharpCode.AvalonEdit.Document
+open AvalonEditB.Document
 open System.Windows.Input
-open ICSharpCode.AvalonEdit.Utils
+open AvalonEditB.Utils
 open FSharp.Compiler.AbstractIL.Internal.Library
 
 
 
  /// The tab that holds the tab header and the code editor 
 type Editor private (code:string, config:Config, filePath:FilePath)  = 
-    let avaEdit = new AvalonEdit.TextEditor()
+    let avaEdit = new TextEditor()
     let id = Guid.NewGuid()
     let log = config.Log
 
@@ -252,7 +251,7 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
                 |" " -> compls.Close()
                 |"." -> compls.RequestInsertion(ev) // insert on dot too? 
                 |"(" -> compls.RequestInsertion(ev) // insert on open Bracket too? 
-                | _  -> () // other triggers https://github.com/icsharpcode/AvalonEdit/blob/28b887f78c821c7fede1d4fc461bde64f5f21bd1/ICSharpCode.AvalonEdit/CodeCompletion/CompletionList.cs#L171            
+                | _  -> () // other triggers https://github.com/icsharpcode/AvalonEdit/blob/28b887f78c821c7fede1d4fc461bde64f5f21bd1/AvalonEditB/CodeCompletion/CompletionList.cs#L171            
             
              //else compls.JustClosed<-false
         

@@ -2,13 +2,13 @@
 
 open System
 open Seff.Model
-open ICSharpCode.AvalonEdit
-open ICSharpCode.AvalonEdit.Editing
-open ICSharpCode.AvalonEdit.Document
+open AvalonEditB
+open AvalonEditB.Editing
+open AvalonEditB.Document
 open Seff.Util
 open System.Windows
-open ICSharpCode.AvalonEdit
-open ICSharpCode.AvalonEdit
+open AvalonEditB
+open AvalonEditB
 open System.Text
 
 module SwapWords =     
