@@ -25,14 +25,13 @@ type Indent = { indent: int; wordStartOff:int }
 type Foldings(ed:TextEditor, checker:Checker, config:Config, edId:Guid) = 
     
     
-    let maxDepth = 1 // maximum amount of nested foldings 
+    let maxDepth = 2 // maximum amount of nested foldings 
 
     let minLinesOutside = 2 // minimum line count for outer folding 
 
     let minLinesNested = 3 // minimum line count for inner folding 
 
-    let minLineCountDiffToOuter = 9 // if inner folding is just 6 line shorter than outer folding dont do it
-
+    let minLineCountDiffToOuter = 9 // if inner folding is just 9 line shorter than outer folding dont do it
 
 
     let manager = Folding.FoldingManager.Install(ed.TextArea)  // color of margin is set in ColoumRulers.fs

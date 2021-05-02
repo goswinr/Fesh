@@ -14,8 +14,6 @@ open AvalonEditB.Utils
 open AvalonEditB.Editing
 open AvalonEditB.Folding
 open System.Windows.Media
-open System.Windows.Media
-open System.Windows.Media
 
 
 type ColumnRulers (editor:TextEditor, log: ISeffLog)  as this =
@@ -25,15 +23,12 @@ type ColumnRulers (editor:TextEditor, log: ISeffLog)  as this =
         [0 .. 10] |> List.map ( fun i -> i * editor.Options.IndentationSize)
         //[ 0; 4; 8; 12 ; 16 ; 20 ; 24 ; 28 ; 32 ; 36] 
     
-    let mutable color = Brushes.White |> darker 25
+    let mutable color = Brushes.White |> darker 22
 
     let pens =
         [   
-            //let p = new Pen(Brushes.Black, 1.2) // first one black
-            //p.Freeze()
-            //p
             for _ in columnsInit do             
-                let p = new Pen(color, 1.2)
+                let p = new Pen(color, 1.2 )  //1.2)
                 p.Freeze()
                 color <- brighter 2 color   // fade out next ruler        
                 p
