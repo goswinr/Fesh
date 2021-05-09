@@ -429,7 +429,7 @@
       <End color="Punctuation" >[ = \s \( ]</End> 
     </Span>
 
-    <Span color="FailString">   <!-- multiline="true"   -->
+    <Span color="FailString">  
       <Begin color= "FailPath" >failwithf?\s*"</Begin>  
       <End   color= "FailPath" >"</End>      
       <RuleSet>
@@ -437,6 +437,16 @@
         <Import ruleSet="StringFormatSet"/>
       </RuleSet>
     </Span>
+    <Span color="FailString">  
+      <Begin color= "FailPath" >failIf\w+\s*"</Begin>  <!--for failIfFalse and failIfNull;-->
+      <End   color= "FailPath" >"</End>      
+      <RuleSet>
+        <Import ruleSet="StringEscapeSet"/>
+        <!-- <Import ruleSet="StringFormatSet"/> not implemneted in failIfFalse ! -->
+      </RuleSet>
+    </Span>
+
+
 
     <!-- incase they are followed by a name and not a literal string starting with "-->
     <Keywords color = "PrintStatement">
