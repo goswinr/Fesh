@@ -2,7 +2,7 @@
 <SyntaxDefinition name = "F#" extensions = ".fs;.fsi;.fsx" xmlns="http://icsharpcode.net/sharpdevelop/syntaxdefinition/2008">
   
   <!-- 
-  copied from C#
+  copied and adapted from 
   https://raw.githubusercontent.com/icsharpcode/AvalonEdit/master/ICSharpCode.AvalonEdit/Highlighting/Resources/CSharp-Mode.xshd 
 
   https://github.com/icsharpcode/SharpDevelop/wiki/XSHD-Tags
@@ -10,7 +10,7 @@
   The named colors 'Comment' and 'String' are also used in SharpDevelop to detect if a line is inside a multiline string/comment 
   -->
  
-  <!-- use this extension to show colors in code:
+  <!-- use this extension to show colors in vs code:
    https://marketplace.visualstudio.com/items?itemName=kamikillerto.vscode-colorize  -->
   <Color name="Comment"             foreground="#11AA11" />
   <Color name="DocComment"          foreground="#007700" />
@@ -48,8 +48,7 @@
   <Color name="LetBinding"          foreground="#7030A0" />
   <Color name="LetRec"              foreground="#B03060" />
   <Color name="LetMutable"          foreground="#D08030" />
-  <!-- <Color name="Let"                 foreground="#7700CC" />   -->
-  
+    
   <Color name="DocCommentStart"     foreground="#AACCAA" /> <!-- taken from https://github.com/icsharpcode/AvalonEdit/blob/master/ICSharpCode.AvalonEdit/Highlighting/Resources/XmlDoc.xshd-->
   <Color name="XmlString"           foreground="#669966" />
   <Color name="XmlPunctuation"      foreground="#666666" />
@@ -59,7 +58,7 @@
   
 
   <!-- Regexes that are listed higer have precedence of lower positions in this list
-  Spans aer overwriting rules even if rule apers before the span!-->
+  Spans are overwriting rules even if rule apers before the span!-->
 
   <RuleSet name="DocCommentSet">
     <Span color="DocComment">
@@ -184,7 +183,7 @@
       <Word>interface</Word>
       <Word>internal</Word>
       <Word>lazy</Word>
-      <!-- <Word>let</Word>  -->    <!-- has sperate color below in LetBindings-->
+      <!-- <Word>let</Word>  -->    <!-- has separate color below in LetBindings-->
       <Word>match</Word>      
       <Word>member</Word>
       <Word>module</Word>
@@ -408,7 +407,8 @@
       <End>&gt;\]</End>
     </Span>
 
-    <!-- Mark previous rule, not ideal for F# since parens are optional for function calls
+    <!-- 
+    Mark function calls from C#, not ideal for F# since parens are optional for function calls
     test on https://regexr.com/ \b[\d\w_]+(?=\s*\() 
     <Rule color="MethodCall">
       \b        # match before
@@ -447,18 +447,18 @@
         <Import ruleSet="StringFormatSet"/>
       </RuleSet>
     </Span>
-    <Span color="FailString">  
-      <Begin color= "FailPath" >failIf\w+\s*"</Begin>  <!--for failIfFalse and failIfNull;-->
+    <Span color="FailString">  <!-- for failIfFalse and failIfNull. part of FsEx.dll-->
+      <Begin color= "FailPath" >failIf\w+\s*\(?\s*"</Begin>  
       <End   color= "FailPath" >"</End>      
       <RuleSet>
         <Import ruleSet="StringEscapeSet"/>
-        <!-- <Import ruleSet="StringFormatSet"/> not implemneted in failIfFalse ! -->
+        <!-- <Import ruleSet="StringFormatSet"/> formating not possible in failIfFalse and simliar functions -->
       </RuleSet>
     </Span>
 
 
 
-    <!-- incase they are followed by a name and not a literal string starting with "-->
+    <!-- in case they are followed by a name and not a literal string starting with "-->
     <Keywords color = "PrintStatement">
       <Word>print</Word> <!-- part of FsEx.dll-->
       <Word>print2</Word>
