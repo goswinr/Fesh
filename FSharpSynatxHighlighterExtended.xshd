@@ -359,13 +359,34 @@
       </RuleSet>
     </Span>
   </RuleSet>
+ 
 
-  <RuleSet> <!--the main set (must not have a name attribute)-->
+  <RuleSet name="RecordSet">         
+    <!--Records instances TODO does not work well fails on 'seq {..}' -->
+    <Span color="RecordNames" multiline="true">     
+       <!-- ( a non letter, some space and an open bracket) OR (a semicolon followed by a closing bracket but without a opening bracket before) -->      
+      <Begin color="Punctuation">\W\s* \{ | ;(?=[^\{]+\}) </Begin> 
+      <End color="Punctuation">(with)|=|\}</End> 
+      <RuleSet>
+        <Keywords color="Keywords">  
+          <Word>mutable</Word>
+        </Keywords>
+        <Import ruleSet="TypeAnnotationSet"/>  
+        <Import ruleSet="CommentSet"/>  
+      </RuleSet>
+    </Span> 
+  </RuleSet>
+
+
+  <!--the main set (must not have a name attribute)-->
+  <RuleSet> 
     <Import ruleSet="LoadDllSet"/> 
     <Import ruleSet="CommentSet"/> 
     <Import ruleSet="StringSet"/>
     <Import ruleSet="KeywordSet"/>
     <Import ruleSet="TypeAnnotationSet"/>
+    <Import ruleSet="RecordSet"/>
+
 
     <!-- a hex number | binary number | (number just starting with floating point | with optional inner floating point) and an optional exponent. https://regexr.com/52d6q -->
     <Rule color="NumberLiteral">\b0[xX][0-9a-fA-F_]+|\b0[bB][01_]+|((-\.|\.)[0-9_]+|(\b|-)[0-9_]+\.?[0-9_]*)([eE][+-]?[0-9]+)? </Rule>
@@ -395,18 +416,7 @@
       (?=\s*\() # followed by (
     </Rule>
     -->   
-
-
-    <!--Records instances TODO does not work well fails on 'seq {..}' -->
-    <Span color="RecordNames" multiline="true">     
-       <!-- ( a non letter, some space and an open bracket) OR (a semicolon followed by a closing bracket but without a opening bracket before) -->      
-      <Begin color="Punctuation">\W\s* \{ | ;(?=[^\{]+\}) </Begin> 
-      <End color="Punctuation">(with)|=|\}</End> 
-      <RuleSet>
-        <Import ruleSet="TypeAnnotationSet"/>  
-        <Import ruleSet="CommentSet"/>  
-      </RuleSet>
-    </Span> 
+    
   
     <Span color="LetMutable"> 
       <Begin color= "Keywords" >\blet\s*mutable\s*</Begin> 
