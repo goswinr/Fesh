@@ -32,16 +32,20 @@ module CompileScript =
         <Project Sdk="Microsoft.NET.Sdk">
           <PropertyGroup>
             <OutputType>Library</OutputType>
-            <TargetFramework>net472</TargetFramework> 
+            <TargetFramework>net48</TargetFramework> <!-- needed for latest RhinoCommon-->
             <LangVersion>preview</LangVersion>
             <SatelliteResourceLanguages>en</SatelliteResourceLanguages> <!--to only have the english resources of Fsharp.Core--> 
+
             <RootNamespace>rootNamespace</RootNamespace> <!-- set by Seff scriptcompiler-->
             <AssemblyName>assemblyName</AssemblyName>    <!-- set by Seff scriptcompiler-->
+
             <GenerateDocumentationFile>true</GenerateDocumentationFile>
             <NeutralLanguage>en</NeutralLanguage>
-            <Version>9.7.8.6.5.1</Version><!-- set by Seff scriptcompiler-->
-            <AssemblyVersion>9.7.8.6.5.2</AssemblyVersion><!-- set by Seff scriptcompiler-->
-            <FileVersion>9.7.8.6.5.3</FileVersion><!-- set by Seff scriptcompiler-->
+
+            <Version>9.9.9.1</Version><!-- set by Seff scriptcompiler-->
+            <AssemblyVersion>9.9.9.2</AssemblyVersion><!-- set by Seff scriptcompiler-->
+            <FileVersion>9.9.9.3</FileVersion><!-- set by Seff scriptcompiler--> 
+            
           </PropertyGroup>      
       
           <ItemGroup>
@@ -153,9 +157,9 @@ module CompileScript =
                     |> replace "        " "" //cler white space at beginning of lines
                     |> replace "rootNamespace" nameSpace
                     |> replace "assemblyName" nameSpace
-                    |> replace "9.7.8.6.5.1" version
-                    |> replace "9.7.8.6.5.2" version
-                    |> replace "9.7.8.6.5.3" version
+                    |> replace "9.9.9.1" version
+                    |> replace "9.9.9.2" version
+                    |> replace "9.9.9.3" version
                     |> replace "<!--references-->" refs
                     |> replace "pathToFsx" fsxName
                     |> fun s -> 
@@ -166,7 +170,7 @@ module CompileScript =
                         p.EnableRaisingEvents <- true
                         p.StartInfo.FileName <- "dotnet"
                         let fsProjinQuotes = "\"" + fsProj + "\"" 
-                        p.StartInfo.Arguments <- String.concat " " ["build"; fsProjinQuotes;  "--configuration Debug"]
+                        p.StartInfo.Arguments <- String.concat " " ["build"; fsProjinQuotes;  "--configuration Release"]
                         log.PrintfnColor 0 0 200 "%s %s" p.StartInfo.FileName p.StartInfo.Arguments
                         p.StartInfo.UseShellExecute <- false
                         p.StartInfo.CreateNoWindow <- true //true if the process should be started without creating a new window to contain it
