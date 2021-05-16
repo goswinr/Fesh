@@ -148,21 +148,23 @@ module CompileScript =
         |> String.concat (Environment.NewLine  + "    ")      
     
     let getFsxXml (projFolder:string, nameSpace ,code, fsxloads:ResizeArray<FsxRef>) : string= 
-        let fsxName = nameSpace + ".fsx"
-        let fsxPath = IO.Path.Combine(projFolder,fsxName)
-        IO.File.WriteAllText(fsxPath,code)        
+               
         seq{ 
             for load in fsxloads do 
                 let niceName = (
                         load.fileName.Replace(".fsx", "") /// TODO make case insensitive
                         |> toCamelCase 
-                        |> up1 ) + ".fsx"                    
+                        |> up1 ) + ".fs"                    
                 
                 let newp = IO.Path.Combine(projFolder,niceName)
                 if IO.File.Exists newp then IO.File.Delete newp
                 IO.File.Copy(load.fullPath,newp)
                 yield "<Compile Include=\"" + niceName + "\" />"
-            yield     "<Compile Include=\"" + fsxName  + "\" />"        
+            
+            let fsxName = nameSpace + ".fs"
+            let fsxPath = IO.Path.Combine(projFolder,fsxName)
+            IO.File.WriteAllText(fsxPath,code) 
+            yield     "<Compile Include=\"" + fsxName + "\" />"        
         } 
         |> String.concat (Environment.NewLine + "    ")      
 
@@ -213,8 +215,8 @@ module CompileScript =
                                 let txt = d.Data
                                 if not <| isNull txt then // happens often actually
                                     if txt.Contains "Build FAILED." then        log.PrintfnColor 200 0 0  "%s" txt
-                                    elif txt.Contains "Build succeeded." then   log.PrintfnColor 0 200 0  "%s" txt
-                                    else                                        log.PrintfnColor 80 80 80 "%s" txt
+                                    elif txt.Contains "Build succeeded." then   log.PrintfnColor 0 150 0  "%s" txt
+                                    else                                        log.PrintfnColor 120 120 120 "%s" txt
                                     )
                             p.ErrorDataReceived.Add (  fun d -> log.PrintfnAppErrorMsg "%s" d.Data)               
                             p.Exited.Add( fun _ -> log.PrintfnInfoMsg  "dotnet build process ended!")
