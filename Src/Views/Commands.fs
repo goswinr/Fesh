@@ -239,6 +239,7 @@ type Commands (grid:TabsAndLog)  =
                                     | _ -> 
                                         log.PrintfnAppErrorMsg "*SetUpGestureInputBindings: failed to parse cmd Input gesture '%s'" cmd.gesture
                                         InputBinding(cmd.cmd,  KeyGesture(Key.None))
+                                        // TODO check for memoryleaks: https://github.com/icsharpcode/AvalonEdit/blame/master/ICSharpCode.AvalonEdit/Editing/TextAreaDefaultInputHandlers.cs#L71-L79
 
                     |]
                 grid.Window.Window.InputBindings.AddRange (bindings)
