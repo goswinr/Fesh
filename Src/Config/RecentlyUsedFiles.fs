@@ -69,7 +69,7 @@ type RecentlyUsedFiles  (log:ISeffLog, hostInfo:Hosting) =
             recentFilesStack.Push {fileInfo=fi ; lastOpendUtc=DateTime.UtcNow }   
     
     member this.Save() =         
-        writer.WriteIfLast( getStringRaiseEvent, 500)
+        writer.WriteIfLast( getStringRaiseEvent, 2000)
 
     
     member this.AddAndSave(fi:FileInfo) =         

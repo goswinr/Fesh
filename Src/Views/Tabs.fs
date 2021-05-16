@@ -239,17 +239,16 @@ type Tabs(config:Config, win:Window) =
             tabs.SelectedIndex <- 0
             current <- Seq.head allTabs
         
-        // then start highligh errors on current only
-        current.Editor.GlobalChecker.CkeckHighlightAndFold(current.Editor)  
-        config.RecentlyUsedFiles.Save() 
+        // then start highlighting errors on current tab only
+        current.Editor.GlobalChecker.CkeckHighlightAndFold(current.Editor)
         config.OpenTabs.Save(current.FilePath , allFileInfos)
+        // config.RecentlyUsedFiles.Save is called in addTab function
 
-        //then set up events
-        tabs.SelectionChanged.Add( fun _-> // triggered an all tabs on startup ???// when closing, opening or changing tabs  attach first so it will be triggered below when adding files
-            if tabs.Items.Count = 0 then //  happens when closing the last open tab
-                
+        // set up tab change events last so this doesn't get triggered on every tab while opening files initialy
+        tabs.SelectionChanged.Add( fun _-> // triggered on all tabs on startup ???
+            if tabs.Items.Count = 0 then //  happens when closing the last open tab                
                 //create new tab
-                addTab(new Tab(Editor.New(config)), true, false)                
+                addTab(new Tab(Editor.New(config)), true, false)               
 
             else
                 let tab = 
@@ -265,8 +264,12 @@ type Tabs(config:Config, win:Window) =
                 if tab.Editor.FileCheckState = FileCheckState.NotStarted then 
                     //log.PrintfnDebugMsg "FileCheckState.NotStarted: starting: %A " tab.FilePath
                     tab.Editor.GlobalChecker.CkeckHighlightAndFold(tab.Editor)  // only actually highglights if editor has needsChecking=true              
-                config.OpenTabs.Save(tab.FilePath , allFileInfos)
                 
+                // TODO make sure to reset checker if it is currently still running from another file 
+                // even though the error highlighter is only called if the editor id is the same, see Editor.fs:  ed.GlobalChecker.OnChecked.Add(fun ...
+                
+                config.OpenTabs.Save(tab.FilePath , allFileInfos) 
+                // config.RecentlyUsedFiles.Save is called in addTab function
             )
        
         

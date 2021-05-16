@@ -273,7 +273,9 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
         avaEdit.Document.Changed.Add(docChanged)
         avaEdit.TextArea.TextEntering.Add (checkIfCompletionWindowShouldClose)
 
-        ed.GlobalChecker.OnChecked.Add(fun iEditor -> if iEditor.Id = ed.Id then ed.ErrorHighlighter.Draw(ed)) // make sure it is only triggered on current editor!  this then trigger folding too, statusbar update is added in statusbar
+        ed.GlobalChecker.OnChecked.Add(fun iEditorOfCheck -> // this then triggers folding too, statusbar update is added in statusbar class
+            if iEditorOfCheck.Id = ed.Id then // make sure it is only triggered on current editor!  
+                ed.ErrorHighlighter.Draw(ed)) 
         
         compls.OnShowing.Add(fun _ -> ed.ErrorHighlighter.ToolTip.IsOpen <- false)
         compls.OnShowing.Add(fun _ -> ed.TypeInfoTip.IsOpen        <- false)

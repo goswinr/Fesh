@@ -231,8 +231,10 @@ type Completions(avaEdit:TextEditor,config:Config, checker:Checker, errorHighlig
               
             for it in decls.Items do                    
                 match it.Glyph with 
-                |FSharpGlyph.Union|FSharpGlyph.Module | FSharpGlyph.EnumMember -> completionLines.Add (new CompletionItem(iEditor,config, compl.GetToolTip, it, (changetype = EnteredDot))) // for DU completion add just some.
-                | _ -> if not onlyDU then                                         completionLines.Add (new CompletionItem(iEditor,config, compl.GetToolTip, it, (changetype = EnteredDot))) // for normal completion add all others too.
+                |FSharpGlyph.Union
+                |FSharpGlyph.Module 
+                |FSharpGlyph.EnumMember -> completionLines.Add (new CompletionItem(iEditor,config, compl.GetToolTip, it, (changetype = EnteredDot))) // for DU completion add just some.
+                | _ -> if not onlyDU then  completionLines.Add (new CompletionItem(iEditor,config, compl.GetToolTip, it, (changetype = EnteredDot))) // for normal completion add all others too.
               
             if completionLines.Count > 0 then 
                 compl.ShowingEv.Trigger() // to close error and type info tooltip

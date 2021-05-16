@@ -69,64 +69,66 @@ type ISeffLog =
 
     abstract member Clear : unit -> unit
 
-[<CompiledName("ISeffLogModule")>] //don't rename used via reflection in FsEx.Print
+[<CompiledName("ISeffLogModule")>] //don't rename, it is used via reflection in FsEx.Print
 module ISeffLog = 
 
-    /// a refrence to the global single instance of the Log view, will be set immediatly after construction
-    /// declared here  in Utils so it can be used in othet moduled that are declared before Log view
+    /// A refrence to the global single instance of the Log view, will be set immediatly after construction
+    /// declared here  in Utils so it can be used in other modules that are declared before Log view
     let mutable log = 
-        Unchecked.defaultof<ISeffLog> //set when Log instance is created
-    
-    //let mutable printfCustomColor  : int ->  int ->  int ->  Printf.StringFormat<'T,unit> -> 'T  = fun red green blue msg ->  Printf.kprintf (fun s -> printf "%s" s)  msg 
+        Unchecked.defaultof<ISeffLog> //set when Log instance is created    
 
-    //let mutable PrintfnColor : int ->  int ->  int ->  Printf.StringFormat<'T,unit> -> 'T =  fun red green blue msg ->  Printf.kprintf (fun s -> printfn "%s" s)  msg 
-
-    let mutable printColor : int-> int -> int -> string -> unit = //don't rename used via reflection in FsEx //reset when Log instance is created
-        fun r g b s -> printf "%s" s    
+    let mutable printColor : int-> int -> int -> string -> unit = //don't rename!! It's used via reflection in FsEx 
+        fun r g b s -> printf "%s" s  //implementation is chanaged  when Log instance is created  
   
-    let mutable printnColor : int-> int -> int -> string -> unit = //don't rename used via reflection in FsEx //reset when Log instance is created
-        fun r g b s -> printfn "%s" s
+    let mutable printnColor : int-> int -> int -> string -> unit = //don't rename!! It's used via reflection in FsEx 
+        fun r g b s -> printfn "%s" s //implementation is chanaged  when Log instance is created  
 
-    let mutable clear : unit -> unit = fun () -> () //don't rename used via reflection in FsEx //reset when Log instance is created
+    let mutable clear : unit -> unit =  //don't rename!! It's used via reflection in FsEx
+        fun () -> () //implementation is chanaged  when Log instance is created  
         
 
 
 /// ---- Editor types -----------
 
+/// To give each call to the Fs Checker a unique ID
+/// So that at we can check if a local and a global CheckResult are the same
 type CheckId = int64
 
-type Code = 
-    FullCode of string | PartialCode of string
-    member this.Code = match this with  FullCode s -> s  | PartialCode s -> s
-        
-        
+/// The Result when trying to get the current code from the checker 
+/// (and not from the editor where the tree would have to be converted to a string)
 type FullCodeAndId = 
     | CodeID of string * CheckId
     | NoCode
 
+/// the Code beeing evaluated
+type Code = 
+    | FullCode of string 
+    | PartialCode of string
+    member this.Code = match this with  FullCode s -> s  | PartialCode s -> s
+        
+/// The Results from FSharp.Compiler.Service
 type CheckResults = { 
     parseRes    :FSharpParseFileResults 
     checkRes    :FSharpCheckFileResults 
     code        :Code 
     checkId     :CheckId     } 
 
-type FilePath = 
-    SetTo of FileInfo | NotSet
-    /// returns file name or "*noName*"
-    member this.File = match this with SetTo fi -> fi.Name |NotSet -> "*noName*"
 
-
+/// Represents the current sate of the  FSharp.Compiler.Service Checker
+/// It is stored globally in the Checker
+/// And locally in each Editor instance (they are compared via the CheckId)
 type FileCheckState = 
     | NotStarted 
 
-    /// getting the code form avalon edit  async
+    /// Getting the code form avalon edit text editor asynchronous
     | GettingCode of CheckId 
 
-    /// got the code form avalon edit async, now running in FCS async
-    | Checking of CheckId*Code 
+    /// Got the code form avalon edit async, now running in FCS async
+    | Checking of CheckId * Code 
 
-    /// not global but local per file
+    /// The CheckResults are always local per Editor
     | Done of CheckResults 
+
     | Failed 
 
     member this.FullCodeAndId  =         
@@ -135,7 +137,7 @@ type FileCheckState =
         | Checking (id, c)  ->  match c        with  FullCode s -> CodeID (s,id          )  | PartialCode _ -> NoCode
         | Done res          ->  match res.code with  FullCode s -> CodeID (s,res.checkId )  | PartialCode _ -> NoCode
 
-    /// to compare FileCheckState with GlobalCheckState
+    /// to compare local EditorCheckState with GlobalCheckState
     member this.SameIdAndFullCode (globalChSt:FileCheckState) =  
         match this.FullCodeAndId with
         |NoCode -> NoCode
@@ -143,18 +145,35 @@ type FileCheckState =
             match globalChSt.FullCodeAndId with 
             |NoCode -> NoCode
             |CodeID (gid, _) as ci -> if gid=id then ci  else NoCode
-        
+
+type FilePath = 
+    | SetTo of FileInfo 
+    | NotSet
+    /// returns file name or "*noName*"
+    member this.File = match this with SetTo fi -> fi.Name |NotSet -> "*noName*"
 
 
 // so that the Editor can be used before declared
 type IEditor = 
     abstract member Id             : Guid
     abstract member AvaEdit        : TextEditor
-    abstract member FileCheckState : FileCheckState with get , set //None means a check is running
+    abstract member FileCheckState : FileCheckState with get , set 
     abstract member FilePath       : FilePath 
     abstract member Log            : ISeffLog 
     abstract member FoldingManager : FoldingManager 
     abstract member IsComplWinOpen : bool 
+
+
+
+
+
+        
+
+
+
+        
+
+
 
 
 //---- Fsi types ------------

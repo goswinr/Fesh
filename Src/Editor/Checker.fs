@@ -12,6 +12,7 @@ open System.Threading
 open Seff.Config
 open System.Windows.Threading
 
+/// only a single instance of checher exist that is referenced on all editors
 type Checker private (config:Config)  = 
     
     let log = config.Log
@@ -27,6 +28,7 @@ type Checker private (config:Config)  =
     let fullCodeAvailabeEv = new Event< IEditor > ()
 
     let mutable isFirstCheck = true
+
     let firstCheckDoneEv = new Event<unit>() // to first check file, then start FSI
 
     let mutable globalCheckState = FileCheckState.NotStarted
@@ -136,9 +138,9 @@ type Checker private (config:Config)  =
                                         | None -> 
                                             do! Async.SwitchToContext Sync.syncContext 
                                             if !checkId = thisId  then 
-                                                checkedEv.Trigger(iEditor) // to  mark statusbar , and highlighting errors 
+                                                checkedEv.Trigger(iEditor) // to mark statusbar , and highlighting errors 
                                                 if !checkId = thisId  && isFirstCheck then 
-                                                    firstCheckDoneEv.Trigger() //to now start FSI
+                                                    firstCheckDoneEv.Trigger() // to now start FSI
                                                     isFirstCheck <- false
                 
                                 | FSharpCheckFileAnswer.Aborted  ->
