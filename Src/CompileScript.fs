@@ -76,17 +76,17 @@ module CompileScript =
         let refs = ResizeArray()
         let fsxs = ResizeArray()
         for ln in code.Split('\n') do 
-                let tln = ln.Trim()
+                let tln = ln.Trim()  
                 if tln.StartsWith "#r " then                     
                     let _,path,_ = String.splitTwice "\""  "\"" tln // get part in quotes
                     let stPath = path.Replace ('\\','/')
-                    if stPath.Contains "RhinoCommon.dll" then   
-                        refs.Add {fullPath= Some path; fileName="RhinoCommon.dll" ;nameNoExt="RhinoCommon"  ;  copyLocal=false}
+                    if stPath.Contains "/RhinoCommon.dll" then   
+                        refs.Add {fullPath= Some stPath; fileName="RhinoCommon.dll" ;nameNoExt="RhinoCommon"  ;  copyLocal=false}
                     
                     elif path.Contains "/" || path.Contains "\\" then                        
                         let fileName = stPath.Split('/') |> Seq.last
                         let nameNoExt = fileName.Replace(".dll", "") // TODO make case insensitive, cover .exe
-                        refs.Add { fullPath=Some path; fileName=fileName ;nameNoExt=nameNoExt; copyLocal=true}
+                        refs.Add { fullPath=Some stPath; fileName=fileName ;nameNoExt=nameNoExt; copyLocal=true}
                     else 
                         let nameNoExt = path.Replace(".dll", "") // TODO make case insensitive, cover .exe
                         refs.Add{ fullPath=None; fileName=path ;nameNoExt=nameNoExt; copyLocal=false} // for BCL dlls of the .Net framework
@@ -140,10 +140,10 @@ module CompileScript =
                         let pdbn = Path.ChangeExtension(newp,"pdb")
                         if IO.File.Exists pdbn then IO.File.Delete pdbn
                         if IO.File.Exists (pdb) then IO.File.Copy(pdb, pdbn)
-                        "<Reference Include=\"" + ref.nameNoExt + "\"><HintPath>\"" + libFolderName + "/" + ref.fileName + "\"</HintPath></Reference>"
+                        "<Reference Include=\"" + ref.nameNoExt + "\"><HintPath>" + libFolderName + "/" + ref.fileName + "</HintPath></Reference>"
                    
                     else
-                        "<Reference Include=\"" + ref.nameNoExt + "\"><HintPath>\"" + fPath + "\"</HintPath><Private>False</Private></Reference>"
+                        "<Reference Include=\"" + ref.nameNoExt + "\"><HintPath>" + fPath + "</HintPath><Private>False</Private></Reference>"
         } 
         |> String.concat (Environment.NewLine  + "    ")      
     
