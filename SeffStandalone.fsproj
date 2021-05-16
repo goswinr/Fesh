@@ -23,8 +23,8 @@
     <Description>A hostable fsharp scripting editor for Windows</Description>
     <Copyright>Copyright: Goswin Rothenthal 2021 </Copyright>
     
-    <ApplicationIcon>Media/LogoCursorTr.ico</ApplicationIcon>
-    <Win32Resource>Media/LogoCursorTr.res</Win32Resource>      <!-- Win32Resource for Application Icon in explorer-->    
+    <ApplicationIcon>Media/logo.ico</ApplicationIcon>
+    <Win32Resource>Media/logo.res</Win32Resource>      <!-- Win32Resource for Application Icon in explorer-->    
     
     <Platforms>x64;x86</Platforms>
     <Configurations>Debug;Release</Configurations>
@@ -69,8 +69,8 @@
 
   <ItemGroup>
 
-    <EmbeddedResource Include="Media/LogoCursorTr.res" /> <!--  for Application Icon in explorer-->   
-    <Resource Include="Media/LogoCursorTr.ico" />    
+    <EmbeddedResource Include="Media/logo.res" /> <!--  for Application Icon in explorer-->   
+    <Resource Include="Media/logo.ico" />    
     <Resource Include="Media/FiraCode-Regular.ttf" />  
     <None Include="FSharpSynatxHighlighterExtended.xshd">    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>    </None>
 

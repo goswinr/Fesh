@@ -27,18 +27,15 @@ type Window (config:Config)=
                            |None     -> "Seff | Scripting editor for fsharp"         + plat
                            |Some n   -> "Seff | Scripting editor for fsharp in " + n + plat
                 
-        // delete if no bug//win.Loaded.Add(fun _ -> //---- load ICON ----
+        //if config.Hosting.IsStandalone then // done in host too, avoid doing twice ??
         try                 
-            // Add the Icon at the top left of the window and in the status bar, musst be called at later moment(eg. after loading).
-            // (for the exe file icon in explorer use <Win32Resource>Media\LogoCursorTr.res</Win32Resource>  in fsproj )
-            // TODO delete if no bug //let uri = new Uri("pack://application:,,,/Seff;component/Media/LogoCursorTr.ico", UriKind.RelativeOrAbsolute) 
-            // delete if no bug //win.Icon <-  Media.Imaging.BitmapFrame.Create(Application.GetResourceStream(uri).Stream)
-            //win.Icon <-  BitmapFrame.Create(Uri("pack://application:,,,/Media/LogoCursorTr.ico"))//Build action : "Resource"
-            win.Icon <-  BitmapFrame.Create(Uri("pack://application:,,,/Seff;component/Media/LogoCursorTr.ico")) // so that it works hosted in other dlls too?
+            // Add the Icon at the top left of the window and in the status bar, musst be called  after loading window.
+            // Media/logo.ico with Build action : "Resource"
+            // (for the exe file icon in explorer use <Win32Resource>Media\logo.res</Win32Resource>  in fsproj )        
+            win.Icon <-  BitmapFrame.Create(Uri("pack://application:,,,/Seff;component/Media/logo.ico")) // so that it works hosted in other dlls too?
         with ex -> 
-            log.PrintfnAppErrorMsg  "Failed to load Media/LogoCursorTr.ico from Application.ResourceStream : %A" ex 
-        //)    
-      
+            log.PrintfnAppErrorMsg  "Failed to load Media/logo.ico from Application.ResourceStream : %A" ex 
+              
         //-------------------------------------------------------------------------
         // -  all below code is for load and safe window location and size ---
         //-------------------------------------------------------------------------
