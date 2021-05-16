@@ -5,7 +5,7 @@ open Seff.Model
 open System
 open System.Threading
 
-
+(*
 /// Writes Async and with ReaderWriterLock, 
 /// Optionally only once after a delay in wich it might be called several times
 type SaveWriterOLD  (log:ISeffLog)= /// TODO delete
@@ -42,6 +42,7 @@ type SaveWriterOLD  (log:ISeffLog)= /// TODO delete
                 with ex -> 
                     log.PrintfnAppErrorMsg "getText() or Write to (%s) in Write.toFileDelayed failed: %A" path ex                 
             } |> Async.StartImmediate
+*)
         
     
 /// Reads and Writes with Lock, 
