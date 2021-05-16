@@ -10,21 +10,20 @@ open AvalonEditB.Folding
    
 /// A class to hold the statistic of most used toplevel auto completions
 type FoldingStatus (log:ISeffLog, hostInfo:Hosting, recentlyUsedFiles:RecentlyUsedFiles) =
-    
-    let writer = SaveWriter(log)
-        
+            
     let  sep = '|' // separator 
     
-    let filePath = hostInfo.GetPathToSaveAppData("FoldingStatus.txt")
+    let filePath0 = hostInfo.GetPathToSaveAppData("FoldingStatus.txt")
     
+    let writer = SaveReadWriter(filePath0)
+
     let mutable waitingForFileRead =  true
 
     let foldingStatus = 
         let dict=Dictionary<string,bool []>() 
         async{
             try            
-                if IO.File.Exists filePath then 
-                    for ln in  IO.File.ReadAllLines filePath do
+                for ln in writer.ReadAllLines() do
                     match ln.Split(sep) with
                     | [|k;v|] -> 
                         //log.PrintfnDebugMsg "%s for %s" v k
@@ -68,7 +67,7 @@ type FoldingStatus (log:ISeffLog, hostInfo:Hosting, recentlyUsedFiles:RecentlyUs
             if not ok || curr <> vs then // only update if ther are changes or setting is missing.
                 foldingStatus.[fi.Name] <- vs
                 foldingStatus.[fi.FullName] <- vs
-                writer.WriteDelayed (filePath, foldingStatusAsString, 800)
+                writer.WriteIfLast (foldingStatusAsString, 800)
         
     member this.Save() =
-        writer.WriteDelayed (filePath, foldingStatusAsString, 800)
+        writer.WriteIfLast ( foldingStatusAsString, 800)

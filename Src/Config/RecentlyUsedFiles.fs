@@ -12,9 +12,10 @@ open FSharp.Compiler.AbstractIL.Internal.Library
 type UsedFile = {fileInfo:FileInfo ; lastOpendUtc:DateTime}
    
 type RecentlyUsedFiles  (log:ISeffLog, hostInfo:Hosting) =
-    let writer = SaveWriter(log)
-        
-    let filePath = hostInfo.GetPathToSaveAppData("RecentlyUsedFiles.txt")
+    
+    let filePath0 = hostInfo.GetPathToSaveAppData("RecentlyUsedFiles.txt")
+    
+    let writer = SaveReadWriter(filePath0)        
         
     let recentFilesChangedEv = new Event<unit>()
         
@@ -24,15 +25,15 @@ type RecentlyUsedFiles  (log:ISeffLog, hostInfo:Hosting) =
         let stack = Collections.Generic.Stack<UsedFile>()
         try            
             //if IO.File.Exists filePath then // do this check only when creating menu items
-            for ln in  IO.File.ReadAllLines filePath |> Seq.rev do
+            for ln in writer.ReadAllLines() |> Seq.rev do
                 let path , d = Util.String.splitOnce "|" ln                
                 match DateTime.TryParseExact(d, "yyyy-MM-dd HH:mm", null,  DateTimeStyles.None) with // TODO is this UTC ?
                 | true, date -> stack.Push( {fileInfo = FileInfo(path) ; lastOpendUtc = date}) |> ignore  
                 | _ ->          stack.Push( {fileInfo = FileInfo(path) ; lastOpendUtc = DateTime.MinValue}) |> ignore 
                                   
-        with e -> 
-            log.PrintfnInfoMsg "No recently used files found. (This is expected on first use of the App)"  
-                  
+        with 
+            | :? IO.FileNotFoundException  -> log.PrintfnInfoMsg "No recently used files found. (This is expected on first use of the App)"  
+            | e ->                            log.PrintfnAppErrorMsg  "Problem reading RecentlyUsedFiles settings file: %A"  e     
         stack   
 
         
@@ -68,7 +69,7 @@ type RecentlyUsedFiles  (log:ISeffLog, hostInfo:Hosting) =
             recentFilesStack.Push {fileInfo=fi ; lastOpendUtc=DateTime.UtcNow }   
     
     member this.Save() =         
-        writer.WriteDelayed(filePath, getStringRaiseEvent, 500)
+        writer.WriteIfLast( getStringRaiseEvent, 500)
 
     
     member this.AddAndSave(fi:FileInfo) =         

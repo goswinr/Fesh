@@ -8,16 +8,18 @@ open System.Collections.Generic
            
 /// A class to hold the previously loaded assemble refrences for auto completions
 type AssemblyReferenceStatistic  (log:ISeffLog, hostInfo:Hosting) =
-    let writer = SaveWriter(log)
+    
         
-    let filePath = hostInfo.GetPathToSaveAppData("AssemblyReferenceStatistic.txt")
-        
+    let filePath0 = hostInfo.GetPathToSaveAppData("AssemblyReferenceStatistic.txt")
+    
+    let writer = SaveReadWriter(filePath0)
+
     let assRefStats = 
         let set = HashSet<string>() //  full path
         async{
             try            
-                if IO.File.Exists filePath then 
-                    for ln in  IO.File.ReadAllLines filePath do
+                if writer.FileExists() then
+                    for ln in writer.ReadAllLines() do
                         if IO.File.Exists ln then 
                             set.Add (ln) |> ignore
             with e -> 
@@ -44,7 +46,7 @@ type AssemblyReferenceStatistic  (log:ISeffLog, hostInfo:Hosting) =
         D
            
     member this.Save() =
-        writer.WriteDelayed (filePath,assRefStatsAsString, 500)
+        writer.WriteIfLast (assRefStatsAsString, 500)
             
     member this.Add s =  // used as delegate to fsiSession.AssemblyReferenceAdded event
         assRefStats.Add (s)  |> ignore 

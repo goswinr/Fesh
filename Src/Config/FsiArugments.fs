@@ -6,22 +6,22 @@ open Seff.Model
 
     
 type FsiArugments  (log:ISeffLog, hostInfo:Hosting) =
-    let writer = SaveWriter(log)
     
-    let filePath = hostInfo.GetPathToSaveAppData("FsiArugments.txt")
+    let filePath0 = hostInfo.GetPathToSaveAppData("FsiArugments.txt")
+    let writer = SaveReadWriter(filePath0)
 
     // "--shadowcopyreferences" is ignored https://github.com/fsharp/FSharp.Compiler.Service/issues/292          
     let defaultArgs = [| "first arg is ignored" ; "--langversion:preview" ; "--noninteractive" ; "--debug+"; "--debug:full" ;"--optimize+" ; "--gui-" ; "--nologo"|]
 
     let get() =         
         try 
-            IO.File.ReadAllLines filePath 
+            writer.ReadAllLines() 
             |> Array.map (fun s -> s.Trim())
             |> Array.filter (fun a -> a.ToLower() <>  "--quiet") // this argument is managed seperatly in config.Settings and statusbar
         with 
             | :? IO.FileNotFoundException ->  
                 log.PrintfnInfoMsg      "FsiArugments file not found. (This is expected on first use of the App.)"
-                try IO.File.WriteAllLines(filePath,defaultArgs) with _ -> ()
+                try writer.WriteAllLinesAsync(defaultArgs) with _ -> ()
                 defaultArgs
             | e ->                            
                 log.PrintfnAppErrorMsg  "Problem reading or initalizing FsiArugments file: %A"  e

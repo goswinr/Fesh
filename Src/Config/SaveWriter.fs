@@ -8,7 +8,7 @@ open System.Threading
 
 /// Writes Async and with ReaderWriterLock, 
 /// Optionally only once after a delay in wich it might be called several times
-type SaveWriter  (log:ISeffLog)= /// TODO delete
+type SaveWriterOLD  (log:ISeffLog)= /// TODO delete
     
     let counter = ref 0L // for atomic writing back to file
     
@@ -52,16 +52,26 @@ type SaveReadWriter (path:string)=
     let counter = ref 0L // for atomic writing back to file
        
     let lockObj = new Object()
-       
+    
+    member this.FileExists() = IO.File.Exists(path)
+
     /// Save reading
     /// Ensures that no writing happens while reading
-    member this.Read () : string =
+    member this.ReadAllText () : string =
             // lock is using Monitor class : https://github.com/dotnet/fsharp/blob/6d91b3759affe3320e48f12becbbbca493574b22/src/fsharp/FSharp.Core/prim-types.fs#L4793
             try  
                 lock lockObj (fun () -> IO.File.ReadAllText(path))
             with ex ->  
                 failwithf "SaveWriter.Read failed while reading:\r\n%s\r\n with: %A" path ex // use %A to trimm long text 
-
+    
+    /// Save reading
+    /// Ensures that no writing happens while reading
+    member this.ReadAllLines () : string[] =
+            // lock is using Monitor class : https://github.com/dotnet/fsharp/blob/6d91b3759affe3320e48f12becbbbca493574b22/src/fsharp/FSharp.Core/prim-types.fs#L4793
+            try  
+                lock lockObj (fun () -> IO.File.ReadAllLines(path))
+            with ex ->  
+                failwithf "SaveWriter.Read failed while reading:\r\n%s\r\n with: %A" path ex // use %A to trimm long text 
 
     /// File will be written async and with a Lock.
     /// If it fails an Error is printed to the Error stream via eprintfn
@@ -70,10 +80,20 @@ type SaveReadWriter (path:string)=
         async{
             lock lockObj (fun () -> // lock is using Monitor class : https://github.com/dotnet/fsharp/blob/6d91b3759affe3320e48f12becbbbca493574b22/src/fsharp/FSharp.Core/prim-types.fs#L4793
                 try  IO.File.WriteAllText(path,text)
-                with ex ->  eprintfn "SaveWriter.Write failed with: %A \r\n while writing to %s:\r\n%A" ex path text // use %A to trimm long text        
+                with ex ->  eprintfn "SaveWriter.WriteAsync failed with: %A \r\n while writing to %s:\r\n%A" ex path text // use %A to trimm long text        
                 )       
             } |> Async.Start
-   
+    
+    /// File will be written async and with a Lock.
+    /// If it fails an Error is printed to the Error stream via eprintfn
+    /// Ensures that no reading happens while writing
+    member this.WriteAllLinesAsync (texts) =        
+        async{
+            lock lockObj (fun () -> // lock is using Monitor class : https://github.com/dotnet/fsharp/blob/6d91b3759affe3320e48f12becbbbca493574b22/src/fsharp/FSharp.Core/prim-types.fs#L4793
+                try  IO.File.WriteAllLines(path,texts)
+                with ex ->  eprintfn "SaveWriter.WriteAllLinesAsync failed with: %A \r\n while writing to %s:\r\n%A" ex path texts // use %A to trimm long text        
+                )       
+            } |> Async.Start
          
     /// GetString will be called in sync on calling thread, but file will be written async.
     /// Only if after the delay the counter value is the same as before. 

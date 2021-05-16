@@ -13,12 +13,13 @@ type Settings (log:ISeffLog, hostInfo:Hosting) =
         
     let  sep = '=' // key value separatur like in ini files
     
-    let filePath = hostInfo.GetPathToSaveAppData("Settings.txt")
-    
+    let filePath0 = hostInfo.GetPathToSaveAppData("Settings.txt")
+    let writer = SaveReadWriter(filePath0)
+
     let settingsDict = 
         let dict = new Collections.Concurrent.ConcurrentDictionary<string,string>()   
         try            
-            for ln in  IO.File.ReadAllLines filePath do
+            for ln in writer.ReadAllLines() do
                 match ln.Split(sep) with
                 | [|k;v|] -> dict.[k] <- v // TODO allow for comments? use ini format ??
                 | _       -> log.PrintfnAppErrorMsg "Bad line in settings file file: '%s'" ln
@@ -28,7 +29,7 @@ type Settings (log:ISeffLog, hostInfo:Hosting) =
             | e ->                            log.PrintfnAppErrorMsg  "Problem reading or initalizing settings file: %A"  e
         dict
 
-    let writer = SaveWriter(log)
+    
     
     let settingsAsString () = 
         let sb = StringBuilder()
@@ -73,7 +74,7 @@ type Settings (log:ISeffLog, hostInfo:Hosting) =
     //member this.Get k = get k        
 
     member this.Save () =                       
-        writer.WriteDelayed (filePath, settingsAsString,  500)
+        writer.WriteIfLast ( settingsAsString,  500)
         
     member this.SetFloat        key (v:float)       = this.Set key (string v)
     member this.SetFloatDelayed key (v:float) delay = this.SetDelayed key (string v) delay

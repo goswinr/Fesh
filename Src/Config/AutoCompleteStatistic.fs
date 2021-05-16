@@ -9,7 +9,7 @@ open System.Collections.Generic
    
 /// A class to hold the statistic of most used toplevel auto completions
 type AutoCompleteStatistic  (log:ISeffLog, hostInfo:Hosting) =
-    let writer = SaveWriter(log)
+    
     
     let customPriorities = [ // fist item wil have higest prority
         "true"
@@ -24,17 +24,19 @@ type AutoCompleteStatistic  (log:ISeffLog, hostInfo:Hosting) =
 
     let  sep = '=' // key value separatur like in ini files
     
-    let filePath = hostInfo.GetPathToSaveAppData("AutoCompleteStatistic.txt")
-    
+    let filePath0 = hostInfo.GetPathToSaveAppData("AutoCompleteStatistic.txt")
+
+    let writer = SaveReadWriter(filePath0)
+
     let completionStats = 
         let dict=Collections.Concurrent.ConcurrentDictionary<string,float>() 
         async{
             try            
-                if IO.File.Exists filePath then 
-                    for ln in  IO.File.ReadAllLines filePath do
-                    match ln.Split(sep) with
-                    | [|k;v|] -> dict.[k] <- float v // TODO allow for comments? use ini format ??
-                    | _       -> log.PrintfnAppErrorMsg "Bad line in CompletionStats file : '%s'" ln                   
+                if writer.FileExists() then
+                    for ln in writer.ReadAllLines() do
+                        match ln.Split(sep) with
+                        | [|k;v|] -> dict.[k] <- float v // TODO allow for comments? use ini format ??
+                        | _       -> log.PrintfnAppErrorMsg "Bad line in CompletionStats file : '%s'" ln                   
             with e -> 
                 log.PrintfnAppErrorMsg "Error load fileCompletionStats: %A"   e
             
@@ -62,4 +64,4 @@ type AutoCompleteStatistic  (log:ISeffLog, hostInfo:Hosting) =
         |_      -> completionStats.[key] <- 1.0
     
     member this.Save() =
-        writer.WriteDelayed (filePath, completionStatsAsString, 500)
+        writer.WriteIfLast ( completionStatsAsString, 500)

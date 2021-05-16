@@ -12,9 +12,9 @@ type FileToOpen = {file:FileInfo; makeCurrent:bool}
 
 /// files that are open when closing the editor window, for next restart
 type OpenTabs  (log:ISeffLog, hostInfo:Hosting, startupArgs:string[]) = 
-    let writer = SaveWriter(log)
     
-    let filePath = hostInfo.GetPathToSaveAppData("CurrentlyOpenFiles.txt")
+    let filePath0 = hostInfo.GetPathToSaveAppData("CurrentlyOpenFiles.txt")
+    let writer = SaveReadWriter(filePath0)
 
     let currentTabPreFix =  "*Current tab:* " //a string that can never be part of a filename
 
@@ -28,8 +28,8 @@ type OpenTabs  (log:ISeffLog, hostInfo:Hosting, startupArgs:string[]) =
         let mutable curr ="" 
         try            
             // parse settings            
-            if IO.File.Exists filePath then 
-                let lns = IO.File.ReadAllLines filePath 
+            if writer.FileExists() then 
+                let lns = writer.ReadAllLines()
                 if lns.Length > 1 then 
                     curr <- lns.[0].Replace(currentTabPreFix,"").ToLowerInvariant() // first line is filepath and name for current tab (repeats below)
                     for path in lns |> Seq.skip 1  do // skip first line of current info
@@ -69,7 +69,7 @@ type OpenTabs  (log:ISeffLog, hostInfo:Hosting, startupArgs:string[]) =
         currentFile<-currentFileO
         allFiles<-allFilesO
         //log.PrintfnDebugMsg "Save tabs %A, curent %A" allFiles currentFile
-        writer.WriteDelayed  (filePath, getText ,500)
+        writer.WriteIfLast  ( getText ,500)
       
     /// second item in tuple indicates current tab
     /// ensures that ther is only one file to make current
