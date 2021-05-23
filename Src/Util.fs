@@ -255,16 +255,16 @@ module Parse =
     /// even if fromIdx is a high value the search always starts from zero to have correct state
     let findInFsCode search fromIdx (tx:string) = 
        
-        let last = tx.Length-1
-        if fromIdx > last then eprintfn "findInCode: Search from index %d  is bigger than search string last index %d" fromIdx last
-        let mutable i = -1
+        let lasti = tx.Length-1
+        if fromIdx > lasti then eprintfn "findInCode: Search from index %d  is bigger than search string last index %d" fromIdx lasti
+        let mutable i = 0
         let mutable line = 1
 
         let inline isCh (c:Char) off i =
-            i+off <= last && tx.[i+off] = c
+            i+off <= lasti && tx.[i+off] = c
 
-        let checklast state = 
-           if i > last then ValueNone 
+        let checklast state =
+           if i > lasti then ValueNone 
            else
                let t = tx.[i]
                match state with
@@ -273,8 +273,8 @@ module Parse =
                 
 
         let rec find advance state  = 
-            i <- i + advance
-            if i >= last then checklast state 
+            i <- i + advance   
+            if i >= lasti then checklast state 
             else
                 let t = tx.[i]
                 let u = tx.[i+1]
@@ -326,7 +326,7 @@ module Parse =
                     | '\n', _    ->   line<-line+1 ;find 1 state 
                     | _                          -> find 1 state
         
-        find 0 Code     
+        find 0 Code     // 0 since inital 'i' value is 0
     
     /// a find function that will search full text from index
     /// the search function shall return true on find sucess
@@ -386,7 +386,7 @@ module Parse =
         let len = word.Length
 
         let search (i:int) =            
-            if i+len > inText.Length then false // serch would go over the end of text
+            if i+len >= inText.Length then false // search would go over the end of text
             else                
                 let mutable iw = 0
                 let mutable it = i            
