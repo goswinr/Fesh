@@ -23,15 +23,16 @@ type FoldingStatus (log:ISeffLog, hostInfo:Hosting, recentlyUsedFiles:RecentlyUs
         let dict=Dictionary<string,bool []>() 
         async{
             try            
-                for ln in writer.ReadAllLines() do
-                    match ln.Split(sep) with
-                    | [|k;v|] -> 
-                        //log.PrintfnDebugMsg "%s for %s" v k
-                        let vs = Seq.map ( fun c -> if c = '0' then false elif c = '1' then true else failwithf "bad char %c in FoldingStatus" c) v |> Array.ofSeq
-                        dict.[k] <- vs 
-                    | _ -> log.PrintfnAppErrorMsg "Bad line in FoldingStatus file : '%s'" ln 
+                if writer.FileExists() then
+                    for ln in writer.ReadAllLines() do
+                        match ln.Split(sep) with
+                        | [|k;v|] -> 
+                            //log.PrintfnDebugMsg "%s for %s" v k
+                            let vs = Seq.map ( fun c -> if c = '0' then false elif c = '1' then true else failwithf "bad char %c in FoldingStatus" c) v |> Array.ofSeq
+                            dict.[k] <- vs 
+                        | _ -> log.PrintfnAppErrorMsg "Bad line in FoldingStatus file : '%s'" ln 
                 waitingForFileRead <- false
-            with e -> 
+            with e ->
                 waitingForFileRead <- false
                 log.PrintfnAppErrorMsg "Error load FoldingStatus: %A"   e
             } |> Async.Start
@@ -45,6 +46,7 @@ type FoldingStatus (log:ISeffLog, hostInfo:Hosting, recentlyUsedFiles:RecentlyUs
                 sb.Append(k).Append(sep).AppendLine(vs) |> ignore
         sb.ToString() 
     
+    /// to indicate end of async reading
     member this.WaitingForFileRead = waitingForFileRead
 
     member this.Get(ed:IEditor) =

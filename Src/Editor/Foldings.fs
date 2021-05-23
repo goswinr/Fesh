@@ -162,6 +162,7 @@ type Foldings(ed:TextEditor, checker:Checker, config:Config, edId:Guid) =
                         | CodeID _ -> 
                             if isIntialLoad then 
                                 while config.FoldingStatus.WaitingForFileRead do
+                                    // check like this because reading of file data happens async 
                                     config.Log.PrintfnDebugMsg "waiting to load last code folding status.. "
                                     do! Async.Sleep 50
                                 let vs = config.FoldingStatus.Get(iEditor)                                

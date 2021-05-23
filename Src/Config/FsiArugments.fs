@@ -20,7 +20,7 @@ type FsiArugments  (log:ISeffLog, hostInfo:Hosting) =
             |> Array.filter (fun a -> a.ToLower() <>  "--quiet") // this argument is managed seperatly in config.Settings and statusbar
         with 
             | :? IO.FileNotFoundException ->  
-                log.PrintfnInfoMsg      "FsiArugments file not found. (This is expected on first use of the App.)"
+                //log.PrintfnInfoMsg      "FsiArugments file not found. (This is expected on first use of the App.)"
                 try writer.WriteAllLinesAsync(defaultArgs) with _ -> ()
                 defaultArgs
             | e ->                            
