@@ -186,6 +186,15 @@ module Keys =
         | Alt   ->  Keyboard.IsKeyDown Key.LeftAlt   || Keyboard.IsKeyDown Key.RightAlt
         | Shift ->  Keyboard.IsKeyDown Key.LeftShift || Keyboard.IsKeyDown Key.RightShift
 
+    /// because Alt key actually returns Key.System 
+    let inline realKey(e:KeyEventArgs) =
+        match e.Key with //https://stackoverflow.com/questions/39696219/how-can-i-handle-a-customizable-hotkey-setting
+        | Key.System             -> e.SystemKey
+        | Key.ImeProcessed       -> e.ImeProcessedKey
+        | Key.DeadCharProcessed  -> e.DeadCharProcessedKey
+        | k                      -> k
+
+
 module CursorBehaviour  =
     open Selection
     open Keys
@@ -308,28 +317,28 @@ module CursorBehaviour  =
             | RectSel ->            RectangleSelection.insertText(ed, e.Text) ; e.Handled <- true // all input in rectangular selection is handeled here.
         
         
-    let previewKeyDown (ed:IEditor, e: Input.KeyEventArgs) =  
+    let previewKeyDown (ed:IEditor, ke: Input.KeyEventArgs) =  
         //if not ed.IsComplWinOpen then  
-            match e.Key with  
+            match realKey ke  with  
             
             |Input.Key.Back ->  
                 /// TODO check for modifier keys like Alt or Ctrl ?
                 match getSelType(ed.AvaEdit.TextArea) with 
-                | NoSel ->     backspace4Chars(ed,e)
-                | RectSel ->   RectangleSelection.backspaceKey(ed) ; e.Handled <- true 
+                | NoSel ->     backspace4Chars(ed,ke)
+                | RectSel ->   RectangleSelection.backspaceKey(ed) ; ke.Handled <- true 
                 | RegSel  ->   ()        
        
             |Input.Key.Delete ->                
                 /// TODO check for modifier keys like Alt or Ctrl ?
                 match getSelType(ed.AvaEdit.TextArea) with 
-                | NoSel  ->   deleteTillNonWhite(ed,e)                
-                | RectSel ->  RectangleSelection.deleteKey(ed) ; e.Handled <- true 
+                | NoSel  ->   deleteTillNonWhite(ed,ke)                
+                | RectSel ->  RectangleSelection.deleteKey(ed) ; ke.Handled <- true 
                 | RegSel ->   ()
 
             | Input.Key.Enter | Input.Key.Return ->
                 if isUp Ctrl // if alt or ctrl is down this means sending to fsi ...         
                 && isUp Alt 
-                && isUp Shift then addIndentation(ed,e)  // add indent after do, for , ->, =  
+                && isUp Shift then addIndentation(ed,ke)  // add indent after do, for , ->, =  
         
             | Input.Key.Down -> 
                 if isDown Ctrl && isUp Shift then
@@ -339,7 +348,7 @@ module CursorBehaviour  =
                         // also use Ctrl key for swaping since Alt key does not work in rhino, 
                         // swaping with alt+up is set up in commands.fs via key gesteures                                        
                         SwapLines.swapLinesDown(ed)
-                        e.Handled <- true
+                        ke.Handled <- true
             
             | Input.Key.Up -> 
                 if isDown Ctrl && isUp Shift then
@@ -347,18 +356,18 @@ module CursorBehaviour  =
                         RectangleSelection.expandUp(ed)
                     else 
                         SwapLines.swapLinesUp(ed)
-                        e.Handled <- true
+                        ke.Handled <- true
             
             | Input.Key.Left -> 
                 if isDown Ctrl && isUp Shift then                
                     match getSelType(ed.AvaEdit.TextArea) with 
-                    | RegSel ->   if SwapWords.left(ed.AvaEdit) then  e.Handled <- true
+                    | RegSel ->   if SwapWords.left(ed.AvaEdit) then  ke.Handled <- true
                     | NoSel  | RectSel ->  ()
             
             | Input.Key.Right -> 
                 if isDown Ctrl && isUp Shift then                
                     match getSelType(ed.AvaEdit.TextArea) with 
-                    | RegSel ->   if SwapWords.right(ed.AvaEdit) then  e.Handled <- true
+                    | RegSel ->   if SwapWords.right(ed.AvaEdit) then  ke.Handled <- true
                     | NoSel  | RectSel ->  ()
 
             | _ -> ()
