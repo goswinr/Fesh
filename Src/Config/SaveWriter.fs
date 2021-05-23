@@ -3,8 +3,19 @@
 open Seff
 open Seff.Model
 open System
+open System.IO
+open System.Runtime.CompilerServices
 open System.Threading
-        
+
+
+/// This module is set to auto open. 
+/// Static Extension methods on Exceptions to cal Excn.Raise "%A" x with F# printf string formating
+[<AutoOpen>] // so that extension become availale on opening FsEx
+module ExtensionsExceptions =
+                        
+    type FileNotFoundException with
+        /// Raise FileNotFoundException with F# printf string formating
+        [<Extension>] static member inline Raise msg =  Printf.kprintf (fun s -> raise (FileNotFoundException(s))) msg        
     
 /// Reads and Writes with Lock, 
 /// Optionally only once after a delay in which it might be called several times
@@ -15,25 +26,23 @@ type SaveReadWriter (path:string)=
        
     let lockObj = new Object()
     
-    member this.FileExists() = IO.File.Exists(path)
+    /// TODO take this class via FsEx.WPF
+
+    member this.FileExists() = File.Exists(path)
 
     /// Save reading
     /// Ensures that no writing happens while reading
     member this.ReadAllText () : string =
-            // lock is using Monitor class : https://github.com/dotnet/fsharp/blob/6d91b3759affe3320e48f12becbbbca493574b22/src/fsharp/FSharp.Core/prim-types.fs#L4793
-            try  
-                lock lockObj (fun () -> IO.File.ReadAllText(path))
-            with ex ->  
-                failwithf "SaveWriter.Read failed while reading:\r\n%s\r\n with: %A" path ex // use %A to trimm long text 
+        // lock is using Monitor class : https://github.com/dotnet/fsharp/blob/6d91b3759affe3320e48f12becbbbca493574b22/src/fsharp/FSharp.Core/prim-types.fs#L4793
+        lock lockObj (fun () -> File.ReadAllText(path))
+            
     
     /// Save reading
     /// Ensures that no writing happens while reading
     member this.ReadAllLines () : string[] =
-            // lock is using Monitor class : https://github.com/dotnet/fsharp/blob/6d91b3759affe3320e48f12becbbbca493574b22/src/fsharp/FSharp.Core/prim-types.fs#L4793
-            try  
-                lock lockObj (fun () -> IO.File.ReadAllLines(path))
-            with ex ->  
-                failwithf "SaveWriter.Read failed while reading:\r\n%s\r\n with: %A" path ex // use %A to trimm long text 
+        // lock is using Monitor class : https://github.com/dotnet/fsharp/blob/6d91b3759affe3320e48f12becbbbca493574b22/src/fsharp/FSharp.Core/prim-types.fs#L4793
+        lock lockObj (fun () -> File.ReadAllLines(path))
+
 
     /// File will be written async and with a Lock.
     /// If it fails an Error is printed to the Error stream via eprintfn
@@ -41,8 +50,9 @@ type SaveReadWriter (path:string)=
     member this.WriteAsync (text) =        
         async{
             lock lockObj (fun () -> // lock is using Monitor class : https://github.com/dotnet/fsharp/blob/6d91b3759affe3320e48f12becbbbca493574b22/src/fsharp/FSharp.Core/prim-types.fs#L4793
-                try  IO.File.WriteAllText(path,text)
-                with ex ->  eprintfn "SaveWriter.WriteAsync failed with: %A \r\n while writing to %s:\r\n%A" ex path text // use %A to trimm long text        
+                try  File.WriteAllText(path,text)
+                // try & with is needed because exceptions on threadpool cannot be caught otherwise !!
+                with ex ->  ISeffLog.log.PrintfnIOErrorMsg "SaveWriter.WriteAsync failed with: %A \r\n while writing to %s:\r\n%A" ex path text // use %A to trimm long text        
                 )       
             } |> Async.Start
     
@@ -52,8 +62,9 @@ type SaveReadWriter (path:string)=
     member this.WriteAllLinesAsync (texts) =        
         async{
             lock lockObj (fun () -> // lock is using Monitor class : https://github.com/dotnet/fsharp/blob/6d91b3759affe3320e48f12becbbbca493574b22/src/fsharp/FSharp.Core/prim-types.fs#L4793
-                try  IO.File.WriteAllLines(path,texts)
-                with ex ->  eprintfn "SaveWriter.WriteAllLinesAsync failed with: %A \r\n while writing to %s:\r\n%A" ex path texts // use %A to trimm long text        
+                try  File.WriteAllLines(path,texts)
+                // try & with is needed because exceptions on threadpool cannot be caught otherwise !!
+                with ex ->  ISeffLog.log.PrintfnIOErrorMsg "SaveWriter.WriteAllLinesAsync failed with: %A \r\n while writing to %s:\r\n%A" ex path texts // use %A to trimm long text        
                 )       
             } |> Async.Start
          
@@ -69,8 +80,9 @@ type SaveReadWriter (path:string)=
             do! Async.Sleep(delayMillisSeconds) // delay to see if this is the last of many events (otherwise there is a noticable lag in dragging window around, for example, when saving window position)
             if !counter = k then //k > 2L &&   //do not save on startup && only save last event after a delay if there are many save events in a row ( eg from window size change)(ignore first two event from creating window)
                 try 
-                    let text = getText()               
+                    let text = getText() // this may fail though
                     this.WriteAsync (text) // this should never fail since exeptions are caught inside 
                 with ex -> 
-                    eprintfn "SaveWriter.WriteIfLast: getText() for path (%s) failed with: %A" path ex                 
+                    // try & with is needed because exceptions on threadpool cannot be caught otherwise !!
+                    ISeffLog.log.PrintfnIOErrorMsg "SaveWriter.WriteIfLast: getText() for path (%s) failed with: %A" path ex                 
             } |> Async.StartImmediate            
