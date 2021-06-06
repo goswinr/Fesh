@@ -1,4 +1,4 @@
-﻿namespace Seff
+namespace Seff
 
 
 open System
@@ -78,7 +78,7 @@ module CompileScript =
         for ln in code.Split('\n') do 
                 let tln = ln.Trim()  
                 if tln.StartsWith "#r " then                     
-                    let _,path,_ = String.splitTwice "\""  "\"" tln // get part in quotes
+                    let _,path,_ = Str.splitTwice "\""  "\"" tln // get part in quotes
                     let stPath = path.Replace ('\\','/')
                     if stPath.Contains "/RhinoCommon.dll" then   
                         refs.Add {fullPath= Some stPath; fileName="RhinoCommon.dll" ;nameNoExt="RhinoCommon"  ;  copyLocal=false}
@@ -92,7 +92,7 @@ module CompileScript =
                         refs.Add{ fullPath=None; fileName=path ;nameNoExt=nameNoExt; copyLocal=false} // for BCL dlls of the .Net framework
                     
                 elif tln.StartsWith "#load " then 
-                    let _,path,_ = String.splitTwice "\""  "\"" tln
+                    let _,path,_ = Str.splitTwice "\""  "\"" tln
                     if path <> "" then 
                         let fullPath = path.Replace ('\\','/')
                         let nameFsx = fullPath.Split('/') |> Seq.last
