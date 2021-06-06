@@ -1,21 +1,24 @@
-namespace Seff.Views
+﻿namespace Seff.Views
 
-open Seff
-open Seff.Model
-open Seff.Util.General
-open Seff.Views.Util
-open Seff.Config
+
 open System
 open System.IO
 open System.Threading
-open AvalonEditB
 open System.Windows.Media // for color brushes
 open System.Text
 open System.Diagnostics
-open System.Collections.Generic
 open System.Windows.Controls
 open System.Windows
+
 open AvalonEditB
+
+open Seff
+open Seff.Util
+open Seff.Model
+open Seff.Config
+open Seff.Util.Media
+open Seff.Util.General
+open Seff.Views.Util
 
 module LogColors = 
 

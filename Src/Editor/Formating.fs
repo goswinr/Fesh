@@ -1,21 +1,10 @@
 ﻿namespace Seff.Editor
 
-
-open Seff
-open Seff.Model
-open AvalonEditB
-open Seff.Util
-open Seff.Util.String
-open Seff.Util.General
-open System.Windows
 open System
-open AvalonEditB.Editing
-open AvalonEditB
-open AvalonEditB.Editing
-open System.Windows.Input
 open System.Text
 
-
+open Seff.Model
+open Seff.Util
 
 
 module Formating = 

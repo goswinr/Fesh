@@ -1,19 +1,19 @@
 ﻿namespace Seff.Editor
 
-open Seff
-open Seff.Model
 open System
 open System.Windows
 open System.Windows.Media
 open System.Collections.Generic
-open Seff.Util.General
 
 open AvalonEditB
 open AvalonEditB.Rendering
 open AvalonEditB.Utils
 open AvalonEditB.Editing
 open AvalonEditB.Folding
-open System.Windows.Media
+
+open Seff.Model
+open Seff.Util.Media
+
 
 
 type ColumnRulers (editor:TextEditor, log: ISeffLog)  as this =

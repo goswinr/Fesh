@@ -1,20 +1,24 @@
 ﻿namespace Seff.Views
 
-open Seff
-open Seff.Model
-open Seff.Util.General
+
 open System
 open System.Windows
 open System.Windows.Documents
 open System.Windows.Controls
 open System.Windows.Controls.Primitives // status bar
 open System.Windows.Media
-open Seff.Views.Util
-open FSharp.Compiler.SourceCodeServices
 
+open FSharp.Compiler.SourceCodeServices
 open AvalonEditB
+
+open Seff
 open Seff.Config
 open Seff.Editor
+open Seff.Model
+open Seff.Views.Util
+open Seff.Util.Media
+open Seff.Util.General
+
 
 
 

@@ -1,12 +1,14 @@
-namespace Seff.Views
+﻿namespace Seff.Views
 
-open Seff.Editor
-open Seff.Model
-open System.IO
+
 open System.Windows.Controls
 open System.Windows
 open System.Windows.Media
-open Seff
+
+open Seff.Editor
+open Seff.Model
+open Seff.Util
+open Seff.Util.Media
 
 /// returns a bigger integer on each access for naming unsaved files
 type Counter private () = 

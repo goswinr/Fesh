@@ -1,21 +1,23 @@
 ﻿namespace Seff.Editor
 
 
+open System
+open System.Windows
+open System.Windows.Media
+open System.Windows.Input
+
+open FSharp.Compiler.SourceCodeServices
+open FSharp.Compiler.AbstractIL.Internal.Library
+
+open AvalonEditB
+open AvalonEditB.Utils
+open AvalonEditB.Document
+
 open Seff
 open Seff.Model
-open Seff.Util.String
-open AvalonEditB
-open System.Windows.Media
 open Seff.Config
-open Seff.Util.String
-open FSharp.Compiler.SourceCodeServices
-open System.Windows
-open System.IO
-open System
-open AvalonEditB.Document
-open System.Windows.Input
-open AvalonEditB.Utils
-open FSharp.Compiler.AbstractIL.Internal.Library
+open Seff.Util.Str
+
 
 
 

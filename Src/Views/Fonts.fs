@@ -1,9 +1,7 @@
-namespace Seff.Views
+﻿namespace Seff.Views
 
 open Seff
 open System
-open Seff.Config
-open Seff.Util.General
 open System.Windows.Media
 
 type Fonts (grid:TabsAndLog) = // will be contructed as part of Commands class

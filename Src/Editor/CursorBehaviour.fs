@@ -1,17 +1,16 @@
-namespace Seff.Editor
-
+﻿namespace Seff.Editor
 
 open System
 open System.Windows
 open System.Windows.Input
+
 open AvalonEditB
 open AvalonEditB.Document
-open AvalonEditB.Editing
-open Seff
+
 open Seff.Model
 open Seff.Util
-open Seff.Util.String
-open Seff.Util.General
+open Seff.Util.Str
+
 
 
 module Doc = 

@@ -1,4 +1,4 @@
-namespace Seff.Editor
+﻿namespace Seff.Editor
 
 open System
 open AvalonEditB

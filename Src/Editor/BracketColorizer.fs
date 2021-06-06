@@ -1,21 +1,15 @@
 ﻿namespace Seff.Editor
 
-open Seff
-open Seff.Model
-open Seff.Config
-open Seff.Util
-open Seff.Util.General
+
 open System
-open System.Windows
-open System.Windows.Controls
 open System.Windows.Media
 
 open AvalonEditB
-open AvalonEditB.Editing
-open AvalonEditB.Document
-open FSharp.Compiler
-open FSharp.Compiler.SourceCodeServices
 open System.Collections.Generic
+
+open Seff.Model
+open Seff.Util
+open Seff.Util.Media
 
 
 type BracketKind = 

@@ -2,8 +2,10 @@
 
 open System
 open System.Collections.Generic
+
 open FSharp.Compiler.SourceCodeServices
-open Seff.Util.String
+
+open Seff.Util.Str
     
 module Packages=
   

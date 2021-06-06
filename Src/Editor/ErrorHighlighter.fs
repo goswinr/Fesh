@@ -2,7 +2,7 @@
 
 open Seff
 open Seff.Model
-open Seff.Util.General
+open Seff.Util.Media
 open System
 open System.Windows
 open System.Windows.Media
