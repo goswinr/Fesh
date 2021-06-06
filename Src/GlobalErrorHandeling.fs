@@ -6,6 +6,8 @@ open System.Windows
 open Seff.Model
 open Seff.Util.General
 open Seff.Util
+open System.Runtime.InteropServices
+open System.ComponentModel
 
 module GlobalErrorHandeling = 
     
@@ -15,6 +17,16 @@ module GlobalErrorHandeling =
 
     let desktop = Environment.GetFolderPath(Environment.SpecialFolder.Desktop)
     
+
+    let getWin32Errors() = 
+        let lasterror = Marshal.GetLastWin32Error() // https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-erref/18d8fbe8-a967-4f1c-ae50-99ca8e491d2d
+        if lasterror <> 0 then 
+            "-no win32 Errors-"
+        else
+            let innerEx = new Win32Exception(lasterror) //Win32 error codes are translated from their numeric representations into a system message
+            sprintf "-last Win32 ErrorCode %d: %s-" lasterror innerEx.Message
+
+
     /// A class to provide an Error Handler that can catch currupted state or access violation errors frim FSI threads too
     type ProcessCorruptedState(log:ISeffLog) =  
     
@@ -35,14 +47,14 @@ module GlobalErrorHandeling =
                 //let textInLog =  log.ReadOnlyDoc.CreateSnapshot().Text /// this takes too long "Seff-UnhandledException-%s.txt will not be written at all.
                 //let err = sprintf "ProcessCorruptedState Special Handler: AppDomain.CurrentDomain.UnhandledException: \r\nisTerminating: %b : \r\ntime: %s\r\n%A\r\n\r\nText in Log:\r\n\r\n%s" e.IsTerminating time e.ExceptionObject textInLog
 
-                let fsiErrorStream = log.FsiErrorStream.ToString() // to catch errors there too
-                let err = sprintf "ProcessCorruptedState Special Handler: AppDomain.CurrentDomain.UnhandledException: \r\nisTerminating: %b : \r\ntime: %s\r\n\r\n%A\r\n\r\nFSI Error Stream:\r\n%s" e.IsTerminating time e.ExceptionObject fsiErrorStream
+                let fsiErrorStream = log.FsiErrorStream.ToString() // to catch errors there too                
+                let win32Err = getWin32Errors()
+                
+                let err = sprintf "ProcessCorruptedState Special Handler: AppDomain.CurrentDomain.UnhandledException: \r\nisTerminating: %b : \r\ntime: %s\r\n\r\n%A\r\n\r\nFSI Error Stream:\r\n%s\r\n%s" e.IsTerminating time e.ExceptionObject fsiErrorStream win32Err
                 
                 //let err = sprintf "ProcessCorruptedState Special Handler: AppDomain.CurrentDomain.UnhandledException: \r\nisTerminating: %b : \r\ntime: %s\r\n%A" e.IsTerminating time e.ExceptionObject 
                 
-                //async { 
-                try IO.File.WriteAllText(file, err) with _ -> () // file might be open and locked               
-                //    } |> Async.Start
+                try IO.File.WriteAllText(file, err) with _ -> () // file might be open and locked
 
                 log.PrintfnAppErrorMsg "%s" err
   
@@ -56,10 +68,12 @@ module GlobalErrorHandeling =
                     if throwCount < maxThrowCount then // reduce printing to Log UI, it might crash from printing too much
                         throwCount <- throwCount + 1                
                         if e <> null then 
-                            log.PrintfnAppErrorMsg "Application.Current.DispatcherUnhandledException in main Thread:\r\n%A" e.Exception           
+                            log.PrintfnAppErrorMsg "Application.Current.DispatcherUnhandledException in main Thread:\r\n%A" e.Exception
+                            log.PrintfnAppErrorMsg "%s" (getWin32Errors())
                             e.Handled<- true
                         else
                             log.PrintfnAppErrorMsg "Application.Current.DispatcherUnhandledException in main Thread: *null* Exception Obejct"
+                            log.PrintfnAppErrorMsg "%s" (getWin32Errors())
                     else 
                         print <- false
                         log.PrintfnAppErrorMsg "\r\nMORE THAN %d Application.Current.DispatcherUnhandledExceptions"    maxThrowCount
