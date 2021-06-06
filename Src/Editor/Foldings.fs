@@ -25,7 +25,7 @@ type Indent = { indent: int; wordStartOff:int }
 type Foldings(ed:TextEditor, checker:Checker, config:Config, edId:Guid) = 
     
     
-    let maxDepth = 2 // maximum amount of nested foldings 
+    let maxDepth = 1 // maximum amount of nested foldings 
 
     let minLinesOutside = 2 // minimum line count for outer folding 
 
@@ -170,6 +170,7 @@ type Foldings(ed:TextEditor, checker:Checker, config:Config, edId:Guid) =
                                     let f = foldings.[i]
                                     let folded = if  i < vs.Length then  vs.[i]  else false          
                                     let fs = manager.CreateFolding(f.foldStartOff, f.foldEndOff)
+                                    fs.Tag <- box f.nestingLevel
                                     fs.IsFolded <- folded
                                     fs.Title <- sprintf " ... %d folded lines " f.linesInFold                                        
                                 isIntialLoad <- false
@@ -213,4 +214,10 @@ type Foldings(ed:TextEditor, checker:Checker, config:Config, edId:Guid) =
     static member CollapseAll(ied:IEditor, config:Config) = 
         for f in ied.FoldingManager.AllFoldings do 
             f.IsFolded <- true
+        config.FoldingStatus.Set(ied) // so that they are saved immedeatly
+    
+    static member CollapsePrimary(ied:IEditor, config:Config) = 
+        for f in ied.FoldingManager.AllFoldings do 
+            if unbox f.Tag = 0 then // nestingLevel
+                f.IsFolded <- true
         config.FoldingStatus.Set(ied) // so that they are saved immedeatly

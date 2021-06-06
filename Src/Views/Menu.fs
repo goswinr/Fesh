@@ -183,8 +183,9 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, log:Log) =
                 menuItem cmds.FontBigger
                 menuItem cmds.FontSmaller
                 sep()
-                menuItem cmds.ExpandCode
+                menuItem cmds.CollapsePrim
                 menuItem cmds.CollapseCode
+                menuItem cmds.ExpandCode
                 ]
             MenuItem(Header = "_About"),[ //set top level refrence too
                 MenuItem(Header = "_Help?")
@@ -202,8 +203,9 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, log:Log) =
 
         tabs.Control.ContextMenu <- // TODO or attach to each new editor window ?
             makeContextMenu [
-                menuItem cmds.ExpandCode
+                menuItem cmds.CollapsePrim
                 menuItem cmds.CollapseCode
+                menuItem cmds.ExpandCode
                 sep()
                 menuItem cmds.AlignCode
                 sep()
