@@ -59,7 +59,7 @@ type CheckerStatus (grid:TabsAndLog) as this =
                 else 
                     lastFile <- tabs.Current.Editor.Id
                     lastErrCount <- es.Length 
-                    es|> Array.sortInPlaceBy (fun e -> struct(e.Start.Line, e.Start.Column)) // sort becaus we are not sure if they are allready sorted
+                    es|> Array.sortInPlaceBy (fun e -> struct(e.StartLineAlternate, e.StartColumn)) // sort because we are not sure if they are allready sorted
                     firstErrorLine <- Some <| Document.TextLocation(es.[0].StartLineAlternate, es.[0].StartColumn + 1 )
                     let was = ResizeArray()
                     let ers = ResizeArray()

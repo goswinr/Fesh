@@ -29,9 +29,8 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
 
     let search =            Search.SearchPanel.Install(avaEdit)
     
-    let errorHighlighter =  new ErrorHighlighter(avaEdit, config.Log)       
-    let compls =            new Completions(avaEdit,config,checker,errorHighlighter)
-    let folds =             new Foldings(avaEdit,checker, config, id)
+    let folds =             new Foldings(avaEdit,checker, config, id)        
+    let compls =            new Completions(avaEdit,config,checker)
     let rulers =            new ColumnRulers(avaEdit, config.Log) // do foldings first
     //let selText =           SelectedTextTracer.Setup(this,folds,config) // moved to: static member SetUp(..) 
     
@@ -75,20 +74,18 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
     // all instances of Editor refer to the same checker instance
     member this.GlobalChecker = checker
 
-    member this.ErrorHighlighter = errorHighlighter    
+       
     member this.Completions = compls
     member this.Config = config
     
     member this.Folds = folds
     member this.Search = search
     
-    
-    
     // IEditor members:
 
     member this.Id              = id
     member this.AvaEdit         = avaEdit    
-    ///This CheckStat is local to the current editor
+    ///This CheckState is local to the current editor
     member this.FileCheckState  with get() = checkState    and  set(v) = checkState <- v    
     member this.FilePath        with get() = filePath      and  set(v) = filePath <- v // The Tab class containing this editor takes care of updating this 
     member this.Log = log
@@ -113,13 +110,14 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
     /// a static method so that an instance if IEditor can be used
     static member SetUp  (code:string, config:Config, filePath:FilePath ) = 
         let ed = Editor(code, config, filePath )
-        
-        SelectedTextTracer.Setup(ed, config)
-        BracketHighlighter.Setup(ed, ed.GlobalChecker)
-
         let avaEdit = ed.AvaEdit
         let compls = ed.Completions
         let log = ed.Log
+
+        let errorHighlighter =  new ErrorHighlighter(ed, config.Log)   
+        SelectedTextTracer.Setup(ed, config)
+        BracketHighlighter.Setup(ed, ed.GlobalChecker)
+
 
         Logging.LogAction <- new Action<string>( fun (s:string) -> log.PrintfnDebugMsg "Logging.Log: %s" s)
         
@@ -275,9 +273,9 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
 
         ed.GlobalChecker.OnChecked.Add(fun iEditorOfCheck -> // this then triggers folding too, statusbar update is added in statusbar class
             if iEditorOfCheck.Id = ed.Id then // make sure it is only triggered on current editor!  
-                ed.ErrorHighlighter.Draw(ed)) 
+                errorHighlighter.Draw(ed)) 
         
-        compls.OnShowing.Add(fun _ -> ed.ErrorHighlighter.ToolTip.IsOpen <- false)
+        compls.OnShowing.Add(fun _ -> errorHighlighter.ToolTip.IsOpen <- false)
         compls.OnShowing.Add(fun _ -> ed.TypeInfoTip.IsOpen        <- false)
 
 

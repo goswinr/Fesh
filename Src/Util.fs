@@ -3,6 +3,7 @@
 open System
 open System.Windows.Media
 open System.IO
+open System.Windows
 
 [<AutoOpen>]
 module Global =
@@ -63,8 +64,8 @@ module General =
     let darker  (amount:int) (br:SolidColorBrush)  = SolidColorBrush(changeLuminace -amount br.Color) 
 
 
-    //make it therad safe and fatser
-    let inline freeze(br:SolidColorBrush)= 
+    // To make it thread safe and fatser
+    let freeze(br:SolidColorBrush)= 
         if br.IsFrozen then
             ()
         else
@@ -74,7 +75,16 @@ module General =
                eprintfn "Could not freeze SolidColorBrush: %A" br         
         br
 
-
+    // To make it thread safe and fatser
+    let freezePen(br:Pen)= 
+        if br.IsFrozen then
+            ()
+        else
+            if br.CanFreeze then 
+                br.Freeze()
+            else 
+               eprintfn "Could not freeze SolidColorBrush: %A" br         
+        br
 
     /// splits a file path into an array:
     /// like: [| "C:\" ; "folder1" ; "folder2" ; "file.ext" |]

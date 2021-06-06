@@ -119,7 +119,7 @@ type CompletionItem (ed:IEditor,config:Config, getToolTip, it:FSharpDeclarationL
         member this.Text            = this.Text 
             
 
-type Completions(avaEdit:TextEditor,config:Config, checker:Checker, errorHighlighter:ErrorHighlighter) =
+type Completions(avaEdit:TextEditor,config:Config, checker:Checker) = 
     
     let log = config.Log
 
@@ -191,7 +191,7 @@ type Completions(avaEdit:TextEditor,config:Config, checker:Checker, errorHighlig
     member this.Log = log
     member this.Checker = checker
     member this.Config = config
-    member this.ErrorHighlighter = errorHighlighter
+    
     member this.ComplWin 
         with get() = win
         and set(w) = win<-w  
