@@ -75,6 +75,7 @@
     <None Include="FSharpSynatxHighlighterExtended.xshd">    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>    </None>
 
     <Compile Include="Src/Util.fs" />
+    <Compile Include="Src/ParseFs.fs" />
     <Compile Include="Src/Timer.fs" />
     <Compile Include="Src/Style.fs" />
     <Compile Include="Src/Model.fs" />

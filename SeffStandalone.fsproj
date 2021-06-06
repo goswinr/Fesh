@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk.WindowsDesktop"> <!--WinDesktop is needed so that rescources work with dotnet build-->
 
   <PropertyGroup>
@@ -56,8 +56,7 @@
     <PackageReference Include="Microsoft.Build.Utilities.Core" Version="16.8.0" />--><!--needed for FCS 38.0.0-->
 
     <!--this reference is needed for tooling only, it might not be installed on host PC. see also https://github.com/fsprojects/IfSharp/issues/213 -->
-    <PackageReference Include="NETStandard.Library" Version="2.0.3" GeneratePathProperty="true"/>
-    
+    <PackageReference Include="NETStandard.Library" Version="2.0.3" GeneratePathProperty="true" />    
   </ItemGroup>
 
   <ItemGroup>
@@ -80,6 +79,7 @@
     <None Include="FSharpSynatxHighlighterExtended.xshd">    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>    </None>
 
     <Compile Include="Src/Util.fs" />
+    <Compile Include="Src/ParseFs.fs" />
     <Compile Include="Src/Timer.fs" />
     <Compile Include="Src/Style.fs" />
     <Compile Include="Src/Model.fs" />
