@@ -46,7 +46,7 @@
   <Color name="RecordNames"         foreground="#708070" />
 
   <Color name="LetBinding"          foreground="#7030A0" />
-  <Color name="LetRec"              foreground="#B03060" />
+  <Color name="LetRec"              foreground="#B03080" />
   <Color name="LetMutable"          foreground="#D08030" />
     
   <Color name="DocCommentStart"     foreground="#AACCAA" /> <!-- taken from https://github.com/icsharpcode/AvalonEdit/blob/master/ICSharpCode.AvalonEdit/Highlighting/Resources/XmlDoc.xshd-->
@@ -427,6 +427,11 @@
       <Begin color= "Keywords" >\blet\s*rec\s*</Begin> 
       <End color="Punctuation" >[=\s\(]</End> 
     </Span>
+    <Span color="LetRec"> 
+      <Begin color= "Keywords" >\band\s*</Begin> 
+      <End color="Punctuation" >[=\s\(]</End> 
+    </Span>
+    
 
    <Span color="TypeAnnotation"> 
       <Begin color= "Keywords" >\btype\s*</Begin> <!-- type declarations -->
