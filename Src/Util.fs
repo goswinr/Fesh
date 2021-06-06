@@ -62,6 +62,20 @@ module General =
     /// result will be clamped between 0 and 255
     let darker  (amount:int) (br:SolidColorBrush)  = SolidColorBrush(changeLuminace -amount br.Color) 
 
+
+    //make it therad safe and fatser
+    let inline freeze(br:SolidColorBrush)= 
+        if br.IsFrozen then
+            ()
+        else
+            if br.CanFreeze then 
+                br.Freeze()
+            else 
+               eprintfn "Could not freeze SolidColorBrush: %A" br         
+        br
+
+
+
     /// splits a file path into an array:
     /// like: [| "C:\" ; "folder1" ; "folder2" ; "file.ext" |]
     let pathParts (f:FileInfo) =
