@@ -21,22 +21,32 @@ open System.Windows.Controls
 // taken from //https://stackoverflow.com/questions/11149907/showing-invalid-xml-syntax-with-avalonedit
 // better would be https://github.com/icsharpcode/SharpDevelop/blob/master/src/AddIns/DisplayBindings/AvalonEdit.AddIn/Src/Textsegmentservice.cs
 
+
+module ErrorStyle  =    
     
-type SegmentToMark private (startOffset, length, message:string, undelineColor:Media.Color option, backbroundColor:Media.Color option,isWarning:bool) as this =
+    let errSquiggle     = Brushes.Red     |> darker 20      |> freeze
+    let warnSquiggle    = Brushes.Yellow  |> darker 40      |> freeze
+    let errBackGr       = Brushes.Red     |> brighter 200   |> freeze
+    let warnBackGr      = Brushes.Yellow  |> brighter 90    |> freeze   
+
+
+open ErrorStyle
+    
+type SegmentToMark private (startOffset, length, message:string, undelineColor:SolidColorBrush, backbroundColor:SolidColorBrush, isWarning:bool)  =
     inherit TextSegment()
     do
-        this.StartOffset <- startOffset
-        this.Length <- length
+        base.StartOffset <- startOffset
+        base.Length      <- length
     member val Message           =  message 
     member val IsWarning         =  isWarning
-    member val UnderlineColor    =  undelineColor
-    member val BackgroundColor   =  backbroundColor
+    member val UnderlineBrush    =  undelineColor
+    member val BackgroundBrush   =  backbroundColor
 
     static member CreateForError( startOffset, length, message) = 
-             SegmentToMark (startOffset, length, message, Some Colors.Red , Some (Colors.LightSalmon |> changeLuminace 40 ) , false )
+             SegmentToMark (startOffset, length, message, errSquiggle, errBackGr , false )
     
     static member CreateForWarning (startOffset, length, message) = 
-               SegmentToMark (startOffset, length, message, Some Colors.Green , Some (Colors.LightSeaGreen |> changeLuminace 80 ), true)
+               SegmentToMark (startOffset, length, message, warnSquiggle, warnBackGr, true)
 
 
 type ErrorRenderer (textEditor:TextEditor, log:ISeffLog) = 
@@ -54,37 +64,29 @@ type ErrorRenderer (textEditor:TextEditor, log:ISeffLog) =
                 let  viewEnd =   vls.Last().LastDocumentLine.EndOffset
             
                 for segment in segments.FindOverlappingSegments(viewStart, viewEnd - viewStart) do
-                    // background
-                    match segment.BackgroundColor with 
-                    |None ->()
-                    |Some backgroundColor ->                 
-                        let geoBuilder = new BackgroundGeometryBuilder (AlignToWholePixels = true, CornerRadius = 3.)
-                        geoBuilder.AddSegment(textView, segment) 
-                        let geometry = geoBuilder.CreateGeometry()
-                        let brush = new SolidColorBrush(backgroundColor)
-                        brush.Freeze()
-                        drawingContext.DrawGeometry(brush, null, geometry)
+                    // background                                   
+                    let geoBuilder = new BackgroundGeometryBuilder (AlignToWholePixels = true, CornerRadius = 0.)
+                    geoBuilder.AddSegment(textView, segment) 
+                    let geometry = geoBuilder.CreateGeometry()
+                    drawingContext.DrawGeometry(segment.BackgroundBrush, null, geometry)
 
-                    //foreground, red squiggels below
-                    match segment.UnderlineColor with 
-                    |None ->()
-                    |Some underlineColor ->   
-                        for r in BackgroundGeometryBuilder.GetRectsForSegment(textView, segment) do
-                            let  startPoint = r.BottomLeft
-                            let  endPoint = r.BottomRight
-                            let usedPen = new Pen(new SolidColorBrush(underlineColor), 1.)
-                            usedPen.Freeze()
-                            let offset = 2.5
-                            let count = max 4 (int((endPoint.X - startPoint.X)/offset) + 1)
+                    //foreground, red squiggels below                    
+                    for r in BackgroundGeometryBuilder.GetRectsForSegment(textView, segment) do
+                        let  startPoint = r.BottomLeft
+                        let  endPoint = r.BottomRight
+                        let usedPen = new Pen(segment.UnderlineBrush, 1.)
+                        usedPen.Freeze()
+                        let offset = 2.5
+                        let count = max 4 (int((endPoint.X - startPoint.X)/offset) + 1)
 
-                            let  geometry = new StreamGeometry()
+                        let  geometry = new StreamGeometry()
                         
-                            use ctx = geometry.Open()
-                            ctx.BeginFigure(startPoint, false, false)
-                            ctx.PolyLineTo(createPoints(startPoint, offset, count), true, false)                    
-                            geometry.Freeze()
-                            drawingContext.DrawGeometry(Brushes.Transparent, usedPen, geometry)
-                            //break //TODO why break in original code ? //https://stackoverflow.com/questions/11149907/showing-invalid-xml-syntax-with-avalonedit
+                        use ctx = geometry.Open()
+                        ctx.BeginFigure(startPoint, false, false)
+                        ctx.PolyLineTo(createPoints(startPoint, offset, count), true, false)                    
+                        geometry.Freeze()
+                        drawingContext.DrawGeometry(Brushes.Transparent, usedPen, geometry)
+                        //break //TODO why break in original code ? //https://stackoverflow.com/questions/11149907/showing-invalid-xml-syntax-with-avalonedit
         with ex -> 
             log.PrintfnAppErrorMsg "ERROR in ErrorRenderer.Draw: %A" ex
             
@@ -94,9 +96,7 @@ type ErrorRenderer (textEditor:TextEditor, log:ISeffLog) =
     member this.AddSegments( res: CheckResults )=        
         res.checkRes.Errors|> Array.sortInPlaceBy (fun e -> e.StartLineAlternate)
         for e in res.checkRes.Errors |> Seq.truncate 9 do 
-            // TODO Only highligth the first 9 Errors, Otherwise UI becomes unresponsive at 100 or more errors ( eg when pasting bad text)
-            // TODO Test again        
-            // TODO as an alternative use Visualline transformers like in Log view, do they perform better ?
+            // TODO Only highligth the first 9 Errors, Otherwise UI becomes unresponsive at 100 or more errors ( eg when pasting bad text)            
             let startOffset = textEditor.Document.GetOffset(new TextLocation(e.StartLineAlternate, e.StartColumn + 1 ))
             let endOffset   = textEditor.Document.GetOffset(new TextLocation(e.EndLineAlternate,   e.EndColumn   + 1 ))
             let length      = endOffset-startOffset
@@ -104,12 +104,12 @@ type ErrorRenderer (textEditor:TextEditor, log:ISeffLog) =
             | FSharpErrorSeverity.Error   -> segments.Add ( SegmentToMark.CreateForError  ( startOffset, length, e.Message+"\r\nError: "   + (string e.ErrorNumber) ))
             | FSharpErrorSeverity.Warning -> segments.Add ( SegmentToMark.CreateForWarning( startOffset, length, e.Message+"\r\nWarning: " + (string e.ErrorNumber) )) 
         
-        textEditor.TextArea.TextView.Redraw()// or just redraw each segment one by one while adding them?
+        textEditor.TextArea.TextView.Redraw()
         
     member this.Clear()= 
         if segments.Count > 0 then 
             segments.Clear()
-            textEditor.TextArea.TextView.Redraw() // redraw all instead of just renderer ISegment  ?            
+            textEditor.TextArea.TextView.Redraw()       
 
     member this.GetsegmentsAtOffset(offset) = segments.FindSegmentsContaining(offset)
       
@@ -125,7 +125,7 @@ type ErrorHighlighter (ed:TextEditor, log:ISeffLog) =
 
     let tView= ed.TextArea.TextView
     let renderer = ErrorRenderer(ed,log)
-    let tip = new ToolTip(IsOpen=false) // replace with something that can be pinned// TODO use popup instead of tooltip so it can be pinned?
+    let tip = new ToolTip(IsOpen=false) // TODO replace with something that can be pinned// TODO use popup instead of tooltip so it can be pinned?
 
     let drawnEv = new Event<IEditor>()
 

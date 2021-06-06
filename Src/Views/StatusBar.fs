@@ -41,6 +41,8 @@ type CheckerStatus (grid:TabsAndLog) as this =
     let mutable lastErrCount = -1
     let mutable lastFile = Guid.Empty
 
+    let mutable firstErrorLine = None
+
     let updateCheckState(iEditor:IEditor)= 
         //log.PrintfnDebugMsg "Setting errors for %A %A " iEditor.FileInfo iEditor.CheckRes.Value.checkRes.Errors.Length 
         match iEditor.FileCheckState with
@@ -53,35 +55,46 @@ type CheckerStatus (grid:TabsAndLog) as this =
                         this.ToolTip <- "FSarp Compiler Service found no Errors in"+ Environment.NewLine + tabs.Current.FormatedFileName
                         lastFile <- tabs.Current.Editor.Id
                         lastErrCount <- 0
+                        firstErrorLine <- None
                 else 
                     lastFile <- tabs.Current.Editor.Id
                     lastErrCount <- es.Length 
-                    let ers = es|> Array.filter (fun e -> e.Severity = FSharpErrorSeverity.Error) 
-                    let erk = ers.Length
-                    let was = es|> Array.filter (fun e -> e.Severity = FSharpErrorSeverity.Warning)
-                    let wak = was.Length
-                    if wak > 0 then 
-                        was|> Array.sortInPlaceBy (fun e -> e.StartLineAlternate)
-                        this.Text <- sprintf " %d compiler warnings, first one on line %d" wak was.[0].StartLineAlternate
+                    es|> Array.sortInPlaceBy (fun e -> struct(e.Start.Line, e.Start.Column)) // sort becaus we are not sure if they are allready sorted
+                    firstErrorLine <- Some <| Document.TextLocation(es.[0].StartLineAlternate, es.[0].StartColumn + 1 )
+                    let was = ResizeArray()
+                    let ers = ResizeArray()
+                    for e in es do
+                        match e.Severity with 
+                        |FSharpErrorSeverity.Warning -> was.Add e
+                        |FSharpErrorSeverity.Error   -> ers.Add e
+                    let erk = ers.Count                    
+                    let wak = was.Count
+                    if wak > 0 && erk > 0 then
+                        this.Text <- sprintf " %d compiler errors, %d warnings, first one on line: %d" erk wak firstErrorLine.Value.Line
+                        this.Background <- errColor 
+                    elif wak > 0 then
+                        this.Text <- sprintf " %d compiler warnings, first one on line %d" wak firstErrorLine.Value.Line
                         this.Background <- warnColor 
-                    elif erk > 0 then
-                        ers|> Array.sortInPlaceBy (fun e -> e.StartLineAlternate)
-                        this.Text <- sprintf " %d compiler errors, first one on line: %d" erk ers.[0].StartLineAlternate
-                        this.Background <- errColor
-                    else
-                        ers|> Array.sortInPlaceBy (fun e -> e.StartLineAlternate)
-                        was|> Array.sortInPlaceBy (fun e -> e.StartLineAlternate)
-                        this.Text <- sprintf " %d compiler errors, %d warnings, first one on line: %d" erk wak (min ers.[0].StartLineAlternate was.[0].StartLineAlternate)
-                        this.Background <- errColor            
+                    elif erk > 0 then                        
+                        this.Text <- sprintf " %d compiler errors, first one on line: %d" erk firstErrorLine.Value.Line
+                        this.Background <- errColor                              
                     
                     this.ToolTip <- makePanelVert [                         
-                        if erk>0 then       TextBlock(Text="Errors:", FontSize = 14. , FontWeight = FontWeights.Bold )
-                        for e in ers  do    TextBlock(Text = sprintf "• line %d: %s" e.StartLineAlternate e.Message)
-                        
-                        if wak>0 then       TextBlock(Text="Warnings:", FontSize = 14. , FontWeight = FontWeights.Bold )
-                        for w in was do     TextBlock(Text = sprintf "• line %d: %s" w.StartLineAlternate w.Message) 
+                        if erk>0 then       
+                            TextBlock(Text="Errors:", FontSize = 14. , FontWeight = FontWeights.Bold )
+                        for e in Seq.truncate 10 ers do    
+                            TextBlock(Text = sprintf "• line %d: %s" e.StartLineAlternate e.Message)
+                        if erk > 10 then 
+                            TextBlock(Text = " ...")
 
-                        TextBlock(Text = tabs.Current.FormatedFileName, FontSize = 9.)
+
+                        if wak>0 then       
+                            TextBlock(Text="Warnings:", FontSize = 14. , FontWeight = FontWeights.Bold )
+                        for w in Seq.truncate 10 was do  
+                            TextBlock(Text = sprintf "• line %d: %s" w.StartLineAlternate w.Message) 
+                        if wak > 10 then 
+                            TextBlock(Text = " ...")
+                        TextBlock(Text = tabs.Current.FormatedFileName, FontSize = iEditor.AvaEdit.FontSize * 0.8)
                         ]        
         
         | GettingCode id0
@@ -119,6 +132,11 @@ type CheckerStatus (grid:TabsAndLog) as this =
         tabs.OnTabChanged.Add (fun t -> updateCheckState(t.Editor))            
         checker.OnChecked.Add  updateCheckState
         checker.OnChecking.Add updateCheckState
+        this.MouseDown.Add ( fun a -> 
+            match firstErrorLine with 
+            |Some loc -> Foldings.GoToLineAndUnfold(loc, grid.Tabs.Current.Editor, grid.Config)                
+            |None     -> ()
+            )
  
 type FsiRunStatus (grid:TabsAndLog, cmds:Commands) as this = 
     inherit TextBlock()

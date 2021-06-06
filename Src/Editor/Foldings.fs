@@ -10,6 +10,7 @@ open Seff.Config
 
 open AvalonEditB
 open AvalonEditB.Folding
+open AvalonEditB.Document
 
 
     
@@ -221,3 +222,14 @@ type Foldings(ed:TextEditor, checker:Checker, config:Config, edId:Guid) =
             if unbox f.Tag = 0 then // nestingLevel
                 f.IsFolded <- true
         config.FoldingStatus.Set(ied) // so that they are saved immedeatly
+
+    static member GoToLineAndUnfold(loc:TextLocation, ied:IEditor, config:Config) = 
+        let offset = ied.AvaEdit.Document.GetOffset(loc)
+        let mutable unfoldedOneOrMore = false
+        for fold in ied.FoldingManager.GetFoldingsContaining(offset) do
+            if fold.IsFolded then 
+                fold.IsFolded <- false
+                unfoldedOneOrMore <- true
+        ied.AvaEdit.ScrollTo(loc.Line,loc.Column)
+        if unfoldedOneOrMore then 
+            config.FoldingStatus.Set(ied) // so that they are saved immedeatly
