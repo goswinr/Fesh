@@ -1,19 +1,21 @@
 ﻿namespace Seff.Editor
 
-open Seff
-open Seff.Model
-open Seff.Util.Media
 open System
+open System.Linq // for First() and Last() on read only collections //TODO replace
 open System.Windows
+open System.Windows.Controls
 open System.Windows.Media
 open System.Collections.Generic
+
 open AvalonEditB
 open AvalonEditB.Document
 open AvalonEditB.Rendering
-open FSharp.Compiler.SourceCodeServices
-open System.Linq // for First() and Last() on read only collections //TODO replace
-open System.Windows.Controls
 
+open FSharp.Compiler.SourceCodeServices
+
+open Seff
+open Seff.Model
+open Seff.Util.Media
 
 
 //read: http://danielgrunwald.de/coding/AvalonEdit/rendering.php
@@ -51,8 +53,7 @@ type ErrorRenderer (ied:IEditor, log:ISeffLog) =
     let doc = ied.AvaEdit.Document
     let txA = ied.AvaEdit.TextArea
     let segments = new TextSegmentCollection<SegmentToMark>(doc)
-    let extraRects = ResizeArray<Rect>()
-    
+        
     /// for Squiggly line
     let createPoints(start:Point , offset, count)=
         [| for i=0 to count - 1 do yield new Point( start.X + (float i * offset) , 
@@ -68,8 +69,7 @@ type ErrorRenderer (ied:IEditor, log:ISeffLog) =
         ctx.BeginFigure(startPoint, false, false)
         ctx.PolyLineTo(createPoints(startPoint, offset, count), true, false)                    
         geometry.Freeze()
-        geometry
-        
+        geometry        
 
 
     member this.Draw (textView:TextView , drawingContext:DrawingContext) = // for IBackgroundRenderer
@@ -110,16 +110,14 @@ type ErrorRenderer (ied:IEditor, log:ISeffLog) =
             | FSharpErrorSeverity.Warning -> segments.Add ( SegmentToMark.CreateForWarning( startOffset, length, e.Message+"\r\nWarning: " + (string e.ErrorNumber) )) 
                         
             for fold in ied.FoldingManager.GetFoldingsContaining(startOffset) do
-                //if fold.IsFolded then // do always !
-                //fold.BackbgroundColor  <- ErrorStyle.errBackGr
+                //if fold.IsFolded then // do on all folds !
+                //fold.BackbgroundColor  <- ErrorStyle.errBackGr // done via ctx.DrawRectangle(ErrorStyle.errBackGr
                 fold.DecorateRectangle <- Action<Rect,DrawingContext>( fun rect ctx -> 
                     let geo = getSquiggle(rect)
                     if isNull fold.BackbgroundColor then // in case of selection highlighting skip brush only use Pen
                         ctx.DrawRectangle(ErrorStyle.errBackGr, null, rect)                    
                     ctx.DrawGeometry(Brushes.Transparent, ErrorStyle.errSquiggle, geo)
-                    )
-
-        
+                    )        
         txA.TextView.Redraw()
         
     member this.Clear()= 
