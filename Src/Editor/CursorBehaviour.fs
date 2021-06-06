@@ -1,4 +1,4 @@
-﻿namespace Seff.Editor
+namespace Seff.Editor
 
 
 open System
@@ -380,15 +380,15 @@ module CursorBehaviour  =
             let isFsx (p:string) = p.EndsWith(".fsx", StringComparison.OrdinalIgnoreCase) ||  p.EndsWith(".fs", StringComparison.OrdinalIgnoreCase)
 
             let findInsertion (code:string) =    
-                match Util.Parse.findWordAhead "[<Literal>]" 0 code with 
+                match ParseFs.findWordAhead "[<Literal>]" 0 code with 
                 | Some p  -> 
-                    Util.Parse.findWordAhead "@\"" p.offset code 
+                    ParseFs.findWordAhead "@\"" p.offset code 
                 | None -> 
                     let rec allRefs off =  // loop to skip over the #r and #I statments                   
-                        match Util.Parse.findWordAhead "#" off code with
+                        match ParseFs.findWordAhead "#" off code with
                         | Some p -> allRefs (p.offset + 7)  // gap of 7 between #r or #load and @"C:\...
                         | None -> off
-                    Util.Parse.findWordAhead "@\"" (allRefs 0) code                 
+                    ParseFs.findWordAhead "@\"" (allRefs 0) code                 
             try
                 let printGreen = ed.Log.PrintfnColor 0 150 0               
 

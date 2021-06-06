@@ -1,4 +1,4 @@
-﻿namespace Seff
+namespace Seff
 
 
 open System
@@ -233,11 +233,11 @@ type Fsi private (config:Config) =
                         
                             //highlight line number:
                             let et = sprintf "%A" exn
-                            let t,r = String.splitOnce ".fsx:" et
+                            let t,r = Str.splitOnce ".fsx:" et
                             if r="" then 
                                 log.PrintfnFsiErrorMsg "%s" et
                             else
-                                let ln,rr = String.splitOnce "\r\n" r                        
+                                let ln,rr = Str.splitOnce "\r\n" r                        
                                 log.PrintfFsiErrorMsg "%s.fsx:" t
                                 log.PrintfnColor 0 0 200 "%s" ln
                                 log.PrintfnFsiErrorMsg "%s" rr

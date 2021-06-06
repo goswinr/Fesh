@@ -1,4 +1,4 @@
-﻿namespace Seff.Views
+namespace Seff.Views
 
 open Seff.Editor
 open Seff.Model

@@ -1,4 +1,4 @@
-﻿namespace Seff.Views
+namespace Seff.Views
 
 open Seff
 open System
@@ -29,7 +29,7 @@ type Fonts (grid:TabsAndLog) = // will be contructed as part of Commands class
         log.PrintfnInfoMsg "new Fontsize: %.2f" newSize
     
 
-    let verifyFont(f:FontFamily) =
+    let fontExists(f:FontFamily) =
         let n = f.FamilyNames.Values |> Seq.head
         if f.Source.Contains(n) then  // scource migth stat with ./#
             true
@@ -39,6 +39,9 @@ type Fonts (grid:TabsAndLog) = // will be contructed as part of Commands class
             for fo in Fonts.GetFontFamilies(fontsUri) do
                 log.PrintfnAppErrorMsg "'%s'" fo.Source    
             false
+    
+    let logIfFontIsMissing (f:FontFamily) = fontExists f  |> ignore ; f
+
 
     let setLog(font:FontFamily) = // on log and all tabs
         Style.fontLog <- font
@@ -63,23 +66,23 @@ type Fonts (grid:TabsAndLog) = // will be contructed as part of Commands class
         try
             let f = new FontFamily(mediaUri,"./#"+name) 
             // TODO set ligatures?
-            if not (verifyFont  f) then 
-                new FontFamily(alternative) |>> verifyFont 
+            if not (fontExists  f) then 
+                new FontFamily(alternative) |> logIfFontIsMissing 
             else
                 f
         with e -> 
             log.PrintfnAppErrorMsg "Fonts.load(\"%s\",\"%s\") failed : %A" name alternative e
-            new FontFamily(alternative) |>> verifyFont 
+            new FontFamily(alternative) |> logIfFontIsMissing 
     
     //----- init ---------
     do   
         
 
         //setEditor(fromRescources("Fira Code", "Consolas")) // too slow on big files, Cascadia Mono is just as bad
-        setEditor(  FontFamily ("Consolas")|>> verifyFont)  // only consolas renders fast      
-        //setEditor(  FontFamily ("JetBrains Mono")|>> verifyFont)  // only consolas renders fast      
-        setLog(     FontFamily ("Consolas")|>> verifyFont)  
-        setToolTip( FontFamily ("Verdana") |>> verifyFont) // or FontFamily("Andale Mono")?
+        setEditor(  FontFamily ("Consolas")|> logIfFontIsMissing)  // only consolas renders fast      
+        //setEditor(  FontFamily ("JetBrains Mono")|> logIfFontIsMissing)  // only consolas renders fast      
+        setLog(     FontFamily ("Consolas")|> logIfFontIsMissing)  
+        setToolTip( FontFamily ("Verdana") |> logIfFontIsMissing) // or FontFamily("Andale Mono")?
     
     
     // this fonsize makes block selection delete fail on the last line: 17.0252982466288 happens at 17.5 too

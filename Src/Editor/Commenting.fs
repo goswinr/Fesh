@@ -1,4 +1,4 @@
-﻿namespace Seff.Editor
+namespace Seff.Editor
 
 open System
 open AvalonEditB
@@ -74,7 +74,7 @@ module Commenting =
                         dl.[i]  ='/' &&
                         dl.[i+1]='/' then doc.Remove(ln.Offset + i , 2) 
                     else
-                        let indent = String.spacesAtStart dl
+                        let indent = Str.spacesAtStart dl
                         doc.Insert(ln.Offset + indent, "//")
                     toggle ln.NextLine            
         doc.BeginUpdate()//avaEdit.Document.RunUpdate

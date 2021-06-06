@@ -1,4 +1,4 @@
-﻿namespace Seff.Views
+namespace Seff.Views
 
 open Seff
 open Seff.Model
@@ -251,7 +251,7 @@ type Log private () =
     let log =  new TextEditor()    
     let hiLi = new LogSelectedTextHighlighter(log)
     let colo = new LogLineColorizer(log,offsetColors)    
-    let search = Search.SearchPanel.Install(log) |> ignore //TODO disable search and replace ?
+    let search = Search.SearchPanel.Install(log)  //TODO disable search and replace ?
     
     do    
         //styling: 
@@ -286,7 +286,7 @@ type Log private () =
 
     let getBufferText () =
         let txt = buffer.ToString()
-        buffer.Clear()  |> ignore 
+        buffer.Clear()  |> ignoreObj 
         txt
 
     // The below functions are trying to work around double UI update in printfn for better UI performance, 
@@ -316,11 +316,11 @@ type Log private () =
             // add to buffer locked:
             if addNewLine then 
                 lock buffer (fun () -> 
-                    buffer.AppendLine(txt)  |> ignore
+                    buffer.AppendLine(txt)  |> ignoreObj
                     docLength <- docLength + txt.Length + 2) // TODO, is a new line always two ?
             else                
                 lock buffer (fun () -> 
-                    buffer.Append(txt)  |> ignore
+                    buffer.Append(txt)  |> ignoreObj
                     docLength <- docLength + txt.Length   ) 
             
             // check if buffer is already to big , print it and then stop printing
@@ -367,7 +367,7 @@ type Log private () =
     let textWriterConsoleOut    = new FsxTextWriter(fun s -> printOrBuffer (s, false, LogColors.consoleOut   ))
     let textWriterConsoleError  = new FsxTextWriter(fun s -> printOrBuffer (s, false, LogColors.consoleError ))                                                                              
     let textWriterFsiStdOut     = new FsxTextWriter(fun s -> printOrBuffer (s, false, LogColors.fsiStdOut    ))
-    let textWriterFsiErrorOut   = new FsxTextWriter(fun s -> printOrBuffer (s, false, LogColors.fsiErrorOut  ); fsiErrorStream.Append(s)|> ignore )
+    let textWriterFsiErrorOut   = new FsxTextWriter(fun s -> printOrBuffer (s, false, LogColors.fsiErrorOut  ); fsiErrorStream.Append(s)|> ignoreObj )
 
  
      
