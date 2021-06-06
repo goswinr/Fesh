@@ -16,6 +16,11 @@ type Counter private () =
     /// used to give each unsaved file a unique number
     static member UnsavedFile = incr unsavedFile ;  !unsavedFile
 
+module TabStyle =
+    let savedHeader   =  Brushes.Black  |> freeze
+    let changedHeader =  Brushes.Red    |> darker 60   |> freeze
+    let unsavedHeader =  Brushes.Gray   |> brighter 40 |> freeze
+
 
  /// The tab that holds the tab header logic and the code editor 
 type Tab (editor:Editor) =  
@@ -48,22 +53,22 @@ type Tab (editor:Editor) =
         |SetTo fi , true -> 
             textBlock.ToolTip       <- "File saved at:\r\n" + fi.FullName
             textBlock.Text          <- fi.Name
-            textBlock.Foreground    <- Brushes.Black
+            textBlock.Foreground    <- TabStyle.savedHeader
             headerShowsSaved        <- true
         |SetTo fi , false -> 
             textBlock.ToolTip       <- "File with unsaved changes from :\r\n" + fi.FullName
             textBlock.Text          <- fi.Name + "*"
-            textBlock.Foreground    <- Brushes.DarkRed
+            textBlock.Foreground    <- TabStyle.changedHeader
             headerShowsSaved        <- false
         |NotSet,true    -> 
             textBlock.ToolTip      <- "This file just shows the default code for every new file."
-            textBlock.Text         <- sprintf "-unsaved-%d-" Counter.UnsavedFile  
-            textBlock.Foreground   <- Brushes.Gray
+            textBlock.Text         <- sprintf "*unsaved-%d*" Counter.UnsavedFile  
+            textBlock.Foreground   <- TabStyle.unsavedHeader
             headerShowsSaved       <- true
         |NotSet,false    -> 
             textBlock.ToolTip      <- "This file has not yet been saved to disk."
             if not ( textBlock.Text.EndsWith "*") then textBlock.Text <- textBlock.Text + "*"
-            textBlock.Foreground   <- Brushes.DarkRed
+            textBlock.Foreground   <- TabStyle.changedHeader
             headerShowsSaved       <- false
 
      
