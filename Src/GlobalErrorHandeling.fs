@@ -21,10 +21,10 @@ module GlobalErrorHandeling =
     let getWin32Errors() = 
         let lasterror = Marshal.GetLastWin32Error() // https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-erref/18d8fbe8-a967-4f1c-ae50-99ca8e491d2d
         if lasterror <> 0 then 
-            "-no win32 Errors-"
+            "WIN32 LAST ERROR:\r\n-no win32 Errors-"
         else
             let innerEx = new Win32Exception(lasterror) //Win32 error codes are translated from their numeric representations into a system message
-            sprintf "-last Win32 ErrorCode %d: %s-" lasterror innerEx.Message
+            sprintf "WIN32 LAST ERROR:\r\nErrorCode %d: %s-" lasterror innerEx.Message
 
 
     /// A class to provide an Error Handler that can catch currupted state or access violation errors frim FSI threads too
