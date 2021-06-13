@@ -168,6 +168,8 @@ module CompileScript =
         } 
         |> String.concat (Environment.NewLine + "    ")      
 
+    
+    //TODO  use https://github.com/Tyrrrz/CliWrap ??
 
     let createFsproj(code, fp:FilePath, log:ISeffLog, copyDlls) =
         match fp with 
