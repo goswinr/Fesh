@@ -23,7 +23,7 @@ type Counter private () =
 
 module TabStyle =
     let savedHeader   =  Brushes.Black  |> freeze
-    let changedHeader =  Brushes.Red    |> darker 60   |> freeze
+    let changedHeader =  Brushes.Red    |> darker 90   |> freeze
     let unsavedHeader =  Brushes.Gray   |> brighter 40 |> freeze
 
 
