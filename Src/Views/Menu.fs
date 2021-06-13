@@ -1,19 +1,18 @@
 ﻿namespace Seff.Views
 
-open Seff
 open System
+open System.Windows
 open System.Windows.Input
 open System.Windows.Controls
+open System.Collections.Generic
+
+open Seff
+open Seff.Model
+open Seff.Util
 open Seff.Views.Util
 open Seff.Config
-open System.Collections.Generic
-open Seff.Util
-open System.Windows
-open System.Collections.Generic
-
 
 type HeaderGestureTooltip = {header:string; gesture:string; toolTip:string}
-
 
 type Menu (config:Config,cmds:Commands, tabs:Tabs, log:Log) = 
     let bar = new Windows.Controls.Menu()
@@ -91,6 +90,11 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, log:Log) =
 
                 
         } |> Async.Start
+    
+    /// for right clicking on file pathes:
+    let filePathStartRegex = Text.RegularExpressions.Regex(""""[A-Z]:[\\/]""")
+    let mutable pathInMenu = false
+
 
     do 
         
@@ -244,9 +248,39 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, log:Log) =
                 menuItem cmds.SaveLog
                 menuItem cmds.SaveLogSel
                 ]
-
         
+        /// add menu to upen file path if ther is on on current line
+        tabs.Control.PreviewMouseRightButtonDown.Add ( fun m -> 
+            if pathInMenu then                               
+                tabs.Control.ContextMenu.Items.RemoveAt(0)
+                tabs.Control.ContextMenu.Items.RemoveAt(0)
+                pathInMenu <- false
+            let ava = tabs.Current.AvaEdit                      
+            let pos = ava.GetPositionFromPoint(m.GetPosition(ava))
+            if pos.HasValue then               
+                let line = ava.Document.GetLineByNumber(pos.Value.Line)
+                let txt  = ava.Document.GetText(line)
+                let m = filePathStartRegex.Match(txt)
+                if m.Success then
+                    match Str.between "\"" "\"" txt with 
+                    |None -> ()
+                    |Some p ->
+                        let dir =  IO.Path.GetDirectoryName(p.Replace("\\\\", "\\").Replace("/", "\\"))
+                        let shortDir = Str.shrink 30 " ... " dir 
+                        let cmd = {
+                                name = sprintf "Open folder '%s' in Explorer" shortDir
+                                gesture = ""
+                                cmd = mkCmdSimple (fun _ -> Diagnostics.Process.Start("Explorer.exe", "\"" + dir+ "\"") |> ignoreObj) 
+                                tip = sprintf "Try to open folder at \r\n%s" dir
+                                }
+                        tabs.Control.ContextMenu.Items.Insert(0, sep()       )  
+                        tabs.Control.ContextMenu.Items.Insert(0, menuItem cmd)  
+                        pathInMenu <- true
+            )
+               
+                
+
 
     member this.Bar = bar
 
-    member this.SetRecentFiles()= setRecentFiles()
+    member this.SetRecentFiles() = setRecentFiles()
