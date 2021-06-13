@@ -136,10 +136,15 @@ type Tabs(config:Config, win:Window) =
             | _ -> false
 
     let closeTab(t:Tab)= 
+        let wasWatching = t.FileWatcher.EnableRaisingEvents
+        t.FileWatcher.EnableRaisingEvents <- false
         if askIfClosingTabIsOk(t) then 
             tabs.Items.Remove(t)            
             config.OpenTabs.Save (t.FilePath , allFileInfos) //saving removed file, not added 
-    
+        else // closing cancelled, keep on watching file
+            if wasWatching then 
+                t.FileWatcher.EnableRaisingEvents <- true
+
     ///tab:Tab, makeCurrent, moreTabsToCome
     let addTab(tab:Tab, makeCurrent, moreTabsToCome) = 
         let ix = tabs.Items.Add tab        

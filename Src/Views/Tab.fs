@@ -157,6 +157,8 @@ type Tab (editor:Editor) =
 
     member this.OnFocusMsgs = onFocusMsgs
 
+    member this.FileWatcher = watcher
+
 
     member this.IsCodeSaved 
         with get()       = isCodeSaved 
