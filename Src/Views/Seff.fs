@@ -50,6 +50,12 @@ type Seff (config:Config,log:Log) =
         win.Window.AllowDrop <- true // so it works on tab bar 
         win.Window.Drop.Add (fun e -> CursorBehaviour.TabBarDragAndDrop(log,tabs.AddFiles, e)) // text editor has it own drag event, this aplies to all other area ( eg log, tab bar) except the editor
 
+        win.Window.Activated.Add( fun a -> 
+            let msgs = ResizeArray(tabs.Current.OnFocusMsgs)
+            tabs.Current.OnFocusMsgs.Clear() // clone and clear first
+            for msg in msgs do MessageBox.Show("Activated: " + msg) |> ignore
+            )
+
     member this.Config = config
 
     member this.Tabs= tabsAndLog.Tabs
