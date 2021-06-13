@@ -26,6 +26,15 @@ module Global =
     
     //let inline (|>!) a f = f a |> ignore ; a
 
+    type DateTime with      
+        /// yyyy-MM-dd_HH-mm-ss
+        static member nowStr      = System.DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss")
+        /// yyyy-MM-dd_HH-mm-ss.FFF
+        static member nowStrMilli = System.DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss.FFF")
+        /// yyyy-MM-dd
+        static member todayStr    = System.DateTime.Now.ToString("yyyy-MM-dd")
+
+
 /// for SolidColorBrushes and other types from Windows.Media
 module Media = 
 
@@ -257,13 +266,9 @@ module Str  =
  
 
  
- (*
- type Time()=
-     //static member nowStrMenu  = System.DateTime.Now.ToString("yyyy-MM-dd  HH:mm")
-     static member nowStr      = System.DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss")
-     static member nowStrMilli = System.DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss.FFF")
-     static member todayStr    = System.DateTime.Now.ToString("yyyy-MM-dd")
- *)
+ 
+
+ 
 
 (*  module Extern =
         open System.Runtime.InteropServices
