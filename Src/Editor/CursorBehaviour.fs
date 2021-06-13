@@ -378,16 +378,17 @@ module CursorBehaviour  =
             let isDll (p:string) = p.EndsWith(".dll", StringComparison.OrdinalIgnoreCase) ||  p.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)
             let isFsx (p:string) = p.EndsWith(".fsx", StringComparison.OrdinalIgnoreCase) ||  p.EndsWith(".fs", StringComparison.OrdinalIgnoreCase)
 
-            let findInsertion (code:string) =    
-                match ParseFs.findWordAhead "[<Literal>]" 0 code with 
-                | Some p  -> 
-                    ParseFs.findWordAhead "@\"" p.offset code 
-                | None -> 
-                    let rec allRefs off =  // loop to skip over the #r and #I statments                   
-                        match ParseFs.findWordAhead "#" off code with
-                        | Some p -> allRefs (p.offset + 7)  // gap of 7 between #r or #load and @"C:\...
-                        | None -> off
-                    ParseFs.findWordAhead "@\"" (allRefs 0) code                 
+            //let findInsertion (code:string) =    
+            //    match ParseFs.findWordAhead "[<Literal>]" 0 code with 
+            //    | Some p  -> 
+            //        ParseFs.findWordAhead "@\"" p.offset code 
+            //    | None -> 
+            //        let rec allRefs off =  // loop to skip over the #r and #I statments                   
+            //            match ParseFs.findWordAhead "#" off code with
+            //            | Some p -> allRefs (p.offset + 7)  // gap of 7 between #r or #load and @"C:\...
+            //            | None -> off
+            //        ParseFs.findWordAhead "@\"" (allRefs 0) code     
+            
             try
                 let printGreen = ed.Log.PrintfnColor 0 150 0               
 
@@ -413,26 +414,26 @@ module CursorBehaviour  =
                             ed.Log.PrintfnInfoMsg "Drag & Drop inserted at Line 0:" 
                             printGreen "  %s" txt
                         else 
-                            match findInsertion doc.Text with 
-                            | Some p -> 
-                                let lnNo = doc.GetLineByOffset(p.offset)
-                                let line = doc.GetText(lnNo) // = get current line
-                                let prev = line.Trim()
-                                let isNewLn = line.TrimStart().StartsWith "@"
-                                if isNewLn then                                    
-                                    let st = String(' ',spacesAtStart line)                                    
-                                    doc.Insert (p.offset , sprintf "@\"%s\"%s%s//" f Environment.NewLine st ) 
-                                    ed.Log.PrintfnInfoMsg "Drag & Drop inserted at Line %d:" p.line
-                                    printGreen "  %s" f
-                                    ed.Log.PrintfnInfoMsg "  Previous Line at that position is commented out below:"
-                                    ed.Log.PrintfnColor 120 120 120 "  %s" prev
-                                else
-                                    doc.Insert (p.offset , sprintf "@\"%s\" //" f )
-                                    ed.Log.PrintfnInfoMsg "Drag & Drop inserted at Line %d:" lnNo.LineNumber
-                                    printGreen "  %s" f
-                                    ed.Log.PrintfnInfoMsg "  Previous Line content is commented out:" 
-                                    ed.Log.PrintfnColor 120 120 120  "  %s" prev
-                            | None ->   
+                            //match findInsertion doc.Text with 
+                            //| Some p -> 
+                            //    let lnNo = doc.GetLineByOffset(p.offset)
+                            //    let line = doc.GetText(lnNo) // = get current line
+                            //    let prev = line.Trim()
+                            //    let isNewLn = line.TrimStart().StartsWith "@"
+                            //    if isNewLn then                                    
+                            //        let st = String(' ',spacesAtStart line)                                    
+                            //        doc.Insert (p.offset , sprintf "@\"%s\"%s%s//" f Environment.NewLine st ) 
+                            //        ed.Log.PrintfnInfoMsg "Drag & Drop inserted at Line %d:" p.line
+                            //        printGreen "  %s" f
+                            //        ed.Log.PrintfnInfoMsg "  Previous Line at that position is commented out below:"
+                            //        ed.Log.PrintfnColor 120 120 120 "  %s" prev
+                            //    else
+                            //        doc.Insert (p.offset , sprintf "@\"%s\" //" f )
+                            //        ed.Log.PrintfnInfoMsg "Drag & Drop inserted at Line %d:" lnNo.LineNumber
+                            //        printGreen "  %s" f
+                            //        ed.Log.PrintfnInfoMsg "  Previous Line content is commented out:" 
+                            //        ed.Log.PrintfnColor 120 120 120  "  %s" prev
+                            //| None ->   
                                 let lnNo = doc.GetLineByOffset(ed.AvaEdit.CaretOffset)
                                 ed.Log.PrintfnInfoMsg "Drag & Drop inserted at Line %d:" lnNo.LineNumber
                                 printGreen "  %s" f
