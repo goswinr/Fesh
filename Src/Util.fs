@@ -124,9 +124,13 @@ module Str  =
         //Text.StringBuilder(s).Replace("\r\n", "\n").Replace("\r", "\n").Replace("\n", Environment.NewLine).ToString()
         //Regex.Replace(s, @"\r\n|\n\r|\n|\r", Environment.NewLine) //https://stackoverflow.com/questions/140926/normalize-newlines-in-c-sharp
         Regex.Replace(s, @"\r\n|\n|\r", Environment.NewLine) // simlified from https://stackoverflow.com/questions/140926/normalize-newlines-in-c-sharp
-
+        
     let tabsToSpaces spaces (s:string) = 
         s.Replace("\t", String(' ',spaces))    
+    
+    ///s.Replace(toReplace, replacement)  
+    let inline replace (toReplace:string) (replacement:string) (s:string)  = 
+        s.Replace(toReplace, replacement)   
 
     /// checks if stringToFind is part of stringToSearchIn
     let inline contains (stringToFind:string) (stringToSearchIn:string) =
@@ -263,10 +267,31 @@ module Str  =
                 s.Substring(0, start ),
                 s.Substring(start + startChar.Length, ende - start - startChar.Length),// finds text betwween two chars
                 s.Substring(ende + endChar.Length)
- 
 
+    /// finds text betwween two strings
+    /// delimiters are excluded    
+    let between (startChar:string) (endChar:string) (s:string) =         
+        let start = s.IndexOf(startChar, StringComparison.Ordinal) 
+        if start = -1 then None
+        else 
+            let ende = s.IndexOf(endChar, start + startChar.Length, StringComparison.Ordinal)
+            if ende = -1 then None
+            else Some <| s.Substring(start + startChar.Length, ende - start - startChar.Length)
+                
  
+    /// finds text after a given string
+    /// delimiters is excluded    
+    let after (spliter:string) (s:string) =  
+        let start = s.IndexOf(spliter, StringComparison.Ordinal) 
+        if start = -1 then None
+        else  Some <| s.Substring(start + spliter.Length)
  
+    /// reduce string if longer than max, add suffix if trimmed   
+    let shrink (max:int) (suffix:string) (s:string) =  
+        if s.Length <= max then s
+        else
+            s.Substring(0,max) + suffix
+
 
  
 
