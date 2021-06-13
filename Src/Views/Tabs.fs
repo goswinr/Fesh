@@ -208,8 +208,6 @@ type Tabs(config:Config, win:Window) =
         |> Seq.exists id //check if at least one file was opend OK, then true
 
 
-
-
     /// Shows a file opening dialog
     let openFile() : bool =
         let dlg = new Microsoft.Win32.OpenFileDialog()
@@ -245,7 +243,7 @@ type Tabs(config:Config, win:Window) =
         // config.RecentlyUsedFiles.Save is called in addTab function
 
         // set up tab change events last so this doesn't get triggered on every tab while opening files initialy
-        tabs.SelectionChanged.Add( fun _-> // triggered on all tabs on startup ???
+        tabs.SelectionChanged.Add( fun _-> 
             if tabs.Items.Count = 0 then //  happens when closing the last open tab                
                 //create new tab
                 addTab(new Tab(Editor.New(config)), true, false)               
