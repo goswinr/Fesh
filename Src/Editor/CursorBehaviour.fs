@@ -410,10 +410,26 @@ module CursorBehaviour  =
                             printGreen "  %s" txt
                         elif isFsx f  then
                             let txt = sprintf "#load @\"%s\"\r\n" f
-                            doc.Insert (0, txt)                            
+                            doc.Insert (0, txt)     // TODO find end or #r statements                       
                             ed.Log.PrintfnInfoMsg "Drag & Drop inserted at Line 0:" 
                             printGreen "  %s" txt
                         else 
+                            // Find insert location: try to insert at drop location
+                            // TODO add drag and drop preview cursor
+                            let pos = ed.AvaEdit.GetPositionFromPoint(e.GetPosition(ed.AvaEdit))
+                            let lnNo,off = 
+                                if pos.HasValue then               
+                                    let dropLine = ed.AvaEdit.Document.GetLineByNumber(pos.Value.Line)
+                                    let carLine = doc.GetLineByOffset(ed.AvaEdit.CaretOffset)
+                                    if abs(dropLine.LineNumber-carLine.LineNumber) < 5 then
+                                        /// if drop location is close by 5 lines to caret use caret location otherwies use drop line end 
+                                        carLine.LineNumber,ed.AvaEdit.CaretOffset
+                                    else
+                                        dropLine.LineNumber,dropLine.EndOffset
+                                else
+                                    let lnNo = doc.GetLineByOffset(ed.AvaEdit.CaretOffset)
+                                    lnNo.LineNumber,ed.AvaEdit.CaretOffset
+                                    
                             //match findInsertion doc.Text with 
                             //| Some p -> 
                             //    let lnNo = doc.GetLineByOffset(p.offset)
@@ -434,10 +450,11 @@ module CursorBehaviour  =
                             //        ed.Log.PrintfnInfoMsg "  Previous Line content is commented out:" 
                             //        ed.Log.PrintfnColor 120 120 120  "  %s" prev
                             //| None ->   
-                                let lnNo = doc.GetLineByOffset(ed.AvaEdit.CaretOffset)
-                                ed.Log.PrintfnInfoMsg "Drag & Drop inserted at Line %d:" lnNo.LineNumber
-                                printGreen "  %s" f
-                                doc.Insert (ed.AvaEdit.CaretOffset , sprintf " @\"%s\"%s" f Environment.NewLine)
+                                
+                            ed.Log.PrintfnInfoMsg "Drag & Drop inserted at Line %d:" lnNo
+                            printGreen "  %s" f
+                            doc.Insert (off , sprintf " @\"%s\"%s" f Environment.NewLine)
+                            ed.AvaEdit.CaretOffset <- off
                     
                     e.Handled <- true
 
