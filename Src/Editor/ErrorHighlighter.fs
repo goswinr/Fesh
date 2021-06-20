@@ -27,8 +27,8 @@ open Seff.Util.Media
 module ErrorStyle  = 
     let errSquiggle     = Pen(  Brushes.Red     |> darker 20      |> freeze, 1.0) |> freezePen
     let warnSquiggle    = Pen(  Brushes.Yellow  |> darker 40      |> freeze, 1.0) |> freezePen
-    let errBackGr       =       Brushes.Red     |> brighter 200   |> freeze
-    let warnBackGr      =       Brushes.Yellow  |> brighter 90    |> freeze   
+    let errBackGr       =       Brushes.Red     |> brighter 220   |> freeze
+    let warnBackGr      =       Brushes.Yellow  |> brighter 200   |> freeze   
 
     
 type SegmentToMark private (startOffset, length, message:string, undelinePen:Pen, backbroundColor:SolidColorBrush, isWarning:bool)  =

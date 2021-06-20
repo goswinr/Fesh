@@ -222,7 +222,7 @@ module CompileScript =
                                 if not <| isNull txt then // happens often actually
                                     if txt.Contains "Build FAILED." then        log.PrintfnColor 220 0 150  "%s" txt
                                     elif txt.Contains "error FS"   then         log.PrintfnColor 220 0 0  "%s" txt
-                                    elif txt.Contains "Build succeeded." then   log.PrintfnColor 0 180 0  "%s" txt
+                                    elif txt.Contains "Build succeeded." then   log.PrintfnColor 0 150 0  "%s" txt
                                     else                                        gray "%s" txt
                                     )
                             p.ErrorDataReceived.Add (  fun d -> log.PrintfnAppErrorMsg "%s" d.Data)               
