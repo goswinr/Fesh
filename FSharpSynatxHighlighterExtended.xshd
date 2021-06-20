@@ -55,6 +55,7 @@
   <Color name="KnownDocTags"        foreground="#666666" />
 
   <Color name="NonEval"             foreground="#AACCAA" />
+  <Color name="InDoubleTicks"       foreground="#007777" />
   
 
   <!-- Regexes that are listed higer have precedence of lower positions in this list
@@ -396,6 +397,10 @@
     
     <Rule color="Exception">\b\w*\d*Exception</Rule>
 
+    <Span color="InDoubleTicks"  multiline="false">
+      <Begin>``</Begin>
+      <End>``</End>      
+    </Span> 
 
     <Span color="NonEval" multiline="true" > <!--anything after a double semicolon is ignored in FSI-->
       <Begin>;;</Begin> 
