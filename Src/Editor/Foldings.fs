@@ -219,8 +219,11 @@ type Foldings(ed:TextEditor, checker:Checker, config:Config, edId:Guid) =
     
     static member CollapsePrimary(ied:IEditor, config:Config) = 
         for f in ied.FoldingManager.AllFoldings do 
-            if unbox f.Tag = 0 then // nestingLevel
-                f.IsFolded <- true
+            match f.Tag with // cast might fail ??
+             | :? int as tag -> 
+                    if tag  = 0 then // nestingLevel
+                        f.IsFolded <- true
+             | _ -> ()
         config.FoldingStatus.Set(ied) // so that they are saved immedeatly
 
     static member GoToLineAndUnfold(loc:TextLocation, ied:IEditor, config:Config) = 
