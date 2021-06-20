@@ -171,13 +171,17 @@ module CompileScript =
     
     //TODO  use https://github.com/Tyrrrz/CliWrap ??
 
+    
+
     let createFsproj(code, fp:FilePath, log:ISeffLog, copyDlls) =
+        let gray msg = log.PrintfnColor 130 130 130 msg
+        
         match fp with 
         | NotSet -> log.PrintfnAppErrorMsg "Cannot compile an unsaved script save it first"
         | SetTo fi ->
             async{
                 try
-                    log.PrintfnInfoMsg "compiling %s ..." fi.Name                
+                    gray "compiling %s ..." fi.Name                
                     let name = fi.Name.Replace(".fsx","")
                     let nameSpace = name |> toCamelCase |> up1
                     let projFolder = IO.Path.Combine(fi.DirectoryName,nameSpace) 
@@ -200,7 +204,7 @@ module CompileScript =
                         |> replace "<!--PLACEHOLDER FOR FILES-->" fsxXml
                         |> fun s -> 
                             IO.File.WriteAllText(fsProj,s,Text.Encoding.UTF8)
-                            log.PrintfnInfoMsg "project created at %s\r\nstarting dotnet build ..." fsProj
+                            gray "project created at %s\r\nstarting dotnet build ..." fsProj
                             //https://stackoverflow.com/questions/1145969/processinfo-and-redirectstandardoutput
                             let p = new System.Diagnostics.Process()
                             p.EnableRaisingEvents <- true
@@ -216,12 +220,13 @@ module CompileScript =
                             p.OutputDataReceived.Add ( fun d -> 
                                 let txt = d.Data
                                 if not <| isNull txt then // happens often actually
-                                    if txt.Contains "Build FAILED." then        log.PrintfnColor 200 0 0  "%s" txt
-                                    elif txt.Contains "Build succeeded." then   log.PrintfnColor 0 150 0  "%s" txt
-                                    else                                        log.PrintfnColor 120 120 120 "%s" txt
+                                    if txt.Contains "Build FAILED." then        log.PrintfnColor 220 0 150  "%s" txt
+                                    elif txt.Contains "error FS"   then         log.PrintfnColor 220 0 0  "%s" txt
+                                    elif txt.Contains "Build succeeded." then   log.PrintfnColor 0 180 0  "%s" txt
+                                    else                                        gray "%s" txt
                                     )
                             p.ErrorDataReceived.Add (  fun d -> log.PrintfnAppErrorMsg "%s" d.Data)               
-                            p.Exited.Add( fun _ -> log.PrintfnInfoMsg  "dotnet build process ended!")
+                            p.Exited.Add( fun _ -> gray  "dotnet build process ended!")
                             p.Start() |> ignore
                             p.BeginOutputReadLine()
                             p.BeginErrorReadLine()
