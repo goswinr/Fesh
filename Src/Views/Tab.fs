@@ -137,8 +137,7 @@ type Tab (editor:Editor) =
                 let msgs = ResizeArray(onFocusMsgs)
                 onFocusMsgs.Clear() // clone and clear first
                 for msg in msgs do MessageBox.Show("GotFocus: " + msg) |> ignore
-                )
-               
+                )               
         w
         
        

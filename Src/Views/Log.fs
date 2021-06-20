@@ -263,6 +263,9 @@ type Log private () =
         log.Margin          <- new Thickness( 0.7)
         log.BorderBrush <- Brushes.Black |> freeze
 
+        log.VerticalScrollBarVisibility <- Controls.ScrollBarVisibility.Auto
+        //log.HorizontalScrollBarVisibility <- Controls.ScrollBarVisibility.Auto // set below with word wrap
+
         log.IsReadOnly <- true
         log.Encoding <- Text.Encoding.Default
         log.ShowLineNumbers  <- true

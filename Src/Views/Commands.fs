@@ -74,7 +74,8 @@ type Commands (grid:TabsAndLog)  =
     
     member val ToUppercase       = {name= "To UPPERCASE"              ;gesture= ""               ;cmd=AvalonEditCommands.ConvertToUppercase                                      ;tip= "Convertes the selected text to UPPERCASE."                                                          }     
     member val Tolowercase       = {name= "To lowercase"              ;gesture= ""               ;cmd=AvalonEditCommands.ConvertToLowercase                                      ;tip= "Convertes the selected text to lowercase."                                                          }     
-    member val ToggleBoolean     = {name= "Toggle bool literals"      ;gesture= "Ctrl + B"       ;cmd = mkCmdSimple (fun _ -> CursorBehaviour.toggleBoolean(tabs.CurrAvaEdit) )  ;tip= "Convertes a 'true' literal to 'false' and a 'false' literal to 'true' if they are currently selected exclusively"   }     
+    member val ToTitleCase       = {name= "To Titlecase "             ;gesture= ""               ;cmd=AvalonEditCommands.ConvertToTitleCase                                      ;tip= "Convertes the selected text to Titlecase."                                                          }     
+    member val ToggleBoolean     = {name= "Toggle bool literal"       ;gesture= "Ctrl + T"       ;cmd = mkCmdSimple (fun _ -> CursorBehaviour.toggleBoolean(tabs.CurrAvaEdit) )  ;tip= "Convertes a 'true' literal to 'false' and a 'false' literal to 'true' if they are currently selected exclusively"   }     
     
     member val AlignCode         = {name= "Align Code"                ;gesture= "Ctrl + I"       ;cmd = mkCmdSimple (fun _ -> Formating.alignByNonLetters(tabs.Current.Editor))  ;tip= "Inserts spaces where required so that non leter symbols align verticaly"   }     
 
@@ -100,7 +101,7 @@ type Commands (grid:TabsAndLog)  =
     member val CancelFSI         = {name= "Cancel FSI"                ;gesture= "Ctrl + Break"   ;cmd= mkCmd isAsy (fun _ -> fsi.CancelIfAsync())        ;tip= "Cancel running FSI evaluation (only available in asynchronous mode)"        }
     member val ResetFSI          = {name= "Reset FSI"                 ;gesture= "Ctrl + Alt + R" ;cmd= mkCmdSimple (fun _ -> log.Clear();fsi.Reset())    ;tip= "Clear all text from FSI Log window and reset FSharp Interactive"                                                   }
     member val ToggleSync        = {name= "Toggle Sync / Async"       ;gesture= ""               ;cmd= mkCmdSimple (fun _ -> fsi.ToggleSync())           ;tip= "Switch between synchronous and asynchronous evaluation in FSI, see status in StatusBar"} 
-    member val CompileScript     = {name= "Compile Script"            ;gesture= ""               ;cmd= mkCmdSimple (fun _ -> compileScript())            ;tip= "Create an fsproj that and build it via dotnet build"} 
+    member val CompileScript     = {name= "Compile Script"            ;gesture= "Ctrl + B"       ;cmd= mkCmdSimple (fun _ -> compileScript())            ;tip= "Create an net48 fsproj with current code (including unsaved changes) and build it via 'dotnet build'. dotnet SDK needs to be installed."} 
                                                                                                                                        
    //View menu:                                                                                                                        
     member val ToggleSplit       = {name= "Toggle Window Split"       ;gesture= ""               ;cmd= mkCmdSimple (fun _ -> grid.ToggleSplit())         ;tip= "Toggle between vertical and horizontal window arrangement of Editor and Log View"              }
@@ -191,6 +192,7 @@ type Commands (grid:TabsAndLog)  =
                  this.CancelFSI        
                  this.ResetFSI         
                  if config.Hosting.IsHosted then this.ToggleSync
+                 this.CompileScript
              
                  this.ToggleSplit      
                  this.ToggleLogSize    

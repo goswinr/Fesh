@@ -134,6 +134,7 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, log:Log) =
                 sep()
                 menuItem cmds.ToUppercase  
                 menuItem cmds.Tolowercase 
+                menuItem cmds.ToTitleCase 
                 sep()
                 menuItem cmds.ToggleBoolean
                 sep()
