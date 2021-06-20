@@ -75,7 +75,13 @@ type CompletionItem (ed:IEditor,config:Config, getToolTip, it:FSharpDeclarationL
     let priority = //if it.IsOwnMember then 1. else 1. 
         if isDotCompletion then 1.0// not on Dot completion             
         else                    1.0 + config.AutoCompleteStatistic.Get(it.Name) //if p>1.0 then log.PrintfnDebugMsg "%s %g" it.Name p
-      
+    
+    let needTicks = 
+        [|' '  ; '-' ; '+' ; '*' ; '/' ; '=' ; ',' ; ';' ; '~' ; '%' ; '&' ; '@' ; '#' ; '$' ;
+          '\\' ; '|' ; '!' ; '?' ; '(' ; ')' ; '[' ; ']' ; '<' ; '>' ; '{' ; '}' |]
+    
+    
+
     member this.Content = tb :> obj
     member this.Description = getToolTip(it) // this gets called on demand only, not when initally filling the list.
     member this.Image = null //TODO
@@ -86,12 +92,13 @@ type CompletionItem (ed:IEditor,config:Config, getToolTip, it:FSharpDeclarationL
         //textArea.Document.Replace(completionSegment.Offset + 1, completionSegment.Length, it.Name) //TODO Delete!
         //textArea.Caret.Offset <- completionSegment.Offset + it.Name.Length + 1  //TODO Delete!          
         let compl = 
+            //TODO move this logic out here 
             if it.Glyph = FSharpGlyph.Class && it.Name.EndsWith "Attribute" then 
                 "[<" + it.Name.Replace("Attribute",">]") 
-            elif it.Name.IndexOfAny [|' ' ; '-' ; '+' ; '*' ;'=' ; ',' ; '%' ; '&' ; '@' ; '#' ; '|' ; '!' ; '?' ; '(' ; ')' ; '[' ; ']'; '<' ; '>' |] > 0 then 
+            elif it.Name.IndexOfAny needTicks > 0 then 
                 "``" + it.Name + "``"
             elif it.Name = "struct" then "[<Struct>]"
-            else it.Name     //TODO move this logic out here      
+            else it.Name          
         //config.Log.PrintfDebugMsg "completionSegment: '%s' : %A" (textArea.Document.GetText(completionSegment)) completionSegment
         if Selection.getSelType textArea = Selection.RectSel then 
             RectangleSelection.complete (ed, completionSegment, compl)
