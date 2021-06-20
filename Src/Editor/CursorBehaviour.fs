@@ -402,6 +402,25 @@ module CursorBehaviour  =
                     doc.Insert (0, sprintf "#I @\"%s\"\r\n" folder)                    
                     ed.Log.PrintfnInfoMsg "Drag & Drop inserted at Line 0: %s"  folder
                 else
+                    
+                    // Find insert location: try to insert at drop location
+                    // TODO add drag and drop preview cursor
+                    // calculate this before looping through all drops
+                    let pos = ed.AvaEdit.GetPositionFromPoint(e.GetPosition(ed.AvaEdit))
+                    let lnNo,off = 
+                        if pos.HasValue then               
+                            let dropLine = ed.AvaEdit.Document.GetLineByNumber(pos.Value.Line)
+                            let carLine = doc.GetLineByOffset(ed.AvaEdit.CaretOffset)
+                            if abs(dropLine.LineNumber-carLine.LineNumber) < 5 then
+                                /// if drop location is close by 5 lines to caret use caret location otherwies use drop line end 
+                                carLine.LineNumber,ed.AvaEdit.CaretOffset
+                            else
+                                dropLine.LineNumber,dropLine.EndOffset
+                        else
+                            let lnNo = doc.GetLineByOffset(ed.AvaEdit.CaretOffset)
+                            lnNo.LineNumber,ed.AvaEdit.CaretOffset
+                    
+                    
                     for f in fs do
                         if isDll f then                            
                             let txt = sprintf "#r @\"%s\"\r\n" f
@@ -413,22 +432,7 @@ module CursorBehaviour  =
                             doc.Insert (0, txt)     // TODO find end or #r statements                       
                             ed.Log.PrintfnInfoMsg "Drag & Drop inserted at Line 0:" 
                             printGreen "  %s" txt
-                        else 
-                            // Find insert location: try to insert at drop location
-                            // TODO add drag and drop preview cursor
-                            let pos = ed.AvaEdit.GetPositionFromPoint(e.GetPosition(ed.AvaEdit))
-                            let lnNo,off = 
-                                if pos.HasValue then               
-                                    let dropLine = ed.AvaEdit.Document.GetLineByNumber(pos.Value.Line)
-                                    let carLine = doc.GetLineByOffset(ed.AvaEdit.CaretOffset)
-                                    if abs(dropLine.LineNumber-carLine.LineNumber) < 5 then
-                                        /// if drop location is close by 5 lines to caret use caret location otherwies use drop line end 
-                                        carLine.LineNumber,ed.AvaEdit.CaretOffset
-                                    else
-                                        dropLine.LineNumber,dropLine.EndOffset
-                                else
-                                    let lnNo = doc.GetLineByOffset(ed.AvaEdit.CaretOffset)
-                                    lnNo.LineNumber,ed.AvaEdit.CaretOffset
+                        else                            
                                     
                             //match findInsertion doc.Text with 
                             //| Some p -> 
