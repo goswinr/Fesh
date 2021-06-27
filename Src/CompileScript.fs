@@ -173,7 +173,7 @@ module CompileScript =
 
     
 
-    let createFsproj(code, fp:FilePath, log:ISeffLog, copyDlls) =
+    let createFsproj(code, fp:FilePath, log:ISeffLog, copyDlls, releaseOrDebug) =
         let gray msg = log.PrintfnColor 130 130 130 msg
         
         match fp with 
@@ -210,7 +210,7 @@ module CompileScript =
                             p.EnableRaisingEvents <- true
                             p.StartInfo.FileName <- "dotnet"
                             let fsProjInQuotes = "\"" + fsProj + "\"" 
-                            p.StartInfo.Arguments <- String.concat " " ["build"; fsProjInQuotes;  "--configuration Release"]
+                            p.StartInfo.Arguments <- String.concat " " ["build"; fsProjInQuotes;  "--configuration "+releaseOrDebug]
                             log.PrintfnColor 0 0 200 "%s %s" p.StartInfo.FileName p.StartInfo.Arguments
                             p.StartInfo.UseShellExecute <- false
                             p.StartInfo.CreateNoWindow <- true //true if the process should be started without creating a new window to contain it

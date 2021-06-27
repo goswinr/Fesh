@@ -176,7 +176,8 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, log:Log) =
                     sep()
                     menuItem cmds.ToggleSync
                 sep()
-                menuItem cmds.CompileScript
+                menuItem cmds.CompileScriptR
+                menuItem cmds.CompileScriptD
                 ]
             MenuItem(Header = "_View"),[                 
                 menuItem cmds.ToggleSplit 

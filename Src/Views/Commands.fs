@@ -34,7 +34,7 @@ type Commands (grid:TabsAndLog)  =
     let evalTillCursor()       =  let ln,tx = Selection.linesTillCursor(tabs.CurrAvaEdit)             in  fsi.Evaluate {code = tx ; file=tabs.Current.FilePath; allOfFile=false; fromLine = ln }           
     let evalFromCursor()       =  let ln,tx = Selection.linesFromCursor(tabs.CurrAvaEdit)             in  fsi.Evaluate {code = tx ; file=tabs.Current.FilePath; allOfFile=false; fromLine = ln }           
     
-    let compileScript() = CompileScript.createFsproj(tabs.CurrAvaEdit.Text , tabs.Current.FilePath, grid.Log, true) 
+    let compileScript(releaseOrDebug:string) = CompileScript.createFsproj(tabs.CurrAvaEdit.Text , tabs.Current.FilePath, grid.Log, true, releaseOrDebug) 
     //see https://github.com/icsharpcode/AvalonEdit/blob/697ff0d38c95c9e5a536fbc05ae2307ec9ef2a63/AvalonEditB/Editing/CaretNavigationCommandHandler.cs#L73
     //TODO these gets evaluated for each cmd on every mouse click or key perss . is this OK?  any lag ?? in Canexecute for commands
 
@@ -101,7 +101,8 @@ type Commands (grid:TabsAndLog)  =
     member val CancelFSI         = {name= "Cancel FSI"                ;gesture= "Ctrl + Break"   ;cmd= mkCmd isAsy (fun _ -> fsi.CancelIfAsync())        ;tip= "Cancel running FSI evaluation (only available in asynchronous mode)"        }
     member val ResetFSI          = {name= "Reset FSI"                 ;gesture= "Ctrl + Alt + R" ;cmd= mkCmdSimple (fun _ -> log.Clear();fsi.Reset())    ;tip= "Clear all text from FSI Log window and reset FSharp Interactive"                                                   }
     member val ToggleSync        = {name= "Toggle Sync / Async"       ;gesture= ""               ;cmd= mkCmdSimple (fun _ -> fsi.ToggleSync())           ;tip= "Switch between synchronous and asynchronous evaluation in FSI, see status in StatusBar"} 
-    member val CompileScript     = {name= "Compile Script"            ;gesture= "Ctrl + B"       ;cmd= mkCmdSimple (fun _ -> compileScript())            ;tip= "Create an net48 fsproj with current code (including unsaved changes) and build it via 'dotnet build'. dotnet SDK needs to be installed."} 
+    member val CompileScriptR     = {name= "Compile Script Release"   ;gesture= "Ctrl + B"       ;cmd= mkCmdSimple (fun _ -> compileScript("Release"))   ;tip= "Create an net48 fsproj with current code (including unsaved changes) and build it via 'dotnet build' in Release mode. dotnet SDK needs to be installed."} 
+    member val CompileScriptD     = {name= "Compile Script Debug"     ;gesture= "Ctrl + Shift + B";cmd= mkCmdSimple (fun _ -> compileScript("Debug"))   ;tip= "Create an net48 fsproj with current code (including unsaved changes) and build it via 'dotnet build' in Debug mode. dotnet SDK needs to be installed."} 
                                                                                                                                        
    //View menu:                                                                                                                        
     member val ToggleSplit       = {name= "Toggle Window Split"       ;gesture= ""               ;cmd= mkCmdSimple (fun _ -> grid.ToggleSplit())         ;tip= "Toggle between vertical and horizontal window arrangement of Editor and Log View"              }
@@ -192,7 +193,8 @@ type Commands (grid:TabsAndLog)  =
                  this.CancelFSI        
                  this.ResetFSI         
                  if config.Hosting.IsHosted then this.ToggleSync
-                 this.CompileScript
+                 this.CompileScriptR
+                 this.CompileScriptD
              
                  this.ToggleSplit      
                  this.ToggleLogSize    
