@@ -1,4 +1,4 @@
-namespace Seff
+﻿namespace Seff
 
 
 open System
@@ -116,6 +116,13 @@ type Fsi private (config:Config) =
                 settings.PrintWidth <- 200 //TODO adapt to Log view size taking fontsize into account
                 settings.FloatingPointFormat <- "g7"
                 let fsiConfig = FsiEvaluationSession.GetDefaultConfiguration(settings,false) // https://github.com/dotnet/fsharp/blob/4978145c8516351b1338262b6b9bdf2d0372e757/src/fsharp/fsi/fsi.fs#L2839                    
+                
+                // This is needed since FCS 34
+                // its solves https://github.com/dotnet/fsharp/issues/9064
+                // FCS takes the current Directory whish might be the one of the hosting App and will not contain FSharp.Core.
+                // at https://github.com/dotnet/fsharp/blob/HEAD/src/fsharp/fsi/fsi.fs#L2766
+                Directory.SetCurrentDirectory(Path.GetDirectoryName(Reflection.Assembly.GetAssembly([].GetType()).Location))
+                
                 let fsiSession = FsiEvaluationSession.Create(fsiConfig, allArgs, inStream, log.TextWriterFsiStdOut, log.TextWriterFsiErrorOut) //, collectible=false ??) //https://github.com/dotnet/fsharp/blob/6b0719845c928361e63f6e38a9cce4ae7d621fbf/src/fsharp/fsi/fsi.fs#L2440
                                         
                 //AppDomain.CurrentDomain.UnhandledException.AddHandler (new UnhandledExceptionEventHandler( (new ProcessCorruptedState(config)).Handler)) //Add(fun ex -> log.PrintfnFsiErrorMsg "*** FSI AppDomain.CurrentDomain.UnhandledException:\r\n %A" ex.ExceptionObject)
