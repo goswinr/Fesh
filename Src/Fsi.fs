@@ -136,7 +136,7 @@ type Fsi private (config:Config) =
 
                 match prevState with 
                 |Initalizing |Ready |Evaluating -> log.PrintfnInfoMsg "FSharp Interactive session reset." // in %s" timer.tocEx 
-                |NotLoaded  ->                     log.PrintfnInfoMsg "FSharp 40.0 Interactive session created." // in %s"  timer.tocEx  
+                |NotLoaded  ->                     ()//log.PrintfnInfoMsg "FSharp 40.0 Interactive session created." // in %s"  timer.tocEx  
 
                 
             

@@ -118,6 +118,7 @@ type Tab (editor:Editor) =
             |SetTo fi ->
                 watcher.Path <- fi.DirectoryName
                 watcher.Filter <- fi.Name
+                watcher.EnableRaisingEvents <- true
             
 
     member this.CloseButton = closeButton // public so click event can be attached later in Tabs.fs AddTab
