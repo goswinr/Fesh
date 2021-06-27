@@ -51,7 +51,8 @@
   <ItemGroup>
     <PackageReference Update="FSharp.Core" Version="5.0.2" GeneratePathProperty="true" />  
     <!-- use 33.0.1 because EPPlus also fails with 35.0.0 (like Rhino) ?? try x86 version !-->
-    <PackageReference Include="FSharp.Compiler.Service" Version="40.0.0" />    
+    <PackageReference Include="FSharp.Compiler.Service" Version="40.0.0" />
+    <PackageReference Include="FSharp.DependencyManager.Nuget" Version="37.0.0" />
     <!--<PackageReference Include="FSharp.DependencyManager.Nuget" Version="38.0.0" />
     <PackageReference Include="Microsoft.Build.Utilities.Core" Version="16.8.0" />--><!--needed for FCS 38.0.0-->
 
