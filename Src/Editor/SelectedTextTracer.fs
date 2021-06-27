@@ -14,7 +14,7 @@ open AvalonEditB
 open AvalonEditB.Editing
 open AvalonEditB.Document
 open FSharp.Compiler
-open FSharp.Compiler.SourceCodeServices
+open FSharp.Compiler.CodeAnalysis
 open AvalonEditB
 open AvalonEditB.Search
 open AvalonEditB.Folding

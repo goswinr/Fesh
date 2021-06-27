@@ -2,22 +2,34 @@
 
 open Seff
 open Seff.Model
+
 open System
-open System.Windows
-open System.Windows.Controls
-open System.Windows.Media
 open System.IO
 open System.Xml
 open System.Text.RegularExpressions
+open System.Collections.Generic
+open System.Windows
+open System.Windows.Controls
+open System.Windows.Media
+open System.Windows.Input
+open System.Windows.Documents
+
 open AvalonEditB.CodeCompletion
 open AvalonEditB.Editing
 open AvalonEditB.Document
 open AvalonEditB
+
 open FSharp.Compiler
-open FSharp.Compiler.SourceCodeServices
-open System.Windows.Input
-open System.Windows.Documents
-open System.Collections.Generic
+open FSharp.Compiler.CodeAnalysis
+open FSharp.Compiler.IO                // FileSystem
+open FSharp.Compiler.CodeAnalysis      // FSharpChecker, FSharpCheckFileResults, FSharpChecProjectResults and friends
+open FSharp.Compiler.Diagnostics       // FSharpDiagnostic and friends
+open FSharp.Compiler.EditorServices    // Misc functionality for editors, e.g. interface stub generation
+open FSharp.Compiler.Interactive.Shell // F# Interactive
+open FSharp.Compiler.Symbols           // FSharpEntity etc
+open FSharp.Compiler.Syntax            // SyntaxTree, XmlDoc, PrettyNaming
+open FSharp.Compiler.Text              // ISourceFile, Range, TaggedText and other things
+open FSharp.Compiler.Tokenization      // FSharpLineTokenizer etc.
 
 type ToolTipData = {name:string; signature:string; xmlDocStr: Result<string*string,string>}
 
@@ -28,7 +40,7 @@ type TypeInfo private () =
     static let loadingTxt =  "Loading type info ..."
 
     // make a fancy tooltip:
-    static let stackPanel  (it:FSharpDeclarationListItem option, tds:ToolTipData list) = 
+    static let stackPanel  (it:DeclarationListItem option, tds:ToolTipData list) = 
         let makePanelVert (xs:list<#UIElement>) =
             let p = new StackPanel(Orientation= Orientation.Vertical)
             for x in xs do p.Children.Add x |> ignore
@@ -105,29 +117,16 @@ type TypeInfo private () =
             .Replace("&gt;"   ,">" )
             .Replace("&quot;" ,"\"")
             .Replace("&apos;" ,"'" )
-            .Replace("&amp;"  ,"&" )    
-    
+            .Replace("&amp;"  ,"&" )  
 
     static let buildFormatComment (cmt:FSharpXmlDoc) =
+        //mostly copied from same named function in Docstring.fs
         match cmt with
-        //#if HOSTED 
-        | FSharpXmlDoc.Text (s) -> Ok (s,"") // "plain text Doc: \r\n" + s // FCS 33.0.1
-        //#else 
-        //| FSharpXmlDoc.Text (unprocessedLines,elaboratedXmlLines) ->  //FCS 38.0.0
-        //    Ok (String.concat Environment.NewLine elaboratedXmlLines, "") //https://github.com/dotnet/fsharp/blob/3c3c513dd3a90fb084eaf2055eb234a3819ee411/src/fsharp/symbols/SymbolHelpers.fs#L229
-        //
-        //     // TODO compare 
-        //     //• VS studio          https://github.com/dotnet/fsharp/blob/8b361cfc6eecbccfb2dc625faa7ff66e7e621be5/vsintegration/src/FSharp.Editor/DocComments/XMLDocumentation.fs#L289
-        //     //• fsautocomplte      https://github.com/fsharp/FsAutoComplete/blob/6c9c2c28258b77420f41fc5d2022ce0fb4f96431/src/FsAutoComplete.Core/TipFormatter.fs#L960
-        //     //• rider fs plugin
-        //
-        //     //see DocString.fs at line 260
-        //
-        //#endif
-        
-        
+        | FSharpXmlDoc.FromXmlText xmlDoc -> 
+            let s = "FSharpXmlDoc.FromXmlText:" + xmlDoc.GetXmlText() // TODO Good enough ??
+            Ok (s,"") 
         | FSharpXmlDoc.None -> Error "*FSharpXmlDoc.None*"
-        | FSharpXmlDoc.XmlDocFileSignature(dllFile, memberName) ->
+        | FSharpXmlDoc.FromXmlFile(dllFile, memberName) ->
            match DocString.getXmlDoc dllFile with
            | Some doc ->
                 if doc.ContainsKey memberName then
@@ -149,20 +148,20 @@ type TypeInfo private () =
             res <- res.Replace(" "+arg+":", " ?"+arg+":")
         res
 
-    static let formated (sdtt: FSharpStructuredToolTipText, optArgs:ResizeArray<string>) = 
+    static let formated (sdtt: ToolTipText, optArgs:ResizeArray<string>) = 
         match sdtt with
-        |FSharpToolTipText(els) ->
+        | ToolTipText.ToolTipText (els) ->
             match els with
             |[]  -> [] //{name = ""; signature= ""; xmlDocStr = Error "*FSharpStructuredToolTipElement list is empty*"}]
             |els -> 
                 [ for el in els do 
                     match el with 
-                    | FSharpStructuredToolTipElement.None ->                    yield {name = ""; signature= ""; xmlDocStr = Error  "*FSharpStructuredToolTipElement.None*"}
-                    | FSharpStructuredToolTipElement.CompositionError(text) ->  yield {name = ""; signature= ""; xmlDocStr = Error ("*FSharpStructuredToolTipElement.CompositionError: "+ text)}
-                    | FSharpStructuredToolTipElement.Group(layouts) -> 
+                    | ToolTipElement.None ->                    yield {name = ""; signature= ""; xmlDocStr = Error  "*FSharpStructuredToolTipElement.None*"}
+                    | ToolTipElement.CompositionError(text) ->  yield {name = ""; signature= ""; xmlDocStr = Error ("*FSharpStructuredToolTipElement.CompositionError: "+ text)}
+                    | ToolTipElement.Group(layouts) -> 
                         for layout in layouts do 
                             yield { name =     Option.defaultValue "" layout.ParamName
-                                    signature= Layout.showL layout.MainDescription   |> addQuestionmark optArgs                                 
+                                    signature = "TODO Layout.showL" //Layout.showL layout.MainDescription   |> addQuestionmark optArgs                                 
                                     xmlDocStr = buildFormatComment layout.XmlDoc}
                 ]
      
@@ -189,9 +188,9 @@ type TypeInfo private () =
     
     static member loadingText = loadingTxt
     
-    static member getFormated (sdtt: FSharpStructuredToolTipText, optArgs:ResizeArray<string>) = formated (sdtt, optArgs) 
+    static member getFormated (sdtt: ToolTipText, optArgs:ResizeArray<string>) = formated (sdtt, optArgs) 
     
-    static member getPanel  (it:FSharpDeclarationListItem option, tds:ToolTipData list) = stackPanel (it, tds)
+    static member getPanel  (it:DeclarationListItem option, tds:ToolTipData list) = stackPanel (it, tds)
 
     static member namesOfOptionalArgs(fsu:FSharpSymbolUse,log:ISeffLog) = namesOfOptnlArgs(fsu,log)
 
@@ -238,8 +237,8 @@ type TypeInfo private () =
                         
                         do! Async.SwitchToThreadPool()
 
-                        let! stt =    res.checkRes.GetStructuredToolTipText(line,endCol,lineTxt,[word],FSharpTokenTag.Identifier)       //TODO, can this be avoided use info from below symbol call ? // TODO move into checker
-                        let! symbls = res.checkRes.GetSymbolUseAtLocation(  line,endCol,lineTxt,[word])                                 //only get to info about oprional paramters
+                        let stt =    res.checkRes.GetToolTip(line,endCol,lineTxt,[word],FSharpTokenTag.Identifier)      //TODO, can this call be avoided use info from below symbol call ? // TODO move into checker
+                        let symbls = res.checkRes.GetSymbolUseAtLocation(  line,endCol,lineTxt,[word])                  //only get to info about oprional paramters
                         let optArgs = if symbls.IsSome then namesOfOptnlArgs(symbls.Value,log) else ResizeArray(0) 
                         
                         do! Async.SwitchToContext Sync.syncContext

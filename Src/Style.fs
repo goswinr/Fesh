@@ -4,7 +4,7 @@ open System
 open System.IO
 open System.Windows.Media // for color brushes
 open System.Windows.Input
-open FSharp.Compiler.SourceCodeServices
+open FSharp.Compiler.CodeAnalysis
 
 
 module Style =  

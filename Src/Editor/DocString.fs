@@ -8,11 +8,14 @@
 
 namespace Seff
 
+
 open System
 open System.IO
 open System.Xml
 open System.Text.RegularExpressions
-open FSharp.Compiler.SourceCodeServices
+open FSharp.Compiler.CodeAnalysis
+open FSharp.Compiler.Symbols
+
 
 
 /// taken and adapeted from FsAutoComplete in 2019
@@ -257,21 +260,9 @@ module DocString =
     // --------------------------------------------------------------------------------------
     let buildFormatComment (cmt:FSharpXmlDoc) (isEnhanced : bool) (typeDoc: string option) :string =        
         match cmt with
-        //#if HOSTED 
-        | FSharpXmlDoc.Text (s) -> s // FCS 33.0.1
-        //#else 
-        //| FSharpXmlDoc.Text (unprocessedLines,elaboratedXmlLines) ->  //FCS 38.0.0
-        //    String.concat Environment.NewLine elaboratedXmlLines //https://github.com/dotnet/fsharp/blob/3c3c513dd3a90fb084eaf2055eb234a3819ee411/src/fsharp/symbols/SymbolHelpers.fs#L229
-        //
-        //     // TODO compare 
-        //     //• VS studio          https://github.com/dotnet/fsharp/blob/8b361cfc6eecbccfb2dc625faa7ff66e7e621be5/vsintegration/src/FSharp.Editor/DocComments/XMLDocumentation.fs#L289
-        //     //• fsautocomplte      https://github.com/fsharp/FsAutoComplete/blob/6c9c2c28258b77420f41fc5d2022ce0fb4f96431/src/FsAutoComplete.Core/TipFormatter.fs#L960
-        //     //• rider fs plugin
-        //
-        //     //see TypeInfo.fs at line 120
-        //
-        //#endif
-        | FSharpXmlDoc.XmlDocFileSignature(dllFile, memberName) ->
+        | FSharpXmlDoc.FromXmlText xmlDoc -> "FSharpXmlDoc.FromXmlText:" + xmlDoc.GetXmlText() // TODO Good enough ??
+
+        | FSharpXmlDoc.FromXmlFile  (dllFile, memberName) ->
             match getXmlDoc dllFile with
             | Some doc ->
                 if doc.ContainsKey memberName then
@@ -310,7 +301,7 @@ module DocString =
       else
         cmt
 
-
+    (*
     let formatTip (FSharpToolTipText tips) : (string * string) list list =
         tips
         |> List.choose (function
@@ -355,7 +346,7 @@ module DocString =
             | _ -> None)
 
     let formatDocumentationFromXmlSig (xmlSig: string) (assembly: string) ((signature, (constructors, fields, functions, interfaces, attrs, ts)) : string * (string [] * string [] * string [] * string[]* string[]* string[])) (footer : string) (cn: string) =
-        let xmlDoc =  FSharpXmlDoc.XmlDocFileSignature(assembly, xmlSig)
+        let xmlDoc =  FSharpXmlDoc.FromXmlFile(assembly, xmlSig)
         let comment = buildFormatComment xmlDoc true None
         [[(signature, constructors, fields, functions, interfaces, attrs, ts, comment, footer, cn)]]
 
@@ -381,3 +372,5 @@ module DocString =
         |> Seq.tryPick firstResult
         |> Option.map getSignature
         |> Option.defaultValue ""
+
+    *)

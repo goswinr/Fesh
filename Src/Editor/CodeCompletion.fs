@@ -3,21 +3,23 @@
 open Seff
 open Seff.Model
 open Seff.Config
-
 open Seff.Util.General
+
 open System
 open System.IO
 open System.Windows
 open System.Windows.Media
+open System.Collections.Generic
+
 open AvalonEditB
 open AvalonEditB.CodeCompletion
 open AvalonEditB.Editing
 open AvalonEditB.Document
+
 open FSharp.Compiler
-open FSharp.Compiler.SourceCodeServices
-open System.Collections.Generic
-open AvalonEditB.Editing
-open AvalonEditB.Editing
+open FSharp.Compiler.CodeAnalysis
+open FSharp.Compiler.EditorServices
+open FSharp.Compiler.Tokenization // for keywords
 
 type CompletionItemForKeyWord(ed:IEditor,config:Config, text:string, toolTip:string) =
     //let col = Brushes.DarkBlue    // fails on selection, does not get color inverted//check  https://blogs.msdn.microsoft.com/text/2009/08/28/selection-brush/ ??
@@ -55,7 +57,7 @@ type CompletionItemForKeyWord(ed:IEditor,config:Config, text:string, toolTip:str
         member this.Priority        = this.Priority
         member this.Text            = this.Text
 
-type CompletionItem (ed:IEditor,config:Config, getToolTip, it:FSharpDeclarationListItem, isDotCompletion:bool) =
+type CompletionItem (ed:IEditor,config:Config, getToolTip, it:DeclarationListItem, isDotCompletion:bool) =
 
     let style =         
         if it.IsOwnMember then FontStyles.Normal 
@@ -170,13 +172,13 @@ type Completions(avaEdit:TextEditor,config:Config, checker:Checker) =
     member this.ShowingEv = showingEv
 
     /// retuns "loading" text and triggers async computation to get and update with actual text 
-    member this.GetToolTip(it:FSharpDeclarationListItem)= 
+    member this.GetToolTip(it:DeclarationListItem)= 
         async{
             
             #if HOSTED
             let raw = it.StructuredDescriptionText //FCS 33.0.1
             #else
-            let! raw = it.StructuredDescriptionTextAsync //FCS 37.0.0 +
+            let raw = it.Description // let! raw = it.StructuredDescriptionTextAsync //FCS 37.0.0 +
             #endif 
             
             let structured = 
@@ -214,7 +216,7 @@ type Completions(avaEdit:TextEditor,config:Config, checker:Checker) =
         //let prevCursor = avaEdit.Editor.Cursor
         //avaEdit.Editor.Cursor <- Cursors.Wait //TODO does this get stuck on folding column ?
 
-        let contOnUI (decls: FSharpDeclarationListInfo,declSymbs: FSharpSymbolUse list list) =
+        let contOnUI (decls: DeclarationListInfo,declSymbs: FSharpSymbolUse list list) =
             
             /// for adding question marks to optional arguments:
             compl.OptArgsDict.Clear() //TODO make persistent on class for cashing
@@ -232,7 +234,7 @@ type Completions(avaEdit:TextEditor,config:Config, checker:Checker) =
                 completionLines.Add( CompletionItemForKeyWord(iEditor,config,"__SOURCE_DIRECTORY__","Evaluates to the current full path of the source directory" ) :> ICompletionData)    |>ignore
                 completionLines.Add( CompletionItemForKeyWord(iEditor,config,"__SOURCE_FILE__"     ,"Evaluates to the current source file name, without its path") :> ICompletionData)    |>ignore
                 completionLines.Add( CompletionItemForKeyWord(iEditor,config,"__LINE__",            "Evaluates to the current line number") :> ICompletionData)    |>ignore
-                for kw,desc in Keywords.KeywordsWithDescription  do // add keywords to list
+                for kw,desc in FSharpKeywords.KeywordsWithDescription  do // add keywords to list
                     completionLines.Add( CompletionItemForKeyWord(iEditor,config,kw,desc) :> ICompletionData) |>ignore
             
               

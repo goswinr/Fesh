@@ -6,7 +6,7 @@ open System
 open System.Windows.Controls
 open System.Windows
 open Seff.Views.Util
-open FSharp.Compiler.SourceCodeServices
+open FSharp.Compiler.CodeAnalysis
 
 /// A class holding the main grid of Tabs and the log Window
 /// Includes logic for toggeling the view split and saving and restoring size and position

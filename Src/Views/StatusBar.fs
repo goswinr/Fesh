@@ -8,7 +8,7 @@ open System.Windows.Controls
 open System.Windows.Controls.Primitives // status bar
 open System.Windows.Media
 
-open FSharp.Compiler.SourceCodeServices
+open FSharp.Compiler.CodeAnalysis
 open AvalonEditB
 
 open Seff
@@ -33,6 +33,7 @@ module StatusbarStyle =
     let waitCol  =  Brushes.HotPink  |> brighter 80    |> freeze
 
 open StatusbarStyle
+open FSharp.Compiler.Diagnostics
 
 type CheckerStatus (grid:TabsAndLog) as this = 
     inherit TextBlock()
@@ -51,7 +52,7 @@ type CheckerStatus (grid:TabsAndLog) as this =
         //log.PrintfnDebugMsg "Setting errors for %A %A " iEditor.FileInfo iEditor.CheckRes.Value.checkRes.Errors.Length 
         match iEditor.FileCheckState with
         | Done res ->                                            
-                let es = res.checkRes.Errors                
+                let es = res.checkRes.Diagnostics                
                 if es.Length = 0 then 
                     if lastErrCount <> 0  || lastFile <> tabs.Current.Editor.Id then // no UI update needed in this case
                         this.Text <- "No compiler errors"
@@ -63,14 +64,16 @@ type CheckerStatus (grid:TabsAndLog) as this =
                 else 
                     lastFile <- tabs.Current.Editor.Id
                     lastErrCount <- es.Length 
-                    es|> Array.sortInPlaceBy (fun e -> struct(e.StartLineAlternate, e.StartColumn)) // sort because we are not sure if they are allready sorted
-                    firstErrorLine <- Some <| Document.TextLocation(es.[0].StartLineAlternate, es.[0].StartColumn + 1 )
+                    es|> Array.sortInPlaceBy (fun e -> struct(e.StartLine, e.StartColumn)) // sort because we are not sure if they are allready sorted
+                    firstErrorLine <- Some <| Document.TextLocation(es.[0].StartLine, es.[0].StartColumn + 1 )
                     let was = ResizeArray()
                     let ers = ResizeArray()
                     for e in es do
                         match e.Severity with 
-                        |FSharpErrorSeverity.Warning -> was.Add e
-                        |FSharpErrorSeverity.Error   -> ers.Add e
+                        | FSharpDiagnosticSeverity.Error   -> ers.Add e
+                        | FSharpDiagnosticSeverity.Warning -> was.Add e
+                        | FSharpDiagnosticSeverity.Hidden -> () // TODO or show something ?
+                        | FSharpDiagnosticSeverity.Info   -> ()
                     let erk = ers.Count                    
                     let wak = was.Count
                     if wak > 0 && erk > 0 then
@@ -87,7 +90,7 @@ type CheckerStatus (grid:TabsAndLog) as this =
                         if erk>0 then       
                             TextBlock(Text="Errors:", FontSize = 14. , FontWeight = FontWeights.Bold )
                         for e in Seq.truncate 10 ers do    
-                            TextBlock(Text = sprintf "• line %d: %s" e.StartLineAlternate e.Message)
+                            TextBlock(Text = sprintf "• line %d: %s" e.StartLine e.Message)
                         if erk > 10 then 
                             TextBlock(Text = " ...")
 
@@ -95,7 +98,7 @@ type CheckerStatus (grid:TabsAndLog) as this =
                         if wak>0 then       
                             TextBlock(Text="Warnings:", FontSize = 14. , FontWeight = FontWeights.Bold )
                         for w in Seq.truncate 10 was do  
-                            TextBlock(Text = sprintf "• line %d: %s" w.StartLineAlternate w.Message) 
+                            TextBlock(Text = sprintf "• line %d: %s" w.StartLine w.Message) 
                         if wak > 10 then 
                             TextBlock(Text = " ...")
                         TextBlock(Text = tabs.Current.FormatedFileName, FontSize = iEditor.AvaEdit.FontSize * 0.8)
