@@ -112,6 +112,7 @@
     <Compile Include="Src/Views/Views.Util.fs" />
     <Compile Include="Src/Views/Log.fs" />
     <Compile Include="Src/Views/Window.fs" />
+    <Compile Include="Src/Views/FileWatcher.fs" />
     <Compile Include="Src/Views/Tab.fs" />
     <Compile Include="Src/Views/Tabs.fs" />
     <Compile Include="Src/Views/TabsAndLog.fs" />

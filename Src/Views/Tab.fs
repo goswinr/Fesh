@@ -84,62 +84,7 @@ type Tab (editor:Editor) =
         elif isSaved && not headerShowsSaved  then
             setHeader()
     
-    let onFocusMsgs = ResizeArray<string>()
-
-    let isDiffrent (fullPath:string) =        
-        async{
-            do! Async.SwitchToContext Sync.syncContext
-            let doc = editor.AvaEdit.Document
-            do! Async.SwitchToThreadPool()
-            let uiCode = doc.CreateSnapshot().Text
-            do! Async.Sleep 100 // to be sure file access is not blocked by other app
-            try
-                let fileCode =  File.ReadAllText(fullPath)
-                if uiCode <> fileCode then 
-                    let msg = "at " + DateTime.nowStrMilli + " this file was changed externally."
-                    do! Async.SwitchToContext Sync.syncContext
-                    if editor.AvaEdit.IsFocused then
-                        MessageBox.Show ("IsFocused: " + msg)|> ignore 
-                    else
-                        onFocusMsgs.Add msg                    
-            with e -> 
-                editor.Log.PrintfAppErrorMsg "File changed but cant read changes from file system to compare if its the same as the currently shown file. %A " e
-             }            
-        |> Async.StartImmediate
-
-    let watcher = 
-        let w = new FileSystemWatcher()    
-        match editor.FilePath with
-        |NotSet -> 
-            w.EnableRaisingEvents <- false
-        |SetTo fi ->            
-            w.Path <- fi.DirectoryName
-            w.Filter <- fi.Name
-            w.NotifyFilter <-       NotifyFilters.FileName
-                                ||| NotifyFilters.DirectoryName
-                                ||| NotifyFilters.LastWrite
-                                //||| NotifyFilters.Attributes
-                                //||| NotifyFilters.CreationTime                                
-                                //||| NotifyFilters.LastAccess
-                                //||| NotifyFilters.Security
-                                //||| NotifyFilters.Size  
-            
-            w.Changed.Add (fun a -> isDiffrent a.FullPath )
-            w.Renamed.Add (fun a -> (MessageBox.Show(sprintf "This file was renamed to:\r\n%s\r\nfrom:\r\n%s\r\nIt does not exist on hard drive anymore." a.FullPath a.OldFullPath))|> ignore )
-            w.Deleted.Add (fun a -> (MessageBox.Show("This file was deleted from the hard drive."))|> ignore )            
-            w.EnableRaisingEvents <- true // must be after setting path   
-            
-            // to show massages of file change only when it gets focus again
-            // editor.AvaEdit.MouseEnter.Add ( fun a ->  
-            //     for msg in onFocusMsgs do  MessageBox.Show("MouseEnter " + msg) |> ignore  
-            //     onFocusMsgs.Clear())
-            editor.AvaEdit.GotFocus.Add ( fun a ->  
-                let msgs = ResizeArray(onFocusMsgs)
-                onFocusMsgs.Clear() // clone and clear first
-                for msg in msgs do MessageBox.Show("GotFocus: " + msg) |> ignore
-                )               
-        w
-        
+    let watcher = new FileWatcher(editor,upadteIsCodeSaved)        
        
     do
         base.Content <- editor.AvaEdit
@@ -152,9 +97,7 @@ type Tab (editor:Editor) =
         //base.Margin <- Thickness(3., 0. , 0. , 0.)  //left ,top, right, bottom) // don't messes it all up 
         setHeader()        
         editor.AvaEdit.TextChanged.Add(fun _ -> upadteIsCodeSaved(false)) 
-    
-
-    member this.OnFocusMsgs = onFocusMsgs
+       
 
     member this.FileWatcher = watcher
 
