@@ -3,10 +3,11 @@
 open System
 open System.Collections.Generic
 
-open FSharp.Compiler.SourceCodeServices
+open FSharp.Compiler.CodeAnalysis
 
 open Seff.Util.Str
-    
+
+(*
 module Packages=
   
     //https://gist.github.com/toburger/9786275
@@ -40,4 +41,5 @@ module Packages=
                         printfn "-looking for package '%s' (not implemeted yet)" name 
                         //getInstallOk tab name setNewRef
                         isRunning <- false
+*)    
 
