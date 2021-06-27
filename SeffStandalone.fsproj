@@ -5,7 +5,7 @@
     <OutputType>WinExe</OutputType>
     <UseWPF>true</UseWPF>
     <UseWinForms>true</UseWinForms>    <!--only for some message boxes ? -->
-    <TargetFramework>net48</TargetFramework>    <!-- no net50-windows because no Thread.Abort() for fsi-->
+    <TargetFramework>net472</TargetFramework>    <!-- no net50-windows because  Thread.Abort()  (for fsi) does not exist anymore on net5-->
     <LangVersion>preview</LangVersion>
     
     <NeutralLanguage>en</NeutralLanguage>
@@ -14,9 +14,9 @@
 
     <RootNamespace>Seff</RootNamespace>
     <AssemblyName>Seff</AssemblyName>
-    <Version>0.3.1.0</Version>
-    <AssemblyVersion>0.3.1.0</AssemblyVersion>
-    <FileVersion>0.3.1.0</FileVersion>
+    <Version>0.4.0.0</Version>
+    <AssemblyVersion>0.4.0.0</AssemblyVersion>
+    <FileVersion>0.4.0.0</FileVersion>
     
     <Authors>Goswin Rothenthal</Authors>
     <Product>Seff</Product>
