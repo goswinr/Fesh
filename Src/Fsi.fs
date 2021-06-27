@@ -2,14 +2,19 @@
 
 
 open System
-open System.Windows
 open System.IO
 open System.Threading
-open FSharp.Compiler.Interactive.Shell
+open System.Windows
+open System.Windows.Media
+
 open Seff.Model
 open Seff.Config
 open Seff.Util
-open System.Windows.Media
+
+open FSharp.Compiler.Interactive.Shell
+open FSharp.Compiler.DependencyManager
+open FSharp.Compiler.Diagnostics
+open FSharp.DependencyManager.Nuget
 
 
 
@@ -327,7 +332,7 @@ type Fsi private (config:Config) =
     
     member this.Evaluate(code) =         
         //if DateTime.Today > DateTime(2020, 12, 30) then log.PrintfnFsiErrorMsg "*** Your Seff Editor has expired, please download a new version. or contact goswin@rothenthal.com ***"
-        if DateTime.Today > DateTime(2021, 06, 30) then log.PrintfnFsiErrorMsg "Seff Exception %A" (NullReferenceException().GetType())
+        if DateTime.Today > DateTime(2022, 6, 30) then log.PrintfnFsiErrorMsg "Seff Exception %A" (NullReferenceException().GetType())
         else 
             //if DateTime.Today > DateTime(2021, 03, 30) then log.PrintfnFsiErrorMsg "*** Your Seff Editor will expire on 2020-12-31, please download a new version soon. or contact goswin@rothenthal.com***"        
             match this.AskIfCancellingIsOk () with 
