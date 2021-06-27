@@ -52,9 +52,7 @@
     <PackageReference Update="FSharp.Core" Version="5.0.2" GeneratePathProperty="true" />  
     <!-- use 33.0.1 because EPPlus also fails with 35.0.0 (like Rhino) ?? try x86 version !-->
     <PackageReference Include="FSharp.Compiler.Service" Version="40.0.0" />
-    <PackageReference Include="FSharp.DependencyManager.Nuget" Version="37.0.0" />
-    <!--<PackageReference Include="FSharp.DependencyManager.Nuget" Version="38.0.0" />
-    <PackageReference Include="Microsoft.Build.Utilities.Core" Version="16.8.0" />--><!--needed for FCS 38.0.0-->
+    <!--Don't use!! <PackageReference Include="FSharp.DependencyManager.Nuget" Version="37.0.0" /> see https://github.com/dotnet/fsharp/issues/10467#issuecomment-774430370 -->
 
     <!--this reference is needed for tooling only, it might not be installed on host PC. see also https://github.com/fsprojects/IfSharp/issues/213 -->
     <PackageReference Include="NETStandard.Library" Version="2.0.3" GeneratePathProperty="true" />    
