@@ -327,7 +327,7 @@ type Fsi private (config:Config) =
     
     member this.Evaluate(code) =         
         //if DateTime.Today > DateTime(2020, 12, 30) then log.PrintfnFsiErrorMsg "*** Your Seff Editor has expired, please download a new version. or contact goswin@rothenthal.com ***"
-        if DateTime.Today > DateTime(2021, 06, 30) then log.PrintfnFsiErrorMsg "Seff Exception %A" (NullReferenceException().GetType())
+        if DateTime.Today > DateTime(2022, 06, 30) then log.PrintfnFsiErrorMsg "Seff Exception %A" (NullReferenceException().GetType())
         else 
             //if DateTime.Today > DateTime(2021, 03, 30) then log.PrintfnFsiErrorMsg "*** Your Seff Editor will expire on 2020-12-31, please download a new version soon. or contact goswin@rothenthal.com***"        
             match this.AskIfCancellingIsOk () with 
