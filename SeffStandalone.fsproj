@@ -5,7 +5,7 @@
     <OutputType>WinExe</OutputType>
     <UseWPF>true</UseWPF>
     <UseWinForms>true</UseWinForms>    <!--only for some message boxes ? -->
-    <TargetFramework>net472</TargetFramework>    <!-- no net50-windows because no Thread.Abort() for fsi-->
+    <TargetFramework>net48</TargetFramework>    <!-- no net50-windows because no Thread.Abort() for fsi-->
     <LangVersion>preview</LangVersion>
     
     <NeutralLanguage>en</NeutralLanguage>
@@ -49,9 +49,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Update="FSharp.Core" Version="5.0.1" GeneratePathProperty="true" />  
+    <PackageReference Update="FSharp.Core" Version="5.0.2" GeneratePathProperty="true" />  
     <!-- use 33.0.1 because EPPlus also fails with 35.0.0 (like Rhino) ?? try x86 version !-->
-    <PackageReference Include="FSharp.Compiler.Service" Version="37.0.0" />    
+    <PackageReference Include="FSharp.Compiler.Service" Version="40.0.0" />    
     <!--<PackageReference Include="FSharp.DependencyManager.Nuget" Version="38.0.0" />
     <PackageReference Include="Microsoft.Build.Utilities.Core" Version="16.8.0" />--><!--needed for FCS 38.0.0-->
 
