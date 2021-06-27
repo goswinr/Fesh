@@ -24,8 +24,9 @@
   <Color name="Char"                foreground="#FF0040" />
 
   <Color name="LoadDirectives"      foreground="#BB1111" /> <!-- the #r or #load or #I-->
-  <Color name="LoadDllPath"         foreground="#999999" /> <!-- #r the directory path including the quotes-->
+  <Color name="LoadDllPath"         foreground="#999999" fontWeight="regular" /> <!-- #r the directory path including the quotes-->
   <Color name="LoadDll"             foreground="#DD20B0" /> <!-- #r the dll name -->
+  <Color name="LoadNuget"           foreground="#CD10A0" fontWeight="bold" /> <!-- #r the nuget name -->
   <Color name="LoadPath"            foreground="#0000B0" /> <!-- for #I path -->
 
   <Color name="Punctuation"         foreground="#0099FF" />
@@ -283,16 +284,24 @@
       <End>(?=(;;))</End> <!-- so that NonEval works -->
       <RuleSet>
         <Import ruleSet="CommentSet"/>
-        <Span color="LoadDll" multiline="false">
-          <Begin color="LoadDllPath">@?"[^\s\/][^"]+(\\|\/)|@?"(?=[^\s\/])</Begin>  
+        
+        <Span color="LoadNuget" multiline="false">
+          <Begin color="LoadDllPath">"nuget:</Begin>  
           <End color="LoadDllPath">"</End> 
         </Span> 
+
+        <Span color="LoadDll" multiline="false">
+          <Begin color="LoadDllPath">"@?"[^\s\/][^"]+(\\|\/)|@?"(?=[^\s\/])</Begin>  
+          <End color="LoadDllPath">"</End> 
+        </Span> 
+        
+        
 
       </RuleSet >  
     </Span>
 
     <Span color="LoadDirectives" multiline="false">
-      <Begin>\#I\b</Begin>    <!-- In case of #I highlight the folder parh with color="LoadDll" -->
+      <Begin>\#I\b</Begin>    <!-- In case of #I highlight the folder path with color="LoadDll" -->
       <End>(?=(;;))</End> <!-- so that NonEval works -->
       <RuleSet>
         <Import ruleSet="CommentSet"/>
