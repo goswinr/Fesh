@@ -41,9 +41,9 @@
     <!-- normaly don't do in lib but needed for FCS 40 : --> 
     <PackageReference Update="FSharp.Core" Version="5.0.2" GeneratePathProperty="true" />  
     
-    <!-- use 33.0.1 because EPPlus also fails with 35.0.0 (like Rhino) ?? try x86 version !-->
+    
     <PackageReference Include="FSharp.Compiler.Service" Version="40.0.0" />
-    <!--Don't use!! <PackageReference Include="FSharp.DependencyManager.Nuget" Version="37.0.0" /> see https://github.com/dotnet/fsharp/issues/10467#issuecomment-774430370 -->
+    <!--FSharp.Compiler.Service 40.0.0 includes FSharp.DependencyManager.Nuget , don't load it from Nuget see https://github.com/dotnet/fsharp/issues/10467#issuecomment-774430370 -->
        
   </ItemGroup>
 

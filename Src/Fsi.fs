@@ -1,4 +1,4 @@
-﻿namespace Seff
+namespace Seff
 
 
 open System
@@ -84,16 +84,17 @@ type Fsi private (config:Config) =
                 if config.Settings.GetBool "asyncFsi" true then mode <- Async else mode <- FsiMode.Sync
                 match sessionOpt with 
                 |None -> ()
-                |Some session -> session.Interrupt()  //TODO does this cancel running session correctly ?? // TODO how to dispose previous session ?        
+                |Some session -> session.Interrupt()  //TODO does this cancel running session correctly ?? // TODO how to dispose previous session ?  Thread.Abort() ??    
                         
           
                 let inStream = new StringReader("")
-                // first arg is ignored: https://github.com/fsharp/FSharp.Compiler.Service/issues/420 
+
+                // first arg is ignored: 
+                //      https://github.com/fsharp/FSharp.Compiler.Service/issues/420 
                 // and  https://github.com/fsharp/FSharp.Compiler.Service/issues/877 
-                // and  https://github.com/fsharp/FSharp.Compiler.Service/issues/878            
-                    
+                // and  https://github.com/fsharp/FSharp.Compiler.Service/issues/878 
                 let allArgs = 
-                        // "--shadowcopyreferences" is ignored https://github.com/fsharp/FSharp.Compiler.Service/issues/292
+                    // "--shadowcopyreferences" is ignored https://github.com/fsharp/FSharp.Compiler.Service/issues/292
                     if config.Settings.GetBool Settings.keyFsiQuiet false then Array.append  config.FsiArugments.Get [| "--quiet"|] // TODO or fsi.ShowDeclarationValues <- false ??
                     else                                                                     config.FsiArugments.Get
                         
@@ -120,19 +121,24 @@ type Fsi private (config:Config) =
                 //AppDomain.CurrentDomain.UnhandledException.AddHandler (new UnhandledExceptionEventHandler( (new ProcessCorruptedState(config)).Handler)) //Add(fun ex -> log.PrintfnFsiErrorMsg "*** FSI AppDomain.CurrentDomain.UnhandledException:\r\n %A" ex.ExceptionObject)
                 Console.SetOut  (log.TextWriterConsoleOut)   // TODO needed to redirect printfn or coverd by TextWriterFsiStdOut? //https://github.com/fsharp/FSharp.Compiler.Service/issues/201
                 Console.SetError(log.TextWriterConsoleError) // TODO needed if evaluate non throwing or coverd by TextWriterFsiErrorOut? 
-                //if mode = Mode.Sync then do! Async.SwitchToContext Sync.syncContext            
+                          
                 //fsiSession.Run() // TODO ? dont do this it crashes the app when hosted in Rhino! 
                 state <- Ready
                 sessionOpt <- Some fsiSession
                 //timer.stop()
-                if prevState = NotLoaded then () //log.PrintfnInfoMsg "FSharp Interactive session created in %s"  timer.tocEx  
-                else                          log.PrintfnInfoMsg "FSharp Interactive session reset." // in %s" timer.tocEx     
+
+                match prevState with 
+                |Initalizing |Ready |Evaluating -> log.PrintfnInfoMsg "FSharp Interactive session reset." // in %s" timer.tocEx 
+                |NotLoaded  ->                     log.PrintfnInfoMsg "FSharp 40.0 Interactive session created." // in %s"  timer.tocEx  
+
+                
             
                 if config.Hosting.IsHosted then 
                     match mode with
                     |Sync ->  log.PrintfnInfoMsg "FSharp Interactive will evaluate synchronously on UI Thread."
-                    |Async -> log.PrintfnInfoMsg "FSharp Interactive will evaluate asynchronously on new Thread."    
-                //fsiSession.AssemblyReferenceAdded.Add (config.AssemblyReferenceStatistic.Add)  //TODO fails in FCS 37.0.0                  
+                    |Async -> log.PrintfnInfoMsg "FSharp Interactive will evaluate asynchronously on new Thread." 
+                    
+               
                 do! Async.SwitchToContext Sync.syncContext 
                 currentDir <- ""
                 currentFile <- ""
@@ -254,7 +260,8 @@ type Fsi private (config:Config) =
                     // a cancellation token here fails to cancel evaluation.
                     // dsyme: Thread.Abort - it is needed in interruptible interactive execution scenarios: https://github.com/dotnet/fsharp/issues/9397#issuecomment-648376476
                     // Thread.Abort method is not supported in .NET 5 (including .NET Core)
-                    //https://github.com/dotnet/runtime/issues/41291
+                    // https://github.com/dotnet/runtime/issues/41291
+                    // net5 Could use multi-process and terminate the process instead? https://github.com/dotnet/runtime/issues/11369#issuecomment-434801806
                     Async.StartImmediate(asyncEval))  
                 thread <- Some thr           
                 if mode = Async then thr.SetApartmentState(ApartmentState.STA) //TODO always ok ? needed to run WPF? https://stackoverflow.com/questions/127188/could-you-explain-sta-and-mta
