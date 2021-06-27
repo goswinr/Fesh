@@ -3,15 +3,19 @@
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
+    <!-- no net50-windows because no Thread.Abort() in net50 (for fsi canceling), 
+      net 462 for revit 2018
+      net 472 for Rhino and Netstandard2.0
+      Rhino can only host netFramwork apps-, -->
+    <TargetFrameworks>net472</TargetFrameworks>    <!-- for net462 there is another fsproj file also using FSarp core 4.6.2-->
     <UseWPF>true</UseWPF>
-    <UseWinForms>true</UseWinForms>    <!--only for some message boxes ? -->
-    <TargetFramework>net472</TargetFramework>    <!-- no net50-windows because  Thread.Abort()  (for fsi) does not exist anymore on net5-->
+    <UseWinForms>true</UseWinForms> <!--only for some message boxes ? -->
     <LangVersion>preview</LangVersion>
-    
-    <NeutralLanguage>en</NeutralLanguage>
-    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>    <!--to only have the english resources-->
-    <GenerateDocumentationFile>true</GenerateDocumentationFile>
 
+    <NeutralLanguage>en</NeutralLanguage>
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages> <!--to only have the english resources or Fsharp.Core-->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    
     <RootNamespace>Seff</RootNamespace>
     <AssemblyName>Seff</AssemblyName>
     <Version>0.4.0.0</Version>
@@ -21,32 +25,18 @@
     <Authors>Goswin Rothenthal</Authors>
     <Product>Seff</Product>
     <Description>A hostable fsharp scripting editor for Windows</Description>
-    <Copyright>Copyright: Goswin Rothenthal 2021 </Copyright>
+    <Copyright>Goswin Rothenthal</Copyright>
     
     <ApplicationIcon>Media/logo.ico</ApplicationIcon>
     <Win32Resource>Media/logo.res</Win32Resource>      <!-- Win32Resource for Application Icon in explorer-->    
     
     <Platforms>x64;x86</Platforms>
-    <Configurations>Debug;Release</Configurations>
-
-    <DefineConstants>STANDALONE</DefineConstants>
+    <Configurations>Release</Configurations>
   </PropertyGroup>
 
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <OutputPath>binStandalone/Debug/x64/</OutputPath>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x86'">
-    <OutputPath>binStandalone/Debug/x86</OutputPath>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <OutputPath>binStandalone/Release/x64/</OutputPath>
-  </PropertyGroup> 
-  
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x86'">
-    <OutputPath>binStandalone/Release/x86/</OutputPath>
-  </PropertyGroup>
+  <!--Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" -->
+  <PropertyGroup Condition="'$(Platform)'=='x64'">  <OutputPath>binStandalone/x64/</OutputPath>  </PropertyGroup>
+  <PropertyGroup Condition="'$(Platform)'=='x86'">  <OutputPath>binStandalone/x86/</OutputPath>  </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Update="FSharp.Core" Version="5.0.2" GeneratePathProperty="true" />  
@@ -62,8 +52,8 @@
    
     <Reference Include="AvalonEditB">      <!-- build from dev branch of https://github.com/goswinr/AvalonEditB -->
       <HintPath>../AvalonEditB/AvalonEditB/bin/Release/net472/AvalonEditB.dll</HintPath> 
-    </Reference>        
-    <Reference Include="System.Windows.Forms" />        
+    </Reference>     
+    <Reference Include="System.Windows.Forms" /> 
     <Reference Include="WindowsBase" />
     <Reference Include="PresentationCore" />
     <Reference Include="PresentationFramework" />
@@ -102,7 +92,7 @@
 
     <Compile Include="Src/Editor/Selection.fs" />
     <Compile Include="Src/Editor/RectangleSelection.fs" />
-    <Compile Include="Src/Editor/SwapWords.fs" />     
+    <Compile Include="Src/Editor/SwapWords.fs" />  
     <Compile Include="Src/Editor/Commenting.fs" />
     <Compile Include="Src/Editor/DocString.fs" />
     <Compile Include="Src/Editor/SyntaxHighlighting.fs" />
@@ -145,9 +135,11 @@
 
     <!--dll is needed for editor tooling only, it might not be installed on host PC . seee also  https://github.com/fsprojects/IfSharp/issues/213 -->
     <Copy SourceFiles="$(PkgNETStandard_Library)/build/netstandard2.0/ref/netstandard.dll" DestinationFiles="$(TargetDir)netstandard.dll" ContinueOnError="false" />
+    
     <!-- needed too ?
     <Copy SourceFiles="$(PkgNETStandard_Library)/build/netstandard2.0/ref/netstandard.xml" DestinationFiles="$(TargetDir)netstandard.xml" ContinueOnError="false" />  
     -->
+    
   </Target>
 
 </Project>
