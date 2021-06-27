@@ -50,10 +50,13 @@ type Seff (config:Config,log:Log) =
         win.Window.AllowDrop <- true // so it works on tab bar 
         win.Window.Drop.Add (fun e -> CursorBehaviour.TabBarDragAndDrop(log,tabs.AddFiles, e)) // text editor has it own drag event, this aplies to all other area ( eg log, tab bar) except the editor
 
+        //to show file chnaged event only when app gets focus again
         win.Window.Activated.Add( fun a -> 
-            let msgs = ResizeArray(tabs.Current.OnFocusMsgs)
-            tabs.Current.OnFocusMsgs.Clear() // clone and clear first
-            for msg in msgs do MessageBox.Show("Activated: " + msg) |> ignore
+            // only show thw events of the current active tab:
+            //then other get shown when then editor chnages focus see FileWatcher.fs
+            let actions = ResizeArray(tabs.Current.FileWatcher.OnFocusActions)
+            tabs.Current.FileWatcher.OnFocusActions.Clear() // clone and clear first
+            for action in actions do action()
             )
 
     member this.Config = config
