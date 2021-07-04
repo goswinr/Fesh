@@ -269,7 +269,8 @@
   </RuleSet >
 
   <RuleSet name="LoadDllSet">
-    
+
+    <!-- compiler directives: -->
     <Span color="LoadDirectives" multiline="false">
       <Begin color="LoadDll">\#if\b </Begin> <!-- # neededs to be escaped too \# ! it is a regex comment  -->      
       <RuleSet>
@@ -291,12 +292,9 @@
         </Span> 
 
         <Span color="LoadDll" multiline="false">
-          <Begin color="LoadDllPath">"@?"[^\s\/][^"]+(\\|\/)|@?"(?=[^\s\/])</Begin>  
+          <Begin color="LoadDllPath">@?"[^\s\/][^"]+(\\|\/)|@?"(?=[^\s\/])</Begin>  
           <End color="LoadDllPath">"</End> 
-        </Span> 
-        
-        
-
+        </Span>
       </RuleSet >  
     </Span>
 
