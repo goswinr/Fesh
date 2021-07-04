@@ -35,6 +35,7 @@ type Commands (grid:TabsAndLog)  =
     let evalFromCursor()       =  let ln,tx = Selection.linesFromCursor(tabs.CurrAvaEdit)             in  fsi.Evaluate {code = tx ; file=tabs.Current.FilePath; allOfFile=false; fromLine = ln }           
     
     let compileScript(releaseOrDebug:string) = CompileScript.createFsproj(tabs.CurrAvaEdit.Text , tabs.Current.FilePath, grid.Log, true, releaseOrDebug) 
+
     //see https://github.com/icsharpcode/AvalonEdit/blob/697ff0d38c95c9e5a536fbc05ae2307ec9ef2a63/AvalonEditB/Editing/CaretNavigationCommandHandler.cs#L73
     //TODO these gets evaluated for each cmd on every mouse click or key perss . is this OK?  any lag ?? in Canexecute for commands
 
@@ -43,7 +44,7 @@ type Commands (grid:TabsAndLog)  =
     let isAsy a  = fsi.State = Evaluating && fsi.Mode = Async
 
     // NOTE :--------------------------------------------------------------------
-    // some more gestures and selection depending  ovewrites  are defined in CursorBehaviour.previewKeyDown
+    // some more gestures and selection depending ovewrites are defined in module  CursorBehaviour.previewKeyDown(..)
     // NOTE :--------------------------------------------------------------------
 
     // File menu:                                                                          

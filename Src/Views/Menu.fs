@@ -93,7 +93,7 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, log:Log) =
     
     /// for right clicking on file pathes:
     let filePathStartRegex = Text.RegularExpressions.Regex(""""[A-Z]:[\\/]""")
-    let mutable pathInMenu = false
+    let mutable tempItemsInMenu = 0
 
 
     do 
@@ -251,12 +251,12 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, log:Log) =
                 menuItem cmds.SaveLogSel
                 ]
         
-        /// add menu to upen file path if ther is on on current line
+        /// add menu to open file path if there is on on current line
         tabs.Control.PreviewMouseRightButtonDown.Add ( fun m -> 
-            if pathInMenu then                               
+            for i = 1 to tempItemsInMenu do // the menu entry, maybe another entry and  the separator   
                 tabs.Control.ContextMenu.Items.RemoveAt(0)
-                tabs.Control.ContextMenu.Items.RemoveAt(0)
-                pathInMenu <- false
+            tempItemsInMenu <- 0     
+                
             let ava = tabs.Current.AvaEdit                      
             let pos = ava.GetPositionFromPoint(m.GetPosition(ava))
             if pos.HasValue then               
@@ -266,8 +266,8 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, log:Log) =
                 if m.Success then
                     match Str.between "\"" "\"" txt with 
                     |None -> ()
-                    |Some p ->
-                        let dir =  IO.Path.GetDirectoryName(p.Replace("\\\\", "\\").Replace("/", "\\"))
+                    |Some fullPath ->
+                        let dir =  IO.Path.GetDirectoryName(fullPath.Replace("\\\\", "\\").Replace("/", "\\"))
                         let shortDir = Str.shrink 30 " ... " dir 
                         let cmd = {
                                 name = sprintf "Open folder '%s' in Explorer" shortDir
@@ -277,7 +277,19 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, log:Log) =
                                 }
                         tabs.Control.ContextMenu.Items.Insert(0, sep()       )  
                         tabs.Control.ContextMenu.Items.Insert(0, menuItem cmd)  
-                        pathInMenu <- true
+                        tempItemsInMenu <- 2
+                        if fullPath.EndsWith ".fsx" || fullPath.EndsWith ".fs" then 
+                            let name  =  IO.Path.GetFileName(fullPath)
+                            let fi = IO.FileInfo(fullPath)
+                            let cmd = {
+                                    name = sprintf "Open file '%s'" name
+                                    gesture = ""
+                                    cmd = mkCmdSimple (fun _ -> tabs.AddFile(fi,true)  |> ignore )
+                                    tip = sprintf "Try to open file %s from  at \r\n%s" name fullPath
+                                    }
+                            
+                            tabs.Control.ContextMenu.Items.Insert(0, menuItem cmd) 
+                            tempItemsInMenu <- tempItemsInMenu + 1                        
             )
                
                 
