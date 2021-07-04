@@ -2,6 +2,7 @@
 
 open Seff
 open Seff.Model
+open Seff.Util
 open Seff.Util.Media
 
 open System
@@ -44,53 +45,54 @@ type TypeInfo private () =
         
     static let loadingTxt =  "Loading type info ..."
 
-    static let gray         = Brushes.Gray |> freeze
-    static let lightgray    = Brushes.Gray |> brighter 80 |> freeze
-    static let blue         = Brushes.Blue |> darker 90 |> freeze
-    static let purple       = Brushes.Purple |> brighter 30|> freeze
-    static let black        = Brushes.Black |> freeze
-    static let red          = Brushes.DarkSalmon |> darker 100 |> freeze
-    static let fullred      = Brushes.Red |> darker 40 |> freeze
-    static let cyan         = Brushes.DarkCyan |> freeze
+    static let gray         = Brushes.Gray                       |> freeze
+    static let lightgray    = Brushes.Gray       |> brighter 100 |> freeze
+    static let blue         = Brushes.Blue       |> darker    90 |> freeze
+    static let darkblue     = Brushes.Blue       |> darker   150 |> freeze
+    static let purple       = Brushes.Purple     |> brighter  40 |> freeze
+    static let black        = Brushes.Black                      |> freeze
+    static let red          = Brushes.DarkSalmon |> darker   120 |> freeze
+    static let fullred      = Brushes.Red        |> darker    60 |> freeze
+    static let cyan         = Brushes.DarkCyan   |> darker    60 |> freeze
 
-    static let maxCharInSignLine = 80
+    static let maxCharInSignLine = 100
 
-    static let coloredSignature(td :ToolTipData)=
+    static let coloredSignature(td :ToolTipData): TextBlock =
         let tb = TextBlock()
         tb.Foreground <- black
-        tb.FontSize <- Style.fontSize  * 1.0
+        tb.FontSize   <- Style.fontSize  * 1.1
         tb.FontFamily <- Style.fontEditor
-
-
+        let ts = td.signature
         let mutable len = 0
-        for t in td.signature do 
+        for i=0 to ts.Length-1 do 
+            let t = ts.[i]
             len <- len + t.Text.Length
+            
             match t.Tag with 
-            | TextTag.Parameter -> 
-                if len > maxCharInSignLine then 
-                    tb.Inlines.Add( new Run ("\r\n    "))
-                    len <- 0
-                    
+            | TextTag.Parameter ->
                 // if a paramter is optional add a question mark to the signature
-                match td.optDefs|> Seq.tryFind ( fun oa -> oa.name = t.Text ) with 
-                |Some od ->  tb.Inlines.Add( new Run ("?"+t.Text , Foreground = gray )) 
-                | None ->    tb.Inlines.Add( new Run (t.Text, Foreground = black ))  
-                    
+                match ts.[i-1].Text with 
+                |"?" ->  tb.Inlines.Add( new Run (t.Text , Foreground = gray )) // sometimes optional arguments have already a question mark but not always
+                | _ -> 
+                    match td.optDefs |> Seq.tryFind ( fun oa -> oa.name = t.Text ) with 
+                    | Some od ->  tb.Inlines.Add( new Run ("?"+t.Text , Foreground = gray )) 
+                    | None    ->  tb.Inlines.Add( new Run (t.Text, Foreground = black )) 
 
             | TextTag.Keyword ->
-                tb.Inlines.Add( new Run (t.Text, Foreground = blue ))     
-                
+                tb.Inlines.Add( new Run (t.Text, Foreground = blue )) 
 
-            | TextTag.Operator -> tb.Inlines.Add( new Run (t.Text, Foreground = purple ))
+            | TextTag.Operator -> tb.Inlines.Add( new Run (t.Text, Foreground = Brushes.Green ))
             | TextTag.Punctuation->
                 match t.Text with 
+                | "?" ->         tb.Inlines.Add( new Run (t.Text, Foreground = gray))   
+                | "*" 
                 | "->" -> 
                     if len > maxCharInSignLine then 
                         tb.Inlines.Add( new Run ("\r\n    "))
                         len <- 0
-                    tb.Inlines.Add( new Run (t.Text, Foreground = fullred, FontWeight = FontWeights.Bold ))   
-                |  _  ->  tb.Inlines.Add( new Run (t.Text, Foreground = purple )) 
-                 
+                    tb.Inlines.Add( new Run (t.Text, Foreground = fullred))//, FontWeight = FontWeights.Bold ))   
+                |  _  ->  
+                    tb.Inlines.Add( new Run (t.Text, Foreground = purple ))                  
                 
             | TextTag.RecordField
             | TextTag.Method
@@ -103,10 +105,17 @@ type TypeInfo private () =
             | TextTag.Struct
             | TextTag.Class
             | TextTag.Interface
+            | TextTag.Function
             | TextTag.Alias ->   tb.Inlines.Add( new Run (t.Text, Foreground = cyan ))   
                 
+            | TextTag.TypeParameter ->   tb.Inlines.Add( new Run (t.Text, Foreground = cyan ))   // generative argument like 'T or 'a
+
             | TextTag.UnknownType
             | TextTag.UnknownEntity ->   tb.Inlines.Add( new Run (t.Text, Foreground = gray ))  
+
+            | TextTag.LineBreak ->
+                len <- t.Text.Length // reset after line berak
+                tb.Inlines.Add( new Run (t.Text))
 
             | TextTag.Namespace
             | TextTag.ActivePatternCase
@@ -115,30 +124,55 @@ type TypeInfo private () =
             | TextTag.Delegate
             | TextTag.Enum
             | TextTag.Event
-            | TextTag.LineBreak
             | TextTag.Local
             | TextTag.Record
-            | TextTag.Function
             | TextTag.Module
             | TextTag.NumericLiteral
             | TextTag.Space
             | TextTag.StringLiteral
-            | TextTag.TypeParameter
             | TextTag.Text
             | TextTag.UnknownType
             | TextTag.UnknownEntity ->    tb.Inlines.Add( new Run (t.Text))
 
-        let help = 
+        (* 
+        let debugHelp = 
             td.signature
-            |> Seq.filter (fun t -> t.Tag <> TextTag.Punctuation && t.Tag <> TextTag.Space && t.Tag <> TextTag.Operator)
+            |> Seq.filter (fun t -> t.Tag <> TextTag.Punctuation && t.Tag <> TextTag.Space && t.Tag <> TextTag.Operator && t.Tag <> TextTag.LineBreak)
             |> Seq.map(fun t -> sprintf "%A" t.Tag)
             |> String.concat "|"
-        tb.Inlines.Add( new Run ("\r\n"+help,Foreground = lightgray))
-        
+        tb.Inlines.Add( new Run ("\r\n"+debugHelp,Foreground = lightgray))    
+        *)
+        tb
+    
+    /// for <c> and </c> in text
+    static let markInlineCode(tx:string) : TextBlock =
+        let tb = new TextBlock()
+        tb.FontSize   <- Style.fontSize  * 0.90
+        tb.FontFamily <- Style.fontToolTip
+        tb.Foreground <- darkblue 
+        let rec loop i = 
+            if i < tx.Length then 
+                match tx.IndexOf("<c>",i) with 
+                | -1 -> 
+                    tb.Inlines.Add( new Run(tx.Substring(i)))  // add til end, exit recursion
+                | s -> 
+                    match tx.IndexOf("</c>",s) with 
+                    | -1 -> 
+                        tb.Inlines.Add( new Run(tx.Substring(i)))// start found but not end , just add til end, exit recursion                        
+                    | e -> 
+                        tb.Inlines.Add( new Run(tx.Substring(i, s-i)))
+                        tb.Inlines.Add( new Run(tx.Substring(s+3, e-s-3), 
+                                                FontFamily = Style.fontEditor, 
+                                                Foreground = black, 
+                                                //FontWeight = FontWeights.Bold, 
+                                                Background = lightgray
+                                                ))
+                        loop(e+4)
+        loop 0
         tb
 
 
-    // make a fancy tooltip:
+    // make a fancy tooltip panel:
     static let stackPanel  (it:DeclarationListItem option, tds:ToolTipData list) = 
         let makePanelVert (xs:list<#UIElement>) =
             let p = new StackPanel(Orientation= Orientation.Vertical)
@@ -169,18 +203,13 @@ type TypeInfo private () =
                     
                     yield coloredSignature(td) // the main signature of a F# value
                 
-                    let color, txt, scale  = 
-                        match td.xmlDocStr with 
-                        |Ok (txt,ass)     -> 
-                            if ass <>"" then assemblies.Add(ass) |> ignore //could it be from more than one assembly? because of type extensions?
-                            black, txt, 0.85 
-                        |Error errTxt  -> 
-                            gray, errTxt, 0.70
-                    let tb = new TextBlock(Text= txt.Trim() )
-                    tb.FontSize <- Style.fontSize  * scale
-                    tb.FontFamily <- Style.fontToolTip
-                    tb.Foreground <- color                    
-                    yield tb ]
+                    match td.xmlDocStr with 
+                    |Ok (txt,ass)     -> 
+                        if ass <>"" then assemblies.Add(ass) |> ignore //TODO could it be from more than one assembly? because of type extensions?
+                        yield markInlineCode(txt)
+                    |Error errTxt  -> 
+                        yield new TextBlock(Text = errTxt,FontSize = Style.fontSize  * 0.7,FontFamily = Style.fontToolTip, Foreground = gray )
+                    ]
 
                 let border = Border()
                 border.Child <- subPanel
@@ -213,12 +242,35 @@ type TypeInfo private () =
             .Replace("&quot;" ,"\"")
             .Replace("&apos;" ,"'" )
             .Replace("&amp;"  ,"&" )  
+    
+    static let stripOffXmlComments(txt:string) =    // TODO dont do it like this ! use prop[er xml doc  parsing 
+         //printfn "%s" txt
+         txt.Replace("<summary>"        ,"" )
+            .Replace("</summary>"       ,"" )
+            .Replace("<returns>"        ,"Returns:\r\n" )
+            .Replace("</returns>"       ,"" )
+            .Replace("</param>"         ,"" )
+            .Replace("<param name=\""   ,"    • " )
+            .Replace("<exception cref=\"T:" ,"Exception: " ) 
+            .Replace("</exception>" ,"" ) 
+            .Replace("<see langword=\"","'")
+            .Replace("<see cref=\"P:","")
+            .Replace("\" />","'")
+            .Replace("\">"              ,": " ) // to catch the end of <param name="value">  andd other closings
 
+
+    
+    /// returns docstring und dll path
     static let buildFormatComment (cmt:FSharpXmlDoc) =
         //mostly copied from same named function in Docstring.fs
         match cmt with
         | FSharpXmlDoc.FromXmlText xmlDoc -> 
-            let s = "FSharpXmlDoc.FromXmlText:" + xmlDoc.GetXmlText() // TODO Good enough ??
+            // Doc string that is not from an xml file but from the current .fsx document 
+            let s = 
+                xmlDoc.UnprocessedLines 
+                |> String.concat Environment.NewLine 
+                |> stripOffXmlComments // TODO this might need striping off more tags than <summary>
+                |> Util.Str.trim            
             Ok (s,"") 
         | FSharpXmlDoc.None -> Error "*FSharpXmlDoc.None*"
         | FSharpXmlDoc.FromXmlFile(dllFile, memberName) ->
@@ -237,7 +289,7 @@ type TypeInfo private () =
                 Error ("xml doc file not found for: "+dllFile+"\r\n")
            
 
-    static let formated (sdtt: ToolTipText, optDfes:ResizeArray<OptDefArg>) : ToolTipData list= 
+    static let getToolTipDatas (sdtt: ToolTipText, optDfes:ResizeArray<OptDefArg>) : ToolTipData list= 
         match sdtt with
         | ToolTipText.ToolTipText (els) ->
             match els with
@@ -261,7 +313,7 @@ type TypeInfo private () =
     
  
     ///returns the names of optional Arguments in a given method call
-    static let namesOfOptnlArgs(fsu:FSharpSymbolUse)=
+    static let namesOfOptnlArgs(fsu:FSharpSymbolUse) :ResizeArray<OptDefArg>=
         let optDefs = ResizeArray<OptDefArg>(0)               
         try
             match fsu.Symbol with
@@ -293,7 +345,7 @@ type TypeInfo private () =
     
     static member namesOfOptionalArgs(fsu:FSharpSymbolUse) = namesOfOptnlArgs(fsu)
 
-    static member getFormated (sdtt: ToolTipText, optArgs:ResizeArray<OptDefArg>) = formated (sdtt, optArgs) 
+    static member getToolTipDataList (sdtt: ToolTipText, optArgs:ResizeArray<OptDefArg>) = getToolTipDatas (sdtt, optArgs) 
     
     static member getPanel  (it:DeclarationListItem option, tds:ToolTipData list) = stackPanel (it, tds)
    
@@ -347,10 +399,11 @@ type TypeInfo private () =
                         do! Async.SwitchToContext Sync.syncContext
                     
 
-                        let ttds = formated (ttt, optArgs)
+                        let ttds = getToolTipDatas (ttt, optArgs)
                         if List.isEmpty ttds then
-                            let w= word.Trim()
-                            if w <> "" then     tip.Content <- "No type info found for:\r\n" + word
+                            let w = word.Trim()
+                            //if w <> "" then     tip.Content <- "No type info found for:\r\n" + word
+                            if w <> "" then     tip.Content <- new TextBlock(Text = "No type info found for:\r\n" + word, FontSize = Style.fontSize  * 0.7,FontFamily = Style.fontToolTip, Foreground = gray )
                             else                tip.Content <- "No tip"
                             //ed.TypeInfoToolTip.IsOpen <- false
                         else                            

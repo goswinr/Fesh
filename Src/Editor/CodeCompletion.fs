@@ -176,8 +176,8 @@ type Completions(avaEdit:TextEditor,config:Config, checker:Checker) =
         async{            
             let raw = it.Description            
             let structured = 
-                if optArgsDict.ContainsKey it.FullName then  TypeInfo.getFormated (raw, optArgsDict.[it.FullName])
-                else                                         TypeInfo.getFormated (raw, ResizeArray(0))
+                if optArgsDict.ContainsKey it.FullName then  TypeInfo.getToolTipDataList (raw, optArgsDict.[it.FullName])
+                else                                         TypeInfo.getToolTipDataList (raw, ResizeArray(0))
             if this.IsOpen then
                 do! Async.SwitchToContext Sync.syncContext
                 if this.IsOpen then // might get closed during context switch

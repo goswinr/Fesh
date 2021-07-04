@@ -1,4 +1,4 @@
-﻿namespace Seff.Util
+namespace Seff.Util
 
 open System
 open System.IO
@@ -127,6 +127,8 @@ module Str  =
         
     let tabsToSpaces spaces (s:string) = 
         s.Replace("\t", String(' ',spaces))    
+
+    let inline trim  (s:string) = s.Trim() 
     
     ///s.Replace(toReplace, replacement)  
     let inline replace (toReplace:string) (replacement:string) (s:string)  = 
@@ -268,7 +270,7 @@ module Str  =
                 s.Substring(start + startChar.Length, ende - start - startChar.Length),// finds text betwween two chars
                 s.Substring(ende + endChar.Length)
 
-    /// finds text betwween two strings
+    /// finds text between two strings
     /// delimiters are excluded    
     let between (startChar:string) (endChar:string) (s:string) =         
         let start = s.IndexOf(startChar, StringComparison.Ordinal) 
@@ -291,7 +293,7 @@ module Str  =
         if s.Length <= max then s
         else
             s.Substring(0,max) + suffix
-
+    
 
  
 

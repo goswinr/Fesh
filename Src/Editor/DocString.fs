@@ -27,13 +27,13 @@ module DocString =
 
         let inline nl<'T> = Environment.NewLine
 
-        let inline private addSectionOriginalUNUSED (name : string) (content : string) = //original markdown
-            if name <> "" then
-                nl + nl
-                + "**" + name + "**"
-                + nl + nl + content
-            else
-                nl + nl + content
+        //let inline private addSectionOriginalUNUSED (name : string) (content : string) = //original markdown
+        //    if name <> "" then
+        //        nl + nl
+        //        + "**" + name + "**"
+        //        + nl + nl + content
+        //    else
+        //        nl + nl + content
 
         let inline private addSection (name : string) (content : string) = // by goswin with trim
             if name <> "" then
