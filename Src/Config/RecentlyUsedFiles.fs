@@ -30,8 +30,14 @@ type RecentlyUsedFiles  (log:ISeffLog, hostInfo:Hosting) =
             for ln in writer.ReadAllLines() |> Seq.rev do
                 let path , d = Str.splitOnce "|" ln                
                 match DateTime.TryParseExact(d, "yyyy-MM-dd HH:mm", null,  DateTimeStyles.None) with // TODO is this UTC ?
-                | true, date -> stack.Push( {fileInfo = FileInfo(path) ; lastOpendUtc = date})  
-                | _ ->          stack.Push( {fileInfo = FileInfo(path) ; lastOpendUtc = DateTime.MinValue}) 
+                | true, date -> 
+                    if IO.File.Exists(path) then 
+                        stack.Push {fileInfo = FileInfo(path) ; lastOpendUtc = date} 
+                    elif DateTime.UtcNow - date < TimeSpan.FromDays(2.) then // if a file is missing only add it to the recent file stack if it was used in the last 2 days( might be on a network drive that is temporaly disconnected)
+                        stack.Push {fileInfo = FileInfo(path) ; lastOpendUtc = date} 
+                | _ ->          
+                    log.PrintfnAppErrorMsg "Failed to parse date from recent file text: %s" ln
+                    stack.Push {fileInfo = FileInfo(path) ; lastOpendUtc = DateTime.MinValue}
                                   
         with 
             | :? IO.FileNotFoundException  -> log.PrintfnInfoMsg "No recently used files found. (This is expected on first use of the App)"  
