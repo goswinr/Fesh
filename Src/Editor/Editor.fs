@@ -266,7 +266,7 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
 
         
         // setup and tracking folding status, (needs a ref to file path:  )
-        ed.Folds.SetState( ed )              
+        ed.Folds.InitState( ed )              
         ed.Folds.Margin.MouseUp.Add (fun e -> config.FoldingStatus.Set(ed) )
 
         //----------------------------------

@@ -18,18 +18,20 @@ type FileChange =
     |Renamed 
     |Deleted 
 
-type FileWatcher(editor:IEditor,upadteIsCodeSaved:bool->unit) as this =
+type FileWatcher(editor:Editor,upadteIsCodeSaved:bool->unit) as this =
     inherit FileSystemWatcher() 
 
     let onFocusActions = ResizeArray<unit->unit>()
- 
+    
+    
 
     let asktToUpdate (msg:string, newCode:string) =
         match MessageBox.Show(msg, "File Changed" , MessageBoxButton.YesNo, MessageBoxImage.Exclamation) with
-        | MessageBoxResult.Yes -> 
+        | MessageBoxResult.Yes ->             
+            editor.Folds.SetToOneFullReload() // to keep folding state
             //editor.AvaEdit.Text <- newCode        // this does NOT allows undo or redo
-            editor.AvaEdit.Document.Text <- newCode // this allows undo and redo
-            upadteIsCodeSaved(true)
+            editor.AvaEdit.Document.Text <- newCode // this allows undo and redo 
+            upadteIsCodeSaved(true)    
         | _  -> 
             upadteIsCodeSaved(false)
 
