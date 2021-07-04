@@ -96,11 +96,16 @@ type CompletionItem (ed:IEditor,config:Config, getToolTip, it:DeclarationListIte
         let compl = 
             //TODO move this logic out here 
             if it.Glyph = FSharpGlyph.Class && it.Name.EndsWith "Attribute" then 
-                "[<" + it.Name.Replace("Attribute",">]") 
-            elif it.Name.IndexOfAny needTicks > 0 then 
+                "[<" + it.Name.Replace("Attribute",">]")
+                
+            elif it.Name.IndexOfAny needTicks >= 0 then 
                 "``" + it.Name + "``"
-            elif it.Name = "struct" then "[<Struct>]"
-            else it.Name          
+
+            elif it.Name = "struct" then 
+                "[<Struct>]"
+            else 
+                it.Name  
+                
         //config.Log.PrintfDebugMsg "completionSegment: '%s' : %A" (textArea.Document.GetText(completionSegment)) completionSegment
         if Selection.getSelType textArea = Selection.RectSel then 
             RectangleSelection.complete (ed, completionSegment, compl)
