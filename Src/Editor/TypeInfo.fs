@@ -2,24 +2,42 @@
 
 open Seff
 open Seff.Model
+open Seff.Util
+open Seff.Util.Media
+
 open System
-open System.Windows
-open System.Windows.Controls
-open System.Windows.Media
 open System.IO
 open System.Xml
 open System.Text.RegularExpressions
+open System.Collections.Generic
+open System.Windows
+open System.Windows.Controls
+open System.Windows.Media
+open System.Windows.Input
+open System.Windows.Documents
+
 open AvalonEditB.CodeCompletion
 open AvalonEditB.Editing
 open AvalonEditB.Document
 open AvalonEditB
-open FSharp.Compiler
-open FSharp.Compiler.SourceCodeServices
-open System.Windows.Input
-open System.Windows.Documents
-open System.Collections.Generic
 
-type ToolTipData = {name:string; signature:string; xmlDocStr: Result<string*string,string>}
+open FSharp.Compiler
+open FSharp.Compiler.CodeAnalysis
+open FSharp.Compiler.IO                // FileSystem
+open FSharp.Compiler.CodeAnalysis      // FSharpChecker, FSharpCheckFileResults, FSharpChecProjectResults and friends
+open FSharp.Compiler.Diagnostics       // FSharpDiagnostic and friends
+open FSharp.Compiler.EditorServices    // Misc functionality for editors, e.g. interface stub generation
+open FSharp.Compiler.Interactive.Shell // F# Interactive
+open FSharp.Compiler.Symbols           // FSharpEntity etc
+open FSharp.Compiler.Syntax            // SyntaxTree, XmlDoc, PrettyNaming
+open FSharp.Compiler.Text              // ISourceFile, Range, TaggedText and other things
+open FSharp.Compiler.Tokenization      // FSharpLineTokenizer etc.
+
+
+
+type OptDefArg   = {name:string } //; defVal:string}//  default value seems to be not available via FCS see below in: namesOfOptnlArgs(fsu:FSharpSymbolUse)
+
+type ToolTipData = {name:string; signature:TaggedText[]; optDefs: ResizeArray<OptDefArg>;  xmlDocStr: Result<string*string,string>}
 
 
 ///a static class for creating tooltips 
@@ -27,8 +45,135 @@ type TypeInfo private () =
         
     static let loadingTxt =  "Loading type info ..."
 
-    // make a fancy tooltip:
-    static let stackPanel  (it:FSharpDeclarationListItem option, tds:ToolTipData list) = 
+    static let gray         = Brushes.Gray                       |> freeze
+    static let lightgray    = Brushes.Gray       |> brighter 100 |> freeze
+    static let blue         = Brushes.Blue       |> darker    90 |> freeze
+    static let darkblue     = Brushes.Blue       |> darker   150 |> freeze
+    static let purple       = Brushes.Purple     |> brighter  40 |> freeze
+    static let black        = Brushes.Black                      |> freeze
+    static let red          = Brushes.DarkSalmon |> darker   120 |> freeze
+    static let fullred      = Brushes.Red        |> darker    60 |> freeze
+    static let cyan         = Brushes.DarkCyan   |> darker    60 |> freeze
+
+    static let maxCharInSignLine = 100
+
+    static let coloredSignature(td :ToolTipData): TextBlock =
+        let tb = TextBlock()
+        tb.Foreground <- black
+        tb.FontSize   <- Style.fontSize  * 1.1
+        tb.FontFamily <- Style.fontEditor
+        let ts = td.signature
+        let mutable len = 0
+        for i=0 to ts.Length-1 do 
+            let t = ts.[i]
+            len <- len + t.Text.Length
+            
+            match t.Tag with 
+            | TextTag.Parameter ->
+                // if a paramter is optional add a question mark to the signature
+                match ts.[i-1].Text with 
+                |"?" ->  tb.Inlines.Add( new Run (t.Text , Foreground = gray )) // sometimes optional arguments have already a question mark but not always
+                | _ -> 
+                    match td.optDefs |> Seq.tryFind ( fun oa -> oa.name = t.Text ) with 
+                    | Some od ->  tb.Inlines.Add( new Run ("?"+t.Text , Foreground = gray )) 
+                    | None    ->  tb.Inlines.Add( new Run (t.Text, Foreground = black )) 
+
+            | TextTag.Keyword ->
+                tb.Inlines.Add( new Run (t.Text, Foreground = blue )) 
+
+            | TextTag.Operator -> tb.Inlines.Add( new Run (t.Text, Foreground = Brushes.Green ))
+            | TextTag.Punctuation->
+                match t.Text with 
+                | "?" ->         tb.Inlines.Add( new Run (t.Text, Foreground = gray))   
+                | "*" 
+                | "->" -> 
+                    if len > maxCharInSignLine then 
+                        tb.Inlines.Add( new Run ("\r\n    "))
+                        len <- 0
+                    tb.Inlines.Add( new Run (t.Text, Foreground = fullred))//, FontWeight = FontWeights.Bold ))   
+                |  _  ->  
+                    tb.Inlines.Add( new Run (t.Text, Foreground = purple ))                  
+                
+            | TextTag.RecordField
+            | TextTag.Method
+            | TextTag.Property
+            | TextTag.Field
+            | TextTag.ModuleBinding
+            | TextTag.UnionCase
+            | TextTag.Member ->   tb.Inlines.Add( new Run (t.Text, Foreground = red ))              
+                
+            | TextTag.Struct
+            | TextTag.Class
+            | TextTag.Interface
+            | TextTag.Function
+            | TextTag.Alias ->   tb.Inlines.Add( new Run (t.Text, Foreground = cyan ))   
+                
+            | TextTag.TypeParameter ->   tb.Inlines.Add( new Run (t.Text, Foreground = cyan ))   // generative argument like 'T or 'a
+
+            | TextTag.UnknownType
+            | TextTag.UnknownEntity ->   tb.Inlines.Add( new Run (t.Text, Foreground = gray ))  
+
+            | TextTag.LineBreak ->
+                len <- t.Text.Length // reset after line berak
+                tb.Inlines.Add( new Run (t.Text))
+
+            | TextTag.Namespace
+            | TextTag.ActivePatternCase
+            | TextTag.ActivePatternResult
+            | TextTag.Union
+            | TextTag.Delegate
+            | TextTag.Enum
+            | TextTag.Event
+            | TextTag.Local
+            | TextTag.Record
+            | TextTag.Module
+            | TextTag.NumericLiteral
+            | TextTag.Space
+            | TextTag.StringLiteral
+            | TextTag.Text
+            | TextTag.UnknownType
+            | TextTag.UnknownEntity ->    tb.Inlines.Add( new Run (t.Text))
+
+        (* 
+        let debugHelp = 
+            td.signature
+            |> Seq.filter (fun t -> t.Tag <> TextTag.Punctuation && t.Tag <> TextTag.Space && t.Tag <> TextTag.Operator && t.Tag <> TextTag.LineBreak)
+            |> Seq.map(fun t -> sprintf "%A" t.Tag)
+            |> String.concat "|"
+        tb.Inlines.Add( new Run ("\r\n"+debugHelp,Foreground = lightgray))    
+        *)
+        tb
+    
+    /// for <c> and </c> in text
+    static let markInlineCode(tx:string) : TextBlock =
+        let tb = new TextBlock()
+        tb.FontSize   <- Style.fontSize  * 0.90
+        tb.FontFamily <- Style.fontToolTip
+        tb.Foreground <- darkblue 
+        let rec loop i = 
+            if i < tx.Length then 
+                match tx.IndexOf("<c>",i) with 
+                | -1 -> 
+                    tb.Inlines.Add( new Run(tx.Substring(i)))  // add til end, exit recursion
+                | s -> 
+                    match tx.IndexOf("</c>",s) with 
+                    | -1 -> 
+                        tb.Inlines.Add( new Run(tx.Substring(i)))// start found but not end , just add til end, exit recursion                        
+                    | e -> 
+                        tb.Inlines.Add( new Run(tx.Substring(i, s-i)))
+                        tb.Inlines.Add( new Run(tx.Substring(s+3, e-s-3), 
+                                                FontFamily = Style.fontEditor, 
+                                                Foreground = black, 
+                                                //FontWeight = FontWeights.Bold, 
+                                                Background = lightgray
+                                                ))
+                        loop(e+4)
+        loop 0
+        tb
+
+
+    // make a fancy tooltip panel:
+    static let stackPanel  (it:DeclarationListItem option, tds:ToolTipData list) = 
         let makePanelVert (xs:list<#UIElement>) =
             let p = new StackPanel(Orientation= Orientation.Vertical)
             for x in xs do p.Children.Add x |> ignore
@@ -50,30 +195,21 @@ type TypeInfo private () =
                 let subPanel = makePanelVert [
                     if td.name <> "" then 
                         let tb = new TextBlock(Text= "Name:" + td.name)
-                        tb.Foreground <- Brushes.Black
+                        tb.Foreground <- black
                         tb.FontSize <- Style.fontSize * 0.9
                         //tb.FontFamily <- Style.elronet
                         tb.FontWeight <- FontWeights.Bold
                         yield tb 
-                    if td.signature <> "" then 
-                        let tb = new TextBlock(Text = td.signature)
-                        tb.Foreground <- Brushes.Black
-                        tb.FontSize <- Style.fontSize  * 1.0
-                        tb.FontFamily <- Style.fontEditor
-                        yield tb
+                    
+                    yield coloredSignature(td) // the main signature of a F# value
                 
-                    let color, txt, scale  = 
-                        match td.xmlDocStr with 
-                        |Ok (txt,ass)     -> 
-                            if ass <>"" then assemblies.Add(ass) |> ignore //could it be from more than one assembly? because of type extensions?
-                            Brushes.DarkBlue, txt, 0.9 
-                        |Error errTxt  -> 
-                            Brushes.Gray, errTxt, 0.75
-                    let tb = new TextBlock(Text= txt.Trim() )
-                    tb.FontSize <- Style.fontSize  * scale
-                    tb.FontFamily <- Style.fontToolTip
-                    tb.Foreground <- color                    
-                    yield tb ]
+                    match td.xmlDocStr with 
+                    |Ok (txt,ass)     -> 
+                        if ass <>"" then assemblies.Add(ass) |> ignore //TODO could it be from more than one assembly? because of type extensions?
+                        yield markInlineCode(txt)
+                    |Error errTxt  -> 
+                        yield new TextBlock(Text = errTxt,FontSize = Style.fontSize  * 0.7,FontFamily = Style.fontToolTip, Foreground = gray )
+                    ]
 
                 let border = Border()
                 border.Child <- subPanel
@@ -88,7 +224,7 @@ type TypeInfo private () =
                     if assemblies.Count = 1 then new TextBlock(Text= "assembly:\r\n" + Seq.head assemblies)
                     else                         new TextBlock(Text= "assemblies:\r\n" + String.concat "\r\n" assemblies)
                 tb.FontSize <- Style.fontSize  * 0.80
-                tb.Foreground <- Brushes.Black
+                tb.Foreground <-black
                 //tb.FontFamily <- new FontFamily ("Arial") // or use default of device
                 yield tb :> UIElement
                 ]
@@ -105,29 +241,39 @@ type TypeInfo private () =
             .Replace("&gt;"   ,">" )
             .Replace("&quot;" ,"\"")
             .Replace("&apos;" ,"'" )
-            .Replace("&amp;"  ,"&" )    
+            .Replace("&amp;"  ,"&" )  
     
+    static let stripOffXmlComments(txt:string) =    // TODO dont do it like this ! use prop[er xml doc  parsing 
+         //printfn "%s" txt
+         txt.Replace("<summary>"        ,"" )
+            .Replace("</summary>"       ,"" )
+            .Replace("<returns>"        ,"Returns:\r\n" )
+            .Replace("</returns>"       ,"" )
+            .Replace("</param>"         ,"" )
+            .Replace("<param name=\""   ,"    • " )
+            .Replace("<exception cref=\"T:" ,"Exception: " ) 
+            .Replace("</exception>" ,"" ) 
+            .Replace("<see langword=\"","'")
+            .Replace("<see cref=\"P:","")
+            .Replace("\" />","'")
+            .Replace("\">"              ,": " ) // to catch the end of <param name="value">  andd other closings
 
+
+    
+    /// returns docstring und dll path
     static let buildFormatComment (cmt:FSharpXmlDoc) =
+        //mostly copied from same named function in Docstring.fs
         match cmt with
-        //#if HOSTED 
-        | FSharpXmlDoc.Text (s) -> Ok (s,"") // "plain text Doc: \r\n" + s // FCS 33.0.1
-        //#else 
-        //| FSharpXmlDoc.Text (unprocessedLines,elaboratedXmlLines) ->  //FCS 38.0.0
-        //    Ok (String.concat Environment.NewLine elaboratedXmlLines, "") //https://github.com/dotnet/fsharp/blob/3c3c513dd3a90fb084eaf2055eb234a3819ee411/src/fsharp/symbols/SymbolHelpers.fs#L229
-        //
-        //     // TODO compare 
-        //     //• VS studio          https://github.com/dotnet/fsharp/blob/8b361cfc6eecbccfb2dc625faa7ff66e7e621be5/vsintegration/src/FSharp.Editor/DocComments/XMLDocumentation.fs#L289
-        //     //• fsautocomplte      https://github.com/fsharp/FsAutoComplete/blob/6c9c2c28258b77420f41fc5d2022ce0fb4f96431/src/FsAutoComplete.Core/TipFormatter.fs#L960
-        //     //• rider fs plugin
-        //
-        //     //see DocString.fs at line 260
-        //
-        //#endif
-        
-        
+        | FSharpXmlDoc.FromXmlText xmlDoc -> 
+            // Doc string that is not from an xml file but from the current .fsx document 
+            let s = 
+                xmlDoc.UnprocessedLines 
+                |> String.concat Environment.NewLine 
+                |> stripOffXmlComments // TODO this might need striping off more tags than <summary>
+                |> Util.Str.trim            
+            Ok (s,"") 
         | FSharpXmlDoc.None -> Error "*FSharpXmlDoc.None*"
-        | FSharpXmlDoc.XmlDocFileSignature(dllFile, memberName) ->
+        | FSharpXmlDoc.FromXmlFile(dllFile, memberName) ->
            match DocString.getXmlDoc dllFile with
            | Some doc ->
                 if doc.ContainsKey memberName then
@@ -141,60 +287,68 @@ type TypeInfo private () =
                     Error (err)
            | None -> 
                 Error ("xml doc file not found for: "+dllFile+"\r\n")
+           
 
-
-    static let addQuestionmark (optArgs:ResizeArray<string>) (txt:string) = 
-        let mutable res = txt
-        for arg in optArgs do 
-            res <- res.Replace(" "+arg+":", " ?"+arg+":")
-        res
-
-    static let formated (sdtt: FSharpStructuredToolTipText, optArgs:ResizeArray<string>) = 
+    static let getToolTipDatas (sdtt: ToolTipText, optDfes:ResizeArray<OptDefArg>) : ToolTipData list= 
         match sdtt with
-        |FSharpToolTipText(els) ->
+        | ToolTipText.ToolTipText (els) ->
             match els with
             |[]  -> [] //{name = ""; signature= ""; xmlDocStr = Error "*FSharpStructuredToolTipElement list is empty*"}]
             |els -> 
                 [ for el in els do 
                     match el with 
-                    | FSharpStructuredToolTipElement.None ->                    yield {name = ""; signature= ""; xmlDocStr = Error  "*FSharpStructuredToolTipElement.None*"}
-                    | FSharpStructuredToolTipElement.CompositionError(text) ->  yield {name = ""; signature= ""; xmlDocStr = Error ("*FSharpStructuredToolTipElement.CompositionError: "+ text)}
-                    | FSharpStructuredToolTipElement.Group(layouts) -> 
-                        for layout in layouts do 
-                            yield { name =     Option.defaultValue "" layout.ParamName
-                                    signature= Layout.showL layout.MainDescription   |> addQuestionmark optArgs                                 
-                                    xmlDocStr = buildFormatComment layout.XmlDoc}
-                ]
-     
-    // --------------------------------------------------------------------------------------
-    // Seff Type info ToolTip:
-    // --------------------------------------------------------------------------------------
+                    | ToolTipElement.None ->                    
+                        yield {name = ""; signature = [||]; optDefs=optDfes; xmlDocStr = Error  "*FSharpStructuredToolTipElement.None*"}
 
+                    | ToolTipElement.CompositionError(text) ->  
+                        yield {name = ""; signature = [||]; optDefs=optDfes; xmlDocStr = Error ("*FSharpStructuredToolTipElement.CompositionError: "+ text)}
+
+                    | ToolTipElement.Group(tooTipElsData) -> 
+                        for tted in tooTipElsData do
+                            yield { name      = Option.defaultValue "" tted.ParamName
+                                    signature = tted.MainDescription
+                                    optDefs   = optDfes
+                                    xmlDocStr = buildFormatComment tted.XmlDoc}
+                ]
+    
+ 
     ///returns the names of optional Arguments in a given method call
-    static let namesOfOptnlArgs(fsu:FSharpSymbolUse,log:ISeffLog)=
-        let D = ResizeArray<string>(0)               
+    static let namesOfOptnlArgs(fsu:FSharpSymbolUse) :ResizeArray<OptDefArg>=
+        let optDefs = ResizeArray<OptDefArg>(0)               
         try
             match fsu.Symbol with
             | :? FSharpMemberOrFunctionOrValue as x ->
-                for cs in x.CurriedParameterGroups do
-                    for c in cs do 
-                        if c.IsOptionalArg then                         
-                            D.Add c.FullName
+                for ps in x.CurriedParameterGroups do
+                    for p in ps do 
+                        if p.IsOptionalArg then 
+                            optDefs.Add  {name = p.FullName} //; defVal="?" }
+                            // TODO p.Attributes is always empty even for DefaultParameterValueAttribute ! why ? 
+                            // all below fails to get the default arg :
+                            //match p.TryGetAttribute<System.Runtime.InteropServices.DefaultParameterValueAttribute>() with 
+                            //|None -> 
+                            //    optDefs.Add  {name = p.FullName; defVal="?" }
+                            //|Some fa -> 
+                            //    if fa.ConstructorArguments.Count = 1 then 
+                            //        let (ty,value) = fa.ConstructorArguments.[0]
+                            //        optDefs.Add  {name = p.FullName; defVal = value.ToString() }                                    
+                            //    else 
+                            //        ISeffLog.log.PrintfnDebugMsg "fa.ConstructorArguments: %A" fa.ConstructorArguments
+                                
                             //log.PrintfnDebugMsg "optional full name: %s" c.FullName
             | _ -> ()
-        with e -> log.PrintfnAppErrorMsg "Error while trying to show a Tool tip in Seff.\r\nYou can ignore this error.\r\nin TypeInfo.namesOfOptnlArgs: %A" e
-        D
-    
+        with e -> ISeffLog.log.PrintfnAppErrorMsg "Error while trying to show a Tool tip in Seff.\r\nYou can ignore this error.\r\nin TypeInfo.namesOfOptnlArgs: %A" e
+        optDefs
+
     //--------------public values and functions -----------------
     
     static member loadingText = loadingTxt
     
-    static member getFormated (sdtt: FSharpStructuredToolTipText, optArgs:ResizeArray<string>) = formated (sdtt, optArgs) 
+    static member namesOfOptionalArgs(fsu:FSharpSymbolUse) = namesOfOptnlArgs(fsu)
+
+    static member getToolTipDataList (sdtt: ToolTipText, optArgs:ResizeArray<OptDefArg>) = getToolTipDatas (sdtt, optArgs) 
     
-    static member getPanel  (it:FSharpDeclarationListItem option, tds:ToolTipData list) = stackPanel (it, tds)
-
-    static member namesOfOptionalArgs(fsu:FSharpSymbolUse,log:ISeffLog) = namesOfOptnlArgs(fsu,log)
-
+    static member getPanel  (it:DeclarationListItem option, tds:ToolTipData list) = stackPanel (it, tds)
+   
     static member mouseHover(e: MouseEventArgs, iEditor:IEditor, log:ISeffLog, tip:ToolTip) =
         // see https://github.com/icsharpcode/AvalonEdit/blob/master/AvalonEditB/Editing/SelectionMouseHandler.cs#L477
                 
@@ -238,17 +392,18 @@ type TypeInfo private () =
                         
                         do! Async.SwitchToThreadPool()
 
-                        let! stt =    res.checkRes.GetStructuredToolTipText(line,endCol,lineTxt,[word],FSharpTokenTag.Identifier)       //TODO, can this be avoided use info from below symbol call ? // TODO move into checker
-                        let! symbls = res.checkRes.GetSymbolUseAtLocation(  line,endCol,lineTxt,[word])                                 //only get to info about oprional paramters
-                        let optArgs = if symbls.IsSome then namesOfOptnlArgs(symbls.Value,log) else ResizeArray(0) 
+                        let ttt =    res.checkRes.GetToolTip            (line, endCol, lineTxt, [word], FSharpTokenTag.Identifier)      //TODO, can this call be avoided use info from below symbol call ? // TODO move into checker
+                        let symbls = res.checkRes.GetSymbolUseAtLocation(line, endCol, lineTxt, [word] )                                //only to get to info about optional paramters
+                        let optArgs = if symbls.IsSome then namesOfOptnlArgs(symbls.Value) else ResizeArray(0) 
                         
                         do! Async.SwitchToContext Sync.syncContext
                     
 
-                        let ttds = formated (stt, optArgs)
+                        let ttds = getToolTipDatas (ttt, optArgs)
                         if List.isEmpty ttds then
-                            let w= word.Trim()
-                            if w <> "" then     tip.Content <- "No type info found for:\r\n" + word
+                            let w = word.Trim()
+                            //if w <> "" then     tip.Content <- "No type info found for:\r\n" + word
+                            if w <> "" then     tip.Content <- new TextBlock(Text = "No type info found for:\r\n" + word, FontSize = Style.fontSize  * 0.7,FontFamily = Style.fontToolTip, Foreground = gray )
                             else                tip.Content <- "No tip"
                             //ed.TypeInfoToolTip.IsOpen <- false
                         else                            

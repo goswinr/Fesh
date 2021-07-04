@@ -5,8 +5,8 @@ rmdir /s /q  "C:/GitHub/FsEx/bin"
 dotnet build "C:/GitHub/FsEx/FsEx.fsproj" --configuration Release
 
   
-rmdir /s /q  "C:/GitHub/AvalonEditB/AvalonEditB/bin"
-dotnet build "C:/GitHub/AvalonEditB/AvalonEditB/AvalonEditB.csproj" --configuration Release --framework net472 
+@REM rmdir /s /q  "C:/GitHub/AvalonEditB/AvalonEditB/bin"
+@REM dotnet build "C:/GitHub/AvalonEditB/AvalonEditB/AvalonEditB.csproj" --configuration Release --framework net472 
 
 
 rmdir /s /q  "C:/GitHub/Seff/binStandalone"
@@ -24,15 +24,15 @@ rmdir /s /q  "C:/GitHub/Rhino.Scripting/binRh7"
 dotnet build "C:/GitHub/Rhino.Scripting/Rhino.Scripting7.fsproj" -p:Platform=x64 --configuration Release
 
 
-:: Rhino6
-:: first delete obj folder so that ther reference really goes to rhino 6 and not 7
-rmdir /s /q  "C:/GitHub/Seff.Rhino/obj" 
-rmdir /s /q  "C:/GitHub/Seff.Rhino/binRh6"
-dotnet build "C:/GitHub/Seff.Rhino/Seff.Rhino6.fsproj" -p:Platform=x64 --configuration Release
+@REM :: Rhino6
+@REM :: first delete obj folder so that ther reference really goes to rhino 6 and not 7
+@REM rmdir /s /q  "C:/GitHub/Seff.Rhino/obj" 
+@REM rmdir /s /q  "C:/GitHub/Seff.Rhino/binRh6"
+@REM dotnet build "C:/GitHub/Seff.Rhino/Seff.Rhino6.fsproj" -p:Platform=x64 --configuration Release
 
-rmdir /s /q  "C:/GitHub/Rhino.Scripting/obj"
-rmdir /s /q  "C:/GitHub/Rhino.Scripting/binRh6"
-dotnet build "C:/GitHub/Rhino.Scripting/Rhino.Scripting6.fsproj" -p:Platform=x64 --configuration Release
+@REM rmdir /s /q  "C:/GitHub/Rhino.Scripting/obj"
+@REM rmdir /s /q  "C:/GitHub/Rhino.Scripting/binRh6"
+@REM dotnet build "C:/GitHub/Rhino.Scripting/Rhino.Scripting6.fsproj" -p:Platform=x64 --configuration Release
 
 
 @REM :: Revit 2018

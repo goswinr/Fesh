@@ -1,5 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk.WindowsDesktop"> <!--WinDesktop is needed so that rescources work with dotnet build-->
+
   <PropertyGroup>
     <OutputType>Library</OutputType>
     <!-- no net50-windows because no Thread.Abort() in net50 (for fsi canceling), 
@@ -7,7 +8,6 @@
       net 472 for Rhino and Netstandard2.0
       Rhino can only host netFramwork apps-, -->
     <TargetFrameworks>net472</TargetFrameworks>    <!-- for net462 there is another fsproj file also using FSarp core 4.6.2-->
-
     <UseWPF>true</UseWPF>
     <UseWinForms>true</UseWinForms> <!--only for some message boxes ? -->
     <LangVersion>preview</LangVersion>
@@ -18,36 +18,36 @@
     
     <RootNamespace>Seff</RootNamespace>
     <AssemblyName>Seff</AssemblyName>
-    <Version>0.3.1.0</Version>
-    <AssemblyVersion>0.3.1.0</AssemblyVersion>
-    <FileVersion>0.3.1.0</FileVersion>
-
+    <Version>0.4.0.0</Version>
+    <AssemblyVersion>0.4.0.0</AssemblyVersion>
+    <FileVersion>0.4.0.0</FileVersion>
+    
     <Authors>Goswin Rothenthal</Authors>
-    <Product>Seff</Product> 
+    <Product>Seff</Product>
     <Description>A hostable fsharp scripting editor for Windows</Description>
-    <Copyright>Copyright: Goswin Rothenthal 2021 </Copyright>
+    <Copyright>Goswin Rothenthal</Copyright>
     
     <ApplicationIcon>Media/logo.ico</ApplicationIcon>
-    <Win32Resource>Media/logo.res</Win32Resource><!--  for Application Icon in explorer-->   
+    <Win32Resource>Media/logo.res</Win32Resource>      <!-- Win32Resource for Application Icon in explorer-->    
     
-
-    <Configurations>Release</Configurations>        
     <Platforms>x64;x86</Platforms>
-
-    <DefineConstants>HOSTED</DefineConstants>  <!-- for FSharp.Compiler.Service 33.0.1--> 
+    <Configurations>Release</Configurations>        
   </PropertyGroup> 
 
-  <!--"'$(Configuration)|$(Platform)'=='Release|AnyCPU'"-->
   <PropertyGroup Condition="'$(Platform)'=='x64'">  <OutputPath>binHosting/x64/</OutputPath>  </PropertyGroup>
   <PropertyGroup Condition="'$(Platform)'=='x86'">  <OutputPath>binHosting/x86/</OutputPath>  </PropertyGroup>
 
-
   <ItemGroup>
-    <PackageReference Include="FSharp.Compiler.Service" Version="33.0.1" /> 
-    <!-- don't add explict ref to Fsharp.Core? https://github.com/dotnet/fsharp/issues/9064 -->    
+    <!-- normaly don't do in lib but needed for FCS 40 : --> 
+    <PackageReference Update="FSharp.Core" Version="5.0.2" GeneratePathProperty="true" />  
+    
+    
+    <PackageReference Include="FSharp.Compiler.Service" Version="40.0.0" />
+    <!--FSharp.Compiler.Service 40.0.0 includes FSharp.DependencyManager.Nuget , don't load it from Nuget see https://github.com/dotnet/fsharp/issues/10467#issuecomment-774430370 -->
+       
   </ItemGroup>
 
-  <ItemGroup>
+  <ItemGroup>   
     <Reference Include="AvalonEditB">      <!-- build from dev branch of https://github.com/goswinr/AvalonEditB -->
       <HintPath>../AvalonEditB/AvalonEditB/bin/Release/net472/AvalonEditB.dll</HintPath> 
     </Reference>     
@@ -72,7 +72,7 @@
     <Compile Include="Src/Model.fs" />
     <Compile Include="Src/GlobalErrorHandeling.fs" />
     <Compile Include="Src/Sync.fs" />
-
+    
     <Compile Include="Src/Config/SaveWriter.fs" />
     <Compile Include="Src/Config/Hosting.fs" />
     <Compile Include="Src/Config/Settings.fs" />
@@ -84,15 +84,14 @@
     <Compile Include="Src/Config/AssemblyReferenceStatistic.fs" />
     <Compile Include="Src/Config/FoldingStatus.fs" />
     <Compile Include="Src/Config/Config.fs" />
-
-    <Compile Include="Src/Fsi.fs" />
-    <Compile Include="Src/CompileScript.fs" /> 
     
+    <Compile Include="Src/Fsi.fs" />    
+    <Compile Include="Src/CompileScript.fs" />
+
     <Compile Include="Src/Editor/Selection.fs" />
     <Compile Include="Src/Editor/RectangleSelection.fs" />
     <Compile Include="Src/Editor/SwapWords.fs" />  
     <Compile Include="Src/Editor/Commenting.fs" />
-    <Compile Include="Src/Editor/DocStringNew.fs" />
     <Compile Include="Src/Editor/DocString.fs" />
     <Compile Include="Src/Editor/SyntaxHighlighting.fs" />
     <Compile Include="Src/Editor/ErrorHighlighter.fs" />
@@ -108,7 +107,7 @@
     <Compile Include="Src/Editor/Formating.fs" />
     <Compile Include="Src/Editor/Editor.fs" />
     <Compile Include="Src/Editor/UNUSEDNuget.fs" />
-
+    
     <Compile Include="Src/Views/Views.Util.fs" />
     <Compile Include="Src/Views/Log.fs" />
     <Compile Include="Src/Views/Window.fs" />
@@ -121,7 +120,7 @@
     <Compile Include="Src/Views/StatusBar.fs" />
     <Compile Include="Src/Views/Menu.fs" />
     <Compile Include="Src/Views/Seff.fs" />
-
+    
     <Compile Include="Src/Initialize.fs" />    
     <Compile Include="Src/App.fs" />
 

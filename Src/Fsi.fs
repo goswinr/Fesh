@@ -2,14 +2,19 @@
 
 
 open System
-open System.Windows
 open System.IO
 open System.Threading
-open FSharp.Compiler.Interactive.Shell
+open System.Windows
+open System.Windows.Media
+
 open Seff.Model
 open Seff.Config
 open Seff.Util
-open System.Windows.Media
+
+open FSharp.Compiler.Interactive.Shell
+open FSharp.Compiler.DependencyManager
+open FSharp.Compiler.Diagnostics
+open FSharp.DependencyManager.Nuget
 
 
 
@@ -79,16 +84,17 @@ type Fsi private (config:Config) =
                 if config.Settings.GetBool "asyncFsi" true then mode <- Async else mode <- FsiMode.Sync
                 match sessionOpt with 
                 |None -> ()
-                |Some session -> session.Interrupt()  //TODO does this cancel running session correctly ?? // TODO how to dispose previous session ?        
+                |Some session -> session.Interrupt()  //TODO does this cancel running session correctly ?? // TODO how to dispose previous session ?  Thread.Abort() ??    
                         
           
                 let inStream = new StringReader("")
-                // first arg is ignored: https://github.com/fsharp/FSharp.Compiler.Service/issues/420 
+
+                // first arg is ignored: 
+                //      https://github.com/fsharp/FSharp.Compiler.Service/issues/420 
                 // and  https://github.com/fsharp/FSharp.Compiler.Service/issues/877 
-                // and  https://github.com/fsharp/FSharp.Compiler.Service/issues/878            
-                    
+                // and  https://github.com/fsharp/FSharp.Compiler.Service/issues/878 
                 let allArgs = 
-                        // "--shadowcopyreferences" is ignored https://github.com/fsharp/FSharp.Compiler.Service/issues/292
+                    // "--shadowcopyreferences" is ignored https://github.com/fsharp/FSharp.Compiler.Service/issues/292
                     if config.Settings.GetBool Settings.keyFsiQuiet false then Array.append  config.FsiArugments.Get [| "--quiet"|] // TODO or fsi.ShowDeclarationValues <- false ??
                     else                                                                     config.FsiArugments.Get
                         
@@ -110,24 +116,36 @@ type Fsi private (config:Config) =
                 settings.PrintWidth <- 200 //TODO adapt to Log view size taking fontsize into account
                 settings.FloatingPointFormat <- "g7"
                 let fsiConfig = FsiEvaluationSession.GetDefaultConfiguration(settings,false) // https://github.com/dotnet/fsharp/blob/4978145c8516351b1338262b6b9bdf2d0372e757/src/fsharp/fsi/fsi.fs#L2839                    
+                
+                // This is needed since FCS 34
+                // its solves https://github.com/dotnet/fsharp/issues/9064
+                // FCS takes the current Directory whish might be the one of the hosting App and will not contain FSharp.Core.
+                // at https://github.com/dotnet/fsharp/blob/HEAD/src/fsharp/fsi/fsi.fs#L2766
+                Directory.SetCurrentDirectory(Path.GetDirectoryName(Reflection.Assembly.GetAssembly([].GetType()).Location))
+                
                 let fsiSession = FsiEvaluationSession.Create(fsiConfig, allArgs, inStream, log.TextWriterFsiStdOut, log.TextWriterFsiErrorOut) //, collectible=false ??) //https://github.com/dotnet/fsharp/blob/6b0719845c928361e63f6e38a9cce4ae7d621fbf/src/fsharp/fsi/fsi.fs#L2440
                                         
                 //AppDomain.CurrentDomain.UnhandledException.AddHandler (new UnhandledExceptionEventHandler( (new ProcessCorruptedState(config)).Handler)) //Add(fun ex -> log.PrintfnFsiErrorMsg "*** FSI AppDomain.CurrentDomain.UnhandledException:\r\n %A" ex.ExceptionObject)
                 Console.SetOut  (log.TextWriterConsoleOut)   // TODO needed to redirect printfn or coverd by TextWriterFsiStdOut? //https://github.com/fsharp/FSharp.Compiler.Service/issues/201
                 Console.SetError(log.TextWriterConsoleError) // TODO needed if evaluate non throwing or coverd by TextWriterFsiErrorOut? 
-                //if mode = Mode.Sync then do! Async.SwitchToContext Sync.syncContext            
+                          
                 //fsiSession.Run() // TODO ? dont do this it crashes the app when hosted in Rhino! 
                 state <- Ready
                 sessionOpt <- Some fsiSession
                 //timer.stop()
-                if prevState = NotLoaded then () //log.PrintfnInfoMsg "FSharp Interactive session created in %s"  timer.tocEx  
-                else                          log.PrintfnInfoMsg "FSharp Interactive session reset." // in %s" timer.tocEx     
+
+                match prevState with 
+                |Initalizing |Ready |Evaluating -> log.PrintfnInfoMsg "FSharp Interactive session reset." // in %s" timer.tocEx 
+                |NotLoaded  ->                     ()//log.PrintfnInfoMsg "FSharp 40.0 Interactive session created." // in %s"  timer.tocEx  
+
+                
             
                 if config.Hosting.IsHosted then 
                     match mode with
                     |Sync ->  log.PrintfnInfoMsg "FSharp Interactive will evaluate synchronously on UI Thread."
-                    |Async -> log.PrintfnInfoMsg "FSharp Interactive will evaluate asynchronously on new Thread."    
-                //fsiSession.AssemblyReferenceAdded.Add (config.AssemblyReferenceStatistic.Add)  //TODO fails in FCS 37.0.0                  
+                    |Async -> log.PrintfnInfoMsg "FSharp Interactive will evaluate asynchronously on new Thread." 
+                    
+               
                 do! Async.SwitchToContext Sync.syncContext 
                 currentDir <- ""
                 currentFile <- ""
@@ -249,7 +267,8 @@ type Fsi private (config:Config) =
                     // a cancellation token here fails to cancel evaluation.
                     // dsyme: Thread.Abort - it is needed in interruptible interactive execution scenarios: https://github.com/dotnet/fsharp/issues/9397#issuecomment-648376476
                     // Thread.Abort method is not supported in .NET 5 (including .NET Core)
-                    //https://github.com/dotnet/runtime/issues/41291
+                    // https://github.com/dotnet/runtime/issues/41291
+                    // net5 Could use multi-process and terminate the process instead? https://github.com/dotnet/runtime/issues/11369#issuecomment-434801806
                     Async.StartImmediate(asyncEval))  
                 thread <- Some thr           
                 if mode = Async then thr.SetApartmentState(ApartmentState.STA) //TODO always ok ? needed to run WPF? https://stackoverflow.com/questions/127188/could-you-explain-sta-and-mta
@@ -327,7 +346,7 @@ type Fsi private (config:Config) =
     
     member this.Evaluate(code) =         
         //if DateTime.Today > DateTime(2020, 12, 30) then log.PrintfnFsiErrorMsg "*** Your Seff Editor has expired, please download a new version. or contact goswin@rothenthal.com ***"
-        if DateTime.Today > DateTime(2022, 06, 30) then log.PrintfnFsiErrorMsg "Seff Exception %A" (NullReferenceException().GetType())
+        if DateTime.Today > DateTime(2022, 6, 30) then log.PrintfnFsiErrorMsg "Seff Exception %A" (NullReferenceException().GetType())
         else 
             //if DateTime.Today > DateTime(2021, 03, 30) then log.PrintfnFsiErrorMsg "*** Your Seff Editor will expire on 2020-12-31, please download a new version soon. or contact goswin@rothenthal.com***"        
             match this.AskIfCancellingIsOk () with 

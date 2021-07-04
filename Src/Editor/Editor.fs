@@ -6,8 +6,11 @@ open System.Windows
 open System.Windows.Media
 open System.Windows.Input
 
-open FSharp.Compiler.SourceCodeServices
-open FSharp.Compiler.AbstractIL.Internal.Library
+open FSharp.Compiler.CodeAnalysis
+//open FSharp.Compiler.AbstractIL.Internal.Library
+open FSharp.Compiler.CodeAnalysis
+open FSharp.Compiler.Tokenization // for keywords
+
 
 open AvalonEditB
 open AvalonEditB.Utils
@@ -135,7 +138,7 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
               column = caretOffsetInThisLine // equal to amount of characters in lineToCaret
               offset = caretOffset }
 
-        let keywords = Keywords.KeywordsWithDescription |> List.map fst |> Collections.Generic.HashSet // used in analysing text change
+        let keywords = FSharpKeywords.KeywordsWithDescription |> List.map fst |> Collections.Generic.HashSet // used in analysing text change
 
         let textChanged (change:TextChange) =        
             //log.PrintfnDebugMsg "*1-textChanged because of %A" change 

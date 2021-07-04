@@ -11,11 +11,12 @@ open AvalonEditB
 open AvalonEditB.Document
 open AvalonEditB.Rendering
 
-open FSharp.Compiler.SourceCodeServices
+open FSharp.Compiler.CodeAnalysis
 
 open Seff
 open Seff.Model
 open Seff.Util.Media
+open FSharp.Compiler.Diagnostics
 
 
 //read: http://danielgrunwald.de/coding/AvalonEdit/rendering.php
@@ -99,16 +100,18 @@ type ErrorRenderer (ied:IEditor, log:ISeffLog) =
     member this.Transform(context:ITextRunConstructionContext , elements:IList<VisualLineElement>)=() // needed ? // for IVisualLineTransformer
         
     member this.AddSegments( res: CheckResults )=        
-        res.checkRes.Errors|> Array.sortInPlaceBy (fun e -> e.StartLineAlternate)
-        for e in res.checkRes.Errors |> Seq.truncate 9 do 
+        res.checkRes.Diagnostics|> Array.sortInPlaceBy (fun e -> e.StartLine)  
+        for e in res.checkRes.Diagnostics |> Seq.truncate 9 do 
             // TODO Only highligth the first 9 Errors, Otherwise UI becomes unresponsive at 100 or more errors ( eg when pasting bad text)            
-            let startOffset = doc.GetOffset(new TextLocation(e.StartLineAlternate, e.StartColumn + 1 ))
-            let endOffset   = doc.GetOffset(new TextLocation(e.EndLineAlternate,   e.EndColumn   + 1 ))
+            let startOffset = doc.GetOffset(new TextLocation(e.StartLine, e.StartColumn + 1 ))
+            let endOffset   = doc.GetOffset(new TextLocation(e.EndLine,   e.EndColumn   + 1 ))
             let length      = endOffset-startOffset
             match e.Severity with 
-            | FSharpErrorSeverity.Error   -> segments.Add ( SegmentToMark.CreateForError  ( startOffset, length, e.Message+"\r\nError: "   + (string e.ErrorNumber) ))
-            | FSharpErrorSeverity.Warning -> segments.Add ( SegmentToMark.CreateForWarning( startOffset, length, e.Message+"\r\nWarning: " + (string e.ErrorNumber) )) 
-                        
+            | FSharpDiagnosticSeverity.Error   -> segments.Add ( SegmentToMark.CreateForError  ( startOffset, length, e.Message+"\r\nError: "   + (string e.ErrorNumber) ))
+            | FSharpDiagnosticSeverity.Warning -> segments.Add ( SegmentToMark.CreateForWarning( startOffset, length, e.Message+"\r\nWarning: " + (string e.ErrorNumber) )) 
+            | FSharpDiagnosticSeverity.Hidden -> () //TODO show ??
+            | FSharpDiagnosticSeverity.Info   -> ()
+            
             for fold in ied.FoldingManager.GetFoldingsContaining(startOffset) do
                 //if fold.IsFolded then // do on all folds !
                 //fold.BackbgroundColor  <- ErrorStyle.errBackGr // done via ctx.DrawRectangle(ErrorStyle.errBackGr

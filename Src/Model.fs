@@ -2,12 +2,15 @@
 
 open System
 open System.IO
+open System.Text
 open System.Windows.Media // for color brushes
 open System.Windows.Input
-open FSharp.Compiler.SourceCodeServices
-open System.Text
+
 open AvalonEditB
 open AvalonEditB.Folding
+
+open FSharp.Compiler.CodeAnalysis
+open FSharp.Compiler.CodeAnalysis
 
 
 type ISeffLog = 

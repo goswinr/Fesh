@@ -1,16 +1,19 @@
 ﻿namespace Seff.Editor
 
-open Seff
-open Seff.Model
-
 open System
 open System.IO
-open FSharp.Compiler
-open FSharp.Compiler.SourceCodeServices
-open AvalonEditB
 open System.Threading
-open Seff.Config
 open System.Windows.Threading
+
+open AvalonEditB
+
+open FSharp.Compiler
+open FSharp.Compiler.CodeAnalysis
+open FSharp.Compiler.EditorServices
+
+open Seff
+open Seff.Model
+open Seff.Config
 
 /// only a single instance of checher exist that is referenced on all editors
 type Checker private (config:Config)  = 
@@ -159,7 +162,7 @@ type Checker private (config:Config)  =
             } |> Async.Start
     
     
-    static let mutable singleInstance:Checker option  = None
+    static let mutable singleInstance :Checker option  = None
 
     //--------------------public --------------
         
@@ -192,7 +195,7 @@ type Checker private (config:Config)  =
     member this.CkeckHighlightAndFold (iEditor:IEditor)  =  check (iEditor, 0, None)
 
     /// checks for items available for completion
-    member this.GetCompletions (iEditor:IEditor, pos :PositionInCode, ifDotSetback, continueOnUI: FSharpDeclarationListInfo*FSharpSymbolUse list list  -> unit) =        
+    member this.GetCompletions (iEditor:IEditor, pos :PositionInCode, ifDotSetback, continueOnUI: DeclarationListInfo*FSharpSymbolUse list list  -> unit) =        
         let getSymbolsAndDecls(res:CheckResults) = 
             let thisId = !checkId
             //see https://stackoverflow.com/questions/46980690/f-compiler-service-get-a-list-of-names-visible-in-the-scope
@@ -203,22 +206,22 @@ type Checker private (config:Config)  =
                 //log.PrintfnDebugMsg "GetPartialLongNameEx on: '%s' setback: %d is:\r\n%A" pos.lineToCaret colSetBack partialLongName  
                 //log.PrintfnDebugMsg "GetDeclarationListInfo on: '%s' row: %d, col: %d, colSetBack:%d, ifDotSetback:%d\r\n" pos.lineToCaret pos.row pos.column colSetBack ifDotSetback          
                 if !checkId = thisId  then 
-                    let! symUse = 
+                    let symUse =
                         res.checkRes.GetDeclarationListSymbols(
                             Some res.parseRes,  // ParsedFileResultsOpt
                             pos.row,            // line                   
                             pos.lineToCaret ,   // lineText
-                            partialLongName,    // PartialLongName
-                            ( fun _ -> [] )     // getAllEntities: (unit -> AssemblySymbol list) 
+                            partialLongName     // PartialLongName
+                            //( fun _ -> [] )     // getAllEntities: (unit -> AssemblySymbol list) 
                             )
                     if !checkId = thisId  then
-                        let! decls = 
+                        let decls = 
                             res.checkRes.GetDeclarationListInfo(            //TODO take declaration from Symbol list !
                                 Some res.parseRes,  // ParsedFileResultsOpt
                                 pos.row,            // line                   
                                 pos.lineToCaret ,   // lineText
-                                partialLongName,    // PartialLongName
-                                ( fun _ -> [] )     // getAllEntities: (unit -> AssemblySymbol list) 
+                                partialLongName     // PartialLongName
+                                //( fun _ -> [] )     // getAllEntities: (unit -> AssemblySymbol list) 
                                 )
                         if !checkId = thisId  then
                             if decls.IsError then log.PrintfnAppErrorMsg "*ERROR in GetDeclarationListInfo: %A" decls //TODO use log

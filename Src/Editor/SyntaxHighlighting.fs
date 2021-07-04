@@ -6,6 +6,7 @@ open System
 open System.Drawing
 open Seff.Model
 open System.Windows
+open FSharp.Compiler.EditorServices
 
 module SyntaxHighlighting = 
     open AvalonEditB
@@ -70,7 +71,7 @@ module SyntaxHighlighting =
 
     /// taken from VS2017
     module ColorsUNUSED=
-        open FSharp.Compiler.SourceCodeServices
+        open FSharp.Compiler.CodeAnalysis
 
         let shadowed        = Color.FromArgb(188,0,0 )
         let comment         = Color.FromArgb( 0,128,0)

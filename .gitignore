@@ -10,6 +10,8 @@ binStandaloneFsEx/
 
 #build results, bin folder:
 [Bb]in/ 
+[Bb]inHost*/ 
+[Bb]inStand*/ 
 
 # User-specific files
 *.rsuser
@@ -37,6 +39,8 @@ bld/
 [Oo]bj/
 [Ll]og/
 
+#backup files from file diff tool 
+*.bak 
 
 # Ionide
 .ionide/
