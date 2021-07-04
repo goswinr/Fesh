@@ -214,8 +214,16 @@ type Fsi private (config:Config) =
                     |Choice1Of2 vo -> 
                         completedOkEv.Trigger()
                         isReadyEv.Trigger()
-                        for e in errs do log.PrintfnAppErrorMsg "EvalInteractionNonThrowing should not have errors, but this happend: %A" e
-                        //match vo with None-> () |Some v -> log.PrintfnDebugMsg "Interaction evaluted to %A <%A>" v.ReflectionValue v.ReflectionType
+                        for e in errs do 
+                            match e.Severity with 
+                            | FSharpDiagnosticSeverity.Error  -> log.PrintfnAppErrorMsg "EvalInteractionNonThrowing returned Error: %A" e
+                            | FSharpDiagnosticSeverity.Warning
+                            | FSharpDiagnosticSeverity.Hidden  
+                            | FSharpDiagnosticSeverity.Info   -> ()
+                        
+                        //match vo with 
+                        //|None-> () 
+                        //|Some v -> log.PrintfnDebugMsg "Interaction evaluted to %A <%A>" v.ReflectionValue v.ReflectionType
                    
                     |Choice2Of2 exn ->     
                         match exn with 
