@@ -60,6 +60,8 @@ type FileWatcher(editor:IEditor,upadteIsCodeSaved:bool->unit) as this =
              }            
         |> Async.StartImmediate
     
+    let mutable deleted : option<DateTime>= None
+
     let changed(kind:FileChange, path:string) =
         this.EnableRaisingEvents <- false // pause watching
         match kind with 
@@ -79,9 +81,18 @@ type FileWatcher(editor:IEditor,upadteIsCodeSaved:bool->unit) as this =
                             // ||| NotifyFilters.Security
                             // ||| NotifyFilters.Size  
         
-        this.Changed.Add (fun a -> changed(Changed,a.FullPath) )
         this.Renamed.Add (fun a -> changed(Renamed,a.FullPath) )
-        this.Deleted.Add (fun a -> changed(Deleted,a.FullPath) )           
+        this.Changed.Add (fun a -> 
+            deleted <- None // to not raise deleted event
+            changed(Changed,a.FullPath) )
+        this.Deleted.Add (fun a -> 
+            deleted <- Some  DateTime.UtcNow
+            async{
+                do! Async.Sleep 500 // wait first and only raise deleted event if ther is no changed event in the meantime
+                if deleted.IsSome then 
+                    changed(Deleted,a.FullPath) 
+                } |> Async.StartImmediate
+            )           
         
         // to show massages of file change only when it gets focus again
         // editor.AvaEdit.MouseEnter.Add ( fun a ->  
