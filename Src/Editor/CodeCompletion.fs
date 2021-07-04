@@ -174,7 +174,7 @@ type Completions(avaEdit:TextEditor,config:Config, checker:Checker) =
     /// retuns "loading" text and triggers async computation to get and update with actual text 
     member this.GetToolTip(it:DeclarationListItem)= 
         async{            
-            let raw = it.Description 
+            let raw = it.Description            
             let structured = 
                 if optArgsDict.ContainsKey it.FullName then  TypeInfo.getFormated (raw, optArgsDict.[it.FullName])
                 else                                         TypeInfo.getFormated (raw, ResizeArray(0))
@@ -188,8 +188,7 @@ type Completions(avaEdit:TextEditor,config:Config, checker:Checker) =
         } |> Async.Start
         TypeInfo.loadingText :> obj
     
-    /// for a given method name retunes a list of optional argument names
-    member this.OptArgsDict = optArgsDict
+
 
     member this.Log = log
     member this.Checker = checker
@@ -198,6 +197,9 @@ type Completions(avaEdit:TextEditor,config:Config, checker:Checker) =
     member this.ComplWin 
         with get() = win
         and set(w) = win<-w  
+    
+    /// for a given method name retunes a list of optional argument names
+    member this.OptArgsDict = optArgsDict
 
     static member TryShow(iEditor:IEditor,compl:Completions, pos:PositionInCode , changetype:TextChange, setback:int, query:string, charBefore:CharBeforeQuery, onlyDU:bool) = 
         //a static method so that i can take an IEditor as argument
@@ -207,18 +209,18 @@ type Completions(avaEdit:TextEditor,config:Config, checker:Checker) =
         //log.PrintfnDebugMsg "TryShow Completion Window for '%s'" pos.lineToCaret
         let ifDotSetback = if charBefore = Dot then setback else 0
 
-        //let prevCursor = avaEdit.Editor.Cursor
-        //avaEdit.Editor.Cursor <- Cursors.Wait //TODO does this get stuck on folding column ?
 
-        let contOnUI (decls: DeclarationListInfo,declSymbs: FSharpSymbolUse list list) =
+        let contOnUI (decls: DeclarationListInfo, declSymbs: FSharpSymbolUse list list) =
             
+            // TODO move out of UI thread
             /// for adding question marks to optional arguments:
             compl.OptArgsDict.Clear() //TODO make persistent on class for cashing
             for symbs in declSymbs do 
                 for symb in symbs do 
-                    let opts = TypeInfo.namesOfOptionalArgs( symb, log)
+                    let opts = TypeInfo.namesOfOptionalArgs( symb)
                     if opts.Count>0 then 
                         compl.OptArgsDict.[symb.Symbol.FullName]<- opts
+           
 
             let completionLines = ResizeArray<ICompletionData>()                                
             if not onlyDU && charBefore = NotDot then

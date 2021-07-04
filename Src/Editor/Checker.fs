@@ -162,7 +162,7 @@ type Checker private (config:Config)  =
             } |> Async.Start
     
     
-    static let mutable singleInstance:Checker option  = None
+    static let mutable singleInstance :Checker option  = None
 
     //--------------------public --------------
         
