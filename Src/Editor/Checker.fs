@@ -85,7 +85,9 @@ type Checker private (config:Config)  =
                     try                        
                         let sourceText = Text.SourceText.ofString code.Code
                         let! options, optionsErr = checker.Value.GetProjectOptionsFromScript(fileFsx, sourceText, otherFlags = [| "--langversion:preview" |] ) // Gets additional script #load closure information if applicable.
-                        for e in optionsErr do log.PrintfnAppErrorMsg "ERROR in GetProjectOptionsFromScript: %A" e //TODO make lo print
+                        //for e in optionsErr do 
+                        //    these error show up for example when a #r refrence is in wrong syntax, butt checker shows this erroe too
+                        //    log.PrintfnAppErrorMsg "ERROR in GetProjectOptionsFromScript: %A" e 
         
                         // "filename">The name of the file in the project whose source is being checked
                         // "fileversion">An integer that can be used to indicate the version of the file. This will be returned by TryGetRecentCheckResultsForFile when looking up the file.
