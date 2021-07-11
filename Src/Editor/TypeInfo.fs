@@ -191,33 +191,37 @@ type TypeInfo private () =
             
                 //let tb = new TextBlock(Text= sprintf "Kind:%A" it.Value.Kind)
             
+            let deDup = HashSet() // just because some typ provider signatures apears mutiple times, filter them out with hashset
             for td in tds do
-                let subPanel = makePanelVert [
-                    if td.name <> "" then 
-                        let tb = new TextBlock(Text= "Name:" + td.name)
-                        tb.Foreground <- black
-                        tb.FontSize <- Style.fontSize * 0.9
-                        //tb.FontFamily <- Style.elronet
-                        tb.FontWeight <- FontWeights.Bold
-                        yield tb 
+                let sign = td.signature |> Seq.map (fun tt -> tt.Text)  |> String.Concat
+                if not <| deDup.Contains(sign) then // just because some typ provider signatures apeears mutiple times, filter them out with hashset
+                    deDup.Add sign  |> ignore
                     
-                    yield coloredSignature(td) // the main signature of a F# value
+                    let border = Border()
+                    border.Child <- makePanelVert [
+                    
+                        if td.name <> "" then 
+                            let tb = new TextBlock(Text= "Name: " + td.name)
+                            tb.Foreground <- black
+                            tb.FontSize <- Style.fontSize * 0.9
+                            //tb.FontFamily <- Style.elronet
+                            tb.FontWeight <- FontWeights.Bold
+                            yield tb 
+                    
+                        yield coloredSignature(td) // the main signature of a F# value
                 
-                    match td.xmlDocStr with 
-                    |Ok (txt,ass)     -> 
-                        if ass <>"" then assemblies.Add(ass) |> ignore //TODO could it be from more than one assembly? because of type extensions?
-                        yield markInlineCode(txt)
-                    |Error errTxt  -> 
-                        yield new TextBlock(Text = errTxt,FontSize = Style.fontSize  * 0.7,FontFamily = Style.fontToolTip, Foreground = gray )
-                    ]
-
-                let border = Border()
-                border.Child <- subPanel
-                border.BorderThickness <- Thickness(1.0)
-                border.BorderBrush <- Brushes.LightGray
-                border.Padding <- Thickness(4.0)
-                border.Margin <- Thickness(2.0)
-                yield border :> UIElement
+                        match td.xmlDocStr with 
+                        |Ok (txt,ass)     -> 
+                            if ass <>"" then assemblies.Add(ass) |> ignore //TODO could it be from more than one assembly? because of type extensions?
+                            yield markInlineCode(txt)
+                        |Error errTxt  -> 
+                            yield new TextBlock(Text = errTxt,FontSize = Style.fontSize  * 0.7,FontFamily = Style.fontToolTip, Foreground = gray )
+                        ]
+                    border.BorderThickness <- Thickness(1.0)
+                    border.BorderBrush <- Brushes.LightGray
+                    border.Padding <- Thickness(4.0)
+                    border.Margin <- Thickness(2.0)
+                    yield border :> UIElement
             
             if assemblies.Count > 0 then 
                 let tb = 
@@ -236,14 +240,14 @@ type TypeInfo private () =
     // --------------------------------------------------------------------------------------
     
     
-    static let unEscapeXml(txt:string) =
+    static let unEscapeXml(txt:string) = // TODO dont do it like this ! use proper xml doc  parsing 
          txt.Replace("&lt;"   ,"<" )
             .Replace("&gt;"   ,">" )
             .Replace("&quot;" ,"\"")
             .Replace("&apos;" ,"'" )
             .Replace("&amp;"  ,"&" )  
     
-    static let stripOffXmlComments(txt:string) =    // TODO dont do it like this ! use prop[er xml doc  parsing 
+    static let stripOffXmlComments(txt:string) =    // TODO dont do it like this ! use proper xml doc  parsing 
          //printfn "%s" txt
          txt.Replace("<summary>"        ,"" )
             .Replace("</summary>"       ,"" )
@@ -257,6 +261,7 @@ type TypeInfo private () =
             .Replace("<see cref=\"P:","")
             .Replace("\" />","'")
             .Replace("\">"              ,": " ) // to catch the end of <param name="value">  andd other closings
+        |> unEscapeXml
 
 
     
