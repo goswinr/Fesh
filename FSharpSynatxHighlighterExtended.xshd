@@ -268,6 +268,12 @@
     <Span color="StringEscaped"><Begin>%</Begin>  <End>[sfd%bciuxXoeEfFgGeEgGMOAAat]</End> </Span> 
   </RuleSet >
 
+  <RuleSet name="StringDollarFormatSet">
+    <!-- using just a Rule does not work !-->
+    <Span color="StringEscaped"><Begin>\{</Begin>  <End>\}</End> </Span> 
+  </RuleSet >
+  
+
   <RuleSet name="LoadDllSet">
 
     <!-- compiler directives: -->
@@ -334,12 +340,24 @@
     </Span>
     
     <Span color="String" multiline="true"> 
+      <Begin>\$"</Begin>  
+      <End>"</End>    
+      <RuleSet>
+        <Import ruleSet="StringDollarFormatSet"/>
+        <Import ruleSet="StringEscapeSet"/>
+      </RuleSet>
+    </Span>
+
+    <Span color="String" multiline="true"> 
       <Begin>"</Begin>  
       <End>"</End>    
       <RuleSet>
         <Import ruleSet="StringEscapeSet"/>
       </RuleSet>
     </Span>
+
+
+
 
   </RuleSet>
 
