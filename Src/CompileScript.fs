@@ -174,7 +174,7 @@ module CompileScript =
     
 
     let createFsproj(code, fp:FilePath, log:ISeffLog, copyDlls, releaseOrDebug) =
-        let gray msg = log.PrintfnColor 130 130 130 msg
+        let gray msg = log.PrintfnColor 190 190 190 msg
         
         match fp with 
         | NotSet -> log.PrintfnAppErrorMsg "Cannot compile an unsaved script save it first"
@@ -222,7 +222,7 @@ module CompileScript =
                                 if not <| isNull txt then // happens often actually
                                     if txt.Contains "Build FAILED." then        log.PrintfnColor 220 0 150  "%s" txt
                                     elif txt.Contains "error FS"   then         log.PrintfnColor 220 0 0  "%s" txt
-                                    elif txt.Contains "Build succeeded." then   log.PrintfnColor 0 150 0  "%s" txt
+                                    elif txt.Contains "Build succeeded." then   log.PrintfnColor 0 140 0  "%s" txt
                                     else                                        gray "%s" txt
                                     )
                             p.ErrorDataReceived.Add (  fun d -> log.PrintfnAppErrorMsg "%s" d.Data)               
