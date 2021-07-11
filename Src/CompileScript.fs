@@ -76,7 +76,7 @@ module CompileScript =
     type FsxRef = {fullPath:string; fileName:string}
     
 
-    let getRefs(code:string, libFolderFull:string, log:ISeffLog) : ResizeArray<DllRef>*ResizeArray<FsxRef> =
+    let getRefs(code:string, libFolderFull:string) : ResizeArray<DllRef>*ResizeArray<FsxRef> =
         let refs = ResizeArray()
         let fsxs = ResizeArray()
         for ln in code.Split('\n') do 
@@ -167,7 +167,7 @@ module CompileScript =
             
             let fsxName = nameSpace + ".fs"
             let fsxPath = IO.Path.Combine(projFolder,fsxName)
-            IO.File.WriteAllText(fsxPath,code) 
+            IO.File.WriteAllText(fsxPath,code,Text.Encoding.UTF8) 
             yield     "<Compile Include=\"" + fsxName + "\" />"        
         } 
         |> String.concat (Environment.NewLine + "    ")      
@@ -175,26 +175,52 @@ module CompileScript =
     
     //TODO  use https://github.com/Tyrrrz/CliWrap ??
 
+    let green  msg = ISeffLog.log.PrintfnColor 0   140 0 msg
+    let black  msg = ISeffLog.log.PrintfnColor 0   0   0 msg
+    let gray   msg = ISeffLog.log.PrintfnColor 190 190 190 msg
+    //let grayil msg = ISeffLog.log.PrintfColor  190 190 190 msg
+
+    let msBuild(p:Diagnostics.Process, fsProj) =
+        gray "starting MSBuild.exe ..."
+        let msBuildFolders = 
+            [ 
+            @"C:\Program Files (x86)\Microsoft Visual Studio\2019\Professional\MSBuild\Current\Bin\MSBuild.exe"
+            @"C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\MSBuild\Current\Bin\MSBuild.exe"
+            @"C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\MSBuild\Current\Bin\MSBuild.exe"
+            ]            
+        
+        match msBuildFolders |> Seq.tryFind File.Exists with
+        | None -> ISeffLog.log.PrintfIOErrorMsg "MSBuild.exe not found at:\r\n%s " (msBuildFolders |> String.concat Environment.NewLine)
+        | Some msBuildexe -> 
+            p.StartInfo.FileName <- "\"" + msBuildexe + "\""             
+            p.StartInfo.Arguments <- String.concat " " ["\"" + fsProj + "\"" ;  "-restore" ; "/property:Configuration=Release"]    
+                     
+        
+    let dotnetBuild(p:Diagnostics.Process, fsProj)=
+        gray "starting dotnet build ..."
+        p.StartInfo.FileName <- "dotnet"        
+        p.StartInfo.Arguments <- String.concat " " ["build"; "\"" + fsProj + "\""  ;  "--configuration Release"] 
     
 
-    let createFsproj(code, fp:FilePath, log:ISeffLog, copyDlls, releaseOrDebug) =
-        let gray msg = log.PrintfnColor 190 190 190 msg
+    let compileScript(code, fp:FilePath, copyDlls, useMSBuild) =       
         
         match fp with 
-        | NotSet -> log.PrintfnAppErrorMsg "Cannot compile an unsaved script save it first"
+        | NotSet -> ISeffLog.log.PrintfnAppErrorMsg "Cannot compile an unsaved script save it first"
         | SetTo fi ->
             async{
                 try
                     gray "compiling %s ..." fi.Name                
                     let name = fi.Name.Replace(".fsx","")
                     let nameSpace = name |> toCamelCase |> up1
+                    let outLiteral = "  " + nameSpace + " -> "
+                    let mutable resultDll = "" // found via matching on outLiteral below
                     let projFolder = IO.Path.Combine(fi.DirectoryName,nameSpace) 
                     let libFolderFull = if copyDlls then IO.Path.Combine(projFolder,libFolderName) else "" 
                     if libFolderFull<>"" then  IO.Directory.CreateDirectory(libFolderFull)  |> ignoreObj 
                     IO.Directory.CreateDirectory(projFolder)  |> ignoreObj            
                     let fsProj = IO.Path.Combine(projFolder,nameSpace + ".fsproj")
                     if overWriteExisting fsProj then 
-                        let refs,fsxs = getRefs (code ,libFolderFull, log)
+                        let refs,fsxs = getRefs (code ,libFolderFull)
                         let fsxXml = getFsxXml(projFolder, nameSpace ,code, fsxs)
                         let refXml = getRefsXml(libFolderFull,refs)
                         baseXml
@@ -208,14 +234,13 @@ module CompileScript =
                         |> replace "<!--PLACEHOLDER FOR FILES-->" fsxXml
                         |> fun s -> 
                             IO.File.WriteAllText(fsProj,s,Text.Encoding.UTF8)
-                            gray "project created at %s\r\nstarting dotnet build ..." fsProj
+                            gray "project files created at %s" fsProj
                             //https://stackoverflow.com/questions/1145969/processinfo-and-redirectstandardoutput
                             let p = new System.Diagnostics.Process()
                             p.EnableRaisingEvents <- true
-                            p.StartInfo.FileName <- "dotnet"
-                            let fsProjInQuotes = "\"" + fsProj + "\"" 
-                            p.StartInfo.Arguments <- String.concat " " ["build"; fsProjInQuotes;  "--configuration "+releaseOrDebug]
-                            log.PrintfnColor 0 0 200 "%s %s" p.StartInfo.FileName p.StartInfo.Arguments
+                            if useMSBuild then msBuild     ( p, fsProj)
+                            else               dotnetBuild ( p, fsProj)
+                            ISeffLog.log.PrintfnColor 0 0 200 "%s %s" p.StartInfo.FileName p.StartInfo.Arguments
                             p.StartInfo.UseShellExecute <- false
                             p.StartInfo.CreateNoWindow <- true //true if the process should be started without creating a new window to contain it
                             p.StartInfo.RedirectStandardError <-true
@@ -224,20 +249,35 @@ module CompileScript =
                             p.OutputDataReceived.Add ( fun d -> 
                                 let txt = d.Data
                                 if not <| isNull txt then // happens often actually
-                                    if txt.Contains "Build FAILED." then        log.PrintfnColor 220 0 150  "%s" txt
-                                    elif txt.Contains "error FS"   then         log.PrintfnColor 220 0 0  "%s" txt
-                                    elif txt.Contains "Build succeeded." then   log.PrintfnColor 0 140 0  "%s" txt
-                                    else                                        gray "%s" txt
+                                    if   txt.Contains "Build FAILED." then      ISeffLog.log.PrintfnColor 220 0 150  "%s" txt
+                                    elif txt.Contains "error FS"   then         ISeffLog.log.PrintfnColor 220 0 0  "%s" txt
+                                    elif txt.Contains "Build succeeded." then   green  "%s" txt
+                                    elif txt.Contains outLiteral  then   
+                                        //grayil "%s" outLiteral
+                                        resultDll <- txt.Replace(outLiteral,"").Trim()
+                                        //black  "%s" resultDll
+                                        gray "%s" txt
+                                    else
+                                        gray "%s" txt
                                     )
-                            p.ErrorDataReceived.Add (  fun d -> log.PrintfnAppErrorMsg "%s" d.Data)               
-                            p.Exited.Add( fun _ -> gray  "dotnet build process ended!")
+                            p.ErrorDataReceived.Add (  fun d -> ISeffLog.log.PrintfnAppErrorMsg "%s" d.Data)               
+                            p.Exited.Add( fun _ ->                                 
+                                if resultDll <> "" then 
+                                    gray  "*build done! This line is copied to your clipboard, paste via Ctrl + V :"
+                                    ISeffLog.log.PrintfColor  190 0 50 "#r @\""
+                                    ISeffLog.log.PrintfColor  0 0 0 "%s" resultDll 
+                                    ISeffLog.log.PrintfnColor 190 0 50 "\""     
+                                    Seff.Sync.doSync ( fun () -> Clipboard.SetText("#r @\"" + resultDll + "\"\r\n") )
+                                else
+                                    gray  "*build process ended!"
+                                )
                             p.Start() |> ignore
                             p.BeginOutputReadLine()
                             p.BeginErrorReadLine()
                             //log.PrintfnInfoMsg "compiling to %s" (IO.Path.Combine(projFolder,"bin","Release","netstandard2.0",nameSpace+".dll")) 
                             p.WaitForExit()
                 with
-                    e -> log.PrintfnAppErrorMsg "%A" e
+                    e -> ISeffLog.log.PrintfnAppErrorMsg "%A" e
             } |> Async.Start
 
 
