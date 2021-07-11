@@ -14,6 +14,7 @@ open FSharp.Compiler.EditorServices
 open Seff
 open Seff.Model
 open Seff.Config
+open Seff.Util
 
 /// only a single instance of checher exist that is referenced on all editors
 type Checker private (config:Config)  = 
@@ -139,7 +140,12 @@ type Checker private (config:Config)  =
                                         iEditor.FileCheckState <- globalCheckState
                                                                                
                                         match continueOnThreadPool with
-                                        | Some f -> f(res)
+                                        | Some f -> 
+                                            try
+                                                f(res)
+                                            with
+                                                e -> log.PrintfnAppErrorMsg "The continueation after ParseAndCheckFileInProject failed with:\r\n %A" e
+                                                
                                         | None -> 
                                             do! Async.SwitchToContext Sync.syncContext 
                                             if !checkId = thisId  then 
@@ -153,11 +159,17 @@ type Checker private (config:Config)  =
                                     globalCheckState <-Failed
                                     iEditor.FileCheckState <- globalCheckState
                             with e ->
-                                log.PrintfnAppErrorMsg "Error in ParseAndCheckFileInProject Block.\r\nMaybe you are using another version of  FSharpCompilerService.dll than at compile time?\r\nOr the error is in the continuation.\r\nOr in the event handlers:\r\n\r\n%A" e
+                                log.PrintfnAppErrorMsg "Error in ParseAndCheckFileInProject Block.\r\n This may be from a Type Provider or you are using another version of FSharpCompilerService.dll than at compile time?"
+                                log.PrintfnAppErrorMsg "%A" e
+                                log.PrintfnAppErrorMsg "%s" e.Message
+                                log.PrintfnAppErrorMsg "InnerException:\r\n%A" e.InnerException
+                                if notNull e.InnerException then log.PrintfnAppErrorMsg "%s" e.InnerException.Message
                                 globalCheckState <-Failed
                                 iEditor.FileCheckState <- globalCheckState
                     with e ->
-                            log.PrintfnAppErrorMsg "Error in GetProjectOptionsFromScript Block.\r\nMaybe you are using another version of  FSharpCompilerService.dll than at compile time?: %A" e
+                            log.PrintfnAppErrorMsg "Error in GetProjectOptionsFromScript Block.\r\nMaybe you are using another version of FSharpCompilerService.dll than at compile time?:" 
+                            log.PrintfnAppErrorMsg "%A" e
+                            log.PrintfnAppErrorMsg "%s" e.Message
                             globalCheckState <-Failed
                             iEditor.FileCheckState <- globalCheckState
                             

@@ -402,6 +402,9 @@ type Log private () =
     member this.SelectedTextHighLighter = hiLi
         
     member this.Clear() = 
+        
+        // TODO use Avalonlog instead that has the clearing and printing immedatly afterwards bug fixed
+
         log.SelectionLength <- 0
         log.SelectionStart <- 0        
         log.Clear()
