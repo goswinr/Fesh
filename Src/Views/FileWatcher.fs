@@ -45,7 +45,7 @@ type FileWatcher(editor:Editor,upadteIsCodeSaved:bool->unit) as this =
             let uiCode = doc.CreateSnapshot().Text
             do! Async.Sleep 100 // to be sure file access is not blocked by other app
             try
-                let fileCode =  File.ReadAllText(fullPath)
+                let fileCode =  File.ReadAllText(fullPath, Text.Encoding.UTF8)
                 if uiCode <> fileCode then 
                     let n = Path.GetFileName(fullPath)
                     let dir = Path.GetDirectoryName(fullPath)

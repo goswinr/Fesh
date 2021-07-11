@@ -8,7 +8,7 @@
 
 namespace Seff
 
-
+open Seff.Model
 open System
 open System.IO
 open System.Xml
@@ -238,7 +238,7 @@ module DocString =
                 xmlDocCache.AddOrUpdate(xmlFile, Map.empty, fun _ _ -> Map.empty) |> ignore
                 try
                     //log.PrintfnDebugMsg "reading %s" actualXmlFile
-                    let cnt = File.ReadAllText actualXmlFile 
+                    let cnt = File.ReadAllText (actualXmlFile, Text.Encoding.UTF8)
                     let cnt = 
                         if actualXmlFile.Contains "netstandard.xml" then //Workaround for netstandard xmlDoc
                             let cnt = Regex.Replace(cnt,"""(<p .*?>)+(.*)(<\/?p>)*""", "$2")
@@ -251,7 +251,7 @@ module DocString =
                     xmlDocCache.AddOrUpdate(xmlFile, xmlDoc, fun _ _ -> xmlDoc) |> ignore
                     Some xmlDoc
                 with ex ->
-                    printfn  "***Error in reading xml file %s \r\nfor tooltips: %A" actualXmlFile ex /// TODO ad printing to LOG ?
+                    ISeffLog.log.PrintfIOErrorMsg  "Error in reading xml file %s \r\nfor tooltips ( is it Text.Encoding.UTF8?) : %A" actualXmlFile ex /// TODO ad printing to LOG ?
                     None  // TODO: Remove the empty map from cache to try again in the next request?
                 //} Async.
 

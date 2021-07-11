@@ -527,7 +527,7 @@ type Log private () =
         dlg.Filter <- "Text Files(*.txt)|*.txt|Text Files(*.csv)|*.csv|All Files(*.*)|*"
         if Util.isTrue (dlg.ShowDialog()) then                
             try
-                IO.File.WriteAllText(dlg.FileName, log.Text) 
+                IO.File.WriteAllText(dlg.FileName, log.Text, Text.Encoding.UTF8) 
                 this.PrintfnInfoMsg "Log File saved as:\r\n%s" dlg.FileName
             with e -> 
                 this.PrintfnIOErrorMsg "Failed to save text from Log at :\r\n%s\r\n%A" dlg.FileName e
@@ -551,7 +551,7 @@ type Log private () =
            dlg.Filter <- "Text Files(*.txt)|*.txt|Text Files(*.csv)|*.csv|All Files(*.*)|*"
            if Util.isTrue (dlg.ShowDialog()) then                
               try 
-                   IO.File.WriteAllText(dlg.FileName, txt) 
+                   IO.File.WriteAllText(dlg.FileName, txt, Text.Encoding.UTF8) 
                    this.PrintfnInfoMsg "Selected text from Log saved as:\r\n%s" dlg.FileName
               with e -> 
                    this.PrintfnIOErrorMsg "Failed to save selected text from Log at :\r\n%s\r\n%A" dlg.FileName e

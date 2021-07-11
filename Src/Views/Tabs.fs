@@ -60,7 +60,7 @@ type Tabs(config:Config, win:Window) =
         else            
             try
                 //t.AvaEdit.Save fi.FullName // fails, is it async ?
-                IO.File.WriteAllText(fi.FullName, t.AvaEdit.Text)
+                IO.File.WriteAllText(fi.FullName, t.AvaEdit.Text,Text.Encoding.UTF8)
                 match saveKind with 
                 |SaveNewLocation -> 
                     t.IsCodeSaved <- true 
@@ -189,13 +189,13 @@ type Tabs(config:Config, win:Window) =
                 true
             | None -> // regular case, actually open file
                 try
-                    let code =  IO.File.ReadAllText fi.FullName 
+                    let code =  IO.File.ReadAllText (fi.FullName, Text.Encoding.UTF8) 
                     let t = new Tab(Editor.SetUp(code, config, SetTo fi))
                     //log.PrintfnDebugMsg "adding Tab %A in %A " t.FilePath t.Editor.FileCheckState
                     addTab(t,makeCurrent, moreTabsToCome)
                     true
                 with  e -> 
-                    log.PrintfnIOErrorMsg "Error reading and adding :\r\n%s\r\n%A" fi.FullName e
+                    log.PrintfnIOErrorMsg "Error reading and adding (with Encoding.UTF8):\r\n%s\r\n%A" fi.FullName e
                     false
         else
             log.PrintfnIOErrorMsg "File not found:\r\n%s" fi.FullName

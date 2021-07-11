@@ -19,8 +19,9 @@ module ExtensionsExceptions =
     
 /// Reads and Writes with Lock, 
 /// Optionally only once after a delay in which it might be called several times
+/// using  Text.Encoding.UTF8
 type SaveReadWriter (path:string)= 
-    // similar class also exist in FsEx , FsEx.Wpf and Seff
+    // TODO similar class also exist in FsEx , FsEx.Wpf and Seff
        
     let counter = ref 0L // for atomic writing back to file
        
@@ -30,18 +31,17 @@ type SaveReadWriter (path:string)=
 
     member this.FileExists() = File.Exists(path)
 
-    /// Save reading
+    /// Save reading All Text
     /// Ensures that no writing happens while reading
     member this.ReadAllText () : string =
         // lock is using Monitor class : https://github.com/dotnet/fsharp/blob/6d91b3759affe3320e48f12becbbbca493574b22/src/fsharp/FSharp.Core/prim-types.fs#L4793
-        lock lockObj (fun () -> File.ReadAllText(path))
+        lock lockObj (fun () -> File.ReadAllText(path,Text.Encoding.UTF8))
             
     
-    /// Save reading
+    /// Save reading All Lines
     /// Ensures that no writing happens while reading
     member this.ReadAllLines () : string[] =
-        // lock is using Monitor class : https://github.com/dotnet/fsharp/blob/6d91b3759affe3320e48f12becbbbca493574b22/src/fsharp/FSharp.Core/prim-types.fs#L4793
-        lock lockObj (fun () -> File.ReadAllLines(path))
+        lock lockObj (fun () -> File.ReadAllLines(path,Text.Encoding.UTF8))
 
 
     /// File will be written async and with a Lock.
@@ -50,7 +50,7 @@ type SaveReadWriter (path:string)=
     member this.WriteAsync (text) =        
         async{
             lock lockObj (fun () -> // lock is using Monitor class : https://github.com/dotnet/fsharp/blob/6d91b3759affe3320e48f12becbbbca493574b22/src/fsharp/FSharp.Core/prim-types.fs#L4793
-                try  File.WriteAllText(path,text)
+                try  File.WriteAllText(path,text,Text.Encoding.UTF8)
                 // try & with is needed because exceptions on threadpool cannot be caught otherwise !!
                 with ex ->  ISeffLog.log.PrintfnIOErrorMsg "SaveWriter.WriteAsync failed with: %A \r\n while writing to %s:\r\n%A" ex path text // use %A to trimm long text        
                 )       
@@ -62,27 +62,27 @@ type SaveReadWriter (path:string)=
     member this.WriteAllLinesAsync (texts) =        
         async{
             lock lockObj (fun () -> // lock is using Monitor class : https://github.com/dotnet/fsharp/blob/6d91b3759affe3320e48f12becbbbca493574b22/src/fsharp/FSharp.Core/prim-types.fs#L4793
-                try  File.WriteAllLines(path,texts)
+                try  File.WriteAllLines(path,texts,Text.Encoding.UTF8)
                 // try & with is needed because exceptions on threadpool cannot be caught otherwise !!
                 with ex ->  ISeffLog.log.PrintfnIOErrorMsg "SaveWriter.WriteAllLinesAsync failed with: %A \r\n while writing to %s:\r\n%A" ex path texts // use %A to trimm long text        
                 )       
             } |> Async.Start
          
-    /// GetString will be called in sync on calling thread, but file will be written async.
-    /// Only if after the delay the counter value is the same as before. 
+    /// GetString will be called in on calling thread, but file will be written async,
+    /// Both opnly if after the delay the counter value is the same as before. 
     /// That means no more recent calls to this function have been made during the delay.
     /// If other calls to this function have been made then only the last call will be written as file
-    /// If it fails an Error is printed to the Error stream via eprintfn
+    /// If it fails an Error is printed to the Seff Log view
     /// Also ensures that no reading happens while writing
     member this.WriteIfLast ( getText: unit->string, delayMillisSeconds:int) =
         async{
             let k = Interlocked.Increment counter
             do! Async.Sleep(delayMillisSeconds) // delay to see if this is the last of many events (otherwise there is a noticable lag in dragging window around, for example, when saving window position)
-            if !counter = k then //k > 2L &&   //do not save on startup && only save last event after a delay if there are many save events in a row ( eg from window size change)(ignore first two event from creating window)
+            if !counter = k then   //do not save on startup && only save last event after a delay if there are many save events in a row ( eg from window size change)(ignore first two event from creating window)
                 try 
                     let text = getText() // this may fail though
                     this.WriteAsync (text) // this should never fail since exeptions are caught inside 
                 with ex -> 
                     // try & with is needed because exceptions on threadpool cannot be caught otherwise !!
-                    ISeffLog.log.PrintfnIOErrorMsg "SaveWriter.WriteIfLast: getText() for path (%s) failed with: %A" path ex                 
+                    ISeffLog.log.PrintfnIOErrorMsg "SaveWriter.WriteIfLast: getText() for path (%s) failed with: %A" path ex
             } |> Async.StartImmediate            
