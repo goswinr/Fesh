@@ -25,6 +25,11 @@ module TabStyle =
     let savedHeader   =  Brushes.Black  |> freeze
     let changedHeader =  Brushes.Red    |> darker 90   |> freeze
     let unsavedHeader =  Brushes.Gray   |> brighter 40 |> freeze
+    // button in header
+    let redButton     =  brushOfRGB 232 17 35 // same red color as default for the main window
+    //let whiteButton   =  brushOfRGB 255 255 255 // for white cross inside red button
+    let grayButton    =  brushOfRGB 150 150 150 // for grey cross inside red button
+    let transpButton  =  brushOfARGB 0 255 255 255 // fully transparent
 
 
  /// The tab that holds the tab header logic and the code editor 
@@ -35,21 +40,35 @@ type Tab (editor:Editor) =
 
     let mutable headerShowsSaved   = true
 
-    let textBlock = new TextBlock(VerticalAlignment = VerticalAlignment.Bottom) //, FontFamily = Style.fontEditor)  
+    let textBlock = new TextBlock(VerticalAlignment = VerticalAlignment.Center) //, Padding = Thickness(2.) ) , FontFamily = Style.fontEditor)  
     
-    let closeButton = new Button(
-                            Content = new Shapes.Path( Data = Geometry.Parse("M0,7 L7,0 M0,0 L7,7"), Stroke = Brushes.Black,  StrokeThickness = 0.8 ) ,            //"M1,8 L8,1 M1,1 L8,8"       
-                            Margin =  new Thickness(7., 0.5, 0.5, 3.), //left ,top, right, bottom
-                            Padding = new Thickness(2.) )
-    let header = 
+    let closeButton = 
+        let b =  new Button()
+        //let cross = new Shapes.Path( Data = Geometry.Parse("M0,7 L7,0 M0,0 L7,7"),   StrokeThickness = 0.8 )  //"M1,8 L8,1 M1,1 L8,8" 
+        let cross = new Shapes.Path( Data = Geometry.Parse("M0,10 L10,0 M0,0 L10,10")) 
+        b.Content <- cross       
+        //b.Margin <-  new Thickness(7., 0.5, 0.5, 3.) //left ,top, right, bottom
+        b.Margin <-  new Thickness(7., 1. , 1. , 1.) //left ,top, right, bottom
+        b.Padding <- new Thickness(3.)
+        b.BorderThickness <- new Thickness(1.)
+        b.BorderBrush <- TabStyle.transpButton
+        b.Background <- TabStyle.transpButton
+        cross.Stroke <- TabStyle.grayButton
+        cross.StrokeThickness <- 1.0
+        b.MouseEnter.Add (fun a -> cross.StrokeThickness <- 1.0   ; cross.Stroke <- TabStyle.redButton ; b.BorderBrush <- TabStyle.grayButton)
+        b.MouseLeave.Add (fun a -> cross.StrokeThickness <- 1.0   ; cross.Stroke <- TabStyle.grayButton; b.BorderBrush <- TabStyle.transpButton)
+        b
+
+    let header =
         let p = new StackPanel(
                         Margin = Thickness(4. , 2. , 2. , 2.),//left ,top, right, bottom)
-                        Orientation = Orientation.Horizontal) 
+                        Orientation = Orientation.Horizontal,
+                        VerticalAlignment = VerticalAlignment.Center) 
         p.Children.Add textBlock  |> ignore
         p.Children.Add closeButton |> ignore 
         p
         //let bor = new Border()
-        //bor.Background <- Brushes.Blue
+        //bor.Background <- Brushes.Blueb.Padding <- new Thickness(2.)
         //bor.Child <- p
         //bor 
         

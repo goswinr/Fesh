@@ -38,17 +38,13 @@ module LogColors =
 
     let mutable customColor     = Brushes.Black        |> freeze   
     
-    let inline clamp (i:int) =
-        if   i <=   0 then 0uy
-        elif i >= 255 then 255uy
-        else byte i
 
     let setcustomColor(red,green,blue) = 
-        let r = clamp red
-        let g = clamp green
-        let b = clamp blue
+        let r = clampToByte red
+        let g = clampToByte green
+        let b = clampToByte blue
         let col = customColor.Color
-        if col.R <> r || col.G <> g || col.B <> b then // only chnage if different
+        if col.R <> r || col.G <> g || col.B <> b then // only change if different
             customColor  <- freeze (new SolidColorBrush(Color.FromRgb(r,g,b)))  
    
 

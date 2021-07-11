@@ -36,15 +36,21 @@ module Global =
 
 
 /// for SolidColorBrushes and other types from Windows.Media
-module Media = 
+module Media =   
+
+   /// clamp int to byte between 0 and 255
+   let inline clampToByte (i:int) =
+       if   i <=   0 then 0uy
+       elif i >= 255 then 255uy
+       else byte i
+   
 
    /// Adds bytes to each color channel to increase brightness, negative values to make darker
    /// result will be clamped between 0 and 255
-   let changeLuminace (amount:int) (col:Windows.Media.Color)=
-       let inline clamp x = if x<0 then 0uy elif x>255 then 255uy else byte(x)
-       let r = int col.R + amount |> clamp      
-       let g = int col.G + amount |> clamp
-       let b = int col.B + amount |> clamp
+   let changeLuminace (amount:int) (col:Windows.Media.Color)=       
+       let r = int col.R + amount |> clampToByte      
+       let g = int col.G + amount |> clampToByte
+       let b = int col.B + amount |> clampToByte
        Color.FromArgb(col.A, r,g,b)
    
    /// Adds bytes to each color channel to increase brightness
@@ -54,7 +60,6 @@ module Media =
    /// Removes bytes from each color channel to increase darkness, 
    /// result will be clamped between 0 and 255
    let darker  (amount:int) (br:SolidColorBrush)  = SolidColorBrush(changeLuminace -amount br.Color) 
-
 
    /// To make it thread safe and fatser
    let freeze(br:SolidColorBrush)= 
@@ -77,6 +82,19 @@ module Media =
            else 
               eprintfn "Could not freeze SolidColorBrush: %A" br         
        br
+   
+   /// Get a frozen brush of red, green and blue values
+   /// int gets clamped to 0-255
+   let brushOfRGB r g b = 
+       SolidColorBrush(Color.FromArgb(255uy, clampToByte r, clampToByte g, clampToByte b))
+       |> freeze
+    
+   /// Get a transparent frozen brush of alpha, red, green and blue values
+   /// int gets clamped to 0-255
+   let brushOfARGB a r g b = 
+       SolidColorBrush(Color.FromArgb(clampToByte a, clampToByte r, clampToByte g, clampToByte b))
+       |> freeze
+
 
 module General = 
 
