@@ -4,9 +4,19 @@ mode con:cols=200 lines=60
 rmdir /s /q  "C:/GitHub/FsEx/bin"
 dotnet build "C:/GitHub/FsEx/FsEx.fsproj" --configuration Release
 
+
+
+@REM rmdir /s /q  "C:/GitHub/FsEx.Wpf/bin"
+@REM dotnet build "C:/GitHub/FsEx.Wpf/FsEx.Wpf.fsproj" --configuration Release 
   
 @REM rmdir /s /q  "C:/GitHub/AvalonEditB/AvalonEditB/bin"
 @REM dotnet build "C:/GitHub/AvalonEditB/AvalonEditB/AvalonEditB.csproj" --configuration Release --framework net472 
+
+@REM rmdir /s /q  "C:/GitHub/AvalonLog/bin"
+@REM dotnet build "C:/GitHub/AvalonLog/AvalonLog.fsproj" --configuration Release 
+
+
+
 
 
 rmdir /s /q  "C:/GitHub/Seff/binStandalone"
