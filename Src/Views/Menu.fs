@@ -6,6 +6,8 @@ open System.Windows.Input
 open System.Windows.Controls
 open System.Collections.Generic
 
+open AvalonEditB
+
 open Seff
 open Seff.Model
 open Seff.Util
@@ -14,13 +16,75 @@ open Seff.Config
 
 type HeaderGestureTooltip = {header:string; gesture:string; toolTip:string}
 
+module private RecognicePath = 
+    
+    let filePathStartRegex = Text.RegularExpressions.Regex("""[A-Z]:[\\/]""") // C:\
+    let filePathEndRegex = Text.RegularExpressions.Regex("""["()\[\] ']""") //  a space or [ or ] or ( or ) or " or '
+    
+    let sep() = Separator():> Control    
+
+    let deDup = HashSet(2)
+
+    let addPathIfPresentToMenu (m:MouseButtonEventArgs, tempItemsInMenu:ref<int>, menu:ContextMenu, ava:TextEditor, openFile:IO.FileInfo*bool->bool)=
+        for i = 1 to !tempItemsInMenu do // the menu entry, maybe another entry and  the separator   
+            menu.Items.RemoveAt(0)
+        tempItemsInMenu := 0 
+        deDup.Clear()
+        
+        let pos = ava.GetPositionFromPoint(m.GetPosition(ava))
+        if pos.HasValue then               
+            let line = ava.Document.GetLineByNumber(pos.Value.Line)
+            let txt  = ava.Document.GetText(line)
+            let ss = filePathStartRegex.Matches(txt)
+            for s in ss do 
+                if s.Success then
+                    let e = filePathEndRegex.Match(txt,s.Index)
+                    if e.Success then                    
+                        let fullPath = txt.Substring(s.Index, e.Index - s.Index)                        
+                        try
+                            let dir =  IO.Path.GetDirectoryName(fullPath.Replace("\\\\", "\\").Replace("/", "\\"))  
+                            if not <| deDup.Contains dir then 
+                                deDup.Add dir  |> ignore 
+                                let shortDir = Str.shrink 30 " ... " dir 
+                                let cmd = {
+                                        name = sprintf "Open folder '%s' in Explorer" shortDir
+                                        gesture = ""
+                                        cmd = mkCmdSimple (fun _ -> 
+                                            if IO.Directory.Exists dir then  Diagnostics.Process.Start("Explorer.exe", "\"" + dir+ "\"") |> ignoreObj
+                                            else ISeffLog.log.PrintfIOErrorMsg "directory '%s' does not exist" dir
+                                            ) 
+                                        tip = sprintf "Try to open folder at \r\n%s" dir
+                                        }
+                                menu.Items.Insert(0, sep()       )  
+                                incr tempItemsInMenu 
+                                menu.Items.Insert(0, menuItem cmd)  
+                                incr tempItemsInMenu 
+                            
+                            if fullPath.EndsWith ".fsx" || fullPath.EndsWith ".fs" then 
+                                if not <| deDup.Contains fullPath then 
+                                    deDup.Add fullPath  |> ignore
+                                    let name  =  IO.Path.GetFileName(fullPath)
+                                    let fi = IO.FileInfo(fullPath)
+                                    let cmd = {
+                                            name = sprintf "Open file '%s'" name
+                                            gesture = ""
+                                            cmd = mkCmdSimple (fun _ -> openFile(fi,true)  |> ignore ) // does not need check if file exists !
+                                            tip = sprintf "Try to open file %s from  at \r\n%s" name fullPath
+                                            }
+                    
+                                    menu.Items.Insert(0, menuItem cmd) 
+                                    incr tempItemsInMenu 
+                        with e ->
+                            ISeffLog.log.PrintfIOErrorMsg "Failed to make menu item for fullPath %s:\r\n%A" fullPath e
+        
+
+
 type Menu (config:Config,cmds:Commands, tabs:Tabs, log:Log) = 
     let bar = new Windows.Controls.Menu()
     
     // File menu: 
-    let fileMenu = MenuItem(Header = "_File")                                                                        
-   
-    
+    let fileMenu = MenuItem(Header = "_File")  
+
     // TODO add all built in  DocmentNavigatin shortcuts
     let maxFilesInRecentMenu = 40
 
@@ -32,7 +96,7 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, log:Log) =
         let n,g,c,tt = ngc
         MenuItem(Header = n, InputGestureText = g, ToolTip = tt, Command = c):> Control
     
-    
+        
     let setRecentFiles()=
         async{            
             let usedFiles = 
@@ -92,8 +156,9 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, log:Log) =
         } |> Async.Start
     
     /// for right clicking on file pathes:
-    let filePathStartRegex = Text.RegularExpressions.Regex(""""[A-Z]:[\\/]""")
-    let mutable tempItemsInMenu = 0
+    
+    let tempItemsInEditorMenu = ref 0
+    let tempItemsInLogMenu = ref 0
 
 
     do 
@@ -176,8 +241,8 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, log:Log) =
                     sep()
                     menuItem cmds.ToggleSync
                 sep()
-                menuItem cmds.CompileScriptR
-                menuItem cmds.CompileScriptD
+                menuItem cmds.CompileScriptSDK
+                menuItem cmds.CompileScriptMSB
                 ]
             MenuItem(Header = "_View"),[                 
                 menuItem cmds.ToggleSplit 
@@ -206,8 +271,9 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, log:Log) =
         recentFilesInsertPosition <- fileMenu.Items.Count // to put recent files at bottom of file menu
         setRecentFiles() // trigger it here to to have the correct recent menu asap on startup
         config.RecentlyUsedFiles.OnRecentFilesChanged.Add(setRecentFiles ) //this event will be triggered 1000 ms after new tabs are created
-
-        tabs.Control.ContextMenu <- // TODO or attach to each new editor window ?
+        
+        // TODO or attach to each new editor window ?
+        tabs.Control.ContextMenu <- 
             makeContextMenu [
                 menuItem cmds.CollapsePrim
                 menuItem cmds.CollapseCode
@@ -251,48 +317,17 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, log:Log) =
                 menuItem cmds.SaveLogSel
                 ]
         
+
+
+
         /// add menu to open file path if there is on on current line
         tabs.Control.PreviewMouseRightButtonDown.Add ( fun m -> 
-            for i = 1 to tempItemsInMenu do // the menu entry, maybe another entry and  the separator   
-                tabs.Control.ContextMenu.Items.RemoveAt(0)
-            tempItemsInMenu <- 0     
-                
-            let ava = tabs.Current.AvaEdit                      
-            let pos = ava.GetPositionFromPoint(m.GetPosition(ava))
-            if pos.HasValue then               
-                let line = ava.Document.GetLineByNumber(pos.Value.Line)
-                let txt  = ava.Document.GetText(line)
-                let m = filePathStartRegex.Match(txt)
-                if m.Success then
-                    match Str.between "\"" "\"" txt with 
-                    |None -> ()
-                    |Some fullPath ->
-                        let dir =  IO.Path.GetDirectoryName(fullPath.Replace("\\\\", "\\").Replace("/", "\\"))
-                        let shortDir = Str.shrink 30 " ... " dir 
-                        let cmd = {
-                                name = sprintf "Open folder '%s' in Explorer" shortDir
-                                gesture = ""
-                                cmd = mkCmdSimple (fun _ -> Diagnostics.Process.Start("Explorer.exe", "\"" + dir+ "\"") |> ignoreObj) 
-                                tip = sprintf "Try to open folder at \r\n%s" dir
-                                }
-                        tabs.Control.ContextMenu.Items.Insert(0, sep()       )  
-                        tabs.Control.ContextMenu.Items.Insert(0, menuItem cmd)  
-                        tempItemsInMenu <- 2
-                        if fullPath.EndsWith ".fsx" || fullPath.EndsWith ".fs" then 
-                            let name  =  IO.Path.GetFileName(fullPath)
-                            let fi = IO.FileInfo(fullPath)
-                            let cmd = {
-                                    name = sprintf "Open file '%s'" name
-                                    gesture = ""
-                                    cmd = mkCmdSimple (fun _ -> tabs.AddFile(fi,true)  |> ignore )
-                                    tip = sprintf "Try to open file %s from  at \r\n%s" name fullPath
-                                    }
-                            
-                            tabs.Control.ContextMenu.Items.Insert(0, menuItem cmd) 
-                            tempItemsInMenu <- tempItemsInMenu + 1                        
+            RecognicePath.addPathIfPresentToMenu (m, tempItemsInEditorMenu, tabs.Control.ContextMenu, tabs.Current.AvaEdit , tabs.AddFile)
             )
-               
-                
+        /// add menu to open file path if there is on on current line
+        log.ReadOnlyEditor.PreviewMouseRightButtonDown.Add ( fun m -> 
+            RecognicePath.addPathIfPresentToMenu (m, tempItemsInLogMenu, log.ReadOnlyEditor.ContextMenu, log.ReadOnlyEditor , tabs.AddFile)
+            )  
 
 
     member this.Bar = bar
