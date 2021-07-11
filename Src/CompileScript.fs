@@ -19,6 +19,8 @@ module CompileScript =
     
     let libFolderName = "lib"
 
+    // TODO realy only <Platform>x64</Platform>   ??
+
     let baseXml = """<?xml version="1.0" encoding="utf-8"?>
         <Project Sdk="Microsoft.NET.Sdk">
           <PropertyGroup>
@@ -36,7 +38,9 @@ module CompileScript =
             <Version>9.9.9.1</Version><!-- set by Seff scriptcompiler-->
             <AssemblyVersion>9.9.9.2</AssemblyVersion><!-- set by Seff scriptcompiler-->
             <FileVersion>9.9.9.3</FileVersion><!-- set by Seff scriptcompiler--> 
-            
+
+            <Platform>x64</Platform>  
+
           </PropertyGroup>      
       
           <ItemGroup>
