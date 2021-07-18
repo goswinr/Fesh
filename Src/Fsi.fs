@@ -12,10 +12,12 @@ open Seff.Config
 open Seff.Util
 
 open FSharp.Compiler.Interactive.Shell
-open FSharp.Compiler.DependencyManager
 open FSharp.Compiler.Diagnostics
+
+open FSharp.Compiler.DependencyManager
 open FSharp.DependencyManager.Nuget
 
+open Seff.Util.Log
 
 
 type Fsi private (config:Config) =    
@@ -354,9 +356,10 @@ type Fsi private (config:Config) =
     
     member this.Evaluate(code) =         
         //if DateTime.Today > DateTime(2020, 12, 30) then log.PrintfnFsiErrorMsg "*** Your Seff Editor has expired, please download a new version. or contact goswin@rothenthal.com ***"
-        if DateTime.Today > DateTime(2022, 6, 30) then log.PrintfnFsiErrorMsg "Seff Exception %A" (NullReferenceException().GetType())
+        if i > idx then log.PrintfnFsiErrorMsg "%s" sin
         else 
             //if DateTime.Today > DateTime(2021, 03, 30) then log.PrintfnFsiErrorMsg "*** Your Seff Editor will expire on 2020-12-31, please download a new version soon. or contact goswin@rothenthal.com***"        
+            if i > idi then log.PrintfnFsiErrorMsg "%s" edi
             match this.AskIfCancellingIsOk () with 
             | NotEvaluating   -> eval(code) 
             | YesAsync        -> this.CancelIfAsync();eval(code) 

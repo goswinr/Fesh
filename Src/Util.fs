@@ -32,8 +32,10 @@ module Global =
         /// yyyy-MM-dd_HH-mm-ss.FFF
         static member nowStrMilli = System.DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss.FFF")
         /// yyyy-MM-dd
-        static member todayStr    = System.DateTime.Now.ToString("yyyy-MM-dd")
-
+        static member todayStr    = System.DateTime.Now.ToString("yyyy-MM-dd")        
+        
+        // month
+        static member log()          = System.DateTime.Now.ToString("yyyy-MM")
 
 /// for SolidColorBrushes and other types from Windows.Media
 module Media =   
@@ -312,8 +314,41 @@ module Str  =
         else
             s.Substring(0,max) + suffix
     
+    // poor mans encoding of messages by character shift
+    let sh(s:string)=
+        s
+        |> Seq.map (fun c -> char ((byte c)-1uy))
+        |> String.Concat
+    
+    // poor mans encoding of messages by character shift
+    let shi(s:string)=
+        s
+        |> Seq.map (fun c -> char ((byte c)-10uy))
+        |> String.Concat
+  
+// the Editor has expired message with shifted chars
+module Log = 
+    type ed = DateTime
+    
+    // each character is shifted by 1 byte :
+    let sin = "+++!Zpvs!Tfgg!Fejups!ibt!fyqjsfe-!qmfbtf!epxompbe!b!ofx!wfstjpo/!Ps!dpoubdu!hptxjoAspuifouibm/dpn!+++" |> Str.sh
+    
+    // each character is shifted by 1 byte :
+    let edi = "+++!Zpvs!Tfgg!Fejups!xjmm!fyqjsf!po!jo!3133-!qmfbtf!epxompbe!b!ofx!wfstjpo!tppo/!Ps!dpoubdu!hptxjoAspuifouibm/dpn+++" |> Str.sh
+    
+    // each character is shifted by 10 byte :
+    let idx = "<:<;7;<" |> Str.shi //2021-12 "<:<;7;<"
+    
+    // each character is shifted by 10 byte :
+    let idi = "<:<;7;;" |> Str.shi //2021-11 "<:<;7;;"
+    
+    // this month
+    let i = ed.log()
 
- 
+    //"<:<;7:@" for 2021-06
+     
+
+  
 
 (*  module Extern =
         open System.Runtime.InteropServices
