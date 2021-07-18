@@ -341,7 +341,7 @@ type TypeInfo private () =
                                 
                             //log.PrintfnDebugMsg "optional full name: %s" c.FullName
             | _ -> ()
-        with e -> ISeffLog.log.PrintfnAppErrorMsg "Error while trying to show a Tool tip in Seff.\r\nYou can ignore this error.\r\nin TypeInfo.namesOfOptnlArgs: %A" e
+        with e -> () //ISeffLog.log.PrintfnAppErrorMsg "Error while trying to show a Tool tip in Seff.\r\nYou can ignore this error.\r\nin TypeInfo.namesOfOptnlArgs: %A" e
         optDefs
 
     //--------------public values and functions -----------------
