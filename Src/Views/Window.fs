@@ -27,14 +27,19 @@ type Window (config:Config)=
         let plat = if Environment.Is64BitProcess then " - 64bit" else " - 32bit"
         win.Title       <- match config.Hosting.HostName with 
                            |None     -> "Seff | Scripting editor for fsharp"         + plat
-                           |Some n   -> "Seff | Scripting editor for fsharp in " + n + plat
-                
-        //if config.Hosting.IsStandalone then // done in host too, avoid doing twice ??
+                           |Some n   -> "Seff | Scripting editor for fsharp in " + n + plat                
+        
         try                 
             // Add the Icon at the top left of the window and in the status bar, musst be called  after loading window.
             // Media/logo.ico with Build action : "Resource"
-            // (for the exe file icon in explorer use <Win32Resource>Media\logo.res</Win32Resource>  in fsproj )        
-            win.Icon <-  BitmapFrame.Create(Uri("pack://application:,,,/Seff;component/Media/logo.ico")) // so that it works hosted in other dlls too?
+            // (for the exe file icon in explorer use <Win32Resource>Media\logo.res</Win32Resource>  in fsproj )  
+            let defaultUri = Uri("pack://application:,,,/Seff;component/Media/logo.ico")
+            match config.Hosting.Logo with 
+            |Some uri -> 
+                try             win.Icon <- BitmapFrame.Create(uri)
+                with  _ ->      win.Icon <- BitmapFrame.Create(defaultUri)
+            |None -> 
+                win.Icon <- BitmapFrame.Create(defaultUri) 
         with ex -> 
             log.PrintfnAppErrorMsg  "Failed to load Media/logo.ico from Application.ResourceStream : %A" ex 
               

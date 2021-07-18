@@ -7,7 +7,13 @@ open Seff.Model
 /// mainWindowHandle: Pointer to main window(nativeInt), 
 /// hostName: a string for the name of the hosting App (will be used for settings file name an displayed in the Title Bar.
 /// fsiCanRun: a function to check if evaluation of fsi is currently allowed
-type HostedStartUpData = { hostName:string; mainWindowHandel: nativeint; fsiCanRun: unit-> bool}
+/// logo: optional a URI to an alternative logo for hosted mode default is Uri("pack://application:,,,/Seff;component/Media/logo.ico")
+type HostedStartUpData = { 
+    hostName:string
+    mainWindowHandel: nativeint
+    fsiCanRun: unit-> bool
+    logo:option<Uri>
+    }
 
 //type StartupMode =  Standalone  | Hosted of HostedStartUpData
 
@@ -51,6 +57,8 @@ type Hosting (startUpData:HostedStartUpData option) =
     member this.IsHosted     = match startUpData with None ->  false | Some _ -> true 
     
     member this.IsStandalone = match startUpData with None ->  true  | Some _ -> false
+
+    member this.Logo         = match startUpData with None ->  None | Some d -> d.logo
     
     /// opens up Explorer.exe
     member this.OpenSettingsFolder()=               
