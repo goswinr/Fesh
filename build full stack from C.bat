@@ -18,7 +18,6 @@ dotnet build "C:/GitHub/FsEx/FsEx.fsproj" --configuration Release
 
 
 
-
 rmdir /s /q  "C:/GitHub/Seff/binStandalone"
 dotnet build "C:/GitHub/Seff/SeffStandalone.fsproj" -p:Platform=x64 --configuration Release
 @REM dotnet build "C:/GitHub/Seff/SeffStandalone.fsproj" -p:Platform=x86 --configuration Release
@@ -34,16 +33,20 @@ rmdir /s /q  "C:/GitHub/Rhino.Scripting/binRh7"
 dotnet build "C:/GitHub/Rhino.Scripting/Rhino.Scripting7.fsproj" -p:Platform=x64 --configuration Release
 
 
-@REM :: Rhino6
-@REM :: first delete obj folder so that ther reference really goes to rhino 6 and not 7
-@REM rmdir /s /q  "C:/GitHub/Seff.Rhino/obj" 
-@REM rmdir /s /q  "C:/GitHub/Seff.Rhino/binRh6"
-@REM dotnet build "C:/GitHub/Seff.Rhino/Seff.Rhino6.fsproj" -p:Platform=x64 --configuration Release
+:: Rhino6
+:: first delete obj folder so that ther reference really goes to rhino 6 and not 7
+rmdir /s /q  "C:/GitHub/Seff.Rhino/obj" 
+rmdir /s /q  "C:/GitHub/Seff.Rhino/binRh6"
+dotnet build "C:/GitHub/Seff.Rhino/Seff.Rhino6.fsproj" -p:Platform=x64 --configuration Release
 
-@REM rmdir /s /q  "C:/GitHub/Rhino.Scripting/obj"
-@REM rmdir /s /q  "C:/GitHub/Rhino.Scripting/binRh6"
-@REM dotnet build "C:/GitHub/Rhino.Scripting/Rhino.Scripting6.fsproj" -p:Platform=x64 --configuration Release
+rmdir /s /q  "C:/GitHub/Rhino.Scripting/obj"
+rmdir /s /q  "C:/GitHub/Rhino.Scripting/binRh6"
+dotnet build "C:/GitHub/Rhino.Scripting/Rhino.Scripting6.fsproj" -p:Platform=x64 --configuration Release
 
+
+rmdir /s /q "C:/GitHub/Seff.Revit/bin"
+dotnet build "C:/GitHub/Seff.Revit/Seff.Revit.2019.fsproj" --configuration Release
+dotnet build "C:/GitHub/Seff.Revit/Seff.Revit.2021.fsproj" --configuration Release
 
 @REM :: Revit 2018
 @REM :: first delete obj folder to resolve version conflicts of FSharp.Core 5.0.0 vs 4.6.2
