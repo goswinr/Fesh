@@ -1,67 +1,93 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk.WindowsDesktop"> <!--WinDesktop is needed so that rescources work with dotnet build-->
 
-  <PropertyGroup>
+ <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <!-- no net50-windows because no Thread.Abort() in net50 (for fsi canceling), 
-      net 462 for revit 2018
-      net 472 for Rhino and Netstandard2.0
-      Rhino can only host netFramwork apps-, -->
-    <TargetFrameworks>net472</TargetFrameworks>    <!-- for net462 there is another fsproj file also using FSarp core 4.6.2-->
-    <UseWPF>true</UseWPF>
-    <UseWinForms>true</UseWinForms> <!--only for some message boxes ? -->
+    <TargetFrameworks>net472</TargetFrameworks>  <!--no net50, because no Thread.Abort()-->
+    <UseWPF>true</UseWPF>    
     <LangVersion>preview</LangVersion>
-
-    <NeutralLanguage>en</NeutralLanguage>
-    <SatelliteResourceLanguages>en</SatelliteResourceLanguages> <!--to only have the english resources or Fsharp.Core-->
-    <GenerateDocumentationFile>true</GenerateDocumentationFile>
     
+    <NeutralLanguage>en</NeutralLanguage>
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>    <!--to only have the english resources-->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+
     <RootNamespace>Seff</RootNamespace>
     <AssemblyName>Seff</AssemblyName>
-    <Version>0.4.0.0</Version>
-    <AssemblyVersion>0.4.0.0</AssemblyVersion>
-    <FileVersion>0.4.0.0</FileVersion>
-    
-    <Authors>Goswin Rothenthal</Authors>
+    <AssemblyTitle>Seff</AssemblyTitle>
+    <Title>Seff</Title>  
     <Product>Seff</Product>
-    <Description>A hostable fsharp scripting editor for Windows</Description>
-    <Copyright>Goswin Rothenthal</Copyright>
+    <PackageId>Seff</PackageId>  
+
+    <Version>1.0.0.0</Version>
+    <AssemblyVersion>1.0.0.0</AssemblyVersion>
+    <FileVersion>1.0.0.0</FileVersion>
+    <PackageReleaseNotes>First release</PackageReleaseNotes>   
+
     
+    <Authors>GoswinR</Authors>
+    <Copyright>Goswin Rothenthal 2021</Copyright>
+
+    <Description>A hostable fsharp scripting editor for Windows based on Avalonedit</Description>
     <ApplicationIcon>Media/logo.ico</ApplicationIcon>
     <Win32Resource>Media/logo.res</Win32Resource>      <!-- Win32Resource for Application Icon in explorer-->    
     
     <Platforms>x64;x86</Platforms>
     <Configurations>Release</Configurations>
+
   </PropertyGroup>
+
+ <!-- <PropertyGroup>  
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>      
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/goswinr/Seff</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/goswinr/Seff</RepositoryUrl>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <PackageIcon>logo128.png</PackageIcon>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageDescription>A hostable fsharp scripting editor for Windows based on Avalonedit</PackageDescription>    
+    <PackageTags>WPF TextEditor F# Scripting AvalonEdit</PackageTags>    
+  </PropertyGroup> -->
+
 
   <!--Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" -->
   <PropertyGroup Condition="'$(Platform)'=='x64'">  <OutputPath>binStandalone/x64/</OutputPath>  </PropertyGroup>
   <PropertyGroup Condition="'$(Platform)'=='x86'">  <OutputPath>binStandalone/x86/</OutputPath>  </PropertyGroup>
 
+
   <ItemGroup>    
-    <PackageReference Update="FSharp.Core" Version="5.0.2" GeneratePathProperty="true" />     
+    <PackageReference Update="FSharp.Core" Version="5.0.2" GeneratePathProperty="true" /> 
+
     <PackageReference Include="FSharp.Compiler.Service" Version="40.0.0" />    
 
     <!--this reference is needed for tooling only, it might not be installed on host PC. see also https://github.com/fsprojects/IfSharp/issues/213 -->
     <PackageReference Include="NETStandard.Library" Version="2.0.3" GeneratePathProperty="true" />
 
-    <!--<Reference Include="AvalonEditB" HintPath="../AvalonEditB/AvalonEditB/bin/Release/net472/AvalonEditB.dll" />-->
     <PackageReference Include="AvalonEditB" Version="1.0.0" />
+    <!-- <PackageReference Include="FsEx.Wpf" Version="1.0.0" /> -->
+    <!-- <PackageReference Include="AvalonLog" Version="1.0.0" /> -->
     
+    <!--<Reference Include="AvalonEditB" HintPath="../AvalonEditB/AvalonEditB/bin/Release/net472/AvalonEditB.dll" />-->
+    <Reference Include="FsEx.Wpf" HintPath="../FsEx.Wpf/bin/Release/net472/FsEx.Wpf.dll" />        
     <Reference Include="AvalonLog" HintPath="../AvalonLog/bin/Release/net472/AvalonLog.dll" />
-    <Reference Include="FsEx.Wpf" HintPath="../FsEx.Wpf/bin/Release/net472/FsEx.Wpf.dll" />
+
   </ItemGroup>
   
-  <ItemGroup>
+  <!-- <ItemGroup>
     <Reference Include="System.Windows.Forms" /> 
     <Reference Include="WindowsBase" />
     <Reference Include="PresentationCore" />
     <Reference Include="PresentationFramework" />
-  </ItemGroup>
+  </ItemGroup> -->
 
 
   <ItemGroup>
 
+    <None Include="Media/logo128.png" Pack="true" PackagePath="\" /> <!--PackagePath = "\" makes the fike availabe to nuget pack tool-->
+    <None Include="README.md" Pack="true" PackagePath="\" />
     <EmbeddedResource Include="Media/logo.res" /> <!--  for Application Icon in explorer-->   
     <Resource Include="Media/logo.ico" />    
     <Resource Include="Media/FiraCode-Regular.ttf" />  
@@ -103,7 +129,6 @@
     <Compile Include="Src/Editor/CursorBehaviour.fs" />
     <Compile Include="Src/Editor/Formating.fs" />
     <Compile Include="Src/Editor/Editor.fs" />
-    <Compile Include="Src/Editor/UNUSEDNuget.fs" />
     <Compile Include="Src/Views/Log.fs" />
     <Compile Include="Src/Views/Window.fs" />
     <Compile Include="Src/Views/FileWatcher.fs" />
