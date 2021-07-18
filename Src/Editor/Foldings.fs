@@ -157,7 +157,7 @@ type Foldings(ed:TextEditor, checker:Checker, config:Config, edId:Guid) =
                         fs                        
                     
                     if foldings.Count>0 then 
-                        do! Async.SwitchToContext Sync.syncContext
+                        do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context
                         match iEditor.FileCheckState.SameIdAndFullCode(checker.GlobalCheckState) with
                         | NoCode -> ()
                         | CodeID _ -> 

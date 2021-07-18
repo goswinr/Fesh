@@ -10,7 +10,7 @@ open Seff
 open Seff.Editor
 open Seff.Model
 open Seff.Util
-open Seff.Util.Media
+open AvalonLog.Brush
 
 
 type FileChange = 
@@ -39,7 +39,7 @@ type FileWatcher(editor:Editor,upadteIsCodeSaved:bool->unit) as this =
 
     let isDiffrent (fullPath:string) =        
         async{
-            do! Async.SwitchToContext Sync.syncContext
+            do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context
             let doc = editor.AvaEdit.Document
             do! Async.SwitchToThreadPool()
             let uiCode = doc.CreateSnapshot().Text
@@ -52,7 +52,7 @@ type FileWatcher(editor:Editor,upadteIsCodeSaved:bool->unit) as this =
                     //let msg = "at " + DateTime.nowStrMilli + " this file was changed externally."
                     //let msg = sprintf "File\r\n%s\r\nat\r\n%s\r\nchanged.\r\nDo you want to reload it?" n dir
                     let msg = sprintf "File '%s' changed. Do you want to reload it?" n 
-                    do! Async.SwitchToContext Sync.syncContext                    
+                    do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context                   
                     if editor.AvaEdit.IsFocused then
                         asktToUpdate(msg,fileCode)
                     else                        

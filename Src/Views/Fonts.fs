@@ -4,6 +4,7 @@ open Seff
 open System
 open System.Windows.Media
 
+
 type Fonts (grid:TabsAndLog) = // will be contructed as part of Commands class
     let log = grid.Log
     let tabs= grid.Tabs

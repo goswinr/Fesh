@@ -1,11 +1,13 @@
 ﻿namespace Seff.Config
 
-open Seff
-open Seff.Model
 open System
 open System.Text
 open System.Collections.Generic
 
+open FsEx.Wpf
+
+open Seff
+open Seff.Model
    
 /// A class to hold the statistic of most used toplevel auto completions
 type AutoCompleteStatistic  (log:ISeffLog, hostInfo:Hosting) =
@@ -20,7 +22,6 @@ type AutoCompleteStatistic  (log:ISeffLog, hostInfo:Hosting) =
         "failwithf"
         ]
         
-
 
     let  sep = '=' // key value separatur like in ini files
     

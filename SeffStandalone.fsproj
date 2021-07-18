@@ -38,21 +38,21 @@
   <PropertyGroup Condition="'$(Platform)'=='x64'">  <OutputPath>binStandalone/x64/</OutputPath>  </PropertyGroup>
   <PropertyGroup Condition="'$(Platform)'=='x86'">  <OutputPath>binStandalone/x86/</OutputPath>  </PropertyGroup>
 
-  <ItemGroup>
-    <PackageReference Update="FSharp.Core" Version="5.0.2" GeneratePathProperty="true" />  
-    <!-- use 33.0.1 because EPPlus also fails with 35.0.0 (like Rhino) ?? try x86 version !-->
-    <PackageReference Include="FSharp.Compiler.Service" Version="40.0.0" />
-    <!--Don't use!! <PackageReference Include="FSharp.DependencyManager.Nuget" Version="37.0.0" /> see https://github.com/dotnet/fsharp/issues/10467#issuecomment-774430370 -->
+  <ItemGroup>    
+    <PackageReference Update="FSharp.Core" Version="5.0.2" GeneratePathProperty="true" />     
+    <PackageReference Include="FSharp.Compiler.Service" Version="40.0.0" />    
 
     <!--this reference is needed for tooling only, it might not be installed on host PC. see also https://github.com/fsprojects/IfSharp/issues/213 -->
-    <PackageReference Include="NETStandard.Library" Version="2.0.3" GeneratePathProperty="true" />    
-  </ItemGroup>
+    <PackageReference Include="NETStandard.Library" Version="2.0.3" GeneratePathProperty="true" />
 
+    <!--<Reference Include="AvalonEditB" HintPath="../AvalonEditB/AvalonEditB/bin/Release/net472/AvalonEditB.dll" />-->
+    <PackageReference Include="AvalonEditB" Version="1.0.0" />
+    
+    <Reference Include="AvalonLog" HintPath="../AvalonLog/bin/Release/net472/AvalonLog.dll" />
+    <Reference Include="FsEx.Wpf" HintPath="../FsEx.Wpf/bin/Release/net472/FsEx.Wpf.dll" />
+  </ItemGroup>
+  
   <ItemGroup>
-   
-    <Reference Include="AvalonEditB">      <!-- build from dev branch of https://github.com/goswinr/AvalonEditB -->
-      <HintPath>../AvalonEditB/AvalonEditB/bin/Release/net472/AvalonEditB.dll</HintPath> 
-    </Reference>     
     <Reference Include="System.Windows.Forms" /> 
     <Reference Include="WindowsBase" />
     <Reference Include="PresentationCore" />
@@ -72,12 +72,7 @@
     <Compile Include="Src/Timer.fs" />
     <Compile Include="Src/Style.fs" />
     <Compile Include="Src/Model.fs" />
-    <Compile Include="Src/GlobalErrorHandeling.fs" />
-    <Compile Include="Src/Sync.fs" />
-    
-    <Compile Include="Src/Config/SaveWriter.fs" />
     <Compile Include="Src/Config/Hosting.fs" />
-    <Compile Include="Src/Config/Settings.fs" />
     <Compile Include="Src/Config/DefaultCode.fs" />
     <Compile Include="Src/Config/FsiArugments.fs" />
     <Compile Include="Src/Config/OpenTabs.fs" />
@@ -109,8 +104,6 @@
     <Compile Include="Src/Editor/Formating.fs" />
     <Compile Include="Src/Editor/Editor.fs" />
     <Compile Include="Src/Editor/UNUSEDNuget.fs" />
-    
-    <Compile Include="Src/Views/Views.Util.fs" />
     <Compile Include="Src/Views/Log.fs" />
     <Compile Include="Src/Views/Window.fs" />
     <Compile Include="Src/Views/FileWatcher.fs" />

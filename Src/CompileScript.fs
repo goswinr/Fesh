@@ -1,18 +1,15 @@
 ﻿namespace Seff
 
-
 open System
 open System.Windows
 open System.IO
-open System.Threading
-open FSharp.Compiler.Interactive.Shell
-open Seff.Model
-open Seff.Config
-open Seff.Util
-open System.Windows.Media
 open System.Drawing
 open System.Windows.Forms
 
+open AvalonLog.Util
+
+open Seff.Model
+open Seff.Util
 
 
 module CompileScript = 
@@ -267,7 +264,7 @@ module CompileScript =
                                     ISeffLog.log.PrintfColor  190 0 50 "#r @\""
                                     ISeffLog.log.PrintfColor  0 0 0 "%s" resultDll 
                                     ISeffLog.log.PrintfnColor 190 0 50 "\""     
-                                    Seff.Sync.doSync ( fun () -> Clipboard.SetText("#r @\"" + resultDll + "\"\r\n") )
+                                    FsEx.Wpf.SyncWpf.doSync ( fun () -> Clipboard.SetText("#r @\"" + resultDll + "\"\r\n") )
                                 else
                                     gray  "*build process ended!"
                                 )

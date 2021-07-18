@@ -2,15 +2,18 @@
 
 open System
 open System.Windows.Input    
-open Seff.Config
-open Seff.Views.Util
+
+open FsEx.Wpf.DependencyProps
+open FsEx.Wpf.Command
+
 open AvalonEditB.Editing
+open AvalonEditB
 
 open Seff.Editor
 open Seff.Model
 open Seff
+open Seff.Config
 open Seff.Editor.Selection
-open AvalonEditB
 
 
 

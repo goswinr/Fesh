@@ -3,7 +3,6 @@
 open Seff
 open Seff.Model
 open Seff.Util
-open Seff.Util.Media
 
 open System
 open System.IO
@@ -20,6 +19,9 @@ open AvalonEditB.CodeCompletion
 open AvalonEditB.Editing
 open AvalonEditB.Document
 open AvalonEditB
+
+open AvalonLog.Util
+open AvalonLog.Brush
 
 open FSharp.Compiler
 open FSharp.Compiler.CodeAnalysis
@@ -247,7 +249,7 @@ type TypeInfo private () =
             .Replace("&apos;" ,"'" )
             .Replace("&amp;"  ,"&" )  
     
-    static let stripOffXmlComments(txt:string) =    // TODO dont do it like this ! use proper xml doc  parsing 
+    static let stripOffXmlComments(txt:string) =    // TODO dont do it like this ! use proper xml doc parsing 
          //printfn "%s" txt
          txt.Replace("<summary>"        ,"" )
             .Replace("</summary>"       ,"" )
@@ -256,9 +258,12 @@ type TypeInfo private () =
             .Replace("</param>"         ,"" )
             .Replace("<param name=\""   ,"    • " )
             .Replace("<exception cref=\"T:" ,"Exception: " ) 
+            .Replace("<exception cref=\"" ,"Exception: " ) 
             .Replace("</exception>" ,"" ) 
             .Replace("<see langword=\"","'")
-            .Replace("<see cref=\"P:","")
+            .Replace("<see cref=\"P:","'")
+            .Replace("<see cref=\"T:","'")
+            .Replace("<see cref=\"","'")
             .Replace("\" />","'")
             .Replace("\">"              ,": " ) // to catch the end of <param name="value">  andd other closings
         |> unEscapeXml
@@ -401,7 +406,7 @@ type TypeInfo private () =
                         let symbls = res.checkRes.GetSymbolUseAtLocation(line, endCol, lineTxt, [word] )                                //only to get to info about optional paramters
                         let optArgs = if symbls.IsSome then namesOfOptnlArgs(symbls.Value) else ResizeArray(0) 
                         
-                        do! Async.SwitchToContext Sync.syncContext
+                        do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context
                     
 
                         let ttds = getToolTipDatas (ttt, optArgs)

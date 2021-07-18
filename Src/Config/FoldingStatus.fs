@@ -1,12 +1,17 @@
 ﻿namespace Seff.Config
 
-open Seff
-open Seff.Model
 open System
 open System.Text
 open System.Collections.Generic
 open System.IO
+
 open AvalonEditB.Folding
+
+open FsEx.Wpf
+
+open Seff
+open Seff.Model
+
    
 /// A class to hold the statistic of most used toplevel auto completions
 type FoldingStatus (log:ISeffLog, hostInfo:Hosting, recentlyUsedFiles:RecentlyUsedFiles) =

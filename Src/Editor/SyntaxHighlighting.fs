@@ -30,7 +30,7 @@ module SyntaxHighlighting =
                     let fsh = Xshd.HighlightingLoader.Load(reader, HighlightingManager.Instance)
                     HighlightingManager.Instance.RegisterHighlighting("F#", [| ".fsx"; ".fs";".fsi" |], fsh)
                     fsHighlighting <- Some fsh                
-                    do! Async.SwitchToContext Sync.syncContext
+                    do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context
                     ed.SyntaxHighlighting <- fsh
                     if forceReLoad then config.Log.PrintfnInfoMsg "loaded syntax highlighting from: %s" path
                 with e -> 

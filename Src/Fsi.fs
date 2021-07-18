@@ -10,14 +10,12 @@ open System.Windows.Media
 open Seff.Model
 open Seff.Config
 open Seff.Util
+open Seff.Util.Log
+
+open FsEx.Wpf
 
 open FSharp.Compiler.Interactive.Shell
 open FSharp.Compiler.Diagnostics
-
-open FSharp.Compiler.DependencyManager
-open FSharp.DependencyManager.Nuget
-
-open Seff.Util.Log
 
 
 type Fsi private (config:Config) =    
@@ -97,8 +95,8 @@ type Fsi private (config:Config) =
                 // and  https://github.com/fsharp/FSharp.Compiler.Service/issues/878 
                 let allArgs = 
                     // "--shadowcopyreferences" is ignored https://github.com/fsharp/FSharp.Compiler.Service/issues/292
-                    if config.Settings.GetBool Settings.keyFsiQuiet false then Array.append  config.FsiArugments.Get [| "--quiet"|] // TODO or fsi.ShowDeclarationValues <- false ??
-                    else                                                                     config.FsiArugments.Get
+                    if config.Settings.GetBool "fsiOutputQuiet" false then Array.append  config.FsiArugments.Get [| "--quiet"|] // TODO or fsi.ShowDeclarationValues <- false ??
+                    else                                                                 config.FsiArugments.Get
                         
                 let settings = Settings.fsi
                 // Default: https://github.com/dotnet/fsharp/blob/c0d6f6abbf14a19c631cd647b6440ec2c63c668f/src/fsharp/fsi/fsi.fs#L3244
@@ -148,7 +146,7 @@ type Fsi private (config:Config) =
                     |Async -> log.PrintfnInfoMsg "FSharp Interactive will evaluate asynchronously on new Thread." 
                     
                
-                do! Async.SwitchToContext Sync.syncContext 
+                do! Async.SwitchToContext SyncWpf.context
                 currentDir <- ""
                 currentFile <- ""
                 currentTopLine <- 1 
@@ -179,7 +177,7 @@ type Fsi private (config:Config) =
                 let asyncEval = async{
                     if mode = FsiMode.Sync then 
                         do! Async.Sleep 40 // this helps to show "FSI is running" immediatly
-                        do! Async.SwitchToContext Sync.syncContext                         
+                        do! Async.SwitchToContext SyncWpf.context                         
                 
                     //Done already at startup in Initalize.fs, not neded here?
                     //if notNull Application.Current then // null if application is not yet created, or no application in hosted context
@@ -207,7 +205,7 @@ type Fsi private (config:Config) =
                         with e -> Choice2Of2 e , [| |]
                
                     if mode = Async then 
-                        do! Async.SwitchToContext Sync.syncContext 
+                        do! Async.SwitchToContext SyncWpf.context
                
                     thread <- None
                     state <- Ready //TODO reached when canceled ?                     

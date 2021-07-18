@@ -3,6 +3,8 @@
 open System
 open System.Text
 
+open AvalonLog.Util
+
 open Seff.Model
 open Seff.Util
 

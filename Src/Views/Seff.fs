@@ -1,9 +1,12 @@
 ﻿namespace Seff
 
+open System.Windows
+
+open FsEx.Wpf.DependencyProps
+
 open Seff.Views
 open Seff.Config
 open Seff.Editor
-open System.Windows
 open Seff.Model
 
 /// the main App holding all UI and interaction ellements
@@ -18,7 +21,7 @@ type Seff (config:Config,log:Log) =
     let commands = Commands(tabsAndLog)
     let statusBar = StatusBar(tabsAndLog, commands)
     let menu = Menu(config, commands, tabs, log)
-    let dockP = Util.dockPanelVert(menu.Bar , tabsAndLog.Grid , statusBar.Bar) 
+    let dockP = dockPanelVert(menu.Bar , tabsAndLog.Grid , statusBar.Bar) 
     
     
     do

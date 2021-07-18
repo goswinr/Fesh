@@ -1,18 +1,20 @@
 ﻿namespace Seff.Views
 
-open Seff
-
-open Seff.Editor
-open Seff.Model
 open System
 open System.IO
 open System.Windows.Controls
 open System.Windows
-open Seff.Views.Util
+open System.Windows.Media
+
+open FsEx.Wpf.DependencyProps
+
+open Seff
+open Seff.Editor
+open Seff.Model
+open Seff.Util.General
 open Seff.Config
 open Seff.Style
-open Seff.Editor
-open System.Windows.Media
+
 
 
 type SavingKind = SaveInPlace | SaveNewLocation | SaveExport

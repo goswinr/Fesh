@@ -15,8 +15,7 @@ module Initialize =
         
         match mode with None ->  Timer.InstanceStartup.tic()   | _ -> ()  // optional timer for full init process
         
-        Sync.installSynchronizationContext()    // do first
-
+        FsEx.Wpf.SyncWpf.installSynchronizationContext(true)    // do first
          
 
         let en_US = Globalization.CultureInfo.CreateSpecificCulture("en-US")        
@@ -32,8 +31,9 @@ module Initialize =
 
         /// ------------------ Log and Config --------------------
         
-        let log    = Log.Create()       
-        GlobalErrorHandeling.setup(log) // do as soon as log exists
+        let log    = Log.Create()     
+        let appname = match mode with Some n -> "Seff."+n.hostName |None -> "Seff"
+        FsEx.Wpf.ErrorHandeling.setup (appname, fun () -> log.FsiErrorStream.ToString() ) // do as soon as log exists         
         
 
         // not needed (yet)?
@@ -45,9 +45,6 @@ module Initialize =
         //    if FrameworkCompatibilityPreferences.KeepTextBoxDisplaySynchronizedWithTextProperty then 
         //        log.PrintfnAppErrorMsg "could not set KeepTextBoxDisplaySynchronizedWithTextProperty to false "
         
-
-
-
 
         let config = new Config(log, mode, startupArgs)
         log.AdjustToSettingsInConfig(config)

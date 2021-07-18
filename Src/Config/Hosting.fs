@@ -29,19 +29,10 @@ type Hosting (startUpData:HostedStartUpData option) =
     let hostName = //to get a valid filename fom any host app name suplied not allowed : < > : " / \ | ? *
         match startUpData with 
         |None ->  "Standalone" 
-        |Some sd ->  
-              let sb = new Text.StringBuilder()
-              for c in sd.hostName do
-                  if (c >= '0' && c <= '9') 
-                  || (c >= 'A' && c <= 'Z') 
-                  || (c >= 'a' && c <= 'z') 
-                  ||  c = '.' 
-                  ||  c = '_'
-                  ||  c = ' ' 
-                  ||  c = '-'
-                  ||  c = '+' then  sb.Append(c) |> ignore
-              
-              "Hosted." + sb.ToString()
+        |Some sd ->
+            let mutable n = sd.hostName
+            for c in IO.Path.GetInvalidFileNameChars() do  n <- n.Replace(c, '_')
+            "Hosted." + n 
     
     
     /// To get a path where to save the setting files

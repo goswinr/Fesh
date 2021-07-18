@@ -7,24 +7,7 @@ open System.Windows.Media
 
 
 [<AutoOpen>]
-module Global =
-    /// This ignore only work on Value types, 
-    /// Objects and functions need to be ignored with 'ignoreObj'
-    /// This is to prevent accidetially ignoring partially aplied functions that would return struct
-    let inline ignore (x:'T when 'T: struct) = ()
-
-    /// Ignores any object (and struct)
-    /// For structs use 'ignore'
-    let inline ignoreObj (x:obj) = ()
-
-    let inline notNull x = match x with null -> false | _ -> true  //not (Object.ReferenceEquals(ob,null))
-    
-    /// returns maybeNullvalue if it is not null, else alternativeValue 
-    let inline ifNull alternativeValue maybeNullvalue = match maybeNullvalue with null -> alternativeValue | _ -> maybeNullvalue  
-    
-    let inline isTrue (nb:Nullable<bool>) = nb.HasValue && nb.Value
-    
-    //let inline (|>!) a f = f a |> ignore ; a
+module AutoOpenDateTime =    
 
     type DateTime with      
         /// yyyy-MM-dd_HH-mm-ss
@@ -37,66 +20,21 @@ module Global =
         // month
         static member log()          = System.DateTime.Now.ToString("yyyy-MM")
 
-/// for SolidColorBrushes and other types from Windows.Media
-module Media =   
 
-   /// clamp int to byte between 0 and 255
-   let inline clampToByte (i:int) =
-       if   i <=   0 then 0uy
-       elif i >= 255 then 255uy
-       else byte i
-   
+/// Utility functions for System.Windows.Media.Pen  
+module Pen = 
+    open  System.Windows.Media
 
-   /// Adds bytes to each color channel to increase brightness, negative values to make darker
-   /// result will be clamped between 0 and 255
-   let changeLuminace (amount:int) (col:Windows.Media.Color)=       
-       let r = int col.R + amount |> clampToByte      
-       let g = int col.G + amount |> clampToByte
-       let b = int col.B + amount |> clampToByte
-       Color.FromArgb(col.A, r,g,b)
-   
-   /// Adds bytes to each color channel to increase brightness
-   /// result will be clamped between 0 and 255
-   let brighter (amount:int) (br:SolidColorBrush)  = SolidColorBrush(changeLuminace amount br.Color) 
-   
-   /// Removes bytes from each color channel to increase darkness, 
-   /// result will be clamped between 0 and 255
-   let darker  (amount:int) (br:SolidColorBrush)  = SolidColorBrush(changeLuminace -amount br.Color) 
-
-   /// To make it thread safe and fatser
-   let freeze(br:SolidColorBrush)= 
-       if br.IsFrozen then
-           ()
-       else
-           if br.CanFreeze then 
-               br.Freeze()
-           else 
-              eprintfn "Could not freeze SolidColorBrush: %A" br         
-       br
-
-   /// To make it thread safe and fatser
-   let freezePen(br:Pen)= 
-       if br.IsFrozen then
-           ()
-       else
-           if br.CanFreeze then 
-               br.Freeze()
-           else 
-              eprintfn "Could not freeze SolidColorBrush: %A" br         
-       br
-   
-   /// Get a frozen brush of red, green and blue values
-   /// int gets clamped to 0-255
-   let brushOfRGB r g b = 
-       SolidColorBrush(Color.FromArgb(255uy, clampToByte r, clampToByte g, clampToByte b))
-       |> freeze
-    
-   /// Get a transparent frozen brush of alpha, red, green and blue values
-   /// int gets clamped to 0-255
-   let brushOfARGB a r g b = 
-       SolidColorBrush(Color.FromArgb(clampToByte a, clampToByte r, clampToByte g, clampToByte b))
-       |> freeze
-
+    /// To make it thread safe and faster
+    let freeze(br:Pen)= 
+        if br.IsFrozen then
+            ()
+        else
+            if br.CanFreeze then 
+                br.Freeze()
+            else 
+               eprintfn "Could not freeze SolidColorBrush: %A" br         
+        br
 
 module General = 
 
@@ -106,6 +44,7 @@ module General =
     
     let inline isEven x = x % 2 = 0
     
+    let inline isTrue (nb:Nullable<bool>) = nb.HasValue && nb.Value
     
     /// get flolder location of Executing Assembly
     let assemblyLocation() = 
@@ -134,6 +73,8 @@ module General =
     
     let sortInPlaceBy<'T, 'Key when 'Key : comparison>  (projection : 'T -> 'Key) (rarr : ResizeArray<'T>) =
         rarr.Sort (fun x y -> compare (projection x) (projection y))
+
+
 
 /// operations on Strings        
 module Str  =

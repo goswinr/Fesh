@@ -7,14 +7,23 @@ open System.Windows.Controls
 open System.Collections.Generic
 
 open AvalonEditB
+open AvalonLog.Util
+
+open FsEx.Wpf.Command
+open FsEx.Wpf.DependencyProps
 
 open Seff
 open Seff.Model
 open Seff.Util
-open Seff.Views.Util
 open Seff.Config
+open Seff.Views.MenuUtil
 
-type HeaderGestureTooltip = {header:string; gesture:string; toolTip:string}
+type HeaderGestureTooltip = {
+    header:string 
+    gesture:string 
+    toolTip:string
+    }
+
 
 module private RecognicePath = 
     
@@ -96,6 +105,7 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, log:Log) =
         let n,g,c,tt = ngc
         MenuItem(Header = n, InputGestureText = g, ToolTip = tt, Command = c):> Control
     
+
         
     let setRecentFiles()=
         async{            
@@ -105,7 +115,7 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, log:Log) =
                 |> Seq.toArray
             
                        
-            do! Async.SwitchToContext Sync.syncContext
+            do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context
             
             ///first clear
             while fileMenu.Items.Count > recentFilesInsertPosition do 

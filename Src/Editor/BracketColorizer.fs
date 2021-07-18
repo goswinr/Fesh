@@ -3,13 +3,14 @@
 
 open System
 open System.Windows.Media
+open System.Collections.Generic
 
 open AvalonEditB
-open System.Collections.Generic
+open AvalonLog.Util
 
 open Seff.Model
 open Seff.Util
-open Seff.Util.Media
+open AvalonLog.Brush
 
 
 type BracketKind = 

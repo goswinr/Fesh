@@ -11,8 +11,11 @@ open AvalonEditB.Utils
 open AvalonEditB.Editing
 open AvalonEditB.Folding
 
+open AvalonLog.Brush
+
 open Seff.Model
-open Seff.Util.Media
+
+
 
 
 

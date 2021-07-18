@@ -10,7 +10,7 @@ open Seff
 open Seff.Editor
 open Seff.Model
 open Seff.Util
-open Seff.Util.Media
+open AvalonLog.Brush
 
 
 /// returns a bigger integer on each access for naming unsaved files
@@ -26,10 +26,10 @@ module TabStyle =
     let changedHeader =  Brushes.Red    |> darker 90   |> freeze
     let unsavedHeader =  Brushes.Gray   |> brighter 40 |> freeze
     // button in header
-    let redButton     =  brushOfRGB 232 17 35 // same red color as default for the main window
+    let redButton     =  ofRGB 232 17 35 // same red color as default for the main window
     //let whiteButton   =  brushOfRGB 255 255 255 // for white cross inside red button
-    let grayButton    =  brushOfRGB 150 150 150 // for grey cross inside red button
-    let transpButton  =  brushOfARGB 0 255 255 255 // fully transparent
+    let grayButton    =  ofRGB 150 150 150 // for grey cross inside red button
+    let transpButton  =  ofARGB 0 255 255 255 // fully transparent
 
 
  /// The tab that holds the tab header logic and the code editor 

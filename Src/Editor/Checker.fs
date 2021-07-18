@@ -6,6 +6,7 @@ open System.Threading
 open System.Windows.Threading
 
 open AvalonEditB
+open AvalonLog.Util
 
 open FSharp.Compiler
 open FSharp.Compiler.CodeAnalysis
@@ -69,7 +70,7 @@ type Checker private (config:Config)  =
                 match code with 
                 |PartialCode _-> ()
                 |FullCode _ ->                 
-                    do! Async.SwitchToContext(Sync.syncContext)
+                    do! Async.SwitchToContext(FsEx.Wpf.SyncWpf.context)
                     if !checkId = thisId then 
                         //log.PrintfnDebugMsg "***fullCodeAvailabeEv  %s " iEditor.FilePath.File //iEditor.CheckState
                         fullCodeAvailabeEv.Trigger(iEditor)
@@ -147,7 +148,7 @@ type Checker private (config:Config)  =
                                                 e -> log.PrintfnAppErrorMsg "The continueation after ParseAndCheckFileInProject failed with:\r\n %A" e
                                                 
                                         | None -> 
-                                            do! Async.SwitchToContext Sync.syncContext 
+                                            do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context
                                             if !checkId = thisId  then 
                                                 checkedEv.Trigger(iEditor) // to mark statusbar , and highlighting errors 
                                                 if !checkId = thisId  && isFirstCheck then 
@@ -240,7 +241,7 @@ type Checker private (config:Config)  =
                         if !checkId = thisId  then
                             if decls.IsError then log.PrintfnAppErrorMsg "*ERROR in GetDeclarationListInfo: %A" decls //TODO use log
                             else
-                                do! Async.SwitchToContext Sync.syncContext 
+                                do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context
                                 continueOnUI( decls, symUse)
             } |> Async.StartImmediate // we are on thread pool alredeay    
         

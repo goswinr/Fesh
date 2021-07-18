@@ -7,16 +7,17 @@ open System.Windows.Controls
 open System.Windows.Media
 open System.Collections.Generic
 
+open FSharp.Compiler.Diagnostics
+
 open AvalonEditB
 open AvalonEditB.Document
 open AvalonEditB.Rendering
 
-open FSharp.Compiler.CodeAnalysis
+open AvalonLog.Brush
 
 open Seff
+open Seff.Util
 open Seff.Model
-open Seff.Util.Media
-open FSharp.Compiler.Diagnostics
 
 
 //read: http://danielgrunwald.de/coding/AvalonEdit/rendering.php
@@ -26,8 +27,8 @@ open FSharp.Compiler.Diagnostics
 
 
 module ErrorStyle  = 
-    let errSquiggle     = Pen(  Brushes.Red     |> darker 20      |> freeze, 1.0) |> freezePen
-    let warnSquiggle    = Pen(  Brushes.Yellow  |> darker 40      |> freeze, 1.0) |> freezePen
+    let errSquiggle     = Pen(  Brushes.Red     |> darker 20      |> freeze, 1.0) |> Pen.freeze
+    let warnSquiggle    = Pen(  Brushes.Yellow  |> darker 40      |> freeze, 1.0) |> Pen.freeze
     let errBackGr       =       Brushes.Red     |> brighter 220   |> freeze
     let warnBackGr      =       Brushes.Yellow  |> brighter 200   |> freeze   
 

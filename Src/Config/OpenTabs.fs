@@ -1,12 +1,14 @@
 ﻿namespace Seff.Config
 
-open Seff
-open Seff.Model
 open System
 open System.IO
 open System.Text
 open System.Collections.Generic
 
+open FsEx.Wpf
+
+open Seff
+open Seff.Model
 
 type FileToOpen = {file:FileInfo; makeCurrent:bool}
 

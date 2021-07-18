@@ -184,7 +184,7 @@ type Completions(avaEdit:TextEditor,config:Config, checker:Checker) =
                 if optArgsDict.ContainsKey it.FullName then  TypeInfo.getToolTipDataList (raw, optArgsDict.[it.FullName])
                 else                                         TypeInfo.getToolTipDataList (raw, ResizeArray(0))
             if this.IsOpen then
-                do! Async.SwitchToContext Sync.syncContext
+                do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context
                 if this.IsOpen then // might get closed during context switch
                     if selectedText() = it.Name then 
                         win.Value.ToolTipContent <- TypeInfo.getPanel (Some it, structured )

@@ -1,9 +1,14 @@
 ﻿namespace Seff.Config
 
-open Seff.Model
 open System
 open System.Text
 open System.Collections.Generic
+
+open FsEx.Wpf
+
+open Seff.Model
+
+
 
            
 /// A class to hold the previously loaded assemble refrences for auto completions

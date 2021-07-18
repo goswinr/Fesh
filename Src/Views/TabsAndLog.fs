@@ -5,7 +5,7 @@ open Seff.Config
 open System
 open System.Windows.Controls
 open System.Windows
-open Seff.Views.Util
+open FsEx.Wpf.DependencyProps
 open FSharp.Compiler.CodeAnalysis
 
 /// A class holding the main grid of Tabs and the log Window
@@ -28,7 +28,7 @@ type TabsAndLog (config:Config, tabs:Tabs, log:Log, win:Views.Window) as this =
         setGridHorizontal grid [
             tabs.Control        :> UIElement, editorRowHeight 
             splitterHor         :> UIElement, RowDefinition(Height = GridLength.Auto) 
-            log.ReadOnlyEditor  :> UIElement, logRowHeight
+            log.AvalonLog       :> UIElement, logRowHeight
             ]
     
     let setGridVert() =         
@@ -36,7 +36,7 @@ type TabsAndLog (config:Config, tabs:Tabs, log:Log, win:Views.Window) as this =
         setGridVertical grid [         
             tabs.Control        :> UIElement, editorColumnWidth 
             splitterVert        :> UIElement, ColumnDefinition(Width = GridLength.Auto) 
-            log.ReadOnlyEditor  :> UIElement, logColumnWidth 
+            log.AvalonLog       :> UIElement, logColumnWidth 
             ]
   
     static let mutable instance = Unchecked.defaultof<TabsAndLog>
@@ -92,7 +92,7 @@ type TabsAndLog (config:Config, tabs:Tabs, log:Log, win:Views.Window) as this =
             logColumnWidth.Width     <- makeGridLength <|config.Settings.GetFloat "LogWidth"    99.            
             if not win.WasMax then win.Window.WindowState <- WindowState.Normal
         else
-            // maximase log view
+            // maximise log view
             isLogMaxed <- true
             win.WasMax <- win.IsMinOrMax            
             if not win.IsMinOrMax  then win.Window.WindowState <- WindowState.Maximized

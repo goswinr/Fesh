@@ -1,7 +1,10 @@
 ﻿namespace Seff.Config
 
-open Seff
 open System
+
+open FsEx.Wpf
+
+open Seff
 open Seff.Model
 
     

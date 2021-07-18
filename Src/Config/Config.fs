@@ -9,7 +9,7 @@ open Seff.Model
 type Config (log:ISeffLog, startUpData:HostedStartUpData option, startupArgs:string[]) =
     
     let  hosting                    = Hosting                     (startUpData)
-    let  settings                   = Settings                    (log, hosting)
+    let  settings                   = FsEx.Wpf.Settings           (match hosting.HostName with Some n -> "Seff."+n |None -> "Seff")
     let  recentlyUsedFiles          = RecentlyUsedFiles           (log, hosting)
     let  openTabs                   = OpenTabs                    (log, hosting, startupArgs)
     let  defaultCode                = DefaultCode                 (log, hosting)

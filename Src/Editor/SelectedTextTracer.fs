@@ -1,23 +1,28 @@
 ﻿namespace Seff.Editor
 
-open Seff
-open Seff.Model
-open Seff.Config
-open Seff.Util
-open Seff.Util.General
 open System
 open System.Windows
 open System.Windows.Controls
 open System.Windows.Media
 
+open FSharp.Compiler
+open FSharp.Compiler.CodeAnalysis
+
 open AvalonEditB
 open AvalonEditB.Editing
 open AvalonEditB.Document
-open FSharp.Compiler
-open FSharp.Compiler.CodeAnalysis
-open AvalonEditB
 open AvalonEditB.Search
 open AvalonEditB.Folding
+
+open AvalonLog.Brush
+open AvalonLog.Util
+
+open Seff
+open Seff.Model
+open Seff.Config
+open Seff.Util
+open Seff.Util.General
+
 
 /// Highlight-all-occurrences-of-selected-text in Text View
 type SelectedTextHighlighter (ed:TextEditor) = 
@@ -81,7 +86,7 @@ type SelectedTextTracer private () =
             checkTx.Length > 1 // minimum 2 non whitecpace characters?
             && not <| highTxt.Contains("\n")  //no line beaks          
             && not <| highTxt.Contains("\r")  //no line beaks
-            && config.Settings.SelOcc 
+            && config.Settings.Get("SelOcc") = Some "1" 
     
         if doHighlight then 
             oh.HighlightText <- highTxt

@@ -5,13 +5,19 @@ open System.Text
 open System.IO
 open System.Globalization
 
+open AvalonLog.Util
+
+open FsEx.Wpf
+
 open Seff
 open Seff.Util
 open Seff.Model
 
 
-
-type UsedFile = {fileInfo:FileInfo ; lastOpendUtc:DateTime}
+type UsedFile = {
+    fileInfo:FileInfo  
+    lastOpendUtc:DateTime
+    }
    
 type RecentlyUsedFiles  (log:ISeffLog, hostInfo:Hosting) =
     

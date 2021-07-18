@@ -15,12 +15,18 @@ open Seff
 open Seff.Config
 open Seff.Editor
 open Seff.Model
-open Seff.Views.Util
-open Seff.Util.Media
+open FsEx.Wpf.DependencyProps
+open AvalonLog.Brush
 open Seff.Util.General
 
+open FSharp.Compiler.Diagnostics
 
 
+module MenuUtil =
+    let menuItem (cmd:CommandInfo) =  
+        MenuItem(Header = cmd.name, InputGestureText = cmd.gesture, ToolTip = cmd.tip, Command = cmd.cmd):> Control
+
+open MenuUtil
 
 module StatusbarStyle = 
     let textPadding = Thickness(4. , 1. , 4., 1. ) //left ,top, right, bottom)
@@ -33,7 +39,7 @@ module StatusbarStyle =
     let waitCol  =  Brushes.HotPink  |> brighter 80    |> freeze
 
 open StatusbarStyle
-open FSharp.Compiler.Diagnostics
+
 
 type CheckerStatus (grid:TabsAndLog) as this = 
     inherit TextBlock()
@@ -176,7 +182,7 @@ type FsiOutputStatus (grid:TabsAndLog) as this =
     inherit TextBlock()
     let onTxt = "FSI prints to log window"
     let offTxt = "FSI is quiet"
-    let isOff () = grid.Config.Settings.GetBool Settings.keyFsiQuiet false
+    let isOff () = grid.Config.Settings.GetBool "fsiOutputQuiet" false
     do     
         this.Padding <- textPadding
         this.Text <- if isOff() then offTxt else onTxt
@@ -184,12 +190,12 @@ type FsiOutputStatus (grid:TabsAndLog) as this =
         this.MouseLeftButtonDown.Add ( fun a -> 
             if isOff() then 
                 this.Text <- onTxt
-                grid.Config.Settings.SetBool Settings.keyFsiQuiet false
+                grid.Config.Settings.SetBool "fsiOutputQuiet" false
                 grid.Config.Settings.Save ()
                 grid.Tabs.Fsi.Initalize()
             else
                 this.Text <- offTxt
-                grid.Config.Settings.SetBool Settings.keyFsiQuiet true
+                grid.Config.Settings.SetBool "fsiOutputQuiet" true
                 grid.Config.Settings.Save ()
                 grid.Tabs.Fsi.Initalize()
             )  
@@ -214,6 +220,8 @@ type SelectedTextStatus (grid:TabsAndLog) as this =
     inherit TextBlock()  
     let codeblock = Brushes.White   |> darker 70
 
+    let isSelOcc() = grid.Config.Settings.Get("SelOcc") = Some "1" 
+
     let onTxt ="ON"
     let offTxt = "OFF"
     let desc = "Highlighting is " // with trailing space
@@ -222,8 +230,8 @@ type SelectedTextStatus (grid:TabsAndLog) as this =
         let sett = grid.Config.Settings
         
         this.Padding <- textPadding
-        this.ToolTip <-  baseTxt + if sett.SelOcc then offTxt else onTxt        
-        this.Inlines.Add ( desc  + if sett.SelOcc then onTxt else offTxt)
+        this.ToolTip <-  baseTxt + if isSelOcc() then offTxt else onTxt        
+        this.Inlines.Add ( desc  + if isSelOcc() then onTxt else offTxt)
         
         //Editor events
         SelectedTextTracer.Instance.OnHighlightChanged.Add ( fun (highTxt,k ) ->             
@@ -234,34 +242,34 @@ type SelectedTextStatus (grid:TabsAndLog) as this =
             )
         SelectedTextTracer.Instance.OnHighlightCleared.Add ( fun () ->  
             this.Inlines.Clear()
-            this.Inlines.Add ( desc + if sett.SelOcc then onTxt else offTxt)
+            this.Inlines.Add ( desc + if isSelOcc() then onTxt else offTxt)
             )
         
         //Log events 
-        grid.Log.SelectedTextHighLighter.OnHighlightChanged.Add( fun (highTxt,k ) ->             
+        grid.Log.AvalonLog.SelectedTextHighLighter.OnHighlightChanged.Add( fun (highTxt,k ) ->             
             this.Inlines.Clear()
             this.Inlines.Add( sprintf "%d of " k)
-            this.Inlines.Add( new Run (highTxt, FontFamily = Style.fontEditor, Background = grid.Log.SelectedTextHighLighter.ColorHighlight))      
+            this.Inlines.Add( new Run (highTxt, FontFamily = Style.fontEditor, Background = grid.Log.AvalonLog.SelectedTextHighLighter.ColorHighlight))      
             this.Inlines.Add( sprintf " (%d Chars) in Log" highTxt.Length)
             ) 
         
-        grid.Log.SelectedTextHighLighter.OnHighlightCleared.Add ( fun () ->  
+        grid.Log.AvalonLog.SelectedTextHighLighter.OnHighlightCleared.Add ( fun () ->  
             this.Inlines.Clear()
-            this.Inlines.Add ( desc + if sett.SelOcc then onTxt else offTxt)
+            this.Inlines.Add ( desc + if isSelOcc() then onTxt else offTxt)
             )
         
         this.MouseDown.Add ( fun _ -> 
-            sett.SelOcc <- not sett.SelOcc // toggle 
+            if isSelOcc() then sett.Set "SelOcc" "0" else sett.Set "SelOcc" "1"// toggle 
             this.Inlines.Clear()            
-            this.Inlines.Add( desc +    if sett.SelOcc then onTxt else offTxt)
-            this.ToolTip <-   baseTxt + if sett.SelOcc then offTxt else onTxt            
+            this.Inlines.Add( desc +    if isSelOcc() then onTxt else offTxt)
+            this.ToolTip <-   baseTxt + if isSelOcc() then offTxt else onTxt            
             grid.Config.Settings.Save ()            
             )
 
         grid.Tabs.OnTabChanged.Add ( fun _ ->             
             this.Inlines.Clear()
-            this.Inlines.Add(desc +    if sett.SelOcc then onTxt else offTxt)
-            this.ToolTip <-  baseTxt + if sett.SelOcc then offTxt else onTxt
+            this.Inlines.Add(desc +    if isSelOcc() then onTxt else offTxt)
+            this.ToolTip <-  baseTxt + if isSelOcc() then offTxt else onTxt
             )
 
 type StatusBar (grid:TabsAndLog, cmds:Commands)  = 
