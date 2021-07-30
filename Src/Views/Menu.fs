@@ -86,7 +86,7 @@ module private RecognicePath =
                         with e ->
                             ISeffLog.log.PrintfIOErrorMsg "Failed to make menu item for fullPath %s:\r\n%A" fullPath e
         
-
+ #nowarn "44" //to use log.AvalonLog.AvalonEdit in addPathIfPresentToMenu
 
 type Menu (config:Config,cmds:Commands, tabs:Tabs, log:Log) = 
     let bar = new Windows.Controls.Menu()
@@ -311,7 +311,7 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, log:Log) =
                 //sep()
                 ]
                 
-        log.ReadOnlyEditor.ContextMenu <- 
+        log.AvalonLog.ContextMenu <- 
             makeContextMenu [
                 menuItem cmds.ClearLog
                 menuItem cmds.CancelFSI
@@ -328,15 +328,15 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, log:Log) =
                 ]
         
 
-
+       
 
         /// add menu to open file path if there is on on current line
         tabs.Control.PreviewMouseRightButtonDown.Add ( fun m -> 
             RecognicePath.addPathIfPresentToMenu (m, tempItemsInEditorMenu, tabs.Control.ContextMenu, tabs.Current.AvaEdit , tabs.AddFile)
             )
         /// add menu to open file path if there is on on current line
-        log.ReadOnlyEditor.PreviewMouseRightButtonDown.Add ( fun m -> 
-            RecognicePath.addPathIfPresentToMenu (m, tempItemsInLogMenu, log.ReadOnlyEditor.ContextMenu, log.ReadOnlyEditor , tabs.AddFile)
+        log.AvalonLog.PreviewMouseRightButtonDown.Add ( fun m -> 
+            RecognicePath.addPathIfPresentToMenu (m, tempItemsInLogMenu, log.AvalonLog.ContextMenu, log.AvalonLog.AvalonEdit , tabs.AddFile)
             )  
 
 

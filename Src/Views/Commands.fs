@@ -43,7 +43,7 @@ type Commands (grid:TabsAndLog)  =
     //TODO these gets evaluated for each cmd on every mouse click or key perss . is this OK?  any lag ?? in Canexecute for commands
 
     let isEse a  = tabs.Current.Editor.AvaEdit.SelectionLength > 0
-    let isLse a  = log.ReadOnlyEditor.SelectionLength > 0
+    let isLse a  = log.AvalonLog.Selection.Length > 0
     let isAsy a  = fsi.State = Evaluating && fsi.Mode = Async
 
     // NOTE :--------------------------------------------------------------------

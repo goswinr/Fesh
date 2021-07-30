@@ -15,17 +15,9 @@ open FSharp.Compiler.CodeAnalysis
 
 type ISeffLog = 
     // this interface allows the Config to be declared before the Log
-    // the Log is created first with this interface and then Config gets it in the constructor
-    
-    /// The log editor is readOnly for users , not for the API
-    abstract member ReadOnlyEditor   : TextEditor
-    
-    /// The log editor and document is readOnly for users , not for the API
-    /// use this to call doc.CreateSnapshot().Text  from other threads
-    abstract member ReadOnlyDoc   : Document.TextDocument 
+    // the Log is created first with this interface and then Config gets it in the constructor   
 
-    abstract member FsiErrorStream     : StringBuilder
-    
+    abstract member FsiErrorStream     : StringBuilder    
 
     abstract member PrintfnInfoMsg     : Printf.StringFormat<'T,unit> -> 'T 
     abstract member PrintfnFsiErrorMsg : Printf.StringFormat<'T,unit> -> 'T  

@@ -19,7 +19,7 @@ type Fonts (grid:TabsAndLog) = // will be contructed as part of Commands class
         // 17.0252982466288 this fontsize makes block selection delete fail on the last line: 17.0252982466288
         //let newSize = grid.Config.Settings.roundToOneDigitBehindComa(newSizeUnRounded)
         
-        log.ReadOnlyEditor.FontSize <- newSize
+        log.AvalonLog.FontSize <- newSize
         for t in tabs.AllTabs do                
             t.Editor.AvaEdit.FontSize  <- newSize        
         config.Settings.SetFloat "FontSize" newSize 
@@ -44,7 +44,7 @@ type Fonts (grid:TabsAndLog) = // will be contructed as part of Commands class
 
     let setLog(font:FontFamily) = // on log and all tabs
         Style.fontLog <- font
-        log.ReadOnlyEditor.FontFamily<- font        
+        log.AvalonLog.FontFamily <- font        
         config.Settings.Set "FontLog" font.Source
         config.Settings.Save ()
            

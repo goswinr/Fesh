@@ -91,7 +91,7 @@ type Log private () =
         config.Settings.Save ()
     
     /// to acces the underlying read-only Avalonedit Texteditor
-    member this.ReadOnlyEditor = log.AvalonEditInternal
+    //member this.ReadOnlyEditor = log.AvalonEdit
         
     member this.Clear() = log.Clear()      
        
@@ -144,16 +144,14 @@ type Log private () =
 
     /// Change custom color to a RGB value ( each between 0 and 255) 
     /// Then print without adding a new line at the end
-    member this.PrintColor red green blue s = log.AppendWithColor red green blue s                
+    member this.PrintColor red green blue s = log.AppendWithColor (red, green, blue, s)                
        
     /// Change custom color to a RGB value ( each between 0 and 255) 
     /// Adds a new line at the end
-    member this.PrintnColor red green blue s = log.AppendLineWithColor red green blue s  
+    member this.PrintnColor red green blue s = log.AppendLineWithColor (red, green, blue, s)   
    
 
-    interface ISeffLog with        
-        member _.ReadOnlyEditor         = log.AvalonEditInternal            // TODO needed ?
-        member _.ReadOnlyDoc            = log.AvalonEditInternal.Document   // TODO needed ?
+    interface ISeffLog with                
         member _.FsiErrorStream         = fsiErrorStream
         
         //used in FSI constructor:
@@ -196,16 +194,16 @@ type Log private () =
         dlg.Filter <- "Text Files(*.txt)|*.txt|Text Files(*.csv)|*.csv|All Files(*.*)|*"
         if isTrue (dlg.ShowDialog()) then                
             try
-                IO.File.WriteAllText(dlg.FileName, log.AvalonEditInternal.Text, Text.Encoding.UTF8) 
+                IO.File.WriteAllText(dlg.FileName, log.Text(), Text.Encoding.UTF8) 
                 this.PrintfnInfoMsg "Log File saved as:\r\n%s" dlg.FileName
             with e -> 
                 this.PrintfnIOErrorMsg "Failed to save text from Log at :\r\n%s\r\n%A" dlg.FileName e
    
     member this.SaveSelectedText (pathHint: FilePath) = 
-        if log.AvalonEditInternal.SelectedText.Length > 0 then // this check is also done in "canexecute command"
+        if log.Selection.Length > 0 then // this check is also done in "canexecute command"
            let txt =
-                log.AvalonEditInternal.TextArea.Selection.Segments 
-                |> Seq.map (fun s -> log.AvalonEditInternal.Document.GetText(s)) // to ensure block selection is saved correctly
+                log.Selection.Segments 
+                |> Seq.map (fun s -> log.Text(s) ) // to ensure block selection is saved correctly
                 |> String.concat Environment.NewLine
    
            let dlg = new Microsoft.Win32.SaveFileDialog()
