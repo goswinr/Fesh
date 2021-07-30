@@ -18,9 +18,9 @@
     <Product>Seff</Product>
     <PackageId>Seff</PackageId>  
 
-    <Version>1.0.0.0</Version>
-    <AssemblyVersion>1.0.0.0</AssemblyVersion>
-    <FileVersion>1.0.0.0</FileVersion>
+    <Version>0.9.0.0</Version>
+    <AssemblyVersion>0.9.0.0</AssemblyVersion>
+    <FileVersion>0.9.0.0</FileVersion>
     <PackageReleaseNotes>First release</PackageReleaseNotes>   
 
     
@@ -35,22 +35,6 @@
     <Configurations>Release</Configurations>
 
   </PropertyGroup>
-
- <!-- <PropertyGroup>  
-    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>      
-    <IncludeSymbols>true</IncludeSymbols>
-    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
-    <PublishRepositoryUrl>true</PublishRepositoryUrl>
-    <RepositoryType>git</RepositoryType>
-    <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <PackageProjectUrl>https://github.com/goswinr/Seff</PackageProjectUrl>
-    <RepositoryUrl>https://github.com/goswinr/Seff</RepositoryUrl>
-    <PublishRepositoryUrl>true</PublishRepositoryUrl>
-    <PackageIcon>logo128.png</PackageIcon>
-    <PackageReadmeFile>README.md</PackageReadmeFile>
-    <PackageDescription>A hostable fsharp scripting editor for Windows based on Avalonedit</PackageDescription>    
-    <PackageTags>WPF TextEditor F# Scripting AvalonEdit</PackageTags>    
-  </PropertyGroup> -->
 
 
   <!--Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" -->
@@ -75,19 +59,10 @@
     <Reference Include="AvalonLog" HintPath="../AvalonLog/bin/Release/net472/AvalonLog.dll" />
 
   </ItemGroup>
-  
-  <!-- <ItemGroup>
-    <Reference Include="System.Windows.Forms" /> 
-    <Reference Include="WindowsBase" />
-    <Reference Include="PresentationCore" />
-    <Reference Include="PresentationFramework" />
-  </ItemGroup> -->
-
 
   <ItemGroup>
-
-    <None Include="Media/logo128.png" Pack="true" PackagePath="\" /> <!--PackagePath = "\" makes the fike availabe to nuget pack tool-->
-    <None Include="README.md" Pack="true" PackagePath="\" />
+    
+    <None Include="README.md" />
     <EmbeddedResource Include="Media/logo.res" /> <!--  for Application Icon in explorer-->   
     <Resource Include="Media/logo.ico" />    
     <Resource Include="Media/FiraCode-Regular.ttf" />  

@@ -18,9 +18,9 @@
     <Product>Seff</Product>
     <PackageId>Seff</PackageId>  
 
-    <Version>1.0.0.0</Version>
-    <AssemblyVersion>1.0.0.0</AssemblyVersion>
-    <FileVersion>1.0.0.0</FileVersion>
+    <Version>0.9.0.0</Version>
+    <AssemblyVersion>0.9.0.0</AssemblyVersion>
+    <FileVersion>0.9.0.0</FileVersion>
     <PackageReleaseNotes>First release</PackageReleaseNotes>   
 
     
@@ -39,7 +39,7 @@
  <PropertyGroup> 
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>      
     <IncludeSymbols>true</IncludeSymbols>
-    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <!-- <SymbolPackageFormat>snupkg</SymbolPackageFormat>  -->  <!-- using  snupkg the readme does not pack https://github.com/NuGet/Home/issues/10791 --> 
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
@@ -47,7 +47,7 @@
     <RepositoryUrl>https://github.com/goswinr/Seff</RepositoryUrl>
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
     <PackageIcon>logo128.png</PackageIcon>
-    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageReadmeFile>READMEnuget.md</PackageReadmeFile>
     <PackageDescription>A hostable fsharp scripting editor for Windows based on Avalonedit</PackageDescription>    
     <PackageTags>WPF TextEditor F# Scripting AvalonEdit</PackageTags>    
   </PropertyGroup>
@@ -76,8 +76,9 @@
   
   <ItemGroup>
 
+    <None Include="README.md" />
+    <None Include="Media/READMEnuget.md" Pack="true" PackagePath="\" />
     <None Include="Media/logo128.png" Pack="true" PackagePath="\" /> <!--PackagePath = "\" makes the fike availabe to nuget pack tool-->
-    <None Include="README.md" Pack="true" PackagePath="\" />
     <EmbeddedResource Include="Media/logo.res" /> <!--  for Application Icon in explorer-->   
     <Resource Include="Media/logo.ico" />    
     <Resource Include="Media/FiraCode-Regular.ttf" />  
