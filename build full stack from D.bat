@@ -27,7 +27,7 @@ dotnet build "D:/Git/Seff/SeffHosting.fsproj" -p:Platform=x64 --configuration Re
 rmdir /s /q  "D:/Git/Seff.Rhino/binRh7"
 dotnet build "D:/Git/Seff.Rhino/Seff.Rhino7.fsproj" -p:Platform=x64 --configuration Release
 rmdir /s /q  "D:/Git/Rhino.Scripting/binRh7"
-dotnet build "D:/Git/Rhino.Scripting/Rhino.Scripting7.fsproj" -p:Platform=x64 --configuration Release
+dotnet build "D:/Git/Rhino.Scripting/Rhino7.Scripting.fsproj" -p:Platform=x64 --configuration Release
 
 
 :: Rhino6
@@ -35,24 +35,22 @@ dotnet build "D:/Git/Rhino.Scripting/Rhino.Scripting7.fsproj" -p:Platform=x64 --
 rmdir /s /q  "D:/Git/Seff.Rhino/obj" 
 rmdir /s /q  "D:/Git/Seff.Rhino/binRh6"
 dotnet build "D:/Git/Seff.Rhino/Seff.Rhino6.fsproj" -p:Platform=x64 --configuration Release
-
-rmdir /s /q  "D:/Git/Rhino.Scripting/obj"
+:: first delete obj folder so that ther reference really goes to rhino 6 and not 7
+rmdir /s /q  "D:/Git/Rhino.Scripting//obj" 
 rmdir /s /q  "D:/Git/Rhino.Scripting/binRh6"
-dotnet build "D:/Git/Rhino.Scripting/Rhino.Scripting6.fsproj" -p:Platform=x64 --configuration Release
+dotnet build "D:/Git/Rhino.Scripting/Rhino6.Scripting.fsproj" -p:Platform=x64 --configuration Release
 
+rmdir /s /q  "D:/Git/Rhino.Scripting.QrCode/bin"
+dotnet build "D:/Git/Rhino.Scripting.QrCode/Rhino.Scripting.QrCode.fsproj" -p:Platform=x64 --configuration Release
+
+rmdir /s /q  "D:/Git/Rhino.Scripting.Extra/bin"
+dotnet build "D:/Git/Rhino.Scripting.Extra/Rhino.Scripting.Extra.fsproj" -p:Platform=x64 --configuration Release
+
+:: Revit
 
 rmdir /s /q "D:/Git/Seff.Revit/bin"
 dotnet build "D:/Git/Seff.Revit/Seff.Revit.2019.fsproj" --configuration Release
 dotnet build "D:/Git/Seff.Revit/Seff.Revit.2021.fsproj" --configuration Release
-
-@REM :: Revit 2018
-@REM :: first delete obj folder to resolve version conflicts of FSharp.Core 5.0.0 vs 4.6.2
-@REM rmdir /s /q "D:/Git/Seff/obj" 
-@REM rmdir /s /q "D:/Git/Seff/binHostingRevit"
-@REM dotnet build "D:/Git/Seff/SeffHostingRevit.fsproj" --configuration Release
-@REM rmdir /s /q "D:/Git/Seff.Revit/bin2018"
-@REM dotnet build "D:/Git/Seff.Revit/Seff.Revit2018.fsproj" --configuration Release
-
 
 
 PAUSE
