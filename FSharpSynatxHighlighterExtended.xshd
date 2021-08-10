@@ -50,12 +50,12 @@
   <Color name="LetRec"              foreground="#B03080" />
   <Color name="LetMutable"          foreground="#D08030" />
     
-  <Color name="DocCommentStart"     foreground="#AACCAA" /> <!-- taken from https://github.com/icsharpcode/AvalonEdit/blob/master/ICSharpCode.AvalonEdit/Highlighting/Resources/XmlDoc.xshd-->
-  <Color name="XmlString"           foreground="#669966" />
+  <Color name="DocCommentStart"     foreground="#AAAAAA" /> <!-- taken from https://github.com/icsharpcode/AvalonEdit/blob/master/ICSharpCode.AvalonEdit/Highlighting/Resources/XmlDoc.xshd-->
+  <Color name="XmlString"           foreground="#EE3333" />
   <Color name="XmlPunctuation"      foreground="#666666" />
-  <Color name="KnownDocTags"        foreground="#666666" />
+  <Color name="KnownDocTags"        foreground="#8888EE" />
 
-  <Color name="NonEval"             foreground="#AACCAA" />
+  <Color name="NonEval"             foreground="#AAAAAA" />
   <Color name="InDoubleTicks"       foreground="#007777" />
   
 
@@ -64,8 +64,8 @@
 
   <RuleSet name="DocCommentSet">
     <Span color="DocComment">
-      <Begin>&lt;</Begin>
-      <End>&gt;</End>
+      <Begin color="XmlPunctuation">&lt;</Begin>
+      <End color="XmlPunctuation">&gt;</End>
       <RuleSet>
         <Span color="XmlString">
           <Begin>"</Begin>
