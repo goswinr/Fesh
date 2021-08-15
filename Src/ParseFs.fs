@@ -1,5 +1,6 @@
 ﻿namespace Seff.Util
 
+
 open System
 
 /// simple parsing of Fsharp code
@@ -22,7 +23,7 @@ module ParseFs =
     let findInFsCode search fromIdx (tx:string) = 
        
         let lasti = tx.Length-1
-        if fromIdx > lasti then eprintfn "findInCode: Search from index %d  is bigger than search string last index %d" fromIdx lasti
+        if fromIdx > lasti then eprintfn  "findInCode: Search from index %d  is bigger than search string last index %d" fromIdx lasti
         let mutable i = 0
         let mutable line = 1
 

@@ -59,10 +59,10 @@ type Hosting (startUpData:HostedStartUpData option) =
     member this.OpenAppFolder()=               
         let ass = Reflection.Assembly.GetExecutingAssembly()
         if isNull ass then 
-            ISeffLog.log.PrintfIOErrorMsg "OpenAppFolder: GetExecutingAssembly() is null"
+            ISeffLog.log.PrintfnIOErrorMsg "OpenAppFolder: GetExecutingAssembly() is null"
         else
             if ass.IsDynamic then 
-                ISeffLog.log.PrintfIOErrorMsg "Can get path of %A" ass.FullName
+                ISeffLog.log.PrintfnIOErrorMsg "Can get path of %A" ass.FullName
             else
                 let folder = IO.Path.GetDirectoryName( ass.Location)
                 Diagnostics.Process.Start("explorer.exe", "\"" + folder+ "\"")        |> ignore

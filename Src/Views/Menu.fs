@@ -59,7 +59,7 @@ module private RecognicePath =
                                         gesture = ""
                                         cmd = mkCmdSimple (fun _ -> 
                                             if IO.Directory.Exists dir then  Diagnostics.Process.Start("Explorer.exe", "\"" + dir+ "\"") |> ignoreObj
-                                            else ISeffLog.log.PrintfIOErrorMsg "directory '%s' does not exist" dir
+                                            else ISeffLog.log.PrintfnIOErrorMsg "directory '%s' does not exist" dir
                                             ) 
                                         tip = sprintf "Try to open folder at \r\n%s" dir
                                         }
@@ -83,7 +83,7 @@ module private RecognicePath =
                                     menu.Items.Insert(0, menuItem cmd) 
                                     incr tempItemsInMenu 
                         with e ->
-                            ISeffLog.log.PrintfIOErrorMsg "Failed to make menu item for fullPath %s:\r\n%A" fullPath e
+                            ISeffLog.log.PrintfnIOErrorMsg "Failed to make menu item for fullPath %s:\r\n%A" fullPath e
         
  #nowarn "44" //to use log.AvalonLog.AvalonEdit in addPathIfPresentToMenu
 

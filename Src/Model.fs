@@ -22,35 +22,14 @@ type ISeffLog =
     abstract member PrintfnFsiErrorMsg : Printf.StringFormat<'T,unit> -> 'T  
     abstract member PrintfnAppErrorMsg : Printf.StringFormat<'T,unit> -> 'T  
     abstract member PrintfnIOErrorMsg  : Printf.StringFormat<'T,unit> -> 'T  
-    abstract member PrintfnDebugMsg    : Printf.StringFormat<'T,unit> -> 'T
-    
-    /// Print using the same color as in last print call
-    abstract member PrintfnLastColor     : Printf.StringFormat<'T,unit> -> 'T
+    abstract member PrintfnDebugMsg    : Printf.StringFormat<'T,unit> -> 'T    
+      
+    /// Prints without adding a new line at the end
+    abstract member PrintfFsiErrorMsg  : Printf.StringFormat<'T,unit> -> 'T    
 
     /// Change custom color to a RGB value ( each between 0 and 255) , then print 
-    abstract member PrintfnColor : int ->  int ->  int ->  Printf.StringFormat<'T,unit> -> 'T 
+    abstract member PrintfnColor : int ->  int ->  int ->  Printf.StringFormat<'T,unit> -> 'T     
     
-    //--- without new line: --------------
-
-    /// Prints without adding a new line at the end
-    abstract member PrintfInfoMsg      : Printf.StringFormat<'T,unit> -> 'T  
-    
-    /// Prints without adding a new line at the end
-    abstract member PrintfFsiErrorMsg  : Printf.StringFormat<'T,unit> -> 'T  
-    
-    /// Prints without adding a new line at the end
-    abstract member PrintfAppErrorMsg  : Printf.StringFormat<'T,unit> -> 'T  
-    
-    /// Prints without adding a new line at the end
-    abstract member PrintfIOErrorMsg   : Printf.StringFormat<'T,unit> -> 'T         
-    
-    /// Prints without adding a new line at the end
-    abstract member PrintfDebugMsg     : Printf.StringFormat<'T,unit> -> 'T     
-    
-    /// Print using the same color as in last print call
-    /// without adding a new line at the end
-    abstract member PrintfLastColor : Printf.StringFormat<'T,unit> -> 'T
-
     /// Change custom color to a RGB value ( each between 0 and 255) 
     /// Then print without adding a new line at the end
     abstract member PrintfColor : int ->  int ->  int ->  Printf.StringFormat<'T,unit> -> 'T 

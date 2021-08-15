@@ -103,7 +103,7 @@ type Foldings(ed:TextEditor, checker:Checker, config:Config, edId:Guid) =
                     findFolds le.indent le.wordStartOff
             
                 elif le.indent < ind then 
-                    //eprintfn "%A" St
+                    //ISeffLog.log.PrintfnAppErrorMsg  "%A" St
                     let mutable take = true
                     while FoldingStack.Count > 0 && take do                
                         let st = FoldingStack.Peek()
@@ -116,7 +116,7 @@ type Foldings(ed:TextEditor, checker:Checker, config:Config, edId:Guid) =
                                 let foldStart = st.lineEndOff - 1 // the position of '\n' minus two ( does not work without the minus one)
                                 let foldEnd = en - 1 // the position of '\n' minus two
                                 Folds.[st.indexInFolds] <- {foldStartOff = foldStart; foldEndOff = foldEnd; linesInFold = lines ;nestingLevel = st.nestingLevel}
-                                //eprintfn "line: %d : indent %d end of %d lines " no st.indent lines
+                                //ISeffLog.log.PrintfnAppErrorMsg  "line: %d : indent %d end of %d lines " no st.indent lines
                         else
                             take <- false            
                     findFolds le.indent le.wordStartOff        

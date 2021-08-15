@@ -101,7 +101,7 @@ type SelectedTextTracer private () =
                     let st =  index + highTxt.Length // endOffset // TODO or just +1 ???????
                     if st >= code.Length then 
                         index <- -99 // this happens wen wor to highlight ia at document end
-                        //eprintfn "index  %d in %d ??" st code.Length    
+                        //ISeffLog.log.PrintfnAppErrorMsg  "index  %d in %d ??" st code.Length    
                     else
                         index <- code.IndexOf(highTxt, st, StringComparison.Ordinal)
                            

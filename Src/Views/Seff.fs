@@ -1,7 +1,7 @@
 ﻿namespace Seff
 
 open System.Windows
-
+open System
 open FsEx.Wpf.DependencyProps
 
 open Seff.Views
@@ -9,10 +9,11 @@ open Seff.Config
 open Seff.Editor
 open Seff.Model
 
+//#nowarn "44" // for AppDomain.GetCurrentThreadId()
+
 /// the main App holding all UI and interaction ellements
 /// this is passed on to hosting apps
-type Seff (config:Config,log:Log) =
-    
+type Seff (config:Config,log:Log) =    
     
     let win = new Views.Window(config)
     let tabs = new Tabs(config, win.Window)
@@ -22,21 +23,24 @@ type Seff (config:Config,log:Log) =
     let statusBar = StatusBar(tabsAndLog, commands)
     let menu = Menu(config, commands, tabs, log)
     let dockP = dockPanelVert(menu.Bar , tabsAndLog.Grid , statusBar.Bar) 
-    
-    
-    do
         
+    do        
         dockP.Margin <- Thickness(tabsAndLog.GridSplitterSize)
         
         commands.SetUpGestureInputBindings()        
         
+        win.Window.AllowDrop <- true // so it works on tab bar 
+        win.Window.Drop.Add (fun e -> CursorBehaviour.TabBarDragAndDrop(log,tabs.AddFiles, e)) // text editor has it own drag event, this aplies to all other area ( eg log, tab bar) except the editor
+
         win.Window.Content     <- dockP   
-        win.Window.Background  <- menu.Bar.Background // call after setting up content, otherwise space next to tab headers is in an odd color
+        win.Window.Background  <- menu.Bar.Background // call after setting up content, otherwise space next to tab headers is in an odd color  
+        
+        win.Window.Closed.Add(         fun _ ->  KeyboardNative.unHook()  |> ignore )
+        win.Window.ContentRendered.Add(fun _ ->  KeyboardNative.hookUp(win.Window))        
+        KeyboardNative.OnAltKeyCombo.Add(fun ac -> log.PrintfnDebugMsg "%A" ac)
               
         //if config.Hosting.IsStandalone then win.Window.ContentRendered.Add(fun _ -> log.PrintfnInfoMsg "* Time for loading and rendering of main window: %s"  Timer.InstanceStartup.tocEx) 
-        
-        win.Window.ContentRendered.Add(fun _ -> tabs.CurrAvaEdit.Focus() |> ignore )
-          
+                 
         win.Window.Closing.Add( fun e ->
             // first check for running FSI
             match tabs.Fsi.AskIfCancellingIsOk () with 
@@ -48,12 +52,12 @@ type Seff (config:Config,log:Log) =
             //then check for unsaved files:
             let canClose = tabs.AskIfClosingWindowIsOk() 
             if not canClose then e.Cancel <- true // dont close window  
-            ) 
-        
-        win.Window.AllowDrop <- true // so it works on tab bar 
-        win.Window.Drop.Add (fun e -> CursorBehaviour.TabBarDragAndDrop(log,tabs.AddFiles, e)) // text editor has it own drag event, this aplies to all other area ( eg log, tab bar) except the editor
+            )        
 
-        //to show file chnaged event only when app gets focus again
+        
+        win.Window.ContentRendered.Add(fun _ -> tabs.CurrAvaEdit.Focus() |> ignore )
+
+        // to show file changed event only when app gets focus again
         win.Window.Activated.Add( fun a -> 
             // only show thw events of the current active tab:
             //then other get shown when then editor chnages focus see FileWatcher.fs

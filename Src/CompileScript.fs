@@ -187,7 +187,7 @@ module CompileScript =
             ]            
         
         match msBuildFolders |> Seq.tryFind File.Exists with
-        | None -> ISeffLog.log.PrintfIOErrorMsg "MSBuild.exe not found at:\r\n%s " (msBuildFolders |> String.concat Environment.NewLine)
+        | None -> ISeffLog.log.PrintfnIOErrorMsg "MSBuild.exe not found at:\r\n%s " (msBuildFolders |> String.concat Environment.NewLine)
         | Some msBuildexe -> 
             p.StartInfo.FileName <- "\"" + msBuildexe + "\""             
             p.StartInfo.Arguments <- String.concat " " ["\"" + fsProj + "\"" ;  "-restore" ; "/property:Configuration=Release"]    

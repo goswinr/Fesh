@@ -91,8 +91,7 @@ type Log private () =
     /// to acces the underlying read-only Avalonedit Texteditor
     //member this.ReadOnlyEditor = log.AvalonEdit
         
-    member this.Clear() = log.Clear()      
-       
+    member this.Clear() = log.Clear() 
 
     //used in FSI constructor:
     member this.TextWriterFsiStdOut    = textWriterFsiStdOut    
@@ -105,40 +104,42 @@ type Log private () =
     member this.PrintfnAppErrorMsg  msg =  log.printfnBrush LogColors.appErrorMsg  msg
     member this.PrintfnIOErrorMsg   msg =  log.printfnBrush LogColors.iOErrorMsg   msg        
     member this.PrintfnDebugMsg     msg =  log.printfnBrush LogColors.debugMsg     msg
-    member this.PrintfnLastColor    msg =  log.printfnLastColor  msg
  
         
-    /// Change custom color to a RGB value ( each between 0 and 255). Then print 
-    member this.PrintfnColor red green blue msg =  log.printfnColor red green blue msg        
-
-    //---------------------- without new line: ------------------------------
-    
-    /// Prints without adding a new line at the end
-    member this.PrintfInfoMsg  msg  = log.printfnBrush LogColors.infoMsg    msg 
-
     /// Prints without adding a new line at the end
     member this.PrintfFsiErrorMsg  msg =  log.printfBrush LogColors.fsiErrorMsg  msg
 
-    /// Prints without adding a new line at the end
-    member this.PrintfAppErrorMsg  msg = log.printfBrush LogColors.appErrorMsg msg
+    /// Change custom color to a RGB value ( each between 0 and 255). Then print 
+    member this.PrintfnColor red green blue msg =  log.printfnColor red green blue msg        
 
-    /// Prints without adding a new line at the end
-    member this.PrintfIOErrorMsg  msg =  log.printfBrush LogColors.iOErrorMsg  msg
-
-    /// Prints without adding a new line at the end
-    member this.PrintfDebugMsg   msg =  log.printfBrush LogColors.debugMsg  msg    
-    
-    /// Print using the Brush or color provided 
-    /// at last custom printing call via.PrintfnCustomBrush or.PrintfnColor 
-    /// without adding a new line at the end
-    member this.PrintfLastColor msg =  log.printfLastColor  msg
-   
     /// Change custom color to a RGB value ( each between 0 and 255) 
     /// Then print without adding a new line at the end
-    member this.PrintfColor red green blue msg = log.printfColor red green blue msg    
+    member this.PrintfColor red green blue msg = log.printfColor red green blue msg  
+    
+    //---------------------- TODO delete: ------------------------------
+   //
+   ///// Prints without adding a new line at the end
+   //member this.PrintfInfoMsg  msg  = log.printfnBrush LogColors.infoMsg    msg 
+   //
+   //
+   ///// Prints without adding a new line at the end
+   //member this.PrintfAppErrorMsg  msg = log.printfBrush LogColors.appErrorMsg msg
+   //
+   ///// Prints without adding a new line at the end
+   //member this.PrintfIOErrorMsg  msg =  log.printfBrush LogColors.iOErrorMsg  msg
+   //
+   ///// Prints without adding a new line at the end
+   //member this.PrintfDebugMsg   msg =  log.printfBrush LogColors.debugMsg  msg    
+   //
+   ///// Print using the Brush or color provided 
+   ///// at last custom printing call via.PrintfnCustomBrush or.PrintfnColor 
+   ///// without adding a new line at the end
+   //member this.PrintfLastColor msg =  log.printfLastColor  msg
+    //member this.PrintfnLastColor    msg =  log.printfnLastColor  msg
+   
            
     
-    // ------------------- for use from Seff.Rhino: -------------------------------------
+    // ------------------- for use from Seff.Rhino with just a string , no formating: -------------------------------------
 
     /// Change custom color to a RGB value ( each between 0 and 255) 
     /// Then print without adding a new line at the end
@@ -159,23 +160,15 @@ type Log private () =
         member _.TextWriterConsoleError = textWriterConsoleError :> TextWriter          
 
         member this.PrintfnInfoMsg     msg =            this.PrintfnInfoMsg     msg
-        member this.PrintfnFsiErrorMsg msg =            this.PrintfnFsiErrorMsg msg
         member this.PrintfnAppErrorMsg msg =            this.PrintfnAppErrorMsg msg
         member this.PrintfnIOErrorMsg  msg =            this.PrintfnIOErrorMsg  msg
-        member this.PrintfnDebugMsg    msg =            this.PrintfnDebugMsg    msg
-        member this.PrintfnLastColor   msg =            this.PrintfnLastColor   msg
-        member this.PrintfnColor red green blue msg =   this.PrintfnColor red green blue msg 
-        //member this.PrintfnBrush (br:SolidColorBrush) msg = this.PrintfnCustomBrush (br:SolidColorBrush) msg
-
-        //without the new line:
-        member this.PrintfInfoMsg     msg          = this.PrintfInfoMsg     msg          
+        member this.PrintfnDebugMsg    msg =            this.PrintfnDebugMsg    msg        
+               
+        member this.PrintfnFsiErrorMsg msg =            this.PrintfnFsiErrorMsg msg
         member this.PrintfFsiErrorMsg msg          = this.PrintfFsiErrorMsg msg          
-        member this.PrintfAppErrorMsg msg          = this.PrintfAppErrorMsg msg          
-        member this.PrintfIOErrorMsg  msg          = this.PrintfIOErrorMsg  msg          
-        member this.PrintfDebugMsg    msg          = this.PrintfDebugMsg    msg          
-        member this.PrintfLastColor   msg          = this.PrintfLastColor   msg          
+  
+        member this.PrintfnColor red green blue msg =   this.PrintfnColor red green blue msg 
         member this.PrintfColor red green blue msg = this.PrintfColor red green blue msg        
-        //member this.PrintfCustomBrush (br:SolidColorBrush) msg =  LogColors.customColor  <- br |> freeze;  Printf.kprintf (fun s -> printOrBuffer (s,false, LogColors.customColor ))  msg
 
         member this.Clear() = this.Clear()
     

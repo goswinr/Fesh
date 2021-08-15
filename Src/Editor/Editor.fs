@@ -252,7 +252,7 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
              //else compls.JustClosed<-false
         
         avaEdit.Drop.Add                      (fun e -> CursorBehaviour.TextAreaDragAndDrop( ed,e))         
-        avaEdit.PreviewKeyDown.Add            (fun e -> KeyboardShortcuts.previewKeyDown(      ed, e))   //to indent and dedent, and change block selection deltee behaviour
+        avaEdit.PreviewKeyDown.Add            (fun e -> KeyboardShortcuts.previewKeyDown(    ed, e))   //to indent and dedent, and change block selection deltee behaviour
         avaEdit.TextArea.PreviewTextInput.Add (fun e -> CursorBehaviour.previewTextInput(    ed, e))   //to change block selection delete behaviour
         avaEdit.TextArea.AlternativeRectangularPaste <- Action<string,bool>( fun txt txtIsFromOtherRectSel -> RectangleSelection.paste(ed,txt,txtIsFromOtherRectSel)) //TODO check txtIsFromOtherRectSel on pasting text with \r\n
        

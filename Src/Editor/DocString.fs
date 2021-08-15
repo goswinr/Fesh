@@ -198,9 +198,9 @@ module DocString =
                 indentationSize, acc |> Map.add key (XmlDocMember(doc, indentationSize, xli.LinePosition - 3)) |> Some
               with
               | ex ->
-                eprintfn  "***Inner ERROR in reading xml file for tooltips, Current Name:\r\n%s" key /// TODO ad printing to LOG directly?
-                eprintfn  "%A" ex
-                indentationSize, Some acc
+                    ISeffLog.log.PrintfnAppErrorMsg   "***Inner ERROR in reading xml file for tooltips, Current Name:\r\n%s" key /// TODO ad printing to LOG directly?
+                    ISeffLog.log.PrintfnAppErrorMsg   "%A" ex
+                    indentationSize, Some acc
         | _ -> indentationSize, Some acc
 
       match acc' with
@@ -250,7 +250,7 @@ module DocString =
                     xmlDocCache.AddOrUpdate(xmlFile, xmlDoc, fun _ _ -> xmlDoc) |> ignore
                     Some xmlDoc
                 with ex ->
-                    ISeffLog.log.PrintfIOErrorMsg  "Error in reading xml file %s \r\nfor tooltips ( is it Text.Encoding.UTF8?) : %A" actualXmlFile ex /// TODO ad printing to LOG ?
+                    ISeffLog.log.PrintfnIOErrorMsg  "Error in reading xml file %s \r\nfor tooltips ( is it Text.Encoding.UTF8?) : %A" actualXmlFile ex /// TODO ad printing to LOG ?
                     None  // TODO: Remove the empty map from cache to try again in the next request?
                 //} Async.
 

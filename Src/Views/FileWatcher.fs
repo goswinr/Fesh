@@ -58,7 +58,7 @@ type FileWatcher(editor:Editor,upadteIsCodeSaved:bool->unit) as this =
                     else                        
                         onFocusActions.Add (fun () ->  asktToUpdate(msg,fileCode) )                 
             with e -> 
-                editor.Log.PrintfAppErrorMsg "File changed but cant read changes from file system to compare if its the same as the currently shown file. %A " e
+                editor.Log.PrintfnAppErrorMsg "File changed but cant read changes from file system to compare if its the same as the currently shown file. %A " e
              }            
         |> Async.StartImmediate
     

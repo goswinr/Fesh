@@ -1,4 +1,4 @@
-namespace Seff.Views
+﻿namespace Seff.Views
 
 open System
 open System.Windows.Input 
@@ -170,8 +170,8 @@ type Commands (grid:TabsAndLog)  =
                  this.ToggleBoolean
                  this.AlignCode
 
-                 this.SwapLineDown     
-                 this.SwapLineUp 
+                 //this.SwapLineDown     
+                 //this.SwapLineUp 
                  //this.SwapLineDownCtrl // key gesture handeled via previewKeyDown event in CursorBehaviour module
                  //this.SwapLineUpCtrl  // key gesture handeled via previewKeyDown event in CursorBehaviour module
                  
