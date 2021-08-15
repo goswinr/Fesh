@@ -242,6 +242,10 @@ type TypeInfo private () =
          //printfn "%s" txt
          txt.Replace("<summary>"        ,"" )
             .Replace("</summary>"       ,"" )
+            .Replace("<remarks>"        ,"Remarks: " )
+            .Replace("</remarks>"       ,"" )
+            .Replace("<category>"       ,"Category: " )
+            .Replace("</category>"      ,"" )
             .Replace("<returns>"        ,"Returns:\r\n" )
             .Replace("</returns>"       ,"" )
             .Replace("</param>"         ,"" )
@@ -253,8 +257,10 @@ type TypeInfo private () =
             .Replace("<see cref=\"P:","'")
             .Replace("<see cref=\"T:","'")
             .Replace("<see cref=\"","'")
+            .Replace("<a href=\"","'")
+            .Replace("</a>","'")
             .Replace("\" />","'")
-            .Replace("\">"              ,": " ) // to catch the end of <param name="value">  andd other closings
+            .Replace("\">"  ,": " ) // to catch the end of <param name="value">  and other closings
         |> unEscapeXml
 
 
