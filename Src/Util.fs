@@ -5,8 +5,6 @@ open System.IO
 open System.Windows
 open System.Windows.Media
 
-
-
 [<AutoOpen>]
 module AutoOpenDateTime =    
 

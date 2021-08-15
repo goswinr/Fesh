@@ -1,4 +1,4 @@
-namespace Seff.Views
+﻿namespace Seff.Views
 
 open System
 open System.Windows.Input 
@@ -23,8 +23,6 @@ type Commands (grid:TabsAndLog)  =
     let log = grid.Log
     let config= grid.Config
     let fsi = tabs.Fsi
-    
-
 
     let evalAllText()          =                                                fsi.Evaluate {code=tabs.CurrAvaEdit.Text          ; file=tabs.Current.FilePath; allOfFile=true ; fromLine = 1}                               
     let evalAllTextSave()      =  if tabs.Save(tabs.Current) then               fsi.Evaluate {code=tabs.CurrAvaEdit.Text          ; file=tabs.Current.FilePath; allOfFile=true ; fromLine = 1} 
@@ -36,6 +34,8 @@ type Commands (grid:TabsAndLog)  =
     let evalFromCursor()       =  let ln,tx = Selection.linesFromCursor(tabs.CurrAvaEdit)             in  fsi.Evaluate {code = tx ; file=tabs.Current.FilePath; allOfFile=false; fromLine = ln }           
     
     let compileScript(useMsBuild) = CompileScript.compileScript(tabs.CurrAvaEdit.Text , tabs.Current.FilePath, true, useMsBuild) 
+    
+    let version = lazy (let an = Reflection.Assembly.GetAssembly(tabs.GetType()).GetName() in sprintf "%s %s" an.Name (an.Version.ToString()))
 
     //see https://github.com/icsharpcode/AvalonEdit/blob/697ff0d38c95c9e5a536fbc05ae2307ec9ef2a63/AvalonEditB/Editing/CaretNavigationCommandHandler.cs#L73
     //TODO these gets evaluated for each cmd on every mouse click or key perss . is this OK?  any lag ?? in Canexecute for commands
@@ -56,7 +56,7 @@ type Commands (grid:TabsAndLog)  =
     member val Export            = {name= "Export"                    ;gesture= ""               ;cmd= mkCmdSimple (fun _ -> tabs.Export(tabs.Current) |> ignore)                ;tip= "Shows a dialog to export the file at a new path or name. But keeps the file open at previous location."                          }
     member val SaveAs            = {name= "Save As"                   ;gesture= "Ctrl + Alt + S" ;cmd= mkCmdSimple (fun _ -> tabs.SaveAs(tabs.Current) |> ignore)                ;tip= "Shows a dialog to save the file at a new path or name." }
     member val SaveIncrementing  = {name= "Save Incrementing"         ;gesture= ""               ;cmd= mkCmdSimple (fun _ -> tabs.SaveIncremental(tabs.Current) |> ignore)       ;tip= "Save with increased last character of filename.\r\nCan be alphabetic or numeric ( e.g.  d->e or 5->6).\r\nDoes not overwrite any existing file."}
-    member val SaveAll           = {name= "Save All"                 ;gesture= "Ctrl + Shift + S";cmd= mkCmdSimple (fun _ -> for t in tabs.AllTabs do tabs.Save(t) |> ignore)    ;tip= "Saves all tabs. Shows a dialog only if the open file does not exist on disk."    }
+    member val SaveAll           = {name= "Save All"                  ;gesture= "Ctrl + Shift + S";cmd= mkCmdSimple (fun _ -> for t in tabs.AllTabs do tabs.Save(t) |> ignore)    ;tip= "Saves all tabs. Shows a dialog only if the open file does not exist on disk."    }
     member val Close             = {name= "Close File"                ;gesture= "Ctrl + F4"      ;cmd= mkCmdSimple (fun _ -> tabs.CloseTab(tabs.Current))                        ;tip= "Closes the current tab, if there is only one tab then the window will be closed."}
     member val SaveLog           = {name= "Save Text in Log"          ;gesture= ""               ;cmd= mkCmdSimple (fun _ -> log.SaveAllText(tabs.Current.FilePath))             ;tip= "Save all text from Log Window."                                                  }
     member val SaveLogSel        = {name= "Save Selected Text in Log" ;gesture= ""               ;cmd= mkCmd isLse (fun _ -> log.SaveSelectedText(tabs.Current.FilePath))        ;tip= "Save selected text from Log Window."                                             }
@@ -107,7 +107,9 @@ type Commands (grid:TabsAndLog)  =
     member val CollapsePrim      = {name= "Collapse primary Code Foldings";gesture= ""           ;cmd= mkCmdSimple (fun _ -> Foldings.CollapsePrimary(tabs.Current.Editor,tabs.Config)) ;tip= "Collapse primary Code Foldings, doesn't chnage secondary or tertiary foldings"                                 }
     member val ExpandCode        = {name= "Expand all Code Foldings"  ;gesture= ""               ;cmd= mkCmdSimple (fun _ -> Foldings.ExpandAll(tabs.Current.Editor,tabs.Config))  ;tip= "Expand or unfold all Code Foldings in this file"                        }
                                                                                                                                      
-    //Settings Menu                                                                                                                      
+    //About Menu  
+    //member val About             = {name= "http://seff.io/"           ;gesture= ""               ;cmd= mkCmdSimple (fun _ -> Diagnostics.Process.Start("http://seff.io/") |> ignore )     ;tip= "Opens a browser window showing http://seff.io/"                                        }
+    member val Version           = {name= "Version " + version.Value  ;gesture= ""               ;cmd= mkCmdSimple (fun _ -> Diagnostics.Process.Start("http://seff.io/") |> ignore )     ;tip= "Opens a browser window showing http://seff.io/"                                         }
     member val SettingsFolder    = {name= "Open Settings Folder"      ;gesture= ""               ;cmd= mkCmdSimple (fun _ -> config.Hosting.OpenSettingsFolder())                         ;tip= "Opens the Folder where user settinsg such as default file content is saved."                                        }
     member val AppFolder         = {name= "Open App Folder"           ;gesture= ""               ;cmd= mkCmdSimple (fun _ -> config.Hosting.OpenAppFolder())                              ;tip= "Opens the Folder where this App (Seff.exe) is loaded from."                                        }
     member val ReloadXshdFile    = {name= "Reload SyntaxHighlighting" ;gesture= "F10"            ;cmd= mkCmdSimple (fun _ -> SyntaxHighlighting.setFSharp(tabs.CurrAvaEdit,config,true))  ;tip= "Reloads FSharpSynatxHighlighterExtended.xshd, this is useful for testing new highlighting files without a restart." }
@@ -124,6 +126,12 @@ type Commands (grid:TabsAndLog)  =
     member val Find      = {name= "Find"     ;gesture=  "Ctrl + F"     ;cmd= ApplicationCommands.Find   ; tip= "Find text of current selection."                                    }                      
     member val Replace   = {name= "Replace"  ;gesture=  "Ctrl + H"     ;cmd= ApplicationCommands.Replace; tip= "Find and replace text of current selection."                        }   
     
+    member val DeleteLine = {name= "Delete Line"  ;gesture=  "Ctrl + D"   ;cmd= AvalonEditCommands.DeleteLine; tip= "Deletes the current line."                        }       
+    
+    // this shortcut is implemented in Avalonedit but I cant find out wher the routed commnd class is
+    //member val SelectLinesUp      = {name= "Select Lines Upwards"      ;gesture= "Shift + Up"     ;cmd = null ;tip= "Not implemented yet"}
+    //member val SelectLinesDown    = {name= "Select Lines Downwards"    ;gesture= "Shift + Down"   ;cmd = null ;tip= "Not implemented yet"} //TODO!   
+           
     member val BoxSelLeftByCharacter  = {name= "Box Select Left By Character"  ;gesture= "Alt + Shift + Left"        ;cmd= RectangleSelection.BoxSelectLeftByCharacter  ; tip= "Expands the selection left by one character; creating a rectangular selection."     }  
     member val BoxSelRightByCharacter = {name= "Box Select Right By Character" ;gesture= "Alt + Shift + Right"       ;cmd= RectangleSelection.BoxSelectRightByCharacter ; tip= "Expands the selection right by one character; creating a rectangular selection."    }  
     member val BoxSelLeftByWord       = {name= "Box Select Left By Word"       ;gesture= "Ctrl + Alt + Shift + Left" ;cmd= RectangleSelection.BoxSelectLeftByWord       ; tip= "Expands the selection left by one word; creating a rectangular selection."          }        

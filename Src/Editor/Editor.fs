@@ -211,34 +211,34 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
         
 
         let docChanged (e:DocumentChangeEventArgs) = 
-                    //log.PrintfnDebugMsg "*Document.Changed Event: deleted %d '%s', inserted %d '%s', completion hasItems: %b, isOpen: %b , Just closed: %b" e.RemovalLength e.RemovedText.Text e.InsertionLength e.InsertedText.Text ed.Completions.HasItems ed.Completions.IsOpen compls.JustClosed
+            //log.PrintfnDebugMsg "*Document.Changed Event: deleted %d '%s', inserted %d '%s', completion hasItems: %b, isOpen: %b , Just closed: %b" e.RemovalLength e.RemovedText.Text e.InsertionLength e.InsertedText.Text ed.Completions.HasItems ed.Completions.IsOpen compls.JustClosed
                    
-                   //DELETE: //if e.RemovalLength > 0 && e.RemovedText.Text <> e.InsertedText.Text then  compls.JustClosed<-false // in this case open window again?
+            //DELETE: //if e.RemovalLength > 0 && e.RemovedText.Text <> e.InsertedText.Text then  compls.JustClosed<-false // in this case open window again?
 
-                   if compls.IsOpen then   // just keep on tying in completion window, no type checking !                
-                       if compls.HasItems then // TODO, this code is duplicated in textChanged function
-                           ()
-                           //let currentText = getField(typeof<CodeCompletion.CompletionList>,w.CompletionList,"currentText") :?> string //this property schould be public !
-                           //TODO close Window if w.CompletionList.SelectedItem.Text = currentText
-                           //TODO ther is a bug in current text when deliting chars
-                           //log.PrintfnDebugMsg "currentText: '%s'" currentText
-                           //log.PrintfnDebugMsg "w.CompletionList.CompletionData.Count:%d" w.CompletionList.ListBox.VisibleItemCount
-                       else 
-                           compls.Close() 
+            if compls.IsOpen then   // just keep on tying in completion window, no type checking !                
+                if compls.HasItems then // TODO, this code is duplicated in textChanged function
+                    ()
+                    //let currentText = getField(typeof<CodeCompletion.CompletionList>,w.CompletionList,"currentText") :?> string //this property schould be public !
+                    //TODO close Window if w.CompletionList.SelectedItem.Text = currentText
+                    //TODO ther is a bug in current text when deliting chars
+                    //log.PrintfnDebugMsg "currentText: '%s'" currentText
+                    //log.PrintfnDebugMsg "w.CompletionList.CompletionData.Count:%d" w.CompletionList.ListBox.VisibleItemCount
+                else 
+                    compls.Close() 
                    
-                   else //no completion window open , do type check..                
-                       match e.InsertedText.Text with 
-                       |"."  ->                                             textChanged (EnteredDot         )//complete
-                       | txt when txt.Length = 1 ->                                     
-                           if compls.JustClosed then                        textChanged (CompletionWinClosed)//check to avoid retrigger of window on single char completions
-                           else                                                         
-                               let c = txt.[0]                                          
-                               if Char.IsLetter(c) || c='_' || c='`' || c='#'  then   textChanged (EnteredOneIdentifierChar  ) //complete (# for #if directives)
-                               else                                         textChanged (EnteredOneNonIdentifierChar)//check
+            else //no completion window open , do type check..                
+                match e.InsertedText.Text with 
+                |"."  ->                                             textChanged (EnteredDot         )//complete
+                | txt when txt.Length = 1 ->                                     
+                    if compls.JustClosed then                        textChanged (CompletionWinClosed)//check to avoid retrigger of window on single char completions
+                    else                                                         
+                        let c = txt.[0]                                          
+                        if Char.IsLetter(c) || c='_' || c='`' || c='#'  then   textChanged (EnteredOneIdentifierChar  ) //complete (# for #if directives)
+                        else                                         textChanged (EnteredOneNonIdentifierChar)//check
                                                                                         
-                       | _  ->                                              textChanged (OtherChange               )//several charcters(paste) ,delete or completion window insert         
+                | _  ->                                              textChanged (OtherChange               )//several charcters(paste) ,delete or completion window insert         
                        
-                       compls.JustClosed<-false
+                compls.JustClosed<-false
         
         /// for closing and inserting from completion window
         let checkIfCompletionWindowShouldClose (ev:TextCompositionEventArgs) =          

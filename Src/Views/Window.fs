@@ -24,10 +24,10 @@ type Window (config:Config)=
         if win.Settings.GetBool "WindowIsMax" false then
             wasMax <- true
 
-        let plat = if Environment.Is64BitProcess then " - 64bit" else " - 32bit"
+        let plat = if Environment.Is64BitProcess then "  |  64bit" else "  |  32bit"
         win.Title       <- match config.Hosting.HostName with 
-                           |None     -> "Seff | Scripting editor for fsharp"         + plat + " - " + Runtime.InteropServices.RuntimeInformation.FrameworkDescription 
-                           |Some n   -> "Seff | Scripting editor for fsharp in " + n + plat + " - " + Runtime.InteropServices.RuntimeInformation.FrameworkDescription                
+                           |None     -> "Seff  |  Scripting editor for fsharp"         + plat + "  |  " + Runtime.InteropServices.RuntimeInformation.FrameworkDescription 
+                           |Some n   -> "Seff  |  Scripting editor for fsharp in " + n + plat + "  |  " + Runtime.InteropServices.RuntimeInformation.FrameworkDescription                
         
         try                 
             // Add the Icon at the top left of the window and in the status bar, musst be called  after loading window.

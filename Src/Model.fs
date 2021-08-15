@@ -1,4 +1,4 @@
-namespace Seff.Model
+﻿namespace Seff.Model
 
 open System
 open System.IO
@@ -42,6 +42,7 @@ type ISeffLog =
 
     abstract member Clear : unit -> unit
 
+[<RequireQualifiedAccess>]
 [<CompiledName("ISeffLogModule")>] //don't rename, it is used via reflection in FsEx.Print
 module ISeffLog = 
 
@@ -58,7 +59,6 @@ module ISeffLog =
 
     let mutable clear : unit -> unit =  //don't rename!! It's used via reflection in FsEx
         fun () -> () //implementation is chanaged  when Log instance is created  
-        
 
 
 // ---- Editor types -----------
@@ -122,8 +122,8 @@ type FileCheckState =
 type FilePath = 
     | SetTo of FileInfo 
     | NotSet
-    /// returns file name or "*noName*"
-    member this.File = match this with SetTo fi -> fi.Name |NotSet -> "*noName*"
+    // returns file name or "*noName*"
+    // member this.FileName =  match this with  |SetTo fi -> fi.Name |NotSet -> "*noName*"
 
 // so that the Editor can be used before declared
 type IEditor = 
@@ -138,7 +138,7 @@ type IEditor =
 [<RequireQualifiedAccess>]
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module IEditor = 
-    /// A glogal refrence to the current Editor
+    /// A global refrence to the current Editor
     let mutable current :option<IEditor> = None 
         
 

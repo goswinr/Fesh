@@ -5,7 +5,8 @@ open System.Windows
 open Seff.Config
 
 module App =        
-    /// to access the currently running instance for debugging
+    
+    /// To statically access the currently running instance. For debugging only
     let mutable current = Unchecked.defaultof<Seff>
 
     /// mainWindowHandle: Pointer to main window(nativeInt), 

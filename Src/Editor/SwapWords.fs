@@ -9,6 +9,7 @@ module SwapWords =
 
     /// swap currently selected word with word bofore on same line 
     /// a word may contain lettre digit, underscore and dot
+    /// does nothing  on box selection
     let left(ed:TextEditor) = 
         match Selection.isOneWord ed with 
         |None -> false
@@ -44,6 +45,7 @@ module SwapWords =
               
     /// swap currently selected word with word afterwords on same line 
     /// a word may contain lettre digit, underscore and dot
+    /// does nothing  on box selection
     let right (ed:TextEditor) = 
         match Selection.isOneWord ed with 
         |None -> false

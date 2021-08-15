@@ -1,4 +1,4 @@
-namespace Seff
+﻿namespace Seff
 
 open System.Windows
 open System

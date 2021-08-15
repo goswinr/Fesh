@@ -251,12 +251,7 @@ module RectangleSelection =
         doc.EndUpdate() 
 
 
-    let expandDown(ed:IEditor) =() //TODO
-    
-    let expandUp(ed:IEditor) =() //TODO        
-
-
-    //TODO add check for beeing over folded block
+    //TODO add checks for beeing over folded block !
 
     let deleteKey (ed:IEditor) =  
         let s = getSelectionOrdered ed.AvaEdit.TextArea

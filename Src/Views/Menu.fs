@@ -1,4 +1,4 @@
-namespace Seff.Views
+﻿namespace Seff.Views
 
 open System
 open System.Windows
@@ -270,9 +270,9 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, log:Log) =
                 menuItem cmds.CollapseCode
                 menuItem cmds.ExpandCode
                 ]
-            MenuItem(Header = "_About"),[ //set top level refrence too
-                MenuItem(Header = "_Help?")
-                MenuItem(Header = "_Version 0.?.?")
+            MenuItem(Header = "_About"),[ 
+                //menuItem cmds.About
+                menuItem cmds.Version
                 sep()
                 menuItem cmds.SettingsFolder
                 menuItem cmds.AppFolder
