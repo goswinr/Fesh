@@ -8,7 +8,6 @@ open AvalonLog.Util
 open Seff.Model
 open Seff.Util
 
-
 module Formating = 
     
     let findChar (c:Char) (fromIndex:int) (sb:StringBuilder) = 

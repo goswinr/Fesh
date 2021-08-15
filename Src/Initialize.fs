@@ -2,14 +2,11 @@
 
 open System
 open System.Windows
+
 open Seff.Views
 open Seff.Config
-open Seff.Util.General
-open Seff.Model
 
-
-module Initialize =      
-    
+module Initialize =  
 
     let everything(mode:HostedStartUpData option, startupArgs:string[])=
         

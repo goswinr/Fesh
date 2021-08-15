@@ -12,7 +12,6 @@ open AvalonLog.Util
 open FsEx.Wpf.Command
 open FsEx.Wpf.DependencyProps
 
-open Seff
 open Seff.Model
 open Seff.Util
 open Seff.Config

@@ -1,6 +1,5 @@
 ﻿namespace Seff.Views
 
-
 open System
 open System.IO
 open System.Windows.Media // for color brushes
@@ -15,8 +14,7 @@ open Seff
 open Seff.Util.General
 open Seff.Model
 open Seff.Config
-open Seff.Util.General
-open FsEx.Wpf.DependencyProps
+
 
 module LogColors = 
 

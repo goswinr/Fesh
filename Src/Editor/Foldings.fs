@@ -2,15 +2,12 @@
 
 open System
 
-open Seff
-open Seff.Model
-open Seff.Util
-open Seff.Util.General
-open Seff.Config
-
 open AvalonEditB
 open AvalonEditB.Folding
 open AvalonEditB.Document
+
+open Seff.Model
+open Seff.Config
 
 
     

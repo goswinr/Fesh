@@ -8,10 +8,7 @@ open AvalonEditB
 open AvalonEditB.Document
 
 open Seff.Model
-open Seff.Util
 open Seff.Util.Str
-
-
 
 module Doc = 
     

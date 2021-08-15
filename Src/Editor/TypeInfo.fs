@@ -1,13 +1,9 @@
 ﻿namespace Seff.Editor
 
-open Seff
-open Seff.Model
-open Seff.Util
 
 open System
 open System.IO
-open System.Xml
-open System.Text.RegularExpressions
+
 open System.Collections.Generic
 open System.Windows
 open System.Windows.Controls
@@ -15,26 +11,19 @@ open System.Windows.Media
 open System.Windows.Input
 open System.Windows.Documents
 
-open AvalonEditB.CodeCompletion
-open AvalonEditB.Editing
 open AvalonEditB.Document
-open AvalonEditB
 
 open AvalonLog.Util
 open AvalonLog.Brush
 
-open FSharp.Compiler
 open FSharp.Compiler.CodeAnalysis
-open FSharp.Compiler.IO                // FileSystem
-open FSharp.Compiler.CodeAnalysis      // FSharpChecker, FSharpCheckFileResults, FSharpChecProjectResults and friends
-open FSharp.Compiler.Diagnostics       // FSharpDiagnostic and friends
 open FSharp.Compiler.EditorServices    // Misc functionality for editors, e.g. interface stub generation
-open FSharp.Compiler.Interactive.Shell // F# Interactive
 open FSharp.Compiler.Symbols           // FSharpEntity etc
-open FSharp.Compiler.Syntax            // SyntaxTree, XmlDoc, PrettyNaming
 open FSharp.Compiler.Text              // ISourceFile, Range, TaggedText and other things
 open FSharp.Compiler.Tokenization      // FSharpLineTokenizer etc.
 
+open Seff
+open Seff.Model
 
 
 type OptDefArg   = {name:string } //; defVal:string}//  default value seems to be not available via FCS see below in: namesOfOptnlArgs(fsu:FSharpSymbolUse)

@@ -6,16 +6,12 @@ open System.Windows.Controls
 open System.Windows
 open System.Windows.Media
 
-open FsEx.Wpf.DependencyProps
-
 open Seff
 open Seff.Editor
 open Seff.Model
 open Seff.Util.General
 open Seff.Config
 open Seff.Style
-
-
 
 type SavingKind = SaveInPlace | SaveNewLocation | SaveExport
 

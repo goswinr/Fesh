@@ -1,15 +1,9 @@
 ﻿namespace Seff.Editor
 
 open System
-open Seff.Model
+
 open AvalonEditB
-open AvalonEditB.Editing
-open AvalonEditB.Document
-open Seff.Util
-open System.Windows
-open AvalonEditB
-open AvalonEditB
-open System.Text
+
 
 module SwapWords =     
 

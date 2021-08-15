@@ -1,27 +1,14 @@
 ﻿namespace Seff.Editor
 
 open System
-open System.Windows
-open System.Windows.Controls
 open System.Windows.Media
 
-open FSharp.Compiler
-open FSharp.Compiler.CodeAnalysis
-
 open AvalonEditB
-open AvalonEditB.Editing
-open AvalonEditB.Document
-open AvalonEditB.Search
-open AvalonEditB.Folding
 
-open AvalonLog.Brush
 open AvalonLog.Util
 
-open Seff
 open Seff.Model
 open Seff.Config
-open Seff.Util
-open Seff.Util.General
 
 
 /// Highlight-all-occurrences-of-selected-text in Text View

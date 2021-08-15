@@ -3,23 +3,20 @@
 
 open System
 open System.Windows
+open System.Windows.Media
 open System.Windows.Documents
 open System.Windows.Controls
 open System.Windows.Controls.Primitives // status bar
-open System.Windows.Media
 
-open FSharp.Compiler.CodeAnalysis
+open FSharp.Compiler.Diagnostics
+
 open AvalonEditB
+open AvalonLog.Brush
 
 open Seff
-open Seff.Config
 open Seff.Editor
 open Seff.Model
 open FsEx.Wpf.DependencyProps
-open AvalonLog.Brush
-open Seff.Util.General
-
-open FSharp.Compiler.Diagnostics
 
 
 module MenuUtil =
@@ -39,7 +36,6 @@ module StatusbarStyle =
     let waitCol  =  Brushes.HotPink  |> brighter 80    |> freeze
 
 open StatusbarStyle
-
 
 type CheckerStatus (grid:TabsAndLog) as this = 
     inherit TextBlock()

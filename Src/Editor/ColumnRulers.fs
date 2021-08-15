@@ -15,10 +15,6 @@ open AvalonLog.Brush
 
 open Seff.Model
 
-
-
-
-
 type ColumnRulers (editor:TextEditor, log: ISeffLog)  as this =
     //https://github.com/icsharpcode/AvalonEdit/blob/master/AvalonEditB/Rendering/ColumnRulerRenderer.cs
     

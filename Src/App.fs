@@ -4,7 +4,6 @@ open System
 open System.Windows
 open Seff.Config
 
-
 module App =        
     /// to access the currently running instance for debugging
     let mutable current = Unchecked.defaultof<Seff>

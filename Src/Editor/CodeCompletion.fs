@@ -1,14 +1,7 @@
 ﻿namespace Seff.Editor
 
-open Seff
-open Seff.Model
-open Seff.Config
-open Seff.Util.General
-
 open System
-open System.IO
 open System.Windows
-open System.Windows.Media
 open System.Collections.Generic
 
 open AvalonEditB
@@ -16,10 +9,13 @@ open AvalonEditB.CodeCompletion
 open AvalonEditB.Editing
 open AvalonEditB.Document
 
-open FSharp.Compiler
 open FSharp.Compiler.CodeAnalysis
 open FSharp.Compiler.EditorServices
 open FSharp.Compiler.Tokenization // for keywords
+
+open Seff
+open Seff.Model
+open Seff.Config
 
 type CompletionItemForKeyWord(ed:IEditor,config:Config, text:string, toolTip:string) =
     //let col = Brushes.DarkBlue    // fails on selection, does not get color inverted//check  https://blogs.msdn.microsoft.com/text/2009/08/28/selection-brush/ ??

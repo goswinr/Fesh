@@ -3,14 +3,13 @@
 open System
 open System.IO
 open System.Text
-open System.Windows.Media // for color brushes
 open System.Windows.Input
 
 open AvalonEditB
 open AvalonEditB.Folding
 
 open FSharp.Compiler.CodeAnalysis
-open FSharp.Compiler.CodeAnalysis
+
 
 
 type ISeffLog = 
@@ -83,7 +82,7 @@ module ISeffLog =
         
 
 
-/// ---- Editor types -----------
+// ---- Editor types -----------
 
 /// To give each call to the Fs Checker a unique ID
 /// So that at we can check if a local and a global CheckResult are the same
@@ -147,7 +146,6 @@ type FilePath =
     /// returns file name or "*noName*"
     member this.File = match this with SetTo fi -> fi.Name |NotSet -> "*noName*"
 
-
 // so that the Editor can be used before declared
 type IEditor = 
     abstract member Id             : Guid
@@ -157,19 +155,6 @@ type IEditor =
     abstract member Log            : ISeffLog 
     abstract member FoldingManager : FoldingManager 
     abstract member IsComplWinOpen : bool 
-
-
-
-
-
-        
-
-
-
-        
-
-
-
 
 //---- Fsi types ------------
 

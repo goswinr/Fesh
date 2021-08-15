@@ -1,9 +1,7 @@
 ﻿namespace Seff.Editor
 
 open System
-open System.IO
 open System.Threading
-open System.Windows.Threading
 
 open AvalonEditB
 open AvalonLog.Util
@@ -15,7 +13,7 @@ open FSharp.Compiler.EditorServices
 open Seff
 open Seff.Model
 open Seff.Config
-open Seff.Util
+
 
 /// only a single instance of checher exist that is referenced on all editors
 type Checker private (config:Config)  = 

@@ -1,9 +1,9 @@
 ﻿namespace Seff.Views
 
-open Seff
 open System
 open System.Windows.Media
 
+open Seff
 
 type Fonts (grid:TabsAndLog) = // will be contructed as part of Commands class
     let log = grid.Log

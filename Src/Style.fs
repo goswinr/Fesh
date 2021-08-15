@@ -1,11 +1,6 @@
 ﻿namespace Seff
 
-open System
-open System.IO
-open System.Windows.Media // for color brushes
-open System.Windows.Input
-open FSharp.Compiler.CodeAnalysis
-
+open System.Windows.Media // for font
 
 module Style =  
     let dialogCaption = "Seff | Scripting editor for fsharp"   // e.g title of saveAs window

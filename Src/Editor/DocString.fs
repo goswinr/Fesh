@@ -8,15 +8,14 @@
 
 namespace Seff
 
-open Seff.Model
 open System
 open System.IO
 open System.Xml
 open System.Text.RegularExpressions
-open FSharp.Compiler.CodeAnalysis
+
+open Seff.Model
+
 open FSharp.Compiler.Symbols
-
-
 
 /// taken and adapeted from FsAutoComplete in 2019
 module DocString =

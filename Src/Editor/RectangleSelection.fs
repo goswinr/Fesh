@@ -1,7 +1,6 @@
 ﻿namespace Seff.Editor
 
 open System
-open System.Windows
 open System.Text
 
 open AvalonEditB
@@ -11,7 +10,7 @@ open AvalonEditB.Document
 open AvalonLog.Util
 
 open Seff.Model
-open Seff.Util
+
 
 module RectangleSelection = 
     

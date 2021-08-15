@@ -6,11 +6,7 @@ open System.Windows
 open System.Windows.Media
 open System.Windows.Input
 
-open FSharp.Compiler.CodeAnalysis
-//open FSharp.Compiler.AbstractIL.Internal.Library
-open FSharp.Compiler.CodeAnalysis
 open FSharp.Compiler.Tokenization // for keywords
-
 
 open AvalonEditB
 open AvalonEditB.Utils
@@ -20,9 +16,6 @@ open Seff
 open Seff.Model
 open Seff.Config
 open Seff.Util.Str
-
-
-
 
  /// The tab that holds the tab header and the code editor 
 type Editor private (code:string, config:Config, filePath:FilePath)  = 

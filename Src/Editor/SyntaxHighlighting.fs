@@ -1,12 +1,14 @@
 namespace Seff.Editor
 
-open Seff
-open Seff.Config
 open System
 open System.Drawing
-open Seff.Model
-open System.Windows
+
 open FSharp.Compiler.EditorServices
+
+open Seff
+open Seff.Config
+open Seff.Model
+
 
 module SyntaxHighlighting = 
     open AvalonEditB

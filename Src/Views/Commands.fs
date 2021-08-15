@@ -1,18 +1,16 @@
 ﻿namespace Seff.Views
 
 open System
-open System.Windows.Input    
+open System.Windows.Input 
 
-open FsEx.Wpf.DependencyProps
+open AvalonEditB
+open AvalonEditB.Editing
+
 open FsEx.Wpf.Command
 
-open AvalonEditB.Editing
-open AvalonEditB
-
-open Seff.Editor
-open Seff.Model
 open Seff
-open Seff.Config
+open Seff.Model
+open Seff.Editor
 open Seff.Editor.Selection
 
 
