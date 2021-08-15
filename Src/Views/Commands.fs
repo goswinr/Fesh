@@ -177,8 +177,8 @@ type Commands (grid:TabsAndLog)  =
                  this.SelectLine
                  //this.SwapWordLeft  // key gesture handeled via previewKeyDown event in CursorBehaviour module
                  //this.SwapWordRight // key gesture handeled via previewKeyDown event in CursorBehaviour module
-                 //this.SelectLinesUp  // not implemnted
-                 //this.SelectLinesDown // not implemnted
+                 //this.SelectLinesUp  // implemented in AvalonEditB
+                 //this.SelectLinesDown // implemented in AvalonEditB
                             
                  this.RunAllText       
                  this.RunAllTextSave 

@@ -6,19 +6,44 @@ open System.Windows.Input
 
 open Seff.Model
 
-module KeyboardNative =   
+module Keys =
+    
+    type ModKey = Ctrl | Alt | Shift
+    
+    type AltKeyCombo = 
+        | AltUp
+        | AltRight
+        | AltDown
+        | AltLeft
+
+    let inline isUp k = 
+        match k with 
+        | Ctrl  ->  Keyboard.IsKeyUp Key.LeftCtrl  && Keyboard.IsKeyUp Key.RightCtrl
+        | Alt   ->  Keyboard.IsKeyUp Key.LeftAlt   && Keyboard.IsKeyUp Key.RightAlt
+        | Shift ->  Keyboard.IsKeyUp Key.LeftShift && Keyboard.IsKeyUp Key.RightShift
+    
+    let inline isDown k = 
+        match k with 
+        | Ctrl  ->  Keyboard.IsKeyDown Key.LeftCtrl  || Keyboard.IsKeyDown Key.RightCtrl
+        | Alt   ->  Keyboard.IsKeyDown Key.LeftAlt   || Keyboard.IsKeyDown Key.RightAlt
+        | Shift ->  Keyboard.IsKeyDown Key.LeftShift || Keyboard.IsKeyDown Key.RightShift
+
+    /// because Alt key actually returns Key.System 
+    let inline realKey(e:KeyEventArgs) =
+        match e.Key with //https://stackoverflow.com/questions/39696219/how-can-i-handle-a-customizable-hotkey-setting
+        | Key.System             -> e.SystemKey
+        | Key.ImeProcessed       -> e.ImeProcessedKey
+        | Key.DeadCharProcessed  -> e.DeadCharProcessedKey
+        | k                      -> k
+
+module KeyboardNative =
     // TODO this global key hook might cause th app to be flagged as spyware/ keylogger ??
 
     // all of this module only exists to be able to use Alt and Up in Rhino too , not just standalone.
     // see bug https://discourse.mcneel.com/t/using-alt-up-key-in-plugin-does-not-work/105740/3
 
     open System.Runtime.InteropServices    
-
-    type AltKeyCombo = 
-        | AltUp
-        | AltRight
-        | AltDown
-        | AltLeft
+    open Keys 
     
     let private altKeyComboEv = new Event<AltKeyCombo>()
     
@@ -128,17 +153,20 @@ module KeyboardNative =
                 && wParam = WM_SYSKEYDOWN 
                 && lParam.vkCode > 36 
                 && lParam.vkCode < 41
-                && window.IsActive   then   // because hook is global in the OS          
-                    match lParam.vkCode with 
-                    | 37  -> altKeyComboEv.Trigger(AltLeft   ) 
-                    | 38  -> altKeyComboEv.Trigger(AltUp     )     // same ints as in System.Windows.Forms.Keys  
-                    | 39  -> altKeyComboEv.Trigger(AltRight  ) 
-                    | 40  -> altKeyComboEv.Trigger(AltDown   ) 
-                    | _ -> () // never happens
-                    // we are explicityl not calling CallNextHookEx here to not do a nudge in Rhino as well.
-                    // see bug https://discourse.mcneel.com/t/using-alt-up-key-in-plugin-does-not-work/105740/3
-                    // this will also disable any potential other global shortcut using Alt and arrow keys while Seff window is active. not nice but probaly ok.
-                    0 // Since the hook procedure does not call CallNextHookEx, the return value should be zero.    
+                && window.IsActive   // because hook is global in the OS     
+                && isUp Ctrl         
+                && isUp Shift     // to keep avalon edit built in RectangleSelection.BoxSelectUpByLine working Alt + Shift + Up
+                    then         
+                        match lParam.vkCode with 
+                        | 37  -> altKeyComboEv.Trigger(AltLeft   ) 
+                        | 38  -> altKeyComboEv.Trigger(AltUp     )     // same ints as in System.Windows.Forms.Keys  
+                        | 39  -> altKeyComboEv.Trigger(AltRight  ) 
+                        | 40  -> altKeyComboEv.Trigger(AltDown   ) 
+                        | _ -> () // never happens
+                        // we are explicityl not calling CallNextHookEx here to not do a nudge in Rhino as well.
+                        // see bug https://discourse.mcneel.com/t/using-alt-up-key-in-plugin-does-not-work/105740/3
+                        // this will also disable any potential other global shortcut using Alt and arrow keys while Seff window is active. not nice but probaly ok.
+                        0 // Since the hook procedure does not call CallNextHookEx, the return value should be zero.    
             else
                 CallNextHookEx(hhook, nCode, wParam, &lParam)
             ) 
@@ -184,29 +212,6 @@ module KeyboardNative =
     /// This occures before Preview key down.
     [<CLIEvent>] 
     let OnAltKeyCombo = altKeyComboEv.Publish
-
-module Keys =
-    type CtrlKey = Ctrl | Alt | Shift
-    
-    let inline isUp k = 
-        match k with 
-        | Ctrl  ->  Keyboard.IsKeyUp Key.LeftCtrl  && Keyboard.IsKeyUp Key.RightCtrl
-        | Alt   ->  Keyboard.IsKeyUp Key.LeftAlt   && Keyboard.IsKeyUp Key.RightAlt
-        | Shift ->  Keyboard.IsKeyUp Key.LeftShift && Keyboard.IsKeyUp Key.RightShift
-    
-    let inline isDown k = 
-        match k with 
-        | Ctrl  ->  Keyboard.IsKeyDown Key.LeftCtrl  || Keyboard.IsKeyDown Key.RightCtrl
-        | Alt   ->  Keyboard.IsKeyDown Key.LeftAlt   || Keyboard.IsKeyDown Key.RightAlt
-        | Shift ->  Keyboard.IsKeyDown Key.LeftShift || Keyboard.IsKeyDown Key.RightShift
-
-    /// because Alt key actually returns Key.System 
-    let inline realKey(e:KeyEventArgs) =
-        match e.Key with //https://stackoverflow.com/questions/39696219/how-can-i-handle-a-customizable-hotkey-setting
-        | Key.System             -> e.SystemKey
-        | Key.ImeProcessed       -> e.ImeProcessedKey
-        | Key.DeadCharProcessed  -> e.DeadCharProcessedKey
-        | k                      -> k
 
 
 module KeyboardShortcuts =
