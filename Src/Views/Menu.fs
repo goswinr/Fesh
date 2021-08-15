@@ -1,4 +1,4 @@
-﻿namespace Seff.Views
+namespace Seff.Views
 
 open System
 open System.Windows
@@ -203,9 +203,8 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, log:Log) =
                 menuItem cmds.Find     
                 menuItem cmds.Replace 
                 sep()
-                menuItem cmds.SwapLineUpCtrl   
-                menuItem cmds.SwapLineDownCtrl
-                sep()
+                menuItem cmds.DeleteLine
+                sep()                
                 menuItem cmds.ToUppercase  
                 menuItem cmds.Tolowercase 
                 menuItem cmds.ToTitleCase 
@@ -216,6 +215,10 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, log:Log) =
                 ]
             MenuItem(Header = "_Select"),[ 
                 menuItem cmds.SelectLine 
+                sep()
+                menuItem cmds.SwapLineUp   
+                menuItem cmds.SwapLineDown
+                sep()
                 menuItem cmds.SwapWordLeft
                 menuItem cmds.SwapWordRight  
                 ]

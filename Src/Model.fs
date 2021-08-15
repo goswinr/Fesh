@@ -1,4 +1,4 @@
-﻿namespace Seff.Model
+namespace Seff.Model
 
 open System
 open System.IO
@@ -134,6 +134,14 @@ type IEditor =
     abstract member Log            : ISeffLog 
     abstract member FoldingManager : FoldingManager 
     abstract member IsComplWinOpen : bool 
+
+[<RequireQualifiedAccess>]
+[<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
+module IEditor = 
+    /// A glogal refrence to the current Editor
+    let mutable current :option<IEditor> = None 
+        
+
 
 //---- Fsi types ------------
 

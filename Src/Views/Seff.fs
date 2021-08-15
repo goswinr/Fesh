@@ -1,4 +1,4 @@
-﻿namespace Seff
+namespace Seff
 
 open System.Windows
 open System
@@ -35,10 +35,11 @@ type Seff (config:Config,log:Log) =
         win.Window.Content     <- dockP   
         win.Window.Background  <- menu.Bar.Background // call after setting up content, otherwise space next to tab headers is in an odd color  
         
-        win.Window.Closed.Add(         fun _ ->  KeyboardNative.unHook()  |> ignore )
-        win.Window.ContentRendered.Add(fun _ ->  KeyboardNative.hookUp(win.Window))        
-        KeyboardNative.OnAltKeyCombo.Add(fun ac -> log.PrintfnDebugMsg "%A" ac)
-              
+        win.Window.ContentRendered.Add(fun _    -> KeyboardNative.hookUpForAltKeys(win.Window) )        
+        win.Window.Closed.Add(         fun _    -> KeyboardNative.unHookForAltKeys() |> ignore )
+        KeyboardNative.OnAltKeyCombo.Add(fun ac -> KeyboardShortcuts.altKeyCombo(ac) )
+        
+        //win.Window.PreviewKeyDown.Add( fun k -> log.PrintfnDebugMsg "key down: %A syss: %A" k.Key k.SystemKey)
         //if config.Hosting.IsStandalone then win.Window.ContentRendered.Add(fun _ -> log.PrintfnInfoMsg "* Time for loading and rendering of main window: %s"  Timer.InstanceStartup.tocEx) 
                  
         win.Window.Closing.Add( fun e ->

@@ -148,7 +148,8 @@ type Tabs(config:Config, win:Window) =
         let ix = tabs.Items.Add tab        
         if makeCurrent then  
             tabs.SelectedIndex <- ix
-            current <-  tab            
+            current <-  tab 
+            IEditor.current <- Some (tab.Editor:>IEditor)
             // also close any tab that only has default code:
             if tab.FilePath <> NotSet then 
                 let rems = allTabs  |> Seq.filter ( fun (t:Tab) -> t.FilePath = NotSet && t.IsCodeSaved=true ) |> Array.ofSeq // force enumeration                
@@ -182,6 +183,7 @@ type Tabs(config:Config, win:Window) =
                 if makeCurrent && not t.IsCurrent then 
                     tabs.SelectedIndex <- i 
                     current <- t
+                    IEditor.current <- Some (t.Editor:>IEditor)
                     config.RecentlyUsedFiles.AddAndSave(fi) // to move it up to top of stack
                     //config.OpenTabs.Save(t.FileInfo , allFileInfos) // done in SelectionChanged event below
                 true
@@ -238,7 +240,9 @@ type Tabs(config:Config, win:Window) =
                 
         if tabs.SelectedIndex = -1 then    //make one tab current if none yet , happens if current file on last closing was an unsaved file
             tabs.SelectedIndex <- 0
-            current <- Seq.head allTabs
+            let tab = Seq.head allTabs
+            current <- tab
+            IEditor.current <- Some (tab.Editor:>IEditor)
         
         // then start highlighting errors on current tab only
         current.Editor.GlobalChecker.CkeckHighlightAndFold(current.Editor)
@@ -257,9 +261,10 @@ type Tabs(config:Config, win:Window) =
                     else                             tabs.SelectedItem                 
                 let tab = tab :?> Tab
                 current <- tab
+                IEditor.current <- Some (tab.Editor:>IEditor)
                 for t in allTabs do
                     t.IsCurrent <- false  // first set all false then one true              
-                tab.IsCurrent <-true 
+                tab.IsCurrent <- true 
                 currentTabChangedEv.Trigger(tab) // to update statusbar
                 //log.PrintfnDebugMsg "New current Tab %A " tab.FilePath 
                 if tab.Editor.FileCheckState = FileCheckState.NotStarted then 

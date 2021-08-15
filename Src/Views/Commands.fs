@@ -1,4 +1,4 @@
-﻿namespace Seff.Views
+namespace Seff.Views
 
 open System
 open System.Windows.Input 
@@ -64,13 +64,10 @@ type Commands (grid:TabsAndLog)  =
     //Edit menu:                                                                                                                              
     member val Comment           = {name= "Comment"                   ;gesture= "Ctrl + K"       ;cmd= mkCmdSimple (fun _ -> Commenting.comment tabs.CurrAvaEdit)                ;tip= "Removes '//' at the beginning of current line, \r\nor from all line touched by current selection"   }
     member val UnComment         = {name= "Uncomment"                 ;gesture= "Ctrl + U"       ;cmd= mkCmdSimple (fun _ -> Commenting.unComment tabs.CurrAvaEdit)              ;tip= "Puts '//' at the beginning of current line, \r\nor all line touched by current selection"           }                                                                                     
-    member val ToggleComment     = {name= "Toggle Comment"            ;gesture= "Ctrl + /"       ;cmd= mkCmdSimple (fun _ -> Commenting.toggleComment tabs.CurrAvaEdit)          ;tip= "Swaps commented and not commented lines"           }                                                                                     
+    member val ToggleComment     = {name= "Toggle Comment"            ;gesture= "Ctrl + /"       ;cmd= mkCmdSimple (fun _ -> Commenting.toggleComment tabs.CurrAvaEdit)          ;tip= "Toggels the commebntedlines in current selection."           }                                                                                     
     
-    member val SwapLineUp        = {name= "Swap Line Up"              ;gesture= "Alt + Up"        ;cmd=mkCmdSimple (fun _ -> SwapLines.swapLinesUp  (tabs.Current.Editor)) ;tip= "Swap the current line(s) with the previous line."                                     }                                                                                     
-    member val SwapLineUpCtrl    = {name= "Swap Line Up"              ;gesture= "Ctrl + Up"      ;cmd=mkCmdSimple (fun _ -> SwapLines.swapLinesUp  (tabs.Current.Editor)) ;tip= "Swap the current line(s) with the previous line.'Alt + Up' is also a shortcut for this." } // extra because Alt Down fails in Rhino                                                                                 
-    member val SwapLineDown      = {name= "Swap Line Down"            ;gesture= "Alt + Down"     ;cmd=mkCmdSimple (fun _ -> SwapLines.swapLinesDown(tabs.Current.Editor)) ;tip= "Swap the current line(s) with the next line."                                         } 
-    member val SwapLineDownCtrl  = {name= "Swap Line Down"            ;gesture= "Ctrl + Down"    ;cmd=mkCmdSimple (fun _ -> SwapLines.swapLinesDown(tabs.Current.Editor)) ;tip= "Swap the current line(s) with the next line. 'Alt + Down' is also a shortcut for this."  } // extra because Alt Down fails in Rhino
-    
+    member val SwapLineUp        = {name= "Swap Lines Up"              ;gesture= "Alt + Up"       ;cmd=mkCmdSimple (fun _ -> SwapLines.swapLinesUp  (tabs.Current.Editor)) ;tip= "Swap the current line(s) with the previous line."                                     }                                                                                     
+    member val SwapLineDown      = {name= "Swap Lines Down"            ;gesture= "Alt + Down"     ;cmd=mkCmdSimple (fun _ -> SwapLines.swapLinesDown(tabs.Current.Editor)) ;tip= "Swap the current line(s) with the next line."                                         } 
     
     member val ToUppercase       = {name= "To UPPERCASE"              ;gesture= ""               ;cmd=AvalonEditCommands.ConvertToUppercase                                      ;tip= "Convertes the selected text to UPPERCASE."                                                          }     
     member val Tolowercase       = {name= "To lowercase"              ;gesture= ""               ;cmd=AvalonEditCommands.ConvertToLowercase                                      ;tip= "Convertes the selected text to lowercase."                                                          }     
@@ -81,14 +78,10 @@ type Commands (grid:TabsAndLog)  =
 
                                                                                                                                              
     //Select menu:                                                                                                                               
-    member val SelectLine        = {name= "Select Current Line"       ;gesture= "Ctrl  + L"      ;cmd= mkCmdSimple (fun _ -> expandSelectionToFullLines(tabs.CurrAvaEdit) |> ignore )  ;tip= "Select current line"} // TODO compare VSCODE shortcuts to  see https://github.com/icsharpcode/SharpDevelop/wiki/Keyboard-Shortcuts
-    member val SwapWordLeft      = {name= "Swap selected word left"   ;gesture= "Alt  + Left"   ;cmd= mkCmdSimple (fun _ -> SwapWords.left  tabs.CurrAvaEdit|> ignore )  ;tip= "Swaps the currently selected word with the word on the left. A word may include any letter, digit, underscore or dot. "} 
-    member val SwapWordRight     = {name= "Swap selected word right"  ;gesture= "Alt  + Right"  ;cmd= mkCmdSimple (fun _ -> SwapWords.right tabs.CurrAvaEdit|> ignore )  ;tip= "Swaps the currently selected word with the word on the right. A word may include any letter, digit, underscore or dot. "} 
-    
-    
-    //member val SelectLinesUp      ={name= "Select Lines Upwards"      ;gesture= "Shift + Up"     ;cmd= mkCmdSimple (fun _ -> TODO ;tip= "Not implemented yet"}
-    //member val SelectLinesDown    ={name= "Select Lines Downwards"    ;gesture= "Shift + Down"   ;cmd= mkCmdSimple (fun _ -> TODO ;tip= "Not implemented yet"} //TODO!   
-                                                                                                                                         
+    member val SelectLine        = {name= "Select Current Line"       ;gesture= "Ctrl  + L"     ;cmd= mkCmdSimple (fun _ -> expandSelectionToFullLines(tabs.CurrAvaEdit) |> ignore )  ;tip= "Select current line"} // TODO compare VSCODE shortcuts to  see https://github.com/icsharpcode/SharpDevelop/wiki/Keyboard-Shortcuts
+    member val SwapWordLeft      = {name= "Swap selected word left"   ;gesture= "Alt + Left"    ;cmd= mkCmdSimple (fun _ -> SwapWords.left  tabs.CurrAvaEdit|> ignore )  ;tip= "Swaps the currently selected word with the word on the left. A word may include any letter, digit, underscore or dot. "} 
+    member val SwapWordRight     = {name= "Swap selected word right"  ;gesture= "Alt + Right"   ;cmd= mkCmdSimple (fun _ -> SwapWords.right tabs.CurrAvaEdit|> ignore )  ;tip= "Swaps the currently selected word with the word on the right. A word may include any letter, digit, underscore or dot. "} 
+                                                                                                                                    
     //FSI menu:                                                                                                                              
     member val RunAllText        = {name= "Run All Text"              ;gesture= "F5"             ;cmd= mkCmdSimple (fun _ -> evalAllText() )             ;tip= "Send all text in the current file to FSharp Interactive"                }
     member val RunAllTextSave    = {name= "Save and Run All Text"     ;gesture= "F6"             ;cmd= mkCmdSimple (fun _ -> evalAllTextSave())          ;tip= "First Save current File, then send all it's text to FSharp Interactive" }
@@ -170,13 +163,11 @@ type Commands (grid:TabsAndLog)  =
                  this.ToggleBoolean
                  this.AlignCode
 
-                 //this.SwapLineDown     
-                 //this.SwapLineUp 
-                 //this.SwapLineDownCtrl // key gesture handeled via previewKeyDown event in CursorBehaviour module
-                 //this.SwapLineUpCtrl  // key gesture handeled via previewKeyDown event in CursorBehaviour module
+                 //this.SwapLineDown     // handeled via native keyboard hook see module KeyboardNative
+                 //this.SwapLineUp       // handeled via native keyboard hook see module KeyboardNative                 
                  
                  this.SelectLine
-                 //this.SwapWordLeft // key gesture handeled via previewKeyDown event in CursorBehaviour module
+                 //this.SwapWordLeft  // key gesture handeled via previewKeyDown event in CursorBehaviour module
                  //this.SwapWordRight // key gesture handeled via previewKeyDown event in CursorBehaviour module
                  //this.SelectLinesUp  // not implemnted
                  //this.SelectLinesDown // not implemnted
