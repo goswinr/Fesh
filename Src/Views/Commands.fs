@@ -1,4 +1,4 @@
-﻿namespace Seff.Views
+namespace Seff.Views
 
 open System
 open System.Windows.Input 
@@ -64,8 +64,7 @@ type Commands (grid:TabsAndLog)  =
     //Edit menu:                                                                                                                              
     member val Comment           = {name= "Comment"                   ;gesture= "Ctrl + K"       ;cmd= mkCmdSimple (fun _ -> Commenting.comment tabs.CurrAvaEdit)                ;tip= "Removes '//' at the beginning of current line, \r\nor from all line touched by current selection"   }
     member val UnComment         = {name= "Uncomment"                 ;gesture= "Ctrl + U"       ;cmd= mkCmdSimple (fun _ -> Commenting.unComment tabs.CurrAvaEdit)              ;tip= "Puts '//' at the beginning of current line, \r\nor all line touched by current selection"           }                                                                                     
-    //member val ToggleComment     = {name= "Toggle Comment"            ;gesture= "Ctrl + T"       ;cmd= mkCmdSimple (fun _ -> Commenting.toggleComment tabs.CurrAvaEdit)          ;tip= "Swaps commented and not commented lines"           }                                                                                     
-    member val ToggleComment2    = {name= "Toggle Comment"            ;gesture= "Ctrl + /"       ;cmd= mkCmdSimple (fun _ -> Commenting.toggleComment tabs.CurrAvaEdit)          ;tip= "Swaps commented and not commented lines"           }                                                                                     
+    member val ToggleComment     = {name= "Toggle Comment"            ;gesture= "Ctrl + /"       ;cmd= mkCmdSimple (fun _ -> Commenting.toggleComment tabs.CurrAvaEdit)          ;tip= "Swaps commented and not commented lines"           }                                                                                     
     
     member val SwapLineUp        = {name= "Swap Line Up"              ;gesture= "Alt + Up"        ;cmd=mkCmdSimple (fun _ -> SwapLines.swapLinesUp  (tabs.Current.Editor)) ;tip= "Swap the current line(s) with the previous line."                                     }                                                                                     
     member val SwapLineUpCtrl    = {name= "Swap Line Up"              ;gesture= "Ctrl + Up"      ;cmd=mkCmdSimple (fun _ -> SwapLines.swapLinesUp  (tabs.Current.Editor)) ;tip= "Swap the current line(s) with the previous line.'Alt + Up' is also a shortcut for this." } // extra because Alt Down fails in Rhino                                                                                 
@@ -83,12 +82,12 @@ type Commands (grid:TabsAndLog)  =
                                                                                                                                              
     //Select menu:                                                                                                                               
     member val SelectLine        = {name= "Select Current Line"       ;gesture= "Ctrl  + L"      ;cmd= mkCmdSimple (fun _ -> expandSelectionToFullLines(tabs.CurrAvaEdit) |> ignore )  ;tip= "Select current line"} // TODO compare VSCODE shortcuts to  see https://github.com/icsharpcode/SharpDevelop/wiki/Keyboard-Shortcuts
-    member val SwapWordLeft      = {name= "Swap selected word left"   ;gesture= "Ctrl  + Left"   ;cmd= mkCmdSimple (fun _ -> SwapWords.left  tabs.CurrAvaEdit|> ignore )  ;tip= "Swaps the currently selected word with the word on the left. A word may include any letter, digit, underscore or dot. "} 
-    member val SwapWordRight     = {name= "Swap selected word right"  ;gesture= "Ctrl  + Right"  ;cmd= mkCmdSimple (fun _ -> SwapWords.right tabs.CurrAvaEdit|> ignore )  ;tip= "Swaps the currently selected word with the word on the right. A word may include any letter, digit, underscore or dot. "} 
-     
+    member val SwapWordLeft      = {name= "Swap selected word left"   ;gesture= "Alt  + Left"   ;cmd= mkCmdSimple (fun _ -> SwapWords.left  tabs.CurrAvaEdit|> ignore )  ;tip= "Swaps the currently selected word with the word on the left. A word may include any letter, digit, underscore or dot. "} 
+    member val SwapWordRight     = {name= "Swap selected word right"  ;gesture= "Alt  + Right"  ;cmd= mkCmdSimple (fun _ -> SwapWords.right tabs.CurrAvaEdit|> ignore )  ;tip= "Swaps the currently selected word with the word on the right. A word may include any letter, digit, underscore or dot. "} 
     
-    //member val SelectLinesUp      ={name= "Select Lines Upwards"      ;gesture= "Shift + Up"     ;cmd= mkCmdSimple (fun _ ->                                                           ;tip= "Not implemented yet"}
-    //member val SelectLinesDown    ={name= "Select Lines Downwards"    ;gesture= "Shift + Down"   ;cmd= mkCmdSimple (fun _ ->                                                           ;tip= "Not implemented yet"} //TODO!   
+    
+    //member val SelectLinesUp      ={name= "Select Lines Upwards"      ;gesture= "Shift + Up"     ;cmd= mkCmdSimple (fun _ -> TODO ;tip= "Not implemented yet"}
+    //member val SelectLinesDown    ={name= "Select Lines Downwards"    ;gesture= "Shift + Down"   ;cmd= mkCmdSimple (fun _ -> TODO ;tip= "Not implemented yet"} //TODO!   
                                                                                                                                          
     //FSI menu:                                                                                                                              
     member val RunAllText        = {name= "Run All Text"              ;gesture= "F5"             ;cmd= mkCmdSimple (fun _ -> evalAllText() )             ;tip= "Send all text in the current file to FSharp Interactive"                }
@@ -132,7 +131,7 @@ type Commands (grid:TabsAndLog)  =
     member val Find      = {name= "Find"     ;gesture=  "Ctrl + F"     ;cmd= ApplicationCommands.Find   ; tip= "Find text of current selection."                                    }                      
     member val Replace   = {name= "Replace"  ;gesture=  "Ctrl + H"     ;cmd= ApplicationCommands.Replace; tip= "Find and replace text of current selection."                        }   
     
-    member val BoxSelLeftByCharacter  = {name= "Box Select Left By Character"  ;gesture=  "Alt + Shift + Left"       ;cmd= RectangleSelection.BoxSelectLeftByCharacter  ; tip= "Expands the selection left by one character; creating a rectangular selection."     }  
+    member val BoxSelLeftByCharacter  = {name= "Box Select Left By Character"  ;gesture= "Alt + Shift + Left"        ;cmd= RectangleSelection.BoxSelectLeftByCharacter  ; tip= "Expands the selection left by one character; creating a rectangular selection."     }  
     member val BoxSelRightByCharacter = {name= "Box Select Right By Character" ;gesture= "Alt + Shift + Right"       ;cmd= RectangleSelection.BoxSelectRightByCharacter ; tip= "Expands the selection right by one character; creating a rectangular selection."    }  
     member val BoxSelLeftByWord       = {name= "Box Select Left By Word"       ;gesture= "Ctrl + Alt + Shift + Left" ;cmd= RectangleSelection.BoxSelectLeftByWord       ; tip= "Expands the selection left by one word; creating a rectangular selection."          }        
     member val BoxSelRightByWord      = {name= "Box Select Right By Word"      ;gesture= "Ctrl + Alt + Shift + Right";cmd= RectangleSelection.BoxSelectRightByWord      ; tip= "Expands the selection right by one word; creating a rectangular selection."         }       
@@ -167,8 +166,7 @@ type Commands (grid:TabsAndLog)  =
              
                  this.Comment          
                  this.UnComment
-                 //this.ToggleComment
-                 this.ToggleComment2
+                 this.ToggleComment
                  this.ToggleBoolean
                  this.AlignCode
 

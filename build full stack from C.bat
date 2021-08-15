@@ -30,7 +30,7 @@ dotnet build "C:/GitHub/Seff/SeffHosting.fsproj" -p:Platform=x64 --configuration
 rmdir /s /q  "C:/GitHub/Seff.Rhino/binRh7"
 dotnet build "C:/GitHub/Seff.Rhino/Seff.Rhino7.fsproj" -p:Platform=x64 --configuration Release
 rmdir /s /q  "C:/GitHub/Rhino.Scripting/binRh7"
-dotnet build "C:/GitHub/Rhino.Scripting/Rhino.Scripting7.fsproj" -p:Platform=x64 --configuration Release
+dotnet build "C:/GitHub/Rhino.Scripting/Rhino7.Scripting.fsproj" -p:Platform=x64 --configuration Release
 
 
 :: Rhino6
@@ -41,7 +41,7 @@ dotnet build "C:/GitHub/Seff.Rhino/Seff.Rhino6.fsproj" -p:Platform=x64 --configu
 
 rmdir /s /q  "C:/GitHub/Rhino.Scripting/obj"
 rmdir /s /q  "C:/GitHub/Rhino.Scripting/binRh6"
-dotnet build "C:/GitHub/Rhino.Scripting/Rhino.Scripting6.fsproj" -p:Platform=x64 --configuration Release
+dotnet build "C:/GitHub/Rhino.Scripting/Rhino6.Scripting.fsproj" -p:Platform=x64 --configuration Release
 
 
 rmdir /s /q "C:/GitHub/Seff.Revit/bin"

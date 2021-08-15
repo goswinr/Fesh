@@ -21,8 +21,7 @@
     <Version>0.9.0.0</Version>
     <AssemblyVersion>0.9.0.0</AssemblyVersion>
     <FileVersion>0.9.0.0</FileVersion>
-    <PackageReleaseNotes>First release</PackageReleaseNotes>   
-
+    <PackageReleaseNotes>First release</PackageReleaseNotes>  
     
     <Authors>GoswinR</Authors>
     <Copyright>Goswin Rothenthal 2021</Copyright>
@@ -119,6 +118,7 @@
     <Compile Include="Src/Editor/ColumnRulers.fs" />
     <Compile Include="Src/Editor/SwapLines.fs" />
     <Compile Include="Src/Editor/CursorBehaviour.fs" />
+    <Compile Include="Src/Editor/KeyboardShortcuts.fs" />
     <Compile Include="Src/Editor/Formating.fs" />
     <Compile Include="Src/Editor/Editor.fs" />
 

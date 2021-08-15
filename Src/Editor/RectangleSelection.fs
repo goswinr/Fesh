@@ -206,7 +206,6 @@ module RectangleSelection =
         setNewEmpty (ed.AvaEdit.TextArea, s, col,true)// neede in manual version
 
 
-
     let private deleteLeft (ed:IEditor, s:SelPos) =        
         let doc = ed.AvaEdit.Document
         let vcol = s.stp.VisualColumn

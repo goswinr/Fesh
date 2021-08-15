@@ -102,6 +102,7 @@
     <Compile Include="Src/Editor/ColumnRulers.fs" />
     <Compile Include="Src/Editor/SwapLines.fs" />
     <Compile Include="Src/Editor/CursorBehaviour.fs" />
+    <Compile Include="Src\Editor\KeyboardShortcuts.fs" />
     <Compile Include="Src/Editor/Formating.fs" />
     <Compile Include="Src/Editor/Editor.fs" />
     <Compile Include="Src/Views/Log.fs" />
@@ -123,16 +124,16 @@
 
    
   <Target Name="CopyFilesOverAfterBuild" BeforeTargets="AfterBuild">
+
     <!-- <Message Text="Copied FSharp.Core.xml file from $(PkgFSharp_Core) to output dir ." Importance="high"/> -->
     <!-- FSharp.Core.xml is missing otherwise ? to have it as intellisense provider-->
     <Copy SourceFiles="$(PkgFSharp_Core)/lib/netstandard2.0/FSharp.Core.xml" DestinationFiles="$(TargetDir)FSharp.Core.xml" ContinueOnError="false" />
 
     <!--dll is needed for editor tooling only, it might not be installed on host PC . seee also  https://github.com/fsprojects/IfSharp/issues/213 -->
-    <Copy SourceFiles="$(PkgNETStandard_Library)/build/netstandard2.0/ref/netstandard.dll" DestinationFiles="$(TargetDir)netstandard.dll" ContinueOnError="false" />
+    <Copy SourceFiles="$(PkgNETStandard_Library)/build/netstandard2.0/ref/netstandard.dll" DestinationFiles="$(TargetDir)netstandard.dll" ContinueOnError="false" />  
     
-    <!-- needed too ?
+    <!-- needed for  editor tooling intelisense ? -->
     <Copy SourceFiles="$(PkgNETStandard_Library)/build/netstandard2.0/ref/netstandard.xml" DestinationFiles="$(TargetDir)netstandard.xml" ContinueOnError="false" />  
-    -->
     
   </Target>
 
