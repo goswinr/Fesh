@@ -59,18 +59,16 @@
 
   <ItemGroup>    
     <!-- normally don't include FSharp.Core in lib but 5.0.2 is needed for FCS 40.0.0 --> 
-    <PackageReference Update="FSharp.Core" Version="5.0.2" />  
-
-    <PackageReference Include="FSharp.Compiler.Service" Version="40.0.0" />
-
+    <PackageReference Update="FSharp.Core" Version="5.0.2" /> 
+    <PackageReference Include="FSharp.Compiler.Service" Version="40.0.0" /> 
     <PackageReference Include="AvalonEditB" Version="1.0.0" />
+    <PackageReference Include="AvalonLog" Version="0.3.0" />
     <!-- <PackageReference Include="FsEx.Wpf" Version="1.0.0" /> -->
-    <!-- <PackageReference Include="AvalonLog" Version="1.0.0" /> -->
     
-    <!--<Reference Include="AvalonEditB" HintPath="../AvalonEditB/AvalonEditB/bin/Release/net472/AvalonEditB.dll" />-->
-    <Reference Include="FsEx.Wpf" HintPath="../FsEx.Wpf/bin/Release/net472/FsEx.Wpf.dll" />    
-    <Reference Include="AvalonLog" HintPath="../AvalonLog/bin/Release/net472/AvalonLog.dll" />
-
+    <!--<Reference Include="AvalonEditB" HintPath="../AvalonEditB/AvalonEditB/bin/Release/net472/AvalonEditB.dll" />
+    <Reference Include="AvalonLog" HintPath="../AvalonLog/bin/Release/net472/AvalonLog.dll" />  -->
+    <Reference Include="FsEx.Wpf" HintPath="../FsEx.Wpf/bin/Release/net472/FsEx.Wpf.dll" /> 
+     
   </ItemGroup>
   
   <ItemGroup>

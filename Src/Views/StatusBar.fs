@@ -244,9 +244,9 @@ type SelectedTextStatus (grid:TabsAndLog) as this =
             )
         
         //Log events 
-        grid.Log.AvalonLog.SelectedTextHighLighter.OnHighlightChanged.Add( fun (highTxt,k ) ->             
+        grid.Log.AvalonLog.SelectedTextHighLighter.OnHighlightChanged.Add( fun (highTxt,ints ) ->             
             this.Inlines.Clear()
-            this.Inlines.Add( sprintf "%d of " k)
+            this.Inlines.Add( sprintf "%d of " ints.Count)
             this.Inlines.Add( new Run (highTxt, FontFamily = Style.fontEditor, Background = grid.Log.AvalonLog.SelectedTextHighLighter.ColorHighlighting))      
             this.Inlines.Add( sprintf " (%d Chars) in Log" highTxt.Length)
             ) 
