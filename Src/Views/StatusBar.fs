@@ -90,6 +90,8 @@ type CheckerStatus (grid:TabsAndLog) as this =
                     
                     this.ToolTip <- makePanelVert [                         
                         if erk>0 then       
+                            TextBlock(Text = "left click here to scroll to first error")
+                            TextBlock(Text = "right click here to print errors to log")
                             TextBlock(Text="Errors:", FontSize = 14. , FontWeight = FontWeights.Bold )
                         for e in Seq.truncate 10 ers do    
                             TextBlock(Text = sprintf "• line %d: %s" e.StartLine e.Message)
@@ -141,12 +143,19 @@ type CheckerStatus (grid:TabsAndLog) as this =
         tabs.OnTabChanged.Add (fun t -> updateCheckState(t.Editor))            
         checker.OnChecked.Add  updateCheckState
         checker.OnChecking.Add updateCheckState
-        this.MouseDown.Add ( fun a -> 
+        this.MouseLeftButtonDown.Add ( fun a -> 
             match firstErrorLine with 
             |Some loc -> Foldings.GoToLineAndUnfold(loc, grid.Tabs.Current.Editor, grid.Config)                
             |None     -> ()
             )
- 
+        
+        this.MouseRightButtonDown.Add ( fun a ->
+            match tabs.Current.Editor.FileCheckState with
+            | Done res -> 
+                for e in res.checkRes.Diagnostics |> Seq.sortBy ( fun e -> e.StartLine) do
+                    ISeffLog.log.PrintfnInfoMsg "Line: %d %A %s: %s" e.StartLine e.Severity e.ErrorNumberText e.Message 
+            | _ -> ()
+            )
 type FsiRunStatus (grid:TabsAndLog, cmds:Commands) as this = 
     inherit TextBlock()
     do     
