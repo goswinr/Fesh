@@ -40,9 +40,10 @@ type Commands (grid:TabsAndLog)  =
     //see https://github.com/icsharpcode/AvalonEdit/blob/697ff0d38c95c9e5a536fbc05ae2307ec9ef2a63/AvalonEditB/Editing/CaretNavigationCommandHandler.cs#L73
     //TODO these gets evaluated for each cmd on every mouse click or key perss . is this OK?  any lag ?? in Canexecute for commands
 
-    let isEse a  = tabs.Current.Editor.AvaEdit.SelectionLength > 0
-    let isLse a  = log.AvalonLog.Selection.Length > 0
-    let isAsy a  = fsi.State = Evaluating && fsi.Mode = Async
+    let isEse (_:obj)  = tabs.Current.Editor.AvaEdit.SelectionLength > 0
+    let isLse (_:obj)  = log.AvalonLog.Selection.Length > 0
+    let isAsy (_:obj)  = fsi.State = Evaluating && fsi.Mode.IsAsync
+    let isAsy472 (x:obj) = fsi.State = Evaluating && fsi.Mode = Async472
 
     // NOTE :--------------------------------------------------------------------
     // some more gestures and selection depending ovewrites are defined in module  CursorBehaviour.previewKeyDown(..)
@@ -91,7 +92,7 @@ type Commands (grid:TabsAndLog)  =
     member val RunTextTillCursor = {name= "Run Text till Cursor"      ;gesture= "F3"             ;cmd= mkCmdSimple (fun _ -> evalTillCursor())           ;tip= "Sends all lines till and including the current line  to FSharp Interactive" }
     member val RunTextFromCursor = {name= "Run Text from Cursor"      ;gesture= "F4"             ;cmd= mkCmdSimple (fun _ -> evalFromCursor())           ;tip= "Sends all lines from and including the current line  to FSharp Interactive" }    
     member val ClearLog          = {name= "Clear Log"                 ;gesture= "Ctrl + Alt + C" ;cmd= mkCmdSimple (fun _ -> log.Clear())                ;tip= "Clear all text from FSI Log window"                                         }
-    member val CancelFSI         = {name= "Cancel FSI"                ;gesture= "Ctrl + Break"   ;cmd= mkCmd isAsy (fun _ -> fsi.CancelIfAsync())        ;tip= "Cancel running FSI evaluation (only available in asynchronous mode)"        }
+    member val CancelFSI         = {name= "Cancel FSI"                ;gesture= "Ctrl + Break"   ;cmd= mkCmd isAsy472 (fun _ -> fsi.CancelIfAsync())    ;tip= "Cancel running FSI evaluation \r\n(only available on .NET Framework and only in asynchronous mode)"        }
     member val ResetFSI          = {name= "Reset FSI"                 ;gesture= "Ctrl + Alt + R" ;cmd= mkCmdSimple (fun _ -> log.Clear();fsi.Reset())    ;tip= "Clear all text from FSI Log window and reset FSharp Interactive"                                                   }
     member val ToggleSync        = {name= "Toggle Sync / Async"       ;gesture= ""               ;cmd= mkCmdSimple (fun _ -> fsi.ToggleSync())           ;tip= "Switch between synchronous and asynchronous evaluation in FSI, see status in StatusBar"} 
     member val CompileScriptSDK  = {name= "Compile Script via dotnet SDK" ;gesture= "Ctrl + B"        ;cmd= mkCmdSimple (fun _ -> compileScript(false))  ;tip= "Create an net48 fsproj with current code (including unsaved changes) and build it via 'dotnet build' in Release x64. dotnet SDK needs to be installed."} 
@@ -108,7 +109,6 @@ type Commands (grid:TabsAndLog)  =
     member val ExpandCode        = {name= "Expand all Code Foldings"  ;gesture= ""               ;cmd= mkCmdSimple (fun _ -> Foldings.ExpandAll(tabs.Current.Editor,tabs.Config))  ;tip= "Expand or unfold all Code Foldings in this file"                        }
                                                                                                                                      
     //About Menu  
-    //member val About             = {name= "http://seff.io/"           ;gesture= ""               ;cmd= mkCmdSimple (fun _ -> Diagnostics.Process.Start("http://seff.io/") |> ignore )     ;tip= "Opens a browser window showing http://seff.io/"                                        }
     member val Version           = {name= "Version " + version.Value  ;gesture= ""               ;cmd= mkCmdSimple (fun _ -> Diagnostics.Process.Start("http://seff.io/") |> ignore )     ;tip= "Opens a browser window showing http://seff.io/"                                         }
     member val SettingsFolder    = {name= "Open Settings Folder"      ;gesture= ""               ;cmd= mkCmdSimple (fun _ -> config.Hosting.OpenSettingsFolder())                         ;tip= "Opens the Folder where user settinsg such as default file content is saved."                                        }
     member val AppFolder         = {name= "Open App Folder"           ;gesture= ""               ;cmd= mkCmdSimple (fun _ -> config.Hosting.OpenAppFolder())                              ;tip= "Opens the Folder where this App (Seff.exe) is loaded from."                                        }
@@ -152,7 +152,7 @@ type Commands (grid:TabsAndLog)  =
             // some more gestures and selection depending  ovewrites  are defined in CursorBehaviour.previewKeyDown
             // NOTE :--------------------------------------------------------------------
 
-            let allCustomCommands = [  //for seting up Key gestures below, exluding the ones already provided by avalonedit
+            let allCustomCommands = [  //for setting up Key gestures below, exluding the ones already provided by avalonedit
                  this.NewTab           
                  this.OpenFile         
                  this.OpenTemplateFile 

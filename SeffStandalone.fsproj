@@ -3,7 +3,7 @@
 
  <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <TargetFrameworks>net472</TargetFrameworks>  <!--no net50, because no Thread.Abort()-->
+    <TargetFrameworks>net472;net50-windows</TargetFrameworks>  <!--no net50, because no Thread.Abort()-->
     <UseWPF>true</UseWPF>    
     <LangVersion>preview</LangVersion>
     
@@ -33,12 +33,15 @@
     
     <Platforms>x64;x86</Platforms>
     <Configurations>Release</Configurations>
-
+   
+    <!--<DefineConstants>NETFRAMEWORK</DefineConstants>-->
+   
+    <DefineConstants Condition="'$(TargetFramework)' == 'net472'">NETFRAMEWORK</DefineConstants> 
+   
+   <OutputPath Condition="'$(Platform)'=='x64'">binStandalone/x64/</OutputPath> 
+   <OutputPath Condition="'$(Platform)'=='x86'">binStandalone/x86/</OutputPath>  
   </PropertyGroup>
 
-  <!--Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" -->
-  <PropertyGroup Condition="'$(Platform)'=='x64'">  <OutputPath>binStandalone/x64/</OutputPath>  </PropertyGroup>
-  <PropertyGroup Condition="'$(Platform)'=='x86'">  <OutputPath>binStandalone/x86/</OutputPath>  </PropertyGroup>
 
   <ItemGroup>    
     <PackageReference Update="FSharp.Core" Version="5.0.2" GeneratePathProperty="true" />
@@ -47,17 +50,24 @@
     <PackageReference Include="AvalonLog" Version="0.3.0" />
     <!-- <PackageReference Include="FsEx.Wpf" Version="1.0.0" /> -->
     
-    <!--<Reference Include="AvalonEditB" HintPath="../AvalonEditB/AvalonEditB/bin/Release/net472/AvalonEditB.dll" />
-    <Reference Include="AvalonLog" HintPath="../AvalonLog/bin/Release/net472/AvalonLog.dll" />  -->
-    <Reference Include="FsEx.Wpf" HintPath="../FsEx.Wpf/bin/Release/net472/FsEx.Wpf.dll" />        
-
-
     <!--this reference is needed for tooling only, it might not be installed on host PC. see also https://github.com/fsprojects/IfSharp/issues/213 -->
     <PackageReference Include="NETStandard.Library" Version="2.0.3" GeneratePathProperty="true" />
   </ItemGroup>
+  
+  <ItemGroup Condition=" '$(TargetFramework)' == 'net472' ">
+      <!--
+      <Reference Include="AvalonEditB" HintPath="../AvalonEditB/AvalonEditB/bin/Release/net472/AvalonEditB.dll" />
+      <Reference Include="AvalonLog" HintPath="../AvalonLog/bin/Release/net472/AvalonLog.dll" />  -->
+      <Reference Include="FsEx.Wpf" HintPath="../FsEx.Wpf/bin/Release/net472/FsEx.Wpf.dll" />      
+  </ItemGroup>
+  <ItemGroup Condition=" '$(TargetFramework)' == 'net50-windows' ">
+      <!--
+      <Reference Include="AvalonEditB" HintPath="../AvalonEditB/AvalonEditB/bin/Release/net50-windows/AvalonEditB.dll" />
+      <Reference Include="AvalonLog" HintPath="../AvalonLog/bin/Release/net50-windows/AvalonLog.dll" />  -->
+      <Reference Include="FsEx.Wpf" HintPath="../FsEx.Wpf/bin/Release/net50-windows/FsEx.Wpf.dll" />
+  </ItemGroup>     
 
-  <ItemGroup>
-    
+  <ItemGroup>    
     <None Include="README.md" />
     <EmbeddedResource Include="Media/logo.res" /> <!--  for Application Icon in explorer-->   
     <Resource Include="Media/logo.ico" />    

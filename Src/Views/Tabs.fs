@@ -357,7 +357,7 @@ type Tabs(config:Config, win:Window) =
     /// will display a dialog if there are unsaved files.
     /// if user clicks yes it will attempt to save files.
     /// returns true if all files are saved or unsaved changes are ignored (closing not canceled by user).
-    member this.AskIfClosingWindowIsOk()=             
+    member this.AskForFileSavingToKnowIfClosingWindowIsOk()=             
         let openFs = allTabs |> Seq.filter (fun t -> not t.IsCodeSaved) 
         //log.PrintfnDebugMsg "Unsaved files %d" (Seq.length openFs)
         if  Seq.isEmpty openFs then

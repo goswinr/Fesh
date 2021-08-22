@@ -42,17 +42,23 @@ type Seff (config:Config,log:Log) =
         //win.Window.PreviewKeyDown.Add( fun k -> log.PrintfnDebugMsg "key down: %A syss: %A" k.Key k.SystemKey)
         //if config.Hosting.IsStandalone then win.Window.ContentRendered.Add(fun _ -> log.PrintfnInfoMsg "* Time for loading and rendering of main window: %s"  Timer.InstanceStartup.tocEx) 
                  
-        win.Window.Closing.Add( fun e ->
+        win.Window.Closing.Add( fun (e:ComponentModel.CancelEventArgs) ->
             // first check for running FSI
             match tabs.Fsi.AskIfCancellingIsOk () with 
             | NotEvaluating   -> ()
-            | YesAsync        -> tabs.Fsi.CancelIfAsync() 
+            | YesAsync472     -> tabs.Fsi.CancelIfAsync() 
             | Dont            -> e.Cancel <- true // dont close window   
-            | NotPossibleSync -> () // still close despite running thread ??
+            | NotPossibleSync -> () // cant show a dialog when in sync mode. show dialog from new thread ? TODO
+            | NoAsync50       -> 
+                match MessageBox.Show("Do you want to close the window while net50 code is still evaluating?", "Close Window during Evaluation?", MessageBoxButton.YesNo, MessageBoxImage.Exclamation, MessageBoxResult.No) with
+                | MessageBoxResult.Yes -> ()          
+                | _  -> e.Cancel <- true // dont close window   
+                    
                   
-            //then check for unsaved files:
-            let canClose = tabs.AskIfClosingWindowIsOk() 
-            if not canClose then e.Cancel <- true // dont close window  
+            //then check for unsaved files if not already canceled
+            if not e.Cancel then 
+                let canClose = tabs.AskForFileSavingToKnowIfClosingWindowIsOk() 
+                if not canClose then e.Cancel <- true // dont close window  
             )        
 
         

@@ -20,6 +20,10 @@ type HostedStartUpData = {
 
 /// A class to hold the current App Run context (Standalone or Hosted)
 type Hosting (startUpData:HostedStartUpData option) =    
+    
+    let isRunningOnDotNetCore = 
+        Type.GetType("System.Runtime.Loader.AssemblyLoadContext") <> null //https://github.com/dotnet/runtime/issues/22779#issuecomment-315527735
+    
     let configFolder = 
         let appData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData)
         let p = IO.Path.Combine(appData,"Seff")
@@ -56,6 +60,8 @@ type Hosting (startUpData:HostedStartUpData option) =
     member this.IsStandalone = match startUpData with None ->  true  | Some _ -> false
 
     member this.Logo         = match startUpData with None ->  None | Some d -> d.logo
+
+    member this.IsRunningOnDotNetCore = isRunningOnDotNetCore
     
     /// opens up Explorer.exe
     member this.OpenSettingsFolder()=               

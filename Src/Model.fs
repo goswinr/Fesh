@@ -153,12 +153,7 @@ module IEditor =
 
 type CodeToEval = {code:string; file:FilePath; allOfFile:bool; fromLine:int} 
 
-type FsiState =  Ready | Evaluating | Initalizing | NotLoaded
-
-type FsiMode  = Sync | Async
-
-type FsiIsCancelingOk = NotEvaluating | YesAsync | Dont | NotPossibleSync // Not-Possible-Sync because during sync eval the ui should be frozen anyway and this request should not be happening
-     
+    
 type TextChange =  EnteredDot | EnteredOneIdentifierChar | EnteredOneNonIdentifierChar | CompletionWinClosed | OtherChange //| EnteredQuote
     
 type CharBeforeQuery = Dot | NotDot
