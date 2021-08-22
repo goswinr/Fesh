@@ -28,35 +28,32 @@ type OpenTabs  (hostInfo:Hosting, startupArgs:string[]) =
         let files = ResizeArray()
         let dup =  HashSet()
         let mutable curr ="" 
-        try            
-            // parse settings            
-            if writer.FileExists() then 
-                let lns = writer.ReadAllLines()
-                if lns.Length > 1 then 
-                    curr <- lns.[0].Replace(currentTabPreFix,"").ToLowerInvariant() // first line is filepath and name for current tab (repeats below)
-                    for path in lns |> Seq.skip 1  do // skip first line of current info
-                        let fi = FileInfo(path)
-                        if fi.Exists then 
-                            files.Add fi 
-                            dup.Add (path.ToLowerInvariant())  |> ignore 
+        writer.CreateFileIfMissing("")  |> ignore        
+        match writer.ReadAllLines() with 
+        |None -> ()
+        |Some lns -> 
+            if lns.Length > 1 then 
+                curr <- lns.[0].Replace(currentTabPreFix,"").ToLowerInvariant() // first line is filepath and name for current tab (repeats below)
+                for path in lns |> Seq.skip 1  do // skip first line of current info
+                    let fi = FileInfo(path)
+                    if fi.Exists then 
+                        files.Add fi 
+                        dup.Add (path.ToLowerInvariant())  |> ignore 
 
-            // parse startup args
-            for path in startupArgs do
-                let fi = FileInfo(path)
-                if fi.Exists then 
-                    let lc = path.ToLowerInvariant()
-                    curr <- lc
-                    if not <| dup.Contains (lc) then 
-                        dup.Add (lc)  |> ignore
-                        files.Add fi
-                  
-        with e -> 
-            ISeffLog.log.PrintfnAppErrorMsg "Error getFilesfileOnClosingOpen: %A"  e
+        // parse startup args
+        for path in startupArgs do
+            let fi = FileInfo(path)
+            if fi.Exists then 
+                let lc = path.ToLowerInvariant()
+                curr <- lc
+                if not <| dup.Contains (lc) then 
+                    dup.Add (lc)  |> ignore
+                    files.Add fi      
         
         [|  
         for fi in files do 
-            let lc = fi.FullName.ToLowerInvariant()
-            {file= fi; makeCurrent = lc.Equals(curr, StringComparison.Ordinal)}
+            let lowerc = fi.FullName.ToLowerInvariant()
+            {file= fi; makeCurrent = lowerc.Equals(curr, StringComparison.Ordinal)}
         |]
 
     let getText() = 

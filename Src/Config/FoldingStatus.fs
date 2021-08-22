@@ -26,20 +26,19 @@ type FoldingStatus ( hostInfo:Hosting, recentlyUsedFiles:RecentlyUsedFiles) =
 
     let foldingStatus = 
         let dict=Dictionary<string,bool []>() 
-        async{
-            try            
-                if writer.FileExists then
-                    for ln in writer.ReadAllLines().Value do
-                        match ln.Split(sep) with
-                        | [|k;v|] -> 
-                            //log.PrintfnDebugMsg "%s for %s" v k
-                            let vs = Seq.map ( fun c -> if c = '0' then false elif c = '1' then true else failwithf "bad char %c in FoldingStatus" c) v |> Array.ofSeq
-                            dict.[k] <- vs 
-                        | _ -> ISeffLog.log.PrintfnAppErrorMsg "Bad line in FoldingStatus file : '%s'" ln 
-                waitingForFileRead <- false
-            with e ->
-                waitingForFileRead <- false
-                ISeffLog.log.PrintfnAppErrorMsg "Error load FoldingStatus: %A"   e
+        async{                       
+            writer.CreateFileIfMissing("")  |> ignore        
+            match writer.ReadAllLines() with 
+            |None -> ()
+            |Some lns ->
+                for ln in lns do
+                    match ln.Split(sep) with
+                    | [|k;v|] -> 
+                        //log.PrintfnDebugMsg "%s for %s" v k
+                        let vs = Seq.map ( fun c -> if c = '0' then false elif c = '1' then true else failwithf "bad char %c in FoldingStatus" c) v |> Array.ofSeq
+                        dict.[k] <- vs 
+                    | _ -> ISeffLog.log.PrintfnAppErrorMsg "Bad line in FoldingStatus file : '%s'" ln 
+            waitingForFileRead <- false            
             } |> Async.Start
         dict
 

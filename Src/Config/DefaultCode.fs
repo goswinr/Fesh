@@ -28,7 +28,7 @@ type DefaultCode  ( hostInfo:Hosting) =
         //"tips: // https://panesofglass.github.io/scripting-workshop/#/" 
         //"tips: // http://brandewinder.com/2016/02/06/10-fsharp-scripting-tips/"        
         "open System"
-        // "Environment.CurrentDirectory <- __SOURCE_DIRECTORY__" //this fails !
+        // "Environment.CurrentDirectory <- __SOURCE_DIRECTORY__" // TODO this fails ! 
         ""
         ] 
         |> String.concat Environment.NewLine
@@ -41,13 +41,12 @@ type DefaultCode  ( hostInfo:Hosting) =
 
     ///loads sync
     member this.Get() =            
-        if writer.FileDoesNotExists then 
-            writer.WriteAsync( defaultCodeOnFirstRun)// create file so it can be found and edited manually
-            defaultCodeOnFirstRun
-        else 
-            match writer.ReadAllText() with 
-            |Some t -> t
-            |None -> defaultCodeOnFirstRun // log is alread written
+        writer.CreateFileIfMissing(defaultCodeOnFirstRun)  |> ignore // create file so it can be found and edited manually       
+        match writer.ReadAllText() with 
+        |None -> defaultCodeOnFirstRun
+        |Some code -> code 
+        
+        
                 
         
             

@@ -8,10 +8,9 @@ open FsEx.Wpf
 
 open Seff.Model
 
-
-
+// TODO replace this with full nuget and local autocompelet on #r "...
            
-/// A class to hold the previously loaded assemble refrences for auto completions
+/// A class to hold the previously loaded assemble references for auto completions
 type AssemblyReferenceStatistic  ( hostInfo:Hosting) =
     
         
@@ -22,13 +21,13 @@ type AssemblyReferenceStatistic  ( hostInfo:Hosting) =
     let assRefStats = 
         let set = HashSet<string>() //  full path
         async{
-            try            
-                if writer.FileExists then
-                    for ln in writer.ReadAllLines().Value do
-                        if IO.File.Exists ln then 
-                            set.Add (ln) |> ignore
-            with e -> 
-                ISeffLog.log.PrintfnAppErrorMsg "Error load assRefStatsStats: %A" e
+            writer.CreateFileIfMissing("")  |> ignore        
+            match writer.ReadAllLines() with 
+            |None -> ()
+            |Some lns -> 
+                for ln in lns do
+                    if IO.File.Exists ln then 
+                        set.Add (ln) |> ignore            
             } |> Async.Start 
         set
 

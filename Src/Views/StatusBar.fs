@@ -178,7 +178,7 @@ type FsiOutputStatus (grid:TabsAndLog) as this =
     inherit TextBlock()
     let onTxt = "FSI prints to log window"
     let offTxt = "FSI is quiet"
-    let isOff () = grid.Config.Settings.GetBool "fsiOutputQuiet" false
+    let isOff () = grid.Config.Settings.GetBool ("fsiOutputQuiet", false)
     do     
         this.Padding <- textPadding
         this.Text <- if isOff() then offTxt else onTxt
@@ -186,10 +186,10 @@ type FsiOutputStatus (grid:TabsAndLog) as this =
         this.MouseLeftButtonDown.Add ( fun a -> 
             if isOff() then 
                 this.Text <- onTxt
-                grid.Config.Settings.SetBool "fsiOutputQuiet" false  |> ignore              
+                grid.Config.Settings.SetBool ("fsiOutputQuiet", false)              
             else
                 this.Text <- offTxt
-                grid.Config.Settings.SetBool "fsiOutputQuiet" true |> ignore 
+                grid.Config.Settings.SetBool ("fsiOutputQuiet", true) 
             grid.Config.Settings.Save ()
             grid.Tabs.Fsi.Initalize()
             )  
@@ -197,7 +197,7 @@ type FsiOutputStatus (grid:TabsAndLog) as this =
 type AsyncStatus (grid:TabsAndLog) as this = 
     inherit TextBlock()
     let fsi = grid.Tabs.Fsi
-    let isAsync = grid.Config.Settings.GetBool "asyncFsi" true  
+    let isAsync = grid.Config.Settings.GetBool ("asyncFsi", true)  
     let sync = "FSI evaluation mode: Synchronos" 
     let asyn = "FSI evaluation mode: Asynchronos"
         
@@ -256,9 +256,9 @@ type SelectedTextStatus (grid:TabsAndLog) as this =
         
         this.MouseDown.Add ( fun _ -> 
             if isSelOcc() then 
-                sett.Set "SelOcc" "0" |> ignore  // TODO turn off selection highlight in log too ?
+                sett.Set ("SelOcc", "0")   // TODO turn off selection highlight in log too ?
             else                 
-                sett.Set "SelOcc" "1"  |> ignore // toggle 
+                sett.Set ("SelOcc", "1")   // toggle 
             this.Inlines.Clear()            
             this.Inlines.Add( desc +    if isSelOcc() then onTxt else offTxt)
             this.ToolTip <-   baseTxt + if isSelOcc() then offTxt else onTxt            

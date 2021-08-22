@@ -81,7 +81,7 @@ type Fsi private (config:Config) =
             async{
                 //let timer = Seff.Timer()
                 //timer.tic()
-                if config.Settings.GetBool "asyncFsi" true then mode <- Async else mode <- FsiMode.Sync
+                if config.Settings.GetBool ("asyncFsi", true) then mode <- Async else mode <- FsiMode.Sync
                 match sessionOpt with 
                 |None -> ()
                 |Some session -> session.Interrupt()  //TODO does this cancel running session correctly ?? // TODO how to dispose previous session ?  Thread.Abort() ??    
@@ -95,7 +95,7 @@ type Fsi private (config:Config) =
                 // and  https://github.com/fsharp/FSharp.Compiler.Service/issues/878 
                 let allArgs = 
                     // "--shadowcopyreferences" is ignored https://github.com/fsharp/FSharp.Compiler.Service/issues/292
-                    if config.Settings.GetBool "fsiOutputQuiet" false then Array.append  config.FsiArugments.Get [| "--quiet"|] // TODO or fsi.ShowDeclarationValues <- false ??
+                    if config.Settings.GetBool ("fsiOutputQuiet", false) then Array.append  config.FsiArugments.Get [| "--quiet"|] // TODO or fsi.ShowDeclarationValues <- false ??
                     else                                                                 config.FsiArugments.Get
                         
                 let settings = Settings.fsi
@@ -376,8 +376,8 @@ type Fsi private (config:Config) =
     member this.SetMode(sync:FsiMode) =         
         let setConfig()=
             match mode with
-            |Sync ->  config.Settings.SetBool "asyncFsi" false    |> ignore                       
-            |Async -> config.Settings.SetBool "asyncFsi" true     |> ignore 
+            |Sync ->  config.Settings.SetBool ("asyncFsi", false)    |> ignore                       
+            |Async -> config.Settings.SetBool ("asyncFsi", true)     |> ignore 
 
         match this.AskIfCancellingIsOk() with 
         | NotEvaluating | YesAsync    -> 

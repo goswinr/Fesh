@@ -27,34 +27,32 @@ type RecentlyUsedFiles  ( hostInfo:Hosting) =
         
     let recentFilesChangedEv = new Event<unit>()
         
-    let recentFilesStack : Collections.Generic.Stack<UsedFile> = 
-        // TODO this could be done async too?        
-        
+    let recentFilesStack =
         let stack = Collections.Generic.Stack<UsedFile>()
-        try            
-            //if IO.File.Exists filePath then // do this check only when creating menu items
-            for ln in writer.ReadAllLines() |> Seq.rev do
-                let path , d = Str.splitOnce "|" ln                
-                match DateTime.TryParseExact(d, "yyyy-MM-dd HH:mm", null,  DateTimeStyles.None) with // TODO is this UTC ?
-                | true, date -> 
-                    if IO.File.Exists(path) then 
-                        stack.Push {fileInfo = FileInfo(path) ; lastOpendUtc = date} 
-                    elif DateTime.UtcNow - date < TimeSpan.FromDays(2.) then // if a file is missing only add it to the recent file stack if it was used in the last 2 days( might be on a network drive that is temporaly disconnected)
-                        stack.Push {fileInfo = FileInfo(path) ; lastOpendUtc = date} 
-                | _ ->          
-                    ISeffLog.log.PrintfnAppErrorMsg "Failed to parse date from recent file text: %s" ln
-                    stack.Push {fileInfo = FileInfo(path) ; lastOpendUtc = DateTime.MinValue}
-                                  
-        with 
-            | :? IO.FileNotFoundException  -> ISeffLog.log.PrintfnInfoMsg "No recently used files found. (This is expected on first use of the App)"  
-            | e ->                            ISeffLog.log.PrintfnAppErrorMsg  "Problem reading RecentlyUsedFiles settings file: %A"  e     
-        stack   
+        async{
+            writer.CreateFileIfMissing("")  |> ignore  //ISeffLog.log.PrintfnInfoMsg "No recently used files found. (This is expected on first use of the App)"        
+            match writer.ReadAllLines() with 
+            |None -> ()
+            |Some files -> 
+               for ln in files |> Seq.rev do
+                   let path , d = Str.splitOnce "|" ln                
+                   match DateTime.TryParseExact(d, "yyyy-MM-dd HH:mm", null,  DateTimeStyles.None) with // TODO is this UTC ?
+                   | true, date -> 
+                       if IO.File.Exists(path) then 
+                           stack.Push {fileInfo = FileInfo(path) ; lastOpendUtc = date} 
+                       elif DateTime.UtcNow - date < TimeSpan.FromDays(2.) then // if a file is missing only add it to the recent file stack if it was used in the last 2 days( might be on a network drive that is temporaly disconnected)
+                           stack.Push {fileInfo = FileInfo(path) ; lastOpendUtc = date} 
+                   | _ ->          
+                       ISeffLog.log.PrintfnAppErrorMsg "Failed to parse date from recent file text: %s" ln
+                       stack.Push {fileInfo = FileInfo(path) ; lastOpendUtc = DateTime.MinValue} 
+            recentFilesChangedEv.Trigger()// to update menu if delaget is alreday set up in menu.fs
+            } |> Async.Start
+        stack  // the returned stack is empty initially , it will be filled async
 
         
     /// the maximum number of recxent files to be saved
     /// the amount of files in the recently used menu can be controlled separetly in menu.fs
-    let maxCount = 100       
-                
+    let maxCount = 100  
 
     let getStringRaiseEvent() = 
         let sb = StringBuilder()
@@ -69,10 +67,9 @@ type RecentlyUsedFiles  ( hostInfo:Hosting) =
                     Dup.Add uf.fileInfo.FullName  |> ignore
                     incr k
 
-        recentFilesChangedEv.Trigger()  //this event will be triggered 1000 ms after new tabs are created
-        sb.ToString()    
+        recentFilesChangedEv.Trigger()  //this event will be triggered 2000 ms after new tabs are created, because of writer.WriteIfLast
+        sb.ToString() 
 
-    
     /// does not save 
     member this.Add(fi:FileInfo) =         
         if recentFilesStack.Count = 0  then 
@@ -91,9 +88,8 @@ type RecentlyUsedFiles  ( hostInfo:Hosting) =
         this.Save()            
 
         
-    /// the first elemnt in this array the top of stack
-    member this.GetUniqueExistingSorted() = 
-
+    /// the first element in this array the top of stack
+    member this.GetUniqueExistingSorted() =
         let xs = ResizeArray()
         let Dup = Collections.Generic.HashSet()
         for uf in recentFilesStack do
@@ -101,8 +97,7 @@ type RecentlyUsedFiles  ( hostInfo:Hosting) =
             if not (Dup.Contains lc) then 
                 Dup.Add lc |> ignore 
                 if File.Exists lc then // async is done in Menu.setRecentFiles()
-                    xs.Add uf
-        
+                    xs.Add uf        
         xs |> Util.General.sortInPlaceBy ( fun uf -> uf.lastOpendUtc)
         xs.Reverse()
         xs                    

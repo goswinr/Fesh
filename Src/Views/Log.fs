@@ -85,7 +85,7 @@ type Log private () =
     member this.ToggleLineWrap(config:Config)=
         let newState = not  log.WordWrap 
         setLineWrap newState
-        config.Settings.SetBool "logHasLineWrap" newState  |> ignore 
+        config.Settings.SetBool ("logHasLineWrap", newState) 
         config.Settings.Save ()
     
     /// to acces the underlying read-only Avalonedit Texteditor

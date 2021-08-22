@@ -11,17 +11,16 @@ open Seff.Model
    
 /// A class to hold the statistic of most used toplevel auto completions
 type AutoCompleteStatistic  ( hostInfo:Hosting) =
-    
-    
-    let customPriorities = [ // fist item wil have higest prority
+        
+    let customPriorities = [ 
+        // first item wil have highest prority
         "true"
         "false"
         "printfn"
         "sprintf"
         "eprintfn" 
         "failwithf"
-        ]
-        
+        ]        
 
     let  sep = '=' // key value separatur like in ini files
     
@@ -32,17 +31,17 @@ type AutoCompleteStatistic  ( hostInfo:Hosting) =
     let completionStats = 
         let dict=Collections.Concurrent.ConcurrentDictionary<string,float>() 
         async{
-            try            
-                if writer.FileExists then
-                    for ln in writer.ReadAllLines().Value do
-                        match ln.Split(sep) with
-                        | [|k;v|] -> dict.[k] <- float v // TODO allow for comments? use ini format ??
-                        | _       -> ISeffLog.log.PrintfnAppErrorMsg "Bad line in CompletionStats file : '%s'" ln                   
-            with e -> 
-                ISeffLog.log.PrintfnAppErrorMsg "Error load fileCompletionStats: %A"   e
+            writer.CreateFileIfMissing("")  |> ignore        
+            match writer.ReadAllLines() with 
+            |None -> ()
+            |Some lns ->
+                for ln in lns do
+                    match ln.Split(sep) with
+                    | [|k;v|] -> dict.[k] <- float v // TODO allow for comments? use ini format ??
+                    | _       -> ISeffLog.log.PrintfnAppErrorMsg "Bad line in CompletionStats file : '%s'" ln
             
-            customPriorities
-            |> List.iteri ( fun i s -> dict.[s] <- 999. - float i  )// decrement priority while iterating  
+            /// add custom priorities
+            customPriorities |> List.iteri ( fun i s -> dict.[s] <- 999. - float i  )// decrement priority while iterating  
             
             } |> Async.Start 
         dict

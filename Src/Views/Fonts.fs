@@ -22,7 +22,7 @@ type Fonts (grid:TabsAndLog) = // will be contructed as part of Commands class
         log.AvalonLog.FontSize <- newSize
         for t in tabs.AllTabs do                
             t.Editor.AvaEdit.FontSize  <- newSize        
-        config.Settings.SetFloat "FontSize" newSize  |> ignore 
+        config.Settings.SetFloat ("FontSize", newSize) 
         Style.fontSize <- newSize
         config.Settings.Save ()
         log.PrintfnInfoMsg "new Fontsize: %.2f" newSize
@@ -45,19 +45,20 @@ type Fonts (grid:TabsAndLog) = // will be contructed as part of Commands class
     let setLog(font:FontFamily) = // on log and all tabs
         Style.fontLog <- font
         log.AvalonLog.FontFamily <- font        
-        config.Settings.Set "FontLog" font.Source  |> ignore 
+        config.Settings.Set ("FontLog", font.Source) 
+        config.Settings.Set ("FontLog", font.Source) 
         config.Settings.Save ()
            
     let setEditor(font:FontFamily) = // on log and all tabs        
         Style.fontEditor<- font
         for t in tabs.AllTabs do                
             t.Editor.AvaEdit.FontFamily  <- font 
-        config.Settings.Set "FontEditor" font.Source  |> ignore 
+        config.Settings.Set ("FontEditor", font.Source)  
         config.Settings.Save ()
 
     let setToolTip(font:FontFamily) = // on log and all tabs
         Style.fontToolTip<- font        
-        config.Settings.Set "FontToolTip" font.Source |> ignore 
+        config.Settings.Set ("FontToolTip", font.Source) 
         config.Settings.Save ()
     
 

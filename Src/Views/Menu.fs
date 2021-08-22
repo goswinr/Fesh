@@ -282,7 +282,7 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, log:Log) =
             ]
         recentFilesInsertPosition <- fileMenu.Items.Count // to put recent files at bottom of file menu
         setRecentFiles() // trigger it here to to have the correct recent menu asap on startup
-        config.RecentlyUsedFiles.OnRecentFilesChanged.Add(setRecentFiles ) //this event will be triggered 1000 ms after new tabs are created
+        config.RecentlyUsedFiles.OnRecentFilesChanged.Add(setRecentFiles) //this event will be triggered 2000 ms after new tabs are created
         
         // TODO or attach to each new editor window ?
         tabs.Control.ContextMenu <- 
