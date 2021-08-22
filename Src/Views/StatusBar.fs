@@ -212,6 +212,8 @@ type AsyncStatus (grid:TabsAndLog) as this =
             | Sync  -> this.Text <- sync 
             | Async -> this.Text <- asyn  )
 
+// TODO keep always on, combine log and editor
+
 type SelectedTextStatus (grid:TabsAndLog) as this = 
     inherit TextBlock()  
     let codeblock = Brushes.White   |> darker 70
@@ -245,7 +247,7 @@ type SelectedTextStatus (grid:TabsAndLog) as this =
         grid.Log.AvalonLog.SelectedTextHighLighter.OnHighlightChanged.Add( fun (highTxt,k ) ->             
             this.Inlines.Clear()
             this.Inlines.Add( sprintf "%d of " k)
-            this.Inlines.Add( new Run (highTxt, FontFamily = Style.fontEditor, Background = grid.Log.AvalonLog.SelectedTextHighLighter.ColorHighlight))      
+            this.Inlines.Add( new Run (highTxt, FontFamily = Style.fontEditor, Background = grid.Log.AvalonLog.SelectedTextHighLighter.ColorHighlighting))      
             this.Inlines.Add( sprintf " (%d Chars) in Log" highTxt.Length)
             ) 
         
@@ -255,7 +257,10 @@ type SelectedTextStatus (grid:TabsAndLog) as this =
             )
         
         this.MouseDown.Add ( fun _ -> 
-            if isSelOcc() then sett.Set "SelOcc" "0" else sett.Set "SelOcc" "1"// toggle 
+            if isSelOcc() then 
+                sett.Set "SelOcc" "0" // TODO turn off selection highlight in log too ?
+            else                 
+                sett.Set "SelOcc" "1"// toggle 
             this.Inlines.Clear()            
             this.Inlines.Add( desc +    if isSelOcc() then onTxt else offTxt)
             this.ToolTip <-   baseTxt + if isSelOcc() then offTxt else onTxt            

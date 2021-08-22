@@ -61,10 +61,10 @@ type Log private () =
     //used in FSI constructor:
     let fsiErrorStream = StringBuilder()
 
-    let textWriterConsoleOut    =  log.GetTextWriter  ( LogColors.consoleOut )
-    let textWriterConsoleError  =  log.GetTextWriter  ( LogColors.consoleError)                                                                              
-    let textWriterFsiStdOut     =  log.GetTextWriter  ( LogColors.fsiStdOut )
-    let textWriterFsiErrorOut   =  log.GetTextWriterEx( LogColors.fsiErrorOut , fun s ->  fsiErrorStream.Append(s)|> ignoreObj )
+    let textWriterConsoleOut    =  log.GetTextWriter   ( LogColors.consoleOut )
+    let textWriterConsoleError  =  log.GetTextWriter   ( LogColors.consoleError)                                                                              
+    let textWriterFsiStdOut     =  log.GetTextWriter   ( LogColors.fsiStdOut )
+    let textWriterFsiErrorOut   =  log.GetTextWriterIf ( (fun s -> fsiErrorStream.Append(s)|> ignoreObj; true) ,  LogColors.fsiErrorOut) // use filter for side effect
  
      
     //-----------------------------------------------------------    

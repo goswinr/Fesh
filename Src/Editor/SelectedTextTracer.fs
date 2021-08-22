@@ -17,6 +17,7 @@ type SelectedTextHighlighter (ed:TextEditor) =
 
     let mutable highTxt = null
     let mutable curSelStart = -1
+    let mutable curSelEnd = -1 // end offset is the last character with highlighting
 
     static member val ColorHighlight =      Brushes.PaleTurquoise //|> brighter 30
     static member val ColorHighlightInBox = Brushes.PaleTurquoise //|> brighter 30
@@ -24,7 +25,11 @@ type SelectedTextHighlighter (ed:TextEditor) =
 
 
     member this.HighlightText  with get() = highTxt and set v = highTxt <- v
-    member this.CurrentSelectionStart  with get() = curSelStart and set v = curSelStart <- v
+    member this.CurrentSelectionStart with set v = curSelStart <- v // no get needed
+    /// end offset is the character with highlighting
+    member this.CurrentSelectionEnd  with set v = curSelEnd <- v  // no get needed
+        
+    
 
     /// This gets called for every visible line on any view change
     override this.ColorizeLine(line:Document.DocumentLine) =       
@@ -39,12 +44,14 @@ type SelectedTextHighlighter (ed:TextEditor) =
 
             while index >= 0 do      
                 let st = lineStartOffset + index  // startOffset
-                let en = lineStartOffset + index + highTxt.Length // endOffset   
+                let en = lineStartOffset + index + highTxt.Length - 1  // end offset is the last character with highlighting
 
-                if curSelStart <> st  then // skip the actual current selection
-                    //printfn "Sel %d to %d for %s" st en highTxt
-                    base.ChangeLinePart( st,en, fun el -> el.TextRunProperties.SetBackgroundBrush(SelectedTextHighlighter.ColorHighlight))
-                let start = index + highTxt.Length // search for next occurrence // TODO or just +1 ???????
+                if (st < curSelStart || st > curSelEnd) && (en < curSelStart || en > curSelEnd )  then // skip the actual current selection
+                    //printfn "Sel %d to %d for %s, curSelStart: %d" st en highTxt curSelStart
+                    
+                    // here end offset needs + 1  to be the first charcater without highlighting
+                    base.ChangeLinePart( st,en + 1, fun el -> el.TextRunProperties.SetBackgroundBrush(SelectedTextHighlighter.ColorHighlight))
+                let start = index + highTxt.Length // search for next occurrence 
                 index <- text.IndexOf(highTxt, start, StringComparison.Ordinal)
                   
 
@@ -77,7 +84,9 @@ type SelectedTextTracer private () =
     
         if doHighlight then 
             oh.HighlightText <- highTxt
-            oh.CurrentSelectionStart <- ed.AvaEdit.SelectionStart
+            let cselst = ed.AvaEdit.SelectionStart
+            oh.CurrentSelectionStart <- cselst
+            oh.CurrentSelectionEnd <- cselst + highTxt.Length - 1 // end offset is the last character with highlighting
             //ta.TextView.Redraw()
              
  
