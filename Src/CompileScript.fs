@@ -16,7 +16,7 @@ module CompileScript =
     
     let libFolderName = "lib"
 
-    // TODO realy only <Platform>x64</Platform>   ??
+    // TODO realy only <PlatformTarget>x64</PlatformTarget><!--  x64 is required e.g by Rhino, dont us just 'Platform' tag-->   ??
 
     let baseXml = """<?xml version="1.0" encoding="utf-8"?>
         <Project Sdk="Microsoft.NET.Sdk">
@@ -36,7 +36,7 @@ module CompileScript =
             <AssemblyVersion>9.9.9.2</AssemblyVersion><!-- set by Seff scriptcompiler-->
             <FileVersion>9.9.9.3</FileVersion><!-- set by Seff scriptcompiler--> 
 
-            <Platform>x64</Platform>  
+            <!--<PlatformTarget>x64</PlatformTarget>  x64 is required e.g by Rhino, dont us just 'Platform' tag-->  
 
           </PropertyGroup>      
       

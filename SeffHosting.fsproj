@@ -18,9 +18,9 @@
     <Product>Seff</Product>
     <PackageId>Seff</PackageId>  
 
-    <Version>0.9.0.0</Version>
-    <AssemblyVersion>0.9.0.0</AssemblyVersion>
-    <FileVersion>0.9.0.0</FileVersion>
+    <Version>0.0.1</Version>
+    <AssemblyVersion>0.0.1</AssemblyVersion>
+    <FileVersion>0.0.1</FileVersion>
     <PackageReleaseNotes>First release</PackageReleaseNotes>  
     
     <Authors>GoswinR</Authors>
@@ -30,15 +30,21 @@
     <ApplicationIcon>Media/logo.ico</ApplicationIcon>
     <Win32Resource>Media/logo.res</Win32Resource>      <!-- Win32Resource for Application Icon in explorer-->    
     
-    <Platforms>x64;x86</Platforms>
+    <PlatformTarget>AnyCPU</PlatformTarget> <!-- the host will decide-->
+    <OutputPath>binHosting</OutputPath>
     <Configurations>Release</Configurations>
-
   </PropertyGroup>
+
+  <!--
+  <Platforms>x64;x86</Platforms>
+  <PropertyGroup Condition="'$(Platform)'=='x64'">  <OutputPath>binHosting/x64/</OutputPath>  </PropertyGroup>
+  <PropertyGroup Condition="'$(Platform)'=='x86'">  <OutputPath>binHosting/x86/</OutputPath>  </PropertyGroup>
+  -->
 
  <PropertyGroup> 
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>      
     <IncludeSymbols>true</IncludeSymbols>
-    <!-- <SymbolPackageFormat>snupkg</SymbolPackageFormat>  -->  <!-- using  snupkg the readme does not pack https://github.com/NuGet/Home/issues/10791 --> 
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>    
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
@@ -46,29 +52,20 @@
     <RepositoryUrl>https://github.com/goswinr/Seff</RepositoryUrl>
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
     <PackageIcon>logo128.png</PackageIcon>
-    <PackageReadmeFile>READMEnuget.md</PackageReadmeFile>
+    <!--<PackageReadmeFile>READMEnuget.md</PackageReadmeFile>--><!-- using  snupkg the readme does not pack https://github.com/NuGet/Home/issues/10791 --> 
     <PackageDescription>A hostable fsharp scripting editor for Windows based on Avalonedit</PackageDescription>    
     <PackageTags>WPF TextEditor F# Scripting AvalonEdit</PackageTags>    
   </PropertyGroup>
 
-
-  <!--Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" -->
-  <PropertyGroup Condition="'$(Platform)'=='x64'">  <OutputPath>binHosting/x64/</OutputPath>  </PropertyGroup>
-  <PropertyGroup Condition="'$(Platform)'=='x86'">  <OutputPath>binHosting/x86/</OutputPath>  </PropertyGroup>
-
-
   <ItemGroup>    
     <!-- normally don't include FSharp.Core in lib but 5.0.2 is needed for FCS 40.0.0 --> 
-    <PackageReference Update="FSharp.Core" Version="5.0.2" /> 
-    <PackageReference Include="FSharp.Compiler.Service" Version="40.0.0" /> 
-    <PackageReference Include="AvalonEditB" Version="1.0.0" />
-    <PackageReference Include="AvalonLog" Version="0.3.0" />
-    <!-- <PackageReference Include="FsEx.Wpf" Version="1.0.0" /> -->
-    
-    <!--<Reference Include="AvalonEditB" HintPath="../AvalonEditB/AvalonEditB/bin/Release/net472/AvalonEditB.dll" />
-    <Reference Include="AvalonLog" HintPath="../AvalonLog/bin/Release/net472/AvalonLog.dll" />  -->
-    <Reference Include="FsEx.Wpf" HintPath="../FsEx.Wpf/bin/Release/net472/FsEx.Wpf.dll" /> 
-     
+    <PackageReference Update="FSharp.Core" Version="5.*" /> 
+    <PackageReference Include="FSharp.Compiler.Service" Version="40.*" />     
+    <PackageReference Include="AvalonLog" Version="0.*" /> <!-- Accepts any 0.x.y version. Will resolve to the highest acceptable stable version.--> <!--includes AvalonEditB-->
+    <PackageReference Include="FsEx.Wpf"  Version="0.*" /> <!-- Accepts any 0.x.y version. Will resolve to the highest acceptable stable version.-->
+   
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.*" PrivateAssets="All" IncludeAssets="runtime; build; native; contentfiles; analyzers; buildtransitive" />
+    <!-- https://docs.microsoft.com/en-us/nuget/consume-packages/package-references-in-project-files#controlling-dependency-assets --> 
   </ItemGroup>
   
   <ItemGroup>
