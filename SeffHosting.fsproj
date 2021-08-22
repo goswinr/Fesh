@@ -127,8 +127,8 @@
     <Compile Include="Src/Views/Tabs.fs" />
     <Compile Include="Src/Views/TabsAndLog.fs" />
     <Compile Include="Src/Views/Fonts.fs" />
-    <Compile Include="Src/Views/Commands.fs" />
     <Compile Include="Src/Views/StatusBar.fs" />
+    <Compile Include="Src/Views/Commands.fs" />
     <Compile Include="Src/Views/Menu.fs" />
     <Compile Include="Src/Views/Seff.fs" />
     

@@ -16,6 +16,8 @@ open AvalonEditB.Document
 open AvalonLog.Util
 open AvalonLog.Brush
 
+open FsEx.Wpf // for TextBlockSelectable
+
 open FSharp.Compiler.CodeAnalysis
 open FSharp.Compiler.EditorServices    // Misc functionality for editors, e.g. interface stub generation
 open FSharp.Compiler.Symbols           // FSharpEntity etc
@@ -48,8 +50,8 @@ type TypeInfo private () =
 
     static let maxCharInSignLine = 100
 
-    static let coloredSignature(td :ToolTipData): TextBlock =
-        let tb = TextBlock()
+    static let coloredSignature(td :ToolTipData): TextBlockSelectable =
+        let tb = TextBlockSelectable()
         tb.Foreground <- black
         tb.FontSize   <- Style.fontSize  * 1.1
         tb.FontFamily <- Style.fontEditor
@@ -136,8 +138,8 @@ type TypeInfo private () =
         tb
     
     /// for <c> and </c> in text
-    static let markInlineCode(tx:string) : TextBlock =
-        let tb = new TextBlock()
+    static let markInlineCode(tx:string) : TextBlockSelectable =
+        let tb = new TextBlockSelectable()
         tb.FontSize   <- Style.fontSize  * 0.90
         tb.FontFamily <- Style.fontToolTip
         tb.Foreground <- darkblue 
@@ -164,7 +166,7 @@ type TypeInfo private () =
 
 
     // make a fancy tooltip panel:
-    static let stackPanel  (it:DeclarationListItem option, tds:ToolTipData list) = 
+    static let makeStackPanel  (it:DeclarationListItem option, tds:ToolTipData list,addPersistInfo:bool) = 
         let makePanelVert (xs:list<#UIElement>) =
             let p = new StackPanel(Orientation= Orientation.Vertical)
             for x in xs do p.Children.Add x |> ignore
@@ -172,8 +174,9 @@ type TypeInfo private () =
         
         let mutable assemblies = new HashSet<string>()
         let stackPanel = makePanelVert [
+            if addPersistInfo then yield TextBlock(Text = "Press Ctrl + P to persist this window.", FontSize = Style.fontSize * 0.7) :> UIElement
             if it.IsSome then                 
-                let tb = new TextBlock(Text = sprintf "%A" it.Value.Glyph)
+                let tb = new TextBlockSelectable(Text = sprintf "%A" it.Value.Glyph)
                 tb.Foreground <- Brushes.DarkOrange
                 tb.FontSize <- Style.fontSize  * 0.85
                 tb.FontFamily <- Style.fontEditor
@@ -192,7 +195,7 @@ type TypeInfo private () =
                     border.Child <- makePanelVert [
                     
                         if td.name <> "" then 
-                            let tb = new TextBlock(Text= "Name: " + td.name)
+                            let tb = new TextBlockSelectable(Text= "Name: " + td.name)
                             tb.Foreground <- black
                             tb.FontSize <- Style.fontSize * 0.9
                             //tb.FontFamily <- Style.elronet
@@ -206,7 +209,7 @@ type TypeInfo private () =
                             if ass <>"" then assemblies.Add(ass) |> ignore //TODO could it be from more than one assembly? because of type extensions?
                             yield markInlineCode(txt)
                         |Error errTxt  -> 
-                            yield new TextBlock(Text = errTxt,FontSize = Style.fontSize  * 0.7,FontFamily = Style.fontToolTip, Foreground = gray )
+                            yield TextBlockSelectable(Text = errTxt,FontSize = Style.fontSize  * 0.7,FontFamily = Style.fontToolTip, Foreground = gray )
                         ]
                     border.BorderThickness <- Thickness(1.0)
                     border.BorderBrush <- Brushes.LightGray
@@ -216,8 +219,8 @@ type TypeInfo private () =
             
             if assemblies.Count > 0 then 
                 let tb = 
-                    if assemblies.Count = 1 then new TextBlock(Text= "assembly:\r\n" + Seq.head assemblies)
-                    else                         new TextBlock(Text= "assemblies:\r\n" + String.concat "\r\n" assemblies)
+                    if assemblies.Count = 1 then new TextBlockSelectable(Text= "assembly:\r\n" + Seq.head assemblies)
+                    else                         new TextBlockSelectable(Text= "assemblies:\r\n" + String.concat "\r\n" assemblies)
                 tb.FontSize <- Style.fontSize  * 0.80
                 tb.Foreground <-black
                 //tb.FontFamily <- new FontFamily ("Arial") // or use default of device
@@ -344,6 +347,9 @@ type TypeInfo private () =
         with e -> () //ISeffLog.log.PrintfnAppErrorMsg "Error while trying to show a Tool tip in Seff.\r\nYou can ignore this error.\r\nin TypeInfo.namesOfOptnlArgs: %A" e
         optDefs
 
+    static let mutable cachedDeclarationListItem:DeclarationListItem option = None
+    static let mutable cachedToolTipData: list<ToolTipData> = []
+
     //--------------public values and functions -----------------
     
     static member loadingText = loadingTxt
@@ -352,7 +358,15 @@ type TypeInfo private () =
 
     static member getToolTipDataList (sdtt: ToolTipText, optArgs:ResizeArray<OptDefArg>) = getToolTipDatas (sdtt, optArgs) 
     
-    static member getPanel  (it:DeclarationListItem option, tds:ToolTipData list) = stackPanel (it, tds)
+    static member getPanel  (it:DeclarationListItem option, tds:ToolTipData list) = 
+        cachedDeclarationListItem <- it
+        cachedToolTipData <- tds
+        makeStackPanel (it, tds, true)
+    
+    /// regenerates a view of the last created panel so it can be used again in the popout window
+    static member getPanelCached () =
+        makeStackPanel (cachedDeclarationListItem, cachedToolTipData, false)
+
    
     static member mouseHover(e: MouseEventArgs, iEditor:IEditor, log:ISeffLog, tip:ToolTip) =
         // see https://github.com/icsharpcode/AvalonEdit/blob/master/AvalonEditB/Editing/SelectionMouseHandler.cs#L477
@@ -412,7 +426,7 @@ type TypeInfo private () =
                             else                tip.Content <- "No tip"
                             //ed.TypeInfoToolTip.IsOpen <- false
                         else                            
-                            let ttPanel = stackPanel (None , ttds)
+                            let ttPanel = TypeInfo.getPanel (None , ttds)
                             if tip.IsOpen then 
                                 // TODO hide tooltip and use use popup instead now, so it can be pinned?
                                 tip.Content <- ttPanel

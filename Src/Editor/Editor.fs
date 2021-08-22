@@ -23,13 +23,15 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
     let id = Guid.NewGuid()
     let log = config.Log
 
-    let checker =           Checker.GetOrCreate(config)  
+    let checker =           Checker.GetOrCreate(config) 
+
+    let folds =             new Foldings(avaEdit,checker, config, id)        
+    let errorHighlighter =  new ErrorHighlighter(avaEdit,folds.Manager, log) 
 
     let search =            Search.SearchPanel.Install(avaEdit)
     
-    let folds =             new Foldings(avaEdit,checker, config, id)        
     let compls =            new Completions(avaEdit,config,checker)
-    let rulers =            new ColumnRulers(avaEdit, config.Log) // do foldings first
+    let rulers =            new ColumnRulers(avaEdit, log) // do foldings first
     //let selText =           SelectedTextTracer.Setup(this,folds,config) // moved to: static member SetUp(..) 
     
     
@@ -72,6 +74,8 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
     // all instances of Editor refer to the same checker instance
     member this.GlobalChecker = checker
 
+    member this.ErrorHighlighter = errorHighlighter
+
        
     member this.Completions = compls
     member this.Config = config
@@ -111,8 +115,7 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
         let avaEdit = ed.AvaEdit
         let compls = ed.Completions
         let log = ed.Log
-
-        let errorHighlighter =  new ErrorHighlighter(ed, config.Log)   
+         
         SelectedTextTracer.Setup(ed, config)
         BracketHighlighter.Setup(ed, ed.GlobalChecker)
 
@@ -271,9 +274,9 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
 
         ed.GlobalChecker.OnChecked.Add(fun iEditorOfCheck -> // this then triggers folding too, statusbar update is added in statusbar class
             if iEditorOfCheck.Id = ed.Id then // make sure it is only triggered on current editor!  
-                errorHighlighter.Draw(ed)) 
+                ed.ErrorHighlighter.Draw(ed)) 
         
-        compls.OnShowing.Add(fun _ -> errorHighlighter.ToolTip.IsOpen <- false)
+        compls.OnShowing.Add(fun _ -> ed.ErrorHighlighter.ToolTip.IsOpen <- false)
         compls.OnShowing.Add(fun _ -> ed.TypeInfoTip.IsOpen        <- false)
 
 

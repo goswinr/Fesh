@@ -50,10 +50,10 @@ type SegmentToMark private (startOffset, length, message:string, undelinePen:Pen
         SegmentToMark (startOffset, length, message, ErrorStyle.warnSquiggle, ErrorStyle.warnBackGr, true)
 
 /// IBackgroundRenderer and IVisualLineTransformer
-type ErrorRenderer (ied:IEditor, log:ISeffLog) = 
+type ErrorRenderer (ed:TextEditor, folds:Folding.FoldingManager, log:ISeffLog) = 
    
-    let doc = ied.AvaEdit.Document
-    let txA = ied.AvaEdit.TextArea
+    let doc = ed.Document
+    let txA = ed.TextArea
     let segments = new TextSegmentCollection<SegmentToMark>(doc)
         
     /// for Squiggly line
@@ -113,7 +113,7 @@ type ErrorRenderer (ied:IEditor, log:ISeffLog) =
             | FSharpDiagnosticSeverity.Hidden -> () //TODO show ??
             | FSharpDiagnosticSeverity.Info   -> ()
             
-            for fold in ied.FoldingManager.GetFoldingsContaining(startOffset) do
+            for fold in folds.GetFoldingsContaining(startOffset) do
                 //if fold.IsFolded then // do on all folds !
                 //fold.BackbgroundColor  <- ErrorStyle.errBackGr // done via ctx.DrawRectangle(ErrorStyle.errBackGr
                 fold.DecorateRectangle <- Action<Rect,DrawingContext>( fun rect ctx -> 
@@ -127,7 +127,7 @@ type ErrorRenderer (ied:IEditor, log:ISeffLog) =
     member this.Clear()= 
         if segments.Count > 0 then 
             segments.Clear()
-            for fold in ied.FoldingManager.AllFoldings do fold.DecorateRectangle <- null
+            for fold in folds.AllFoldings do fold.DecorateRectangle <- null
             txA.TextView.Redraw()       
 
     member this.GetsegmentsAtOffset(offset) = segments.FindSegmentsContaining(offset)
@@ -140,10 +140,10 @@ type ErrorRenderer (ied:IEditor, log:ISeffLog) =
         member this.Transform(ctx,es) = this.Transform(ctx,es)
 
 
-type ErrorHighlighter (ied:IEditor, log:ISeffLog) = 
+type ErrorHighlighter (ed:TextEditor, folds:Folding.FoldingManager, log:ISeffLog) = 
 
-    let tView= ied.AvaEdit.TextArea.TextView
-    let renderer = ErrorRenderer(ied,log)
+    let tView= ed.TextArea.TextView
+    let renderer = ErrorRenderer(ed,folds,log)
     let tip = new ToolTip(IsOpen=false) // TODO replace with something that can be pinned// TODO use popup instead of tooltip so it can be pinned?
 
     let drawnEv = new Event<IEditor>()
@@ -152,7 +152,7 @@ type ErrorHighlighter (ied:IEditor, log:ISeffLog) =
         let pos = tView.GetPositionFloor(mouse.GetPosition(tView) + tView.ScrollOffset)
         if pos.HasValue then
             let logicalPosition = pos.Value.Location
-            let offset = ied.AvaEdit.Document.GetOffset(logicalPosition)
+            let offset = ed.Document.GetOffset(logicalPosition)
             let segmentsAtOffset = renderer.GetsegmentsAtOffset(offset)
             //let seg = segmentsAtOffset.FirstOrDefault(fun renderer -> renderer.Message <> null)//LINQ ??
             //if notNull seg && notNull tab.ErrorToolTip then
@@ -166,11 +166,11 @@ type ErrorHighlighter (ied:IEditor, log:ISeffLog) =
                 tb.Foreground <- Media.SolidColorBrush(if seg.IsWarning then Colors.DarkRed else Colors.DarkGreen) 
                 tip.Content <- tb
             
-                let pos = ied.AvaEdit.Document.GetLocation(seg.StartOffset) 
+                let pos = ed.Document.GetLocation(seg.StartOffset) 
                 let tvpos = new TextViewPosition(pos.Line,pos.Column) 
                 let pt = tView.GetVisualPosition(tvpos, Rendering.VisualYPosition.LineTop)
                 let ptInclScroll = pt - tView.ScrollOffset
-                tip.PlacementTarget <- ied.AvaEdit.TextArea
+                tip.PlacementTarget <- ed.TextArea
                 tip.PlacementRectangle <- new Rect(ptInclScroll.X, ptInclScroll.Y, 0., 0.)                    
                 tip.Placement <- Primitives.PlacementMode.Top //https://docs.microsoft.com/en-us/dotnet/framework/wpf/controls/popup-placement-behavior      
                 tip.VerticalOffset <- -6.0                   

@@ -142,6 +142,8 @@ type Completions(avaEdit:TextEditor,config:Config, checker:Checker) =
 
     let mutable justClosed = false // to avoid retrigger of window on single char completions
 
+    let mutable hasStackPanelTypeInfo = false // to avoid retrigger of window on single char completions
+
     let selectedText ()= 
         match win with 
         |None -> ""
@@ -174,6 +176,7 @@ type Completions(avaEdit:TextEditor,config:Config, checker:Checker) =
 
     /// retuns "loading" text and triggers async computation to get and update with actual text 
     member this.GetToolTip(it:DeclarationListItem)= 
+        hasStackPanelTypeInfo <-false
         async{            
             let raw = it.Description            
             let structured = 
@@ -184,12 +187,12 @@ type Completions(avaEdit:TextEditor,config:Config, checker:Checker) =
                 if this.IsOpen then // might get closed during context switch
                     if selectedText() = it.Name then 
                         win.Value.ToolTipContent <- TypeInfo.getPanel (Some it, structured )
-                    else
-                        () //TODO add structure to Dict so it does not need recomputing if browsing items in the completion list.
+                        hasStackPanelTypeInfo <-true
+                        //TODO add structure to Dict so it does not need recomputing if browsing items in the completion list.
         } |> Async.Start
-        TypeInfo.loadingText :> obj
-    
+        TypeInfo.loadingText :> obj    
 
+    member this.HasStackPanelTypeInfo = hasStackPanelTypeInfo
 
     member this.Log = log
     member this.Checker = checker

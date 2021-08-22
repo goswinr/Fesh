@@ -3,7 +3,7 @@
 
  <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <TargetFrameworks>net472;net50-windows</TargetFrameworks>  <!--no net50, because no Thread.Abort()-->
+    <TargetFrameworks>net472;net50-windows</TargetFrameworks>  <!--  net50, has no Thread.Abort()-->
     <UseWPF>true</UseWPF>    
     <LangVersion>preview</LangVersion>
     
@@ -32,6 +32,7 @@
     <Win32Resource>Media/logo.res</Win32Resource>      <!-- Win32Resource for Application Icon in explorer-->    
     
     <Platforms>x64;x86</Platforms>
+    <!-- <Configurations>Debug;Release</Configurations> -->
     <Configurations>Release</Configurations>
    
     <!--<DefineConstants>NETFRAMEWORK</DefineConstants>-->
@@ -118,8 +119,8 @@
     <Compile Include="Src/Views/Tabs.fs" />
     <Compile Include="Src/Views/TabsAndLog.fs" />
     <Compile Include="Src/Views/Fonts.fs" />
-    <Compile Include="Src/Views/Commands.fs" />
     <Compile Include="Src/Views/StatusBar.fs" />
+    <Compile Include="Src/Views/Commands.fs" />
     <Compile Include="Src/Views/Menu.fs" />
     <Compile Include="Src/Views/Seff.fs" />
     

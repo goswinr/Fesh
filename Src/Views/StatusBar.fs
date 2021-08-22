@@ -16,7 +16,10 @@ open AvalonLog.Brush
 open Seff
 open Seff.Editor
 open Seff.Model
+open FsEx.Wpf // for TextBlockSelectable
 open FsEx.Wpf.DependencyProps
+
+
 
 
 module MenuUtil =
@@ -49,9 +52,35 @@ type CheckerStatus (grid:TabsAndLog) as this =
     let mutable lastFile = Guid.Empty
 
     let mutable firstErrorLine = None
+    let was = ResizeArray<FSharpDiagnostic>()
+    let ers = ResizeArray<FSharpDiagnostic>()
+   
+    let getErrPanel(addPersistInfo:bool) =        
+        let erk = ers.Count                    
+        let wak = was.Count
+       
+        makePanelVert [                         
+            if erk>0 then       
+                if addPersistInfo then TextBlock(Text = "Click here to scroll to first error", FontSize = Style.fontSize * 0.7)                  
+                if addPersistInfo then TextBlock(Text = "Press Ctrl + P to persist this window.", FontSize = Style.fontSize * 0.7)                  
+                TextBlock(Text = "Errors:", FontSize = Style.fontSize , FontWeight = FontWeights.Bold )
+            for e in Seq.truncate 10 ers do    
+                TextBlockSelectable(Text = sprintf "• line %d: %s" e.StartLine e.Message, FontSize = Style.fontSize * 0.9)
+            if erk > 10 then 
+                TextBlock(Text = sprintf "• and %d more ..." (erk-10), FontSize = Style.fontSize * 0.9)
+
+            if wak>0 then       
+                TextBlock(Text="Warnings:", FontSize = Style.fontSize , FontWeight = FontWeights.Bold )
+            for w in Seq.truncate 10 was do  
+                TextBlockSelectable(Text = sprintf "• line %d: %s" w.StartLine w.Message, FontSize = Style.fontSize * 0.9) 
+            if wak > 10 then 
+                TextBlock(Text = sprintf "• and %d more ..." (wak-10), FontSize = Style.fontSize * 0.9)
+            TextBlockSelectable(Text = tabs.Current.FormatedFileName, FontSize = Style.fontSize * 0.7)
+            ]        
+
 
     let updateCheckState(iEditor:IEditor)= 
-        //log.PrintfnDebugMsg "Setting errors for %A %A " iEditor.FileInfo iEditor.CheckRes.Value.checkRes.Errors.Length 
+        //log.PrintfnDebugMsg "Setting errors for %A %A " iEditor.FileInfo iEditor.CheckRes.Value.checkRes.Errors.Length
         match iEditor.FileCheckState with
         | Done res ->                                            
                 let es = res.checkRes.Diagnostics                
@@ -68,8 +97,8 @@ type CheckerStatus (grid:TabsAndLog) as this =
                     lastErrCount <- es.Length 
                     es|> Array.sortInPlaceBy (fun e -> struct(e.StartLine, e.StartColumn)) // sort because we are not sure if they are allready sorted
                     firstErrorLine <- Some <| Document.TextLocation(es.[0].StartLine, es.[0].StartColumn + 1 )
-                    let was = ResizeArray()
-                    let ers = ResizeArray()
+                    was.Clear()
+                    ers.Clear()
                     for e in es do
                         match e.Severity with 
                         | FSharpDiagnosticSeverity.Error   -> ers.Add e
@@ -86,27 +115,9 @@ type CheckerStatus (grid:TabsAndLog) as this =
                         this.Background <- warnColor 
                     elif erk > 0 then                        
                         this.Text <- sprintf " %d compiler errors, first one on line: %d" erk firstErrorLine.Value.Line
-                        this.Background <- errColor                              
-                    
-                    this.ToolTip <- makePanelVert [                         
-                        if erk>0 then       
-                            TextBlock(Text = "left click here to scroll to first error")
-                            TextBlock(Text = "right click here to print errors to log")
-                            TextBlock(Text="Errors:", FontSize = 14. , FontWeight = FontWeights.Bold )
-                        for e in Seq.truncate 10 ers do    
-                            TextBlock(Text = sprintf "• line %d: %s" e.StartLine e.Message)
-                        if erk > 10 then 
-                            TextBlock(Text = " ...")
+                        this.Background <- errColor
 
-
-                        if wak>0 then       
-                            TextBlock(Text="Warnings:", FontSize = 14. , FontWeight = FontWeights.Bold )
-                        for w in Seq.truncate 10 was do  
-                            TextBlock(Text = sprintf "• line %d: %s" w.StartLine w.Message) 
-                        if wak > 10 then 
-                            TextBlock(Text = " ...")
-                        TextBlock(Text = tabs.Current.FormatedFileName, FontSize = iEditor.AvaEdit.FontSize * 0.8)
-                        ]        
+                    this.ToolTip <- getErrPanel(true)
         
         | GettingCode id0
         | Checking (id0,_) -> 
@@ -156,14 +167,17 @@ type CheckerStatus (grid:TabsAndLog) as this =
                     ISeffLog.log.PrintfnInfoMsg "Line: %d %A %s: %s" e.StartLine e.Severity e.ErrorNumberText e.Message 
             | _ -> ()
             )
-type FsiRunStatus (grid:TabsAndLog, cmds:Commands) as this = 
+
+    member _.GetErrorPanelCached() = getErrPanel(false)
+
+type FsiRunStatus (grid:TabsAndLog) as this = 
     inherit TextBlock()
     do     
         this.Padding <- textPadding
         this.Inlines.Add ("FSI is initializing . . .")
         this.Background <- waitCol //originalBackGround 
-        this.ContextMenu <- makeContextMenu [ menuItem cmds.CancelFSI ]
-        //this.ToolTip <- "Click here to enabel or disable the default output from fsi in the log window"
+        //this.ContextMenu <- makeContextMenu [ menuItem cmds.CancelFSI ]
+        this.ToolTip <- "Shows the status of the fsi evaluation core. This is the same for all tabs. Only one script can run at the time."
               
         grid.Tabs.Fsi.OnStarted.Add(fun code -> 
             this.Background <- activeCol
@@ -280,7 +294,7 @@ type SelectedTextStatus (grid:TabsAndLog) as this =
             this.ToolTip <-  baseTxt + if isSelOcc() then offTxt else onTxt
             )
 
-type StatusBar (grid:TabsAndLog, cmds:Commands)  = 
+type SeffStatusBar (grid:TabsAndLog)  = 
     let bar = new Primitives.StatusBar() 
 
     let add (side:Dock) (e:UIElement) = 
@@ -292,20 +306,24 @@ type StatusBar (grid:TabsAndLog, cmds:Commands)  =
         DockPanel.SetDock(s,side)
         bar.Items.Add s |> ignore 
     
-
-    do 
-        add Dock.Left  <| CheckerStatus(grid)    
-        add Dock.Left  <| FsiRunStatus (grid, cmds)
+    let fsi = FsiRunStatus (grid)
+    let errs = CheckerStatus(grid)    
+    do        
+        add Dock.Left  <| errs   
+        add Dock.Left  <| fsi
         add Dock.Left  <| SelectedTextStatus(grid)
 
         add Dock.Right  <| FsiOutputStatus(grid)
         if grid.Config.Hosting.IsHosted then     add Dock.Right  <|  AsyncStatus(grid)    
 
-        bar.Items.Add (new StatusBarItem()) |> ignore // to fill remaining gap
-       
+        bar.Items.Add (new StatusBarItem()) |> ignore // to fill remaining gap       
        
 
     member this.Bar =  bar
+
+    member this.FsiStatus = fsi
+
+    member this.CheckerStatus = errs
   
 
 

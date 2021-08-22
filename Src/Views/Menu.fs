@@ -87,7 +87,7 @@ module private RecognicePath =
         
  #nowarn "44" //to use log.AvalonLog.AvalonEdit in addPathIfPresentToMenu
 
-type Menu (config:Config,cmds:Commands, tabs:Tabs, log:Log) = 
+type Menu (config:Config,cmds:Commands, tabs:Tabs, statusBar:SeffStatusBar, log:Log) = 
     let bar = new Windows.Controls.Menu()
     
     // File menu: 
@@ -269,6 +269,8 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, log:Log) =
                 menuItem cmds.CollapsePrim
                 menuItem cmds.CollapseCode
                 menuItem cmds.ExpandCode
+                sep()
+                menuItem cmds.PopOutToolTip
                 ]
             MenuItem(Header = "_About"),[ 
                 //menuItem cmds.About
@@ -327,6 +329,12 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, log:Log) =
                 sep()
                 menuItem cmds.SaveLog
                 menuItem cmds.SaveLogSel
+                ]
+        
+        statusBar.FsiStatus.ContextMenu <- 
+            makeContextMenu [ 
+                menuItem cmds.CancelFSI
+                menuItem cmds.ResetFSI
                 ]
         
 

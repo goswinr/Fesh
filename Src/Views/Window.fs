@@ -10,8 +10,7 @@ open Seff.Config
 
 /// A class holding the main WPF Window
 /// Includes loading icon 
-type Window (config:Config)=     
-    
+type Window (config:Config)= 
 
     let win = new FsEx.Wpf.PositionedWindow(config.Hosting.SettingsFileInfo,ISeffLog.printError)
 

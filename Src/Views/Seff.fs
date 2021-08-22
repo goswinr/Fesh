@@ -19,9 +19,9 @@ type Seff (config:Config,log:Log) =
     let tabs = new Tabs(config, win.Window)
     let tabsAndLog = new TabsAndLog(config, tabs, log, win)
     
-    let commands = Commands(tabsAndLog)
-    let statusBar = StatusBar(tabsAndLog, commands)
-    let menu = Menu(config, commands, tabs, log)
+    let statusBar = SeffStatusBar(tabsAndLog)
+    let commands = Commands(tabsAndLog, statusBar)
+    let menu = Menu(config, commands, tabs, statusBar, log)
     let dockP = dockPanelVert(menu.Bar , tabsAndLog.Grid , statusBar.Bar) 
         
     do        

@@ -9,4 +9,4 @@ module Style =
     let mutable fontLog         = FontFamily("Consolas") // used for startup only,
     let mutable fontToolTip     = FontFamily("Consolas") // used for startup only, will be set to Verdana in Fonts.fs
 
-    let mutable fontSize = 14.0 // used for default startup only, will be set in Settings.fs
+    let mutable fontSize = 14.0 // will be updated via Fonts.fs
