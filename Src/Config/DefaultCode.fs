@@ -15,11 +15,11 @@ open Seff.Model
 
    
     
-type DefaultCode  (log:ISeffLog, hostInfo:Hosting) =    
+type DefaultCode  ( hostInfo:Hosting) =    
     
     let filePath0 = hostInfo.GetPathToSaveAppData("DefaultCode.fsx")
 
-    let writer = SaveReadWriter(filePath0)
+    let writer = SaveReadWriter(filePath0,ISeffLog.printError)
 
     let defaultCodeOnFirstRun =
         [
@@ -32,14 +32,22 @@ type DefaultCode  (log:ISeffLog, hostInfo:Hosting) =
         ""
         ] 
         |> String.concat Environment.NewLine
+
+    do
+        if writer.FileDoesNotExists then 
+            writer.WriteAsync( defaultCodeOnFirstRun)// create file so it can be found and edited manually
     
     member this.FileInfo = FileInfo(filePath0)
 
     ///loads sync
     member this.Get() =            
-        try 
-            writer.ReadAllText()
-        with _ -> 
+        if writer.FileDoesNotExists then 
             writer.WriteAsync( defaultCodeOnFirstRun)// create file so it can be found and edited manually
             defaultCodeOnFirstRun
+        else 
+            match writer.ReadAllText() with 
+            |Some t -> t
+            |None -> defaultCodeOnFirstRun // log is alread written
+                
+        
             

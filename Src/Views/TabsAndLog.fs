@@ -16,16 +16,16 @@ type TabsAndLog (config:Config, tabs:Tabs, log:Log, win:Views.Window) as this =
     let gridSplitterSize = 4.0
 
     let grid                = new Grid()
-    let editorRowHeight     = new RowDefinition   (Height = makeGridLength (config.Settings.GetFloat "EditorHeight"  400.0))
-    let logRowHeight        = new RowDefinition   (Height = makeGridLength (config.Settings.GetFloat "LogHeight"     400.0))
-    let editorColumnWidth   = new ColumnDefinition(Width  = makeGridLength (config.Settings.GetFloat "EditorWidth"   400.0))
-    let logColumnWidth      = new ColumnDefinition(Width  = makeGridLength (config.Settings.GetFloat "LogWidth"      400.0))
+    let editorRowHeight     = new RowDefinition   (Height = makeGridLength (config.Settings.GetFloat ("EditorHeight"  ,400.0)))
+    let logRowHeight        = new RowDefinition   (Height = makeGridLength (config.Settings.GetFloat ("LogHeight"     ,400.0)))
+    let editorColumnWidth   = new ColumnDefinition(Width  = makeGridLength (config.Settings.GetFloat ("EditorWidth"   ,400.0)))
+    let logColumnWidth      = new ColumnDefinition(Width  = makeGridLength (config.Settings.GetFloat ("LogWidth"      ,400.0)))
     let splitterHor         = new GridSplitter()             
     let splitterVert        = new GridSplitter()             
     let mutable isLogMaxed = false
 
     let setGridHor() = 
-        config.Settings.SetBool "isVertSplit" false
+        config.Settings.SetBool ("isVertSplit", false) |> ignore 
         setGridHorizontal grid [
             tabs.Control        :> UIElement, editorRowHeight 
             splitterHor         :> UIElement, RowDefinition(Height = GridLength.Auto) 
@@ -33,7 +33,7 @@ type TabsAndLog (config:Config, tabs:Tabs, log:Log, win:Views.Window) as this =
             ]
     
     let setGridVert() =         
-        config.Settings.SetBool "isVertSplit" true
+        config.Settings.SetBool ("isVertSplit", true) |> ignore 
         setGridVertical grid [         
             tabs.Control        :> UIElement, editorColumnWidth 
             splitterVert        :> UIElement, ColumnDefinition(Width = GridLength.Auto) 
@@ -44,7 +44,7 @@ type TabsAndLog (config:Config, tabs:Tabs, log:Log, win:Views.Window) as this =
     
     do
         TabsAndLog.Instance <- this
-        if config.Settings.GetBool "isVertSplit" true then setGridVert()            
+        if config.Settings.GetBool ("isVertSplit", true) then setGridVert()            
         else                                               setGridHor()
 
         splitterHor.Height <- gridSplitterSize
@@ -61,8 +61,8 @@ type TabsAndLog (config:Config, tabs:Tabs, log:Log, win:Views.Window) as this =
                 isLogMaxed <- false                    
                 editorRowHeight.Height <- makeGridLength    editorRowHeight.ActualHeight
                 logRowHeight.Height    <- makeGridLength    logRowHeight.ActualHeight
-                config.Settings.SetFloat "EditorHeight"     editorRowHeight.ActualHeight
-                config.Settings.SetFloat "LogHeight"        logRowHeight.ActualHeight            
+                config.Settings.SetFloat ("EditorHeight"    ,editorRowHeight.ActualHeight) 
+                config.Settings.SetFloat ("LogHeight"       ,logRowHeight.ActualHeight   )      
                 config.Settings.Save ()
                 )
 
@@ -70,8 +70,8 @@ type TabsAndLog (config:Config, tabs:Tabs, log:Log, win:Views.Window) as this =
                 isLogMaxed <- false                    
                 editorColumnWidth.Width <- makeGridLength   editorColumnWidth.ActualWidth
                 logColumnWidth.Width    <- makeGridLength   logColumnWidth.ActualWidth
-                config.Settings.SetFloat "EditorWidth"      editorColumnWidth.ActualWidth
-                config.Settings.SetFloat "LogWidth"         logColumnWidth.ActualWidth            
+                config.Settings.SetFloat("EditorWidth"      ,editorColumnWidth.ActualWidth)  
+                config.Settings.SetFloat("LogWidth"         ,logColumnWidth.ActualWidth   )         
                 config.Settings.Save ()
                 )
     
@@ -80,17 +80,17 @@ type TabsAndLog (config:Config, tabs:Tabs, log:Log, win:Views.Window) as this =
         and set v = instance <- v
 
     member this.ToggleSplit() = 
-        if config.Settings.GetBool "isVertSplit" true then setGridHor()            
-        else                                               setGridVert()
+        if config.Settings.GetBool ("isVertSplit", true) then setGridHor()            
+        else                                                  setGridVert()
         config.Settings.Save ()
 
     member this.ToggleMaxLog() = 
         if  isLogMaxed then // if it is already maxed then size down again
             isLogMaxed <- false
-            editorRowHeight.Height   <- makeGridLength <|config.Settings.GetFloat "EditorHeight" 99.
-            logRowHeight.Height      <- makeGridLength <|config.Settings.GetFloat "LogHeight"    99.
-            editorColumnWidth.Width  <- makeGridLength <|config.Settings.GetFloat "EditorWidth" 99.
-            logColumnWidth.Width     <- makeGridLength <|config.Settings.GetFloat "LogWidth"    99.            
+            editorRowHeight.Height   <- makeGridLength <|config.Settings.GetFloat ("EditorHeight",  99.)
+            logRowHeight.Height      <- makeGridLength <|config.Settings.GetFloat ("LogHeight"   ,  99.)
+            editorColumnWidth.Width  <- makeGridLength <|config.Settings.GetFloat ("EditorWidth" , 99. )
+            logColumnWidth.Width     <- makeGridLength <|config.Settings.GetFloat ("LogWidth"    , 99. )           
             if not win.WasMax then win.Window.WindowState <- WindowState.Normal
         else
             // maximise log view

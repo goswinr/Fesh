@@ -59,7 +59,7 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
         avaEdit.TextArea.SelectionCornerRadius <- 0.0 
         avaEdit.TextArea.SelectionBorder <- null
         avaEdit.FontFamily <- Style.fontEditor
-        avaEdit.FontSize <- config.Settings.GetFloat"FontSize" Seff.Style.fontSize // TODO odd sizes like  17.0252982466288  makes block selection delete fail on the last line
+        avaEdit.FontSize <- config.Settings.GetFloat("FontSize", Seff.Style.fontSize) // TODO odd sizes like  17.0252982466288  makes block selection delete fail on the last line
         avaEdit.AllowDrop <- true  
         SyntaxHighlighting.setFSharp(avaEdit,config,false)        
         

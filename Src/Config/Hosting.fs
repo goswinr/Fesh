@@ -33,14 +33,20 @@ type Hosting (startUpData:HostedStartUpData option) =
             let mutable n = sd.hostName
             for c in IO.Path.GetInvalidFileNameChars() do  n <- n.Replace(c, '_')
             "Hosted." + n 
-    
+   
+    let settingsFileInfo =         
+        IO.Path.Combine(configFolder, hostName + ".Settings.txt")
+        |> IO.FileInfo
     
     /// To get a path where to save the setting files
     member this.GetPathToSaveAppData (fileNameInclExt) =
         let file = sprintf "%s.%s" hostName fileNameInclExt
         IO.Path.Combine(configFolder, file )
     
-    
+    member this.ConfigFolder = configFolder
+
+    member this.SettingsFileInfo = settingsFileInfo
+
     member this.FsiCanRun =   match startUpData with None ->  true  | Some d -> d.fsiCanRun() 
 
     member this.HostName    =  match startUpData with None ->  None | Some d -> Some d.hostName 

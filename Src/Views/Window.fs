@@ -3,25 +3,22 @@
 open System
 open System.Windows.Media.Imaging
 
+open Seff.Model
 open Seff.Config
 
 
 
 /// A class holding the main WPF Window
 /// Includes loading icon 
-type Window (config:Config)= 
+type Window (config:Config)=     
     
-    let windowSettiengsFilename =   
-        match config.Hosting.HostName with 
-        |Some n -> "Seff." + n 
-        |None   -> "Seff"
 
-    let win = new FsEx.Wpf.PositionedWindow(windowSettiengsFilename)
+    let win = new FsEx.Wpf.PositionedWindow(config.Hosting.SettingsFileInfo,ISeffLog.printError)
 
-    let mutable wasMax = false //indicating if the Window was in  Fullscreen mode before switching to temporary Log only fullscreeen
+    let mutable wasMax = false //indicating if the Window was in Fullscreen mode before switching to temporary Log only fullscreeen
 
     do 
-        if win.Settings.GetBool "WindowIsMax" false then
+        if win.Settings.GetBool ("WindowIsMax", false) then
             wasMax <- true
 
         let plat = if Environment.Is64BitProcess then "  |  64bit" else "  |  32bit"
@@ -49,7 +46,7 @@ type Window (config:Config)=
     /// Indicating if the Window is in Fullscreen mode or minimized mode (not normal mode)
     member this.IsMinOrMax = win.IsMinOrMax      
 
-    /// Indicating if the Window was in  Fullscreen mode before switching to temporary Log only fullscreeen
+    /// Indicating if the Window was in Fullscreen mode before switching to temporary Log only fullscreeen
     member this.WasMax
        with get() = wasMax  
        and set(v) = wasMax <- v 

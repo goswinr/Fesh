@@ -79,13 +79,13 @@ type Log private () =
 
     member internal this.AdjustToSettingsInConfig(config:Config)=        
         //this.OnPrint.Add (config.AssemblyReferenceStatistic.RecordFromlog) // TODO: does this have print perfomance impact ? measure do async ?
-        setLineWrap( config.Settings.GetBool "logHasLineWrap" true )
-        log.FontSize  <- config.Settings.GetFloat "FontSize" Seff.Style.fontSize                
+        setLineWrap( config.Settings.GetBool ("logHasLineWrap", true) )
+        log.FontSize  <- config.Settings.GetFloat ("FontSize" , Seff.Style.fontSize )               
         
     member this.ToggleLineWrap(config:Config)=
         let newState = not  log.WordWrap 
         setLineWrap newState
-        config.Settings.SetBool "logHasLineWrap" newState
+        config.Settings.SetBool "logHasLineWrap" newState  |> ignore 
         config.Settings.Save ()
     
     /// to acces the underlying read-only Avalonedit Texteditor
@@ -222,7 +222,7 @@ type Log private () =
     static member Create() = 
         let l = Log()
         ISeffLog.log         <- l
-        ISeffLog.printColor  <- l.PrintColor    // TODO needed?
-        ISeffLog.printnColor <- l.PrintnColor   // TODO needed?
-        ISeffLog.clear       <- l.Clear         // TODO needed?
+        ISeffLog.printColor  <- l.PrintColor    
+        ISeffLog.printnColor <- l.PrintnColor   
+        ISeffLog.clear       <- l.Clear         
         l

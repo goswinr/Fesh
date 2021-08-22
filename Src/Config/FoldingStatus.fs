@@ -14,13 +14,13 @@ open Seff.Model
 
    
 /// A class to hold the statistic of most used toplevel auto completions
-type FoldingStatus (log:ISeffLog, hostInfo:Hosting, recentlyUsedFiles:RecentlyUsedFiles) =
+type FoldingStatus ( hostInfo:Hosting, recentlyUsedFiles:RecentlyUsedFiles) =
             
     let  sep = '|' // separator 
     
     let filePath0 = hostInfo.GetPathToSaveAppData("FoldingStatus.txt")
     
-    let writer = SaveReadWriter(filePath0)
+    let writer = SaveReadWriter(filePath0,ISeffLog.printError)
 
     let mutable waitingForFileRead =  true
 
@@ -28,18 +28,18 @@ type FoldingStatus (log:ISeffLog, hostInfo:Hosting, recentlyUsedFiles:RecentlyUs
         let dict=Dictionary<string,bool []>() 
         async{
             try            
-                if writer.FileExists() then
-                    for ln in writer.ReadAllLines() do
+                if writer.FileExists then
+                    for ln in writer.ReadAllLines().Value do
                         match ln.Split(sep) with
                         | [|k;v|] -> 
                             //log.PrintfnDebugMsg "%s for %s" v k
                             let vs = Seq.map ( fun c -> if c = '0' then false elif c = '1' then true else failwithf "bad char %c in FoldingStatus" c) v |> Array.ofSeq
                             dict.[k] <- vs 
-                        | _ -> log.PrintfnAppErrorMsg "Bad line in FoldingStatus file : '%s'" ln 
+                        | _ -> ISeffLog.log.PrintfnAppErrorMsg "Bad line in FoldingStatus file : '%s'" ln 
                 waitingForFileRead <- false
             with e ->
                 waitingForFileRead <- false
-                log.PrintfnAppErrorMsg "Error load FoldingStatus: %A"   e
+                ISeffLog.log.PrintfnAppErrorMsg "Error load FoldingStatus: %A"   e
             } |> Async.Start
         dict
 

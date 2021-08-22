@@ -33,6 +33,12 @@ module Initialize =
         FsEx.Wpf.ErrorHandeling.setup (appname, fun () -> log.FsiErrorStream.ToString() ) // do as soon as log exists         
         
 
+        let config = new Config(log, mode, startupArgs)
+        log.AdjustToSettingsInConfig(config)
+
+        Seff(config, log)
+
+
         // not needed (yet)?
         //try 
         //    // so that wpf textboxes that are bound to floats can have a dot input too. see https://stackoverflow.com/a/35942615/969070
@@ -42,12 +48,6 @@ module Initialize =
         //    if FrameworkCompatibilityPreferences.KeepTextBoxDisplaySynchronizedWithTextProperty then 
         //        log.PrintfnAppErrorMsg "could not set KeepTextBoxDisplaySynchronizedWithTextProperty to false "
         
-
-        let config = new Config(log, mode, startupArgs)
-        log.AdjustToSettingsInConfig(config)
-
-        Seff( config, log)
-
         
         
         

@@ -10,7 +10,7 @@ open Seff
 open Seff.Model
    
 /// A class to hold the statistic of most used toplevel auto completions
-type AutoCompleteStatistic  (log:ISeffLog, hostInfo:Hosting) =
+type AutoCompleteStatistic  ( hostInfo:Hosting) =
     
     
     let customPriorities = [ // fist item wil have higest prority
@@ -27,19 +27,19 @@ type AutoCompleteStatistic  (log:ISeffLog, hostInfo:Hosting) =
     
     let filePath0 = hostInfo.GetPathToSaveAppData("AutoCompleteStatistic.txt")
 
-    let writer = SaveReadWriter(filePath0)
+    let writer = SaveReadWriter(filePath0,ISeffLog.printError)
 
     let completionStats = 
         let dict=Collections.Concurrent.ConcurrentDictionary<string,float>() 
         async{
             try            
-                if writer.FileExists() then
-                    for ln in writer.ReadAllLines() do
+                if writer.FileExists then
+                    for ln in writer.ReadAllLines().Value do
                         match ln.Split(sep) with
                         | [|k;v|] -> dict.[k] <- float v // TODO allow for comments? use ini format ??
-                        | _       -> log.PrintfnAppErrorMsg "Bad line in CompletionStats file : '%s'" ln                   
+                        | _       -> ISeffLog.log.PrintfnAppErrorMsg "Bad line in CompletionStats file : '%s'" ln                   
             with e -> 
-                log.PrintfnAppErrorMsg "Error load fileCompletionStats: %A"   e
+                ISeffLog.log.PrintfnAppErrorMsg "Error load fileCompletionStats: %A"   e
             
             customPriorities
             |> List.iteri ( fun i s -> dict.[s] <- 999. - float i  )// decrement priority while iterating  

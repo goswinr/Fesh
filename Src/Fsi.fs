@@ -376,8 +376,8 @@ type Fsi private (config:Config) =
     member this.SetMode(sync:FsiMode) =         
         let setConfig()=
             match mode with
-            |Sync ->  config.Settings.SetBool "asyncFsi" false                          
-            |Async -> config.Settings.SetBool "asyncFsi" true   
+            |Sync ->  config.Settings.SetBool "asyncFsi" false    |> ignore                       
+            |Async -> config.Settings.SetBool "asyncFsi" true     |> ignore 
 
         match this.AskIfCancellingIsOk() with 
         | NotEvaluating | YesAsync    -> 

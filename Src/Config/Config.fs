@@ -8,19 +8,19 @@ open Seff.Model
 
 type Config (log:ISeffLog, startUpData:HostedStartUpData option, startupArgs:string[]) =
     
-    let  hosting                    = Hosting                     (startUpData)
-    let  settings                   = FsEx.Wpf.Settings           (match hosting.HostName with Some n -> "Seff."+n |None -> "Seff")
-    let  recentlyUsedFiles          = RecentlyUsedFiles           (log, hosting)
-    let  openTabs                   = OpenTabs                    (log, hosting, startupArgs)
-    let  defaultCode                = DefaultCode                 (log, hosting)
-    let  autoCompleteStatistic      = AutoCompleteStatistic       (log, hosting)
-    let  assemblyReferenceStatistic = AssemblyReferenceStatistic  (log, hosting)
-    let  fsiArugments               = FsiArugments                (log, hosting)
-    let  foldingStatus              = FoldingStatus               (log, hosting, recentlyUsedFiles)
- 
 
+    let  hosting                    = Hosting                     (startUpData)
+    let  settings                   = FsEx.Wpf.Settings           (hosting.SettingsFileInfo,ISeffLog.printError)
+    let  recentlyUsedFiles          = RecentlyUsedFiles           (hosting)
+    let  openTabs                   = OpenTabs                    (hosting, startupArgs)
+    let  defaultCode                = DefaultCode                 (hosting)
+    let  autoCompleteStatistic      = AutoCompleteStatistic       (hosting)
+    let  assemblyReferenceStatistic = AssemblyReferenceStatistic  (hosting)
+    let  fsiArugments               = FsiArugments                (hosting)
+    let  foldingStatus              = FoldingStatus               (hosting, recentlyUsedFiles)
+
+   
     member this.Hosting                    = hosting     
-    member this.Log                        = log 
     member this.Settings                   = settings                  
     member this.RecentlyUsedFiles          = recentlyUsedFiles         
     member this.OpenTabs                   = openTabs                  
@@ -29,4 +29,6 @@ type Config (log:ISeffLog, startUpData:HostedStartUpData option, startupArgs:str
     member this.AssemblyReferenceStatistic = assemblyReferenceStatistic
     member this.FsiArugments               = fsiArugments  
     member this.FoldingStatus              = foldingStatus  
+    
+    member this.Log                        = log 
     

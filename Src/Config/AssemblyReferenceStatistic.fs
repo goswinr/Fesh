@@ -12,23 +12,23 @@ open Seff.Model
 
            
 /// A class to hold the previously loaded assemble refrences for auto completions
-type AssemblyReferenceStatistic  (log:ISeffLog, hostInfo:Hosting) =
+type AssemblyReferenceStatistic  ( hostInfo:Hosting) =
     
         
     let filePath0 = hostInfo.GetPathToSaveAppData("AssemblyReferenceStatistic.txt")
     
-    let writer = SaveReadWriter(filePath0)
+    let writer = SaveReadWriter(filePath0,ISeffLog.printError)
 
     let assRefStats = 
         let set = HashSet<string>() //  full path
         async{
             try            
-                if writer.FileExists() then
-                    for ln in writer.ReadAllLines() do
+                if writer.FileExists then
+                    for ln in writer.ReadAllLines().Value do
                         if IO.File.Exists ln then 
                             set.Add (ln) |> ignore
             with e -> 
-                log.PrintfnAppErrorMsg "Error load assRefStatsStats: %A" e
+                ISeffLog.log.PrintfnAppErrorMsg "Error load assRefStatsStats: %A" e
             } |> Async.Start 
         set
 

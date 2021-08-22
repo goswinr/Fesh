@@ -16,7 +16,7 @@ type ISeffLog =
     // this interface allows the Config to be declared before the Log
     // the Log is created first with this interface and then Config gets it in the constructor   
 
-    abstract member FsiErrorStream     : StringBuilder    
+    abstract member FsiErrorStream     : StringBuilder 
 
     abstract member PrintfnInfoMsg     : Printf.StringFormat<'T,unit> -> 'T 
     abstract member PrintfnFsiErrorMsg : Printf.StringFormat<'T,unit> -> 'T  
@@ -49,7 +49,13 @@ module ISeffLog =
     /// A refrence to the global single instance of the Log view, will be set immediatly after construction
     /// declared here  in Utils so it can be used in other modules that are declared before Log view
     let mutable log = 
-        Unchecked.defaultof<ISeffLog> //set when Log instance is created    
+        Unchecked.defaultof<ISeffLog> //set when Log instance is created   
+    
+    /// A simple error logging function using PrintfnAppErrorMsg
+    let printError s = 
+        if Object.ReferenceEquals(log,null) then printfn "%s" s 
+        else log.PrintfnAppErrorMsg "%s" s
+
 
     let mutable printColor : int-> int -> int -> string -> unit = //don't rename!! It's used via reflection in FsEx 
         fun r g b s -> printf "%s" s  //implementation is chanaged  when Log instance is created  
