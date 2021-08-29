@@ -7,7 +7,6 @@ open System.Windows.Controls
 open System.Collections.Generic
 
 open AvalonEditB
-open AvalonLog.Util
 
 open FsEx.Wpf.Command
 open FsEx.Wpf.DependencyProps
@@ -33,6 +32,8 @@ module private RecognicePath =
 
     let deDup = HashSet(2)
 
+    let badChars = IO.Path.GetInvalidPathChars()
+
     let addPathIfPresentToMenu (m:MouseButtonEventArgs, tempItemsInMenu:ref<int>, menu:ContextMenu, ava:TextEditor, openFile:IO.FileInfo*bool->bool)=
         for i = 1 to !tempItemsInMenu do // the menu entry, maybe another entry and  the separator   
             menu.Items.RemoveAt(0)
@@ -47,43 +48,79 @@ module private RecognicePath =
             for s in ss do 
                 if s.Success then
                     let e = filePathEndRegex.Match(txt,s.Index)
-                    if e.Success then                    
-                        let fullPath = txt.Substring(s.Index, e.Index - s.Index)                        
-                        try
-                            let dir =  IO.Path.GetDirectoryName(fullPath.Replace("\\\\", "\\").Replace("/", "\\"))  
-                            if not <| deDup.Contains dir then 
-                                deDup.Add dir  |> ignore 
-                                let shortDir = Str.shrink 30 " ... " dir 
+                    let fullPath = 
+                        let raw = 
+                            if e.Success then   txt.Substring(s.Index, e.Index - s.Index)
+                            else                txt.Substring(s.Index)
+                        raw.Split(badChars).[0].Split([|':'|])
+                        |> Seq.take 2 // the first colon is allowed the later ones not
+                        |> String.concat ":"
+                          
+
+                    try
+                        let dir =  IO.Path.GetDirectoryName(fullPath.Replace("\\\\", "\\").Replace("/", "\\"))  
+                        if not <| deDup.Contains dir then 
+                            deDup.Add dir  |> ignore 
+                            //let shortDir = Str.shrink 30 " ... " dir 
+                            let cmd = {
+                                    name = sprintf "Open folder in Explorer '%s' " dir // shortDir
+                                    gesture = ""
+                                    cmd = mkCmdSimple (fun _ -> 
+                                        if IO.Directory.Exists dir then  Diagnostics.Process.Start("Explorer.exe", "\"" + dir+ "\"") |> ignore
+                                        else ISeffLog.log.PrintfnIOErrorMsg "Directory '%s' does not exist" dir
+                                        ) 
+                                    tip = sprintf "Try to open folder  in Explorer at \r\n%s" dir
+                                    }
+                            menu.Items.Insert(0, sep()       )  
+                            incr tempItemsInMenu 
+                            menu.Items.Insert(0, menuItem cmd)  
+                            incr tempItemsInMenu 
+                            
+                        if fullPath.EndsWith ".fsx" || fullPath.EndsWith ".fs" then 
+                            if not <| deDup.Contains fullPath then 
+                                deDup.Add fullPath  |> ignore
+                                let name  =  IO.Path.GetFileName(fullPath)
+                                let fi = IO.FileInfo(fullPath)
                                 let cmd = {
-                                        name = sprintf "Open folder '%s' in Explorer" shortDir
+                                        name = sprintf "Open file in Seff'%s'" name
                                         gesture = ""
-                                        cmd = mkCmdSimple (fun _ -> 
-                                            if IO.Directory.Exists dir then  Diagnostics.Process.Start("Explorer.exe", "\"" + dir+ "\"") |> ignoreObj
-                                            else ISeffLog.log.PrintfnIOErrorMsg "directory '%s' does not exist" dir
-                                            ) 
-                                        tip = sprintf "Try to open folder at \r\n%s" dir
+                                        cmd = mkCmdSimple (fun _ -> openFile(fi,true)  |> ignore ) // does not need check if file exists !
+                                        tip = sprintf "Try to open file %s from  at \r\n%s" name fullPath
                                         }
-                                menu.Items.Insert(0, sep()       )  
-                                incr tempItemsInMenu 
-                                menu.Items.Insert(0, menuItem cmd)  
+                    
+                                menu.Items.Insert(0, menuItem cmd) 
                                 incr tempItemsInMenu 
                             
-                            if fullPath.EndsWith ".fsx" || fullPath.EndsWith ".fs" then 
-                                if not <| deDup.Contains fullPath then 
-                                    deDup.Add fullPath  |> ignore
-                                    let name  =  IO.Path.GetFileName(fullPath)
-                                    let fi = IO.FileInfo(fullPath)
-                                    let cmd = {
-                                            name = sprintf "Open file '%s'" name
-                                            gesture = ""
-                                            cmd = mkCmdSimple (fun _ -> openFile(fi,true)  |> ignore ) // does not need check if file exists !
-                                            tip = sprintf "Try to open file %s from  at \r\n%s" name fullPath
-                                            }
+                        //else 
+                        //    if not <| deDup.Contains fullPath then 
+                        //        deDup.Add fullPath  |> ignore                                    
+                        // allways show this option:
+                        let cmd = {
+                                name = sprintf "Open with VScode '%s'" fullPath
+                                gesture = ""
+                                cmd = mkCmdSimple (fun _ -> 
+                                    try
+                                        if IO.Directory.Exists fullPath || IO.File.Exists fullPath then  
+                                            let p = new System.Diagnostics.Process()
+                                            p.StartInfo.FileName <- "code"
+                                            let inQuotes = "\"" + fullPath + "\"" 
+                                            p.StartInfo.Arguments <- String.concat " " [inQuotes;  "--reuse-window"]                
+                                            p.StartInfo.WindowStyle <- Diagnostics.ProcessWindowStyle.Hidden
+                                            p.Start() |> ignore
+                                        else 
+                                            ISeffLog.log.PrintfnIOErrorMsg "Directory or file '%s' does not exist" dir
+                                    with e -> 
+                                        ISeffLog.log.PrintfnIOErrorMsg "Open with VScode failed: %A" e
+                                    ) 
+                                tip = sprintf "Try to open file in VScode:\r\n%s" fullPath
+                                }
                     
-                                    menu.Items.Insert(0, menuItem cmd) 
-                                    incr tempItemsInMenu 
-                        with e ->
-                            ISeffLog.log.PrintfnIOErrorMsg "Failed to make menu item for fullPath %s:\r\n%A" fullPath e
+                        menu.Items.Insert(0, menuItem cmd) 
+                        incr tempItemsInMenu 
+
+
+                    with e ->
+                        ISeffLog.log.PrintfnIOErrorMsg "Failed to make menu item for fullPath %s:\r\n%A" fullPath e
         
  #nowarn "44" //to use log.AvalonLog.AvalonEdit in addPathIfPresentToMenu
 

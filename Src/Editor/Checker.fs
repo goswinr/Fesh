@@ -4,7 +4,7 @@ open System
 open System.Threading
 
 open AvalonEditB
-open AvalonLog.Util
+open Seff.Util.General
 
 open FSharp.Compiler
 open FSharp.Compiler.CodeAnalysis
@@ -13,6 +13,7 @@ open FSharp.Compiler.EditorServices
 open Seff
 open Seff.Model
 open Seff.Config
+open Seff.Util.General
 
 
 /// only a single instance of checher exist that is referenced on all editors

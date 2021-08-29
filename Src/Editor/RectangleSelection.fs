@@ -7,7 +7,7 @@ open AvalonEditB
 open AvalonEditB.Editing
 open AvalonEditB.Document
 
-open AvalonLog.Util
+
 
 open Seff.Model
 
@@ -49,23 +49,23 @@ module RectangleSelection =
                 if i<len then 
                     let c = txt.[i]
                     if pos = visCol then 
-                        sb.Append(text) |> ignoreObj
+                        sb.Append(text) |> ignore
                 
                     if c = '\r' then
                         if pos < visCol then //position is in virtual space
-                            sb.Append(String(' ',visCol-pos)) |> ignoreObj // fill whitesace
-                            sb.Append(text) |> ignoreObj
-                        sb.Append(Environment.NewLine) |> ignoreObj
+                            sb.Append(String(' ',visCol-pos)) |> ignore// fill whitesace
+                            sb.Append(text) |> ignore
+                        sb.Append(Environment.NewLine) |> ignore
                         loop (i+2) 0
                     else
-                        sb.Append(c) |> ignoreObj 
+                        sb.Append(c) |> ignore
                         loop (i+1) (pos+1)
                 else
                     if pos = visCol then 
-                        sb.Append(text)|> ignoreObj  // so it works after last caracter too
+                        sb.Append(text)|> ignore // so it works after last caracter too
                     elif pos < visCol then 
-                        sb.Append(String(' ',visCol-pos)) |> ignoreObj // fill whitesace
-                        sb.Append(text)|> ignoreObj  // so it works after last caracter too
+                        sb.Append(String(' ',visCol-pos)) |> ignore// fill whitesace
+                        sb.Append(text)|> ignore // so it works after last caracter too
             loop 0 0
             let nt = sb.ToString()        
             doc.Replace(stOff,len,nt)  
@@ -98,24 +98,24 @@ module RectangleSelection =
                 if i<len then 
                     let c = txt.[i]
                     if pos = minVisCol then 
-                        sb.Append(text) |> ignoreObj
+                        sb.Append(text) |> ignore
                        
                     if c = '\r' then
                         if pos < minVisCol then //position is in virtual space
-                            sb.Append(String(' ',minVisCol-pos)) |> ignoreObj // fill whitesace
-                            sb.Append(text) |> ignoreObj
-                        sb.Append(Environment.NewLine) |> ignoreObj
+                            sb.Append(String(' ',minVisCol-pos)) |> ignore// fill whitesace
+                            sb.Append(text) |> ignore
+                        sb.Append(Environment.NewLine) |> ignore
                         loop (i+2) 0
                     else
                         if  pos < minVisCol || pos >= maxVisCol then // to delete
-                            sb.Append(c) |> ignoreObj 
+                            sb.Append(c) |> ignore
                         loop (i+1) (pos+1)
                 else
                     if pos = minVisCol then 
-                        sb.Append(text)|> ignoreObj  // so it works after last caracter too
+                        sb.Append(text)|> ignore // so it works after last caracter too
                     elif pos < minVisCol then 
-                        sb.Append(String(' ',minVisCol-pos)) |> ignoreObj // fill whitesace
-                        sb.Append(text)|> ignoreObj  // so it works after last caracter too
+                        sb.Append(String(' ',minVisCol-pos)) |> ignore// fill whitesace
+                        sb.Append(text)|> ignore // so it works after last caracter too
             loop 0 0
             let nt = sb.ToString()        
             doc.Replace(stOff,len,nt) 
@@ -154,11 +154,11 @@ module RectangleSelection =
                 if i<len then 
                     let c = txt.[i]                              
                     if c = '\r' then                    
-                        sb.Append(Environment.NewLine) |> ignoreObj
+                        sb.Append(Environment.NewLine) |> ignore
                         loop (i+2) 0
                     else
                         if  pos < minVisCol || pos >= maxVisCol then // to delete
-                            sb.Append(c) |> ignoreObj 
+                            sb.Append(c) |> ignore
                         loop (i+1) (pos+1)            
             loop 0 0
             let nt = sb.ToString()        
@@ -189,11 +189,11 @@ module RectangleSelection =
                 if i<len then 
                     let c = txt.[i]                              
                     if c = '\r' then                    
-                        sb.Append(Environment.NewLine) |> ignoreObj
+                        sb.Append(Environment.NewLine) |> ignore
                         loop (i+2) 0
                     else
                         if  pos < col || pos > col then // to delete
-                            sb.Append(c) |> ignoreObj 
+                            sb.Append(c) |> ignore
                         loop (i+1) (pos+1)            
             loop 0 0
             let nt = sb.ToString()           
@@ -222,11 +222,11 @@ module RectangleSelection =
                     if i<len then 
                         let c = txt.[i]                              
                         if c = '\r' then                    
-                            sb.Append(Environment.NewLine) |> ignoreObj
+                            sb.Append(Environment.NewLine) |> ignore
                             loop (i+2) 0
                         else
                             if  pos < nvcol || pos > nvcol then // to delete
-                                sb.Append(c) |> ignoreObj 
+                                sb.Append(c) |> ignore
                             loop (i+1) (pos+1)            
                 loop 0 0
                 let nt = sb.ToString()                  

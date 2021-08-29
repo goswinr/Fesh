@@ -162,7 +162,7 @@ type Commands (grid:TabsAndLog, statusBar:SeffStatusBar)  =
     member val SettingsFolder    = {name= "Open Settings Folder"      ;gesture= ""               ;cmd= mkCmdSimple (fun _ -> config.Hosting.OpenSettingsFolder())                         ;tip= "Opens the Folder where user settinsg such as default file content is saved." }
     member val AppFolder         = {name= "Open App Folder"           ;gesture= ""               ;cmd= mkCmdSimple (fun _ -> config.Hosting.OpenAppFolder())                              ;tip= "Opens the Folder where this App (Seff.exe) is loaded from." }
     member val ReloadXshdFile    = {name= "Reload SyntaxHighlighting" ;gesture= "F10"            ;cmd= mkCmdSimple (fun _ -> SyntaxHighlighting.setFSharp(tabs.CurrAvaEdit,config,true))  ;tip= "Reloads FSharpSynatxHighlighterExtended.xshd, this is useful for testing new highlighting files without a restart." }
-    member val OpenXshdFile      = {name= "Open SyntaxHighlighting in VsCode" ;gesture= ""       ;cmd= mkCmdSimple (fun _ -> SyntaxHighlighting.openVSCode(log))                          ;tip= "Opens the FSharpSynatxHighlighterExtended.xshd, file in VsCode." }
+    member val OpenXshdFile      = {name= "Open SyntaxHighlighting in VsCode" ;gesture= ""       ;cmd= mkCmdSimple (fun _ -> SyntaxHighlighting.openVSCode())                             ;tip= "Opens the FSharpSynatxHighlighterExtended.xshd, file in VsCode." }
 
     //--------------------------
     // Built in Commands from Avalonedit (listed as functiosn so the can be created more than once( eg for menu; and context menu)

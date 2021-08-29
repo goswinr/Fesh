@@ -40,7 +40,7 @@ type SegmentToMark private (startOffset, length, message:string, undelinePen:Pen
         base.Length      <- length
     member val Message           =  message 
     member val IsWarning         =  isWarning
-    member val UnderlinePen    =  undelinePen
+    member val UnderlinePen      =  undelinePen
     member val BackgroundBrush   =  backbroundColor
 
     static member CreateForError( startOffset, length, message) = 
@@ -108,8 +108,8 @@ type ErrorRenderer (ed:TextEditor, folds:Folding.FoldingManager, log:ISeffLog) =
             let endOffset   = doc.GetOffset(new TextLocation(e.EndLine,   e.EndColumn   + 1 ))
             let length      = endOffset-startOffset
             match e.Severity with 
-            | FSharpDiagnosticSeverity.Error   -> segments.Add ( SegmentToMark.CreateForError  ( startOffset, length, e.Message+"\r\nError: "   + (string e.ErrorNumber) ))
-            | FSharpDiagnosticSeverity.Warning -> segments.Add ( SegmentToMark.CreateForWarning( startOffset, length, e.Message+"\r\nWarning: " + (string e.ErrorNumber) )) 
+            | FSharpDiagnosticSeverity.Error   -> segments.Add ( SegmentToMark.CreateForError  ( startOffset, length, sprintf "• Error: %s: %s"   e.ErrorNumberText e.Message ))
+            | FSharpDiagnosticSeverity.Warning -> segments.Add ( SegmentToMark.CreateForWarning( startOffset, length, sprintf "• Warning: %s: %s" e.ErrorNumberText e.Message )) 
             | FSharpDiagnosticSeverity.Hidden -> () //TODO show ??
             | FSharpDiagnosticSeverity.Info   -> ()
             
@@ -157,7 +157,7 @@ type ErrorHighlighter (ed:TextEditor, folds:Folding.FoldingManager, log:ISeffLog
             //let seg = segmentsAtOffset.FirstOrDefault(fun renderer -> renderer.Message <> null)//LINQ ??
             //if notNull seg && notNull tab.ErrorToolTip then
             if segmentsAtOffset.Count > 0 then 
-                let seg = segmentsAtOffset.[0]
+                let seg = segmentsAtOffset.[0] // TODO show all Errors at this segment not just first ?
                 let tb = new TextBlock()
                 tb.Text <- seg.Message       //TODO move styling out of event handler ?
                 tb.FontSize <- Style.fontSize

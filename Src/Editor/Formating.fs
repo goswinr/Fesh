@@ -3,7 +3,7 @@
 open System
 open System.Text
 
-open AvalonLog.Util
+
 
 open Seff.Model
 open Seff.Util
@@ -51,7 +51,7 @@ module Formating =
                     let diff = maxOff - foundPos
                     if diff>0 && foundPos>0 then 
                         //ed.Log.PrintfnAppErrorMsg " insert:%d spaces at max (from %d ,  pos %d)" diff from p
-                        sb.Insert(max serachFrom foundPos,String(' ', diff)) |> ignoreObj 
+                        sb.Insert(max serachFrom foundPos,String(' ', diff)) |> ignore
                     //else ed.Log.PrintfnFsiErrorMsg " NO insert:%d spaces at max (from %d ,  pos %d)" diff from p
 
                 serachFrom <- maxOff

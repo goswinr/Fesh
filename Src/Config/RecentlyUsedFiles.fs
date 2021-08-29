@@ -5,8 +5,6 @@ open System.Text
 open System.IO
 open System.Globalization
 
-open AvalonLog.Util
-
 open FsEx.Wpf
 
 open Seff
@@ -63,7 +61,7 @@ type RecentlyUsedFiles  ( hostInfo:Hosting) =
                 if not <| Dup.Contains uf.fileInfo.FullName then 
                     let date = uf.lastOpendUtc.ToString("yyyy-MM-dd HH:mm")
                     let file = uf.fileInfo.FullName
-                    sb.AppendLine(file + "|" + date)  |> ignoreObj
+                    sb.AppendLine(file + "|" + date)  |> ignore
                     Dup.Add uf.fileInfo.FullName  |> ignore
                     incr k
 
@@ -76,7 +74,7 @@ type RecentlyUsedFiles  ( hostInfo:Hosting) =
             recentFilesStack.Push {fileInfo=fi ; lastOpendUtc=DateTime.UtcNow }
         else
             if recentFilesStack.Peek().fileInfo.FullName = fi.FullName then 
-                recentFilesStack.Pop()  |> ignoreObj // pop old date add new date
+                recentFilesStack.Pop()  |> ignore// pop old date add new date
             recentFilesStack.Push {fileInfo=fi ; lastOpendUtc=DateTime.UtcNow }   
     
     member this.Save() =         

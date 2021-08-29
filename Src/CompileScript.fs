@@ -6,8 +6,6 @@ open System.IO
 open System.Drawing
 open System.Windows.Forms
 
-open AvalonLog.Util
-
 open Seff.Model
 open Seff.Util
 
@@ -39,9 +37,13 @@ module CompileScript =
             <!--<PlatformTarget>x64</PlatformTarget>  x64 is required e.g by Rhino, dont us just 'Platform' tag-->  
 
           </PropertyGroup>      
-      
+          
           <ItemGroup>
             <!--<PackageReference Update="FSharp.Core" Version="5.0.1" /> dont include in libaries--> 
+            <!--PLACEHOLDER FOR NUGETS--> <!-- set by Seff scriptcompiler-->
+          </ItemGroup> 
+
+          <ItemGroup>            
             <!--PLACEHOLDER FOR REFERENCES--> <!-- set by Seff scriptcompiler-->
           </ItemGroup>    
     
@@ -69,16 +71,26 @@ module CompileScript =
 
                  
     type DllRef = {fullPath:string option; fileName:string; nameNoExt:string; copyLocal:bool}
-
     type FsxRef = {fullPath:string; fileName:string}
+    type NugetRef = {name:string; version:string}
     
 
-    let getRefs(code:string, libFolderFull:string) : ResizeArray<DllRef>*ResizeArray<FsxRef> =
+    let getRefs(code:string, libFolderFull:string) : ResizeArray<DllRef>*ResizeArray<FsxRef>*ResizeArray<NugetRef> =
         let refs = ResizeArray()
+        let nugs = ResizeArray()
         let fsxs = ResizeArray()
         for ln in code.Split('\n') do 
                 let tln = ln.Trim()  
-                if tln.StartsWith "#r " then                     
+                if tln.StartsWith "#r \"nuget" then 
+                    match Str.between "nuget:" "\"" tln with 
+                    |None -> ()
+                    |Some pkgV -> 
+                        let pkg,version = 
+                            if pkgV.Contains(",")then       pkgV |> Str.splitOnce ","
+                            else                            pkgV, "*"
+                        nugs.Add {name=pkg.Trim(); version=version.Trim()} 
+
+                elif tln.StartsWith "#r " then                     
                     let _,path,_ = Str.splitTwice "\""  "\"" tln // get part in quotes
                     let stPath = path.Replace ('\\','/')
                     if stPath.Contains "/RhinoCommon.dll" then   
@@ -99,7 +111,7 @@ module CompileScript =
                         let nameFsx = fullPath.Split('/') |> Seq.last
                         fsxs.Add{fullPath=fullPath; fileName=nameFsx }  
                              
-        refs,fsxs
+        refs, fsxs, nugs
                 
     let mutable version = "0.1.0.0" // TODO find way to increment
 
@@ -120,6 +132,10 @@ module CompileScript =
         else
             true
     
+    let getNugsXml (nugs:ResizeArray<NugetRef>) : string =          
+           seq{ for nug in nugs  do  "<PackageReference Include=\"" + nug.name + "\" Version=\"" + nug.version + "\" />" } 
+           |> String.concat (Environment.NewLine  + "    ") 
+           
     let getRefsXml (libFolderFull:string,  refs:ResizeArray<DllRef>) : string=              
         seq{ 
             for ref in refs |> Seq.sortBy (fun r -> if r.fullPath.IsNone then 0 else 1) do 
@@ -148,8 +164,7 @@ module CompileScript =
         } 
         |> String.concat (Environment.NewLine  + "    ")      
     
-    let getFsxXml (projFolder:string, nameSpace ,code, fsxloads:ResizeArray<FsxRef>) : string= 
-               
+    let getFsxXml (projFolder:string, nameSpace ,code, fsxloads:ResizeArray<FsxRef>) : string=                
         seq{ 
             for load in fsxloads do 
                 let niceName = (
@@ -199,8 +214,7 @@ module CompileScript =
         p.StartInfo.Arguments <- String.concat " " ["build"; "\"" + fsProj + "\""  ;  "--configuration Release"] 
     
 
-    let compileScript(code, fp:FilePath, copyDlls, useMSBuild) =       
-        
+    let compileScript(code, fp:FilePath, copyDlls, useMSBuild) = 
         match fp with 
         | NotSet -> ISeffLog.log.PrintfnAppErrorMsg "Cannot compile an unsaved script save it first"
         | SetTo fi ->
@@ -211,15 +225,17 @@ module CompileScript =
                     let nameSpace = name |> toCamelCase |> up1
                     let outLiteral = "  " + nameSpace + " -> "
                     let mutable resultDll = "" // found via matching on outLiteral below
-                    let projFolder = IO.Path.Combine(fi.DirectoryName,nameSpace) 
+                    let folderName = "fsxDll_" + nameSpace
+                    let projFolder = IO.Path.Combine(fi.DirectoryName,folderName) 
                     let libFolderFull = if copyDlls then IO.Path.Combine(projFolder,libFolderName) else "" 
-                    if libFolderFull<>"" then  IO.Directory.CreateDirectory(libFolderFull)  |> ignoreObj 
-                    IO.Directory.CreateDirectory(projFolder)  |> ignoreObj            
+                    if libFolderFull<>"" then  IO.Directory.CreateDirectory(libFolderFull)  |> ignore
+                    IO.Directory.CreateDirectory(projFolder)  |> ignore           
                     let fsProj = IO.Path.Combine(projFolder,nameSpace + ".fsproj")
                     if overWriteExisting fsProj then 
-                        let refs,fsxs = getRefs (code ,libFolderFull)
+                        let refs,fsxs,nugs = getRefs (code ,libFolderFull)
                         let fsxXml = getFsxXml(projFolder, nameSpace ,code, fsxs)
                         let refXml = getRefsXml(libFolderFull,refs)
+                        let nugXml = getNugsXml(nugs)
                         baseXml
                         |> replace "        " "" //clear white space at beginning of lines
                         |> replace "rootNamespace" nameSpace
@@ -227,7 +243,8 @@ module CompileScript =
                         |> replace "9.9.9.1" version
                         |> replace "9.9.9.2" version
                         |> replace "9.9.9.3" version
-                        |> replace "<!--PLACEHOLDER FOR REFERENCES--> " refXml
+                        |> replace "<!--PLACEHOLDER FOR NUGETS-->" nugXml
+                        |> replace "<!--PLACEHOLDER FOR REFERENCES-->" refXml
                         |> replace "<!--PLACEHOLDER FOR FILES-->" fsxXml
                         |> fun s -> 
                             IO.File.WriteAllText(fsProj,s,Text.Encoding.UTF8)

@@ -5,10 +5,10 @@ open System.Windows.Media
 open System.Collections.Generic
 
 open AvalonEditB
-open AvalonLog.Util
 open AvalonLog.Brush
 
 open Seff.Model
+open Seff.Util.General
 
 
 type BracketKind = 

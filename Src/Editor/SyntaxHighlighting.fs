@@ -6,8 +6,10 @@ open System.Drawing
 open FSharp.Compiler.EditorServices
 
 open Seff
+
 open Seff.Config
 open Seff.Model
+
 
 
 module SyntaxHighlighting = 
@@ -42,15 +44,31 @@ module SyntaxHighlighting =
             ed.SyntaxHighlighting <- fsHighlighting.Value
     
     
-    let openVSCode(log:ISeffLog) = 
+    let openVSCode() = 
+        try
+            if IO.File.Exists filePath then 
+                //Diagnostics.Process.Start("code", "\"" + filePath+ "\" --reuse-window") |> ignore
+                let p = new System.Diagnostics.Process()
+                p.StartInfo.FileName <- "code"
+                let inQuotes = "\"" + filePath + "\"" 
+                p.StartInfo.Arguments <- String.concat " " [inQuotes;  "--reuse-window"]                
+                p.StartInfo.WindowStyle <- Diagnostics.ProcessWindowStyle.Hidden
+                p.Start() |> ignore
+            else
+                ISeffLog.log.PrintfnIOErrorMsg "File not found: %s" filePath 
+        with e -> 
+            ISeffLog.log.PrintfnIOErrorMsg "Open SyntaxHighlighting with VScode failed: %A" e
+
+        (*
         async{
             try
-                if IO.File.Exists filePath then 
+                if IO.File.Exists filePath then                     
                     let p = new System.Diagnostics.Process()
                     p.StartInfo.FileName <- "code"
                     let inQuotes = "\"" + filePath + "\"" 
                     p.StartInfo.Arguments <- String.concat " " [inQuotes;  "--reuse-window"]
                     log.PrintfnColor 0 0 200 "command:\r\n%s %s" p.StartInfo.FileName p.StartInfo.Arguments
+
                     //p.StartInfo.UseShellExecute <- false
                     //p.StartInfo.CreateNoWindow <- true //true if the process should be started without creating a new window to contain it
                     //p.StartInfo.RedirectStandardError <-true
@@ -67,6 +85,7 @@ module SyntaxHighlighting =
             with e -> 
                 log.PrintfnIOErrorMsg "Failed opening VS Code: %A" e                
             } |> Async.Start
+        *)
     
     // TODO take colors from https://github.com/johnpapa/vscode-winteriscoming/blob/master/themes/WinterIsComing-light-color-theme.json
 

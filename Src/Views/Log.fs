@@ -7,7 +7,7 @@ open System.Text
 open System.Windows.Controls
 open System.Windows
 
-open AvalonLog.Util
+
 open AvalonLog.Brush
 
 open Seff
@@ -64,7 +64,7 @@ type Log private () =
     let textWriterConsoleOut    =  log.GetTextWriter   ( LogColors.consoleOut )
     let textWriterConsoleError  =  log.GetTextWriter   ( LogColors.consoleError)                                                                              
     let textWriterFsiStdOut     =  log.GetTextWriter   ( LogColors.fsiStdOut )
-    let textWriterFsiErrorOut   =  log.GetTextWriterIf ( (fun s -> fsiErrorStream.Append(s)|> ignoreObj; true) ,  LogColors.fsiErrorOut) // use filter for side effect
+    let textWriterFsiErrorOut   =  log.GetTextWriterIf ( (fun s -> fsiErrorStream.Append(s)|> ignore; true) ,  LogColors.fsiErrorOut) // use filter for side effect
  
      
     //-----------------------------------------------------------    

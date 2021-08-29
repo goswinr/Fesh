@@ -1,9 +1,6 @@
 namespace Seff.Util
 
 open System
-open System.IO
-open System.Windows
-open System.Windows.Media
 
 [<AutoOpen>]
 module AutoOpenDateTime =    
@@ -43,7 +40,9 @@ module General =
     
     let inline isEven x = x % 2 = 0
     
-    let inline isTrue (nb:Nullable<bool>) = nb.HasValue && nb.Value
+    let inline isTrue (nb:Nullable<bool>) = nb.HasValue && nb.Value    
+
+    let inline notNull x = match x with null -> false | _ -> true 
     
     /// get flolder location of Executing Assembly
     let assemblyLocation() = 
@@ -51,8 +50,8 @@ module General =
 
     /// splits a file path into an array:
     /// like: [| "C:\" ; "folder1" ; "folder2" ; "file.ext" |]
-    let pathParts (f:FileInfo) =
-        let rec getParent (d:DirectoryInfo) ps =
+    let pathParts (f:IO.FileInfo) =
+        let rec getParent (d:IO.DirectoryInfo) ps =
             if isNull d then ps
             else getParent d.Parent (d.Name :: ps)
 
@@ -61,7 +60,7 @@ module General =
 
     /// Post to this agent for writing a debug string to a desktop file. Only used for bugs that cant be logged to the UI.
     let LogFile = // for async debug logging to a file (if the Log window fails to show)
-        let file = IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop),"Seff-Log.txt")
+        let file = IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "Seff-Log.txt")
         MailboxProcessor.Start(
             fun inbox ->
                 let rec loop () = 

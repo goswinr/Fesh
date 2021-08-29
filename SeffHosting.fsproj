@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk.WindowsDesktop"> <!--WinDesktop is needed so that rescources work with dotnet build-->
 
  <PropertyGroup>
@@ -35,12 +35,6 @@
     <Configurations>Release</Configurations>
   </PropertyGroup>
 
-  <!--
-  <Platforms>x64;x86</Platforms>
-  <PropertyGroup Condition="'$(Platform)'=='x64'">  <OutputPath>binHosting/x64/</OutputPath>  </PropertyGroup>
-  <PropertyGroup Condition="'$(Platform)'=='x86'">  <OutputPath>binHosting/x86/</OutputPath>  </PropertyGroup>
-  -->
-
  <PropertyGroup> 
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>      
     <IncludeSymbols>true</IncludeSymbols>
@@ -59,19 +53,19 @@
 
   <ItemGroup>    
     <!-- normally don't include FSharp.Core in lib but 5.0.2 is needed for FCS 40.0.0 --> 
-    <PackageReference Update="FSharp.Core" Version="5.*" /> 
-    <PackageReference Include="FSharp.Compiler.Service" Version="40.*" />     
-    <PackageReference Include="AvalonLog" Version="0.*" /> <!-- Accepts any 0.x.y version. Will resolve to the highest acceptable stable version.--> <!--includes AvalonEditB-->
-    <PackageReference Include="FsEx.Wpf"  Version="0.*" /> <!-- Accepts any 0.x.y version. Will resolve to the highest acceptable stable version.-->
+    <PackageReference Update="FSharp.Core" Version="5.0.2" /> 
+    <PackageReference Include="FSharp.Compiler.Service" Version="40.0.0" />     
+    <PackageReference Include="AvalonLog" Version="0.3.1" />
+    <PackageReference Include="FsEx.Wpf" Version="0.0.1" /> 
    
-    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.*" PrivateAssets="All" IncludeAssets="runtime; build; native; contentfiles; analyzers; buildtransitive" />
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.0.0" PrivateAssets="All" IncludeAssets="runtime; build; native; contentfiles; analyzers; buildtransitive" />
     <!-- https://docs.microsoft.com/en-us/nuget/consume-packages/package-references-in-project-files#controlling-dependency-assets --> 
   </ItemGroup>
   
   <ItemGroup>
 
     <None Include="README.md" />
-    <None Include="Media/READMEnuget.md" Pack="true" PackagePath="\" />
+    <!-- <None Include="Media/READMEnuget.md" Pack="true" PackagePath="\" /> -->
     <None Include="Media/logo128.png" Pack="true" PackagePath="\" /> <!--PackagePath = "\" makes the fike availabe to nuget pack tool-->
     <EmbeddedResource Include="Media/logo.res" /> <!--  for Application Icon in explorer-->   
     <Resource Include="Media/logo.ico" />    

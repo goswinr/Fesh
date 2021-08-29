@@ -5,7 +5,7 @@ open System.Windows.Media
 
 open AvalonEditB
 
-open AvalonLog.Util
+open Seff.Util.General
 
 open Seff.Model
 open Seff.Config

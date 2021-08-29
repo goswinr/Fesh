@@ -13,7 +13,7 @@ open System.Windows.Documents
 
 open AvalonEditB.Document
 
-open AvalonLog.Util
+
 open AvalonLog.Brush
 
 open FsEx.Wpf // for TextBlockSelectable
