@@ -73,23 +73,26 @@ module ISeffLog =
 /// So that at we can check if a local and a global CheckResult are the same
 type CheckId = int64
 
+type CodeAsString = string
+
 /// The Result when trying to get the current code from the checker 
 /// (and not from the editor where the tree would have to be converted to a string)
 type FullCodeAndId = 
     | CodeID of string * CheckId
     | NoCode
 
-/// the Code beeing evaluated
-type Code = 
-    | FullCode of string 
-    | PartialCode of string
-    member this.Code = match this with  FullCode s -> s  | PartialCode s -> s
+
+/// the Code beeing processed in fs Checker
+type CodeInChecker = 
+    | FullCode of CodeAsString 
+    | PartialCode of CodeAsString // happens for autocomplete triggers
+    member this.FsCode = match this with  FullCode s -> s  | PartialCode s -> s
         
 /// The Results from FSharp.Compiler.Service
 type CheckResults = { 
     parseRes    :FSharpParseFileResults 
     checkRes    :FSharpCheckFileResults 
-    code        :Code 
+    code        :CodeInChecker 
     checkId     :CheckId     } 
 
 
@@ -103,7 +106,7 @@ type FileCheckState =
     | GettingCode of CheckId 
 
     /// Got the code form avalon edit async, now running in FCS async
-    | Checking of CheckId * Code 
+    | Checking of CheckId * CodeInChecker 
 
     /// The CheckResults are always local per Editor
     | Done of CheckResults 
@@ -115,6 +118,7 @@ type FileCheckState =
         | NotStarted | GettingCode _  | Failed -> NoCode
         | Checking (id, c)  ->  match c        with  FullCode s -> CodeID (s,id          )  | PartialCode _ -> NoCode
         | Done res          ->  match res.code with  FullCode s -> CodeID (s,res.checkId )  | PartialCode _ -> NoCode
+
 
     /// to compare local EditorCheckState with GlobalCheckState
     member this.SameIdAndFullCode (globalChSt:FileCheckState) =  
@@ -139,6 +143,7 @@ type IEditor =
     abstract member FilePath       : FilePath 
     abstract member Log            : ISeffLog 
     abstract member FoldingManager : FoldingManager 
+    abstract member EvaluateFrom   : int
     abstract member IsComplWinOpen : bool 
 
 [<RequireQualifiedAccess>]
@@ -150,9 +155,19 @@ module IEditor =
 
 
 //---- Fsi types ------------
+type CodeSegment = {
+    text:CodeAsString
+    startLine:int
+    startOffset:int
+    length:int
+    }
 
-type CodeToEval = {code:string; file:FilePath; allOfFile:bool; fromLine:int} 
+type FsiCodeAmount =
+    | All
+    | ContinueFromChanges //of int
+    | FsiSegment of  CodeSegment
 
+type CodeToEval = {editor:IEditor; amount:FsiCodeAmount} 
     
 type TextChange =  EnteredDot | EnteredOneIdentifierChar | EnteredOneNonIdentifierChar | CompletionWinClosed | OtherChange //| EnteredQuote
     

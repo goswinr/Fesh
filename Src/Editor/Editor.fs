@@ -11,6 +11,7 @@ open FSharp.Compiler.Tokenization // for keywords
 open AvalonEditB
 open AvalonEditB.Utils
 open AvalonEditB.Document
+open AvalonLog
 
 open Seff
 open Seff.Model
@@ -25,8 +26,9 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
 
     let checker =           Checker.GetOrCreate(config) 
 
-    let folds =             new Foldings(avaEdit,checker, config, id)        
-    let errorHighlighter =  new ErrorHighlighter(avaEdit,folds.Manager, log) 
+    let folds =             new Foldings(avaEdit,checker, config, id)
+    let evalTracker      =  new EvaluationTracker(avaEdit,checker, id) 
+    let errorHighlighter =  new ErrorHighlighter(avaEdit,folds.Manager, log)     
 
     let search =            Search.SearchPanel.Install(avaEdit)
     
@@ -63,6 +65,10 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
         avaEdit.FontFamily <- Style.fontEditor
         avaEdit.FontSize <- config.Settings.GetFloat("FontSize", Seff.Style.fontSize) // TODO odd sizes like  17.0252982466288  makes block selection delete fail on the last line
         avaEdit.AllowDrop <- true  
+        //avaEdit.TextArea.TextView.CurrentLineBackground <- Brushes.Ivory |> Brush.brighter 10 |> Brush.freeze
+        //avaEdit.TextArea.TextView.CurrentLineBorder <- new Pen(Brushes.Gainsboro|> Brush.freeze, 2.0) |> Util.Pen.freeze
+        
+        //avaEdit.TextArea.AllowCaretOutsideSelection <- true
         SyntaxHighlighting.setFSharp(avaEdit,config,false)        
         
 
@@ -75,7 +81,7 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
     member this.GlobalChecker = checker
 
     member this.ErrorHighlighter = errorHighlighter
-
+    member this.EvalTracker = evalTracker
        
     member this.Completions = compls
     member this.Config = config
@@ -93,6 +99,8 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
     member this.Log = log
     member this.IsComplWinOpen  = compls.IsOpen
 
+    member this.EvaluateFrom    = evalTracker.EvaluateFrom
+
     interface IEditor with
         member this.Id              = id
         member this.AvaEdit         = avaEdit
@@ -100,6 +108,7 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
         member this.FilePath        = filePath // interface does not need setter
         member this.Log             = log
         member this.FoldingManager  = folds.Manager
+        member this.EvaluateFrom    = evalTracker.EvaluateFrom
         member this.IsComplWinOpen  = compls.IsOpen
     
     // additional text change event:
@@ -113,7 +122,7 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
     static member SetUp  (code:string, config:Config, filePath:FilePath ) = 
         let ed = Editor(code, config, filePath )
         let avaEdit = ed.AvaEdit
-        let compls = ed.Completions
+        let compls = ed.Completions        
         let log = ed.Log
          
         SelectedTextTracer.Setup(ed, config)
@@ -269,7 +278,11 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
         //--FS Checker and Code completion--
         //---------------------------------- 
 
+        // Evaluation Tracker: 
+        //avaEdit.Document.Changing
+        avaEdit.Document.Changed.Add(fun a -> ed.EvalTracker.SetLastChangeAt(a.Offset)) 
         avaEdit.Document.Changed.Add(docChanged)
+        
         avaEdit.TextArea.TextEntering.Add (checkIfCompletionWindowShouldClose)
 
         ed.GlobalChecker.OnChecked.Add(fun iEditorOfCheck -> // this then triggers folding too, statusbar update is added in statusbar class

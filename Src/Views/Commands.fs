@@ -3,8 +3,6 @@
 open System
 open System.Windows
 open System.Windows.Input 
-open System.Windows.Controls
-open System.Windows.Controls.Primitives
 
 open AvalonEditB
 open AvalonEditB.Editing
@@ -15,53 +13,7 @@ open Seff
 open Seff.Model
 open Seff.Editor
 open Seff.Editor.Selection
-
-module PopOut = 
-    
-    let internal copyUi(ui:UIElement) =
-        // fails to serialize TextBlockSelectable
-        // https://stackoverflow.com/questions/32541/how-can-you-clone-a-wpf-object
-        ui  |> Markup.XamlWriter.Save   |> fun s -> new IO.StringReader(s)  |> Xml.XmlReader.Create |> Markup.XamlReader.Load   :?> UIElement
-    
-    let showWindow(title, getUi:unit->#UIElement, parent:Window,last:option<Window>) = 
-        let w = Window(Title= title)
-        let scr = ScrollViewer(Content = getUi() )   
-        scr.VerticalScrollBarVisibility   <- ScrollBarVisibility.Auto
-        scr.HorizontalScrollBarVisibility <- ScrollBarVisibility.Auto
-        scr.Padding <- Thickness(7.0)
-        w.Content <- scr
-        w.SizeToContent <- SizeToContent.WidthAndHeight
-        if w.ActualHeight > parent.ActualHeight * 0.8 then  w.Height  <-  parent.ActualHeight * 0.8
-        if w.ActualWidth  > parent.ActualWidth  * 0.8  then w.Width   <-  parent.ActualWidth  * 0.8
-        w.Owner <- parent
-        match last with 
-        |None -> 
-            w.WindowStartupLocation <- WindowStartupLocation.CenterOwner
-        |Some lw -> 
-            // cascade windows
-            w.WindowStartupLocation <- WindowStartupLocation.Manual
-            w.Left <- lw.Left + 50.
-            w.Top <- lw.Top + 50.        
-        w.Show()
-        w
-
-    let create(grid:TabsAndLog, statusBar:SeffStatusBar) =
-        let parent = grid.Window.Window
-        let mutable last :option<Window> = None
-        let ed = grid.Tabs.Current.Editor
-        if statusBar.CheckerStatus.IsMouseOver || ed.ErrorHighlighter.ToolTip.IsOpen then
-            match statusBar.CheckerStatus.ToolTip with 
-                | :? StackPanel  -> 
-                    last <- Some <| showWindow ("Seff PopOut| Compiler Error Info ", statusBar.CheckerStatus.GetErrorPanelCached,parent,last )                                      
-                | _ -> () // if ToolTip is just a string dont pop out
-        
-        if ed.TypeInfoTip.IsOpen then
-            last <- Some <|showWindow ("Seff PopOut| Type Info ", TypeInfo.getPanelCached, parent,last )                                      
-               
-        if ed.Completions.IsOpen  && ed.Completions.HasStackPanelTypeInfo then
-            last <- Some <|showWindow ("Seff PopOut| Auyocomplete Type Info ", TypeInfo.getPanelCached, parent,last )   
-
-
+open Seff.Editor.SelectionForEval
 
 type Commands (grid:TabsAndLog, statusBar:SeffStatusBar)  = 
     
@@ -71,16 +23,21 @@ type Commands (grid:TabsAndLog, statusBar:SeffStatusBar)  =
     let log = grid.Log
     let config= grid.Config
     let fsi = tabs.Fsi
-
-    let evalAllText()          =                                                fsi.Evaluate {code=tabs.CurrAvaEdit.Text          ; file=tabs.Current.FilePath; allOfFile=true ; fromLine = 1}                               
-    let evalAllTextSave()      =  if tabs.Save(tabs.Current) then               fsi.Evaluate {code=tabs.CurrAvaEdit.Text          ; file=tabs.Current.FilePath; allOfFile=true ; fromLine = 1} 
-    let evalAllTextSaveClear() =  log.Clear(); if tabs.Save(tabs.Current) then  fsi.Evaluate {code=tabs.CurrAvaEdit.Text          ; file=tabs.Current.FilePath; allOfFile=true ; fromLine = 1} // clear needs to be done first for correct coloring of log
-
-    let evalSelectedLines()    =  let ln,tx = Selection.expandSelectionToFullLines(tabs.CurrAvaEdit)  in  fsi.Evaluate {code = tx ; file=tabs.Current.FilePath; allOfFile=false; fromLine = ln }
-    let evalSelectedText()     =  let ln,tx = Selection.current (tabs.CurrAvaEdit)                    in  fsi.Evaluate {code = tx ; file=tabs.Current.FilePath; allOfFile=false; fromLine = ln }   // null or empty check is done in fsi.Evaluate        
-    let evalTillCursor()       =  let ln,tx = Selection.linesTillCursor(tabs.CurrAvaEdit)             in  fsi.Evaluate {code = tx ; file=tabs.Current.FilePath; allOfFile=false; fromLine = ln }           
-    let evalFromCursor()       =  let ln,tx = Selection.linesFromCursor(tabs.CurrAvaEdit)             in  fsi.Evaluate {code = tx ; file=tabs.Current.FilePath; allOfFile=false; fromLine = ln }           
     
+                                     
+    let evalAllText()          =                                             fsi.Evaluate {editor=tabs.Current.Editor; amount=All}                               
+    let evalAllTextSave()      =               tabs.SaveAsync(tabs.Current); fsi.Evaluate {editor=tabs.Current.Editor; amount=All} 
+    let evalAllTextSaveClear() =  log.Clear(); tabs.SaveAsync(tabs.Current); fsi.Evaluate {editor=tabs.Current.Editor; amount=All} 
+    let evalContinue()         =               tabs.SaveAsync(tabs.Current); fsi.Evaluate {editor=tabs.Current.Editor; amount=ContinueFromChanges} 
+    let markEvaluated()        =  tabs.Current.Editor.EvalTracker.MarkEvalutedTillOffset(Selection.currentLineEnd tabs.CurrAvaEdit + 2 )
+
+    let evalSelectedLines()    =  fsi.Evaluate {editor=tabs.Current.Editor; amount = FsiSegment <|SelectionForEval.expandSelectionToFullLines(tabs.CurrAvaEdit) }
+    let evalSelectedText()     =  fsi.Evaluate {editor=tabs.Current.Editor; amount = FsiSegment <|SelectionForEval.current (tabs.CurrAvaEdit)                   }   // null or empty check is done in fsi.Evaluate        
+    let evalTillCursor()       =  fsi.Evaluate {editor=tabs.Current.Editor; amount = FsiSegment <|SelectionForEval.linesTillCursor(tabs.CurrAvaEdit)            }           
+    
+    
+    //let evalFromCursor()       =  let ln,tx = Selection.linesFromCursor(tabs.CurrAvaEdit)             in  fsi.Evaluate {editor=tabs.Current.Editor; code = tx ; file=tabs.Current.FilePath; allOfFile=false; fromLine = ln }           
+        
     let compileScript(useMsBuild) = CompileScript.compileScript(tabs.CurrAvaEdit.Text , tabs.Current.FilePath, true, useMsBuild) 
     
     let version = lazy (let an = Reflection.Assembly.GetAssembly(tabs.GetType()).GetName() in sprintf "%s %s" an.Name (an.Version.ToString()))
@@ -124,21 +81,25 @@ type Commands (grid:TabsAndLog, statusBar:SeffStatusBar)  =
     member val ToggleBoolean     = {name= "Toggle bool literal"       ;gesture= "Ctrl + T"       ;cmd = mkCmdSimple (fun _ -> CursorBehaviour.toggleBoolean(tabs.CurrAvaEdit) )  ;tip= "Convertes a 'true' literal to 'false' and a 'false' literal to 'true' if they are currently selected exclusively" }     
     
     member val AlignCode         = {name= "Align Code"                ;gesture= "Ctrl + I"       ;cmd = mkCmdSimple (fun _ -> Formating.alignByNonLetters(tabs.Current.Editor))  ;tip= "Inserts spaces where required so that non leter symbols align verticaly" }     
-
-                                                                                                                                             
+                                                                                                                                                 
     //Select menu:                                                                                                                               
     member val SelectLine        = {name= "Select Current Line"       ;gesture= "Ctrl  + L"     ;cmd= mkCmdSimple (fun _ -> expandSelectionToFullLines(tabs.CurrAvaEdit) |> ignore )  ;tip= "Select current line"} // TODO compare VSCODE shortcuts to  see https://github.com/icsharpcode/SharpDevelop/wiki/Keyboard-Shortcuts
     member val SwapWordLeft      = {name= "Swap selected word left"   ;gesture= "Alt + Left"    ;cmd= mkCmdSimple (fun _ -> SwapWords.left  tabs.CurrAvaEdit|> ignore )  ;tip= "Swaps the currently selected word with the word on the left. A word may include any letter, digit, underscore or dot. "} 
     member val SwapWordRight     = {name= "Swap selected word right"  ;gesture= "Alt + Right"   ;cmd= mkCmdSimple (fun _ -> SwapWords.right tabs.CurrAvaEdit|> ignore )  ;tip= "Swaps the currently selected word with the word on the right. A word may include any letter, digit, underscore or dot. "} 
                                                                                                                                     
     //FSI menu:                                                                                                                              
-    member val RunAllText        = {name= "Run All Text"              ;gesture= "F5"             ;cmd= mkCmdSimple (fun _ -> evalAllText() )             ;tip= "Send all text in the current file to FSharp Interactive" }
-    member val RunAllTextSave    = {name= "Save and Run All Text"     ;gesture= "F6"             ;cmd= mkCmdSimple (fun _ -> evalAllTextSave())          ;tip= "First Save current File, then send all it's text to FSharp Interactive" }
-    member val RunAllTxSaveClear = {name= "Save, Clear Log, Run All Text" ;gesture= "F7"         ;cmd= mkCmdSimple (fun _ -> evalAllTextSaveClear())     ;tip= "First Save current File, then Clear Log, then send all text to FSharp Interactive" }  
-    member val RunCurrentLines   = {name= "Run CurrentLines"          ;gesture= "Ctrl + Enter"   ;cmd= mkCmdSimple (fun _ -> evalSelectedLines())        ;tip= "Sends the currently seleceted Lines in the editor to FSharp Interactive.\r\nIncludes partially selected lines in full."}
-    member val RunSelectedText   = {name= "Run Selected Text"         ;gesture= "Alt + Enter"    ;cmd= mkCmd isEse (fun _ -> evalSelectedText())         ;tip= "Sends the currently seleceted Text in the editor to FSharp Interactive" }// TODO mark evaluated code with grey background
-    member val RunTextTillCursor = {name= "Run Text till Cursor"      ;gesture= "F3"             ;cmd= mkCmdSimple (fun _ -> evalTillCursor())           ;tip= "Sends all lines till and including the current line  to FSharp Interactive" }
-    member val RunTextFromCursor = {name= "Run Text from Cursor"      ;gesture= "F4"             ;cmd= mkCmdSimple (fun _ -> evalFromCursor())           ;tip= "Sends all lines from and including the current line  to FSharp Interactive" }    
+    member val RunAllText        = {name= "Evaluate All"                   ;gesture= "F5"             ;cmd= mkCmdSimple (fun _ -> evalAllText() )             ;tip= "Send all text in the current file to FSharp Interactive" }
+    member val RunAllTextSave    = {name= "Save, Evaluate All"             ;gesture= "F6"             ;cmd= mkCmdSimple (fun _ -> evalAllTextSave())          ;tip= "First Save current File, then send all it's text to FSharp Interactive" }
+    member val RunAllTxSaveClear = {name= "Save, Clear Log, Evaluate All"  ;gesture= "F7"             ;cmd= mkCmdSimple (fun _ -> evalAllTextSaveClear())     ;tip= "First Save current File, then Clear Log, then send all text to FSharp Interactive" }  
+    member val RunCurrentLines   = {name= "Evaluate CurrentLines"          ;gesture= "Ctrl + Enter"   ;cmd= mkCmdSimple (fun _ -> evalSelectedLines())        ;tip= "Sends the currently seleceted Lines in the editor to FSharp Interactive.\r\nIncludes partially selected lines in full."}
+    member val RunSelectedText   = {name= "Evaluate Selected Text"         ;gesture= "Alt + Enter"    ;cmd= mkCmd isEse (fun _ -> evalSelectedText())         ;tip= "Sends the currently seleceted Text in the editor to FSharp Interactive" }// TODO mark evaluated code with grey background
+    member val RunTextTillCursor = {name= "Evaluate till Cursor"           ;gesture= "F3"             ;cmd= mkCmdSimple (fun _ -> evalTillCursor())           ;tip= "Sends all lines till and including the current line  to FSharp Interactive" }
+    //member val RunTextFromCursor = {name= "Run Text from Cursor"      ;gesture= "F4"             ;cmd= mkCmdSimple (fun _ -> evalFromCursor())           ;tip= "Sends all lines from and including the current line  to FSharp Interactive" }    
+    
+    member val EvalContinue      = {name= "Save, continue evaluation"    ;gesture= "F4"             ;cmd= mkCmdSimple (fun _ -> evalContinue())           ;tip= "Sends all chnaged or new lines from end of grey text to FSharp Interactive" }    
+    member val MarkEval          = {name= "Mark as Evaluated till Current Line"  ;gesture= ""               ;cmd= mkCmdSimple (fun _ -> markEvaluated())               ;tip= "Mark text till current line inclusive as evaluated" }    
+    
+    
     member val ClearLog          = {name= "Clear Log"                 ;gesture= "Ctrl + Alt + C" ;cmd= mkCmdSimple (fun _ -> log.Clear())                ;tip= "Clear all text from FSI Log window"  }
     member val CancelFSI         = {name= "Cancel FSI"                ;gesture= "Ctrl + Break"   ;cmd= mkCmd isAsy472 (fun _ -> fsi.CancelIfAsync())    ;tip= "Cancel running FSI evaluation \r\n(only available on .NET Framework and only in asynchronous mode)" }
     member val ResetFSI          = {name= "Reset FSI"                 ;gesture= "Ctrl + Alt + R" ;cmd= mkCmdSimple (fun _ -> log.Clear();fsi.Reset())    ;tip= "Clear all text from FSI Log window and reset FSharp Interactive" }
@@ -175,7 +136,9 @@ type Commands (grid:TabsAndLog, statusBar:SeffStatusBar)  =
     member val Find      = {name= "Find"     ;gesture=  "Ctrl + F"     ;cmd= ApplicationCommands.Find   ; tip= "Find text of current selection." }                      
     member val Replace   = {name= "Replace"  ;gesture=  "Ctrl + H"     ;cmd= ApplicationCommands.Replace; tip= "Find and replace text of current selection."  }   
     
-    member val DeleteLine = {name= "Delete Line"  ;gesture=  "Ctrl + D"   ;cmd= AvalonEditCommands.DeleteLine; tip= "Deletes the current line."  }       
+    member val DeleteLine = {name= "Delete Line"  ;gesture=  "Ctrl + D"       ;cmd = AvalonEditCommands.DeleteLine                ; tip= "Deletes the current line."  }  
+    member val TrailWhite = {name= "Removes trailing whitespace" ;gesture= "" ;cmd = AvalonEditCommands.RemoveTrailingWhitespace  ; tip= "Removes trailing whitespace from the selected lines (or the whole document if the selection is empty)." }     
+    
     
     // this shortcut is implemented in Avalonedit but I cant find out wher the routed commnd class is
     //member val SelectLinesUp      = {name= "Select Lines Upwards"      ;gesture= "Shift + Up"     ;cmd = null ;tip= "Not implemented yet"}
@@ -204,19 +167,20 @@ type Commands (grid:TabsAndLog, statusBar:SeffStatusBar)  =
             let allCustomCommands = [  //for setting up Key gestures below, exluding the ones already provided by avalonedit
                  this.NewTab           
                  this.OpenFile         
-                 this.OpenTemplateFile 
+                 //this.OpenTemplateFile 
                  this.Save
-                 this.Export
+                 //this.Export
                  this.SaveAs           
-                 this.SaveIncrementing 
+                 //this.SaveIncrementing 
                  this.SaveAll          
                  this.Close            
-                 this.SaveLog          
-                 this.SaveLogSel
+                 //this.SaveLog          
+                 //this.SaveLogSel
              
                  this.Comment          
                  this.UnComment
                  this.ToggleComment
+                 //this.TrailWhite
                  this.ToggleBoolean
                  this.AlignCode
 
@@ -224,9 +188,9 @@ type Commands (grid:TabsAndLog, statusBar:SeffStatusBar)  =
                  //this.SwapLineUp       // handeled via native keyboard hook see module KeyboardNative                 
                  
                  this.SelectLine
-                 //this.SwapWordLeft  // key gesture handeled via previewKeyDown event in CursorBehaviour module
-                 //this.SwapWordRight // key gesture handeled via previewKeyDown event in CursorBehaviour module
-                 //this.SelectLinesUp  // implemented in AvalonEditB
+                 //this.SwapWordLeft    // key gesture handeled via previewKeyDown event in CursorBehaviour module
+                 //this.SwapWordRight   // key gesture handeled via previewKeyDown event in CursorBehaviour module
+                 //this.SelectLinesUp   // implemented in AvalonEditB
                  //this.SelectLinesDown // implemented in AvalonEditB
                             
                  this.RunAllText       
@@ -235,7 +199,8 @@ type Commands (grid:TabsAndLog, statusBar:SeffStatusBar)  =
                  this.RunCurrentLines 
                  this.RunSelectedText 
                  this.RunTextTillCursor
-                 this.RunTextFromCursor
+                 //this.RunTextFromCursor
+                 this.EvalContinue
                  this.ClearLog        
                  this.CancelFSI        
                  this.ResetFSI         
@@ -243,7 +208,7 @@ type Commands (grid:TabsAndLog, statusBar:SeffStatusBar)  =
                  this.CompileScriptSDK
                  this.CompileScriptMSB
              
-                 this.ToggleSplit      
+                 //this.ToggleSplit      
                  this.ToggleLogSize    
                  this.ToggleLogLineWrap
                  this.FontBigger       
@@ -280,7 +245,7 @@ type Commands (grid:TabsAndLog, statusBar:SeffStatusBar)  =
                 let bindings = 
                     [|  for cmd in allCustomCommands do
                             match cmd.gesture.Trim() with
-                            |"" -> ()
+                            | "" -> log.PrintfnAppErrorMsg "*SetUpGestureInputBindings: Input gesture is empty for '%s'" cmd.name
                             | "Ctrl + '+'" | "Ctrl + +" | "Ctrl +" -> // because  gg.Split('+') would fail
                                 yield InputBinding(cmd.cmd,  KeyGesture(Key.Add,ModifierKeys.Control)) 
                             | gg ->
@@ -290,7 +255,7 @@ type Commands (grid:TabsAndLog, statusBar:SeffStatusBar)  =
                                     | [| m; k |]        -> InputBinding(cmd.cmd,  KeyGesture(getKey k, getModKey m))
                                     | [| k |]           -> InputBinding(cmd.cmd,  KeyGesture(getKey k))
                                     | _ -> 
-                                        log.PrintfnAppErrorMsg "*SetUpGestureInputBindings: failed to parse cmd Input gesture '%s'" cmd.gesture
+                                        log.PrintfnAppErrorMsg "*SetUpGestureInputBindings: failed to parse cmd Input gesture '%s' for '%s'" cmd.gesture cmd.name
                                         InputBinding(cmd.cmd,  KeyGesture(Key.None))
                                         // TODO check for memoryleaks: https://github.com/icsharpcode/AvalonEdit/blame/master/ICSharpCode.AvalonEdit/Editing/TextAreaDefaultInputHandlers.cs#L71-L79
 

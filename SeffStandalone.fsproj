@@ -18,9 +18,9 @@
     <Product>Seff</Product>
     <PackageId>Seff</PackageId>  
 
-    <Version>0.0.1</Version>
-    <AssemblyVersion>0.0.1</AssemblyVersion>
-    <FileVersion>0.0.1</FileVersion>
+    <Version>0.0.2</Version>
+    <AssemblyVersion>0.0.2</AssemblyVersion>
+    <FileVersion>0.0.2</FileVersion>
     <PackageReleaseNotes>First release</PackageReleaseNotes>   
     
     <Authors>GoswinR</Authors>
@@ -52,8 +52,9 @@
 
   <ItemGroup>    
     <None Include="README.md" />
-    <EmbeddedResource Include="Media/logo.res" /> <!--  for Application Icon in explorer-->   
-    <Resource Include="Media/logo.ico" />    
+    <EmbeddedResource Include="Media/logo.res" /> <!--  for Application Icon in explorer-->
+    <Resource Include="Media/logo.ico" />    <!--  for Application Icon in window-->
+    <Resource Include="Media/logoGray.ico" />    <!--  for Application Icon in seconadry PopOut windows-->   
     <Resource Include="Media/FiraCode-Regular.ttf" />  
     <None Include="FSharpSynatxHighlighterExtended.xshd">    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>    </None>
 
@@ -86,6 +87,7 @@
     <Compile Include="Src/Editor/TypeInfo.fs" />
     <Compile Include="Src/Editor/CodeCompletion.fs" />
     <Compile Include="Src/Editor/Foldings.fs" />
+    <Compile Include="Src/Editor/EvaluationTracker.fs" />
     <Compile Include="Src/Editor/SelectedTextTracer.fs" />
     <Compile Include="Src/Editor/BracketColorizer.fs" />
     <Compile Include="Src/Editor/ColumnRulers.fs" />
@@ -103,6 +105,7 @@
     <Compile Include="Src/Views/TabsAndLog.fs" />
     <Compile Include="Src/Views/Fonts.fs" />
     <Compile Include="Src/Views/StatusBar.fs" />
+    <Compile Include="Src/Views/PopOut.fs" />
     <Compile Include="Src/Views/Commands.fs" />
     <Compile Include="Src/Views/Menu.fs" />
     <Compile Include="Src/Views/Seff.fs" />

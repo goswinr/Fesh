@@ -181,7 +181,7 @@ type ErrorHighlighter (ed:TextEditor, folds:Folding.FoldingManager, log:ISeffLog
     do 
         tView.BackgroundRenderers.Add(renderer)
         tView.LineTransformers.Add(   renderer)
-        tView.Services.AddService(typeof<ErrorRenderer> , renderer) // what for?
+        tView.Services.AddService(typeof<ErrorRenderer> , renderer) // TODO, what for?
         tView.MouseHover.Add (showTip)
         
         tView.MouseHoverStopped.Add ( fun e ->  tip.IsOpen <- false ) //; e.Handled <- true) )

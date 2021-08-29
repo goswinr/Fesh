@@ -6,6 +6,7 @@ open AvalonEditB
 open AvalonEditB.Editing
 open AvalonEditB.Document
 
+open Seff.Model
 
 module Selection =
     
@@ -110,7 +111,7 @@ module Selection =
         | _ ->  None   
 
 
-    /// retuns true if nothin is selected in textarea
+    /// Returns true if nothin is selected in textarea
     let hasNoSelection (ta:TextArea) =
         match ta.Selection with
         | null -> true  // does this actually happen?
@@ -118,60 +119,82 @@ module Selection =
         | :? RectangleSelection -> false
         | :? SimpleSelection  -> false
         | x -> failwithf "Unknown selection class in hasNoSelection: %A" x            
-            
 
-    /// retuns start line umber and selected text, or "" if none
-    let current (avaEdit:TextEditor) = // TODO move to other module ! not selection related
-        let tx = avaEdit.SelectedText               
-        if isNull tx then 0,""
-        else 
-            let  line = avaEdit.Document.GetLineByOffset(avaEdit.SelectionStart)
-            line.LineNumber, tx
-
+    let selectAll(avaEdit:TextEditor) = 
+        let doc = avaEdit.Document
+        avaEdit.Select(0,doc.TextLength)
+                
     /// text of line at current Caret 
-    /// retuns start line umber and selected text
-    let currentLine (avaEdit:TextEditor) = // TODO move to other module ! not selection related
+    /// returns start line umber and line  text
+    /// Does not select anything
+    let currentLine (avaEdit:TextEditor) : int*string= 
         let offset = avaEdit.CaretOffset               
         let  line = avaEdit.Document.GetLineByOffset(offset)
         line.LineNumber, avaEdit.Document.GetText(line.Offset, line.Length)
 
-    /// retuns start line umber and selected text
-    let expandSelectionToFullLines(avaEdit:TextEditor) =
+    /// Offset at line End ( exluding \r and \n that probably follow
+    let currentLineEnd (avaEdit:TextEditor) : int= 
+        let offset = avaEdit.CaretOffset               
+        let  line = avaEdit.Document.GetLineByOffset(offset)
+        line.Offset + line.Length
+
+module SelectionForEval =
+
+    /// Returns start line umber and selected text, or "" if none
+    let current (avaEdit:TextEditor) : CodeSegment =
+        let tx = avaEdit.SelectedText               
+        if isNull tx then 
+            {
+            text = ""
+            startLine = 0
+            startOffset = 0
+            length = 0
+            }       
+        else 
+            let s = avaEdit.TextArea.Selection            
+            let t = avaEdit.SelectedText
+            {
+            text = t
+            startLine = s.StartPosition.Line
+            startOffset = avaEdit.SelectionStart
+            length = t.Length
+            }
+
+
+    /// Returns start line umber and selected text
+    let expandSelectionToFullLines(avaEdit:TextEditor) : CodeSegment =
         let doc = avaEdit.Document
         let st = doc.GetLineByOffset(avaEdit.SelectionStart)
         let en = doc.GetLineByOffset(avaEdit.SelectionStart + avaEdit.SelectionLength)
         let stoff = st.Offset
         avaEdit.Select(stoff,en.EndOffset-stoff)
-        st.LineNumber, avaEdit.SelectedText
+        let s = avaEdit.TextArea.Selection  
+        let t = avaEdit.SelectedText
+        {
+        text = t + Environment.NewLine // add line return so that EvaluationTracker.fs knows it is the full line and can jump to next line.
+        startLine = s.StartPosition.Line // not st.LineNumber becaus this may juat as wel be the last line
+        startOffset = avaEdit.SelectionStart
+        length = t.Length + Environment.NewLine.Length
+        }
+       
     
-    /// retuns start line umber and selected text
-    let linesTillCursor(avaEdit:TextEditor) =
+    /// Returns start line umber and selected text
+    let linesTillCursor(avaEdit:TextEditor) : CodeSegment =
         let doc = avaEdit.Document        
         let en = doc.GetLineByOffset(avaEdit.SelectionStart + avaEdit.SelectionLength)
         avaEdit.Select(0,en.EndOffset)
-        1,avaEdit.SelectedText
-    
-    /// retuns start line umber and selected text
-    let linesFromCursor(avaEdit:TextEditor) =
-        let doc = avaEdit.Document
-        let st = doc.GetLineByOffset(avaEdit.SelectionStart)        
-        avaEdit.Select(st.Offset,avaEdit.Document.TextLength-st.Offset)
-        st.LineNumber,avaEdit.SelectedText
+        let t = avaEdit.SelectedText
+        {
+        text = t + Environment.NewLine // add line return so that EvaluationTracker.fs knows it is the full line and can jump to next line.
+        startLine = 1
+        startOffset = 0
+        length = t.Length + Environment.NewLine.Length
+        }
+        
 
-    let selectAll(avaEdit:TextEditor) = 
-        let doc = avaEdit.Document
-        avaEdit.Select(0,doc.TextLength)
-    
-    /// Fails on rectangular selection , use methods from RectangleSelection Module 
-    let insertAtCaretOrSimpleSelectionUNUSED (avaEdit:TextEditor, tx:string) = //TODO delete
-        if avaEdit.TextArea.Selection.IsEmpty then
-            avaEdit.Document.Insert(avaEdit.TextArea.Caret.Offset, tx)
-        else 
-            avaEdit.Document.BeginUpdate()
-            let mutable shift = 0
-            for seg in avaEdit.TextArea.Selection.Segments do
-                let segShifted = new SelectionSegment(seg.StartOffset+shift, seg.EndOffset+shift)
-                avaEdit.Document.Replace(segShifted, tx) // becaus the next segment will not be correcty anymore after this insert
-                shift <- shift - seg.Length + tx.Length
-            avaEdit.Document.EndUpdate()
-
+    // returns start line umber and selected text, end offset
+    //let linesFromCursor(avaEdit:TextEditor) =
+    //    let doc = avaEdit.Document
+    //    let st = doc.GetLineByOffset(avaEdit.SelectionStart)        
+    //    avaEdit.Select(st.Offset,avaEdit.Document.TextLength-st.Offset)
+    //    st.LineNumber,avaEdit.SelectedText

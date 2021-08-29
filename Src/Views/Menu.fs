@@ -54,8 +54,7 @@ module private RecognicePath =
                             else                txt.Substring(s.Index)
                         raw.Split(badChars).[0].Split([|':'|])
                         |> Seq.take 2 // the first colon is allowed the later ones not
-                        |> String.concat ":"
-                          
+                        |> String.concat ":"                          
 
                     try
                         let dir =  IO.Path.GetDirectoryName(fullPath.Replace("\\\\", "\\").Replace("/", "\\"))  
@@ -63,7 +62,7 @@ module private RecognicePath =
                             deDup.Add dir  |> ignore 
                             //let shortDir = Str.shrink 30 " ... " dir 
                             let cmd = {
-                                    name = sprintf "Open folder in Explorer '%s' " dir // shortDir
+                                    name = sprintf "Open folder in Explorer  '%s' " dir // shortDir
                                     gesture = ""
                                     cmd = mkCmdSimple (fun _ -> 
                                         if IO.Directory.Exists dir then  Diagnostics.Process.Start("Explorer.exe", "\"" + dir+ "\"") |> ignore
@@ -82,7 +81,7 @@ module private RecognicePath =
                                 let name  =  IO.Path.GetFileName(fullPath)
                                 let fi = IO.FileInfo(fullPath)
                                 let cmd = {
-                                        name = sprintf "Open file in Seff'%s'" name
+                                        name = sprintf "Open file in Seff  '%s'" fullPath //name
                                         gesture = ""
                                         cmd = mkCmdSimple (fun _ -> openFile(fi,true)  |> ignore ) // does not need check if file exists !
                                         tip = sprintf "Try to open file %s from  at \r\n%s" name fullPath
@@ -96,7 +95,7 @@ module private RecognicePath =
                         //        deDup.Add fullPath  |> ignore                                    
                         // allways show this option:
                         let cmd = {
-                                name = sprintf "Open with VScode '%s'" fullPath
+                                name = sprintf "Open with VScode  '%s'" fullPath
                                 gesture = ""
                                 cmd = mkCmdSimple (fun _ -> 
                                     try
@@ -245,6 +244,7 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, statusBar:SeffStatusBar, log:
                 menuItem cmds.ToUppercase  
                 menuItem cmds.Tolowercase 
                 menuItem cmds.ToTitleCase 
+                menuItem cmds.TrailWhite 
                 sep()
                 menuItem cmds.ToggleBoolean
                 sep()
@@ -281,7 +281,9 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, statusBar:SeffStatusBar, log:
                 menuItem cmds.RunSelectedText
                 sep()
                 menuItem cmds.RunTextTillCursor
-                menuItem cmds.RunTextFromCursor
+                //menuItem cmds.RunTextFromCursor
+                menuItem cmds.EvalContinue
+                menuItem cmds.MarkEval
                 sep()
                 menuItem cmds.ClearLog 
                 menuItem cmds.CancelFSI 
@@ -341,7 +343,9 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, statusBar:SeffStatusBar, log:
                 menuItem cmds.ToggleComment
                 sep()
                 menuItem cmds.RunTextTillCursor
-                menuItem cmds.RunTextFromCursor
+                //menuItem cmds.RunTextFromCursor
+                menuItem cmds.EvalContinue
+                menuItem cmds.MarkEval
                 sep()
                 menuItem cmds.RunAllText
                 menuItem cmds.RunCurrentLines

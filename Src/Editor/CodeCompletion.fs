@@ -174,7 +174,7 @@ type Completions(avaEdit:TextEditor,config:Config, checker:Checker) =
     [<CLIEvent>] member this.OnShowing = showingEv.Publish
     member this.ShowingEv = showingEv
 
-    /// retuns "loading" text and triggers async computation to get and update with actual text 
+    /// Returns "loading" text and triggers async computation to get and update with actual text 
     member this.GetToolTip(it:DeclarationListItem)= 
         hasStackPanelTypeInfo <-false
         async{            

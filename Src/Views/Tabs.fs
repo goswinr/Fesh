@@ -49,16 +49,16 @@ type Tabs(config:Config, win:Window) =
             |Some fi -> Some fi.Directory
             |None    -> None
 
-
+    
     let saveAt (t:Tab, fi:FileInfo, saveKind:SavingKind) =                   
         fi.Refresh()
         if not <| fi.Directory.Exists then 
-            log.PrintfnIOErrorMsg "saveAsPath: Directory does not exist:\r\n%s" fi.Directory.FullName 
+            log.PrintfnIOErrorMsg "saveAt: Directory does not exist:\r\n%s" fi.Directory.FullName 
             false
-        else            
-            try
-                //t.AvaEdit.Save fi.FullName // fails, is it async ?
-                IO.File.WriteAllText(fi.FullName, t.AvaEdit.Text,Text.Encoding.UTF8)
+        else                      
+            try    
+                let txt = t.AvaEdit.Text  
+                IO.File.WriteAllText(fi.FullName, txt,Text.Encoding.UTF8)
                 match saveKind with 
                 |SaveNewLocation -> 
                     t.IsCodeSaved <- true 
@@ -66,17 +66,18 @@ type Tabs(config:Config, win:Window) =
                     config.RecentlyUsedFiles.AddAndSave(fi)          //TODO this fails if app closes afterward immideatly  ? 
                     config.OpenTabs.Save(t.FilePath , allFileInfos)  //TODO this fails if app closes afterward immideatly  ?
                     config.FoldingStatus.Set(t.Editor) // otherwise no record would exist for the new file name
-                    log.PrintfnInfoMsg "File saved as:\r\n%s" fi.FullName
+                    log.PrintfnInfoMsg "File saved as:\r\n\"%s\"" fi.FullName
                 |SaveInPlace ->
                     t.IsCodeSaved <- true
-                    log.PrintfnInfoMsg "File saved"
+                    log.PrintfnInfoMsg "File saved:\r\n\"%s\"" fi.FullName
                 |SaveExport -> 
                     config.FoldingStatus.Set(t.Editor) // otherwise no record would exist for the new file name
-                    log.PrintfnInfoMsg "File exported to:\r\n%s" fi.FullName
+                    log.PrintfnInfoMsg "File exported to:\r\n\"%s\"" fi.FullName
                 true
             with e -> 
-                log.PrintfnIOErrorMsg "saveAt: %s failed with %A" fi.FullName e
+                log.PrintfnIOErrorMsg "saveAt failed for: %s failed with %A" fi.FullName e
                 false
+              
                 
 
     /// returns false if saving operation was canceled or had an error, true on sucessfull saving
@@ -104,6 +105,27 @@ type Tabs(config:Config, win:Window) =
         else
             false
     
+    
+    let saveAsync (t:Tab) =
+        match t.FilePath with 
+        | NotSet -> if not <| saveAsDialog(t,SaveNewLocation) then log.PrintfnIOErrorMsg "saveAsync and saveAsDialog: did not save previously unsaved file." 
+        | SetTo fi -> 
+            let txt = t.AvaEdit.Text
+            async{
+                try    
+                    fi.Refresh()
+                    if not <| fi.Directory.Exists then 
+                        log.PrintfnIOErrorMsg "saveAsync: Directory does not exist:\r\n%s" fi.Directory.FullName 
+                    else   
+                        IO.File.WriteAllText(fi.FullName, txt,Text.Encoding.UTF8)                    
+                        t.AvaEdit.Dispatcher.Invoke(fun ()-> 
+                            t.IsCodeSaved <- true
+                            log.PrintfnInfoMsg "File saved." 
+                            //log.PrintfnInfoMsg "File saved:\r\n\"%s\"" fi.FullName 
+                            )
+                    with e -> 
+                        log.PrintfnIOErrorMsg "saveAsync failed for: %s failed with %A" fi.FullName e                    
+                    } |> Async.Start
 
     let export(t:Tab):bool= 
         saveAsDialog (t, SaveExport)
@@ -323,6 +345,9 @@ type Tabs(config:Config, win:Window) =
     
     /// returns true if saving operation was not canceled
     member this.Save(t:Tab) = trySave(t)    
+
+    /// prints errors to log
+    member this.SaveAsync(t:Tab) = saveAsync(t)   
 
     /// returns true if saving operation was not canceled
     member this.Export(t:Tab) = export(t)  

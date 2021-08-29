@@ -179,13 +179,15 @@ type FsiRunStatus (grid:TabsAndLog) as this =
         //this.ContextMenu <- makeContextMenu [ menuItem cmds.CancelFSI ]
         this.ToolTip <- "Shows the status of the fsi evaluation core. This is the same for all tabs. Only one script can run at the time."
               
-        grid.Tabs.Fsi.OnStarted.Add(fun code -> 
+        grid.Tabs.Fsi.OnStarted.Add(fun codeToEval -> 
             this.Background <- activeCol
             this.Inlines.Clear()
-            match code.file with 
+            match codeToEval.editor.FilePath with 
             |SetTo fi ->                 
-                if code.allOfFile then this.Inlines.Add(new Run ("FSI is running ",             Foreground = greyText))
-                else                   this.Inlines.Add(new Run ("FSI is running a part of ", Foreground = greyText))
+                match codeToEval.amount with 
+                | All                 ->  this.Inlines.Add(new Run ("FSI is running ",           Foreground = greyText))
+                | ContinueFromChanges ->  this.Inlines.Add(new Run ("FSI continues to run ",  Foreground = greyText))
+                | FsiSegment _        ->  this.Inlines.Add(new Run ("FSI is running a part of ", Foreground = greyText))
                 this.Inlines.Add( new Run (fi.Name, FontFamily = Style.fontEditor) )     
                 this.Inlines.Add( new Run (" . . ."                                           , Foreground = greyText))
             |NotSet ->                 

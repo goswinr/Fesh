@@ -243,16 +243,20 @@ type TypeInfo private () =
     
     static let stripOffXmlComments(txt:string) =    // TODO dont do it like this ! use proper xml doc parsing 
          //printfn "%s" txt
-         txt.Replace("<summary>"        ,"" )
-            .Replace("</summary>"       ,"" )
-            .Replace("<remarks>"        ,"Remarks: " )
-            .Replace("</remarks>"       ,"" )
-            .Replace("<category>"       ,"Category: " )
-            .Replace("</category>"      ,"" )
-            .Replace("<returns>"        ,"Returns:\r\n" )
-            .Replace("</returns>"       ,"" )
-            .Replace("</param>"         ,"" )
+         txt.Replace("<summary>"  , "" )
+            .Replace("</summary>" , "" )
+            .Replace("<remarks>"  , "Remarks: " )
+            .Replace("</remarks>" , "" )
+            .Replace("<category>" , "Category: " )
+            .Replace("</category>", "" )
+            .Replace("<returns>"  , "Returns:\r\n" )
+            .Replace("</returns>" , "" )
             .Replace("<param name=\""   ,"    • " )
+            .Replace("</param>"   , "" )            
+            .Replace("<para>"     , "\r\n" )
+            .Replace("</para>"   , "" )
+            .Replace("<value>"    , "value:" )
+            .Replace("</value>"   , "" )
             .Replace("<exception cref=\"T:" ,"Exception: " ) 
             .Replace("<exception cref=\"" ,"Exception: " ) 
             .Replace("</exception>" ,"" ) 
@@ -290,7 +294,7 @@ type TypeInfo private () =
                     Ok (unEscDocText  , dllFile)
                 else 
                     let xmlf = Path.ChangeExtension(dllFile, ".xml")
-                    let err = "no xml doc found for member'"+memberName+"' in \r\n"+xmlf+"\r\n"
+                    let err = "no xml doc found for member "+memberName+" in \r\n"+xmlf+"\r\n"
                     //log.PrintfnDebugMsg "%s" err                    
                     Error (err)
            | None -> 

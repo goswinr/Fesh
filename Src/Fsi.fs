@@ -39,8 +39,8 @@ type Fsi private (config:Config) =
     ///FSI events
     let startedEv        = new Event<CodeToEval>()      
     let runtimeErrorEv   = new Event<Exception>() 
-    let canceledEv       = new Event<unit>() 
-    let completedOkEv    = new Event<unit>()
+    let canceledEv       = new Event<CodeToEval>() 
+    let completedOkEv    = new Event<CodeToEval>()
     let isReadyEv        = new Event<unit>()
     let resetEv          = new Event<unit>()
     let modeChangedEv    = new Event<FsiMode>()
@@ -51,7 +51,6 @@ type Fsi private (config:Config) =
     let asyncMode = if config.Hosting.IsRunningOnDotNetCore then Async50 else Async472
     
     let mutable mode = asyncMode
-
     
     let mutable sessionOpt :FsiEvaluationSession option = None 
 
@@ -176,130 +175,142 @@ type Fsi private (config:Config) =
 
     [< Security.SecurityCritical >] // TODO do these Attributes appy in to async thread too ?
     [< Runtime.ExceptionServices.HandleProcessCorruptedStateExceptions >] //to handle AccessViolationException too //https://stackoverflow.com/questions/3469368/how-to-handle-accessviolationexception/4759831
-    let eval(code:CodeToEval)=
-      if not (String.IsNullOrWhiteSpace code.code) then   
-        if not config.Hosting.FsiCanRun then 
-            log.PrintfnAppErrorMsg "The Hosting App has blocked Fsi from Running, maybe because the App is busy in another command or task."
-        else
-            match sessionOpt with 
-            |None -> 
-                init()
-                log.PrintfnFsiErrorMsg "Please wait till FSI is initalized for running scripts"
-            |Some session ->
-                state <- Evaluating                
-                startedEv.Trigger(code) // do always sync
+    let eval(codeToEv:CodeToEval)=
+        let fsCode =
+            let ed = codeToEv.editor.AvaEdit
+            match codeToEv.amount with 
+            |All -> ed.Text
+            |ContinueFromChanges -> 
+                 let from = codeToEv.editor.EvaluateFrom
+                 let len = ed.Document.TextLength - from
+                 if len > 0 then ed.Document.GetText(from , len )
+                 else "" // ContinueFromChanges reached end, all of document is evaluated
+            | FsiSegment seg -> seg.text
 
-                //TODO https://github.com/dotnet/fsharp/blob/6b0719845c928361e63f6e38a9cce4ae7d621fbf/src/fsharp/fsi/fsi.fs#L2618
-                // change via reflection??? 
-                // let dummyScriptFileName = "input.fsx"
-
-                let asyncEval = async{
-                    if mode = FsiMode.Sync then 
-                        do! Async.Sleep 40 // this helps to show "FSI is running" immediatly
-                        do! Async.SwitchToContext SyncWpf.context                         
+        if not(String.IsNullOrWhiteSpace fsCode) then   
+            if not config.Hosting.FsiCanRun then 
+                log.PrintfnAppErrorMsg "The Hosting App has blocked Fsi from Running, maybe because the App is busy in another command or task."
+            else
+                match sessionOpt with 
+                |None -> 
+                    init()
+                    log.PrintfnFsiErrorMsg "Please wait till FSI is initalized for running scripts"
+                |Some session ->
+                    state <- Evaluating                
+                    startedEv.Trigger(codeToEv) // do always sync
+            
+                    let asyncEval = async{
+                        if mode = FsiMode.Sync then 
+                            do! Async.Sleep 40 // this helps to show "FSI is running" immediatly
+                            do! Async.SwitchToContext SyncWpf.context                         
                 
-                    //Done already at startup in Initalize.fs, not neded here?
-                    //if notNull Application.Current then // null if application is not yet created, or no application in hosted context
-                    //    Application.Current.DispatcherUnhandledException.Add(fun e ->  //exceptions generated on the UI thread // TODO realy do this on every evaluataion?
-                    //        log.PrintfnAppErrorMsg "Application.Current.DispatcherUnhandledException in fsi thread: %A" e.Exception        
-                    //        e.Handled <- true) 
-                    //AppDomain.CurrentDomain.UnhandledException.AddHandler (//catching unhandled exceptions generated from all threads running under the context of a specific application domain. //https://dzone.com/articles/order-chaos-handling-unhandled
-                    //    new UnhandledExceptionEventHandler( (new ProcessCorruptedState(config)).Handler)) //https://stackoverflow.com/questions/14711633/my-c-sharp-application-is-returning-0xe0434352-to-windows-task-scheduler-but-it
+                        //Done already at startup in Initalize.fs, not neded here?
+                        //if notNull Application.Current then // null if application is not yet created, or no application in hosted context
+                        //    Application.Current.DispatcherUnhandledException.Add(fun e ->  //exceptions generated on the UI thread // TODO realy do this on every evaluataion?
+                        //        log.PrintfnAppErrorMsg "Application.Current.DispatcherUnhandledException in fsi thread: %A" e.Exception        
+                        //        e.Handled <- true) 
+                        //AppDomain.CurrentDomain.UnhandledException.AddHandler (//catching unhandled exceptions generated from all threads running under the context of a specific application domain. //https://dzone.com/articles/order-chaos-handling-unhandled
+                        //    new UnhandledExceptionEventHandler( (new ProcessCorruptedState(config)).Handler)) //https://stackoverflow.com/questions/14711633/my-c-sharp-application-is-returning-0xe0434352-to-windows-task-scheduler-but-it
             
 
-                    // set current dir, file and Topline TODO
-                    // TODO https://github.com/dotnet/fsharp/blob/6b0719845c928361e63f6e38a9cce4ae7d621fbf/src/fsharp/fsi/fsi.fs#L2618
-                    // change via reflection??? 
-                    // let dummyScriptFileName = "input.fsx"
+                        // set current dir, file and Topline TODO
+                        // TODO https://github.com/dotnet/fsharp/blob/6b0719845c928361e63f6e38a9cce4ae7d621fbf/src/fsharp/fsi/fsi.fs#L2618
+                        // change via reflection??? 
+                        // let dummyScriptFileName = "input.fsx"
+                        match codeToEv.editor.FilePath with 
+                        | NotSet -> () //setFileAndLine session code.fromLine "Unnamed File"
+                        | SetTo fi -> 
+                            //let line = 
+                            // match codeToEv.amount with 
+                            // |All -> 1
+                            // |ContinueFromChanges ->  ed.Document.GetLineByOffset ...
+                            // | FsiSegment seg -> seg.line
+                            //setDir session fi
+                            //setFileAndLine session code.fromLine fi // TODO both fail ??
+                            ()
 
-                    match code.file with 
-                    | NotSet -> () //setFileAndLine session code.fromLine "Unnamed File"
-                    | SetTo fi -> 
-                        //setDir session fi
-                        //setFileAndLine session code.fromLine fi // TODO both fail ??
-                        ()
-
-                    let choice, errs =  
-                        try session.EvalInteractionNonThrowing(code.code) //,fsiCancelScr.Value.Token)   // cancellation token here fails to cancel in sync, might still throw OperationCanceledException if async       
-                        with e -> Choice2Of2 e , [| |]
+                        let choice, errs =  
+                            try session.EvalInteractionNonThrowing(fsCode) //,fsiCancelScr.Value.Token)   // cancellation token here fails to cancel in sync, might still throw OperationCanceledException if async       
+                            with e -> Choice2Of2 e , [| |]
                
-                    if mode.IsAsync  then 
-                        do! Async.SwitchToContext SyncWpf.context
+                        if mode.IsAsync  then 
+                            do! Async.SwitchToContext SyncWpf.context
                
-                    thread <- None
-                    state <- Ready //TODO reached when canceled ?                     
+                        thread <- None
+                        state <- Ready //TODO reached when canceled ?                     
                
-                    match choice with //TODO move out of Thread?
-                    |Choice1Of2 vo -> 
-                        completedOkEv.Trigger()
-                        isReadyEv.Trigger()
-                        for e in errs do 
-                            match e.Severity with 
-                            | FSharpDiagnosticSeverity.Error  -> log.PrintfnAppErrorMsg "EvalInteractionNonThrowing returned Error: %A" e
-                            | FSharpDiagnosticSeverity.Warning
-                            | FSharpDiagnosticSeverity.Hidden  
-                            | FSharpDiagnosticSeverity.Info   -> ()
+                        match choice with //TODO move out of Thread?
+                        |Choice1Of2 vo -> 
+                            completedOkEv.Trigger(codeToEv)
+                            isReadyEv.Trigger()
+                            for e in errs do 
+                                match e.Severity with 
+                                | FSharpDiagnosticSeverity.Error  -> log.PrintfnAppErrorMsg "EvalInteractionNonThrowing returned Error: %A" e
+                                | FSharpDiagnosticSeverity.Warning
+                                | FSharpDiagnosticSeverity.Hidden  
+                                | FSharpDiagnosticSeverity.Info   -> ()
                         
-                        //match vo with 
-                        //|None-> () 
-                        //|Some v -> log.PrintfnDebugMsg "Interaction evaluted to %A <%A>" v.ReflectionValue v.ReflectionType
+                            //match vo with 
+                            //|None-> () 
+                            //|Some v -> log.PrintfnDebugMsg "Interaction evaluted to %A <%A>" v.ReflectionValue v.ReflectionType
                    
-                    |Choice2Of2 exn ->     
-                        match exn with 
-                        | :? OperationCanceledException ->
-                            canceledEv.Trigger()
-                            isReadyEv.Trigger()
-                            if config.Hosting.IsHosted && mode = FsiMode.Async472 && isNull exn.StackTrace  then 
-                                log.PrintfnFsiErrorMsg "FSI evaluation was canceled,\r\nif you did not trigger this cancellation try running FSI in Synchronos evaluation mode (instead of Async)."    
-                            else 
-                                log.PrintfnFsiErrorMsg "FSI evaluation was canceled by user!" //:\r\n%A" exn.StackTrace  //: %A" exn                
+                        |Choice2Of2 exn ->     
+                            match exn with 
+                            | :? OperationCanceledException ->
+                                canceledEv.Trigger(codeToEv)
+                                isReadyEv.Trigger()
+                                if config.Hosting.IsHosted && mode = FsiMode.Async472 && isNull exn.StackTrace  then 
+                                    log.PrintfnFsiErrorMsg "FSI evaluation was canceled,\r\nif you did not trigger this cancellation try running FSI in Synchronos evaluation mode (instead of Async)."    
+                                else 
+                                    log.PrintfnFsiErrorMsg "FSI evaluation was canceled by user!" //:\r\n%A" exn.StackTrace  //: %A" exn                
                            
-                        | :? FsiCompilationException -> 
-                            runtimeErrorEv.Trigger(exn)
-                            isReadyEv.Trigger()
-                            log.PrintfnFsiErrorMsg "Compiler Error:"
-                            let mutable postMsg = ""
-                            for e in errs do    
-                                let msg = sprintf "%A" e
-                                if msg.Contains "is defined in an assembly that is not referenced." then 
-                                    postMsg <- 
-                                        "Fix:\r\n" + 
-                                        "  For assembly refrence errors that are not shown by editor tooling try to re-arrange the inlital loading sequens of '#r' statements\n\r" +
-                                        "  This error might happen when you are loading a dll with #r that is already loaded, but from a diffrent location\n\r" +
-                                        "  E.G. as a dependency from a already loaded dll."
-                                log.PrintfnFsiErrorMsg "%A" e
-                            if postMsg <> "" then 
-                                log.PrintfnColor 0 0 200 "%s" postMsg
+                            | :? FsiCompilationException -> 
+                                runtimeErrorEv.Trigger(exn)
+                                isReadyEv.Trigger()
+                                log.PrintfnFsiErrorMsg "Compiler Error:"
+                                let mutable postMsg = ""
+                                for e in errs do    
+                                    let msg = sprintf "%A" e
+                                    if msg.Contains "is defined in an assembly that is not referenced." then 
+                                        postMsg <- 
+                                            "Fix:\r\n" + 
+                                            "  For assembly refrence errors that are not shown by editor tooling try to re-arrange the inlital loading sequens of '#r' statements\n\r" +
+                                            "  This error might happen when you are loading a dll with #r that is already loaded, but from a diffrent location\n\r" +
+                                            "  E.G. as a dependency from a already loaded dll."
+                                    log.PrintfnFsiErrorMsg "%A" e
+                                if postMsg <> "" then 
+                                    log.PrintfnColor 0 0 200 "%s" postMsg
 
-                        | _ ->    
-                            runtimeErrorEv.Trigger(exn)
-                            isReadyEv.Trigger()
-                            log.PrintfnFsiErrorMsg "Runtime Error:" 
+                            | _ ->    
+                                runtimeErrorEv.Trigger(exn)
+                                isReadyEv.Trigger()
+                                let printRuntimeError s = log.PrintfnColor 200 0 0 s
+                                printRuntimeError "Runtime Error:" 
                         
-                            //highlight line number:
-                            let et = sprintf "%A" exn
-                            let t,r = Str.splitOnce ".fsx:" et
-                            if r="" then 
-                                log.PrintfnFsiErrorMsg "%s" et
-                            else
-                                let ln,rr = Str.splitOnce "\r\n" r                        
-                                log.PrintfFsiErrorMsg "%s.fsx:" t
-                                log.PrintfnColor 0 0 200 "%s" ln
-                                log.PrintfnFsiErrorMsg "%s" rr
+                                //highlight line number:
+                                let et = sprintf "%A" exn
+                                let t,r = Str.splitOnce ".fsx:" et
+                                if r="" then 
+                                    printRuntimeError "%s" et
+                                else
+                                    let ln,rr = Str.splitOnce "\r\n" r                        
+                                    printRuntimeError "%s.fsx:" t
+                                    log.PrintfnColor 0 0 200 "%s" ln
+                                    printRuntimeError "%s" rr
                               
-                    } 
+                        } 
         
-                //TODO trigger from a new thread even in Synchronous evaluation ?
-                let thr = new Thread(fun () -> 
-                    // a cancellation token here fails to cancel evaluation.
-                    // dsyme: Thread.Abort - it is needed in interruptible interactive execution scenarios: https://github.com/dotnet/fsharp/issues/9397#issuecomment-648376476
-                    // Thread.Abort method is not supported in .NET 5 (including .NET Core)
-                    // https://github.com/dotnet/runtime/issues/41291
-                    // net5 Could use multi-process and terminate the process instead? https://github.com/dotnet/runtime/issues/11369#issuecomment-434801806
-                    Async.StartImmediate(asyncEval))  
-                thread <- Some thr           
-                if mode.IsAsync then thr.SetApartmentState(ApartmentState.STA) //TODO always ok ? needed to run WPF? https://stackoverflow.com/questions/127188/could-you-explain-sta-and-mta
-                thr.Start()
+                    //TODO trigger from a new thread even in Synchronous evaluation ?
+                    let thr = new Thread(fun () -> 
+                        // a cancellation token here fails to cancel evaluation.
+                        // dsyme: Thread.Abort - it is needed in interruptible interactive execution scenarios: https://github.com/dotnet/fsharp/issues/9397#issuecomment-648376476
+                        // Thread.Abort method is not supported in .NET 5 (including .NET Core)
+                        // https://github.com/dotnet/runtime/issues/41291
+                        // net5 Could use multi-process and terminate the process instead? https://github.com/dotnet/runtime/issues/11369#issuecomment-434801806
+                        Async.StartImmediate(asyncEval))  
+                    thread <- Some thr           
+                    if mode.IsAsync then thr.SetApartmentState(ApartmentState.STA) //TODO always ok ? needed to run WPF? https://stackoverflow.com/questions/127188/could-you-explain-sta-and-mta
+                    thr.Start()
     
     
     static let mutable singleInstance:Fsi option  = None

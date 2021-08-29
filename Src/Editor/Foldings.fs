@@ -20,8 +20,7 @@ type FoldStart = {indent: int; lineEndOff:int; line: int; indexInFolds:int; nest
 [<Struct>]
 type Indent = { indent: int; wordStartOff:int }
 
-type Foldings(ed:TextEditor, checker:Checker, config:Config, edId:Guid) = 
-    
+type Foldings(ed:TextEditor, checker:Checker, config:Config, edId:Guid) =     
     
     let maxDepth = 1 // maximum amount of nested foldings 
 
@@ -30,7 +29,6 @@ type Foldings(ed:TextEditor, checker:Checker, config:Config, edId:Guid) =
     let minLinesNested = 3 // minimum line count for inner folding 
 
     let minLineCountDiffToOuter = 9 // if inner folding is just 9 line shorter than outer folding dont do it
-
 
     let manager = Folding.FoldingManager.Install(ed.TextArea)  // color of margin is set in ColoumRulers.fs
 
@@ -137,7 +135,6 @@ type Foldings(ed:TextEditor, checker:Checker, config:Config, edId:Guid) =
                 match iEditor.FileCheckState.FullCodeAndId with
                 | NoCode ->()
                 | CodeID (code,checkId) -> 
-
                     let foldings = 
                         let ffs = findFoldings code
                         let l = ffs.Count-1
@@ -153,7 +150,8 @@ type Foldings(ed:TextEditor, checker:Checker, config:Config, edId:Guid) =
                                     fs.Add f 
                         fs                        
                     
-                    if foldings.Count>0 then 
+                    if foldings.Count>0 
+                    && checker.CurrentCheckId = checkId then
                         do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context
                         match iEditor.FileCheckState.SameIdAndFullCode(checker.GlobalCheckState) with
                         | NoCode -> ()
@@ -189,7 +187,7 @@ type Foldings(ed:TextEditor, checker:Checker, config:Config, edId:Guid) =
     
     
     do        
-        checker.OnFullCodeAvailabe.Add foldEditor // will add an event for each new tab, foldEditor skips updating  if it is not current editor        
+        checker.OnFullCodeAvailabe.Add foldEditor // will add an event for each new tab, foldEditor skips updating if it is not current editor        
         // event for tracking folding status via mouse up in margin is attached in editor.setup()
     
     /// because when the full text gets replaced ( eg via git branch change)

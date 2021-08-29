@@ -59,14 +59,14 @@ type Checker private (config:Config)  =
                 checker <- Some ch
             
             if !checkId = thisId then
-                let code = 
+                let codeInChecker = 
                     if tillOffset = 0 then  FullCode    (doc.CreateSnapshot().Text)//the only threadsafe way to acces the code string  
                     else                    PartialCode (doc.CreateSnapshot(0, tillOffset).Text)
-                
-                globalCheckState <- Checking (thisId , code)
+            
+                globalCheckState <- Checking (thisId , codeInChecker)
                 iEditor.FileCheckState <- globalCheckState
-                
-                match code with 
+            
+                match codeInChecker with 
                 |PartialCode _-> ()
                 |FullCode _ ->                 
                     do! Async.SwitchToContext(FsEx.Wpf.SyncWpf.context)
@@ -74,6 +74,7 @@ type Checker private (config:Config)  =
                         //log.PrintfnDebugMsg "***fullCodeAvailabeEv  %s " iEditor.FilePath.File //iEditor.CheckState
                         fullCodeAvailabeEv.Trigger(iEditor)
                     do! Async.SwitchToThreadPool()
+                
 
                 let fileFsx = 
                     match iEditor.FilePath with
@@ -84,7 +85,7 @@ type Checker private (config:Config)  =
             
                 if !checkId = thisId  then
                     try                        
-                        let sourceText = Text.SourceText.ofString code.Code
+                        let sourceText = Text.SourceText.ofString codeInChecker.FsCode
                         let! options, optionsErr = checker.Value.GetProjectOptionsFromScript(fileFsx, sourceText, otherFlags = [| "--langversion:preview" |] ) // Gets additional script #load closure information if applicable.
                         //for e in optionsErr do 
                         //    these error show up for example when a #r refrence is in wrong syntax, butt checker shows this erroe too
@@ -135,7 +136,7 @@ type Checker private (config:Config)  =
                                 match checkAnswer with
                                 | FSharpCheckFileAnswer.Succeeded checkRes ->   
                                     if !checkId = thisId  then // this ensures that stat get set to done ich no checker has started in the meantime
-                                        let res = {parseRes = parseRes;  checkRes = checkRes;  code = code ; checkId=thisId }
+                                        let res = {parseRes = parseRes;  checkRes = checkRes;  code = codeInChecker ; checkId=thisId }
                                         globalCheckState <- Done res
                                         iEditor.FileCheckState <- globalCheckState
                                                                                
@@ -178,8 +179,14 @@ type Checker private (config:Config)  =
     
     static let mutable singleInstance :Checker option  = None
 
-    //--------------------public --------------
-        
+    //--------------------public --------------    
+    
+    /// every time a new call to the global type checker happens this gets incremented
+    /// this happens when the documenmt changes, not for type info requests
+    member _.CurrentCheckId = !checkId
+    
+    member val Fsi  = Fsi.GetOrCreate(config) //  but  Fsi.Initalize() is only called in OnFirstCheckDone
+
     /// this event is raised on UI thread    
     [<CLIEvent>] member this.OnChecking = checkingEv.Publish
 
@@ -202,11 +209,11 @@ type Checker private (config:Config)  =
         |None -> 
             let ch = new Checker(config)
             singleInstance <- Some ch; 
-            ch.OnFirstCheckDone.Add ( fun () -> Fsi.GetOrCreate(config).Initalize() ) // to start fsi when checker is idle            
+            ch.OnFirstCheckDone.Add ( fun ()-> ch.Fsi.Initalize() ) // to start fsi when checker is idle            
             ch
 
     /// Triggers Event<FSharpErrorInfo[]> event after calling the continuation
-    member this.CkeckHighlightAndFold (iEditor:IEditor)  =  check (iEditor, 0, None)
+    member this.CkeckHighlightAndFold (iEditor:IEditor)  =  check (iEditor, 0,  None)
 
     /// checks for items available for completion
     member this.GetCompletions (iEditor:IEditor, pos :PositionInCode, ifDotSetback, continueOnUI: DeclarationListInfo*FSharpSymbolUse list list  -> unit) =        
