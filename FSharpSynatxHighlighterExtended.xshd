@@ -90,7 +90,7 @@
           <Word>see</Word>
           <Word>seealso</Word>
           <Word>summary</Word>
-          <Word>value</Word>
+          <Word>value</Word>          
           <Word>type</Word>
           <Word>name</Word>
           <Word>cref</Word>
@@ -208,7 +208,8 @@
       <Word>then</Word>
       <Word>to</Word>
       <Word>TRUE</Word>
-      <Word>try</Word>
+      <Word>try</Word>      
+      <Word>typeof</Word>
       <Word>type</Word>
       <Word>upcast</Word>
       <Word>use</Word>
@@ -464,12 +465,12 @@
     </Span>
 
     <Span color="TypeAnnotation"> 
-      <Begin color= "Keywords" >\btype\s*</Begin> <!-- type declarations -->
+      <Begin color= "Keywords" >\btype\s+</Begin> <!-- type declarations -->
       <End color="Punctuation" >[=\s\(]</End> 
     </Span>
     
     <Span color="LetBinding"> 
-      <Begin color= "Keywords" >\blet\s*</Begin> <!-- let bindings -->
+      <Begin color= "Keywords" >\blet\s+</Begin> <!-- let bindings -->
       <End color="Punctuation" >[ = \s \( ]</End> 
     </Span>
 

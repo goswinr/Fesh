@@ -269,6 +269,33 @@ type TypeInfo private () =
             .Replace("\" />","'")
             .Replace("\">"  ,": " ) // to catch the end of <param name="value">  and other closings
         |> unEscapeXml
+(*
+<Keywords color="KnownDocTags">
+          <Word>c</Word>
+          <Word>code</Word>
+          <Word>example</Word>
+          <Word>exception</Word>
+          <Word>list</Word>
+          <Word>para</Word>
+          <Word>param</Word>
+          <Word>paramref</Word>
+          <Word>permission</Word>
+          <Word>remarks</Word>
+          <Word>returns</Word>
+          <Word>see</Word>
+          <Word>seealso</Word>
+          <Word>summary</Word>
+          <Word>value</Word>          
+          <Word>type</Word>
+          <Word>name</Word>
+          <Word>cref</Word>
+          <Word>item</Word>
+          <Word>term</Word>
+          <Word>description</Word>
+          <Word>listheader</Word>
+          <Word>typeparam</Word>
+          <Word>typeparamref</Word>
+*)
 
 
     
