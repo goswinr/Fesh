@@ -18,10 +18,10 @@
     <Product>Seff</Product>
     <PackageId>Seff</PackageId>  
 
-    <Version>0.0.1</Version>
-    <AssemblyVersion>0.0.1</AssemblyVersion>
-    <FileVersion>0.0.1</FileVersion>
-    <PackageReleaseNotes>First release</PackageReleaseNotes>  
+    <Version>0.0.2</Version>
+    <AssemblyVersion>0.0.2</AssemblyVersion>
+    <FileVersion>0.0.2</FileVersion>
+    <PackageReleaseNotes>FSI evaluation in steps</PackageReleaseNotes>  
     
     <Authors>GoswinR</Authors>
     <Copyright>Goswin Rothenthal 2021</Copyright>
@@ -68,7 +68,8 @@
     <!-- <None Include="Media/READMEnuget.md" Pack="true" PackagePath="\" /> -->
     <None Include="Media/logo128.png" Pack="true" PackagePath="\" /> <!--PackagePath = "\" makes the fike availabe to nuget pack tool-->
     <EmbeddedResource Include="Media/logo.res" /> <!--  for Application Icon in explorer-->   
-    <Resource Include="Media/logo.ico" />    
+    <Resource Include="Media/logo.ico" />       <!--  for Application Icon in primary windows-->    
+    <Resource Include="Media/logoGray.ico" />    <!--  for Application Icon in secondary PopOut windows-->    
     <Resource Include="Media/FiraCode-Regular.ttf" />  
     <None Include="FSharpSynatxHighlighterExtended.xshd">    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>    </None>
 
@@ -77,7 +78,6 @@
     <Compile Include="Src/Timer.fs" />
     <Compile Include="Src/Style.fs" />
     <Compile Include="Src/Model.fs" />
-
     <Compile Include="Src/Config/Hosting.fs" />
     <Compile Include="Src/Config/DefaultCode.fs" />
     <Compile Include="Src/Config/FsiArugments.fs" />
@@ -102,6 +102,7 @@
     <Compile Include="Src/Editor/TypeInfo.fs" />
     <Compile Include="Src/Editor/CodeCompletion.fs" />
     <Compile Include="Src/Editor/Foldings.fs" />
+    <Compile Include="Src/Editor/EvaluationTracker.fs" />
     <Compile Include="Src/Editor/SelectedTextTracer.fs" />
     <Compile Include="Src/Editor/BracketColorizer.fs" />
     <Compile Include="Src/Editor/ColumnRulers.fs" />
@@ -110,7 +111,7 @@
     <Compile Include="Src/Editor/KeyboardShortcuts.fs" />
     <Compile Include="Src/Editor/Formating.fs" />
     <Compile Include="Src/Editor/Editor.fs" />
-
+    
     <Compile Include="Src/Views/Log.fs" />
     <Compile Include="Src/Views/Window.fs" />
     <Compile Include="Src/Views/FileWatcher.fs" />
@@ -119,6 +120,7 @@
     <Compile Include="Src/Views/TabsAndLog.fs" />
     <Compile Include="Src/Views/Fonts.fs" />
     <Compile Include="Src/Views/StatusBar.fs" />
+    <Compile Include="Src/Views/PopOut.fs" />
     <Compile Include="Src/Views/Commands.fs" />
     <Compile Include="Src/Views/Menu.fs" />
     <Compile Include="Src/Views/Seff.fs" />
