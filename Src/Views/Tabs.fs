@@ -15,9 +15,9 @@ open Seff.Style
 
 type SavingKind = SaveInPlace | SaveNewLocation | SaveExport
 
-/// A class holding the Tab Control
-/// Includes logic for saving and opening files
-/// Window ref neded for closing after last Tab closed
+/// A class holding the Tab Control.
+/// Includes logic for saving and opening files.
+/// Window is needed for closing after last Tab closed
 type Tabs(config:Config, win:Window) = 
 
     let tabs = new TabControl(

@@ -6,6 +6,11 @@
     <TargetFrameworks>net472;net50-windows</TargetFrameworks>  <!--  net50, has no Thread.Abort()-->
     <UseWPF>true</UseWPF>    
     <LangVersion>preview</LangVersion>
+
+    <!--<PublishSingleFile>true</PublishSingleFile>
+    <SelfContained>true</SelfContained>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <PublishReadyToRun>true</PublishReadyToRun>  doesnt work, lon build times  ?-->
     
     <NeutralLanguage>en</NeutralLanguage>
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>    <!--to only have the english resources-->
@@ -22,7 +27,7 @@
     <AssemblyVersion>0.0.2</AssemblyVersion>
     <FileVersion>0.0.2</FileVersion>
     <PackageReleaseNotes>First release</PackageReleaseNotes>   
-    
+    <Company>Goswin Rothenthal</Company><!--shows up on file preview on exe in explorer-->
     <Authors>GoswinR</Authors>
     <Copyright>Goswin Rothenthal 2021</Copyright>
 

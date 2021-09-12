@@ -21,7 +21,7 @@ module private EvaluationTrackerRendererUtil =
     let backGround = Brushes.Ivory |> brighter 5   |> freeze    
 
     //let pen = new Pen(Brushes.Black |> freeze , 0.5)  |> Pen.freeze    
-    let border = new Pen( Brushes.Teal |> freeze , 0.7)  |> Pen.freeze    
+    //let border = new Pen( Brushes.Teal |> freeze , 0.7)  |> Pen.freeze    
 
     let inline newSegmentTill(endOff) = 
         if endOff <= 0 then 
@@ -159,7 +159,8 @@ type EvaluationTrackerRenderer (ed:TextEditor) =
                 let geoBuilder = new BackgroundGeometryBuilder (AlignToWholePixels = true, CornerRadius = 0.)
                 geoBuilder.AddSegment(textView, evaluatedCodeSeg) // TODO: what happens if the code became shorter and this segment is now bigger than the document ?
                 let boundaryPolygon = geoBuilder.CreateGeometry() // creates one boundary round the text
-                drawingContext.DrawGeometry(backGround, border, boundaryPolygon) // pen could be null too
+                drawingContext.DrawGeometry(backGround, null, boundaryPolygon) // pen could be null too
+                //drawingContext.DrawGeometry(backGround, border, boundaryPolygon) // pen could be null too
             with ex -> 
                 ISeffLog.log.PrintfnAppErrorMsg "ERROR in EvaluationTrackerRenderer.Draw(): %A" ex
     

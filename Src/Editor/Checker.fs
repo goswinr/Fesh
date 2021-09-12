@@ -198,7 +198,6 @@ type Checker private (config:Config)  =
     
     /// this event is raised on UI thread    
     [<CLIEvent>] member this.OnFirstCheckDone = firstCheckDoneEv.Publish
-
    
     member this.GlobalCheckState = globalCheckState
 

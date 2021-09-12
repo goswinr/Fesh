@@ -29,8 +29,12 @@ module Initialize =
         /// ------------------ Log and Config --------------------
         
         let log    = Log.Create()     
-        let appname = match mode with Some n -> "Seff."+n.hostName |None -> "Seff"
-        FsEx.Wpf.ErrorHandeling.setup (appname, fun () -> log.FsiErrorStream.ToString() ) // do as soon as log exists         
+        let appname = match mode with Some n -> "Seff." + n.hostName |None -> "Seff"
+        FsEx.Wpf.ErrorHandeling.setup (appname, fun () -> 
+            // TODO attempt to save files before closing ?
+            // or save anyway every 2 minutes to backup folder if less than 10k lines
+            
+            log.FsiErrorStream.ToString() ) // do as soon as log exists         
         
 
         let config = new Config(log, mode, startupArgs)
