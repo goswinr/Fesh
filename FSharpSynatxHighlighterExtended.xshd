@@ -451,16 +451,16 @@
     
   
     <Span color="LetMutable"> 
-      <Begin color= "Keywords" >\blet\s*mutable\s*</Begin> 
+      <Begin color= "Keywords" >\blet\s*mutable\b</Begin> 
       <End color="Punctuation" >[=\s\(]</End> 
     </Span>
 
     <Span color="LetRec"> 
-      <Begin color= "Keywords" >\blet\s*rec\s*</Begin> 
+      <Begin color= "Keywords" >\blet\s*rec\b</Begin> 
       <End color="Punctuation" >[=\s\(]</End> 
     </Span>
     <Span color="LetRec"> 
-      <Begin color= "Keywords" >\band\s*</Begin> 
+      <Begin color= "Keywords" >\band\b</Begin> 
       <End color="Punctuation" >[=\s\(]</End> 
     </Span>
 
