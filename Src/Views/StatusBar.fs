@@ -62,7 +62,8 @@ type CheckerStatus (grid:TabsAndLog) as this =
         makePanelVert [                         
             if erk>0 then       
                 if addPersistInfo then TextBlock(Text = "Click here to scroll to first error", FontSize = Style.fontSize * 0.7)                  
-                if addPersistInfo then TextBlock(Text = "Press Ctrl + P to persist this window.", FontSize = Style.fontSize * 0.7)                  
+                if addPersistInfo then TextBlock(Text = "Press Ctrl + P to persist this window.", FontSize = Style.fontSize * 0.7) 
+                TextBlockSelectable(Text = "File: " + tabs.Current.FormatedFileName, FontSize = Style.fontSize * 0.7) 
                 TextBlock(Text = "Errors:", FontSize = Style.fontSize , FontWeight = FontWeights.Bold )
             for e in Seq.truncate 10 ers do    
                 TextBlockSelectable(Text = sprintf "• line %d: %s: %s" e.StartLine e.ErrorNumberText e.Message, FontSize = Style.fontSize * 0.9)
@@ -131,17 +132,20 @@ type CheckerStatus (grid:TabsAndLog) as this =
                             lastErrCount <- -1
                             this.Text <- checkingTxt
                             this.Background <- waitCol //originalBackGround 
+                            this.ToolTip <- sprintf "Checking %s for Errors ..." tabs.Current.FormatedFileName
                     | Done _ | NotStarted | Failed -> ()
             } |> Async.StartImmediate 
         
         | NotStarted -> // these below never happen because event is only triggerd on success
             lastErrCount <- -1
             this.Text <- "Initializing compiler . . ."
+            this.ToolTip <- "Initializing compiler . . ."
             this.Background <- waitCol //originalBackGround 
         
         | Failed -> // these below never happen because event is only triggerd on success
             lastErrCount <- -1
             this.Text <- "Fs Checker failed to complete."
+            this.ToolTip <- "Fs Checker failed to complete."
             this.Background <- failedCol
     
 
