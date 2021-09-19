@@ -20,8 +20,6 @@ open FsEx.Wpf // for TextBlockSelectable
 open FsEx.Wpf.DependencyProps
 
 
-
-
 module MenuUtil = 
     let menuItem (cmd:CommandInfo) = 
         MenuItem(Header = cmd.name, InputGestureText = cmd.gesture, ToolTip = cmd.tip, Command = cmd.cmd):> Control
@@ -51,7 +49,7 @@ type CheckerStatus (grid:TabsAndLog) as this =
     let mutable lastErrCount = -1
     let mutable lastFile = Guid.Empty
 
-    let mutable firstErrorLine = None
+    let mutable firstErrorSegm = None
     let was = ResizeArray<FSharpDiagnostic>()
     let ers = ResizeArray<FSharpDiagnostic>()
 
@@ -61,22 +59,21 @@ type CheckerStatus (grid:TabsAndLog) as this =
 
         makePanelVert [
             if erk>0 then
-                if addPersistInfo then TextBlock(Text = "Click here to scroll to first error", FontSize = Style.fontSize * 0.7)
-                if addPersistInfo then TextBlock(Text = "Press Ctrl + P to persist this window.", FontSize = Style.fontSize * 0.7)
-                TextBlockSelectable(Text = "File: " + tabs.Current.FormatedFileName, FontSize = Style.fontSize * 0.7)
+                if addPersistInfo then TextBlock(Text = "Click on text in statusbar or press Ctrl + E keys to scroll to first error.", FontSize = Style.fontSize * 0.75, FontStyle = FontStyles.Italic, Margin=Thickness 3.0)
+                if addPersistInfo then TextBlock(Text = "Press Ctrl + P to persist this tooltip window.", FontSize = Style.fontSize * 0.75, FontStyle = FontStyles.Italic, Margin=Thickness 3.0)                
+                TextBlockSelectable(Text = "File: " + tabs.Current.FormatedFileName, FontSize = Style.fontSize * 0.8, Margin=Thickness 3.0 )
                 TextBlock(Text = "Errors:", FontSize = Style.fontSize , FontWeight = FontWeights.Bold )
             for e in Seq.truncate 10 ers do
-                TextBlockSelectable(Text = sprintf "• line %d: %s: %s" e.StartLine e.ErrorNumberText e.Message, FontSize = Style.fontSize * 0.9)
+                TextBlockSelectable(Text = sprintf "• line %d: %s: %s" e.StartLine e.ErrorNumberText e.Message, FontSize = Style.fontSize * 0.9, Margin=Thickness 3.0 )
             if erk > 10 then
                 TextBlock(Text = sprintf "• and %d more ..." (erk-10), FontSize = Style.fontSize * 0.9)
 
             if wak>0 then
                 TextBlock(Text="Warnings:", FontSize = Style.fontSize , FontWeight = FontWeights.Bold )
             for w in Seq.truncate 10 was do
-                TextBlockSelectable(Text = sprintf "• line %d: %s: %s" w.StartLine w.ErrorNumberText w.Message, FontSize = Style.fontSize * 0.9)
+                TextBlockSelectable(Text = sprintf "• line %d: %s: %s" w.StartLine w.ErrorNumberText w.Message, FontSize = Style.fontSize * 0.9, Margin=Thickness 3.0 )
             if wak > 10 then
-                TextBlock(Text = sprintf "• and %d more ..." (wak-10), FontSize = Style.fontSize * 0.9)
-            TextBlockSelectable(Text = tabs.Current.FormatedFileName, FontSize = Style.fontSize * 0.7)
+                TextBlock(Text = sprintf "• and %d more ..." (wak-10), FontSize = Style.fontSize * 0.9)            
             ]
 
 
@@ -92,12 +89,12 @@ type CheckerStatus (grid:TabsAndLog) as this =
                         this.ToolTip <- "FSarp Compiler Service found no Errors in"+ Environment.NewLine + tabs.Current.FormatedFileName
                         lastFile <- tabs.Current.Editor.Id
                         lastErrCount <- 0
-                        firstErrorLine <- None
+                        firstErrorSegm <- None
                 else
                     lastFile <- tabs.Current.Editor.Id
                     lastErrCount <- es.Length
                     es|> Array.sortInPlaceBy (fun e -> struct(e.StartLine, e.StartColumn)) // sort because we are not sure if they are allready sorted
-                    firstErrorLine <- Some <| Document.TextLocation(es.[0].StartLine, es.[0].StartColumn + 1 )
+                    firstErrorSegm <- Some <| ErrorUtil.getSegment iEditor.AvaEdit.Document es.[0]
                     was.Clear()
                     ers.Clear()
                     for e in es do
@@ -109,16 +106,20 @@ type CheckerStatus (grid:TabsAndLog) as this =
                     let erk = ers.Count
                     let wak = was.Count
                     if wak > 0 && erk > 0 then
-                        this.Text <- sprintf " %d compiler errors, %d warnings, first one on line: %d" erk wak firstErrorLine.Value.Line
+                        this.Text <- sprintf " %d compiler errors, %d warnings, first one on line: %d" erk wak es.[0].StartLine
                         this.Background <- errColor
                     elif wak > 0 then
-                        this.Text <- sprintf " %d compiler warnings, first one on line %d" wak firstErrorLine.Value.Line
+                        this.Text <- sprintf " %d compiler warnings, first one on line %d" wak es.[0].StartLine
                         this.Background <- warnColor
                     elif erk > 0 then
-                        this.Text <- sprintf " %d compiler errors, first one on line: %d" erk firstErrorLine.Value.Line
+                        this.Text <- sprintf " %d compiler errors, first one on line: %d" erk es.[0].StartLine
                         this.Background <- errColor
-
-                    this.ToolTip <- getErrPanel(true)
+                    
+                    let tip = new ToolTip(Content = getErrPanel(true) )
+                    tip.Placement <- Primitives.PlacementMode.Top //https://docs.microsoft.com/en-us/dotnet/framework/wpf/controls/popup-placement-behavior
+                    tip.VerticalOffset <- -6.0
+                    this.ToolTip <- tip
+                    
 
         | GettingCode id0
         | Checking (id0,_) ->
@@ -159,8 +160,8 @@ type CheckerStatus (grid:TabsAndLog) as this =
         checker.OnChecked.Add  updateCheckState
         checker.OnChecking.Add updateCheckState
         this.MouseLeftButtonDown.Add ( fun a ->
-            match firstErrorLine with
-            |Some loc -> Foldings.GoToLineAndUnfold(loc, grid.Tabs.Current.Editor, grid.Config)
+            match firstErrorSegm with
+            |Some seg -> Foldings.GoToLineAndUnfold(seg, grid.Tabs.Current.Editor, grid.Config)
             |None     -> ()
             )
 

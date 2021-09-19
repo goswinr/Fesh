@@ -285,6 +285,8 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, statusBar:SeffStatusBar, log:
                 menuItem cmds.EvalContinue
                 menuItem cmds.MarkEval
                 sep()
+                menuItem cmds.GoToError
+                sep()
                 menuItem cmds.ClearLog
                 menuItem cmds.CancelFSI
                 menuItem cmds.ResetFSI

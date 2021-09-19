@@ -35,10 +35,11 @@ type Commands (grid:TabsAndLog, statusBar:SeffStatusBar)  =
     let evalSelectedText()     =  fsi.Evaluate {editor=tabs.Current.Editor; amount = FsiSegment <|SelectionForEval.current (tabs.CurrAvaEdit)                   }   // null or empty check is done in fsi.Evaluate
     let evalTillCursor()       =  fsi.Evaluate {editor=tabs.Current.Editor; amount = FsiSegment <|SelectionForEval.linesTillCursor(tabs.CurrAvaEdit)            }
 
+    let goToError()            = match ErrorUtil.getFirstSegment(tabs.Current.Editor) with Some s -> Foldings.GoToLineAndUnfold(s, tabs.Current.Editor, config) | None -> ()
 
     //let evalFromCursor()       =  let ln,tx = Selection.linesFromCursor(tabs.CurrAvaEdit)             in  fsi.Evaluate {editor=tabs.Current.Editor; code = tx ; file=tabs.Current.FilePath; allOfFile=false; fromLine = ln }
 
-    let compileScript(useMsBuild) = CompileScript.compileScript(tabs.CurrAvaEdit.Text , tabs.Current.FilePath, true, useMsBuild)
+    let compileScr(useMsBuild) = CompileScript.compileScript(tabs.CurrAvaEdit.Text, tabs.Current.FilePath,  useMsBuild, grid.Config)
 
     let version = lazy (let an = Reflection.Assembly.GetAssembly(tabs.GetType()).GetName() in sprintf "%s %s" an.Name (an.Version.ToString()))
 
@@ -72,8 +73,8 @@ type Commands (grid:TabsAndLog, statusBar:SeffStatusBar)  =
     member val UnComment         = {name= "Uncomment"                 ;gesture= "Ctrl + U"       ;cmd= mkCmdSimple (fun _ -> Commenting.unComment tabs.CurrAvaEdit)              ;tip= "Puts '//' at the beginning of current line, \r\nor all line touched by current selection" }
     member val ToggleComment     = {name= "Toggle Comment"            ;gesture= "Ctrl + /"       ;cmd= mkCmdSimple (fun _ -> Commenting.toggleComment tabs.CurrAvaEdit)          ;tip= "Toggels the commebntedlines in current selection." }
 
-    member val SwapLineUp        = {name= "Swap Lines Up"              ;gesture= "Alt + Up"       ;cmd=mkCmdSimple (fun _ -> SwapLines.swapLinesUp  (tabs.Current.Editor)) ;tip= "Swap the current line(s) with the previous line."  }
-    member val SwapLineDown      = {name= "Swap Lines Down"            ;gesture= "Alt + Down"     ;cmd=mkCmdSimple (fun _ -> SwapLines.swapLinesDown(tabs.Current.Editor)) ;tip= "Swap the current line(s) with the next line."  }
+    member val SwapLineUp        = {name= "Swap Lines Up"              ;gesture= "Alt + Up"       ;cmd=mkCmdSimple (fun _ -> SwapLines.swapLinesUp  (tabs.Current.Editor))      ;tip= "Swap the current line(s) with the previous line."  }
+    member val SwapLineDown      = {name= "Swap Lines Down"            ;gesture= "Alt + Down"     ;cmd=mkCmdSimple (fun _ -> SwapLines.swapLinesDown(tabs.Current.Editor))      ;tip= "Swap the current line(s) with the next line."  }
 
     member val ToUppercase       = {name= "To UPPERCASE"              ;gesture= ""               ;cmd=AvalonEditCommands.ConvertToUppercase                                      ;tip= "Convertes the selected text to UPPERCASE."  }
     member val Tolowercase       = {name= "To lowercase"              ;gesture= ""               ;cmd=AvalonEditCommands.ConvertToLowercase                                      ;tip= "Convertes the selected text to lowercase."  }
@@ -96,26 +97,28 @@ type Commands (grid:TabsAndLog, statusBar:SeffStatusBar)  =
     member val RunTextTillCursor = {name= "Evaluate till Cursor"           ;gesture= "F3"             ;cmd= mkCmdSimple (fun _ -> evalTillCursor())           ;tip= "Sends all lines till and including the current line  to FSharp Interactive" }
     //member val RunTextFromCursor = {name= "Run Text from Cursor"      ;gesture= "F4"             ;cmd= mkCmdSimple (fun _ -> evalFromCursor())           ;tip= "Sends all lines from and including the current line  to FSharp Interactive" }
 
-    member val EvalContinue      = {name= "Save, continue evaluation"    ;gesture= "F4"             ;cmd= mkCmdSimple (fun _ -> evalContinue())           ;tip= "Sends all chnaged or new lines from end of grey text to FSharp Interactive" }
-    member val MarkEval          = {name= "Mark as Evaluated till Current Line"  ;gesture= ""               ;cmd= mkCmdSimple (fun _ -> markEvaluated())               ;tip= "Mark text till current line inclusive as evaluated" }
+    member val EvalContinue      = {name= "Save, continue evaluation"           ;gesture= "F4"     ;cmd= mkCmdSimple (fun _ -> evalContinue())   ;tip= "Sends all chnaged or new lines from end of grey text to FSharp Interactive" }
+    member val MarkEval          = {name= "Mark as Evaluated till Current Line" ;gesture= ""       ;cmd= mkCmdSimple (fun _ -> markEvaluated())  ;tip= "Mark text till current line inclusive as evaluated" }
+    
+    member val GoToError         = {name= "Go to first Error"         ;gesture= "Ctrl + E"        ;cmd= mkCmdSimple (fun _ -> goToError())  ;tip= "Scroll to first error ( if any ppresent) and select error segment." }
 
 
-    member val ClearLog          = {name= "Clear Log"                 ;gesture= "Ctrl + Alt + C" ;cmd= mkCmdSimple (fun _ -> log.Clear())                ;tip= "Clear all text from FSI Log window"  }
-    member val CancelFSI         = {name= "Cancel FSI"                ;gesture= "Ctrl + Break"   ;cmd= mkCmd isAsy472 (fun _ -> fsi.CancelIfAsync())    ;tip= "Cancel running FSI evaluation \r\n(only available on .NET Framework and only in asynchronous mode)" }
-    member val ResetFSI          = {name= "Reset FSI"                 ;gesture= "Ctrl + Alt + R" ;cmd= mkCmdSimple (fun _ -> log.Clear();fsi.Reset())    ;tip= "Clear all text from FSI Log window and reset FSharp Interactive" }
-    member val ToggleSync        = {name= "Toggle Sync / Async"       ;gesture= ""               ;cmd= mkCmdSimple (fun _ -> fsi.ToggleSync())           ;tip= "Switch between synchronous and asynchronous evaluation in FSI, see status in StatusBar"}
-    member val CompileScriptSDK  = {name= "Compile Script via dotnet SDK" ;gesture= "Ctrl + B"        ;cmd= mkCmdSimple (fun _ -> compileScript(false))  ;tip= "Create an net48 fsproj with current code (including unsaved changes) and build it via 'dotnet build' in Release x64. dotnet SDK needs to be installed."}
-    member val CompileScriptMSB  = {name= "Compile Script via MSBuild"    ;gesture= "Ctrl + Shift + B";cmd= mkCmdSimple (fun _ -> compileScript(true))   ;tip= "Create an net48 fsproj with current code (including unsaved changes) and build it via  MSBuild in Release x64. VS2019 needs to be installed."}
+    member val ClearLog          = {name= "Clear Log"                 ;gesture= "Ctrl + Alt + C" ;cmd= mkCmdSimple (fun _ -> log.Clear())             ;tip= "Clear all text from FSI Log window"  }
+    member val CancelFSI         = {name= "Cancel FSI"                ;gesture= "Ctrl + Break"   ;cmd= mkCmd isAsy472 (fun _ -> fsi.CancelIfAsync())  ;tip= "Cancel running FSI evaluation \r\n(only available on .NET Framework and only in asynchronous mode)" }
+    member val ResetFSI          = {name= "Reset FSI"                 ;gesture= "Ctrl + Alt + R" ;cmd= mkCmdSimple (fun _ -> log.Clear();fsi.Reset()) ;tip= "Clear all text from FSI Log window and reset FSharp Interactive" }
+    member val ToggleSync        = {name= "Toggle Sync / Async"       ;gesture= ""               ;cmd= mkCmdSimple (fun _ -> fsi.ToggleSync())        ;tip= "Switch between synchronous and asynchronous evaluation in FSI, see status in StatusBar"}
+    member val CompileScriptSDK  = {name= "Compile Script via dotnet SDK" ;gesture= "Ctrl + B"        ;cmd= mkCmdSimple (fun _ -> compileScr(false))  ;tip= "Create an net48 fsproj with current code (including unsaved changes) and build it via 'dotnet build' in Release x64. dotnet SDK needs to be installed."}
+    member val CompileScriptMSB  = {name= "Compile Script via MSBuild"    ;gesture= "Ctrl + Shift + B";cmd= mkCmdSimple (fun _ -> compileScr(true))   ;tip= "Create an net48 fsproj with current code (including unsaved changes) and build it via  MSBuild in Release x64. VS2019 needs to be installed."}
 
    //View menu:
     member val ToggleSplit       = {name= "Toggle Window Split"       ;gesture= ""               ;cmd= mkCmdSimple (fun _ -> grid.ToggleSplit())         ;tip= "Toggle between vertical and horizontal window arrangement of Editor and Log View" }
     member val ToggleLogSize     = {name= "Toggle Log Maximased"      ;gesture= "F11"            ;cmd= mkCmdSimple (fun _ -> grid.ToggleMaxLog())        ;tip= "Maximises or resets the size of the Log window. \r\n(depending on current state)" }
     member val ToggleLogLineWrap = {name= "Toggle Line Wraping in Log";gesture= "Alt + Z"        ;cmd= mkCmdSimple (fun _ -> log.ToggleLineWrap(config)) ;tip= "Toggle Line Wraping in Log window" }
-    member val FontBigger        = {name= "Make Font Bigger"          ;gesture= "Ctrl + '+'"     ;cmd= mkCmdSimple (fun _ -> fonts.FontsBigger())         ;tip= "Increase Text Size for both Editor and Log" }
-    member val FontSmaller       = {name= "Make Font Smaller"         ;gesture= "Ctrl + '-'"     ;cmd= mkCmdSimple (fun _ -> fonts.FontsSmaller())        ;tip= "Decrease Text Size for both Editor and Log" }
-    member val CollapseCode      = {name= "Collapse all Code Foldings";gesture= ""               ;cmd= mkCmdSimple (fun _ -> Foldings.CollapseAll(tabs.Current.Editor,tabs.Config)) ;tip= "Collapse all Code Foldings in this file" }
+    member val FontBigger        = {name= "Make Font Bigger"          ;gesture= "Ctrl + '+'"     ;cmd= mkCmdSimple (fun _ -> fonts.FontsBigger())        ;tip= "Increase Text Size for both Editor and Log" }
+    member val FontSmaller       = {name= "Make Font Smaller"         ;gesture= "Ctrl + '-'"     ;cmd= mkCmdSimple (fun _ -> fonts.FontsSmaller())       ;tip= "Decrease Text Size for both Editor and Log" }
+    member val CollapseCode      = {name= "Collapse all Code Foldings";gesture= ""               ;cmd= mkCmdSimple (fun _ -> Foldings.CollapseAll(tabs.Current.Editor,tabs.Config))     ;tip= "Collapse all Code Foldings in this file" }
     member val CollapsePrim      = {name= "Collapse primary Code Foldings";gesture= ""           ;cmd= mkCmdSimple (fun _ -> Foldings.CollapsePrimary(tabs.Current.Editor,tabs.Config)) ;tip= "Collapse primary Code Foldings, doesn't chnage secondary or tertiary foldings" }
-    member val ExpandCode        = {name= "Expand all Code Foldings"  ;gesture= ""               ;cmd= mkCmdSimple (fun _ -> Foldings.ExpandAll(tabs.Current.Editor,tabs.Config))  ;tip= "Expand or unfold all Code Foldings in this file"  }
+    member val ExpandCode        = {name= "Expand all Code Foldings"  ;gesture= ""               ;cmd= mkCmdSimple (fun _ -> Foldings.ExpandAll(tabs.Current.Editor,tabs.Config))       ;tip= "Expand or unfold all Code Foldings in this file"  }
     member val PopOutToolTip     = {name= "Make Tooltip persitent"    ;gesture= "Ctrl + P"       ;cmd= mkCmdSimple (fun _ -> PopOut.create(grid,statusBar))  ;tip= "Makes all currently showing ToolTip, Typeinfo or Errorinfo windows persistent as pop up window" }
 
     //About Menu
@@ -161,7 +164,7 @@ type Commands (grid:TabsAndLog, statusBar:SeffStatusBar)  =
     member this.SetUpGestureInputBindings () = 
 
             // NOTE :--------------------------------------------------------------------
-            // some more gestures and selection depending  ovewrites  are defined in CursorBehaviour.previewKeyDown
+            // some more gestures and selection depending  ovewrites are defined in CursorBehaviour.previewKeyDown
             // NOTE :--------------------------------------------------------------------
 
             let allCustomCommands = [  //for setting up Key gestures below, exluding the ones already provided by avalonedit
@@ -201,6 +204,7 @@ type Commands (grid:TabsAndLog, statusBar:SeffStatusBar)  =
                  this.RunTextTillCursor
                  //this.RunTextFromCursor
                  this.EvalContinue
+                 this.GoToError
                  this.ClearLog
                  this.CancelFSI
                  this.ResetFSI

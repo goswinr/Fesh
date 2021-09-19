@@ -75,7 +75,7 @@ module CompileScript =
     type NugetRef = {name:string; version:string}
 
 
-    let getRefs(code:string, libFolderFull:string) : ResizeArray<DllRef>*ResizeArray<FsxRef>*ResizeArray<NugetRef> = 
+    let getRefs(code:string) : ResizeArray<DllRef>*ResizeArray<FsxRef>*ResizeArray<NugetRef> = 
         let refs = ResizeArray()
         let nugs = ResizeArray()
         let fsxs = ResizeArray()
@@ -192,17 +192,22 @@ module CompileScript =
     let gray   msg = ISeffLog.log.PrintfnColor 190 190 190 msg
     //let grayil msg = ISeffLog.log.PrintfColor  190 190 190 msg
 
-    let msBuild(p:Diagnostics.Process, fsProj) = 
+    let msBuild(p:Diagnostics.Process, fsProj,config:Config.Config) = 
         gray "starting MSBuild.exe ..."
         let msBuildFolders = 
             [
             @"C:\Program Files (x86)\Microsoft Visual Studio\2019\Professional\MSBuild\Current\Bin\MSBuild.exe"
             @"C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\MSBuild\Current\Bin\MSBuild.exe"
             @"C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\MSBuild\Current\Bin\MSBuild.exe"
+            config.Settings.Get "MSBuild.exe" |> Option.defaultValue ""
             ]
 
         match msBuildFolders |> Seq.tryFind File.Exists with
-        | None -> ISeffLog.log.PrintfnIOErrorMsg "MSBuild.exe not found at:\r\n%s " (msBuildFolders |> String.concat Environment.NewLine)
+        | None -> 
+            ISeffLog.log.PrintfnIOErrorMsg  "MSBuild.exe not found at:\r\n%s " (msBuildFolders |> String.concat Environment.NewLine)
+            ISeffLog.log.PrintfnIOErrorMsg  "If you have MSBuild.exe on your PC please add the path to the settings file like this:"
+            ISeffLog.log.PrintfnAppErrorMsg "MSBuild.exe=C:\Folder\Where\it\is\MSBuild.exe"
+            ISeffLog.log.PrintfnIOErrorMsg  "the settings file is at %s" config.Hosting.SettingsFileInfo.FullName
         | Some msBuildexe ->
             p.StartInfo.FileName <- "\"" + msBuildexe + "\""
             p.StartInfo.Arguments <- String.concat " " ["\"" + fsProj + "\"" ;  "-restore" ; "/property:Configuration=Release"]
@@ -214,7 +219,7 @@ module CompileScript =
         p.StartInfo.Arguments <- String.concat " " ["build"; "\"" + fsProj + "\""  ;  "--configuration Release"]
 
 
-    let compileScript(code, fp:FilePath, copyDlls, useMSBuild) = 
+    let compileScript(code, fp:FilePath, useMSBuild,config:Config.Config) = 
         match fp with
         | NotSet -> ISeffLog.log.PrintfnAppErrorMsg "Cannot compile an unsaved script save it first"
         | SetTo fi ->
@@ -227,12 +232,12 @@ module CompileScript =
                     let mutable resultDll = "" // found via matching on outLiteral below
                     let folderName = "fsxDll_" + nameSpace
                     let projFolder = IO.Path.Combine(fi.DirectoryName,folderName)
-                    let libFolderFull = if copyDlls then IO.Path.Combine(projFolder,libFolderName) else ""
-                    if libFolderFull<>"" then  IO.Directory.CreateDirectory(libFolderFull)  |> ignore
+                    let libFolderFull = IO.Path.Combine(projFolder,libFolderName) 
+                    IO.Directory.CreateDirectory(libFolderFull)  |> ignore
                     IO.Directory.CreateDirectory(projFolder)  |> ignore
                     let fsProj = IO.Path.Combine(projFolder,nameSpace + ".fsproj")
                     if overWriteExisting fsProj then
-                        let refs,fsxs,nugs = getRefs (code ,libFolderFull)
+                        let refs,fsxs,nugs = getRefs (code)
                         let fsxXml = getFsxXml(projFolder, nameSpace ,code, fsxs)
                         let refXml = getRefsXml(libFolderFull,refs)
                         let nugXml = getNugsXml(nugs)
@@ -252,13 +257,14 @@ module CompileScript =
                             //https://stackoverflow.com/questions/1145969/processinfo-and-redirectstandardoutput
                             let p = new System.Diagnostics.Process()
                             p.EnableRaisingEvents <- true
-                            if useMSBuild then msBuild     ( p, fsProj)
+                            if useMSBuild then msBuild     ( p, fsProj, config)
                             else               dotnetBuild ( p, fsProj)
                             ISeffLog.log.PrintfnColor 0 0 200 "%s %s" p.StartInfo.FileName p.StartInfo.Arguments
                             p.StartInfo.UseShellExecute <- false
                             p.StartInfo.CreateNoWindow <- true //true if the process should be started without creating a new window to contain it
                             p.StartInfo.RedirectStandardError <-true
                             p.StartInfo.RedirectStandardOutput <-true
+                            // for console also see https://stackoverflow.com/a/1427817/969070
                             p.StartInfo.StandardOutputEncoding <- Text.Encoding.GetEncoding(Globalization.CultureInfo.CurrentCulture.TextInfo.OEMCodePage) //https://stackoverflow.com/a/48436394/969070
                             p.StartInfo.StandardErrorEncoding  <- Text.Encoding.GetEncoding(Globalization.CultureInfo.CurrentCulture.TextInfo.OEMCodePage) //https://stackoverflow.com/a/48436394/969070
                             //p.OutputDataReceived.Add ( fun d -> log.PrintfnColor 80 80 80 "%s" d.Data)
@@ -286,6 +292,7 @@ module CompileScript =
                                     FsEx.Wpf.SyncWpf.doSync ( fun () -> Clipboard.SetText("#r @\"" + resultDll + "\"\r\n") )
                                 else
                                     gray  "*build process ended!"
+                                gray "--------------------------------------------------------------------------------"
                                 )
                             p.Start() |> ignore
                             p.BeginOutputReadLine()

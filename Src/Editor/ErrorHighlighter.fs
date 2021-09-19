@@ -26,12 +26,32 @@ open Seff.Model
 // better would be https://github.com/icsharpcode/SharpDevelop/blob/master/src/AddIns/DisplayBindings/AvalonEdit.AddIn/Src/Textsegmentservice.cs
 
 
-module ErrorStyle  = 
+module ErrorStyle= 
     let errSquiggle     = Pen(  Brushes.Red     |> darker 20      |> freeze, 1.0) |> Pen.freeze
-    let warnSquiggle    = Pen(  Brushes.Yellow  |> darker 40      |> freeze, 1.0) |> Pen.freeze
     let errBackGr       =       Brushes.Red     |> brighter 220   |> freeze
+
+    let warnSquiggle    = Pen(  Brushes.Yellow  |> darker 40      |> freeze, 1.0) |> Pen.freeze
     let warnBackGr      =       Brushes.Yellow  |> brighter 200   |> freeze
 
+
+module ErrorUtil = 
+    
+    let getSegment (doc:TextDocument) ( e:FSharpDiagnostic) =
+        let s = TextSegment()
+        s.StartOffset <- doc.GetOffset(new TextLocation(e.StartLine, e.StartColumn + 1 ))
+        s.EndOffset   <- doc.GetOffset(new TextLocation(e.EndLine,   e.EndColumn   + 1 ))
+        s
+
+    let getFirstError(iEditor:IEditor)= 
+        match iEditor.FileCheckState with
+        | GettingCode _  | Checking _ | NotStarted  | Failed -> None
+        | Done res -> 
+            res.checkRes.Diagnostics |> Array.tryHead
+
+    let getFirstSegment(iEditor:IEditor) =
+        getFirstError(iEditor) 
+        |> Option.map ( getSegment iEditor.AvaEdit.Document)
+        
 
 type SegmentToMark private (startOffset, length, message:string, undelinePen:Pen, backbroundColor:SolidColorBrush, isWarning:bool)  = 
     inherit TextSegment()
@@ -104,16 +124,14 @@ type ErrorRenderer (ed:TextEditor, folds:Folding.FoldingManager, log:ISeffLog) =
         res.checkRes.Diagnostics|> Array.sortInPlaceBy (fun e -> e.StartLine)
         for e in res.checkRes.Diagnostics |> Seq.truncate 9 do
             // TODO Only highligth the first 9 Errors, Otherwise UI becomes unresponsive at 100 or more errors ( eg when pasting bad text)
-            let startOffset = doc.GetOffset(new TextLocation(e.StartLine, e.StartColumn + 1 ))
-            let endOffset   = doc.GetOffset(new TextLocation(e.EndLine,   e.EndColumn   + 1 ))
-            let length      = endOffset-startOffset
+            let seg = ErrorUtil.getSegment doc e
             match e.Severity with
-            | FSharpDiagnosticSeverity.Error   -> segments.Add ( SegmentToMark.CreateForError  ( startOffset, length, sprintf "• Error: %s: %s"   e.ErrorNumberText e.Message ))
-            | FSharpDiagnosticSeverity.Warning -> segments.Add ( SegmentToMark.CreateForWarning( startOffset, length, sprintf "• Warning: %s: %s" e.ErrorNumberText e.Message ))
+            | FSharpDiagnosticSeverity.Error   -> segments.Add ( SegmentToMark.CreateForError  ( seg.StartOffset, seg.Length, sprintf "• Error: %s: %s"   e.ErrorNumberText e.Message ))
+            | FSharpDiagnosticSeverity.Warning -> segments.Add ( SegmentToMark.CreateForWarning( seg.StartOffset, seg.Length, sprintf "• Warning: %s: %s" e.ErrorNumberText e.Message ))
             | FSharpDiagnosticSeverity.Hidden -> () //TODO show ??
             | FSharpDiagnosticSeverity.Info   -> ()
 
-            for fold in folds.GetFoldingsContaining(startOffset) do
+            for fold in folds.GetFoldingsContaining(seg.StartOffset) do
                 //if fold.IsFolded then // do on all folds !
                 //fold.BackbgroundColor  <- ErrorStyle.errBackGr // done via ctx.DrawRectangle(ErrorStyle.errBackGr
                 fold.DecorateRectangle <- Action<Rect,DrawingContext>( fun rect ctx ->

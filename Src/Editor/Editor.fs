@@ -245,7 +245,7 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
                     if compls.JustClosed then                        textChanged (CompletionWinClosed)//check to avoid retrigger of window on single char completions
                     else
                         let c = txt.[0]
-                        if Char.IsLetter(c) || c='_' || c='`' || c='#'  then   textChanged (EnteredOneIdentifierChar  ) //complete (# for #if directives)
+                        if Char.IsLetter(c) || c='_' || c='`' || c='#'  then   textChanged (EnteredOneIdentifierChar  ) //complete (# for #if directives) and __SOURCE_DIRECTORY__
                         else                                         textChanged (EnteredOneNonIdentifierChar)//check
 
                 | _  ->                                              textChanged (OtherChange               )//several charcters(paste) ,delete or completion window insert
@@ -257,7 +257,7 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
             if compls.IsOpen then
                 match ev.Text with              //this is not needed  for  general insertion,  insertion with Tab or Enter is built in !!
                 |" " -> compls.Close()
-                |"." -> compls.RequestInsertion(ev) // insert on dot too?
+                |"." -> compls.RequestInsertion(ev) // insert on dot too? //TODO only when more than one char is typed in completion window??
                 |"(" -> compls.RequestInsertion(ev) // insert on open Bracket too?
                 | _  -> () // other triggers https://github.com/icsharpcode/AvalonEdit/blob/28b887f78c821c7fede1d4fc461bde64f5f21bd1/AvalonEditB/CodeCompletion/CompletionList.cs#L171
 

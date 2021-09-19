@@ -22,8 +22,12 @@
   <Color name="StringEscaped"       foreground="#7050DC" />  
   <Color name="Char"                foreground="#FF0040" />
   
+
+
+  <Color name="CompilerDirectives"  foreground="#FF8800" /> <!-- eg: #if COMPILED-->
+
   <Color name="LoadDirectives"      foreground="#BB1111" /> <!-- the #r or #load or #I-->
-  <Color name="LoadDllPath"         foreground="#999999" fontWeight="regular" /> <!-- #r the directory path including the quotes-->
+  <Color name="LoadDllPath"         foreground="#778899" /> <!-- #r the directory path including the quotes-->
   <Color name="LoadDll"             foreground="#DD20B0" /> <!-- #r the dll name -->
   <Color name="LoadNuget"           foreground="#CD10A0" fontWeight="bold" /> <!-- #r the nuget name -->
   <Color name="LoadPath"            foreground="#0000B0" /> <!-- for #I path -->
@@ -54,7 +58,7 @@
   <Color name="XmlPunctuation"      foreground="#888888" />
   <Color name="KnownDocTags"        foreground="#8888EE" />
   
-  <Color name="NonEval"             foreground="#AAAAAA" />
+  <Color name="NonEval"             foreground="#CCCCCC" />
   <Color name="InDoubleTicks"       foreground="#007777" />
 
 
@@ -277,17 +281,23 @@
   <RuleSet name="LoadDllSet">
 
     <!-- compiler directives: -->
-    <Span color="LoadDirectives" multiline="false">
-      <Begin color="LoadDll">\#if\b </Begin> <!-- # neededs to be escaped too \# ! it is a regex comment  -->      
+    <Span color="NonEval" multiline="true">
+      <Begin color="CompilerDirectives">\#if\s*COMPILED </Begin> <!-- '#' needs to be escaped too, \#  it is a regex comment  --> 
+      <End color="CompilerDirectives">\#endif\b|\#else\b</End> 
+    </Span>   
+
+
+    <Span color="CompilerDirectives" multiline="false">
+      <Begin color="CompilerDirectives">\#if\b </Begin> <!-- '#' needs to be escaped too, \#  it is a regex comment  -->      
       <RuleSet>
         <Import ruleSet="CommentSet"/>        
       </RuleSet >  
     </Span>
-    <Rule color="LoadDll">\#endif\b</Rule>
-    <Rule color="LoadDll">\#else\b</Rule>
+    <Rule color="CompilerDirectives">\#endif\b</Rule>
+    <Rule color="CompilerDirectives">\#else\b</Rule>
     
     <Span color="LoadDirectives" multiline="false">
-      <Begin >\#r\b|\#load\b|\#nowarn\b </Begin> <!-- # neededs to be escaped too \# ! it is a regex comment  -->
+      <Begin >\#r\b|\#load\b|\#nowarn\b </Begin> <!-- '#' needs to be escaped too, \#  it is a regex comment  -->   
       <End>(?=(;;))</End> <!-- so that NonEval works -->
       <RuleSet>
         <Import ruleSet="CommentSet"/>

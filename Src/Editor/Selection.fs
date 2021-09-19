@@ -13,7 +13,7 @@ module Selection =
     /// a segment defined by start and end offset
     [<Struct>]
     type Seg = 
-        {st:int;en:int}
+        {st:int; en:int}
         member s.len = s.en - s.st
 
     type SelPos = 

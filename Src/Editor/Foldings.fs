@@ -225,14 +225,17 @@ type Foldings(ed:TextEditor, checker:Checker, config:Config, edId:Guid) =
                         f.IsFolded <- true
              | _ -> ()
         config.FoldingStatus.Set(ied) // so that they are saved immedeatly
-
-    static member GoToLineAndUnfold(loc:TextLocation, ied:IEditor, config:Config) = 
-        let offset = ied.AvaEdit.Document.GetOffset(loc)
+    
+    /// open any foldings if reqired and select at location
+    static member GoToLineAndUnfold(loc:TextSegment, ied:IEditor, config:Config) =         
         let mutable unfoldedOneOrMore = false
-        for fold in ied.FoldingManager.GetFoldingsContaining(offset) do
+        for fold in ied.FoldingManager.GetFoldingsContaining(loc.StartOffset) do
             if fold.IsFolded then
                 fold.IsFolded <- false
                 unfoldedOneOrMore <- true
-        ied.AvaEdit.ScrollTo(loc.Line,loc.Column)
+        let ln = ied.AvaEdit.Document.GetLineByOffset(loc.StartOffset)
+        ied.AvaEdit.ScrollTo(ln.LineNumber,1)
+        //ied.AvaEdit.CaretOffset<- loc.EndOffset // done by ied.AvaEdit.Select too
+        ied.AvaEdit.Select(loc.StartOffset, loc.Length)
         if unfoldedOneOrMore then
             config.FoldingStatus.Set(ied) // so that they are saved immedeatly
