@@ -259,6 +259,8 @@ module CompileScript =
                             p.StartInfo.CreateNoWindow <- true //true if the process should be started without creating a new window to contain it
                             p.StartInfo.RedirectStandardError <-true
                             p.StartInfo.RedirectStandardOutput <-true
+                            p.StartInfo.StandardOutputEncoding <- Text.Encoding.GetEncoding(Globalization.CultureInfo.CurrentCulture.TextInfo.OEMCodePage) //https://stackoverflow.com/a/48436394/969070
+                            p.StartInfo.StandardErrorEncoding  <- Text.Encoding.GetEncoding(Globalization.CultureInfo.CurrentCulture.TextInfo.OEMCodePage) //https://stackoverflow.com/a/48436394/969070
                             //p.OutputDataReceived.Add ( fun d -> log.PrintfnColor 80 80 80 "%s" d.Data)
                             p.OutputDataReceived.Add ( fun d -> 
                                 let txt = d.Data
