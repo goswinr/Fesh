@@ -18,11 +18,11 @@ open Seff.Model
 open FSharp.Compiler.Symbols
 
 /// taken and adapeted from FsAutoComplete in 2019
-module DocString =
-    
-    let inline trim (s:string) = s.Trim() 
+module DocString = 
 
-    module private Section =
+    let inline trim (s:string) = s.Trim()
+
+    module private Section = 
 
         let inline nl<'T> = Environment.NewLine
 
@@ -43,31 +43,31 @@ module DocString =
                 nl + nl +  (content.Trim())
 
 
-        let fromMap (name : string) (content : Map<int*string, string>) =
+        let fromMap (name : string) (content : Map<int*string, string>) = 
             if content.Count = 0 then
                 ""
             else
                 //addSection name (content |> Seq.map (fun kv -> "* `" + kv.Key + "`" + ": " + kv.Value) |> String.concat nl) //original markdown
                 addSection name ((content |> Seq.map (fun kv -> "• `" + snd kv.Key + "`" + ": " + kv.Value) |> String.concat nl).Trim()) // trim() added by goswin
 
-        let fromOption (name : string) (content : string option) =
+        let fromOption (name : string) (content : string option) = 
             if content.IsNone then
                 ""
             else
                 addSection name (content.Value.Trim()) // trim() added by goswin
 
-        let fromList (name : string) (content : string seq) =
+        let fromList (name : string) (content : string seq) = 
             if Seq.length content = 0 then
                 ""
             else
                 addSection name ((content |> String.concat nl).Trim())
 
-    // TODO: Improve this parser. Is there any other XmlDoc parser available?    
-    type XmlDocMember(doc: XmlDocument, indentationSize : int, columnOffset : int) =
+    // TODO: Improve this parser. Is there any other XmlDoc parser available?
+    type XmlDocMember(doc: XmlDocument, indentationSize : int, columnOffset : int) = 
         let nl = Environment.NewLine
         /// References used to detect if we should remove meaningless spaces
         let tabsOffset = String.replicate (columnOffset + indentationSize) " "
-        let readContentForTooltip (node: XmlNode) =
+        let readContentForTooltip (node: XmlNode) = 
             match node with
             | null -> null
             | _ ->
@@ -81,12 +81,12 @@ module DocString =
                 let c = Regex.Replace(c,"""<\w+ \w+="(?:\w:){0,1}(.+?)">.*<\/\w+>""", "`$1`")
                 let c = Regex.Replace(c,"""<\w+ \w+="(?:\w:){0,1}(.+?)" />""", "`$1`")
                 let tableIndex = c.IndexOf("<table>",StringComparison.Ordinal)
-                let s =
+                let s = 
                     if tableIndex > 0 then
                         let start = c.Substring(0, tableIndex)
                         let table = c.Substring(tableIndex)
                         let rows = Regex.Matches(c, "<th>").Count
-                        let table =
+                        let table = 
                             table.Replace(nl        , "")
                                 .Replace("\n"       , "")
                                 .Replace("<table>"  , "")
@@ -114,17 +114,17 @@ module DocString =
                 )
                 |> String.concat "\n"
 
-        let readChildren name (doc: XmlDocument) =
+        let readChildren name (doc: XmlDocument) = 
             doc.DocumentElement.GetElementsByTagName name
             |> Seq.cast<XmlNode>
             |> Seq.indexed
             |> Seq.map (fun (i,node) -> (i, node.Attributes.[0].InnerText.Replace("T:","")), node) //add an int to keep order of insertion wen iterating
             |> Map.ofSeq
 
-        let readRemarks (doc : XmlDocument) =
+        let readRemarks (doc : XmlDocument) = 
             doc.DocumentElement.GetElementsByTagName "remarks"
             |> Seq.cast<XmlNode>
-        
+
         // TODO make lazy (on demand)for performance?
 
         let rawSummary = doc.DocumentElement.ChildNodes.[0]
@@ -132,7 +132,7 @@ module DocString =
         let rawRemarks = readRemarks doc
         let rawExceptions = readChildren "exception" doc
         let rawTypeParams = readChildren "typeparam" doc
-        let rawReturs =
+        let rawReturs = 
             doc.DocumentElement.GetElementsByTagName "returns"
             |> Seq.cast<XmlNode>
             |> Seq.tryHead
@@ -145,14 +145,14 @@ module DocString =
         let typeParams = rawTypeParams  |> Map.map (fun _ n -> readContentForTooltip n)
         let returns = rawReturs         |> Option.map readContentForTooltip
 
-        override x.ToString() =
+        override x.ToString() = 
             summary + nl + nl +
             (pars |> Seq.map (fun kv -> "`" + snd kv.Key + "`" + ": " + kv.Value) |> String.concat nl) +
             (if exceptions.Count = 0 then ""
              else nl + nl + "Exceptions:" + nl +
                     (exceptions |> Seq.map (fun kv -> "\t" + "`" + snd kv.Key + "`" + ": " + kv.Value) |> String.concat nl))
 
-        member __.ToFullEnhancedString() =
+        member __.ToFullEnhancedString() = 
             "" // "**Description**" + nl + nl  //original markdown
             + summary
             + Section.fromList "" remarks
@@ -161,7 +161,7 @@ module DocString =
             + Section.fromOption "Returns" returns
             + Section.fromMap "Exceptions" exceptions
 
-        member __.ToDocumentationString() =
+        member __.ToDocumentationString() = 
             "**Description**" + nl + nl
             + summary
             + Section.fromList "" remarks
@@ -170,11 +170,11 @@ module DocString =
             + Section.fromOption "Returns" returns
             + Section.fromMap "Exceptions" exceptions
 
-    let rec private readXmlDoc (reader: XmlReader) (indentationSize : int) (acc: Map<string,XmlDocMember>) =
-      let acc' =
+    let rec private readXmlDoc (reader: XmlReader) (indentationSize : int) (acc: Map<string,XmlDocMember>) = 
+      let acc' = 
         match reader.Read() with
         | false -> indentationSize, None
-        
+
         // Assembly is the first node in the XML and is at least always indended by 1 "tab"
         // So we used it as a reference to detect the tabs sizes
         // This is needed because `netstandard.xml` use 2 spaces tabs
@@ -183,13 +183,13 @@ module DocString =
             let xli : IXmlLineInfo = (box reader) :?> IXmlLineInfo
             // - 2 : allow us to detect the position before the < char
             xli.LinePosition - 2, Some acc
-        
+
         | true when reader.Name = "member" && reader.NodeType = XmlNodeType.Element ->
               let mutable key = "??" // for error logging
               try
                 // We detect the member LinePosition so we can calculate the meaningless spaces later
                 let xli : IXmlLineInfo = (box reader) :?> IXmlLineInfo
-                key <- reader.GetAttribute("name")                
+                key <- reader.GetAttribute("name")
                 use subReader = reader.ReadSubtree()
                 let doc = XmlDocument()
                 doc.Load(subReader)
@@ -209,10 +209,10 @@ module DocString =
 
     let private xmlDocCache = Collections.Concurrent.ConcurrentDictionary<string, Map<string, XmlDocMember>>()
 
-    let (* private *) getXmlDoc dllFile =
+    let (* private *) getXmlDoc dllFile = 
         let xmlFile = Path.ChangeExtension(dllFile, ".xml")
         //Workaround for netstandard.dll
-        let xmlFile =
+        let xmlFile = 
           if xmlFile.Contains "packages" && xmlFile.Contains  "netstandard.library" && xmlFile.Contains "netstandard2.0" then
             Path.Combine(Path.GetDirectoryName(xmlFile), "netstandard.xml")
           else
@@ -220,8 +220,8 @@ module DocString =
         if xmlDocCache.ContainsKey xmlFile then
           Some xmlDocCache.[xmlFile]
         else
-            //async{                
-                let rec exists filePath tryAgain =
+            //async{
+                let rec exists filePath tryAgain = 
                     match File.Exists filePath, tryAgain with
                     | true, _ -> Some filePath
                     | false, false -> None
@@ -243,7 +243,7 @@ module DocString =
                             let cnt = Regex.Replace(cnt,"""(<p .*?>)+(.*)(<\/?p>)*""", "$2")
                             cnt.Replace("<p>", "").Replace("</p>", "").Replace("<br>", "")
                         else
-                            cnt              
+                            cnt
                     use stringReader = new StringReader(cnt)
                     use reader = XmlReader.Create stringReader
                     let xmlDoc = readXmlDoc reader 0 Map.empty
@@ -257,7 +257,7 @@ module DocString =
     // --------------------------------------------------------------------------------------
     // Formatting of tool-tip information displayed in F# IntelliSense
     // --------------------------------------------------------------------------------------
-    let buildFormatComment (cmt:FSharpXmlDoc) (isEnhanced : bool) (typeDoc: string option) :string =        
+    let buildFormatComment (cmt:FSharpXmlDoc) (isEnhanced : bool) (typeDoc: string option) :string = 
         match cmt with
         | FSharpXmlDoc.FromXmlText xmlDoc -> "FSharpXmlDoc.FromXmlText:" + xmlDoc.GetXmlText() // TODO Good enough ??
 
@@ -265,7 +265,7 @@ module DocString =
             match getXmlDoc dllFile with
             | Some doc ->
                 if doc.ContainsKey memberName then
-                    let typeDoc =
+                    let typeDoc = 
                         match typeDoc with
                         | Some s when doc.ContainsKey s ->
                             if isEnhanced then doc.[s].ToFullEnhancedString() else string doc.[s]
@@ -276,14 +276,14 @@ module DocString =
                         doc.[memberName].ToFullEnhancedString() + (if typeDoc <> "" then "\n\n" + typeDoc else "")
                     else
                         string doc.[memberName] + (if typeDoc <> "" then "\n\n" + typeDoc else "")
-                else 
+                else
                     sprintf "'%s' not found in doc"memberName
             | None -> ""
         | FSharpXmlDoc.None -> ""
-        
-        
+
+
     (*
-    let private buildFormatDocumentation cmt =
+    let private buildFormatDocumentation cmt = 
         match cmt with
         | FSharpXmlDoc.Text s -> s
         | FSharpXmlDoc.XmlDocFileSignature(dllFile, memberName) ->
@@ -293,7 +293,7 @@ module DocString =
            | _ -> ""
         | _ -> "" *)
 
-    let private formatGenericParamInfo cmt =
+    let private formatGenericParamInfo cmt = 
       let m = Regex.Match(cmt, """(.*) is (.*)""")
       if m.Success then
         sprintf "* `%s` is `%s`" m.Groups.[1].Value m.Groups.[2].Value
@@ -301,7 +301,7 @@ module DocString =
         cmt
 
     (*
-    let formatTip (FSharpToolTipText tips) : (string * string) list list =
+    let formatTip (FSharpToolTipText tips) : (string * string) list list = 
         tips
         |> List.choose (function
             | FSharpToolTipElement.Group items ->
@@ -310,12 +310,12 @@ module DocString =
             | FSharpToolTipElement.CompositionError (error) -> Some [("<Note>", error)]
             | _ -> None)
 
-    let formatTipEnhanced (FSharpToolTipText tips) (signature : string) (footer : string) (typeDoc: string option) : (string * string * string) list list =
+    let formatTipEnhanced (FSharpToolTipText tips) (signature : string) (footer : string) (typeDoc: string option) : (string * string * string) list list = 
         tips
         |> List.choose (function
             | FSharpToolTipElement.Group items ->
                 Some (items |> List.map (fun i ->
-                    let comment =
+                    let comment = 
                         if i.TypeMapping.IsEmpty then
                           buildFormatComment i.XmlDoc true typeDoc
                         else
@@ -327,12 +327,12 @@ module DocString =
             | FSharpToolTipElement.CompositionError (error) -> Some [("<Note>", error, "")]
             | _ -> None)
 
-    let formatDocumentation (FSharpToolTipText tips) ((signature, (constructors, fields, functions, interfaces, attrs, ts)) : string * (string [] * string [] * string []* string[]* string[]* string[])) (footer : string) (cn: string) =
+    let formatDocumentation (FSharpToolTipText tips) ((signature, (constructors, fields, functions, interfaces, attrs, ts)) : string * (string [] * string [] * string []* string[]* string[]* string[])) (footer : string) (cn: string) = 
         tips
         |> List.choose (function
             | FSharpToolTipElement.Group items ->
                 Some (items |> List.map (fun i ->
-                    let comment =
+                    let comment = 
                         if i.TypeMapping.IsEmpty then
                           buildFormatComment i.XmlDoc true None
                         else
@@ -344,15 +344,15 @@ module DocString =
             | FSharpToolTipElement.CompositionError (error) -> Some [("<Note>", [||],[||], [||], [||], [||], [||], error, "", "")]
             | _ -> None)
 
-    let formatDocumentationFromXmlSig (xmlSig: string) (assembly: string) ((signature, (constructors, fields, functions, interfaces, attrs, ts)) : string * (string [] * string [] * string [] * string[]* string[]* string[])) (footer : string) (cn: string) =
+    let formatDocumentationFromXmlSig (xmlSig: string) (assembly: string) ((signature, (constructors, fields, functions, interfaces, attrs, ts)) : string * (string [] * string [] * string [] * string[]* string[]* string[])) (footer : string) (cn: string) = 
         let xmlDoc =  FSharpXmlDoc.FromXmlFile(assembly, xmlSig)
         let comment = buildFormatComment xmlDoc true None
         [[(signature, constructors, fields, functions, interfaces, attrs, ts, comment, footer, cn)]]
 
-    let extractSignature (FSharpToolTipText tips) =
-        let getSignature (str: string) =
+    let extractSignature (FSharpToolTipText tips) = 
+        let getSignature (str: string) = 
             let nlpos = str.IndexOfAny([|'\r';'\n'|])
-            let firstLine =
+            let firstLine = 
                 if nlpos > 0 then str.[0..nlpos-1]
                 else str
 
@@ -362,7 +362,7 @@ module DocString =
                 else firstLine
             else firstLine
 
-        let firstResult x =
+        let firstResult x = 
             match x with
             | FSharpToolTipElement.Group gs -> List.tryPick (fun (t : FSharpToolTipElementData<string>) -> if not (String.IsNullOrWhiteSpace t.MainDescription) then Some t.MainDescription else None) gs
             | _ -> None

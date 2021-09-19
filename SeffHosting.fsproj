@@ -1,12 +1,12 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk.WindowsDesktop"> <!--WinDesktop is needed so that rescources work with dotnet build-->
 
  <PropertyGroup>
     <OutputType>Library</OutputType>
     <TargetFrameworks>net472</TargetFrameworks>  <!--no net50, because no Thread.Abort()-->
-    <UseWPF>true</UseWPF>    
+    <UseWPF>true</UseWPF>
     <LangVersion>preview</LangVersion>
-    
+
     <NeutralLanguage>en</NeutralLanguage>
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>    <!--to only have the english resources-->
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
@@ -14,31 +14,31 @@
     <RootNamespace>Seff</RootNamespace>
     <AssemblyName>Seff</AssemblyName>
     <AssemblyTitle>Seff</AssemblyTitle>
-    <Title>Seff</Title>  
+    <Title>Seff</Title>
     <Product>Seff</Product>
-    <PackageId>Seff</PackageId>  
+    <PackageId>Seff</PackageId>
 
     <Version>0.0.2</Version>
     <AssemblyVersion>0.0.2</AssemblyVersion>
     <FileVersion>0.0.2</FileVersion>
-    <PackageReleaseNotes>FSI evaluation in steps</PackageReleaseNotes>  
-    
+    <PackageReleaseNotes>FSI evaluation in steps</PackageReleaseNotes>
+
     <Authors>GoswinR</Authors>
     <Copyright>Goswin Rothenthal 2021</Copyright>
 
     <Description>A hostable fsharp scripting editor for Windows based on Avalonedit</Description>
     <ApplicationIcon>Media/logo.ico</ApplicationIcon>
-    <Win32Resource>Media/logo.res</Win32Resource>      <!-- Win32Resource for Application Icon in explorer-->    
-    
+    <Win32Resource>Media/logo.res</Win32Resource>      <!-- Win32Resource for Application Icon in explorer-->
+
     <PlatformTarget>AnyCPU</PlatformTarget> <!-- the host will decide-->
     <OutputPath>binHosting</OutputPath>
     <Configurations>Release</Configurations>
   </PropertyGroup>
 
- <PropertyGroup> 
-    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>      
+ <PropertyGroup>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <IncludeSymbols>true</IncludeSymbols>
-    <SymbolPackageFormat>snupkg</SymbolPackageFormat>    
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
@@ -46,31 +46,31 @@
     <RepositoryUrl>https://github.com/goswinr/Seff</RepositoryUrl>
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
     <PackageIcon>logo128.png</PackageIcon>
-    <!--<PackageReadmeFile>READMEnuget.md</PackageReadmeFile>--><!-- using  snupkg the readme does not pack https://github.com/NuGet/Home/issues/10791 --> 
-    <PackageDescription>A hostable fsharp scripting editor for Windows based on Avalonedit</PackageDescription>    
-    <PackageTags>WPF TextEditor F# Scripting AvalonEdit</PackageTags>    
+    <!--<PackageReadmeFile>READMEnuget.md</PackageReadmeFile>--><!-- using  snupkg the readme does not pack https://github.com/NuGet/Home/issues/10791 -->
+    <PackageDescription>A hostable fsharp scripting editor for Windows based on Avalonedit</PackageDescription>
+    <PackageTags>WPF TextEditor F# Scripting AvalonEdit</PackageTags>
   </PropertyGroup>
 
-  <ItemGroup>    
-    <!-- normally don't include FSharp.Core in lib but 5.0.2 is needed for FCS 40.0.0 --> 
-    <PackageReference Update="FSharp.Core" Version="5.0.2" /> 
-    <PackageReference Include="FSharp.Compiler.Service" Version="40.0.0" />     
+  <ItemGroup>
+    <!-- normally don't include FSharp.Core in lib but 5.0.2 is needed for FCS 40.0.0 -->
+    <PackageReference Update="FSharp.Core" Version="5.0.2" />
+    <PackageReference Include="FSharp.Compiler.Service" Version="40.0.0" />
     <PackageReference Include="AvalonLog" Version="0.3.1" />
-    <PackageReference Include="FsEx.Wpf" Version="0.0.1" /> 
-   
+    <PackageReference Include="FsEx.Wpf" Version="0.0.2" />
+
     <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.0.0" PrivateAssets="All" IncludeAssets="runtime; build; native; contentfiles; analyzers; buildtransitive" />
-    <!-- https://docs.microsoft.com/en-us/nuget/consume-packages/package-references-in-project-files#controlling-dependency-assets --> 
+    <!-- https://docs.microsoft.com/en-us/nuget/consume-packages/package-references-in-project-files#controlling-dependency-assets -->
   </ItemGroup>
-  
+
   <ItemGroup>
 
     <None Include="README.md" />
     <!-- <None Include="Media/READMEnuget.md" Pack="true" PackagePath="\" /> -->
     <None Include="Media/logo128.png" Pack="true" PackagePath="\" /> <!--PackagePath = "\" makes the fike availabe to nuget pack tool-->
-    <EmbeddedResource Include="Media/logo.res" /> <!--  for Application Icon in explorer-->   
-    <Resource Include="Media/logo.ico" />       <!--  for Application Icon in primary windows-->    
-    <Resource Include="Media/logoGray.ico" />    <!--  for Application Icon in secondary PopOut windows-->    
-    <Resource Include="Media/FiraCode-Regular.ttf" />  
+    <EmbeddedResource Include="Media/logo.res" /> <!--  for Application Icon in explorer-->
+    <Resource Include="Media/logo.ico" />       <!--  for Application Icon in primary windows-->
+    <Resource Include="Media/logoGray.ico" />    <!--  for Application Icon in secondary PopOut windows-->
+    <Resource Include="Media/FiraCode-Regular.ttf" />
     <None Include="FSharpSynatxHighlighterExtended.xshd">    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>    </None>
 
     <Compile Include="Src/Util.fs" />
@@ -87,13 +87,13 @@
     <Compile Include="Src/Config/AssemblyReferenceStatistic.fs" />
     <Compile Include="Src/Config/FoldingStatus.fs" />
     <Compile Include="Src/Config/Config.fs" />
-    
-    <Compile Include="Src/Fsi.fs" />    
+
+    <Compile Include="Src/Fsi.fs" />
     <Compile Include="Src/CompileScript.fs" />
 
     <Compile Include="Src/Editor/Selection.fs" />
     <Compile Include="Src/Editor/RectangleSelection.fs" />
-    <Compile Include="Src/Editor/SwapWords.fs" />  
+    <Compile Include="Src/Editor/SwapWords.fs" />
     <Compile Include="Src/Editor/Commenting.fs" />
     <Compile Include="Src/Editor/DocString.fs" />
     <Compile Include="Src/Editor/SyntaxHighlighting.fs" />
@@ -111,7 +111,7 @@
     <Compile Include="Src/Editor/KeyboardShortcuts.fs" />
     <Compile Include="Src/Editor/Formating.fs" />
     <Compile Include="Src/Editor/Editor.fs" />
-    
+
     <Compile Include="Src/Views/Log.fs" />
     <Compile Include="Src/Views/Window.fs" />
     <Compile Include="Src/Views/FileWatcher.fs" />
@@ -124,11 +124,11 @@
     <Compile Include="Src/Views/Commands.fs" />
     <Compile Include="Src/Views/Menu.fs" />
     <Compile Include="Src/Views/Seff.fs" />
-    
-    <Compile Include="Src/Initialize.fs" />    
+
+    <Compile Include="Src/Initialize.fs" />
     <Compile Include="Src/App.fs" />
 
-  </ItemGroup>  
+  </ItemGroup>
 
 </Project>
 

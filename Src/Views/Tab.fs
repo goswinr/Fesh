@@ -14,12 +14,12 @@ open AvalonLog.Brush
 /// returns a bigger integer on each access for naming unsaved files
 type Counter private () = 
     static let unsavedFile = ref 0
-    
+
     /// Returns a bigger integer on each access
     /// used to give each unsaved file a unique number
     static member UnsavedFile = incr unsavedFile ;  !unsavedFile
 
-module TabStyle =
+module TabStyle = 
     let savedHeader   =  Brushes.Black  |> freeze
     let changedHeader =  Brushes.Red    |> darker 90   |> freeze
     let unsavedHeader =  Brushes.Gray   |> brighter 40 |> freeze
@@ -30,21 +30,21 @@ module TabStyle =
     let transpButton  =  ofARGB 0 255 255 255 // fully transparent
 
 
- /// The tab that holds the tab header logic and the code editor 
-type Tab (editor:Editor) =  
+ /// The tab that holds the tab header logic and the code editor
+type Tab (editor:Editor) = 
     inherit TabItem()
-    
+
     let mutable isCodeSaved        = true
 
     let mutable headerShowsSaved   = true
 
-    let textBlock = new TextBlock(VerticalAlignment = VerticalAlignment.Center) //, Padding = Thickness(2.) ) , FontFamily = Style.fontEditor)  
-    
+    let textBlock = new TextBlock(VerticalAlignment = VerticalAlignment.Center) //, Padding = Thickness(2.) ) , FontFamily = Style.fontEditor)
+
     let closeButton = 
         let b =  new Button()
-        //let cross = new Shapes.Path( Data = Geometry.Parse("M0,7 L7,0 M0,0 L7,7"),   StrokeThickness = 0.8 )  //"M1,8 L8,1 M1,1 L8,8" 
-        let cross = new Shapes.Path( Data = Geometry.Parse("M0,10 L10,0 M0,0 L10,10")) 
-        b.Content <- cross       
+        //let cross = new Shapes.Path( Data = Geometry.Parse("M0,7 L7,0 M0,0 L7,7"),   StrokeThickness = 0.8 )  //"M1,8 L8,1 M1,1 L8,8"
+        let cross = new Shapes.Path( Data = Geometry.Parse("M0,10 L10,0 M0,0 L10,10"))
+        b.Content <- cross
         //b.Margin <-  new Thickness(7., 0.5, 0.5, 3.) //left ,top, right, bottom
         b.Margin <-  new Thickness(7., 1. , 1. , 1.) //left ,top, right, bottom
         b.Padding <- new Thickness(3.)
@@ -57,76 +57,76 @@ type Tab (editor:Editor) =
         b.MouseLeave.Add (fun a -> cross.StrokeThickness <- 1.0   ; cross.Stroke <- TabStyle.grayButton; b.BorderBrush <- TabStyle.transpButton)
         b
 
-    let header =
+    let header = 
         let p = new StackPanel(
                         Margin = Thickness(4. , 2. , 2. , 2.),//left ,top, right, bottom)
                         Orientation = Orientation.Horizontal,
-                        VerticalAlignment = VerticalAlignment.Center) 
+                        VerticalAlignment = VerticalAlignment.Center)
         p.Children.Add textBlock  |> ignore
-        p.Children.Add closeButton |> ignore 
+        p.Children.Add closeButton |> ignore
         p
         //let bor = new Border()
         //bor.Background <- Brushes.Blueb.Padding <- new Thickness(2.)
         //bor.Child <- p
-        //bor 
-        
+        //bor
+
     let setHeader() = 
-        match editor.FilePath, isCodeSaved with 
-        |SetTo fi , true -> 
+        match editor.FilePath, isCodeSaved with
+        |SetTo fi , true ->
             textBlock.ToolTip       <- "File saved at:\r\n" + fi.FullName
             textBlock.Text          <- fi.Name
             textBlock.Foreground    <- TabStyle.savedHeader
             headerShowsSaved        <- true
-        |SetTo fi , false -> 
+        |SetTo fi , false ->
             textBlock.ToolTip       <- "File with unsaved changes from :\r\n" + fi.FullName
             textBlock.Text          <- fi.Name + "*"
             textBlock.Foreground    <- TabStyle.changedHeader
             headerShowsSaved        <- false
-        |NotSet,true    -> 
+        |NotSet,true    ->
             textBlock.ToolTip      <- "This file just shows the default code for every new file."
-            textBlock.Text         <- sprintf "*unsaved-%d*" Counter.UnsavedFile  
+            textBlock.Text         <- sprintf "*unsaved-%d*" Counter.UnsavedFile
             textBlock.Foreground   <- TabStyle.unsavedHeader
             headerShowsSaved       <- true
-        |NotSet,false    -> 
+        |NotSet,false    ->
             textBlock.ToolTip      <- "This file has not yet been saved to disk."
             if not ( textBlock.Text.EndsWith "*") then textBlock.Text <- textBlock.Text + "*"
             textBlock.Foreground   <- TabStyle.changedHeader
             headerShowsSaved       <- false
 
-     
-    let upadteIsCodeSaved(isSaved)=
+
+    let upadteIsCodeSaved(isSaved)= 
         isCodeSaved <- isSaved
         if not isSaved && headerShowsSaved then
             setHeader()
         elif isSaved && not headerShowsSaved  then
             setHeader()
-    
-    let watcher = new FileWatcher(editor,upadteIsCodeSaved)        
-       
+
+    let watcher = new FileWatcher(editor,upadteIsCodeSaved)
+
     do
         base.Content <- editor.AvaEdit
         base.Header <- header
         // TODO wrap tabitem in border elemet and the style the border insetad ??
-        //base.Padding <- Thickness(2.)   // don't messes it all up 
-        //base.Margin <- Thickness(2.)   // don't messes it all up 
-        //base.BorderThickness <- Thickness(4.)       // don't messes it all up 
-        //base.BorderBrush <- Brushes.Blue            // don't messes it all up 
-        //base.Margin <- Thickness(3., 0. , 0. , 0.)  //left ,top, right, bottom) // don't messes it all up 
-        setHeader()        
-        editor.AvaEdit.TextChanged.Add(fun _ -> upadteIsCodeSaved(false)) 
-       
+        //base.Padding <- Thickness(2.)   // don't messes it all up
+        //base.Margin <- Thickness(2.)   // don't messes it all up
+        //base.BorderThickness <- Thickness(4.)       // don't messes it all up
+        //base.BorderBrush <- Brushes.Blue            // don't messes it all up
+        //base.Margin <- Thickness(3., 0. , 0. , 0.)  //left ,top, right, bottom) // don't messes it all up
+        setHeader()
+        editor.AvaEdit.TextChanged.Add(fun _ -> upadteIsCodeSaved(false))
+
 
     member this.FileWatcher = watcher
 
 
-    member this.IsCodeSaved 
-        with get()       = isCodeSaved 
+    member this.IsCodeSaved
+        with get()       = isCodeSaved
         and set(isSaved) = upadteIsCodeSaved(isSaved)
-          
+
     /// this gets and set FileInfo on the Editor
     member this.FilePath
         with get() = editor.FilePath
-        and set(fp) =
+        and set(fp) = 
             editor.FilePath <- fp
             setHeader()
             // update file watcher:
@@ -136,21 +136,21 @@ type Tab (editor:Editor) =
                 watcher.Path <- fi.DirectoryName
                 watcher.Filter <- fi.Name
                 watcher.EnableRaisingEvents <- true
-            
+
 
     member this.CloseButton = closeButton // public so click event can be attached later in Tabs.fs AddTab
-       
+
     member this.FormatedFileName = 
-        match this.FilePath with 
+        match this.FilePath with
         |SetTo fi   -> sprintf "%s" fi.FullName //sprintf "%s\r\nat\r\n%s" fi.Name fi.DirectoryName
         |NotSet     -> textBlock.Text
-    
+
     /// this gets and sets IsCurrent on the Editor
-    member this.IsCurrent  
+    member this.IsCurrent
         with get() = editor.IsCurrent
         and set(c) = editor.IsCurrent <- c
 
-    member val Editor = editor 
-    
+    member val Editor = editor
+
     member val AvaEdit = editor.AvaEdit
-    
+

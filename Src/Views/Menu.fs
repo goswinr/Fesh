@@ -17,35 +17,35 @@ open Seff.Config
 open Seff.Views.MenuUtil
 
 type HeaderGestureTooltip = {
-    header:string 
-    gesture:string 
+    header:string
+    gesture:string
     toolTip:string
     }
 
 
 module private RecognicePath = 
-    
+
     let filePathStartRegex = Text.RegularExpressions.Regex("""[A-Z]:[\\/]""") // C:\
     let filePathEndRegex = Text.RegularExpressions.Regex("""["()\[\] ']""") //  a space or [ or ] or ( or ) or " or '
-    
-    let sep() = Separator():> Control    
+
+    let sep() = Separator():> Control
 
     let deDup = HashSet(2)
 
     let badChars = IO.Path.GetInvalidPathChars()
 
-    let addPathIfPresentToMenu (m:MouseButtonEventArgs, tempItemsInMenu:ref<int>, menu:ContextMenu, ava:TextEditor, openFile:IO.FileInfo*bool->bool)=
-        for i = 1 to !tempItemsInMenu do // the menu entry, maybe another entry and  the separator   
+    let addPathIfPresentToMenu (m:MouseButtonEventArgs, tempItemsInMenu:ref<int>, menu:ContextMenu, ava:TextEditor, openFile:IO.FileInfo*bool->bool)= 
+        for i = 1 to !tempItemsInMenu do // the menu entry, maybe another entry and  the separator
             menu.Items.RemoveAt(0)
-        tempItemsInMenu := 0 
+        tempItemsInMenu := 0
         deDup.Clear()
-        
+
         let pos = ava.GetPositionFromPoint(m.GetPosition(ava))
-        if pos.HasValue then               
+        if pos.HasValue then
             let line = ava.Document.GetLineByNumber(pos.Value.Line)
             let txt  = ava.Document.GetText(line)
             let ss = filePathStartRegex.Matches(txt)
-            for s in ss do 
+            for s in ss do
                 if s.Success then
                     let e = filePathEndRegex.Match(txt,s.Index)
                     let fullPath = 
@@ -54,29 +54,29 @@ module private RecognicePath =
                             else                txt.Substring(s.Index)
                         raw.Split(badChars).[0].Split([|':'|])
                         |> Seq.take 2 // the first colon is allowed the later ones not
-                        |> String.concat ":"                          
+                        |> String.concat ":"
 
                     try
-                        let dir =  IO.Path.GetDirectoryName(fullPath.Replace("\\\\", "\\").Replace("/", "\\"))  
-                        if not <| deDup.Contains dir then 
-                            deDup.Add dir  |> ignore 
-                            //let shortDir = Str.shrink 30 " ... " dir 
+                        let dir =  IO.Path.GetDirectoryName(fullPath.Replace("\\\\", "\\").Replace("/", "\\"))
+                        if not <| deDup.Contains dir then
+                            deDup.Add dir  |> ignore
+                            //let shortDir = Str.shrink 30 " ... " dir
                             let cmd = {
                                     name = sprintf "Open folder in Explorer  '%s' " dir // shortDir
                                     gesture = ""
-                                    cmd = mkCmdSimple (fun _ -> 
+                                    cmd = mkCmdSimple (fun _ ->
                                         if IO.Directory.Exists dir then  Diagnostics.Process.Start("Explorer.exe", "\"" + dir+ "\"") |> ignore
                                         else ISeffLog.log.PrintfnIOErrorMsg "Directory '%s' does not exist" dir
-                                        ) 
+                                        )
                                     tip = sprintf "Try to open folder  in Explorer at \r\n%s" dir
                                     }
-                            menu.Items.Insert(0, sep()       )  
-                            incr tempItemsInMenu 
-                            menu.Items.Insert(0, menuItem cmd)  
-                            incr tempItemsInMenu 
-                            
-                        if fullPath.EndsWith ".fsx" || fullPath.EndsWith ".fs" then 
-                            if not <| deDup.Contains fullPath then 
+                            menu.Items.Insert(0, sep()       )
+                            incr tempItemsInMenu
+                            menu.Items.Insert(0, menuItem cmd)
+                            incr tempItemsInMenu
+
+                        if fullPath.EndsWith ".fsx" || fullPath.EndsWith ".fs" then
+                            if not <| deDup.Contains fullPath then
                                 deDup.Add fullPath  |> ignore
                                 let name  =  IO.Path.GetFileName(fullPath)
                                 let fi = IO.FileInfo(fullPath)
@@ -86,94 +86,94 @@ module private RecognicePath =
                                         cmd = mkCmdSimple (fun _ -> openFile(fi,true)  |> ignore ) // does not need check if file exists !
                                         tip = sprintf "Try to open file %s from  at \r\n%s" name fullPath
                                         }
-                    
-                                menu.Items.Insert(0, menuItem cmd) 
-                                incr tempItemsInMenu 
-                            
-                        //else 
-                        //    if not <| deDup.Contains fullPath then 
-                        //        deDup.Add fullPath  |> ignore                                    
+
+                                menu.Items.Insert(0, menuItem cmd)
+                                incr tempItemsInMenu
+
+                        //else
+                        //    if not <| deDup.Contains fullPath then
+                        //        deDup.Add fullPath  |> ignore
                         // allways show this option:
                         let cmd = {
                                 name = sprintf "Open with VScode  '%s'" fullPath
                                 gesture = ""
-                                cmd = mkCmdSimple (fun _ -> 
+                                cmd = mkCmdSimple (fun _ ->
                                     try
-                                        if IO.Directory.Exists fullPath || IO.File.Exists fullPath then  
+                                        if IO.Directory.Exists fullPath || IO.File.Exists fullPath then
                                             let p = new System.Diagnostics.Process()
                                             p.StartInfo.FileName <- "code"
-                                            let inQuotes = "\"" + fullPath + "\"" 
-                                            p.StartInfo.Arguments <- String.concat " " [inQuotes;  "--reuse-window"]                
+                                            let inQuotes = "\"" + fullPath + "\""
+                                            p.StartInfo.Arguments <- String.concat " " [inQuotes;  "--reuse-window"]
                                             p.StartInfo.WindowStyle <- Diagnostics.ProcessWindowStyle.Hidden
                                             p.Start() |> ignore
-                                        else 
+                                        else
                                             ISeffLog.log.PrintfnIOErrorMsg "Directory or file '%s' does not exist" dir
-                                    with e -> 
+                                    with e ->
                                         ISeffLog.log.PrintfnIOErrorMsg "Open with VScode failed: %A" e
-                                    ) 
+                                    )
                                 tip = sprintf "Try to open file in VScode:\r\n%s" fullPath
                                 }
-                    
-                        menu.Items.Insert(0, menuItem cmd) 
-                        incr tempItemsInMenu 
+
+                        menu.Items.Insert(0, menuItem cmd)
+                        incr tempItemsInMenu
 
 
                     with e ->
                         ISeffLog.log.PrintfnIOErrorMsg "Failed to make menu item for fullPath %s:\r\n%A" fullPath e
-        
+
  #nowarn "44" //to use log.AvalonLog.AvalonEdit in addPathIfPresentToMenu
 
 type Menu (config:Config,cmds:Commands, tabs:Tabs, statusBar:SeffStatusBar, log:Log) = 
     let bar = new Windows.Controls.Menu()
-    
-    // File menu: 
-    let fileMenu = MenuItem(Header = "_File")  
+
+    // File menu:
+    let fileMenu = MenuItem(Header = "_File")
 
     // TODO add all built in  DocmentNavigatin shortcuts
     let maxFilesInRecentMenu = 40
 
     let mutable recentFilesInsertPosition = 0
-    
-    let sep() = Separator():> Control    
-    
+
+    let sep() = Separator():> Control
+
     let item (ngc: string * string * #ICommand * string) = 
         let n,g,c,tt = ngc
         MenuItem(Header = n, InputGestureText = g, ToolTip = tt, Command = c):> Control
-    
 
-        
-    let setRecentFiles()=
-        async{            
+
+
+    let setRecentFiles()= 
+        async{
             let usedFiles = 
-                config.RecentlyUsedFiles.GetUniqueExistingSorted()     //youngest file is first       
+                config.RecentlyUsedFiles.GetUniqueExistingSorted()     //youngest file is first
                 |> Seq.truncate maxFilesInRecentMenu
                 |> Seq.toArray
-            
-                       
+
+
             do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context
-            
+
             ///first clear
-            while fileMenu.Items.Count > recentFilesInsertPosition do 
-                fileMenu.Items.RemoveAt recentFilesInsertPosition            
-            
+            while fileMenu.Items.Count > recentFilesInsertPosition do
+                fileMenu.Items.RemoveAt recentFilesInsertPosition
+
             let HeaderIsIn=HashSet()
-            
+
             //create time separator if not existing yet
             let tb(s) = 
                 if not<| HeaderIsIn.Contains s then // so that haeader appears only once
-                    HeaderIsIn.Add s  |> ignore 
-                    let tb = TextBlock (Text= "          - " + s + " -", FontWeight = FontWeights.Bold)                
+                    HeaderIsIn.Add s  |> ignore
+                    let tb = TextBlock (Text= "          - " + s + " -", FontWeight = FontWeights.Bold)
                     let mi = MenuItem (Header = tb )
-                    mi.Focusable <- false // to not highlight it ?                
-                    fileMenu.Items.Add( mi)  |> ignore  
+                    mi.Focusable <- false // to not highlight it ?
+                    fileMenu.Items.Add( mi)  |> ignore
 
             // then insert all again
             let now = DateTime.Now
             let today = now.DayOfYear
             let thisYear = now.Year
-            for uf in usedFiles  do       //must be ordered ,youngest file must be first             
+            for uf in usedFiles  do       //must be ordered ,youngest file must be first
                 let lol = uf.lastOpendUtc.ToLocalTime()
-                
+
                 //create time separator if not existing yet:
                 if   lol.Year = thisYear && lol.DayOfYear >= today      then tb "last used today"
                 elif lol.Year = thisYear && lol.DayOfYear  = today - 1  then tb "yesterday"
@@ -183,32 +183,32 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, statusBar:SeffStatusBar, log:
                     elif age < TimeSpan.FromDays(31.0) then  tb "up to a month ago"
                     elif age < TimeSpan.FromDays(365.0) then tb "up to a year ago"
                     else                                     tb "older"
-                
+
                 // create menu item:
-                let openCom  = mkCmdSimple ( fun a -> tabs.AddFile(uf.fileInfo, true)  |> ignore ) 
+                let openCom  = mkCmdSimple ( fun a -> tabs.AddFile(uf.fileInfo, true)  |> ignore )
                 let header = // include last two parent directories
-                    let ps = General.pathParts uf.fileInfo 
+                    let ps = General.pathParts uf.fileInfo
                     if ps.Length < 4 then             ps |> String.concat " \\ " // full path in this case
                     else "...\\ " + (ps |> Array.rev |> Seq.truncate 3 |> Seq.rev |> String.concat " \\ " ) // partial path
                 let tt = 
-                    uf.fileInfo.FullName 
+                    uf.fileInfo.FullName
                     + "\r\nlast opend: " + uf.lastOpendUtc.ToString("yyyy-MM-dd HH:mm") + " (used for sorting in this menu)"
-                    + "\r\nlast saved: " + uf.fileInfo.LastWriteTime.ToString("yyyy-MM-dd HH:mm") 
+                    + "\r\nlast saved: " + uf.fileInfo.LastWriteTime.ToString("yyyy-MM-dd HH:mm")
                 let mi = MenuItem (Header = new TextBlock (Text = header), ToolTip=tt, Command = openCom) // wrap in textblock to avoid Mnemonics (alt key access at underscore)
-                fileMenu.Items.Add(mi) |> ignore 
+                fileMenu.Items.Add(mi) |> ignore
 
-                
+
         } |> Async.Start
-    
+
     /// for right clicking on file pathes:
-    
+
     let tempItemsInEditorMenu = ref 0
     let tempItemsInLogMenu = ref 0
 
 
-    do 
-        
-        updateMenu bar [// this function is called after window is layed out otherwise somehow the menu does not show. e.g.  if it is just a let value. // TODO still true ? 
+    do
+
+        updateMenu bar [// this function is called after window is layed out otherwise somehow the menu does not show. e.g.  if it is just a let value. // TODO still true ?
             fileMenu,[
                 menuItem cmds.NewTab
                 menuItem cmds.OpenFile
@@ -222,62 +222,62 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, statusBar:SeffStatusBar, log:
                 menuItem cmds.Close
                 sep()
                 menuItem cmds.SaveLog
-                menuItem cmds.SaveLogSel 
+                menuItem cmds.SaveLogSel
                 sep() ]
-            MenuItem(Header = "_Edit"),[                 
-                menuItem cmds.Copy     
-                menuItem cmds.Cut      
-                menuItem cmds.Paste    
+            MenuItem(Header = "_Edit"),[
+                menuItem cmds.Copy
+                menuItem cmds.Cut
+                menuItem cmds.Paste
                 sep()
                 menuItem cmds.Comment
                 menuItem cmds.UnComment
                 menuItem cmds.ToggleComment
                 sep()
-                menuItem cmds.UnDo     
-                menuItem cmds.ReDo     
+                menuItem cmds.UnDo
+                menuItem cmds.ReDo
                 sep()
-                menuItem cmds.Find     
-                menuItem cmds.Replace 
+                menuItem cmds.Find
+                menuItem cmds.Replace
                 sep()
                 menuItem cmds.DeleteLine
-                sep()                
-                menuItem cmds.ToUppercase  
-                menuItem cmds.Tolowercase 
-                menuItem cmds.ToTitleCase 
-                menuItem cmds.TrailWhite 
+                sep()
+                menuItem cmds.ToUppercase
+                menuItem cmds.Tolowercase
+                menuItem cmds.ToTitleCase
+                menuItem cmds.TrailWhite
                 sep()
                 menuItem cmds.ToggleBoolean
                 sep()
                 menuItem cmds.AlignCode
                 ]
-            MenuItem(Header = "_Select"),[ 
-                menuItem cmds.SelectLine 
+            MenuItem(Header = "_Select"),[
+                menuItem cmds.SelectLine
                 sep()
-                menuItem cmds.SwapLineUp   
+                menuItem cmds.SwapLineUp
                 menuItem cmds.SwapLineDown
                 sep()
                 menuItem cmds.SwapWordLeft
-                menuItem cmds.SwapWordRight  
+                menuItem cmds.SwapWordRight
                 ]
-            MenuItem(Header = "_BoxSelect", ToolTip="Create a Box Selection by \r\n holding down the Alt key while selecting \r\n or pressing the middle mouse button."),[                 
-                menuItem cmds.BoxSelLeftByCharacter   
+            MenuItem(Header = "_BoxSelect", ToolTip="Create a Box Selection by \r\n holding down the Alt key while selecting \r\n or pressing the middle mouse button."),[
+                menuItem cmds.BoxSelLeftByCharacter
                 menuItem cmds.BoxSelRightByCharacter
                 sep()
-                menuItem cmds.BoxSelLeftByWord        
-                menuItem cmds.BoxSelRightByWord       
+                menuItem cmds.BoxSelLeftByWord
+                menuItem cmds.BoxSelRightByWord
                 sep()
-                menuItem cmds.BoxSelUpByLine         
-                menuItem cmds.BoxSelDownByLine        
+                menuItem cmds.BoxSelUpByLine
+                menuItem cmds.BoxSelDownByLine
                 sep()
-                menuItem cmds.BoxSelToLineStart       
-                menuItem cmds.BoxSelToLineEnd 
+                menuItem cmds.BoxSelToLineStart
+                menuItem cmds.BoxSelToLineEnd
                 ]
-            MenuItem(Header = "F_SI", ToolTip="FSharp Interactive code evaluation"),[ 
-                menuItem cmds.RunAllText        
+            MenuItem(Header = "F_SI", ToolTip="FSharp Interactive code evaluation"),[
+                menuItem cmds.RunAllText
                 menuItem cmds.RunAllTextSave
                 menuItem cmds.RunAllTxSaveClear
                 sep()
-                menuItem cmds.RunCurrentLines  
+                menuItem cmds.RunCurrentLines
                 menuItem cmds.RunSelectedText
                 sep()
                 menuItem cmds.RunTextTillCursor
@@ -285,9 +285,9 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, statusBar:SeffStatusBar, log:
                 menuItem cmds.EvalContinue
                 menuItem cmds.MarkEval
                 sep()
-                menuItem cmds.ClearLog 
-                menuItem cmds.CancelFSI 
-                menuItem cmds.ResetFSI  
+                menuItem cmds.ClearLog
+                menuItem cmds.CancelFSI
+                menuItem cmds.ResetFSI
                 if config.Hosting.IsHosted then
                     sep()
                     menuItem cmds.ToggleSync
@@ -295,10 +295,10 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, statusBar:SeffStatusBar, log:
                 menuItem cmds.CompileScriptSDK
                 menuItem cmds.CompileScriptMSB
                 ]
-            MenuItem(Header = "_View"),[                 
-                menuItem cmds.ToggleSplit 
-                menuItem cmds.ToggleLogSize 
-                menuItem cmds.ToggleLogLineWrap 
+            MenuItem(Header = "_View"),[
+                menuItem cmds.ToggleSplit
+                menuItem cmds.ToggleLogSize
+                menuItem cmds.ToggleLogLineWrap
                 sep()
                 menuItem cmds.ClearLog
                 sep()
@@ -311,22 +311,22 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, statusBar:SeffStatusBar, log:
                 sep()
                 menuItem cmds.PopOutToolTip
                 ]
-            MenuItem(Header = "_About"),[ 
+            MenuItem(Header = "_About"),[
                 //menuItem cmds.About
                 menuItem cmds.Version
                 sep()
                 menuItem cmds.SettingsFolder
                 menuItem cmds.AppFolder
                 menuItem cmds.OpenXshdFile
-                menuItem cmds.ReloadXshdFile                 
+                menuItem cmds.ReloadXshdFile
                 ]
             ]
         recentFilesInsertPosition <- fileMenu.Items.Count // to put recent files at bottom of file menu
         setRecentFiles() // trigger it here to to have the correct recent menu asap on startup
         config.RecentlyUsedFiles.OnRecentFilesChanged.Add(setRecentFiles) //this event will be triggered 2000 ms after new tabs are created
-        
+
         // TODO or attach to each new editor window ?
-        tabs.Control.ContextMenu <- 
+        tabs.Control.ContextMenu <-
             makeContextMenu [
                 menuItem cmds.CollapsePrim
                 menuItem cmds.CollapseCode
@@ -334,7 +334,7 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, statusBar:SeffStatusBar, log:
                 sep()
                 menuItem cmds.AlignCode
                 sep()
-                menuItem cmds.Copy 
+                menuItem cmds.Copy
                 menuItem cmds.Cut
                 menuItem cmds.Paste
                 sep()
@@ -349,14 +349,14 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, statusBar:SeffStatusBar, log:
                 sep()
                 menuItem cmds.RunAllText
                 menuItem cmds.RunCurrentLines
-                menuItem cmds.RunSelectedText                
+                menuItem cmds.RunSelectedText
                 sep()
                 menuItem cmds.UnDo
                 menuItem cmds.ReDo
                 //sep()
                 ]
-                
-        log.AvalonLog.ContextMenu <- 
+
+        log.AvalonLog.ContextMenu <-
             makeContextMenu [
                 menuItem cmds.ClearLog
                 menuItem cmds.CancelFSI
@@ -365,30 +365,30 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, statusBar:SeffStatusBar, log:
                 menuItem cmds.ToggleLogSize
                 menuItem cmds.ToggleSplit
                 menuItem cmds.ToggleLogLineWrap
-                sep()                
+                sep()
                 menuItem cmds.Copy
                 sep()
                 menuItem cmds.SaveLog
                 menuItem cmds.SaveLogSel
                 ]
-        
-        statusBar.FsiStatus.ContextMenu <- 
-            makeContextMenu [ 
+
+        statusBar.FsiStatus.ContextMenu <-
+            makeContextMenu [
                 menuItem cmds.CancelFSI
                 menuItem cmds.ResetFSI
                 ]
-        
 
-       
+
+
 
         /// add menu to open file path if there is on on current line
-        tabs.Control.PreviewMouseRightButtonDown.Add ( fun m -> 
+        tabs.Control.PreviewMouseRightButtonDown.Add ( fun m ->
             RecognicePath.addPathIfPresentToMenu (m, tempItemsInEditorMenu, tabs.Control.ContextMenu, tabs.Current.AvaEdit , tabs.AddFile)
             )
         /// add menu to open file path if there is on on current line
-        log.AvalonLog.PreviewMouseRightButtonDown.Add ( fun m -> 
+        log.AvalonLog.PreviewMouseRightButtonDown.Add ( fun m ->
             RecognicePath.addPathIfPresentToMenu (m, tempItemsInLogMenu, log.AvalonLog.ContextMenu, log.AvalonLog.AvalonEdit , tabs.AddFile)
-            )  
+            )
 
 
     member this.Bar = bar

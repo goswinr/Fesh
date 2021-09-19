@@ -7,47 +7,47 @@ open FsEx.Wpf
 open Seff
 open Seff.Model
 
-    
-type FsiArugments  ( hostInfo:Hosting) =
-    
+
+type FsiArugments  ( hostInfo:Hosting) = 
+
     let filePath0 = hostInfo.GetPathToSaveAppData("FsiArugments.txt")
     let writer = SaveReadWriter(filePath0,ISeffLog.printError)
 
-    // "--shadowcopyreferences" is ignored https://github.com/fsharp/FSharp.Compiler.Service/issues/292          
+    // "--shadowcopyreferences" is ignored https://github.com/fsharp/FSharp.Compiler.Service/issues/292
     let defaultArgs = [| "first arg is ignored" ; "--langversion:preview" ; "--noninteractive" ; "--debug+"; "--debug:full" ;"--optimize+" ; "--gui-" ; "--nologo"|]
-    
+
     let defaultArgsText = defaultArgs|> String.concat Environment.NewLine
 
 
-    let get() =         
-        writer.CreateFileIfMissing(defaultArgsText)  |> ignore        
-        match writer.ReadAllLines() with 
+    let get() = 
+        writer.CreateFileIfMissing(defaultArgsText)  |> ignore
+        match writer.ReadAllLines() with
         |None -> defaultArgs
-        |Some args -> 
-            args 
+        |Some args ->
+            args
             |> Array.map (fun s -> s.Trim())
-            |> Array.filter (fun a -> a.ToLower() <>  "--quiet") // this argument is managed seperatly in config.Settings and statusbar        
-       
+            |> Array.filter (fun a -> a.ToLower() <>  "--quiet") // this argument is managed seperatly in config.Settings and statusbar
+
 
     let mutable args = [||]
-        
+
     ///loads sync
-    member this.Get =
-        if Array.isEmpty args then 
+    member this.Get = 
+        if Array.isEmpty args then
             args <- get()
             args
         else
             args
-    
+
     member this.Reload() = 
             args <- get()
-            args       
+            args
 
- //; "--shadowcopyreferences" is ignored https://github.com/fsharp/FSharp.Compiler.Service/issues/292 
+ //; "--shadowcopyreferences" is ignored https://github.com/fsharp/FSharp.Compiler.Service/issues/292
 
- // first arg is ignored: https://github.com/fsharp/FSharp.Compiler.Service/issues/420 
- // and  https://github.com/fsharp/FSharp.Compiler.Service/issues/877 
- // and  https://github.com/fsharp/FSharp.Compiler.Service/issues/878            
+ // first arg is ignored: https://github.com/fsharp/FSharp.Compiler.Service/issues/420
+ // and  https://github.com/fsharp/FSharp.Compiler.Service/issues/877
+ // and  https://github.com/fsharp/FSharp.Compiler.Service/issues/878
 
 
 (*
@@ -102,7 +102,7 @@ type FsiArugments  ( hostInfo:Hosting) =
         --readline[+|-]                          Support TAB completion in console (on by default)
         --quotations-debug[+|-]                  Emit debug information in quotations
         --shadowcopyreferences[+|-]              Prevents references from being locked by the F# Interactive process
-        *)                
-        
-            
+        *)
+
+
 

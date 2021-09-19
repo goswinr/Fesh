@@ -14,25 +14,25 @@ open FSharp.Compiler.CodeAnalysis
 
 type ISeffLog = 
     // this interface allows the Config to be declared before the Log
-    // the Log is created first with this interface and then Config gets it in the constructor   
+    // the Log is created first with this interface and then Config gets it in the constructor
 
-    abstract member FsiErrorStream     : StringBuilder 
+    abstract member FsiErrorStream     : StringBuilder
 
-    abstract member PrintfnInfoMsg     : Printf.StringFormat<'T,unit> -> 'T 
-    abstract member PrintfnFsiErrorMsg : Printf.StringFormat<'T,unit> -> 'T  
-    abstract member PrintfnAppErrorMsg : Printf.StringFormat<'T,unit> -> 'T  
-    abstract member PrintfnIOErrorMsg  : Printf.StringFormat<'T,unit> -> 'T  
-    abstract member PrintfnDebugMsg    : Printf.StringFormat<'T,unit> -> 'T    
-      
+    abstract member PrintfnInfoMsg     : Printf.StringFormat<'T,unit> -> 'T
+    abstract member PrintfnFsiErrorMsg : Printf.StringFormat<'T,unit> -> 'T
+    abstract member PrintfnAppErrorMsg : Printf.StringFormat<'T,unit> -> 'T
+    abstract member PrintfnIOErrorMsg  : Printf.StringFormat<'T,unit> -> 'T
+    abstract member PrintfnDebugMsg    : Printf.StringFormat<'T,unit> -> 'T
+
     /// Prints without adding a new line at the end
-    abstract member PrintfFsiErrorMsg  : Printf.StringFormat<'T,unit> -> 'T    
+    abstract member PrintfFsiErrorMsg  : Printf.StringFormat<'T,unit> -> 'T
 
-    /// Change custom color to a RGB value ( each between 0 and 255) , then print 
-    abstract member PrintfnColor : int ->  int ->  int ->  Printf.StringFormat<'T,unit> -> 'T     
-    
-    /// Change custom color to a RGB value ( each between 0 and 255) 
+    /// Change custom color to a RGB value ( each between 0 and 255) , then print
+    abstract member PrintfnColor : int ->  int ->  int ->  Printf.StringFormat<'T,unit> -> 'T
+
+    /// Change custom color to a RGB value ( each between 0 and 255)
     /// Then print without adding a new line at the end
-    abstract member PrintfColor : int ->  int ->  int ->  Printf.StringFormat<'T,unit> -> 'T 
+    abstract member PrintfColor : int ->  int ->  int ->  Printf.StringFormat<'T,unit> -> 'T
 
     //used in FSI constructor:
     abstract member TextWriterFsiStdOut    : TextWriter
@@ -49,22 +49,22 @@ module ISeffLog =
     /// A refrence to the global single instance of the Log view, will be set immediatly after construction
     /// declared here  in Utils so it can be used in other modules that are declared before Log view
     let mutable log = 
-        Unchecked.defaultof<ISeffLog> //set when Log instance is created   
-    
+        Unchecked.defaultof<ISeffLog> //set when Log instance is created
+
     /// A simple error logging function using PrintfnAppErrorMsg
     let printError s = 
-        if Object.ReferenceEquals(log,null) then printfn "%s" s 
+        if Object.ReferenceEquals(log,null) then printfn "%s" s
         else log.PrintfnAppErrorMsg "%s" s
 
 
-    let mutable printColor : int-> int -> int -> string -> unit = //don't rename!! It's used via reflection in FsEx 
-        fun r g b s -> printf "%s" s  //implementation is chanaged  when Log instance is created  
-  
-    let mutable printnColor : int-> int -> int -> string -> unit = //don't rename!! It's used via reflection in FsEx 
-        fun r g b s -> printfn "%s" s //implementation is chanaged  when Log instance is created  
+    let mutable printColor : int-> int -> int -> string -> unit = //don't rename!! It's used via reflection in FsEx
+        fun r g b s -> printf "%s" s  //implementation is chanaged  when Log instance is created
+
+    let mutable printnColor : int-> int -> int -> string -> unit = //don't rename!! It's used via reflection in FsEx
+        fun r g b s -> printfn "%s" s //implementation is chanaged  when Log instance is created
 
     let mutable clear : unit -> unit =  //don't rename!! It's used via reflection in FsEx
-        fun () -> () //implementation is chanaged  when Log instance is created  
+        fun () -> () //implementation is chanaged  when Log instance is created
 
 
 // ---- Editor types -----------
@@ -75,7 +75,7 @@ type CheckId = int64
 
 type CodeAsString = string
 
-/// The Result when trying to get the current code from the checker 
+/// The Result when trying to get the current code from the checker
 /// (and not from the editor where the tree would have to be converted to a string)
 type FullCodeAndId = 
     | CodeID of string * CheckId
@@ -84,36 +84,36 @@ type FullCodeAndId =
 
 /// the Code beeing processed in fs Checker
 type CodeInChecker = 
-    | FullCode of CodeAsString 
+    | FullCode of CodeAsString
     | PartialCode of CodeAsString // happens for autocomplete triggers
     member this.FsCode = match this with  FullCode s -> s  | PartialCode s -> s
-        
+
 /// The Results from FSharp.Compiler.Service
-type CheckResults = { 
-    parseRes    :FSharpParseFileResults 
-    checkRes    :FSharpCheckFileResults 
-    code        :CodeInChecker 
-    checkId     :CheckId     } 
+type CheckResults = {
+    parseRes    :FSharpParseFileResults
+    checkRes    :FSharpCheckFileResults
+    code        :CodeInChecker
+    checkId     :CheckId     }
 
 
 /// Represents the current sate of the  FSharp.Compiler.Service Checker
 /// It is stored globally in the Checker
 /// And locally in each Editor instance (they are compared via the CheckId)
 type FileCheckState = 
-    | NotStarted 
+    | NotStarted
 
     /// Getting the code form avalon edit text editor asynchronous
-    | GettingCode of CheckId 
+    | GettingCode of CheckId
 
     /// Got the code form avalon edit async, now running in FCS async
-    | Checking of CheckId * CodeInChecker 
+    | Checking of CheckId * CodeInChecker
 
     /// The CheckResults are always local per Editor
-    | Done of CheckResults 
+    | Done of CheckResults
 
-    | Failed 
+    | Failed
 
-    member this.FullCodeAndId  =         
+    member this.FullCodeAndId  = 
         match this with
         | NotStarted | GettingCode _  | Failed -> NoCode
         | Checking (id, c)  ->  match c        with  FullCode s -> CodeID (s,id          )  | PartialCode _ -> NoCode
@@ -121,16 +121,16 @@ type FileCheckState =
 
 
     /// to compare local EditorCheckState with GlobalCheckState
-    member this.SameIdAndFullCode (globalChSt:FileCheckState) =  
+    member this.SameIdAndFullCode (globalChSt:FileCheckState) = 
         match this.FullCodeAndId with
         |NoCode -> NoCode
         |CodeID (id, c)  ->
-            match globalChSt.FullCodeAndId with 
+            match globalChSt.FullCodeAndId with
             |NoCode -> NoCode
             |CodeID (gid, _) as ci -> if gid=id then ci  else NoCode
 
 type FilePath = 
-    | SetTo of FileInfo 
+    | SetTo of FileInfo
     | NotSet
     // returns file name or "*noName*"
     // member this.FileName =  match this with  |SetTo fi -> fi.Name |NotSet -> "*noName*"
@@ -139,19 +139,19 @@ type FilePath =
 type IEditor = 
     abstract member Id             : Guid
     abstract member AvaEdit        : TextEditor
-    abstract member FileCheckState : FileCheckState with get , set 
-    abstract member FilePath       : FilePath 
-    abstract member Log            : ISeffLog 
-    abstract member FoldingManager : FoldingManager 
+    abstract member FileCheckState : FileCheckState with get , set
+    abstract member FilePath       : FilePath
+    abstract member Log            : ISeffLog
+    abstract member FoldingManager : FoldingManager
     abstract member EvaluateFrom   : int
-    abstract member IsComplWinOpen : bool 
+    abstract member IsComplWinOpen : bool
 
 [<RequireQualifiedAccess>]
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module IEditor = 
     /// A global refrence to the current Editor
-    let mutable current :option<IEditor> = None 
-        
+    let mutable current :option<IEditor> = None
+
 
 
 //---- Fsi types ------------
@@ -162,17 +162,17 @@ type CodeSegment = {
     length:int
     }
 
-type FsiCodeAmount =
+type FsiCodeAmount = 
     | All
     | ContinueFromChanges //of int
     | FsiSegment of  CodeSegment
 
-type CodeToEval = {editor:IEditor; amount:FsiCodeAmount} 
-    
+type CodeToEval = {editor:IEditor; amount:FsiCodeAmount}
+
 type TextChange =  EnteredDot | EnteredOneIdentifierChar | EnteredOneNonIdentifierChar | CompletionWinClosed | OtherChange //| EnteredQuote
-    
+
 type CharBeforeQuery = Dot | NotDot
-    
+
 type PositionInCode = { lineToCaret:string ; row:int; column:int; offset:int }
 
 // Menu and commands:

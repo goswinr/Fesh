@@ -1,4 +1,4 @@
-namespace Seff.Editor
+﻿namespace Seff.Editor
 
 open System
 open System.Drawing
@@ -16,16 +16,16 @@ module SyntaxHighlighting =
     open AvalonEditB
     open AvalonEditB.Highlighting
     open System.IO
-    
-    let mutable private fsHighlighting: IHighlightingDefinition option = None //use same highlighter for al tabs. load just once 
+
+    let mutable private fsHighlighting: IHighlightingDefinition option = None //use same highlighter for al tabs. load just once
 
     let mutable filePath = ""
 
     let setFSharp (ed:TextEditor, config:Config, forceReLoad) = //must be a function to be calld at later moment.
-        if fsHighlighting.IsNone || forceReLoad then 
+        if fsHighlighting.IsNone || forceReLoad then
             async{
                 try
-                    //let stream = Reflection.Assembly.GetExecutingAssembly().GetManifestResourceStream("FSharpSynatxHighlighter2.xshd") // Build action : Embeded Resource; Copy to ouput Dir: NO 
+                    //let stream = Reflection.Assembly.GetExecutingAssembly().GetManifestResourceStream("FSharpSynatxHighlighter2.xshd") // Build action : Embeded Resource; Copy to ouput Dir: NO
                     let assemblyLocation = IO.Path.GetDirectoryName(Reflection.Assembly.GetExecutingAssembly().Location)
                     let path = Path.Combine(assemblyLocation,"FSharpSynatxHighlighterExtended.xshd")
                     filePath <- path
@@ -33,39 +33,39 @@ module SyntaxHighlighting =
                     use reader = new Xml.XmlTextReader(stream)
                     let fsh = Xshd.HighlightingLoader.Load(reader, HighlightingManager.Instance)
                     HighlightingManager.Instance.RegisterHighlighting("F#", [| ".fsx"; ".fs";".fsi" |], fsh)
-                    fsHighlighting <- Some fsh                
+                    fsHighlighting <- Some fsh
                     do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context
                     ed.SyntaxHighlighting <- fsh
                     if forceReLoad then config.Log.PrintfnInfoMsg "loaded syntax highlighting from: %s" path
-                with e -> 
+                with e ->
                     config.Log.PrintfnAppErrorMsg "Error loading Syntax Highlighting: %A" e
                 } |> Async.Start
-        else 
+        else
             ed.SyntaxHighlighting <- fsHighlighting.Value
-    
-    
+
+
     let openVSCode() = 
         try
-            if IO.File.Exists filePath then 
+            if IO.File.Exists filePath then
                 //Diagnostics.Process.Start("code", "\"" + filePath+ "\" --reuse-window") |> ignore
                 let p = new System.Diagnostics.Process()
                 p.StartInfo.FileName <- "code"
-                let inQuotes = "\"" + filePath + "\"" 
-                p.StartInfo.Arguments <- String.concat " " [inQuotes;  "--reuse-window"]                
+                let inQuotes = "\"" + filePath + "\""
+                p.StartInfo.Arguments <- String.concat " " [inQuotes;  "--reuse-window"]
                 p.StartInfo.WindowStyle <- Diagnostics.ProcessWindowStyle.Hidden
                 p.Start() |> ignore
             else
-                ISeffLog.log.PrintfnIOErrorMsg "File not found: %s" filePath 
-        with e -> 
+                ISeffLog.log.PrintfnIOErrorMsg "File not found: %s" filePath
+        with e ->
             ISeffLog.log.PrintfnIOErrorMsg "Open SyntaxHighlighting with VScode failed: %A" e
 
         (*
         async{
             try
-                if IO.File.Exists filePath then                     
+                if IO.File.Exists filePath then
                     let p = new System.Diagnostics.Process()
                     p.StartInfo.FileName <- "code"
-                    let inQuotes = "\"" + filePath + "\"" 
+                    let inQuotes = "\"" + filePath + "\""
                     p.StartInfo.Arguments <- String.concat " " [inQuotes;  "--reuse-window"]
                     log.PrintfnColor 0 0 200 "command:\r\n%s %s" p.StartInfo.FileName p.StartInfo.Arguments
 
@@ -74,24 +74,24 @@ module SyntaxHighlighting =
                     //p.StartInfo.RedirectStandardError <-true
                     //p.StartInfo.RedirectStandardOutput <-true
                     //p.OutputDataReceived.Add ( fun d -> log.PrintfnCustomBrush Media.Brushes.Red   "%s" d.Data)
-                    //p.ErrorDataReceived.Add (  fun d -> log.PrintfnAppErrorMsg "%s" d.Data)               
+                    //p.ErrorDataReceived.Add (  fun d -> log.PrintfnAppErrorMsg "%s" d.Data)
                     //p.Exited.Add( fun _ -> log.PrintfnInfoMsg  "opend XSHD")
                     p.Start() |> ignore
-                    //p.BeginOutputReadLine() 
+                    //p.BeginOutputReadLine()
                     //p.BeginErrorReadLine()
                     //p.WaitForExit()
                 else
-                   log.PrintfnIOErrorMsg "File not found: %s" filePath    
-            with e -> 
-                log.PrintfnIOErrorMsg "Failed opening VS Code: %A" e                
+                   log.PrintfnIOErrorMsg "File not found: %s" filePath
+            with e ->
+                log.PrintfnIOErrorMsg "Failed opening VS Code: %A" e
             } |> Async.Start
         *)
-    
+
     // TODO take colors from https://github.com/johnpapa/vscode-winteriscoming/blob/master/themes/WinterIsComing-light-color-theme.json
 
 
     /// taken from VS2017
-    module ColorsUNUSED=
+    module ColorsUNUSED= 
         open FSharp.Compiler.CodeAnalysis
 
         let shadowed        = Color.FromArgb(188,0,0 )
@@ -107,7 +107,7 @@ module SyntaxHighlighting =
         let stringVal       = Color.FromArgb(163,21,21 )// #A31515
         let stringVerbatim  = Color.FromArgb(128,0,0 )
         let keyword         = Color.FromArgb(0,0,255 )
-    
+
         let number          = Color.FromArgb(0,0,0 )
         let operator        = Color.FromArgb(0,0,0 )
         let unusedDecl      = Color.FromArgb(157,157,157 )//VS2015
