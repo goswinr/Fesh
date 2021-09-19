@@ -204,6 +204,7 @@ module CompileScript =
 
         match msBuildFolders |> Seq.tryFind File.Exists with
         | None -> 
+            // TODO use https://github.com/microsoft/MSBuildLocator
             ISeffLog.log.PrintfnIOErrorMsg  "MSBuild.exe not found at:\r\n%s " (msBuildFolders |> String.concat Environment.NewLine)
             ISeffLog.log.PrintfnIOErrorMsg  "If you have MSBuild.exe on your PC please add the path to the settings file like this:"
             ISeffLog.log.PrintfnAppErrorMsg "MSBuild.exe=C:\Folder\Where\it\is\MSBuild.exe"

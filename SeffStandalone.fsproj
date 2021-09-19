@@ -15,6 +15,7 @@
     <NeutralLanguage>en</NeutralLanguage>
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>    <!--to only have the english resources-->
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <FSharpCoreIncludeDocFileInOutput>true</FSharpCoreIncludeDocFileInOutput>
 
     <RootNamespace>Seff</RootNamespace>
     <AssemblyName>Seff</AssemblyName>
@@ -35,7 +36,7 @@
     <ApplicationIcon>Media/logo.ico</ApplicationIcon>
     <Win32Resource>Media/logo.res</Win32Resource>  <!-- Win32Resource for Application Icon in explorer-->
 
-    <Platforms>x64;x86</Platforms>
+    <Platforms>x64;x86</Platforms>  <!-- or use <PlatformTarget> ? -->
     <Configurations>Release</Configurations>
 
     <DefineConstants Condition="'$(TargetFramework)' == 'net472'">NETFRAMEWORK</DefineConstants>
@@ -46,9 +47,9 @@
 
 
   <ItemGroup>
-    <PackageReference Update="FSharp.Core" Version="5.0.2" GeneratePathProperty="true" />
+    <PackageReference Update="FSharp.Core" Version="5.0.2" />
     <PackageReference Include="FSharp.Compiler.Service" Version="40.0.0" />
-    <PackageReference Include="AvalonLog" Version="0.3.1" />
+    <PackageReference Include="AvalonLog" Version="0.3.0" />
     <PackageReference Include="FsEx.Wpf" Version="0.0.2" />
 
     <!--this reference is needed for tooling only, it might not be installed on host PC. see also https://github.com/fsprojects/IfSharp/issues/213 -->
@@ -120,17 +121,12 @@
 
   </ItemGroup>
 
-
   <Target Name="CopyFilesOverAfterBuild" BeforeTargets="AfterBuild">
-
-    <!-- <Message Text="Copied FSharp.Core.xml file from $(PkgFSharp_Core) to output dir ." Importance="high"/> -->
-    <!-- FSharp.Core.xml is missing otherwise ? to have it as intellisense provider-->
-    <Copy SourceFiles="$(PkgFSharp_Core)/lib/netstandard2.0/FSharp.Core.xml" DestinationFiles="$(TargetDir)FSharp.Core.xml" ContinueOnError="false" />
 
     <!--dll is needed for editor tooling only, it might not be installed on host PC . seee also  https://github.com/fsprojects/IfSharp/issues/213 -->
     <Copy SourceFiles="$(PkgNETStandard_Library)/build/netstandard2.0/ref/netstandard.dll" DestinationFiles="$(TargetDir)netstandard.dll" ContinueOnError="false" />
 
-    <!-- needed for  editor tooling intelisense ? -->
+    <!-- needed for editor tooling intelisense ? -->
     <Copy SourceFiles="$(PkgNETStandard_Library)/build/netstandard2.0/ref/netstandard.xml" DestinationFiles="$(TargetDir)netstandard.xml" ContinueOnError="false" />
 
   </Target>
