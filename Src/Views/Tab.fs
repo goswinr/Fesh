@@ -15,7 +15,7 @@ open AvalonLog.Brush
 type Counter private () = 
     static let unsavedFile = ref 0
     
-    /// returns a bigger integer on each access
+    /// Returns a bigger integer on each access
     /// used to give each unsaved file a unique number
     static member UnsavedFile = incr unsavedFile ;  !unsavedFile
 

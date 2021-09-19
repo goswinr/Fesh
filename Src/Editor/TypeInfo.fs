@@ -299,7 +299,7 @@ type TypeInfo private () =
 
 
     
-    /// returns docstring und dll path
+    /// Returns docstring und dll path
     static let buildFormatComment (cmt:FSharpXmlDoc) =
         //mostly copied from same named function in Docstring.fs
         match cmt with

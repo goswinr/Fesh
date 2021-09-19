@@ -39,7 +39,7 @@ module Selection =
         | :? RectangleSelection -> RectSel
         | x -> failwithf "Unknown selection class in getSelection: %A" x    
     
-    /// returns selpos order top to left bottom right
+    /// Returns selpos order top to left bottom right
     let getSelectionOrdered(ta:TextArea) : SelPos=
         match ta.Selection with
         | null -> failwithf "Unknown selection class in makeTopDown: null"
@@ -125,7 +125,7 @@ module Selection =
         avaEdit.Select(0,doc.TextLength)
                 
     /// text of line at current Caret 
-    /// returns start line umber and line  text
+    /// Returns start line umber and line  text
     /// Does not select anything
     let currentLine (avaEdit:TextEditor) : int*string= 
         let offset = avaEdit.CaretOffset               

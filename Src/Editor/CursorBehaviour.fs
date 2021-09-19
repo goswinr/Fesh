@@ -12,7 +12,7 @@ open Seff.Util.Str
 
 module Doc = 
     
-    /// offset is at Line end
+    /// Offset is at Line end.
     /// or only has spaces before line end
     let inline offsetIsAtLineEnd offset (doc:TextDocument) =
         let last = doc.TextLength - 1      
@@ -27,7 +27,7 @@ module Doc =
         isAtLineEnd offset
 
 
-    /// does not look for spaces after caret
+    /// Does not look for spaces after caret
     let inline spacesAtStartOfLineAndBeforeOffset offset (doc:TextDocument) =            
         let rec find off  k =  // or only has spaces before line end
             if off < 0 then k
@@ -40,7 +40,7 @@ module Doc =
         find (offset-1) 0
     
     (*
-    /// wil do a bound check and return less chars if needed
+    /// Will do a bound check and return less chars if needed
     let inline getTextBeforOffset desiredCharsCount offset  (doc:TextDocument) =         
         if desiredCharsCount = 0 then ""
         elif desiredCharsCount < 0 then failwithf "getTextBeforOffset desiredCharsCount=%d" desiredCharsCount
@@ -57,7 +57,7 @@ module Doc =
                 t
     *)
 
-    /// wil do a bound check and return less chars if needed
+    /// Will do a bound check and return less chars if needed
     let inline getTextBeforOffsetSkipSpaces desiredCharsCount offset  (doc:TextDocument) =         
         if desiredCharsCount = 0 then ""
         elif desiredCharsCount < 0 then failwithf "getTextBeforOffset desiredCharsCount=%d" desiredCharsCount
@@ -77,7 +77,7 @@ module Doc =
                 //ISeffLog.log.PrintfnDebugMsg "before Offset %d : doc.GetText(%d,%d)='%s'" offset st len t
                 t
     (*
-    /// returns offset of next non white char, pass ovver all line breaks topo
+    /// Returns offset of next non white char, pass ovver all line breaks topo
     let inline nextNonWhiteChar offset (doc:TextDocument) =            
         let last = doc.TextLength - 1  
         let rec find off =  
@@ -89,7 +89,7 @@ module Doc =
         find offset
     *)
     
-    /// returns offset of next non white char, paasing max one line break
+    /// Returns offset of next non white char, paasing max one line break
     let inline nextNonWhiteCharOneLine offset (doc:TextDocument) =            
         let len = doc.TextLength   
         let rec find off rs =  
@@ -101,7 +101,7 @@ module Doc =
                 | _ -> off 
         find offset false
 
-    /// returns spaces till next non white char on same line, or 0 if the rest of the line is just whitespace
+    /// Returns spaces till next non white char on same line, or 0 if the rest of the line is just whitespace
     let inline countNextSpaces offset (doc:TextDocument) =            
         let last = doc.TextLength - 1  
         let rec find off  k =  

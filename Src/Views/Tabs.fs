@@ -80,7 +80,7 @@ type Tabs(config:Config, win:Window) =
               
                 
 
-    /// returns false if saving operation was canceled or had an error, true on sucessfull saving
+    /// Returns false if saving operation was canceled or had an error, true on sucessfull saving
     let saveAsDialog (t:Tab, saveKind:SavingKind) :bool=         
         let dlg = new Microsoft.Win32.SaveFileDialog()
         match t.FilePath with 
@@ -130,7 +130,7 @@ type Tabs(config:Config, win:Window) =
     let export(t:Tab):bool= 
         saveAsDialog (t, SaveExport)
 
-    /// returns false if saving operation was canceled or had an error, true on sucessfull saving
+    /// Returns false if saving operation was canceled or had an error, true on sucessfull saving
     let trySave (t:Tab)=        
         match t.FilePath with
         |SetTo fi ->         
@@ -145,7 +145,7 @@ type Tabs(config:Config, win:Window) =
         |NotSet -> 
                 saveAsDialog(t, SaveNewLocation)
 
-    /// returns true if file is saved or if closing ok (not canceled by user)
+    /// Returns true if file is saved or if closing ok (not canceled by user)
     let askIfClosingTabIsOk(t:Tab) :bool=  
         if t.IsCodeSaved then true
         else 
@@ -165,7 +165,7 @@ type Tabs(config:Config, win:Window) =
             if wasWatching then 
                 t.FileWatcher.EnableRaisingEvents <- true
 
-    ///tab:Tab, makeCurrent, moreTabsToCome
+    /// addtab(Tab, makeCurrent, moreTabsToCome)
     let addTab(tab:Tab, makeCurrent, moreTabsToCome) = 
         let ix = tabs.Items.Add tab        
         if makeCurrent then  
@@ -188,9 +188,9 @@ type Tabs(config:Config, win:Window) =
         
         tab.CloseButton.Click.Add (fun _ -> closeTab(tab))
         
-    /// checks if file is open already then calls addTtab
+    /// Checks if file is open already then calls addTtab.
     /// tryAddFile(fi:FileInfo, makeCurrent, moreTabsToCome)
-    let tryAddFile(fi:FileInfo, makeCurrent, moreTabsToCome) :bool =            
+    let tryAddFile(fi:FileInfo, makeCurrent, moreTabsToCome) :bool =
         let areFilesSame (a:FileInfo) (b:FileInfo) = a.FullName.ToLowerInvariant() = b.FullName.ToLowerInvariant()
         
         let areFilePtahsSame (a:FileInfo ) (b:FilePath) = 
@@ -209,7 +209,7 @@ type Tabs(config:Config, win:Window) =
                     config.RecentlyUsedFiles.AddAndSave(fi) // to move it up to top of stack
                     //config.OpenTabs.Save(t.FileInfo , allFileInfos) // done in SelectionChanged event below
                 true
-            | None -> // regular case, actually open file
+            | None -> // regular case, actually open file                
                 try
                     let code =  IO.File.ReadAllText (fi.FullName, Text.Encoding.UTF8) 
                     let t = new Tab(Editor.SetUp(code, config, SetTo fi))
@@ -224,15 +224,15 @@ type Tabs(config:Config, win:Window) =
             MessageBox.Show("File not found:\r\n"+fi.FullName , dialogCaption, MessageBoxButton.OK, MessageBoxImage.Error) |> ignore
             false
     
-    /// return true if at least one file was opend correctly
-    let tryAddFiles(paths:string[]) = 
+    /// Return true if at least one file was opend correctly
+    let tryAddFiles(paths:string[]) =
         let last = paths.Length - 1
         paths
-        |> Seq.indexed
-        |> Seq.map (fun (num,f) ->            
+        |> Array.indexed
+        |> Array.map (fun (num,f) ->            
             if num = last then  tryAddFile (FileInfo f, true,  false) 
             else                tryAddFile (FileInfo f, false, true ) )
-        |> Seq.exists id //check if at least one file was opend OK, then true
+        |> Array.exists id //check if at least one file was opend OK, then true
 
 
     /// Shows a file opening dialog
@@ -343,16 +343,16 @@ type Tabs(config:Config, win:Window) =
     /// also saves currently open files 
     member this.CloseTab(t) = closeTab(t) 
     
-    /// returns true if saving operation was not canceled
+    /// Returns true if saving operation was not canceled
     member this.Save(t:Tab) = trySave(t)    
 
     /// prints errors to log
     member this.SaveAsync(t:Tab) = saveAsync(t)   
 
-    /// returns true if saving operation was not canceled
+    /// Returns true if saving operation was not canceled
     member this.Export(t:Tab) = export(t)  
     
-    /// returns true if saving operation was not canceled
+    /// Returns true if saving operation was not canceled
     member this.SaveIncremental (t:Tab) = 
          match t.FilePath with           
          |SetTo fi ->
@@ -381,7 +381,7 @@ type Tabs(config:Config, win:Window) =
    
     /// will display a dialog if there are unsaved files.
     /// if user clicks yes it will attempt to save files.
-    /// returns true if all files are saved or unsaved changes are ignored (closing not canceled by user).
+    /// Returns true if all files are saved or unsaved changes are ignored (closing not canceled by user).
     member this.AskForFileSavingToKnowIfClosingWindowIsOk()=             
         let openFs = allTabs |> Seq.filter (fun t -> not t.IsCodeSaved) 
         //log.PrintfnDebugMsg "Unsaved files %d" (Seq.length openFs)

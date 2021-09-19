@@ -156,7 +156,7 @@ type Completions(avaEdit:TextEditor,config:Config, checker:Checker) =
 
     member this.IsNotOpen = win.IsNone
     
-    /// returns  win.CompletionList.ListBox.HasItems
+    /// Returns  win.CompletionList.ListBox.HasItems
     member this.HasItems = win.IsSome && win.Value.CompletionList.ListBox.HasItems
     
     member this.Close() = 

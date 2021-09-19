@@ -109,7 +109,7 @@ module Str  =
     let inline notContainsChar (charToFind:string) (stringToSearchIn:string) =
         stringToSearchIn.IndexOf(charToFind) = -1
 
-    /// returns true if the last charcter of the string is equal to given char, 
+    /// Returns true if the last charcter of the string is equal to given char, 
     /// false on null or empty string
     let lastCharIs char (s:string)= 
         if isNull s then false
@@ -117,7 +117,7 @@ module Str  =
         else char = s.[s.Length-1]
     
     /// Counts spaces at start of string
-    /// returns 0 on empty string
+    /// Returns 0 on empty string
     let inline spacesAtStart (str:string) =        
         let mutable i = 0
         while i < str.Length && str.[i] = ' ' do
@@ -125,7 +125,7 @@ module Str  =
         i
     
     /// Counts spaces after a position
-    /// returns 0 if none string
+    /// Returns 0 if none string
     let inline spacesAtOffset off (str:string) =        
         let mutable i = off
         while i < str.Length && str.[i] = ' ' do
@@ -134,7 +134,7 @@ module Str  =
 
 
     /// backtrack till non Whitspace
-    /// returns new offset
+    /// Returns new offset
     let inline findBackNonWhiteFrom off (str:string) =        
         let mutable i = off
         while i > -1 && Char.IsWhiteSpace(str,i) do
@@ -169,7 +169,7 @@ module Str  =
             i <- s.IndexOf(c,i + 1)
         k
 
-    /// returns the remainder after the last substring found
+    /// Returns the remainder after the last substring found
     let stringAfterLast (sub:string) (s:string) =
         match s.LastIndexOf(sub, StringComparison.Ordinal) with
         | -1 -> None
