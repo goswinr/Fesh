@@ -49,7 +49,7 @@
   <ItemGroup>
     <PackageReference Update="FSharp.Core" Version="5.0.2" />
     <PackageReference Include="FSharp.Compiler.Service" Version="40.0.0" />
-    <PackageReference Include="AvalonLog" Version="0.3.0" />
+    <PackageReference Include="AvalonLog" Version="0.3.1" />
     <PackageReference Include="FsEx.Wpf" Version="0.0.2" />
 
     <!--this reference is needed for tooling only, it might not be installed on host PC. see also https://github.com/fsprojects/IfSharp/issues/213 -->
