@@ -81,7 +81,7 @@ type Commands (grid:TabsAndLog, statusBar:SeffStatusBar)  =
     member val ToTitleCase       = {name= "To Titlecase "             ;gesture= ""               ;cmd=AvalonEditCommands.ConvertToTitleCase                                      ;tip= "Convertes the selected text to Titlecase."  }
     member val ToggleBoolean     = {name= "Toggle bool literal"       ;gesture= "Ctrl + T"       ;cmd = mkCmdSimple (fun _ -> CursorBehaviour.toggleBoolean(tabs.CurrAvaEdit) )  ;tip= "Convertes a 'true' literal to 'false' and a 'false' literal to 'true' if they are currently selected exclusively" }
 
-    member val AlignCode         = {name= "Align Code"                ;gesture= "Ctrl + I"       ;cmd = mkCmdSimple (fun _ -> Formating.alignByNonLetters(tabs.Current.Editor))  ;tip= "Inserts spaces where required so that non leter symbols align verticaly" }
+    member val AlignCode         = {name= "Align Code Vertically"     ;gesture= "Ctrl + I"       ;cmd = mkCmdSimple (fun _ -> Formating.alignByNonLetters(tabs.Current.Editor))  ;tip= "Experimental Feature, Tries to inserts spaces where required so that non leter symbols align vertically" }
 
     //Select menu:
     member val SelectLine        = {name= "Select Current Line"       ;gesture= "Ctrl  + L"     ;cmd= mkCmdSimple (fun _ -> expandSelectionToFullLines(tabs.CurrAvaEdit) |> ignore )  ;tip= "Select current line"} // TODO compare VSCODE shortcuts to  see https://github.com/icsharpcode/SharpDevelop/wiki/Keyboard-Shortcuts

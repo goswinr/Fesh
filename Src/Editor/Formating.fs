@@ -10,7 +10,7 @@ open Seff.Util
 
 module Formating = 
 
-    let findChar (c:Char) (fromIndex:int) (sb:StringBuilder) = 
+    let findCharOld (c:Char) (fromIndex:int) (sb:StringBuilder) = 
         let rec find i = 
             if i >= sb.Length then -1
             else
@@ -18,11 +18,51 @@ module Formating =
                 else find ( i+1)
         find fromIndex
 
+    let findCharExcludeInStringLiterals (c:Char) (fromIndex:int) (sb:StringBuilder) = 
+        let rec find inStr  i= 
+            if i >= sb.Length then -1 // exit recursion
+            else                
+                if inStr then 
+                    match sb.[i] with 
+                    |'\\' ->  find true  (i+2) // escaped quaote in string literal
+                    |'"'  ->  find false (i+1) // end of string literal
+                    | _   ->  find true (i+1)  // nex char in string litral
+                else
+                    match sb.[i] with                     
+                    |'"'  ->  find true (i+1) // start of string literal
+                    | ci  when ci = c ->  i // found
+                    | _   ->  find false (i+1)  // next char (NOT in string litral)
+        find false fromIndex
+
+
+
     /// align code by any of these characters
     let isAlignmentChar (c:char) = 
-        c <>'.' // skip dots
-        && (Char.IsPunctuation c
-         || Char.IsSymbol      c )
+        //c <>'.' // skip dots
+        //&& (    Char.IsPunctuation c
+        //     || Char.IsSymbol      c )
+        match c with 
+        | '=' | ',' | ';' | '(' | ')' | '[' | ']' | '{' | '}' -> true
+        | _ -> false      
+        
+
+    let getAlignmentCharsExcludeInStringLiterals(ln:string) =
+        let res = ResizeArray()
+        let rec find inStr  i= 
+            if i >= ln.Length then ()// exit recursion
+            else                
+                if inStr then 
+                    match ln.[i] with 
+                    |'\\' ->  find true  (i+2) // escaped quaote in string literal
+                    |'"'  ->  find false (i+1) // end of string literal
+                    | _   ->  find true (i+1)  // nex char in string litral
+                else
+                    match ln.[i] with                     
+                    |'"'  ->  find true (i+1) // start of string literal
+                    | ci  when isAlignmentChar ci ->  res.Add ci // found
+                    | _   ->  find false (i+1)  // next char (NOT in string litral)
+        find false 0
+        res
 
 
     let alignByNonLetters(ed:IEditor) = 
@@ -32,32 +72,33 @@ module Formating =
             let stOff = doc.GetLineByNumber(s.stp.Line).Offset
             let enOff = doc.GetLineByNumber(s.enp.Line).EndOffset
             let lns =   [| for i = s.stp.Line to s.enp.Line do  yield doc.GetText(doc.GetLineByNumber(i)) |]
-            let spChars = 
+            let alignChars = 
                 lns
-                |> Array.map ( fun s -> s.ToCharArray() |> Array.filter isAlignmentChar) // get special chars only, but not dot '.'
-                |> Array.maxBy Array.length
+                |> Array.map getAlignmentCharsExcludeInStringLiterals // get special chars 
+                |> Array.maxBy ( fun rarr -> rarr.Count)
 
-            let sbs = lns |> Array.map ( fun ln -> StringBuilder(ln))
+            let stringBuilders = lns |> Array.map ( fun ln -> StringBuilder(ln))
 
             let mutable serachFrom = 0
 
-            for sc in spChars do
-                let offs = sbs |> Array.map ( findChar sc serachFrom)
+            for alignChr in alignChars do
+                let offs = stringBuilders |> Array.map ( findCharExcludeInStringLiterals alignChr serachFrom)
                 let maxOff = Array.max offs
                 //ed.Log.PrintfnDebugMsg "Char: '%c' at maxOff: %d" sc maxOff
-                for i,sb in Seq.indexed sbs do
+                for sb in stringBuilders do
                     //ed.Log.PrintfIOErrorMsg "Ln:%d" (i+s.stp.Line)
-                    let foundPos = findChar sc serachFrom sb
+                    let foundPos = findCharExcludeInStringLiterals alignChr serachFrom sb
                     let diff = maxOff - foundPos
-                    if diff>0 && foundPos>0 then
+                    if diff > 0 && foundPos > 0 then
                         //ed.Log.PrintfnAppErrorMsg " insert:%d spaces at max (from %d ,  pos %d)" diff from p
                         sb.Insert(max serachFrom foundPos,String(' ', diff)) |> ignore
+
                     //else ed.Log.PrintfnFsiErrorMsg " NO insert:%d spaces at max (from %d ,  pos %d)" diff from p
 
                 serachFrom <- maxOff
 
-            sbs
-            |> Array.map ( fun sb -> sb.ToString())
+            stringBuilders
+            |> Seq.map ( fun sb -> sb.ToString())
             |> String.concat "\r\n"
             |> fun t -> doc.Replace(stOff,enOff-stOff, t)
 
