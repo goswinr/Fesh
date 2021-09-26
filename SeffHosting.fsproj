@@ -28,7 +28,7 @@
 
     <Description>A hostable fsharp scripting editor for Windows based on Avalonedit</Description>
     <ApplicationIcon>Media/logo.ico</ApplicationIcon>
-    <Win32Resource>Media/logo.res</Win32Resource>      <!-- Win32Resource for Application Icon in explorer-->
+    <Win32Resource>Media/logo.res</Win32Resource>    <!-- Win32Resource for Application Icon in explorer-->
 
     <PlatformTarget>AnyCPU</PlatformTarget> <!-- the host will decide-->
     <OutputPath>binHosting</OutputPath>
@@ -38,7 +38,7 @@
  <PropertyGroup>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <IncludeSymbols>true</IncludeSymbols>
-    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <!-- <SymbolPackageFormat>snupkg</SymbolPackageFormat> -->
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
@@ -46,13 +46,13 @@
     <RepositoryUrl>https://github.com/goswinr/Seff</RepositoryUrl>
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
     <PackageIcon>logo128.png</PackageIcon>
-    <!--<PackageReadmeFile>READMEnuget.md</PackageReadmeFile>--><!-- using  snupkg the readme does not pack https://github.com/NuGet/Home/issues/10791 -->
+    <PackageReadmeFile>READMEnuget.md</PackageReadmeFile><!-- using  snupkg the readme does not pack https://github.com/NuGet/Home/issues/10791 -->
     <PackageDescription>A hostable fsharp scripting editor for Windows based on Avalonedit</PackageDescription>
     <PackageTags>WPF TextEditor F# Scripting AvalonEdit</PackageTags>
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- normally don't include FSharp.Core in lib but 5.0.2 is needed for FCS 40.0.0 -->
+    <!-- normally don't include FSharp.Core in a library, but update to 5.0.2 it is needed for FCS 40.0.0 -->
     <PackageReference Update="FSharp.Core" Version="5.0.2" />
     <PackageReference Include="FSharp.Compiler.Service" Version="40.0.0" />
     <PackageReference Include="AvalonLog" Version="0.3.1" />
