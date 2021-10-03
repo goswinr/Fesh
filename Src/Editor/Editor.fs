@@ -71,6 +71,9 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
         //avaEdit.TextArea.AllowCaretOutsideSelection <- true
         SyntaxHighlighting.setFSharp(avaEdit,config,false)
 
+        search.MatchCase  <- true //config.Settings.GetBool("SearchMatchCase", true) // TODO how to save chnages ?
+        search.WholeWords <- true //config.Settings.GetBool("SearchWholeWords", true)
+        
 
 
     member val IsCurrent = false with get,set //  this is managed in Tabs.selectionChanged event handler

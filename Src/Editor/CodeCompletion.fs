@@ -17,33 +17,39 @@ open Seff
 open Seff.Model
 open Seff.Config
 
-type CompletionItemForKeyWord(ed:IEditor,config:Config, text:string, toolTip:string) = 
-    //let col = Brushes.DarkBlue    // fails on selection, does not get color inverted//check  https://blogs.msdn.microsoft.com/text/2009/08/28/selection-brush/ ??
 
-    let style = FontStyles.Normal
-    let tb = 
+module UtilCompletion = 
+    let charsThatNeedTicks = 
+            [|' '  ; '-' ; '+' ; '*' ; '/' ; '=' ; ',' ; ';' ; '~' ; '%' ; '&' ; '@' ; '#' ; '$' ;
+              '\\' ; '|' ; '!' ; '?' ; '(' ; ')' ; '[' ; ']' ; '<' ; '>' ; '{' ; '}' |]
+    
+    let inline needsTicks(s:string) = 
+        s.IndexOfAny charsThatNeedTicks >= 0
+
+    
+    let mkTexBlock(txt,style) = // the displayed item in the completion window 
         let mutable tb = Controls.TextBlock()
-        tb.Text <- text
+        tb.Text <- txt
         tb.FontFamily <- Style.fontEditor
         tb.FontSize <-   Style.fontSize
-        //tb.Foreground  <- col, // does not change color when selected anymore
+        //tb.Foreground  <- col // fails on selection, does not get color inverted//check  https://blogs.msdn.microsoft.com/text/2009/08/28/selection-brush/ ??        
         tb.FontStyle <- style
-        tb.Padding <- Thickness(0. , 0. , 8. , 0. ) //left top right bottom / so that it does not aper to be trimmed
+        tb.Padding <- Thickness(0. , 0. , 8. , 0. ) //left top right bottom / so that it does not apear to be trimmed
         tb
 
-    let priority =  1.0 + config.AutoCompleteStatistic.Get(text)
 
-    member this.Content = tb :> obj
+type CompletionItemForKeyWord(ed:IEditor,config:Config, text:string, toolTip:string) =  
+    let priority =  1.0 + config.AutoCompleteStatistic.Get(text)        // create once and cache ?
+    let textBlock = UtilCompletion.mkTexBlock(text,FontStyles.Normal)   // create once and cache ?    
+
+    member this.Content = textBlock :> obj
     member this.Description = toolTip :> obj
     member this.Image = null
     member this.Priority = priority
     member this.Text = text
     member this.Complete (textArea:TextArea, completionSegment:ISegment, e:EventArgs ) = 
-        if Selection.getSelType textArea = Selection.RectSel then
-            RectangleSelection.complete (ed, completionSegment, text)
-        else
-            textArea.Document.Replace(completionSegment, text)
-
+        if Selection.getSelType textArea = Selection.RectSel then       RectangleSelection.complete (ed, completionSegment, text)
+        else                                                            textArea.Document.Replace(completionSegment, text)
 
     interface ICompletionData with // needed in F#: implementing the interface members as properties too: https://github.com/icsharpcode/AvalonEdit/issues/28
         member this.Complete(t,s,e) = this.Complete(t,s,e)
@@ -58,33 +64,21 @@ type CompletionItem (ed:IEditor,config:Config, getToolTip, it:DeclarationListIte
     let style = 
         if it.IsOwnMember then FontStyles.Normal
         else match it.Glyph with    //new Font(FontFamily.GenericSansSerif,12.0F, FontStyle.Bold | FontStyle.Italic) // needs system.drawing
-                | FSharpGlyph.Module | FSharpGlyph.NameSpace -> FontStyles.Normal
-                | _                                          -> FontStyles.Italic
-    let tb = 
-        let mutable tb = Controls.TextBlock()
-        tb.Text <- it.Name
-        tb.FontFamily <- Style.fontEditor
-        tb.FontSize <-   Style.fontSize
-        //tb.Foreground  <- col, // does not change color when selected anymore
-        tb.FontStyle <- style
-        tb.Padding <- Thickness(0. , 0. , 8. , 0. ) //left top right bottom / so that it does not apear to be trimmed
-        tb
+             | FSharpGlyph.Module | FSharpGlyph.NameSpace -> FontStyles.Normal
+             | _                                          -> FontStyles.Italic
 
     let priority = //if it.IsOwnMember then 1. else 1.
         if isDotCompletion then 1.0// not on Dot completion
-        else                    1.0 + config.AutoCompleteStatistic.Get(it.Name) //if p>1.0 then log.PrintfnDebugMsg "%s %g" it.Name p
-
-    let needTicks = 
-        [|' '  ; '-' ; '+' ; '*' ; '/' ; '=' ; ',' ; ';' ; '~' ; '%' ; '&' ; '@' ; '#' ; '$' ;
-          '\\' ; '|' ; '!' ; '?' ; '(' ; ')' ; '[' ; ']' ; '<' ; '>' ; '{' ; '}' |]
-
-
-
-    member this.Content = tb :> obj
+        else                    1.0 + config.AutoCompleteStatistic.Get(it.Name) //if p>1.0 then log.PrintfnDebugMsg "%s %g" it.Name p    
+    
+    let textBlock = UtilCompletion.mkTexBlock(it.Name ,FontStyles.Normal)   // create once and cache ?  
+    //let textBlock = UtilCompletion.mkTexBlock(it.Name + $" {priority}",FontStyles.Normal)   
+    
+    member this.Content = textBlock :> obj // the displayed item in the completion window 
     member this.Description = getToolTip(it) // this gets called on demand only, not when initally filling the list.
-    member this.Image = null //TODO
+    member this.Image = null //TODO or part of text box ?
     member this.Priority = priority
-    member this.Text = it.Name
+    member this.Text = it.Name // not used for display, but for priority sorting ? 
     member this.Complete (textArea:TextArea, completionSegment:ISegment, e:EventArgs) = 
         //log.PrintfnDebugMsg "%s is %A and %A" it.Name it.Glyph it.Kind
         //textArea.Document.Replace(completionSegment.Offset + 1, completionSegment.Length, it.Name) //TODO Delete!
@@ -94,7 +88,7 @@ type CompletionItem (ed:IEditor,config:Config, getToolTip, it:DeclarationListIte
             if it.Glyph = FSharpGlyph.Class && it.Name.EndsWith "Attribute" then
                 "[<" + it.Name.Replace("Attribute",">]")
 
-            elif it.Name.IndexOfAny needTicks >= 0 then
+            elif UtilCompletion.needsTicks it.Name then
                 "``" + it.Name + "``"
 
             elif it.Name = "struct" then
@@ -126,7 +120,7 @@ type CompletionItem (ed:IEditor,config:Config, getToolTip, it:DeclarationListIte
         member this.Description     = this.Description //this gets call on demand only, not when filling the completion list.
         member this.Image           = this.Image
         member this.Priority        = this.Priority
-        member this.Text            = this.Text
+        member this.Text            = this.Text // not used for display, but for priority sorting ? 
 
 
 type Completions(avaEdit:TextEditor,config:Config, checker:Checker) = 
@@ -228,12 +222,14 @@ type Completions(avaEdit:TextEditor,config:Config, checker:Checker) =
 
             let completionLines = ResizeArray<ICompletionData>()
             if not onlyDU && charBefore = NotDot then
-                completionLines.Add( CompletionItemForKeyWord(iEditor,config,"#if INTERACTIVE",     "Compiler directive to exclude code in compiled form, close with #endif" ) :> ICompletionData)    |>ignore
-                completionLines.Add( CompletionItemForKeyWord(iEditor,config,"#else",               "else of compiler directive " ) :> ICompletionData)    |>ignore
+                completionLines.Add( CompletionItemForKeyWord(iEditor,config,"#if INTERACTIVE",     "Compiler directive to exclude code in compiled format, close with #endif or #else" ) :> ICompletionData)    |>ignore
+                completionLines.Add( CompletionItemForKeyWord(iEditor,config,"#if COMPILED",        "Compiler directive to exclude code in interactive format, close with #endif or #else" ) :> ICompletionData)    |>ignore
+                completionLines.Add( CompletionItemForKeyWord(iEditor,config,"#else",               "else of compiler directives " ) :> ICompletionData)    |>ignore
                 completionLines.Add( CompletionItemForKeyWord(iEditor,config,"#endif",              "End of compiler directive " ) :> ICompletionData)    |>ignore
-                completionLines.Add( CompletionItemForKeyWord(iEditor,config,"__SOURCE_DIRECTORY__","Evaluates to the current full path of the source directory" ) :> ICompletionData)    |>ignore
-                completionLines.Add( CompletionItemForKeyWord(iEditor,config,"__SOURCE_FILE__"     ,"Evaluates to the current source file name, without its path") :> ICompletionData)    |>ignore
-                completionLines.Add( CompletionItemForKeyWord(iEditor,config,"__LINE__",            "Evaluates to the current line number") :> ICompletionData)    |>ignore
+                // TODO: these paths dont work at the moment: 
+                //completionLines.Add( CompletionItemForKeyWord(iEditor,config,"__SOURCE_DIRECTORY__","Evaluates to the current full path of the source directory" ) :> ICompletionData)    |>ignore
+                //completionLines.Add( CompletionItemForKeyWord(iEditor,config,"__SOURCE_FILE__"     ,"Evaluates to the current source file name, without its path") :> ICompletionData)    |>ignore
+                //completionLines.Add( CompletionItemForKeyWord(iEditor,config,"__LINE__",            "Evaluates to the current line number") :> ICompletionData)    |>ignore
                 for kw,desc in FSharpKeywords.KeywordsWithDescription  do // add keywords to list
                     completionLines.Add( CompletionItemForKeyWord(iEditor,config,kw,desc) :> ICompletionData) |>ignore
 
@@ -294,7 +290,6 @@ type Completions(avaEdit:TextEditor,config:Config, checker:Checker) =
                 // (2)insert text into editor (triggers completion if one char only)
                 // (3)raise InsertionRequested event
                 // https://github.com/icsharpcode/AvalonEdit/blob/8fca62270d8ed3694810308061ff55c8820c8dfc/AvalonEditB/CodeCompletion/CompletionWindow.cs#L100
-
             else
                 compl.Checker.CkeckHighlightAndFold(iEditor)// start new full check, this on was trimmed at offset.
 
