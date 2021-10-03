@@ -20,7 +20,7 @@ module CompileScript =
         <Project Sdk="Microsoft.NET.Sdk">
           <PropertyGroup>
             <OutputType>Library</OutputType>
-            <TargetFramework>net48</TargetFramework> <!-- needed for latest RhinoCommon-->
+            <TargetFramework>net48</TargetFramework>
             <LangVersion>preview</LangVersion>
             <SatelliteResourceLanguages>en</SatelliteResourceLanguages> <!--to only have the english resources of Fsharp.Core-->
 
@@ -39,7 +39,7 @@ module CompileScript =
           </PropertyGroup>
 
           <ItemGroup>
-            <!--<PackageReference Update="FSharp.Core" Version="5.0.1" /> dont include in libaries-->
+            <!--<PackageReference Update="FSharp.Core" Version="5.0.2" /> dont include in libaries-->
             <!--PLACEHOLDER FOR NUGETS--> <!-- set by Seff scriptcompiler-->
           </ItemGroup>
 
@@ -51,9 +51,9 @@ module CompileScript =
             <!--PLACEHOLDER FOR FILES--> <!-- set by Seff scriptcompiler-->
           </ItemGroup>
 
-          <Target Name="DeleteObjFolder" BeforeTargets="AfterBuild">
-            <RemoveDir Directories="obj" ContinueOnError="true"/>
-          </Target>
+          <!--
+          <Target Name="DeleteObjFolder" BeforeTargets="AfterBuild"> <RemoveDir Directories="obj" ContinueOnError="true" /> </Target>
+          -->
 
         </Project>
         """

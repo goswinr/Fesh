@@ -9,8 +9,10 @@
   The named colors 'Comment' and 'String' are also used in SharpDevelop to detect if a line is inside a multiline string/comment 
   -->
   
-  <!-- use this extension to show colors in vs code:
-  https://marketplace.visualstudio.com/items?itemName=kamikillerto.vscode-colorize  -->
+  <!-- 
+  use this extension to show colors in vs code:
+  https://marketplace.visualstudio.com/items?itemName=kamikillerto.vscode-colorize  
+  -->
   <Color name="Comment"             foreground="#11AA11" />
   <Color name="DocComment"          foreground="#007700" />
   <Color name="TODO"                foreground="#EE0000"  fontWeight="bold"/>

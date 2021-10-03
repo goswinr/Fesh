@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project Sdk="Microsoft.NET.Sdk.WindowsDesktop"> <!--WinDesktop is needed so that rescources work with dotnet build-->
+<Project Sdk="Microsoft.NET.Sdk.WindowsDesktop"> <!--WinDesktop for WPF, it is also needed so that rescources work with dotnet build-->
 
  <PropertyGroup>
     <OutputType>WinExe</OutputType>
@@ -10,7 +10,7 @@
     <!--<PublishSingleFile>true</PublishSingleFile>
     <SelfContained>true</SelfContained>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
-    <PublishReadyToRun>true</PublishReadyToRun>  doesnt work, lon build times  ?-->
+    <PublishReadyToRun>true</PublishReadyToRun>  doesnt work, long build times  ?-->
 
     <NeutralLanguage>en</NeutralLanguage>
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>    <!--to only have the english resources-->
@@ -24,9 +24,9 @@
     <Product>Seff</Product>
     <PackageId>Seff</PackageId>
 
-    <Version>0.0.2</Version>
-    <AssemblyVersion>0.0.2</AssemblyVersion>
-    <FileVersion>0.0.2</FileVersion>
+    <Version>0.0.3</Version>
+    <AssemblyVersion>0.0.3</AssemblyVersion>
+    <FileVersion>0.0.3</FileVersion>
     <PackageReleaseNotes>First release</PackageReleaseNotes>
     <Company>Goswin Rothenthal</Company><!--shows up on file preview on exe in explorer-->
     <Authors>GoswinR</Authors>
@@ -47,7 +47,7 @@
 
 
   <ItemGroup>
-    <PackageReference Update="FSharp.Core" Version="5.0.2" />
+    <PackageReference Update="FSharp.Core" Version="5.0.2" />  <!--5.0.2 needed for FCS 40.0.0-->
     <PackageReference Include="FSharp.Compiler.Service" Version="40.0.0" />
     <PackageReference Include="AvalonLog" Version="0.3.2" />
     <PackageReference Include="FsEx.Wpf" Version="0.0.2" />
@@ -57,13 +57,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="README.md" />
-    <EmbeddedResource Include="Media/logo.res" /> <!--  for Application Icon in explorer-->
-    <Resource Include="Media/logo.ico" />    <!--  for Application Icon in window-->
-    <Resource Include="Media/logoGray.ico" />    <!--  for Application Icon in seconadry PopOut windows-->
-    <Resource Include="Media/FiraCode-Regular.ttf" />
-    <None Include="FSharpSynatxHighlighterExtended.xshd">    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>    </None>
-
     <Compile Include="Src/Util.fs" />
     <Compile Include="Src/ParseFs.fs" />
     <Compile Include="Src/Timer.fs" />
@@ -78,10 +71,8 @@
     <Compile Include="Src/Config/AssemblyReferenceStatistic.fs" />
     <Compile Include="Src/Config/FoldingStatus.fs" />
     <Compile Include="Src/Config/Config.fs" />
-
     <Compile Include="Src/Fsi.fs" />
     <Compile Include="Src/CompileScript.fs" />
-
     <Compile Include="Src/Editor/Selection.fs" />
     <Compile Include="Src/Editor/RectangleSelection.fs" />
     <Compile Include="Src/Editor/SwapWords.fs" />
@@ -102,7 +93,6 @@
     <Compile Include="Src/Editor/KeyboardShortcuts.fs" />
     <Compile Include="Src/Editor/Formating.fs" />
     <Compile Include="Src/Editor/Editor.fs" />
-
     <Compile Include="Src/Views/Log.fs" />
     <Compile Include="Src/Views/Window.fs" />
     <Compile Include="Src/Views/FileWatcher.fs" />
@@ -115,10 +105,17 @@
     <Compile Include="Src/Views/Commands.fs" />
     <Compile Include="Src/Views/Menu.fs" />
     <Compile Include="Src/Views/Seff.fs" />
-
     <Compile Include="Src/Initialize.fs" />
     <Compile Include="Src/App.fs" />
-
+    
+    <EmbeddedResource Include="Media/logo.res" /> <!--  for Application Icon in explorer-->
+    <Resource Include="Media/logo.ico" />    <!--  for Application Icon in window-->
+    <Resource Include="Media/logoGray.ico" />    <!--  for Application Icon in seconadry PopOut windows-->
+    <Resource Include="Media/FiraCode-Regular.ttf" />
+    
+    <None Include="README.md" />
+    <None Include="FSharpSynatxHighlighterExtended.xshd" CopyToOutputDirectory="Always" />
+    <None Include="SeffHosting.fsproj" />
   </ItemGroup>
 
   <Target Name="CopyFilesOverAfterBuild" BeforeTargets="AfterBuild">

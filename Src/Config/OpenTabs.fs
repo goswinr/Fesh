@@ -18,38 +18,44 @@ type OpenTabs  (hostInfo:Hosting, startupArgs:string[]) =
     let filePath0 = hostInfo.GetPathToSaveAppData("CurrentlyOpenFiles.txt")
     let writer = SaveReadWriter(filePath0,ISeffLog.printError)
 
-    let currentTabPreFix =  "*Current tab:* " //a string that can never be part of a filename
+    let currentTabPreFix = "*Current tab:* " //a string that can never be part of a filename
 
     let mutable allFiles:seq<FileInfo> = Seq.empty
 
     let mutable currentFile:FilePath = NotSet
+
+    let filesInArgs = startupArgs |> Array.filter File.Exists
 
     let files = 
         let files = ResizeArray()
         let dup =  HashSet()
         let mutable curr =""
         writer.CreateFileIfMissing("")  |> ignore
-        match writer.ReadAllLines() with
-        |None -> ()
-        |Some lns ->
-            if lns.Length > 1 then
-                curr <- lns.[0].Replace(currentTabPreFix,"").ToLowerInvariant() // first line is filepath and name for current tab (repeats below)
-                for path in lns |> Seq.skip 1  do // skip first line of current info
-                    let fi = FileInfo(path)
-                    if fi.Exists then
-                        files.Add fi
-                        dup.Add (path.ToLowerInvariant())  |> ignore
 
-        // parse startup args
-        for path in startupArgs do
-            let fi = FileInfo(path)
-            if fi.Exists then
+        // If ther are file in the startup args only open those, not the previously open files.
+        // This is to avoid openinh the same files twice.
+        // One instance of Seff might be open with some files.
+        // If the user then double clicks another fsx file it would open a new instance of Seff with this fsx file, 
+        // but also all the others that are already in the first instance of Seff open.
+        if filesInArgs.Length > 0 then 
+            // parse startup args
+            for path in filesInArgs do                
                 let lc = path.ToLowerInvariant()
                 curr <- lc
                 if not <| dup.Contains (lc) then
                     dup.Add (lc)  |> ignore
-                    files.Add fi
-
+                    files.Add (FileInfo path)
+        else
+            match writer.ReadAllLines() with
+            |None -> ()
+            |Some lns ->
+                if lns.Length > 1 then
+                    curr <- lns.[0].Replace(currentTabPreFix,"").ToLowerInvariant() // first line is filepath and name for current tab (repeats below)
+                    for path in lns |> Seq.skip 1  do // skip first line of current info
+                        let fi = FileInfo(path)
+                        if fi.Exists then
+                            files.Add fi
+                            dup.Add (path.ToLowerInvariant())  |> ignore
         [|
         for fi in files do
             let lowerc = fi.FullName.ToLowerInvariant()
