@@ -49,7 +49,7 @@ module ISeffLog =
     /// A refrence to the global single instance of the Log view, will be set immediatly after construction
     /// declared here  in Utils so it can be used in other modules that are declared before Log view
     let mutable log = 
-        Unchecked.defaultof<ISeffLog> //set when Log instance is created
+        Unchecked.defaultof<ISeffLog> //set when Log instance is created in Initialize.everything
 
     /// A simple error logging function using PrintfnAppErrorMsg
     let printError s = 

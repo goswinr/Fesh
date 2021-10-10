@@ -72,17 +72,14 @@ type CompletionItem (ed:IEditor,config:Config, getToolTip, it:DeclarationListIte
         else                    1.0 + config.AutoCompleteStatistic.Get(it.Name) //if p>1.0 then log.PrintfnDebugMsg "%s %g" it.Name p    
     
     let textBlock = UtilCompletion.mkTexBlock(it.Name ,FontStyles.Normal)   // create once and cache ?  
-    //let textBlock = UtilCompletion.mkTexBlock(it.Name + $" {priority}",FontStyles.Normal)   
-    
+        
     member this.Content = textBlock :> obj // the displayed item in the completion window 
     member this.Description = getToolTip(it) // this gets called on demand only, not when initally filling the list.
     member this.Image = null //TODO or part of text box ?
     member this.Priority = priority
     member this.Text = it.Name // not used for display, but for priority sorting ? 
     member this.Complete (textArea:TextArea, completionSegment:ISegment, e:EventArgs) = 
-        //log.PrintfnDebugMsg "%s is %A and %A" it.Name it.Glyph it.Kind
-        //textArea.Document.Replace(completionSegment.Offset + 1, completionSegment.Length, it.Name) //TODO Delete!
-        //textArea.Caret.Offset <- completionSegment.Offset + it.Name.Length + 1  //TODO Delete!
+        //log.PrintfnDebugMsg "%s is %A and %A" it.Name it.Glyph it.Kind        
         let compl = 
             //TODO move this logic out here
             if it.Glyph = FSharpGlyph.Class && it.Name.EndsWith "Attribute" then

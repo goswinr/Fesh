@@ -1,4 +1,4 @@
-namespace Seff
+﻿namespace Seff
 
 open System
 open System.Windows
@@ -28,7 +28,9 @@ module Initialize =
 
         /// ------------------ Log and Config --------------------
 
-        let log    = Log.Create()
+
+        let log    = Log.Create() // this should be done as early as possibel so that logging works
+
         let appname = match mode with Some n -> "Seff." + n.hostName |None -> "Seff"
         FsEx.Wpf.ErrorHandeling.setup (appname, fun () ->
             // TODO attempt to save files before closing ?

@@ -73,9 +73,7 @@ type Log private () =
 
     member this.AvalonLog = log
 
-    member this.FsiErrorStream = fsiErrorStream
-
-    //member this.OffsetColors = offsetColors // TODO delete , for debug only
+    member this.FsiErrorStream = fsiErrorStream  
 
     member internal this.AdjustToSettingsInConfig(config:Config)= 
         //this.OnPrint.Add (config.AssemblyReferenceStatistic.RecordFromlog) // TODO: does this have print perfomance impact ? measure do async ?
@@ -88,8 +86,6 @@ type Log private () =
         config.Settings.SetBool ("logHasLineWrap", newState)
         config.Settings.Save ()
 
-    /// to acces the underlying read-only Avalonedit Texteditor
-    //member this.ReadOnlyEditor = log.AvalonEdit
 
     member this.Clear() = log.Clear()
 
@@ -115,28 +111,6 @@ type Log private () =
     /// Change custom color to a RGB value ( each between 0 and 255)
     /// Then print without adding a new line at the end
     member this.PrintfColor red green blue msg = log.printfColor red green blue msg
-
-    //---------------------- TODO delete: ------------------------------
-   //
-   ///// Prints without adding a new line at the end
-   //member this.PrintfInfoMsg  msg  = log.printfnBrush LogColors.infoMsg    msg
-   //
-   //
-   ///// Prints without adding a new line at the end
-   //member this.PrintfAppErrorMsg  msg = log.printfBrush LogColors.appErrorMsg msg
-   //
-   ///// Prints without adding a new line at the end
-   //member this.PrintfIOErrorMsg  msg =  log.printfBrush LogColors.iOErrorMsg  msg
-   //
-   ///// Prints without adding a new line at the end
-   //member this.PrintfDebugMsg   msg =  log.printfBrush LogColors.debugMsg  msg
-   //
-   ///// Print using the Brush or color provided
-   ///// at last custom printing call via.PrintfnCustomBrush or.PrintfnColor
-   ///// without adding a new line at the end
-   //member this.PrintfLastColor msg =  log.printfLastColor  msg
-    //member this.PrintfnLastColor    msg =  log.printfnLastColor  msg
-
 
 
     // ------------------- for use from Seff.Rhino with just a string , no formating: -------------------------------------

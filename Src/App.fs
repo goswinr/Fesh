@@ -14,8 +14,7 @@ module App =
     /// fsiCanRun: a function to check if evaluation of fsi is currently allowed
     /// Call seff.Window.Show() on the returned Seff object.
     /// Use seff.Fsi.OnStarted and seff.Fsi.OnIsReady Events to implement undo and redo in host App.
-    let createEditorForHosting (host:HostedStartUpData) : Seff = 
-        //let app = Application()
+    let createEditorForHosting (host:HostedStartUpData) : Seff =         
         let seff = Initialize.everything (Some host , [| |])
         current <- seff
         if host.mainWindowHandel <> IntPtr.Zero then

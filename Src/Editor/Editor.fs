@@ -228,8 +228,7 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
         let docChanged (e:DocumentChangeEventArgs) = 
             //log.PrintfnDebugMsg "*Document.Changed Event: deleted %d '%s', inserted %d '%s', completion hasItems: %b, isOpen: %b , Just closed: %b" e.RemovalLength e.RemovedText.Text e.InsertionLength e.InsertedText.Text ed.Completions.HasItems ed.Completions.IsOpen compls.JustClosed
 
-            //DELETE: //if e.RemovalLength > 0 && e.RemovedText.Text <> e.InsertedText.Text then  compls.JustClosed<-false // in this case open window again?
-
+            
             if compls.IsOpen then   // just keep on tying in completion window, no type checking !
                 if compls.HasItems then // TODO, this code is duplicated in textChanged function
                     ()
