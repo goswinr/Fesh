@@ -18,7 +18,7 @@
   <Color name="TODO"                foreground="#EE0000"  fontWeight="bold"/>
   <Color name="HACK"                foreground="#D0D000"  fontWeight="bold"/>
   
-  <Color name="String"              foreground="#AA1111" />
+  <Color name="String"              foreground="#BB1111" />
   <Color name="StringVerbatim"      foreground="#CC0000" />  
   <Color name="StringFormating"     foreground="#990099" />
   <Color name="StringEscaped"       foreground="#7050DC" />  
@@ -47,7 +47,7 @@
   <Color name="FalseCol"            foreground="#A70090" fontStyle="italic" fontWeight="bold" />
   <Color name="Semicolon"           foreground="#A0A0A0" />
   <Color name="TypeAnnotation"      foreground="#1080B0" />
-  <Color name="RecordNames"         foreground="#708070" />
+  <Color name="RecordNames"         foreground="#B06000" />
   
   <Color name="LetBinding"          foreground="#7030A0" />
   <Color name="LetRec"              foreground="#B03080" />
@@ -546,6 +546,20 @@
         </Span>
       </RuleSet>
     </Span>   
+    <Span multiline="true">
+      <!-- for an opening bracket alone on a  line ( after white): -->
+      <Begin color="Punctuation">^ \s* \{ \s* $</Begin> 
+      <End color="Punctuation">\}</End> 
+      <RuleSet>        
+        <Import ruleSet="_RecordItemSet"/> 
+        <Import ruleSet="CodeMain"/>  
+        <Span ruleSet="RecordSet" multiline="true">
+            <Begin>\{</Begin>
+            <End>\}</End>
+        </Span>
+      </RuleSet>
+    </Span>   
+
   </RuleSet>
 
   
