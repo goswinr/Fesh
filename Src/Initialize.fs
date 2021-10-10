@@ -22,22 +22,20 @@ module Initialize =
 
         // to still show-tooltip-when a button(or menu item )  is disabled-by-command
         //https://stackoverflow.com/questions/4153539/wpf-how-to-show-tooltip-when-button-disabled-by-command
-        Controls.ToolTipService.ShowOnDisabledProperty.OverrideMetadata(  typeof<Controls.Control>, new FrameworkPropertyMetadata(true))
-        Controls.ToolTipService.ShowDurationProperty.OverrideMetadata(    typeof<DependencyObject>, new FrameworkPropertyMetadata(Int32.MaxValue))
-        Controls.ToolTipService.InitialShowDelayProperty.OverrideMetadata(typeof<DependencyObject>, new FrameworkPropertyMetadata(50))
+        Controls.ToolTipService.ShowOnDisabledProperty.OverrideMetadata  (typeof<Controls.Control>, new FrameworkPropertyMetadata( true )             )
+        Controls.ToolTipService.ShowDurationProperty.OverrideMetadata    (typeof<DependencyObject>, new FrameworkPropertyMetadata( Int32.MaxValue )   )
+        Controls.ToolTipService.InitialShowDelayProperty.OverrideMetadata(typeof<DependencyObject>, new FrameworkPropertyMetadata( 50 )               )
 
         /// ------------------ Log and Config --------------------
 
 
-        let log    = Log.Create() // this should be done as early as possibel so that logging works
+        let log  = Log.Create() // this should be done as early as possibel so that logging works
 
         let appname = match mode with Some n -> "Seff." + n.hostName |None -> "Seff"
         FsEx.Wpf.ErrorHandeling.setup (appname, fun () ->
             // TODO attempt to save files before closing ?
             // or save anyway every 2 minutes to backup folder if less than 10k lines
-
             log.FsiErrorStream.ToString() ) // do as soon as log exists
-
 
         let config = new Config(log, mode, startupArgs)
         log.AdjustToSettingsInConfig(config)
@@ -45,7 +43,7 @@ module Initialize =
         Seff(config, log)
 
 
-        // not needed (yet)?
+        // not needed?
         //try
         //    // so that wpf textboxes that are bound to floats can have a dot input too. see https://stackoverflow.com/a/35942615/969070
         //    // setting this might fails when a hosting WPF process is alread up and running (eg loaded in another WPF thread)

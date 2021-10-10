@@ -78,6 +78,45 @@ module General =
 module Str  = 
     open System.Text.RegularExpressions
 
+    /// Trims strings to 80 chars for showing in in one line.
+    /// It returns the input string trimmed to 80 chars, a count of skiped characters and the last 5 characters
+    /// Replace line breaks with '\r\n' or '\n' literal
+    /// Does not include surrounding quotes
+    /// If string is null returns "-null string-"
+    let truncateFormatedInOneLine (stringToTrim:string) :string = 
+        if isNull stringToTrim then "-null string-"
+        else
+            let s = 
+                let maxChars = 80
+                if stringToTrim.Length <= maxChars + 20 then  stringToTrim
+                else
+                    let len   = stringToTrim.Length
+                    let st    = stringToTrim.Substring(0,maxChars)
+                    let last5 = stringToTrim.Substring(len-6)
+                    sprintf "%s[..%d more Chars..]%s" st (len - maxChars - 5) last5
+            s.Replace("\r","\\r").Replace("\n","\\n")
+
+    /// Trims strings ot maximum line count.
+    /// Adds note about trimmed line count if there are more [ ... and %d more lines.]
+    /// Does not include surrounding quotes
+    /// If string is null returns "-null string-"
+    let truncateToMaxLines (lineCount:int) (stringToTrim:string) :string = 
+        if isNull stringToTrim then "-null string-"
+        else
+            let lns = stringToTrim.Split([|'\n'|],StringSplitOptions.None)
+            let t = 
+                lns
+                |> Seq.truncate lineCount
+                |> Seq.map ( fun l -> l.TrimEnd() )
+                |> String.concat Environment.NewLine
+
+            if lns.Length > lineCount then 
+                sprintf "%s\%s[ ... and %d more lines.]" t Environment.NewLine (lns.Length - lineCount)
+            else
+                t
+
+
+
     // ensures all lines end on Environment.NewLine
     let unifyLineEndings (s:string) = 
         //Text.StringBuilder(s).Replace("\r\n", "\n").Replace("\r", "\n").Replace("\n", Environment.NewLine).ToString()

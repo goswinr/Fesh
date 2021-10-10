@@ -208,7 +208,7 @@ type Commands (grid:TabsAndLog, statusBar:SeffStatusBar)  =
                  this.ClearLog
                  this.CancelFSI
                  this.ResetFSI
-                 if config.Hosting.IsHosted then this.ToggleSync
+                 //if config.Hosting.IsHosted then this.ToggleSync
                  this.CompileScriptSDK
                  this.CompileScriptMSB
 

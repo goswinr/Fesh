@@ -7,7 +7,6 @@ open System.Text
 open System.Windows.Controls
 open System.Windows
 
-
 open AvalonLog.Brush
 
 open Seff
@@ -64,7 +63,7 @@ type Log private () =
     let textWriterConsoleOut    =  log.GetTextWriter   ( LogColors.consoleOut )
     let textWriterConsoleError  =  log.GetTextWriter   ( LogColors.consoleError)
     let textWriterFsiStdOut     =  log.GetTextWriter   ( LogColors.fsiStdOut )
-    let textWriterFsiErrorOut   =  log.GetTextWriterIf ( (fun s -> fsiErrorStream.Append(s)|> ignore; true) ,  LogColors.fsiErrorOut) // use filter for side effect
+    let textWriterFsiErrorOut   =  log.GetConditionalTextWriter ( (fun s -> fsiErrorStream.Append(s)|> ignore; true) ,  LogColors.fsiErrorOut) // use filter for side effect
 
 
     //-----------------------------------------------------------
@@ -199,4 +198,33 @@ type Log private () =
         ISeffLog.printColor  <- l.PrintColor
         ISeffLog.printnColor <- l.PrintnColor
         ISeffLog.clear       <- l.Clear
+
+        // these two wher part of FSI initilizing in the past
+        Console.SetOut  (l.TextWriterConsoleOut)   // TODO needed to redirect printfn or coverd by TextWriterFsiStdOut? //https://github.com/fsharp/FSharp.Compiler.Service/issues/201
+        Console.SetError(l.TextWriterConsoleError) // TODO needed if evaluate non throwing or coverd by TextWriterFsiErrorOut?
+        
         l
+   
+        (*
+        trying to enable Ansi Control sequences for https://github.com/spectreconsole/spectre.console
+
+        but doeant work yet ESC char seam to be swallowed by Console.SetOut to textWriter. see:
+
+        //https://stackoverflow.com/a/34078058/969070
+        //let stdout = Console.OpenStandardOutput()
+        //let con = new StreamWriter(stdout, Encoding.ASCII)      
+        
+        The .Net Console.WriteLine uses an internal __ConsoleStream that checks if the Console.Out is as file handle or a console handle. 
+        By default it uses a console handle and therefor writes to the console by calling WriteConsoleW. In the remarks you find:
+        
+        Although an application can use WriteConsole in ANSI mode to write ANSI characters, consoles do not support ANSI escape sequences. 
+        However, some functions provide equivalent functionality. For more information, see SetCursorPos, SetConsoleTextAttribute, and GetConsoleCursorInfo.
+        
+        To write the bytes directly to the console without WriteConsoleW interfering a simple filehandle/stream will do which is achieved by calling OpenStandardOutput. 
+        By wrapping that stream in a StreamWriter so we can set it again with Console.SetOut we are done. The byte sequences are send to the OutputStream and picked up by AnsiCon.
+  
+        let strWriter = l.AvalonLog.GetStreamWriter( LogColors.consoleOut) // Encoding.ASCII ??  
+        Console.SetOut(strWriter)
+        *)
+
+      

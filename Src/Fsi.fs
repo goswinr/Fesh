@@ -87,7 +87,7 @@ type Fsi private (config:Config) =
         with e->
             log.PrintfnFsiErrorMsg "setFileAndLine on FSI failed: %A" e
 
-    [< Security.SecurityCritical >] // TODO do these Attributes appy in to async thread too ?
+    [< Security.SecurityCritical >] // TODO, do these Attributes apply in to async thread too ?
     [< Runtime.ExceptionServices.HandleProcessCorruptedStateExceptions >] //to handle AccessViolationException too //https://stackoverflow.com/questions/3469368/how-to-handle-accessviolationexception/4759831
     let init() = 
         match state with
@@ -143,9 +143,7 @@ type Fsi private (config:Config) =
                 let fsiSession = FsiEvaluationSession.Create(fsiConfig, allArgs, inStream, log.TextWriterFsiStdOut, log.TextWriterFsiErrorOut) //, collectible=false ??) //https://github.com/dotnet/fsharp/blob/6b0719845c928361e63f6e38a9cce4ae7d621fbf/src/fsharp/fsi/fsi.fs#L2440
 
                 //AppDomain.CurrentDomain.UnhandledException.AddHandler (new UnhandledExceptionEventHandler( (new ProcessCorruptedState(config)).Handler)) //Add(fun ex -> log.PrintfnFsiErrorMsg "*** FSI AppDomain.CurrentDomain.UnhandledException:\r\n %A" ex.ExceptionObject)
-                Console.SetOut  (log.TextWriterConsoleOut)   // TODO needed to redirect printfn or coverd by TextWriterFsiStdOut? //https://github.com/fsharp/FSharp.Compiler.Service/issues/201
-                Console.SetError(log.TextWriterConsoleError) // TODO needed if evaluate non throwing or coverd by TextWriterFsiErrorOut?
-
+                
                 //fsiSession.Run() // TODO ? dont do this it crashes the app when hosted in Rhino!
                 state <- Ready
                 sessionOpt <- Some fsiSession
@@ -237,7 +235,7 @@ type Fsi private (config:Config) =
                             do! Async.SwitchToContext SyncWpf.context
 
                         thread <- None
-                        state <- Ready //TODO reached when canceled ?
+                        state <- Ready //TODO reached when canceled ? wrap in try..finally.. ?
 
                         match choice with //TODO move out of Thread?
                         |Choice1Of2 vo ->
@@ -262,7 +260,7 @@ type Fsi private (config:Config) =
                                 if config.Hosting.IsHosted && mode = FsiMode.Async472 && isNull exn.StackTrace  then
                                     log.PrintfnFsiErrorMsg "FSI evaluation was canceled,\r\nif you did not trigger this cancellation try running FSI in Synchronos evaluation mode (instead of Async)."
                                 else
-                                    log.PrintfnFsiErrorMsg "FSI evaluation was canceled by user!" //:\r\n%A" exn.StackTrace  //: %A" exn
+                                    log.PrintfnInfoMsg "FSI evaluation was canceled by user!" //:\r\n%A" exn.StackTrace  //: %A" exn
 
                             | :? FsiCompilationException ->
                                 runtimeErrorEv.Trigger(exn)

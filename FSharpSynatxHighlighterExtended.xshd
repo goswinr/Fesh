@@ -53,7 +53,7 @@
   <Color name="LetRec"              foreground="#B03080" />
   <Color name="LetMutable"          foreground="#D08030" />
   
-  <Color name="DocCommentStart"     foreground="#AAAAAA" /> <!-- taken from https://github.com/icsharpcode/AvalonEdit/blob/master/ICSharpCode.AvalonEdit/Highlighting/Resources/XmlDoc.xshd-->
+  <Color name="DocCommentStart"     foreground="#CCCCCC" /> <!-- taken from https://github.com/icsharpcode/AvalonEdit/blob/master/ICSharpCode.AvalonEdit/Highlighting/Resources/XmlDoc.xshd-->
   <Color name="XmlString"           foreground="#EE3333" />
   <Color name="XmlPunctuation"      foreground="#888888" />
   <Color name="KnownDocTags"        foreground="#8888EE" />
@@ -136,6 +136,9 @@
       <Begin>//</Begin>      
     </Span>
 
+  </RuleSet >
+
+  <RuleSet name="InlineCommentSet">
     <Span color="Comment" ruleSet="_CommentMarkerSet" multiline="true">
       <Begin>\(\*</Begin>
       <End>\*\)</End>      
@@ -410,7 +413,6 @@
     
 
   </RuleSet>
-
   
   <RuleSet name="PrintAndFailStatements"> 
     <Span color="FailString">  
@@ -456,6 +458,7 @@
 
   <RuleSet name="CodeMain">
     <Import ruleSet="CommentSet"/> 
+    <Import ruleSet="InlineCommentSet"/> 
     <Import ruleSet="StringSet"/>
     <Import ruleSet="KeywordSet"/>
     <Import ruleSet="PunctuationSet"/>
@@ -497,32 +500,43 @@
       (?=\s*\() # followed by (
     </Rule>
     -->      
-  
-    <Span color="LetMutable"> 
-      <Begin color= "Keywords" >\blet\s*mutable\b</Begin> 
-      <End>.\b</End> 
-    </Span>
 
     <Span color="LetRec"> 
       <Begin color= "Keywords" >\blet\s*rec\b</Begin> 
       <End>.\b</End> 
     </Span>
+
     <Span color="LetRec"> 
       <Begin color= "Keywords" >\band\b</Begin> 
       <End>.\b</End> 
+    </Span>
+    
+    <Span color="LetMutable"> 
+      <Begin color = "Keywords" > \b let \s+ mutable \s+ </Begin> 
+      <End color = "Punctuation">  \b \s* [\(=] \s* (?=[^\*])   </End> <!-- word end | maybe space| a ( or = | maybe space | next not a star -->
+      <RuleSet> 
+        <Span color="Comment" ruleSet="_CommentMarkerSet" multiline="true">
+          <Begin>\(\*</Begin>
+          <End>\*\)</End>      
+        </Span> 
+      </RuleSet>
+    </Span>
+
+    <Span color="LetBinding"> 
+      <Begin color = "Keywords" > \b let \s+ </Begin>       
+      <End color = "Punctuation">  \b \s* [\(=] \s* (?=[^\*])   </End> <!-- word end | maybe space| a ( or = | maybe space | next not a star -->
+      <RuleSet> 
+        <Import ruleSet="KeywordSet"/>
+        <Import ruleSet="InlineCommentSet"/>
+      </RuleSet>
     </Span>
 
     <Span color="TypeAnnotation"> 
       <Begin color= "Keywords" >\btype\s+</Begin> <!-- type declarations -->
       <End>.\b</End> 
     </Span>
-    
-    <Span color="LetBinding"> 
-      <Begin color= "Keywords" >\blet\s+</Begin> <!-- let bindings -->
-      <End>.\b</End> 
-    </Span>
-  </RuleSet>
 
+  </RuleSet>
 
   <RuleSet name="_RecordItemSet">
     <Span color="RecordNames" multiline="false">     
@@ -561,7 +575,6 @@
     </Span>   
 
   </RuleSet>
-
   
   <!--the main set (must not have a name attribute)-->  
   <RuleSet>   

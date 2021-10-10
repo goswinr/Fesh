@@ -4,7 +4,7 @@ open System
 open System.Windows
 open System.IO
 open System.Drawing
-open System.Windows.Forms
+//open System.Windows.Forms
 
 open Seff.Model
 open Seff.Util
@@ -123,9 +123,10 @@ module CompileScript =
             let age = DateTime.UtcNow - fi.LastWriteTimeUtc
             if age > (TimeSpan.FromHours maxAgeHours) then
                 let msg = sprintf "Do you want to recompile and overwrite the existing files?\r\n\r\n%s\r\n\r\nthat are %.2f days old at\r\n\r\n(This dialog only shows if the last compilation was more than %.1f hours ago.)"fi.FullName age.TotalDays  maxAgeHours
-                match MessageBox.Show(msg, Style.dialogCaption, MessageBoxButtons.YesNo, MessageBoxIcon.Exclamation, MessageBoxDefaultButton.Button2) with              // TODO uses Windows.Forms   ok ?
-                | DialogResult.Yes-> true
-                | DialogResult.No-> false
+                //match MessageBox.Show(msg, Style.dialogCaption, MessageBoxButtons.YesNo, MessageBoxIcon.Exclamation, MessageBoxDefaultButton.Button2) with  // uses Windows.Forms  
+                match MessageBox.Show(msg, Style.dialogCaption, MessageBoxButton.YesNo, MessageBoxImage.Exclamation, MessageBoxResult.No) with  // uses  WPF
+                | MessageBoxResult.Yes-> true
+                | MessageBoxResult.No-> false
                 | _ -> false
             else
                 true

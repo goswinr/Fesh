@@ -127,7 +127,8 @@ type Checker private (config:Config)  =
                                                                          )
 
                         for oe in optionsErr do 
-                            ISeffLog.log.PrintfFsiErrorMsg "Error in GetProjectOptionsFromScript: %A" oe
+                            let msg = sprintf "%A" oe |> Util.Str.truncateToMaxLines 3
+                            ISeffLog.log.PrintfnFsiErrorMsg "Error in GetProjectOptionsFromScript:\r\n%A" msg
 
                         //let! options, optionsErr = checker.Value.GetProjectOptionsFromScript(fileFsx, sourceText, otherFlags = [| "--langversion:preview" |] ) // Gets additional script #load closure information if applicable.
                         //for e in optionsErr do
