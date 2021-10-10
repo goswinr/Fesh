@@ -1,4 +1,4 @@
-﻿namespace Seff
+namespace Seff
 
 open System
 open System.Windows
@@ -10,7 +10,7 @@ module Initialize =
 
     let everything(mode:HostedStartUpData option, startupArgs:string[])= 
 
-        match mode with None ->  Timer.InstanceStartup.tic()   | _ -> ()  // optional timer for full init process
+        //match mode with None ->  Timer.InstanceStartup.tic()   | _ -> ()  // optional timer for full init process
 
         FsEx.Wpf.SyncWpf.installSynchronizationContext(true)    // do first
 

@@ -2,6 +2,11 @@
 
 open System
 
+()
+
+// performance timer, unused currently
+
+(*
 /// A performance timer that also measures Garbage Collection Generations.
 /// includes nice formating of ms , sec, and minutes
 /// Similar to the #time;; statement built in to FSI
@@ -17,12 +22,15 @@ type Timer() =
         |> Array.fold (fun (i,txt) _ -> i+1, sprintf "%s  G%d: %d" txt i (System.GC.CollectionCount(i) - prevGC.[i]) ) (0," ; ") //"GC:")
         |> snd
 
+
     let formatMilliSeconds ms = 
-        if ms < 0.1 then "less than 0.1 μs"
-        elif ms < 1e3 then sprintf "%.1f μs" ms         //less than 1 sec
+        if ms < 0.001 then "less than 0.001 ms"
+        elif ms < 1.0 then sprintf "%.3f ms" (ms)       //less than 1  millisec
+        elif ms < 10. then sprintf "%.2f ms" (ms)       //less than 10 millisec
+        elif ms < 1e3 then sprintf "%.1f ms" ms         //less than 1  sec
         elif ms < 1e4 then sprintf "%.2f sec" (ms/1e3)  //less than 10 sec
         elif ms < 6e4 then sprintf "%.1f sec" (ms/1e3)  //less than 1 min
-        else sprintf "%.0f min %.0f sec" (Math.Floor (ms/6e4)) ((ms % 6e4)/1e3)
+        else      sprintf "%.0f min %.0f sec" (Math.Floor (ms/6e4)) ((ms % 6e4)/1e3)
 
     let ticWithGC (sw:Diagnostics.Stopwatch) (kGC:int[]) = 
         sw.Reset();  GC.Collect() ;  GC.WaitForPendingFinalizers()
@@ -65,5 +73,6 @@ type Timer() =
     ///Stops Timer
     member this.stop() =  stopWatch.Stop()
 
-    // an instance of a timer to be used to measure statup performance
+    /// an instance of a timer to be used to measure statup performance
     static member val InstanceStartup = Timer()
+*)
