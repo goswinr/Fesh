@@ -81,12 +81,55 @@ type Checker private (config:Config)  =
                     |SetTo fi ->
                         let n = fi.FullName
                         if not <| n.EndsWith(".fsx",StringComparison.InvariantCultureIgnoreCase) then n + ".fsx" else n // required by FCS, oddly !
-                    |NotSet -> "UnSavedFile.fsx" // .fsx file required by FCS , oddly ! //TODO check if file can contain invald path characters like *
+                    |NotSet -> 
+                        // TODO this name should be unique even for unsaved files !!for caching
+                        // Used to differentiate between scripts, to consider each script a separate project.
+                        "UnSavedFile.fsx" // .fsx file required by FCS , oddly ! //TODO check if file can contain invald path characters like *
 
                 if !checkId = thisId  then
                     try
                         let sourceText = Text.SourceText.ofString codeInChecker.FsCode
-                        let! options, optionsErr = checker.Value.GetProjectOptionsFromScript(fileFsx, sourceText, otherFlags = [| "--langversion:preview" |] ) // Gets additional script #load closure information if applicable.
+                        // <summary>
+                        // <para>For a given script file, get the FSharpProjectOptions implied by the #load closure.</para>
+                        // <para>All files are read from the FileSystem API, except the file being checked.</para>
+                        // </summary>
+                        //
+                        // <param name="filename">Used to differentiate between scripts, to consider each script a separate project. Also used in formatted error messages.</param>
+                        // <param name="source">The source for the file.</param>
+                        // <param name="previewEnabled">Is the preview compiler enabled.</param>
+                        // <param name="loadedTimeStamp">Indicates when the script was loaded into the editing environment,
+                        // so that an 'unload' and 'reload' action will cause the script to be considered as a new project,
+                        // so that references are re-resolved.</param>
+                        // <param name="otherFlags">Other flags for compilation.</param>
+                        // <param name="useFsiAuxLib">Add a default reference to the FSharp.Compiler.Interactive.Settings library.</param>
+                        // <param name="useSdkRefs">Use the implicit references from the .NET SDK.</param>
+                        // <param name="assumeDotNetFramework">Set up compilation and analysis for .NET Framework scripts.</param>
+                        // <param name="sdkDirOverride">Override the .NET SDK used for default references.</param>
+                        // <param name="optionsStamp">An optional unique stamp for the options.</param>
+                        // <param name="userOpName">An optional string used for tracing compiler operations associated with this request.</param>
+                        let! options, optionsErr = 
+                                checker.Value.GetProjectOptionsFromScript(filename          = fileFsx
+                                                                         ,source            =sourceText
+                                                                         //,previewEnabled    = true // TODO
+                                                                         //,loadedTimeStamp: DateTime *
+                                                                         ,otherFlags       = [| "--langversion:preview" |] 
+                                                                         //,?useFsiAuxLib: bool *
+                                                                         #if NETFRAMEWORK
+                                                                         ,useSdkRefs        =false
+                                                                         ,assumeDotNetFramework = true
+                                                                         #else
+                                                                         ,useSdkRefs        =true
+                                                                         ,assumeDotNetFramework = false
+                                                                         #endif
+                                                                         //,sdkDirOverride: string *
+                                                                         //,optionsStamp: int64 *
+                                                                         //,userOpName: string
+                                                                         )
+
+                        for oe in optionsErr do 
+                            ISeffLog.log.PrintfFsiErrorMsg "Error in GetProjectOptionsFromScript: %A" oe
+
+                        //let! options, optionsErr = checker.Value.GetProjectOptionsFromScript(fileFsx, sourceText, otherFlags = [| "--langversion:preview" |] ) // Gets additional script #load closure information if applicable.
                         //for e in optionsErr do
                         //    these error show up for example when a #r refrence is in wrong syntax, butt checker shows this erroe too
                         //    log.PrintfnAppErrorMsg "ERROR in GetProjectOptionsFromScript: %A" e
