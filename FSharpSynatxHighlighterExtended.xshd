@@ -23,8 +23,6 @@
   <Color name="StringFormating"     foreground="#990099" />
   <Color name="StringEscaped"       foreground="#7050DC" />  
   <Color name="Char"                foreground="#FF0040" />
-  
-
 
   <Color name="CompilerDirectives"  foreground="#FF8800" /> <!-- eg: #if COMPILED-->
 
@@ -34,7 +32,7 @@
   <Color name="LoadNuget"           foreground="#CD10A0" fontWeight="bold" /> <!-- #r the nuget name -->
   <Color name="LoadPath"            foreground="#0000B0" /> <!-- for #I path -->
   
-  <Color name="Punctuation"         foreground="#0099FF" />
+  <Color name="Punctuation"         foreground="#4488FF" />
   <Color name="Attributes"          foreground="#AA88AA" />  
   <Color name="Keywords"            foreground="#0000DD" /> <!--fontWeight="bold" -->
   <Color name="ReservedKeywords"    foreground="#7777FF" /> <!--fontWeight="bold" -->
@@ -65,9 +63,9 @@
 
 
   <!-- Regexes that are listed higer have precedence of lower positions in this list
-  Spans are overwriting rules even if rule apers before the span!-->
+  Spans are overwriting rules even if rule apears before the span!-->
 
-  <RuleSet name="DocCommentSet">
+  <RuleSet name="_DocCommentSet">
     <Span color="DocComment">
       <Begin color="XmlPunctuation">&lt;</Begin>
       <End color="XmlPunctuation">&gt;</End>
@@ -111,7 +109,7 @@
     </Span>
   </RuleSet>
   
-  <RuleSet name="CommentMarkerSet">
+  <RuleSet name="_CommentMarkerSet">
     <Keywords color="TODO">
       <Word>TODO</Word>
       <Word>FIXME</Word>
@@ -124,20 +122,21 @@
     </Keywords>
   </RuleSet >
   
-  <RuleSet name="CommentSet">
+  <RuleSet name="CommentSet">  
+
     <Span color="DocComment">
       <Begin color="DocCommentStart">///(?!/)</Begin>
       <RuleSet>
-        <Import ruleSet="DocCommentSet"/>
-        <Import ruleSet="CommentMarkerSet"/>
+        <Import ruleSet="_DocCommentSet"/>
+        <Import ruleSet="_CommentMarkerSet"/>
       </RuleSet>
     </Span>
 
-    <Span color="Comment" ruleSet="CommentMarkerSet">
+    <Span color="Comment" ruleSet="_CommentMarkerSet">
       <Begin>//</Begin>      
     </Span>
 
-    <Span color="Comment" ruleSet="CommentMarkerSet" multiline="true">
+    <Span color="Comment" ruleSet="_CommentMarkerSet" multiline="true">
       <Begin>\(\*</Begin>
       <End>\*\)</End>      
     </Span> 
@@ -258,7 +257,7 @@
     </Keywords>
   </RuleSet>
   
-  <RuleSet name="StringEscapeSet"> 
+  <RuleSet name="_StringEscapeSet"> 
     <!-- using just a Rule does not work !-->
     <!-- https://docs.microsoft.com/en-us/dotnet/fsharp/language-reference/strings -->    
     <Span color="StringEscaped"><Begin>\\[abfnrtv\\"']  </Begin>  <End>(?=.)</End> </Span>
@@ -269,17 +268,22 @@
     <Span color="StringEscaped"><Begin>\\x[0-9a-fA-F]{2}</Begin>  <End>(?=.)</End> </Span> 
   </RuleSet >
   
-  <RuleSet name="StringFormatSet">
+  <RuleSet name="_StringFormatSet">
     <!-- using just a Rule does not work !-->
     <Span color="StringEscaped"><Begin>%</Begin>  <End>[sfd%bciuxXoeEfFgGeEgGMOAAat]</End> </Span> 
   </RuleSet >
   
-  <RuleSet name="StringDollarFormatSet">
+  <RuleSet name="_StringDollarFormatSet">
     <!-- using just a Rule does not work !-->
-    <Span color="StringEscaped"><Begin>\{</Begin>  <End>\}</End> </Span> 
+    <Span color="StringEscaped">
+      <Begin>\{</Begin>  
+      <End>\}</End> 
+      <RuleSet>
+        <!-- <Import ruleSet="import all codse rules here"/> -->
+      </RuleSet>
+    </Span> 
   </RuleSet >
   
-
   <RuleSet name="LoadDllSet">
 
     <!-- compiler directives: -->
@@ -334,7 +338,7 @@
       <Begin>'(?=\\)|'.(?=')</Begin>  <!-- a ' followed by one or zero \ then any char and then anoter ' in look ahead-->
       <End>'</End>     
       <RuleSet>
-        <Import ruleSet="StringEscapeSet"/>
+        <Import ruleSet="_StringEscapeSet"/>
       </RuleSet>
     </Span>
     
@@ -352,8 +356,8 @@
       <Begin>\$"</Begin>  
       <End>"</End>    
       <RuleSet>
-        <Import ruleSet="StringDollarFormatSet"/>
-        <Import ruleSet="StringEscapeSet"/>
+        <Import ruleSet="_StringDollarFormatSet"/>
+        <Import ruleSet="_StringEscapeSet"/>
       </RuleSet>
     </Span>
 
@@ -361,24 +365,59 @@
       <Begin>"</Begin>  
       <End>"</End>    
       <RuleSet>
-        <Import ruleSet="StringEscapeSet"/>
+        <Import ruleSet="_StringEscapeSet"/>
       </RuleSet>
     </Span>
+  </RuleSet>
+  
 
+  <RuleSet name="_TypeParameterSet"> 
+    <Span color="TypeAnnotation" multiline="false" >       
+      <Begin color="Punctuation">&lt;</Begin> 
+      <End color="Punctuation">&gt;</End>
+      <RuleSet>
+        <Span ruleSet="_TypeParameterSet" multiline="false">
+          <!--calls itself recursivly https://stackoverflow.com/a/63218566/969070 --> 
+          <Begin color="Punctuation"> &lt; </Begin>
+          <End   color="Punctuation">   &gt; </End> 
+        </Span> 
+        <Rule color="Punctuation">[ , \[ \] * ]</Rule>
+      </RuleSet>
+    </Span>
+  </RuleSet>
 
-
+  <RuleSet name="TypeAnnotationSet"> 
+    <Span color="TypeAnnotation" multiline="false" >       
+      <Begin color="Punctuation"> \) \s* : \s* \b</Begin> <!-- a closing bracket, 0 or more space- , colon, 0 or more space, word boundary-->
+      <End color="Punctuation">[ \) , ; = \} ]</End>
+      <RuleSet>
+        <Import ruleSet="_TypeParameterSet"/>
+        <Rule color="Punctuation">[ , \[ \] * ]</Rule>
+      </RuleSet>
+    </Span>
+    
+    <Span color="TypeAnnotation" multiline="false" >       
+      <Begin color="Punctuation"> \b \s* : \s* \b</Begin> <!-- word boundary , 0 or more space- , colon, 0 or more space, word boundary-->
+      <End color="Punctuation">(?= [ \) , ; = \} ] )</End> <!-- positive look ahead to not capture a bracket sinse it may indicate the next type anno-->
+      <RuleSet>
+        <Import ruleSet="_TypeParameterSet"/>
+        <Rule color="Punctuation">[ , \[ \] * ]</Rule>
+      </RuleSet>
+    </Span>
+    
 
   </RuleSet>
 
-  <RuleSet name="TypeAnnotationSet">         
+
+  <RuleSet name="TypeAnnotationSetOLD">         
     <Span color="TypeAnnotation" multiline="false" > 
       <!-- to match one colon but not two: negative look behind for a colon, then the colon, then negative look ahead for a colon. 
           then any char but not <>=); and then a look ahead for <
-           All that wraped in CDATA because xml readers fails on negative look behind tag  ?<!    -->
+          All that wraped in CDATA because xml readers fails on negative look behind tag  ?<!    -->
       <Begin color="TypeAnnotation"><![CDATA[(?<!:):(?!:)[^<>=);]+(?=<)]]></Begin> 
       <End color="Punctuation">&gt;|\}</End>  
       <!-- <End color="Punctuation">[ \) , ; = ]</End>   -->
-       <RuleSet>
+      <RuleSet>
         <Rule color="Punctuation">[,\[\]*&lt;&gt;]</Rule>
       </RuleSet>
     </Span>    
@@ -388,7 +427,7 @@
            All that wraped in CDATA because xml readers fails on negative look behind tag  ?<!    -->
       <Begin color="Punctuation"><![CDATA[(?<!:):(?!:)]]></Begin> 
       <End color="Punctuation">[ \) , ; = &lt; \} ]</End>
-       <RuleSet>
+      <RuleSet>
         <Rule color="Punctuation">[ , \[ \] * &lt; &gt; ]</Rule>
       </RuleSet>
     </Span>
@@ -409,21 +448,54 @@
       </RuleSet>
     </Span> 
   </RuleSet>
- 
+
   <RuleSet name="PunctuationSet">         
     <Rule color="Punctuation">[ \[ \]  \| \\ \( \) &lt; &gt; &amp; ? , . :  { } + \- * ^ ~ ! / % = ]</Rule>
   </RuleSet>
   
-  
-  <!--the main set (must not have a name attribute)-->
-  <RuleSet> 
-    <Import ruleSet="LoadDllSet"/> 
-    <Import ruleSet="CommentSet"/> 
-    <Import ruleSet="StringSet"/>
-    <Import ruleSet="KeywordSet"/>
-    <Import ruleSet="TypeAnnotationSet"/>
-    <Import ruleSet="RecordSet"/>
-    <Import ruleSet="PunctuationSet"/>
+  <RuleSet name="PrintAndFailStatements"> 
+    <Span color="FailString">  
+      <Begin color= "FailPath" >failwithf?\s*"</Begin>  
+      <End   color= "FailPath" >"</End>      
+      <RuleSet>
+        <Import ruleSet="_StringEscapeSet"/>
+        <Import ruleSet="_StringFormatSet"/>
+      </RuleSet>
+    </Span>
+
+    <Span color="FailString">  <!-- for failIfFalse and failIfNull. part of FsEx.dll-->
+      <Begin color= "FailPath" >failIf\w+\s*\(?\s*"</Begin>  
+      <End   color= "FailPath" >"</End>      
+      <RuleSet>
+        <Import ruleSet="_StringEscapeSet"/>
+        <!-- <Import ruleSet="_StringFormatSet"/> formating not possible in failIfFalse and simliar functions -->
+      </RuleSet>
+    </Span>
+
+    <!-- in case they are followed by a name and not a literal string starting with "-->
+    <Keywords color = "PrintStatement">
+      <Word>print</Word> <!-- part of FsEx.dll-->
+      <Word>print2</Word>
+      <Word>print3</Word>
+      <Word>printFull</Word>
+
+      <Word>printf</Word>
+      <Word>printfn</Word>      
+      <Word>eprintf</Word>
+      <Word>eprintfn</Word>
+    </Keywords>
+
+    <Span color="PrintString" >      
+      <Begin color= "PrintStatement" >\be?print2?f?n?\s*"</Begin> 
+      <End   color= "PrintStatement" >"</End>     
+      <RuleSet>
+        <Import ruleSet="_StringEscapeSet"/>
+        <Import ruleSet="_StringFormatSet"/>
+      </RuleSet>
+    </Span>
+  </RuleSet>
+
+  <RuleSet name="CodeMain">
 
     <!-- a hex number | binary number | (number just starting with floating point | with optional inner floating point) and an optional exponent. https://regexr.com/52d6q -->
     <Rule color="NumberLiteral">\b0[xX][0-9a-fA-F_]+|\b0[bB][01_]+|((-\.|\.)[0-9_]+|(\b|-)[0-9_]+\.?[0-9_]*)([eE][+-]?[0-9]+)? </Rule>
@@ -459,71 +531,50 @@
       [\d\w_]+  # an identifier
       (?=\s*\() # followed by (
     </Rule>
-    -->   
-    
+    -->      
   
     <Span color="LetMutable"> 
       <Begin color= "Keywords" >\blet\s*mutable\b</Begin> 
-      <End color="Punctuation" >[=\s\(]</End> 
+      <!-- <End color="Punctuation" >[=\s\(]</End>  -->
+      <End>\b</End> 
     </Span>
 
     <Span color="LetRec"> 
       <Begin color= "Keywords" >\blet\s*rec\b</Begin> 
-      <End color="Punctuation" >[=\s\(]</End> 
+      <!-- <End color="Punctuation" >[=\s\(]</End>  -->
+      <End>\b</End> 
     </Span>
     <Span color="LetRec"> 
       <Begin color= "Keywords" >\band\b</Begin> 
-      <End color="Punctuation" >[=\s\(]</End> 
+      <!-- <End color="Punctuation" >[=\s\(]</End>  -->
+      <End>\b</End> 
     </Span>
 
     <Span color="TypeAnnotation"> 
       <Begin color= "Keywords" >\btype\s+</Begin> <!-- type declarations -->
-      <End color="Punctuation" >[=\s\(]</End> 
+      <!-- <End color="Punctuation" >[=\s\(]</End>  -->
+      <End>\b</End> 
     </Span>
     
     <Span color="LetBinding"> 
       <Begin color= "Keywords" >\blet\s+</Begin> <!-- let bindings -->
-      <End color="Punctuation" >[ = \s \( ]</End> 
+      <!-- <End color="Punctuation" >[ = \s \( ]</End>  -->
+      <End>\b</End> 
     </Span>
+  </RuleSet>
 
-    <Span color="FailString">  
-      <Begin color= "FailPath" >failwithf?\s*"</Begin>  
-      <End   color= "FailPath" >"</End>      
-      <RuleSet>
-        <Import ruleSet="StringEscapeSet"/>
-        <Import ruleSet="StringFormatSet"/>
-      </RuleSet>
-    </Span>
+  
+  <!--the main set (must not have a name attribute)-->  
+  <RuleSet>   
+    <Import ruleSet="LoadDllSet"/> 
+    <Import ruleSet="CommentSet"/> 
+    <Import ruleSet="StringSet"/>
+    <Import ruleSet="KeywordSet"/>
+    <Import ruleSet="PunctuationSet"/>
+    <Import ruleSet="TypeAnnotationSet"/>
+    <Import ruleSet="PrintAndFailStatements"/>
+    <Import ruleSet="CodeMain"/>
 
-    <Span color="FailString">  <!-- for failIfFalse and failIfNull. part of FsEx.dll-->
-      <Begin color= "FailPath" >failIf\w+\s*\(?\s*"</Begin>  
-      <End   color= "FailPath" >"</End>      
-      <RuleSet>
-        <Import ruleSet="StringEscapeSet"/>
-        <!-- <Import ruleSet="StringFormatSet"/> formating not possible in failIfFalse and simliar functions -->
-      </RuleSet>
-    </Span>
-
-    <!-- in case they are followed by a name and not a literal string starting with "-->
-    <Keywords color = "PrintStatement">
-      <Word>print</Word> <!-- part of FsEx.dll-->
-      <Word>print2</Word>
-      <Word>print3</Word>
-      <Word>printFull</Word>
-
-      <Word>printf</Word>
-      <Word>printfn</Word>      
-      <Word>eprintf</Word>
-      <Word>eprintfn</Word>
-    </Keywords>
-
-    <Span color="PrintString" >      
-      <Begin color= "PrintStatement" >\be?print2?f?n?\s*"</Begin> 
-      <End   color= "PrintStatement" >"</End>     
-      <RuleSet>
-        <Import ruleSet="StringEscapeSet"/>
-        <Import ruleSet="StringFormatSet"/>
-      </RuleSet>
-    </Span>
+    <!-- <Import ruleSet="RecordSet"/> does not work well  -->
   </RuleSet>
 </SyntaxDefinition>
