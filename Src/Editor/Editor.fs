@@ -69,7 +69,7 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
         //avaEdit.TextArea.TextView.CurrentLineBorder <- new Pen(Brushes.Gainsboro|> Brush.freeze, 2.0) |> Util.Pen.freeze
 
         //avaEdit.TextArea.AllowCaretOutsideSelection <- true
-        SyntaxHighlighting.setFSharp(avaEdit,config,false)
+        SyntaxHighlighting.setFSharp(avaEdit,false)
 
         search.MatchCase  <- true //config.Settings.GetBool("SearchMatchCase", true) // TODO how to save chnages ?
         search.WholeWords <- true //config.Settings.GetBool("SearchWholeWords", true)

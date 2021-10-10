@@ -21,7 +21,7 @@ module SyntaxHighlighting =
 
     let mutable filePath = ""
 
-    let setFSharp (ed:TextEditor, config:Config, forceReLoad) = //must be a function to be calld at later moment.
+    let setFSharp (ed:TextEditor, forceReLoad) = //must be a function to be calld at later moment.
         if fsHighlighting.IsNone || forceReLoad then
             async{
                 try
@@ -36,15 +36,43 @@ module SyntaxHighlighting =
                     fsHighlighting <- Some fsh
                     do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context
                     ed.SyntaxHighlighting <- fsh
-                    if forceReLoad then config.Log.PrintfnInfoMsg "loaded syntax highlighting from: %s" path
+                    if forceReLoad then ISeffLog.log.PrintfnInfoMsg "loaded syntax highlighting from: %s" path
                 with e ->
-                    config.Log.PrintfnAppErrorMsg "Error loading Syntax Highlighting: %A" e
+                    ISeffLog.log.PrintfnAppErrorMsg "Error loading Syntax Highlighting: %A" e
                 } |> Async.Start
         else
             ed.SyntaxHighlighting <- fsHighlighting.Value
+    
 
+    
+    let private xlsWatcher = new FileSystemWatcher()
+    let mutable private isWatching = false // to create only once the event
 
-    let openVSCode() = 
+    /// includes file system watcher for FileChanged
+    let watch(path:FileInfo,ed:TextEditor) =
+        if not isWatching && path.Exists  then 
+            let file = path.Name
+            let folder = path.DirectoryName
+            xlsWatcher.Path <- folder
+            xlsWatcher.Filter <- file
+            xlsWatcher.NotifyFilter  <-  NotifyFilters.LastWrite  
+            xlsWatcher.EnableRaisingEvents <- true // must be after setting path
+            xlsWatcher.Changed.Add (fun a ->
+                xlsWatcher.EnableRaisingEvents <- false // to not raise events twice
+                try
+                    async{
+                        do! Async.Sleep 200 // wait till file is really closed
+                        setFSharp(ed,true)                        
+                        } |> Async.StartImmediate                    
+                finally
+                    async{
+                        do! Async.Sleep 500
+                        xlsWatcher.EnableRaisingEvents <- true // to not raise events twice
+                        } |> Async.StartImmediate
+                )
+            isWatching <-true
+
+    let openVSCode(ed:TextEditor) = 
         try
             if IO.File.Exists filePath then
                 //Diagnostics.Process.Start("code", "\"" + filePath+ "\" --reuse-window") |> ignore
@@ -54,6 +82,7 @@ module SyntaxHighlighting =
                 p.StartInfo.Arguments <- String.concat " " [inQuotes;  "--reuse-window"]
                 p.StartInfo.WindowStyle <- Diagnostics.ProcessWindowStyle.Hidden
                 p.Start() |> ignore
+                watch(FileInfo filePath, ed)
             else
                 ISeffLog.log.PrintfnIOErrorMsg "File not found: %s" filePath
         with e ->

@@ -320,7 +320,7 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, statusBar:SeffStatusBar, log:
                 menuItem cmds.SettingsFolder
                 menuItem cmds.AppFolder
                 menuItem cmds.OpenXshdFile
-                menuItem cmds.ReloadXshdFile
+                //menuItem cmds.ReloadXshdFile
                 ]
             ]
         recentFilesInsertPosition <- fileMenu.Items.Count // to put recent files at bottom of file menu
