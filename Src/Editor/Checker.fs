@@ -89,6 +89,7 @@ type Checker private (config:Config)  =
                 if !checkId = thisId  then
                     try
                         let sourceText = Text.SourceText.ofString codeInChecker.FsCode
+                        // see https://github.com/dotnet/fsharp/issues/7669 for performance problems
                         // <summary>
                         // <para>For a given script file, get the FSharpProjectOptions implied by the #load closure.</para>
                         // <para>All files are read from the FileSystem API, except the file being checked.</para>
@@ -109,7 +110,7 @@ type Checker private (config:Config)  =
                         // <param name="userOpName">An optional string used for tracing compiler operations associated with this request.</param>
                         let! options, optionsErr = 
                                 checker.Value.GetProjectOptionsFromScript(filename          = fileFsx
-                                                                         ,source            =sourceText
+                                                                         ,source            = sourceText
                                                                          //,previewEnabled    = true // TODO
                                                                          //,loadedTimeStamp: DateTime *
                                                                          ,otherFlags       = [| "--langversion:preview" |] 
@@ -125,54 +126,13 @@ type Checker private (config:Config)  =
                                                                          //,optionsStamp: int64 *
                                                                          //,userOpName: string
                                                                          )
+                        
+                        // Not needed because these errors are reported by ParseAndCheckFileInProject too
+                        //for oe in optionsErr do 
+                        //    let msg = sprintf "%A" oe |> Util.Str.truncateToMaxLines 3
+                        //    ISeffLog.log.PrintfnFsiErrorMsg "Error in GetProjectOptionsFromScript:\r\n%A" msg
 
-                        for oe in optionsErr do 
-                            let msg = sprintf "%A" oe |> Util.Str.truncateToMaxLines 3
-                            ISeffLog.log.PrintfnFsiErrorMsg "Error in GetProjectOptionsFromScript:\r\n%A" msg
-
-                        //let! options, optionsErr = checker.Value.GetProjectOptionsFromScript(fileFsx, sourceText, otherFlags = [| "--langversion:preview" |] ) // Gets additional script #load closure information if applicable.
-                        //for e in optionsErr do
-                        //    these error show up for example when a #r refrence is in wrong syntax, butt checker shows this erroe too
-                        //    log.PrintfnAppErrorMsg "ERROR in GetProjectOptionsFromScript: %A" e
-
-                        // "filename">The name of the file in the project whose source is being checked
-                        // "fileversion">An integer that can be used to indicate the version of the file. This will be returned by TryGetRecentCheckResultsForFile when looking up the file.
-                        // "source">The full source for the file.
-                        // "options">The options for the project or script.
-                        // "textSnapshotInfo">
-                        //     An item passed back to 'hasTextChangedSinceLastTypecheck' (from some calls made on 'FSharpCheckFileResults') to help determine if
-                        //     an approximate intellisense resolution is inaccurate because a range of text has changed. This
-                        //     can be used to marginally increase accuracy of intellisense results in some situations.
-                        // "userOpName">An optional string used for tracing compiler operations associated with this request.
-                        (*
-                        https://github.com/dotnet/fsharp/issues/7669
-                        let parsingOptions = 
-                                {{ SourceFiles = [|"/tmp.fsx"|]
-                                ConditionalCompilationDefines = []
-                                ErrorSeverityOptions = 
-                                                        { WarnLevel = 3
-                                                        GlobalWarnAsError = false
-                                                        WarnOff = []
-                                                        WarnOn = []
-                                                        WarnAsError = []
-                                                        WarnAsWarn = [] }
-                                IsInteractive = false
-                                LightSyntax = None
-                                CompilingFsLib = false
-                                IsExe = false }}
-                                CompilingFsLib: false
-                                ConditionalCompilationDefines: Length = 0
-                                ErrorSeverityOptions: {{ WarnLevel = 3
-                                GlobalWarnAsError = false
-                                WarnOff = []
-                                WarnOn = []
-                                WarnAsError = []
-                                WarnAsWarn = [] }}
-                                IsExe: false
-                                IsInteractive: false
-                                LightSyntax: null
-                                SourceFiles: {string[1]}
-                                *)
+                       
                         if !checkId = thisId  then
                             try
                                 //log.PrintfnDebugMsg "checking %A" iEditor.FileInfo
