@@ -18,7 +18,8 @@ open Seff.Model
 module private EvaluationTrackerRendererUtil = 
 
     //let backGround = Brushes.Teal |> brighter 230 |> freeze
-    let backGround = Brushes.Ivory |> brighter 5   |> freeze
+    //let backGround = Brushes.Ivory |> brighter 5   |> freeze
+    let backGround = Brushes.LightGray |> brighter 30   |> freeze
 
     //let pen = new Pen(Brushes.Black |> freeze , 0.5)  |> Pen.freeze
     //let border = new Pen( Brushes.Teal |> freeze , 0.7)  |> Pen.freeze
@@ -34,13 +35,13 @@ module private EvaluationTrackerRendererUtil =
 
     /// c<>' ' &&  c <> '\r' &&  c <> '\n'
     let inline isNonWhite(c:Char) = 
-        c<>' '
+        c     <> ' '
         &&  c <> '\r'
         &&  c <> '\n'
 
     /// c=' '  ||  c = '\r'  ||  c = '\n'
     let inline isWhite(c:Char) = 
-        c=' '
+        c     = ' '
         ||  c = '\r'
         ||  c = '\n'
 
@@ -81,7 +82,7 @@ type EvaluationTrackerRenderer (ed:TextEditor) =
                             if prev = '\n' then // find a line that does not start with white space
                                 true //i-1 // there is only white space till 'i' wher a paragraph starts
                             else
-                                false //-999 //a non whit but not at beginning of line
+                                false //-999 //a non white but not at beginning of line
                         else
                             keepMark this (i+1)
                 let keep = keepMark lastInEval topMostUnEvaluated
