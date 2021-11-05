@@ -33,7 +33,7 @@
   <Color name="LoadNuget"           foreground="#CD10A0" fontWeight="bold" /> <!-- #r the nuget name -->
   <Color name="LoadPath"            foreground="#0000B0" /> <!-- for #I path -->
   
-  <Color name="Punctuation"         foreground="#4488FF" />
+  <Color name="Punctuation"         foreground="#7788FF" />
   <Color name="Attributes"          foreground="#AA88AA" />  
   <Color name="Keywords"            foreground="#0000DD" /> <!--fontWeight="bold" -->
   <Color name="ReservedKeywords"    foreground="#7777FF" /> <!--fontWeight="bold" -->
@@ -47,7 +47,7 @@
   <Color name="TrueCol"             foreground="#008090" fontStyle="italic" fontWeight="bold" />
   <Color name="FalseCol"            foreground="#A70090" fontStyle="italic" fontWeight="bold" />
   <Color name="Semicolon"           foreground="#A0A0A0" />
-  <Color name="TypeAnnotation"      foreground="#1080B0" />
+  <Color name="TypeAnnotation"      foreground="#2080B0" />
   <Color name="RecordNames"         foreground="#B06000" />
   
   <Color name="LetBinding"          foreground="#7030A0" />
@@ -539,6 +539,7 @@
       <Begin color = "Keywords" > \b let \s+ mutable \s+ </Begin> 
       <End color = "Punctuation">  \b \s* [\(=] \s* (?=[^\*])   </End> <!-- word end | maybe space| a ( or = | maybe space | next not a star -->
       <RuleSet> 
+        <Import ruleSet="TypeAnnotationSet"/>
         <Span color="Comment" ruleSet="_CommentMarkerSet" multiline="true">
           <Begin>\(\*</Begin>
           <End>\*\)</End>      
@@ -552,6 +553,7 @@
       <RuleSet> 
         <Import ruleSet="KeywordSet"/>
         <Import ruleSet="InlineCommentSet"/>
+        <Import ruleSet="TypeAnnotationSet"/>
       </RuleSet>
     </Span>
 
