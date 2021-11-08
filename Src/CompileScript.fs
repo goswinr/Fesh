@@ -8,6 +8,7 @@ open System.Drawing
 
 open Seff.Model
 open Seff.Util
+open System.Text
 
 
 module CompileScript = 
@@ -75,43 +76,49 @@ module CompileScript =
     type NugetRef = {name:string; version:string}
 
 
-    let getRefs(code:string) : ResizeArray<DllRef>*ResizeArray<FsxRef>*ResizeArray<NugetRef> = 
+    let getRefs(code:string) : ResizeArray<DllRef>*ResizeArray<FsxRef>*ResizeArray<NugetRef>*string= 
         let refs = ResizeArray()
         let nugs = ResizeArray()
         let fsxs = ResizeArray()
+        let codeWithoutNugetRefs = StringBuilder()
         for ln in code.Split('\n') do
-                let tln = ln.Trim()
-                if tln.StartsWith "#r \"nuget" then
-                    match Str.between "nuget:" "\"" tln with
-                    |None -> ()
-                    |Some pkgV ->
-                        let pkg,version = 
-                            if pkgV.Contains(",")then       pkgV |> Str.splitOnce ","
-                            else                            pkgV, "*"
-                        nugs.Add {name=pkg.Trim(); version=version.Trim()}
+            let tln = ln.Trim()
+            if tln.StartsWith "#r \"nuget" then
+                codeWithoutNugetRefs.Append "// "  |> ignore 
+                match Str.between "nuget:" "\"" tln with
+                |None -> ()
+                |Some pkgV ->
+                    let pkg,version = 
+                        if pkgV.Contains(",")then       pkgV |> Str.splitOnce ","
+                        else                            pkgV, "*"
+                    nugs.Add {name=pkg.Trim(); version=version.Trim()}
 
-                elif tln.StartsWith "#r " then
-                    let _,path,_ = Str.splitTwice "\""  "\"" tln // get part in quotes
-                    let stPath = path.Replace ('\\','/')
-                    if stPath.Contains "/RhinoCommon.dll" then
-                        refs.Add {fullPath= Some stPath; fileName="RhinoCommon.dll" ;nameNoExt="RhinoCommon"  ;  copyLocal=false}
+            elif tln.StartsWith "#r " then
+                codeWithoutNugetRefs.Append "// "  |> ignore 
+                let _,path,_ = Str.splitTwice "\""  "\"" tln // get part in quotes
+                let stPath = path.Replace ('\\','/')
+                if stPath.Contains "/RhinoCommon.dll" then
+                    refs.Add {fullPath= Some stPath; fileName="RhinoCommon.dll" ;nameNoExt="RhinoCommon"  ;  copyLocal=false}
 
-                    elif path.Contains "/" || path.Contains "\\" then
-                        let fileName = stPath.Split('/') |> Seq.last
-                        let nameNoExt = fileName.Replace(".dll", "") // TODO make case insensitive, cover .exe
-                        refs.Add { fullPath=Some stPath; fileName=fileName ;nameNoExt=nameNoExt; copyLocal=true}
-                    else
-                        let nameNoExt = path.Replace(".dll", "") // TODO make case insensitive, cover .exe
-                        refs.Add{ fullPath=None; fileName=path ;nameNoExt=nameNoExt; copyLocal=false} // for BCL dlls of the .Net framework
+                elif path.Contains "/" || path.Contains "\\" then
+                    let fileName = stPath.Split('/') |> Seq.last
+                    let nameNoExt = fileName.Replace(".dll", "") // TODO make case insensitive, cover .exe
+                    refs.Add { fullPath=Some stPath; fileName=fileName ;nameNoExt=nameNoExt; copyLocal=true}
+                else
+                    let nameNoExt = path.Replace(".dll", "") // TODO make case insensitive, cover .exe
+                    refs.Add{ fullPath=None; fileName=path ;nameNoExt=nameNoExt; copyLocal=false} // for BCL dlls of the .Net framework
 
-                elif tln.StartsWith "#load " then
-                    let _,path,_ = Str.splitTwice "\""  "\"" tln
-                    if path <> "" then
-                        let fullPath = path.Replace ('\\','/')
-                        let nameFsx = fullPath.Split('/') |> Seq.last
-                        fsxs.Add{fullPath=fullPath; fileName=nameFsx }
+            elif tln.StartsWith "#load " then
+                codeWithoutNugetRefs.Append "// "  |> ignore 
+                let _,path,_ = Str.splitTwice "\""  "\"" tln
+                if path <> "" then
+                    let fullPath = path.Replace ('\\','/')
+                    let nameFsx = fullPath.Split('/') |> Seq.last
+                    fsxs.Add{fullPath=fullPath; fileName=nameFsx }
 
-        refs, fsxs, nugs
+            codeWithoutNugetRefs.AppendLine (ln.TrimEnd()) |> ignore 
+
+        refs, fsxs, nugs, (codeWithoutNugetRefs.ToString())
 
     let mutable version = "0.1.0.0" // TODO find way to increment
 
@@ -165,7 +172,7 @@ module CompileScript =
         }
         |> String.concat (Environment.NewLine  + "    ")
 
-    let getFsxXml (projFolder:string, nameSpace ,code, fsxloads:ResizeArray<FsxRef>) : string= 
+    let getFsxXml (projFolder:string, nameSpace, code, fsxloads:ResizeArray<FsxRef>) : string= 
         seq{
             for load in fsxloads do
                 let niceName = (
@@ -239,8 +246,8 @@ module CompileScript =
                     IO.Directory.CreateDirectory(projFolder)  |> ignore
                     let fsProj = IO.Path.Combine(projFolder,nameSpace + ".fsproj")
                     if overWriteExisting fsProj then
-                        let refs,fsxs,nugs = getRefs (code)
-                        let fsxXml = getFsxXml(projFolder, nameSpace ,code, fsxs)
+                        let refs,fsxs,nugs, codeWithoutNugetRefs = getRefs (code)
+                        let fsxXml = getFsxXml(projFolder, nameSpace ,codeWithoutNugetRefs, fsxs)
                         let refXml = getRefsXml(libFolderFull,refs)
                         let nugXml = getNugsXml(nugs)
                         baseXml
@@ -269,17 +276,14 @@ module CompileScript =
                             // for console also see https://stackoverflow.com/a/1427817/969070
                             p.StartInfo.StandardOutputEncoding <- Text.Encoding.GetEncoding(Globalization.CultureInfo.CurrentCulture.TextInfo.OEMCodePage) //https://stackoverflow.com/a/48436394/969070
                             p.StartInfo.StandardErrorEncoding  <- Text.Encoding.GetEncoding(Globalization.CultureInfo.CurrentCulture.TextInfo.OEMCodePage) //https://stackoverflow.com/a/48436394/969070
-                            //p.OutputDataReceived.Add ( fun d -> log.PrintfnColor 80 80 80 "%s" d.Data)
                             p.OutputDataReceived.Add ( fun d ->
                                 let txt = d.Data
                                 if not <| isNull txt then // happens often actually
                                     if   txt.Contains "Build FAILED." then      ISeffLog.log.PrintfnColor 220 0 150  "%s" txt
                                     elif txt.Contains "error FS"   then         ISeffLog.log.PrintfnColor 220 0 0  "%s" txt
                                     elif txt.Contains "Build succeeded." then   green  "%s" txt
-                                    elif txt.Contains outLiteral  then
-                                        //grayil "%s" outLiteral
-                                        resultDll <- txt.Replace(outLiteral,"").Trim()
-                                        //black  "%s" resultDll
+                                    elif txt.Contains outLiteral  then                                        
+                                        resultDll <- txt.Replace(outLiteral,"").Trim()                                        
                                         gray "%s" txt
                                     else
                                         gray "%s" txt
