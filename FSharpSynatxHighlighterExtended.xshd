@@ -51,6 +51,7 @@
   <Color name="RecordNames"         foreground="#B06000" />
   
   <Color name="LetBinding"          foreground="#7030A0" />
+  <Color name="LetPrivate"          foreground="#6070A0" />
   <Color name="LetRec"              foreground="#B03080" />
   <Color name="LetMutable"          foreground="#D08030" />
   
@@ -276,7 +277,9 @@
     <Span color="StringEscaped"><Begin>%</Begin>  <End>[sfd%bciuxXoeEfFgGeEgGMOAAat]</End> </Span> 
   </RuleSet >
   
-  <RuleSet name="_StringDollarFormatSet">    
+  <RuleSet name="_StringDollarFormatSet"> 
+    <Span>  <Begin color="StringEscaped">\{\{</Begin> <End >(?=.)</End>  </Span> 
+    <Span>  <Begin color="StringEscaped">\}\}</Begin> <End >(?=.)</End>  </Span> 
     <Span color="DollarInlines">
       <Begin color="StringEscaped">\{</Begin>  
       <End color="StringEscaped">\}</End> 
@@ -358,6 +361,7 @@
       <Begin>\$"</Begin>  
       <End>"</End>    
       <RuleSet>
+        
         <Import ruleSet="_StringDollarFormatSet"/>
         <Import ruleSet="_StringEscapeSet"/>
       </RuleSet>
@@ -544,6 +548,16 @@
           <Begin>\(\*</Begin>
           <End>\*\)</End>      
         </Span> 
+      </RuleSet>
+    </Span>
+
+    <Span color="LetPrivate"> 
+      <Begin color = "Keywords" > \b let \s+ private \s+</Begin>       
+      <End color = "Punctuation">  \b \s* [\(=] \s* (?=[^\*])   </End> <!-- word end | maybe space| a ( or = | maybe space | next not a star -->
+      <RuleSet> 
+        <Import ruleSet="KeywordSet"/>
+        <Import ruleSet="InlineCommentSet"/>
+        <Import ruleSet="TypeAnnotationSet"/>
       </RuleSet>
     </Span>
 
