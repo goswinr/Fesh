@@ -53,8 +53,8 @@
 
   <ItemGroup>
     <!-- normally don't include FSharp.Core in a library, but update to 5.0.2 it is needed for FCS 40.0.0 -->
-    <PackageReference Update="FSharp.Core" Version="5.0.2" />
-    <PackageReference Include="FSharp.Compiler.Service" Version="40.0.0" />
+    <PackageReference Update="FSharp.Core" Version="6.0.1" />
+    <PackageReference Include="FSharp.Compiler.Service" Version="41.0.1" />
     <PackageReference Include="AvalonLog" Version="0.4.0" />
     <PackageReference Include="FsEx.Wpf" Version="0.0.2" />
 

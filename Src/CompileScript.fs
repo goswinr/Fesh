@@ -62,8 +62,11 @@ module CompileScript =
     let up1 (s:String)  = if s="" then s else Char.ToUpper(s.[0]).ToString() + s.Substring(1)
     let low1 (s:String) = if s="" then s else Char.ToLower(s.[0]).ToString() + s.Substring(1)
 
+    /// also removes "_" ;  "-" ; "+"; "|"; " " from string 
+    /// first letter will be capital
     let toCamelCase (s:string) = 
-        s.Split([|"_" ; "." ; "-" ; "+"; "|"; " "|], StringSplitOptions.RemoveEmptyEntries)
+        // TODo check for non valid file path characters
+        s.Split([|"_" ;  "-" ; "+"; "|"; " "|], StringSplitOptions.RemoveEmptyEntries) // keep dot?!
         |> Array.map up1
         |> String.concat ""
         |> (fun x -> if Char.IsLower s.[0] then low1 x else x)
@@ -175,11 +178,7 @@ module CompileScript =
     let getFsxXml (projFolder:string, nameSpace, code, fsxloads:ResizeArray<FsxRef>) : string= 
         seq{
             for load in fsxloads do
-                let niceName = (
-                        load.fileName.Replace(".fsx", "") /// TODO make case insensitive
-                        |> toCamelCase
-                        |> up1 ) + ".fs"
-
+                let niceName = (load.fileName.Replace(".fsx", "") |> toCamelCase  ) + ".fs" /// TODO make case insensitive
                 let newp = IO.Path.Combine(projFolder,niceName)
                 if IO.File.Exists newp then IO.File.Delete newp
                 IO.File.Copy(load.fullPath,newp)
@@ -236,7 +235,7 @@ module CompileScript =
                 try
                     gray "compiling %s ..." fi.Name
                     let name = fi.Name.Replace(".fsx","")
-                    let nameSpace = name |> toCamelCase |> up1
+                    let nameSpace = name |> toCamelCase 
                     let outLiteral = "  " + nameSpace + " -> "
                     let mutable resultDll = "" // found via matching on outLiteral below
                     let folderName = "fsxDll_" + nameSpace
