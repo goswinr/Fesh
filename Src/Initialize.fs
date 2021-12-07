@@ -14,11 +14,9 @@ module Initialize =
 
         FsEx.Wpf.SyncWpf.installSynchronizationContext(true)    // do first
 
-
         let en_US = Globalization.CultureInfo.CreateSpecificCulture("en-US")
         Globalization.CultureInfo.DefaultThreadCurrentCulture   <- en_US
         Globalization.CultureInfo.DefaultThreadCurrentUICulture <- en_US
-
 
         // to still show-tooltip-when a button(or menu item )  is disabled-by-command
         //https://stackoverflow.com/questions/4153539/wpf-how-to-show-tooltip-when-button-disabled-by-command
@@ -32,10 +30,11 @@ module Initialize =
         let log  = Log.Create() // this should be done as early as possibel so that logging works
 
         let appname = match mode with Some n -> "Seff." + n.hostName |None -> "Seff"
-        FsEx.Wpf.ErrorHandeling.setup (appname, fun () ->
-            // TODO attempt to save files before closing ?
-            // or save anyway every 2 minutes to backup folder if less than 10k lines
-            log.FsiErrorStream.ToString() ) // do as soon as log exists
+        
+        // TODO attempt to save files before closing ?  or save anyway every 2 minutes to backup folder if less than 10k lines
+        let errHandler = FsEx.Wpf.ErrorHandeling (appname, fun () ->log.FsiErrorStream.ToString())
+        errHandler.Setup()// do as soon as log exists      
+             
 
         let config = new Config(log, mode, startupArgs)
         log.AdjustToSettingsInConfig(config)

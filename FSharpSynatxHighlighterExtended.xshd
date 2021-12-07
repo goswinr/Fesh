@@ -61,7 +61,7 @@
   <Color name="KnownDocTags"        foreground="#8888EE" />
   
   <Color name="NonEval"             foreground="#CCCCCC" />
-  <Color name="InDoubleTicks"       foreground="#007777" />
+  <Color name="InDoubleTicks"       foreground="#005555" />
 
 
   <!-- Regexes that are listed higer have precedence of lower positions in this list
@@ -484,6 +484,10 @@
 
   </RuleSet>
 
+  <RuleSet name="DoubleTicksSet">
+    <Span color="InDoubleTicks"  multiline="false" begin="``" end="``" /> 
+  </RuleSet>
+
   <RuleSet name="CodeMain">
     <Import ruleSet="CommentSet"/> 
     <Import ruleSet="InlineCommentSet"/> 
@@ -492,18 +496,14 @@
     <Import ruleSet="PunctuationSet"/>
     <Import ruleSet="TypeAnnotationSet"/>
     <Import ruleSet="PrintAndFailStatements"/>
+    <Import ruleSet="DoubleTicksSet"/>
 
     <!-- a hex number | binary number | (number just starting with floating point | with optional inner floating point) and an optional exponent. https://regexr.com/52d6q -->
     <Rule color="NumberLiteral">\b0[xX][0-9a-fA-F_]+|\b0[bB][01_]+|((-\.|\.)[0-9_]+|(\b|-)[0-9_]+\.?[0-9_]*)([eE][+-]?[0-9]+)? </Rule>
     
     <Rule color="Semicolon">;</Rule>
     
-    <Rule color="Exception">\b\w*\d*Exception</Rule>
-
-    <Span color="InDoubleTicks"  multiline="false">
-      <Begin>``</Begin>
-      <End>``</End>      
-    </Span> 
+    <Rule color="Exception">\b\w*\d*Exception</Rule>   
 
     <Span color="NonEval" multiline="true" > <!--anything after a double semicolon is ignored in FSI-->
       <Begin>;;</Begin> 
@@ -541,9 +541,10 @@
     
     <Span color="LetMutable"> 
       <Begin color = "Keywords" > \b let \s+ mutable \s+ </Begin> 
-      <End color = "Punctuation">  \b \s* [\(=] \s* (?=[^\*])   </End> <!-- word end | maybe space| a ( or = | maybe space | next not a star -->
+      <End color = "Punctuation"> \s* [\(=] \s* (?=[^\*])   </End> <!-- word end | maybe space| a ( or = | maybe space | next not a star -->
       <RuleSet> 
         <Import ruleSet="TypeAnnotationSet"/>
+        <Import ruleSet="DoubleTicksSet"/>
         <Span color="Comment" ruleSet="_CommentMarkerSet" multiline="true">
           <Begin>\(\*</Begin>
           <End>\*\)</End>      
@@ -553,21 +554,23 @@
 
     <Span color="LetPrivate"> 
       <Begin color = "Keywords" > \b let \s+ private \s+</Begin>       
-      <End color = "Punctuation">  \b \s* [\(=] \s* (?=[^\*])   </End> <!-- word end | maybe space| a ( or = | maybe space | next not a star -->
+      <End color = "Punctuation"> \s* [\(=] \s* (?=[^\*])   </End> <!-- word end | maybe space| a ( or = | maybe space | next not a star -->
       <RuleSet> 
         <Import ruleSet="KeywordSet"/>
         <Import ruleSet="InlineCommentSet"/>
         <Import ruleSet="TypeAnnotationSet"/>
+        <Import ruleSet="DoubleTicksSet"/>
       </RuleSet>
     </Span>
 
     <Span color="LetBinding"> 
       <Begin color = "Keywords" > \b let \s+ </Begin>       
-      <End color = "Punctuation">  \b \s* [\(=] \s* (?=[^\*])   </End> <!-- word end | maybe space| a ( or = | maybe space | next not a star -->
+      <End color = "Punctuation"> \s* [\(=] \s* (?=[^\*])   </End> <!-- word end | maybe space| a ( or = | maybe space | next not a star -->
       <RuleSet> 
         <Import ruleSet="KeywordSet"/>
         <Import ruleSet="InlineCommentSet"/>
         <Import ruleSet="TypeAnnotationSet"/>
+        <Import ruleSet="DoubleTicksSet"/>
       </RuleSet>
     </Span>
 
