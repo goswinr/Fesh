@@ -36,10 +36,21 @@ module ErrorStyle=
 
 module ErrorUtil = 
     
+    let inline linesStartAtOne i = if i<1 then 1 else i // because FSharpDiagnostic might have line number 0 form Parse-and-check-file-in-project errors, but avalonedit starts at 1
+
     let getSegment (doc:TextDocument) ( e:FSharpDiagnostic) =
         let s = TextSegment()
-        s.StartOffset <- doc.GetOffset(new TextLocation(e.StartLine, e.StartColumn + 1 ))
-        s.EndOffset   <- doc.GetOffset(new TextLocation(e.EndLine,   e.EndColumn   + 1 ))
+        let st = doc.GetOffset(new TextLocation(linesStartAtOne e.StartLine, e.StartColumn + 1 ))
+        let en = doc.GetOffset(new TextLocation(linesStartAtOne e.EndLine  , e.EndColumn   + 1 ))
+        if st<en then 
+            s.StartOffset <- st
+            s.EndOffset  <-  en
+        elif st>en then // should never happen // this FCS bug has happened in the past, for Parse-and-check-file-in-project errors the segments can be wrong
+            s.StartOffset <- en
+            s.EndOffset  <-  st 
+        else // st=en  // should never happen
+            s.StartOffset <- st
+            s.EndOffset   <- st + 1 // just in case, so it is at least on char long
         s
 
     let getFirstError(iEditor:IEditor)= 
