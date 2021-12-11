@@ -1,20 +1,20 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project Sdk="Microsoft.NET.Sdk.WindowsDesktop"> <!--WinDesktop for WPF, it is also needed so that rescources work with dotnet build-->
+<Project Sdk="Microsoft.NET.Sdk.WindowsDesktop"> <!--WinDesktop for WPF, it is also needed so that resources work with dotnet build-->
 
  <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <TargetFrameworks>net472;net50-windows</TargetFrameworks>
-    <!--<TargetFrameworks>net472</TargetFrameworks> -->
+    <TargetFrameworks>net472;net6.0-windows</TargetFrameworks>    
     <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms><!--inherited from Avalonedit ?-->
     <LangVersion>preview</LangVersion>
 
     <!--<PublishSingleFile>true</PublishSingleFile>
     <SelfContained>true</SelfContained>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
-    <PublishReadyToRun>true</PublishReadyToRun>  doesnt work, long build times  ?-->
+    <PublishReadyToRun>true</PublishReadyToRun>  doesn't work, long build times  ?-->
 
     <NeutralLanguage>en</NeutralLanguage>
-    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>    <!--to only have the english resources-->
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>    <!--to only have the English resources-->
     <!-- <GenerateDocumentationFile>true</GenerateDocumentationFile> not for standalone-->
     <FSharpCoreIncludeDocFileInOutput>true</FSharpCoreIncludeDocFileInOutput>
 
@@ -53,7 +53,7 @@
     <Reference Include="AvalonLog"   HintPath="../AvalonLog/bin/Release/net472/AvalonLog.dll" />
     <Reference Include="AvalonEditB" HintPath="../AvalonLog/bin/Release/net472/AvalonEditB.dll" />
     -->
-    <PackageReference Include="AvalonLog" Version="0.4.0" />
+    <PackageReference Include="AvalonLog" Version="0.5.0" />
 
     <PackageReference Update="FSharp.Core" Version="6.0.1" />
     <PackageReference Include="FSharp.Compiler.Service" Version="41.0.1" />

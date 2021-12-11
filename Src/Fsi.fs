@@ -32,6 +32,8 @@ type FsiMode  =
 type FsiIsCancelingOk = 
     NotEvaluating | YesAsync472 | NoAsync50 | Dont | NotPossibleSync // Not-Possible-Sync because during sync eval the ui should be frozen anyway and this request should not be happening
 
+// not needed in Net5.0 ??
+#nowarn "44" //This construct is deprecated. Recovery from corrupted process state exceptions is not supported; HandleProcessCorruptedStateExceptionsAttribute is ignored.
 
 type Fsi private (config:Config) = 
     let log = config.Log
@@ -89,6 +91,7 @@ type Fsi private (config:Config) =
 
     [< Security.SecurityCritical >] // TODO, do these Attributes apply in to async thread too ?
     [< Runtime.ExceptionServices.HandleProcessCorruptedStateExceptions >] //to handle AccessViolationException too //https://stackoverflow.com/questions/3469368/how-to-handle-accessviolationexception/4759831
+    //This construct is deprecated. Recovery from corrupted process state exceptions is not supported; HandleProcessCorruptedStateExceptionsAttribute is ignored.
     let init() = 
         match state with
         | Initalizing -> log.PrintfnInfoMsg "FSI initialization can't be started because it is already in process.."

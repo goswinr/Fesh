@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project Sdk="Microsoft.NET.Sdk.WindowsDesktop"> <!--WinDesktop is needed so that rescources work with dotnet build-->
+<Project Sdk="Microsoft.NET.Sdk.WindowsDesktop"> <!--WinDesktop is needed so that resources work with dotnet build-->
 
  <PropertyGroup>
     <OutputType>Library</OutputType>
@@ -8,7 +8,7 @@
     <LangVersion>preview</LangVersion>
 
     <NeutralLanguage>en</NeutralLanguage>
-    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>    <!--to only have the english resources-->
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>    <!--to only have the English resources-->
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
 
     <RootNamespace>Seff</RootNamespace>
@@ -55,7 +55,7 @@
     <!-- normally don't include FSharp.Core in a library, but update to 5.0.2 it is needed for FCS 40.0.0 -->
     <PackageReference Update="FSharp.Core" Version="6.0.1" />
     <PackageReference Include="FSharp.Compiler.Service" Version="41.0.1" />
-    <PackageReference Include="AvalonLog" Version="0.4.0" />
+    <PackageReference Include="AvalonLog" Version="0.5.0" />
     <PackageReference Include="FsEx.Wpf" Version="0.0.3" />
 
     <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.1" PrivateAssets="All" IncludeAssets="runtime; build; native; contentfiles; analyzers; buildtransitive" />
@@ -66,7 +66,7 @@
 
     <None Include="README.md" />
     <None Include="Media/READMEnuget.md" Pack="true" PackagePath="\" />
-    <None Include="Media/logo128.png" Pack="true" PackagePath="\" /> <!--PackagePath = "\" makes the fike availabe to nuget pack tool-->
+    <None Include="Media/logo128.png" Pack="true" PackagePath="\" /> <!--PackagePath = "\" makes the file available to nuget pack tool-->
     <EmbeddedResource Include="Media/logo.res" /> <!--  for Application Icon in explorer-->
     <Resource Include="Media/logo.ico" />       <!--  for Application Icon in primary windows-->
     <Resource Include="Media/logoGray.ico" />    <!--  for Application Icon in secondary PopOut windows-->
