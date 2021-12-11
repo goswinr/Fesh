@@ -117,7 +117,7 @@
 
     <EmbeddedResource Include="Media/logo.res" /> <!--  for Application Icon in explorer-->
     <Resource Include="Media/logo.ico" />    <!--  for Application Icon in window-->
-    <Resource Include="Media/logoGray.ico" />    <!--  for Application Icon in seconadry PopOut windows-->
+    <Resource Include="Media/logoGray.ico" />    <!--  for Application Icon in secondary PopOut windows-->
     <Resource Include="Media/FiraCode-Regular.ttf" />
 
     <None Include="README.md" />
@@ -129,10 +129,10 @@
 
   <Target Name="CopyFilesOverAfterBuild" BeforeTargets="AfterBuild">
 
-    <!--dll is needed for editor tooling only, it might not be installed on host PC . seee also  https://github.com/fsprojects/IfSharp/issues/213 -->
+    <!--dll is needed for editor tooling only, it might not be installed on host PC . see also  https://github.com/fsprojects/IfSharp/issues/213 -->
     <Copy SourceFiles="$(PkgNETStandard_Library)/build/netstandard2.0/ref/netstandard.dll" DestinationFiles="$(TargetDir)netstandard.dll" ContinueOnError="false" />
 
-    <!-- needed for editor tooling intelisense ? -->
+    <!-- needed for editor tooling autocomplete ? -->
     <Copy SourceFiles="$(PkgNETStandard_Library)/build/netstandard2.0/ref/netstandard.xml" DestinationFiles="$(TargetDir)netstandard.xml" ContinueOnError="false" />
 
   </Target>
