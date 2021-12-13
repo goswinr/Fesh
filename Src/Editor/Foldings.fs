@@ -10,7 +10,6 @@ open Seff.Model
 open Seff.Config
 
 
-
 [<Struct>]
 type Fold = {foldStartOff:int; foldEndOff:int; linesInFold: int ; nestingLevel:int}
 
@@ -28,7 +27,7 @@ type Foldings(ed:TextEditor, checker:Checker, config:Config, edId:Guid) =
 
     let minLinesNested = 3 // minimum line count for inner folding
 
-    let minLineCountDiffToOuter = 9 // if inner folding is just 9 line shorter than outer folding dont do it
+    let minLineCountDiffToOuter = 9 // if inner folding is just 9 line shorter than outer folding don't do it
 
     let manager = Folding.FoldingManager.Install(ed.TextArea)  // color of margin is set in ColoumRulers.fs
 
@@ -54,44 +53,44 @@ type Foldings(ed:TextEditor, checker:Checker, config:Config, edId:Guid) =
 
     let findFoldings (tx:string) = 
 
-        FoldingStack.Clear()
-        Folds.Clear()
-        //let FoldingStack = Collections.Generic.Stack<FoldStart>()
-        //let Folds = ResizeArray<Fold>()
+        FoldingStack.Clear() // Collections.Generic.Stack<FoldStart>
+        Folds.Clear() // ResizeArray<Fold>       
 
         let mutable lineNo = 1
+
+        let textLength = tx.Length
 
         // returns offset of first VisibleChar
         // jumps over empty lines
         let rec findVisibleChar ind off = 
-            if  off = tx.Length then  { indent = 0; wordStartOff = off-1}
+            if  off = textLength then  { indent = 0; wordStartOff = off-1}
             else
-                let c = tx.[off]
+                let  c = tx.[off]
                 if   c = ' '   then                        findVisibleChar (ind+1) (off+1) //TODO ignores tabs
                 elif c = '\r'  then                        findVisibleChar 0       (off+1)
                 elif c = '\n'  then  lineNo <- lineNo + 1; findVisibleChar 0       (off+1)
-                else                 { indent= ind; wordStartOff=off}
+                else                                       { indent= ind; wordStartOff=off}
 
         // returns offset of '\n'
         let rec findLineEnd off = 
-            if  off = tx.Length then  off-1
+            if  off = textLength then  off-1
             else
                 if tx.[off] = '\n'  then  off
                 else                      findLineEnd (off+1)
 
-
-
+        ISeffLog.log.PrintfnDebugMsg "---------findFolds--------" 
         let rec findFolds ind off = 
             let no = lineNo
             let en = findLineEnd off
             if en > off then
-                let le = findVisibleChar 0 en
-                //printfn "le.indent: %i (ind %d)  in line %d" le.indent ind no
+                let le = findVisibleChar 0 en                
 
                 if le.indent = ind then
+                    ISeffLog.log.PrintfnDebugMsg "le.indent = ind: offset of first VisibleChar: %A (indent %d)  in line %d" le ind no
                     findFolds le.indent le.wordStartOff
 
                 elif le.indent > ind then
+                    ISeffLog.log.PrintfnDebugMsg "le.indent > ind: offset of first VisibleChar: %A (indent %d)  in line %d" le ind no
                     let nestingLevel = FoldingStack.Count
                     if nestingLevel <= maxDepth then
                         let index = Folds.Count
@@ -101,7 +100,7 @@ type Foldings(ed:TextEditor, checker:Checker, config:Config, edId:Guid) =
                     findFolds le.indent le.wordStartOff
 
                 elif le.indent < ind then
-                    //ISeffLog.log.PrintfnAppErrorMsg  "%A" St
+                    ISeffLog.log.PrintfnDebugMsg "le.indent < ind: offset of first VisibleChar: %A (indent %d)  in line %d" le ind no                    
                     let mutable take = true
                     while FoldingStack.Count > 0 && take do
                         let st = FoldingStack.Peek()
@@ -109,7 +108,7 @@ type Foldings(ed:TextEditor, checker:Checker, config:Config, edId:Guid) =
                             FoldingStack.Pop()  |> ignore
                             let lines = no - st.line
                             if (st.nestingLevel = 0 && lines >= minLinesOutside)
-                            || (st.nestingLevel > 0 && lines >= minLinesNested ) then // only add if block has enoug lines outer wise leave dummy inside list
+                            || (st.nestingLevel > 0 && lines >= minLinesNested ) then // only add if block has enough lines outer wise leave dummy inside list
 
                                 let foldStart = st.lineEndOff - 1 // the position of '\n' minus two ( does not work without the minus one)
                                 let foldEnd = en - 1 // the position of '\n' minus two
@@ -119,7 +118,7 @@ type Foldings(ed:TextEditor, checker:Checker, config:Config, edId:Guid) =
                             take <- false
                     findFolds le.indent le.wordStartOff
 
-        if tx.Length > 0 then // scheck neded for empty string
+        if tx.Length > 0 then // check needed for empty string
             let le = findVisibleChar 0 0
             findFolds le.indent le.wordStartOff
         Folds
@@ -129,7 +128,7 @@ type Foldings(ed:TextEditor, checker:Checker, config:Config, edId:Guid) =
     ///Get foldings at every line that is followed by an indent
     let foldEditor (iEditor:IEditor) = 
         //config.Log.PrintfnDebugMsg "folding: %s %A = %A" iEditor.FilePath.File edId iEditor.Id
-        if edId=iEditor.Id then // will be called on each tab, to skips updating  if it is not current editor
+        if edId=iEditor.Id then // foldEditor will be called on each tab, to update only current editor check id
             //ISeffLog.log.PrintfnDebugMsg "folding1: %s" iEditor.FilePath.File
             async{
                 match iEditor.FileCheckState.FullCodeAndId with
@@ -142,7 +141,7 @@ type Foldings(ed:TextEditor, checker:Checker, config:Config, edId:Guid) =
                         let mutable lastOuter = {foldStartOff = -99; foldEndOff = -99 ; linesInFold = -99 ; nestingLevel = -99}
                         for i=0 to l do
                             let f = ffs.[i]
-                            if f.foldEndOff > 0 then // filter out to short blocks that are leeft as dummy
+                            if f.foldEndOff > 0 then // filter out to short blocks that are left as dummy
                                 if  f.nestingLevel = 0 then
                                     lastOuter <- f
                                     fs.Add f
@@ -177,11 +176,11 @@ type Foldings(ed:TextEditor, checker:Checker, config:Config, edId:Guid) =
                                     //ISeffLog.log.PrintfnDebugMsg "Foldings from %d to %d  that is  %d lines" f.foldStartOff  f.foldEndOff f.linesInFold
                                     let fo = new NewFolding(f.foldStartOff, f.foldEndOff)
                                     fo.Name <- textInFoldBox f.linesInFold
-                                    folds.Add(fo) //if NewFolding type is created async a waiting symbol apears on top of it
+                                    folds.Add(fo) //if NewFolding type is created async a waiting symbol appears on top of it
 
                                 let firstErrorOffset = -1 //The first position of a parse error. Existing foldings starting after this offset will be kept even if they don't appear in newFoldings. Use -1 for this parameter if there were no parse errors)
                                 manager.UpdateFoldings(folds,firstErrorOffset)
-                                config.FoldingStatus.Set(iEditor) // so that when new flodings apear they are saved immedeatly
+                                config.FoldingStatus.Set(iEditor) // so that when new foldings appear they are saved immediately
 
                 } |>  Async.Start
 
@@ -191,7 +190,7 @@ type Foldings(ed:TextEditor, checker:Checker, config:Config, edId:Guid) =
         // event for tracking folding status via mouse up in margin is attached in editor.setup()
 
     /// because when the full text gets replaced ( eg via git branch change)
-    /// manager.UpdateFoldings(..) cannot remeber old locations and keep state
+    /// manager.UpdateFoldings(..) cannot remember old locations and keep state
     member this.SetToOneFullReload() = 
         isIntialLoad <- true
 
@@ -210,12 +209,12 @@ type Foldings(ed:TextEditor, checker:Checker, config:Config, edId:Guid) =
     static member ExpandAll(ied:IEditor, config:Config) = 
         for f in ied.FoldingManager.AllFoldings do
             f.IsFolded <- false
-        config.FoldingStatus.Set(ied) // so that they are saved immedeatly
+        config.FoldingStatus.Set(ied) // so that they are saved immediately
 
     static member CollapseAll(ied:IEditor, config:Config) = 
         for f in ied.FoldingManager.AllFoldings do
             f.IsFolded <- true
-        config.FoldingStatus.Set(ied) // so that they are saved immedeatly
+        config.FoldingStatus.Set(ied) // so that they are saved immediately
 
     static member CollapsePrimary(ied:IEditor, config:Config) = 
         for f in ied.FoldingManager.AllFoldings do
@@ -224,9 +223,9 @@ type Foldings(ed:TextEditor, checker:Checker, config:Config, edId:Guid) =
                     if tag  = 0 then // nestingLevel
                         f.IsFolded <- true
              | _ -> ()
-        config.FoldingStatus.Set(ied) // so that they are saved immedeatly
+        config.FoldingStatus.Set(ied) // so that they are saved immediately
     
-    /// open any foldings if reqired and select at location
+    /// open any foldings if required and select at location
     static member GoToLineAndUnfold(loc:TextSegment, ied:IEditor, config:Config) =         
         let mutable unfoldedOneOrMore = false
         for fold in ied.FoldingManager.GetFoldingsContaining(loc.StartOffset) do
@@ -238,4 +237,4 @@ type Foldings(ed:TextEditor, checker:Checker, config:Config, edId:Guid) =
         //ied.AvaEdit.CaretOffset<- loc.EndOffset // done by ied.AvaEdit.Select too
         ied.AvaEdit.Select(loc.StartOffset, loc.Length)
         if unfoldedOneOrMore then
-            config.FoldingStatus.Set(ied) // so that they are saved immedeatly
+            config.FoldingStatus.Set(ied) // so that they are saved immediately
