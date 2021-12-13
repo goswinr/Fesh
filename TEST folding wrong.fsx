@@ -13,10 +13,6 @@ module Units =
     
     
     
-      
-    
-    
-    
     
     
     
@@ -27,14 +23,17 @@ module Units =
     
 module Model =
     
+    
+    
+    
    
-    type Listx()  = 
+    let x = 
         
    
         
-        static member xs = [| 31.0 ;31.0 |]
+        0
         
      
      
     type data = { text : string
-      .}
+      }

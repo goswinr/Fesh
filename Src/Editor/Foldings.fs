@@ -63,13 +63,17 @@ type Foldings(ed:TextEditor, checker:Checker, config:Config, edId:Guid) =
         // returns offset of first VisibleChar
         // jumps over empty lines
         let rec findVisibleChar ind off = 
-            if  off = textLength then  { indent = 0; wordStartOff = off-1}
+            if  off >= textLength then  
+                ISeffLog.log.PrintfnAppErrorMsg  $"off{off} = textLength"
+                { indent = 0; wordStartOff = off-1}
             else
                 let  c = tx.[off]
                 if   c = ' '   then                        findVisibleChar (ind+1) (off+1) //TODO ignores tabs
                 elif c = '\r'  then                        findVisibleChar 0       (off+1)
                 elif c = '\n'  then  lineNo <- lineNo + 1; findVisibleChar 0       (off+1)
-                else                                       { indent= ind; wordStartOff=off}
+                else                                       
+                    ISeffLog.log.PrintfnAppErrorMsg  $"first VisibleChar {c}"
+                    { indent= ind; wordStartOff=off}
 
         // returns offset of '\n'
         let rec findLineEnd off = 
@@ -82,15 +86,51 @@ type Foldings(ed:TextEditor, checker:Checker, config:Config, edId:Guid) =
         let rec findFolds ind off = 
             let no = lineNo
             let en = findLineEnd off
+            ISeffLog.log.PrintfnDebugMsg $"---en > off : {en > off }, en = off:{en = off }"
+
+            let le = findVisibleChar 0 en  
+            if le.indent > ind then
+                ISeffLog.log.PrintfnDebugMsg $"le.indent > ind: offset of first VisibleChar: le.indent={le.indent} (indent {ind}) in line {no} till {lineNo}"
+                let nestingLevel = FoldingStack.Count
+                if nestingLevel <= maxDepth then
+                    let index = Folds.Count
+                    Folds.Add  {foldStartOff = -99; foldEndOff = -99 ; linesInFold = -99 ; nestingLevel = nestingLevel} // dummy value to be mutated later
+                    FoldingStack.Push {indent= ind; lineEndOff = en ; line = no ; indexInFolds = index; nestingLevel = nestingLevel}
+                    //ISeffLog.log.PrintfnAppErrorMsg  " line: %d: indent %d start" no ind                
+
+            elif le.indent < ind then
+                ISeffLog.log.PrintfnFsiErrorMsg $"le.indent < ind: offset of first VisibleChar: le.indent={le.indent} (indent {ind}) in line {no} till {lineNo}"                   
+                let mutable take = true
+                while FoldingStack.Count > 0 && take do
+                    let st = FoldingStack.Peek()
+                    if st.indent >= le.indent then
+                        FoldingStack.Pop()  |> ignore
+                        let lines = no - st.line
+                        if (st.nestingLevel = 0 && lines >= minLinesOutside)
+                        || (st.nestingLevel > 0 && lines >= minLinesNested ) then // only add if block has enough lines outer wise leave dummy inside list
+
+                            let foldStart = st.lineEndOff - 1 // the position of '\n' minus two ( does not work without the minus one)
+                            let foldEnd = en - 1 // the position of '\n' minus two
+                            Folds.[st.indexInFolds] <- {foldStartOff = foldStart; foldEndOff = foldEnd; linesInFold = lines ;nestingLevel = st.nestingLevel}
+                            //ISeffLog.log.PrintfnAppErrorMsg  "line: %d : indent %d end of %d lines " no st.indent lines
+                    else
+                        take <- false
+            
+            //elif le.indent = ind then ()
+            
+            if en > off then
+                findFolds le.indent le.wordStartOff
+
+            (*
             if en > off then
                 let le = findVisibleChar 0 en                
 
                 if le.indent = ind then
-                    ISeffLog.log.PrintfnDebugMsg "le.indent = ind: offset of first VisibleChar: %A (indent %d)  in line %d" le ind no
+                    ISeffLog.log.PrintfnDebugMsg $"le.indent = ind: offset of first VisibleChar: le.indent={le.indent} (indent {ind}) in line {no} till {lineNo}"
                     findFolds le.indent le.wordStartOff
 
                 elif le.indent > ind then
-                    ISeffLog.log.PrintfnDebugMsg "le.indent > ind: offset of first VisibleChar: %A (indent %d)  in line %d" le ind no
+                    ISeffLog.log.PrintfnDebugMsg $"le.indent > ind: offset of first VisibleChar: le.indent={le.indent} (indent {ind}) in line {no} till {lineNo}"
                     let nestingLevel = FoldingStack.Count
                     if nestingLevel <= maxDepth then
                         let index = Folds.Count
@@ -100,7 +140,7 @@ type Foldings(ed:TextEditor, checker:Checker, config:Config, edId:Guid) =
                     findFolds le.indent le.wordStartOff
 
                 elif le.indent < ind then
-                    ISeffLog.log.PrintfnDebugMsg "le.indent < ind: offset of first VisibleChar: %A (indent %d)  in line %d" le ind no                    
+                    ISeffLog.log.PrintfnFsiErrorMsg $"le.indent < ind: offset of first VisibleChar: le.indent={le.indent} (indent {ind}) in line {no} till {lineNo}"                   
                     let mutable take = true
                     while FoldingStack.Count > 0 && take do
                         let st = FoldingStack.Peek()
@@ -113,10 +153,13 @@ type Foldings(ed:TextEditor, checker:Checker, config:Config, edId:Guid) =
                                 let foldStart = st.lineEndOff - 1 // the position of '\n' minus two ( does not work without the minus one)
                                 let foldEnd = en - 1 // the position of '\n' minus two
                                 Folds.[st.indexInFolds] <- {foldStartOff = foldStart; foldEndOff = foldEnd; linesInFold = lines ;nestingLevel = st.nestingLevel}
-                                //ISeffLog.log.PrintfnAppErrorMsg  "line: %d : indent %d end of %d lines " no st.indent lines
+                                ISeffLog.log.PrintfnAppErrorMsg  "line: %d : indent %d end of %d lines " no st.indent lines
                         else
                             take <- false
                     findFolds le.indent le.wordStartOff
+            *)
+                
+                    
 
         if tx.Length > 0 then // check needed for empty string
             let le = findVisibleChar 0 0
