@@ -50,13 +50,16 @@ type CheckerStatus (grid:TabsAndLog) as this =
     let mutable lastFile = Guid.Empty
 
     let mutable firstErrorSegm = None
-    let was = ResizeArray<FSharpDiagnostic>()
-    let ers = ResizeArray<FSharpDiagnostic>()
+    let was = ResizeArray<FSharpDiagnostic>()  // Warnings
+    let ers = ResizeArray<FSharpDiagnostic>()  // Errors
+    let his = ResizeArray<FSharpDiagnostic>()  // Hidden
+    let ins = ResizeArray<FSharpDiagnostic>()  // Infos
 
     let getErrPanel(addPersistInfo:bool) = 
         let erk = ers.Count
         let wak = was.Count
-
+        let ink = ins.Count
+        let hik = his.Count
         makePanelVert [
             if erk>0 then
                 if addPersistInfo then TextBlock(Text = "Click on text in statusbar or press Ctrl + E keys to scroll to first error.", FontSize = Style.fontSize * 0.75, FontStyle = FontStyles.Italic, Margin=Thickness 3.0)
@@ -73,7 +76,21 @@ type CheckerStatus (grid:TabsAndLog) as this =
             for w in Seq.truncate 10 was do
                 TextBlockSelectable(Text = sprintf "• line %d: %s: %s" w.StartLine w.ErrorNumberText w.Message, FontSize = Style.fontSize * 0.9, Margin=Thickness 3.0 )
             if wak > 10 then
-                TextBlock(Text = sprintf "• and %d more ..." (wak-10), FontSize = Style.fontSize * 0.9)            
+                TextBlock(Text = sprintf "• and %d more ..." (wak-10), FontSize = Style.fontSize * 0.9)  
+                
+            if ink>0 then
+                TextBlock(Text="Infos:", FontSize = Style.fontSize , FontWeight = FontWeights.Bold )
+            for i in Seq.truncate 10 ins do
+                TextBlockSelectable(Text = sprintf "• line %d: %s: %s" i.StartLine i.ErrorNumberText i.Message, FontSize = Style.fontSize * 0.9, Margin=Thickness 3.0 )
+            if ink > 10 then
+                TextBlock(Text = sprintf "• and %d more ..." (ink-10), FontSize = Style.fontSize * 0.9)  
+            
+            if hik>0 then
+                TextBlock(Text="Hidden Infos:", FontSize = Style.fontSize , FontWeight = FontWeights.Bold )
+            for h in Seq.truncate 10 his do
+                TextBlockSelectable(Text = sprintf "• line %d: %s: %s" h.StartLine h.ErrorNumberText h.Message, FontSize = Style.fontSize * 0.9, Margin=Thickness 3.0 )
+            if hik > 10 then
+                TextBlock(Text = sprintf "• and %d more ..." (ink-10), FontSize = Style.fontSize * 0.9)  
             ]
 
 
@@ -81,6 +98,7 @@ type CheckerStatus (grid:TabsAndLog) as this =
         //log.PrintfnDebugMsg "Setting errors for %A %A " iEditor.FileInfo iEditor.CheckRes.Value.checkRes.Errors.Length
         match iEditor.FileCheckState with
         | Done res ->
+                //ISeffLog.log.PrintfnDebugMsg $"checking  Done. Arrived in staus bar with {res.checkRes.Diagnostics.Length} msgs"
                 let es = res.checkRes.Diagnostics
                 if es.Length = 0 then
                     if lastErrCount <> 0  || lastFile <> tabs.Current.Editor.Id then // no UI update needed in this case
@@ -97,12 +115,14 @@ type CheckerStatus (grid:TabsAndLog) as this =
                     firstErrorSegm <- Some <| ErrorUtil.getSegment iEditor.AvaEdit.Document es.[0]
                     was.Clear()
                     ers.Clear()
+                    his.Clear()
+                    ins.Clear()
                     for e in es do
                         match e.Severity with
                         | FSharpDiagnosticSeverity.Error   -> ers.Add e
                         | FSharpDiagnosticSeverity.Warning -> was.Add e
-                        | FSharpDiagnosticSeverity.Hidden -> () // TODO or show something ?
-                        | FSharpDiagnosticSeverity.Info   -> ()
+                        | FSharpDiagnosticSeverity.Hidden  -> his.Add e
+                        | FSharpDiagnosticSeverity.Info    -> ins.Add e
                     let erk = ers.Count
                     let wak = was.Count
                     if wak > 0 && erk > 0 then
@@ -114,6 +134,9 @@ type CheckerStatus (grid:TabsAndLog) as this =
                     elif erk > 0 then
                         this.Text <- sprintf " %d compiler errors, first one on line: %d" erk es.[0].StartLine
                         this.Background <- errColor
+                    else
+                       this.Text <- $"No compiler errors, {ins.Count+his.Count} Infos" 
+                       this.Background <- okColor                       
                     
                     let tip = new ToolTip(Content = getErrPanel(true) )
                     tip.Placement <- Primitives.PlacementMode.Top //https://docs.microsoft.com/en-us/dotnet/framework/wpf/controls/popup-placement-behavior

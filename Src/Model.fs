@@ -129,6 +129,16 @@ type FileCheckState =
             |NoCode -> NoCode
             |CodeID (gid, _) as ci -> if gid=id then ci  else NoCode
 
+    override this.ToString() = 
+        match this with
+        | NotStarted ->  "FileCheckState.NotStarted"
+        | GettingCode _  -> "FileCheckState.GettingCode"
+        | Failed -> "FileCheckState.Failed"
+        | Checking (id, c)  ->  "FileCheckState.Checking"
+        | Done res          ->  "FileCheckState.Done with " +  res.checkRes.Diagnostics.Length.ToString() +  " infos, warnings or errors"
+
+
+
 type FilePath = 
     | SetTo of FileInfo
     | NotSet

@@ -39,8 +39,8 @@ type Checker private (config:Config)  =
 
     /// to check full code use 0 as 'tillOffset', at the end either a event is raised or continuation called if present
     let check(iEditor:IEditor, tillOffset, continueOnThreadPool:Option<CheckResults->unit>) = 
-        //log.PrintfnDebugMsg "***checking file  %s " iEditor.FilePath.File //iEditor.CheckState
         let thisId = Interlocked.Increment checkId
+        //ISeffLog.log.PrintfnDebugMsg $"checking with id  {thisId} ..."
         globalCheckState <- GettingCode thisId
         iEditor.FileCheckState <- globalCheckState
 
@@ -71,7 +71,6 @@ type Checker private (config:Config)  =
                 |FullCode _ ->
                     do! Async.SwitchToContext(FsEx.Wpf.SyncWpf.context)
                     if !checkId = thisId then
-                        //log.PrintfnDebugMsg "***fullCodeAvailabeEv  %s " iEditor.FilePath.File //iEditor.CheckState
                         fullCodeAvailabeEv.Trigger(iEditor)
                     do! Async.SwitchToThreadPool()
 
@@ -134,8 +133,7 @@ type Checker private (config:Config)  =
 
                        
                         if !checkId = thisId  then
-                            try
-                                //log.PrintfnDebugMsg "checking %A" iEditor.FileInfo
+                            try                                
                                 let! parseRes , checkAnswer = checker.Value.ParseAndCheckFileInProject(fileFsx, 0, sourceText, options) // can also be done in two  calls   //TODO really use check file in project for scripts??
                                 match checkAnswer with
                                 | FSharpCheckFileAnswer.Succeeded checkRes ->
@@ -153,9 +151,9 @@ type Checker private (config:Config)  =
 
                                         | None ->
                                             do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context
-                                            if !checkId = thisId  then
+                                            if !checkId = thisId  then                                                
                                                 checkedEv.Trigger(iEditor) // to mark statusbar , and highlighting errors
-                                                if !checkId = thisId  && isFirstCheck then
+                                                if isFirstCheck then
                                                     firstCheckDoneEv.Trigger() // to now start FSI
                                                     isFirstCheck <- false
 
@@ -171,13 +169,19 @@ type Checker private (config:Config)  =
                                 if notNull e.InnerException then log.PrintfnAppErrorMsg "%s" e.InnerException.Message
                                 globalCheckState <-Failed
                                 iEditor.FileCheckState <- globalCheckState
+                        else
+                            () //ISeffLog.log.PrintfnDebugMsg $"other is running 2: this{thisId} other {!checkId} "
+
                     with e ->
                             log.PrintfnAppErrorMsg "Error in GetProjectOptionsFromScript Block.\r\nMaybe you are using another version of FSharpCompilerService.dll than at compile time?:"
                             log.PrintfnAppErrorMsg "%A" e
                             log.PrintfnAppErrorMsg "%s" e.Message
                             globalCheckState <-Failed
                             iEditor.FileCheckState <- globalCheckState
-
+            else
+                () //ISeffLog.log.PrintfnDebugMsg $"other is running 1: this{thisId} other {!checkId} "
+            
+            //ISeffLog.log.PrintfnDebugMsg $"checking  id  {thisId} Result: {globalCheckState}."
             } |> Async.Start
 
 
