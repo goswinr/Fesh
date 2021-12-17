@@ -1,4 +1,4 @@
-﻿namespace Seff
+namespace Seff
 
 
 open System
@@ -246,10 +246,10 @@ type Fsi private (config:Config) =
                             isReadyEv.Trigger()
                             for e in errs do
                                 match e.Severity with
-                                | FSharpDiagnosticSeverity.Error  -> log.PrintfnAppErrorMsg "EvalInteractionNonThrowing returned Error: %A" e
-                                | FSharpDiagnosticSeverity.Warning
-                                | FSharpDiagnosticSeverity.Hidden
-                                | FSharpDiagnosticSeverity.Info   -> ()
+                                | FSharpDiagnosticSeverity.Error  ->  log.PrintfnAppErrorMsg "EvalInteractionNonThrowing returned Error: %s" e.Message
+                                | FSharpDiagnosticSeverity.Warning -> log.PrintfnInfoMsg "EvalInteractionNonThrowing returned Warning: %s" e.Message
+                                | FSharpDiagnosticSeverity.Hidden  -> log.PrintfnInfoMsg "EvalInteractionNonThrowing returned Hidden: %s" e.Message
+                                | FSharpDiagnosticSeverity.Info   ->  log.PrintfnInfoMsg "EvalInteractionNonThrowing returned Info: %s" e.Message
 
                             //match vo with
                             //|None-> ()
