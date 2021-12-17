@@ -263,8 +263,8 @@ module KeyboardShortcuts =
                  if isDown Alt then
                      RectangleSelection.expandDown(ed) // on Ctrl + Alt + down
                  else
-                     // also use Ctrl key for swaping since Alt key does not work in rhino,
-                     // swaping with alt+up is set up in commands.fs via key gesteures
+                     // also use Ctrl key for swapping since Alt key does not work in rhino,
+                     // swapping with alt+up is set up in commands.fs via key gestures
                      //SwapLines.swapLinesDown(ed) // on Ctrl + Down
                      //ke.Handled <- true
                      ()

@@ -5,7 +5,10 @@ open System.Windows.Media // for font
 module Style = 
     let dialogCaption = "Seff | Scripting editor for fsharp"   // e.g title of saveAs window
 
-    let mutable fontEditor      = FontFamily("Consolas") // used for startup only, will be set from rescources in  Fonts.fs
+
+    //TODO try https://fonttools.readthedocs.io/en/latest/subset/index.html to reduce Fira code an others to be without ligatures
+
+    let mutable fontEditor      = FontFamily("Consolas") // used for startup only, will be set from resources in  Fonts.fs
     let mutable fontLog         = FontFamily("Consolas") // used for startup only,
     let mutable fontToolTip     = FontFamily("Consolas") // used for startup only, will be set to Verdana in Fonts.fs
 

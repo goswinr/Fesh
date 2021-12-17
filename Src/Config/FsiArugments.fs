@@ -51,6 +51,8 @@ type FsiArugments  ( hostInfo:Hosting) =
 
 
 (*
+    https://docs.microsoft.com/en-us/dotnet/fsharp/language-reference/fsharp-interactive-options
+
     - INPUT FILES -
         --use:<file>                             Use the given file on startup as initial input
         --load:<file>                            #load the given file on startup

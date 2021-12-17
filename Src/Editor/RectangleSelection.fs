@@ -16,16 +16,16 @@ module RectangleSelection =
 
     open Selection
 
-    //all this functions is neded because ReplaceSelectionWithText of rectangular selection does nort work wel on all font sizes e.g. consolas 17.5
+    //all this functions is neded because ReplaceSelectionWithText of rectangular selection does not work well on all font sizes e.g. consolas 17.5
 
     let private setNewEmpty (ta:TextArea, s:SelPos, vcol, checkWithColInSelpos) = 
         //ISeffLog.log.PrintfnDebugMsg "caret2: %A "ta.Caret.Position
         let st , en = 
             if checkWithColInSelpos then
-                TextViewPosition( s.stp.Line,  min (vcol + 1) s.stp.Column , vcol) , // use min function in case the  Visual coloumn is in virtual whitespace
+                TextViewPosition( s.stp.Line,  min (vcol + 1) s.stp.Column , vcol) , // use min function in case the  Visual column is in virtual whitespace
                 TextViewPosition( s.enp.Line,  min (vcol + 1) s.enp.Column , vcol)
             else
-                TextViewPosition( s.stp.Line,  vcol + 1   , vcol), // even if the Visual coloumn was in virtual whitespace, spaces to fill it where added, if len is bigger than 0
+                TextViewPosition( s.stp.Line,  vcol + 1   , vcol), // even if the Visual column was in virtual whitespace, spaces to fill it where added, if len is bigger than 0
                 TextViewPosition( s.enp.Line,  vcol + 1   , vcol)
         ta.Selection <- new RectangleSelection(ta, st, en)
         if s.caret.Line = s.stp.Line then
@@ -53,7 +53,7 @@ module RectangleSelection =
 
                     if c = '\r' then
                         if pos < visCol then //position is in virtual space
-                            sb.Append(String(' ',visCol-pos)) |> ignore// fill whitesace
+                            sb.Append(String(' ',visCol-pos)) |> ignore// fill whitespace
                             sb.Append(text) |> ignore
                         sb.Append(Environment.NewLine) |> ignore
                         loop (i+2) 0
@@ -62,10 +62,10 @@ module RectangleSelection =
                         loop (i+1) (pos+1)
                 else
                     if pos = visCol then
-                        sb.Append(text)|> ignore // so it works after last caracter too
+                        sb.Append(text)|> ignore // so it works after last character too
                     elif pos < visCol then
-                        sb.Append(String(' ',visCol-pos)) |> ignore// fill whitesace
-                        sb.Append(text)|> ignore // so it works after last caracter too
+                        sb.Append(String(' ',visCol-pos)) |> ignore// fill whitespace
+                        sb.Append(text)|> ignore // so it works after last character too
             loop 0 0
             let nt = sb.ToString()
             doc.Replace(stOff,len,nt)
@@ -90,7 +90,7 @@ module RectangleSelection =
         doc.BeginUpdate()
         if s.LineCount > 1 then
             let stOff = doc.GetLineByNumber(s.stp.Line).Offset
-            let enOff = doc.GetLineByNumber(s.enp.Line-1).EndOffset //do last line individualy to trigger potential autocompletion:
+            let enOff = doc.GetLineByNumber(s.enp.Line-1).EndOffset //do last line individually to trigger potential autocompletion:
             let len = enOff-stOff
             let txt = doc.GetText(stOff, len)
             let sb = StringBuilder()
@@ -102,7 +102,7 @@ module RectangleSelection =
 
                     if c = '\r' then
                         if pos < minVisCol then //position is in virtual space
-                            sb.Append(String(' ',minVisCol-pos)) |> ignore// fill whitesace
+                            sb.Append(String(' ',minVisCol-pos)) |> ignore// fill whitespace
                             sb.Append(text) |> ignore
                         sb.Append(Environment.NewLine) |> ignore
                         loop (i+2) 0
@@ -112,10 +112,10 @@ module RectangleSelection =
                         loop (i+1) (pos+1)
                 else
                     if pos = minVisCol then
-                        sb.Append(text)|> ignore // so it works after last caracter too
+                        sb.Append(text)|> ignore // so it works after last character too
                     elif pos < minVisCol then
-                        sb.Append(String(' ',minVisCol-pos)) |> ignore// fill whitesace
-                        sb.Append(text)|> ignore // so it works after last caracter too
+                        sb.Append(String(' ',minVisCol-pos)) |> ignore// fill whitespace
+                        sb.Append(text)|> ignore // so it works after last character too
             loop 0 0
             let nt = sb.ToString()
             doc.Replace(stOff,len,nt)

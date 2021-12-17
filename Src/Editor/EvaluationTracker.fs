@@ -54,19 +54,19 @@ type EvaluationTrackerRenderer (ed:TextEditor) =
 
     let mutable evaluatedCodeSeg: ISegment = null
 
-    /// Offset of where evaluatiuon should continue from
-    /// Holds the index of the first unevaluated offest, this might be out of bound too, if all doc is evaluated.
+    /// Offset of where evaluation should continue from
+    /// Holds the index of the first unevaluated offset, this might be out of bound too, if all doc is evaluated.
     let mutable topMostUnEvaluated = 0
 
 
     let computeParagraphAndDraw() = 
         if topMostUnEvaluated = 0 then
             if isNull evaluatedCodeSeg then () // nothing evaluated yet, do nothing
-            else evaluatedCodeSeg <-null /// happens when thre is a segment but the forst char gets deleted
+            else evaluatedCodeSeg <-null /// happens when there is a segment but the first char gets deleted
         else
             let len = doc.TextLength
             if topMostUnEvaluated >= len then
-                evaluatedCodeSeg <- newSegmentTill(len-1)// recalcultat just to be sure it hasn't chnaged
+                evaluatedCodeSeg <- newSegmentTill(len-1)// recalculate just to be sure it hasn't changed
                 ed.TextArea.TextView.Redraw()
 
             elif isNull evaluatedCodeSeg || topMostUnEvaluated-1 <> evaluatedCodeSeg.EndOffset then
@@ -100,7 +100,7 @@ type EvaluationTrackerRenderer (ed:TextEditor) =
                         else
                             let this = doc.GetCharAt(i)
                             if this = '\n' && isNonWhite after then // find a line that does not start with white space
-                                //i // end segment wil include line return
+                                //i // end segment will include line return
                                 let mutable j = i-1
                                 while j>0 && isWhite (doc.GetCharAt(j)) do // to remove white space too
                                     j <- j-1
@@ -110,7 +110,7 @@ type EvaluationTrackerRenderer (ed:TextEditor) =
                                 searchback this (i-1)
 
                     //ISeffLog.log.PrintfnColor 0 200 100 "topMostUnEvaluated-1: %d" topMostUnEvaluated-1
-                    let segEnd = searchback lastInEval topMostUnEvaluated   // GetCharAt     cant be -1 because ther is a check at the top
+                    let segEnd = searchback lastInEval topMostUnEvaluated   // GetCharAt     cant be -1 because there is a check at the top
 
                     if segEnd = 0 then
                         topMostUnEvaluated <- 0
@@ -135,7 +135,7 @@ type EvaluationTrackerRenderer (ed:TextEditor) =
         evaluatedCodeSeg <- null
         ed.TextArea.TextView.Redraw()
 
-    /// provide the index of the first unevaluted offest, this might be out of bound too if all doc is evaluated and will be checked
+    /// provide the index of the first unevaluated offset, this might be out of bound too if all doc is evaluated and will be checked
     member _.MarkEvalutedTillOffset(off) = 
         let len = doc.TextLength // off might be bigger than doc.TextLength because expandSelectionToFullLines adds 2 chars at end.
         topMostUnEvaluated <- min len off
@@ -143,14 +143,14 @@ type EvaluationTrackerRenderer (ed:TextEditor) =
 
     member _.MarkAllEvaluated() = 
         let mutable len = doc.TextLength-1
-        while len > 0 && isWhite (doc.GetCharAt(len)) do // to exlude empty lines at end
+        while len > 0 && isWhite (doc.GetCharAt(len)) do // to exclude empty lines at end
             len <- len-1
         topMostUnEvaluated <- len + 2
         evaluatedCodeSeg <- newSegmentTill(len+1)
         ed.TextArea.TextView.Redraw()
 
 
-    /// Offset of where evaluatiuon should continue from
+    /// Offset of where evaluation should continue from
     member _.EvaluateFrom = topMostUnEvaluated
 
     // for IBackgroundRenderer
@@ -163,7 +163,7 @@ type EvaluationTrackerRenderer (ed:TextEditor) =
                 drawingContext.DrawGeometry(backGround, null, boundaryPolygon) // pen could be null too
                 //drawingContext.DrawGeometry(backGround, border, boundaryPolygon) // pen could be null too
 
-                // TODO draw a draggabel seperator instead:
+                // TODO draw a draggabel separator instead:
                 // http://www.fssnip.net/9N/title/Drag-move-for-GUI-controls
             with ex ->
                 ISeffLog.log.PrintfnAppErrorMsg "ERROR in EvaluationTrackerRenderer.Draw(): %A" ex
@@ -201,10 +201,10 @@ type EvaluationTracker (ed:TextEditor, checker:Checker, edId:Guid) =
 
     member _.SetLastChangeAt(off) =     renderer.SetLastChangeAt(off)
 
-    /// Offset of where evaluatiuon should continue from
+    /// Offset of where evaluation should continue from
     member _.EvaluateFrom =             renderer.EvaluateFrom
 
-    /// provide the index of the first unevaluted offest, this might be out of bound too if all doc is evaluated and will be checked
+    /// provide the index of the first unevaluated offset, this might be out of bound too if all doc is evaluated and will be checked
     member _.MarkEvalutedTillOffset(off) =      renderer.MarkEvalutedTillOffset(off)
 
 

@@ -78,8 +78,8 @@ module General =
 module Str  = 
     open System.Text.RegularExpressions
 
-    /// Trims strings to 80 chars for showing in in one line.
-    /// It returns the input string trimmed to 80 chars, a count of skiped characters and the last 5 characters
+    /// Trims strings to 80 chars for showing in one line.
+    /// It returns the input string trimmed to 80 chars, a count of skipped characters and the last 5 characters
     /// Replace line breaks with '\r\n' or '\n' literal
     /// Does not include surrounding quotes
     /// If string is null returns "-null string-"
@@ -121,7 +121,7 @@ module Str  =
     let unifyLineEndings (s:string) = 
         //Text.StringBuilder(s).Replace("\r\n", "\n").Replace("\r", "\n").Replace("\n", Environment.NewLine).ToString()
         //Regex.Replace(s, @"\r\n|\n\r|\n|\r", Environment.NewLine) //https://stackoverflow.com/questions/140926/normalize-newlines-in-c-sharp
-        Regex.Replace(s, @"\r\n|\n|\r", Environment.NewLine) // simlified from https://stackoverflow.com/questions/140926/normalize-newlines-in-c-sharp
+        Regex.Replace(s, @"\r\n|\n|\r", Environment.NewLine) // simplified from https://stackoverflow.com/questions/140926/normalize-newlines-in-c-sharp
 
     let tabsToSpaces spaces (s:string) = 
         s.Replace("\t", String(' ',spaces))
@@ -148,7 +148,7 @@ module Str  =
     let inline notContainsChar (charToFind:string) (stringToSearchIn:string) = 
         stringToSearchIn.IndexOf(charToFind) = -1
 
-    /// Returns true if the last charcter of the string is equal to given char,
+    /// Returns true if the last character of the string is equal to given char,
     /// false on null or empty string
     let lastCharIs char (s:string)= 
         if isNull s then false
@@ -252,7 +252,7 @@ module Str  =
         if start = -1 then s,""
         else               s.Substring(0, start), s.Substring(start + spliter.Length)
 
-    /// finds text betwween two strings
+    /// finds text between two strings
     /// between "X" "T" "cXabTk" = "c", "ab", "k"
     /// delimiters are excluded
     /// if not both splitters are found returns original string and two empty strings

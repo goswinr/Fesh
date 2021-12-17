@@ -23,7 +23,7 @@ module CompileScript =
             <OutputType>Library</OutputType>
             <TargetFramework>net48</TargetFramework>
             <LangVersion>preview</LangVersion>
-            <SatelliteResourceLanguages>en</SatelliteResourceLanguages> <!--to only have the english resources of Fsharp.Core-->
+            <SatelliteResourceLanguages>en</SatelliteResourceLanguages> <!--to only have the English resources of Fsharp.Core-->
 
             <RootNamespace>rootNamespace</RootNamespace> <!-- set by Seff scriptcompiler-->
             <AssemblyName>assemblyName</AssemblyName>    <!-- set by Seff scriptcompiler-->
@@ -35,12 +35,12 @@ module CompileScript =
             <AssemblyVersion>9.9.9.2</AssemblyVersion><!-- set by Seff scriptcompiler-->
             <FileVersion>9.9.9.3</FileVersion><!-- set by Seff scriptcompiler-->
 
-            <!--<PlatformTarget>x64</PlatformTarget>  x64 is required e.g by Rhino, dont us just 'Platform' tag-->
+            <!--<PlatformTarget>x64</PlatformTarget>  x64 is required e.g by Rhino, don't us just 'Platform' tag-->
 
           </PropertyGroup>
 
           <ItemGroup>
-            <!--<PackageReference Update="FSharp.Core" Version="5.0.2" /> dont include in libaries-->
+            <!--<PackageReference Update="FSharp.Core" Version="5.0.2" /> don't include in libraries-->
             <!--PLACEHOLDER FOR NUGETS--> <!-- set by Seff scriptcompiler-->
           </ItemGroup>
 

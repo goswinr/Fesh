@@ -134,7 +134,7 @@ type ErrorRenderer (ed:TextEditor, folds:Folding.FoldingManager, log:ISeffLog) =
     member this.AddSegments( res: CheckResults )= 
         res.checkRes.Diagnostics|> Array.sortInPlaceBy (fun e -> e.StartLine)
         for e in res.checkRes.Diagnostics |> Seq.truncate 9 do
-            // TODO Only highligth the first 9 Errors, Otherwise UI becomes unresponsive at 100 or more errors ( eg when pasting bad text)
+            // TODO Only highlight the first 9 Errors, Otherwise UI becomes unresponsive at 100 or more errors ( eg when pasting bad text)
             let seg = ErrorUtil.getSegment doc e
             match e.Severity with
             | FSharpDiagnosticSeverity.Error   -> segments.Add ( SegmentToMark.CreateForError  ( seg.StartOffset, seg.Length, sprintf "• Error: %s: %s"   e.ErrorNumberText e.Message ))
@@ -219,7 +219,7 @@ type ErrorHighlighter (ed:TextEditor, folds:Folding.FoldingManager, log:ISeffLog
     [<CLIEvent>] member this.OnDrawn = drawnEv.Publish
 
     /// draws underlines
-    /// theadsafe
+    /// threadsafe
     member this.Draw( iEditor: IEditor ) = // this is used as Checker.OnChecked event handler
         match iEditor.FileCheckState with
         | Done res ->

@@ -16,7 +16,7 @@ open Seff.Config
 open Seff.Util.General
 
 
-/// only a single instance of checher exist that is referenced on all editors
+/// only a single instance of checker exist that is referenced on all editors
 type Checker private (config:Config)  = 
 
     let log = config.Log
@@ -60,7 +60,7 @@ type Checker private (config:Config)  =
 
             if !checkId = thisId then
                 let codeInChecker = 
-                    if tillOffset = 0 then  FullCode    (doc.CreateSnapshot().Text)//the only threadsafe way to acces the code string
+                    if tillOffset = 0 then  FullCode    (doc.CreateSnapshot().Text)//the only threadsafe way to access the code string
                     else                    PartialCode (doc.CreateSnapshot(0, tillOffset).Text)
 
                 globalCheckState <- Checking (thisId , codeInChecker)
@@ -83,7 +83,7 @@ type Checker private (config:Config)  =
                     |NotSet -> 
                         // TODO this name should be unique even for unsaved files !!for caching
                         // Used to differentiate between scripts, to consider each script a separate project.
-                        "UnSavedFile.fsx" // .fsx file required by FCS , oddly ! //TODO check if file can contain invald path characters like *
+                        "UnSavedFile.fsx" // .fsx file required by FCS , oddly ! //TODO check if file can contain invalid path characters like *
 
                 if !checkId = thisId  then
                     try
@@ -137,7 +137,7 @@ type Checker private (config:Config)  =
                                 let! parseRes , checkAnswer = checker.Value.ParseAndCheckFileInProject(fileFsx, 0, sourceText, options) // can also be done in two  calls   //TODO really use check file in project for scripts??
                                 match checkAnswer with
                                 | FSharpCheckFileAnswer.Succeeded checkRes ->
-                                    if !checkId = thisId  then // this ensures that stat get set to done ich no checker has started in the meantime
+                                    if !checkId = thisId  then // this ensures that status get set to done if no checker has started in the meantime
                                         let res = {parseRes = parseRes;  checkRes = checkRes;  code = codeInChecker ; checkId=thisId }
                                         globalCheckState <- Done res
                                         iEditor.FileCheckState <- globalCheckState

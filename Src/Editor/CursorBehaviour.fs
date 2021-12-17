@@ -89,7 +89,7 @@ module Doc =
         find offset
     *)
 
-    /// Returns offset of next non white char, paasing max one line break
+    /// Returns offset of next non white char, passing max one line break
     let inline nextNonWhiteCharOneLine offset (doc:TextDocument) = 
         let len = doc.TextLength
         let rec find off rs = 
@@ -118,12 +118,12 @@ module Doc =
         |Code  // in code
         |Str   // in string
         |Chr   // in  character
-        |ChrSt // at charcater start, needed because ''' and '\'' are both valid
+        |ChrSt // at character start, needed because ''' and '\'' are both valid
 
     /// Checks if Caret is in String  or Character quotes: " or '
     /// only checks current line
-    /// does not check for beeing in comment
-    /// handels excaped quotes too
+    /// does not check for being in comment
+    /// handles escaped quotes too
     let isCaretInStringOrChar(ed:TextEditor)= 
         let caret = ed.TextArea.Caret.Offset
         let doc = ed.Document

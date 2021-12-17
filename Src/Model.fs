@@ -46,7 +46,7 @@ type ISeffLog =
 [<CompiledName("ISeffLogModule")>] //don't rename, it is used via reflection in FsEx.Print
 module ISeffLog = 
 
-    /// A refrence to the global single instance of the Log view, will be set immediatly after construction
+    /// A reference to the global single instance of the Log view, will be set immediately after construction
     /// declared here  in Utils so it can be used in other modules that are declared before Log view
     let mutable log = 
         Unchecked.defaultof<ISeffLog> //set when Log instance is created in Initialize.everything
@@ -58,13 +58,13 @@ module ISeffLog =
 
 
     let mutable printColor : int-> int -> int -> string -> unit = //don't rename!! It's used via reflection in FsEx
-        fun r g b s -> printf "%s" s  //implementation is chanaged  when Log instance is created
+        fun r g b s -> printf "%s" s  //implementation is changed  when Log instance is created
 
     let mutable printnColor : int-> int -> int -> string -> unit = //don't rename!! It's used via reflection in FsEx
-        fun r g b s -> printfn "%s" s //implementation is chanaged  when Log instance is created
+        fun r g b s -> printfn "%s" s //implementation is changed  when Log instance is created
 
     let mutable clear : unit -> unit =  //don't rename!! It's used via reflection in FsEx
-        fun () -> () //implementation is chanaged  when Log instance is created
+        fun () -> () //implementation is changed  when Log instance is created
 
 
 // ---- Editor types -----------
@@ -159,7 +159,7 @@ type IEditor =
 [<RequireQualifiedAccess>]
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module IEditor = 
-    /// A global refrence to the current Editor
+    /// A global reference to the current Editor
     let mutable current :option<IEditor> = None
 
 

@@ -17,8 +17,8 @@ module ParseFs =
     [<Struct>]
     type Position = {offset:int; line:int}
 
-    /// a find function that will automatically exlude string , character literals and  comments from search
-    /// the search function shall return true on find sucess
+    /// a find function that will automatically exclude string , character literals and  comments from search
+    /// the search function shall return true on find success
     /// even if fromIdx is a high value the search always starts from zero to have correct state
     let findInFsCode search fromIdx (tx:string) = 
 
@@ -93,10 +93,10 @@ module ParseFs =
                     | '\n', _    ->   line<-line+1 ;find 1 state
                     | _                          -> find 1 state
 
-        find 0 Code     // 0 since inital 'i' value is 0
+        find 0 Code     // 0 since initial 'i' value is 0
 
     /// a find function that will search full text from index
-    /// the search function shall return true on find sucess
+    /// the search function shall return true on find success
     let findInText search fromIdx (tx:string) = 
 
         let len = tx.Length

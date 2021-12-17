@@ -24,14 +24,14 @@ module Formating =
             else                
                 if inStr then 
                     match sb.[i] with 
-                    |'\\' ->  find true  (i+2) // escaped quaote in string literal
+                    |'\\' ->  find true  (i+2) // escaped quote in string literal
                     |'"'  ->  find false (i+1) // end of string literal
-                    | _   ->  find true (i+1)  // nex char in string litral
+                    | _   ->  find true (i+1)  // next char in string literal
                 else
                     match sb.[i] with                     
                     |'"'  ->  find true (i+1) // start of string literal
                     | ci  when ci = c ->  i // found
-                    | _   ->  find false (i+1)  // next char (NOT in string litral)
+                    | _   ->  find false (i+1)  // next char (NOT in string literal)
         find false fromIndex
 
 
@@ -53,14 +53,14 @@ module Formating =
             else                
                 if inStr then 
                     match ln.[i] with 
-                    |'\\' ->  find true  (i+2) // escaped quaote in string literal
+                    |'\\' ->  find true  (i+2) // escaped quote in string literal
                     |'"'  ->  find false (i+1) // end of string literal
-                    | _   ->  find true (i+1)  // nex char in string litral
+                    | _   ->  find true (i+1)  // next char in string literal
                 else
                     match ln.[i] with                     
                     |'"'  ->  find true (i+1) // start of string literal
                     | ci  when isAlignmentChar ci ->  res.Add ci // found
-                    | _   ->  find false (i+1)  // next char (NOT in string litral)
+                    | _   ->  find false (i+1)  // next char (NOT in string literal)
         find false 0
         res
 

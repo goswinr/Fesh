@@ -134,7 +134,7 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
 
         Logging.LogAction <- new Action<string>( fun (s:string) -> log.PrintfnDebugMsg "Logging.Log: %s" s)
 
-        /// this line will include the charcater that trigger auto completion(dot or first letter)
+        /// this line will include the character that trigger auto completion(dot or first letter)
         let currentLineBeforeCaret()= 
             let doc = avaEdit.Document
             let car = avaEdit.TextArea.Caret
@@ -167,7 +167,7 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
                     //TODO trigger here UpdateFoldings(tab,None) or use event
 
                 | EnteredOneIdentifierChar | EnteredDot ->
-                    let pos = currentLineBeforeCaret() // this line will include the charcater that trigger auto completion(dot or first letter)
+                    let pos = currentLineBeforeCaret() // this line will include the character that trigger auto completion(dot or first letter)
                     let lineTxt = pos.lineToCaret
 
                     //possible cases where autocompletion is not desired:
@@ -181,11 +181,11 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
                     let doCompletionInPattern, onlyDU   = 
                         match stringAfterLast " |" (" " + lineTxt) with // add starting step to not fail at start of line with "|" //TODO FIX
                         |None    -> true,false
-                        |Some "" -> log.PrintfnDebugMsg " log.PrintfnDebugMsg: this schould never happen since we get here only with letters, but not typing '|'" ; false, false // most comen case: '|" was just typed, next pattern declaration starts after next car
+                        |Some "" -> log.PrintfnDebugMsg " log.PrintfnDebugMsg: this should never happen since we get here only with letters, but not typing '|'" ; false, false // most common case: '|" was just typed, next pattern declaration starts after next car
                         |Some s  ->
                             let doCompl = 
-                                s.Contains "->"             || // name binding already happend
-                                s.Contains " when "         || // name binding already happend now in when clause
+                                s.Contains "->"             || // name binding already happened
+                                s.Contains " when "         || // name binding already happened now in when clause
                                 isOperator s.[0]            || // not in pattern matching
                                 s.[0]=']'                   || // not in pattern matching
                                 (s.Contains " :?" && not <| s.Contains " as ")  // auto complete desired  after '| :?" type check but not after 'as'
@@ -232,9 +232,9 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
             if compls.IsOpen then   // just keep on tying in completion window, no type checking !
                 if compls.HasItems then // TODO, this code is duplicated in textChanged function
                     ()
-                    //let currentText = getField(typeof<CodeCompletion.CompletionList>,w.CompletionList,"currentText") :?> string //this property schould be public !
+                    //let currentText = getField(typeof<CodeCompletion.CompletionList>,w.CompletionList,"currentText") :?> string //this property should be public !
                     //TODO close Window if w.CompletionList.SelectedItem.Text = currentText
-                    //TODO ther is a bug in current text when deliting chars
+                    //TODO ther is a bug in current text when deleting chars
                     //log.PrintfnDebugMsg "currentText: '%s'" currentText
                     //log.PrintfnDebugMsg "w.CompletionList.CompletionData.Count:%d" w.CompletionList.ListBox.VisibleItemCount
                 else
@@ -250,7 +250,7 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
                         if Char.IsLetter(c) || c='_' || c='`' || c='#'  then   textChanged (EnteredOneIdentifierChar  ) //complete (# for #if directives) and __SOURCE_DIRECTORY__
                         else                                         textChanged (EnteredOneNonIdentifierChar)//check
 
-                | _  ->                                              textChanged (OtherChange               )//several charcters(paste) ,delete or completion window insert
+                | _  ->                                              textChanged (OtherChange               )//several characters(paste) ,delete or completion window insert
 
                 compls.JustClosed<-false
 
@@ -266,8 +266,8 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
              //else compls.JustClosed<-false
 
         avaEdit.Drop.Add                      (fun e -> CursorBehaviour.TextAreaDragAndDrop( ed,e))
-        avaEdit.PreviewKeyDown.Add            (fun e -> KeyboardShortcuts.previewKeyDown(    ed, e))   //to indent and dedent, and change block selection deltee behaviour
-        avaEdit.TextArea.PreviewTextInput.Add (fun e -> CursorBehaviour.previewTextInput(    ed, e))   //to change block selection delete behaviour
+        avaEdit.PreviewKeyDown.Add            (fun e -> KeyboardShortcuts.previewKeyDown(    ed, e))   //to indent and dedent, and change block selection delete behavior
+        avaEdit.TextArea.PreviewTextInput.Add (fun e -> CursorBehaviour.previewTextInput(    ed, e))   //to change block selection delete behavior
         avaEdit.TextArea.AlternativeRectangularPaste <- Action<string,bool>( fun txt txtIsFromOtherRectSel -> RectangleSelection.paste(ed,txt,txtIsFromOtherRectSel)) //TODO check txtIsFromOtherRectSel on pasting text with \r\n
 
 

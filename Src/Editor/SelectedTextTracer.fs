@@ -69,7 +69,7 @@ type SelectedTextTracer private () =
     member this.ChangeInfoText(newInfoText,i) = highlightChangedEv.Trigger(newInfoText,i)  // will update status bar
 
 
-    static member val Instance = SelectedTextTracer() // singelton pattern
+    static member val Instance = SelectedTextTracer() // singleton pattern
 
 
     static member updateFromCurrentSelection(ed:IEditor,config:Config,oh:SelectedTextHighlighter)= 
@@ -77,7 +77,7 @@ type SelectedTextTracer private () =
         let highTxt = ed.AvaEdit.SelectedText
         let checkTx = highTxt.Trim()
         let doHighlight = 
-            checkTx.Length > 1 // minimum 2 non whitecpace characters?
+            checkTx.Length > 1 // minimum 2 non whitespace characters?
             && not <| highTxt.Contains("\n")  //no line beaks
             && not <| highTxt.Contains("\r")  //no line beaks
             && config.Settings.Get("SelOcc") = Some "1"

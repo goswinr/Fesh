@@ -209,7 +209,7 @@ type BracketHighlighter (ed:TextEditor) =
             //ed.Log.PrintfnDebugMsg "%d Brackets" Brs.Count
             //if Brs.Count = 0 then ed.Log.PrintfnDebugMsg "inComment   inBlockComment  inString  %b %b %b" inComment   inBlockComment  inString
 
-            // find error in remainig stack items:
+            // find error in remaining stack items:
             for e in st do
                 Unclosed.Add   e.off
                 UnclosedBr.Add e.bracket
@@ -219,7 +219,7 @@ type BracketHighlighter (ed:TextEditor) =
     member this.HighlightPair(ed:IEditor) = 
         if ed.AvaEdit.TextArea.Selection.Length = 0 then
             let pos = ed.AvaEdit.TextArea.Caret.Offset
-            for i = 0 to Offs.Count - 1 do // or binary serach
+            for i = 0 to Offs.Count - 1 do // or binary search
                 let off = Offs.[i]
                 if off = pos || off = pos - 1  then
                     //this.Log.Value.PrintfnDebugMsg "Bracket %d to %d on Line %d " off (off+1) line.LineNumber
@@ -256,7 +256,7 @@ type BracketHighlighter (ed:TextEditor) =
         if Brs.Count > 0 &&  Cols.Count = Offs.Count then
             let st = line.Offset
             let en = line.EndOffset
-            for i = 0 to Offs.Count - 1 do // or binary serach
+            for i = 0 to Offs.Count - 1 do // or binary search
                 if notNull Cols.[i] then // the first one is null ( to keep the coloring from xshd file)
                     let off = Offs.[i]
                     if off >= st && off < en then
@@ -265,7 +265,7 @@ type BracketHighlighter (ed:TextEditor) =
                         | ClRound | OpRect | OpCurly | OpRound  | ClRect | ClCurly  -> base.ChangeLinePart( off, off+1, fun el -> el.TextRunProperties.SetForegroundBrush(Cols.[i]))
                         | OpAnRec | OpArr | ClAnRec | ClArr                         -> base.ChangeLinePart( off, off+2, fun el -> el.TextRunProperties.SetForegroundBrush(Cols.[i]))
 
-            for i = 0 to Unclosed.Count - 1 do // or binary serach
+            for i = 0 to Unclosed.Count - 1 do // or binary search
                 let off = Unclosed.[i]
                 if off >= st && off < en then
                     match UnclosedBr.[i] with
