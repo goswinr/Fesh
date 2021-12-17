@@ -59,7 +59,10 @@ type Seff (config:Config,log:Log) =
             if not e.Cancel then
                 let canClose = tabs.AskForFileSavingToKnowIfClosingWindowIsOk()
                 if not canClose then e.Cancel <- true // dont close window
+               
             )
+        
+        win.Window.Closed.Add(fun _ ->  tabs.Fsi.TriggerShutDownThreadEv() )// to clean up threads
 
 
         win.Window.ContentRendered.Add(fun _ -> tabs.CurrAvaEdit.Focus() |> ignore )
