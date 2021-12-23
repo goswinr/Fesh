@@ -4,9 +4,9 @@
  <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <!--
-    <TargetFramework>net472</TargetFramework>    
-    -->
     <TargetFrameworks>net472;net6.0-windows</TargetFrameworks>    
+    -->
+    <TargetFramework>net472</TargetFramework>    
     <UseWPF>true</UseWPF>
     <UseWindowsForms>true</UseWindowsForms><!--inherited from Avalonedit ?-->
     <LangVersion>preview</LangVersion>
@@ -40,13 +40,21 @@
     <ApplicationIcon>Media/logo.ico</ApplicationIcon>
     <Win32Resource>Media/logo.res</Win32Resource>  <!-- Win32Resource for Application Icon in explorer-->
 
-    <Platforms>x64;x86</Platforms>  <!-- or use <PlatformTarget> ? -->
     <Configurations>Release</Configurations>
-
     <DefineConstants Condition="'$(TargetFramework)' == 'net472'">NETFRAMEWORK</DefineConstants>
-
+    
+    <!-- 
+    <Platforms>x64;x86</Platforms> 
     <OutputPath Condition="'$(Platform)'=='x64'">binStandalone/x64/</OutputPath>
     <OutputPath Condition="'$(Platform)'=='x86'">binStandalone/x86/</OutputPath>
+    
+    <PlatformTargets>x64;x86</PlatformTargets>
+    <OutputPath Condition="'$(PlatformTarget)'=='x64'">binStandalone/x64/</OutputPath>
+    <OutputPath Condition="'$(PlatformTarget)'=='x86'">binStandalone/x86/</OutputPath>
+      -->
+
+    <RuntimeIdentifiers>win-x64;win-x86</RuntimeIdentifiers>
+    <OutputPath>binStandalone</OutputPath>
   </PropertyGroup>
 
 
