@@ -69,16 +69,16 @@ type Fsi private (config:Config) =
     let abortMakeAndStartAsyncThread() = 
         //shutDownThreadEv.Trigger() // this shuts down all of seff !!
 
-        #if NETFRAMEWORK
-        // Thread.Abort method is not supported in .NET 6 // https://github.com/dotnet/runtime/issues/41291
-        // dsyme: Thread.Abort - it is needed in interruptible interactive execution scenarios: https://github.com/dotnet/fsharp/issues/9397#issuecomment-648376476
         match asyncThread with 
         |Some thr -> 
             asyncContext <- None
             asyncThread <- None
-            thr.Abort() // raises OperationCanceledException on Netframework and would raise Platform-not-supported-Exception on net60
+            #if NETFRAMEWORK
+            // Thread.Abort method is not supported in .NET 6 // https://github.com/dotnet/runtime/issues/41291
+            // dsyme: Thread.Abort - it is needed in interruptible interactive execution scenarios: https://github.com/dotnet/fsharp/issues/9397#issuecomment-648376476
+            thr.Abort() // raises OperationCanceledException on Netframework and would raise Platfrom-not-supported-Exception on net60
+            #endif
         |None -> ()
-        #endif
 
         let th = new Thread(new ThreadStart( fun () ->    
             // http://reedcopsey.com/2011/11/28/launching-a-wpf-window-in-a-separate-thread-part-1/
@@ -89,7 +89,7 @@ type Fsi private (config:Config) =
             onShutDownThread.Add ( fun _ ->  
                 asyncContext <- None
                 asyncThread <- None
-                Dispatcher.CurrentDispatcher.BeginInvokeShutdown(DispatcherPriority.Background) 
+                Dispatcher.CurrentDispatcher.BeginInvokeShutdown(DispatcherPriority.Background) // TODO does this fail if it is shut down already ??
                 ) 
             // Start the Dispatcher Processing
             System.Windows.Threading.Dispatcher.Run()

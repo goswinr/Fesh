@@ -40,7 +40,7 @@ type ColumnRulers (editor:TextEditor, log: ISeffLog)  as this =
     do
         editor.TextArea.TextView.BackgroundRenderers.Add(this)
 
-        // set color in Margins
+        // set color in Margins:
         editor.ShowLineNumbers <- true //needs to be done before iterating margins
         for uiElm in editor.TextArea.LeftMargins do
             let marginCcolor =  Brushes.White |> darker 7 // set color

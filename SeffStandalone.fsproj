@@ -3,8 +3,10 @@
 
  <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <!-- <TargetFrameworks>net472;net6.0-windows</TargetFrameworks>     -->
+    <!--
     <TargetFramework>net472</TargetFramework>    
+    -->
+    <TargetFrameworks>net472;net6.0-windows</TargetFrameworks>    
     <UseWPF>true</UseWPF>
     <UseWindowsForms>true</UseWindowsForms><!--inherited from Avalonedit ?-->
     <LangVersion>preview</LangVersion>
