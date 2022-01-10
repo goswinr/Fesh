@@ -110,17 +110,22 @@ type Checker private (config:Config)  =
                         let! options, optionsErr = 
                                 checker.Value.GetProjectOptionsFromScript(filename          = fileFsx
                                                                          ,source            = sourceText
-                                                                         //,previewEnabled    = true // TODO
+                                                                         ,previewEnabled    = true // or  [| "--langversion:preview" |] 
                                                                          //,loadedTimeStamp: DateTime *
-                                                                         ,otherFlags       = [| "--langversion:preview" |] 
-                                                                         //,?useFsiAuxLib: bool *
+
                                                                          #if NETFRAMEWORK
-                                                                         ,useSdkRefs        =false
+                                                                         ,otherFlags       = [| "--targetprofile:mscorlib" |] //https://github.com/fsharp/FsAutoComplete/blob/f176825521215725e5b7ba888d4bb11d1e408e56/src/FsAutoComplete.Core/CompilerServiceInterface.fs#L178
+                                                                         ,useFsiAuxLib = true // so that fsi object is available
+                                                                         ,useSdkRefs        = false
                                                                          ,assumeDotNetFramework = true
+                                                                         
                                                                          #else
+                                                                         ,otherFlags       = [| "--targetprofile:netstandard" |] 
+                                                                         ,useFsiAuxLib = true // so that fsi object is available
                                                                          ,useSdkRefs        =true
                                                                          ,assumeDotNetFramework = false
                                                                          #endif
+
                                                                          //,sdkDirOverride: string *
                                                                          //,optionsStamp: int64 *
                                                                          //,userOpName: string
