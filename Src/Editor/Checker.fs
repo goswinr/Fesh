@@ -110,17 +110,17 @@ type Checker private (config:Config)  =
                         let! options, optionsErr = 
                                 checker.Value.GetProjectOptionsFromScript(filename          = fileFsx
                                                                          ,source            = sourceText
-                                                                         ,previewEnabled    = true // or  [| "--langversion:preview" |] 
+                                                                         ,previewEnabled    = true // TODO not a replacement for  [| "--langversion:preview" |]  ??
                                                                          //,loadedTimeStamp: DateTime *
 
                                                                          #if NETFRAMEWORK
-                                                                         ,otherFlags       = [| "--targetprofile:mscorlib" |] //https://github.com/fsharp/FsAutoComplete/blob/f176825521215725e5b7ba888d4bb11d1e408e56/src/FsAutoComplete.Core/CompilerServiceInterface.fs#L178
+                                                                         ,otherFlags       = [| "--targetprofile:mscorlib"; "--langversion:preview" |] //https://github.com/fsharp/FsAutoComplete/blob/f176825521215725e5b7ba888d4bb11d1e408e56/src/FsAutoComplete.Core/CompilerServiceInterface.fs#L178
                                                                          ,useFsiAuxLib = true // so that fsi object is available
                                                                          ,useSdkRefs        = false
                                                                          ,assumeDotNetFramework = true
                                                                          
                                                                          #else
-                                                                         ,otherFlags       = [| "--targetprofile:netstandard" |] 
+                                                                         ,otherFlags       = [| "--targetprofile:netstandard"; "--langversion:preview" |] 
                                                                          ,useFsiAuxLib = true // so that fsi object is available
                                                                          ,useSdkRefs        =true
                                                                          ,assumeDotNetFramework = false
@@ -152,7 +152,7 @@ type Checker private (config:Config)  =
                                             try
                                                 f(res)
                                             with
-                                                e -> log.PrintfnAppErrorMsg "The continueation after ParseAndCheckFileInProject failed with:\r\n %A" e
+                                                e -> log.PrintfnAppErrorMsg "The continuation after ParseAndCheckFileInProject failed with:\r\n %A" e
 
                                         | None ->
                                             do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context
@@ -261,6 +261,6 @@ type Checker private (config:Config)  =
                             else
                                 do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context
                                 continueOnUI( decls, symUse)
-            } |> Async.StartImmediate // we are on thread pool alredeay
+            } |> Async.StartImmediate // we are on thread pool already
 
         check(iEditor, pos.offset, Some getSymbolsAndDecls) //TODO can existing parse results be used ? or do they miss the dot so dont show dot completions ?

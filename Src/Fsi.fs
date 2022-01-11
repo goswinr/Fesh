@@ -179,7 +179,7 @@ type Fsi private (config:Config) =
 
                 // This is needed since FCS 34
                 // its solves https://github.com/dotnet/fsharp/issues/9064
-                // FCS takes the current Directory whish might be the one of the hosting App and will not contain FSharp.Core.
+                // FCS takes the current Directory wich might be the one of the hosting App and will not contain FSharp.Core.
                 // at https://github.com/dotnet/fsharp/blob/HEAD/src/fsharp/fsi/fsi.fs#L2766
                 Directory.SetCurrentDirectory(Path.GetDirectoryName(Reflection.Assembly.GetAssembly([].GetType()).Location))
 
