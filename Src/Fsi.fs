@@ -13,7 +13,7 @@ open Seff.Util
 open Seff.Util.Log
 
 open FsEx.Wpf
-
+open FSharp.Compiler
 open FSharp.Compiler.Interactive.Shell
 open FSharp.Compiler.Diagnostics
 open System.Windows.Threading
@@ -158,7 +158,7 @@ type Fsi private (config:Config) =
                     if config.Settings.GetBool ("fsiOutputQuiet", false) then Array.append  config.FsiArugments.Get [| "--quiet"|] // TODO or fsi.ShowDeclarationValues <- false ??
                     else                                                                    config.FsiArugments.Get
 
-                let settings = Settings.fsi
+                let settings = Interactive.Shell.Settings.fsi
                 // Default: https://github.com/dotnet/fsharp/blob/c0d6f6abbf14a19c631cd647b6440ec2c63c668f/src/fsharp/fsi/fsi.fs#L3244
                 // evLoop = (new SimpleEventLoop() :> IEventLoop)
                 // showIDictionary = true
@@ -175,7 +175,8 @@ type Fsi private (config:Config) =
                 // addedPrinters = []
                 settings.PrintWidth <- 200 //TODO adapt to Log view size taking fontsize into account
                 settings.FloatingPointFormat <- "g7"
-                let fsiConfig = FsiEvaluationSession.GetDefaultConfiguration(settings,false) // https://github.com/dotnet/fsharp/blob/4978145c8516351b1338262b6b9bdf2d0372e757/src/fsharp/fsi/fsi.fs#L2839
+                let fsiConfig = FsiEvaluationSession.GetDefaultConfiguration(settings, useFsiAuxLib = false) // useFsiAuxLib = FSharp.Compiler.Interactive.Settings.dll . But it is missing in FCS !!
+                // https://github.com/dotnet/fsharp/blob/4978145c8516351b1338262b6b9bdf2d0372e757/src/fsharp/fsi/fsi.fs#L2839
 
                 // This is needed since FCS 34
                 // its solves https://github.com/dotnet/fsharp/issues/9064

@@ -58,12 +58,12 @@ type Log private () =
 
 
     //used in FSI constructor:
-    let fsiErrorStream = StringBuilder()
+    let fsiErrorsStringBuilder = StringBuilder()
 
     let textWriterConsoleOut    =  log.GetTextWriter   ( LogColors.consoleOut )
     let textWriterConsoleError  =  log.GetTextWriter   ( LogColors.consoleError)
     let textWriterFsiStdOut     =  log.GetTextWriter   ( LogColors.fsiStdOut )
-    let textWriterFsiErrorOut   =  log.GetConditionalTextWriter ( (fun s -> fsiErrorStream.Append(s)|> ignore; true) ,  LogColors.fsiErrorOut) // use filter for side effect
+    let textWriterFsiErrorOut   =  log.GetConditionalTextWriter ( (fun s -> fsiErrorsStringBuilder.Append(s)|> ignore; true) ,  LogColors.fsiErrorOut) // use filter for side effect
 
 
     //-----------------------------------------------------------
@@ -72,7 +72,7 @@ type Log private () =
 
     member this.AvalonLog = log
 
-    member this.FsiErrorStream = fsiErrorStream  
+    member this.FsiErrorsStringBuilder = fsiErrorsStringBuilder  
 
     member internal this.AdjustToSettingsInConfig(config:Config)= 
         //this.OnPrint.Add (config.AssemblyReferenceStatistic.RecordFromlog) // TODO: does this have print perfomance impact ? measure do async ?
@@ -124,8 +124,7 @@ type Log private () =
 
 
     interface ISeffLog with
-        member _.FsiErrorStream         = fsiErrorStream
-
+        
         //used in FSI constructor:
         member _.TextWriterFsiStdOut    = textWriterFsiStdOut    :> TextWriter
         member _.TextWriterFsiErrorOut  = textWriterFsiErrorOut  :> TextWriter
