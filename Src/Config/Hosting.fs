@@ -51,9 +51,9 @@ type Hosting (startUpData:HostedStartUpData option) =
 
     member this.SettingsFileInfo = settingsFileInfo
 
-    member this.FsiCanRun =   match startUpData with None ->  true  | Some d -> d.fsiCanRun()
+    member this.FsiCanRun    =   match startUpData with None ->  true  | Some d -> d.fsiCanRun()
 
-    member this.HostName    =  match startUpData with None ->  None | Some d -> Some d.hostName
+    member this.HostName     =  match startUpData with None ->  None | Some d -> Some d.hostName
 
     member this.IsHosted     = match startUpData with None ->  false | Some _ -> true
 
