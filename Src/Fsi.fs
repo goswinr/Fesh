@@ -241,8 +241,7 @@ type Fsi private (config:Config) =
                     pendingEval <- None
                     eval(ctE)                
                 }
-                |> Async.Start  
-    
+                |> Async.Start      
        
 
     and eval(codeToEv:CodeToEval) :unit = 
@@ -264,7 +263,8 @@ type Fsi private (config:Config) =
                 match sessionOpt with
                 |None ->
                     pendingEval <- Some codeToEv
-                    //initFsi()  //not needed, setting pendingEval is enough
+                    //startedEv.Trigger(codeToEv) //  to show "FSI is running" immediately , even while initalizing?
+                    //initFsi()  //dont ! not needed !, setting pendingEval is enough
                     //previously: log.PrintfnFsiErrorMsg "Please wait till FSI is initialized for running scripts"
 
                 |Some session ->
