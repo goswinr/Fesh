@@ -238,7 +238,7 @@ type Tabs(config:Config, win:Window) =
             | None -> // regular case, actually open file
                 try
                     let code =  IO.File.ReadAllText (fi.FullName, Text.Encoding.UTF8)
-                    let t = new Tab(Editor.SetUp(code, config, SetTo fi))
+                    let t = new Tab(Editor.SetUp(code, config, SetTo fi), config, allFileInfos)
                     //log.PrintfnDebugMsg "adding Tab %A in %A " t.FilePath t.Editor.FileCheckState
                     addTab(t,makeCurrent, moreTabsToCome)
                     true
@@ -283,7 +283,7 @@ type Tabs(config:Config, win:Window) =
             tryAddFile( f.file, f.makeCurrent, true)  |> ignore
 
         if tabs.Items.Count=0 then //Open default file if none found in recent files or args
-            let t = new Tab(Editor.New(config))
+            let t = new Tab(Editor.New(config), config, allFileInfos)
             addTab(t, true, true) |> ignore
 
         if tabs.SelectedIndex = -1 then    //make one tab current if none yet , happens if current file on last closing was an unsaved file
@@ -301,7 +301,8 @@ type Tabs(config:Config, win:Window) =
         tabs.SelectionChanged.Add( fun _->
             if tabs.Items.Count = 0 then //  happens when closing the last open tab
                 //create new tab
-                addTab(new Tab(Editor.New(config)), true, false)
+                let tab = new Tab(Editor.New(config), config, allFileInfos)
+                addTab(tab, true, false)
 
             else
                 let tab = 

@@ -92,13 +92,16 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
     member this.Folds = folds
     member this.Search = search
 
+
+    member this.SetFilePathMustBeInSyncWithTabsPath(v)= filePath <- v // only the Tab class containing this editor takes care of updating this
+
     // IEditor members:
 
     member this.Id              = id
     member this.AvaEdit         = avaEdit
     ///This CheckState is local to the current editor
     member this.FileCheckState  with get() = checkState    and  set(v) = checkState <- v
-    member this.FilePath        with get() = filePath      and  set(v) = filePath <- v // The Tab class containing this editor takes care of updating this
+    member this.FilePath        with get() = filePath    
     member this.Log = log
     member this.IsComplWinOpen  = compls.IsOpen
 

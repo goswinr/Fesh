@@ -192,9 +192,9 @@ type Foldings(ed:TextEditor, checker:Checker, config:Config, edId:Guid) =
         checker.OnFullCodeAvailabe.Add foldEditor // will add an event for each new tab, foldEditor skips updating if it is not current editor
         // event for tracking folding status via mouse up in margin is attached in editor.setup()
 
-    /// because when the full text gets replaced ( eg via git branch change)
+    /// Because when the full text gets replaced ( eg via git branch change).
     /// manager.UpdateFoldings(..) cannot remember old locations and keep state
-    member this.SetToOneFullReload() = 
+    member this.SetToDoOneFullReload() = 
         isIntialLoad <- true
 
     member this.InitState(ied:IEditor) = 

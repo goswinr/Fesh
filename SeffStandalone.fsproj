@@ -64,7 +64,7 @@
     <PackageReference Include="AvalonLog" Version="0.6.0" />
     <PackageReference Update="FSharp.Core" Version="6.0.3" />
     <PackageReference Include="FSharp.Compiler.Service" Version="41.0.3" />
-    <PackageReference Include="FsEx.Wpf" Version="0.1.0" />
+    <PackageReference Include="FsEx.Wpf" Version="0.2.0" />
 
     <!--this reference is needed for tooling only, it might not be installed on host PC. see also https://github.com/fsprojects/IfSharp/issues/213 -->
     <PackageReference Include="NETStandard.Library" Version="2.0.3" GeneratePathProperty="true" />
@@ -78,7 +78,7 @@
     <Resource Include="Media/logo.ico" />       <!--  for Application Icon in primary windows-->
     <Resource Include="Media/logoGray.ico" />    <!--  for Application Icon in secondary PopOut windows--> 
     <!-- <Resource Include="Media/FiraCode-Regular.ttf" /> -->   
-    <None Include="Src/SynatxHighlightingFSharp.xshd" CopyToOutputDirectory="PreserveNewest" TargetPath="SynatxHighlightingFSharp.xshd"/>
+    <None Include="Src/SynatxHighlightingFSharp.xshd" CopyToOutputDirectory="PreserveNewest" TargetPath="SynatxHighlightingFSharp.xshd" />
 
     <Compile Include="Src/Util.fs" />
     <Compile Include="Src/ParseFs.fs" />

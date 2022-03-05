@@ -22,7 +22,8 @@ type HostedStartUpData = {
 type Hosting (startUpData:HostedStartUpData option) = 
 
     let isRunningOnDotNetCore = 
-        Type.GetType("System.Runtime.Loader.AssemblyLoadContext") <> null //https://github.com/dotnet/runtime/issues/22779#issuecomment-315527735
+        Runtime.InteropServices.RuntimeInformation.FrameworkDescription.StartsWith(".NET Framework", StringComparison.OrdinalIgnoreCase) |> not
+        //Type.GetType("System.Runtime.Loader.AssemblyLoadContext") <> null // https://github.com/dotnet/runtime/issues/22779#issuecomment-315527735
 
     let configFolder = 
         let appData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData)

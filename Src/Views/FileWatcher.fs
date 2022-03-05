@@ -17,89 +17,89 @@ type FileChange =
     |Changed
     |Renamed
     |Deleted
+    
 
-type FileWatcher(editor:Editor,upadteIsCodeSaved:bool->unit) as this = 
+type FileWatcher(editor:Editor, upadteIsCodeSaved:bool->unit, setNewPath:FileWatcher*FilePath->unit) as this = 
     inherit FileSystemWatcher()
 
     let onFocusActions = ResizeArray<unit->unit>()
 
+    let nl = System.Environment.NewLine
 
-
-    let asktToUpdate (msg:string, newCode:string) = 
-        match MessageBox.Show(msg, "File Changed" , MessageBoxButton.YesNo, MessageBoxImage.Exclamation) with
+    let asktToUpdate (path:string, newCode:string) = 
+        let msg = $"File{nl}{path}{nl}was changed by some other process.{nl}Do you want to reload it?" 
+        match MessageBox.Show(msg, "! File Changed !" , MessageBoxButton.YesNo, MessageBoxImage.Exclamation, MessageBoxResult.Yes, MessageBoxOptions.DefaultDesktopOnly) with //https://stackoverflow.com/a/53009621
         | MessageBoxResult.Yes ->
-            editor.Folds.SetToOneFullReload() // to keep folding state
+            editor.Folds.SetToDoOneFullReload()     // to keep folding state
             //editor.AvaEdit.Text <- newCode        // this does NOT allows undo or redo
             editor.AvaEdit.Document.Text <- newCode // this allows undo and redo
             upadteIsCodeSaved(true)
         | _  ->
             upadteIsCodeSaved(false)
+    
+    let showChangedWindow =  editor.Config.Settings.GetBoolSaveDefault ("ShowFileChangedByOtherProcessWindow", true)
 
+    let mutable deleted = false
 
-
-    let isDiffrent (fullPath:string) = 
+    let change(kind:FileChange, path:string, oldPath:string) = 
+        //ISeffLog.printError($"FileWatcher event {kind} {path}!")
+        //this.EnableRaisingEvents <- false // pause watching
         async{
-            do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context
-            let doc = editor.AvaEdit.Document
-            do! Async.SwitchToThreadPool()
-            let uiCode = doc.CreateSnapshot().Text
-            do! Async.Sleep 100 // to be sure file access is not blocked by other app
-            try
-                let fileCode =  File.ReadAllText(fullPath, Text.Encoding.UTF8)
-                if uiCode <> fileCode then
-                    let n = Path.GetFileName(fullPath)
-                    let dir = Path.GetDirectoryName(fullPath)
-                    //let msg = "at " + DateTime.nowStrMilli + " this file was changed externally."
-                    //let msg = sprintf "File\r\n%s\r\nat\r\n%s\r\nchanged.\r\nDo you want to reload it?" n dir
-                    let msg = sprintf "File '%s' changed. Do you want to reload it?" n
-                    do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context
-                    if editor.AvaEdit.IsFocused then
-                        asktToUpdate(msg,fileCode)
-                    else
-                        onFocusActions.Add (fun () ->  asktToUpdate(msg,fileCode) )
-            with e ->
-                editor.Log.PrintfnAppErrorMsg "File changed but cant read changes from file system to compare if its the same as the currently shown file. %A " e
-             }
-        |> Async.StartImmediate
-
-    let mutable deleted : option<DateTime>= None
-
-    let changed(kind:FileChange, path:string) = 
-        this.EnableRaisingEvents <- false // pause watching
-        match kind with
-        |Renamed -> MessageBox.Show(sprintf "File %s was renamed." path )|> ignore
-        |Deleted -> MessageBox.Show(sprintf "File %s was deleted." path )|> ignore
-        |Changed -> isDiffrent path
-        this.EnableRaisingEvents <- true // restart watching
-
+            do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context        
+            match kind with
+            |Renamed -> 
+                let fi = SetTo(FileInfo(path))
+                setNewPath(this,fi)
+                //upadteIsCodeSaved(false) // mark unsaved so that via saving the recent files list is updated too
+                MessageBox.Show($"File{nl}{oldPath}{nl}was renamed to{nl}{path}.", "! File renamed !", MessageBoxButton.OK, MessageBoxImage.Exclamation, MessageBoxResult.OK, MessageBoxOptions.DefaultDesktopOnly)|> ignore
+            
+            |Deleted -> 
+                deleted <- true
+                do! Async.Sleep 300 // wait first and only raise deleted event if there is no changed event in the meantime
+                if deleted && IO.File.Exists(path) |> not then // double check file really doesnt exist, false alarms  happen wehen a file is deleted aand the saved again from Seff
+                    upadteIsCodeSaved(false)
+                    MessageBox.Show($"File{nl}{path}{nl}was deleted.", "! File deleted !",MessageBoxButton.OK, MessageBoxImage.Exclamation, MessageBoxResult.OK, MessageBoxOptions.DefaultDesktopOnly)|> ignore
+                    
+            
+            |Changed ->                 
+                deleted <- false // to not raise deleted event  too
+                if showChangedWindow then 
+                    let doc = editor.AvaEdit.Document
+                    do! Async.SwitchToThreadPool()
+                    let uiCode = doc.CreateSnapshot().Text
+                    do! Async.Sleep 100 // to be sure file access is not blocked by other app
+                    try
+                        let fileCode =  File.ReadAllText(path, Text.Encoding.UTF8)
+                        if uiCode <> fileCode then
+                            do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context
+                            if editor.AvaEdit.IsFocused then
+                                asktToUpdate(path,fileCode)
+                            else
+                                onFocusActions.Add (fun () ->  asktToUpdate(path,fileCode) )
+                    with e ->
+                        editor.Log.PrintfnAppErrorMsg "File changed but cant read changes from file system to compare if its the same as the currently shown file. %A " e
+            
+            //this.EnableRaisingEvents <- true // restart watching
+            }
+            |> Async.StartImmediate
+    
 
     do
-        this.NotifyFilter <-        NotifyFilters.LastWrite
-                                ||| NotifyFilters.FileName
-                                ||| NotifyFilters.DirectoryName
+        this.NotifyFilter <-       NotifyFilters.LastWrite
+                               ||| NotifyFilters.FileName
+                               ||| NotifyFilters.DirectoryName
                             // ||| NotifyFilters.Attributes
                             // ||| NotifyFilters.CreationTime
                             // ||| NotifyFilters.LastAccess
                             // ||| NotifyFilters.Security
                             // ||| NotifyFilters.Size
 
-        this.Renamed.Add (fun a -> changed(Renamed,a.FullPath) )
-        this.Changed.Add (fun a ->
-            deleted <- None // to not raise deleted event
-            changed(Changed,a.FullPath) )
-        this.Deleted.Add (fun a ->
-            deleted <- Some  DateTime.UtcNow
-            async{
-                do! Async.Sleep 500 // wait first and only raise deleted event if ther is no changed event in the meantime
-                if deleted.IsSome then
-                    changed(Deleted,a.FullPath)
-                } |> Async.StartImmediate
-            )
-
-        // to show massages of file change only when it gets focus again
-        // editor.AvaEdit.MouseEnter.Add ( fun a ->
-        //     for msg in onFocusMsgs do  MessageBox.Show("MouseEnter " + msg) |> ignore
-        //     onFocusMsgs.Clear())
+        this.Renamed.Add (fun a -> change(Renamed,a.FullPath,a.OldFullPath) )        
+        this.Deleted.Add (fun a -> change(Deleted,a.FullPath,"") )           
+        this.Changed.Add (fun a -> change(Changed,a.FullPath,"") )
+        //this.Created.Add (fun a -> ISeffLog.printError($"FileWatcher Created {a.FullPath}!"))
+        
+        
         editor.AvaEdit.GotFocus.Add ( fun a ->
             if onFocusActions.Count > 0 then
                 let actions = ResizeArray(onFocusActions)

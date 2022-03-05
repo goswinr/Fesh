@@ -31,7 +31,7 @@ module TabStyle =
 
 
  /// The tab that holds the tab header logic and the code editor
-type Tab (editor:Editor) = 
+type Tab (editor:Editor, config:Seff.Config.Config, allFileInfos:seq<IO.FileInfo>) = 
     inherit TabItem()
 
     let mutable isCodeSaved        = true
@@ -99,9 +99,22 @@ type Tab (editor:Editor) =
         if not isSaved && headerShowsSaved then
             setHeader()
         elif isSaved && not headerShowsSaved  then
-            setHeader()
+            setHeader()    
 
-    let watcher = new FileWatcher(editor,upadteIsCodeSaved)
+    let setNewPath(w:FileWatcher,fp:FilePath) = 
+        editor.SetFilePathMustBeInSyncWithTabsPath(fp)
+        setHeader()
+        // update file watcher:
+        match editor.FilePath with
+        |NotSet -> ()
+        |SetTo fi ->
+            w.Path <- fi.DirectoryName
+            w.Filter <- fi.Name
+            w.EnableRaisingEvents <- true    
+            config.RecentlyUsedFiles.AddAndSave(fi)         
+            config.OpenTabs.Save(editor.FilePath , allFileInfos)
+    
+    let watcher = new FileWatcher(editor, upadteIsCodeSaved, setNewPath)
 
     do
         base.Content <- editor.AvaEdit
@@ -126,16 +139,7 @@ type Tab (editor:Editor) =
     /// this gets and set FileInfo on the Editor
     member this.FilePath
         with get() = editor.FilePath
-        and set(fp) = 
-            editor.FilePath <- fp
-            setHeader()
-            // update file watcher:
-            match editor.FilePath with
-            |NotSet -> ()
-            |SetTo fi ->
-                watcher.Path <- fi.DirectoryName
-                watcher.Filter <- fi.Name
-                watcher.EnableRaisingEvents <- true
+        and set(fp:FilePath) = setNewPath(watcher,fp)
 
 
     member this.CloseButton = closeButton // public so click event can be attached later in Tabs.fs AddTab
