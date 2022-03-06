@@ -78,7 +78,7 @@
     <Resource Include="Media/logo.ico" />       <!--  for Application Icon in primary windows-->
     <Resource Include="Media/logoGray.ico" />    <!--  for Application Icon in secondary PopOut windows--> 
     <!-- <Resource Include="Media/FiraCode-Regular.ttf" /> -->   
-    <None Include="Src/SynatxHighlightingFSharp.xshd" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="Src/SynatxHighlightingFSharp.xshd" CopyToOutputDirectory="PreserveNewest" TargetPath="SynatxHighlightingFSharp.xshd"/>
 
     <Compile Include="Src/Util.fs" />
     <Compile Include="Src/ParseFs.fs" />

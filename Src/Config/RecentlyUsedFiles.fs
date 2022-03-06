@@ -76,15 +76,19 @@ type RecentlyUsedFiles  ( hostInfo:Hosting) =
             if recentFilesStack.Peek().fileInfo.FullName = fi.FullName then
                 recentFilesStack.Pop()  |> ignore// pop old date add new date
             recentFilesStack.Push {fileInfo=fi ; lastOpendUtc=DateTime.UtcNow }
-
+    /// saves async with 2 sec delay
     member this.Save() = 
         writer.WriteIfLast( getStringRaiseEvent, 2000)
 
-
+    /// saves async with 2 sec delay
     member this.AddAndSave(fi:FileInfo) = 
         this.Add(fi)
         this.Save()
-
+    
+    /// saves immediately in sync without delay
+    member this.AddAndSaveSync(fi:FileInfo) = 
+        this.Add(fi)
+        IO.File.WriteAllText(filePath0,getStringRaiseEvent(),Text.Encoding.UTF8)
 
     /// the first element in this array the top of stack
     member this.GetUniqueExistingSorted() = 

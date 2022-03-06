@@ -69,12 +69,19 @@ type OpenTabs  (hostInfo:Hosting, startupArgs:string[]) =
         for f in allFiles do
             sb.AppendLine(f.FullName) |> ignore
         sb.ToString()
-
+    
+    /// saves async with delay
     member this.Save (currentFileO:FilePath , allFilesO: seq<FileInfo>) = 
         currentFile<-currentFileO
-        allFiles<-allFilesO
-        //log.PrintfnDebugMsg "Save tabs %A, curent %A" allFiles currentFile
-        writer.WriteIfLast  ( getText ,500)
+        allFiles<-allFilesO        
+        writer.WriteIfLast (getText ,500)
+    
+    //saves immediately in sync
+    member this.SaveSync (currentFileO:FilePath , allFilesO: seq<FileInfo>) = 
+        currentFile<-currentFileO
+        allFiles<-allFilesO        
+        IO.File.WriteAllText(filePath0, getText(),Text.Encoding.UTF8)
+
 
     /// second item in tuple indicates current tab
     /// ensures that ther is only one file to make current

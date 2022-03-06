@@ -13,7 +13,11 @@ open Seff.Util.General
 open Seff.Config
 open Seff.Style
 
-type SavingKind = SaveInPlace | SaveNewLocation | SaveExport
+type SavingKind = 
+    | SaveInPlace
+    | SaveExport 
+    | SaveNewLocation 
+    | SaveNewLocationSync // does not delay the updatye of recent file and current tabs, for when seff is clossing immediately afterwerds
 
 /// A class holding the Tab Control.
 /// Includes logic for saving and opening files.
@@ -58,15 +62,22 @@ type Tabs(config:Config, win:Window) =
         else
             try
                 let txt = t.AvaEdit.Text
-                IO.File.WriteAllText(fi.FullName, txt,Text.Encoding.UTF8)
+                IO.File.WriteAllText(fi.FullName, txt, Text.Encoding.UTF8)
                 match saveKind with
                 |SaveNewLocation ->
                     t.IsCodeSaved <- true
-                    t.FilePath <- SetTo fi //this also updates the Tab header and set file info on editor
-                    config.RecentlyUsedFiles.AddAndSave(fi)          //TODO this fails if app closes afterward immideatly  ?
-                    config.OpenTabs.Save(t.FilePath , allFileInfos)  //TODO this fails if app closes afterward immideatly  ?
+                    t.FilePath <- SetTo fi //this also updates the Tab header and set file info on editor                    
+                    config.RecentlyUsedFiles.AddAndSave(fi)          
+                    config.OpenTabs.Save(t.FilePath , allFileInfos)   
                     config.FoldingStatus.Set(t.Editor) // otherwise no record would exist for the new file name
-                    log.PrintfnInfoMsg "File saved as:\r\n\"%s\"" fi.FullName
+                    log.PrintfnInfoMsg "File saved as:\r\n\"%s\"" fi.FullName    
+                |SaveNewLocationSync -> 
+                    t.IsCodeSaved <- true
+                    t.FilePath <- SetTo fi //this also updates the Tab header and set file info on editor
+                    config.RecentlyUsedFiles.AddAndSaveSync(fi)         
+                    config.OpenTabs.SaveSync(t.FilePath , allFileInfos)
+                    config.FoldingStatus.Set(t.Editor) // otherwise no record would exist for the new file name
+                    log.PrintfnInfoMsg "File saved as:\r\n\"%s\"" fi.FullName   
                 |SaveInPlace ->
                     t.IsCodeSaved <- true
                     log.PrintfnInfoMsg "File saved:\r\n\"%s\"" fi.FullName
@@ -144,6 +155,21 @@ type Tabs(config:Config, win:Window) =
                 saveAsDialog(t, SaveNewLocation)
         |NotSet ->
                 saveAsDialog(t, SaveNewLocation)
+
+
+    /// Returns false if saving operation was canceled or had an error, true on sucessfull saving
+    let trySaveBeforeClosing (t:Tab)= 
+        match t.FilePath with
+        |SetTo fi ->
+            if  t.IsCodeSaved then                
+                true
+            elif (fi.Refresh(); fi.Exists) then
+                saveAt(t, fi, SaveInPlace)
+            else                
+                saveAsDialog(t, SaveNewLocationSync)
+        |NotSet ->
+                saveAsDialog(t, SaveNewLocationSync)
+
 
     /// Returns true if file is saved or if closing ok (not canceled by user)
     let askIfClosingTabIsOk(t:Tab) :bool= 
@@ -393,8 +419,9 @@ type Tabs(config:Config, win:Window) =
                 sprintf "%s\r\n\r\n%s" m name) "Do you want to\r\nsave the changes to:"
             match MessageBox.Show(msg, Style.dialogCaption, MessageBoxButton.YesNoCancel, MessageBoxImage.Question) with
             | MessageBoxResult.Yes ->
-                let OKs = seq { for t in allTabs do if not t.IsCodeSaved then yield this.Save t } // if saving was canceled ( eg, no filename picked) then cancel closing
-                if Seq.exists ( fun OK -> OK = false) OKs then false else true // iterate unsafed files, if one file saving was canceled retrun false,  so the closing of the main window can be aborted
+                seq { for t in allTabs do if not t.IsCodeSaved then yield trySaveBeforeClosing t } // if saving was canceled ( eg, no filename picked) then cancel closing
+                |> Seq.forall id // checks if all are true, if one file-saving was canceled return false,  so the closing of the main window can be aborted
+                //if Seq.exists ( fun ok -> ok = false) oks then false else true 
             | MessageBoxResult.No  -> true
             | _                    -> false
 
