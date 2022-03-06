@@ -19,9 +19,9 @@
     <Product>Seff</Product>
     <PackageId>Seff</PackageId>
 
-    <Version>0.0.3</Version>
-    <AssemblyVersion>0.0.3</AssemblyVersion>
-    <FileVersion>0.0.3</FileVersion>
+    <Version>0.1.4</Version>
+    <AssemblyVersion>0.1.4</AssemblyVersion>
+    <FileVersion>0.1.4</FileVersion>
     <PackageReleaseNotes>First public release</PackageReleaseNotes>
 
     <Authors>GoswinR</Authors>
@@ -72,9 +72,9 @@
     <Resource Include="Media/logo.ico" />       <!--  for Application Icon in primary windows-->
     <Resource Include="Media/logoGray.ico" />    <!--  for Application Icon in secondary PopOut windows-->
     <!-- <Resource Include="Media/FiraCode-Regular.ttf" /> -->
-	<None Include="Src/SynatxHighlightingFSharp.xshd" CopyToOutputDirectory="PreserveNewest" TargetPath="SynatxHighlightingFSharp.xshd"/>
+	<None Include="Src/SynatxHighlightingFSharp.xshd" CopyToOutputDirectory="PreserveNewest" TargetPath="SynatxHighlightingFSharp.xshd" Pack="true" PackagePath="\" />
 
-	  <Compile Include="Src/Util.fs" />
+	<Compile Include="Src/Util.fs" />
     <Compile Include="Src/ParseFs.fs" />
     <Compile Include="Src/Timer.fs" />
     <Compile Include="Src/Style.fs" />
