@@ -27,7 +27,7 @@ module SyntaxHighlighting =
                 try
                     //let stream = Reflection.Assembly.GetExecutingAssembly().GetManifestResourceStream("FSharpSynatxHighlighter2.xshd") // Build action : Embeded Resource; Copy to ouput Dir: NO
                     let assemblyLocation = IO.Path.GetDirectoryName(Reflection.Assembly.GetExecutingAssembly().Location)
-                    let path = Path.Combine(assemblyLocation,"FSharpSynatxHighlighterExtended.xshd")
+                    let path = Path.Combine(assemblyLocation,"SynatxHighlightingFSharp.xshd")
                     filePath <- path
                     let stream = new StreamReader(path)//will be copied there after compiling recompiling
                     use reader = new Xml.XmlTextReader(stream)
@@ -88,39 +88,14 @@ module SyntaxHighlighting =
         with e ->
             ISeffLog.log.PrintfnIOErrorMsg "Open SyntaxHighlighting with VScode failed: %A" e
 
-        (*
-        async{
-            try
-                if IO.File.Exists filePath then
-                    let p = new System.Diagnostics.Process()
-                    p.StartInfo.FileName <- "code"
-                    let inQuotes = "\"" + filePath + "\""
-                    p.StartInfo.Arguments <- String.concat " " [inQuotes;  "--reuse-window"]
-                    log.PrintfnColor 0 0 200 "command:\r\n%s %s" p.StartInfo.FileName p.StartInfo.Arguments
+       
 
-                    //p.StartInfo.UseShellExecute <- false
-                    //p.StartInfo.CreateNoWindow <- true //true if the process should be started without creating a new window to contain it
-                    //p.StartInfo.RedirectStandardError <-true
-                    //p.StartInfo.RedirectStandardOutput <-true
-                    //p.OutputDataReceived.Add ( fun d -> log.PrintfnCustomBrush Media.Brushes.Red   "%s" d.Data)
-                    //p.ErrorDataReceived.Add (  fun d -> log.PrintfnAppErrorMsg "%s" d.Data)
-                    //p.Exited.Add( fun _ -> log.PrintfnInfoMsg  "opend XSHD")
-                    p.Start() |> ignore
-                    //p.BeginOutputReadLine()
-                    //p.BeginErrorReadLine()
-                    //p.WaitForExit()
-                else
-                   log.PrintfnIOErrorMsg "File not found: %s" filePath
-            with e ->
-                log.PrintfnIOErrorMsg "Failed opening VS Code: %A" e
-            } |> Async.Start
-        *)
-
-    // TODO take colors from https://github.com/johnpapa/vscode-winteriscoming/blob/master/themes/WinterIsComing-light-color-theme.json
-
-
+    
+    (*
     /// taken from VS2017
-    module ColorsUNUSED= 
+    module ColorsUNUSED = 
+        // TODO take colors from https://github.com/johnpapa/vscode-winteriscoming/blob/master/themes/WinterIsComing-light-color-theme.json
+
         open FSharp.Compiler.CodeAnalysis
 
         let shadowed        = Color.FromArgb(188,0,0 )
@@ -170,3 +145,4 @@ module SyntaxHighlighting =
             | FSharpGlyph.Struct            -> Brushes.Blue
             | FSharpGlyph.ExtensionMethod   -> Brushes.DarkKhaki
             | FSharpGlyph.Error             -> Brushes.Red
+    *)

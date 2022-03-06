@@ -54,10 +54,10 @@
 
   <ItemGroup>
     <!-- normally don't include FSharp.Core in a library, but Update to latest version is needed for latest FSharp.Compiler.Service-->
-    <PackageReference Update="FSharp.Core" Version="6.0.1" />
-    <PackageReference Include="FSharp.Compiler.Service" Version="41.0.1" />
+    <PackageReference Update="FSharp.Core" Version="6.0.3" />
+    <PackageReference Include="FSharp.Compiler.Service" Version="41.0.3" />
     <PackageReference Include="AvalonLog" Version="0.6.0" />
-    <PackageReference Include="FsEx.Wpf" Version="0.0.3" />
+    <PackageReference Include="FsEx.Wpf" Version="0.1.0" />
 
     <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.1" PrivateAssets="All" IncludeAssets="runtime; build; native; contentfiles; analyzers; buildtransitive" />
     <!-- https://docs.microsoft.com/en-us/nuget/consume-packages/package-references-in-project-files#controlling-dependency-assets -->
@@ -71,8 +71,8 @@
     <EmbeddedResource Include="Media/logo.res" /> <!--  for Application Icon in explorer-->
     <Resource Include="Media/logo.ico" />       <!--  for Application Icon in primary windows-->
     <Resource Include="Media/logoGray.ico" />    <!--  for Application Icon in secondary PopOut windows-->
-    <Resource Include="Media/FiraCode-Regular.ttf" />
-    <None Include="FSharpSynatxHighlighterExtended.xshd">    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>    </None>
+    <!-- <Resource Include="Media/FiraCode-Regular.ttf" /> -->
+    <None Include="Src/SynatxHighlightingFSharp.xshd" CopyToOutputDirectory="PreserveNewest" />
 
     <Compile Include="Src/Util.fs" />
     <Compile Include="Src/ParseFs.fs" />
