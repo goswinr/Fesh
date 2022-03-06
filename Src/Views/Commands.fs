@@ -15,14 +15,15 @@ open Seff.Editor
 open Seff.Editor.Selection
 open Seff.Editor.SelectionForEval
 
+
+
 type Commands (grid:TabsAndLog, statusBar:SeffStatusBar)  = 
 
-    let fonts = Fonts(grid)
-
-    let tabs = grid.Tabs
-    let log = grid.Log
-    let config= grid.Config
-    let fsi = tabs.Fsi
+    let fonts  = Fonts(grid)
+    let tabs   = grid.Tabs
+    let log    = grid.Log
+    let config = grid.Config
+    let fsi    = tabs.Fsi
 
 
     let evalAllText()          =                                             fsi.Evaluate {editor=tabs.Current.Editor; amount=All}
@@ -46,10 +47,10 @@ type Commands (grid:TabsAndLog, statusBar:SeffStatusBar)  =
     //see https://github.com/icsharpcode/AvalonEdit/blob/697ff0d38c95c9e5a536fbc05ae2307ec9ef2a63/AvalonEditB/Editing/CaretNavigationCommandHandler.cs#L73
     //TODO these get evaluated for each cmd on every mouse click or key press. is this OK?  any lag ?? in Canexecute for commands
 
-    let isEse (_:obj)  = tabs.Current.Editor.AvaEdit.SelectionLength > 0
-    let isLse (_:obj)  = log.AvalonLog.Selection.Length > 0
-    let isAsy (_:obj)  = fsi.State = Evaluating && fsi.Mode.IsAsync
-    let isAsy472 (x:obj) = fsi.State = Evaluating && fsi.Mode = Async472
+    let isEse   (_:obj) = tabs.Current.Editor.AvaEdit.SelectionLength > 0
+    let isLse   (_:obj) = log.AvalonLog.Selection.Length > 0
+    let isAsy   (_:obj) = fsi.State = Evaluating && fsi.Mode.IsAsync
+    let isAsy472(_:obj) = fsi.State = Evaluating && fsi.Mode = Async472
 
     // NOTE :--------------------------------------------------------------------
     // some more gestures and for selection manipulation are defined in module CursorBehaviour.previewKeyDown(..)

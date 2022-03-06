@@ -37,7 +37,7 @@ type FsiIsCancelingIsOk =
     | UserDoesntWantTo // Dont cancel because the user actually doesnt want to cancel 
     | NotPossibleSync // Not-Possible-Sync because during sync eval the UI should be frozen anyway and this request should not be happening
 
-// not needed in Net5.0 ??
+// not needed in Net6.0 ??
 #nowarn "44" //for: This construct is deprecated. Recovery from corrupted process state exceptions is not supported; HandleProcessCorruptedStateExceptionsAttribute is ignored.
 
 type Fsi private (config:Config) = 
@@ -223,13 +223,11 @@ type Fsi private (config:Config) =
     
     [< Security.SecurityCritical >] 
     [< Runtime.ExceptionServices.HandleProcessCorruptedStateExceptions >] //to handle AccessViolationException too //https://stackoverflow.com/questions/3469368/how-to-handle-accessviolationexception/4759831
-    //This construct is deprecated in net6.0 . Recovery from corrupted process state exceptions is not supported; HandleProcessCorruptedStateExceptionsAttribute is ignored.
-    let evalSave (sess:FsiEvaluationSession,code:string)=
+    // HandleProcessCorruptedStateExceptions is deprecated in net6.0 . Recovery from corrupted process state exceptions is not supported; Attribute is ignored.
+    let evalSave (sess:FsiEvaluationSession, code:string)=
         sess.EvalInteractionNonThrowing(code) //,fsiCancelScr.Value.Token)   // cancellation token here fails to cancel in sync, might still throw OperationCanceledException if async
 
 
-    [< Security.SecurityCritical >] // TODO do these Attributes apply in to async thread too ?
-    [< Runtime.ExceptionServices.HandleProcessCorruptedStateExceptions >] //to handle AccessViolationException too //https://stackoverflow.com/questions/3469368/how-to-handle-accessviolationexception/4759831
     let eval(codeToEv:CodeToEval)= 
         let fsCode = 
             let ed = codeToEv.editor.AvaEdit
@@ -256,7 +254,7 @@ type Fsi private (config:Config) =
 
                     let asyncEval = async{
                         
-                        /// set context this or other async thread: 
+                        // set context this or other async thread: 
                         match mode with 
                         |Sync -> 
                             do! Async.Sleep 1 // this helps to show "FSI is running" immediately
@@ -299,15 +297,14 @@ type Fsi private (config:Config) =
                             // | FsiSegment seg -> seg.line
                             //setDir session fi
                             //setFileAndLine session code.fromLine fi // TODO both fail ??
-                            ()
-                        
+                            ()                       
                         
 
                         let evaluatedTo, errs = 
-                            try evalSave(session,fsCode) //,fsiCancelScr.Value.Token)   // cancellation token here fails to cancel in sync, might still throw OperationCanceledException if async
+                            try evalSave(session,fsCode) 
                             with e -> Choice2Of2 e , [| |]
                         
-                        // switch back to Seff Thread:
+                        // switch back to sync Thread:
                         match mode with 
                         |Sync -> ()
                         |Async472| Async60 -> do! Async.SwitchToContext SyncWpf.context
