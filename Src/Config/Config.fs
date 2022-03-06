@@ -10,7 +10,7 @@ type Config (log:ISeffLog, startUpData:HostedStartUpData option, startupArgs:str
 
 
     let  hosting                    = Hosting                     (startUpData)
-    let  settings                   = FsEx.Wpf.Settings          (hosting.SettingsFileInfo,ISeffLog.printError)
+    let  settings                   = FsEx.Wpf.Settings           (hosting.SettingsFileInfo,ISeffLog.printError)
     let  recentlyUsedFiles          = RecentlyUsedFiles           (hosting)
     let  openTabs                   = OpenTabs                    (hosting, startupArgs)
     let  defaultCode                = DefaultCode                 (hosting)
