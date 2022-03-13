@@ -94,7 +94,7 @@ type Foldings(ed:TextEditor, checker:Checker, config:Config, edId:Guid) =
                 let nestingLevel = FoldingStack.Count
                 if nestingLevel <= maxDepth then
                     let index = Folds.Count
-                    Folds.Add  {foldStartOff = -99; foldEndOff = -99 ; linesInFold = -99 ; nestingLevel = nestingLevel} // dummy value to be mutated later
+                    Folds.Add  {foldStartOff = -99; foldEndOff = -99 ; linesInFold = -99 ; nestingLevel = nestingLevel} // dummy value to be mutated later, if not mutated it will be filter out in foldEditor function.
                     FoldingStack.Push {indent= ind; lineEndOff = en ; line = no ; indexInFolds = index; nestingLevel = nestingLevel}
                     //ISeffLog.log.PrintfnAppErrorMsg  " line: %d: indent %d start" no ind                
 
@@ -152,8 +152,7 @@ type Foldings(ed:TextEditor, checker:Checker, config:Config, edId:Guid) =
                                     fs.Add f
                         fs
 
-                    if foldings.Count>0
-                    && checker.CurrentCheckId = checkId then
+                    if checker.CurrentCheckId = checkId then
                         do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context
                         match iEditor.FileCheckState.SameIdAndFullCode(checker.GlobalCheckState) with
                         | NoCode -> ()
