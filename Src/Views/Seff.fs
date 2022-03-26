@@ -30,7 +30,7 @@ type Seff (config:Config,log:Log) =
         commands.SetUpGestureInputBindings()
 
         win.Window.AllowDrop <- true // so it works on tab bar
-        win.Window.Drop.Add (fun e -> CursorBehaviour.TabBarDragAndDrop(log,tabs.AddFiles, e)) // text editor has it own drag event, this aplies to all other area ( eg log, tab bar) except the editor
+        win.Window.Drop.Add (fun e -> CursorBehaviour.TabBarDragAndDrop(tabs.AddFiles, e)) // text editor has it own drag event, this aplies to all other area ( eg log, tab bar) except the editor (see handler)
 
         win.Window.Content     <- dockP
         win.Window.Background  <- menu.Bar.Background // call after setting up content, otherwise space next to tab headers is in an odd color

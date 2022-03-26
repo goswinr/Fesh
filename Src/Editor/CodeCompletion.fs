@@ -242,11 +242,13 @@ type Completions(avaEdit:TextEditor,config:Config, checker:Checker) =
                 compl.ShowingEv.Trigger() // to close error and type info tooltip
 
                 let w =  new CodeCompletion.CompletionWindow(avaEdit.TextArea)
-                compl.ComplWin <- Some w
-                w.BorderThickness <- Thickness(0.0)
+                compl.ComplWin <- Some w 
+                //w.CompletionList.Height <- 400.  // has  UI bug  
+                //w.Height <- 400. // does not work               
+                w.BorderThickness <- Thickness(0.0) //https://stackoverflow.com/questions/33149105/how-to-change-the-style-on-avalonedit-codecompletion-window
                 w.ResizeMode      <- ResizeMode.NoResize // needed to have no border!
-                w.WindowStyle     <- WindowStyle.None // = no border
-                w.SizeToContent   <- SizeToContent.WidthAndHeight //https://github.com/icsharpcode/AvalonEdit/blob/master/AvalonEditB/CodeCompletion/CompletionWindow.cs#L47
+                w.WindowStyle     <- WindowStyle.None // = no border                
+                w.SizeToContent   <- SizeToContent.WidthAndHeight // https://github.com/icsharpcode/AvalonEdit/blob/master/ICSharpCode.AvalonEdit/CodeCompletion/CompletionWindow.cs#L47
                 w.MinHeight <- avaEdit.FontSize
                 w.MinWidth  <- avaEdit.FontSize * 8.0
                 w.Closed.Add (fun _  ->

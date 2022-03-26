@@ -105,7 +105,6 @@ type EvaluationTrackerRenderer (ed:TextEditor) =
                                 while j>0 && isWhite (doc.GetCharAt(j)) do // to remove white space too
                                     j <- j-1
                                 j+1
-
                             else
                                 searchback this (i-1)
 
@@ -119,7 +118,7 @@ type EvaluationTrackerRenderer (ed:TextEditor) =
                                 min segEnd ln.EndOffset // min() because segEnd might be smaller than ln.EndOffset
                             else
                                 let st = doc.GetText(ln.Offset,2)
-                                if st = "[<" || st = "//" then // for attributes and comments
+                                if st = "[<" || st = "//"  || st = "#if" || st = "#el" then // for attributes #if-blocks and comments
                                     moveUp(ln.PreviousLine)
                                 elif String.IsNullOrWhiteSpace(doc.GetText(ln)) then 
                                     moveUp(ln.PreviousLine)

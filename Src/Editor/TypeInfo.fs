@@ -401,7 +401,7 @@ type TypeInfo private () =
 
 
     static member mouseHover(e: MouseEventArgs, iEditor:IEditor, log:ISeffLog, tip:ToolTip) = 
-        // see https://github.com/icsharpcode/AvalonEdit/blob/master/AvalonEditB/Editing/SelectionMouseHandler.cs#L477
+        // see https://github.com/icsharpcode/AvalonEdit/blob/master/ICSharpCode.AvalonEdit/Editing/SelectionMouseHandler.cs#L477
 
         let doc = iEditor.AvaEdit.Document
         let pos = iEditor.AvaEdit.GetPositionFromPoint(e.GetPosition(iEditor.AvaEdit))

@@ -308,7 +308,7 @@ module CursorBehaviour  =
                 let printGreen = ed.Log.PrintfnColor 0 150 0
 
                 let fs = (e.Data.GetData DataFormats.FileDrop :?> string []) |> Array.sort |> Array.rev // to get file path
-                if fs.Length > 2 && Array.forall isDll fs then      // TODO make path relatriv to script location
+                if fs.Length > 2 && Array.forall isDll fs then      // TODO make path relative to script location
                     for f in fs  do
                         let file = IO.Path.GetFileName(f)
                         doc.Insert (0, sprintf "#r \"%s\"\r\n" file)
@@ -327,7 +327,7 @@ module CursorBehaviour  =
                             let dropLine = ed.AvaEdit.Document.GetLineByNumber(pos.Value.Line)
                             let carLine = doc.GetLineByOffset(ed.AvaEdit.CaretOffset)
                             if abs(dropLine.LineNumber-carLine.LineNumber) < 5 then
-                                /// if drop location is close by 5 lines to caret use caret location otherwies use drop line end
+                                // If drop location is close by 5 lines to caret use caret location otherwies use drop line end
                                 carLine.LineNumber,ed.AvaEdit.CaretOffset
                             else
                                 dropLine.LineNumber,dropLine.EndOffset
@@ -378,21 +378,36 @@ module CursorBehaviour  =
                     e.Handled <- true
 
             with er -> ed.Log.PrintfnIOErrorMsg "Drag & Drop in TextArea failed: %A" er
+    
 
-    let TabBarDragAndDrop (log:ISeffLog, openFiles: string[] -> bool, e:DragEventArgs) = 
-        if e.Data.GetDataPresent DataFormats.FileDrop then
-            let isFsx (p:string) = p.EndsWith(".fsx", StringComparison.OrdinalIgnoreCase) ||  p.EndsWith(".fs", StringComparison.OrdinalIgnoreCase)
-            try
-                let fs = (e.Data.GetData DataFormats.FileDrop :?> string [])
-                fs
-                |> Array.filter isFsx
-                |> openFiles
-                |> ignore
+    /// A Event handler that will open a new tab per file.
+    /// If event comes from a AvalonEditB.TextEditor that is not read only ( like the Log) the event is ignored.
+    let TabBarDragAndDrop (openFiles: string[] -> bool, e:DragEventArgs) = 
+        //ISeffLog.log.PrintfnDebugMsg "Drop onto e.Source :%A ; e.OriginalSource:%A" e.Source e.OriginalSource
+        let addTabsForFiles() = 
+            if e.Data.GetDataPresent DataFormats.FileDrop then
+                let isFsx (p:string) = p.EndsWith(".fsx", StringComparison.OrdinalIgnoreCase) ||  p.EndsWith(".fs", StringComparison.OrdinalIgnoreCase)
+                try
+                    let fs = (e.Data.GetData DataFormats.FileDrop :?> string [])
+                    fs
+                    |> Array.filter isFsx
+                    |> openFiles
+                    |> ignore
 
-                fs
-                |> Seq.filter (not << isFsx)
-                |> Seq.iter (log.PrintfnIOErrorMsg "skiped opening  file in drag and drop: %s")
+                    fs
+                    |> Seq.filter (not << isFsx)
+                    |> Seq.iter (ISeffLog.log.PrintfnIOErrorMsg " Only *.fsx and *.fs files can be opened to tabs. Ignoring darg-and-drop of  %A " )
 
-                e.Handled <- true
-
-            with er -> log.PrintfnIOErrorMsg "Other Drag & Drop failed: %A" er
+                    e.Handled <- true
+                    
+                with er -> 
+                    ISeffLog.log.PrintfnIOErrorMsg "Other Drag & Drop failed: %A" er
+        
+        match e.Source with 
+        | :? AvalonEditB.TextEditor  as te ->  
+                // do only when on AvalonLog, not if drap happens on code editor, for code editor the file is not opened 
+                // but a link to it inserted into the code, see separate TextAreaDragAndDrop event above.        
+                if te.IsReadOnly then addTabsForFiles() 
+                else () // do nothing
+        | _ -> addTabsForFiles()
+           

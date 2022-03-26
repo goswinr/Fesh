@@ -16,7 +16,7 @@ open AvalonLog.Brush
 open Seff.Model
 
 type ColumnRulers (editor:TextEditor, log: ISeffLog)  as this = 
-    //https://github.com/icsharpcode/AvalonEdit/blob/master/AvalonEditB/Rendering/ColumnRulerRenderer.cs
+    //https://github.com/icsharpcode/AvalonEdit/blob/master/ICSharpCode.AvalonEdit/Rendering/ColumnRulerRenderer.cs
 
     let columnsInit = 
         [0 .. 10] |> List.map ( fun i -> i * editor.Options.IndentationSize)
