@@ -60,8 +60,11 @@
 
 
   <ItemGroup>
-
-    <PackageReference Include="AvalonLog" Version="0.6.0" />
+    <!--
+	  <Reference Include="AvalonEditB"> <HintPath>..\AvalonLog\bin\Release\net472\AvalonEditB.dll</HintPath>	  </Reference>
+	  <Reference Include="AvalonLog"> <HintPath>..\AvalonLog\bin\Release\net472\AvalonLog.dll</HintPath>	  </Reference>
+	-->
+	<PackageReference Include="AvalonLog" Version="0.7.0" />	  	  
     <PackageReference Update="FSharp.Core" Version="6.0.3" />
     <PackageReference Include="FSharp.Compiler.Service" Version="41.0.3" />
     <PackageReference Include="FsEx.Wpf" Version="0.2.0" />
@@ -136,6 +139,10 @@
     <Compile Include="Src/App.fs" />
     
     <None Include="SeffHosting.fsproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    
   </ItemGroup>
 
 
