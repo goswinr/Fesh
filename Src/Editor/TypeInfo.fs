@@ -137,6 +137,7 @@ type TypeInfo private () =
         *)
         tb
 
+    /// To show code literals in monospace font
     /// for <c> and </c> in text
     static let markInlineCode(tx:string) : TextBlockSelectable = 
         let tb = new TextBlockSelectable()
@@ -304,7 +305,7 @@ type TypeInfo private () =
         //mostly copied from same named function in Docstring.fs
         match cmt with
         | FSharpXmlDoc.FromXmlText xmlDoc ->
-            // Doc string that is not from an xml file but from the current .fsx document
+            // this might be a xml Doc string that is not from an xml file but from the current .fsx document
             let s = 
                 xmlDoc.UnprocessedLines
                 |> String.concat Environment.NewLine
@@ -328,7 +329,7 @@ type TypeInfo private () =
                 Error ("xml doc file not found for: "+dllFile+"\r\n")
 
 
-    static let getToolTipDatas (sdtt: ToolTipText, optDfes:ResizeArray<OptDefArg>) : ToolTipData list= 
+    static let makeToolTipDataList (sdtt: ToolTipText, optDfes:ResizeArray<OptDefArg>) : ToolTipData list= 
         match sdtt with
         | ToolTipText.ToolTipText (els) ->
             match els with
@@ -342,16 +343,16 @@ type TypeInfo private () =
                     | ToolTipElement.CompositionError(text) ->
                         yield {name = ""; signature = [||]; optDefs=optDfes; xmlDocStr = Error ("*FSharpStructuredToolTipElement.CompositionError: "+ text)}
 
-                    | ToolTipElement.Group(tooTipElsData) ->
-                        for tted in tooTipElsData do
-                            yield { name      = Option.defaultValue "" tted.ParamName
-                                    signature = tted.MainDescription
+                    | ToolTipElement.Group(tooTipElemDataList) ->
+                        for tooTipElemData in tooTipElemDataList do                            
+                            yield { name      = Option.defaultValue "" tooTipElemData.ParamName
+                                    signature = tooTipElemData.MainDescription
                                     optDefs   = optDfes
-                                    xmlDocStr = buildFormatComment tted.XmlDoc}
+                                    xmlDocStr = buildFormatComment tooTipElemData.XmlDoc}
                 ]
 
 
-    ///returns the names of optional Arguments in a given method call
+    /// Returns the names of optional Arguments in a given method call.
     static let namesOfOptnlArgs(fsu:FSharpSymbolUse) :ResizeArray<OptDefArg>= 
         let optDefs = ResizeArray<OptDefArg>(0)
         try
@@ -387,7 +388,7 @@ type TypeInfo private () =
 
     static member namesOfOptionalArgs(fsu:FSharpSymbolUse) = namesOfOptnlArgs(fsu)
 
-    static member getToolTipDataList (sdtt: ToolTipText, optArgs:ResizeArray<OptDefArg>) = getToolTipDatas (sdtt, optArgs)
+    static member makeSeffToolTipDataList (sdtt: ToolTipText, optArgs:ResizeArray<OptDefArg>) = makeToolTipDataList (sdtt, optArgs)
 
     static member getPanel  (it:DeclarationListItem option, tds:ToolTipData list) = 
         cachedDeclarationListItem <- it
@@ -412,7 +413,7 @@ type TypeInfo private () =
 
                 //TODO check for in string to give #r tooltip
                 //TODO fails on ´´ backtick names
-                //TODO test using Fsharp instead for finding words:  let partialLongName = QuickParse.GetPartialLongNameEx(pos.lineToCaret, colSetBack - 1)
+                //TODO test using FCS instead for finding words:  let partialLongName = QuickParse.GetPartialLongNameEx(pos.lineToCaret, colSetBack - 1)
 
                 let offset = doc.GetOffset(pos.Value.Location)
                 let startOffset = TextUtilities.GetNextCaretPosition(doc,offset, LogicalDirection.Backward, CaretPositioningMode.WordBorderOrSymbol)// TODO fails on ´´ backtick names
@@ -448,8 +449,7 @@ type TypeInfo private () =
 
                         do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context
 
-
-                        let ttds = getToolTipDatas (ttt, optArgs)
+                        let ttds = makeToolTipDataList (ttt, optArgs) ///TODO can this still be async ?
                         if List.isEmpty ttds then
                             let w = word.Trim()
                             //if w <> "" then     tip.Content <- "No type info found for:\r\n" + word
@@ -463,6 +463,6 @@ type TypeInfo private () =
                                 tip.Content <- ttPanel
                         } |> Async.StartImmediate //TODO: add Cancellation ?
 
-               //e.Handled <- true //  don't set handeled! so that on type errors the  Error tooltip still gets shown after this tooltip
+                //e.Handled <- true //  don't set handeled! so that on type errors the  Error tooltip still gets shown after this tooltip
 
 

@@ -17,6 +17,19 @@ open Seff.Model
 
 open FSharp.Compiler.Symbols
 
+(*
+//TODO
+//avoid own old XML parsing possible ? do becaus XMl might be to long in donet 6.0 https://github.com/dotnet/fsharp/issues/12702
+
+module DocStringFCS = 
+    let get (d:FSharp.Compiler.Xml.XmlDoc)=
+        d.GetXmlText
+    // https://github.com/dotnet/fsharp/issues/11611
+    // https://github.com/dotnet/fsharp/pull/11454
+
+*)
+
+
 /// taken and adapeted from FsAutoComplete in 2019
 module DocString = 
 
@@ -253,7 +266,8 @@ module DocString =
                     ISeffLog.log.PrintfnIOErrorMsg  "Error in reading xml file %s \r\nfor tooltips ( is it Text.Encoding.UTF8?) : %A" actualXmlFile ex /// TODO ad printing to LOG ?
                     None  // TODO: Remove the empty map from cache to try again in the next request?
                 //} Async.
-
+    
+    (*
     // --------------------------------------------------------------------------------------
     // Formatting of tool-tip information displayed in F# IntelliSense
     // --------------------------------------------------------------------------------------
@@ -280,6 +294,7 @@ module DocString =
                     sprintf "'%s' not found in doc"memberName
             | None -> ""
         | FSharpXmlDoc.None -> ""
+    *)
 
 
     (*
@@ -292,13 +307,15 @@ module DocString =
                 doc.[memberName].ToDocumentationString()
            | _ -> ""
         | _ -> "" *)
-
+    
+    (*
     let private formatGenericParamInfo cmt = 
       let m = Regex.Match(cmt, """(.*) is (.*)""")
       if m.Success then
         sprintf "* `%s` is `%s`" m.Groups.[1].Value m.Groups.[2].Value
       else
         cmt
+    *)
 
     (*
     let formatTip (FSharpToolTipText tips) : (string * string) list list = 

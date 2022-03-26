@@ -110,14 +110,30 @@ type EvaluationTrackerRenderer (ed:TextEditor) =
                                 searchback this (i-1)
 
                     //ISeffLog.log.PrintfnColor 0 200 100 "topMostUnEvaluated-1: %d" topMostUnEvaluated-1
-                    let segEnd = searchback lastInEval topMostUnEvaluated   // GetCharAt     cant be -1 because there is a check at the top
+                    let segmentEnd = 
+                        let segEnd = searchback lastInEval topMostUnEvaluated   // GetCharAt     cant be -1 because there is a check at the top
+                        
+                        /// now include any attributes and comments in the lines above , and skip whitspace again                       
+                        let rec moveUp (ln:DocumentLine) = 
+                            if ln.LineNumber = 0 then 
+                                min segEnd ln.EndOffset // min() because segEnd might be smaller than ln.EndOffset
+                            else
+                                let st = doc.GetText(ln.Offset,2)
+                                if st = "[<" || st = "//" then // for attributes and comments
+                                    moveUp(ln.PreviousLine)
+                                elif String.IsNullOrWhiteSpace(doc.GetText(ln)) then 
+                                    moveUp(ln.PreviousLine)
+                                else
+                                    ln.EndOffset 
+                        moveUp(doc.GetLineByOffset(segEnd))
+                        
 
-                    if segEnd = 0 then
+                    if segmentEnd = 0 then
                         topMostUnEvaluated <- 0
                         evaluatedCodeSeg <- null
                     else
-                        topMostUnEvaluated <- segEnd+1
-                        evaluatedCodeSeg   <- newSegmentTill(segEnd)
+                        topMostUnEvaluated <- segmentEnd+1
+                        evaluatedCodeSeg   <- newSegmentTill(segmentEnd)
 
                     ed.TextArea.TextView.Redraw()
 

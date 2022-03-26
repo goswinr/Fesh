@@ -171,15 +171,15 @@ type Completions(avaEdit:TextEditor,config:Config, checker:Checker) =
         async{
             let raw = it.Description
             let structured = 
-                if optArgsDict.ContainsKey it.FullName then  TypeInfo.getToolTipDataList (raw, optArgsDict.[it.FullName])
-                else                                         TypeInfo.getToolTipDataList (raw, ResizeArray(0))
+                if optArgsDict.ContainsKey it.FullName then  TypeInfo.makeSeffToolTipDataList (raw, optArgsDict.[it.FullName])
+                else                                         TypeInfo.makeSeffToolTipDataList (raw, ResizeArray(0))
             if this.IsOpen then
                 do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context
                 if this.IsOpen then // might get closed during context switch
                     if selectedText() = it.Name then
                         win.Value.ToolTipContent <- TypeInfo.getPanel (Some it, structured )
                         hasStackPanelTypeInfo <-true
-                        //TODO add structure to Dict so it does not need recomputing if browsing items in the completion list.
+                        //TODO add structure to a Dict so it does not need recomputing if browsing up and down items in the completion list.
         } |> Async.Start
         TypeInfo.loadingText :> obj
 
