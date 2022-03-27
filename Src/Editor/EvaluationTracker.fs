@@ -118,7 +118,8 @@ type EvaluationTrackerRenderer (ed:TextEditor) =
                                 min segEnd ln.EndOffset // min() because segEnd might be smaller than ln.EndOffset
                             else
                                 let st = doc.GetText(ln.Offset,2)
-                                if st = "[<" || st = "//"  || st = "#if" || st = "#el" then // for attributes #if-blocks and comments
+                                //if  st = "#if" || st = "#el" then // TODO: detect if current end segment is inside a #if #elif #else block !
+                                if st = "[<" || st = "//"   then // for attributes comments  
                                     moveUp(ln.PreviousLine)
                                 elif String.IsNullOrWhiteSpace(doc.GetText(ln)) then 
                                     moveUp(ln.PreviousLine)

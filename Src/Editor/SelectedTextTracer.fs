@@ -68,11 +68,9 @@ type SelectedTextTracer private () =
     member this.OnHighlightChanged = highlightChangedEv.Publish
     member this.ChangeInfoText(newInfoText,i) = highlightChangedEv.Trigger(newInfoText,i)  // will update status bar
 
-
     static member val Instance = SelectedTextTracer() // singleton pattern
 
-
-    static member updateFromCurrentSelection(ed:IEditor,config:Config,oh:SelectedTextHighlighter)= 
+    static member updateFromCurrentSelection(ed:IEditor, config:Config, oh:SelectedTextHighlighter)= 
         // for text view:
         let highTxt = ed.AvaEdit.SelectedText
         let checkTx = highTxt.Trim()
