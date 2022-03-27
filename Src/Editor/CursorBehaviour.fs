@@ -1,4 +1,4 @@
-namespace Seff.Editor
+﻿namespace Seff.Editor
 
 open System
 open System.Windows
@@ -289,27 +289,47 @@ module CursorBehaviour  =
             ed.TextArea.Caret.Offset <- caret+caretForward // it was moved 2, now set it to one ahead, in the middle
             e.Handled <- true
         
-        let prevChar() = ed.Document.GetCharAt(max 0 (ed.TextArea.Caret.Offset-1))
+        let inline prevChar() = ed.Document.GetCharAt(max 0 (ed.TextArea.Caret.Offset-1))        
+
+        match Selection.getSelType(ed.TextArea) with
+        |RectSel -> ()
         
-        match e.Text with
-        | "("  -> addPair 1 "()" 
-        | "{"  -> addPair 1 "{}"
-        | "["  -> addPair 1 "[]"
-        | "'"  -> addPair 1 "''"
-        | "\"" -> addPair 1 "\"\""
-        | "$"  -> addPair 1 "$\"\"" // for formating string
-        | "`"  -> addPair 2 "````" // for formating string
-        | "|" -> 
-            // first check previous character:
-            match prevChar() with 
-            | '{' | '[' | '(' -> addPair 2 "|  |" // it was moved 2, now set it to one ahead, in the middle              
+        // if there is a simple selction on one line surround it in Brackets
+        |RegSel -> 
+            match e.Text with
+            | "("  ->
+                let s = Selection.getSelectionOrdered(ed.TextArea)
+                if s.LineCount = 1 then 
+                    ed.Document.BeginUpdate()
+                    ed.Document.Insert(s.enOffset(ed.Document),")")
+                    ed.Document.Insert(s.stOffset(ed.Document),"(")
+                    ed.Document.EndUpdate()
+                    ed.SelectionLength <- 0
+                    ed.CaretOffset <- s.enOffset(ed.Document)+1
+                    e.Handled<-true
             | _ -> ()
-        | "*" -> // for comments with  (* *)
-            // first check previous character:
-            match prevChar() with 
-            | '(' -> addPair 2 "*  *"
+
+        // if no selction for an opening brcket add a closing bracket
+        |NoSel -> 
+            match e.Text with
+            | "("  -> addPair 1 "()" 
+            | "{"  -> addPair 1 "{}"
+            | "["  -> addPair 1 "[]"
+            | "'"  -> addPair 1 "''"
+            | "\"" -> addPair 1 "\"\""
+            | "$"  -> addPair 2 "$\"\"" // for formating string
+            | "`"  -> addPair 2 "````" // for formating string
+            | "|" -> 
+                // first check previous character:
+                match prevChar() with 
+                | '{' | '[' | '(' -> addPair 2 "|  |" // it was moved 2, now set it to one ahead, in the middle              
+                | _ -> ()
+            | "*" -> // for comments with  (* *)
+                // first check previous character:
+                match prevChar() with 
+                | '(' -> addPair 2 "*  *"
+                | _ -> ()
             | _ -> ()
-        | _ -> ()
 
 
     let previewTextInput(ed:TextEditor, e:Input.TextCompositionEventArgs) = 
