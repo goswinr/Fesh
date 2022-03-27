@@ -60,11 +60,16 @@ module Doc =
     /// Will do a bound check and return less chars if needed
     let inline getTextBeforOffsetSkipSpaces desiredCharsCount offset  (doc:TextDocument) = 
         if desiredCharsCount = 0 then ""
-        elif desiredCharsCount < 0 then failwithf "getTextBeforOffset desiredCharsCount=%d" desiredCharsCount
-        else
+        elif desiredCharsCount < 0 then failwithf "getTextBeforOffset desiredCharsCount=%d must be positive" desiredCharsCount
+        //elif offset < desiredCharsCount then // coverd by bound check below
+        elif offset=doc.TextLength then // special case for end of document
+            doc.GetText(offset-desiredCharsCount,desiredCharsCount)
+        else            
             let rec find off  = 
-                if off > 0 && doc.GetCharAt(off-1) = ' ' then find (off-1)
-                else off
+                if off > 0 && doc.GetCharAt(off-1) = ' ' then
+                    find (off-1)
+                else 
+                    off
             let offNonWhite = find offset
 
             let st = max 0 (offNonWhite - desiredCharsCount ) // - 1)
@@ -73,9 +78,7 @@ module Doc =
             if len < 1 then
                 "" //doc.GetText(st,0) fails !!
             else
-                let t = doc.GetText(st,len)
-                //ISeffLog.log.PrintfnDebugMsg "before Offset %d : doc.GetText(%d,%d)='%s'" offset st len t
-                t
+                doc.GetText(st,len)
     (*
     /// Returns offset of next non white char, pass ovver all line breaks topo
     let inline nextNonWhiteChar offset (doc:TextDocument) = 
@@ -184,16 +187,16 @@ module CursorBehaviour  =
                 doc.Replace(seg, "false")
         doc.EndUpdate()
 
-    /// When pressing enter add indentation on next line if appropiate.
-    let internal addIndentation(ed:IEditor,e:Input.KeyEventArgs) = 
+    /// When pressing enter add indentation on next line if appropiate for FSharp.
+    /// for avaEdit.PreviewKeyDown
+    let internal addFSharpIndentation(ed:IEditor,e:Input.KeyEventArgs) = 
         if hasNoSelection ed.AvaEdit.TextArea  then // TODO what happens if there is a selction ?? or also use to replace selected text ??
             let caret = ed.AvaEdit.CaretOffset
-            let doc = ed.AvaEdit.Document
-            //if Doc.offsetIsAtLineEnd caret doc then
-            //let trimmed = Doc.getTextBeforOffset 6 caret doc
+            let doc = ed.AvaEdit.Document            
             let trimmed = Doc.getTextBeforOffsetSkipSpaces 6 caret doc
-            //ed.Log.PrintfnDebugMsg "trimmed='%s' (%d chars)" trimmed trimmed.Length
-            if trimmed.EndsWith " do"
+            //ISeffLog.log.PrintfnDebugMsg "current line ='%s'" (doc.GetText(doc.GetLineByOffset(caret)))
+            //ISeffLog.log.PrintfnDebugMsg "trimmed='%s' (%d chars)" trimmed trimmed.Length
+            if     trimmed.EndsWith " do"
                 || trimmed.EndsWith " then"
                 || trimmed.EndsWith " else"
                 || trimmed.EndsWith "="

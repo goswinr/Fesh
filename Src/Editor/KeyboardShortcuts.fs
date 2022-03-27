@@ -255,9 +255,11 @@ module KeyboardShortcuts =
          | Input.Key.Enter | Input.Key.Return ->
              if isUp Ctrl // if alt or ctrl is down this means sending to fsi ...
              && isUp Alt
-             && isUp Shift then CursorBehaviour.addIndentation(ed,ke)  // add indent after do, for , ->, = 
+             && isUp Shift then CursorBehaviour.addFSharpIndentation(ed,ke)  // add indent after do, for , ->, = 
 
          (*
+         handeled in: let altKeyCombo(akey:AltKeyCombo)
+
          | Input.Key.Down ->
              if isDown Ctrl && isUp Shift then
                  if isDown Alt then
