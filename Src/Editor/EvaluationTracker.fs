@@ -113,8 +113,8 @@ type EvaluationTrackerRenderer (ed:TextEditor) =
                         let segEnd = searchback lastInEval topMostUnEvaluated   // GetCharAt     cant be -1 because there is a check at the top
                         
                         /// now include any attributes and comments in the lines above , and skip whitspace again                       
-                        let rec moveUp (ln:DocumentLine) = 
-                            if ln.LineNumber = 0 then 
+                        let rec moveUp (ln:DocumentLine) =                             
+                            if ln.LineNumber = 1 then 
                                 min segEnd ln.EndOffset // min() because segEnd might be smaller than ln.EndOffset
                             else
                                 let st = doc.GetText(ln.Offset,2)

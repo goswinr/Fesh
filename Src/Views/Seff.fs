@@ -54,12 +54,11 @@ type Seff (config:Config,log:Log) =
                 | MessageBoxResult.Yes -> ()
                 | _  -> e.Cancel <- true // dont close window
 
-
-            //then check for unsaved files if not already canceled
+            //second check for unsaved files if not already canceled
             if not e.Cancel then
-                let canClose = tabs.AskForFileSavingToKnowIfClosingWindowIsOk()
-                if not canClose then e.Cancel <- true // dont close window
-               
+                let canClose = tabs.AskForFileSavingToKnowIfClosingWindowIsOk()                
+                if not canClose then 
+                    e.Cancel <- true // dont close window               
             )
         
         win.Window.Closed.Add(fun _ ->  tabs.Fsi.TriggerShutDownThreadEv() )// to clean up threads

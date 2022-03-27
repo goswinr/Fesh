@@ -41,13 +41,13 @@ type ISeffLog =
     abstract member Clear : unit -> unit
 
 [<RequireQualifiedAccess>]
-[<CompiledName("ISeffLogModule")>] //don't rename, it is used via reflection in FsEx.Print
+[<CompiledName("ISeffLogModule")>] // DON'T RENAME !! It is used via reflection in https://github.com/goswinr/FsEx 
 module ISeffLog = 
 
     /// A reference to the global single instance of the Log view, will be set immediately after construction
     /// declared here  in Utils so it can be used in other modules that are declared before Log view
     let mutable log = 
-        Unchecked.defaultof<ISeffLog> //set when Log instance is created in Initialize.everything
+        Unchecked.defaultof<ISeffLog> //set immediately when Log instance is created in Initialize.everything
 
     /// A simple error logging function using PrintfnAppErrorMsg
     let printError s = 

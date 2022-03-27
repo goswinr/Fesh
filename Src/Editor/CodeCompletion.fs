@@ -48,7 +48,7 @@ type CompletionItemForKeyWord(ed:IEditor,config:Config, text:string, toolTip:str
     member this.Priority = priority
     member this.Text = text
     member this.Complete (textArea:TextArea, completionSegment:ISegment, e:EventArgs ) = 
-        if Selection.getSelType textArea = Selection.RectSel then       RectangleSelection.complete (ed, completionSegment, text)
+        if Selection.getSelType textArea = Selection.RectSel then       RectangleSelection.complete (ed.AvaEdit, completionSegment, text)
         else                                                            textArea.Document.Replace(completionSegment, text)
 
     interface ICompletionData with // needed in F#: implementing the interface members as properties too: https://github.com/icsharpcode/AvalonEdit/issues/28
@@ -95,7 +95,7 @@ type CompletionItem (ed:IEditor,config:Config, getToolTip, it:DeclarationListIte
 
         //config.Log.PrintfDebugMsg "completionSegment: '%s' : %A" (textArea.Document.GetText(completionSegment)) completionSegment
         if Selection.getSelType textArea = Selection.RectSel then
-            RectangleSelection.complete (ed, completionSegment, compl)
+            RectangleSelection.complete (ed.AvaEdit, completionSegment, compl)
         else
             textArea.Document.Replace(completionSegment, compl)
 

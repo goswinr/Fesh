@@ -123,7 +123,7 @@ module Doc =
         |Chr   // in  character
         |ChrSt // at character start, needed because ''' and '\'' are both valid
 
-    /// Checks if Caret is in String  or Character quotes: " or '
+    /// Checks if Caret is in String or Character quotes: " or '
     /// only checks current line
     /// does not check for being in comment
     /// handles escaped quotes too
@@ -189,10 +189,10 @@ module CursorBehaviour  =
 
     /// When pressing enter add indentation on next line if appropiate for FSharp.
     /// for avaEdit.PreviewKeyDown
-    let internal addFSharpIndentation(ed:IEditor,e:Input.KeyEventArgs) = 
-        if hasNoSelection ed.AvaEdit.TextArea  then // TODO what happens if there is a selction ?? or also use to replace selected text ??
-            let caret = ed.AvaEdit.CaretOffset
-            let doc = ed.AvaEdit.Document            
+    let internal addFSharpIndentation(ed:TextEditor,e:Input.KeyEventArgs) = 
+        if hasNoSelection ed.TextArea  then // TODO what happens if there is a selction ?? or also use to replace selected text ??
+            let caret = ed.CaretOffset
+            let doc = ed.Document            
             let trimmed = Doc.getTextBeforOffsetSkipSpaces 6 caret doc
             //ISeffLog.log.PrintfnDebugMsg "current line ='%s'" (doc.GetText(doc.GetLineByOffset(caret)))
             //ISeffLog.log.PrintfnDebugMsg "trimmed='%s' (%d chars)" trimmed trimmed.Length
@@ -201,12 +201,12 @@ module CursorBehaviour  =
                 || trimmed.EndsWith " else"
                 || trimmed.EndsWith "="
                 || trimmed.EndsWith "("
-                || trimmed.EndsWith "["
-                || trimmed.EndsWith "{"
-                || trimmed.EndsWith "[|"
+                // || trimmed.EndsWith "{"
+                // || trimmed.EndsWith "["    // dont actuall do this for lists and arrays
+                // || trimmed.EndsWith "[|"
                 || trimmed.EndsWith "->" then
                     let st = Doc.spacesAtStartOfLineAndBeforeOffset caret doc
-                    let indent = ed.AvaEdit.Options.IndentationSize
+                    let indent = ed.Options.IndentationSize
                     let rem = st % indent
                     let ind = 
                         if rem  = 0 then  st + indent // enure new indent is a multiple of avaEdit.Options.IndentationSize
@@ -218,31 +218,31 @@ module CursorBehaviour  =
                         doc.Insert(caret,insertText) // add space before too for nice position of folding block
                     else
                         doc.Replace(caret,spaces,insertText)
-                    ed.AvaEdit.CaretOffset <- caret + insertText.Length //+ spaces
+                    ed.CaretOffset <- caret + insertText.Length //+ spaces
                     e.Handled <- true // to not actually add another new line // TODO raise TextArea.TextEntered Event ?
 
     /// Removes 4 charactes (Options.IndentationSize)
     /// On pressing backspace key instead of one
-    let internal backspace4Chars(ed:IEditor,e:Input.KeyEventArgs) = 
-        let doc = ed.AvaEdit.Document
-        let ta = ed.AvaEdit.TextArea
+    let internal backspace4Chars(ed:TextEditor,e:Input.KeyEventArgs) = 
+        let doc = ed.Document
+        let ta = ed.TextArea
         let line = doc.GetText(doc.GetLineByOffset(ta.Caret.Offset)) // = get current line
         let car = ta.Caret.Column
         let prevC = line.Substring(0 ,car-1)
         //log.PrintfnDebugMsg "--Substring length %d: '%s'" prevC.Length prevC
         if prevC.Length > 0  then //TODO or also use to replace selected text ??
             if isJustSpaceCharsOrEmpty prevC  then
-                let dist = prevC.Length % ed.AvaEdit.Options.IndentationSize
-                let clearCount = if dist = 0 then ed.AvaEdit.Options.IndentationSize else dist
+                let dist = prevC.Length % ed.Options.IndentationSize
+                let clearCount = if dist = 0 then ed .Options.IndentationSize else dist
                 //log.PrintfnDebugMsg "--Clear length: %d " clearCount
                 doc.Remove(ta.Caret.Offset - clearCount, clearCount)
                 e.Handled <- true // TODO raise TextArea.TextEntered Event ?
 
     /// Removes rest of line too if only whitespace
     /// also remove whitespace at start of next line
-    let internal deleteTillNonWhite(ed:IEditor,e:Input.KeyEventArgs)= 
-        let doc = ed.AvaEdit.Document
-        let caret = ed.AvaEdit.CaretOffset
+    let internal deleteTillNonWhite(ed:TextEditor,e:Input.KeyEventArgs)= 
+        let doc = ed.Document
+        let caret = ed.CaretOffset
         if Doc.offsetIsAtLineEnd caret doc then
             let nc = Doc.nextNonWhiteCharOneLine caret doc
             let len = nc - caret
@@ -258,40 +258,72 @@ module CursorBehaviour  =
                 e.Handled <- true // TODO raise TextArea.TextEntered Event ?
 
     /// for no and regular selection
-    let addWhitespaceAfterChar(ed:IEditor, e:Input.TextCompositionEventArgs) = 
-            match e.Text with
-            // space before and after:
-            //| "=" //TODO check previous char is not punctuation for <= // space is added in previewKeyDown before return
-            //| ">" //TODO check previous char is not punctuation
-            //| "+"  as c ->
-                //avaEdit.Document.Insert(avaEdit.TextArea.Caret.Offset, " "+c+" ") // space before and after
-                //a.Handled <- true
+    let addWhitespaceAfterChar(ed:TextEditor, e:Input.TextCompositionEventArgs) = 
+        match e.Text with
+        // space before and after:
+        //| "=" //TODO check previous char is not punctuation for <= // space is added in previewKeyDown before return
+        //| ">" //TODO check previous char is not punctuation
+        //| "+"  as c ->
+            //avaEdit.Document.Insert(avaEdit.TextArea.Caret.Offset, " "+c+" ") // space before and after
+            //a.Handled <- true
 
-            //TODO check previous char is not punctuation
-            // space  before:
-            //| "-" as c -> //not both because of -> and -1
-            //    avaEdit.Document.Insert(avaEdit.TextArea.Caret.Offset, " "+c)
-            //    a.Handled <- true
+        //TODO check previous char is not punctuation
+        // space  before:
+        //| "-" as c -> //not both because of -> and -1
+        //    avaEdit.Document.Insert(avaEdit.TextArea.Caret.Offset, " "+c)
+        //    a.Handled <- true
 
-            // space  after:
-            | ")"
-            | ","
-            | ";"  as c ->
-                if Selection.hasNoSelection ed.AvaEdit.TextArea && not <| Doc.isCaretInStringOrChar(ed.AvaEdit)  then
-                    ed.AvaEdit.Document.Insert(ed.AvaEdit.TextArea.Caret.Offset, c + " ") // add trailing space
-                    e.Handled <- true // TODO raise TextArea.TextEntered Event ?
+        // space  after:
+        | ")"
+        | ","
+        | ";"  as c ->
+            if Selection.hasNoSelection ed.TextArea && not <| Doc.isCaretInStringOrChar(ed)  then
+                ed.Document.Insert(ed.TextArea.Caret.Offset, c + " ") // add trailing space
+                e.Handled <- true // TODO raise TextArea.TextEntered Event ?
+        | _ -> ()
+    
+    let addClosingBraket(ed:TextEditor, e:Input.TextCompositionEventArgs) = 
+        let inline addPair caretForward (s:string)  = 
+            let caret = ed.TextArea.Caret.Offset
+            ed.Document.Insert(caret, s ); 
+            ed.TextArea.Caret.Offset <- caret+caretForward // it was moved 2, now set it to one ahead, in the middle
+            e.Handled <- true
+        
+        let prevChar() = ed.Document.GetCharAt(max 0 (ed.TextArea.Caret.Offset-1))
+        
+        match e.Text with
+        | "("  -> addPair 1 "()" 
+        | "{"  -> addPair 1 "{}"
+        | "["  -> addPair 1 "[]"
+        | "'"  -> addPair 1 "''"
+        | "\"" -> addPair 1 "\"\""
+        | "$"  -> addPair 1 "$\"\"" // for formating string
+        | "`"  -> addPair 2 "````" // for formating string
+        | "|" -> 
+            // first check previous character:
+            match prevChar() with 
+            | '{' | '[' | '(' -> addPair 2 "|  |" // it was moved 2, now set it to one ahead, in the middle              
             | _ -> ()
+        | "*" -> // for comments with  (* *)
+            // first check previous character:
+            match prevChar() with 
+            | '(' -> addPair 2 "*  *"
+            | _ -> ()
+        | _ -> ()
 
-    let previewTextInput(ed:IEditor, e:Input.TextCompositionEventArgs) = 
+
+    let previewTextInput(ed:TextEditor, e:Input.TextCompositionEventArgs) = 
          //if not ed.IsComplWinOpen then
-            match getSelType(ed.AvaEdit.TextArea) with
-            | NoSel | RegSel ->     addWhitespaceAfterChar(ed,e)
-            | RectSel ->            RectangleSelection.insertText(ed, e.Text) ; e.Handled <- true // all input in rectangular selection is handeled here.
+        match getSelType(ed.TextArea) with
+        | RectSel ->  RectangleSelection.insertText(ed, e.Text) ; e.Handled <- true // all input in rectangular selection is handeled here.
+        | NoSel | RegSel ->     
+            addWhitespaceAfterChar(ed,e)
+            if not e.Handled then 
+                addClosingBraket(ed,e)
 
 
-
-    let TextAreaDragAndDrop (ed:IEditor,  e:DragEventArgs) = 
-        let doc = ed.AvaEdit.Document
+    let TextAreaDragAndDrop (ed:TextEditor,  e:DragEventArgs) = 
+        let doc = ed.Document
         if e.Data.GetDataPresent DataFormats.FileDrop then
             let isDll (p:string) = p.EndsWith(".dll", StringComparison.OrdinalIgnoreCase) ||  p.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)
             let isFsx (p:string) = p.EndsWith(".fsx", StringComparison.OrdinalIgnoreCase) ||  p.EndsWith(".fs", StringComparison.OrdinalIgnoreCase)
@@ -308,47 +340,47 @@ module CursorBehaviour  =
             //        ParseFs.findWordAhead "@\"" (allRefs 0) code
 
             try
-                let printGreen = ed.Log.PrintfnColor 0 150 0
+                let printGreen = ISeffLog.log.PrintfnColor 0 150 0
 
                 let fs = (e.Data.GetData DataFormats.FileDrop :?> string []) |> Array.sort |> Array.rev // to get file path
                 if fs.Length > 2 && Array.forall isDll fs then      // TODO make path relative to script location
                     for f in fs  do
                         let file = IO.Path.GetFileName(f)
                         doc.Insert (0, sprintf "#r \"%s\"\r\n" file)
-                        ed.Log.PrintfnInfoMsg "Drag & Drop inserted at Line 0: %s"  file
+                        ISeffLog.log.PrintfnInfoMsg "Drag & Drop inserted at Line 0: %s"  file
                     let folder = IO.Path.GetDirectoryName(fs.[0])
                     doc.Insert (0, sprintf "#I @\"%s\"\r\n" folder)
-                    ed.Log.PrintfnInfoMsg "Drag & Drop inserted at Line 0: %s"  folder
+                    ISeffLog.log.PrintfnInfoMsg "Drag & Drop inserted at Line 0: %s"  folder
                 else
 
                     // Find insert location: try to insert at drop location
                     // TODO add drag and drop preview cursor
                     // calculate this before looping through all drops
-                    let pos = ed.AvaEdit.GetPositionFromPoint(e.GetPosition(ed.AvaEdit))
+                    let pos = ed.GetPositionFromPoint(e.GetPosition(ed))
                     let lnNo,off = 
                         if pos.HasValue then
-                            let dropLine = ed.AvaEdit.Document.GetLineByNumber(pos.Value.Line)
-                            let carLine = doc.GetLineByOffset(ed.AvaEdit.CaretOffset)
+                            let dropLine = ed.Document.GetLineByNumber(pos.Value.Line)
+                            let carLine = doc.GetLineByOffset(ed.CaretOffset)
                             if abs(dropLine.LineNumber-carLine.LineNumber) < 5 then
                                 // If drop location is close by 5 lines to caret use caret location otherwies use drop line end
-                                carLine.LineNumber,ed.AvaEdit.CaretOffset
+                                carLine.LineNumber,ed.CaretOffset
                             else
                                 dropLine.LineNumber,dropLine.EndOffset
                         else
-                            let lnNo = doc.GetLineByOffset(ed.AvaEdit.CaretOffset)
-                            lnNo.LineNumber,ed.AvaEdit.CaretOffset
+                            let lnNo = doc.GetLineByOffset(ed.CaretOffset)
+                            lnNo.LineNumber,ed.CaretOffset
 
 
                     for f in fs do
                         if isDll f then
                             let txt = sprintf "#r @\"%s\"\r\n" f
                             doc.Insert (0, txt )
-                            ed.Log.PrintfnInfoMsg "Drag & Drop inserted at Line 0:"
+                            ISeffLog.log.PrintfnInfoMsg "Drag & Drop inserted at Line 0:"
                             printGreen "  %s" txt
                         elif isFsx f  then
                             let txt = sprintf "#load @\"%s\"\r\n" f
                             doc.Insert (0, txt)     // TODO find end or #r statements
-                            ed.Log.PrintfnInfoMsg "Drag & Drop inserted at Line 0:"
+                            ISeffLog.log.PrintfnInfoMsg "Drag & Drop inserted at Line 0:"
                             printGreen "  %s" txt
                         else
 
@@ -373,14 +405,14 @@ module CursorBehaviour  =
                             //        ed.Log.PrintfnColor 120 120 120  "  %s" prev
                             //| None ->
 
-                            ed.Log.PrintfnInfoMsg "Drag & Drop inserted at Line %d:" lnNo
+                            ISeffLog.log.PrintfnInfoMsg "Drag & Drop inserted at Line %d:" lnNo
                             printGreen "  %s" f
                             doc.Insert (off , sprintf " @\"%s\"%s" f Environment.NewLine)
-                            ed.AvaEdit.CaretOffset <- off
+                            ed.CaretOffset <- off
 
                     e.Handled <- true
 
-            with er -> ed.Log.PrintfnIOErrorMsg "Drag & Drop in TextArea failed: %A" er
+            with er -> ISeffLog.log.PrintfnIOErrorMsg "Drag & Drop in TextArea failed: %A" er
     
 
     /// A Event handler that will open a new tab per file.

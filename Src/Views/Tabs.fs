@@ -424,7 +424,8 @@ type Tabs(config:Config, win:Window) =
                 |> Seq.forall id // checks if all are true, if one file-saving was canceled return false,  so the closing of the main window can be aborted
                 //if Seq.exists ( fun ok -> ok = false) oks then false else true 
             | MessageBoxResult.No  -> true
-            | _                    -> false
+            | MessageBoxResult.Cancel  -> false
+            | _  -> false // never ahppening
 
 
 

@@ -35,8 +35,8 @@ module RectangleSelection =
         //ISeffLog.log.PrintfnDebugMsg "caret3: %A "ta.Caret.Position
 
 
-    let private insert (ed:IEditor, s:SelPos,text:string) = 
-        let doc = ed.AvaEdit.Document
+    let private insert (ed:TextEditor, s:SelPos,text:string) = 
+        let doc = ed.Document
         let visCol = s.stp.VisualColumn
         doc.BeginUpdate()
         if s.LineCount > 1 then
@@ -81,10 +81,10 @@ module RectangleSelection =
         else
             doc.Insert(stOff + visCol , text)
         doc.EndUpdate()
-        setNewEmpty (ed.AvaEdit.TextArea, s, visCol + text.Length, false)
+        setNewEmpty (ed.TextArea, s, visCol + text.Length, false)
 
-    let private replace (ed:IEditor, s:SelPos, text:string)  = 
-        let doc = ed.AvaEdit.Document
+    let private replace (ed:TextEditor, s:SelPos, text:string)  = 
+        let doc = ed.Document
         let minVisCol = s.stp.VisualColumn
         let maxVisCol = s.enp.VisualColumn
         doc.BeginUpdate()
@@ -136,11 +136,11 @@ module RectangleSelection =
         else
             doc.Insert(stOff + minVisCol , text)
         doc.EndUpdate() // finsh doc update beforee recreating selecltion
-        setNewEmpty (ed.AvaEdit.TextArea, s, minVisCol + text.Length, false)
+        setNewEmpty (ed.TextArea, s, minVisCol + text.Length, false)
 
 
-    let private delete (ed:IEditor, s:SelPos) = 
-        let doc = ed.AvaEdit.Document
+    let private delete (ed:TextEditor, s:SelPos) = 
+        let doc = ed.Document
         let minVisCol = s.stp.VisualColumn
         let maxVisCol = s.enp.VisualColumn
         let stOff = doc.GetLineByNumber(s.stp.Line).Offset
@@ -171,12 +171,12 @@ module RectangleSelection =
         if delLenLoc > 0 then
             doc.Remove(ln.Offset + minVisCol , delLenLoc)
         doc.EndUpdate()
-        setNewEmpty (ed.AvaEdit.TextArea, s, minVisCol,true)
+        setNewEmpty (ed.TextArea, s, minVisCol,true)
 
 
     /// when pressing delete key on empty rect selection, delet on char on right
-    let private deleteRight (ed:IEditor, s:SelPos) = 
-        let doc = ed.AvaEdit.Document
+    let private deleteRight (ed:TextEditor, s:SelPos) = 
+        let doc = ed.Document
         let col = s.stp.VisualColumn
         let stOff = doc.GetLineByNumber(s.stp.Line).Offset
         let enOff = doc.GetLineByNumber(s.enp.Line-1).EndOffset // -1 to do last line individual to trigger potential autocompletion:
@@ -203,11 +203,11 @@ module RectangleSelection =
         if ln.Length - col > 0 then // in case if line is shorter than block selection
             doc.Remove(ln.Offset + col , 1)
         doc.EndUpdate()
-        setNewEmpty (ed.AvaEdit.TextArea, s, col,true)// neede in manual version
+        setNewEmpty (ed.TextArea, s, col,true)// neede in manual version
 
 
-    let private deleteLeft (ed:IEditor, s:SelPos) = 
-        let doc = ed.AvaEdit.Document
+    let private deleteLeft (ed:TextEditor, s:SelPos) = 
+        let doc = ed.Document
         let vcol = s.stp.VisualColumn
         let nvcol = vcol - 1
         if vcol > 0 then
@@ -236,14 +236,14 @@ module RectangleSelection =
             if ln.Length - vcol >= 0 then// in case if line is shorter than block selection
                 doc.Remove(ln.Offset + nvcol , 1)
             doc.EndUpdate()
-            setNewEmpty (ed.AvaEdit.TextArea, s, nvcol, true)
+            setNewEmpty (ed.TextArea, s, nvcol, true)
 
 
     /// when block selection is pasted into block selection do line by line
-    let private pasteLinebyLine (ed:IEditor, fullText:string) = 
+    let private pasteLinebyLine (ed:TextEditor, fullText:string) = 
         let lines = fullText.Split('\n') |> Array.map ( fun t -> t.Replace("\r",""))
-        let ta = ed.AvaEdit.TextArea
-        let doc = ed.AvaEdit.Document
+        let ta = ed.TextArea
+        let doc = ed.Document
         doc.BeginUpdate()
         for i,seg in ta.Selection.Segments |> Seq.indexed |> Seq.rev do // do from bottom up so tht the segments are alwas correct, otherwise they would need incrementing too
             let newTxt = if lines.Length > i then lines.[i] else ""
@@ -253,22 +253,22 @@ module RectangleSelection =
 
     //TODO add checks for beeing over folded block !
 
-    let deleteKey (ed:IEditor) = 
-        let s = getSelectionOrdered ed.AvaEdit.TextArea
+    let deleteKey (ed:TextEditor) = 
+        let s = getSelectionOrdered ed.TextArea
         if s.stp.VisualColumn = s.enp.VisualColumn then
             deleteRight (ed, s)
         else
             delete (ed, s)
 
-    let backspaceKey (ed:IEditor) = 
-        let s = getSelectionOrdered ed.AvaEdit.TextArea
+    let backspaceKey (ed:TextEditor) = 
+        let s = getSelectionOrdered ed.TextArea
         if s.stp.VisualColumn = s.enp.VisualColumn then
             deleteLeft (ed, s)
         else
             delete (ed, s)
 
 
-    let insertText (ed:IEditor, txt: string) = 
+    let insertText (ed:TextEditor, txt: string) = 
         match txt with
         | null | "" | "\x1b" | "\b" -> ()  // see avalonedit scource
         // ASCII 0x1b = ESC.
@@ -280,13 +280,13 @@ module RectangleSelection =
         // We have to ignore those (not handle them) to keep the shortcut working.
 
         | _ ->
-            let s = getSelectionOrdered ed.AvaEdit.TextArea
+            let s = getSelectionOrdered ed.TextArea
             if s.stp.VisualColumn = s.enp.VisualColumn then
                 insert (ed, s, txt)
             else
                 replace (ed, s, txt)
 
-    let paste(ed:IEditor, txt: string, txtIsFromOtherRectSel:bool)= 
+    let paste(ed:TextEditor, txt: string, txtIsFromOtherRectSel:bool)= 
         if not txtIsFromOtherRectSel then
             insertText (ed, txt)
         else
@@ -295,9 +295,9 @@ module RectangleSelection =
             else
                 pasteLinebyLine (ed, txt)
 
-    let complete (ed:IEditor, completionSegment:ISegment, txt:string) = 
+    let complete (ed:TextEditor, completionSegment:ISegment, txt:string) = 
         let len = completionSegment.Length
-        let s = getSelectionOrdered ed.AvaEdit.TextArea
+        let s = getSelectionOrdered ed.TextArea
         let p = {s with stp = TextViewPosition( s.stp.Line,  s.stp.Column - len , s.stp.VisualColumn - len) }
         replace (ed, p, txt)
 

@@ -3,6 +3,7 @@
 open System
 open System.Windows
 open System.Windows.Input
+open AvalonEditB
 
 open Seff.Model
 
@@ -234,20 +235,20 @@ module KeyboardShortcuts =
 
     // gets attached to ech editor instance. via avaEdit.PreviewKeyDown.Add
     // except for Alt and arrow keys
-    let previewKeyDown (ed:IEditor, ke: Input.KeyEventArgs) = 
+    let previewKeyDown (ed:TextEditor, ke: Input.KeyEventArgs) = 
         //if not ed.IsComplWinOpen then
          match realKey ke  with
 
          |Input.Key.Back ->
              /// TODO check for modifier keys like Alt or Ctrl ?
-             match getSelType(ed.AvaEdit.TextArea) with
+             match getSelType(ed.TextArea) with
              | NoSel ->     CursorBehaviour.backspace4Chars(ed,ke)
              | RectSel ->   RectangleSelection.backspaceKey(ed) ; ke.Handled <- true
              | RegSel  ->   ()
 
          |Input.Key.Delete ->
              /// TODO check for modifier keys like Alt or Ctrl ?
-             match getSelType(ed.AvaEdit.TextArea) with
+             match getSelType(ed.TextArea) with
              | NoSel  ->   CursorBehaviour.deleteTillNonWhite(ed,ke)
              | RectSel ->  RectangleSelection.deleteKey(ed) ; ke.Handled <- true
              | RegSel ->   ()

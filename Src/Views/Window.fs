@@ -2,7 +2,7 @@
 
 open System
 open System.Windows.Media.Imaging
-
+open System.Runtime.InteropServices
 open Seff.Model
 open Seff.Config
 
@@ -21,9 +21,12 @@ type Window (config:Config)=
             wasMax <- true
 
         let plat = if Environment.Is64BitProcess then "  |  64bit" else "  |  32bit"
+        let v = [].GetType().Assembly.GetName().Version
+        let fscore = sprintf  "  |  Fsharp.Core %d.%d.%d" v.Major v.Minor v.Revision
+        let frameW = "  |  " + RuntimeInformation.FrameworkDescription
         win.Title       <- match config.Hosting.HostName with
-                           |None     -> "Seff  |  Scripting editor for fsharp"         + plat + "  |  " + Runtime.InteropServices.RuntimeInformation.FrameworkDescription
-                           |Some n   -> "Seff  |  Scripting editor for fsharp in " + n + plat + "  |  " + Runtime.InteropServices.RuntimeInformation.FrameworkDescription
+                           |None     -> "Seff  |  Scripting editor for fsharp"         + plat + frameW + fscore
+                           |Some n   -> "Seff  |  Scripting editor for fsharp in " + n + plat + frameW + fscore
 
         try
             // Add the Icon at the top left of the window and in the status bar, musst be called  after loading window.
