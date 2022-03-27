@@ -1,4 +1,4 @@
-﻿namespace Seff.Editor
+namespace Seff.Editor
 
 open System
 open System.Windows
@@ -274,7 +274,7 @@ module CursorBehaviour  =
         //    a.Handled <- true
 
         // space  after:
-        | ")"
+        | ")" // this bracket get added most of the time atuomtically via addClosingBraket()
         | ","
         | ";"  as c ->
             if Selection.hasNoSelection ed.TextArea && not <| Doc.isCaretInStringOrChar(ed)  then

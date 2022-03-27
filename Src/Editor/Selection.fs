@@ -15,11 +15,16 @@ module Selection =
     type Seg = 
         {st:int; en:int}
         member s.len = s.en - s.st
+    
+    /// In this Selection Position stPos is always smaller than enPo. 
+    /// Which is not always the case in TextArea.Selection
+    type SelectionPos = 
+        {stPos:TextViewPosition ; enPos:TextViewPosition; caret:TextViewPosition}
 
-    type SelPos = 
-        {stp:TextViewPosition ; enp:TextViewPosition; caret:TextViewPosition}
-
-        member this.LineCount = this.enp.Line - this.stp.Line + 1
+        member this.LineCount = this.enPos.Line - this.stPos.Line + 1
+        member this.stOffset(d:TextDocument) = d.GetOffset(this.stPos.Location)
+        member this.enOffset(d:TextDocument) = d.GetOffset(this.enPos.Location)
+        member this.caretOffset(d:TextDocument) = d.GetOffset(this.caret.Location)
 
     /// ensure first is smaller or equal to second
     let inline sorted a b = if a>b then b,a else a,b
@@ -39,21 +44,21 @@ module Selection =
         | :? RectangleSelection -> RectSel
         | x -> failwithf "Unknown selection class in getSelection: %A" x
 
-    /// Returns selpos order top to left bottom right
-    let getSelectionOrdered(ta:TextArea) : SelPos= 
+    /// Returns SelectionPos, order top to left bottom right
+    let getSelectionOrdered(ta:TextArea) : SelectionPos= 
         match ta.Selection with
         | null -> failwithf "Unknown selection class in makeTopDown: null"
         | :? EmptySelection  ->
             let p = ta.Caret.Position
-            {stp = p ; enp = p; caret = p }
+            {stPos = p ; enPos = p; caret = p }
 
         | :? SimpleSelection  as ss ->
             let st = ss.StartPosition
             let en = ss.EndPosition
             let car = ta.Caret.Position
-            if st.Line > en.Line then                              {stp = en ; enp = st; caret = car } // reversed order
-            elif st.Line = en.Line && en.Column < st.Column then   {stp = en ; enp = st; caret = car  } // reversed order
-            else                                                   {stp = st ; enp = en; caret = car  }
+            if st.Line > en.Line then                              {stPos = en ; enPos = st; caret = car } // reversed order
+            elif st.Line = en.Line && en.Column < st.Column then   {stPos = en ; enPos = st; caret = car  } // reversed order
+            else                                                   {stPos = st ; enPos = en; caret = car  }
 
         | :? RectangleSelection as rs ->
             let s = rs.StartPosition
@@ -62,12 +67,12 @@ module Selection =
             //ISeffLog.log.PrintfnDebugMsg "caret0: %A "car
             let v1,v2 = sorted s.VisualColumn e.VisualColumn
             if s.Line <= e.Line then
-               {stp = TextViewPosition(s.Line, s.Column, v1)
-                enp = TextViewPosition(e.Line, e.Column, v2)
+               {stPos = TextViewPosition(s.Line, s.Column, v1)
+                enPos = TextViewPosition(e.Line, e.Column, v2)
                 caret = car }
             else
-               {stp = TextViewPosition(e.Line, e.Column, v1)
-                enp = TextViewPosition(s.Line, s.Column, v2)
+               {stPos = TextViewPosition(e.Line, e.Column, v1)
+                enPos = TextViewPosition(s.Line, s.Column, v2)
                 caret = car }
 
 

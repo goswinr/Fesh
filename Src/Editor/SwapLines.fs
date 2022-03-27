@@ -49,8 +49,8 @@ module SwapLines =
 
             | RectSel
             | RegSel  ->
-                let firstLn = doc.GetLineByNumber(sp.stp.Line)
-                let lastLn =  doc.GetLineByNumber(sp.enp.Line)
+                let firstLn = doc.GetLineByNumber(sp.stPos.Line)
+                let lastLn =  doc.GetLineByNumber(sp.enPos.Line)
                 let prevLn = firstLn.PreviousLine
                 if isNull prevLn then
                     EndOrStartOfDoc
@@ -75,16 +75,16 @@ module SwapLines =
             | NoSel -> () // just change caret below
 
             | RegSel ->
-                let mutable startPos = sp.stp
-                let mutable endPos   = sp.enp
+                let mutable startPos = sp.stPos
+                let mutable endPos   = sp.enPos
                 startPos.Line <-  startPos.Line - 1
                 endPos.Line   <-  endPos.Line   - 1
                 let newSel = new SimpleSelection(ta,startPos,endPos)
                 ta.Selection <- newSel
 
             | RectSel ->
-                let mutable startPos = sp.stp
-                let mutable endPos   = sp.enp
+                let mutable startPos = sp.stPos
+                let mutable endPos   = sp.enPos
                 startPos.Line <-  startPos.Line - 1
                 endPos.Line   <-  endPos.Line   - 1
                 ta.Selection <- new RectangleSelection(ta,startPos,endPos)
@@ -111,8 +111,8 @@ module SwapLines =
                     ThisAndOther (segThis,segBelow)
             | RectSel
             | RegSel  ->
-                let firstLn = doc.GetLineByNumber(sp.stp.Line)
-                let lastLn =  doc.GetLineByNumber(sp.enp.Line)
+                let firstLn = doc.GetLineByNumber(sp.stPos.Line)
+                let lastLn =  doc.GetLineByNumber(sp.enPos.Line)
                 let nextLn = lastLn.NextLine
                 if isNull nextLn then
                     EndOrStartOfDoc
@@ -137,16 +137,16 @@ module SwapLines =
             match sel with
             | NoSel -> () // just change carte below
             | RegSel  ->
-                let mutable startPos = sp.stp
-                let mutable endPos   = sp.enp
+                let mutable startPos = sp.stPos
+                let mutable endPos   = sp.enPos
                 startPos.Line <-  startPos.Line + 1
                 endPos.Line   <-  endPos.Line   + 1
                 let newSel = new SimpleSelection(ta,startPos,endPos)
                 ta.Selection <- newSel
 
             | RectSel  ->
-                let mutable startPos = sp.stp
-                let mutable endPos   = sp.enp
+                let mutable startPos = sp.stPos
+                let mutable endPos   = sp.enPos
                 startPos.Line <-  startPos.Line + 1
                 endPos.Line   <-  endPos.Line   + 1
                 ta.Selection <- new RectangleSelection(ta,startPos,endPos)

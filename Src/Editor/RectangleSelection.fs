@@ -18,30 +18,30 @@ module RectangleSelection =
 
     //all this functions is neded because ReplaceSelectionWithText of rectangular selection does not work well on all font sizes e.g. consolas 17.5
 
-    let private setNewEmpty (ta:TextArea, s:SelPos, vcol, checkWithColInSelpos) = 
+    let private setNewEmpty (ta:TextArea, s:SelectionPos, vcol, checkWithColInSelpos) = 
         //ISeffLog.log.PrintfnDebugMsg "caret2: %A "ta.Caret.Position
         let st , en = 
             if checkWithColInSelpos then
-                TextViewPosition( s.stp.Line,  min (vcol + 1) s.stp.Column , vcol) , // use min function in case the  Visual column is in virtual whitespace
-                TextViewPosition( s.enp.Line,  min (vcol + 1) s.enp.Column , vcol)
+                TextViewPosition( s.stPos.Line,  min (vcol + 1) s.stPos.Column , vcol) , // use min function in case the  Visual column is in virtual whitespace
+                TextViewPosition( s.enPos.Line,  min (vcol + 1) s.enPos.Column , vcol)
             else
-                TextViewPosition( s.stp.Line,  vcol + 1   , vcol), // even if the Visual column was in virtual whitespace, spaces to fill it where added, if len is bigger than 0
-                TextViewPosition( s.enp.Line,  vcol + 1   , vcol)
+                TextViewPosition( s.stPos.Line,  vcol + 1   , vcol), // even if the Visual column was in virtual whitespace, spaces to fill it where added, if len is bigger than 0
+                TextViewPosition( s.enPos.Line,  vcol + 1   , vcol)
         ta.Selection <- new RectangleSelection(ta, st, en)
-        if s.caret.Line = s.stp.Line then
+        if s.caret.Line = s.stPos.Line then
             ta.Caret.Position <- st
         else
             ta.Caret.Position <- en
         //ISeffLog.log.PrintfnDebugMsg "caret3: %A "ta.Caret.Position
 
 
-    let private insert (ed:TextEditor, s:SelPos,text:string) = 
+    let private insert (ed:TextEditor, s:SelectionPos,text:string) = 
         let doc = ed.Document
-        let visCol = s.stp.VisualColumn
+        let visCol = s.stPos.VisualColumn
         doc.BeginUpdate()
         if s.LineCount > 1 then
-            let stOff = doc.GetLineByNumber(s.stp.Line).Offset
-            let enOff = doc.GetLineByNumber(s.enp.Line-1).EndOffset
+            let stOff = doc.GetLineByNumber(s.stPos.Line).Offset
+            let enOff = doc.GetLineByNumber(s.enPos.Line-1).EndOffset
             let len = enOff-stOff
             let txt = doc.GetText(stOff, len)
             let sb = StringBuilder()
@@ -71,7 +71,7 @@ module RectangleSelection =
             doc.Replace(stOff,len,nt)
 
         //do last line individual to trigger potential autocompletion:
-        let ln = doc.GetLineByNumber(s.enp.Line)
+        let ln = doc.GetLineByNumber(s.enPos.Line)
         let len = ln.Length
         let spacesToAdd = visCol - len
         let stOff = ln.Offset
@@ -83,14 +83,14 @@ module RectangleSelection =
         doc.EndUpdate()
         setNewEmpty (ed.TextArea, s, visCol + text.Length, false)
 
-    let private replace (ed:TextEditor, s:SelPos, text:string)  = 
+    let private replace (ed:TextEditor, s:SelectionPos, text:string)  = 
         let doc = ed.Document
-        let minVisCol = s.stp.VisualColumn
-        let maxVisCol = s.enp.VisualColumn
+        let minVisCol = s.stPos.VisualColumn
+        let maxVisCol = s.enPos.VisualColumn
         doc.BeginUpdate()
         if s.LineCount > 1 then
-            let stOff = doc.GetLineByNumber(s.stp.Line).Offset
-            let enOff = doc.GetLineByNumber(s.enp.Line-1).EndOffset //do last line individually to trigger potential autocompletion:
+            let stOff = doc.GetLineByNumber(s.stPos.Line).Offset
+            let enOff = doc.GetLineByNumber(s.enPos.Line-1).EndOffset //do last line individually to trigger potential autocompletion:
             let len = enOff-stOff
             let txt = doc.GetText(stOff, len)
             let sb = StringBuilder()
@@ -121,7 +121,7 @@ module RectangleSelection =
             doc.Replace(stOff,len,nt)
 
         //do last line individual to trigger potential autocompletion:
-        let ln = doc.GetLineByNumber(s.enp.Line)
+        let ln = doc.GetLineByNumber(s.enPos.Line)
         let delLen    = maxVisCol - minVisCol
         let len = ln.Length
         let delLenLoc =  min (len - minVisCol) delLen // in case if line is shorter than block selection
@@ -139,12 +139,12 @@ module RectangleSelection =
         setNewEmpty (ed.TextArea, s, minVisCol + text.Length, false)
 
 
-    let private delete (ed:TextEditor, s:SelPos) = 
+    let private delete (ed:TextEditor, s:SelectionPos) = 
         let doc = ed.Document
-        let minVisCol = s.stp.VisualColumn
-        let maxVisCol = s.enp.VisualColumn
-        let stOff = doc.GetLineByNumber(s.stp.Line).Offset
-        let enOff = doc.GetLineByNumber(s.enp.Line-1).EndOffset // -1 to do last line individual to trigger potential autocompletion:
+        let minVisCol = s.stPos.VisualColumn
+        let maxVisCol = s.enPos.VisualColumn
+        let stOff = doc.GetLineByNumber(s.stPos.Line).Offset
+        let enOff = doc.GetLineByNumber(s.enPos.Line-1).EndOffset // -1 to do last line individual to trigger potential autocompletion:
         doc.BeginUpdate()
         if s.LineCount > 1 then
             let len = enOff-stOff
@@ -166,7 +166,7 @@ module RectangleSelection =
 
         //do last line individual to trigger potential autocompletion:
         let delLen    = maxVisCol - minVisCol
-        let ln = doc.GetLineByNumber(s.enp.Line)
+        let ln = doc.GetLineByNumber(s.enPos.Line)
         let delLenLoc =  min (ln.Length - minVisCol) delLen // in case if line is shorter than block selection
         if delLenLoc > 0 then
             doc.Remove(ln.Offset + minVisCol , delLenLoc)
@@ -175,11 +175,11 @@ module RectangleSelection =
 
 
     /// when pressing delete key on empty rect selection, delet on char on right
-    let private deleteRight (ed:TextEditor, s:SelPos) = 
+    let private deleteRight (ed:TextEditor, s:SelectionPos) = 
         let doc = ed.Document
-        let col = s.stp.VisualColumn
-        let stOff = doc.GetLineByNumber(s.stp.Line).Offset
-        let enOff = doc.GetLineByNumber(s.enp.Line-1).EndOffset // -1 to do last line individual to trigger potential autocompletion:
+        let col = s.stPos.VisualColumn
+        let stOff = doc.GetLineByNumber(s.stPos.Line).Offset
+        let enOff = doc.GetLineByNumber(s.enPos.Line-1).EndOffset // -1 to do last line individual to trigger potential autocompletion:
         doc.BeginUpdate()
         if s.LineCount > 1 then
             let len = enOff-stOff
@@ -199,20 +199,20 @@ module RectangleSelection =
             let nt = sb.ToString()
             doc.Replace(stOff,len,nt)
         //do last line individual to trigger potential autocompletion:
-        let ln = doc.GetLineByNumber(s.enp.Line)
+        let ln = doc.GetLineByNumber(s.enPos.Line)
         if ln.Length - col > 0 then // in case if line is shorter than block selection
             doc.Remove(ln.Offset + col , 1)
         doc.EndUpdate()
         setNewEmpty (ed.TextArea, s, col,true)// neede in manual version
 
 
-    let private deleteLeft (ed:TextEditor, s:SelPos) = 
+    let private deleteLeft (ed:TextEditor, s:SelectionPos) = 
         let doc = ed.Document
-        let vcol = s.stp.VisualColumn
+        let vcol = s.stPos.VisualColumn
         let nvcol = vcol - 1
         if vcol > 0 then
-            let stOff = doc.GetLineByNumber(s.stp.Line).Offset
-            let enOff = doc.GetLineByNumber(s.enp.Line-1).EndOffset // -1 to do last line individual to trigger potential autocompletion:
+            let stOff = doc.GetLineByNumber(s.stPos.Line).Offset
+            let enOff = doc.GetLineByNumber(s.enPos.Line-1).EndOffset // -1 to do last line individual to trigger potential autocompletion:
             doc.BeginUpdate()
             if s.LineCount > 1 then
                 let len = enOff-stOff
@@ -232,7 +232,7 @@ module RectangleSelection =
                 let nt = sb.ToString()
                 doc.Replace(stOff,len,nt)
             //do last line individual to trigger potential autocompletion:
-            let ln = doc.GetLineByNumber(s.enp.Line)
+            let ln = doc.GetLineByNumber(s.enPos.Line)
             if ln.Length - vcol >= 0 then// in case if line is shorter than block selection
                 doc.Remove(ln.Offset + nvcol , 1)
             doc.EndUpdate()
@@ -255,14 +255,14 @@ module RectangleSelection =
 
     let deleteKey (ed:TextEditor) = 
         let s = getSelectionOrdered ed.TextArea
-        if s.stp.VisualColumn = s.enp.VisualColumn then
+        if s.stPos.VisualColumn = s.enPos.VisualColumn then
             deleteRight (ed, s)
         else
             delete (ed, s)
 
     let backspaceKey (ed:TextEditor) = 
         let s = getSelectionOrdered ed.TextArea
-        if s.stp.VisualColumn = s.enp.VisualColumn then
+        if s.stPos.VisualColumn = s.enPos.VisualColumn then
             deleteLeft (ed, s)
         else
             delete (ed, s)
@@ -281,7 +281,7 @@ module RectangleSelection =
 
         | _ ->
             let s = getSelectionOrdered ed.TextArea
-            if s.stp.VisualColumn = s.enp.VisualColumn then
+            if s.stPos.VisualColumn = s.enPos.VisualColumn then
                 insert (ed, s, txt)
             else
                 replace (ed, s, txt)
@@ -298,7 +298,7 @@ module RectangleSelection =
     let complete (ed:TextEditor, completionSegment:ISegment, txt:string) = 
         let len = completionSegment.Length
         let s = getSelectionOrdered ed.TextArea
-        let p = {s with stp = TextViewPosition( s.stp.Line,  s.stp.Column - len , s.stp.VisualColumn - len) }
+        let p = {s with stPos = TextViewPosition( s.stPos.Line,  s.stPos.Column - len , s.stPos.VisualColumn - len) }
         replace (ed, p, txt)
 
 

@@ -67,11 +67,11 @@ module Formating =
 
     let alignByNonLetters(ed:IEditor) = 
         let s = Selection.getSelectionOrdered(ed.AvaEdit.TextArea)
-        if s.enp.Line > s.stp.Line then
+        if s.enPos.Line > s.stPos.Line then
             let doc = ed.AvaEdit.Document
-            let stOff = doc.GetLineByNumber(s.stp.Line).Offset
-            let enOff = doc.GetLineByNumber(s.enp.Line).EndOffset
-            let lns =   [| for i = s.stp.Line to s.enp.Line do  yield doc.GetText(doc.GetLineByNumber(i)) |]
+            let stOff = doc.GetLineByNumber(s.stPos.Line).Offset
+            let enOff = doc.GetLineByNumber(s.enPos.Line).EndOffset
+            let lns =   [| for i = s.stPos.Line to s.enPos.Line do  yield doc.GetText(doc.GetLineByNumber(i)) |]
             let alignChars = 
                 lns
                 |> Array.map getAlignmentCharsExcludeInStringLiterals // get special chars 
@@ -86,7 +86,7 @@ module Formating =
                 let maxOff = Array.max offs
                 //ed.Log.PrintfnDebugMsg "Char: '%c' at maxOff: %d" sc maxOff
                 for sb in stringBuilders do
-                    //ed.Log.PrintfIOErrorMsg "Ln:%d" (i+s.stp.Line)
+                    //ed.Log.PrintfIOErrorMsg "Ln:%d" (i+s.stPos.Line)
                     let foundPos = findCharExcludeInStringLiterals alignChr serachFrom sb
                     let diff = maxOff - foundPos
                     if diff > 0 && foundPos > 0 then
