@@ -201,9 +201,9 @@ module CursorBehaviour  =
                 || trimmed.EndsWith " else"
                 || trimmed.EndsWith "="
                 || trimmed.EndsWith "("
-                // || trimmed.EndsWith "{"
-                // || trimmed.EndsWith "["    // dont actuall do this for lists and arrays
-                // || trimmed.EndsWith "[|"
+                || trimmed.EndsWith "{"
+                || trimmed.EndsWith "["    
+                || trimmed.EndsWith "[|"
                 || trimmed.EndsWith "->" then
                     let st = Doc.spacesAtStartOfLineAndBeforeOffset caret doc
                     let indent = ed.Options.IndentationSize
