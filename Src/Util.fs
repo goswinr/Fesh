@@ -12,7 +12,6 @@ module AutoOpenDateTime =
         static member nowStrMilli = System.DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss.FFF")
         /// yyyy-MM-dd
         static member todayStr    = System.DateTime.Now.ToString("yyyy-MM-dd")
-
         // month
         static member log()          = System.DateTime.Now.ToString("yyyy-MM")
 

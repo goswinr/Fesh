@@ -26,13 +26,22 @@ type HeaderGestureTooltip = {
 module private RecognicePath = 
 
     let filePathStartRegex = Text.RegularExpressions.Regex("""[A-Z]:[\\/]""") // C:\
-    let filePathEndRegex = Text.RegularExpressions.Regex("""["()\[\] ']""") //  a space or [ or ] or ( or ) or " or '
+    let filePathEndRegex = Text.RegularExpressions.Regex("""["()\[\]']""") //   [ or ] or ( or ) or " or '
+    // Or disallow spaces too : let filePathEndRegex = Text.RegularExpressions.Regex("""["()\[\] ']""") //  a space or [ or ] or ( or ) or " or '
 
     let sep() = Separator():> Control
 
     let deDup = HashSet(2)
 
-    let badChars = IO.Path.GetInvalidPathChars()
+    let badChars = 
+        //IO.Path.GetInvalidPathChars()
+        [|
+        '"'
+        '<'
+        '>'
+        '?'
+        '*'
+        |]
 
     let addPathIfPresentToMenu (m:MouseButtonEventArgs, tempItemsInMenu:ref<int>, menu:ContextMenu, ava:TextEditor, openFile:IO.FileInfo*bool->bool)= 
         for i = 1 to !tempItemsInMenu do // the menu entry, maybe another entry and  the separator
@@ -43,15 +52,15 @@ module private RecognicePath =
         let pos = ava.GetPositionFromPoint(m.GetPosition(ava))
         if pos.HasValue then
             let line = ava.Document.GetLineByNumber(pos.Value.Line)
-            let txt  = ava.Document.GetText(line)
-            let ss = filePathStartRegex.Matches(txt)
+            let lineTxt  = ava.Document.GetText(line)
+            let ss = filePathStartRegex.Matches(lineTxt)
             for s in ss do
                 if s.Success then
-                    let e = filePathEndRegex.Match(txt,s.Index)
+                    let e = filePathEndRegex.Match(lineTxt,s.Index)
                     let fullPath = 
                         let raw = 
-                            if e.Success then   txt.Substring(s.Index, e.Index - s.Index)
-                            else                txt.Substring(s.Index)
+                            if e.Success then   lineTxt.Substring(s.Index, e.Index - s.Index)
+                            else                lineTxt.Substring(s.Index)
                         raw.Split(badChars).[0].Split([|':'|])
                         |> Seq.take 2 // the first colon is allowed the later ones not
                         |> String.concat ":"
@@ -95,7 +104,7 @@ module private RecognicePath =
                         //        deDup.Add fullPath  |> ignore
                         // allways show this option:
                         let cmd = {
-                                name = sprintf "Open with VScode  '%s'" fullPath
+                                name = sprintf "Open with VS Code  '%s'" fullPath
                                 gesture = ""
                                 cmd = mkCmdSimple (fun _ ->
                                     try
@@ -109,9 +118,9 @@ module private RecognicePath =
                                         else
                                             ISeffLog.log.PrintfnIOErrorMsg "Directory or file '%s' does not exist" dir
                                     with e ->
-                                        ISeffLog.log.PrintfnIOErrorMsg "Open with VScode failed: %A" e
+                                        ISeffLog.log.PrintfnIOErrorMsg "Open with VS Code failed: %A" e
                                     )
-                                tip = sprintf "Try to open file in VScode:\r\n%s" fullPath
+                                tip = sprintf "Try to open file in VS Code:\r\n%s" fullPath
                                 }
 
                         menu.Items.Insert(0, menuItem cmd)
