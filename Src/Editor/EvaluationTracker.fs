@@ -87,7 +87,7 @@ type EvaluationTrackerRenderer (ed:TextEditor) =
                             keepMark this (i+1)
                 let keep = keepMark lastInEval topMostUnEvaluated
 
-                if keep then //no search back needed since the next non white is at position 0 in line
+                if keep then //now search back needed since the next non white is at position 0 in line
                     let mutable j = topMostUnEvaluated-1
                     while j>0 && isWhite (doc.GetCharAt(j)) do // to remove white space too
                         j <- j-1
@@ -117,12 +117,14 @@ type EvaluationTrackerRenderer (ed:TextEditor) =
                             if ln.LineNumber = 1 then 
                                 min segEnd ln.EndOffset // min() because segEnd might be smaller than ln.EndOffset
                             else
-                                let st = doc.GetText(ln.Offset,2)
-                                //if  st = "#if" || st = "#el" then // TODO: detect if current end segment is inside a #if #elif #else block !
-                                if st = "[<" || st = "//"   then // for attributes comments  
-                                    moveUp(ln.PreviousLine)
+                                let st2 = doc.GetText(ln.Offset,2)
+                                let st5 = doc.GetText(ln.Offset,5)                                
+                                if st2 = "[<" || st2 = "//"   then // for attributes comments  
+                                    moveUp(ln.PreviousLine)                                
                                 elif String.IsNullOrWhiteSpace(doc.GetText(ln)) then 
                                     moveUp(ln.PreviousLine)
+                                elif st5 = "open " || st5 = "#if I" then // TODO: detect corectly if current end segment is inside a #if #elif #else block !
+                                    moveUp(ln.PreviousLine)  
                                 else
                                     ln.EndOffset 
                         moveUp(doc.GetLineByOffset(segEnd))
@@ -197,9 +199,11 @@ type EvaluationTracker (ed:TextEditor, checker:Checker, edId:Guid) =
 
     let renderer = EvaluationTrackerRenderer(ed)
 
+    //TODO on tab change and "EvalInteractionNonThrowing returned Error:" reset too !
+
     do
         ed.TextArea.TextView.BackgroundRenderers.Add(renderer)
-        checker.Fsi.OnReset.Add       (fun evc -> renderer.MarkNoneEvaluated()) // rest for all editors
+        checker.Fsi.OnReset.Add       (fun evc -> renderer.MarkNoneEvaluated()) // reset for all editors
         checker.Fsi.OnCanceled.Add    (fun evc -> if evc.editor.Id = edId then renderer.MarkNoneEvaluated())
         checker.Fsi.OnCompletedOk.Add (fun evc ->
             if evc.editor.Id = edId then  //this event will be hooked up for each tab so check id too
