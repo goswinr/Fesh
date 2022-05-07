@@ -284,12 +284,29 @@ module CursorBehaviour  =
     
     let addClosingBraket(ed:TextEditor, e:Input.TextCompositionEventArgs) = 
         let inline addPair caretForward (s:string)  = 
-            let caret = ed.TextArea.Caret.Offset
+            let caret = ed.TextArea.Caret.Offset 
             ed.Document.Insert(caret, s ); 
             ed.TextArea.Caret.Offset <- caret+caretForward // it was moved 2, now set it to one ahead, in the middle
             e.Handled <- true
         
-        let inline prevChar() = ed.Document.GetCharAt(max 0 (ed.TextArea.Caret.Offset-1))        
+        let inline prevChar() = ed.Document.GetCharAt(max 0 (ed.TextArea.Caret.Offset-1))  
+        
+        let inline nextSpace() =
+            let i = ed.TextArea.Caret.Offset
+            if ed.Document.TextLength <= i then 
+                true
+            else
+                let c = ed.Document.GetCharAt(i)                 
+                c=' '|| c='\r'
+        
+        let inline nextSpaceQ() =
+            let i = ed.TextArea.Caret.Offset
+            if ed.Document.TextLength <= i then 
+                true
+            else
+                let c = ed.Document.GetCharAt(i) 
+                c=' '|| c='\r'|| c='"' // " for beeing in a string
+
 
         match Selection.getSelType(ed.TextArea) with
         |RectSel -> ()
@@ -311,24 +328,28 @@ module CursorBehaviour  =
 
         // if no selction for an opening brcket add a closing bracket
         |NoSel -> 
+            
             match e.Text with
-            | "("  -> addPair 1 "()" 
-            | "{"  -> addPair 1 "{}"
-            | "["  -> addPair 1 "[]"
-            | "'"  -> addPair 1 "''"
-            | "\"" -> addPair 1 "\"\""
-            | "$"  -> addPair 2 "$\"\"" // for formating string
-            | "`"  -> addPair 2 "````" // for formating string
+            | "("  -> if nextSpace()  then addPair 1 "()" 
+            | "{"  -> if nextSpaceQ() then addPair 1 "{}"
+            | "["  -> if nextSpace()  then addPair 1 "[]"
+            | "'"  -> if nextSpace()  then addPair 1 "''"
+            | "\"" -> if nextSpace()  then addPair 1 "\"\""
+            | "$"  -> if nextSpace()  then addPair 2 "$\"\"" // for formating string
+            | "`"  -> if nextSpace()  then addPair 2 "````"  // for formating string
+            
             | "|" -> 
                 // first check previous character:
                 match prevChar() with 
                 | '{' | '[' | '(' -> addPair 2 "|  |" // it was moved 2, now set it to one ahead, in the middle              
                 | _ -> ()
+            
             | "*" -> // for comments with  (* *)
                 // first check previous character:
                 match prevChar() with 
                 | '(' -> addPair 2 "*  *"
                 | _ -> ()
+            
             | _ -> ()
 
 
