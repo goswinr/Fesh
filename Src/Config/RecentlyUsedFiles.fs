@@ -104,6 +104,11 @@ type RecentlyUsedFiles  ( hostInfo:Hosting) =
         xs.Reverse()
         xs
 
+    member this.MostRecentPath : option<DirectoryInfo> = 
+        if recentFilesStack.Count = 0 then None
+        else Some <| recentFilesStack.Peek().fileInfo.Directory
+        
+
 
     member this.Contains(s:string) = 
         recentFilesStack

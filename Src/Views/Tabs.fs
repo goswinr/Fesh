@@ -51,7 +51,7 @@ type Tabs(config:Config, win:Window) =
         |NotSet ->
             match allFileInfos |> Seq.tryHead with
             |Some fi -> Some fi.Directory
-            |None    -> None
+            |None    -> config.RecentlyUsedFiles.MostRecentPath
 
 
     let saveAt (t:Tab, fi:FileInfo, saveKind:SavingKind) = 
