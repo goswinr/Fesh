@@ -75,7 +75,9 @@ type Seff (config:Config,log:Log) =
             for action in actions do action()
             )
 
-        tabs.Fsi.OnRuntimeError.Add(fun _ -> win.Window.Visibility <-Visibility.Visible ) // because it might be hidden manually, or not visible from the start ( e.g. current script is evaluated in Seff.Rhino)
+        tabs.Fsi.OnRuntimeError.Add(fun _ ->  
+            let w = win.Window // because it might be hidden manually, or not visible from the start ( e.g. current script is evaluated in Seff.Rhino)
+            if w.Visibility <> Visibility.Visible || w.WindowState=WindowState.Minimized then  win.Window.Show() ) 
 
     member this.Config = config
 
