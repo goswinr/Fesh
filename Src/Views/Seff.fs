@@ -75,6 +75,8 @@ type Seff (config:Config,log:Log) =
             for action in actions do action()
             )
 
+        tabs.Fsi.OnRuntimeError.Add(fun _ -> win.Window.Visibility <-Visibility.Visible ) // because it might be hidden manually, or not visible from the start ( e.g. current script is evaluated in Seff.Rhino)
+
     member this.Config = config
 
     member this.Tabs= tabsAndLog.Tabs

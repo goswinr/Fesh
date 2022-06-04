@@ -373,12 +373,10 @@ type Fsi private (config:Config) =
                                     log.PrintfnColor 0 0 200 "%s" postMsg
 
                             | _ ->
-                                runtimeErrorEv.Trigger(exn)
-                                isReadyEv.Trigger()
+                                runtimeErrorEv.Trigger(exn)  // in seff.fs this is used to ensure the main window is visible, because it might be hidden manually, or not visible from the start ( e.g. current script is evaluated in Seff.Rhino)                             
                                 let printRuntimeError s = log.PrintfnColor 200 0 0 s
                                 printRuntimeError "Runtime Error:"
-
-                                //highlight line number in blue in error message:
+                                //highlight line number in blue in error message: TODO since FCS33?? line number is not part of error message anymore ! only when on net6.0
                                 let et = sprintf "%A" exn
                                 let t,r = Str.splitOnce ".fsx:" et
                                 if r="" then
@@ -388,6 +386,8 @@ type Fsi private (config:Config) =
                                     printRuntimeError "%s.fsx:" t
                                     log.PrintfnColor 0 0 200 "%s" ln
                                     printRuntimeError "%s" rr
+                                
+                                isReadyEv.Trigger()
                         }
                     Async.StartImmediate(asyncEval)
                    
