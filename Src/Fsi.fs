@@ -306,17 +306,16 @@ type Fsi private (config:Config) =
                         // TODO https://github.com/dotnet/fsharp/blob/6b0719845c928361e63f6e38a9cce4ae7d621fbf/src/fsharp/fsi/fsi.fs#L2618
                         // change via reflection???
                         // let dummyScriptFileName = "input.fsx"
-                        match codeToEv.editor.FilePath with
-                        | NotSet -> () //setFileAndLine session code.fromLine "Unnamed File"
-                        | SetTo fi ->
+                        //match codeToEv.editor.FilePath with
+                        //| NotSet -> () //setFileAndLine session code.fromLine "Unnamed File"
+                        //| SetTo fi ->
                             //let line = 
                             // match codeToEv.amount with
                             // |All -> 1
                             // |ContinueFromChanges ->  ed.Document.GetLineByOffset ...
                             // | FsiSegment seg -> seg.line
                             //setDir session fi
-                            //setFileAndLine session code.fromLine fi // TODO both fail ??
-                            ()                       
+                            //setFileAndLine session code.fromLine fi // TODO both fail ??                                                  
                         
 
                         let evaluatedTo, errs = 
@@ -328,7 +327,7 @@ type Fsi private (config:Config) =
                         |Sync -> ()
                         |Async472| Async60 -> do! Async.SwitchToContext SyncWpf.context
                         
-                        state <- Ready //TODO reached when canceled ? wrap in try..finally.. ?
+                        state <- Ready //TODO reached when canceled ? or wrap in try..finally.. ?
 
                         match evaluatedTo with //TODO move out of this thread?
                         |Choice1Of2 evaluatedToValue ->
@@ -341,9 +340,7 @@ type Fsi private (config:Config) =
                                 | FSharpDiagnosticSeverity.Hidden  -> () //log.PrintfnInfoMsg "EvalInteractionNonThrowing returned Hidden: %s" e.Message
                                 | FSharpDiagnosticSeverity.Info   ->  () //log.PrintfnInfoMsg "EvalInteractionNonThrowing returned Info: %s" e.Message
 
-                            //match evaluatedToValue with
-                            //|None-> ()
-                            //|Some v -> log.PrintfnDebugMsg "Interaction evaluated to %A <%A>" v.ReflectionValue v.ReflectionType
+                            //match evaluatedToValue with   //|Some v -> log.PrintfnDebugMsg "Interaction evaluated to %A <%A>" v.ReflectionValue v.ReflectionType //|None-> ()
 
                         |Choice2Of2 exn ->
                             match exn with
@@ -450,7 +447,7 @@ type Fsi private (config:Config) =
         | UserDoesntWantTo -> Evaluating
         | NotPossibleSync  -> Evaluating     // UI for this only available in asynchronous mode anyway, see Commands
 
-    member this.Evaluate(code) = 
+    member this.Evaluate(code:CodeToEval) = 
         //if DateTime.Today > DateTime(2020, 12, 30) then log.PrintfnFsiErrorMsg "*** Your Seff Editor has expired, please download a new version. or contact goswin@rothenthal.com ***"
         if i > idx then log.PrintfnFsiErrorMsg "%s" sin
         else

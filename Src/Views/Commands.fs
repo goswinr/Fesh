@@ -29,7 +29,7 @@ type Commands (grid:TabsAndLog, statusBar:SeffStatusBar)  =
     let evalAllText()          =                                             fsi.Evaluate {editor=tabs.Current.Editor; amount=All}
     let evalAllTextSave()      =               tabs.SaveAsync(tabs.Current); fsi.Evaluate {editor=tabs.Current.Editor; amount=All}
     let evalAllTextSaveClear() =  log.Clear(); tabs.SaveAsync(tabs.Current); fsi.Evaluate {editor=tabs.Current.Editor; amount=All}
-    let evalContinue()         =               tabs.SaveAsync(tabs.Current); fsi.Evaluate {editor=tabs.Current.Editor; amount=ContinueFromChanges}
+    let evalContinue()         =  (if tabs.Current.FilePath<>NotSet then tabs.SaveAsync(tabs.Current)); fsi.Evaluate {editor=tabs.Current.Editor; amount=ContinueFromChanges}
     let markEvaluated()        =  tabs.Current.Editor.EvalTracker.MarkEvalutedTillOffset(Selection.currentLineEnd tabs.CurrAvaEdit + 2 )
 
     let evalSelectedLines()    =  fsi.Evaluate {editor=tabs.Current.Editor; amount = FsiSegment <|SelectionForEval.expandSelectionToFullLines(tabs.CurrAvaEdit) }
@@ -80,26 +80,26 @@ type Commands (grid:TabsAndLog, statusBar:SeffStatusBar)  =
     member val ToUppercase       = {name= "To UPPERCASE"              ;gesture= ""               ;cmd=AvalonEditCommands.ConvertToUppercase                                      ;tip= "Convertes the selected text to UPPERCASE."  }
     member val Tolowercase       = {name= "To lowercase"              ;gesture= ""               ;cmd=AvalonEditCommands.ConvertToLowercase                                      ;tip= "Convertes the selected text to lowercase."  }
     member val ToTitleCase       = {name= "To Titlecase "             ;gesture= ""               ;cmd=AvalonEditCommands.ConvertToTitleCase                                      ;tip= "Convertes the selected text to Titlecase."  }
-    member val ToggleBoolean     = {name= "Toggle bool literal"       ;gesture= "Ctrl + T"       ;cmd = mkCmdSimple (fun _ -> CursorBehaviour.toggleBoolean(tabs.CurrAvaEdit) )  ;tip= "Convertes a 'true' literal to 'false' and a 'false' literal to 'true' if they are currently selected exclusively" }
+    member val ToggleBoolean     = {name= "Toggle bool literal"       ;gesture= "Ctrl + T"       ;cmd = mkCmdSimple (fun _ -> CursorBehaviour.toggleBoolean(tabs.CurrAvaEdit) )  ;tip= "Convertes a 'true' literal to 'false' and a 'false' literal to 'true' if they are currently selected exclusively." }
 
-    member val AlignCode         = {name= "Align Code Vertically"     ;gesture= "Ctrl + I"       ;cmd = mkCmdSimple (fun _ -> Formating.alignByNonLetters(tabs.Current.Editor))  ;tip= "Experimental Feature, Tries to inserts spaces where required so that non leter symbols align vertically" }
+    member val AlignCode         = {name= "Align Code Vertically"     ;gesture= "Ctrl + I"       ;cmd = mkCmdSimple (fun _ -> Formating.alignByNonLetters(tabs.Current.Editor))  ;tip= "Experimental Feature, Tries to inserts spaces where required so that non leter symbols align vertically." }
 
     //Select menu:
     member val SelectLine        = {name= "Select Current Line"       ;gesture= "Ctrl  + L"     ;cmd= mkCmdSimple (fun _ -> expandSelectionToFullLines(tabs.CurrAvaEdit) |> ignore )  ;tip= "Select current line"} // TODO compare VSCODE shortcuts to  see https://github.com/icsharpcode/SharpDevelop/wiki/Keyboard-Shortcuts
-    member val SwapWordLeft      = {name= "Swap selected word left"   ;gesture= "Alt + Left"    ;cmd= mkCmdSimple (fun _ -> SwapWords.left  tabs.CurrAvaEdit|> ignore )  ;tip= "Swaps the currently selected word with the word on the left. A word may include any letter, digit, underscore or dot. "}
-    member val SwapWordRight     = {name= "Swap selected word right"  ;gesture= "Alt + Right"   ;cmd= mkCmdSimple (fun _ -> SwapWords.right tabs.CurrAvaEdit|> ignore )  ;tip= "Swaps the currently selected word with the word on the right. A word may include any letter, digit, underscore or dot. "}
+    member val SwapWordLeft      = {name= "Swap selected word left"   ;gesture= "Alt + Left"    ;cmd= mkCmdSimple (fun _ -> SwapWords.left  tabs.CurrAvaEdit|> ignore )  ;tip= "Swaps the currently selected word with the word on the left. A word may include any letter, digit, underscore or dot."}
+    member val SwapWordRight     = {name= "Swap selected word right"  ;gesture= "Alt + Right"   ;cmd= mkCmdSimple (fun _ -> SwapWords.right tabs.CurrAvaEdit|> ignore )  ;tip= "Swaps the currently selected word with the word on the right. A word may include any letter, digit, underscore or dot."}
 
     //FSI menu:
-    member val RunAllText        = {name= "Evaluate All"                   ;gesture= "F5"             ;cmd= mkCmdSimple (fun _ -> evalAllText() )             ;tip= "Send all text in the current file to FSharp Interactive" }
-    member val RunAllTextSave    = {name= "Save, Evaluate All"             ;gesture= "F6"             ;cmd= mkCmdSimple (fun _ -> evalAllTextSave())          ;tip= "First Save current File, then send all it's text to FSharp Interactive" }
-    member val RunAllTxSaveClear = {name= "Save, Clear Log, Evaluate All"  ;gesture= "F7"             ;cmd= mkCmdSimple (fun _ -> evalAllTextSaveClear())     ;tip= "First Save current File, then Clear Log, then send all text to FSharp Interactive" }
-    member val RunCurrentLines   = {name= "Evaluate CurrentLines"          ;gesture= "Ctrl + Enter"   ;cmd= mkCmdSimple (fun _ -> evalSelectedLines())        ;tip= "Sends the currently seleceted Lines in the editor to FSharp Interactive.\r\nIncludes partially selected lines in full."}
-    member val RunSelectedText   = {name= "Evaluate Selected Text"         ;gesture= "Alt + Enter"    ;cmd= mkCmd isEse (fun _ -> evalSelectedText())         ;tip= "Sends the currently seleceted Text in the editor to FSharp Interactive" }// TODO mark evaluated code with grey background
-    member val RunTextTillCursor = {name= "Evaluate till Cursor"           ;gesture= "F3"             ;cmd= mkCmdSimple (fun _ -> evalTillCursor())           ;tip= "Sends all lines till and including the current line  to FSharp Interactive" }
-    //member val RunTextFromCursor = {name= "Run Text from Cursor"      ;gesture= "F4"             ;cmd= mkCmdSimple (fun _ -> evalFromCursor())           ;tip= "Sends all lines from and including the current line  to FSharp Interactive" }
+    member val MarkEval          = {name= "Mark as Evaluated till Current Line" ;gesture= ""          ;cmd= mkCmdSimple (fun _ -> markEvaluated())            ;tip= "Mark text till current line inclusive as evaluated." }
+    member val EvalContinue      = {name= "Save, Continue Evaluation"           ;gesture= "F4"        ;cmd= mkCmdSimple (fun _ -> evalContinue())             ;tip= "Saves the current file only if ist has a file path, then sends all chanaged or new lines after end of gray background text to FSharp Interactive." }
+    member val RunAllText        = {name= "Evaluate All"                   ;gesture= "F5"             ;cmd= mkCmdSimple (fun _ -> evalAllText() )             ;tip= "Send all text in the current file to FSharp Interactive." }
+    member val RunAllTextSave    = {name= "Save, Evaluate All"             ;gesture= "F6"             ;cmd= mkCmdSimple (fun _ -> evalAllTextSave())          ;tip= "First save current file, then send all it's text to FSharp Interactive." }
+    member val RunAllTxSaveClear = {name= "Clear Log, Save, Evaluate All"  ;gesture= "F7"             ;cmd= mkCmdSimple (fun _ -> evalAllTextSaveClear())     ;tip= "First clear Log, then save current file, then  then send all text to FSharp Interactive,." }
+    member val RunCurrentLines   = {name= "Evaluate CurrentLines"          ;gesture= "Ctrl + Enter"   ;cmd= mkCmdSimple (fun _ -> evalSelectedLines())        ;tip= "Sends the currently seleceted lines in the editor to FSharp Interactive.\r\nIncludes partially selected lines in full."}
+    member val RunSelectedText   = {name= "Evaluate Selected Text"         ;gesture= "Alt + Enter"    ;cmd= mkCmd isEse (fun _ -> evalSelectedText())         ;tip= "Sends the currently seleceted text in the editor to FSharp Interactive." }// TODO mark evaluated code with grey background
+    member val RunTextTillCursor = {name= "Evaluate till Cursor"           ;gesture= "F3"             ;cmd= mkCmdSimple (fun _ -> evalTillCursor())           ;tip= "Sends all lines till and including the current line to FSharp Interactive." }
+    
 
-    member val EvalContinue      = {name= "Save, continue evaluation"           ;gesture= "F4"     ;cmd= mkCmdSimple (fun _ -> evalContinue())   ;tip= "Sends all chnaged or new lines from end of grey text to FSharp Interactive" }
-    member val MarkEval          = {name= "Mark as Evaluated till Current Line" ;gesture= ""       ;cmd= mkCmdSimple (fun _ -> markEvaluated())  ;tip= "Mark text till current line inclusive as evaluated" }
     
     member val GoToError         = {name= "Go to first Error"         ;gesture= "Ctrl + E"        ;cmd= mkCmdSimple (fun _ -> goToError())  ;tip= "Scroll to first error ( if any ppresent) and select error segment." }
 
