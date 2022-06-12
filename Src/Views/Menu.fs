@@ -25,8 +25,9 @@ type HeaderGestureTooltip = {
 
 module private RecognicePath = 
 
-    let filePathStartRegex = Text.RegularExpressions.Regex("""[A-Z]:[\\/]""") // C:\
-    let filePathEndRegex = Text.RegularExpressions.Regex("""["()\[\]']""") //   [ or ] or ( or ) or " or '
+    let filePathStartRegex = Text.RegularExpressions.Regex("""[A-Z]:[\\/]""") // C:\    
+    let filePathEndRegex = Text.RegularExpressions.Regex("""[\"<>:|?*]""") // invalid chacters in file path
+    // let filePathEndRegex = Text.RegularExpressions.Regex("""["()\[\]']""") //   [ or ] or ( or ) or " or '
     // Or disallow spaces too : let filePathEndRegex = Text.RegularExpressions.Regex("""["()\[\] ']""") //  a space or [ or ] or ( or ) or " or '
 
     let sep() = Separator():> Control
@@ -56,7 +57,7 @@ module private RecognicePath =
             let ss = filePathStartRegex.Matches(lineTxt)
             for s in ss do
                 if s.Success then
-                    let e = filePathEndRegex.Match(lineTxt,s.Index)
+                    let e = filePathEndRegex.Match(lineTxt,s.Index+s.Length) // add length to jump over first colon ':'
                     let fullPath = 
                         let raw = 
                             if e.Success then   lineTxt.Substring(s.Index, e.Index - s.Index)
