@@ -10,7 +10,6 @@ open System.Windows.Media
 open Seff.Model
 open Seff.Config
 open Seff.Util
-open Seff.Util.Log
 
 open FsEx.Wpf
 open FSharp.Compiler
@@ -448,11 +447,10 @@ type Fsi private (config:Config) =
         | NotPossibleSync  -> Evaluating     // UI for this only available in asynchronous mode anyway, see Commands
 
     member this.Evaluate(code:CodeToEval) = 
-        //if DateTime.Today > DateTime(2020, 12, 30) then log.PrintfnFsiErrorMsg "*** Your Seff Editor has expired, please download a new version. or contact goswin@rothenthal.com ***"
-        if i > idx then log.PrintfnFsiErrorMsg "%s" sin
-        else
-            //if DateTime.Today > DateTime(2021, 03, 30) then log.PrintfnFsiErrorMsg "*** Your Seff Editor will expire on 2020-12-31, please download a new version soon. or contact goswin@rothenthal.com***"
-            if i > idi then log.PrintfnFsiErrorMsg "%s" edi
+        //if DateTime.Today > DateTime(2022, 12, 30) then 
+        //    log.PrintfnFsiErrorMsg "*** Your Seff Editor has expired, please download a new version. or contact goswin@rothenthal.com ***"        
+        //else
+            //if DateTime.Today > DateTime(2022, 10, 30) then log.PrintfnFsiErrorMsg "*** Your Seff Editor will expire on 2022-12-31, please download a new version soon. or contact goswin@rothenthal.com***"            
             match this.AskIfCancellingIsOk () with
             | NotEvaluating   -> eval(code)
             | YesAsync472     -> this.CancelIfAsync();eval(code)
@@ -463,7 +461,7 @@ type Fsi private (config:Config) =
 
     member this.Reset() = 
         match this.AskIfCancellingIsOk () with
-        | NotEvaluating   ->                       initFsi (); resetEv.Trigger() //log.PrintfnInfoMsg "FSI reset." done by this.Initialize()
+        | NotEvaluating   ->                       initFsi (); resetEv.Trigger() 
         | YesAsync472     -> this.CancelIfAsync(); initFsi (); resetEv.Trigger()
         | NoAsync60       -> log.PrintfnInfoMsg "ResetFsi is not be possibe in current async evaluation on net50." // TODO test
         | UserDoesntWantTo-> ()

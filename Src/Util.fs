@@ -291,37 +291,6 @@ module Str  =
         else
             s.Substring(0,max) + suffix
 
-    // poor man's encoding of messages by character shift
-    let sh(s:string)= 
-        s
-        |> Seq.map (fun c -> char ((byte c)-1uy))
-        |> String.Concat
-
-    // poor man's encoding of messages by character shift
-    let shi(s:string)= 
-        s
-        |> Seq.map (fun c -> char ((byte c)-10uy))
-        |> String.Concat
-
-// the Editor has expired message with shifted chars
-module Log = 
-    type ed = DateTime
-
-    // each character is shifted by 1 byte :
-    let sin = "+++!Zpvs!Tfgg!Fejups!ibt!fyqjsfe-!qmfbtf!epxompbe!b!ofx!wfstjpo/!Ps!dpoubdu!hptxjoAspuifouibm/dpn!+++" |> Str.sh
-
-    // each character is shifted by 1 byte :
-    let edi = "+++!Zpvs!Tfgg!Fejups!xjmm!fyqjsf!po!jo!3133-!qmfbtf!epxompbe!b!ofx!wfstjpo!tppo/!Ps!dpoubdu!hptxjoAspuifouibm/dpn+++" |> Str.sh
-
-    // each character is shifted by 10 byte :
-    let idx = "<:<<7;<" |> Str.shi // 2022-12 "<:<<7;<"
-
-    // each character is shifted by 10 byte :
-    let idi = "<:<<7;;" |> Str.shi // 2022-11 "<:<<7;;"
-
-    // this month
-    let i = ed.log()
-
 
 (*  module Extern = 
         open System.Runtime.InteropServices
