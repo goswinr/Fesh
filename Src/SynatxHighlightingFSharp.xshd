@@ -360,8 +360,7 @@
     <Span color="String" multiline="true"> 
       <Begin>\$"</Begin>  
       <End>"</End>    
-      <RuleSet>
-        
+      <RuleSet>        
         <Import ruleSet="_StringDollarFormatSet"/>
         <Import ruleSet="_StringEscapeSet"/>
       </RuleSet>
@@ -419,16 +418,16 @@
   
   <RuleSet name="PrintAndFailStatements"> 
     <Span color="FailString">  
-      <Begin color= "FailPath" >failwithf?\s*"</Begin>  
-      <End   color= "FailPath" >"</End>      
+      <Begin color= "FailPath" >failwithf?\s*\"</Begin>  
+      <End   color= "FailPath" >\"</End>      
       <RuleSet>
         <Import ruleSet="_StringEscapeSet"/>
         <Import ruleSet="_StringFormatSet"/>
       </RuleSet>
     </Span>
     <Span color="FailString">  
-      <Begin color= "FailPath" >failwithf?\s*\$"</Begin>  <!-- if the string starts with a dollar sign -->      
-      <End   color= "FailPath" >"</End>      
+      <Begin color= "FailPath" >failwithf?\s*\$\"</Begin>  <!-- With $"{}" formating  -->      
+      <End   color= "FailPath" >\"</End>      
       <RuleSet>
         <Import ruleSet="_StringEscapeSet"/>
         <Import ruleSet="_StringFormatSet"/>
@@ -436,11 +435,9 @@
       </RuleSet>
     </Span>
 
-
-
     <Span color="FailString">  <!-- for failIfFalse and failIfNull. part of FsEx.dll-->
-      <Begin color= "FailPath" >failIf\w+\s*\(?\s*\$?"</Begin>  
-      <End   color= "FailPath" >"</End>      
+      <Begin color= "FailPath" >failIf\w+\s*\(?\s*\$?\"</Begin>  
+      <End   color= "FailPath" >\"</End>      
       <RuleSet>
         <Import ruleSet="_StringEscapeSet"/>
         <!-- <Import ruleSet="_StringFormatSet"/> formating not possible in failIfFalse and simliar functions -->
@@ -449,20 +446,33 @@
 
     <!-- in case they are followed by a name and not a literal string starting with "-->
     <Keywords color = "PrintStatement">
-      <Word>print</Word> <!-- part of FsEx.dll-->
-      <Word>print2</Word>
-      <Word>print3</Word>
+      <Word>print</Word> <!-- part of FsEx.dll-->      
       <Word>printFull</Word>
 
-      <Word>printf</Word>
-      <Word>printfn</Word>      
-      <Word>eprintf</Word>
-      <Word>eprintfn</Word>
     </Keywords>
+  
+    <Span color="PrintString" >      
+      <Begin color= "PrintStatement" >\bPrintfn?\.\w+\s+\"</Begin> <!-- for Printfn.red and similar functions. With $"{}" formating -->
+      <End   color= "PrintStatement" >\"</End>     
+      <RuleSet>
+        <Import ruleSet="_StringEscapeSet"/>
+        <Import ruleSet="_StringFormatSet"/>             
+      </RuleSet>
+    </Span>
 
     <Span color="PrintString" >      
-      <Begin color= "PrintStatement" >\be?print2?f?n?\s*"</Begin> 
-      <End   color= "PrintStatement" >"</End>     
+      <Begin color= "PrintStatement" >\bPrintfn?\.\w+\s+\$\"</Begin> <!-- for Printfn.red and similar functions. With $"{}" formating -->
+      <End   color= "PrintStatement" >\"</End>     
+      <RuleSet>
+        <Import ruleSet="_StringEscapeSet"/>
+        <Import ruleSet="_StringFormatSet"/> 
+        <Import ruleSet="_StringDollarFormatSet"/>       
+      </RuleSet>
+    </Span>
+
+    <Span color="PrintString" >      
+      <Begin color= "PrintStatement" >\be?printf?n?\s*\$\"</Begin> <!-- With $"{}" formating  -->
+      <End   color= "PrintStatement" >\"</End>     
       <RuleSet>
         <Import ruleSet="_StringEscapeSet"/>
         <Import ruleSet="_StringFormatSet"/>
@@ -471,16 +481,13 @@
     </Span>
 
     <Span color="PrintString" >      
-      <Begin color= "PrintStatement" >\be?print2?f?n?\s*\$"</Begin> <!-- if the string starts with a dollar sign -->
-      <End   color= "PrintStatement" >"</End>     
+      <Begin color= "PrintStatement" >\be?printf?n?.\s*\"</Begin> 
+      <End   color= "PrintStatement" >\"</End>     
       <RuleSet>
         <Import ruleSet="_StringEscapeSet"/>
-        <Import ruleSet="_StringFormatSet"/>
-        <Import ruleSet="_StringDollarFormatSet"/>
+        <Import ruleSet="_StringFormatSet"/>        
       </RuleSet>
     </Span>
-
-
 
   </RuleSet>
 
