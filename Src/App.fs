@@ -1,8 +1,10 @@
 ﻿namespace Seff
 
 open System
+open System.IO
 open System.Windows
 open Seff.Config
+
 
 module App = 
 
@@ -15,7 +17,7 @@ module App =
     /// Call seff.Window.Show() on the returned Seff object.
     /// Use seff.Fsi.OnStarted and seff.Fsi.OnIsReady Events to implement undo and redo in host App.
     let createEditorForHosting (host:HostedStartUpData) : Seff =         
-        let seff = Initialize.everything (Some host , [| |])
+        let seff = Initialize.everything (Some host , [| |])        
         current <- seff
         if host.mainWindowHandel <> IntPtr.Zero then
             // so that the editor window opens and closes at the same tiome as the main host window:

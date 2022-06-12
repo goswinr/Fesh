@@ -14,7 +14,12 @@ type FsiArugments  ( hostInfo:Hosting) =
     let writer = SaveReadWriter(filePath0,ISeffLog.printError)
 
     // "--shadowcopyreferences" is ignored https://github.com/fsharp/FSharp.Compiler.Service/issues/292
-    let defaultArgs = [| "first arg is ignored" ; "--langversion:preview" ; "--noninteractive" ; "--debug+"; "--debug:full" ;"--optimize+" ; "--gui-" ; "--nologo"|]
+    let defaultArgs = [| "first arg must be there but is ignored" ; "--langversion:preview" (* ;"--exec" *) ; "--debug+"; "--debug:full" ;"--optimize+" ; "--gui-" ; "--nologo"|]
+    // first arg is ignored: https://github.com/fsharp/FSharp.Compiler.Service/issues/420
+    // and  https://github.com/fsharp/FSharp.Compiler.Service/issues/877
+    // and  https://github.com/fsharp/FSharp.Compiler.Service/issues/878
+
+    // use "--exec" instead of "--noninteractive" see ://github.com/dotnet/fsharp/blob/7b46dad60df8da830dcc398c0d4a66f6cdf75cb1/src/Compiler/Interactive/fsi.fs#L937
 
     let defaultArgsText = defaultArgs|> String.concat Environment.NewLine
 
@@ -26,6 +31,7 @@ type FsiArugments  ( hostInfo:Hosting) =
         |Some args ->
             args
             |> Array.map (fun s -> s.Trim())
+            |> Array.filter (String.IsNullOrWhiteSpace>>not)
             |> Array.filter (fun a -> a.ToLower() <>  "--quiet") // this argument is managed seperatly in config.Settings and statusbar
 
 
@@ -40,17 +46,15 @@ type FsiArugments  ( hostInfo:Hosting) =
             args
 
     member this.Reload() = 
-            args <- get()
-            args
-
- //; "--shadowcopyreferences" is ignored https://github.com/fsharp/FSharp.Compiler.Service/issues/292
-
- // first arg is ignored: https://github.com/fsharp/FSharp.Compiler.Service/issues/420
- // and  https://github.com/fsharp/FSharp.Compiler.Service/issues/877
- // and  https://github.com/fsharp/FSharp.Compiler.Service/issues/878
+        args <- get()
+        args
 
 
-(*
+
+(*  
+    not on docs:
+    --multiemit  see: https://fsharp.github.io/fsharp-compiler-docs/fsi-emit.html
+
     https://docs.microsoft.com/en-us/dotnet/fsharp/language-reference/fsharp-interactive-options
 
     - INPUT FILES -

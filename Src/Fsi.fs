@@ -136,54 +136,65 @@ type Fsi private (config:Config) =
             log.PrintfnFsiErrorMsg "setFileAndLine on FSI failed: %A" e
     *)  
      
-    let createSession(fsiConfig:FsiEvaluationSessionHostConfig, allArgs:string[]) =         
-        let inStream = new StringReader("")        
+    let createSession() =         
+        let fsiArgs =
+            // first arg is ignored:
+            //      https://github.com/fsharp/FSharp.Compiler.Service/issues/420
+            // and  https://github.com/fsharp/FSharp.Compiler.Service/issues/877
+            // and  https://github.com/fsharp/FSharp.Compiler.Service/issues/878        
+            // "--shadowcopyreferences" is ignored https://github.com/fsharp/FSharp.Compiler.Service/issues/292
+            let args = config.FsiArugments.Get            
+            let beQuiet = config.Settings.GetBool ("fsiOutputQuiet", false)
+            let qargs = 
+                match beQuiet, args |> Array.tryFindIndex (fun s -> s="--quiet") with 
+                | true , Some _  -> args
+                | false, None    -> args
+                | true , None    -> Array.append args [| "--quiet"|] // TODO or fsi.ShowDeclarationValues <- false ??
+                | false , Some i -> args |> Array.removeAt i            
+            if config.Hosting.IsRunningOnDotNetCore then // --multiemit is always there on netCore
+                qargs 
+            else
+                match qargs |> Array.tryFindIndex (fun s -> s="--multiemit") with 
+                | Some _  -> qargs
+                | None    -> Array.append qargs [| "--multiemit"|] // to have line numbers in exceptions: https://github.com/dotnet/fsharp/discussions/13293
+        
+        let fsiConfig = 
+            let settings = Interactive.Shell.Settings.fsi
+            // Default: https://github.com/dotnet/fsharp/blob/c0d6f6abbf14a19c631cd647b6440ec2c63c668f/src/fsharp/fsi/fsi.fs#L3244
+            // evLoop = (new SimpleEventLoop() :> IEventLoop)
+            // showIDictionary = true
+            // showDeclarationValues = true
+            // args = Environment.GetCommandLineArgs()
+            // fpfmt = "g10"
+            // fp = (CultureInfo.InvariantCulture :> System.IFormatProvider)
+            // printWidth = 78
+            // printDepth = 100
+            // printLength = 100
+            // printSize = 10000
+            // showIEnumerable = true
+            // showProperties = true
+            // addedPrinters = []
+
+            //settings.ShowDeclarationValues <- true // use this instead of switchin the quiet flag ?
+            settings.PrintWidth <- 200 //TODO adapt to Log view size taking fontsize into account
+            settings.FloatingPointFormat <- "g7" 
+            // https://github.com/dotnet/fsharp/blob/4978145c8516351b1338262b6b9bdf2d0372e757/src/fsharp/fsi/fsi.fs#L2839
+            FsiEvaluationSession.GetDefaultConfiguration(settings, useFsiAuxLib = false) // useFsiAuxLib = FSharp.Compiler.Interactive.Settings.dll . But it is missing in FCS !! 
+
+        let inStream = new StringReader("")
+        //for i,ar in Seq.indexed fsiArgs  do ISeffLog.log.PrintfnDebugMsg $"{i} arg: {ar} "
         if config.Hosting.IsStandalone then  
-            FsiEvaluationSession.Create(fsiConfig, allArgs, inStream, log.TextWriterFsiStdOut, log.TextWriterFsiErrorOut) //, collectible=false ??) //https://github.com/dotnet/fsharp/blob/6b0719845c928361e63f6e38a9cce4ae7d621fbf/src/fsharp/fsi/fsi.fs#L2440
+            FsiEvaluationSession.Create(fsiConfig, fsiArgs, inStream, log.TextWriterFsiStdOut, log.TextWriterFsiErrorOut) //, collectible=false ??) //https://github.com/dotnet/fsharp/blob/6b0719845c928361e63f6e38a9cce4ae7d621fbf/src/fsharp/fsi/fsi.fs#L2440
         else
             (*  This is needed since FCS 34. it solves https://github.com/dotnet/fsharp/issues/9064
             FCS takes the current Directory wich might be the one of the hosting App and will then probaly not contain FSharp.Core.
-            at https://github.com/dotnet/fsharp/blob/HEAD/src/fsharp/fsi/fsi.fs#L2766    *)
+            at https://github.com/dotnet/fsharp/blob/7b46dad60df8da830dcc398c0d4a66f6cdf75cb1/src/Compiler/Interactive/fsi.fs#L3213   *)
             let prevDir = Environment.CurrentDirectory
             Directory.SetCurrentDirectory(Path.GetDirectoryName(Reflection.Assembly.GetAssembly([].GetType()).Location))    
-            let fsiSession = FsiEvaluationSession.Create(fsiConfig, allArgs, inStream, log.TextWriterFsiStdOut, log.TextWriterFsiErrorOut) //, collectible=false ??) //https://github.com/dotnet/fsharp/blob/6b0719845c928361e63f6e38a9cce4ae7d621fbf/src/fsharp/fsi/fsi.fs#L2440
+            let fsiSession = FsiEvaluationSession.Create(fsiConfig, fsiArgs, inStream, log.TextWriterFsiStdOut, log.TextWriterFsiErrorOut) //, collectible=false ??) //https://github.com/dotnet/fsharp/blob/6b0719845c928361e63f6e38a9cce4ae7d621fbf/src/fsharp/fsi/fsi.fs#L2440
             Directory.SetCurrentDirectory(prevDir)
-            fsiSession
-    
-
-    let fsiArgs() =
-        // first arg is ignored:
-        //      https://github.com/fsharp/FSharp.Compiler.Service/issues/420
-        // and  https://github.com/fsharp/FSharp.Compiler.Service/issues/877
-        // and  https://github.com/fsharp/FSharp.Compiler.Service/issues/878        
-        // "--shadowcopyreferences" is ignored https://github.com/fsharp/FSharp.Compiler.Service/issues/292
-
-        if config.Settings.GetBool ("fsiOutputQuiet", false) then 
-            Array.append  config.FsiArugments.Get [| "--quiet"|] // TODO or fsi.ShowDeclarationValues <- false ??
-        else                                                                    
-            config.FsiArugments.Get
-    
-    let getSessionHostConfig() =
-        let settings = Interactive.Shell.Settings.fsi
-        // Default: https://github.com/dotnet/fsharp/blob/c0d6f6abbf14a19c631cd647b6440ec2c63c668f/src/fsharp/fsi/fsi.fs#L3244
-        // evLoop = (new SimpleEventLoop() :> IEventLoop)
-        // showIDictionary = true
-        // showDeclarationValues = true
-        // args = Environment.GetCommandLineArgs()
-        // fpfmt = "g10"
-        // fp = (CultureInfo.InvariantCulture :> System.IFormatProvider)
-        // printWidth = 78
-        // printDepth = 100
-        // printLength = 100
-        // printSize = 10000
-        // showIEnumerable = true
-        // showProperties = true
-        // addedPrinters = []
-        settings.PrintWidth <- 200 //TODO adapt to Log view size taking fontsize into account
-        settings.FloatingPointFormat <- "g7"
-        let fsiConfig = FsiEvaluationSession.GetDefaultConfiguration(settings, useFsiAuxLib = false) // useFsiAuxLib = FSharp.Compiler.Interactive.Settings.dll . But it is missing in FCS !!
-        // https://github.com/dotnet/fsharp/blob/4978145c8516351b1338262b6b9bdf2d0372e757/src/fsharp/fsi/fsi.fs#L2839
-        fsiConfig
+            fsiSession 
+ 
 
     [< Security.SecurityCritical >] 
     [< Runtime.ExceptionServices.HandleProcessCorruptedStateExceptions >] //to handle AccessViolationException too //https://stackoverflow.com/questions/3469368/how-to-handle-accessviolationexception/4759831
@@ -203,20 +214,17 @@ type Fsi private (config:Config) =
                 if config.Settings.GetBool ("asyncFsi", true) then mode <- asyncMode else mode <- FsiMode.Sync
                 match sessionOpt with
                 |None -> ()
-                |Some session -> session.Interrupt()  //TODO does this cancel running session correctly ?? // TODO how to dispose previous session ?  Thread.Abort() ??                  
-
-                let inStream = new StringReader("")
-                let allArgs = fsiArgs()
-                let fsiConfig = getSessionHostConfig()
-                let fsiSession = createSession(fsiConfig, allArgs)
-                sessionOpt <- Some fsiSession
+                |Some session -> session.Interrupt()  //TODO does this cancel running session correctly ?? // TODO how to dispose previous session ?  Thread.Abort() ??  
+                
+                
+                sessionOpt <- Some <| createSession()
 
                 //fsiSession.Run() // TODO ? dont do this it crashes the app when hosted in Rhino!
                 //timer.stop()
 
                 match prevState with
                 |Initalizing |Ready |Evaluating -> log.PrintfnInfoMsg "FSharp Interactive session reset." // in %s" timer.tocEx
-                |NotLoaded  ->                     ()//log.PrintfnInfoMsg "FSharp 40.0 Interactive session created." // in %s"  timer.tocEx
+                |NotLoaded  ->                     () //log.PrintfnInfoMsg "FSharp 40.0 Interactive session created." // in %s"  timer.tocEx
 
                 (*
                 if config.Hosting.IsHosted then

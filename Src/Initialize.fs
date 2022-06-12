@@ -1,6 +1,7 @@
 ﻿namespace Seff
 
 open System
+open System.IO
 open System.Windows
 
 open Seff.Views
@@ -29,6 +30,10 @@ module Initialize =
 
         let log  = Log.Create() // this should be done as early as possibel so that logging works
 
+        //try to fix missing line numbers in hosted context:but does not help, https://github.com/dotnet/fsharp/discussions/13293#discussioncomment-2949022
+        //Directory.SetCurrentDirectory(Path.GetDirectoryName(Reflection.Assembly.GetAssembly([].GetType()).Location)) 
+        //Model.ISeffLog.log.PrintfnDebugMsg $"Current directory set to: '{Environment.CurrentDirectory}'"
+
         let appname = match mode with Some n -> "Seff." + n.hostName |None -> "Seff"
         try 
             // TODO attempt to save files before closing ?  or save anyway every 2 minutes to backup folder if less than 10k lines
@@ -36,9 +41,7 @@ module Initialize =
             errHandler.Setup()// do as soon as log exists 
         with e ->
             log.PrintfnAppErrorMsg "Setting up Global Error Handling via FsEx.Wpf.ErrorHandeling failed. Or is done already? Is FsEx.Wpf already loaded by another plug-in?\r\n%A" e 
-
-             
-
+           
         let config = new Config(log, mode, startupArgs)
         log.AdjustToSettingsInConfig(config)
 
