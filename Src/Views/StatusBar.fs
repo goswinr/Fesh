@@ -271,7 +271,7 @@ type SelectedTextStatus (grid:TabsAndLog) as this =
     inherit TextBlock()
     let codeblock = Brushes.White   |> darker 70
 
-    let isSelOcc() = grid.Config.Settings.Get("SelOcc") = Some "1"
+    let isSelOcc() = grid.Config.Settings.GetBool("HighlightAllOccurences",true) 
 
     let onTxt ="ON"
     let offTxt = "OFF"
@@ -309,11 +309,11 @@ type SelectedTextStatus (grid:TabsAndLog) as this =
             this.Inlines.Add ( desc + if isSelOcc() then onTxt else offTxt)
             )
 
-        this.MouseDown.Add ( fun _ ->
+        this.MouseDown.Add ( fun _ -> // press mouse to toggle
             if isSelOcc() then
-                sett.Set ("SelOcc", "0")   // TODO turn off selection highlight in log too ?
+                sett.SetBool ("HighlightAllOccurences", false)   // TODO turn off selection highlight in log too ?
             else
-                sett.Set ("SelOcc", "1")   // toggle
+                sett.SetBool ("HighlightAllOccurences", true)   // toggle
             this.Inlines.Clear()
             this.Inlines.Add( desc +    if isSelOcc() then onTxt else offTxt)
             this.ToolTip <-   baseTxt + if isSelOcc() then offTxt else onTxt
