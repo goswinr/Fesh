@@ -77,6 +77,14 @@ module General =
 module Str  = 
     open System.Text.RegularExpressions
 
+    /// first letter uppercase 
+    let up1 (s:String)  = 
+        if s="" then s else Char.ToUpper(s.[0]).ToString() + s.Substring(1)
+    
+    /// first letter lowercase
+    let low1 (s:String) = 
+        if s="" then s else Char.ToLower(s.[0]).ToString() + s.Substring(1)
+
     /// Trims strings to 80 chars for showing in one line.
     /// It returns the input string trimmed to 80 chars, a count of skipped characters and the last 5 characters
     /// Replace line breaks with '\r\n' or '\n' literal

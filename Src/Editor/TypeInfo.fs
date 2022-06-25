@@ -25,13 +25,19 @@ open FSharp.Compiler.Text              // ISourceFile, Range, TaggedText and oth
 open FSharp.Compiler.Tokenization      // FSharpLineTokenizer etc.
 
 open Seff
+open Seff.Util
 open Seff.Model
+open Seff.XmlParser
 
 
 type OptDefArg   = {name:string } //; defVal:string}//  default value seems to be not available via FCS see below in: namesOfOptnlArgs(fsu:FSharpSymbolUse)
 
-type ToolTipData = {name:string; signature:TaggedText[]; optDefs: ResizeArray<OptDefArg>;  xmlDocStr: Result<string*string,string>}
-
+type ToolTipData = {
+    name:string; 
+    signature:TaggedText[]
+    optDefs: ResizeArray<OptDefArg> 
+    xmlDoc: Result<XmlParser.Child*string,string>
+    }
 
 ///a static class for creating tooltips
 type TypeInfo private () = 
@@ -41,12 +47,14 @@ type TypeInfo private () =
     static let gray         = Brushes.Gray                       |> freeze
     static let lightgray    = Brushes.Gray       |> brighter 100 |> freeze
     static let blue         = Brushes.Blue       |> darker    90 |> freeze
-    static let darkblue     = Brushes.Blue       |> darker   150 |> freeze
+    static let darkblue     = Brushes.Blue       |> darker   120 |> freeze
+    static let darkpurple   = Brushes.Purple     |> darker    90 |> freeze
     static let purple       = Brushes.Purple     |> brighter  40 |> freeze
     static let black        = Brushes.Black                      |> freeze
     static let red          = Brushes.DarkSalmon |> darker   120 |> freeze
     static let fullred      = Brushes.Red        |> darker    60 |> freeze
     static let cyan         = Brushes.DarkCyan   |> darker    60 |> freeze
+    static let white        = Brushes.White    |> freeze
 
     static let maxCharInSignLine = 100
 
@@ -136,197 +144,178 @@ type TypeInfo private () =
         tb.Inlines.Add( new Run ("\r\n"+debugHelp,Foreground = lightgray))
         *)
         tb
+    
 
-    /// To show code literals in monospace font
-    /// for <c> and </c> in text
-    static let markInlineCode(tx:string) : TextBlockSelectable = 
+    static let fixName s =  
+        match s with 
+        | "param"     -> "Parameters: "
+        | "exception" -> "Exceptions: "
+        | "typeparam" -> "Type Parameters: "
+        | t           -> Str.up1 t + ": "
+
+    static let fixTypeName (s:string) =  // for F:System.IO.Path.InvalidPathChars -> System.IO.Path.InvalidPathChars
+        match s.IndexOf ":" with 
+        | 1 -> 
+            let t = s.Substring(2) 
+            match t.IndexOf "`" with 
+            | -1 -> t
+            | i  -> t.Substring(0,i) 
+        | _ -> s           
+
+    static let codeRun t = new Run(t ,FontFamily = Style.fontEditor, FontSize = Style.fontSize,  Foreground = black)//,   Background = white) 
+
+    /// check if List has at least two items 
+    static let twoOrMore = function [] | [_] -> false |_ -> true       
+
+    static let mainXmlBlock  (node:XmlParser.Child): TextBlockSelectable =
         let tb = new TextBlockSelectable()
         tb.FontSize   <- Style.fontSize  * 0.90
         tb.FontFamily <- Style.fontToolTip
         tb.Foreground <- darkblue
-        let rec loop i = 
-            if i < tx.Length then
-                match tx.IndexOf("<c>",i) with
-                | -1 ->
-                    tb.Inlines.Add( new Run(tx.Substring(i)))  // add til end, exit recursion
-                | s ->
-                    match tx.IndexOf("</c>",s) with
-                    | -1 ->
-                        tb.Inlines.Add( new Run(tx.Substring(i)))// start found but not end , just add til end, exit recursion
-                    | e ->
-                        tb.Inlines.Add( new Run(tx.Substring(i, s-i)))
-                        tb.Inlines.Add( new Run(tx.Substring(s+3, e-s-3),
-                                                FontFamily = Style.fontEditor,
-                                                Foreground = black,
-                                                //FontWeight = FontWeights.Bold,
-                                                Background = lightgray
-                                                ))
-                        loop(e+4)
-        loop 0
-        tb
+        let mutable last = "" 
+        
+        let rec loop (c:XmlParser.Child) addTitle d = 
+            match c with
+            |Text t ->  tb.Inlines.Add( new Run(t+" ")) 
+            |Node n ->  
+                if d=0 then                     
+                    if last<>n.name && addTitle then // && n.name <> "?name?" then // to not repeat the parameter header every time
+                        last <- n.name
+                        tb.Inlines.Add( new LineBreak()) 
+                        tb.Inlines.Add( new Run(fixName n.name,  Foreground = gray)) //FontWeight = FontWeights.Bold,                    
+                        tb.Inlines.Add( new LineBreak())                     
+                    for at in n.attrs do // there is normaly just one ! like param:name, paramref:name typeparam:name                         
+                        tb.Inlines.Add( at.value |> fixTypeName|> codeRun)
+                        tb.Inlines.Add( new Run(": "))  
+                    for c in List.rev n.children do 
+                        loop c false (d+1)
+                    tb.Inlines.Add( new LineBreak()) 
+                    
+                elif n.children.IsEmpty && not n.attrs.IsEmpty then 
+                    // e.g. for: <returns> <see langword="true" /> if <paramref name="objA" /> is the same instance as <paramref name="objB" /> or if both are null; otherwise, <see langword="false" />.</returns>
+                    for at in n.attrs do 
+                        if at.name="cref" then  tb.Inlines.Add(  at.value |> fixTypeName |>  codeRun)
+                        else                    tb.Inlines.Add(  at.value                |>  codeRun)
+                        tb.Inlines.Add( new Run(" ")) 
+                else
+                    match n.name with 
+                    |"c"|"code" ->   for c in List.rev n.children do addCode c (d+1)
+                    | _         ->   for c in List.rev n.children do loop    c false (d+1)
+        
+        and addCode (c:XmlParser.Child) d = 
+            match c with
+            |Text t ->  tb.Inlines.Add(codeRun t); tb.Inlines.Add(" ")
+            |Node _ ->  loop c false d
+        
+
+        match node with 
+        |Node n when n.name="member" ->  
+            let two = twoOrMore n.children
+            for c in List.rev n.children do 
+                loop c two 0 
+        | _ -> 
+           loop node false 0  
+        
+        // remove last line break: 
+        if tb.Inlines.LastInline  :? LineBreak then  tb.Inlines.Remove tb.Inlines.LastInline  |> ignore 
+        
+        tb        
 
 
     // make a fancy tooltip panel:
-    static let makeStackPanel  (it:DeclarationListItem option, tds:ToolTipData list,addPersistInfo:bool) = 
-        let makePanelVert (xs:list<#UIElement>) = 
-            let p = new StackPanel(Orientation= Orientation.Vertical)
-            for x in xs do p.Children.Add x |> ignore
-            p
+    static let makeToolTipPanel  (it:DeclarationListItem option, tds:ToolTipData list, addPersistInfo:bool) = 
+        let panel = new StackPanel(Orientation = Orientation.Vertical)
+        let inline add(e:UIElement) =  panel.Children.Add e |> ignore            
 
+        if addPersistInfo then 
+            add <|  TextBlock(Text = "Press Ctrl + P to persist this window.", FontSize = Style.fontSize * 0.7) 
+        
+        if it.IsSome then
+            let tb = new TextBlockSelectable(Text = sprintf "%A" it.Value.Glyph)
+            tb.Foreground <- Brushes.DarkOrange
+            tb.FontSize <- Style.fontSize  * 0.85
+            tb.FontFamily <- Style.fontEditor
+            //tb.FontWeight <- FontWeights.Bold
+            add tb         
+        
         let mutable assemblies = new HashSet<string>()
-        let stackPanel = makePanelVert [
-            if addPersistInfo then yield TextBlock(Text = "Press Ctrl + P to persist this window.", FontSize = Style.fontSize * 0.7) :> UIElement
-            if it.IsSome then
-                let tb = new TextBlockSelectable(Text = sprintf "%A" it.Value.Glyph)
-                tb.Foreground <- Brushes.DarkOrange
-                tb.FontSize <- Style.fontSize  * 0.85
-                tb.FontFamily <- Style.fontEditor
-                //tb.FontWeight <- FontWeights.Bold
-                yield tb :> UIElement
+        let deDup = HashSet() // just because some typ provider signatures apears mutiple times, filter them out with hashset
+        for td in tds do
+            let sign = td.signature |> Seq.map (fun tt -> tt.Text)  |> String.Concat
+            if not <| deDup.Contains(sign) then // just because some type provider signatures apears mutiple times, filter them out with hashset
+                deDup.Add sign  |> ignore
+                
+                let subPanel = new StackPanel(Orientation = Orientation.Vertical)
+                let inline subAdd(e:UIElement) =  subPanel.Children.Add e |> ignore 
 
-                //let tb = new TextBlock(Text= sprintf "Kind:%A" it.Value.Kind)
+                if td.name <> "" then
+                    let tb = new TextBlockSelectable(Text= "Name: " + td.name)
+                    tb.Foreground <- black
+                    tb.FontSize <- Style.fontSize * 0.9
+                    //tb.FontFamily <- Style.elronet
+                    tb.FontWeight <- FontWeights.Bold
+                    subAdd tb
 
-            let deDup = HashSet() // just because some typ provider signatures apears mutiple times, filter them out with hashset
-            for td in tds do
-                let sign = td.signature |> Seq.map (fun tt -> tt.Text)  |> String.Concat
-                if not <| deDup.Contains(sign) then // just because some typ provider signatures apeears mutiple times, filter them out with hashset
-                    deDup.Add sign  |> ignore
+                subAdd <| coloredSignature(td) // the main coored signature of a F# value
 
-                    let border = Border()
-                    border.Child <- makePanelVert [
+                // the main xml body
+                match td.xmlDoc with
+                |Ok (node,ass)     ->
+                    assemblies.Add(ass) |> ignore // it be from more than one assembly? because of type extensions?
+                    subAdd<| mainXmlBlock node
+                |Error errTxt  ->
+                    subAdd<|  TextBlockSelectable(Text = errTxt,FontSize = Style.fontSize  * 0.7,FontFamily = Style.fontToolTip, Foreground = gray )                   
+                
+                let border = Border()
+                border.Child <- subPanel
+                border.BorderThickness <- Thickness(1.0)
+                border.BorderBrush <- Brushes.LightGray
+                border.Padding <- Thickness(4.0)
+                border.Margin <- Thickness(2.0)
+                add border 
 
-                        if td.name <> "" then
-                            let tb = new TextBlockSelectable(Text= "Name: " + td.name)
-                            tb.Foreground <- black
-                            tb.FontSize <- Style.fontSize * 0.9
-                            //tb.FontFamily <- Style.elronet
-                            tb.FontWeight <- FontWeights.Bold
-                            yield tb
+        if assemblies.Count > 0 then
+            let tb = 
+                if assemblies.Count = 1 then new TextBlockSelectable(Text= "assembly:\r\n" + Seq.head assemblies)
+                else                         new TextBlockSelectable(Text= "assemblies:\r\n" + String.concat "\r\n" assemblies)
+            tb.FontSize <- Style.fontSize  * 0.80
+            tb.Foreground <-black
+            //tb.FontFamily <- new FontFamily ("Arial") // or use default of device
+            add tb 
+                
+        ScrollViewer(Content=panel , VerticalScrollBarVisibility = ScrollBarVisibility.Auto ) //TODO cant be scrolled, never gets focus? because completion window keeps focus on editor?
 
-                        yield coloredSignature(td) // the main signature of a F# value
-
-                        match td.xmlDocStr with
-                        |Ok (txt,ass)     ->
-                            if ass <>"" then assemblies.Add(ass) |> ignore //TODO could it be from more than one assembly? because of type extensions?
-                            yield markInlineCode(txt)
-                        |Error errTxt  ->
-                            yield TextBlockSelectable(Text = errTxt,FontSize = Style.fontSize  * 0.7,FontFamily = Style.fontToolTip, Foreground = gray )
-                        ]
-                    border.BorderThickness <- Thickness(1.0)
-                    border.BorderBrush <- Brushes.LightGray
-                    border.Padding <- Thickness(4.0)
-                    border.Margin <- Thickness(2.0)
-                    yield border :> UIElement
-
-            if assemblies.Count > 0 then
-                let tb = 
-                    if assemblies.Count = 1 then new TextBlockSelectable(Text= "assembly:\r\n" + Seq.head assemblies)
-                    else                         new TextBlockSelectable(Text= "assemblies:\r\n" + String.concat "\r\n" assemblies)
-                tb.FontSize <- Style.fontSize  * 0.80
-                tb.Foreground <-black
-                //tb.FontFamily <- new FontFamily ("Arial") // or use default of device
-                yield tb :> UIElement
-                ]
-        ScrollViewer(Content=stackPanel , VerticalScrollBarVisibility = ScrollBarVisibility.Auto ) //TODO cant be scrolled, never gets focus? because completion window keeps focus on editor
-
-
-    // --------------------------------------------------------------------------------------
-    // Seff Formatting of tool-tip information displayed in F# IntelliSense
-    // --------------------------------------------------------------------------------------
-
-
-    static let unEscapeXml(txt:string) = // TODO dont do it like this ! use proper xml doc  parsing
-         txt.Replace("&lt;"   ,"<" )
-            .Replace("&gt;"   ,">" )
-            .Replace("&quot;" ,"\"")
-            .Replace("&apos;" ,"'" )
-            .Replace("&amp;"  ,"&" )
-
-    static let stripOffXmlComments(txt:string) =    // TODO dont do it like this ! use proper xml doc parsing
-         //printfn "%s" txt
-         txt.Replace("<summary>"  , "" )
-            .Replace("</summary>" , "" )
-            .Replace("<remarks>"  , "Remarks: " )
-            .Replace("</remarks>" , "" )
-            .Replace("<category>" , "Category: " )
-            .Replace("</category>", "" )
-            .Replace("<returns>"  , "Returns:\r\n" )
-            .Replace("</returns>" , "" )
-            .Replace("<param name=\""   ,"    • " )
-            .Replace("</param>"   , "" )
-            .Replace("<para>"     , "\r\n" )
-            .Replace("</para>"   , "" )
-            .Replace("<value>"    , "value:" )
-            .Replace("</value>"   , "" )
-            .Replace("<exception cref=\"T:" ,"Exception: " )
-            .Replace("<exception cref=\"" ,"Exception: " )
-            .Replace("</exception>" ,"" )
-            .Replace("<see langword=\"","'")
-            .Replace("<see cref=\"P:","'")
-            .Replace("<see cref=\"T:","'")
-            .Replace("<see cref=\"","'")
-            .Replace("<a href=\"","'")
-            .Replace("</a>","'")
-            .Replace("\" />","'")
-            .Replace("\">"  ,": " ) // to catch the end of <param name="value">  and other closings
-        |> unEscapeXml
-(*
-<Keywords color="KnownDocTags">
-          <Word>c</Word>
-          <Word>code</Word>
-          <Word>example</Word>
-          <Word>exception</Word>
-          <Word>list</Word>
-          <Word>para</Word>
-          <Word>param</Word>
-          <Word>paramref</Word>
-          <Word>permission</Word>
-          <Word>remarks</Word>
-          <Word>returns</Word>
-          <Word>see</Word>
-          <Word>seealso</Word>
-          <Word>summary</Word>
-          <Word>value</Word>
-          <Word>type</Word>
-          <Word>name</Word>
-          <Word>cref</Word>
-          <Word>item</Word>
-          <Word>term</Word>
-          <Word>description</Word>
-          <Word>listheader</Word>
-          <Word>typeparam</Word>
-          <Word>typeparamref</Word>
-*)
-
-
+    
 
     /// Returns docstring und dll path
-    static let buildFormatComment (cmt:FSharpXmlDoc) = 
+    static let findXmlDoc (cmt:FSharpXmlDoc) : Result<XmlParser.Child*string,string> = 
         //mostly copied from same named function in Docstring.fs
         match cmt with
+        | FSharpXmlDoc.None -> 
+            Error "*FSharpXmlDoc.None*"
+        
         | FSharpXmlDoc.FromXmlText xmlDoc ->
             // this might be a xml Doc string that is not from an xml file but from the current .fsx document
-            let s = 
-                xmlDoc.UnprocessedLines
-                |> String.concat Environment.NewLine
-                |> stripOffXmlComments // TODO this might need striping off more tags than <summary>
-                |> Util.Str.trim
-            Ok (s,"")
-        | FSharpXmlDoc.None -> Error "*FSharpXmlDoc.None*"
+            try                 
+                let cs = 
+                    xmlDoc.UnprocessedLines
+                    |> String.concat Environment.NewLine
+                    |> XmlParser.readAll
+                match cs with 
+                | []  -> Error ( "FSharpXmlDoc.FromXmlText empty")
+                | cs  -> Ok (XmlParser.Node {name="member";  attrs=[];  children=cs}, "this file")
+            with e ->
+                Error $"FSharpXmlDoc.FromXmlText: {e}"           
+        
         | FSharpXmlDoc.FromXmlFile(dllFile, memberName) ->
            match DocString.getXmlDoc dllFile with
-           | Some doc ->
-                if doc.ContainsKey memberName then
-                    let docText = doc.[memberName].ToFullEnhancedString()
-                    let unEscDocText = unEscapeXml docText
-                    Ok (unEscDocText  , dllFile)
-                else
-                    let xmlf = Path.ChangeExtension(dllFile, ".xml")
-                    let err = "no xml doc found for member "+memberName+" in \r\n"+xmlf+"\r\n"
-                    //log.PrintfnDebugMsg "%s" err
-                    Error (err)
-           | None ->
-                Error ("xml doc file not found for: "+dllFile+"\r\n")
+           |Ok (fi,nodeDict) -> 
+                match nodeDict.TryGetValue memberName with 
+                |true , node ->  Ok (node  , dllFile)
+                |false, _    ->  Error $"no xml doc found for member '{memberName}' in \r\n'{fi.FullName}'\r\n"
+           | Error e ->
+                Error e         
+ 
 
 
     static let makeToolTipDataList (sdtt: ToolTipText, optDfes:ResizeArray<OptDefArg>) : ToolTipData list= 
@@ -338,17 +327,17 @@ type TypeInfo private () =
                 [ for el in els do
                     match el with
                     | ToolTipElement.None ->
-                        yield {name = ""; signature = [||]; optDefs=optDfes; xmlDocStr = Error  "*FSharpStructuredToolTipElement.None*"}
+                        yield {name = ""; signature = [||]; optDefs=optDfes; xmlDoc = Error  "*FSharpStructuredToolTipElement.None*"}
 
                     | ToolTipElement.CompositionError(text) ->
-                        yield {name = ""; signature = [||]; optDefs=optDfes; xmlDocStr = Error ("*FSharpStructuredToolTipElement.CompositionError: "+ text)}
+                        yield {name = ""; signature = [||]; optDefs=optDfes; xmlDoc = Error ("*FSharpStructuredToolTipElement.CompositionError: "+ text)}
 
                     | ToolTipElement.Group(tooTipElemDataList) ->
                         for tooTipElemData in tooTipElemDataList do                            
                             yield { name      = Option.defaultValue "" tooTipElemData.ParamName
                                     signature = tooTipElemData.MainDescription
                                     optDefs   = optDfes
-                                    xmlDocStr = buildFormatComment tooTipElemData.XmlDoc}
+                                    xmlDoc    = findXmlDoc tooTipElemData.XmlDoc}
                 ]
 
 
@@ -376,7 +365,8 @@ type TypeInfo private () =
 
                             //log.PrintfnDebugMsg "optional full name: %s" c.FullName
             | _ -> ()
-        with e -> () //ISeffLog.log.PrintfnAppErrorMsg "Error while trying to show a Tool tip in Seff.\r\nYou can ignore this error.\r\nin TypeInfo.namesOfOptnlArgs: %A" e
+        with e -> 
+            () //ISeffLog.log.PrintfnAppErrorMsg "Error while trying to show a Tool tip in Seff.\r\nYou can ignore this error.\r\nin TypeInfo.namesOfOptnlArgs: %A" e
         optDefs
 
     static let mutable cachedDeclarationListItem:DeclarationListItem option = None
@@ -393,11 +383,11 @@ type TypeInfo private () =
     static member getPanel  (it:DeclarationListItem option, tds:ToolTipData list) = 
         cachedDeclarationListItem <- it
         cachedToolTipData <- tds
-        makeStackPanel (it, tds, true)
+        makeToolTipPanel (it, tds, true)
 
     /// regenerates a view of the last created panel so it can be used again in the popout window
     static member getPanelCached () = 
-        makeStackPanel (cachedDeclarationListItem, cachedToolTipData, false)
+        makeToolTipPanel (cachedDeclarationListItem, cachedToolTipData, false)
 
 
     static member mouseHover(e: MouseEventArgs, iEditor:IEditor, log:ISeffLog, tip:ToolTip) = 
