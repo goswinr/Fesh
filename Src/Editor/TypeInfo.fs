@@ -54,7 +54,7 @@ type TypeInfo private () =
     static let red          = Brushes.DarkSalmon |> darker   120 |> freeze
     static let fullred      = Brushes.Red        |> darker    60 |> freeze
     static let cyan         = Brushes.DarkCyan   |> darker    60 |> freeze
-    static let white        = Brushes.White    |> freeze
+    static let white        = Brushes.White      |> freeze
 
     static let maxCharInSignLine = 100
 
@@ -73,27 +73,27 @@ type TypeInfo private () =
             | TextTag.Parameter ->
                 // if a paramter is optional add a question mark to the signature
                 match ts.[i-1].Text with
-                |"?" ->  tb.Inlines.Add( new Run (t.Text , Foreground = gray )) // sometimes optional arguments have already a question mark but not always
+                |"?" ->  tb.Inlines.Add( new Run(t.Text , Foreground = gray )) // sometimes optional arguments have already a question mark but not always
                 | _ ->
                     match td.optDefs |> Seq.tryFind ( fun oa -> oa.name = t.Text ) with
-                    | Some od ->  tb.Inlines.Add( new Run ("?"+t.Text , Foreground = gray ))
-                    | None    ->  tb.Inlines.Add( new Run (t.Text, Foreground = black ))
+                    | Some od ->  tb.Inlines.Add( new Run("?"+t.Text , Foreground = gray ))
+                    | None    ->  tb.Inlines.Add( new Run(t.Text     , Foreground = black ))
 
             | TextTag.Keyword ->
-                tb.Inlines.Add( new Run (t.Text, Foreground = blue ))
+                tb.Inlines.Add( new Run(t.Text, Foreground = blue ))
 
-            | TextTag.Operator -> tb.Inlines.Add( new Run (t.Text, Foreground = Brushes.Green ))
+            | TextTag.Operator -> tb.Inlines.Add( new Run(t.Text, Foreground = Brushes.Green ))
             | TextTag.Punctuation->
                 match t.Text with
-                | "?" ->         tb.Inlines.Add( new Run (t.Text, Foreground = gray))
+                | "?" ->         tb.Inlines.Add( new Run(t.Text, Foreground = gray))
                 | "*"
                 | "->" ->
                     if len > maxCharInSignLine then
-                        tb.Inlines.Add( new Run ("\r\n    "))
+                        tb.Inlines.Add( new Run("\r\n    "))
                         len <- 0
-                    tb.Inlines.Add( new Run (t.Text, Foreground = fullred))//, FontWeight = FontWeights.Bold ))
+                    tb.Inlines.Add( new Run(t.Text, Foreground = fullred))//, FontWeight = FontWeights.Bold ))
                 |  _  ->
-                    tb.Inlines.Add( new Run (t.Text, Foreground = purple ))
+                    tb.Inlines.Add( new Run(t.Text, Foreground = purple ))
 
             | TextTag.RecordField
             | TextTag.Method
@@ -101,22 +101,27 @@ type TypeInfo private () =
             | TextTag.Field
             | TextTag.ModuleBinding
             | TextTag.UnionCase
-            | TextTag.Member ->   tb.Inlines.Add( new Run (t.Text, Foreground = red ))
+            | TextTag.Member ->   tb.Inlines.Add( new Run(t.Text, Foreground = red ))
 
             | TextTag.Struct
             | TextTag.Class
             | TextTag.Interface
             | TextTag.Function
-            | TextTag.Alias ->   tb.Inlines.Add( new Run (t.Text, Foreground = cyan ))
+            | TextTag.Alias ->   tb.Inlines.Add( new Run(t.Text, Foreground = cyan ))
 
-            | TextTag.TypeParameter ->   tb.Inlines.Add( new Run (t.Text, Foreground = cyan ))   // generative argument like 'T or 'a
+            | TextTag.TypeParameter ->   tb.Inlines.Add( new Run(t.Text, Foreground = cyan ))   // generative argument like 'T or 'a
 
             | TextTag.UnknownType
-            | TextTag.UnknownEntity ->   tb.Inlines.Add( new Run (t.Text, Foreground = gray ))
+            | TextTag.UnknownEntity ->   tb.Inlines.Add( new Run(t.Text, Foreground = gray ))
 
             | TextTag.LineBreak ->
                 len <- t.Text.Length // reset after line berak
-                tb.Inlines.Add( new Run (t.Text))
+                tb.Inlines.Add( new Run(t.Text))
+
+            | TextTag.Space -> 
+                // skip one space after colon before type tag
+                if   t.Text.Length=1 && ts.[max 0 (i-1)].Text=":" && ts.[max 0 (i-2)].Tag=TextTag.Parameter then () 
+                else tb.Inlines.Add( new Run(t.Text))
 
             | TextTag.Namespace
             | TextTag.ActivePatternCase
@@ -129,11 +134,10 @@ type TypeInfo private () =
             | TextTag.Record
             | TextTag.Module
             | TextTag.NumericLiteral
-            | TextTag.Space
             | TextTag.StringLiteral
             | TextTag.Text
             | TextTag.UnknownType
-            | TextTag.UnknownEntity ->    tb.Inlines.Add( new Run (t.Text))
+            | TextTag.UnknownEntity ->    tb.Inlines.Add( new Run(t.Text))
 
         (*
         let debugHelp = 
@@ -141,7 +145,7 @@ type TypeInfo private () =
             |> Seq.filter (fun t -> t.Tag <> TextTag.Punctuation && t.Tag <> TextTag.Space && t.Tag <> TextTag.Operator && t.Tag <> TextTag.LineBreak)
             |> Seq.map(fun t -> sprintf "%A" t.Tag)
             |> String.concat "|"
-        tb.Inlines.Add( new Run ("\r\n"+debugHelp,Foreground = lightgray))
+        tb.Inlines.Add( new Run("\r\n"+debugHelp,Foreground = lightgray))
         *)
         tb
     

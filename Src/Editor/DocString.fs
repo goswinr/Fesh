@@ -11,8 +11,6 @@ namespace Seff
 open System
 open System.Text
 open System.IO
-open System.Xml
-open System.Text.RegularExpressions
 open System.Collections.Generic
 open Seff.Model
 
@@ -248,11 +246,12 @@ module XmlParser =
 module DocString = 
     
     let xmlDocCache = Dictionary<string, FileInfo*Dictionary<string, XmlParser.Child>>()
+    let failedPath  = Dictionary<string,string>()
 
-    let rec getXmlDoc (dllFile:string) : Result<FileInfo*Dictionary<string, XmlParser.Child>,string>= 
+    let private getXmlDocImpl (dllFile:string) : Result<FileInfo*Dictionary<string, XmlParser.Child>,string>= 
         if xmlDocCache.ContainsKey dllFile then
             Ok xmlDocCache.[dllFile]
-        else
+        else            
             let xmlFile = Path.ChangeExtension(dllFile, ".xml")
             if IO.File.Exists xmlFile then 
                 try
@@ -265,13 +264,34 @@ module DocString =
                     xmlDocCache.[dllFile]<- r
                     Ok r
                 with e -> 
-                   Error $"Error reading Xml File {e}" 
-            else
-                if Path.GetFileName xmlFile = "netstandard.xml" then 
-                    let fsharpCoreDir = Path.GetDirectoryName(Reflection.Assembly.GetAssembly([].GetType()).Location)
-                    getXmlDoc(Path.Combine(fsharpCoreDir,"netstandard.dll"))
-                else                
-                    Error $"Xml File not found for : '{dllFile}'"
+                    Error $"Error reading Xml File {e}"                       
+            else                                   
+                Error $"Xml File not found for : '{dllFile}'"                         
+    
+    
+    let getXmlDoc(dllFile:string) : Result<FileInfo*Dictionary<string, XmlParser.Child>,string>= 
+        if failedPath.ContainsKey dllFile then 
+            Error(failedPath[dllFile]) // to not try accessing a fail path over and over again
+        else
+            match getXmlDocImpl (dllFile) with 
+            | Ok    r1 -> Ok r1
+            | Error e1 -> 
+                if Path.GetFileName dllFile = "netstandard.dll" then 
+                    let fsharpCoreDir = Path.Combine(Path.GetDirectoryName(Reflection.Assembly.GetAssembly([].GetType()).Location),"netstandard.dll")                        
+                    match getXmlDocImpl (fsharpCoreDir) with 
+                    | Ok    r2 -> Ok r2
+                    | Error e2 -> 
+                        let seffDir = Path.Combine(Path.GetDirectoryName(Reflection.Assembly.GetAssembly(ISeffLog.log.GetType()).Location),"netstandard.dll") 
+                        match getXmlDocImpl (seffDir) with 
+                        | Ok    r3 -> Ok r3
+                        | Error e3 -> 
+                            let emsg = e1+"\r\n"+e2+"\r\n"+e3
+                            failedPath[dllFile] <- emsg
+                            Error emsg                            
+                else                    
+                    failedPath[dllFile] <- e1
+                    Error e1                    
+                   
     
 (*
 4 of 'see:typeparamref'
@@ -323,7 +343,7 @@ module DocString =
 2557 of 'remarks:'
 5345 of 'c:'
 9057 of 'typeparam:name'
-10176 of 'para:'
+10176 of 'para:'                    TODO !
 67429 of 'exception:cref'
 87357 of 'paramref:name'
 98264 of 'see:langword'
@@ -332,5 +352,4 @@ module DocString =
 251107 of 'summary:'
 254839 of 'member:name'
 285270 of 'see:cref'
-
 *)
