@@ -348,6 +348,7 @@ type Fsi private (config:Config) =
                                 | FSharpDiagnosticSeverity.Info   ->  () //log.PrintfnInfoMsg "EvalInteractionNonThrowing returned Info: %s" e.Message
 
                             //match evaluatedToValue with   //|Some v -> log.PrintfnDebugMsg "Interaction evaluated to %A <%A>" v.ReflectionValue v.ReflectionType //|None-> ()
+                            if config.Settings.GetBoolSaveDefault("printDoneAfterEval",true) then  log.PrintfnInfoMsg "*Done!"
 
                         |Choice2Of2 exn ->
                             match exn with
