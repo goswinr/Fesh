@@ -47,6 +47,7 @@ type Log private () =
 
         log.VerticalScrollBarVisibility <- Controls.ScrollBarVisibility.Auto
         //log.HorizontalScrollBarVisibility <- Controls.ScrollBarVisibility.Auto // set below with word wrap
+        log.MaximumCharacterAllowance <- 5_000_000
 
     let setLineWrap(v)= 
         if v then
