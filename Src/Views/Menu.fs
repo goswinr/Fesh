@@ -117,7 +117,7 @@ module private RecognicePath =
                                             p.StartInfo.WindowStyle <- Diagnostics.ProcessWindowStyle.Hidden
                                             p.Start() |> ignore
                                         else
-                                            ISeffLog.log.PrintfnIOErrorMsg "Directory or file '%s' does not exist" dir
+                                            ISeffLog.log.PrintfnIOErrorMsg "Directory or file '%s' does not exist" fullPath
                                     with e ->
                                         ISeffLog.log.PrintfnIOErrorMsg "Open with VS Code failed: %A" e
                                     )
