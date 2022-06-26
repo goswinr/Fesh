@@ -1,19 +1,11 @@
-﻿//Taken from:
-// https://github.com/fsharp/FsAutoComplete/blob/master/src/FsAutoComplete.Core/TipFormatter.fs
-
-//TODO take updated Docstring parser from above source
-
-//or use:
-// https://github.com/fsharp/FsAutoComplete/blob/e17692e9b29899f274ed243b168e8790762cd1ee/src/FsAutoComplete.Core/CompilerServiceInterface.fs#L156
-
-namespace Seff
+﻿#r @"D:\Git\FsEx\bin\Release\netstandard2.0\FsEx.dll"
+#r "System.Xml.Linq"
 
 open System
-open System.Text
 open System.IO
+open System.Text
 open System.Collections.Generic
-open Seff.Model
-
+open FsEx 
 
 /// The only reason to build my own XML parser is to make it error tolerant.
 /// To fix https://github.com/dotnet/fsharp/issues/12702 , this might have affected a few nuget packages.
@@ -320,125 +312,180 @@ module XmlParser =
                         match n.attrs with 
                         | [] -> ()
                         | na :: r when na.name = "name"  -> 
-                            //if na.value<>"" && d.ContainsKey na.value then Printfn.red $"duplicate: {na.value}"
+                            if na.value<>"" && d.ContainsKey na.value then Printfn.red $"duplicate: {na.value}"
                             d.[na.value] <- Node n
                         
-                        //| na :: r  -> Printfn.red $"not name: {na.name} {na.value}"
-                        | _ -> ()
+                        | na :: r  -> 
+                            Printfn.red $"not name: {na.name} {na.value}"
+                        //| _ -> ()
                     else 
                         add n.children
         add cs 
         d 
-                      
-                
- 
-module DocString = 
     
-    let xmlDocCache = Dictionary<string, FileInfo*Dictionary<string, XmlParser.Child>>()
-    let failedPath  = Dictionary<string,string>()
+module Test = 
+    open XmlParser
+    open FsEx   
+    
+    // this is actually not faster
+    let countMembers(rawXml:string) =   
+        let mutable k = 0
+        let mutable i = rawXml.IndexOf("<member name=")
+        while i>0 do  
+            if rawXml[i+14]<>'"' then  // to skip <member name="">
+                k <- k+1
+            i <- rawXml.IndexOf("<member name=", i+13)
+        k
+    
+    let rec printNodes ind (chs:Child list) =  
+        for c in List.rev chs do  
+            match c with 
+            |Text t -> Printfn.blue "%s'%s'" (String( ' ', ind*2))  (t.Replace("\n", "\n"+String( ' ', ind*2))) 
+            |Node n ->  
+                Printf.darkGreen "%s<%s" (String( ' ', ind*2))   n.name
+                for p in List.rev n.attrs do  
+                    Printf.gray " %s="  p.name
+                    Printf.darkGray "\"%s\""  p.value
+                Printfn.darkGreen ">"    
+                printNodes (ind+1) n.children 
+    
+    let one() =
+        clearSeffLog() 
+        let rawXml =  
+            File.ReadAllText  
+                //@"C:\Users\gwins\.nuget\packages\avalonlog\0.7.0\lib\net472\AvalonLog.xml" 
+                //@"D:\Git\Seff\binStandalone\net472\win-x64\netstandard.xml" 
+                @"D:\Git\Rhino.Scripting\bin\Release\net48\Rhino.Scripting.xml"
+                //@"D:\Git\Seff\binStandalone\net472\FSharp.Core.xml"
+                //@"C:\Program Files (x86)\Reference Assemblies\Microsoft\Framework\.NETFramework\v4.8\mscorlib.xml" 
+                //@"C:\Users\gwins\.nuget\packages\microsoft.build.tasks.core\16.6.0\lib\net472\Microsoft.Build.Tasks.Core.xml"
 
-    let private getXmlDocImpl (dllFile:string) : Result<FileInfo*Dictionary<string, XmlParser.Child>,string>= 
-        if xmlDocCache.ContainsKey dllFile then
-            Ok xmlDocCache.[dllFile]
-        else            
-            let xmlFile = Path.ChangeExtension(dllFile, ".xml")
-            if IO.File.Exists xmlFile then 
-                try
-                    let ms = 
-                        xmlFile
-                        |> File.ReadAllText 
-                        |> XmlParser.readAll
-                        |> XmlParser.getMembers
-                    let r = FileInfo xmlFile , ms 
-                    xmlDocCache.[dllFile]<- r
-                    Ok r
-                with e -> 
-                    Error $"Error reading Xml File {e}"                       
-            else                                   
-                Error $"Xml File not found for : '{dllFile}'"                         
+        
+        let chs = XmlParser.readAll rawXml 
+        printNodes 0 chs 
+        Printfn.gray  "Done!" 
     
+    let memberNameStats() = 
+        clearSeffLog() 
+        let DoneNames = HashSet() 
+         
+        let dirs =  
+            IO.getAllFilesByPattern "*.xml" @"C:\Users\gwins\.nuget\packages"
+            |> Seq.filter( fun n ->  let s = Path.GetFileName(n)  in DoneNames.Add(s) ) 
+            //|> Seq.truncate 100 
+        
+        let mutable namesStatistic = Rarr() 
+        for f in dirs do 
+            Printfn.green $"file {f}"
+            let rawXml = File.ReadAllText f
+            let ns = XmlParser.readAll rawXml 
+            
+            //let mutable longest = "" 
+            //let rec findLongest chs =
+            //    for c in  chs do  
+            //        match c with 
+            //        |Text t ->  
+            //            if t.Length > longest.Length then  
+            //                longest <- t
+            //        |Node n -> 
+            //            for p in n.attrs do  
+            //                if p.name.Length > p.name.Length then  
+            //                    longest <- p.name
+            //                if p.value.Length > p.value.Length then  
+            //                    longest <- p.value 
+            //            findLongest n.children 
+            //findLongest ns 
+            //if longest.Length > 1000 then  Printfn.gray  "%s" longest 
+            
+            let rec findNames chs =
+                for c in  chs do  
+                    match c with 
+                    |Text _ ->  () 
+                    |Node n ->  
+                        let atts =  
+                            n.attrs
+                            |> List.map ( fun a -> a.name)
+                            |> String.concat "|"
+                        namesStatistic.Add $"{n.name}:{atts}"
+                        //names.Add n.name
+                        findNames n.children 
+            findNames ns 
+        namesStatistic
+        |> Rarr.countBy id
+        |> Rarr.sortBy snd
+        |> Rarr.iter (fun (m, k) ->  
+            if   Object.ReferenceEquals(m, XmlParser.summary) then   Printfn.red $"{k} of '{m}'"
+            elif Object.ReferenceEquals(m, XmlParser.membre)  then   Printfn.red $"{k} of '{m}'"
+            elif Object.ReferenceEquals(m, XmlParser.param)   then   Printfn.red $"{k} of '{m}'"
+            elif Object.ReferenceEquals(m, XmlParser.see)     then   Printfn.red $"{k} of '{m}'"
+            elif Object.ReferenceEquals(m, XmlParser.returns) then   Printfn.red $"{k} of '{m}'"
+            else
+                printfn $"{k} of '{m}'") 
+        
+        Printfn.darkRed  "Done!"  
     
-    let getXmlDoc(dllFile:string) : Result<FileInfo*Dictionary<string, XmlParser.Child>,string>= 
-        if failedPath.ContainsKey dllFile then 
-            Error(failedPath[dllFile]) // to not try accessing a fail path over and over again
-        else
-            match getXmlDocImpl (dllFile) with 
-            | Ok    r1 -> Ok r1
-            | Error e1 -> 
-                if Path.GetFileName dllFile = "netstandard.dll" then 
-                    let fsharpCoreDir = Path.Combine(Path.GetDirectoryName(Reflection.Assembly.GetAssembly([].GetType()).Location),"netstandard.dll")                        
-                    match getXmlDocImpl (fsharpCoreDir) with 
-                    | Ok    r2 -> Ok r2
-                    | Error e2 -> 
-                        let seffDir = Path.Combine(Path.GetDirectoryName(Reflection.Assembly.GetAssembly(ISeffLog.log.GetType()).Location),"netstandard.dll") 
-                        match getXmlDocImpl (seffDir) with 
-                        | Ok    r3 -> Ok r3
-                        | Error e3 -> 
-                            let emsg = e1+"\r\n"+e2+"\r\n"+e3
-                            failedPath[dllFile] <- emsg
-                            Error emsg                            
-                else                    
-                    failedPath[dllFile] <- e1
-                    Error e1                    
-                   
-    
-(*
-4 of 'see:typeparamref'
-4 of 'see:paramref'
-5 of 'em:'
-5 of 'devremarks:'
-5 of 'seealso:'
-7 of 'strong:'
-8 of 'devdoc:'
-10 of 'comments:'
-10 of 'IPermission:Read|version|class'
-11 of 'p:'
-11 of 'see:name'
-11 of 'return:'
-12 of 'a:href'
-13 of 'comment:'
-14 of 'code:title|region|source|lang'
-14 of 'note:type'
-14 of 'internalonly:'
-17 of 'i:'
-26 of 'b:'
-31 of 'br:'
-38 of 'see:href'
-40 of 'IPermission:Flags|version|class'
-59 of 'nodoc:'
-82 of 'license:type'
-82 of 'copyright:'
-99 of 'code:'
-140 of 'inheritdoc:cref'
-155 of 'IPermission:Unrestricted|version|class'
-159 of 'seealso:cref'
-176 of 'PermissionSet:'
-227 of 'listheader:'
-260 of 'File:FileVersion|AssemblyVersion|PublicKeyToken|AssemblyName|Type|Path'
-276 of 'list:type'
-358 of 'code:source'
-414 of 'assembly:'
-414 of 'name:'
-415 of 'doc:'
-415 of 'members:'
-497 of 'example:'
-718 of 'value:'
-897 of 'filterpriority:'
-998 of 'typeparamref:name'
-1056 of 'item:'
-1102 of 'term:'
-1289 of 'description:'
-2240 of 'inheritdoc:'
-2557 of 'remarks:'
-5345 of 'c:'
-9057 of 'typeparam:name'
-10176 of 'para:'                    TODO !
-67429 of 'exception:cref'
-87357 of 'paramref:name'
-98264 of 'see:langword'
-111266 of 'returns:'
-180623 of 'param:name'
-251107 of 'summary:'
-254839 of 'member:name'
-285270 of 'see:cref'
-*)
+    let testAllMembersFound() = 
+        clearSeffLog() 
+        let DoneNames = HashSet() 
+         
+        let dirs =  
+            IO.getAllFilesByPattern "*.xml" @"C:\Users\gwins\.nuget\packages"
+            |> Seq.filter( fun n ->  let s = Path.GetFileName(n)  in DoneNames.Add(s) ) 
+            //|> Seq.truncate 100 
+        
+        //let mutable namesStatistic = Rarr() 
+        for f in dirs do 
+            let rawXml = File.ReadAllText f
+            let ns = XmlParser.readAll rawXml 
+            
+            let ms = getMembers ns
+            let k  = countMembers rawXml
+            
+            if ms.Count<>k then 
+                Printf.orange $"// @\"{f}\" "
+                Printfn.gray "// %d <> %d(count)" ms.Count k
+            //else 
+            //    Printfn.green $"file @\"{f}\" " 
+            
+        
+        Printfn.darkRed  "Done!"      
+
+        
+    let perf()=  
+        (* 
+        read file 45.5 ms
+        XmlParser 175.9 ms // with list
+        DocString 265.0 ms // with list of member Rarr
+        XmlDocument 165.6 ms
+        XDocument 152.1 ms
+        *)
+        
+        
+        let t = Timer()
+        t.Tic()
+        //let rawXml = File.ReadAllText @"C:\Users\gwins\.nuget\packages\netstandard.library\2.0.3\build\netstandard2.0\ref\netstandard.xml"
+        let rawXml = File.ReadAllText @"C:\Users\gwins\.nuget\packages\microsoft.netframework.referenceassemblies.net48\1.0.0\build\.NETFramework\v4.8\mscorlib.xml"
+        printfn "read file %s" t.Toc
+        
+        let _ = XmlParser.readAll rawXml
+        printfn "XmlParser %s" t.Toc
+        
+        let _ = countMembers rawXml
+        printfn "countMembers %s" t.Toc
+        
+        let _ = Xml.XmlDocument().LoadXml(rawXml)
+        printfn "XmlDocument %s" t.Toc
+        
+        let _ = Xml.Linq.XDocument.Parse(rawXml)
+        printfn "XDocument %s" t.Toc
+        printfn "-----"
+   
+Test.one() 
+//Test.testAllMembersFound()  
+//Test.perf() 
+
+
+        
+         
+
+      

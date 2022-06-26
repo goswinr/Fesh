@@ -166,14 +166,14 @@ type TypeInfo private () =
             | i  -> t.Substring(0,i) 
         | _ -> s           
 
-    static let codeRun t = new Run(t ,FontFamily = Style.fontEditor, FontSize = Style.fontSize,  Foreground = black)//,   Background = white) 
+    static let codeRun t = new Run(t ,FontFamily = Style.fontEditor, FontSize = Style.fontSize*1.05,  Foreground = black)//,   Background = white) 
 
     /// check if List has at least two items 
     static let twoOrMore = function [] | [_] -> false |_ -> true       
 
     static let mainXmlBlock  (node:XmlParser.Child): TextBlockSelectable =
         let tb = new TextBlockSelectable()
-        tb.FontSize   <- Style.fontSize  * 0.90
+        tb.FontSize   <- Style.fontSize  * 0.95
         tb.FontFamily <- Style.fontToolTip
         tb.Foreground <- darkblue
         let mutable last = "" 
@@ -268,7 +268,7 @@ type TypeInfo private () =
                     assemblies.Add(ass) |> ignore // it be from more than one assembly? because of type extensions?
                     subAdd<| mainXmlBlock node
                 |Error errTxt  ->
-                    subAdd<|  TextBlockSelectable(Text = errTxt,FontSize = Style.fontSize  * 0.7,FontFamily = Style.fontToolTip, Foreground = gray )                   
+                    subAdd<|  TextBlockSelectable(Text = errTxt, FontSize = Style.fontSize  * 0.75 , FontFamily = Style.fontToolTip, Foreground = gray )                   
                 
                 let border = Border()
                 border.Child <- subPanel
