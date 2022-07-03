@@ -204,6 +204,8 @@ type TypeInfo private () =
                 else
                     match n.name with 
                     |"c"|"code" ->   for c in List.rev n.children do addCode c (d+1)
+                    |"para"     ->   for c in List.rev n.children do tb.Inlines.Add( new LineBreak()) ;loop    c false (d+1)
+                    |"br"       ->   for c in List.rev n.children do tb.Inlines.Add( new LineBreak()) ;loop    c false (d+1) // only happens in netstandard.xml
                     | _         ->   for c in List.rev n.children do loop    c false (d+1)
         
         and addCode (c:XmlParser.Child) d = 
