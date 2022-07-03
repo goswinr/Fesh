@@ -115,13 +115,13 @@ type Checker private (config:Config)  =
 
                                                                          #if NETFRAMEWORK
                                                                          ,otherFlags       = [| "--targetprofile:mscorlib"; "--langversion:preview" |] //https://github.com/fsharp/FsAutoComplete/blob/f176825521215725e5b7ba888d4bb11d1e408e56/src/FsAutoComplete.Core/CompilerServiceInterface.fs#L178
-                                                                         //,useFsiAuxLib = true // so that fsi object is available
+                                                                         //,useFsiAuxLib = true // so that fsi object is available // doesn't work
                                                                          ,useSdkRefs        = false
                                                                          ,assumeDotNetFramework = true
                                                                          
                                                                          #else
                                                                          ,otherFlags       = [| "--targetprofile:netstandard"; "--langversion:preview" |] 
-                                                                         //,useFsiAuxLib = true // so that fsi object is available
+                                                                         //,useFsiAuxLib = true // so that fsi object is available // doesn't work
                                                                          ,useSdkRefs        =true
                                                                          ,assumeDotNetFramework = false
                                                                          #endif

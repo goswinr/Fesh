@@ -159,7 +159,7 @@ type Fsi private (config:Config) =
                 | None    -> Array.append qargs [| "--multiemit"|] // to have line numbers in exceptions: https://github.com/dotnet/fsharp/discussions/13293
         
         let fsiConfig = 
-            let settings = Interactive.Shell.Settings.fsi
+            let fsiObj = Interactive.Shell.Settings.fsi
             // Default: https://github.com/dotnet/fsharp/blob/c0d6f6abbf14a19c631cd647b6440ec2c63c668f/src/fsharp/fsi/fsi.fs#L3244
             // evLoop = (new SimpleEventLoop() :> IEventLoop)
             // showIDictionary = true
@@ -173,13 +173,13 @@ type Fsi private (config:Config) =
             // printSize = 10000
             // showIEnumerable = true
             // showProperties = true
-            // addedPrinters = []
-
+            // addedPrinters = [] 
             //settings.ShowDeclarationValues <- true // use this instead of switchin the quiet flag ?
-            settings.PrintWidth <- 200 //TODO adapt to Log view size taking fontsize into account
-            settings.FloatingPointFormat <- "g7" 
+            fsiObj.PrintWidth <- 200 //TODO adapt to Log view size taking fontsize into account
+            fsiObj.FloatingPointFormat <- "g7" 
+            fsiObj.AddPrinter<DateTime>(fun d -> if d.Hour=0 && d.Minute=0 && d.Second = 0 then d.ToString("yyyy-MM-dd") else d.ToString("yyyy-MM-dd HH:mm:ss"))
             // https://github.com/dotnet/fsharp/blob/4978145c8516351b1338262b6b9bdf2d0372e757/src/fsharp/fsi/fsi.fs#L2839
-            FsiEvaluationSession.GetDefaultConfiguration(settings, useFsiAuxLib = false) // useFsiAuxLib = FSharp.Compiler.Interactive.Settings.dll . But it is missing in FCS !! 
+            FsiEvaluationSession.GetDefaultConfiguration(fsiObj, useFsiAuxLib = false) // useFsiAuxLib = FSharp.Compiler.Interactive.Settings.dll . But it is missing in FCS !! 
 
         let inStream = new StringReader("")
         //for i,ar in Seq.indexed fsiArgs  do ISeffLog.log.PrintfnDebugMsg $"{i} arg: {ar} "
