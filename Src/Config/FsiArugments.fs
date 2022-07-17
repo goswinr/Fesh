@@ -14,11 +14,12 @@ type FsiArugments  ( hostInfo:Hosting) =
     let writer = SaveReadWriter(filePath0,ISeffLog.printError)
 
     // "--shadowcopyreferences" is ignored https://github.com/fsharp/FSharp.Compiler.Service/issues/292
-    let defaultArgs = [| "first arg must be there but is ignored" ; "--langversion:preview" (* ;"--exec" *) ; "--debug+"; "--debug:full" ;"--optimize+" ; "--gui-" ; "--nologo"|]
+    let defaultArgs = [| "first arg must be there but is ignored" ; "--langversion:preview" (* ;"--exec" *) ; "--debug+"; "--debug:full" ;"--optimize+" ; "--gui+" ; "--nologo"|]
     // first arg is ignored: https://github.com/fsharp/FSharp.Compiler.Service/issues/420
     // and  https://github.com/fsharp/FSharp.Compiler.Service/issues/877
     // and  https://github.com/fsharp/FSharp.Compiler.Service/issues/878
 
+    // use "--gui+" to enable winforms event loop ( on by default) check if fixed: https://github.com/dotnet/fsharp/issues/13473
     // use "--exec" instead of "--noninteractive" see ://github.com/dotnet/fsharp/blob/7b46dad60df8da830dcc398c0d4a66f6cdf75cb1/src/Compiler/Interactive/fsi.fs#L937
 
     let defaultArgsText = defaultArgs|> String.concat Environment.NewLine
