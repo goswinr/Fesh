@@ -37,7 +37,7 @@ module Initialize =
         let appname = match mode with Some n -> "Seff." + n.hostName |None -> "Seff"
         try 
             // TODO attempt to save files before closing ?  or save anyway every 2 minutes to backup folder if less than 10k lines
-            let errHandler = FsEx.Wpf.ErrorHandeling (appname, fun () -> "FSI Error Stream:\r\n" + log.FsiErrorsStringBuilder.ToString())
+            let errHandler = FsEx.Wpf.ErrorHandling (appname, fun () -> "FSI Error Stream:\r\n" + log.FsiErrorsStringBuilder.ToString())
             errHandler.Setup()// do as soon as log exists 
         with e ->
             log.PrintfnAppErrorMsg "Setting up Global Error Handling via FsEx.Wpf.ErrorHandeling failed. Or is done already? Is FsEx.Wpf already loaded by another plug-in?\r\n%A" e 
