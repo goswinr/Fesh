@@ -4,11 +4,9 @@ open System
 open AvalonEditB
 open Seff.Util
 
+/// Commenting:  turning code into Comments and back
 module Commenting = 
 
-    //----------------------
-    //-------- Commenting---  turning code into Comments and back
-    //----------------------
 
     let comment(avaEdit:TextEditor) = 
         let doc = avaEdit.Document
@@ -36,10 +34,10 @@ module Commenting =
                 | Some i ->
                     doc.Insert(ln.Offset + indent, "//")
                     comm ln.NextLine
-        doc.BeginUpdate() //avaEdit.Document.RunUpdate
+        doc.BeginUpdate() 
         comm start
         doc.EndUpdate()
-        //FsService.textChanged (FsService.OtherChange, tab) // TODO needed ?
+        
 
     let unComment(avaEdit:TextEditor) = 
         let doc = avaEdit.Document
@@ -55,10 +53,10 @@ module Commenting =
                         dl.[i]  ='/' &&
                         dl.[i+1]='/' then doc.Remove(ln.Offset + i , 2)
                     ucomm ln.NextLine
-        doc.BeginUpdate()//avaEdit.Document.RunUpdate
+        doc.BeginUpdate()
         ucomm start
         doc.EndUpdate()
-        //FsService.textChanged (FsService.OtherChange, tab)// needed ?
+        
 
     let toggleComment(avaEdit:TextEditor) = 
         let doc = avaEdit.Document
@@ -77,7 +75,7 @@ module Commenting =
                         let indent = Str.spacesAtStart dl
                         doc.Insert(ln.Offset + indent, "//")
                     toggle ln.NextLine
-        doc.BeginUpdate()//avaEdit.Document.RunUpdate
+        doc.BeginUpdate()
         toggle start
         doc.EndUpdate()
-        //FsService.textChanged (FsService.OtherChange, tab)// needed ?
+        

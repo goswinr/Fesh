@@ -59,7 +59,7 @@ type CompletionItemForKeyWord(ed:IEditor,config:Config, text:string, toolTip:str
         member this.Priority        = this.Priority
         member this.Text            = this.Text
 
-type CompletionItem (ed:IEditor,config:Config, getToolTip, it:DeclarationListItem, isDotCompletion:bool) = 
+type CompletionItem(ed:IEditor,config:Config, getToolTip, it:DeclarationListItem, isDotCompletion:bool) = 
 
     let style = 
         if it.IsOwnMember then FontStyles.Normal
@@ -104,8 +104,8 @@ type CompletionItem (ed:IEditor,config:Config, getToolTip, it:DeclarationListIte
             config.AutoCompleteStatistic.Save()
         // Event sequence on pressing enter in completion window:
         // (1)Close window
-        // (2)insert text into editor (triggers completion if one char only)
-        // (3)raise InsertionRequested event
+        // (2)Insert text into editor (triggers completion if one char only)
+        // (3)Raise InsertionRequested event
         // https://github.com/icsharpcode/AvalonEdit/blob/8fca62270d8ed3694810308061ff55c8820c8dfc/AvalonEditB/CodeCompletion/CompletionWindow.cs#L100
 
     interface ICompletionData with
@@ -127,13 +127,13 @@ type Completions(avaEdit:TextEditor,config:Config, checker:Checker) =
     let mutable win : CompletionWindow option = None
 
     /// for adding question marks to optional arguments:
-    let optArgsDict = Dictionary() //TODO should this be global ?
+    let optArgsDict = Dictionary() 
 
     let showingEv = Event<unit>()
 
-    let mutable justClosed = false // to avoid retrigger of window on single char completions
+    let mutable justClosed = false // to avoid retrigger of completion window on single char completions
 
-    let mutable hasStackPanelTypeInfo = false // to avoid retrigger of window on single char completions
+    let mutable hasStackPanelTypeInfo = false // to indicate that the stack panel is not showing the loading text but the actual type info 
 
     let selectedText ()= 
         match win with
@@ -182,7 +182,8 @@ type Completions(avaEdit:TextEditor,config:Config, checker:Checker) =
                         //TODO add structure to a Dict so it does not need recomputing if browsing up and down items in the completion list.
         } |> Async.Start
         TypeInfo.loadingText :> obj
-
+    
+    /// To indicate that the stack panel is not showing the loading text but the actual type info 
     member this.HasStackPanelTypeInfo = hasStackPanelTypeInfo
 
     member this.Log = log

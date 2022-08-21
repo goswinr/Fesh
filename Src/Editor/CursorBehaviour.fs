@@ -59,7 +59,7 @@ module Doc =
 
     /// Will do a bound check and return less chars if needed
     let (*inline*) getTextBeforOffsetSkipSpaces desiredCharsCount offset  (doc:TextDocument) = // removed inline to have function name in error stack trace
-        if desiredCharsCount < 0 then failwithf "getTextBeforOffset desiredCharsCount=%d must be positive" desiredCharsCount
+        if desiredCharsCount < 0 then failwithf "getTextBeforOffsetSkipSpaces desiredCharsCount=%d must be positive" desiredCharsCount
         elif desiredCharsCount = 0 then ""                   
         elif offset-desiredCharsCount < 0 then ""
         //elif offset < desiredCharsCount then // coverd by bound check below
