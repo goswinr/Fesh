@@ -5,9 +5,9 @@
     <OutputType>WinExe</OutputType>
     <!--
 	building net6.0-windows only works in visual Studio, but not via dotnet sdk 7 preview 2
-    <TargetFrameworks>net472;net6.0-windows</TargetFrameworks>    
-    -->
     <TargetFramework>net472</TargetFramework>  
+    -->
+    <TargetFrameworks>net472;net6.0-windows</TargetFrameworks>    
     <UseWPF>true</UseWPF>
     <UseWindowsForms>true</UseWindowsForms> <!--inherited from Avalonedit ?-->
     <LangVersion>preview</LangVersion>
