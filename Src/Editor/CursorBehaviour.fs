@@ -210,8 +210,8 @@ module CursorBehaviour  =
                     let indent = ed.Options.IndentationSize
                     let rem = st % indent
                     let ind = 
-                        if rem  = 0 then  st + indent // enure new indent is a multiple of avaEdit.Options.IndentationSize
-                        elif rem = 1 then st + indent + indent - 1 // to indent always at leat 2 chars
+                        if rem  = 0 then  st + indent // ensure new indent is a multiple of avaEdit.Options.IndentationSize
+                        elif rem = 1 then st + indent + indent - 1 // to indent always at least 2 chars
                         else              st + indent - rem
                     let insertText = " " + Environment.NewLine + String(' ',ind)
                     let spaces = Doc.countNextSpaces caret doc
@@ -220,7 +220,27 @@ module CursorBehaviour  =
                     else
                         doc.Replace(caret,spaces,insertText)
                     ed.CaretOffset <- caret + insertText.Length //+ spaces
-                    e.Handled <- true // to not actually add another new line // TODO raise TextArea.TextEntered Event ?
+                    //ISeffLog.log.PrintfnDebugMsg "trimmed='%s' (%d chars)" trimmed trimmed.Length
+                    e.Handled <- true // to not actually add another new line too // TODO raise TextArea.TextEntered Event ?
+            
+            // also indent on any regulat 'return'
+            // this would actully also be done by the DefaultIndentationStrategy of Avalonedit but the DefaultIndentationStrategy 
+            // would raise the document text change event twice, once after 'return' and once after indenting.
+            // this does not work well with the current implementation of the Evaluation tracker.
+            // the below code does the same as the DefaultIndentationStrategy but avoids raising to events.
+            // DefaultIndentationStrategy does not get triggered becaus of the e.Handled <- true
+            else
+                let st = Doc.spacesAtStartOfLineAndBeforeOffset caret doc                
+                let insertText = Environment.NewLine + String(' ',st)
+                let spaces = Doc.countNextSpaces caret doc
+                if spaces = 0 then
+                    doc.Insert(caret,insertText) // add space before too for nice position of folding block
+                else
+                    doc.Replace(caret,spaces,insertText)
+                ed.CaretOffset <- caret + insertText.Length //+ spaces                
+                e.Handled <- true // to not actually add another new line too // TODO raise TextArea.TextEntered Event ?
+
+
 
     /// Removes 4 charactes (Options.IndentationSize)
     /// On pressing backspace key instead of one

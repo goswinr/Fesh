@@ -51,13 +51,16 @@ open EvaluationTrackerRendererUtil
 type EvaluationTrackerRenderer (ed:TextEditor) = 
     let doc = ed.Document
 
-
     let mutable evaluatedCodeSeg: ISegment = null
 
     /// Offset of where evaluation should continue from
     /// Holds the index of the first unevaluated offset, this might be out of bound too, if all doc is evaluated.
     let mutable topMostUnEvaluated = 0
 
+    let formatChar (ch:char) = 
+        if   ch = '\n'then "\\n" 
+        elif ch = '\r'then "\\r" 
+        else ch.ToString()
 
     let computeParagraphAndDraw() = 
         if topMostUnEvaluated = 0 then
@@ -71,23 +74,28 @@ type EvaluationTrackerRenderer (ed:TextEditor) =
 
             elif isNull evaluatedCodeSeg || topMostUnEvaluated-1 <> evaluatedCodeSeg.EndOffset then
                 let lastInEval = doc.GetCharAt(topMostUnEvaluated-1)
+                //ISeffLog.log.PrintfnColor 144 222 100 "computeParagraphAndDraw:\r\n'%s'" ed.Text
 
-                // first try to look ahead if there is only white space till a paragraph starts
+                // first try to look ahead if there is only white space till a paragraph starts.
+                // in that case keep the current evaluated marking
                 let rec keepMark prev i = 
                     if i = len then
-                        true // -99
+                        true 
                     else
-                        let this = doc.GetCharAt(i)
-                        if isNonWhite this then // non whitespace
+                        let ch = doc.GetCharAt(i)
+                        //ISeffLog.log.PrintfnColor 200 0 100 "prev: '%s' ch: '%s'" (formatChar prev)(formatChar ch)
+                        if isNonWhite ch then // non whitespace
                             if prev = '\n' then // find a line that does not start with white space
                                 true //i-1 // there is only white space till 'i' wher a paragraph starts
                             else
-                                false //-999 //a non white but not at beginning of line
+                                false //a non white but not at beginning of line
                         else
-                            keepMark this (i+1)
+                            keepMark ch (i+1)
                 let keep = keepMark lastInEval topMostUnEvaluated
+                //ISeffLog.log.PrintfnColor 55 99 100 "keep is: '%b'" keep
 
-                if keep then //now search back needed since the next non white is at position 0 in line
+                //now search back needed since the next non white is at position 0 in line
+                if keep then 
                     let mutable j = topMostUnEvaluated-1
                     while j>0 && isWhite (doc.GetCharAt(j)) do // to remove white space too
                         j <- j-1
@@ -108,7 +116,7 @@ type EvaluationTrackerRenderer (ed:TextEditor) =
                             else
                                 searchback this (i-1)
 
-                    //ISeffLog.log.PrintfnColor 0 200 100 "topMostUnEvaluated-1: %d" topMostUnEvaluated-1
+                    //ISeffLog.log.PrintfnColor 0 200 100 "topMostUnEvaluated-1: %d" (topMostUnEvaluated-1)
                     let segmentEnd = 
                         let segEnd = searchback lastInEval topMostUnEvaluated   // GetCharAt     cant be -1 because there is a check at the top
                         
@@ -141,12 +149,11 @@ type EvaluationTrackerRenderer (ed:TextEditor) =
 
 
     /// Triggered on each document changed
-    member _.SetLastChangeAt(off) = 
-        if off < topMostUnEvaluated then
-            //ISeffLog.log.PrintfnColor 0 200 0 "Doc change topMostUnEvaluated: %d" topMostUnEvaluated
-            topMostUnEvaluated <-  off
+    member _.SetLastChangeAt(offset) = 
+        if offset < topMostUnEvaluated then
+            //ISeffLog.log.PrintfnColor 0 200 0 "Doc change topMostUnEvaluated offset : %d '%s' " offset (formatChar<| doc.GetCharAt(offset))
+            topMostUnEvaluated <-  offset            
             computeParagraphAndDraw()
-
 
     member _.MarkNoneEvaluated() = 
         topMostUnEvaluated <- 0
@@ -154,9 +161,9 @@ type EvaluationTrackerRenderer (ed:TextEditor) =
         ed.TextArea.TextView.Redraw()
 
     /// provide the index of the first unevaluated offset, this might be out of bound too if all doc is evaluated and will be checked
-    member _.MarkEvalutedTillOffset(off) = 
+    member _.MarkEvalutedTillOffset(offset) = 
         let len = doc.TextLength // off might be bigger than doc.TextLength because expandSelectionToFullLines adds 2 chars at end.
-        topMostUnEvaluated <- min len off
+        topMostUnEvaluated <- min len offset
         computeParagraphAndDraw()
 
     member _.MarkAllEvaluated() = 
@@ -166,7 +173,6 @@ type EvaluationTrackerRenderer (ed:TextEditor) =
         topMostUnEvaluated <- len + 2
         evaluatedCodeSeg <- newSegmentTill(len+1)
         ed.TextArea.TextView.Redraw()
-
 
     /// Offset of where evaluation should continue from
     member _.EvaluateFrom = topMostUnEvaluated

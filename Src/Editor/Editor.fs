@@ -153,7 +153,7 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
 
         let textChanged (change:TextChange) = 
             //log.PrintfnDebugMsg "*1-textChanged because of %A" change
-            if not compls.IsOpen then
+            if not compls.IsOpen then // TODO, isn't this already checked in 'docChanged' function that calls 'textChanged'
                 if compls.HasItems then
                     //log.PrintfnDebugMsg "*1.2-textChanged not highlighting because  compls.HasItems"
                     //TODO check text is full mtch and close completion window ?
@@ -230,14 +230,13 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
 
         let docChanged (e:DocumentChangeEventArgs) = 
             //log.PrintfnDebugMsg "*Document.Changed Event: deleted %d '%s', inserted %d '%s', completion hasItems: %b, isOpen: %b , Just closed: %b" e.RemovalLength e.RemovedText.Text e.InsertionLength e.InsertedText.Text ed.Completions.HasItems ed.Completions.IsOpen compls.JustClosed
-
-            
+                        
             if compls.IsOpen then   // just keep on tying in completion window, no type checking !
                 if compls.HasItems then // TODO, this code is duplicated in textChanged function
                     ()
                     //let currentText = getField(typeof<CodeCompletion.CompletionList>,w.CompletionList,"currentText") :?> string //this property should be public !
                     //TODO close Window if w.CompletionList.SelectedItem.Text = currentText
-                    //TODO ther is a bug in current text when deleting chars
+                    //TODO there is a bug in current text when deleting chars
                     //log.PrintfnDebugMsg "currentText: '%s'" currentText
                     //log.PrintfnDebugMsg "w.CompletionList.CompletionData.Count:%d" w.CompletionList.ListBox.VisibleItemCount
                 else
@@ -284,9 +283,10 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
         //----------------------------------
 
         // Evaluation Tracker:
-        //avaEdit.Document.Changing
+        // or avaEdit.Document.Changing?
         avaEdit.Document.Changed.Add(fun a -> ed.EvalTracker.SetLastChangeAt(a.Offset))
         avaEdit.Document.Changed.Add(docChanged)
+        //avaEdit.Document.Changed.Add(fun a -> ISeffLog.log.PrintfnColor 100 222 160 "Document.Changed:\r\n'%s'" avaEdit.Text)
 
         avaEdit.TextArea.TextEntering.Add (checkIfCompletionWindowShouldClose)
 
@@ -299,7 +299,6 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
 
 
         // Mouse Hover:
-
         avaEdit.TextArea.TextView.MouseHover.Add(fun e -> TypeInfo.mouseHover(e, ed, log, ed.TypeInfoTip))
         avaEdit.TextArea.TextView.MouseHoverStopped.Add(fun _ -> ed.TypeInfoTip.IsOpen <- false )
         avaEdit.TextArea.TextEntering.Add (fun _ -> ed.TypeInfoTip.IsOpen <- false )// close type info on typing
