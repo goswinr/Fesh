@@ -82,7 +82,8 @@ type Fonts (grid:TabsAndLog) = // will be contructed as part of Commands class
         setEditor(  FontFamily ("Consolas")|> logIfFontIsMissing)  // only consolas renders fast
         //setEditor(  FontFamily ("JetBrains Mono")|> logIfFontIsMissing)  // only consolas renders fast
         setLog(     FontFamily ("Consolas")|> logIfFontIsMissing)
-        setToolTip( FontFamily ("Verdana") |> logIfFontIsMissing) // or FontFamily("Andale Mono")?
+        setToolTip( FontFamily ("Lucida Sans Typewriter") |> logIfFontIsMissing) // use a mono font to show ascii art in xml docstrings correctly, Andale Mono
+        //setToolTip( FontFamily ("Verdana") |> logIfFontIsMissing) 
 
 
     // this fonsize makes block selection delete fail on the last line: 17.0252982466288 happens at 17.5 too

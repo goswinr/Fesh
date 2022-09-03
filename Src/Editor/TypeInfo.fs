@@ -48,6 +48,7 @@ type TypeInfo private () =
     static let lightgray    = Brushes.Gray       |> brighter 100 |> freeze
     static let blue         = Brushes.Blue       |> darker    90 |> freeze
     static let darkblue     = Brushes.Blue       |> darker   120 |> freeze
+    static let darkgreen    = Brushes.DarkGreen   
     static let darkpurple   = Brushes.Purple     |> darker    90 |> freeze
     static let purple       = Brushes.Purple     |> brighter  40 |> freeze
     static let black        = Brushes.Black                      |> freeze
@@ -157,14 +158,21 @@ type TypeInfo private () =
         | "typeparam" -> "Type Parameters: "
         | t           -> Str.up1 t + ": "
 
-    static let fixTypeName (s:string) =  // for F:System.IO.Path.InvalidPathChars -> System.IO.Path.InvalidPathChars
+    // for F:System.IO.Path.InvalidPathChars -> System.IO.Path.InvalidPathChars
+    static let fixTypeName (s:string) =  
         match s.IndexOf ":" with 
         | 1 -> 
             let t = s.Substring(2) 
             match t.IndexOf "`" with 
             | -1 -> t
             | i  -> t.Substring(0,i) 
-        | _ -> s           
+        | _ -> s    
+
+    static let trimIfOneliner (s:string) = 
+        let t = s.Trim() 
+        match t.IndexOf '\n' with 
+        | -1 -> t
+        | i  -> s 
 
     static let codeRun t = new Run(t ,FontFamily = Style.fontEditor, FontSize = Style.fontSize*1.05,  Foreground = black)//,   Background = white) 
 
@@ -174,13 +182,14 @@ type TypeInfo private () =
     static let mainXmlBlock  (node:XmlParser.Child): TextBlockSelectable =
         let tb = new TextBlockSelectable()
         tb.FontSize   <- Style.fontSize  * 0.95
-        tb.FontFamily <- Style.fontToolTip
-        tb.Foreground <- darkblue
+        tb.FontFamily <- Style.fontToolTip        
         let mutable last = "" 
         
-        let rec loop (c:XmlParser.Child) addTitle d = 
+        let rec loop (c:XmlParser.Child) parentName addTitle d = 
             match c with
-            |Text t ->  tb.Inlines.Add( new Run(t+" ")) 
+            |Text t ->  
+                if parentName="para" then tb.Inlines.Add( new Run(t,  Foreground = darkgreen)) // dont trim onliners inside a para tag to keep ascii art from RhinoCommon.xml
+                else                      tb.Inlines.Add( new Run(trimIfOneliner t,  Foreground = darkgreen)) 
             |Node n ->  
                 if d=0 then                     
                     if last<>n.name && addTitle then // && n.name <> "?name?" then // to not repeat the parameter header every time
@@ -190,9 +199,9 @@ type TypeInfo private () =
                         tb.Inlines.Add( new LineBreak())                     
                     for at in n.attrs do // there is normaly just one ! like param:name, paramref:name typeparam:name                         
                         tb.Inlines.Add( at.value |> fixTypeName|> codeRun)
-                        tb.Inlines.Add( new Run(": "))  
+                        tb.Inlines.Add( new Run(": ",  Foreground = black))  
                     for c in List.rev n.children do 
-                        loop c false (d+1)
+                        loop c n.name false (d+1)
                     tb.Inlines.Add( new LineBreak()) 
                     
                 elif n.children.IsEmpty && not n.attrs.IsEmpty then 
@@ -203,24 +212,24 @@ type TypeInfo private () =
                         tb.Inlines.Add( new Run(" ")) 
                 else
                     match n.name with 
-                    |"c"|"code" ->   for c in List.rev n.children do addCode c (d+1)
-                    |"para"     ->   for c in List.rev n.children do tb.Inlines.Add( new LineBreak()) ;loop    c false (d+1)
-                    |"br"       ->   for c in List.rev n.children do tb.Inlines.Add( new LineBreak()) ;loop    c false (d+1) // only happens in netstandard.xml
-                    | _         ->   for c in List.rev n.children do loop    c false (d+1)
+                    |"c"|"code" ->   for c in List.rev n.children do addCode c  (d+1)
+                    |"para"     ->   for c in List.rev n.children do tb.Inlines.Add( new LineBreak()) ;loop    c n.name false (d+1)
+                    |"br"       ->   for c in List.rev n.children do tb.Inlines.Add( new LineBreak()) ;loop    c n.name false (d+1) // only happens in netstandard.xml
+                    | _         ->   for c in List.rev n.children do                                   loop    c n.name false (d+1)
         
         and addCode (c:XmlParser.Child) d = 
             match c with
             |Text t ->  tb.Inlines.Add(codeRun t); tb.Inlines.Add(" ")
-            |Node _ ->  loop c false d
+            |Node n ->  loop c n.name false d
         
 
         match node with 
         |Node n when n.name="member" ->  
             let two = twoOrMore n.children
             for c in List.rev n.children do 
-                loop c two 0 
+                loop c n.name two 0 
         | _ -> 
-           loop node false 0  
+           loop node "" false 0  
         
         // remove last line break: 
         if tb.Inlines.LastInline  :? LineBreak then  tb.Inlines.Remove tb.Inlines.LastInline  |> ignore 

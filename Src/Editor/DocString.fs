@@ -1,12 +1,4 @@
-﻿//Taken from:
-// https://github.com/fsharp/FsAutoComplete/blob/master/src/FsAutoComplete.Core/TipFormatter.fs
-
-//TODO take updated Docstring parser from above source
-
-//or use:
-// https://github.com/fsharp/FsAutoComplete/blob/e17692e9b29899f274ed243b168e8790762cd1ee/src/FsAutoComplete.Core/CompilerServiceInterface.fs#L156
-
-namespace Seff
+﻿namespace Seff
 
 open System
 open System.Text
@@ -249,7 +241,7 @@ module XmlParser =
                             skipSpace()
                             trimAppendText sb cs
                             |> readNodes
-                        | z -> failwithf $"untracket xml tag <!{z}"
+                        | z -> failwithf $"untracked xml tag <!{z} in docstring"
                             
                     | '/' -> // probaly node closing ,  TODO read name to be sure its the right closing ?
                         if x[i+2] = '>' && x[i+1] = 'p' then // a </p> in netstandard.xml to skip
@@ -360,7 +352,7 @@ module DocString =
     
     let getXmlDoc(dllFile:string) : Result<FileInfo*Dictionary<string, XmlParser.Child>,string>= 
         if failedPath.ContainsKey dllFile then 
-            Error(failedPath[dllFile]) // to not try accessing a fail path over and over again
+            Error(failedPath[dllFile]) // to not try accessing a failed path over and over again
         else
             match getXmlDocImpl (dllFile) with 
             | Ok    r1 -> Ok r1

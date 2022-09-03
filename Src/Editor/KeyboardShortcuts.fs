@@ -235,7 +235,7 @@ module KeyboardShortcuts =
 
     // gets attached to ech editor instance. via avaEdit.PreviewKeyDown.Add
     // except for Alt and arrow keys
-    let previewKeyDown (ed:TextEditor, ke: Input.KeyEventArgs) = 
+    let previewKeyDown (ed:TextEditor, ke: Input.KeyEventArgs, compls:Completions) = 
         //if not ed.IsComplWinOpen then
          match realKey ke  with
 
@@ -256,7 +256,8 @@ module KeyboardShortcuts =
          | Input.Key.Enter | Input.Key.Return ->
              if isUp Ctrl // if alt or ctrl is down this means sending to fsi ...
              && isUp Alt
-             && isUp Shift then CursorBehaviour.addFSharpIndentation(ed,ke)  // add indent after do, for , ->, = 
+             && isUp Shift 
+             && compls.IsNotOpen then CursorBehaviour.addFSharpIndentation(ed,ke)  // add indent after do, for , ->, = 
 
          (*
          handeled in: let altKeyCombo(akey:AltKeyCombo)

@@ -153,7 +153,7 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
 
         let textChanged (change:TextChange) = 
             //log.PrintfnDebugMsg "*1-textChanged because of %A" change
-            if not compls.IsOpen then // TODO, isn't this already checked in 'docChanged' function that calls 'textChanged'
+            if compls.IsNotOpen then // TODO, isn't this already checked in 'docChanged' function that calls 'textChanged'
                 if compls.HasItems then
                     //log.PrintfnDebugMsg "*1.2-textChanged not highlighting because  compls.HasItems"
                     //TODO check text is full mtch and close completion window ?
@@ -268,7 +268,7 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
              //else compls.JustClosed<-false
 
         avaEdit.Drop.Add                      (fun e -> CursorBehaviour.TextAreaDragAndDrop( avaEdit,e))
-        avaEdit.PreviewKeyDown.Add            (fun e -> KeyboardShortcuts.previewKeyDown(    avaEdit, e))   //to indent and dedent, and change block selection delete behavior
+        avaEdit.PreviewKeyDown.Add            (fun e -> KeyboardShortcuts.previewKeyDown(    avaEdit, e, compls))   //to indent and dedent, and change block selection delete behavior
         avaEdit.TextArea.PreviewTextInput.Add (fun e -> CursorBehaviour.previewTextInput(    avaEdit, e))   //to change block selection delete behavior
         avaEdit.TextArea.AlternativeRectangularPaste <- Action<string,bool>( fun txt txtIsFromOtherRectSel -> RectangleSelection.paste(ed.AvaEdit,txt,txtIsFromOtherRectSel)) //TODO check txtIsFromOtherRectSel on pasting text with \r\n
 
