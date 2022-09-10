@@ -210,7 +210,7 @@ type Completions(avaEdit:TextEditor,config:Config, checker:Checker) =
 
             // TODO move out of UI thread
             /// for adding question marks to optional arguments:
-            compl.OptArgsDict.Clear() //TODO make persistent on class for cashing
+            compl.OptArgsDict.Clear() //TODO make persistent on class for caching
             for symbs in declSymbs do
                 for symb in symbs do
                     let opts = TypeInfo.namesOfOptionalArgs( symb)
