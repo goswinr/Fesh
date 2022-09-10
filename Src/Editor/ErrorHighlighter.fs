@@ -56,7 +56,8 @@ module ErrorUtil =
             | FSharpDiagnosticSeverity.Error   -> ers.Add e
             | FSharpDiagnosticSeverity.Warning -> was.Add e
             | FSharpDiagnosticSeverity.Hidden  -> his.Add e
-            | FSharpDiagnosticSeverity.Info    -> ins.Add e
+            | FSharpDiagnosticSeverity.Info    -> if e.ErrorNumber<>3370 then ins.Add e   //  exclude infos about ref cell incrementing ??
+
         // make sure they are sorted , the tools below will then truncate this list to only mark the first 9 or so errors in the UI (for performance)
         was.Sort(fun x y -> Operators.compare x.StartLine y.StartLine)
         ers.Sort(fun x y -> Operators.compare x.StartLine y.StartLine)

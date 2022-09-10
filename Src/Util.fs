@@ -221,26 +221,10 @@ module Str  =
         | i  -> Some (s.Substring(i + sub.Length))
          /// returns the remainder after the last substring found
 
-    /// test if the first Letter in a string is Uppercase, skipping Whitespace
-    let startsWithUppercaseAfterWhitespace (s:string) = 
-        let mutable loop = true
-        let mutable i = -1
-        while loop && i < s.Length do
-            i <- i + 1
-            loop <-  s.[i]=' '
-        Char.IsUpper s.[i]
-
-    /// test if the first Letter after given index in a string is Uppercase, skipping Whitespace
-    let inline startsWithUppercaseAfterWhitespaceFrom idx (s:string) = 
-        let mutable loop = true
-        let mutable i = idx-1
-        while loop && i < s.Length do
-            i <- i + 1
-            loop <- s.[i]=' '
-        Char.IsUpper s.[i]
     
-    /// returns the index of the first non white char
-    let inline firstNonWhiteChar idx (s:string) = 
+    /// returns the index of the first non white char from start index
+    /// if not found returns fromIdx-1
+    let inline indexOfFirstNonWhiteAfter idx (s:string) = 
         let mutable loop = true
         let mutable i = idx-1
         while loop && i < s.Length do

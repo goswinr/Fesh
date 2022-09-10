@@ -63,6 +63,12 @@ module DocChanged =
         let lastIdx inString find txt = 
             if inString then NotInQuotes.lastIndexOfFromInside  find txt 
             else             NotInQuotes.lastIndexOfFromOutside find txt
+
+
+        let inline containsFrom idx (find:string) (txt:String) =
+            match txt.IndexOf(find,idx,StringComparison.Ordinal) with 
+            | -1 -> false
+            | _ -> true 
         
         /// like lastIndex but  test if its the first char or preceeded by a space 
         let lastIdxAtStartOrWithSpace inString find txt = 
@@ -77,19 +83,22 @@ module DocChanged =
              NotInQuotes.contains "//" ln
     
         // is a dicriminated union that wants autocomplete
-        let inline isDU i ln =
-            let si = firstNonWhiteChar i ln
-            let c = ln.[si]
-            if 'A' <= c && c <= 'Z' then // starts with a capital letter , TODO or use Char.isUpper for full Unicode spectrum ?
-                match ln.IndexOf(' ',si) with // and has no space 
-                | -1 -> 
-                    match ln.IndexOf('(',si) with // and has no open bracket
-                    | -1 -> ShowOnlyDU 
-                    | _ -> DontShow // writing a lowercase name binding as part of the uppercase DU's value
-                | _ -> DontShow
+        let inline isDU fromIdx ln =
+            let fi = indexOfFirstNonWhiteAfter fromIdx ln
+            if fi < fromIdx then ShowAll // fromIdx-1 returnrd, non white letter was not found
             else
-                DontShow // writing a lowercase name binding  
-           
+                let first = ln.[fi]
+                if 'A' <= first && first <= 'Z' then // starts with a capital letter , TODO or use Char.isUpper for full Unicode spectrum ?
+                    match ln.IndexOf(' ',fi) with // and has no space 
+                    | -1 -> 
+                        match ln.IndexOf('(',fi) with // and has no open bracket
+                        | -1 -> ShowOnlyDU 
+                        | _ -> DontShow // writing a lowercase name binding as part of the uppercase DU's value
+                    | _ -> DontShow
+                elif 'a' <= first && first <= 'z' then
+                    DontShow// writing a lowercase name binding             
+                else
+                    ShowAll // writing nut a DU but an operator like |> or |]
     
         //--------------------------------------------------------------------------------------------
         //-----------check the four ways to bind a name: let, for, fun, match with | ---------------
@@ -102,7 +111,7 @@ module DocChanged =
             else
                 let eqIdx    = lastIdx inStr "=" ln                       
                 let colonIdx = lastIdx inStr  ":" ln   
-                if (max eqIdx colonIdx) < letIdx then isDU (letIdx+4) ln else ShowAll
+                if (max eqIdx colonIdx) < letIdx then isDU (letIdx+3) ln else ShowAll
 
         let isFunDeclaration inStr (ln:string) = 
             //test if we are after a 'fun' but before a '->' or ':'  
@@ -117,29 +126,21 @@ module DocChanged =
             let forIdx = lastIdxAtStartOrWithSpace inStr "for " ln // test if its the first char or preceeded by a space 
             if forIdx = -1 then  ShowAll
             else 
-                if lastIdx inStr " in " ln < forIdx  then isDU (forIdx+4) ln else ShowAll
+                if lastIdx inStr " in " ln > forIdx then ShowAll else isDU (forIdx+3) ln
         
         let isBarDeclaration inStr (ln:string) = // also covers the  'as' binding        
             let barIdx = lastIdxAtStartOrWithSpace inStr "|" ln // test if its the first char or preceeded by a space 
             if barIdx = -1 then  
                 ShowAll
-            else           
-                let after = ln.[barIdx+1 ..].TrimStart()
-                //ISeffLog.log.PrintfnDebugMsg "isBarDeclaration: after='%s'" after
-                if after.Length = 0 then ShowAll
-                elif after.[0] = ']' then ShowAll // closing of array
-                elif after.[0] = ')' then ShowAll // closing of active pattern
-                elif after.Contains   "->"   then ShowAll
-                elif after.Contains " when " then ShowAll
-                elif after.StartsWith ":?" then 
-                   if after.Contains " as " then DontShow   else ShowAll
-                else isDU (barIdx+1) ln   
+            else 
+                if   containsFrom barIdx "->"      ln then ShowAll                
+                elif containsFrom barIdx " when "  ln then ShowAll
+                elif containsFrom barIdx ":?"      ln then  (if containsFrom barIdx  " as " ln then DontShow   else ShowAll)
+                else isDU (barIdx+1) ln                 
            
         //-------------------------------------------------------------------------------------------
         //-------------------------------------------------------------------------------------------
-    
-
-    
+        
         let show (pos:PositionInCode, compls:Completions, ed:IEditor, forDUonly) = 
             let ln = pos.lineToCaret
             let setback     = lastNonFSharpNameCharPosition ln // to maybe replace some previous characters too
