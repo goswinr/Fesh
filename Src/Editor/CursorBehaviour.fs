@@ -197,6 +197,8 @@ module CursorBehaviour  =
             let trimmed = Doc.getTextBeforOffsetSkipSpaces 6 caret doc
             //ISeffLog.log.PrintfnDebugMsg "current line ='%s'" (doc.GetText(doc.GetLineByOffset(caret)))
             //ISeffLog.log.PrintfnDebugMsg "trimmed='%s' (%d chars)" trimmed trimmed.Length
+            
+            // special enter that increases the indent :
             if     trimmed.EndsWith " do"
                 || trimmed.EndsWith " then"
                 || trimmed.EndsWith " else"
@@ -312,6 +314,7 @@ module CursorBehaviour  =
         
         let inline prevChar() = ed.Document.GetCharAt(max 0 (ed.TextArea.Caret.Offset-1))  
         
+        /// test if nect caracter is whitespace or end of file
         let inline nextSpace() =
             let i = ed.TextArea.Caret.Offset
             if ed.Document.TextLength <= i then 
@@ -320,6 +323,7 @@ module CursorBehaviour  =
                 let c = ed.Document.GetCharAt(i)                 
                 c=' '|| c='\r'
         
+        /// test if next caracter is whitespace, double quote or end of file
         let inline nextSpaceQ() =
             let i = ed.TextArea.Caret.Offset
             if ed.Document.TextLength <= i then 
@@ -327,6 +331,23 @@ module CursorBehaviour  =
             else
                 let c = ed.Document.GetCharAt(i) 
                 c=' '|| c='\r'|| c='"' // " for beeing in a string
+
+        /// test if previous caracter is not from the alaphanumeric( so a space, a bracket or similar)
+        let inline prevNonAlpha() =
+            let i = ed.TextArea.Caret.Offset
+            if i = 0  then 
+                true
+            else
+                let c = ed.Document.GetCharAt(i) // TODO:only testsing for ascii here, good enough!?
+                c < '0' 
+                ||
+                (c > '9' && c < 'A')
+                ||
+                (c > 'Z' && c < '_') // _ then ` tehn a
+                ||
+                c > 'z' 
+
+
 
 
         match Selection.getSelType(ed.TextArea) with
@@ -354,7 +375,7 @@ module CursorBehaviour  =
             | "("  -> if nextSpace()  then addPair 1 "()" 
             | "{"  -> if nextSpaceQ() then addPair 1 "{}"
             | "["  -> if nextSpace()  then addPair 1 "[]"
-            | "'"  -> if nextSpace()  then addPair 1 "''"
+            | "'"  -> if nextSpace()&&prevNonAlpha()  then addPair 1 "''"
             | "\"" -> if nextSpace()  then addPair 1 "\"\""
             | "$"  -> if nextSpace()  then addPair 2 "$\"\"" // for formating string
             | "`"  -> if nextSpace()  then addPair 2 "````"  // for formating string

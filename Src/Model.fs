@@ -2,14 +2,12 @@
 
 open System
 open System.IO
-open System.Text
 open System.Windows.Input
 
 open AvalonEditB
 open AvalonEditB.Folding
 
 open FSharp.Compiler.CodeAnalysis
-
 
 
 type ISeffLog = 
@@ -53,7 +51,6 @@ module ISeffLog =
     let printError s = 
         if Object.ReferenceEquals(log,null) then printfn "%s" s
         else log.PrintfnAppErrorMsg "%s" s
-
 
     let mutable printColor : int-> int -> int -> string -> unit = //don't rename!! It's used via reflection in FsEx
         fun r g b s -> printf "%s" s  //implementation is changed  when Log instance is created
@@ -129,9 +126,9 @@ type FileCheckState =
 
     override this.ToString() = 
         match this with
-        | NotStarted ->  "FileCheckState.NotStarted"
-        | GettingCode _  -> "FileCheckState.GettingCode"
-        | Failed -> "FileCheckState.Failed"
+        | NotStarted        ->  "FileCheckState.NotStarted"
+        | GettingCode _     -> "FileCheckState.GettingCode"
+        | Failed            -> "FileCheckState.Failed"
         | Checking (id, c)  ->  "FileCheckState.Checking"
         | Done res          ->  "FileCheckState.Done with " +  res.checkRes.Diagnostics.Length.ToString() +  " infos, warnings or errors"
 
@@ -140,8 +137,7 @@ type FileCheckState =
 type FilePath = 
     | SetTo of FileInfo
     | NotSet
-    // returns file name or "*noName*"
-    // member this.FileName =  match this with  |SetTo fi -> fi.Name |NotSet -> "*noName*"
+  
 
 // so that the Editor can be used before declared
 type IEditor = 
@@ -159,7 +155,6 @@ type IEditor =
 module IEditor = 
     /// A global reference to the current Editor
     let mutable current :option<IEditor> = None
-
 
 
 //---- Fsi types ------------
