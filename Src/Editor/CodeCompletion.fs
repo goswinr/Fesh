@@ -1,4 +1,4 @@
-﻿namespace Seff.Editor
+namespace Seff.Editor
 
 open System
 open System.Windows
@@ -157,7 +157,8 @@ type Completions(avaEdit:TextEditor,config:Config, checker:Checker) =
         justClosed <- true // to not trigger completion again on one letter completions
 
     member this.RequestInsertion(ev) = if win.IsSome then win.Value.CompletionList.RequestInsertion(ev)
-
+    
+    /// to not trigger completion again on one letter completions
     member this.JustClosed
                 with get() = justClosed
                 and set(v) = justClosed <- v

@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk.WindowsDesktop"> <!--WinDesktop is needed so that resources work with dotnet build-->
 
  <PropertyGroup>
@@ -36,7 +36,7 @@
     <Configurations>Release</Configurations>
   </PropertyGroup>
 
- <PropertyGroup>
+  <PropertyGroup>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <IncludeSymbols>true</IncludeSymbols>
     <!-- <SymbolPackageFormat>snupkg</SymbolPackageFormat> -->
@@ -54,10 +54,10 @@
 
   <ItemGroup>
     <!-- normally don't include FSharp.Core in a library, but Update to latest version is needed for latest FSharp.Compiler.Service-->
-	<PackageReference Include="AvalonLog" Version="0.7.1" />
-	<PackageReference Update="FSharp.Core" Version="6.0.5" />
-	<PackageReference Include="FSharp.Compiler.Service" Version="41.0.5" />
-	<PackageReference Include="FsEx.Wpf" Version="0.3.1" />
+	  <PackageReference Include="AvalonLog" Version="0.7.1" />
+	  <PackageReference Update="FSharp.Core" Version="6.0.5" />
+	  <PackageReference Include="FSharp.Compiler.Service" Version="41.0.5" />
+	  <PackageReference Include="FsEx.Wpf" Version="0.3.1" />
 
     <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.1" PrivateAssets="All" IncludeAssets="runtime; build; native; contentfiles; analyzers; buildtransitive" />
     <!-- https://docs.microsoft.com/en-us/nuget/consume-packages/package-references-in-project-files#controlling-dependency-assets -->
