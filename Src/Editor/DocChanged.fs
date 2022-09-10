@@ -24,7 +24,7 @@ open Seff.Util.Str
 [<RequireQualifiedAccess>]
 module DocChanged =
     
-    type DoNext =   CheckCode | DoNothing
+    type DoNext =  CheckCode | DoNothing
 
     /// for closing and inserting from completion window
     let closeAndMaybeInsertFromCompletionWindow (compls:Completions) (ev:TextCompositionEventArgs) = 
@@ -159,7 +159,7 @@ module DocChanged =
                 //log.PrintfnDebugMsg "*2.1-textChanged highlighting with: query='%s', charBefore='%A', isKey=%b, setback='%d', line='%s' " query charBeforeQueryDU isKeyword setback line
                 CheckCode
             else
-                //ISeffLog.log.PrintfnDebugMsg "*2.2-textChanged Completion window opening with: query='%s', charBefore='%A', isKey=%b, setback='%d', onlyDU:%b" query charBeforeQueryDU isKeyword setback forDUonly
+                //ISeffLog.log.PrintfnDebugMsg "*2.2-Completion window opening with: query='%s', charBefore='%A', isKey=%b, setback='%d', onlyDU:%b" query charBeforeQueryDU isKeyword setback forDUonly
                 let last = ln.[ln.Length-1]
                 Completions.TryShow(ed, compls, pos, last , setback, query, charBeforeQueryDU, forDUonly)
                 DoNothing
@@ -179,19 +179,19 @@ module DocChanged =
                 else
                     let inStr = not <| NotInQuotes.isLastCharOutsideQuotes ln
                     match isLetDeclaration inStr ln with 
-                    |DontShow -> DoNothing // keep on writing the current new varaiable name for a binding , dont open any completion windows
+                    |DontShow -> CheckCode // keep on writing the current new varaiable name for a binding , dont open any completion windows
                     |ShowOnlyDU -> show(pos,compls,ed,true)
                     |ShowAll -> 
                         match isFunDeclaration inStr ln with 
-                        |DontShow -> DoNothing 
+                        |DontShow -> CheckCode 
                         |ShowOnlyDU -> show(pos,compls,ed,true)
                         |ShowAll ->
                             match isForDeclaration inStr ln with 
-                            |DontShow -> DoNothing 
+                            |DontShow -> CheckCode 
                             |ShowOnlyDU -> show(pos,compls,ed,true)
                             |ShowAll ->
                                 match isBarDeclaration inStr ln with 
-                                |DontShow -> DoNothing 
+                                |DontShow -> CheckCode 
                                 |ShowOnlyDU -> show(pos,compls,ed,true)
                                 |ShowAll ->    show(pos,compls,ed,false) // most comon case
 
