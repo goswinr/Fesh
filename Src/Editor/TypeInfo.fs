@@ -169,7 +169,7 @@ type TypeInfo private () =
         | _ -> s    
 
     static let trimIfOneliner (s:string) = 
-        let t = s.Trim() 
+        let t = s.TrimStart() 
         match t.IndexOf '\n' with 
         | -1 -> t
         | i  -> s 
