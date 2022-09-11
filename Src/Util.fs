@@ -123,7 +123,6 @@ module Str  =
                 t
 
 
-
     // ensures all lines end on Environment.NewLine
     let unifyLineEndings (s:string) = 
         //Text.StringBuilder(s).Replace("\r\n", "\n").Replace("\r", "\n").Replace("\n", Environment.NewLine).ToString()
@@ -220,7 +219,7 @@ module Str  =
         match s.LastIndexOf(sub, StringComparison.Ordinal) with
         | -1 -> None
         | i  -> Some (s.Substring(i + sub.Length))
-         /// retursn the remainder after the last substring found
+         /// returns the remainder after the last substring found
 
     /// test if the first Letter in a string is Uppercase, skipping Whitespace
     let startsWithUppercaseAfterWhitespace (s:string) = 
@@ -228,10 +227,30 @@ module Str  =
         let mutable i = -1
         while loop && i < s.Length do
             i <- i + 1
-            loop <- Char.IsWhiteSpace s.[i]
+            loop <-  s.[i]=' '
         Char.IsUpper s.[i]
 
-    /// poor man's name parsing: returns the offset from end of string to last non alphanumeric or '_' character
+    /// test if the first Letter after given index in a string is Uppercase, skipping Whitespace
+    let inline startsWithUppercaseAfterWhitespaceFrom idx (s:string) = 
+        let mutable loop = true
+        let mutable i = idx-1
+        while loop && i < s.Length do
+            i <- i + 1
+            loop <- s.[i]=' '
+        Char.IsUpper s.[i]
+    
+    /// returns the index of the first non white char
+    let inline firstNonWhiteChar idx (s:string) = 
+        let mutable loop = true
+        let mutable i = idx-1
+        while loop && i < s.Length do
+            i <- i + 1
+            loop <- s.[i]=' '
+        i
+
+
+    /// poor man's name parsing: returns the offset from end of string to last non alphanumeric or '_' character, or # for compiler directives
+    /// this is used to do code completion even if a few characters are typed already. to track back to the start of the item to complete.
     let lastNonFSharpNameCharPosition (s:string) = 
         let mutable p = s.Length-1
         if p = -1 then 0 // empty string
@@ -239,7 +258,7 @@ module Str  =
         else
             let mutable i = 0
             let mutable ch = s.[p]
-            while p >= 0 && (Char.IsLetterOrDigit ch || ch = '_') do // valid chars in F# names
+            while p >= 0 && (Char.IsLetterOrDigit ch || ch = '_' || ch = '#' ) do // valid chars in F# names, # for compiler directives
                 i <- i+1
                 p <- p-1
                 if p >=0 then ch <- s.[p]
@@ -299,6 +318,137 @@ module Str  =
         else
             s.Substring(0,max) + suffix
 
+
+/// for searching in string but skiping over everything that is in double quotes.
+// also skips over escaped double quotes \"
+[<RequireQualifiedAccess>]
+module NotInQuotes = 
+    // tested OK !
+    
+    /// find the end index of a string jumping over escaped quotes via \"
+    let internal getStringEnd fromIdx (txt:string)= 
+        let rec loop from =         
+            if from = txt.Length then -1 
+            else
+                match txt.IndexOf('"',from) with 
+                | -1 -> -1
+                | i -> 
+                    if i = 0 then 0
+                    elif txt.[i-1] = '\\' then loop (i+1)
+                    else i
+        loop fromIdx
+
+    
+    /// index of a sub string in a string  but ignore everything that is between double quotes(skiping escaped quotes)
+    let indexOf (find:string) (txt:string)= 
+        let rec loop fromIdx =         
+            if fromIdx = txt.Length then -1 
+            else 
+                match txt.IndexOf(find,fromIdx,StringComparison.Ordinal) with 
+                | -1 -> -1
+                | fi -> 
+                    match txt.IndexOf('"',fromIdx) with 
+                    | -1 -> fi
+                    | qsi -> 
+                        if qsi > fi then 
+                            fi 
+                        else
+                            //get quote end 
+                            match getStringEnd (qsi+1) txt with 
+                            | -1  -> -1 // string is not closed
+                            | qei -> loop (qei+1) 
+        loop 0    
+    
+    /// test if a string contains a string but ignore everything that is between double quotes(skiping escaped quotes)
+    let contains (find:string) (txt:string)= 
+        indexOf find txt > -1 
+        
+    /// check if the last character is in a string literal (= insite quotes)
+    let isLastCharOutsideQuotes (txt:string)  =  
+        let rec loop fromIdx =
+            if fromIdx = txt.Length then true 
+            else 
+                match txt.IndexOf('"',fromIdx) with 
+                | -1 -> true
+                | s ->  
+                    match getStringEnd (s+1)  txt with 
+                    | -1 -> false
+                    | e ->  loop (e+1)
+        loop 0
+        
+    
+    /// find the end index of a string jumping over escaped quotes via \"
+    let internal getStringStartBack fromIdx (txt:string)= 
+        let rec loop (from) =         
+            if from = -1 then -1 
+            else 
+                match txt.LastIndexOf('"',from) with 
+                | -1 -> -1
+                | i -> 
+                    if i = 0 then 0
+                    elif txt.[i-1] = '\\' then loop (i-1)
+                    else i
+        loop fromIdx
+    
+    /// for starting to search from outside quotes. 
+    /// test if a string contains a string from the end 
+    /// but ignore everything that is between double quotes(skiping escaped quotes).
+    /// before caling this make sure isLastCharOutsideQuotes is true
+    let lastIndexOfFromOutside (find:string) (txt:string)= 
+        let rec loop fromIdx =         
+            if fromIdx = -1 then -1 
+            else 
+                match txt.LastIndexOf(find, fromIdx,StringComparison.Ordinal) with 
+                | -1 -> -1
+                | fi -> 
+                    match txt.LastIndexOf('"', fromIdx) with 
+                    | -1 -> fi
+                    | qei -> 
+                        if qei< fi then // but result was after string anyways
+                            fi
+                        else
+                            match getStringStartBack (qei-1)  txt with 
+                            | -1  -> -1 //should not happen // no start of string found,  search started inside a string 
+                            | qsi -> loop(qsi-1) // string had a start 
+                                    
+        loop (txt.Length-1) 
+    
+    /// for starting to search from inside quotes.    
+    /// test if a string contains a string from the end 
+    /// but ignore everything that is between double quotes(skiping escaped quotes)
+    /// before caling this make sure isLastCharOutsideQuotes is false
+    let lastIndexOfFromInside (find:string) (txt:string)= 
+        let rec loop fromIdx =         
+            if fromIdx = -1 then -1 
+            else 
+                match txt.LastIndexOf(find, fromIdx,StringComparison.Ordinal) with 
+                | -1 -> -1
+                | fi -> 
+                    match txt.LastIndexOf('"', fromIdx) with 
+                    | -1 -> fi
+                    | qei -> 
+                        if qei< fi then // but result was after string anyways
+                            fi
+                        else
+                            match getStringStartBack (qei-1)  txt with 
+                            | -1  -> -1 //should not happen // no start of string found,  search started inside a string 
+                            | qsi -> loop(qsi-1) // string had a start
+        
+        match getStringStartBack (txt.Length-1)  txt with 
+        | -1  -> -1 //should not happen
+        | q -> loop (q-1) 
+        
+        
+    /// test if a string contains a string from the end 
+    /// but ignore everything that is between double quotes(skiping escaped quotes)
+    let lastIndexOf (find:string) (txt:string)=  
+        if isLastCharOutsideQuotes txt then lastIndexOfFromOutside find txt
+        else                                lastIndexOfFromInside  find txt
+        
+        
+    
+   
+    
 
 (*  module Extern = 
         open System.Runtime.InteropServices

@@ -124,6 +124,7 @@
     <Compile Include="Src/Editor/CursorBehaviour.fs" />
     <Compile Include="Src/Editor/KeyboardShortcuts.fs" />
     <Compile Include="Src/Editor/Formating.fs" />
+    <Compile Include="Src/Editor/DocChanged.fs" />
     <Compile Include="Src/Editor/Editor.fs" />
 
     <Compile Include="Src/Views/Log.fs" />

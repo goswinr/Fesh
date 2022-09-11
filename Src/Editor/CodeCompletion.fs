@@ -1,4 +1,4 @@
-namespace Seff.Editor
+﻿namespace Seff.Editor
 
 open System
 open System.Windows
@@ -198,14 +198,13 @@ type Completions(avaEdit:TextEditor,config:Config, checker:Checker) =
     /// for a given method name retunes a list of optional argument names
     member this.OptArgsDict = optArgsDict
 
-    static member TryShow(iEditor:IEditor,compl:Completions, pos:PositionInCode , changetype:TextChange, setback:int, query:string, charBefore:CharBeforeQuery, onlyDU:bool) = 
-        //a static method so that i can take an IEditor as argument
+    static member TryShow(iEditor:IEditor,compl:Completions, pos:PositionInCode , lastChar:char, setback:int, query:string, charBefore:CharBeforeQuery, onlyDU:bool) = 
+        //a static method so that it can take an IEditor as argument
         let log = compl.Log
         let config = compl.Config
         let avaEdit = iEditor.AvaEdit
         //log.PrintfnDebugMsg "TryShow Completion Window for '%s'" pos.lineToCaret
         let ifDotSetback = if charBefore = Dot then setback else 0
-
 
         let contOnUI (decls: DeclarationListInfo, declSymbs: FSharpSymbolUse list list) = 
 
@@ -225,27 +224,26 @@ type Completions(avaEdit:TextEditor,config:Config, checker:Checker) =
                 completionLines.Add( CompletionItemForKeyWord(iEditor,config,"#if COMPILED",        "Compiler directive to exclude code in interactive format, close with #endif or #else" ) :> ICompletionData)    |>ignore
                 completionLines.Add( CompletionItemForKeyWord(iEditor,config,"#else",               "else of compiler directives " ) :> ICompletionData)    |>ignore
                 completionLines.Add( CompletionItemForKeyWord(iEditor,config,"#endif",              "End of compiler directive " ) :> ICompletionData)    |>ignore
-                // TODO: these paths dont work at the moment: 
+                // TODO: these paths dont work at the moment (2022): 
                 //completionLines.Add( CompletionItemForKeyWord(iEditor,config,"__SOURCE_DIRECTORY__","Evaluates to the current full path of the source directory" ) :> ICompletionData)    |>ignore
                 //completionLines.Add( CompletionItemForKeyWord(iEditor,config,"__SOURCE_FILE__"     ,"Evaluates to the current source file name, without its path") :> ICompletionData)    |>ignore
                 //completionLines.Add( CompletionItemForKeyWord(iEditor,config,"__LINE__",            "Evaluates to the current line number") :> ICompletionData)    |>ignore
                 for kw,desc in FSharpKeywords.KeywordsWithDescription  do // add keywords to list
                     completionLines.Add( CompletionItemForKeyWord(iEditor,config,kw,desc) :> ICompletionData) |>ignore
 
-
             for it in decls.Items do
                 match it.Glyph with
                 |FSharpGlyph.Union
                 |FSharpGlyph.Module
-                |FSharpGlyph.EnumMember -> completionLines.Add (new CompletionItem(iEditor,config, compl.GetToolTip, it, (changetype = EnteredDot))) // for DU completion add just some.
-                | _ -> if not onlyDU then  completionLines.Add (new CompletionItem(iEditor,config, compl.GetToolTip, it, (changetype = EnteredDot))) // for normal completion add all others too.
+                |FSharpGlyph.EnumMember -> completionLines.Add (new CompletionItem(iEditor,config, compl.GetToolTip, it, (lastChar = '.'))) // for DU completion add just some.
+                | _ -> if not onlyDU then  completionLines.Add (new CompletionItem(iEditor,config, compl.GetToolTip, it, (lastChar = '.'))) // for normal completion add all others too.
 
             if completionLines.Count > 0 then
                 compl.ShowingEv.Trigger() // to close error and type info tooltip
 
                 let w =  new CodeCompletion.CompletionWindow(avaEdit.TextArea)
                 compl.ComplWin <- Some w 
-                //w.CompletionList.Height <- 400.  // has  UI bug  
+                //w.CompletionList.Height <- 400.  // has  UI bug  //TODO
                 //w.Height <- 400. // does not work               
                 w.BorderThickness <- Thickness(0.0) //https://stackoverflow.com/questions/33149105/how-to-change-the-style-on-avalonedit-codecompletion-window
                 w.ResizeMode      <- ResizeMode.NoResize // needed to have no border!

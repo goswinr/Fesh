@@ -134,145 +134,13 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
         SelectedTextTracer.Setup(ed, config)
         BracketHighlighter.Setup(ed, ed.GlobalChecker)
 
-
-        Logging.LogAction <- new Action<string>( fun (s:string) -> log.PrintfnDebugMsg "Logging.Log: %s" s)
-
-        /// this line will include the character that trigger auto completion(dot or first letter)
-        let currentLineBeforeCaret()= 
-            let doc = avaEdit.Document
-            let car = avaEdit.TextArea.Caret
-            let caretOffset = car.Offset
-            let ln = doc.GetLineByOffset(caretOffset)
-            let caretOffsetInThisLine = caretOffset - ln.Offset
-            { lineToCaret = doc.GetText(ln.Offset, caretOffsetInThisLine)
-              row =    car.Line
-              column = caretOffsetInThisLine // equal to amount of characters in lineToCaret
-              offset = caretOffset }
-
-        let keywords = FSharpKeywords.KeywordsWithDescription |> List.map fst |> Collections.Generic.HashSet // used in analysing text change
-
-        let textChanged (change:TextChange) = 
-            //log.PrintfnDebugMsg "*1-textChanged because of %A" change
-            if compls.IsNotOpen then // TODO, isn't this already checked in 'docChanged' function that calls 'textChanged'
-                if compls.HasItems then
-                    //log.PrintfnDebugMsg "*1.2-textChanged not highlighting because  compls.HasItems"
-                    //TODO check text is full mtch and close completion window ?
-                    // just keep on tying in completion window, no type checking !
-                    ()
-                else
-                    //log.PrintfnDebugMsg "*1.1-textChanged: closing empty completion window(change: %A)" change
-                    compls.Close()
-
-                match change with
-                | OtherChange | CompletionWinClosed  | EnteredOneNonIdentifierChar -> //TODO maybe do less call to error highlighter when typing in string or comment ?
-                    //log.PrintfnDebugMsg "*1.2-textChanged highlighting for  %A" change
-                    ed.GlobalChecker.CkeckHighlightAndFold(ed)
-                    //TODO trigger here UpdateFoldings(tab,None) or use event
-
-                | EnteredOneIdentifierChar | EnteredDot ->
-                    let pos = currentLineBeforeCaret() // this line will include the character that trigger auto completion(dot or first letter)
-                    let lineTxt = pos.lineToCaret
-
-                    //possible cases where autocompletion is not desired:
-                    //let isNotInString           = (countChar '"' line ) - (countSubString "\\\"" line) |> isEven && not <| line.Contains "print" // "\\\"" to ignore escaped quotes of form \" ; check if formating string
-                    let isNotAlreadyInComment   = countSubString "//"  lineTxt = 0  ||  lastCharIs '/' lineTxt   // to make sure comment was not just typed(then still check)
-                    let isNotLetDecl            = let lk = (countSubString "let " lineTxt) + (countSubString "let(" lineTxt) in lk <= (countSubString "=" lineTxt) || lk <= (countSubString ":" lineTxt)
-                    //let isNotMemberDecl         = lineTxt. //TODO check if in Member name declaration
-
-                    // TODO add check for "for" declaration
-                    let isNotFunDecl            = let fk = (countSubString "fun " lineTxt) + (countSubString "fun(" lineTxt) in fk <= (countSubString "->" lineTxt)|| fk <= (countSubString ":" lineTxt)
-                    let doCompletionInPattern, onlyDU   = 
-                        match stringAfterLast " |" (" " + lineTxt) with // add starting step to not fail at start of line with "|" //TODO FIX
-                        |None    -> true,false
-                        |Some "" -> log.PrintfnDebugMsg " log.PrintfnDebugMsg: this should never happen since we get here only with letters, but not typing '|'" ; false, false // most common case: '|" was just typed, next pattern declaration starts after next car
-                        |Some s  ->
-                            let doCompl = 
-                                s.Contains "->"             || // name binding already happened
-                                s.Contains " when "         || // name binding already happened now in when clause
-                                isOperator s.[0]            || // not in pattern matching
-                                s.[0]=']'                   || // not in pattern matching
-                                (s.Contains " :?" && not <| s.Contains " as ")  // auto complete desired  after '| :?" type check but not after 'as'
-                            if not doCompl && startsWithUppercaseAfterWhitespace s then // do autocomplete on DU types when starting with uppercase Letter
-                               if s.Contains "(" || s.Contains " " then   false,false //no completion binding a new name inside a DU
-                               else                                       true ,true //upper case only, show DU and Enum in completion list, if all others are false
-                            else
-                               doCompl,false //not upper case, other 3 decide if anything is shown
-
-                    //log.PrintfnDebugMsg "isNotAlreadyInComment:%b; isNotFunDeclaration:%b; isNotLetDeclaration:%b; doCompletionInPattern:%b(, onlyDU:%b)" isNotAlreadyInComment isNotFunDecl isNotLetDecl doCompletionInPattern onlyDU
-
-                    if (*isNotInString &&*) isNotAlreadyInComment && isNotFunDecl && isNotLetDecl && doCompletionInPattern then
-                        let setback     = lastNonFSharpNameCharPosition lineTxt
-                        let query       = lineTxt.Substring(lineTxt.Length - setback)
-                        let isKeyword   = keywords.Contains query
-                        //log.PrintfnDebugMsg "pos:%A setback='%d'" pos setback
-
-                        let charBeforeQueryDU = 
-                            let i = pos.column - setback - 1
-                            if i >= 0 && i < lineTxt.Length then
-                                if lineTxt.[i] = '.' then Dot else NotDot
-                            else
-                                NotDot
-
-                        if charBeforeQueryDU = NotDot && isKeyword then
-                            //log.PrintfnDebugMsg "*2.1-textChanged highlighting with: query='%s', charBefore='%A', isKey=%b, setback='%d', line='%s' " query charBeforeQueryDU isKeyword setback line
-                            ed.GlobalChecker.CkeckHighlightAndFold(ed)
-
-                        else
-
-
-                           //log.PrintfnDebugMsg "*2.2-textChanged Completion window opening with: query='%s', charBefore='%A', isKey=%b, setback='%d', line='%s' change=%A" query charBeforeQueryDU isKeyword setback line change
-                           Completions.TryShow(ed, compls, pos, change, setback, query, charBeforeQueryDU, onlyDU)
-                    else
-                        //log.PrintfnDebugMsg "*2.3-textChanged didn't trigger of checker not needed? isNotAlreadyInComment = %b;isNotFunDecl = %b; isNotLetDecl = %b; doCompletionInPattern = %b" isNotAlreadyInComment  isNotFunDecl  isNotLetDecl  doCompletionInPattern
-                        ed.GlobalChecker.CkeckHighlightAndFold(ed)
-                        ()
-
-
-        let docChanged (e:DocumentChangeEventArgs) = 
-            //log.PrintfnDebugMsg "*Document.Changed Event: deleted %d '%s', inserted %d '%s', completion hasItems: %b, isOpen: %b , Just closed: %b" e.RemovalLength e.RemovedText.Text e.InsertionLength e.InsertedText.Text ed.Completions.HasItems ed.Completions.IsOpen compls.JustClosed
-                        
-            if compls.IsOpen then   // just keep on tying in completion window, no type checking !
-                if compls.HasItems then // TODO, this code is duplicated in textChanged function
-                    ()
-                    //let currentText = getField(typeof<CodeCompletion.CompletionList>,w.CompletionList,"currentText") :?> string //this property should be public !
-                    //TODO close Window if w.CompletionList.SelectedItem.Text = currentText
-                    //TODO there is a bug in current text when deleting chars
-                    //log.PrintfnDebugMsg "currentText: '%s'" currentText
-                    //log.PrintfnDebugMsg "w.CompletionList.CompletionData.Count:%d" w.CompletionList.ListBox.VisibleItemCount
-                else
-                    compls.Close()
-
-            else //no completion window open , do type check..
-                match e.InsertedText.Text with
-                |"."  ->                                             textChanged (EnteredDot         )//complete
-                | txt when txt.Length = 1 ->
-                    if compls.JustClosed then                        textChanged (CompletionWinClosed)//check to avoid retrigger of window on single char completions
-                    else
-                        let c = txt.[0]
-                        if Char.IsLetter(c) || c='_' || c='`' || c='#'  then   textChanged (EnteredOneIdentifierChar  ) //complete (# for #if directives) and __SOURCE_DIRECTORY__
-                        else                                         textChanged (EnteredOneNonIdentifierChar)//check
-
-                | _  ->                                              textChanged (OtherChange               )//several characters(paste) ,delete or completion window insert
-
-                compls.JustClosed<-false
-
-        /// for closing and inserting from completion window
-        let checkIfCompletionWindowShouldClose (ev:TextCompositionEventArgs) = 
-            if compls.IsOpen then
-                match ev.Text with              //this is not needed  for  general insertion,  insertion with Tab or Enter is built in !!
-                |" " -> compls.Close()
-                |"." -> compls.RequestInsertion(ev) // insert on dot too? //TODO only when more than one char is typed in completion window??
-                |"(" -> compls.RequestInsertion(ev) // insert on open Bracket too?
-                | _  -> () // other triggers https://github.com/icsharpcode/AvalonEdit/blob/28b887f78c821c7fede1d4fc461bde64f5f21bd1/AvalonEditB/CodeCompletion/CompletionList.cs#L171
-
-             //else compls.JustClosed<-false
+        Logging.LogAction <- new Action<string>( fun (s:string) -> log.PrintfnDebugMsg "Logging.Log: %s" s)       
+       
 
         avaEdit.Drop.Add                      (fun e -> CursorBehaviour.TextAreaDragAndDrop( avaEdit,e))
         avaEdit.PreviewKeyDown.Add            (fun e -> KeyboardShortcuts.previewKeyDown(    avaEdit, e, compls))   //to indent and dedent, and change block selection delete behavior
         avaEdit.TextArea.PreviewTextInput.Add (fun e -> CursorBehaviour.previewTextInput(    avaEdit, e))   //to change block selection delete behavior
         avaEdit.TextArea.AlternativeRectangularPaste <- Action<string,bool>( fun txt txtIsFromOtherRectSel -> RectangleSelection.paste(ed.AvaEdit,txt,txtIsFromOtherRectSel)) //TODO check txtIsFromOtherRectSel on pasting text with \r\n
-
-
 
         // setup and tracking folding status, (needs a ref to file path:  )
         ed.Folds.InitState( ed )
@@ -283,26 +151,31 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
         //----------------------------------
 
         // Evaluation Tracker:
-        // or avaEdit.Document.Changing?
-        avaEdit.Document.Changed.Add(fun a -> ed.EvalTracker.SetLastChangeAt(a.Offset))
-        avaEdit.Document.Changed.Add(docChanged)
-        //avaEdit.Document.Changed.Add(fun a -> ISeffLog.log.PrintfnColor 100 222 160 "Document.Changed:\r\n'%s'" avaEdit.Text)
+        // or use avaEdit.Document.Changing event ??
 
-        avaEdit.TextArea.TextEntering.Add (checkIfCompletionWindowShouldClose)
+        //avaEdit.Document.Changed.Add(fun a -> ISeffLog.log.PrintfnColor 100 222 160 "Document.Changed:\r\n'%s'" avaEdit.Text)
+        avaEdit.Document.Changed.Add(fun a -> ed.EvalTracker.SetLastChangeAt(a.Offset))
+        avaEdit.Document.Changed.Add(fun a -> 
+            match DocChanged.docChanged(a,ed,compls) with // the trigger for Autocomplete
+            |DocChanged.DoNothing->()
+            |DocChanged.CheckCode -> ed.GlobalChecker.CkeckHighlightAndFold(ed)
+            )        
+
+        // check if closing and inserting from completion window is desired now:
+        avaEdit.TextArea.TextEntering.Add (DocChanged.closeAndMaybeInsertFromCompletionWindow compls)
 
         ed.GlobalChecker.OnChecked.Add(fun iEditorOfCheck -> // this then triggers folding too, statusbar update is added in statusbar class
             if iEditorOfCheck.Id = ed.Id then // make sure it is only triggered on current editor!
-                ed.ErrorHighlighter.Draw(ed))
+                ed.ErrorHighlighter.Draw(ed)
+            )
 
         compls.OnShowing.Add(fun _ -> ed.ErrorHighlighter.ToolTip.IsOpen <- false)
-        compls.OnShowing.Add(fun _ -> ed.TypeInfoTip.IsOpen        <- false)
-
+        compls.OnShowing.Add(fun _ -> ed.TypeInfoTip.IsOpen              <- false)
 
         // Mouse Hover:
         avaEdit.TextArea.TextView.MouseHover.Add(fun e -> TypeInfo.mouseHover(e, ed, log, ed.TypeInfoTip))
         avaEdit.TextArea.TextView.MouseHoverStopped.Add(fun _ -> ed.TypeInfoTip.IsOpen <- false )
         avaEdit.TextArea.TextEntering.Add (fun _ -> ed.TypeInfoTip.IsOpen <- false )// close type info on typing
-
 
         ed
 
