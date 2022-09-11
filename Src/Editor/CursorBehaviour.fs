@@ -9,6 +9,7 @@ open AvalonEditB.Document
 
 open Seff.Model
 open Seff.Util.Str
+open System.Reflection.Metadata.Ecma335
 
 module Doc = 
 
@@ -38,35 +39,40 @@ module Doc =
                 | '\n' -> k
                 | _ -> find (off-1) 0
         find (offset-1) 0
-
-    let (*inline*) commentSlashesTillCaret caret (doc:TextDocument) = // removed inline to have function name in error stack trace
+    
+    /// If caret is in comment ( not at end of comment line) returns amount of slashes, otherwise 0
+    let isCaretInComment caret (doc:TextDocument):int =
         let ln = doc.GetLineByOffset(caret)
-        let rec find off k = 
-            if off = caret then k
-            else
-                match doc.GetCharAt(off) with
-                | ' ' when k=0-> find (off+1) k               
-                | '/' -> find (off+1) (k+1)   
-                |  _ -> k
-        find ln.Offset 0
+        let rec isInside pos = 
+            pos = ln.EndOffset
+            ||            
+            match doc.GetCharAt(pos) with
+            | ' ' | '\n' | '\r' -> isInside (pos+1)    
+            |  _ -> false
 
-    (*
-    /// Will do a bound check and return less chars if needed
-    let inline getTextBeforOffset desiredCharsCount offset  (doc:TextDocument) = 
-        if desiredCharsCount = 0 then ""
-        elif desiredCharsCount < 0 then failwithf "getTextBeforOffset desiredCharsCount=%d" desiredCharsCount
-        else
-            let last = doc.TextLength  - 1
-            let st = max 0 (offset - desiredCharsCount ) // - 1)
-            let en = min last (offset )//- 1) // only till char before offset
-            let len = en-st
-            if len < 1 then
-                "" //doc.GetText(st,0) fails !!
-            else
-                let t = doc.GetText(st,len)
-                //ISeffLog.log.PrintfnDebugMsg "before Offset %d : doc.GetText(%d,%d)='%s'" offset st len t
-                t
-    *)
+        if isInside caret then 
+            let rec find off k = 
+                if off = caret then k
+                else
+                    match doc.GetCharAt(off) with
+                    | ' ' when k=0-> find (off+1) k               
+                    | '/' -> find (off+1) (k+1)   
+                    |  _ -> k
+            find ln.Offset 0
+        else 
+            0
+
+    //let (*inline*) commentSlashesTillCaret caret (doc:TextDocument) = // removed inline to have function name in error stack trace
+    //    let ln = doc.GetLineByOffset(caret)
+    //    let rec find off k = 
+    //        if off = caret then k
+    //        else
+    //            match doc.GetCharAt(off) with
+    //            | ' ' when k=0-> find (off+1) k               
+    //            | '/' -> find (off+1) (k+1)   
+    //            |  _ -> k
+    //    find ln.Offset 0
+
 
     /// Will do a bound check and return less chars if needed
     let (*inline*) getTextBeforOffsetSkipSpaces desiredCharsCount offset  (doc:TextDocument) = // removed inline to have function name in error stack trace
@@ -90,19 +96,7 @@ module Doc =
             if len < 1 then
                 "" //doc.GetText(st,0) fails !!
             else
-                doc.GetText(st,len)
-    (*
-    /// Returns offset of next non white char, pass ovver all line breaks topo
-    let inline nextNonWhiteChar offset (doc:TextDocument) = 
-        let last = doc.TextLength - 1
-        let rec find off = 
-            if off > last then last
-            else
-                match doc.GetCharAt(off) with
-                | ' '  | '\r' | '\n' -> find (off+1)
-                | _ -> off
-        find offset
-    *)
+                doc.GetText(st,len)    
 
     /// Returns offset of next non white char, passing max one line break
     let (*inline*) nextNonWhiteCharOneLine offset (doc:TextDocument) = // removed inline to have function name in error stack trace
@@ -236,7 +230,8 @@ module CursorBehaviour  =
                     //ISeffLog.log.PrintfnDebugMsg "trimmed='%s' (%d chars)" trimmed trimmed.Length
                     e.Handled <- true // to not actually add another new line too // TODO raise TextArea.TextEntered Event ?
             else
-                let slashes = Doc.commentSlashesTillCaret caret doc
+                // start the next line with comment if the return was pressed inside a comment
+                let slashes = Doc.isCaretInComment caret doc
                 if slashes > 1 then 
                         let st = Doc.spacesAtStartOfLineAndBeforeOffset caret doc                
                         let insertText = Environment.NewLine + String(' ',st) + String('/',slashes)

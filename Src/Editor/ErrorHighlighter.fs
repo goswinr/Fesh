@@ -104,7 +104,9 @@ module ErrorUtil =
         match iEditor.FileCheckState with
         | GettingCode _  | Checking _ | NotStarted  | Failed -> None
         | Done res -> 
-            res.checkRes.Diagnostics |> Array.tryHead
+            res.checkRes.Diagnostics 
+            |> Seq.filter ( fun e ->  e.Severity = FSharpDiagnosticSeverity.Error ||  e.Severity = FSharpDiagnosticSeverity.Warning )
+            |> Seq.tryHead
 
     let getFirstSegment(iEditor:IEditor) =
         getFirstError(iEditor) 
