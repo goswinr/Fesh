@@ -228,7 +228,7 @@ type Foldings(ed:TextEditor, checker:Checker, config:Config, edId:Guid) =
         config.FoldingStatus.Set(ied) // so that they are saved immediately
     
     /// open any foldings if required and select at location
-    static member GoToLineAndUnfold(loc:TextSegment, ied:IEditor, config:Config) =         
+    static member GoToLineAndUnfold(loc:TextSegment, ied:IEditor, config:Config, selectText) =         
         let mutable unfoldedOneOrMore = false
         for fold in ied.FoldingManager.GetFoldingsContaining(loc.StartOffset) do
             if fold.IsFolded then
@@ -237,7 +237,11 @@ type Foldings(ed:TextEditor, checker:Checker, config:Config, edId:Guid) =
         let ln = ied.AvaEdit.Document.GetLineByOffset(loc.StartOffset)
         ied.AvaEdit.ScrollTo(ln.LineNumber,1)
         //ied.AvaEdit.CaretOffset<- loc.EndOffset // done by ied.AvaEdit.Select too
-        ied.AvaEdit.Select(loc.StartOffset, loc.Length)
+        if selectText then 
+            ied.AvaEdit.Select(loc.StartOffset, loc.Length)
+        else 
+            ied.AvaEdit.CaretOffset<-loc.StartOffset 
+
         if unfoldedOneOrMore then
             config.FoldingStatus.Set(ied) // so that they are saved immediately
 

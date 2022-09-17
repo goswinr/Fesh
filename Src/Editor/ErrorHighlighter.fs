@@ -37,33 +37,32 @@ module ErrorStyle=
     let infoSquiggle    = Pen(  Brushes.Green  |> darker 5      |> freeze, 1.0) |> Pen.freeze
     let infoBackGr      =       Brushes.Green  |> brighter 220   |> freeze
 
-module ErrorUtil = 
-    
-    type ErrorsBySeverity = {
-        errors    : ResizeArray<FSharpDiagnostic>
-        warnings : ResizeArray<FSharpDiagnostic>
-        infos    : ResizeArray<FSharpDiagnostic>
-        hiddens  : ResizeArray<FSharpDiagnostic>        }
+module ErrorUtil =    
         
+    let mutable private scrollToIdx = -1
+
     /// split errors by severity and sort by line number 
     let getBySeverity(checkRes:CodeAnalysis.FSharpCheckFileResults)  =
+        scrollToIdx <- -1
         let was = ResizeArray()  // Warnings
         let ers = ResizeArray()  // Errors
         let ins = ResizeArray()  // Infos        
         let his = ResizeArray()  // Hidden
+        let erWs = ResizeArray()  // Errors and Warnings
         for e in checkRes.Diagnostics do
             match e.Severity with
-            | FSharpDiagnosticSeverity.Error   -> ers.Add e
-            | FSharpDiagnosticSeverity.Warning -> was.Add e
+            | FSharpDiagnosticSeverity.Error   -> ers.Add e ; erWs.Add e
+            | FSharpDiagnosticSeverity.Warning -> was.Add e ; erWs.Add e
             | FSharpDiagnosticSeverity.Hidden  -> his.Add e
             | FSharpDiagnosticSeverity.Info    -> if e.ErrorNumber <> 3370 then ins.Add e   //  exclude infos about ref cell incrementing ??
 
         // make sure they are sorted , the tools below will then truncate this list to only mark the first 9 or so errors in the UI (for performance)
-        was.Sort(fun x y -> Operators.compare x.StartLine y.StartLine)
-        ers.Sort(fun x y -> Operators.compare x.StartLine y.StartLine)
-        ins.Sort(fun x y -> Operators.compare x.StartLine y.StartLine)
-        his.Sort(fun x y -> Operators.compare x.StartLine y.StartLine)
-        { errors = ers; warnings = was; infos = ins; hiddens = his }
+        was.Sort( fun x y -> Operators.compare x.StartLine y.StartLine)
+        ers.Sort( fun x y -> Operators.compare x.StartLine y.StartLine)
+        ins.Sort( fun x y -> Operators.compare x.StartLine y.StartLine)
+        his.Sort( fun x y -> Operators.compare x.StartLine y.StartLine)
+        erWs.Sort(fun x y -> Operators.compare x.StartLine y.StartLine)
+        { errors = ers; warnings = was; infos = ins; hiddens = his; errorsAndWarnings = erWs }
 
 
     /// because FSharpDiagnostic might have line number 0 form Parse-and-check-file-in-project errors, but Avalonedit starts at 1
@@ -98,19 +97,24 @@ module ErrorUtil =
             true, 
             false)
         geometry.Freeze()
-        geometry
+        geometry  
+    
 
-    let getFirstError(iEditor:IEditor)= 
-        match iEditor.FileCheckState with
-        | GettingCode _  | Checking _ | NotStarted  | Failed -> None
-        | Done res -> 
-            res.checkRes.Diagnostics 
-            |> Seq.filter ( fun e ->  e.Severity = FSharpDiagnosticSeverity.Error ||  e.Severity = FSharpDiagnosticSeverity.Warning )
-            |> Seq.tryHead
+    let getNextErrrorIdx( bySev:ErrorsBySeverity ) =
+        if bySev.errorsAndWarnings.Count=0 then -1
+        elif scrollToIdx >= bySev.errorsAndWarnings.Count-1 then 
+            scrollToIdx <- 0   
+            0
+        else         
+            scrollToIdx <- scrollToIdx+1            
+            scrollToIdx
 
-    let getFirstSegment(iEditor:IEditor) =
-        getFirstError(iEditor) 
-        |> Option.map ( getSegment iEditor.AvaEdit.Document)
+    let getNextSegment(ed:IEditor)= 
+        match ed.FileCheckState with 
+        | Done res -> Some <| getSegment (ed.AvaEdit.Document) (res.errors.errorsAndWarnings.[getNextErrrorIdx res.errors])
+        | _ -> None
+            
+       
         
 /// This segment also contains back and foreground color and diagnostic display text
 type SegmentToMark (startOffset, length, e:FSharpDiagnostic)  = 
@@ -192,12 +196,12 @@ type ErrorRenderer (ed:TextEditor, folds:Folding.FoldingManager, log:ISeffLog) =
                         let geo = ErrorUtil.getSquiggleLine(rect)
                         if isNull fold.BackbgroundColor then ctx.DrawRectangle(segToMark.BackgroundBrush, null, rect) // in case of selection highlighting skip brush only use Pen                        
                         ctx.DrawGeometry(Brushes.Transparent, segToMark.UnderlinePen, geo)
-                        )        
-        let bySev = ErrorUtil.getBySeverity(res.checkRes)
-        for i in bySev.hiddens  |> Seq.truncate 9  do mark(i)                
-        for i in bySev.infos    |> Seq.truncate 9  do mark(i)                
-        for w in bySev.warnings |> Seq.truncate 9  do mark(w)                
-        for e in bySev.errors    |> Seq.truncate 9  do mark(e)   // draw error last, after warning, to be on top !   
+                        )  
+        let es = res.errors
+        for h in es.hiddens  |> Seq.truncate 9  do mark(h)    // TODo only highlight the first 9 ?            
+        for i in es.infos    |> Seq.truncate 9  do mark(i)                
+        for w in es.warnings |> Seq.truncate 9  do mark(w)                
+        for e in es.errors   |> Seq.truncate 9  do mark(e)   // draw error last, after warning, to be on top of them!   
             
         txA.TextView.Redraw()
 

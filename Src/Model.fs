@@ -8,6 +8,7 @@ open AvalonEditB
 open AvalonEditB.Folding
 
 open FSharp.Compiler.CodeAnalysis
+open FSharp.Compiler
 
 
 type ISeffLog = 
@@ -87,10 +88,19 @@ type CodeInChecker =
     | PartialCode of CodeAsString // happens for autocomplete triggers
     member this.FsCode = match this with  FullCode s -> s  | PartialCode s -> s
 
+type ErrorsBySeverity = {
+    errors   : ResizeArray<Diagnostics.FSharpDiagnostic>
+    warnings : ResizeArray<Diagnostics.FSharpDiagnostic>
+    infos    : ResizeArray<Diagnostics.FSharpDiagnostic>
+    hiddens  : ResizeArray<Diagnostics.FSharpDiagnostic> 
+    errorsAndWarnings  : ResizeArray<Diagnostics.FSharpDiagnostic> 
+    }
+
 /// The Results from FSharp.Compiler.Service
 type CheckResults = {
     parseRes    :FSharpParseFileResults
     checkRes    :FSharpCheckFileResults
+    errors      :ErrorsBySeverity
     code        :CodeInChecker
     checkId     :CheckId     }
 

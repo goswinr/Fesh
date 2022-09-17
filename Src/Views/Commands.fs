@@ -36,7 +36,7 @@ type Commands (grid:TabsAndLog, statusBar:SeffStatusBar)  =
     let evalSelectedText()     =  fsi.Evaluate {editor=tabs.Current.Editor; amount = FsiSegment <|SelectionForEval.current (tabs.CurrAvaEdit)                   ; logger=None}   // null or empty check is done in fsi.Evaluate
     let evalTillCursor()       =  fsi.Evaluate {editor=tabs.Current.Editor; amount = FsiSegment <|SelectionForEval.linesTillCursor(tabs.CurrAvaEdit)            ; logger=None}
 
-    let goToError()            = match ErrorUtil.getFirstSegment(tabs.Current.Editor) with Some s -> Foldings.GoToLineAndUnfold(s, tabs.Current.Editor, config) | None -> ()
+    let goToError()            = match ErrorUtil.getNextSegment(tabs.Current.Editor) with Some s -> Foldings.GoToLineAndUnfold(s, tabs.Current.Editor, config, false) | None -> ()
 
     //let evalFromCursor()       =  let ln,tx = Selection.linesFromCursor(tabs.CurrAvaEdit)             in  fsi.Evaluate {editor=tabs.Current.Editor; code = tx ; file=tabs.Current.FilePath; allOfFile=false; fromLine = ln }
 
@@ -101,7 +101,7 @@ type Commands (grid:TabsAndLog, statusBar:SeffStatusBar)  =
     
 
     
-    member val GoToError         = {name= "Go to first Error"         ;gesture= "Ctrl + E"        ;cmd= mkCmdSimple (fun _ -> goToError())  ;tip= "Scroll to first error ( if any present) and select error segment." }
+    member val GoToError         = {name= "Sroll to Errors"         ;gesture= "Ctrl + E"        ;cmd= mkCmdSimple (fun _ -> goToError())  ;tip= "Scroll step by step through error segments. Unfold if needed" }
 
 
     member val ClearLog          = {name= "Clear Log"                 ;gesture= "Ctrl + Alt + C" ;cmd= mkCmdSimple (fun _ -> log.Clear())             ;tip= "Clear all text from FSI Log window"  }

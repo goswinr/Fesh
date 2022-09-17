@@ -107,7 +107,7 @@ type Checker private (config:Config)  =
                         // optionsStamp: An optional unique stamp for the options.
                         // userOpName: An optional string used for tracing compiler operations associated with this request.
                         let! options, optionsErr = 
-                                checker.Value.GetProjectOptionsFromScript(filename          = fileFsx
+                                checker.Value.GetProjectOptionsFromScript(fileName          = fileFsx
                                                                          ,source            = sourceText
                                                                          ,previewEnabled    = true // // Bug in FCS! if otherFlags argument is given the value here is ignored !
                                                                          //,loadedTimeStamp: DateTime *
@@ -143,7 +143,14 @@ type Checker private (config:Config)  =
                                 match checkAnswer with
                                 | FSharpCheckFileAnswer.Succeeded checkRes ->
                                     if !checkId = thisId  then // this ensures that status gets set to done if no checker has started in the meantime
-                                        let res = {parseRes = parseRes;  checkRes = checkRes;  code = codeInChecker ; checkId=thisId }
+                                        let res =
+                                            {
+                                            parseRes = parseRes  
+                                            checkRes = checkRes
+                                            errors = ErrorUtil.getBySeverity checkRes
+                                            code = codeInChecker  
+                                            checkId=thisId 
+                                            }
                                         globalCheckState <- Done res
                                         iEditor.FileCheckState <- globalCheckState
 
@@ -156,11 +163,14 @@ type Checker private (config:Config)  =
 
                                         | None ->
                                             do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context
-                                            if !checkId = thisId  then                                                
-                                                checkedEv.Trigger(iEditor) // to mark statusbar , and highlighting errors
-                                                if isFirstCheck then
-                                                    firstCheckDoneEv.Trigger() // to now start FSI
-                                                    isFirstCheck <- false
+                                            try
+                                                if !checkId = thisId  then                                                
+                                                    checkedEv.Trigger(iEditor) // to mark statusbar , and highlighting errors
+                                                    if isFirstCheck then
+                                                        firstCheckDoneEv.Trigger() // to now start FSI
+                                                        isFirstCheck <- false
+                                            with
+                                                e -> log.PrintfnAppErrorMsg "The checked Event after ParseAndCheckFileInProject failed with:\r\n %A" e
 
                                 | FSharpCheckFileAnswer.Aborted  ->
                                     log.PrintfnAppErrorMsg "FSharpChecker.ParseAndCheckFileInProject(filepath, 0, sourceText , options) returned: FSharpCheckFileAnswer.Aborted\r\nFSharpParseFileResults is: %A" parseRes
