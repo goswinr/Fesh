@@ -144,7 +144,7 @@ type Tab (editor:Editor, config:Seff.Config.Config, allFileInfos:seq<IO.FileInfo
 
     member this.CloseButton = closeButton // public so click event can be attached later in Tabs.fs AddTab
 
-    member this.FormatedFileName = 
+    member this.FormattedFileName = 
         match this.FilePath with
         |SetTo fi   -> sprintf "%s" fi.FullName //sprintf "%s\r\nat\r\n%s" fi.Name fi.DirectoryName
         |NotSet     -> textBlock.Text

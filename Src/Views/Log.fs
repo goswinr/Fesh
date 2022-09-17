@@ -17,8 +17,8 @@ open Seff.Config
 
 module LogColors = 
 
-    let mutable consoleOut    = Brushes.Black             |> freeze // should be same as default  forground. Will be set on foreground changes
-    let fsiStdOut     = Brushes.DarkGray |> darker 20     |> freeze // values printet by fsi iteself like "val it = ...."
+    let mutable consoleOut    = Brushes.Black             |> freeze // should be same as default  foreground. Will be set on foreground changes
+    let fsiStdOut     = Brushes.DarkGray |> darker 20     |> freeze // values printed by fsi itself like "val it = ...."
     let fsiErrorOut   = Brushes.DarkMagenta               |> freeze //are they all caught by evaluate non throwing ? prints "Stopped due to error" on non compiling code
     let consoleError  = Brushes.OrangeRed                 |> freeze // this is used by eprintfn
     let infoMsg       = Brushes.LightSeaGreen             |> freeze
@@ -26,17 +26,19 @@ module LogColors =
     let appErrorMsg   = Brushes.LightSalmon |> darker 20  |> freeze
     let iOErrorMsg    = Brushes.DarkRed                   |> freeze
     let debugMsg      = Brushes.Green                     |> freeze
+    let runtimeErr    = Brushes.Red          |> darker 55 |> freeze
 
-    let red           = Brushes.Red                     |> freeze
-    let green         = Brushes.Green                   |> freeze
-    let blue          = Brushes.Blue                    |> freeze
+    //let red           = Brushes.Red                     |> freeze
+    //let green         = Brushes.Green                   |> freeze
+    //let blue          = Brushes.Blue                    |> freeze
 
 
-/// A ReadOnly text AvalonEdit Editor that provides print formating methods
+/// A ReadOnly text AvalonEdit Editor that provides print formatting methods
 /// call ApplyConfig() once config is set up too, (config depends on this Log instance)
 type Log private () = 
 
     let log =  new AvalonLog.AvalonLog()
+    let mutable addLogger : option<TextWriter> = None
 
     do
         //styling:
@@ -66,6 +68,21 @@ type Log private () =
     let textWriterFsiStdOut     =  log.GetTextWriter   ( LogColors.fsiStdOut )
     let textWriterFsiErrorOut   =  log.GetConditionalTextWriter ( (fun s -> fsiErrorsStringBuilder.Append(s)|> ignore; true) ,  LogColors.fsiErrorOut) // use filter for side effect
 
+    
+    /// for An additional textwriter to also write Info, AppError, IOError,Debug and FsiError messages to.
+    /// But not any other text printed with any custom color. 
+    let appendAndLogLn (b:SolidColorBrush) (tx:string) =
+        log.AppendLineWithBrush (b, tx)
+        match addLogger with 
+        | Some tw -> tw.WriteLine tx
+        | None ->()
+    
+    let appendAndLog (b:SolidColorBrush) (tx:string) =
+        log.AppendWithBrush (b, tx)
+        match addLogger with 
+        | Some tw -> tw.Write tx
+        | None ->()
+
 
     //-----------------------------------------------------------
     //----------------------members:------------------------------------------
@@ -76,16 +93,15 @@ type Log private () =
     member this.FsiErrorsStringBuilder = fsiErrorsStringBuilder  
 
     member internal this.AdjustToSettingsInConfig(config:Config)= 
-        //this.OnPrint.Add (config.AssemblyReferenceStatistic.RecordFromlog) // TODO: does this have print perfomance impact ? measure do async ?
+        //this.OnPrint.Add (config.AssemblyReferenceStatistic.RecordFromlog) // TODO: does this have print performance impact ? measure do async ?
         setLineWrap( config.Settings.GetBool ("logHasLineWrap", true) )
         log.FontSize  <- config.Settings.GetFloat ("FontSize" , Seff.Style.fontSize )
 
     member this.ToggleLineWrap(config:Config)= 
-        let newState = not  log.WordWrap
+        let newState = not log.WordWrap
         setLineWrap newState
         config.Settings.SetBool ("logHasLineWrap", newState)
         config.Settings.Save ()
-
 
     member this.Clear() = log.Clear()
 
@@ -95,15 +111,15 @@ type Log private () =
     member this.TextWriterConsoleOut   = textWriterConsoleOut
     member this.TextWriterConsoleError = textWriterConsoleError
 
-    member this.PrintfnInfoMsg      msg =  log.printfnBrush LogColors.infoMsg    msg
-    member this.PrintfnFsiErrorMsg  msg =  log.printfnBrush LogColors.fsiErrorMsg  msg
-    member this.PrintfnAppErrorMsg  msg =  log.printfnBrush LogColors.appErrorMsg  msg
-    member this.PrintfnIOErrorMsg   msg =  log.printfnBrush LogColors.iOErrorMsg   msg
-    member this.PrintfnDebugMsg     msg =  log.printfnBrush LogColors.debugMsg     msg
+    member this.PrintfnRuntimeErr   msg =  Printf.kprintf ( appendAndLogLn LogColors.runtimeErr   ) msg
+    member this.PrintfnInfoMsg      msg =  Printf.kprintf ( appendAndLogLn LogColors.infoMsg      ) msg
+    member this.PrintfnAppErrorMsg  msg =  Printf.kprintf ( appendAndLogLn LogColors.appErrorMsg  ) msg
+    member this.PrintfnIOErrorMsg   msg =  Printf.kprintf ( appendAndLogLn LogColors.iOErrorMsg   ) msg
+    member this.PrintfnDebugMsg     msg =  Printf.kprintf ( appendAndLogLn LogColors.debugMsg     ) msg
+    member this.PrintfnFsiErrorMsg  msg =  Printf.kprintf ( appendAndLogLn LogColors.fsiErrorMsg  ) msg                                                                                                    
+    /// Prints without adding a new line at the end                                                 
+    member this.PrintfFsiErrorMsg   msg =  Printf.kprintf ( appendAndLog   LogColors.fsiErrorMsg  ) msg
 
-
-    /// Prints without adding a new line at the end
-    member this.PrintfFsiErrorMsg  msg =  log.printfBrush LogColors.fsiErrorMsg  msg
 
     /// Change custom color to a RGB value ( each between 0 and 255). Then print
     member this.PrintfnColor red green blue msg =  log.printfnColor red green blue msg
@@ -113,7 +129,7 @@ type Log private () =
     member this.PrintfColor red green blue msg = log.printfColor red green blue msg
 
 
-    // ------------------- for use from Seff.Rhino with just a string , no formating: -------------------------------------
+    // ------------------- for use from Seff.Rhino with just a string , no formatting: -------------------------------------
 
     /// Change custom color to a RGB value ( each between 0 and 255)
     /// Then print without adding a new line at the end
@@ -123,6 +139,9 @@ type Log private () =
     /// Adds a new line at the end
     member this.PrintnColor red green blue s = log.AppendLineWithColor (red, green, blue, s)
 
+    /// An additional textwriter to also write Info, AppError, IOError,Debug and FsiError messages to.
+    /// But not any other text printed with any custom color. 
+    member this.AdditionalLogger with get() = addLogger and set l = addLogger <- l
 
     interface ISeffLog with
         
@@ -132,18 +151,23 @@ type Log private () =
         member _.TextWriterConsoleOut   = textWriterConsoleOut   :> TextWriter
         member _.TextWriterConsoleError = textWriterConsoleError :> TextWriter
 
-        member this.PrintfnInfoMsg     msg =            this.PrintfnInfoMsg     msg
-        member this.PrintfnAppErrorMsg msg =            this.PrintfnAppErrorMsg msg
-        member this.PrintfnIOErrorMsg  msg =            this.PrintfnIOErrorMsg  msg
-        member this.PrintfnDebugMsg    msg =            this.PrintfnDebugMsg    msg
+        member this.PrintfnRuntimeErr  msg =  this.PrintfnRuntimeErr   msg 
+        member this.PrintfnInfoMsg     msg =   this.PrintfnInfoMsg     msg
+        member this.PrintfnAppErrorMsg msg =   this.PrintfnAppErrorMsg msg
+        member this.PrintfnIOErrorMsg  msg =   this.PrintfnIOErrorMsg  msg
+        member this.PrintfnDebugMsg    msg =   this.PrintfnDebugMsg    msg
 
-        member this.PrintfnFsiErrorMsg msg =            this.PrintfnFsiErrorMsg msg
-        member this.PrintfFsiErrorMsg msg          = this.PrintfFsiErrorMsg msg
+        member this.PrintfnFsiErrorMsg msg =   this.PrintfnFsiErrorMsg msg
+        member this.PrintfFsiErrorMsg  msg =   this.PrintfFsiErrorMsg msg
 
-        member this.PrintfnColor red green blue msg =   this.PrintfnColor red green blue msg
-        member this.PrintfColor red green blue msg = this.PrintfColor red green blue msg
+        member this.PrintfnColor red green blue msg = this.PrintfnColor red green blue msg
+        member this.PrintfColor  red green blue msg = this.PrintfColor red green blue msg
 
         member this.Clear() = this.Clear()
+
+        /// An additional textwriter to also write Info, AppError, IOError,Debug and FsiError messages to.
+        /// But not any other text printed with any custom color. 
+        member this.AdditionalLogger with get() = addLogger and set l = addLogger <- l
 
     member this.SaveAllText (pathHint: FilePath) = 
         let dlg = new Microsoft.Win32.SaveFileDialog()
@@ -177,7 +201,7 @@ type Log private () =
                fi.Refresh()
                if fi.Directory.Exists then dlg.InitialDirectory <- fi.DirectoryName
                dlg.FileName <- fi.Name + "_Log"
-           dlg.Title <- "Save Seleceted Text from Log Window of " + Style.dialogCaption
+           dlg.Title <- "Save Selected Text from Log Window of " + Style.dialogCaption
            dlg.DefaultExt <- ".txt"
            dlg.Filter <- "Text Files(*.txt)|*.txt|Text Files(*.csv)|*.csv|All Files(*.*)|*"
            if isTrue (dlg.ShowDialog()) then
@@ -199,16 +223,16 @@ type Log private () =
         ISeffLog.printnColor <- l.PrintnColor
         ISeffLog.clear       <- l.Clear
 
-        // these two wher part of FSI initilizing in the past
-        Console.SetOut  (l.TextWriterConsoleOut)   // TODO needed to redirect printfn or coverd by TextWriterFsiStdOut? //https://github.com/fsharp/FSharp.Compiler.Service/issues/201
-        Console.SetError(l.TextWriterConsoleError) // TODO needed if evaluate non throwing or coverd by TextWriterFsiErrorOut?
+        // these two where part of FSI initializing in the past
+        Console.SetOut  (l.TextWriterConsoleOut)   // TODO needed to redirect printfn or covered by TextWriterFsiStdOut? //https://github.com/fsharp/FSharp.Compiler.Service/issues/201
+        Console.SetError(l.TextWriterConsoleError) // TODO needed if evaluate non throwing or covered by TextWriterFsiErrorOut?
         
         l
    
         (*
         trying to enable Ansi Control sequences for https://github.com/spectreconsole/spectre.console
 
-        but doeant work yet ESC char seam to be swallowed by Console.SetOut to textWriter. see:
+        but doesn't work yet ESC char seam to be swallowed by Console.SetOut to textWriter. see:
 
         //https://stackoverflow.com/a/34078058/969070
         //let stdout = Console.OpenStandardOutput()

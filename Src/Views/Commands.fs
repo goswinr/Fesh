@@ -1,4 +1,4 @@
-﻿namespace Seff.Views
+namespace Seff.Views
 
 open System
 open System.Windows
@@ -53,7 +53,7 @@ type Commands (grid:TabsAndLog, statusBar:SeffStatusBar)  =
     let isAsy472(_:obj) = fsi.State = Evaluating && fsi.Mode = Async472
 
     // NOTE :--------------------------------------------------------------------
-    // some more gestures and for selection manipulation are defined in module CursorBehaviour.previewKeyDown(..)
+    // some more gestures and for selection manipulation are defined in module CursorBehavior.previewKeyDown(..)
     // NOTE :--------------------------------------------------------------------
 
     // File menu:
@@ -72,17 +72,17 @@ type Commands (grid:TabsAndLog, statusBar:SeffStatusBar)  =
     //Edit menu:
     member val Comment           = {name= "Comment"                   ;gesture= "Ctrl + K"       ;cmd= mkCmdSimple (fun _ -> Commenting.comment tabs.CurrAvaEdit)                ;tip= "Removes '//' at the beginning of current line, \r\nor from all line touched by current selection" }
     member val UnComment         = {name= "Uncomment"                 ;gesture= "Ctrl + U"       ;cmd= mkCmdSimple (fun _ -> Commenting.unComment tabs.CurrAvaEdit)              ;tip= "Puts '//' at the beginning of current line, \r\nor all line touched by current selection" }
-    member val ToggleComment     = {name= "Toggle Comment"            ;gesture= "Ctrl + /"       ;cmd= mkCmdSimple (fun _ -> Commenting.toggleComment tabs.CurrAvaEdit)          ;tip= "Toggels the commebntedlines in current selection." }
+    member val ToggleComment     = {name= "Toggle Comment"            ;gesture= "Ctrl + /"       ;cmd= mkCmdSimple (fun _ -> Commenting.toggleComment tabs.CurrAvaEdit)          ;tip= "Toggles the commented lines in current selection." }
 
     member val SwapLineUp        = {name= "Swap Lines Up"              ;gesture= "Alt + Up"       ;cmd=mkCmdSimple (fun _ -> SwapLines.swapLinesUp  (tabs.Current.Editor))      ;tip= "Swap the current line(s) with the previous line."  }
     member val SwapLineDown      = {name= "Swap Lines Down"            ;gesture= "Alt + Down"     ;cmd=mkCmdSimple (fun _ -> SwapLines.swapLinesDown(tabs.Current.Editor))      ;tip= "Swap the current line(s) with the next line."  }
 
-    member val ToUppercase       = {name= "To UPPERCASE"              ;gesture= ""               ;cmd=AvalonEditCommands.ConvertToUppercase                                      ;tip= "Convertes the selected text to UPPERCASE."  }
-    member val Tolowercase       = {name= "To lowercase"              ;gesture= ""               ;cmd=AvalonEditCommands.ConvertToLowercase                                      ;tip= "Convertes the selected text to lowercase."  }
-    member val ToTitleCase       = {name= "To Titlecase "             ;gesture= ""               ;cmd=AvalonEditCommands.ConvertToTitleCase                                      ;tip= "Convertes the selected text to Titlecase."  }
-    member val ToggleBoolean     = {name= "Toggle bool literal"       ;gesture= "Ctrl + T"       ;cmd = mkCmdSimple (fun _ -> CursorBehaviour.toggleBoolean(tabs.CurrAvaEdit) )  ;tip= "Convertes a 'true' literal to 'false' and a 'false' literal to 'true' if they are currently selected exclusively." }
+    member val ToUppercase       = {name= "To UPPERCASE"              ;gesture= ""               ;cmd=AvalonEditCommands.ConvertToUppercase                                      ;tip= "Converts the selected text to UPPERCASE."  }
+    member val Tolowercase       = {name= "To lowercase"              ;gesture= ""               ;cmd=AvalonEditCommands.ConvertToLowercase                                      ;tip= "Converts the selected text to lowercase."  }
+    member val ToTitleCase       = {name= "To Titlecase "             ;gesture= ""               ;cmd=AvalonEditCommands.ConvertToTitleCase                                      ;tip= "Converts the selected text to Titlecase."  }
+    member val ToggleBoolean     = {name= "Toggle bool literal"       ;gesture= "Ctrl + T"       ;cmd = mkCmdSimple (fun _ -> CursorBehavior.toggleBoolean(tabs.CurrAvaEdit) )  ;tip= "Converts a 'true' literal to 'false' and a 'false' literal to 'true' if they are currently selected exclusively." }
 
-    member val AlignCode         = {name= "Align Code Vertically"     ;gesture= "Ctrl + I"       ;cmd = mkCmdSimple (fun _ -> Formating.alignByNonLetters(tabs.Current.Editor))  ;tip= "Experimental Feature, Tries to inserts spaces where required so that non leter symbols align vertically." }
+    member val AlignCode         = {name= "Align Code Vertically"     ;gesture= "Ctrl + I"       ;cmd = mkCmdSimple (fun _ -> Formatting.alignByNonLetters(tabs.Current.Editor))  ;tip= "Experimental Feature, Tries to inserts spaces where required so that non letter symbols align vertically." }
 
     //Select menu:
     member val SelectLine        = {name= "Select Current Line"       ;gesture= "Ctrl  + L"     ;cmd= mkCmdSimple (fun _ -> expandSelectionToFullLines(tabs.CurrAvaEdit) |> ignore )  ;tip= "Select current line"} // TODO compare VSCODE shortcuts to  see https://github.com/icsharpcode/SharpDevelop/wiki/Keyboard-Shortcuts
@@ -91,17 +91,17 @@ type Commands (grid:TabsAndLog, statusBar:SeffStatusBar)  =
 
     //FSI menu:
     member val MarkEval          = {name= "Mark as Evaluated till Current Line" ;gesture= ""          ;cmd= mkCmdSimple (fun _ -> markEvaluated())            ;tip= "Mark text till current line inclusive as evaluated." }
-    member val EvalContinue      = {name= "Save, Continue Evaluation"           ;gesture= "F4"        ;cmd= mkCmdSimple (fun _ -> evalContinue())             ;tip= "Saves the current file only if ist has a file path, then sends all chanaged or new lines after end of gray background text to FSharp Interactive." }
+    member val EvalContinue      = {name= "Save, Continue Evaluation"           ;gesture= "F4"        ;cmd= mkCmdSimple (fun _ -> evalContinue())             ;tip= "Saves the current file only if ist has a file path, then sends all changed or new lines after end of gray background text to FSharp Interactive." }
     member val RunAllText        = {name= "Evaluate All"                   ;gesture= "F5"             ;cmd= mkCmdSimple (fun _ -> evalAllText() )             ;tip= "Send all text in the current file to FSharp Interactive." }
     member val RunAllTextSave    = {name= "Save, Evaluate All"             ;gesture= "F6"             ;cmd= mkCmdSimple (fun _ -> evalAllTextSave())          ;tip= "First save current file, then send all it's text to FSharp Interactive." }
     member val RunAllTxSaveClear = {name= "Clear Log, Save, Evaluate All"  ;gesture= "F7"             ;cmd= mkCmdSimple (fun _ -> evalAllTextSaveClear())     ;tip= "First clear Log, then save current file, then  then send all text to FSharp Interactive,." }
-    member val RunCurrentLines   = {name= "Evaluate CurrentLines"          ;gesture= "Ctrl + Enter"   ;cmd= mkCmdSimple (fun _ -> evalSelectedLines())        ;tip= "Sends the currently seleceted lines in the editor to FSharp Interactive.\r\nIncludes partially selected lines in full."}
-    member val RunSelectedText   = {name= "Evaluate Selected Text"         ;gesture= "Alt + Enter"    ;cmd= mkCmd isEse (fun _ -> evalSelectedText())         ;tip= "Sends the currently seleceted text in the editor to FSharp Interactive." }// TODO mark evaluated code with grey background
+    member val RunCurrentLines   = {name= "Evaluate CurrentLines"          ;gesture= "Ctrl + Enter"   ;cmd= mkCmdSimple (fun _ -> evalSelectedLines())        ;tip= "Sends the currently selected lines in the editor to FSharp Interactive.\r\nIncludes partially selected lines in full."}
+    member val RunSelectedText   = {name= "Evaluate Selected Text"         ;gesture= "Alt + Enter"    ;cmd= mkCmd isEse (fun _ -> evalSelectedText())         ;tip= "Sends the currently selected text in the editor to FSharp Interactive." }// TODO mark evaluated code with gray background
     member val RunTextTillCursor = {name= "Evaluate till Cursor"           ;gesture= "F3"             ;cmd= mkCmdSimple (fun _ -> evalTillCursor())           ;tip= "Sends all lines till and including the current line to FSharp Interactive." }
     
 
     
-    member val GoToError         = {name= "Go to first Error"         ;gesture= "Ctrl + E"        ;cmd= mkCmdSimple (fun _ -> goToError())  ;tip= "Scroll to first error ( if any ppresent) and select error segment." }
+    member val GoToError         = {name= "Go to first Error"         ;gesture= "Ctrl + E"        ;cmd= mkCmdSimple (fun _ -> goToError())  ;tip= "Scroll to first error ( if any present) and select error segment." }
 
 
     member val ClearLog          = {name= "Clear Log"                 ;gesture= "Ctrl + Alt + C" ;cmd= mkCmdSimple (fun _ -> log.Clear())             ;tip= "Clear all text from FSI Log window"  }
@@ -113,27 +113,27 @@ type Commands (grid:TabsAndLog, statusBar:SeffStatusBar)  =
 
    //View menu:
     member val ToggleSplit       = {name= "Toggle Window Split"       ;gesture= ""               ;cmd= mkCmdSimple (fun _ -> grid.ToggleSplit())         ;tip= "Toggle between vertical and horizontal window arrangement of Editor and Log View" }
-    member val ToggleLogSize     = {name= "Toggle Log Maximased"      ;gesture= "F11"            ;cmd= mkCmdSimple (fun _ -> grid.ToggleMaxLog())        ;tip= "Maximises or resets the size of the Log window. \r\n(depending on current state)" }
-    member val ToggleLogLineWrap = {name= "Toggle Line Wraping in Log";gesture= "Alt + Z"        ;cmd= mkCmdSimple (fun _ -> log.ToggleLineWrap(config)) ;tip= "Toggle Line Wraping in Log window" }
+    member val ToggleLogSize     = {name= "Toggle Log Maximized"      ;gesture= "F11"            ;cmd= mkCmdSimple (fun _ -> grid.ToggleMaxLog())        ;tip= "Maximizes or resets the size of the Log window. \r\n(depending on current state)" }
+    member val ToggleLogLineWrap = {name= "Toggle Line Wrapping in Log";gesture= "Alt + Z"        ;cmd= mkCmdSimple (fun _ -> log.ToggleLineWrap(config)) ;tip= "Toggle Line Wrapping in Log window" }
     member val FontBigger        = {name= "Make Font Bigger"          ;gesture= "Ctrl + '+'"     ;cmd= mkCmdSimple (fun _ -> fonts.FontsBigger())        ;tip= "Increase Text Size for both Editor and Log" }
     member val FontSmaller       = {name= "Make Font Smaller"         ;gesture= "Ctrl + '-'"     ;cmd= mkCmdSimple (fun _ -> fonts.FontsSmaller())       ;tip= "Decrease Text Size for both Editor and Log" }
     member val CollapseCode      = {name= "Collapse all Code Foldings";gesture= ""               ;cmd= mkCmdSimple (fun _ -> Foldings.CollapseAll(tabs.Current.Editor,tabs.Config))     ;tip= "Collapse all Code Foldings in this file" }
-    member val CollapsePrim      = {name= "Collapse primary Code Foldings";gesture= ""           ;cmd= mkCmdSimple (fun _ -> Foldings.CollapsePrimary(tabs.Current.Editor,tabs.Config)) ;tip= "Collapse primary Code Foldings, doesn't chnage secondary or tertiary foldings" }
+    member val CollapsePrim      = {name= "Collapse primary Code Foldings";gesture= ""           ;cmd= mkCmdSimple (fun _ -> Foldings.CollapsePrimary(tabs.Current.Editor,tabs.Config)) ;tip= "Collapse primary Code Foldings, doesn't change secondary or tertiary foldings" }
     member val ExpandCode        = {name= "Expand all Code Foldings"  ;gesture= ""               ;cmd= mkCmdSimple (fun _ -> Foldings.ExpandAll(tabs.Current.Editor,tabs.Config))       ;tip= "Expand or unfold all Code Foldings in this file"  }
-    member val PopOutToolTip     = {name= "Make Tooltip persitent"    ;gesture= "Ctrl + P"       ;cmd= mkCmdSimple (fun _ -> PopOut.create(grid,statusBar))  ;tip= "Makes all currently showing ToolTip, Typeinfo or Errorinfo windows persistent as pop up window" }
+    member val PopOutToolTip     = {name= "Make Tooltip persistent"    ;gesture= "Ctrl + P"       ;cmd= mkCmdSimple (fun _ -> PopOut.create(grid,statusBar))  ;tip= "Makes all currently showing ToolTip, Typeinfo or Errorinfo windows persistent as pop up window" }
 
     //About Menu
     member val Version           = {name= "Version " + version.Value  ;gesture= ""               ;cmd= mkCmdSimple (fun _ -> Diagnostics.Process.Start("http://seff.io/") |> ignore )     ;tip= "Opens a browser window showing http://seff.io/"  }
-    member val SettingsFolder    = {name= "Open Settings Folder"      ;gesture= ""               ;cmd= mkCmdSimple (fun _ -> config.Hosting.OpenSettingsFolder())                         ;tip= "Opens the Folder where user settinsg such as default file content is saved." }
+    member val SettingsFolder    = {name= "Open Settings Folder"      ;gesture= ""               ;cmd= mkCmdSimple (fun _ -> config.Hosting.OpenSettingsFolder())                         ;tip= "Opens the Folder where user settings such as default file content is saved." }
     member val AppFolder         = {name= "Open App Folder"           ;gesture= ""               ;cmd= mkCmdSimple (fun _ -> config.Hosting.OpenAppFolder())                              ;tip= "Opens the Folder where this App (Seff.exe) is loaded from." }
-    //member val ReloadXshdFile    = {name= "Reload SyntaxHighlighting" ;gesture= "F10"            ;cmd= mkCmdSimple (fun _ -> SyntaxHighlighting.setFSharp(tabs.CurrAvaEdit,true))  ;tip= "Reloads SynatxHighlightingFSharp.xshd, this is useful for testing new highlighting files without a restart." }
-    member val OpenXshdFile      = {name= "Open and watch SyntaxHighlighting in VS Code" ;gesture= ""  ;cmd= mkCmdSimple (fun _ -> SyntaxHighlighting.openVSCode(tabs.CurrAvaEdit))   ;tip= "Opens the SynatxHighlightingFSharp.xshd, file in VS Code.\r\nWatches the file for changes and reloads automatically." }
+    //member val ReloadXshdFile    = {name= "Reload SyntaxHighlighting" ;gesture= "F10"            ;cmd= mkCmdSimple (fun _ -> SyntaxHighlighting.setFSharp(tabs.CurrAvaEdit,true))  ;tip= "Reloads SyntaxHighlightingFSharp.xshd, this is useful for testing new highlighting files without a restart." }
+    member val OpenXshdFile      = {name= "Open and watch SyntaxHighlighting in VS Code" ;gesture= ""  ;cmd= mkCmdSimple (fun _ -> SyntaxHighlighting.openVSCode(tabs.CurrAvaEdit))   ;tip= "Opens the SyntaxHighlightingFSharp.xshd, file in VS Code.\r\nWatches the file for changes and reloads automatically." }
 
     //--------------------------
-    // Built in Commands from Avalonedit (listed as functiosn so the can be created more than once( eg for menu; and context menu)
+    // Built in Commands from Avalonedit (listed as function so the can be created more than once( eg for menu; and context menu)
     //----------------------------
-    member val Copy      = {name= "Copy"     ;gesture=  "Ctrl + C"     ;cmd= ApplicationCommands.Copy   ; tip= "Copy selected text\r\nOr full current line if nothing is selceted." }
-    member val Cut       = {name= "Cut"      ;gesture=  "Ctrl + X"     ;cmd= ApplicationCommands.Cut    ; tip= "Cut selected text\r\nOr full current line if nothing is selceted." }
+    member val Copy      = {name= "Copy"     ;gesture=  "Ctrl + C"     ;cmd= ApplicationCommands.Copy   ; tip= "Copy selected text\r\nOr full current line if nothing is selected." }
+    member val Cut       = {name= "Cut"      ;gesture=  "Ctrl + X"     ;cmd= ApplicationCommands.Cut    ; tip= "Cut selected text\r\nOr full current line if nothing is selected." }
     member val Paste     = {name= "Paste"    ;gesture=  "Ctrl + V"     ;cmd= ApplicationCommands.Paste  ; tip= "Insert text from Clipboard." }
     member val UnDo      = {name= "UnDo"     ;gesture=  "Ctrl + Z"     ;cmd= ApplicationCommands.Undo   ; tip= "Undo last edit."  }
     member val ReDo      = {name= "ReDo"     ;gesture=  "Ctrl + Y"     ;cmd= ApplicationCommands.Redo   ; tip= "Undo last undo."  }
@@ -144,7 +144,7 @@ type Commands (grid:TabsAndLog, statusBar:SeffStatusBar)  =
     member val TrailWhite = {name= "Removes trailing whitespace" ;gesture= "" ;cmd = AvalonEditCommands.RemoveTrailingWhitespace  ; tip= "Removes trailing whitespace from the selected lines (or the whole document if the selection is empty)." }
 
 
-    // this shortcut is implemented in Avalonedit but I cant find out wher the routed commnd class is
+    // this shortcut is implemented in Avalonedit but I cant find out where the routed command class is
     //member val SelectLinesUp      = {name= "Select Lines Upwards"      ;gesture= "Shift + Up"     ;cmd = null ;tip= "Not implemented yet"}
     //member val SelectLinesDown    = {name= "Select Lines Downwards"    ;gesture= "Shift + Down"   ;cmd = null ;tip= "Not implemented yet"} //TODO!
 
@@ -157,73 +157,67 @@ type Commands (grid:TabsAndLog, statusBar:SeffStatusBar)  =
     member val BoxSelToLineStart      = {name= "Box Select To Line Start"      ;gesture= "Alt + Shift + Home"        ;cmd= RectangleSelection.BoxSelectToLineStart      ; tip= "Expands the selection to the start of the line; creating a rectangular selection." }
     member val BoxSelToLineEnd        = {name= "Box Select To Line End"        ;gesture= "Alt + Shift + End"         ;cmd= RectangleSelection.BoxSelectToLineEnd        ; tip= "Expands the selection to the end of the line; creating a rectangular selection." }
 
-   // TODO add  all built in  DocmentNavigatin shortcuts
+   // TODO add  all built in  DocumentNavigation shortcuts
 
     member this.Fonts = fonts
 
-    /// exluding the ones already provided by avalonedit
+    /// excluding the ones already provided by avalonedit
     member this.SetUpGestureInputBindings () = 
 
             // NOTE :--------------------------------------------------------------------
-            // some more gestures and selection depending  ovewrites are defined in CursorBehaviour.previewKeyDown
+            // some more gestures and selection depending  overwrites are defined in CursorBehavior.previewKeyDown
             // NOTE :--------------------------------------------------------------------
 
-            let allCustomCommands = [  //for setting up Key gestures below, exluding the ones already provided by avalonedit
-                 this.NewTab
-                 this.OpenFile
-                 //this.OpenTemplateFile
-                 this.Save
-                 //this.Export
-                 this.SaveAs
-                 //this.SaveIncrementing
-                 this.SaveAll
-                 this.Close
-                 //this.SaveLog
-                 //this.SaveLogSel
-
-                 this.Comment
-                 this.UnComment
-                 this.ToggleComment
-                 //this.TrailWhite
-                 this.ToggleBoolean
-                 this.AlignCode
-
-                 //this.SwapLineDown     // handeled via native keyboard hook see module KeyboardNative
-                 //this.SwapLineUp       // handeled via native keyboard hook see module KeyboardNative
-
-                 this.SelectLine
-                 //this.SwapWordLeft    // key gesture handeled via previewKeyDown event in CursorBehaviour module
-                 //this.SwapWordRight   // key gesture handeled via previewKeyDown event in CursorBehaviour module
-                 //this.SelectLinesUp   // implemented in AvalonEditB
-                 //this.SelectLinesDown // implemented in AvalonEditB
-
-                 this.RunAllText
-                 this.RunAllTextSave
-                 this.RunAllTxSaveClear
-                 this.RunCurrentLines
-                 this.RunSelectedText
-                 this.RunTextTillCursor
-                 //this.RunTextFromCursor
-                 this.EvalContinue
-                 this.GoToError
-                 this.ClearLog
-                 this.CancelFSI
-                 this.ResetFSI
-                 //if config.Hosting.IsHosted then this.ToggleSync
-                 this.CompileScriptSDK
-                 this.CompileScriptMSB
-
-                 //this.ToggleSplit
-                 this.ToggleLogSize
-                 this.ToggleLogLineWrap
-                 this.FontBigger
-                 this.FontSmaller
-                 this.PopOutToolTip
-
-                 //this.SettingsFolder
-                 //this.AppFolder
-                 //this.ReloadXshdFile
-                 ]
+            let allCustomCommands = [  //for setting up Key gestures below, excluding the ones already provided by avalonedit
+               this.NewTab
+               this.OpenFile
+               //this.OpenTemplateFile
+               this.Save
+               //this.Export
+               this.SaveAs
+               //this.SaveIncrementing
+               this.SaveAll
+               this.Close
+               //this.SaveLog
+               //this.SaveLogSel
+               this.Comment
+               this.UnComment
+               this.ToggleComment
+               //this.TrailWhite
+               this.ToggleBoolean
+               this.AlignCode
+               //this.SwapLineDown     // handled via native keyboard hook see module KeyboardNative
+               //this.SwapLineUp       // handled via native keyboard hook see module KeyboardNative
+               this.SelectLine
+               //this.SwapWordLeft    // key gesture handled via previewKeyDown event in CursorBehavior module
+               //this.SwapWordRight   // key gesture handled via previewKeyDown event in CursorBehavior module
+               //this.SelectLinesUp   // implemented in AvalonEditB
+               //this.SelectLinesDown // implemented in AvalonEditB
+               this.RunAllText
+               this.RunAllTextSave
+               this.RunAllTxSaveClear
+               this.RunCurrentLines
+               this.RunSelectedText
+               this.RunTextTillCursor
+               //this.RunTextFromCursor
+               this.EvalContinue
+               this.GoToError
+               this.ClearLog
+               this.CancelFSI
+               this.ResetFSI
+               //if config.Hosting.IsHosted then this.ToggleSync
+               this.CompileScriptSDK
+               this.CompileScriptMSB
+               //this.ToggleSplit
+               this.ToggleLogSize
+               this.ToggleLogLineWrap
+               this.FontBigger
+               this.FontSmaller
+               this.PopOutToolTip
+               //this.SettingsFolder
+               //this.AppFolder
+               //this.ReloadXshdFile
+               ]
 
 
             // these functions parse the KeyGesture from a string defined above.
@@ -262,7 +256,7 @@ type Commands (grid:TabsAndLog, statusBar:SeffStatusBar)  =
                                     | _ ->
                                         log.PrintfnAppErrorMsg "*SetUpGestureInputBindings: failed to parse cmd Input gesture '%s' for '%s'" cmd.gesture cmd.name
                                         InputBinding(cmd.cmd,  KeyGesture(Key.None))
-                                        // TODO check for memoryleaks: https://github.com/icsharpcode/AvalonEdit/blame/master/ICSharpCode.AvalonEdit/Editing/TextAreaDefaultInputHandlers.cs#L71-L79
+                                        // TODO check for memory leaks: https://github.com/icsharpcode/AvalonEdit/blame/master/ICSharpCode.AvalonEdit/Editing/TextAreaDefaultInputHandlers.cs#L71-L79
 
                     |]
                 grid.Window.Window.InputBindings.AddRange (bindings)

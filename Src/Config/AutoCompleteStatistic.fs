@@ -13,7 +13,7 @@ open Seff.Model
 type AutoCompleteStatistic  ( hostInfo:Hosting) = 
 
     let customPriorities = [
-        // first item wil have highest prority
+        // first item wil have highest priority
         "true"
         "false"
         "printfn"
@@ -22,7 +22,7 @@ type AutoCompleteStatistic  ( hostInfo:Hosting) =
         "failwithf"
         ]
 
-    let  sep = '=' // key value separatur like in ini files
+    let  sep = '=' // key value separator like in ini files
 
     let filePath0 = hostInfo.GetPathToSaveAppData("AutoCompleteStatistic.txt")
 
@@ -40,7 +40,7 @@ type AutoCompleteStatistic  ( hostInfo:Hosting) =
                     | [|k;v|] -> dict.[k] <- float v // TODO allow for comments? use ini format ??
                     | _       -> ISeffLog.log.PrintfnAppErrorMsg "Bad line in CompletionStats file : '%s'" ln
 
-            /// add custom priorities
+            // add custom priorities
             customPriorities |> List.iteri ( fun i s -> dict.[s] <- 999. - float i  )// decrement priority while iterating
 
             } |> Async.Start
@@ -48,7 +48,7 @@ type AutoCompleteStatistic  ( hostInfo:Hosting) =
 
     let completionStatsAsString () = 
         let sb = StringBuilder()
-        for KeyValue(k,v) in completionStats |> Seq.sortByDescending (fun (KeyValue(k,v)) -> v) |> Seq.truncate 500  do // biggets number first, max 500 words
+        for KeyValue(k,v) in completionStats |> Seq.sortByDescending (fun (KeyValue(k,v)) -> v) |> Seq.truncate 500  do // biggest number first, max 500 words
             sb.Append(k).Append(sep).AppendLine(v.ToString()) |> ignore
         sb.ToString()
 

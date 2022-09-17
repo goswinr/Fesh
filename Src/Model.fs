@@ -1,4 +1,4 @@
-﻿namespace Seff.Model
+namespace Seff.Model
 
 open System
 open System.IO
@@ -35,6 +35,10 @@ type ISeffLog =
     abstract member TextWriterFsiErrorOut  : TextWriter
     abstract member TextWriterConsoleOut   : TextWriter
     abstract member TextWriterConsoleError : TextWriter
+
+    /// An additional textwriter to also write Info, AppError, IOError,Debug and FsiError messages to.
+    /// But not any other text printed with any custom color. 
+    abstract member AdditionalLogger : option<TextWriter> with get,set
 
     abstract member Clear : unit -> unit
 
@@ -170,9 +174,13 @@ type FsiCodeAmount =
     | ContinueFromChanges //of int
     | FsiSegment of  CodeSegment
 
-type CodeToEval = {editor:IEditor; amount:FsiCodeAmount}
+type CodeToEval = {
+    editor:IEditor
+    amount:FsiCodeAmount
+    logger:option<TextWriter>
+    }
 
-type TextChange =  EnteredDot | EnteredOneIdentifierChar | EnteredOneNonIdentifierChar | CompletionWinClosed | OtherChange //| EnteredQuote
+//type TextChange =      EnteredDot | EnteredOneIdentifierChar | EnteredOneNonIdentifierChar | CompletionWinClosed | OtherChange //| EnteredQuote
 
 type CharBeforeQuery = Dot | NotDot
 

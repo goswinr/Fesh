@@ -1,4 +1,4 @@
-﻿namespace Seff
+namespace Seff
 
 
 open System
@@ -18,7 +18,7 @@ open FSharp.Compiler.Diagnostics
 open System.Windows.Threading
 
 type FsiState = 
-    Ready | Evaluating | Initalizing | NotLoaded
+    Ready | Evaluating | Initializing | NotLoaded
 
 type FsiMode  = 
     Sync | Async472 | Async60
@@ -70,7 +70,7 @@ type Fsi private (config:Config) =
     let mutable pendingEval :option<CodeToEval> = None // for storing evaluations that are triggered before fsi is ready
 
     let abortThenMakeAndStartAsyncThread() = 
-        //shutDownThreadEv.Trigger() // dont do this ! this shuts down all of Seff !!
+        //shutDownThreadEv.Trigger() // don't do this ! this shuts down all of Seff !!
 
         match asyncThread with 
         |Some thr -> 
@@ -135,7 +135,7 @@ type Fsi private (config:Config) =
         with e->
             log.PrintfnFsiErrorMsg "setFileAndLine on FSI failed: %A" e
     *)  
-     
+    
     let createSession() =         
         let fsiArgs =
             // first arg is ignored:
@@ -143,7 +143,7 @@ type Fsi private (config:Config) =
             // and  https://github.com/fsharp/FSharp.Compiler.Service/issues/877
             // and  https://github.com/fsharp/FSharp.Compiler.Service/issues/878        
             // "--shadowcopyreferences" is ignored https://github.com/fsharp/FSharp.Compiler.Service/issues/292
-            let args = config.FsiArugments.Get            
+            let args = config.FsiArguments.Get            
             let beQuiet = config.Settings.GetBool ("fsiOutputQuiet", false)
             let qargs = 
                 match beQuiet, args |> Array.tryFindIndex (fun s -> s="--quiet") with 
@@ -174,7 +174,7 @@ type Fsi private (config:Config) =
             // showIEnumerable = true
             // showProperties = true
             // addedPrinters = [] 
-            //settings.ShowDeclarationValues <- true // use this instead of switchin the quiet flag ?
+            //settings.ShowDeclarationValues <- true // use this instead of switching the quiet flag ?
             fsiObj.PrintWidth <- 200 //TODO adapt to Log view size taking fontsize into account
             fsiObj.FloatingPointFormat <- "g7" 
             fsiObj.AddPrinter<DateTime>(fun d -> if d.Hour=0 && d.Minute=0 && d.Second = 0 then d.ToString("yyyy-MM-dd") else d.ToString("yyyy-MM-dd HH:mm:ss"))
@@ -204,10 +204,10 @@ type Fsi private (config:Config) =
 
     let rec initFsi() :unit = 
         match state with
-        | Initalizing -> log.PrintfnInfoMsg "FSI initialization can't be started because it is already in process.."
+        | Initializing -> log.PrintfnInfoMsg "FSI initialization can't be started because it is already in process.."
         | NotLoaded | Ready | Evaluating ->
             let  prevState = state
-            state <- Initalizing
+            state <- Initializing
             async{
                 //let timer = Seff.Timer()
                 //timer.tic()
@@ -223,7 +223,7 @@ type Fsi private (config:Config) =
                 //timer.stop()
 
                 match prevState with
-                |Initalizing |Ready |Evaluating -> log.PrintfnInfoMsg "FSharp Interactive session reset." // in %s" timer.tocEx
+                |Initializing |Ready |Evaluating -> log.PrintfnInfoMsg "FSharp Interactive session reset." // in %s" timer.tocEx
                 |NotLoaded  ->                     () //log.PrintfnInfoMsg "FSharp 40.0 Interactive session created." // in %s"  timer.tocEx
 
                 (*
@@ -249,18 +249,18 @@ type Fsi private (config:Config) =
                     eval(ctE)                
                 }
                 |> Async.Start      
-       
+        
 
     and eval(codeToEv:CodeToEval) :unit = 
-        let fsCode = 
-            let ed = codeToEv.editor.AvaEdit
+        let avaEd = codeToEv.editor.AvaEdit
+        let fsCode =             
             match codeToEv.amount with
-            |All -> ed.Text
+            |All -> avaEd.Text
             |ContinueFromChanges ->
-                 let from = codeToEv.editor.EvaluateFrom
-                 let len = ed.Document.TextLength - from
-                 if len > 0 then ed.Document.GetText(from , len )
-                 else "" // ContinueFromChanges reached end, all of document is evaluated
+                let from = codeToEv.editor.EvaluateFrom
+                let len = avaEd.Document.TextLength - from
+                if len > 0 then avaEd.Document.GetText(from , len )
+                else "" // ContinueFromChanges reached end, all of document is evaluated
             | FsiSegment seg -> seg.text
 
         if not(String.IsNullOrWhiteSpace fsCode) then
@@ -300,7 +300,7 @@ type Fsi private (config:Config) =
                                     ISeffLog.log.PrintfnFsiErrorMsg "asyncContext is None or asyncThread is not alive. abortMakeAndStartAsyncThread() cannot create it either! evaluation happens in sync"
                                     do! Async.SwitchToContext SyncWpf.context
 
-                        //Done already at startup in Initalize.fs, not needed here? AppDomain.CurrentDomain is the same ? 
+                        //Done already at startup in Initialize.fs, not needed here? AppDomain.CurrentDomain is the same ? 
                         //if notNull Application.Current then // null if application is not yet created, or no application in hosted context
                         //    Application.Current.DispatcherUnhandledException.Add(fun e ->  //exceptions generated on the UI thread // TODO really do this on every evaluation?
                         //        log.PrintfnAppErrorMsg "Application.Current.DispatcherUnhandledException in fsi thread: %A" e.Exception
@@ -342,7 +342,7 @@ type Fsi private (config:Config) =
                             isReadyEv.Trigger()
                             for e in errs do
                                 match e.Severity with
-                                | FSharpDiagnosticSeverity.Error  ->  log.PrintfnAppErrorMsg "EvalInteractionNonThrowing returned Error: %s" e.Message
+                                | FSharpDiagnosticSeverity.Error  ->  log.PrintfnAppErrorMsg "EvalInteractionNonThrowing returned Error: %s" e.Message 
                                 | FSharpDiagnosticSeverity.Warning -> () //log.PrintfnInfoMsg "EvalInteractionNonThrowing returned Warning: %s" e.Message
                                 | FSharpDiagnosticSeverity.Hidden  -> () //log.PrintfnInfoMsg "EvalInteractionNonThrowing returned Hidden: %s" e.Message
                                 | FSharpDiagnosticSeverity.Info   ->  () //log.PrintfnInfoMsg "EvalInteractionNonThrowing returned Info: %s" e.Message
@@ -391,6 +391,7 @@ type Fsi private (config:Config) =
                                     printRuntimeError "%s.fsx:" t
                                     log.PrintfnColor 0 0 200 "%s" ln
                                     printRuntimeError "%s" rr
+                                *)
                                 
                                 isReadyEv.Trigger()
                         }
@@ -413,11 +414,11 @@ type Fsi private (config:Config) =
     member this.Mode = mode
 
     /// starts a new Fsi session
-    member this.Initalize() =  initFsi() // Checker class will call this after first run of checker, to start fsi when checker is  idle
+    member this.Initialize() =  initFsi() // Checker class will call this after first run of checker, to start fsi when checker is  idle
 
     member this.CancelIfAsync() = 
         match state  with
-        | Ready | Initalizing | NotLoaded -> ()
+        | Ready | Initializing | NotLoaded -> ()
         | Evaluating ->
             match mode with
             |Sync -> () //don't block event completion by doing some debug logging. TODO test how to log !//log.PrintfnInfoMsg "Current synchronous Fsi Interaction cannot be canceled"     // UI for this only available in asynchronous mode anyway, see Commands
@@ -429,7 +430,7 @@ type Fsi private (config:Config) =
 
     member this.AskIfCancellingIsOk() = 
         match state with
-        | Ready | Initalizing | NotLoaded -> NotEvaluating
+        | Ready | Initializing | NotLoaded -> NotEvaluating
         | Evaluating ->
             match mode with
             |Sync -> NotPossibleSync
@@ -437,12 +438,12 @@ type Fsi private (config:Config) =
             |Async472 ->
                 match MessageBox.Show("Do you want to Cancel currently running code?", "Cancel Current Evaluation?", MessageBoxButton.YesNo, MessageBoxImage.Exclamation, MessageBoxResult.No) with
                 | MessageBoxResult.Yes ->
-                    match state with // might have changed in the meantime of Messagebox show
-                    | Ready | Initalizing | NotLoaded -> NotEvaluating
+                    match state with // might have changed in the meantime of Message box show
+                    | Ready | Initializing | NotLoaded -> NotEvaluating
                     | Evaluating -> YesAsync472
                 | MessageBoxResult.No | _ ->
-                    match state with // might have changed in the meantime of Messagebox show
-                    | Ready | Initalizing | NotLoaded -> NotEvaluating
+                    match state with // might have changed in the meantime of Message box show
+                    | Ready | Initializing | NotLoaded -> NotEvaluating
                     | Evaluating -> UserDoesntWantTo
 
 
@@ -472,9 +473,9 @@ type Fsi private (config:Config) =
         match this.AskIfCancellingIsOk () with
         | NotEvaluating   ->                       initFsi (); resetEv.Trigger() 
         | YesAsync472     -> this.CancelIfAsync(); initFsi (); resetEv.Trigger()
-        | NoAsync60       -> log.PrintfnInfoMsg "ResetFsi is not be possibe in current async evaluation on net50." // TODO test
+        | NoAsync60       -> log.PrintfnInfoMsg "ResetFsi is not be possible in current async evaluation on net50." // TODO test
         | UserDoesntWantTo-> ()
-        | NotPossibleSync -> log.PrintfnInfoMsg "ResetFsi is not be possibe in current synchronous evaluation." // TODO test
+        | NotPossibleSync -> log.PrintfnInfoMsg "ResetFsi is not be possible in current synchronous evaluation." // TODO test
 
 
     member this.SetMode(sync:FsiMode) = 

@@ -72,7 +72,10 @@ type TypeInfo private () =
 
             match t.Tag with
             | TextTag.Parameter ->
-                // if a paramter is optional add a question mark to the signature
+                if len > maxCharInSignLine then
+                        tb.Inlines.Add( new Run("\r\n    "))
+                        len <- 0                
+                // if a parameter is optional add a question mark to the signature
                 match ts.[i-1].Text with
                 |"?" ->  tb.Inlines.Add( new Run(t.Text , Foreground = gray )) // sometimes optional arguments have already a question mark but not always
                 | _ ->
@@ -86,15 +89,10 @@ type TypeInfo private () =
             | TextTag.Operator -> tb.Inlines.Add( new Run(t.Text, Foreground = Brushes.Green ))
             | TextTag.Punctuation->
                 match t.Text with
-                | "?" ->         tb.Inlines.Add( new Run(t.Text, Foreground = gray))
+                | "?" ->   tb.Inlines.Add( new Run(t.Text, Foreground = gray))
                 | "*"
-                | "->" ->
-                    if len > maxCharInSignLine then
-                        tb.Inlines.Add( new Run("\r\n    "))
-                        len <- 0
-                    tb.Inlines.Add( new Run(t.Text, Foreground = fullred))//, FontWeight = FontWeights.Bold ))
-                |  _  ->
-                    tb.Inlines.Add( new Run(t.Text, Foreground = purple ))
+                | "->" ->  tb.Inlines.Add( new Run(t.Text, Foreground = fullred))//, FontWeight = FontWeights.Bold ))
+                |  _   ->  tb.Inlines.Add( new Run(t.Text, Foreground = purple ))
 
             | TextTag.RecordField
             | TextTag.Method
@@ -116,7 +114,7 @@ type TypeInfo private () =
             | TextTag.UnknownEntity ->   tb.Inlines.Add( new Run(t.Text, Foreground = gray ))
 
             | TextTag.LineBreak ->
-                len <- t.Text.Length // reset after line berak
+                len <- t.Text.Length // reset after line break
                 tb.Inlines.Add( new Run(t.Text))
 
             | TextTag.Space -> 
@@ -168,13 +166,13 @@ type TypeInfo private () =
             | i  -> t.Substring(0,i) 
         | _ -> s    
 
-    static let trimIfOneliner (s:string) = 
+    static let trimIfOneLiner (s:string) = 
         let t = s.TrimStart() 
         match t.IndexOf '\n' with 
         | -1 -> t
         | i  -> s 
 
-    static let codeRun t = new Run(t ,FontFamily = Style.fontEditor, FontSize = Style.fontSize*1.05,  Foreground = black)//,   Background = white) 
+    static let codeRun t = new Run(""+t+" " ,FontFamily = Style.fontEditor, FontSize = Style.fontSize*1.05,  Foreground = black,   Background = white) 
 
     /// check if List has at least two items 
     static let twoOrMore = function [] | [_] -> false |_ -> true       
@@ -188,8 +186,8 @@ type TypeInfo private () =
         let rec loop (c:XmlParser.Child) parentName addTitle d = 
             match c with
             |Text t ->  
-                if parentName="para" then tb.Inlines.Add( new Run(t,  Foreground = darkgreen)) // dont trim onliners inside a para tag to keep ascii art from RhinoCommon.xml
-                else                      tb.Inlines.Add( new Run(trimIfOneliner t,  Foreground = darkgreen)) 
+                if parentName="para" then tb.Inlines.Add( new Run(t,  Foreground = darkgreen)) // don't trim oneliners inside a para tag to keep ascii art from RhinoCommon.xml
+                else                      tb.Inlines.Add( new Run(trimIfOneLiner t,  Foreground = darkgreen)) 
             |Node n ->  
                 if d=0 then                     
                     if last<>n.name && addTitle then // && n.name <> "?name?" then // to not repeat the parameter header every time
@@ -197,7 +195,7 @@ type TypeInfo private () =
                         tb.Inlines.Add( new LineBreak()) 
                         tb.Inlines.Add( new Run(fixName n.name,  Foreground = gray)) //FontWeight = FontWeights.Bold,                    
                         tb.Inlines.Add( new LineBreak())                     
-                    for at in n.attrs do // there is normaly just one ! like param:name, paramref:name typeparam:name                         
+                    for at in n.attrs do // there is normally just one ! like param:name, paramref:name typeparam:name                         
                         tb.Inlines.Add( at.value |> fixTypeName|> codeRun)
                         tb.Inlines.Add( new Run(": ",  Foreground = black))  
                     for c in List.rev n.children do 
@@ -219,7 +217,7 @@ type TypeInfo private () =
         
         and addCode (c:XmlParser.Child) d = 
             match c with
-            |Text t ->  tb.Inlines.Add(codeRun t); tb.Inlines.Add(" ")
+            |Text t ->  tb.Inlines.Add(codeRun t) // done in codeRun:  tb.Inlines.Add(" ")
             |Node n ->  loop c n.name false d
         
 
@@ -229,7 +227,7 @@ type TypeInfo private () =
             for c in List.rev n.children do 
                 loop c n.name two 0 
         | _ -> 
-           loop node "" false 0  
+            loop node "" false 0  
         
         // remove last line break: 
         if tb.Inlines.LastInline  :? LineBreak then  tb.Inlines.Remove tb.Inlines.LastInline  |> ignore 
@@ -254,10 +252,10 @@ type TypeInfo private () =
             add tb         
         
         let mutable assemblies = new HashSet<string>()
-        let deDup = HashSet() // just because some typ provider signatures apears mutiple times, filter them out with hashset
+        let deDup = HashSet() // just because some typ provider signatures appears multiple times, filter them out with hashset
         for td in tds do
             let sign = td.signature |> Seq.map (fun tt -> tt.Text)  |> String.Concat
-            if not <| deDup.Contains(sign) then // just because some type provider signatures apears mutiple times, filter them out with hashset
+            if not <| deDup.Contains(sign) then // just because some type provider signatures appears multiple times, filter them out with hashset
                 deDup.Add sign  |> ignore
                 
                 let subPanel = new StackPanel(Orientation = Orientation.Vertical)
@@ -323,12 +321,12 @@ type TypeInfo private () =
                 Error $"FSharpXmlDoc.FromXmlText: {e}"           
         
         | FSharpXmlDoc.FromXmlFile(dllFile, memberName) ->
-           match DocString.getXmlDoc dllFile with
-           |Ok (fi,nodeDict) -> 
+            match DocString.getXmlDoc dllFile with
+            |Ok (fi,nodeDict) -> 
                 match nodeDict.TryGetValue memberName with 
                 |true , node ->  Ok (node  , dllFile)
                 |false, _    ->  Error $"no xml doc found for member '{memberName}' in \r\n'{fi.FullName}'\r\n"
-           | Error e ->
+            | Error e ->
                 Error e         
  
 
@@ -449,12 +447,12 @@ type TypeInfo private () =
                         do! Async.SwitchToThreadPool()
 
                         let ttt =    res.checkRes.GetToolTip            (line, endCol, lineTxt, [word], FSharpTokenTag.Identifier)      //TODO, can this call be avoided use info from below symbol call ? // TODO move into checker
-                        let symbls = res.checkRes.GetSymbolUseAtLocation(line, endCol, lineTxt, [word] )                                //only to get to info about optional paramters
-                        let optArgs = if symbls.IsSome then namesOfOptnlArgs(symbls.Value) else ResizeArray(0)
+                        let symbols = res.checkRes.GetSymbolUseAtLocation(line, endCol, lineTxt, [word] )                                //only to get to info about optional parameters
+                        let optArgs = if symbols.IsSome then namesOfOptnlArgs(symbols.Value) else ResizeArray(0)
 
                         do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context
 
-                        let ttds = makeToolTipDataList (ttt, optArgs) ///TODO can this still be async ?
+                        let ttds = makeToolTipDataList (ttt, optArgs) //TODO can this still be async ?
                         if List.isEmpty ttds then
                             let w = word.Trim()
                             //if w <> "" then     tip.Content <- "No type info found for:\r\n" + word
@@ -468,6 +466,6 @@ type TypeInfo private () =
                                 tip.Content <- ttPanel
                         } |> Async.StartImmediate //TODO: add Cancellation ?
 
-                //e.Handled <- true //  don't set handeled! so that on type errors the  Error tooltip still gets shown after this tooltip
+                //e.Handled <- true //  don't set handled! so that on type errors the  Error tooltip still gets shown after this tooltip
 
 

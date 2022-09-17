@@ -8,7 +8,7 @@ open FsEx.Wpf
 
 open Seff.Model
 
-// TODO replace this with full nuget and local autocompelet on #r "...
+// TODO replace this with full nuget and local auto-complete on #r "...
 
 /// A class to hold the previously loaded assemble references for auto completions
 type AssemblyReferenceStatistic  ( hostInfo:Hosting) = 
@@ -41,7 +41,7 @@ type AssemblyReferenceStatistic  ( hostInfo:Hosting) =
     member this.Get = assRefStats
 
     /// Checks if DDl file exists
-    /// Retuens dict of filename and full path
+    /// Returns dict of filename and full path
     member this.GetChecked = 
         let D = Dictionary()
         for fullPath in assRefStats do

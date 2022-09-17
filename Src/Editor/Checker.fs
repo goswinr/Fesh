@@ -29,7 +29,7 @@ type Checker private (config:Config)  =
 
     let checkedEv = new Event< IEditor > ()
 
-    let fullCodeAvailabeEv = new Event< IEditor > ()
+    let fullCodeAvailableEv = new Event< IEditor > ()
 
     let mutable isFirstCheck = true
 
@@ -38,7 +38,7 @@ type Checker private (config:Config)  =
     let mutable globalCheckState = FileCheckState.NotStarted
 
     /// to check full code use 0 as 'tillOffset', at the end either a event is raised or continuation called if present
-    let check(iEditor:IEditor, tillOffset, continueOnThreadPool:Option<CheckResults->unit>) = 
+    let checkCode(iEditor:IEditor, tillOffset, continueOnThreadPool:Option<CheckResults->unit>) = 
         let thisId = Interlocked.Increment checkId
         //ISeffLog.log.PrintfnDebugMsg $"checking with id  {thisId} ..."
         globalCheckState <- GettingCode thisId
@@ -60,7 +60,7 @@ type Checker private (config:Config)  =
 
             if !checkId = thisId then
                 let codeInChecker = 
-                    if tillOffset = 0 then  FullCode    (doc.CreateSnapshot().Text)//the only threadsafe way to access the code string
+                    if tillOffset = 0 then  FullCode    (doc.CreateSnapshot().Text) // the only threadsafe way to access the code string
                     else                    PartialCode (doc.CreateSnapshot(0, tillOffset).Text)
 
                 globalCheckState <- Checking (thisId , codeInChecker)
@@ -71,7 +71,7 @@ type Checker private (config:Config)  =
                 |FullCode _ ->
                     do! Async.SwitchToContext(FsEx.Wpf.SyncWpf.context)
                     if !checkId = thisId then
-                        fullCodeAvailabeEv.Trigger(iEditor)
+                        fullCodeAvailableEv.Trigger(iEditor)
                     do! Async.SwitchToThreadPool()
 
 
@@ -89,28 +89,27 @@ type Checker private (config:Config)  =
                     try
                         let sourceText = Text.SourceText.ofString codeInChecker.FsCode
                         // see https://github.com/dotnet/fsharp/issues/7669 for performance problems
-                        // <summary>
-                        // <para>For a given script file, get the FSharpProjectOptions implied by the #load closure.</para>
-                        // <para>All files are read from the FileSystem API, except the file being checked.</para>
-                        // </summary>
-                        //
-                        // <param name="filename">Used to differentiate between scripts, to consider each script a separate project. Also used in formatted error messages.</param>
-                        // <param name="source">The source for the file.</param>
-                        // <param name="previewEnabled">Is the preview compiler enabled.</param>
-                        // <param name="loadedTimeStamp">Indicates when the script was loaded into the editing environment,
-                        // so that an 'unload' and 'reload' action will cause the script to be considered as a new project,
-                        // so that references are re-resolved.</param>
-                        // <param name="otherFlags">Other flags for compilation.</param>
-                        // <param name="useFsiAuxLib">Add a default reference to the FSharp.Compiler.Interactive.Settings library.</param>
-                        // <param name="useSdkRefs">Use the implicit references from the .NET SDK.</param>
-                        // <param name="assumeDotNetFramework">Set up compilation and analysis for .NET Framework scripts.</param>
-                        // <param name="sdkDirOverride">Override the .NET SDK used for default references.</param>
-                        // <param name="optionsStamp">An optional unique stamp for the options.</param>
-                        // <param name="userOpName">An optional string used for tracing compiler operations associated with this request.</param>
+                        
+                        // For a given script file, get the FSharpProjectOptions implied by the #load closure.
+                        // All files are read from the FileSystem API, except the file being checked.
+                        
+                        // filename: Used to differentiate between scripts, to consider each script a separate project. Also used in formatted error messages.
+                        // source: The source for the file.
+                        // previewEnabled: Is the preview compiler enabled.
+                        // loadedTimeStamp: Indicates when the script was loaded into the editing environment,
+                        //         so that an 'unload' and 'reload' action will cause the script to be considered as a new project,
+                        //         so that references are re-resolved.
+                        // otherFlags: Other flags for compilation.
+                        // useFsiAuxLib: Add a default reference to the FSharp.Compiler.Interactive.Settings library.
+                        // useSdkRefs: Use the implicit references from the .NET SDK.
+                        // assumeDotNetFramework: Set up compilation and analysis for .NET Framework scripts.
+                        // sdkDirOverride: Override the .NET SDK used for default references.
+                        // optionsStamp: An optional unique stamp for the options.
+                        // userOpName: An optional string used for tracing compiler operations associated with this request.
                         let! options, optionsErr = 
                                 checker.Value.GetProjectOptionsFromScript(filename          = fileFsx
                                                                          ,source            = sourceText
-                                                                         ,previewEnabled    = true // TODO not a replacement for  [| "--langversion:preview" |]  ??
+                                                                         ,previewEnabled    = true // // Bug in FCS! if otherFlags argument is given the value here is ignored !
                                                                          //,loadedTimeStamp: DateTime *
 
                                                                          #if NETFRAMEWORK
@@ -143,7 +142,7 @@ type Checker private (config:Config)  =
                                 let! parseRes , checkAnswer = checker.Value.ParseAndCheckFileInProject(fileFsx, 0, sourceText, options) // can also be done in two  calls   //TODO really use check file in project for scripts??
                                 match checkAnswer with
                                 | FSharpCheckFileAnswer.Succeeded checkRes ->
-                                    if !checkId = thisId  then // this ensures that status get set to done if no checker has started in the meantime
+                                    if !checkId = thisId  then // this ensures that status gets set to done if no checker has started in the meantime
                                         let res = {parseRes = parseRes;  checkRes = checkRes;  code = codeInChecker ; checkId=thisId }
                                         globalCheckState <- Done res
                                         iEditor.FileCheckState <- globalCheckState
@@ -151,7 +150,7 @@ type Checker private (config:Config)  =
                                         match continueOnThreadPool with
                                         | Some f ->
                                             try
-                                                f(res)
+                                                f(res) // calls GetDeclarationListInfo and GetDeclarationListSymbols for finding optional arguments
                                             with
                                                 e -> log.PrintfnAppErrorMsg "The continuation after ParseAndCheckFileInProject failed with:\r\n %A" e
 
@@ -190,28 +189,32 @@ type Checker private (config:Config)  =
             //ISeffLog.log.PrintfnDebugMsg $"checking  id  {thisId} Result: {globalCheckState}."
             } |> Async.Start
 
-
     static let mutable singleInstance :Checker option  = None
 
     //--------------------public --------------
 
     /// every time a new call to the global type checker happens this gets incremented
-    /// this happens when the documenmt changes, not for type info requests
+    /// this happens when the document changes, not for type info requests
     member _.CurrentCheckId = !checkId
 
-    member val Fsi  = Fsi.GetOrCreate(config) //  but  Fsi.Initalize() is only called in OnFirstCheckDone
+    member val Fsi  = Fsi.GetOrCreate(config) //  but  Fsi.Initialize() is only called in OnFirstCheckDone
 
-    /// this event is raised on UI thread
-    [<CLIEvent>] member this.OnChecking = checkingEv.Publish
+    /// This event is raised on UI thread when a checker session starts.
+    [<CLIEvent>] 
+    member this.OnChecking = checkingEv.Publish
 
     /// the async method doc.CreateSnapshot() completed
-    [<CLIEvent>] member this.OnFullCodeAvailabe = fullCodeAvailabeEv.Publish
+    [<CLIEvent>] 
+    member this.OnFullCodeAvailable = fullCodeAvailableEv.Publish
+
+    /// This event is raised on UI thread
+    /// only when checking for errors not when checking for autocomplete
+    [<CLIEvent>]
+    member this.OnCheckedForErrors = checkedEv.Publish
 
     /// this event is raised on UI thread
-    [<CLIEvent>] member this.OnChecked = checkedEv.Publish
-
-    /// this event is raised on UI thread
-    [<CLIEvent>] member this.OnFirstCheckDone = firstCheckDoneEv.Publish
+    [<CLIEvent>] 
+    member this.OnFirstCheckDone = firstCheckDoneEv.Publish
 
     member this.GlobalCheckState = globalCheckState
 
@@ -222,13 +225,14 @@ type Checker private (config:Config)  =
         |None ->
             let ch = new Checker(config)
             singleInstance <- Some ch;
-            ch.OnFirstCheckDone.Add ( fun ()-> ch.Fsi.Initalize() ) // to start fsi when checker is idle
+            ch.OnFirstCheckDone.Add ( fun ()-> ch.Fsi.Initialize() ) // to start fsi when checker is idle
             ch
 
     /// Triggers Event<FSharpErrorInfo[]> event after calling the continuation
-    member this.CkeckHighlightAndFold (iEditor:IEditor)  =  check (iEditor, 0,  None)
+    member this.CheckThenHighlightAndFold (iEditor:IEditor)  =  checkCode (iEditor, 0,  None)
 
     /// checks for items available for completion
+    /// does not raise 
     member this.GetCompletions (iEditor:IEditor, pos :PositionInCode, ifDotSetback, continueOnUI: DeclarationListInfo*FSharpSymbolUse list list  -> unit) = 
         let getSymbolsAndDecls(res:CheckResults) = 
             let thisId = !checkId
@@ -264,4 +268,4 @@ type Checker private (config:Config)  =
                                 continueOnUI( decls, symUse)
             } |> Async.StartImmediate // we are on thread pool already
 
-        check(iEditor, pos.offset, Some getSymbolsAndDecls) //TODO can existing parse results be used ? or do they miss the dot so dont show dot completions ?
+        checkCode(iEditor, pos.offset, Some getSymbolsAndDecls) //TODO can existing parse results be used ? or do they miss the dot so don't show dot completions ?

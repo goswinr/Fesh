@@ -19,23 +19,23 @@ type FileChange =
     |Deleted
     
 
-type FileWatcher(editor:Editor, upadteIsCodeSaved:bool->unit, setNewPath:FileWatcher*FilePath->unit) as this = 
+type FileWatcher(editor:Editor, updateIsCodeSaved:bool->unit, setNewPath:FileWatcher*FilePath->unit) as this = 
     inherit FileSystemWatcher()
 
     let onFocusActions = ResizeArray<unit->unit>()
 
     let nl = System.Environment.NewLine
 
-    let asktToUpdate (path:string, newCode:string) = 
+    let askToUpdate (path:string, newCode:string) = 
         let msg = $"File{nl}{path}{nl}was changed by some other process.{nl}Do you want to reload it?" 
         match MessageBox.Show(msg, "! File Changed !" , MessageBoxButton.YesNo, MessageBoxImage.Exclamation, MessageBoxResult.Yes, MessageBoxOptions.DefaultDesktopOnly) with //https://stackoverflow.com/a/53009621
         | MessageBoxResult.Yes ->
             editor.Folds.SetToDoOneFullReload()     // to keep folding state
             //editor.AvaEdit.Text <- newCode        // this does NOT allows undo or redo
             editor.AvaEdit.Document.Text <- newCode // this allows undo and redo
-            upadteIsCodeSaved(true)
+            updateIsCodeSaved(true)
         | _  ->
-            upadteIsCodeSaved(false)
+            updateIsCodeSaved(false)
     
     let showChangedWindow =  editor.Config.Settings.GetBoolSaveDefault ("ShowFileChangedByOtherProcessWindow", true)
 
@@ -50,14 +50,14 @@ type FileWatcher(editor:Editor, upadteIsCodeSaved:bool->unit, setNewPath:FileWat
             |Renamed -> 
                 let fi = SetTo(FileInfo(path))
                 setNewPath(this,fi)
-                //upadteIsCodeSaved(false) // mark unsaved so that via saving the recent files list is updated too
+                //updateIsCodeSaved(false) // mark unsaved so that via saving the recent files list is updated too
                 MessageBox.Show($"File{nl}{oldPath}{nl}was renamed to{nl}{path}.", "! File renamed !", MessageBoxButton.OK, MessageBoxImage.Exclamation, MessageBoxResult.OK, MessageBoxOptions.DefaultDesktopOnly)|> ignore
             
             |Deleted -> 
                 deleted <- true
                 do! Async.Sleep 300 // wait first and only raise deleted event if there is no changed event in the meantime
-                if deleted && IO.File.Exists(path) |> not then // double check file really doesnt exist, false alarms  happen wehen a file is deleted aand the saved again from Seff
-                    upadteIsCodeSaved(false)
+                if deleted && IO.File.Exists(path) |> not then // double check file really doesn't exist, false alarms  happen wehen a file is deleted and the saved again from Seff
+                    updateIsCodeSaved(false)
                     MessageBox.Show($"File{nl}{path}{nl}was deleted.", "! File deleted !",MessageBoxButton.OK, MessageBoxImage.Exclamation, MessageBoxResult.OK, MessageBoxOptions.DefaultDesktopOnly)|> ignore
                     
             
@@ -73,9 +73,9 @@ type FileWatcher(editor:Editor, upadteIsCodeSaved:bool->unit, setNewPath:FileWat
                         if uiCode <> fileCode then
                             do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context
                             if editor.AvaEdit.IsFocused then
-                                asktToUpdate(path,fileCode)
+                                askToUpdate(path,fileCode)
                             else
-                                onFocusActions.Add (fun () ->  asktToUpdate(path,fileCode) )
+                                onFocusActions.Add (fun () ->  askToUpdate(path,fileCode) )
                     with e ->
                         editor.Log.PrintfnAppErrorMsg "File changed but cant read changes from file system to compare if its the same as the currently shown file. %A " e
             

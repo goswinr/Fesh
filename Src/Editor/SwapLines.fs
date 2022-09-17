@@ -30,7 +30,7 @@ module SwapLines =
                 if isNull prevLn then
                     EndOrStartOfDoc
                 else
-                    // TODO finsh up swaping over folded lines
+                    // TODO finish up swapping over folded lines
                     //let foldLine = 
                     //    let fs = ed.Folds.Manager.GetFoldingsContaining(prevLn.Offset) |> Seq.filter ( fun f -> f.IsFolded)
                     //    if Seq.isEmpty fs then
@@ -50,7 +50,7 @@ module SwapLines =
             | RectSel
             | RegSel  ->
                 let firstLn = doc.GetLineByNumber(sp.stPos.Line)
-                let lastLn =  doc.GetLineByNumber(sp.enPos.Line)
+                let lastLn =  doc.GetLineByNumber(sp.enPos.Line) 
                 let prevLn = firstLn.PreviousLine
                 if isNull prevLn then
                     EndOrStartOfDoc

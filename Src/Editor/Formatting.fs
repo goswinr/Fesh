@@ -8,7 +8,7 @@ open System.Text
 open Seff.Model
 open Seff.Util
 
-module Formating = 
+module Formatting = 
 
     let findCharOld (c:Char) (fromIndex:int) (sb:StringBuilder) = 
         let rec find i = 

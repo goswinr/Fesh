@@ -20,7 +20,7 @@
   
   <Color name="String"              foreground="#BB1111" />
   <Color name="StringVerbatim"      foreground="#CC0000" />  
-  <Color name="StringFormating"     foreground="#990099" />
+  <Color name="StringFormatting"     foreground="#990099" />
   <Color name="StringEscaped"       foreground="#7050DC" />  
   <Color name="DollarInlines"       foreground="#000088" />
   <Color name="Char"                foreground="#FF0040" />

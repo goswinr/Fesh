@@ -174,7 +174,7 @@ module Doc =
         |ChrSt -> true
 
 
-module CursorBehaviour  = 
+module CursorBehavior  = 
     open Selection
 
     ///replace 'true' with 'false' and vice versa

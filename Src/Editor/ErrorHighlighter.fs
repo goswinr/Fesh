@@ -40,7 +40,7 @@ module ErrorStyle=
 module ErrorUtil = 
     
     type ErrorsBySeverity = {
-        erros    : ResizeArray<FSharpDiagnostic>
+        errors    : ResizeArray<FSharpDiagnostic>
         warnings : ResizeArray<FSharpDiagnostic>
         infos    : ResizeArray<FSharpDiagnostic>
         hiddens  : ResizeArray<FSharpDiagnostic>        }
@@ -63,10 +63,10 @@ module ErrorUtil =
         ers.Sort(fun x y -> Operators.compare x.StartLine y.StartLine)
         ins.Sort(fun x y -> Operators.compare x.StartLine y.StartLine)
         his.Sort(fun x y -> Operators.compare x.StartLine y.StartLine)
-        { erros = ers; warnings = was; infos = ins; hiddens = his }
+        { errors = ers; warnings = was; infos = ins; hiddens = his }
 
 
-    /// because FSharpDiagnostic might have line number 0 form Parse-and-check-file-in-project errors, but avalonedit starts at 1
+    /// because FSharpDiagnostic might have line number 0 form Parse-and-check-file-in-project errors, but Avalonedit starts at 1
     let inline linesStartAtOne i = if i<1 then 1 else i 
 
     let getSegment (doc:TextDocument) ( e:FSharpDiagnostic) =
@@ -84,7 +84,7 @@ module ErrorUtil =
             s.EndOffset   <- st + 1 // just in case, so it is at least on char long
         s   
 
-   
+    
     let getSquiggleLine(r:Rect):StreamGeometry = 
         let startPoint = r.BottomLeft
         let endPoint = r.BottomRight
@@ -94,7 +94,7 @@ module ErrorUtil =
         use ctx = geometry.Open()
         ctx.BeginFigure(startPoint, false, false)
         ctx.PolyLineTo(
-            [| for i=0 to count - 1 do yield new Point( startPoint.X + (float i * offset) , startPoint.Y - if (i + 1) % 2 = 0 then offset else 0.) |] , /// for Squiggly line
+            [| for i=0 to count - 1 do yield new Point( startPoint.X + (float i * offset) , startPoint.Y - if (i + 1) % 2 = 0 then offset else 0.) |] , // for Squiggly line
             true, 
             false)
         geometry.Freeze()
@@ -112,11 +112,11 @@ module ErrorUtil =
         getFirstError(iEditor) 
         |> Option.map ( getSegment iEditor.AvaEdit.Document)
         
-/// This segment also contains back and foreground color and dignostic display text
+/// This segment also contains back and foreground color and diagnostic display text
 type SegmentToMark (startOffset, length, e:FSharpDiagnostic)  = 
     inherit TextSegment()
 
-    let undelinePen = 
+    let underlinePen = 
         match e.Severity with
         | FSharpDiagnosticSeverity.Info    -> ErrorStyle.infoSquiggle
         | FSharpDiagnosticSeverity.Hidden  -> ErrorStyle.infoSquiggle
@@ -142,7 +142,7 @@ type SegmentToMark (startOffset, length, e:FSharpDiagnostic)  =
     member _.Message           =  msg
     member _.Diagnostic        =  e
     member _.Severity          =  e.Severity 
-    member _.UnderlinePen      =  undelinePen
+    member _.UnderlinePen      =  underlinePen
     member _.BackgroundBrush   =  backgroundBrush
 
 
@@ -178,7 +178,7 @@ type ErrorRenderer (ed:TextEditor, folds:Folding.FoldingManager, log:ISeffLog) =
     member _.Layer = KnownLayer.Selection // for IBackgroundRenderer
     member _.Transform(context:ITextRunConstructionContext , elements:IList<VisualLineElement>)=() // needed ? // for IVisualLineTransformer
 
-    /// Update list of Segments to actually mark (first nine only per Severity) and ensure drawing the error sqiggle on the surrounding folding box too
+    /// Update list of Segments to actually mark (first nine only per Severity) and ensure drawing the error squiggle on the surrounding folding box too
     member _.AddSegments( res: CheckResults )= 
         let mark(e:FSharpDiagnostic) = 
             let seg = ErrorUtil.getSegment doc e  
@@ -197,7 +197,7 @@ type ErrorRenderer (ed:TextEditor, folds:Folding.FoldingManager, log:ISeffLog) =
         for i in bySev.hiddens  |> Seq.truncate 9  do mark(i)                
         for i in bySev.infos    |> Seq.truncate 9  do mark(i)                
         for w in bySev.warnings |> Seq.truncate 9  do mark(w)                
-        for e in bySev.erros    |> Seq.truncate 9  do mark(e)   // draw error last, after warning, to be on top !   
+        for e in bySev.errors    |> Seq.truncate 9  do mark(e)   // draw error last, after warning, to be on top !   
             
         txA.TextView.Redraw()
 
@@ -207,7 +207,7 @@ type ErrorRenderer (ed:TextEditor, folds:Folding.FoldingManager, log:ISeffLog) =
             for fold in folds.AllFoldings do fold.DecorateRectangle <- null
             txA.TextView.Redraw()
 
-    member _.GetsegmentsAtOffset(offset) = segments.FindSegmentsContaining(offset)
+    member _.GetSegmentsAtOffset(offset) = segments.FindSegmentsContaining(offset)
 
     interface IBackgroundRenderer with
         member this.Draw(tv,dc) = this.Draw(tv,dc)
@@ -230,7 +230,7 @@ type ErrorHighlighter (ed:TextEditor, folds:Folding.FoldingManager, log:ISeffLog
         if pos.HasValue then
             let logicalPosition = pos.Value.Location
             let offset = ed.Document.GetOffset(logicalPosition)
-            let segmentsAtOffset = renderer.GetsegmentsAtOffset(offset)
+            let segmentsAtOffset = renderer.GetSegmentsAtOffset(offset)
             //let seg = segmentsAtOffset.FirstOrDefault(fun renderer -> renderer.Message <> null)//LINQ ??
             //if notNull seg && notNull tab.ErrorToolTip then
             if segmentsAtOffset.Count > 0 then

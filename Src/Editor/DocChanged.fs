@@ -29,7 +29,7 @@ module DocChanged =
     /// for closing and inserting from completion window
     let closeAndMaybeInsertFromCompletionWindow (compls:Completions) (ev:TextCompositionEventArgs) = 
         if compls.IsOpen then
-            match ev.Text with              //enetr and tab is not needed  here for  insertion,  insertion with Tab or Enter is built into Avalonedit!!
+            match ev.Text with              //enter and tab is not needed  here for  insertion,  insertion with Tab or Enter is built into Avalonedit!!
             |" " -> compls.Close()
             |"." -> compls.RequestInsertion(ev) // insert on dot too? //TODO only when more than one char is typed in completion window??
             |"(" -> compls.RequestInsertion(ev) // insert on open Bracket too?
@@ -82,10 +82,10 @@ module DocChanged =
         let isCaretInComment ln =  
              NotInQuotes.contains "//" ln
     
-        // is a dicriminated union that wants autocomplete
+        // is a discriminated union that wants autocomplete
         let inline isDU fromIdx ln =
             let fi = indexOfFirstNonWhiteAfter fromIdx ln
-            if fi < fromIdx then ShowAll // fromIdx-1 returnrd, non white letter was not found
+            if fi < fromIdx then ShowAll // fromIdx-1 returned, non white letter was not found
             else
                 let first = ln.[fi]
                 if 'A' <= first && first <= 'Z' then // starts with a capital letter , TODO or use Char.isUpper for full Unicode spectrum ?
@@ -106,7 +106,7 @@ module DocChanged =
 
         let isLetDeclaration inStr (ln:string)  = 
             //test if we are after a 'let' but before a '=' or ':'  
-            let letIdx = lastIdxAtStartOrWithSpace inStr "let " ln // test if its the first char or preceeded by a space 
+            let letIdx = lastIdxAtStartOrWithSpace inStr "let " ln // test if its the first char or preceded by a space 
             if letIdx = -1 then ShowAll
             else
                 let eqIdx    = lastIdx inStr "=" ln                       
@@ -123,13 +123,13 @@ module DocChanged =
                 if (max eqIdx colonIdx) < funIdx then isDU (funIdx+4) ln else ShowAll
         
         let isForDeclaration inStr (ln:string) =         
-            let forIdx = lastIdxAtStartOrWithSpace inStr "for " ln // test if its the first char or preceeded by a space 
+            let forIdx = lastIdxAtStartOrWithSpace inStr "for " ln // test if its the first char or preceded by a space 
             if forIdx = -1 then  ShowAll
             else 
                 if lastIdx inStr " in " ln > forIdx then ShowAll else isDU (forIdx+3) ln
         
         let isBarDeclaration inStr (ln:string) = // also covers the  'as' binding        
-            let barIdx = lastIdxAtStartOrWithSpace inStr "|" ln // test if its the first char or preceeded by a space 
+            let barIdx = lastIdxAtStartOrWithSpace inStr "|" ln // test if its the first char or preceded by a space 
             if barIdx = -1 then  
                 ShowAll
             else 
@@ -202,19 +202,19 @@ module DocChanged =
                         
         if compls.IsOpen then   // just keep on tying in completion window, no type checking !
             if compls.HasItems then 
-                //let currentText = getField(typeof<CodeCompletion.CompletionList>,w.CompletionList,"currentText") :?> string //this property should be public in avalonedtiB !                
+                //let currentText = getField(typeof<CodeCompletion.CompletionList>,w.CompletionList,"currentText") :?> string //this property should be public in avaloneditB !                
                 //log.PrintfnDebugMsg "currentText: '%s'" currentText
                 //log.PrintfnDebugMsg "w.CompletionList.CompletionData.Count:%d" w.CompletionList.ListBox.VisibleItemCount
                 DoNothing
             else
                 compls.Close()
-                DoNothing // do nothing because if the doc chnaged a separate event will be triggered for that
+                DoNothing // do nothing because if the doc changed a separate event will be triggered for that
 
         else //no completion window open , do type check..  
             match e.InsertedText.Text with
             |"."  ->  maybeShowComletionWindow(compls,ed) // EnteredDot  
             | txt when txt.Length = 1 ->
-                if compls.JustClosed then   // check to avoid retrigger of window on single char completions
+                if compls.JustClosed then   // check to avoid re-trigger of window on single char completions
                     compls.JustClosed<-false
                     CheckCode // CompletionWinClosed 
                 else
@@ -227,7 +227,7 @@ module DocChanged =
                     else 
                         CheckCode // EnteredOneNonIdentifierChar
 
-            | _  -> CheckCode //OtherChange: several characters(paste) , delete or an insert from theh completion window
+            | _  -> CheckCode //OtherChange: several characters(paste) , delete or an insert from the completion window
 
            
 

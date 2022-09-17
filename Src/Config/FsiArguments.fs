@@ -8,9 +8,9 @@ open Seff
 open Seff.Model
 
 
-type FsiArugments  ( hostInfo:Hosting) = 
+type FsiArguments   ( hostInfo:Hosting) = 
 
-    let filePath0 = hostInfo.GetPathToSaveAppData("FsiArugments.txt")
+    let filePath0 = hostInfo.GetPathToSaveAppData("FsiArguments .txt")
     let writer = SaveReadWriter(filePath0,ISeffLog.printError)
 
     // "--shadowcopyreferences" is ignored https://github.com/fsharp/FSharp.Compiler.Service/issues/292
@@ -33,7 +33,7 @@ type FsiArugments  ( hostInfo:Hosting) =
             args
             |> Array.map (fun s -> s.Trim())
             |> Array.filter (String.IsNullOrWhiteSpace>>not)
-            |> Array.filter (fun a -> a.ToLower() <>  "--quiet") // this argument is managed seperatly in config.Settings and statusbar
+            |> Array.filter (fun a -> a.ToLower() <>  "--quiet") // this argument is managed separately in config.Settings and statusbar
 
 
     let mutable args = [||]

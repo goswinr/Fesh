@@ -16,7 +16,7 @@ type Config (log:ISeffLog, startUpData:HostedStartUpData option, startupArgs:str
     let  defaultCode                = DefaultCode                 (hosting)
     let  autoCompleteStatistic      = AutoCompleteStatistic       (hosting)
     let  assemblyReferenceStatistic = AssemblyReferenceStatistic  (hosting)
-    let  fsiArugments               = FsiArugments                (hosting)
+    let  fsiArguments               = FsiArguments                (hosting)
     let  foldingStatus              = FoldingStatus               (hosting, recentlyUsedFiles)
 
 
@@ -27,7 +27,7 @@ type Config (log:ISeffLog, startUpData:HostedStartUpData option, startupArgs:str
     member this.DefaultCode                = defaultCode
     member this.AutoCompleteStatistic      = autoCompleteStatistic
     member this.AssemblyReferenceStatistic = assemblyReferenceStatistic
-    member this.FsiArugments               = fsiArugments
+    member this.FsiArguments               = fsiArguments 
     member this.FoldingStatus              = foldingStatus
 
     member this.Log                        = log

@@ -14,7 +14,7 @@ type Window (config:Config)=
 
     let win = new FsEx.Wpf.PositionedWindow(config.Hosting.SettingsFileInfo,ISeffLog.printError)
 
-    let mutable wasMax = false //indicating if the Window was in Fullscreen mode before switching to temporary Log only fullscreeen
+    let mutable wasMax = false //indicating if the Window was in Full-screen mode before switching to temporary Log only full-screen
 
     do
         if win.Settings.GetBool ("WindowIsMax", false) then
@@ -45,13 +45,13 @@ type Window (config:Config)=
     /// The main WPF Window
     member this.Window = win
 
-    /// Indicating if the Window is in Fullscreen mode or minimized mode (not normal mode)
+    /// Indicating if the Window is in Full-screen mode or minimized mode (not normal mode)
     member this.IsMinOrMax = win.IsMinOrMax
 
-    /// Indicating if the Window was in Fullscreen mode before switching to temporary Log only fullscreeen
+    /// Indicating if the Window was in Full-screen mode before switching to temporary Log only full-screen
     member this.WasMax
-       with get() = wasMax
-       and set(v) = wasMax <- v
+        with get() = wasMax
+        and set(v) = wasMax <- v
 
 
 

@@ -65,7 +65,7 @@ type EvaluationTrackerRenderer (ed:TextEditor) =
     let computeParagraphAndDraw() = 
         if topMostUnEvaluated = 0 then
             if isNull evaluatedCodeSeg then () // nothing evaluated yet, do nothing
-            else evaluatedCodeSeg <-null /// happens when there is a segment but the first char gets deleted
+            else evaluatedCodeSeg <-null // happens when there is a segment but the first char gets deleted
         else
             let len = doc.TextLength
             if topMostUnEvaluated >= len then
@@ -86,7 +86,7 @@ type EvaluationTrackerRenderer (ed:TextEditor) =
                         //ISeffLog.log.PrintfnColor 200 0 100 "prev: '%s' ch: '%s'" (formatChar prev)(formatChar ch)
                         if isNonWhite ch then // non whitespace
                             if prev = '\n' then // find a line that does not start with white space
-                                true //i-1 // there is only white space till 'i' wher a paragraph starts
+                                true //i-1 // there is only white space till 'i' where a paragraph starts
                             else
                                 false //a non white but not at beginning of line
                         else
@@ -120,7 +120,7 @@ type EvaluationTrackerRenderer (ed:TextEditor) =
                     let segmentEnd = 
                         let segEnd = searchback lastInEval topMostUnEvaluated   // GetCharAt     cant be -1 because there is a check at the top
                         
-                        /// now include any attributes and comments in the lines above , and skip whitspace again                       
+                        /// now include any attributes and comments in the lines above , and skip whitespace again                       
                         let rec moveUp (ln:DocumentLine) =                             
                             if ln.LineNumber = 1 then 
                                 min segEnd ln.EndOffset // min() because segEnd might be smaller than ln.EndOffset
@@ -131,7 +131,7 @@ type EvaluationTrackerRenderer (ed:TextEditor) =
                                     moveUp(ln.PreviousLine)                                
                                 elif String.IsNullOrWhiteSpace(doc.GetText(ln)) then 
                                     moveUp(ln.PreviousLine)
-                                elif st5 = "open " || st5 = "#if I" then // TODO: detect corectly if current end segment is inside a #if #elif #else block !
+                                elif st5 = "open " || st5 = "#if I" then // TODO: detect correctly if current end segment is inside a #if #elif #else block !
                                     moveUp(ln.PreviousLine)  
                                 else
                                     ln.EndOffset 
@@ -161,7 +161,7 @@ type EvaluationTrackerRenderer (ed:TextEditor) =
         ed.TextArea.TextView.Redraw()
 
     /// provide the index of the first unevaluated offset, this might be out of bound too if all doc is evaluated and will be checked
-    member _.MarkEvalutedTillOffset(offset) = 
+    member _.MarkEvaluatedTillOffset(offset) = 
         let len = doc.TextLength // off might be bigger than doc.TextLength because expandSelectionToFullLines adds 2 chars at end.
         topMostUnEvaluated <- min len offset
         computeParagraphAndDraw()
@@ -221,7 +221,7 @@ type EvaluationTracker (ed:TextEditor, checker:Checker, edId:Guid) =
                     let endOffset = s.startOffset + s.length
                     if s.startOffset <= renderer.EvaluateFrom  // check start is in already evaluated region
                     && endOffset > renderer.EvaluateFrom then
-                        renderer.MarkEvalutedTillOffset(endOffset)
+                        renderer.MarkEvaluatedTillOffset(endOffset)
                         //ISeffLog.log.PrintfnFsiErrorMsg "Fsi.OnCompletedOk,FsiSegment:renderer.EvaluateFrom:%d" renderer.EvaluateFrom
                 )
 
@@ -231,7 +231,7 @@ type EvaluationTracker (ed:TextEditor, checker:Checker, edId:Guid) =
     member _.EvaluateFrom =             renderer.EvaluateFrom
 
     /// provide the index of the first unevaluated offset, this might be out of bound too if all doc is evaluated and will be checked
-    member _.MarkEvalutedTillOffset(off) =      renderer.MarkEvalutedTillOffset(off)
+    member _.MarkEvaluatedTillOffset(off) =      renderer.MarkEvaluatedTillOffset(off)
 
 
 

@@ -72,7 +72,7 @@
     <Resource Include="Media/logo.ico" />       <!--  for Application Icon in primary windows-->
     <Resource Include="Media/logoGray.ico" />    <!--  for Application Icon in secondary PopOut windows-->
     <!-- <Resource Include="Media/FiraCode-Regular.ttf" /> -->
-	<None Include="Src/SynatxHighlightingFSharp.xshd" CopyToOutputDirectory="PreserveNewest" TargetPath="SynatxHighlightingFSharp.xshd" Pack="true" PackagePath="\" />
+	<None Include="Src/SyntaxHighlightingFSharp.xshd" CopyToOutputDirectory="PreserveNewest" TargetPath="SyntaxHighlightingFSharp.xshd" Pack="true" PackagePath="\" />
 
 	<Compile Include="Src/Util.fs" />
     <Compile Include="Src/ParseFs.fs" />
@@ -81,7 +81,7 @@
     <Compile Include="Src/Model.fs" />
     <Compile Include="Src/Config/Hosting.fs" />
     <Compile Include="Src/Config/DefaultCode.fs" />
-    <Compile Include="Src/Config/FsiArugments.fs" />
+    <Compile Include="Src/Config/FsiArguments.fs" />
     <Compile Include="Src/Config/OpenTabs.fs" />
     <Compile Include="Src/Config/RecentlyUsedFiles.fs" />
     <Compile Include="Src/Config/AutoCompleteStatistic.fs" />
@@ -108,9 +108,9 @@
     <Compile Include="Src/Editor/BracketColorizer.fs" />
     <Compile Include="Src/Editor/ColumnRulers.fs" />
     <Compile Include="Src/Editor/SwapLines.fs" />
-    <Compile Include="Src/Editor/CursorBehaviour.fs" />
+    <Compile Include="Src/Editor/CursorBehavior.fs" />
     <Compile Include="Src/Editor/KeyboardShortcuts.fs" />
-    <Compile Include="Src/Editor/Formating.fs" />
+    <Compile Include="Src/Editor/Formatting.fs" />
     <Compile Include="Src/Editor/DocChanged.fs" />
     <Compile Include="Src/Editor/Editor.fs" />
 

@@ -14,7 +14,7 @@ open Seff.Model
 
 type UsedFile = {
     fileInfo:FileInfo
-    lastOpendUtc:DateTime
+    lastOpenedUTC:DateTime
     }
 
 type RecentlyUsedFiles  ( hostInfo:Hosting) = 
@@ -32,24 +32,24 @@ type RecentlyUsedFiles  ( hostInfo:Hosting) =
             match writer.ReadAllLines() with
             |None -> ()
             |Some files ->
-               for ln in files |> Seq.rev do
-                   let path , d = Str.splitOnce "|" ln
-                   match DateTime.TryParseExact(d, "yyyy-MM-dd HH:mm", null,  DateTimeStyles.None) with // TODO is this UTC ?
-                   | true, date ->
-                       if IO.File.Exists(path) then
-                           stack.Push {fileInfo = FileInfo(path) ; lastOpendUtc = date}
-                       elif DateTime.UtcNow - date < TimeSpan.FromDays(2.) then // if a file is missing only add it to the recent file stack if it was used in the last 2 days( might be on a network drive that is temporaly disconnected)
-                           stack.Push {fileInfo = FileInfo(path) ; lastOpendUtc = date}
-                   | _ ->
-                       ISeffLog.log.PrintfnAppErrorMsg "Failed to parse date from recent file text: %s" ln
-                       stack.Push {fileInfo = FileInfo(path) ; lastOpendUtc = DateTime.MinValue}
-            recentFilesChangedEv.Trigger()// to update menu if delaget is alreday set up in menu.fs
+                for ln in files |> Seq.rev do
+                    let path , d = Str.splitOnce "|" ln
+                    match DateTime.TryParseExact(d, "yyyy-MM-dd HH:mm", null,  DateTimeStyles.None) with // TODO is this UTC ?
+                    | true, date ->
+                        if IO.File.Exists(path) then
+                            stack.Push {fileInfo = FileInfo(path) ; lastOpenedUTC = date}
+                        elif DateTime.UtcNow - date < TimeSpan.FromDays(2.) then // if a file is missing only add it to the recent file stack if it was used in the last 2 days( might be on a network drive that is temporarily disconnected)
+                            stack.Push {fileInfo = FileInfo(path) ; lastOpenedUTC = date}
+                    | _ ->
+                        ISeffLog.log.PrintfnAppErrorMsg "Failed to parse date from recent file text: %s" ln
+                        stack.Push {fileInfo = FileInfo(path) ; lastOpenedUTC = DateTime.MinValue}
+            recentFilesChangedEv.Trigger()// to update menu if delegate is already set up in menu.fs
             } |> Async.Start
         stack  // the returned stack is empty initially , it will be filled async
 
 
-    /// the maximum number of recxent files to be saved
-    /// the amount of files in the recently used menu can be controlled separetly in menu.fs
+    /// the maximum number of recent files to be saved
+    /// the amount of files in the recently used menu can be controlled separately in menu.fs
     let maxCount = 100
 
     let getStringRaiseEvent() = 
@@ -59,7 +59,7 @@ type RecentlyUsedFiles  ( hostInfo:Hosting) =
         for uf in recentFilesStack  do   // iteration starts at top element of stack
             if !k < maxCount then
                 if not <| Dup.Contains uf.fileInfo.FullName then
-                    let date = uf.lastOpendUtc.ToString("yyyy-MM-dd HH:mm")
+                    let date = uf.lastOpenedUTC.ToString("yyyy-MM-dd HH:mm")
                     let file = uf.fileInfo.FullName
                     sb.AppendLine(file + "|" + date)  |> ignore
                     Dup.Add uf.fileInfo.FullName  |> ignore
@@ -71,11 +71,11 @@ type RecentlyUsedFiles  ( hostInfo:Hosting) =
     /// does not save
     member this.Add(fi:FileInfo) = 
         if recentFilesStack.Count = 0  then
-            recentFilesStack.Push {fileInfo=fi ; lastOpendUtc=DateTime.UtcNow }
+            recentFilesStack.Push {fileInfo=fi ; lastOpenedUTC=DateTime.UtcNow }
         else
             if recentFilesStack.Peek().fileInfo.FullName = fi.FullName then
                 recentFilesStack.Pop()  |> ignore// pop old date add new date
-            recentFilesStack.Push {fileInfo=fi ; lastOpendUtc=DateTime.UtcNow }
+            recentFilesStack.Push {fileInfo=fi ; lastOpenedUTC=DateTime.UtcNow }
     /// saves async with 2 sec delay
     member this.Save() = 
         writer.WriteIfLast( getStringRaiseEvent, 2000)
@@ -100,7 +100,7 @@ type RecentlyUsedFiles  ( hostInfo:Hosting) =
                 Dup.Add lc |> ignore
                 if File.Exists lc then // async is done in Menu.setRecentFiles()
                     xs.Add uf
-        xs |> Util.General.sortInPlaceBy ( fun uf -> uf.lastOpendUtc)
+        xs |> Util.General.sortInPlaceBy ( fun uf -> uf.lastOpenedUTC)
         xs.Reverse()
         xs
 
@@ -117,7 +117,7 @@ type RecentlyUsedFiles  ( hostInfo:Hosting) =
             let b = s.ToLowerInvariant()
             a=b )
 
-    [<CLIEvent>]
     /// this even is raised from UI thread
     /// used to update Menu
+    [<CLIEvent>]
     member this.OnRecentFilesChanged = recentFilesChangedEv.Publish

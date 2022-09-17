@@ -49,7 +49,7 @@ type SelectedTextHighlighter (ed:TextEditor) =
                 if (st < curSelStart || st > curSelEnd) && (en < curSelStart || en > curSelEnd )  then // skip the actual current selection
                     //printfn "Sel %d to %d for %s, curSelStart: %d" st en highTxt curSelStart
 
-                    // here end offset needs + 1  to be the first charcater without highlighting
+                    // here end offset needs + 1  to be the first character without highlighting
                     base.ChangeLinePart( st,en + 1, fun el -> el.TextRunProperties.SetBackgroundBrush(SelectedTextHighlighter.ColorHighlight))
                 let start = index + highTxt.Length // search for next occurrence
                 index <- text.IndexOf(highTxt, start, StringComparison.Ordinal)
@@ -78,7 +78,7 @@ type SelectedTextTracer private () =
             checkTx.Length > 1 // minimum 2 non whitespace characters?
             && not <| highTxt.Contains("\n")  //no line beaks
             && not <| highTxt.Contains("\r")  //no line beaks
-            && config.Settings.GetBool("HighlightAllOccurences",true) 
+            && config.Settings.GetBool("HighlightAllOccurrences",true) 
 
         if doHighlight then
             oh.HighlightText <- highTxt
@@ -90,7 +90,7 @@ type SelectedTextTracer private () =
 
             // for status bar and folds :
             match ed.FileCheckState.FullCodeAndId with
-            | NoCode ->() //OccurencesTracer.Instance.InfoText <- ""
+            | NoCode ->() //OccurrencesTracer.Instance.InfoText <- ""
             | CodeID (code,_) ->
                 let mutable  index = code.IndexOf(highTxt, 0, StringComparison.Ordinal)
                 let mutable k = 0
@@ -121,7 +121,7 @@ type SelectedTextTracer private () =
                 oh.HighlightText <- null
                 for f in ed.FoldingManager.AllFoldings do  f.BackbgroundColor <- null
                 SelectedTextTracer.Instance.TriggerOnHighlightCleared()
-                ///ta.TextView.Redraw() // to clear highlight
+                //ta.TextView.Redraw() // to clear highlight
 
         ed.AvaEdit.TextArea.TextView.Redraw() //do just once at end ?
 

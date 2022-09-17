@@ -5,7 +5,7 @@ open System.Windows.Media
 
 open Seff
 
-type Fonts (grid:TabsAndLog) = // will be contructed as part of Commands class
+type Fonts (grid:TabsAndLog) = // will be constructed as part of Commands class
     let log = grid.Log
     let tabs= grid.Tabs
     let config = grid.Config
@@ -16,7 +16,7 @@ type Fonts (grid:TabsAndLog) = // will be contructed as part of Commands class
 
     let setSize (newSize:float) = // on log and all tabs
 
-        // 17.0252982466288 this fontsize makes block selection delete fail on the last line: 17.0252982466288
+        // 17.0252982466288 this font-size makes block selection delete fail on the last line: 17.0252982466288
         //let newSize = grid.Config.Settings.roundToOneDigitBehindComa(newSizeUnRounded)
 
         log.AvalonLog.FontSize <- newSize
@@ -30,11 +30,11 @@ type Fonts (grid:TabsAndLog) = // will be contructed as part of Commands class
 
     let fontExists(f:FontFamily) = 
         let n = f.FamilyNames.Values |> Seq.head
-        if f.Source.Contains(n) then  // scource migth stat with ./#
+        if f.Source.Contains(n) then  // source might stat with ./#
             true
         else
             log.PrintfnAppErrorMsg "Font '%s' could not be loaded. Loaded '%s' instead." f.Source n
-            log.PrintfnAppErrorMsg "Fonts found in Rescources in folder Media:"
+            log.PrintfnAppErrorMsg "Fonts found in Resources in folder Media:"
             for fo in Fonts.GetFontFamilies(fontsUri) do
                 log.PrintfnAppErrorMsg "'%s'" fo.Source
             false
@@ -62,7 +62,7 @@ type Fonts (grid:TabsAndLog) = // will be contructed as part of Commands class
         config.Settings.Save ()
 
 
-    let fromRescources(name, alternative) = 
+    let fromResources(name, alternative) = 
         try
             let f = new FontFamily(mediaUri,"./#"+name)
             // TODO set ligatures?
@@ -78,7 +78,7 @@ type Fonts (grid:TabsAndLog) = // will be contructed as part of Commands class
     do
 
 
-        //setEditor(fromRescources("Fira Code", "Consolas")) // too slow on big files, Cascadia Mono is just as bad
+        //setEditor(fromResources("Fira Code", "Consolas")) // too slow on big files, Cascadia Mono is just as bad
         setEditor(  FontFamily ("Consolas")|> logIfFontIsMissing)  // only consolas renders fast
         //setEditor(  FontFamily ("JetBrains Mono")|> logIfFontIsMissing)  // only consolas renders fast
         setLog(     FontFamily ("Consolas")|> logIfFontIsMissing)

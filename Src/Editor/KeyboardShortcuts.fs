@@ -164,9 +164,9 @@ module KeyboardNative =
                         | 39  -> altKeyComboEv.Trigger(AltRight  )
                         | 40  -> altKeyComboEv.Trigger(AltDown   )
                         | _ -> () // never happens
-                        // we are explicityl not calling CallNextHookEx here to not do a nudge in Rhino as well.
+                        // we are explicitly not calling CallNextHookEx here to not do a nudge in Rhino as well.
                         // see bug https://discourse.mcneel.com/t/using-alt-up-key-in-plugin-does-not-work/105740/3
-                        // this will also disable any potential other global shortcut using Alt and arrow keys while Seff window is active. not nice but probaly ok.
+                        // this will also disable any potential other global shortcut using Alt and arrow keys while Seff window is active. not nice but probably ok.
                         0 // Since the hook procedure does not call CallNextHookEx, the return value should be zero.
             else
                 CallNextHookEx(hhook, nCode, wParam, &lParam)
@@ -209,8 +209,8 @@ module KeyboardNative =
         ISeffLog.log.PrintfnDebugMsg  "hhook at:%d" hhook
     *)
 
-    /// This event occures when the Alt key and any of the four arrows are pressed down
-    /// This occures before Preview key down.
+    /// This event occurs when the Alt key and any of the four arrows are pressed down
+    /// This occurs before Preview key down.
     [<CLIEvent>]
     let OnAltKeyCombo = altKeyComboEv.Publish
 
@@ -237,66 +237,63 @@ module KeyboardShortcuts =
     // except for Alt and arrow keys
     let previewKeyDown (ed:TextEditor, ke: Input.KeyEventArgs, compls:Completions) = 
         //if not ed.IsComplWinOpen then
-         match realKey ke  with
+     match realKey ke  with
 
-         |Input.Key.Back ->
-             /// TODO check for modifier keys like Alt or Ctrl ?
-             match getSelType(ed.TextArea) with
-             | NoSel ->     CursorBehaviour.backspace4Chars(ed,ke)
-             | RectSel ->   RectangleSelection.backspaceKey(ed) ; ke.Handled <- true
-             | RegSel  ->   ()
+        |Input.Key.Back ->
+            // TODO check for modifier keys like Alt or Ctrl ?
+            match getSelType(ed.TextArea) with
+            | NoSel ->     CursorBehavior.backspace4Chars(ed,ke)
+            | RectSel ->   RectangleSelection.backspaceKey(ed) ; ke.Handled <- true
+            | RegSel  ->   ()
 
-         |Input.Key.Delete ->
-             /// TODO check for modifier keys like Alt or Ctrl ?
-             match getSelType(ed.TextArea) with
-             | NoSel  ->   CursorBehaviour.deleteTillNonWhite(ed,ke)
-             | RectSel ->  RectangleSelection.deleteKey(ed) ; ke.Handled <- true
-             | RegSel ->   ()
-
-         | Input.Key.Enter | Input.Key.Return ->
-             if isUp Ctrl // if alt or ctrl is down this means sending to fsi ...
-             && isUp Alt
-             && isUp Shift 
-             && compls.IsNotOpen then CursorBehaviour.addFSharpIndentation(ed,ke)  // add indent after do, for , ->, = 
-
-         (*
-         handeled in: let altKeyCombo(akey:AltKeyCombo)
-
-         | Input.Key.Down ->
-             if isDown Ctrl && isUp Shift then
-                 if isDown Alt then
-                     RectangleSelection.expandDown(ed) // on Ctrl + Alt + down
-                 else
-                     // also use Ctrl key for swapping since Alt key does not work in rhino,
-                     // swapping with alt+up is set up in commands.fs via key gestures
-                     //SwapLines.swapLinesDown(ed) // on Ctrl + Down
-                     //ke.Handled <- true
-                     ()
+        |Input.Key.Delete ->
+            // TODO check for modifier keys like Alt or Ctrl ?
+            match getSelType(ed.TextArea) with
+            | NoSel  ->   CursorBehavior.deleteTillNonWhite(ed,ke)
+            | RectSel ->  RectangleSelection.deleteKey(ed) ; ke.Handled <- true
+            | RegSel ->   ()
+        | Input.Key.Enter | Input.Key.Return ->
+            if isUp Ctrl // if alt or ctrl is down this means sending to fsi ...
+            && isUp Alt
+            && isUp Shift 
+            && compls.IsNotOpen then CursorBehavior.addFSharpIndentation(ed,ke)  // add indent after do, for , ->, = 
+        (*
+        handled in: let altKeyCombo(akey:AltKeyCombo)
+        | Input.Key.Down ->
+            if isDown Ctrl && isUp Shift then
+                if isDown Alt then
+                    RectangleSelection.expandDown(ed) // on Ctrl + Alt + down
+                else
+                    // also use Ctrl key for swapping since Alt key does not work in rhino,
+                    // swapping with alt+up is set up in commands.fs via key gestures
+                    //SwapLines.swapLinesDown(ed) // on Ctrl + Down
+                    //ke.Handled <- true
+                    ()
 
 
-         | Input.Key.Up ->
-             if isDown Ctrl && isUp Shift then
-                 if isDown Alt then
-                     RectangleSelection.expandUp(ed) // on Ctrl + Alt + Up
-                 else
-                     //SwapLines.swapLinesUp(ed) // on Ctrl + Up
-                     //ke.Handled <- true
-                     ()
+        | Input.Key.Up ->
+            if isDown Ctrl && isUp Shift then
+                if isDown Alt then
+                    RectangleSelection.expandUp(ed) // on Ctrl + Alt + Up
+                else
+                    //SwapLines.swapLinesUp(ed) // on Ctrl + Up
+                    //ke.Handled <- true
+                    ()
 
 
-         | Input.Key.Left ->
-             if isDown Ctrl && isUp Shift then
-                 match getSelType(ed.AvaEdit.TextArea) with
-                 | RegSel ->   if SwapWords.left(ed.AvaEdit) then  ke.Handled <- true
-                 | NoSel  | RectSel ->  ()
+        | Input.Key.Left ->
+            if isDown Ctrl && isUp Shift then
+                match getSelType(ed.AvaEdit.TextArea) with
+                | RegSel ->   if SwapWords.left(ed.AvaEdit) then  ke.Handled <- true
+                | NoSel  | RectSel ->  ()
 
-         | Input.Key.Right ->
-             if isDown Ctrl && isUp Shift then
-                 match getSelType(ed.AvaEdit.TextArea) with
-                 | RegSel ->   if SwapWords.right(ed.AvaEdit) then  ke.Handled <- true
-                 | NoSel  | RectSel ->  ()
-         *)
+        | Input.Key.Right ->
+            if isDown Ctrl && isUp Shift then
+                match getSelType(ed.AvaEdit.TextArea) with
+                | RegSel ->   if SwapWords.right(ed.AvaEdit) then  ke.Handled <- true
+                | NoSel  | RectSel ->  ()
+        *)
 
-         | _ -> ()
+        | _ -> ()
 
 

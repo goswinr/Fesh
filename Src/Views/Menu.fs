@@ -23,10 +23,10 @@ type HeaderGestureTooltip = {
     }
 
 
-module private RecognicePath = 
+module private RecognizePath = 
 
     let filePathStartRegex = Text.RegularExpressions.Regex("""[A-Z]:[\\/]""") // C:\    
-    let filePathEndRegex = Text.RegularExpressions.Regex("""[\"<>:|?*]""") // invalid chacters in file path
+    let filePathEndRegex = Text.RegularExpressions.Regex("""[\"<>:|?*]""") // invalid characters in file path
     // let filePathEndRegex = Text.RegularExpressions.Regex("""["()\[\]']""") //   [ or ] or ( or ) or " or '
     // Or disallow spaces too : let filePathEndRegex = Text.RegularExpressions.Regex("""["()\[\] ']""") //  a space or [ or ] or ( or ) or " or '
 
@@ -103,7 +103,7 @@ module private RecognicePath =
                         //else
                         //    if not <| deDup.Contains fullPath then
                         //        deDup.Add fullPath  |> ignore
-                        // allways show this option:
+                        // always show this option:
                         let cmd = {
                                 name = sprintf "Open with VS Code  '%s'" fullPath
                                 gesture = ""
@@ -139,7 +139,7 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, statusBar:SeffStatusBar, log:
     // File menu:
     let fileMenu = MenuItem(Header = "_File")
 
-    // TODO add all built in  DocmentNavigatin shortcuts
+    // TODO add all built in  Document Navigation shortcuts
     let maxFilesInRecentMenu = 40
 
     let mutable recentFilesInsertPosition = 0
@@ -162,7 +162,7 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, statusBar:SeffStatusBar, log:
 
             do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context
 
-            ///first clear
+            //first clear
             while fileMenu.Items.Count > recentFilesInsertPosition do
                 fileMenu.Items.RemoveAt recentFilesInsertPosition
 
@@ -170,7 +170,7 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, statusBar:SeffStatusBar, log:
 
             //create time separator if not existing yet
             let tb(s) = 
-                if not<| HeaderIsIn.Contains s then // so that haeader appears only once
+                if not<| HeaderIsIn.Contains s then // so that haeder appears only once
                     HeaderIsIn.Add s  |> ignore
                     let tb = TextBlock (Text= "          - " + s + " -", FontWeight = FontWeights.Bold)
                     let mi = MenuItem (Header = tb )
@@ -182,13 +182,13 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, statusBar:SeffStatusBar, log:
             let today = now.DayOfYear
             let thisYear = now.Year
             for uf in usedFiles  do       //must be ordered ,youngest file must be first
-                let lol = uf.lastOpendUtc.ToLocalTime()
+                let lol = uf.lastOpenedUTC.ToLocalTime()
 
                 //create time separator if not existing yet:
                 if   lol.Year = thisYear && lol.DayOfYear >= today      then tb "last used today"
                 elif lol.Year = thisYear && lol.DayOfYear  = today - 1  then tb "yesterday"
                 else
-                    let age = now - uf.lastOpendUtc
+                    let age = now - uf.lastOpenedUTC
                     if   age < TimeSpan.FromDays(7.0)  then  tb "up to a week ago"
                     elif age < TimeSpan.FromDays(31.0) then  tb "up to a month ago"
                     elif age < TimeSpan.FromDays(365.0) then tb "up to a year ago"
@@ -202,7 +202,7 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, statusBar:SeffStatusBar, log:
                     else "...\\ " + (ps |> Array.rev |> Seq.truncate 3 |> Seq.rev |> String.concat " \\ " ) // partial path
                 let tt = 
                     uf.fileInfo.FullName
-                    + "\r\nlast opend: " + uf.lastOpendUtc.ToString("yyyy-MM-dd HH:mm") + " (used for sorting in this menu)"
+                    + "\r\nlast opened: " + uf.lastOpenedUTC.ToString("yyyy-MM-dd HH:mm") + " (used for sorting in this menu)"
                     + "\r\nlast saved: " + uf.fileInfo.LastWriteTime.ToString("yyyy-MM-dd HH:mm")
                 let mi = MenuItem (Header = new TextBlock (Text = header), ToolTip=tt, Command = openCom) // wrap in textblock to avoid Mnemonics (alt key access at underscore)
                 fileMenu.Items.Add(mi) |> ignore
@@ -393,13 +393,13 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, statusBar:SeffStatusBar, log:
 
 
 
-        /// add menu to open file path if there is on on current line
+        // add menu to open file path if there is on on current line
         tabs.Control.PreviewMouseRightButtonDown.Add ( fun m ->
-            RecognicePath.addPathIfPresentToMenu (m, tempItemsInEditorMenu, tabs.Control.ContextMenu, tabs.Current.AvaEdit , tabs.AddFile)
+            RecognizePath.addPathIfPresentToMenu (m, tempItemsInEditorMenu, tabs.Control.ContextMenu, tabs.Current.AvaEdit , tabs.AddFile)
             )
-        /// add menu to open file path if there is on on current line
+        // add menu to open file path if there is on on current line
         log.AvalonLog.PreviewMouseRightButtonDown.Add ( fun m ->
-            RecognicePath.addPathIfPresentToMenu (m, tempItemsInLogMenu, log.AvalonLog.ContextMenu, log.AvalonLog.AvalonEdit , tabs.AddFile)
+            RecognizePath.addPathIfPresentToMenu (m, tempItemsInLogMenu, log.AvalonLog.ContextMenu, log.AvalonLog.AvalonEdit , tabs.AddFile)
             )
 
 

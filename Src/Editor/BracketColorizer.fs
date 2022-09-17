@@ -124,8 +124,8 @@ type BracketHighlighter (ed:TextEditor) =
                             else                     Brs.Add  OpRect ; Offs.Add i  ; find (i+1)
                         elif
                             t0='(' then
-                                if    t1 = ')' then                             find (i+2) // skip '(' flollowed by ')'
-                                elif  t1 = '*' then   inBlockComment <- true ;  find (i+2) // skip '(' flollowed by ')'
+                                if    t1 = ')' then                             find (i+2) // skip '(' followed by ')'
+                                elif  t1 = '*' then   inBlockComment <- true ;  find (i+2) // skip '(' followed by ')'
 
                                 else                     Brs.Add  OpRound ; Offs.Add i ; find (i+1)
 
@@ -287,9 +287,9 @@ type BracketHighlighter (ed:TextEditor) =
             //brh.Log <- Some ed.Log
             ed.AvaEdit.TextArea.TextView.LineTransformers.Add(brh)
 
-            ch.OnFullCodeAvailabe.Add( fun ched ->
+            ch.OnFullCodeAvailable.Add( fun ched ->
               if ched.Id = ed.Id then
-                  //ed.Log.PrintfnInfoMsg "OnFullCodeAvailabe checking Breackets"
+                  //ed.Log.PrintfnInfoMsg "OnFullCodeAvailable checking Brackets"
                   brh.FindBrackets(ed) )
 
             ed.AvaEdit.TextArea.Caret.PositionChanged.Add ( fun e -> brh.HighlightPair(ed))

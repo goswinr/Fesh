@@ -30,7 +30,7 @@ module Selection =
     let inline sorted a b = if a>b then b,a else a,b
 
 
-    /// a DU represneting all possible kinds of the current selection
+    /// a DU representing all possible kinds of the current selection
     type Sel = 
         |NoSel
         |RegSel

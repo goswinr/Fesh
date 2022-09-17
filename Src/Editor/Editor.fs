@@ -40,12 +40,12 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
     let mutable checkState = FileCheckState.NotStarted // local to this editor
     let mutable filePath = filePath
 
-    //let mutable needsChecking = true // so that on a tab chnage a recheck is not triggered if not needed
+    //let mutable needsChecking = true // so that on a tab change a recheck is not triggered if not needed
 
     do
         avaEdit.BorderThickness <- new Thickness( 0.0)
         avaEdit.Text <- code |> unifyLineEndings |> tabsToSpaces avaEdit.Options.IndentationSize
-        avaEdit.ShowLineNumbers <- true // background color is set in ColoumnRulers.cs
+        avaEdit.ShowLineNumbers <- true // background color is set in ColumnRulers.cs
         avaEdit.VerticalScrollBarVisibility <- Controls.ScrollBarVisibility.Auto
         avaEdit.HorizontalScrollBarVisibility <- Controls.ScrollBarVisibility.Auto
         avaEdit.Options.HighlightCurrentLine <- true // http://stackoverflow.com/questions/5072761/avalonedit-highlight-current-line-even-when-not-focused
@@ -59,7 +59,7 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
         avaEdit.Options.ConvertTabsToSpaces <- true
         avaEdit.Options.IndentationSize <- 4
         avaEdit.Options.HideCursorWhileTyping <- false
-        //avaEdit.Options.EnableVirtualSpace <- true // to postion caret anywher in editor
+        //avaEdit.Options.EnableVirtualSpace <- true // to postion caret anywhere in editor
         avaEdit.TextArea.SelectionCornerRadius <- 0.0
         avaEdit.TextArea.SelectionBorder <- null
         avaEdit.FontFamily <- Style.fontEditor
@@ -71,7 +71,7 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
         //avaEdit.TextArea.AllowCaretOutsideSelection <- true
         SyntaxHighlighting.setFSharp(avaEdit,false)
 
-        search.MatchCase  <- true //config.Settings.GetBool("SearchMatchCase", true) // TODO how to save chnages ?
+        search.MatchCase  <- true //config.Settings.GetBool("SearchMatchCase", true) // TODO how to save changes ?
         search.WholeWords <- true //config.Settings.GetBool("SearchWholeWords", true)
         
 
@@ -135,11 +135,11 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
         BracketHighlighter.Setup(ed, ed.GlobalChecker)
 
         Logging.LogAction <- new Action<string>( fun (s:string) -> log.PrintfnDebugMsg "Logging.Log: %s" s)       
-       
+        
 
-        avaEdit.Drop.Add                      (fun e -> CursorBehaviour.TextAreaDragAndDrop( avaEdit,e))
+        avaEdit.Drop.Add                      (fun e -> CursorBehavior.TextAreaDragAndDrop( avaEdit,e))
         avaEdit.PreviewKeyDown.Add            (fun e -> KeyboardShortcuts.previewKeyDown(    avaEdit, e, compls))   //to indent and dedent, and change block selection delete behavior
-        avaEdit.TextArea.PreviewTextInput.Add (fun e -> CursorBehaviour.previewTextInput(    avaEdit, e))   //to change block selection delete behavior
+        avaEdit.TextArea.PreviewTextInput.Add (fun e -> CursorBehavior.previewTextInput(    avaEdit, e))   //to change block selection delete behavior
         avaEdit.TextArea.AlternativeRectangularPaste <- Action<string,bool>( fun txt txtIsFromOtherRectSel -> RectangleSelection.paste(ed.AvaEdit,txt,txtIsFromOtherRectSel)) //TODO check txtIsFromOtherRectSel on pasting text with \r\n
 
         // setup and tracking folding status, (needs a ref to file path:  )
@@ -157,15 +157,15 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
         avaEdit.Document.Changed.Add(fun a -> ed.EvalTracker.SetLastChangeAt(a.Offset))
         avaEdit.Document.Changed.Add(fun a -> 
             match DocChanged.docChanged(a,ed,compls) with // the trigger for Autocomplete
-            |DocChanged.DoNothing->()
-            |DocChanged.CheckCode -> ed.GlobalChecker.CkeckHighlightAndFold(ed)
+            |DocChanged.DoNothing ->()
+            |DocChanged.CheckCode -> ed.GlobalChecker.CheckThenHighlightAndFold(ed)
             )        
 
         // check if closing and inserting from completion window is desired now:
         avaEdit.TextArea.TextEntering.Add (DocChanged.closeAndMaybeInsertFromCompletionWindow compls)
 
-        ed.GlobalChecker.OnChecked.Add(fun iEditorOfCheck -> // this then triggers folding too, statusbar update is added in statusbar class
-            if iEditorOfCheck.Id = ed.Id then // make sure it is only triggered on current editor!
+        ed.GlobalChecker.OnCheckedForErrors.Add(fun iEditorOfCheck -> // this then triggers folding too, statusbar update is added in statusbar class
+            if iEditorOfCheck.Id = ed.Id then // make sure it draws only on one editor, not all!
                 ed.ErrorHighlighter.Draw(ed)
             )
 

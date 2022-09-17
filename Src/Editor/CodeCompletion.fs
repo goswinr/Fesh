@@ -34,7 +34,7 @@ module UtilCompletion =
         tb.FontSize <-   Style.fontSize
         //tb.Foreground  <- col // fails on selection, does not get color inverted//check  https://blogs.msdn.microsoft.com/text/2009/08/28/selection-brush/ ??        
         tb.FontStyle <- style
-        tb.Padding <- Thickness(0. , 0. , 8. , 0. ) //left top right bottom / so that it does not apear to be trimmed
+        tb.Padding <- Thickness(0. , 0. , 8. , 0. ) //left top right bottom / so that it does not appear to be trimmed
         tb
 
 
@@ -74,7 +74,7 @@ type CompletionItem(ed:IEditor,config:Config, getToolTip, it:DeclarationListItem
     let textBlock = UtilCompletion.mkTexBlock(it.Name ,FontStyles.Normal)   // create once and cache ?  
         
     member this.Content = textBlock :> obj // the displayed item in the completion window 
-    member this.Description = getToolTip(it) // this gets called on demand only, not when initally filling the list.
+    member this.Description = getToolTip(it) // this gets called on demand only, not when initially filling the list.
     member this.Image = null //TODO or part of text box ?
     member this.Priority = priority
     member this.Text = it.Name // not used for display, but for priority sorting ? 
@@ -195,7 +195,7 @@ type Completions(avaEdit:TextEditor,config:Config, checker:Checker) =
         with get() = win
         and set(w) = win<-w
 
-    /// for a given method name retunes a list of optional argument names
+    /// for a given method name returns a list of optional argument names
     member this.OptArgsDict = optArgsDict
 
     static member TryShow(iEditor:IEditor,compl:Completions, pos:PositionInCode , lastChar:char, setback:int, query:string, charBefore:CharBeforeQuery, onlyDU:bool) = 
@@ -209,7 +209,7 @@ type Completions(avaEdit:TextEditor,config:Config, checker:Checker) =
         let contOnUI (decls: DeclarationListInfo, declSymbs: FSharpSymbolUse list list) = 
 
             // TODO move out of UI thread
-            /// for adding question marks to optional arguments:
+            // for adding question marks to optional arguments:
             compl.OptArgsDict.Clear() //TODO make persistent on class for caching
             for symbs in declSymbs do
                 for symb in symbs do
@@ -224,7 +224,7 @@ type Completions(avaEdit:TextEditor,config:Config, checker:Checker) =
                 completionLines.Add( CompletionItemForKeyWord(iEditor,config,"#if COMPILED",        "Compiler directive to exclude code in interactive format, close with #endif or #else" ) :> ICompletionData)    |>ignore
                 completionLines.Add( CompletionItemForKeyWord(iEditor,config,"#else",               "else of compiler directives " ) :> ICompletionData)    |>ignore
                 completionLines.Add( CompletionItemForKeyWord(iEditor,config,"#endif",              "End of compiler directive " ) :> ICompletionData)    |>ignore
-                // TODO: these paths dont work at the moment (2022): 
+                // TODO: these paths don't work at the moment (2022): 
                 //completionLines.Add( CompletionItemForKeyWord(iEditor,config,"__SOURCE_DIRECTORY__","Evaluates to the current full path of the source directory" ) :> ICompletionData)    |>ignore
                 //completionLines.Add( CompletionItemForKeyWord(iEditor,config,"__SOURCE_FILE__"     ,"Evaluates to the current source file name, without its path") :> ICompletionData)    |>ignore
                 //completionLines.Add( CompletionItemForKeyWord(iEditor,config,"__LINE__",            "Evaluates to the current line number") :> ICompletionData)    |>ignore
@@ -253,17 +253,17 @@ type Completions(avaEdit:TextEditor,config:Config, checker:Checker) =
                 w.MinWidth  <- avaEdit.FontSize * 8.0
                 w.Closed.Add (fun _  ->
                         compl.Close()
-                        compl.Checker.CkeckHighlightAndFold(iEditor) //needed ! because window might close immedeatly after showing if ther are no matches
+                        compl.Checker.CheckThenHighlightAndFold(iEditor) //needed ! because window might close immediately after showing if there are no matches
                         //config.Log.PrintfnDebugMsg "Completion window just closed with selected item: %A " w.CompletionList.SelectedItem
                         )
 
                 w.CompletionList.SelectionChanged.Add(fun _ -> if w.CompletionList.ListBox.Items.Count=0 then w.Close()) // otherwise empty box might be shown and only get closed on second character
-                w.Loaded.Add(                         fun _ -> if w.CompletionList.ListBox.Items.Count=0 then w.Close()) // close immediatly if completion list is empty
+                w.Loaded.Add(                         fun _ -> if w.CompletionList.ListBox.Items.Count=0 then w.Close()) // close immediately if completion list is empty
 
                 w.CloseAutomatically <-true
                 w.CloseWhenCaretAtBeginning <- true
 
-                //w.CompletionList.InsertionRequested.Add (fun _ -> avaEdit.LastTextChangeWasFromCompletionWindow <- true) // BAD !! triggers after text inested and textchnaged is triggerd on single letter
+                //w.CompletionList.InsertionRequested.Add (fun _ -> avaEdit.LastTextChangeWasFromCompletionWindow <- true) // BAD !! triggers after text instead and text-changed is triggered on single letter
 
                 //w.CompletionList.ListBox.SelectionChanged.Add (fun e -> //TODO this is not the correct event to hook up to
                 //    try if not w.CompletionList.ListBox.HasItems then w.Close()
@@ -276,7 +276,7 @@ type Completions(avaEdit:TextEditor,config:Config, checker:Checker) =
                     w.CompletionList.CompletionData.Add (cln)
 
                 if query.Length > 0 then
-                    w.CompletionList.SelectItem(query) //to prefilter the list if query present
+                    w.CompletionList.SelectItem(query) //to pre-filter the list if query present
 
                 try
                     //log.PrintfnDebugMsg "Show Completion Window with %d items" w.CompletionList.CompletionData.Count
@@ -290,7 +290,7 @@ type Completions(avaEdit:TextEditor,config:Config, checker:Checker) =
                 // (3)raise InsertionRequested event
                 // https://github.com/icsharpcode/AvalonEdit/blob/8fca62270d8ed3694810308061ff55c8820c8dfc/AvalonEditB/CodeCompletion/CompletionWindow.cs#L100
             else
-                compl.Checker.CkeckHighlightAndFold(iEditor)// start new full check, this on was trimmed at offset.
+                compl.Checker.CheckThenHighlightAndFold(iEditor)// start new full check, this on was trimmed at offset.
 
         compl.Checker.GetCompletions(iEditor, pos, ifDotSetback, contOnUI)
 
