@@ -124,7 +124,7 @@ type CheckerStatus (grid:TabsAndLog) as this =
                         | FSharpDiagnosticSeverity.Error   -> ers.Add e
                         | FSharpDiagnosticSeverity.Warning -> was.Add e
                         | FSharpDiagnosticSeverity.Hidden  -> his.Add e
-                        | FSharpDiagnosticSeverity.Info    -> ins.Add e
+                        | FSharpDiagnosticSeverity.Info    -> if e.ErrorNumber <> 3370 then ins.Add e //  exclude infos about ref cell incrementing ??
                     let erk = ers.Count
                     let wak = was.Count
                     if wak > 0 && erk > 0 then
