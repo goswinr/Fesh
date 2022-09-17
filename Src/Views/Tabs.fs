@@ -417,7 +417,7 @@ type Tabs(config:Config, win:Window) =
         else
             let msg = openFs  |> Seq.fold (fun m t ->
                 let name  = match t.FilePath with NotSet -> t.FormattedFileName |SetTo fi ->fi.Name
-                sprintf "%s\r\n\r\n%s" m name) "Do you want to\r\nsave the changes to:"
+                sprintf "%s\r\n \r\n%s" m name) "Do you want to\r\nsave the changes to:"
             match MessageBox.Show(msg, Style.dialogCaption, MessageBoxButton.YesNoCancel, MessageBoxImage.Question) with
             | MessageBoxResult.Yes ->
                 seq { for t in allTabs do if not t.IsCodeSaved then yield trySaveBeforeClosing t } // if saving was canceled ( eg, no filename picked) then cancel closing

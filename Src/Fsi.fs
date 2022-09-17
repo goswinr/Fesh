@@ -359,10 +359,10 @@ type Fsi private (config:Config) =
                             isReadyEv.Trigger()
                             for e in errs do
                                 match e.Severity with
-                                | FSharpDiagnosticSeverity.Error  ->  log.PrintfnAppErrorMsg "EvalInteractionNonThrowing returned Error: %s" e.Message 
+                                | FSharpDiagnosticSeverity.Error   -> log.PrintfnAppErrorMsg "EvalInteractionNonThrowing returned Error:\r\n%s" e.Message 
                                 | FSharpDiagnosticSeverity.Warning -> () //log.PrintfnInfoMsg "EvalInteractionNonThrowing returned Warning: %s" e.Message
                                 | FSharpDiagnosticSeverity.Hidden  -> () //log.PrintfnInfoMsg "EvalInteractionNonThrowing returned Hidden: %s" e.Message
-                                | FSharpDiagnosticSeverity.Info   ->  () //log.PrintfnInfoMsg "EvalInteractionNonThrowing returned Info: %s" e.Message
+                                | FSharpDiagnosticSeverity.Info    -> () //log.PrintfnInfoMsg "EvalInteractionNonThrowing returned Info: %s" e.Message
 
                             //match evaluatedToValue with   //|Some v -> log.PrintfnDebugMsg "Interaction evaluated to %A <%A>" v.ReflectionValue v.ReflectionType //|None-> ()
                             if config.Settings.GetBoolSaveDefault("printDoneAfterEval",true) then  log.PrintfnInfoMsg "*Done!"
@@ -375,7 +375,7 @@ type Fsi private (config:Config) =
                                 if config.Hosting.IsHosted && mode = FsiMode.Async472 && isNull exn.StackTrace  then
                                     log.PrintfnFsiErrorMsg "FSI evaluation was canceled,\r\nif you did not trigger this cancellation try running FSI in Synchronous evaluation mode (instead of Async)."
                                 else
-                                    log.PrintfnInfoMsg "FSI evaluation was canceled by user!" //:\r\n%A" exn.StackTrace  //: %A" exn
+                                    log.PrintfnInfoMsg "FSI evaluation was canceled by user!" 
 
                             | :? FsiCompilationException ->
                                 runtimeErrorEv.Trigger(exn)
@@ -387,45 +387,30 @@ type Fsi private (config:Config) =
                                     if msg.Contains "is defined in an assembly that is not referenced." then
                                         postMsg <-
                                             "Fix:\r\n" +
-                                            "  For assembly reference errors that are not shown by editor tooling try to re-arrange the initial loading sequences of '#r' statements\n\r" +
-                                            "  This error might happen when you are loading a dll with #r that is already loaded, but from a different location\n\r" +
+                                            "  For assembly reference errors that are not shown by editor tooling try to re-arrange the initial loading sequences of '#r' statements\r\n" +
+                                            "  This error might happen when you are loading a dll with #r that is already loaded, but from a different location\r\n" +
                                             "  E.G. as a dependency from a already loaded dll."
                                     log.PrintfnFsiErrorMsg "%A" e
                                 if postMsg <> "" then                                    
                                     log.PrintfnFsiErrorMsg "%s" postMsg
 
-                            | _ ->
+                            | _ -> // any other runtimne exception
                                 runtimeErrorEv.Trigger(exn)  // in seff.fs this is used to ensure the main window is visible, because it might be hidden manually, or not visible from the start ( e.g. current script is evaluated in Seff.Rhino)                             
                                 log.PrintfnAppErrorMsg "Runtime Error:"
+                                // find first error line in an fsx file    
                                 let et = sprintf "%A" exn
+                                let mutable isFirstFsx = true
                                 for ln in et.Split('\n')  do 
-                                    if ln.Contains ".fsx:" then 
+                                    if ln.Contains ".fsx:" && isFirstFsx then 
+                                        isFirstFsx <- false
                                         log.PrintfnFsiErrorMsg "%s" (ln.TrimEnd())
-                                        // go to error line number
+                                        // go to first error line in an fsx file                                       
                                         let _,lr = Str.splitOnce ".fsx:" ln
                                         match Int32.TryParse (lr.Replace("line","").Trim()) with 
-                                        |true , i -> 
-                                            //log.PrintfnDebugMsg "Going to line %d" i
-                                            GoTo.line(i,codeToEv.editor)
-                                        |_ -> 
-                                            log.PrintfnDebugMsg "no int in  '%s'" lr
-                                            ()                                        
+                                        |true , i ->GoTo.line(i,codeToEv.editor)
+                                        |_ -> ()                                        
                                     else
-                                        log.PrintfnRuntimeErr "%s" (ln.TrimEnd())
-                                (*
-                                let printRuntimeError s = log.PrintfnColor 200 0 0 s
-                                printRuntimeError "Runtime Error:"
-                                //highlight line number in blue in error message: 
-                                let et = sprintf "%A" exn
-                                let t,r = Str.splitOnce ".fsx:" et
-                                if r="" then
-                                    printRuntimeError "%s" et
-                                else
-                                    let ln,rr = Str.splitOnce "\r\n" r
-                                    printRuntimeError "%s.fsx:" t
-                                    log.PrintfnColor 0 0 200 "%s" ln
-                                    printRuntimeError "%s" rr
-                                *)
+                                        log.PrintfnRuntimeErr "%s" (ln.TrimEnd())                                
                                 
                                 isReadyEv.Trigger()
                         }
