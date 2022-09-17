@@ -1,4 +1,4 @@
-namespace Seff.Model
+﻿namespace Seff.Model
 
 open System
 open System.IO
@@ -13,7 +13,7 @@ open FSharp.Compiler.CodeAnalysis
 type ISeffLog = 
     // this interface allows the Config to be declared before the Log
     // the Log is created first with this interface and then Config gets it in the constructor   
-
+    abstract member PrintfnRuntimeErr  : Printf.StringFormat<'T,unit> -> 'T
     abstract member PrintfnInfoMsg     : Printf.StringFormat<'T,unit> -> 'T
     abstract member PrintfnFsiErrorMsg : Printf.StringFormat<'T,unit> -> 'T
     abstract member PrintfnAppErrorMsg : Printf.StringFormat<'T,unit> -> 'T

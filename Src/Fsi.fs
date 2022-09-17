@@ -1,4 +1,4 @@
-namespace Seff
+﻿namespace Seff
 
 
 open System
@@ -30,14 +30,31 @@ type FsiMode  =
         | Async472 | Async60 -> true
 
 type FsiIsCancelingIsOk = 
-    | NotEvaluating // Nothing can be cancelled becaus no evaluation is running
+    | NotEvaluating // Nothing can be cancelled because no evaluation is running
     | YesAsync472 // an async evaluation on net472 or net48 is running, it can be cancelled via thread.Abort()
     | NoAsync60  // an async evaluation on net6 , net 6 does not support  thread.Abort(), cannot be cancelled
-    | UserDoesntWantTo // Dont cancel because the user actually doesnt want to cancel 
+    | UserDoesntWantTo // Don't cancel because the user actually doesn't want to cancel 
     | NotPossibleSync // Not-Possible-Sync because during sync eval the UI should be frozen anyway and this request should not be happening
 
 // not needed in Net6.0 ??
 #nowarn "44" //for: This construct is deprecated. Recovery from corrupted process state exceptions is not supported; HandleProcessCorruptedStateExceptionsAttribute is ignored.
+
+module GoTo =
+    
+    /// open any foldings if required and select at location
+    let line (lineNumber :int, ied:IEditor) =   
+        /// similar to Foldings.GoToLineAndUnfold
+        let ava = ied.AvaEdit
+        let ln = ava.Document.GetLineByNumber(lineNumber)
+        let mutable unfoldedOneOrMore = false
+        for fold in ied.FoldingManager.GetFoldingsContaining(ln.Offset) do
+            if fold.IsFolded then
+                fold.IsFolded <- false
+                unfoldedOneOrMore <- true        
+        ava.ScrollTo(ln.LineNumber,1)
+        //ied.AvaEdit.CaretOffset<- loc.EndOffset // done by ied.AvaEdit.Select too
+        ava.Select(ln.Offset, ln.Length)
+        
 
 type Fsi private (config:Config) = 
     let log = config.Log
@@ -374,14 +391,31 @@ type Fsi private (config:Config) =
                                             "  This error might happen when you are loading a dll with #r that is already loaded, but from a different location\n\r" +
                                             "  E.G. as a dependency from a already loaded dll."
                                     log.PrintfnFsiErrorMsg "%A" e
-                                if postMsg <> "" then
-                                    log.PrintfnColor 0 0 200 "%s" postMsg
+                                if postMsg <> "" then                                    
+                                    log.PrintfnFsiErrorMsg "%s" postMsg
 
                             | _ ->
                                 runtimeErrorEv.Trigger(exn)  // in seff.fs this is used to ensure the main window is visible, because it might be hidden manually, or not visible from the start ( e.g. current script is evaluated in Seff.Rhino)                             
+                                log.PrintfnAppErrorMsg "Runtime Error:"
+                                let et = sprintf "%A" exn
+                                for ln in et.Split('\n')  do 
+                                    if ln.Contains ".fsx:" then 
+                                        log.PrintfnFsiErrorMsg "%s" (ln.TrimEnd())
+                                        // go to error line number
+                                        let _,lr = Str.splitOnce ".fsx:" ln
+                                        match Int32.TryParse (lr.Replace("line","").Trim()) with 
+                                        |true , i -> 
+                                            //log.PrintfnDebugMsg "Going to line %d" i
+                                            GoTo.line(i,codeToEv.editor)
+                                        |_ -> 
+                                            log.PrintfnDebugMsg "no int in  '%s'" lr
+                                            ()                                        
+                                    else
+                                        log.PrintfnRuntimeErr "%s" (ln.TrimEnd())
+                                (*
                                 let printRuntimeError s = log.PrintfnColor 200 0 0 s
                                 printRuntimeError "Runtime Error:"
-                                //highlight line number in blue in error message: TODO since FCS33?? line number is not part of error message anymore ! only when on net6.0
+                                //highlight line number in blue in error message: 
                                 let et = sprintf "%A" exn
                                 let t,r = Str.splitOnce ".fsx:" et
                                 if r="" then
