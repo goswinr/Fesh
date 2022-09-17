@@ -303,6 +303,13 @@ module Str  =
             s.Substring(0,max) + suffix
 
 
+    /// remove amount of characters from end of string
+    /// if count is bigger than string returns empty string
+    let removeAtEnd (count:int)  (s:string) = 
+        if s.Length <= count then ""
+        else s.Substring(0,s.Length-count)
+
+
 /// for searching in string but skiping over everything that is in double quotes.
 // also skips over escaped double quotes \"
 [<RequireQualifiedAccess>]

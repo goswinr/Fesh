@@ -381,27 +381,38 @@ type Tabs(config:Config, win:Window) =
 
     /// Returns true if saving operation was not canceled
     member this.SaveIncremental (t:Tab) = 
+        let incrC (c:Char)   = string( int c - 48 + 1) // 48 = int '0'
+        let incrS (c:string) = string( int c      + 1)        
         match t.FilePath with
-        |SetTo fi ->
-            let fn = fi.FullName
-            let last = fn.[fn.Length-5]
-            if not <| Char.IsLetterOrDigit last then
-                log.PrintfnInfoMsg "Save Incrementing failed on last value: '%c' on: \r\n%s" last fn
-                this.Save(t)
-            elif last = 'z' || last = 'Z' || last = '9' then
-                log.PrintfnInfoMsg "Save Incrementing reached last value: '%c' on: \r\n%s" last fn
-                this.SaveAs(t)
+        |SetTo fi ->             
+            if fi.Extension = ".fsx" then // just in case it is not??
+                let save (nn:string) :bool = 
+                    let p = Path.Combine(fi.DirectoryName, nn )
+                    let ni = FileInfo(p)
+                    if ni.Exists then
+                        this.SaveAs(t)
+                    else
+                        saveAt(t,ni, SaveNewLocation)
+            
+                let replaceEnd       (e:string) = (Util.Str.removeAtEnd (4+e.Length) fi.Name) + e + ".fsx" |> save            
+                let appendEnd        (e:string) = (Util.Str.removeAtEnd (4         ) fi.Name) + e + ".fsx" |> save
+                let trimOneAppendEnd (e:string) = (Util.Str.removeAtEnd (5         ) fi.Name) + e + ".fsx" |> save
+            
+                let fn = fi.Name            
+                let l = fn.[fn.Length-5] // last char           
+                if  '0' <= l && l <= '8' then replaceEnd (incrC l)
+                elif            l  = '9' then 
+                    if fn.Length < 6 then trimOneAppendEnd ("10")
+                    else
+                   
+                        let ll =  fn.[fn.Length-6] // second last char 
+                        if  '0' <= ll && ll <= '8' then replaceEnd (incrC ll + "0")
+                        elif             ll  = '9' then this.SaveAs(t) // reached 99
+                        else appendEnd ("_01")
+                else appendEnd ("_01")
             else
-                let newLast = char(int(last)+1)
-                let nPath = 
-                    let letters = fn.ToCharArray()
-                    letters.[fn.Length-5] <- newLast
-                    String.Join("", letters)
-                let fi = new FileInfo(nPath)
-                if fi.Exists then
-                    this.SaveAs(t)
-                else
-                    saveAt(t,fi, SaveNewLocation)
+                this.SaveAs(t)
+
         |NotSet ->
             log.PrintfnIOErrorMsg "can't Save Incrementing unsaved file"
             this.SaveAs(t)
