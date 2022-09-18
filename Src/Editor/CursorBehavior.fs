@@ -449,8 +449,8 @@ module CursorBehavior  =
                         let file = IO.Path.GetFileName(f)
                         doc.Insert (0, sprintf "#r \"%s\"\r\n" file)
                         ISeffLog.log.PrintfnInfoMsg "Drag & Drop inserted at Line 0: %s"  file
-                    let folder = IO.Path.GetDirectoryName(fs.[0])
-                    doc.Insert (0, sprintf "#I @\"%s\"\r\n" folder)
+                    let folder = IO.Path.GetDirectoryName(fs.[0]).Replace("\\","/")
+                    doc.Insert (0, sprintf "#I \"%s\"\r\n" folder)
                     ISeffLog.log.PrintfnInfoMsg "Drag & Drop inserted at Line 0: %s"  folder
                 else
 
@@ -472,14 +472,15 @@ module CursorBehavior  =
                             lnNo.LineNumber,ed.CaretOffset
 
 
-                    for f in fs do
+                    for f0 in fs do
+                        let f = f0.Replace("\\","/")
                         if isDll f then
-                            let txt = sprintf "#r @\"%s\"\r\n" f
+                            let txt = sprintf "#r \"%s\"\r\n" f
                             doc.Insert (0, txt )
                             ISeffLog.log.PrintfnInfoMsg "Drag & Drop inserted at Line 0:"
                             printGreen "  %s" txt
                         elif isFsx f  then
-                            let txt = sprintf "#load @\"%s\"\r\n" f
+                            let txt = sprintf "#load \"%s\"\r\n" f
                             doc.Insert (0, txt)     // TODO find end or #r statements
                             ISeffLog.log.PrintfnInfoMsg "Drag & Drop inserted at Line 0:"
                             printGreen "  %s" txt
@@ -508,7 +509,7 @@ module CursorBehavior  =
 
                             ISeffLog.log.PrintfnInfoMsg "Drag & Drop inserted at Line %d:" lnNo
                             printGreen "  %s" f
-                            doc.Insert (off , sprintf " @\"%s\"%s" f Environment.NewLine)
+                            doc.Insert (off , sprintf "\"%s\"%s" f Environment.NewLine)
                             ed.CaretOffset <- off
 
                     e.Handled <- true
