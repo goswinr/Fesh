@@ -44,6 +44,7 @@ type TypeInfo private () =
 
     static let loadingTxt =  "Loading type info ..."
 
+    static let darkgray     = Brushes.Gray       |> darker    40 |> freeze
     static let gray         = Brushes.Gray                       |> freeze
     static let lightgray    = Brushes.Gray       |> brighter 100 |> freeze
     static let blue         = Brushes.Blue       |> darker    90 |> freeze
@@ -66,6 +67,16 @@ type TypeInfo private () =
         tb.FontFamily <- Style.fontEditor
         let ts = td.signature
         let mutable len = 0
+        let lastArrI = 
+            ts 
+            |> Array.tryFindIndexBack ( fun t -> t.Tag=TextTag.Punctuation && t.Text = "->") 
+            |> Option.defaultWith (fun () -> 
+                ts 
+                |> Array.tryFindIndexBack ( fun t -> t.Tag=TextTag.Punctuation && t.Text = ":") 
+                |> Option.defaultValue Int32.MaxValue
+                )
+            
+        let mutable bG :SolidColorBrush = null
         for i=0 to ts.Length-1 do
             let t = ts.[i]
             len <- len + t.Text.Length
@@ -77,22 +88,22 @@ type TypeInfo private () =
                         len <- 0                
                 // if a parameter is optional add a question mark to the signature
                 match ts.[i-1].Text with
-                |"?" ->  tb.Inlines.Add( new Run(t.Text , Foreground = gray )) // sometimes optional arguments have already a question mark but not always
+                |"?" ->  tb.Inlines.Add( new Run(t.Text , Foreground = gray, Background=bG )) // sometimes optional arguments have already a question mark but not always
                 | _ ->
                     match td.optDefs |> Seq.tryFind ( fun oa -> oa.name = t.Text ) with
-                    | Some od ->  tb.Inlines.Add( new Run("?"+t.Text , Foreground = gray ))
-                    | None    ->  tb.Inlines.Add( new Run(t.Text     , Foreground = black ))
+                    | Some od ->  tb.Inlines.Add( new Run("?"+t.Text , Foreground = gray , Background=bG))
+                    | None    ->  tb.Inlines.Add( new Run(t.Text     , Foreground = black , Background=bG))
 
             | TextTag.Keyword ->
-                tb.Inlines.Add( new Run(t.Text, Foreground = blue ))
+                tb.Inlines.Add( new Run(t.Text, Foreground = blue, Background=bG ))
 
-            | TextTag.Operator -> tb.Inlines.Add( new Run(t.Text, Foreground = Brushes.Green ))
+            | TextTag.Operator -> tb.Inlines.Add( new Run(t.Text, Foreground = Brushes.Green, Background=bG ))
             | TextTag.Punctuation->
                 match t.Text with
-                | "?" ->   tb.Inlines.Add( new Run(t.Text, Foreground = gray))
-                | "*"
-                | "->" ->  tb.Inlines.Add( new Run(t.Text, Foreground = fullred))//, FontWeight = FontWeights.Bold ))
-                |  _   ->  tb.Inlines.Add( new Run(t.Text, Foreground = purple ))
+                | "?"       ->   tb.Inlines.Add( new Run(t.Text, Foreground = gray, Background=bG))
+                | "*" | "->" -> tb.Inlines.Add( new Run(t.Text, Foreground = fullred, Background=bG))//, FontWeight = FontWeights.Bold ))                    
+                |  _   ->  tb.Inlines.Add( new Run(t.Text, Foreground = purple , Background=bG))
+                if i>=lastArrI then bG <- white // to have a white color on return value
 
             | TextTag.RecordField
             | TextTag.Method
@@ -100,18 +111,18 @@ type TypeInfo private () =
             | TextTag.Field
             | TextTag.ModuleBinding
             | TextTag.UnionCase
-            | TextTag.Member ->   tb.Inlines.Add( new Run(t.Text, Foreground = red ))
+            | TextTag.Member ->   tb.Inlines.Add( new Run(t.Text, Foreground = red, Background=bG ))
 
             | TextTag.Struct
             | TextTag.Class
             | TextTag.Interface
             | TextTag.Function
-            | TextTag.Alias ->   tb.Inlines.Add( new Run(t.Text, Foreground = cyan ))
+            | TextTag.Alias ->   tb.Inlines.Add( new Run(t.Text, Foreground = cyan, Background=bG ))
 
-            | TextTag.TypeParameter ->   tb.Inlines.Add( new Run(t.Text, Foreground = cyan ))   // generative argument like 'T or 'a
+            | TextTag.TypeParameter ->   tb.Inlines.Add( new Run(t.Text, Foreground = cyan, Background=bG ))   // generative argument like 'T or 'a
 
             | TextTag.UnknownType
-            | TextTag.UnknownEntity ->   tb.Inlines.Add( new Run(t.Text, Foreground = gray ))
+            | TextTag.UnknownEntity ->   tb.Inlines.Add( new Run(t.Text, Foreground = gray, Background=bG ))
 
             | TextTag.LineBreak ->
                 len <- t.Text.Length // reset after line break
@@ -172,12 +183,19 @@ type TypeInfo private () =
         | -1 -> t
         | i  -> s 
 
-    static let codeRun t = new Run(""+t+" " ,FontFamily = Style.fontEditor, FontSize = Style.fontSize*1.05,  Foreground = black,   Background = white) 
+    static let codeRun (td:ToolTipData) t : seq<Run>= 
+        [
+        new Run(" ") 
+        match td.optDefs |> Seq.tryFind ( fun oa -> oa.name = t ) with
+        | Some od ->  new Run("?"+t ,FontFamily = Style.fontEditor, FontSize = Style.fontSize*1.05,  Foreground = gray,   Background = white) 
+        | None    ->  new Run(t ,FontFamily = Style.fontEditor, FontSize = Style.fontSize*1.05,  Foreground = black,   Background = white)         
+        new Run(" ") 
+        ]
 
     /// check if List has at least two items 
     static let twoOrMore = function [] | [_] -> false |_ -> true       
 
-    static let mainXmlBlock  (node:XmlParser.Child): TextBlockSelectable =
+    static let mainXmlBlock (node:XmlParser.Child,td:ToolTipData): TextBlockSelectable =
         let tb = new TextBlockSelectable()
         tb.FontSize   <- Style.fontSize  * 0.95
         tb.FontFamily <- Style.fontToolTip        
@@ -193,10 +211,10 @@ type TypeInfo private () =
                     if last<>n.name && addTitle then // && n.name <> "?name?" then // to not repeat the parameter header every time
                         last <- n.name
                         tb.Inlines.Add( new LineBreak()) 
-                        tb.Inlines.Add( new Run(fixName n.name,  Foreground = gray)) //FontWeight = FontWeights.Bold,                    
+                        tb.Inlines.Add( new Run(fixName n.name,  Foreground = darkgray)) //FontWeight = FontWeights.Bold,     // Summary header Parameter header ....               
                         tb.Inlines.Add( new LineBreak())                     
                     for at in n.attrs do // there is normally just one ! like param:name, paramref:name typeparam:name                         
-                        tb.Inlines.Add( at.value |> fixTypeName|> codeRun)
+                        tb.Inlines.AddRange( at.value |> fixTypeName|> codeRun td )
                         tb.Inlines.Add( new Run(": ",  Foreground = black))  
                     for c in List.rev n.children do 
                         loop c n.name false (d+1)
@@ -205,8 +223,8 @@ type TypeInfo private () =
                 elif n.children.IsEmpty && not n.attrs.IsEmpty then 
                     // e.g. for: <returns> <see langword="true" /> if <paramref name="objA" /> is the same instance as <paramref name="objB" /> or if both are null; otherwise, <see langword="false" />.</returns>
                     for at in n.attrs do 
-                        if at.name="cref" then  tb.Inlines.Add(  at.value |> fixTypeName |>  codeRun)
-                        else                    tb.Inlines.Add(  at.value                |>  codeRun)
+                        if at.name="cref" then  tb.Inlines.AddRange(  at.value |> fixTypeName |>  codeRun td)
+                        else                    tb.Inlines.AddRange(  at.value                |>  codeRun td)
                         tb.Inlines.Add( new Run(" ")) 
                 else
                     match n.name with 
@@ -217,7 +235,7 @@ type TypeInfo private () =
         
         and addCode (c:XmlParser.Child) d = 
             match c with
-            |Text t ->  tb.Inlines.Add(codeRun t) // done in codeRun:  tb.Inlines.Add(" ")
+            |Text t ->  tb.Inlines.AddRange(codeRun td t) // done in codeRun:  tb.Inlines.Add(" ")
             |Node n ->  loop c n.name false d
         
 
@@ -269,13 +287,14 @@ type TypeInfo private () =
                     tb.FontWeight <- FontWeights.Bold
                     subAdd tb
 
-                subAdd <| coloredSignature(td) // the main coored signature of a F# value
+                subAdd <| coloredSignature(td) // the main colored signature of a F# value
 
                 // the main xml body
                 match td.xmlDoc with
                 |Ok (node,ass)     ->
-                    assemblies.Add(ass) |> ignore // it be from more than one assembly? because of type extensions?
-                    subAdd<| mainXmlBlock node
+                    if ass.Length > 10 then assemblies.Add("\r\n" + ass) |> ignore // it may be from more than one assembly? because of type extensions?
+                    else                    assemblies.Add(ass) |> ignore
+                    subAdd <| mainXmlBlock (node, td)
                 |Error errTxt  ->
                     subAdd<|  TextBlockSelectable(Text = errTxt, FontSize = Style.fontSize  * 0.75 , FontFamily = Style.fontToolTip, Foreground = gray )                   
                 
@@ -289,8 +308,8 @@ type TypeInfo private () =
 
         if assemblies.Count > 0 then
             let tb = 
-                if assemblies.Count = 1 then new TextBlockSelectable(Text= "assembly:\r\n" + Seq.head assemblies)
-                else                         new TextBlockSelectable(Text= "assemblies:\r\n" + String.concat "\r\n" assemblies)
+                if assemblies.Count = 1 then new TextBlockSelectable(Text= "assembly:" + Seq.head assemblies)
+                else                         new TextBlockSelectable(Text= "assemblies:" + String.concat "" assemblies)
             tb.FontSize <- Style.fontSize  * 0.80
             tb.Foreground <-black
             //tb.FontFamily <- new FontFamily ("Arial") // or use default of device
@@ -316,7 +335,7 @@ type TypeInfo private () =
                     |> XmlParser.readAll
                 match cs with 
                 | []  -> Error ( "FSharpXmlDoc.FromXmlText empty")
-                | cs  -> Ok (XmlParser.Node {name="member";  attrs=[];  children=cs}, "this file")
+                | cs  -> Ok (XmlParser.Node {name="member";  attrs=[];  children=cs}, "  -  ") // previously "this file") 
             with e ->
                 Error $"FSharpXmlDoc.FromXmlText: {e}"           
         
@@ -348,7 +367,7 @@ type TypeInfo private () =
                     | ToolTipElement.Group(tooTipElemDataList) ->
                         for tooTipElemData in tooTipElemDataList do                            
                             yield { name      = Option.defaultValue "" tooTipElemData.ParamName
-                                    signature = tooTipElemData.MainDescription
+                                    signature = tooTipElemData.MainDescription 
                                     optDefs   = optDfes
                                     xmlDoc    = findXmlDoc tooTipElemData.XmlDoc}
                 ]
