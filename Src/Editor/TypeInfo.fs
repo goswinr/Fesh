@@ -67,7 +67,7 @@ type TypeInfo private () =
         tb.FontFamily <- Style.fontEditor
         let ts = td.signature
         let mutable len = 0
-        let lastArrI = 
+        let lastArrI = // used for giving the return value a different background
             ts 
             |> Array.tryFindIndexBack ( fun t -> t.Tag=TextTag.Punctuation && t.Text = "->") 
             |> Option.defaultWith (fun () -> 
@@ -76,7 +76,7 @@ type TypeInfo private () =
                 |> Option.defaultValue Int32.MaxValue
                 )
             
-        let mutable bG :SolidColorBrush = null
+        let mutable bG :SolidColorBrush = null // used for giving the return value a different background
         for i=0 to ts.Length-1 do
             let t = ts.[i]
             len <- len + t.Text.Length
@@ -84,7 +84,7 @@ type TypeInfo private () =
             match t.Tag with
             | TextTag.Parameter ->
                 if len > maxCharInSignLine then
-                        tb.Inlines.Add( new Run("\r\n    "))
+                        tb.Inlines.Add( new Run("\r\n    ", Background=bG))
                         len <- 0                
                 // if a parameter is optional add a question mark to the signature
                 match ts.[i-1].Text with
@@ -95,13 +95,14 @@ type TypeInfo private () =
                     | None    ->  tb.Inlines.Add( new Run(t.Text     , Foreground = black , Background=bG))
 
             | TextTag.Keyword ->
+                if t.Text = "val" then bG <- null // val is the listing of members in a type , not a return value anymore
                 tb.Inlines.Add( new Run(t.Text, Foreground = blue, Background=bG ))
 
             | TextTag.Operator -> tb.Inlines.Add( new Run(t.Text, Foreground = Brushes.Green, Background=bG ))
             | TextTag.Punctuation->
                 match t.Text with
                 | "?"       ->   tb.Inlines.Add( new Run(t.Text, Foreground = gray, Background=bG))
-                | "*" | "->" -> tb.Inlines.Add( new Run(t.Text, Foreground = fullred, Background=bG))//, FontWeight = FontWeights.Bold ))                    
+                | "*" | "->" -> tb.Inlines.Add( new Run(t.Text, Foreground = fullred, Background=bG))                    
                 |  _   ->  tb.Inlines.Add( new Run(t.Text, Foreground = purple , Background=bG))
                 if i>=lastArrI then bG <- white // to have a white color on return value
 
@@ -126,12 +127,12 @@ type TypeInfo private () =
 
             | TextTag.LineBreak ->
                 len <- t.Text.Length // reset after line break
-                tb.Inlines.Add( new Run(t.Text))
+                tb.Inlines.Add( new Run(t.Text, Background=bG))
 
             | TextTag.Space -> 
                 // skip one space after colon before type tag
                 if   t.Text.Length=1 && ts.[max 0 (i-1)].Text=":" && ts.[max 0 (i-2)].Tag=TextTag.Parameter then () 
-                else tb.Inlines.Add( new Run(t.Text))
+                else tb.Inlines.Add( new Run(t.Text, Background=bG))
 
             | TextTag.Namespace
             | TextTag.ActivePatternCase
@@ -147,7 +148,7 @@ type TypeInfo private () =
             | TextTag.StringLiteral
             | TextTag.Text
             | TextTag.UnknownType
-            | TextTag.UnknownEntity ->    tb.Inlines.Add( new Run(t.Text))
+            | TextTag.UnknownEntity ->    tb.Inlines.Add( new Run(t.Text, Background=bG))
 
         (*
         let debugHelp = 
