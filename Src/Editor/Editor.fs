@@ -14,6 +14,7 @@ open AvalonEditB.Document
 open AvalonLog
 
 open Seff
+open Seff.Editor.SelectionHighlighting
 open Seff.Model
 open Seff.Config
 open Seff.Util.Str
@@ -34,9 +35,7 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
 
     let compls =            new Completions(avaEdit,config,checker)
     let rulers =            new ColumnRulers(avaEdit, log) // do foldings first
-    //let selText =           SelectedTextTracer.Setup(this,folds,config) // moved to: static member SetUp(..)
-
-
+    
     let mutable checkState = FileCheckState.NotStarted // local to this editor
     let mutable filePath = filePath
 
@@ -75,7 +74,6 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
         search.WholeWords <- true //config.Settings.GetBool("SearchWholeWords", true)
         
 
-
     member val IsCurrent = false with get,set //  this is managed in Tabs.selectionChanged event handler
 
     member val TypeInfoTip = new Controls.ToolTip(IsOpen=false)
@@ -84,25 +82,34 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
     member this.GlobalChecker = checker
 
     member this.ErrorHighlighter = errorHighlighter
+
     member this.EvalTracker = evalTracker
 
     member this.Completions = compls
+
     member this.Config = config
 
     member this.Folds = folds
+
     member this.Search = search
 
+    member this.SetFilePathMustBeInSyncWithTabsPath(v) = filePath <- v // only the Tab class containing this editor takes care of updating this
 
-    member this.SetFilePathMustBeInSyncWithTabsPath(v)= filePath <- v // only the Tab class containing this editor takes care of updating this
+    member val HighlightText = fun (t:string) -> () with get, set // this function will be set below in SetUp static member        
 
     // IEditor members:
 
     member this.Id              = id
+    
     member this.AvaEdit         = avaEdit
-    ///This CheckState is local to the current editor
-    member this.FileCheckState  with get() = checkState    and  set(v) = checkState <- v
+    
+    /// This CheckState is local to the current editor
+    member this.FileCheckState  with get() = checkState  and  set(v) = checkState <- v
+    
     member this.FilePath        with get() = filePath    
+    
     member this.Log = log
+    
     member this.IsComplWinOpen  = compls.IsOpen
 
     member this.EvaluateFrom    = evalTracker.EvaluateFrom
@@ -129,13 +136,12 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
         let ed = Editor(code, config, filePath )
         let avaEdit = ed.AvaEdit
         let compls = ed.Completions
-        let log = ed.Log
+        let log = ed.Log        
 
-        SelectedTextTracer.Setup(ed, config)
-        BracketHighlighter.Setup(ed, ed.GlobalChecker)
+        ed.HighlightText <- SelectionHighlighting.HiEditor.setup(ed)
+        //BracketHighlighter.Setup(ed, ed.GlobalChecker) // Disabled TODO fix bug first !!!
 
-        Logging.LogAction <- new Action<string>( fun (s:string) -> log.PrintfnDebugMsg "Logging.Log: %s" s)       
-        
+        Logging.LogAction <- new Action<string>( fun (s:string) -> log.PrintfnDebugMsg "Logging.Log: %s" s)
 
         avaEdit.Drop.Add                      (fun e -> CursorBehavior.TextAreaDragAndDrop( avaEdit,e))
         avaEdit.PreviewKeyDown.Add            (fun e -> KeyboardShortcuts.previewKeyDown(    avaEdit, e, compls))   //to indent and dedent, and change block selection delete behavior

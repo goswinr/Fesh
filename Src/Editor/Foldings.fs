@@ -227,23 +227,38 @@ type Foldings(ed:TextEditor, checker:Checker, config:Config, edId:Guid) =
              | _ -> ()
         config.FoldingStatus.Set(ied) // so that they are saved immediately
     
-    /// open any foldings if required and select at location
-    static member GoToLineAndUnfold(loc:TextSegment, ied:IEditor, config:Config, selectText) =         
+    /// open any foldings if required and optionally select at location
+    static member GoToOffsetAndUnfold(offset, length, ied:IEditor, config:Config, selectText) =         
         let mutable unfoldedOneOrMore = false
-        for fold in ied.FoldingManager.GetFoldingsContaining(loc.StartOffset) do
+        for fold in ied.FoldingManager.GetFoldingsContaining(offset) do
             if fold.IsFolded then
                 fold.IsFolded <- false
                 unfoldedOneOrMore <- true
-        let ln = ied.AvaEdit.Document.GetLineByOffset(loc.StartOffset)
+        let ln = ied.AvaEdit.Document.GetLineByOffset(offset)
         ied.AvaEdit.ScrollTo(ln.LineNumber,1)
         //ied.AvaEdit.CaretOffset<- loc.EndOffset // done by ied.AvaEdit.Select too
         if selectText then 
-            ied.AvaEdit.Select(loc.StartOffset, loc.Length)
+            ied.AvaEdit.Select(offset, length)
         else 
-            ied.AvaEdit.CaretOffset<-loc.StartOffset 
+            ied.AvaEdit.CaretOffset<-offset 
 
         if unfoldedOneOrMore then
             config.FoldingStatus.Set(ied) // so that they are saved immediately
+    
+   (*
+    
+    /// sets caret and current line to Offset, open any foldings if required at location
+    static member GoToOffsetAndUnfold(off:int, ied:IEditor, config:Config) =         
+        let mutable unfoldedOneOrMore = false
+        for fold in ied.FoldingManager.GetFoldingsContaining(off) do
+            if fold.IsFolded then
+                fold.IsFolded <- false
+                unfoldedOneOrMore <- true
+        let ln = ied.AvaEdit.Document.GetLineByOffset(off)
+        ied.AvaEdit.ScrollTo(ln.LineNumber,1)        
+        ied.AvaEdit.CaretOffset<- off // done by ied.AvaEdit.Select too 
 
-
-   
+        if unfoldedOneOrMore then
+            config.FoldingStatus.Set(ied) // so that they are saved immediately
+    
+   *)

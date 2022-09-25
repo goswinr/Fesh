@@ -15,6 +15,7 @@ open AvalonLog.Brush
 
 open Seff
 open Seff.Editor
+open Seff.Editor.SelectionHighlighting
 open Seff.Model
 open FsEx.Wpf // for TextBlockSelectable
 open FsEx.Wpf.DependencyProps
@@ -195,7 +196,7 @@ type CheckerStatus (grid:TabsAndLog) as this =
     static member goToNextSegment(ed:Editor) =
         match ErrorUtil.getNextSegment(ed) with 
         |None -> ()
-        |Some seg -> Foldings.GoToLineAndUnfold(seg, ed, ed.Config , false)
+        |Some seg -> Foldings.GoToOffsetAndUnfold(seg.StartOffset,seg.Length, ed, ed.Config , false)
 
 type FsiRunStatus (grid:TabsAndLog) as this = 
     inherit TextBlock()
@@ -262,66 +263,123 @@ type AsyncStatus (grid:TabsAndLog) as this =
             | Sync               -> this.Text <- sync
             | Async472 | Async60 -> this.Text <- asyn  )
 
-// TODO keep always on, combine log and editor
+#nowarn "44" //for obsolete grid.Log.AvalonLog.AvalonEdit
 
-type SelectedTextStatus (grid:TabsAndLog) as this = 
-    inherit TextBlock()
-    let codeblock = Brushes.White   |> darker 70
-
-    let isSelOcc() = grid.Config.Settings.GetBool("HighlightAllOccurrences",true) 
-
-    let onTxt ="ON"
-    let offTxt = "OFF"
-    let desc = "Highlighting is " // with trailing space
-    let baseTxt = "Highlights and counts the occurrences of the currently selected Text.\r\nMinimum two characters. No line breaks\r\nClick here to turn "
+type SelectedEditorTextStatus (grid:TabsAndLog) as this = 
+    inherit TextBlock() 
+    let desc = "Editor Selection Highlighting" 
+    let baseTxt = "Highlights and counts the occurrences of the currently selected Text in the current Editor.\r\nMinimum two characters and but line breaks.\r\nClick here to scroll through all occurrences."
+    let mutable scrollToIdx = 0
+    let mutable hiliRes  = FoundNone // for clicking and scrolling through them 
     do
-        let sett = grid.Config.Settings
-
         this.Padding <- textPadding
-        this.ToolTip <-  baseTxt + if isSelOcc() then offTxt else onTxt
-        this.Inlines.Add ( desc  + if isSelOcc() then onTxt else offTxt)
+        this.ToolTip <-  baseTxt
+        this.Inlines.Add( desc)
+              
+        let logAva = grid.Log.AvalonLog.AvalonEdit
+        
+        let setText(res:HiLiResult) =
+            match res with 
+            |FoundNone -> 
+                this.Text <- desc  
+            |FoundSome hr -> 
+                this.Inlines.Clear()
+                this.Inlines.Add( sprintf "%d of " hr.offsets.Count)
+                this.Inlines.Add( new Run (hr.text, FontFamily = Style.fontEditor, Background = SelectionHighlighting.colorEditor))
+                this.Inlines.Add( sprintf " (%d Chars) " hr.text.Length)       
+        
+        
+        SelectionHighlighting.SelectionChanged.Add ( fun (ava:TextEditor, res:HiLiResult) ->                
+            if not <| Object.ReferenceEquals(ava,logAva) then
+                hiliRes<-res
+                setText(res)
+                match res with 
+                |FoundNone    -> grid.Log.HighlightText("")
+                |FoundSome hr -> grid.Log.HighlightText(hr.text)            
+                )
 
-        //Editor events
-        SelectedTextTracer.Instance.OnHighlightChanged.Add ( fun (highTxt,k ) ->
-            this.Inlines.Clear()
-            this.Inlines.Add( sprintf "%d of " k)
-            this.Inlines.Add( new Run (highTxt, FontFamily = Style.fontEditor, Background = SelectedTextHighlighter.ColorHighlight))
-            this.Inlines.Add( sprintf " (%d Chars) " highTxt.Length)
-            )
-        SelectedTextTracer.Instance.OnHighlightCleared.Add ( fun () ->
-            this.Inlines.Clear()
-            this.Inlines.Add ( desc + if isSelOcc() then onTxt else offTxt)
-            )
+        SelectionHighlighting.HighlightRequested.Add ( fun (ava:TextEditor, res:HiLiResult) ->                
+            if not <|Object.ReferenceEquals(ava,logAva) then 
+               hiliRes<-res
+               setText(res) 
+               )
+       
+        // on each click loop through all locations where text apears
+        this.MouseDown.Add ( fun _ -> // press mouse to scroll to them
+            match hiliRes with 
+            |FoundNone    -> ()               
+            |FoundSome hr -> 
+                if scrollToIdx >= hr.offsets.Count then scrollToIdx <- 0
+                let ed = grid.Tabs.Current.Editor
+                let off = hr.offsets.[scrollToIdx]
+                if off < ed.AvaEdit.Document.TextLength then                    
+                    Foldings.GoToOffsetAndUnfold(off, hr.text.Length, ed, ed.Config, true )                    
+                    scrollToIdx <- scrollToIdx + 1
+                else
+                    scrollToIdx <- 0
+            )  
 
-        //Log events
-        grid.Log.AvalonLog.SelectedTextHighLighter.OnHighlightChanged.Add( fun (highTxt,ints ) ->
-            this.Inlines.Clear()
-            this.Inlines.Add( sprintf "%d of " ints.Count)
-            this.Inlines.Add( new Run (highTxt, FontFamily = Style.fontEditor, Background = grid.Log.AvalonLog.SelectedTextHighLighter.ColorHighlighting))
-            this.Inlines.Add( sprintf " (%d Chars) in Log" highTxt.Length)
-            )
+        grid.Tabs.OnTabChanged.Add ( fun _ -> this.Text <- desc )
+            
+     
 
-        grid.Log.AvalonLog.SelectedTextHighLighter.OnHighlightCleared.Add ( fun () ->
-            this.Inlines.Clear()
-            this.Inlines.Add ( desc + if isSelOcc() then onTxt else offTxt)
-            )
+type SelectedLogTextStatus (grid:TabsAndLog) as this = 
+    inherit TextBlock()
+    let desc = "Log Selection Highlighting " 
+    let baseTxt = "Highlights and counts the occurrences of the currently selected Text in the Log output.\r\nMinimum two characters and but line breaks.\r\nClick here to scroll through all occurrences."
+    let mutable scrollToIdx = 0    
+    let mutable hiliRes  = FoundNone
+    do
+        this.Inlines.Add( desc)
+        this.Padding <- textPadding
+        this.ToolTip <-  baseTxt        
 
-        this.MouseDown.Add ( fun _ -> // press mouse to toggle
-            if isSelOcc() then
-                sett.SetBool ("HighlightAllOccurrences", false)   // TODO turn off selection highlight in log too ?
-            else
-                sett.SetBool ("HighlightAllOccurrences", true)   // toggle
-            this.Inlines.Clear()
-            this.Inlines.Add( desc +    if isSelOcc() then onTxt else offTxt)
-            this.ToolTip <-   baseTxt + if isSelOcc() then offTxt else onTxt
-            grid.Config.Settings.Save ()
-            )
+        let logAva = grid.Log.AvalonLog.AvalonEdit
+        
+        let setText(res:HiLiResult) =
+            match res with 
+            |FoundNone -> 
+                this.Text <- desc  
+            |FoundSome hr -> 
+                this.Inlines.Clear()
+                this.Inlines.Add( sprintf "%d of " hr.offsets.Count)
+                this.Inlines.Add( new Run (hr.text, FontFamily = Style.fontEditor, Background = SelectionHighlighting.colorLog))
+                this.Inlines.Add( sprintf " (%d Chars) " hr.text.Length)       
+        
+        
+        SelectionHighlighting.SelectionChanged.Add ( fun (ava:TextEditor, res:HiLiResult) ->                
+            if Object.ReferenceEquals(ava,logAva) then
+                hiliRes<-res
+                setText(res)
+                match res with 
+                |FoundNone    -> grid.Tabs.Current.Editor.HighlightText("")
+                |FoundSome hr -> grid.Tabs.Current.Editor.HighlightText(hr.text)
+                )
 
-        grid.Tabs.OnTabChanged.Add ( fun _ ->
-            this.Inlines.Clear()
-            this.Inlines.Add(desc +    if isSelOcc() then onTxt else offTxt)
-            this.ToolTip <-  baseTxt + if isSelOcc() then offTxt else onTxt
+        SelectionHighlighting.HighlightRequested.Add ( fun (ava:TextEditor, res:HiLiResult) ->                
+            if  Object.ReferenceEquals(ava,logAva) then 
+               hiliRes<-res
+               setText(res) 
+               )
+
+        // on each click loop through all locations where text apears
+        this.MouseDown.Add ( fun _ -> // press mouse to scroll to them             
+            match hiliRes with 
+            |FoundNone    -> ()               
+            |FoundSome hr ->
+                if hr.offsets.Count > 0 then 
+                    if scrollToIdx >= hr.offsets.Count then scrollToIdx <- 0                
+                    let off = hr.offsets.[scrollToIdx]                
+                    if off < logAva.Document.TextLength then
+                        let ln = logAva.Document.GetLineByOffset(off)
+                        logAva.ScrollTo(ln.LineNumber,1) 
+                        logAva.Select(off, hr.text.Length)
+                        scrollToIdx <- scrollToIdx + 1
+                    else
+                        scrollToIdx <- 0
             )
+        
+        
 
 type SeffStatusBar (grid:TabsAndLog)  = 
     let bar = new Primitives.StatusBar()
@@ -340,7 +398,8 @@ type SeffStatusBar (grid:TabsAndLog)  =
     do
         add Dock.Left  <| errs
         add Dock.Left  <| fsi
-        add Dock.Left  <| SelectedTextStatus(grid)
+        add Dock.Left  <| SelectedEditorTextStatus(grid)
+        add Dock.Left  <| SelectedLogTextStatus(grid)
 
         add Dock.Right  <| FsiOutputStatus(grid)
         if grid.Config.Hosting.IsHosted then     add Dock.Right  <|  AsyncStatus(grid)

@@ -10,6 +10,7 @@ open System.Windows
 open AvalonLog.Brush
 
 open Seff
+open Seff.Editor
 open Seff.Util.General
 open Seff.Model
 open Seff.Config
@@ -32,15 +33,19 @@ module LogColors =
     //let green         = Brushes.Green                   |> freeze
     //let blue          = Brushes.Blue                    |> freeze
 
+#nowarn "44" //for obsolete grid.Log.AvalonLog.AvalonEdit
 
 /// A ReadOnly text AvalonEdit Editor that provides print formatting methods
 /// call ApplyConfig() once config is set up too, (config depends on this Log instance)
 type Log private () = 
 
-    let log =  new AvalonLog.AvalonLog()
+    let log =  new AvalonLog.AvalonLog()   
+
     let mutable addLogger : option<TextWriter> = None
 
     do
+        log.SelectedTextHighLighter.IsEnabled <- false
+        
         //styling:
         log.BorderThickness <- new Thickness( 0.5)
         log.Padding         <- new Thickness( 0.7)
@@ -83,12 +88,14 @@ type Log private () =
         | Some tw -> tw.Write tx
         | None ->()
 
-
+    let highlightText = SelectionHighlighting.HiLog.setup(log.AvalonEdit)
     //-----------------------------------------------------------
     //----------------------members:------------------------------------------
     //------------------------------------------------------------
 
     member this.AvalonLog = log
+
+    member this. HighlightText = highlightText
 
     member this.FsiErrorsStringBuilder = fsiErrorsStringBuilder  
 
