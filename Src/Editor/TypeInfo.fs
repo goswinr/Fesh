@@ -67,14 +67,15 @@ type TypeInfo private () =
         tb.FontFamily <- Style.fontEditor
         let ts = td.signature
         let mutable len = 0
-        let lastArrI = // used for giving the return value a different background
+        let lastArrI = // used for giving the return value a different background            
             ts 
             |> Array.tryFindIndexBack ( fun t -> t.Tag=TextTag.Punctuation && t.Text = "->") 
             |> Option.defaultWith (fun () -> 
                 ts 
                 |> Array.tryFindIndexBack ( fun t -> t.Tag=TextTag.Punctuation && t.Text = ":") 
-                |> Option.defaultValue Int32.MaxValue
+                |> Option.defaultValue 999999
                 )
+            
             
         let mutable bG :SolidColorBrush = null // used for giving the return value a different background
         for i=0 to ts.Length-1 do
@@ -101,10 +102,10 @@ type TypeInfo private () =
             | TextTag.Operator -> tb.Inlines.Add( new Run(t.Text, Foreground = Brushes.Green, Background=bG ))
             | TextTag.Punctuation->
                 match t.Text with
-                | "?"       ->   tb.Inlines.Add( new Run(t.Text, Foreground = gray, Background=bG))
-                | "*" | "->" -> tb.Inlines.Add( new Run(t.Text, Foreground = fullred, Background=bG))                    
-                |  _   ->  tb.Inlines.Add( new Run(t.Text, Foreground = purple , Background=bG))
-                if i>=lastArrI then bG <- white // to have a white color on return value
+                | "?"        ->   tb.Inlines.Add( new Run(t.Text, Foreground = gray, Background=bG))
+                | "*" | "->" ->  tb.Inlines.Add( new Run(t.Text, Foreground = fullred, Background=bG))                    
+                |  _         ->  tb.Inlines.Add( new Run(t.Text, Foreground = purple , Background=bG))
+                if i >= lastArrI then bG <- white // to have a white color on return value
 
             | TextTag.RecordField
             | TextTag.Method
@@ -132,6 +133,7 @@ type TypeInfo private () =
             | TextTag.Space -> 
                 // skip one space after colon before type tag
                 if   t.Text.Length=1 && ts.[max 0 (i-1)].Text=":" && ts.[max 0 (i-2)].Tag=TextTag.Parameter then () 
+                if i = lastArrI+1 then tb.Inlines.Add( new Run(t.Text, Background=null))
                 else tb.Inlines.Add( new Run(t.Text, Background=bG))
 
             | TextTag.Namespace
@@ -205,14 +207,16 @@ type TypeInfo private () =
         let rec loop (c:XmlParser.Child) parentName addTitle d = 
             match c with
             |Text t ->  
+                // the main xml text description
                 if parentName="para" then tb.Inlines.Add( new Run(t,  Foreground = darkgreen)) // don't trim oneliners inside a para tag to keep ascii art from RhinoCommon.xml
-                else                      tb.Inlines.Add( new Run(trimIfOneLiner t,  Foreground = darkgreen)) 
+                else                      tb.Inlines.Add( new Run(trimIfOneLiner t,  Foreground = darkgreen, FontStyle = FontStyles.Italic)) 
+                
             |Node n ->  
                 if d=0 then                     
                     if last<>n.name && addTitle then // && n.name <> "?name?" then // to not repeat the parameter header every time
                         last <- n.name
                         tb.Inlines.Add( new LineBreak()) 
-                        tb.Inlines.Add( new Run(fixName n.name,  Foreground = darkgray)) //FontWeight = FontWeights.Bold,     // Summary header Parameter header ....               
+                        tb.Inlines.Add( new Run(fixName n.name,  Foreground = darkgray)) //FontWeight = FontWeights.Bold,     // Summary header, Parameter header ....               
                         tb.Inlines.Add( new LineBreak())                     
                     for at in n.attrs do // there is normally just one ! like param:name, paramref:name typeparam:name                         
                         tb.Inlines.AddRange( at.value |> fixTypeName|> codeRun td )
