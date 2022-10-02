@@ -26,7 +26,7 @@ module TabStyle =
     // button in header
     let redButton     =  ofRGB 232 17 35 // same red color as default for the main window
     //let whiteButton   =  brushOfRGB 255 255 255 // for white cross inside red button
-    let grayButton    =  ofRGB 150 150 150 // for grey cross inside red button
+    let grayButton    =  ofRGB 150 150 150 // for gray cross inside red button
     let transpButton  =  ofARGB 0 255 255 255 // fully transparent
 
 

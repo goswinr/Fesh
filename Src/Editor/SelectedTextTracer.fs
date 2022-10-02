@@ -4,6 +4,7 @@ open System
 open System.Windows.Media
 open AvalonEditB
 open Seff.Util.General
+open Seff.Util
 open Seff.Model
 open Seff.Editor.Selection
 
@@ -111,10 +112,8 @@ module SelectionHighlighting =
         highlightRequestedEv.Trigger(ed.AvaEdit, FoundNone )
 
 
-
-
     let inline isTextToHighlight(t:string) = 
-        t.Length>1  && not <| t.Contains("\n")
+        t.Length > 1 && not (Str.isJustSpaceCharsOrEmpty t)  && not <| t.Contains("\n") 
 
     let setSelHighglight(t:string, ava:TextEditor, hiLi:TextColorizier) = 
         let cselst = ava.SelectionStart
