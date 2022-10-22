@@ -84,15 +84,15 @@ type FullCodeAndId =
 
 /// the Code beeing processed in fs Checker
 type CodeInChecker = 
-    | FullCode of CodeAsString
+    | FullCode    of CodeAsString
     | PartialCode of CodeAsString // happens for autocomplete triggers
     member this.FsCode = match this with  FullCode s -> s  | PartialCode s -> s
 
 type ErrorsBySeverity = {
-    errors   : ResizeArray<Diagnostics.FSharpDiagnostic>
-    warnings : ResizeArray<Diagnostics.FSharpDiagnostic>
-    infos    : ResizeArray<Diagnostics.FSharpDiagnostic>
-    hiddens  : ResizeArray<Diagnostics.FSharpDiagnostic> 
+    errors             : ResizeArray<Diagnostics.FSharpDiagnostic>
+    warnings           : ResizeArray<Diagnostics.FSharpDiagnostic>
+    infos              : ResizeArray<Diagnostics.FSharpDiagnostic>
+    hiddens            : ResizeArray<Diagnostics.FSharpDiagnostic> 
     errorsAndWarnings  : ResizeArray<Diagnostics.FSharpDiagnostic> 
     }
 
@@ -102,7 +102,9 @@ type CheckResults = {
     checkRes    :FSharpCheckFileResults
     errors      :ErrorsBySeverity
     code        :CodeInChecker
-    checkId     :CheckId     }
+    checkId     :CheckId 
+    editorId    :Guid
+    }
 
 
 /// Represents the current sate of the  FSharp.Compiler.Service Checker
@@ -163,6 +165,7 @@ type IEditor =
     abstract member FoldingManager : FoldingManager
     abstract member EvaluateFrom   : int
     abstract member IsComplWinOpen : bool
+    abstract member SemanticRanges : FSharp.Compiler.EditorServices.SemanticClassificationItem []
 
 [<RequireQualifiedAccess>]
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]

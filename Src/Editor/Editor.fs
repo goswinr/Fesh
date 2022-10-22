@@ -18,6 +18,7 @@ open Seff.Editor.SelectionHighlighting
 open Seff.Model
 open Seff.Config
 open Seff.Util.Str
+open FSharp.Compiler.EditorServices
 
  /// The tab that holds the tab header and the code editor
 type Editor private (code:string, config:Config, filePath:FilePath)  = 
@@ -30,6 +31,7 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
     let folds =             new Foldings(avaEdit,checker, config, id)
     let evalTracker      =  new EvaluationTracker(avaEdit,checker, id)
     let errorHighlighter =  new ErrorHighlighter(avaEdit,folds.Manager, log)
+    let semanticHighlighter = SemanticHighlighting.setup(avaEdit,id,checker)
 
     let search =            Search.SearchPanel.Install(avaEdit)
 
@@ -66,8 +68,9 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
         avaEdit.AllowDrop <- true
         //avaEdit.TextArea.TextView.CurrentLineBackground <- Brushes.Ivory |> Brush.brighter 10 |> Brush.freeze
         //avaEdit.TextArea.TextView.CurrentLineBorder <- new Pen(Brushes.Gainsboro|> Brush.freeze, 2.0) |> Util.Pen.freeze
-
         //avaEdit.TextArea.AllowCaretOutsideSelection <- true
+
+        //avaEdit.Foreground<-Brushes.HotPink
         SyntaxHighlighting.setFSharp(avaEdit,false)
 
         search.MatchCase  <- true //config.Settings.GetBool("SearchMatchCase", true) // TODO how to save changes ?
@@ -76,7 +79,9 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
 
     member val IsCurrent = false with get,set //  this is managed in Tabs.selectionChanged event handler
 
-    member val TypeInfoTip = new Controls.ToolTip(IsOpen=false)
+    member val TypeInfoTip = new Controls.ToolTip(IsOpen=false)    
+    
+    member val SemanticRanges : SemanticClassificationItem [] = [| |] with get,set
 
     // all instances of Editor refer to the same checker instance
     member this.GlobalChecker = checker
@@ -115,20 +120,15 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
     member this.EvaluateFrom    = evalTracker.EvaluateFrom
 
     interface IEditor with
-        member this.Id              = id
-        member this.AvaEdit         = avaEdit
-        member this.FileCheckState  with get() = checkState and  set(v) = checkState <- v
-        member this.FilePath        = filePath // interface does not need setter
-        member this.Log             = log
-        member this.FoldingManager  = folds.Manager
-        member this.EvaluateFrom    = evalTracker.EvaluateFrom
-        member this.IsComplWinOpen  = compls.IsOpen
-
-    // additional text change event:
-    //let completionInserted = new Event<string>() // event needed because Text change event is not raised after completion insert
-    //[<CLIEvent>]
-    //member this.CompletionInserted = completionInserted.Publish
-    //member this.TriggerCompletionInserted x = completionInserted.Trigger x // to raise it after completion inserted ?
+        member _.Id              = id
+        member _.AvaEdit         = avaEdit
+        member _.FileCheckState  with get() = checkState and  set(v) = checkState <- v
+        member _.FilePath        = filePath // interface does not need setter
+        member _.Log             = log
+        member _.FoldingManager  = folds.Manager
+        member _.EvaluateFrom    = evalTracker.EvaluateFrom
+        member _.IsComplWinOpen  = compls.IsOpen
+        member _.SemanticRanges  = semanticHighlighter.Ranges
 
     /// sets up Text change event handlers
     /// a static method so that an instance if IEditor can be used
@@ -138,8 +138,8 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
         let compls = ed.Completions
         let log = ed.Log        
 
-        ed.HighlightText <- SelectionHighlighting.HiEditor.setup(ed)
-        //BracketHighlighter.Setup(ed, ed.GlobalChecker) // Disabled TODO fix bug first !!!
+        ed.HighlightText <- SelectionHighlighting.HiEditor.setup(ed)        
+        //BracketHighlighter.Setup(ed, ed.GlobalChecker) // Disabled! TODO: fix bug first !!!
 
         Logging.LogAction <- new Action<string>( fun (s:string) -> log.PrintfnDebugMsg "Logging.Log: %s" s)
 
@@ -154,11 +154,9 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
 
         //----------------------------------
         //--FS Checker and Code completion--
-        //----------------------------------
+        //----------------------------------  
 
-        // Evaluation Tracker:
         // or use avaEdit.Document.Changing event ??
-
         //avaEdit.Document.Changed.Add(fun a -> ISeffLog.log.PrintfnColor 100 222 160 "Document.Changed:\r\n'%s'" avaEdit.Text)
         avaEdit.Document.Changed.Add(fun a -> ed.EvalTracker.SetLastChangeAt(a.Offset))
         avaEdit.Document.Changed.Add(fun a -> 
@@ -170,17 +168,20 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
         // check if closing and inserting from completion window is desired now:
         avaEdit.TextArea.TextEntering.Add (DocChanged.closeAndMaybeInsertFromCompletionWindow compls)
 
-        ed.GlobalChecker.OnCheckedForErrors.Add(fun iEditorOfCheck -> // this then triggers folding too, statusbar update is added in statusbar class
+        ed.GlobalChecker.OnCheckedForErrors.Add(fun (iEditorOfCheck,chRes) -> // this then triggers folding too, statusbar update is added in statusbar class
             if iEditorOfCheck.Id = ed.Id then // make sure it draws only on one editor, not all!
+                AutoFixErrors.refrences(iEditorOfCheck,chRes)
                 ed.ErrorHighlighter.Draw(ed)
             )
 
         compls.OnShowing.Add(fun _ -> ed.ErrorHighlighter.ToolTip.IsOpen <- false)
         compls.OnShowing.Add(fun _ -> ed.TypeInfoTip.IsOpen              <- false)
+        ed.TypeInfoTip.SetValue(Controls.ToolTipService.InitialShowDelayProperty, 50) // also set in Initialize.fs
 
         // Mouse Hover:
-        avaEdit.TextArea.TextView.MouseHover.Add(fun e -> TypeInfo.mouseHover(e, ed, log, ed.TypeInfoTip))
+        avaEdit.TextArea.TextView.MouseHover.Add(fun e -> TypeInfo.mouseHover(e, ed, ed.TypeInfoTip))
         avaEdit.TextArea.TextView.MouseHoverStopped.Add(fun _ -> ed.TypeInfoTip.IsOpen <- false )
+        
         avaEdit.TextArea.TextEntering.Add (fun _ -> ed.TypeInfoTip.IsOpen <- false )// close type info on typing
 
         ed

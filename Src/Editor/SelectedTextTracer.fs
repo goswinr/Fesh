@@ -10,7 +10,7 @@ open Seff.Editor.Selection
 
 /// A DocumentColorizingTransformer.
 /// Used to Highlight-all-occurrences-of-selected-text in Text View.
-type TextColorizier (ed:TextEditor,color:SolidColorBrush) = 
+type SelectionColorizier (ed:TextEditor,color:SolidColorBrush) = 
     inherit Rendering.DocumentColorizingTransformer()
     //  from https://stackoverflow.com/questions/9223674/highlight-all-occurrences-of-selected-word-in-avalonedit
        
@@ -82,7 +82,7 @@ module SelectionHighlighting =
 
     let private empty = ResizeArray<int>(0)
 
-    let private foundNoneRedraw(ava:TextEditor, selTextHiLi:TextColorizier) = 
+    let private foundNoneRedraw(ava:TextEditor, selTextHiLi:SelectionColorizier) = 
         selTextHiLi.HighlightText <- null
         selTextHiLi.ExcludeFrom   <- -1
         selTextHiLi.ExcludeTill   <- -1
@@ -92,21 +92,21 @@ module SelectionHighlighting =
         for fold in ed.FoldingManager.AllFoldings do 
             fold.BackbgroundColor <- null 
     
-    let private foundNoneSel(ava:TextEditor, selTextHiLi:TextColorizier) =
+    let private foundNoneSel(ava:TextEditor, selTextHiLi:SelectionColorizier) =
         foundNoneRedraw(ava, selTextHiLi)  |> ignore 
         selectionChangedEv.Trigger(ava, FoundNone )
 
-    let private foundNoneReq(ava:TextEditor, selTextHiLi:TextColorizier) =
+    let private foundNoneReq(ava:TextEditor, selTextHiLi:SelectionColorizier) =
         foundNoneRedraw(ava, selTextHiLi)  |> ignore 
         highlightRequestedEv.Trigger(ava, FoundNone )
 
 
-    let private foundNoneSelFold(ed:IEditor, selTextHiLi:TextColorizier) =
+    let private foundNoneSelFold(ed:IEditor, selTextHiLi:SelectionColorizier) =
         clearFolds(ed)
         foundNoneRedraw(ed.AvaEdit, selTextHiLi)  |> ignore 
         selectionChangedEv.Trigger(ed.AvaEdit, FoundNone )
 
-    let private foundNoneReqFold(ed:IEditor, selTextHiLi:TextColorizier) =
+    let private foundNoneReqFold(ed:IEditor, selTextHiLi:SelectionColorizier) =
         clearFolds(ed)
         foundNoneRedraw(ed.AvaEdit, selTextHiLi)  |> ignore 
         highlightRequestedEv.Trigger(ed.AvaEdit, FoundNone )
@@ -115,7 +115,7 @@ module SelectionHighlighting =
     let inline isTextToHighlight(t:string) = 
         t.Length > 1 && not (Str.isJustSpaceCharsOrEmpty t)  && not <| t.Contains("\n") 
 
-    let setSelHighglight(t:string, ava:TextEditor, hiLi:TextColorizier) = 
+    let setSelHighglight(t:string, ava:TextEditor, hiLi:SelectionColorizier) = 
         let cselst = ava.SelectionStart
         hiLi.ExcludeFrom   <- cselst // to exclude current selection from highlighting
         hiLi.ExcludeTill   <- cselst + t.Length - 1 // end offset is the last character with highlighting           
@@ -147,7 +147,7 @@ module SelectionHighlighting =
                         index <- code.IndexOf(highTxt, st, StringComparison.Ordinal)
                 offsets        
     
-        let handleSelection(ed:IEditor, selTextHiLi:TextColorizier) =
+        let handleSelection(ed:IEditor, selTextHiLi:SelectionColorizier) =
             match Selection.getSelType ed.AvaEdit.TextArea with 
             |RegSel  -> 
                 let t = ed.AvaEdit.SelectedText
@@ -168,7 +168,7 @@ module SelectionHighlighting =
       // returns a function for highlighting that does not call the UI continuation
         let setup(ed:IEditor) : (string->unit) =         
             // new higlighter per editor instance
-            let selTextHiLi = new TextColorizier(ed.AvaEdit,colorEditor)
+            let selTextHiLi = new SelectionColorizier(ed.AvaEdit,colorEditor)
             let ta = ed.AvaEdit.TextArea
             ta.TextView.LineTransformers.Add(selTextHiLi)        
             ta.SelectionChanged.Add ( fun a -> handleSelection(ed, selTextHiLi) )
@@ -191,7 +191,7 @@ module SelectionHighlighting =
 
     module HiLog =
 
-        let checkFoldedBoxesAsync(lg:TextEditor, selTextHiLi:TextColorizier, text, st, fromSelection)=
+        let checkFoldedBoxesAsync(lg:TextEditor, selTextHiLi:SelectionColorizier, text, st, fromSelection)=
             let doc = lg.Document // get doc in sync first !
             async{  
                 // search full log async, it might be very large
@@ -222,7 +222,7 @@ module SelectionHighlighting =
                 |> Async.Start
 
 
-        let handleSelection (lg:TextEditor, selTextHiLi:TextColorizier) =             
+        let handleSelection (lg:TextEditor, selTextHiLi:SelectionColorizier) =             
             match Selection.getSelType lg.TextArea with 
             |RegSel  -> 
                 let t = lg.SelectedText
@@ -236,7 +236,7 @@ module SelectionHighlighting =
         let setup(lg:TextEditor)  =         
             let ta = lg.TextArea
             // new higlighter per editor instance
-            let selTextHiLi = new TextColorizier(lg,colorLog)
+            let selTextHiLi = new SelectionColorizier(lg,colorLog)
             ta.TextView.LineTransformers.Add(selTextHiLi)        
             ta.SelectionChanged.Add ( fun a -> handleSelection(lg,  selTextHiLi) )
 

@@ -20,7 +20,7 @@
   
   <Color name="String"              foreground="#BB1111" />
   <Color name="StringVerbatim"      foreground="#CC0000" />  
-  <Color name="StringFormatting"    foreground="#990099" />
+  <Color name="StringFormatting"     foreground="#990099" />
   <Color name="StringEscaped"       foreground="#7050DC" />  
   <Color name="DollarInlines"       foreground="#000088" />
   <Color name="Char"                foreground="#FF0040" />
@@ -47,13 +47,13 @@
   <Color name="TrueCol"             foreground="#008090" fontStyle="italic" fontWeight="bold" />
   <Color name="FalseCol"            foreground="#A70090" fontStyle="italic" fontWeight="bold" />
   <Color name="Semicolon"           foreground="#A0A0A0" />
-  <!-- <Color name="TypeAnnotation"      foreground="#2080B0" /> -->
-  <!-- <Color name="RecordNames"         foreground="#B06000" /> -->
+  <Color name="TypeAnnotation"      foreground="#2080B0" />
+  <Color name="RecordNames"         foreground="#B06000" />
   
-  <!-- <Color name="LetBinding"          foreground="#7030A0" />
+  <Color name="LetBinding"          foreground="#7030A0" />
   <Color name="LetPrivate"          foreground="#6070A0" />
   <Color name="LetRec"              foreground="#B03080" />
-  <Color name="LetMutable"          foreground="#D08030" /> -->
+  <Color name="LetMutable"          foreground="#D08030" />
   
   <Color name="DocCommentStart"     foreground="#CCCCCC" /> <!-- taken from https://github.com/icsharpcode/AvalonEdit/blob/master/ICSharpCode.AvalonEdit/Highlighting/Resources/XmlDoc.xshd-->
   <Color name="XmlString"           foreground="#EE3333" />
@@ -194,7 +194,7 @@
       <Word>interface</Word>
       <Word>internal</Word>
       <Word>lazy</Word>
-      <Word>let</Word> 
+      <!-- <Word>let</Word>  -->    <!-- has separate color below in LetBindings-->
       <Word>match</Word>      
       <Word>member</Word>
       <Word>module</Word>
@@ -379,9 +379,44 @@
     <Rule color="Punctuation">[ \[ \]  \| \\ \( \) &lt; &gt; &amp; ? , . :  { } + \- * ^ ~ ! / % = ]</Rule>
   </RuleSet>
 
+  <RuleSet name="_TypeParameterSet"> 
+    <Span color="TypeAnnotation" multiline="false" >       
+      <Begin color="Punctuation">&lt;</Begin> 
+      <End color="Punctuation">&gt;</End>
+      <RuleSet>
+        <Span ruleSet="_TypeParameterSet" multiline="false">
+          <!--calls itself recursivly https://stackoverflow.com/a/63218566/969070 --> 
+          <Begin color="Punctuation"> &lt; </Begin>
+          <End   color="Punctuation">   &gt; </End> 
+        </Span> 
+        <Rule color="Punctuation">[ , \[ \] * ]</Rule>
+      </RuleSet>
+    </Span>
+  </RuleSet>
+
+  <RuleSet name="TypeAnnotationSet"> 
+    <Span color="TypeAnnotation" multiline="false" >       
+      <Begin color="Punctuation"> \) \s* : \s* \b</Begin> <!-- a closing bracket, 0 or more space- , colon, 0 or more space, word boundary-->
+      <End color="Punctuation">[ \) , ; = \} ]</End>
+      <RuleSet>
+        <Import ruleSet="_TypeParameterSet"/>
+        <Rule color="Punctuation">[ , \[ \] * ]</Rule>
+      </RuleSet>
+    </Span>
+    
+    <Span color="TypeAnnotation" multiline="false" >       
+      <Begin color="Punctuation"> \b \s* : \s* \b</Begin> <!-- word boundary , 0 or more space- , colon, 0 or more space, word boundary-->
+      <End color="Punctuation">(?= [ \) , ; = \} ] )</End> <!-- positive look ahead to not capture a bracket sinse it may indicate the next type anno-->
+      <RuleSet>
+        <Import ruleSet="_TypeParameterSet"/>
+        <Rule color="Punctuation">[ , \[ \] * ]</Rule>
+      </RuleSet>
+    </Span>
+    
+
+  </RuleSet>
   
-  <RuleSet name="PrintAndFailStatements">
-    <!-- in the semantic highlighting code there is an exclusion for these function names so that this here gets applied-->
+  <RuleSet name="PrintAndFailStatements"> 
     <Span color="FailString">  
       <Begin color= "FailPath" >failwithf?\s*\"</Begin>  
       <End   color= "FailPath" >\"</End>      
@@ -466,7 +501,7 @@
     <Import ruleSet="StringSet"/>
     <Import ruleSet="KeywordSet"/>
     <Import ruleSet="PunctuationSet"/>
-    <!-- <Import ruleSet="TypeAnnotationSet"/> -->
+    <Import ruleSet="TypeAnnotationSet"/>
     <Import ruleSet="PrintAndFailStatements"/>
     <Import ruleSet="DoubleTicksSet"/>
 
@@ -475,7 +510,7 @@
     
     <Rule color="Semicolon">;</Rule>
     
-    <!-- <Rule color="Exception">\b\w*\d*Exception</Rule>    -->
+    <Rule color="Exception">\b\w*\d*Exception</Rule>   
 
     <Span color="NonEval" multiline="true" > <!--anything after a double semicolon is ignored in FSI-->
       <Begin>;;</Begin> 
@@ -490,13 +525,112 @@
         <Import ruleSet="PunctuationSet"/>         
       </RuleSet>
     </Span>
+
+    <!-- 
+    Mark function calls from C#, not ideal for F# since parens are optional for function calls
+    test on https://regexr.com/ \b[\d\w_]+(?=\s*\() 
+    <Rule color="MethodCall">
+      \b        # match before
+      [\d\w_]+  # an identifier
+      (?=\s*\() # followed by (
+    </Rule>
+    -->      
+
+    <Span color="LetRec"> 
+      <Begin color= "Keywords" >\blet\s*rec\b</Begin> 
+      <End>.\b</End> 
+    </Span>
+
+    <Span color="LetRec"> 
+      <Begin color= "Keywords" >\band\b</Begin> 
+      <End>.\b</End> 
+    </Span>
+    
+    <Span color="LetMutable"> 
+      <Begin color = "Keywords" > \b let \s+ mutable \s+ </Begin> 
+      <End color = "Punctuation"> \s* [\(=] \s* (?=[^\*])   </End> <!-- word end | maybe space| a ( or = | maybe space | next not a star -->
+      <RuleSet> 
+        <Import ruleSet="TypeAnnotationSet"/>
+        <Import ruleSet="DoubleTicksSet"/>
+        <Span color="Comment" ruleSet="_CommentMarkerSet" multiline="true">
+          <Begin>\(\*</Begin>
+          <End>\*\)</End>      
+        </Span> 
+      </RuleSet>
+    </Span>
+
+    <Span color="LetPrivate"> 
+      <Begin color = "Keywords" > \b let \s+ private \s+</Begin>       
+      <End color = "Punctuation"> \s* [\(=] \s* (?=[^\*])   </End> <!-- word end | maybe space| a ( or = | maybe space | next not a star -->
+      <RuleSet> 
+        <Import ruleSet="KeywordSet"/>
+        <Import ruleSet="InlineCommentSet"/>
+        <Import ruleSet="TypeAnnotationSet"/>
+        <Import ruleSet="DoubleTicksSet"/>
+      </RuleSet>
+    </Span>
+
+    <Span color="LetBinding"> 
+      <Begin color = "Keywords" > \b let \s+ </Begin>       
+      <End color = "Punctuation"> \s* [\(=] \s* (?=[^\*])   </End> <!-- word end | maybe space| a ( or = | maybe space | next not a star -->
+      <RuleSet> 
+        <Import ruleSet="KeywordSet"/>
+        <Import ruleSet="InlineCommentSet"/>
+        <Import ruleSet="TypeAnnotationSet"/>
+        <Import ruleSet="DoubleTicksSet"/>
+      </RuleSet>
+    </Span>
+
+    <Span color="TypeAnnotation"> 
+      <Begin color= "Keywords" >\btype\s+</Begin> <!-- type declarations -->
+      <End>.\b</End> 
+    </Span>
+
+  </RuleSet>
+
+  <RuleSet name="_RecordItemSet">
+    <Span color="RecordNames" multiline="false">     
+      <Begin color="Punctuation">\s* (?= \w+ \s* =)</Begin> 
+      <End color="Punctuation">=</End>       
+    </Span>
+  </RuleSet>
+
+  <RuleSet name="RecordSet">
+    <Span multiline="true">
+      <!-- for items after opening bracket: -->
+      <!-- a  = or comma or { ; folowed by space or not ;a opening bracket, then a word ahead with space and equls sign       -->
+      <Begin color="Punctuation">[=,;\{] \s* \{ \s* </Begin> 
+      <End color="Punctuation">\}</End> 
+      <RuleSet>        
+        <Import ruleSet="_RecordItemSet"/> 
+        <Import ruleSet="CodeMain"/>  
+        <Span ruleSet="RecordSet" multiline="true">
+            <Begin>\{</Begin>
+            <End>\}</End>
+        </Span>
+      </RuleSet>
+    </Span>   
+    <Span multiline="true">
+      <!-- for an opening bracket alone on a  line ( after white): -->
+      <Begin color="Punctuation">^ \s* \{ \s* $</Begin> 
+      <End color="Punctuation">\}</End> 
+      <RuleSet>        
+        <Import ruleSet="_RecordItemSet"/> 
+        <Import ruleSet="CodeMain"/>  
+        <Span ruleSet="RecordSet" multiline="true">
+            <Begin>\{</Begin>
+            <End>\}</End>
+        </Span>
+      </RuleSet>
+    </Span>   
+
   </RuleSet>
   
   <!--the main set (must not have a name attribute)-->  
   <RuleSet>   
     <Import ruleSet="LoadDllSet"/>     
     <Import ruleSet="CodeMain"/>
-    <!-- <Import ruleSet="RecordSet"/>      -->
+    <Import ruleSet="RecordSet"/>     
   </RuleSet>
 
 </SyntaxDefinition>

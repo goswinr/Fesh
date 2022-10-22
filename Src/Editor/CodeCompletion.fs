@@ -178,7 +178,7 @@ type Completions(avaEdit:TextEditor,config:Config, checker:Checker) =
                 do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context
                 if this.IsOpen then // might get closed during context switch
                     if selectedText() = it.Name then
-                        win.Value.ToolTipContent <- TypeInfo.getPanel (Some it, structured )
+                        win.Value.ToolTipContent <- TypeInfo.getPanel (structured, {declListItem=Some it; semanticClass=None; declLocation=None; dllLocation=None })
                         hasStackPanelTypeInfo <-true
                         //TODO add structure to a Dict so it does not need recomputing if browsing up and down items in the completion list.
         } |> Async.Start

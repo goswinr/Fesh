@@ -19,11 +19,12 @@ module Initialize =
         Globalization.CultureInfo.DefaultThreadCurrentCulture   <- en_US
         Globalization.CultureInfo.DefaultThreadCurrentUICulture <- en_US
 
-        // to still show-tooltip-when a button(or menu item )  is disabled-by-command
-        //https://stackoverflow.com/questions/4153539/wpf-how-to-show-tooltip-when-button-disabled-by-command
+        // to still show-tooltip-when a button(or menu item ) is disabled-by-command
+        // https://stackoverflow.com/questions/4153539/wpf-how-to-show-tooltip-when-button-disabled-by-command
         Controls.ToolTipService.ShowOnDisabledProperty.OverrideMetadata  (typeof<Controls.Control>, new FrameworkPropertyMetadata( true )             )
         Controls.ToolTipService.ShowDurationProperty.OverrideMetadata    (typeof<DependencyObject>, new FrameworkPropertyMetadata( Int32.MaxValue )   )
-        Controls.ToolTipService.InitialShowDelayProperty.OverrideMetadata(typeof<DependencyObject>, new FrameworkPropertyMetadata( 50 )               )
+        Controls.ToolTipService.InitialShowDelayProperty.OverrideMetadata(typeof<DependencyObject>, new FrameworkPropertyMetadata( 50 )              )
+        Controls.ToolTipService.InitialShowDelayProperty.OverrideMetadata(typeof<FrameworkElement>, new FrameworkPropertyMetadata( 50 )              ) // also set in Editor.fs
 
         /// ------------------ Log and Config --------------------
 

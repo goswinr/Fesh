@@ -32,7 +32,7 @@ module SyntaxHighlighting =
                     let stream = new StreamReader(path)//will be copied there after compiling recompiling
                     use reader = new Xml.XmlTextReader(stream)
                     let fsh = Xshd.HighlightingLoader.Load(reader, HighlightingManager.Instance)
-                    HighlightingManager.Instance.RegisterHighlighting("F#", [| ".fsx"; ".fs";".fsi" |], fsh)
+                    //HighlightingManager.Instance.RegisterHighlighting("F#", [| ".fsx"; ".fs";".fsi" |], fsh)
                     fsHighlighting <- Some fsh
                     do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context
                     ed.SyntaxHighlighting <- fsh

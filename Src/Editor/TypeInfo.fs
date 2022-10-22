@@ -30,13 +30,20 @@ open Seff.Model
 open Seff.XmlParser
 
 
-type OptDefArg   = {name:string } //; defVal:string}//  default value seems to be not available via FCS see below in: namesOfOptnlArgs(fsu:FSharpSymbolUse)
+type OptDefArg   = { name:string } //; defVal:string} //  TODO actual default value from attribute  seems to be not available via FCS see below in: namesOfOptnlArgs(fsu:FSharpSymbolUse)
 
 type ToolTipData = {
-    name:string; 
-    signature:TaggedText[]
-    optDefs: ResizeArray<OptDefArg> 
-    xmlDoc: Result<XmlParser.Child*string,string>
+    name          : string; 
+    signature     : TaggedText[]
+    optDefs       : ResizeArray<OptDefArg> 
+    xmlDoc        : Result<XmlParser.Child*string,string>
+    }
+
+type ToolTipExtraData ={
+    declListItem  : DeclarationListItem option        // only for autocomplete tooltips
+    semanticClass : SemanticClassificationItem option // only for mose over type info tooltips
+    declLocation  : Range option                      // only for mose over type info tooltips
+    dllLocation   : string option                     // only for mose over type info tooltips
     }
 
 ///a static class for creating tooltips
@@ -48,22 +55,22 @@ type TypeInfo private () =
     static let gray         = Brushes.Gray                       |> freeze
     static let lightgray    = Brushes.Gray       |> brighter 100 |> freeze
     static let blue         = Brushes.Blue       |> darker    90 |> freeze
-    static let darkblue     = Brushes.Blue       |> darker   120 |> freeze
-    static let darkgreen    = Brushes.DarkGreen   
+    static let darkblue     = Brushes.DarkSlateBlue |> darker  20|> freeze
+    static let darkgreen    = Brushes.DarkGreen  |> darker    20 |> freeze 
     static let darkpurple   = Brushes.Purple     |> darker    90 |> freeze
     static let purple       = Brushes.Purple     |> brighter  40 |> freeze
     static let black        = Brushes.Black                      |> freeze
     static let red          = Brushes.DarkSalmon |> darker   120 |> freeze
     static let fullred      = Brushes.Red        |> darker    60 |> freeze
     static let cyan         = Brushes.DarkCyan   |> darker    60 |> freeze
-    static let white        = Brushes.White      |> freeze
+    static let white        = Brushes.White      |> darker    5  |> freeze
 
     static let maxCharInSignLine = 100
 
     static let coloredSignature(td :ToolTipData): TextBlockSelectable = 
         let tb = TextBlockSelectable()
         tb.Foreground <- black
-        tb.FontSize   <- Style.fontSize  * 1.1
+        tb.FontSize   <- Style.fontSize * 1.2
         tb.FontFamily <- Style.fontEditor
         let ts = td.signature
         let mutable len = 0
@@ -190,17 +197,17 @@ type TypeInfo private () =
         [
         new Run(" ") 
         match td.optDefs |> Seq.tryFind ( fun oa -> oa.name = t ) with
-        | Some od ->  new Run("?"+t ,FontFamily = Style.fontEditor, FontSize = Style.fontSize*1.05,  Foreground = gray,   Background = white) 
-        | None    ->  new Run(t ,FontFamily = Style.fontEditor, FontSize = Style.fontSize*1.05,  Foreground = black,   Background = white)         
+        | Some od ->  new Run("?"+t ,FontFamily = Style.fontEditor, FontSize = Style.fontSize*1.1,  Foreground = gray,   Background = white) 
+        | None    ->  new Run(t ,FontFamily = Style.fontEditor, FontSize = Style.fontSize*1.1,  Foreground = black,   Background = white)         
         new Run(" ") 
         ]
 
     /// check if List has at least two items 
     static let twoOrMore = function [] | [_] -> false |_ -> true       
 
-    static let mainXmlBlock (node:XmlParser.Child,td:ToolTipData): TextBlockSelectable =
+    static let mainXmlBlock (node:XmlParser.Child, td:ToolTipData): TextBlockSelectable =
         let tb = new TextBlockSelectable()
-        tb.FontSize   <- Style.fontSize  * 0.95
+        tb.FontSize   <- Style.fontSize  * 1.0
         tb.FontFamily <- Style.fontToolTip        
         let mutable last = "" 
         
@@ -208,8 +215,8 @@ type TypeInfo private () =
             match c with
             |Text t ->  
                 // the main xml text description
-                if parentName="para" then tb.Inlines.Add( new Run(t,  Foreground = darkgreen)) // don't trim oneliners inside a para tag to keep ascii art from RhinoCommon.xml
-                else                      tb.Inlines.Add( new Run(trimIfOneLiner t,  Foreground = darkgreen, FontStyle = FontStyles.Italic)) 
+                if parentName="para" then tb.Inlines.Add( new Run(t,  Foreground = darkblue)) // don't trim oneliners inside a para tag to keep ascii art from RhinoCommon.xml
+                else                      tb.Inlines.Add( new Run(trimIfOneLiner t,  Foreground = darkblue, FontStyle = FontStyles.Italic)) 
                 
             |Node n ->  
                 if d=0 then                     
@@ -259,20 +266,34 @@ type TypeInfo private () =
 
 
     // make a fancy tooltip panel:
-    static let makeToolTipPanel  (it:DeclarationListItem option, tds:ToolTipData list, addPersistInfo:bool) = 
+    static let makeToolTipPanel  ( tds:ToolTipData list, ted:ToolTipExtraData,  addPersistInfo:bool) = 
         let panel = new StackPanel(Orientation = Orientation.Vertical)
         let inline add(e:UIElement) =  panel.Children.Add e |> ignore            
 
         if addPersistInfo then 
-            add <|  TextBlock(Text = "Press Ctrl + P to persist this window.", FontSize = Style.fontSize * 0.7) 
+            add <|  TextBlock(Text = "Press Ctrl + P to persist this window.", FontSize = Style.fontSize * 0.75) 
         
-        if it.IsSome then
-            let tb = new TextBlockSelectable(Text = sprintf "%A" it.Value.Glyph)
-            tb.Foreground <- Brushes.DarkOrange
-            tb.FontSize <- Style.fontSize  * 0.85
+        match ted.declListItem with
+        |None -> ()
+        |Some dItem -> 
+            let tb = new TextBlockSelectable(Text = dItem.Glyph.ToString() )
+            tb.Foreground <- Brushes.DarkOrange |> darker 10
+            tb.FontSize <- Style.fontSize  * 0.95
             tb.FontFamily <- Style.fontEditor
             //tb.FontWeight <- FontWeights.Bold
-            add tb         
+            add tb  
+            
+        match ted.semanticClass with
+        |None -> ()
+        |Some sem -> 
+            let tb = new TextBlockSelectable(Text = sem.Type.ToString() )
+            //let tb = new TextBlockSelectable(Text = $"{sem.Type}, {sem.Range.EndColumn-sem.Range.StartColumn} chars") //from {sem.Range.StartColumn}")
+            tb.Foreground <- Brushes.DarkOrange |> darker 10
+            tb.FontSize <- Style.fontSize  * 0.95
+            tb.FontFamily <- Style.fontEditor
+            //tb.FontWeight <- FontWeights.Bold
+            add tb  
+
         
         let mutable assemblies = new HashSet<string>()
         let deDup = HashSet() // just because some typ provider signatures appears multiple times, filter them out with hashset
@@ -296,12 +317,13 @@ type TypeInfo private () =
 
                 // the main xml body
                 match td.xmlDoc with
-                |Ok (node,ass)     ->
-                    if ass.Length > 10 then assemblies.Add("\r\n" + ass) |> ignore // it may be from more than one assembly? because of type extensions?
-                    else                    assemblies.Add(ass) |> ignore
+                |Ok (node, ass)     ->
+                    if ass <> "" then assemblies.Add(ass) |> ignore
+                    //if ass.Length > 10 then assemblies.Add("\r\n" + ass) |> ignore // it may be from more than one assembly? because of type extensions?
+                    //else                    assemblies.Add(ass) |> ignore
                     subAdd <| mainXmlBlock (node, td)
                 |Error errTxt  ->
-                    subAdd<|  TextBlockSelectable(Text = errTxt, FontSize = Style.fontSize  * 0.75 , FontFamily = Style.fontToolTip, Foreground = gray )                   
+                    subAdd<|  TextBlockSelectable(Text = errTxt, FontSize = Style.fontSize  * 0.80 , FontFamily = Style.fontToolTip, Foreground = gray )                   
                 
                 let border = Border()
                 border.Child <- subPanel
@@ -313,12 +335,32 @@ type TypeInfo private () =
 
         if assemblies.Count > 0 then
             let tb = 
-                if assemblies.Count = 1 then new TextBlockSelectable(Text= "assembly:" + Seq.head assemblies)
-                else                         new TextBlockSelectable(Text= "assemblies:" + String.concat "" assemblies)
-            tb.FontSize <- Style.fontSize  * 0.80
+                if assemblies.Count = 1 then new TextBlockSelectable(Text= "assembly: "   + Seq.head assemblies)
+                else                         new TextBlockSelectable(Text= "assemblies: " + String.concat "\r\n" assemblies)
+            tb.FontSize <- Style.fontSize  * 0.85
             tb.Foreground <-black
             //tb.FontFamily <- new FontFamily ("Arial") // or use default of device
-            add tb 
+            add tb   
+        else
+            match ted.dllLocation with
+            |None -> ()
+            |Some f -> 
+                    let tb = TextBlockSelectable(Text= "assembly path: " + f)
+                    tb.FontSize <- Style.fontSize  * 0.85
+                    tb.Foreground <-black
+                    //tb.FontFamily <- new FontFamily ("Arial") // or use default of device
+                    add tb 
+        
+        match ted.declLocation with
+        |None -> ()
+        |Some r ->                 
+                let f = r.FileName.Replace('\\','/')
+                if f <> "unknown" then 
+                    let tb = TextBlockSelectable(Text = sprintf "define at: %s  Line:%d" f r.StartLine)
+                    tb.FontSize <- Style.fontSize  * 0.85
+                    tb.Foreground <-black
+                    //tb.FontFamily <- new FontFamily ("Arial") // or use default of device
+                    add tb 
                 
         ScrollViewer(Content=panel , VerticalScrollBarVisibility = ScrollBarVisibility.Auto ) //TODO cant be scrolled, never gets focus? because completion window keeps focus on editor?
 
@@ -331,22 +373,22 @@ type TypeInfo private () =
         | FSharpXmlDoc.None -> 
             Error "*FSharpXmlDoc.None*"
         
-        | FSharpXmlDoc.FromXmlText xmlDoc ->
+        | FSharpXmlDoc.FromXmlText fsXmlDoc ->
             // this might be a xml Doc string that is not from an xml file but from the current .fsx document
             try                 
                 let cs = 
-                    xmlDoc.UnprocessedLines
+                    fsXmlDoc.UnprocessedLines
                     |> String.concat Environment.NewLine
                     |> XmlParser.readAll
                 match cs with 
                 | []  -> Error ( "FSharpXmlDoc.FromXmlText empty")
-                | cs  -> Ok (XmlParser.Node {name="member";  attrs=[];  children=cs}, "  -  ") // previously "this file") 
+                | cs  -> Ok (XmlParser.Node {name="member";  attrs=[];  children=cs}, "") // must be empty
             with e ->
                 Error $"FSharpXmlDoc.FromXmlText: {e}"           
         
         | FSharpXmlDoc.FromXmlFile(dllFile, memberName) ->
             match DocString.getXmlDoc dllFile with
-            |Ok (fi,nodeDict) -> 
+            |Ok (fi, nodeDict) -> 
                 match nodeDict.TryGetValue memberName with 
                 |true , node ->  Ok (node  , dllFile)
                 |false, _    ->  Error $"no xml doc found for member '{memberName}' in \r\n'{fi.FullName}'\r\n"
@@ -379,7 +421,7 @@ type TypeInfo private () =
 
 
     /// Returns the names of optional Arguments in a given method call.
-    static let namesOfOptnlArgs(fsu:FSharpSymbolUse) :ResizeArray<OptDefArg>= 
+    static let namesOfOptnlArgs(fsu:FSharpSymbolUse)  :ResizeArray<OptDefArg>= 
         let optDefs = ResizeArray<OptDefArg>(0)
         try
             match fsu.Symbol with
@@ -405,9 +447,13 @@ type TypeInfo private () =
         with e -> 
             () //ISeffLog.log.PrintfnAppErrorMsg "Error while trying to show a Tool tip in Seff.\r\nYou can ignore this error.\r\nin TypeInfo.namesOfOptnlArgs: %A" e
         optDefs
+    
 
-    static let mutable cachedDeclarationListItem:DeclarationListItem option = None
+
+    
     static let mutable cachedToolTipData: list<ToolTipData> = []
+    static let mutable cachedExtraData = {declListItem=None;semanticClass=None;declLocation=None;dllLocation=None }
+    
 
     //--------------public values and functions -----------------
 
@@ -417,17 +463,17 @@ type TypeInfo private () =
 
     static member makeSeffToolTipDataList (sdtt: ToolTipText, optArgs:ResizeArray<OptDefArg>) = makeToolTipDataList (sdtt, optArgs)
 
-    static member getPanel  (it:DeclarationListItem option, tds:ToolTipData list) = 
-        cachedDeclarationListItem <- it
-        cachedToolTipData <- tds
-        makeToolTipPanel (it, tds, true)
+    static member getPanel  (tds:ToolTipData list, ed:ToolTipExtraData) = 
+        cachedToolTipData  <- tds
+        cachedExtraData    <- ed
+        makeToolTipPanel (tds, ed, true)
 
     /// regenerates a view of the last created panel so it can be used again in the popout window
     static member getPanelCached () = 
-        makeToolTipPanel (cachedDeclarationListItem, cachedToolTipData, false)
+        makeToolTipPanel (cachedToolTipData, cachedExtraData, false)
 
 
-    static member mouseHover(e: MouseEventArgs, iEditor:IEditor, log:ISeffLog, tip:ToolTip) = 
+    static member mouseHover(e: MouseEventArgs, iEditor:IEditor, tip:ToolTip) = 
         // see https://github.com/icsharpcode/AvalonEdit/blob/master/ICSharpCode.AvalonEdit/Editing/SelectionMouseHandler.cs#L477
 
         let doc = iEditor.AvaEdit.Document
@@ -470,21 +516,41 @@ type TypeInfo private () =
 
                         do! Async.SwitchToThreadPool()
 
-                        let ttt =    res.checkRes.GetToolTip            (line, endCol, lineTxt, [word], FSharpTokenTag.Identifier)      //TODO, can this call be avoided use info from below symbol call ? // TODO move into checker
+                        let ttt     = res.checkRes.GetToolTip            (line, endCol, lineTxt, [word], FSharpTokenTag.Identifier)      //TODO, can this call be avoided use info from below symbol call ? // TODO move into checker
                         let symbols = res.checkRes.GetSymbolUseAtLocation(line, endCol, lineTxt, [word] )                                //only to get to info about optional parameters
+                        
+
                         let optArgs = if symbols.IsSome then namesOfOptnlArgs(symbols.Value) else ResizeArray(0)
-
-                        do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context
-
                         let ttds = makeToolTipDataList (ttt, optArgs) //TODO can this still be async ?
+                        
+                        do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context
+                        
                         if List.isEmpty ttds then
-                            let w = word.Trim()
-                            //if w <> "" then     tip.Content <- "No type info found for:\r\n" + word
-                            if w <> "" then     tip.Content <- new TextBlock(Text = "No type info found for:\r\n" + word, FontSize = Style.fontSize  * 0.7,FontFamily = Style.fontToolTip, Foreground = gray )
-                            else                tip.Content <- "No tip"
+                            let w = word.Trim()                            
+                            if w <> "" then tip.Content <- new TextBlock(Text = "No type info found for:\r\n'" + word + "'", FontSize = Style.fontSize  * 0.7,FontFamily = Style.fontToolTip, Foreground = gray )
+                            else            tip.Content <- "No tip"
                             //ed.TypeInfoToolTip.IsOpen <- false
                         else
-                            let ttPanel = TypeInfo.getPanel (None , ttds)
+                            
+                            let sem, declLoc, dllLoc = 
+                                match symbols with 
+                                |None -> None,None,None
+                                |Some s ->                                    
+                                    let l = s.Range
+                                    let lineNo = l.StartLine
+                                    let colSt  = l.StartColumn
+                                    let colEn  = l.EndColumn                                    
+                                    let sem = iEditor.SemanticRanges |> Array.tryFind (fun s -> let r = s.Range in r.StartLine=lineNo && r.EndLine=lineNo && r.StartColumn=colSt && r.EndColumn=colEn)                                        
+                                    sem, s.Symbol.DeclarationLocation ,s.Symbol.Assembly.FileName
+
+                            //ISeffLog.log.PrintfnAppErrorMsg $"s.FileName:{s.FileName}"
+                            //ISeffLog.log.PrintfnDebugMsg $"s.Symbol.DeclarationLocation:{s.Symbol.DeclarationLocation}"
+                            //ISeffLog.log.PrintfnDebugMsg $"s.Symbol.Assembly.FileName:{s.Symbol.Assembly.FileName}"
+                            //let sems = res.checkRes.GetSemanticClassification(Some s.Range)
+                            //for sem in sems do ISeffLog.log.PrintfnDebugMsg $"GetSemanticClassification:{sem.Type}"
+                            
+                            let ed = {declListItem=None; semanticClass=sem; declLocation=declLoc; dllLocation=dllLoc }
+                            let ttPanel = TypeInfo.getPanel (ttds, ed )
                             if tip.IsOpen then
                                 // TODO hide tooltip and use use popup instead now, so it can be pinned?
                                 tip.Content <- ttPanel

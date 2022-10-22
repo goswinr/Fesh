@@ -28,8 +28,9 @@ module Pen =
             if br.CanFreeze then
                 br.Freeze()
             else
-               eprintfn "Could not freeze SolidColorBrush: %A" br
+               eprintfn "Could not freeze Pen: %A" br
         br
+
 
 module General = 
 

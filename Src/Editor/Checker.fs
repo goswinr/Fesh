@@ -27,7 +27,7 @@ type Checker private (config:Config)  =
 
     let checkingEv = new Event< IEditor > ()
 
-    let checkedEv = new Event< IEditor > ()
+    let checkedEv = new Event< IEditor*CheckResults > ()
 
     let fullCodeAvailableEv = new Event< IEditor > ()
 
@@ -147,9 +147,10 @@ type Checker private (config:Config)  =
                                             {
                                             parseRes = parseRes  
                                             checkRes = checkRes
-                                            errors = ErrorUtil.getBySeverity checkRes
-                                            code = codeInChecker  
-                                            checkId=thisId 
+                                            errors   = ErrorUtil.getBySeverity checkRes
+                                            code     = codeInChecker  
+                                            checkId  = thisId
+                                            editorId = iEditor.Id
                                             }
                                         globalCheckState <- Done res
                                         iEditor.FileCheckState <- globalCheckState
@@ -165,7 +166,7 @@ type Checker private (config:Config)  =
                                             do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context
                                             try
                                                 if !checkId = thisId  then                                                
-                                                    checkedEv.Trigger(iEditor) // to mark statusbar , and highlighting errors
+                                                    checkedEv.Trigger(iEditor,res) // to mark statusbar , and highlighting errors
                                                     if isFirstCheck then
                                                         firstCheckDoneEv.Trigger() // to now start FSI
                                                         isFirstCheck <- false

@@ -174,7 +174,7 @@ type CheckerStatus (grid:TabsAndLog) as this =
         this.Background <- waitCol //originalBackGround
 
         tabs.OnTabChanged.Add (fun t -> updateCheckState(t.Editor))
-        checker.OnCheckedForErrors.Add  updateCheckState
+        checker.OnCheckedForErrors.Add (fun (ed,_) ->  updateCheckState(ed))
         checker.OnChecking.Add updateCheckState
         this.MouseLeftButtonDown.Add ( fun a -> CheckerStatus.goToNextSegment(grid.Tabs.Current.Editor))
         
