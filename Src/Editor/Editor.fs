@@ -60,7 +60,6 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
         avaEdit.Options.ConvertTabsToSpaces <- true
         avaEdit.Options.IndentationSize <- 4
         avaEdit.Options.HideCursorWhileTyping <- false
-        //avaEdit.Options.EnableVirtualSpace <- true // to postion caret anywhere in editor
         avaEdit.TextArea.SelectionCornerRadius <- 0.0
         avaEdit.TextArea.SelectionBorder <- null
         avaEdit.FontFamily <- Style.fontEditor
@@ -69,6 +68,7 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
         //avaEdit.TextArea.TextView.CurrentLineBackground <- Brushes.Ivory |> Brush.brighter 10 |> Brush.freeze
         //avaEdit.TextArea.TextView.CurrentLineBorder <- new Pen(Brushes.Gainsboro|> Brush.freeze, 2.0) |> Util.Pen.freeze
         //avaEdit.TextArea.AllowCaretOutsideSelection <- true
+        //avaEdit.Options.EnableVirtualSpace <- true // to postion caret anywhere in editor
 
         //avaEdit.Foreground<-Brushes.HotPink
         SyntaxHighlighting.setFSharp(avaEdit,false)
@@ -143,9 +143,9 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
 
         Logging.LogAction <- new Action<string>( fun (s:string) -> log.PrintfnDebugMsg "Logging.Log: %s" s)
 
-        avaEdit.Drop.Add                      (fun e -> CursorBehavior.TextAreaDragAndDrop( avaEdit,e))
+        avaEdit.Drop.Add                      (fun e -> CursorBehavior.TextAreaDragAndDrop(  avaEdit, e))
         avaEdit.PreviewKeyDown.Add            (fun e -> KeyboardShortcuts.previewKeyDown(    avaEdit, e, compls))   //to indent and dedent, and change block selection delete behavior
-        avaEdit.TextArea.PreviewTextInput.Add (fun e -> CursorBehavior.previewTextInput(    avaEdit, e))   //to change block selection delete behavior
+        avaEdit.TextArea.PreviewTextInput.Add (fun e -> CursorBehavior.previewTextInput(     avaEdit, e))   //to change block selection delete behavior
         avaEdit.TextArea.AlternativeRectangularPaste <- Action<string,bool>( fun txt txtIsFromOtherRectSel -> RectangleSelection.paste(ed.AvaEdit,txt,txtIsFromOtherRectSel)) //TODO check txtIsFromOtherRectSel on pasting text with \r\n
 
         // setup and tracking folding status, (needs a ref to file path:  )

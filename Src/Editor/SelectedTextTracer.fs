@@ -20,7 +20,7 @@ type SelectionColorizier (ed:TextEditor,color:SolidColorBrush) =
 
     member this.HighlightText 
         with get() = highTxt 
-        and set v = highTxt <- v
+        and set v  = highTxt <- v
 
     member this.Clear() = highTxt <- null
     

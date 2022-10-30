@@ -28,7 +28,7 @@ module AutoFixErrors =
     let refrences(ied:IEditor,ch:CheckResults) =
         for e in ch.checkRes.Diagnostics do 
             if e.ErrorNumber = 1108 then 
-                match Util.Str.between "You must add a reference to assembly '" ","  e.Message with 
+                match Util.Str.between "must add a reference to assembly '" ","  e.Message with 
                 |Some ass -> 
                     if saidNo.Contains ass |> not then 
                         match MessageBox.Show($"Do you want to add a refrence to\r\n{ass}.dll\r\non the first line? \r\n\r\nBecause of Error:\r\n{e.Message}" , 

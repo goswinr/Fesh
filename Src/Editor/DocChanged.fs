@@ -126,7 +126,10 @@ module DocChanged =
             let forIdx = lastIdxAtStartOrWithSpace inStr "for " ln // test if its the first char or preceded by a space 
             if forIdx = -1 then  ShowAll
             else 
-                if lastIdx inStr " in " ln > forIdx then ShowAll else isDU (forIdx+3) ln
+                if   lastIdx inStr " in "     ln > forIdx then ShowAll 
+                elif lastIdx inStr " to "     ln > forIdx then ShowAll 
+                elif lastIdx inStr " downto " ln > forIdx then ShowAll 
+                else isDU (forIdx+3) ln
         
         let isBarDeclaration inStr (ln:string) = // also covers the  'as' binding        
             let barIdx = lastIdxAtStartOrWithSpace inStr "|" ln // test if its the first char or preceded by a space 
@@ -146,7 +149,7 @@ module DocChanged =
             let setback     = lastNonFSharpNameCharPosition ln // to maybe replace some previous characters too
             let query       = ln.Substring(ln.Length - setback)
             let isKeyword   = keywords.Contains query
-            //log.PrintfnDebugMsg "pos:%A setback='%d'" pos setback
+            //ISeffLog.log.PrintfnDebugMsg "show: pos:%A setback='%d'" pos setback
 
             let charBeforeQueryDU = 
                 let i = pos.column - setback - 1
@@ -177,32 +180,40 @@ module DocChanged =
                     if last <> '/' then CheckCode // to make sure comment was not just typed (then still check)
                     else DoNothing 
                 else
-                    let inStr = not <| NotInQuotes.isLastCharOutsideQuotes ln
+                    let inStr = not <| NotInQuotes.isLastCharOutsideQuotes ln                    
                     match isLetDeclaration inStr ln with 
-                    |DontShow -> CheckCode // keep on writing the current new varaiable name for a binding , dont open any completion windows
+                    |DontShow -> 
+                        //ISeffLog.log.PrintfnDebugMsg "noShow because isLetDeclaration: %s" ln
+                        CheckCode // keep on writing the current new varaiable name for a binding , dont open any completion windows
                     |ShowOnlyDU -> show(pos,compls,ed,true)
                     |ShowAll -> 
                         match isFunDeclaration inStr ln with 
-                        |DontShow -> CheckCode 
+                        |DontShow -> 
+                            //ISeffLog.log.PrintfnDebugMsg "noShow because isFunDeclaration: %s" ln
+                            CheckCode 
                         |ShowOnlyDU -> show(pos,compls,ed,true)
                         |ShowAll ->
                             match isForDeclaration inStr ln with 
-                            |DontShow -> CheckCode 
+                            |DontShow -> 
+                                //ISeffLog.log.PrintfnDebugMsg "noShow because isForDeclaration: %s" ln
+                                CheckCode 
                             |ShowOnlyDU -> show(pos,compls,ed,true)
                             |ShowAll ->
                                 match isBarDeclaration inStr ln with 
-                                |DontShow -> CheckCode 
+                                |DontShow -> 
+                                    //ISeffLog.log.PrintfnDebugMsg "noShow because isBarDeclaration: %s" ln
+                                    CheckCode 
                                 |ShowOnlyDU -> show(pos,compls,ed,true)
                                 |ShowAll ->    show(pos,compls,ed,false) // most comon case
 
     open Internal
 
     let docChanged (e:DocumentChangeEventArgs,ed:IEditor, compls:Completions) : DoNext = 
-        //log.PrintfnDebugMsg "*Document.Changed Event: deleted %d '%s', inserted %d '%s', completion hasItems: %b, isOpen: %b , Just closed: %b" e.RemovalLength e.RemovedText.Text e.InsertionLength e.InsertedText.Text ed.Completions.HasItems ed.Completions.IsOpen compls.JustClosed
+        //ISeffLog.log.PrintfnDebugMsg "*Document.Changed Event: deleted %d '%s', inserted %d '%s', completion hasItems: %b, isOpen: %b , Just closed: %b" e.RemovalLength e.RemovedText.Text e.InsertionLength e.InsertedText.Text compls.HasItems compls.IsOpen compls.JustClosed
                         
         if compls.IsOpen then   // just keep on tying in completion window, no type checking !
             if compls.HasItems then 
-                //let currentText = getField(typeof<CodeCompletion.CompletionList>,w.CompletionList,"currentText") :?> string //this property should be public in avaloneditB !                
+                //let currentText = getField(typeof<CodeCompletion.CompletionList>,w.CompletionList,"currentText") :?> string // TODO this property should be public in avaloneditB !                
                 //log.PrintfnDebugMsg "currentText: '%s'" currentText
                 //log.PrintfnDebugMsg "w.CompletionList.CompletionData.Count:%d" w.CompletionList.ListBox.VisibleItemCount
                 DoNothing
