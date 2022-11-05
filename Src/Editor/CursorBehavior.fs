@@ -363,9 +363,22 @@ module CursorBehavior  =
                 ||
                 (c > 'Z' && c < '_') // _ then ` tehn a
                 ||
-                c > 'z' 
+                c > 'z'
+                
 
-
+        /// test if the current line has an even count of quotes ?
+        let inline evenQuoteCount() =
+            let mutable i = ed.TextArea.Caret.Offset - 1 // do minus one first, caret might be at end of document. that would not be a valid index
+            let rec count(k) = 
+                if i = -1 then k
+                else
+                    let c = ed.Document.GetCharAt(i)
+                    i<-i-1 // do minus one first, caret might be at end of document. that would not be a valid index
+                    match c with 
+                    | '"'  -> count(k+1)
+                    | '\n' -> k
+                    | _    -> count(k)
+            count(0) % 2 = 0
 
 
         match Selection.getSelType(ed.TextArea) with
@@ -394,7 +407,7 @@ module CursorBehavior  =
             | "{"  -> if nextSpaceQ() then addPair 1 "{}"
             | "["  -> if nextSpace()  then addPair 1 "[]"
             | "'"  -> if nextSpace()&&prevNonAlpha()  then addPair 1 "''"
-            | "\"" -> if nextSpace()  then addPair 1 "\"\""
+            | "\"" -> if nextSpace()&&evenQuoteCount() then addPair 1 "\"\""
             | "$"  -> if nextSpace()  then addPair 2 "$\"\"" // for formating string
             | "`"  -> if nextSpace()  then addPair 2 "````"  // for formating string
             
