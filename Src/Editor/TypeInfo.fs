@@ -32,11 +32,16 @@ open Seff.XmlParser
 
 type OptDefArg   = { name:string } //; defVal:string} //  TODO actual default value from attribute  seems to be not available via FCS see below in: namesOfOptnlArgs(fsu:FSharpSymbolUse)
 
+type DllPath = string
+type ErrMsg = string
+type PathWithNameSpace =string
+
 type ToolTipData = {
     name          : string; 
     signature     : TaggedText[]
+    fullName      : PathWithNameSpace
     optDefs       : ResizeArray<OptDefArg> 
-    xmlDoc        : Result<XmlParser.Child*string,string>
+    xmlDoc        : Result<XmlParser.Child*DllPath,ErrMsg>
     }
 
 type ToolTipExtraData ={
@@ -67,7 +72,7 @@ type TypeInfo private () =
 
     static let maxCharInSignLine = 100
 
-    static let coloredSignature(td :ToolTipData): TextBlockSelectable = 
+    static let coloredSignature(td:ToolTipData): TextBlockSelectable = 
         let tb = TextBlockSelectable()
         tb.Foreground <- black
         tb.FontSize   <- Style.fontSize * 1.2
@@ -332,6 +337,16 @@ type TypeInfo private () =
                 border.Padding <- Thickness(4.0)
                 border.Margin <- Thickness(2.0)
                 add border 
+            
+            // add full name:
+            if td.fullName<>"" then 
+                let tb = new TextBlockSelectable()     
+                tb.Inlines.Add( new Run("Full name: ",  Foreground = darkgray))
+                tb.Inlines.Add( new Run(td.fullName  ,  Foreground = darkblue))
+                tb.Foreground <- darkblue
+                tb.FontSize <- Style.fontSize  * 1.0
+                tb.FontFamily <- Style.fontEditor
+                add tb 
 
         if assemblies.Count > 0 then
             let tb = 
@@ -367,7 +382,7 @@ type TypeInfo private () =
     
 
     /// Returns docstring und dll path
-    static let findXmlDoc (cmt:FSharpXmlDoc) : Result<XmlParser.Child*string,string> = 
+    static let findXmlDoc (cmt:FSharpXmlDoc) : Result<XmlParser.Child*DllPath, ErrMsg> = 
         //mostly copied from same named function in Docstring.fs
         match cmt with
         | FSharpXmlDoc.None -> 
@@ -397,7 +412,7 @@ type TypeInfo private () =
  
 
 
-    static let makeToolTipDataList (sdtt: ToolTipText, optDfes:ResizeArray<OptDefArg>) : ToolTipData list= 
+    static let makeToolTipDataList (sdtt: ToolTipText, fullName:string, optDfes:ResizeArray<OptDefArg>) : ToolTipData list= 
         match sdtt with
         | ToolTipText.ToolTipText (els) ->
             match els with
@@ -406,15 +421,16 @@ type TypeInfo private () =
                 [ for el in els do
                     match el with
                     | ToolTipElement.None ->
-                        yield {name = ""; signature = [||]; optDefs=optDfes; xmlDoc = Error  "*FSharpStructuredToolTipElement.None*"}
+                        yield {name = ""; signature = [||]; fullName=""; optDefs=optDfes; xmlDoc = Error  "*FSharpStructuredToolTipElement.None*"}
 
                     | ToolTipElement.CompositionError(text) ->
-                        yield {name = ""; signature = [||]; optDefs=optDfes; xmlDoc = Error ("*FSharpStructuredToolTipElement.CompositionError: "+ text)}
+                        yield {name = ""; signature = [||]; fullName=""; optDefs=optDfes; xmlDoc = Error ("*FSharpStructuredToolTipElement.CompositionError: "+ text)}
 
                     | ToolTipElement.Group(tooTipElemDataList) ->
                         for tooTipElemData in tooTipElemDataList do                            
                             yield { name      = Option.defaultValue "" tooTipElemData.ParamName
                                     signature = tooTipElemData.MainDescription 
+                                    fullName  = fullName
                                     optDefs   = optDfes
                                     xmlDoc    = findXmlDoc tooTipElemData.XmlDoc}
                 ]
@@ -461,7 +477,7 @@ type TypeInfo private () =
 
     static member namesOfOptionalArgs(fsu:FSharpSymbolUse) = namesOfOptnlArgs(fsu)
 
-    static member makeSeffToolTipDataList (sdtt: ToolTipText, optArgs:ResizeArray<OptDefArg>) = makeToolTipDataList (sdtt, optArgs)
+    static member makeSeffToolTipDataList (sdtt: ToolTipText, fullName:string, optArgs:ResizeArray<OptDefArg>) = makeToolTipDataList (sdtt, fullName, optArgs)
 
     static member getPanel  (tds:ToolTipData list, ed:ToolTipExtraData) = 
         cachedToolTipData  <- tds
@@ -516,12 +532,12 @@ type TypeInfo private () =
 
                         do! Async.SwitchToThreadPool()
 
-                        let ttt     = res.checkRes.GetToolTip            (line, endCol, lineTxt, [word], FSharpTokenTag.Identifier)      //TODO, can this call be avoided use info from below symbol call ? // TODO move into checker
-                        let symbols = res.checkRes.GetSymbolUseAtLocation(line, endCol, lineTxt, [word] )                                //only to get to info about optional parameters
-                        
+                        let ttt    = res.checkRes.GetToolTip            (line, endCol, lineTxt, [word], FSharpTokenTag.Identifier)      //TODO, can this call be avoided use info from below symbol call ? // TODO move into checker
+                        let symbol = res.checkRes.GetSymbolUseAtLocation(line, endCol, lineTxt, [word] )                                //only to get to info about optional parameters
+                        let fullName = if symbol.IsSome then symbol.Value.Symbol.FullName else ""
 
-                        let optArgs = if symbols.IsSome then namesOfOptnlArgs(symbols.Value) else ResizeArray(0)
-                        let ttds = makeToolTipDataList (ttt, optArgs) //TODO can this still be async ?
+                        let optArgs = if symbol.IsSome then namesOfOptnlArgs(symbol.Value) else ResizeArray(0)
+                        let ttds = makeToolTipDataList (ttt, fullName ,optArgs) //TODO can this still be async ?
                         
                         do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context
                         
@@ -533,9 +549,15 @@ type TypeInfo private () =
                         else
                             
                             let sem, declLoc, dllLoc = 
-                                match symbols with 
+                                match symbol with 
                                 |None -> None,None,None
                                 |Some s ->                                    
+                                    //ISeffLog.log.PrintfnAppErrorMsg $"s.Symbol.FullName: {s.Symbol.FullName}"
+                                    //ISeffLog.log.PrintfnAppErrorMsg $"s.FileName:{s.FileName}"
+                                    //ISeffLog.log.PrintfnDebugMsg $"s.Symbol.DeclarationLocation:{s.Symbol.DeclarationLocation}"
+                                    //ISeffLog.log.PrintfnDebugMsg $"s.Symbol.Assembly.FileName:{s.Symbol.Assembly.FileName}"
+                                    //let sems = res.checkRes.GetSemanticClassification(Some s.Range)
+                                    //for sem in sems do ISeffLog.log.PrintfnDebugMsg $"GetSemanticClassification:{sem.Type}"                                    
                                     let l = s.Range
                                     let lineNo = l.StartLine
                                     let colSt  = l.StartColumn
@@ -543,11 +565,7 @@ type TypeInfo private () =
                                     let sem = iEditor.SemanticRanges |> Array.tryFind (fun s -> let r = s.Range in r.StartLine=lineNo && r.EndLine=lineNo && r.StartColumn=colSt && r.EndColumn=colEn)                                        
                                     sem, s.Symbol.DeclarationLocation ,s.Symbol.Assembly.FileName
 
-                            //ISeffLog.log.PrintfnAppErrorMsg $"s.FileName:{s.FileName}"
-                            //ISeffLog.log.PrintfnDebugMsg $"s.Symbol.DeclarationLocation:{s.Symbol.DeclarationLocation}"
-                            //ISeffLog.log.PrintfnDebugMsg $"s.Symbol.Assembly.FileName:{s.Symbol.Assembly.FileName}"
-                            //let sems = res.checkRes.GetSemanticClassification(Some s.Range)
-                            //for sem in sems do ISeffLog.log.PrintfnDebugMsg $"GetSemanticClassification:{sem.Type}"
+                            
                             
                             let ed = {declListItem=None; semanticClass=sem; declLocation=declLoc; dllLocation=dllLoc }
                             let ttPanel = TypeInfo.getPanel (ttds, ed )

@@ -170,10 +170,10 @@ type Completions(avaEdit:TextEditor,config:Config, checker:Checker) =
     member this.GetToolTip(it:DeclarationListItem)= 
         hasStackPanelTypeInfo <-false
         async{
-            let raw = it.Description
+            let ttText = it.Description            
             let structured = 
-                if optArgsDict.ContainsKey it.FullName then  TypeInfo.makeSeffToolTipDataList (raw, optArgsDict.[it.FullName])
-                else                                         TypeInfo.makeSeffToolTipDataList (raw, ResizeArray(0))
+                if optArgsDict.ContainsKey it.FullName then  TypeInfo.makeSeffToolTipDataList (ttText, it.FullName, optArgsDict.[it.FullName])
+                else                                         TypeInfo.makeSeffToolTipDataList (ttText, it.FullName, ResizeArray(0))
             if this.IsOpen then
                 do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context
                 if this.IsOpen then // might get closed during context switch
