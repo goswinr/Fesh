@@ -69,29 +69,28 @@ type CompletionItem(ed:IEditor,config:Config, getToolTip, it:DeclarationListItem
 
     let priority = //if it.IsOwnMember then 1. else 1.
         if isDotCompletion then 1.0// not on Dot completion
-        else                    1.0 + config.AutoCompleteStatistic.Get(it.Name) //if p>1.0 then log.PrintfnDebugMsg "%s %g" it.Name p    
+        else                    1.0 + config.AutoCompleteStatistic.Get(it.NameInList) //if p>1.0 then log.PrintfnDebugMsg "%s %g" it.Name p    
     
-    let textBlock = UtilCompletion.mkTexBlock(it.Name ,FontStyles.Normal)   // create once and cache ?  
+    let textBlock = UtilCompletion.mkTexBlock(it.NameInList ,FontStyles.Normal)   // create once and cache ?  
         
     member this.Content = textBlock :> obj // the displayed item in the completion window 
     member this.Description = getToolTip(it) // this gets called on demand only, not when initially filling the list.
     member this.Image = null //TODO or part of text box ?
     member this.Priority = priority
-    member this.Text = it.Name // not used for display, but for priority sorting ? 
+    member this.Text = it.NameInList // not used for display, but for priority sorting ? 
     member this.Complete (textArea:TextArea, completionSegment:ISegment, e:EventArgs) = 
         //log.PrintfnDebugMsg "%s is %A and %A" it.Name it.Glyph it.Kind        
         let compl = 
             //TODO move this logic out here
-            if it.Glyph = FSharpGlyph.Class && it.Name.EndsWith "Attribute" then
-                "[<" + it.Name.Replace("Attribute",">]")
+            if it.Glyph = FSharpGlyph.Class && it.NameInList.EndsWith "Attribute" then
+                "[<" + it.NameInList.Replace("Attribute",">]")
 
-            elif UtilCompletion.needsTicks it.Name then
-                "``" + it.Name + "``"
+            // elif UtilCompletion.needsTicks it.Name then "``" + it.Name + "``" // fixed in "FSharp.Compiler.Service" Version="42.7.100" by using it.NameInCode ???
 
-            elif it.Name = "struct" then
+            elif it.NameInList = "struct" then
                 "[<Struct>]"
             else
-                it.Name
+                it.NameInCode 
 
         //config.Log.PrintfDebugMsg "completionSegment: '%s' : %A" (textArea.Document.GetText(completionSegment)) completionSegment
         if Selection.getSelType textArea = Selection.RectSel then
@@ -100,7 +99,7 @@ type CompletionItem(ed:IEditor,config:Config, getToolTip, it:DeclarationListItem
             textArea.Document.Replace(completionSegment, compl)
 
         if not isDotCompletion then
-            config.AutoCompleteStatistic.Incr(it.Name)
+            config.AutoCompleteStatistic.Incr(it.NameInList)
             config.AutoCompleteStatistic.Save()
         // Event sequence on pressing enter in completion window:
         // (1)Close window
@@ -135,7 +134,7 @@ type Completions(avaEdit:TextEditor,config:Config, checker:Checker) =
 
     let mutable hasStackPanelTypeInfo = false // to indicate that the stack panel is not showing the loading text but the actual type info 
 
-    let selectedText ()= 
+    let selectedCompletionText ()= 
         match win with
         |None -> ""
         |Some w ->
@@ -177,7 +176,7 @@ type Completions(avaEdit:TextEditor,config:Config, checker:Checker) =
             if this.IsOpen then
                 do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context
                 if this.IsOpen then // might get closed during context switch
-                    if selectedText() = it.Name then
+                    if selectedCompletionText() = it.NameInList then
                         win.Value.ToolTipContent <- TypeInfo.getPanel (structured, {declListItem=Some it; semanticClass=None; declLocation=None; dllLocation=None })
                         hasStackPanelTypeInfo <-true
                         //TODO add structure to a Dict so it does not need recomputing if browsing up and down items in the completion list.
