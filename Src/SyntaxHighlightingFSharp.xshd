@@ -39,6 +39,11 @@
   <Color name="ReservedKeywords"    foreground="#7777FF" /> <!--fontWeight="bold" -->
   <Color name="MethodCall"          foreground="#0000AA" /> <!-- fontWeight="bold" fontStyle="italic"-->
   <Color name="NumberLiteral"       foreground="#990077" />
+  <Color name="NegNumberLiteral"    foreground="#FF0077"  fontWeight="bold" />
+  <Color name="ExponentNumberLit"   foreground="#1199DD" />
+  <Color name="HexNumberLiteral"    foreground="#FF8800" />
+  <Color name="BinNumberLiteral"    foreground="#FF8800" /> 
+  <Color name="NumberType"          foreground="#AA8888" />
   <Color name="FailPath"            foreground="#888888" />
   <Color name="FailString"          foreground="#D0A040" />  
   <Color name="Exception"           foreground="#C06030" />
@@ -47,10 +52,10 @@
   <Color name="TrueCol"             foreground="#008090" fontStyle="italic" fontWeight="bold" />
   <Color name="FalseCol"            foreground="#A70090" fontStyle="italic" fontWeight="bold" />
   <Color name="Semicolon"           foreground="#A0A0A0" />
-  <!-- <Color name="TypeAnnotation"      foreground="#2080B0" /> -->
-  <!-- <Color name="RecordNames"         foreground="#B06000" /> -->
-  
-  <!-- <Color name="LetBinding"          foreground="#7030A0" />
+  <!-- 
+  <Color name="TypeAnnotation"      foreground="#2080B0" /> 
+  <Color name="RecordNames"         foreground="#B06000" />   
+  <Color name="LetBinding"          foreground="#7030A0" />
   <Color name="LetPrivate"          foreground="#6070A0" />
   <Color name="LetRec"              foreground="#B03080" />
   <Color name="LetMutable"          foreground="#D08030" /> -->
@@ -376,7 +381,10 @@
   </RuleSet>
   
   <RuleSet name="PunctuationSet">         
-    <Rule color="Punctuation">[ \[ \]  \| \\ \( \) &lt; &gt; &amp; ? , . :  { } + \- * ^ ~ ! / % = ]</Rule>
+    <!-- <Rule color="Punctuation">[ \[ \]  \| \\ \( \) &lt; &gt; &amp; \? , \. :  \{ \} \+ \* \^ ~ ! / % = ]</Rule>  -->
+    <!-- <Rule color="Punctuation">[ \. \$ \^ \{ \[ \( \| \) \* \+ \? \\ &lt; &gt; &amp;  , : \] \}  ~ ! / % = - ]</Rule>  -->
+    <Rule color="Punctuation">[ \. \$ \^ \{ \[ \( \| \)   \? \\ &lt; &gt; &amp;  , : \] \}  ~ !  % = ]</Rule> <!-- without operators-->
+    <!-- . $ ^ { [ ( | ) * + ? \ need escape -->    
   </RuleSet>
 
   
@@ -461,22 +469,28 @@
   </RuleSet>
 
   <RuleSet name="CodeMain">
-    <Import ruleSet="CommentSet"/> 
+     <Import ruleSet="CommentSet"/> 
     <Import ruleSet="InlineCommentSet"/> 
     <Import ruleSet="StringSet"/>
-    <Import ruleSet="KeywordSet"/>
-    <Import ruleSet="PunctuationSet"/>
-    <!-- <Import ruleSet="TypeAnnotationSet"/> -->
+    <Import ruleSet="KeywordSet"/>    
     <Import ruleSet="PrintAndFailStatements"/>
     <Import ruleSet="DoubleTicksSet"/>
 
     <!-- a hex number | binary number | (number just starting with floating point | with optional inner floating point) and an optional exponent. https://regexr.com/52d6q -->
-    <Rule color="NumberLiteral">\b0[xX][0-9a-fA-F_]+|\b0[bB][01_]+|((-\.|\.)[0-9_]+|(\b|-)[0-9_]+\.?[0-9_]*)([eE][+-]?[0-9]+)? </Rule>
+    <!-- <Rule color="NumberLiteral">((-\.|\.)[0-9_]+|(\b|-)[0-9_]+\.?[0-9_]*)([eE][+-]?[0-9]+)? </Rule> -->
+    
+    <Rule color="ExponentNumberLit">\b0[xX]</Rule>
+    <Rule color="ExponentNumberLit">\b0[bB]</Rule>
+    <Rule color="HexNumberLiteral">(?&lt;=[xX])[0-9a-fA-F_]+</Rule>
+    <Rule color="BinNumberLiteral">(?&lt;=[bB])[01_]+</Rule>
+    <Rule color="ExponentNumberLit">(?&lt;=\d)[eE][+-]?[0-9]+ </Rule><!-- (?&lt;=\d) is a positive lookbehind for digits -->
+    <Rule color="NumberLiteral">[0-9_]+\.?[0-9_]*</Rule>
+    <Rule color="Punctuation">[0-9\w]\-</Rule> <!-- to exclude a 'x-1' to be highlighted below too: -->
+    <Rule color="NegNumberLiteral">(?&lt;!\d)-[0-9_]+\.?[0-9_]*</Rule> <!-- (?&lt;!\d) is a negative lookbehind for digits -->
+    <Rule color="NumberType">(?&lt;=[0-9\.])[yfsuLULmM][yL]?</Rule> <!-- (?&lt;!\d) is a negative lookbehind for digits -->
+    
     
     <Rule color="Semicolon">;</Rule>
-    
-    <!-- <Rule color="Exception">\b\w*\d*Exception</Rule>    -->
-
     <Span color="NonEval" multiline="true" > <!--anything after a double semicolon is ignored in FSI-->
       <Begin>;;</Begin> 
       <End>justAnyStringThatNeverHappens</End>
@@ -495,8 +509,9 @@
   <!--the main set (must not have a name attribute)-->  
   <RuleSet>   
     <Import ruleSet="LoadDllSet"/>     
-    <Import ruleSet="CodeMain"/>
-    <!-- <Import ruleSet="RecordSet"/>      -->
+    <Import ruleSet="CodeMain"/>  
+    <!-- import last :-->  
+    <Import ruleSet="PunctuationSet"/>  
   </RuleSet>
 
 </SyntaxDefinition>

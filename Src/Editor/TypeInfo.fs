@@ -511,7 +511,7 @@ type TypeInfo private () =
                     let docLine = doc.GetLineByOffset(offset)
                     let endCol = endOffset - docLine.Offset
                     let lineTxt = doc.GetText(docLine)
-                    let word = doc.GetText(max 0 startOffset, endOffset-startOffset) // max function to avoid -1
+                    let word = doc.GetText(max 0 startOffset, endOffset-startOffset).Trim() // max function to avoid -1
                     //log.PrintfnDebugMsg "word = '%s' Line:%d starting at %d get from %d to %d: in '%s'" word line docLine.Offset startOffset endOffset lineTxt
 
                     tip.Content <- loadingTxt
@@ -541,10 +541,8 @@ type TypeInfo private () =
                         
                         do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context
                         
-                        if List.isEmpty ttds then
-                            let w = word.Trim()                            
-                            if w <> "" then tip.Content <- new TextBlock(Text = "No type info found for:\r\n'" + word + "'", FontSize = Style.fontSize  * 0.7,FontFamily = Style.fontToolTip, Foreground = gray )
-                            else            tip.Content <- "No tip"
+                        if List.isEmpty ttds then                                                     
+                            tip.Content <- new TextBlock(Text = "No type info found for:\r\n'" + word + "'", FontSize = Style.fontSize  * 0.7,FontFamily = Style.fontToolTip, Foreground = gray )                            
                             //ed.TypeInfoToolTip.IsOpen <- false
                         else
                             
