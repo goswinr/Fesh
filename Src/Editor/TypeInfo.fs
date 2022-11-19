@@ -503,74 +503,75 @@ type TypeInfo private () =
                 //TODO check for in string to give #r tooltip
                 //TODO fails on ´´ backtick names
                 //TODO test using FCS instead for finding words:  let partialLongName = QuickParse.GetPartialLongNameEx(pos.lineToCaret, colSetBack - 1)
+                  
+                
 
                 let offset = doc.GetOffset(pos.Value.Location)
-                let startOffset = TextUtilities.GetNextCaretPosition(doc,offset, LogicalDirection.Backward, CaretPositioningMode.WordBorderOrSymbol)// TODO fails on ´´ backtick names
-                let endOffset =   TextUtilities.GetNextCaretPosition(doc,offset, LogicalDirection.Forward,  CaretPositioningMode.WordBorderOrSymbol)// returns -1 on empty lines;
+                let startOffset = TextUtilities.GetNextCaretPosition(doc, offset, LogicalDirection.Backward, CaretPositioningMode.WordBorderOrSymbol)// TODO fails on ´´ backtick names
+                let endOffset =   TextUtilities.GetNextCaretPosition(doc, offset, LogicalDirection.Forward,  CaretPositioningMode.WordBorderOrSymbol)// returns -1 on empty lines;
                 if startOffset < endOffset then // to skip empty lines
                     let docLine = doc.GetLineByOffset(offset)
                     let endCol = endOffset - docLine.Offset
                     let lineTxt = doc.GetText(docLine)
                     let word = doc.GetText(max 0 startOffset, endOffset-startOffset).Trim() // max function to avoid -1
-                    //log.PrintfnDebugMsg "word = '%s' Line:%d starting at %d get from %d to %d: in '%s'" word line docLine.Offset startOffset endOffset lineTxt
+                    if word<>"" then 
+                        //ISeffLog.log.PrintfnDebugMsg "word = '%s' Line:%d starting at %d get from %d to %d: in '%s'" word line docLine.Offset startOffset endOffset lineTxt
+                        tip.Content <- loadingTxt
+                        tip.PlacementTarget <- iEditor.AvaEdit // required for property inheritance
+                        tip.StaysOpen <- true
+                        tip.IsOpen <- true
 
-                    tip.Content <- loadingTxt
-                    tip.PlacementTarget <- iEditor.AvaEdit // required for property inheritance
-                    tip.StaysOpen <- true
-                    tip.IsOpen <- true
+                        async{
+                            // <summary>Compute a formatted tooltip for the given location</summary>
+                            // <param name="line">The line number where the information is being requested.</param>
+                            // <param name="colAtEndOfNames">The column number at the end of the identifiers where the information is being requested.</param>
+                            // <param name="lineText">The text of the line where the information is being requested.</param>
+                            // <param name="names">The identifiers at the location where the information is being requested.</param>
+                            // <param name="tokenTag">Used to discriminate between 'identifiers', 'strings' and others. For strings,
+                            //              an attempt is made to give a tooltip for a #r "..." location.
+                            //              Use a value from FSharpTokenInfo.Tag, or FSharpTokenTag.Identifier, unless you have other information available.</param>
+                            // <param name="userOpName">An optional string used for tracing compiler operations associated with this request.</param>
 
-                    async{
-                        // <summary>Compute a formatted tooltip for the given location</summary>
-                        // <param name="line">The line number where the information is being requested.</param>
-                        // <param name="colAtEndOfNames">The column number at the end of the identifiers where the information is being requested.</param>
-                        // <param name="lineText">The text of the line where the information is being requested.</param>
-                        // <param name="names">The identifiers at the location where the information is being requested.</param>
-                        // <param name="tokenTag">Used to discriminate between 'identifiers', 'strings' and others. For strings,
-                        //              an attempt is made to give a tooltip for a #r "..." location.
-                        //              Use a value from FSharpTokenInfo.Tag, or FSharpTokenTag.Identifier, unless you have other information available.</param>
-                        // <param name="userOpName">An optional string used for tracing compiler operations associated with this request.</param>
+                            do! Async.SwitchToThreadPool()
 
-                        do! Async.SwitchToThreadPool()
+                            let ttt    = res.checkRes.GetToolTip            (line, endCol, lineTxt, [word], FSharpTokenTag.Identifier)      //TODO, can this call be avoided use info from below symbol call ? // TODO move into checker
+                            let symbol = res.checkRes.GetSymbolUseAtLocation(line, endCol, lineTxt, [word] )                                //only to get to info about optional parameters
+                            let fullName = if symbol.IsSome then symbol.Value.Symbol.FullName else ""
 
-                        let ttt    = res.checkRes.GetToolTip            (line, endCol, lineTxt, [word], FSharpTokenTag.Identifier)      //TODO, can this call be avoided use info from below symbol call ? // TODO move into checker
-                        let symbol = res.checkRes.GetSymbolUseAtLocation(line, endCol, lineTxt, [word] )                                //only to get to info about optional parameters
-                        let fullName = if symbol.IsSome then symbol.Value.Symbol.FullName else ""
-
-                        let optArgs = if symbol.IsSome then namesOfOptnlArgs(symbol.Value) else ResizeArray(0)
-                        let ttds = makeToolTipDataList (ttt, fullName ,optArgs) //TODO can this still be async ?
+                            let optArgs = if symbol.IsSome then namesOfOptnlArgs(symbol.Value) else ResizeArray(0)
+                            let ttds = makeToolTipDataList (ttt, fullName ,optArgs) //TODO can this still be async ?
                         
-                        do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context
+                            do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context
                         
-                        if List.isEmpty ttds then                                                     
-                            tip.Content <- new TextBlock(Text = "No type info found for:\r\n'" + word + "'", FontSize = Style.fontSize  * 0.7,FontFamily = Style.fontToolTip, Foreground = gray )                            
-                            //ed.TypeInfoToolTip.IsOpen <- false
-                        else
+                            if List.isEmpty ttds then                                                     
+                                tip.Content <- new TextBlock(Text = "No type info found for:\r\n'" + word + "'", FontSize = Style.fontSize  * 0.7,FontFamily = Style.fontToolTip, Foreground = gray )                            
+                                //ed.TypeInfoToolTip.IsOpen <- false
+                            else
                             
-                            let sem, declLoc, dllLoc = 
-                                match symbol with 
-                                |None -> None,None,None
-                                |Some s ->                                    
-                                    //ISeffLog.log.PrintfnAppErrorMsg $"s.Symbol.FullName: {s.Symbol.FullName}"
-                                    //ISeffLog.log.PrintfnAppErrorMsg $"s.FileName:{s.FileName}"
-                                    //ISeffLog.log.PrintfnDebugMsg $"s.Symbol.DeclarationLocation:{s.Symbol.DeclarationLocation}"
-                                    //ISeffLog.log.PrintfnDebugMsg $"s.Symbol.Assembly.FileName:{s.Symbol.Assembly.FileName}"
-                                    //let sems = res.checkRes.GetSemanticClassification(Some s.Range)
-                                    //for sem in sems do ISeffLog.log.PrintfnDebugMsg $"GetSemanticClassification:{sem.Type}"                                    
-                                    let l = s.Range
-                                    let lineNo = l.StartLine
-                                    let colSt  = l.StartColumn
-                                    let colEn  = l.EndColumn                                    
-                                    let sem = iEditor.SemanticRanges |> Array.tryFind (fun s -> let r = s.Range in r.StartLine=lineNo && r.EndLine=lineNo && r.StartColumn=colSt && r.EndColumn=colEn)                                        
-                                    sem, s.Symbol.DeclarationLocation ,s.Symbol.Assembly.FileName
-
+                                let sem, declLoc, dllLoc = 
+                                    match symbol with 
+                                    |None -> None,None,None
+                                    |Some s ->                                    
+                                        //ISeffLog.log.PrintfnAppErrorMsg $"s.Symbol.FullName: {s.Symbol.FullName}"
+                                        //ISeffLog.log.PrintfnAppErrorMsg $"s.FileName:{s.FileName}"
+                                        //ISeffLog.log.PrintfnDebugMsg $"s.Symbol.DeclarationLocation:{s.Symbol.DeclarationLocation}"
+                                        //ISeffLog.log.PrintfnDebugMsg $"s.Symbol.Assembly.FileName:{s.Symbol.Assembly.FileName}"
+                                        //let sems = res.checkRes.GetSemanticClassification(Some s.Range)
+                                        //for sem in sems do ISeffLog.log.PrintfnDebugMsg $"GetSemanticClassification:{sem.Type}"                                    
+                                        let l = s.Range
+                                        let lineNo = l.StartLine
+                                        let colSt  = l.StartColumn
+                                        let colEn  = l.EndColumn                                    
+                                        let sem = iEditor.SemanticRanges |> Array.tryFind (fun s -> let r = s.Range in r.StartLine=lineNo && r.EndLine=lineNo && r.StartColumn=colSt && r.EndColumn=colEn)                                        
+                                        sem, s.Symbol.DeclarationLocation ,s.Symbol.Assembly.FileName
                             
                             
-                            let ed = {declListItem=None; semanticClass=sem; declLocation=declLoc; dllLocation=dllLoc }
-                            let ttPanel = TypeInfo.getPanel (ttds, ed )
-                            if tip.IsOpen then
-                                // TODO hide tooltip and use use popup instead now, so it can be pinned?
-                                tip.Content <- ttPanel
-                        } |> Async.StartImmediate //TODO: add Cancellation ?
+                                let ed = {declListItem=None; semanticClass=sem; declLocation=declLoc; dllLocation=dllLoc }
+                                let ttPanel = TypeInfo.getPanel (ttds, ed )
+                                if tip.IsOpen then
+                                    // TODO hide tooltip and use use popup instead now, so it can be pinned?
+                                    tip.Content <- ttPanel
+                            } |> Async.StartImmediate //TODO: add Cancellation ?
 
                 //e.Handled <- true //  don't set handled! so that on type errors the  Error tooltip still gets shown after this tooltip
 
