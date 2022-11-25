@@ -54,10 +54,10 @@
 
   <ItemGroup>
     <!-- normally don't include FSharp.Core in a library, but Update to latest version is needed for latest FSharp.Compiler.Service-->
-	  <PackageReference Include="AvalonLog" Version="0.7.1" />
 	  <PackageReference Update="FSharp.Core" Version="7.0.0" />
-	  <PackageReference Include="FSharp.Compiler.Service" Version="42.7.100" />
+	  <PackageReference Include="FSharp.Compiler.Service" Version="42.7.101" />
 	  <PackageReference Include="FsEx.Wpf" Version="0.3.1" />
+	  <PackageReference Include="AvalonLog" Version="0.7.1" />
 
     <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.1" PrivateAssets="All" IncludeAssets="runtime; build; native; contentfiles; analyzers; buildtransitive" />
     <!-- https://docs.microsoft.com/en-us/nuget/consume-packages/package-references-in-project-files#controlling-dependency-assets -->
@@ -72,9 +72,9 @@
     <Resource Include="Media/logo.ico" />       <!--  for Application Icon in primary windows-->
     <Resource Include="Media/logoGray.ico" />    <!--  for Application Icon in secondary PopOut windows-->
     <!-- <Resource Include="Media/FiraCode-Regular.ttf" /> -->
-	<None Include="Src/SyntaxHighlightingFSharp.xshd" CopyToOutputDirectory="PreserveNewest" TargetPath="SyntaxHighlightingFSharp.xshd" Pack="true" PackagePath="\" />
+	  <None Include="Src/SyntaxHighlightingFSharp.xshd" CopyToOutputDirectory="PreserveNewest" TargetPath="SyntaxHighlightingFSharp.xshd" Pack="true" PackagePath="\" />
 
-	<Compile Include="Src/Util.fs" />
+	  <Compile Include="Src/Util.fs" />
     <Compile Include="Src/ParseFs.fs" />
     <Compile Include="Src/Timer.fs" />
     <Compile Include="Src/Style.fs" />

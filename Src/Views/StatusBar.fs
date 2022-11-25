@@ -260,7 +260,7 @@ type AsyncStatus (grid:TabsAndLog) as this =
         this.ToolTip <- "Click to switch between synchronous and asynchronous evaluation in FSI,\r\nsynchronous is needed for UI interaction,\r\nasynchronous allows easy cancellation and keeps the editor window alive"
         this.MouseDown.Add(fun _ -> fsi.ToggleSync()) //done in fsi module      // TODO better make it dependent on commands , not fsi
         fsi.OnModeChanged.Add(function
-            | Sync               -> this.Text <- sync
+            | InSync             -> this.Text <- sync
             | Async472 | Async60 -> this.Text <- asyn  )
 
 #nowarn "44" //for obsolete grid.Log.AvalonLog.AvalonEdit

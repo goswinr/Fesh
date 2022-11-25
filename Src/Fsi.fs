@@ -21,12 +21,12 @@ type FsiState =
     Ready | Evaluating | Initializing | NotLoaded
 
 type FsiMode  = 
-    Sync | Async472 | Async60
+    InSync | Async472 | Async60
 
     /// either Async60 or Async472
     member this.IsAsync = 
         match this with
-        | Sync -> false
+        | InSync -> false
         | Async472 | Async60 -> true
 
 type FsiIsCancelingIsOk = 
@@ -228,7 +228,7 @@ type Fsi private (config:Config) =
             async{
                 //let timer = Seff.Timer()
                 //timer.tic()
-                if config.Settings.GetBool ("asyncFsi", true) then mode <- asyncMode else mode <- FsiMode.Sync
+                if config.Settings.GetBool ("asyncFsi", true) then mode <- asyncMode else mode <- FsiMode.InSync
                 match sessionOpt with
                 |None -> ()
                 |Some session -> session.Interrupt()  //TODO does this cancel running session correctly ?? // TODO how to dispose previous session ?  Thread.Abort() ??  
@@ -246,14 +246,14 @@ type Fsi private (config:Config) =
                 (*
                 if config.Hosting.IsHosted then
                     match mode with
-                    |Sync ->               log.PrintfnInfoMsg "FSharp Interactive will evaluate synchronously on UI Thread."
+                    |InSync ->             log.PrintfnInfoMsg "FSharp Interactive will evaluate synchronously on UI Thread."
                     |Async472| Async60 ->  log.PrintfnInfoMsg "FSharp Interactive will evaluate asynchronously on a new Thread with ApartmentState.STA."
                 else
                     log.PrintfnInfoMsg "FSharp Interactive will evaluate asynchronously on a new Thread with ApartmentState.STA."
                 *)                
 
                 match mode with
-                |Sync ->   () 
+                |InSync ->   () 
                 |Async472| Async60 ->  abortThenMakeAndStartAsyncThread()
 
                 do! Async.SwitchToContext SyncWpf.context
@@ -299,7 +299,7 @@ type Fsi private (config:Config) =
                         
                         // set context this or other async thread: 
                         match mode with 
-                        |Sync -> 
+                        |InSync -> 
                             do! Async.Sleep 1 // this helps to show "FSI is running" immediately
                             do! Async.SwitchToContext SyncWpf.context
                         |Async472| Async60 -> 
@@ -348,7 +348,7 @@ type Fsi private (config:Config) =
                         
                         // switch back to sync Thread:
                         match mode with 
-                        |Sync -> ()
+                        |InSync -> ()
                         |Async472| Async60 -> do! Async.SwitchToContext SyncWpf.context
                         
                         state <- Ready //TODO reached when canceled ? or wrap in try..finally.. ?
@@ -440,7 +440,7 @@ type Fsi private (config:Config) =
         | Ready | Initializing | NotLoaded -> ()
         | Evaluating ->
             match mode with
-            |Sync -> () //don't block event completion by doing some debug logging. TODO test how to log !//log.PrintfnInfoMsg "Current synchronous Fsi Interaction cannot be canceled"     // UI for this only available in asynchronous mode anyway, see Commands
+            |InSync -> () //don't block event completion by doing some debug logging. TODO test how to log !//log.PrintfnInfoMsg "Current synchronous Fsi Interaction cannot be canceled"     // UI for this only available in asynchronous mode anyway, see Commands
             |Async60 |Async472 -> 
                 abortThenMakeAndStartAsyncThread()
                 state  <- Ready
@@ -452,7 +452,7 @@ type Fsi private (config:Config) =
         | Ready | Initializing | NotLoaded -> NotEvaluating
         | Evaluating ->
             match mode with
-            |Sync -> NotPossibleSync
+            |InSync -> NotPossibleSync
             |Async60 -> NoAsync60
             |Async472 ->
                 match MessageBox.Show("Do you want to Cancel currently running code?", "Cancel Current Evaluation?", MessageBoxButton.YesNo, MessageBoxImage.Exclamation, MessageBoxResult.No) with
@@ -500,7 +500,7 @@ type Fsi private (config:Config) =
     member this.SetMode(sync:FsiMode) = 
         let setConfig()= 
             match mode with
-            |Sync             ->  config.Settings.SetBool ("asyncFsi", false)    |> ignore
+            |InSync            ->  config.Settings.SetBool ("asyncFsi", false)    |> ignore
             |Async472| Async60 -> config.Settings.SetBool ("asyncFsi", true)     |> ignore
 
         match this.AskIfCancellingIsOk() with
@@ -516,8 +516,8 @@ type Fsi private (config:Config) =
 
     member this.ToggleSync()= 
         match mode with
-        |Async472| Async60  ->  this.SetMode FsiMode.Sync
-        |Sync               ->  this.SetMode asyncMode
+        |Async472| Async60  ->  this.SetMode FsiMode.InSync
+        |InSync             ->  this.SetMode asyncMode
 
 
     ///Triggered whenever code is sent to Fsi for evaluation
