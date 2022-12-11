@@ -21,7 +21,7 @@
   <Color name="String"              foreground="#BB1111" />
   <Color name="StringVerbatim"      foreground="#CC0000" />  
   <Color name="StringFormatting"    foreground="#990099" />
-  <Color name="StringEscaped"       foreground="#7050DC" />  
+  <Color name="StringEscaped"       foreground="#A050CC" />  
   <Color name="DollarInlines"       foreground="#000088" />
   <Color name="Char"                foreground="#FF0040" />
 
@@ -285,13 +285,12 @@
   <RuleSet name="_StringDollarFormatSet"> 
     <Span>  <Begin color="StringEscaped">\{\{</Begin> <End >(?=.)</End>  </Span> 
     <Span>  <Begin color="StringEscaped">\}\}</Begin> <End >(?=.)</End>  </Span> 
+    <Import ruleSet="_StringFormatSet"/> 
     <Span color="DollarInlines">
       <Begin color="StringEscaped">\{</Begin>  
       <End color="StringEscaped">\}</End> 
-      <!-- <RuleSet>
-        <Import ruleSet=" TODO import all regular code rules here ??"/> 
-      </RuleSet>-->
     </Span> 
+
   </RuleSet >
   
   <RuleSet name="LoadDllSet">

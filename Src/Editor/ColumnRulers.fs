@@ -22,7 +22,7 @@ type ColumnRulers (editor:TextEditor, log: ISeffLog)  as this =
         [0 .. 10] |> List.map ( fun i -> i * editor.Options.IndentationSize)
         //[ 0; 4; 8; 12 ; 16 ; 20 ; 24 ; 28 ; 32 ; 36]
 
-    let mutable color = Brushes.White |> darker 22
+    let mutable color = Brushes.White |> darker 24
 
     let pens = 
         [

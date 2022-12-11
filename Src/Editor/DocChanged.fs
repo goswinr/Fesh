@@ -159,7 +159,7 @@ module DocChanged =
                     NotDot
 
             if charBeforeQueryDU = NotDot && isKeyword then
-                //log.PrintfnDebugMsg "*2.1-textChanged highlighting with: query='%s', charBefore='%A', isKey=%b, setback='%d', line='%s' " query charBeforeQueryDU isKeyword setback line
+                //ISeffLog.log.PrintfnDebugMsg "*2.1-textChanged highlighting with: query='%s', charBefore='%A', isKey=%b, setback='%d', line='%s' " query charBeforeQueryDU isKeyword setback ln
                 CheckCode
             else
                 //ISeffLog.log.PrintfnDebugMsg "*2.2-Completion window opening with: query='%s', charBefore='%A', isKey=%b, setback='%d', onlyDU:%b" query charBeforeQueryDU isKeyword setback forDUonly

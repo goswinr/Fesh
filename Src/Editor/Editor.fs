@@ -144,7 +144,7 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
         Logging.LogAction <- new Action<string>( fun (s:string) -> log.PrintfnDebugMsg "Logging.Log: %s" s)
 
         avaEdit.Drop.Add                      (fun e -> CursorBehavior.TextAreaDragAndDrop(  avaEdit, e))
-        avaEdit.PreviewKeyDown.Add            (fun e -> KeyboardShortcuts.previewKeyDown(    avaEdit, e, compls))   //to indent and dedent, and change block selection delete behavior
+        avaEdit.PreviewKeyDown.Add            (fun e -> KeyboardShortcuts.previewKeyDown(    avaEdit, e, compls, ed.Search))   //to indent and dedent, and change block selection delete behavior
         avaEdit.TextArea.PreviewTextInput.Add (fun e -> CursorBehavior.previewTextInput(     avaEdit, e))   //to change block selection delete behavior
         avaEdit.TextArea.AlternativeRectangularPaste <- Action<string,bool>( fun txt txtIsFromOtherRectSel -> RectangleSelection.paste(ed.AvaEdit,txt,txtIsFromOtherRectSel)) //TODO check txtIsFromOtherRectSel on pasting text with \r\n
 

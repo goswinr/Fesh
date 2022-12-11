@@ -202,7 +202,7 @@ type Completions(avaEdit:TextEditor,config:Config, checker:Checker) =
         let log = compl.Log
         let config = compl.Config
         let avaEdit = iEditor.AvaEdit
-        //log.PrintfnDebugMsg "TryShow Completion Window for '%s'" pos.lineToCaret
+        //ISeffLog.log.PrintfnDebugMsg "TryShow Completion Window for '%s'" pos.lineToCaret
         let ifDotSetback = if charBefore = Dot then setback else 0
 
         let contOnUI (decls: DeclarationListInfo, declSymbs: FSharpSymbolUse list list) = 
