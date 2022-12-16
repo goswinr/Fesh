@@ -21,23 +21,21 @@ type FsiState =
     Ready | Evaluating | Initializing | NotLoaded
 
 type FsiMode  = 
-    InSync | Async472 | Async60
+    InSync | Async472 | Async70
 
     /// either Async60 or Async472
     member this.IsAsync = 
         match this with
         | InSync -> false
-        | Async472 | Async60 -> true
+        | Async472 | Async70 -> true
 
 type FsiIsCancelingIsOk = 
     | NotEvaluating // Nothing can be cancelled because no evaluation is running
     | YesAsync472 // an async evaluation on net472 or net48 is running, it can be cancelled via thread.Abort()
-    | NoAsync60  // an async evaluation on net6 , net 6 does not support  thread.Abort(), cannot be cancelled
+    | YesAsync70  // an async evaluation on net7 can be cancelled via ControlledExecution.Run
     | UserDoesntWantTo // Don't cancel because the user actually doesn't want to cancel 
     | NotPossibleSync // Not-Possible-Sync because during sync eval the UI should be frozen anyway and this request should not be happening
 
-// not needed in Net6.0 ??
-#nowarn "44" //for: This construct is deprecated. Recovery from corrupted process state exceptions is not supported; HandleProcessCorruptedStateExceptionsAttribute is ignored.
 
 module GoTo =
     
@@ -55,6 +53,9 @@ module GoTo =
         //ied.AvaEdit.CaretOffset<- loc.EndOffset // done by ied.AvaEdit.Select too
         ava.Select(ln.Offset, ln.Length)
         
+//for: HandleProcessCorruptedStateExceptionsAttribute: This construct is deprecated. Recovery from corrupted process state exceptions is not supported; HandleProcessCorruptedStateExceptionsAttribute is ignored.
+//and for : Runtime.ControlledExecution.Run
+#nowarn "44" 
 
 type Fsi private (config:Config) = 
     let log = config.Log
@@ -74,8 +75,12 @@ type Fsi private (config:Config) =
     let mutable state = NotLoaded
 
     /// either Async60 or Async472
-    let asyncMode = if config.Hosting.IsRunningOnDotNetCore then Async60 else Async472
-
+    #if NETFRAMEWORK
+    let asyncMode = Async472
+    #else
+    let asyncMode = Async70 
+    #endif
+    
     let mutable mode = asyncMode
 
     let mutable sessionOpt :FsiEvaluationSession option = None
@@ -86,6 +91,8 @@ type Fsi private (config:Config) =
     
     let mutable pendingEval :option<CodeToEval> = None // for storing evaluations that are triggered before fsi is ready
 
+    let mutable net7cancellationToken = new CancellationTokenSource()
+
     let abortThenMakeAndStartAsyncThread() = 
         //shutDownThreadEv.Trigger() // don't do this ! this shuts down all of Seff !!
 
@@ -94,9 +101,13 @@ type Fsi private (config:Config) =
             asyncContext <- None
             asyncThread <- None
             #if NETFRAMEWORK
-            // Thread.Abort method is not supported in .NET 6 // https://github.com/dotnet/runtime/issues/41291
+            // Thread.Abort method is not supported in .NET 6 https://github.com/dotnet/runtime/issues/41291  but in ther is a new way in net7 ! 
             // dsyme: Thread.Abort - it is needed in interruptible interactive execution scenarios: https://github.com/dotnet/fsharp/issues/9397#issuecomment-648376476
+            // TODO in the standalone version using the cancellation token should work too
             thr.Abort() // raises OperationCanceledException on Netframework and would raise Platfrom-not-supported-Exception on net60
+            #else
+            net7cancellationToken.Cancel()
+            net7cancellationToken <- new CancellationTokenSource()
             #endif           
         |None -> ()
 
@@ -211,64 +222,99 @@ type Fsi private (config:Config) =
             let fsiSession = FsiEvaluationSession.Create(fsiConfig, fsiArgs, inStream, log.TextWriterFsiStdOut, log.TextWriterFsiErrorOut) //, collectible=false ??) //https://github.com/dotnet/fsharp/blob/6b0719845c928361e63f6e38a9cce4ae7d621fbf/src/fsharp/fsi/fsi.fs#L2440
             Directory.SetCurrentDirectory(prevDir)
             fsiSession 
- 
-
-    [< Security.SecurityCritical >] 
-    [< Runtime.ExceptionServices.HandleProcessCorruptedStateExceptions >] //to handle AccessViolationException too //https://stackoverflow.com/questions/3469368/how-to-handle-accessviolationexception/4759831
-    //This construct is deprecated in net6.0 . Recovery from corrupted process state exceptions is not supported; HandleProcessCorruptedStateExceptionsAttribute is ignored.
-    let evalSave (sess:FsiEvaluationSession,code:string)=
-        sess.EvalInteractionNonThrowing(code) //,fsiCancelScr.Value.Token)   // cancellation token here fails to cancel in sync, might still throw OperationCanceledException if async
-
-    let rec initFsi() :unit = 
-        match state with
-        | Initializing -> log.PrintfnInfoMsg "FSI initialization can't be started because it is already in process.."
-        | NotLoaded | Ready | Evaluating ->
-            let  prevState = state
-            state <- Initializing
-            async{
-                //let timer = Seff.Timer()
-                //timer.tic()
-                if config.Settings.GetBool ("asyncFsi", true) then mode <- asyncMode else mode <- FsiMode.InSync
-                match sessionOpt with
-                |None -> ()
-                |Some session -> session.Interrupt()  //TODO does this cancel running session correctly ?? // TODO how to dispose previous session ?  Thread.Abort() ??  
-                
-                
-                sessionOpt <- Some <| createSession()
-
-                //fsiSession.Run() // TODO ? dont do this it crashes the app when hosted in Rhino!
-                //timer.stop()
-
-                match prevState with
-                |Initializing |Ready |Evaluating -> log.PrintfnInfoMsg "FSharp Interactive session reset." // in %s" timer.tocEx
-                |NotLoaded  ->                     () //log.PrintfnInfoMsg "FSharp 40.0 Interactive session created." // in %s"  timer.tocEx
-
-                (*
-                if config.Hosting.IsHosted then
-                    match mode with
-                    |InSync ->             log.PrintfnInfoMsg "FSharp Interactive will evaluate synchronously on UI Thread."
-                    |Async472| Async60 ->  log.PrintfnInfoMsg "FSharp Interactive will evaluate asynchronously on a new Thread with ApartmentState.STA."
-                else
-                    log.PrintfnInfoMsg "FSharp Interactive will evaluate asynchronously on a new Thread with ApartmentState.STA."
-                *)                
-
-                match mode with
-                |InSync ->   () 
-                |Async472| Async60 ->  abortThenMakeAndStartAsyncThread()
-
-                do! Async.SwitchToContext SyncWpf.context
-                match pendingEval with 
-                |None -> 
-                    state <- Ready
-                    isReadyEv.Trigger()
-                |Some ctE -> 
-                    pendingEval <- None
-                    eval(ctE)                
-                }
-                |> Async.Start      
         
+    let handeleEvaluationResult (evaluatedTo:Choice<FsiValue option,exn>, errs: FSharpDiagnostic[], codeToEv:CodeToEval) =
+        // switch back to sync Thread:
+        async{
+            match mode with 
+            |InSync -> ()
+            |Async472| Async70 -> do! Async.SwitchToContext SyncWpf.context
+                        
+            state <- Ready //TODO reached when canceled ? or wrap in try..finally.. ?
 
-    and eval(codeToEv:CodeToEval) :unit = 
+            match evaluatedTo with //TODO move out of this thread?
+            |Choice1Of2 evaluatedToValue ->
+                completedOkEv.Trigger(codeToEv)
+                isReadyEv.Trigger()
+                for e in errs do
+                    match e.Severity with
+                    | FSharpDiagnosticSeverity.Error   -> log.PrintfnAppErrorMsg "EvalInteractionNonThrowing returned Error:\r\n%s" e.Message 
+                    | FSharpDiagnosticSeverity.Warning -> () //log.PrintfnInfoMsg "EvalInteractionNonThrowing returned Warning: %s" e.Message
+                    | FSharpDiagnosticSeverity.Hidden  -> () //log.PrintfnInfoMsg "EvalInteractionNonThrowing returned Hidden: %s" e.Message
+                    | FSharpDiagnosticSeverity.Info    -> () //log.PrintfnInfoMsg "EvalInteractionNonThrowing returned Info: %s" e.Message
+
+                //match evaluatedToValue with   //|Some v -> log.PrintfnDebugMsg "Interaction evaluated to %A <%A>" v.ReflectionValue v.ReflectionType //|None-> ()
+                if config.Settings.GetBoolSaveDefault("printDoneAfterEval",true) then  log.PrintfnInfoMsg "*Done!"
+
+            |Choice2Of2 exn ->
+                match exn with
+                | :? OperationCanceledException ->
+                    canceledEv.Trigger(codeToEv)
+                    isReadyEv.Trigger()
+                    if config.Hosting.IsHosted && mode = FsiMode.Async472 && isNull exn.StackTrace  then
+                        log.PrintfnFsiErrorMsg "FSI evaluation was canceled,\r\nif you did not trigger this cancellation try running FSI in Synchronous evaluation mode (instead of Async)."
+                    else
+                        log.PrintfnInfoMsg "FSI evaluation was canceled by user!" 
+
+                | :? FsiCompilationException ->
+                    runtimeErrorEv.Trigger(exn)
+                    isReadyEv.Trigger()
+                    log.PrintfnFsiErrorMsg "Compiler Error:"
+                    let mutable postMsg = ""
+                    for e in errs do
+                        let msg = sprintf "%A" e
+                        if msg.Contains "is defined in an assembly that is not referenced." then
+                            postMsg <-
+                                "Fix:\r\n" +
+                                "  For assembly reference errors that are not shown by editor tooling try to re-arrange the initial loading sequences of '#r' statements\r\n" +
+                                "  This error might happen when you are loading a dll with #r that is already loaded, but from a different location\r\n" +
+                                "  E.G. as a dependency from a already loaded dll."
+                        log.PrintfnFsiErrorMsg "%A" e
+                    if postMsg <> "" then                                    
+                        log.PrintfnFsiErrorMsg "%s" postMsg
+
+                | _ -> // any other runtimne exception
+                    runtimeErrorEv.Trigger(exn)  // in seff.fs this is used to ensure the main window is visible, because it might be hidden manually, or not visible from the start ( e.g. current script is evaluated in Seff.Rhino)                             
+                    log.PrintfnAppErrorMsg "Runtime Error:"
+                    // find first error line in an fsx file    
+                    let et = sprintf "%A" exn
+                    let mutable isFirstFsx = true
+                    for ln in et.Split('\n')  do 
+                        if ln.Contains ".fsx:" && isFirstFsx then 
+                            isFirstFsx <- false
+                            log.PrintfnFsiErrorMsg "%s" (ln.TrimEnd())
+                            // go to first error line in an fsx file                                       
+                            let _,lr = Str.splitOnce ".fsx:" ln
+                            match Int32.TryParse (lr.Replace("line","").Trim()) with 
+                            |true , i ->GoTo.line(i,codeToEv.editor)
+                            |_ -> ()                                        
+                        else
+                            log.PrintfnRuntimeErr "%s" (ln.TrimEnd())
+                    isReadyEv.Trigger()   
+        } |> Async.StartImmediate
+     
+    [< Security.SecurityCritical >] 
+    [< Runtime.ExceptionServices.HandleProcessCorruptedStateExceptions >] //to handle AccessViolationExceptions too //https://stackoverflow.com/questions/3469368/how-to-handle-accessviolationexception/4759831
+    //This construct is deprecated in net6.0 . Recovery from corrupted process state exceptions is not supported; HandleProcessCorruptedStateExceptionsAttribute is ignored.
+    let evalSave (sess:FsiEvaluationSession, code:string, codeToEv:CodeToEval) =
+        #if NETFRAMEWORK
+        // Cancelation happens via Thread Abort 
+        // TODO actually using the token would work too but only is session.Run() has been called before, 
+        // but that fails when hosted. see https://github.com/dotnet/fsharp/issues/14486
+        let evaluatedTo, errs = 
+            try sess.EvalInteractionNonThrowing(code) // cancellation token here fails to cancel in sync, might still throw OperationCanceledException if async
+            with e -> Choice2Of2 e , [| |]            
+        handeleEvaluationResult(evaluatedTo, errs, codeToEv)
+        #else
+        let evaluatedTo, errs = 
+            try sess.EvalInteractionNonThrowing(code, net7cancellationToken.Token) 
+            with e -> Choice2Of2 e , [| |]            
+        handeleEvaluationResult(evaluatedTo, errs, codeToEv)                   
+        //dont do Sytem.Runtime.ControlledExecution.Run(action, net7cancellationToken.Token) // this is actually already done by FSI 
+        //when using: Run method: Compiler Error:input.fsx (1,1)-(1,1) interactive error internal error: The thread is already executing the ControlledExecution.Run method.
+        #endif
+
+    let eval(codeToEv:CodeToEval) :unit = 
         let avaEd = codeToEv.editor.AvaEdit
         let fsCode =             
             match codeToEv.amount with
@@ -300,17 +346,17 @@ type Fsi private (config:Config) =
                         // set context this or other async thread: 
                         match mode with 
                         |InSync -> 
-                            do! Async.Sleep 1 // this helps to show "FSI is running" immediately
+                            do! Async.Sleep 1 // this helps to show "FSI is running" immediately in staus bar
                             do! Async.SwitchToContext SyncWpf.context
-                        |Async472| Async60 -> 
-                            match asyncContext,asyncThread with 
+                        |Async472| Async70 -> 
+                            match asyncContext, asyncThread with 
                             |Some actx , Some athr  when athr.IsAlive ->                             
                                 do! Async.SwitchToContext actx
                             | _ -> 
                                 // this should never happen actually:
                                 ISeffLog.log.PrintfnInfoMsg "asyncContext is None or asyncThread is not alive. was there a thread.Abort() ?"
                                 abortThenMakeAndStartAsyncThread()
-                                match asyncContext,asyncThread with 
+                                match asyncContext, asyncThread with 
                                 |Some actx2 , Some athr  when athr.IsAlive ->                              
                                     do! Async.SwitchToContext actx2
                                 |_ -> 
@@ -339,83 +385,72 @@ type Fsi private (config:Config) =
                             // |ContinueFromChanges ->  ed.Document.GetLineByOffset ...
                             // | FsiSegment seg -> seg.line
                             //setDir session fi
-                            //setFileAndLine session code.fromLine fi // TODO both fail ??                                                  
+                            //setFileAndLine session code.fromLine fi // TODO both fail ??
                         
-
-                        let evaluatedTo, errs = 
-                            try evalSave(session,fsCode) 
-                            with e -> Choice2Of2 e , [| |]
                         
-                        // switch back to sync Thread:
-                        match mode with 
-                        |InSync -> ()
-                        |Async472| Async60 -> do! Async.SwitchToContext SyncWpf.context
-                        
-                        state <- Ready //TODO reached when canceled ? or wrap in try..finally.. ?
+                        evalSave(session, fsCode, codeToEv) 
 
-                        match evaluatedTo with //TODO move out of this thread?
-                        |Choice1Of2 evaluatedToValue ->
-                            completedOkEv.Trigger(codeToEv)
-                            isReadyEv.Trigger()
-                            for e in errs do
-                                match e.Severity with
-                                | FSharpDiagnosticSeverity.Error   -> log.PrintfnAppErrorMsg "EvalInteractionNonThrowing returned Error:\r\n%s" e.Message 
-                                | FSharpDiagnosticSeverity.Warning -> () //log.PrintfnInfoMsg "EvalInteractionNonThrowing returned Warning: %s" e.Message
-                                | FSharpDiagnosticSeverity.Hidden  -> () //log.PrintfnInfoMsg "EvalInteractionNonThrowing returned Hidden: %s" e.Message
-                                | FSharpDiagnosticSeverity.Info    -> () //log.PrintfnInfoMsg "EvalInteractionNonThrowing returned Info: %s" e.Message
-
-                            //match evaluatedToValue with   //|Some v -> log.PrintfnDebugMsg "Interaction evaluated to %A <%A>" v.ReflectionValue v.ReflectionType //|None-> ()
-                            if config.Settings.GetBoolSaveDefault("printDoneAfterEval",true) then  log.PrintfnInfoMsg "*Done!"
-
-                        |Choice2Of2 exn ->
-                            match exn with
-                            | :? OperationCanceledException ->
-                                canceledEv.Trigger(codeToEv)
-                                isReadyEv.Trigger()
-                                if config.Hosting.IsHosted && mode = FsiMode.Async472 && isNull exn.StackTrace  then
-                                    log.PrintfnFsiErrorMsg "FSI evaluation was canceled,\r\nif you did not trigger this cancellation try running FSI in Synchronous evaluation mode (instead of Async)."
-                                else
-                                    log.PrintfnInfoMsg "FSI evaluation was canceled by user!" 
-
-                            | :? FsiCompilationException ->
-                                runtimeErrorEv.Trigger(exn)
-                                isReadyEv.Trigger()
-                                log.PrintfnFsiErrorMsg "Compiler Error:"
-                                let mutable postMsg = ""
-                                for e in errs do
-                                    let msg = sprintf "%A" e
-                                    if msg.Contains "is defined in an assembly that is not referenced." then
-                                        postMsg <-
-                                            "Fix:\r\n" +
-                                            "  For assembly reference errors that are not shown by editor tooling try to re-arrange the initial loading sequences of '#r' statements\r\n" +
-                                            "  This error might happen when you are loading a dll with #r that is already loaded, but from a different location\r\n" +
-                                            "  E.G. as a dependency from a already loaded dll."
-                                    log.PrintfnFsiErrorMsg "%A" e
-                                if postMsg <> "" then                                    
-                                    log.PrintfnFsiErrorMsg "%s" postMsg
-
-                            | _ -> // any other runtimne exception
-                                runtimeErrorEv.Trigger(exn)  // in seff.fs this is used to ensure the main window is visible, because it might be hidden manually, or not visible from the start ( e.g. current script is evaluated in Seff.Rhino)                             
-                                log.PrintfnAppErrorMsg "Runtime Error:"
-                                // find first error line in an fsx file    
-                                let et = sprintf "%A" exn
-                                let mutable isFirstFsx = true
-                                for ln in et.Split('\n')  do 
-                                    if ln.Contains ".fsx:" && isFirstFsx then 
-                                        isFirstFsx <- false
-                                        log.PrintfnFsiErrorMsg "%s" (ln.TrimEnd())
-                                        // go to first error line in an fsx file                                       
-                                        let _,lr = Str.splitOnce ".fsx:" ln
-                                        match Int32.TryParse (lr.Replace("line","").Trim()) with 
-                                        |true , i ->GoTo.line(i,codeToEv.editor)
-                                        |_ -> ()                                        
-                                    else
-                                        log.PrintfnRuntimeErr "%s" (ln.TrimEnd())                                
-                                
-                                isReadyEv.Trigger()
                         }
                     Async.StartImmediate(asyncEval)
-                   
+     
+     
+
+    let initFsi(config:Config) :unit = 
+        match state with
+        | Initializing -> log.PrintfnInfoMsg "FSI initialization can't be started because it is already in process.."
+        | NotLoaded | Ready | Evaluating ->
+            let  prevState = state
+            state <- Initializing
+            async{
+                //let timer = Seff.Timer()
+                //timer.tic()
+                if config.Settings.GetBool ("asyncFsi", true) then mode <- asyncMode else mode <- FsiMode.InSync
+                match sessionOpt with
+                |None -> ()
+                |Some session -> session.Interrupt()  //TODO does this cancel running session correctly ?? // TODO how to dispose previous session ?  Thread.Abort() ??  
+                
+                let fsiSession = createSession()
+                sessionOpt <- Some <| fsiSession              
+                
+                //timer.stop()
+                // This Run call crashes the app when hosted in Rhino  and Standalone too ?! 
+                // see https://github.com/dotnet/fsharp/issues/14486
+                // and https://github.com/dotnet/fsharp/blob/main/src/Compiler/Interactive/fsi.fs#L3759
+                // But it is needed to be able to cancel the evaluations in net7 and make the above net7cancellationToken work.                
+                //if not config.Hosting.IsHosted then  fsiSession.Run()
+
+                match prevState with
+                |Initializing |Ready |Evaluating -> log.PrintfnInfoMsg "FSharp Interactive session reset." // in %s" timer.tocEx
+                |NotLoaded  ->                     () //log.PrintfnInfoMsg "FSharp 40.0 Interactive session created." // in %s"  timer.tocEx
+
+                (*
+                if config.Hosting.IsHosted then
+                    match mode with
+                    |InSync ->             log.PrintfnInfoMsg "FSharp Interactive will evaluate synchronously on UI Thread."
+                    |Async472| Async60 ->  log.PrintfnInfoMsg "FSharp Interactive will evaluate asynchronously on a new Thread with ApartmentState.STA."
+                else
+                    log.PrintfnInfoMsg "FSharp Interactive will evaluate asynchronously on a new Thread with ApartmentState.STA."
+                *)                
+
+                match mode with
+                |InSync ->   () 
+                |Async472| Async70 ->  abortThenMakeAndStartAsyncThread()
+
+                do! Async.SwitchToContext SyncWpf.context
+                
+                
+
+                match pendingEval with 
+                |None -> 
+                    state <- Ready
+                    isReadyEv.Trigger()
+                |Some ctE -> 
+                    pendingEval <- None
+                    eval(ctE)                
+                }
+            |> Async.Start      
+        
+
 
     static let mutable singleInstance:Fsi option  = None
 
@@ -433,7 +468,7 @@ type Fsi private (config:Config) =
     member this.Mode = mode
 
     /// starts a new Fsi session
-    member this.Initialize() =  initFsi() // Checker class will call this after first run of checker, to start fsi when checker is  idle
+    member this.Initialize() =  initFsi(config) // Checker class will call this after first run of checker, to start fsi when checker is  idle
 
     member this.CancelIfAsync() = 
         match state  with
@@ -441,7 +476,7 @@ type Fsi private (config:Config) =
         | Evaluating ->
             match mode with
             |InSync -> () //don't block event completion by doing some debug logging. TODO test how to log !//log.PrintfnInfoMsg "Current synchronous Fsi Interaction cannot be canceled"     // UI for this only available in asynchronous mode anyway, see Commands
-            |Async60 |Async472 -> 
+            |Async70 |Async472 -> 
                 abortThenMakeAndStartAsyncThread()
                 state  <- Ready
                 //isReadyEv.Trigger() // TODO needed
@@ -453,7 +488,16 @@ type Fsi private (config:Config) =
         | Evaluating ->
             match mode with
             |InSync -> NotPossibleSync
-            |Async60 -> NoAsync60
+            |Async70 -> 
+                match MessageBox.Show("Do you want to Cancel currently running code?", "Cancel Current Evaluation?", MessageBoxButton.YesNo, MessageBoxImage.Exclamation, MessageBoxResult.No) with
+                | MessageBoxResult.Yes ->
+                    match state with // might have changed in the meantime of Message box show
+                    | Ready | Initializing | NotLoaded -> NotEvaluating
+                    | Evaluating -> YesAsync70
+                | MessageBoxResult.No | _ ->
+                    match state with // might have changed in the meantime of Message box show
+                    | Ready | Initializing | NotLoaded -> NotEvaluating
+                    | Evaluating -> UserDoesntWantTo
             |Async472 ->
                 match MessageBox.Show("Do you want to Cancel currently running code?", "Cancel Current Evaluation?", MessageBoxButton.YesNo, MessageBoxImage.Exclamation, MessageBoxResult.No) with
                 | MessageBoxResult.Yes ->
@@ -471,7 +515,7 @@ type Fsi private (config:Config) =
         match this.AskIfCancellingIsOk () with
         | NotEvaluating    -> Ready
         | YesAsync472      -> this.CancelIfAsync();Ready
-        | NoAsync60        -> Evaluating
+        | YesAsync70       -> this.CancelIfAsync() ;Ready        
         | UserDoesntWantTo -> Evaluating
         | NotPossibleSync  -> Evaluating     // UI for this only available in asynchronous mode anyway, see Commands
 
@@ -483,16 +527,16 @@ type Fsi private (config:Config) =
             match this.AskIfCancellingIsOk () with
             | NotEvaluating   -> eval(code)
             | YesAsync472     -> this.CancelIfAsync();eval(code)
-            | NoAsync60       -> log.PrintfnInfoMsg "Wait till current async evaluation on net6.0 completes before starting new one."
+            | YesAsync70      -> this.CancelIfAsync();eval(code)            
             | UserDoesntWantTo-> ()
             | NotPossibleSync -> log.PrintfnInfoMsg "Wait till current synchronous evaluation completes before starting new one."
 
 
     member this.Reset() = 
         match this.AskIfCancellingIsOk () with
-        | NotEvaluating   ->                       initFsi (); resetEv.Trigger() 
-        | YesAsync472     -> this.CancelIfAsync(); initFsi (); resetEv.Trigger()
-        | NoAsync60       -> log.PrintfnInfoMsg "ResetFsi is not be possible in current async evaluation on net50." // TODO test
+        | NotEvaluating   ->                       initFsi (config); resetEv.Trigger() 
+        | YesAsync472     -> this.CancelIfAsync(); initFsi (config); resetEv.Trigger()
+        | YesAsync70      -> this.CancelIfAsync(); initFsi (config); resetEv.Trigger()
         | UserDoesntWantTo-> ()
         | NotPossibleSync -> log.PrintfnInfoMsg "ResetFsi is not be possible in current synchronous evaluation." // TODO test
 
@@ -501,22 +545,21 @@ type Fsi private (config:Config) =
         let setConfig()= 
             match mode with
             |InSync            ->  config.Settings.SetBool ("asyncFsi", false)    |> ignore
-            |Async472| Async60 -> config.Settings.SetBool ("asyncFsi", true)     |> ignore
+            |Async472| Async70 -> config.Settings.SetBool ("asyncFsi", true)     |> ignore
 
         match this.AskIfCancellingIsOk() with
-        | NotEvaluating | YesAsync472    ->
+        | NotEvaluating | YesAsync472 | YesAsync70    ->
             mode <- sync
             modeChangedEv.Trigger(sync)
             setConfig()
             config.Settings.Save()
-            initFsi ()
-        | UserDoesntWantTo -> ()
-        | NoAsync60       -> log.PrintfnInfoMsg "Wait till current async evaluation on net6.0 completes before setting mode to sync."// TODO test
+            initFsi (config)
+        | UserDoesntWantTo -> ()        
         | NotPossibleSync -> log.PrintfnInfoMsg "Wait till current synchronous evaluation completes before setting mode to Async."
 
     member this.ToggleSync()= 
         match mode with
-        |Async472| Async60  ->  this.SetMode FsiMode.InSync
+        |Async472| Async70  ->  this.SetMode FsiMode.InSync
         |InSync             ->  this.SetMode asyncMode
 
 

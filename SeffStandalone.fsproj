@@ -2,12 +2,8 @@
 <Project Sdk="Microsoft.NET.Sdk.WindowsDesktop"> <!--WinDesktop for WPF, it is also needed so that resources work with dotnet build, 'WindowsDesktop' must be included when building for net472 and net6.0-->
 
  <PropertyGroup>
-    <OutputType>WinExe</OutputType>
-    <!--
-	  building net6.0-windows only works in visual Studio, but not via dotnet sdk 7 preview 2
-    <TargetFramework>net472</TargetFramework>  
-    -->
-    <TargetFrameworks>net472;net6.0-windows</TargetFrameworks>    
+    <OutputType>WinExe</OutputType>    
+    <TargetFrameworks>net472;net7.0-windows</TargetFrameworks>    
     <UseWPF>true</UseWPF>
     <UseWindowsForms>true</UseWindowsForms> <!--inherited from Avalonedit ?-->
     <LangVersion>preview</LangVersion>
@@ -21,7 +17,7 @@
     <NeutralLanguage>en</NeutralLanguage>
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>    <!--to only have the English resources-->
     <GenerateDocumentationFile>true</GenerateDocumentationFile> <!-- just in case the editor itself gets refrenced from a script , normaly -->
-    <FSharpCoreIncludeDocFileInOutput>true</FSharpCoreIncludeDocFileInOutput>
+    <FSharpCoreIncludeDocFileInOutput>true</FSharpCoreIncludeDocFileInOutput> <!-- does not work when used in visual studio? only dotnet sdk ?-->
 
     <RootNamespace>Seff</RootNamespace>
     <AssemblyName>Seff</AssemblyName>
@@ -30,9 +26,9 @@
     <Product>Seff</Product>
     <PackageId>Seff</PackageId>
 
-    <Version>0.1.0</Version>
-    <AssemblyVersion>0.1.0</AssemblyVersion>
-    <FileVersion>0.1.0</FileVersion>
+    <Version>0.2.0</Version>
+    <AssemblyVersion>0.2.0</AssemblyVersion>
+    <FileVersion>0.2.0</FileVersion>
     <PackageReleaseNotes>First public release</PackageReleaseNotes>
     <Company>Goswin Rothenthal</Company><!--shows up on file preview on exe in explorer-->
     <Authors>GoswinR</Authors>
@@ -65,13 +61,14 @@
 	<Reference Include="AvalonEditB"> <HintPath>..\AvalonLog\bin\Release\net472\AvalonEditB.dll</HintPath>	  </Reference>
 	<Reference Include="AvalonLog"> <HintPath>..\AvalonLog\bin\Release\net472\AvalonLog.dll</HintPath>	  </Reference>
 	 -->
-	<PackageReference Include="AvalonLog" Version="0.7.1" />	  	  
-    <PackageReference Update="FSharp.Core" Version="7.0.0" />
-    <PackageReference Include="FSharp.Compiler.Service" Version="42.7.101" />
-    <PackageReference Include="FsEx.Wpf" Version="0.3.1" />
-	
-	  <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.1" PrivateAssets="All" IncludeAssets="runtime; build; native; contentfiles; analyzers; buildtransitive" />
-	  <!-- https://docs.microsoft.com/en-us/nuget/consume-packages/package-references-in-project-files#controlling-dependency-assets -->
+	<PackageReference Include="AvalonLog" Version="0.8.2" GeneratePathProperty="true"/>	  	  
+    <PackageReference Update="FSharp.Core" Version="7.0.0" GeneratePathProperty="true"/>
+    <PackageReference Include="FSharp.Compiler.Service" Version="42.7.101" GeneratePathProperty="true"/>
+    <PackageReference Include="FsEx.Wpf" Version="0.3.1"  GeneratePathProperty="true"/>
+	<PackageReference Include="AvalonEditB" Version="1.5.1" GeneratePathProperty="true"/>	  <!-- just to pull in XML too below-->
+
+	<PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.1" PrivateAssets="All" IncludeAssets="runtime; build; native; contentfiles; analyzers; buildtransitive" />
+	<!-- https://docs.microsoft.com/en-us/nuget/consume-packages/package-references-in-project-files#controlling-dependency-assets -->
 
     <!--this reference is needed for tooling only, it might not be installed on host PC. see also https://github.com/fsprojects/IfSharp/issues/213 -->
     <PackageReference Include="NETStandard.Library" Version="2.0.3" GeneratePathProperty="true" />
@@ -156,7 +153,15 @@
     <Copy SourceFiles="$(PkgNETStandard_Library)/build/netstandard2.0/ref/netstandard.dll" DestinationFiles="$(TargetDir)netstandard.dll" ContinueOnError="false" />
 
     <!-- needed for editor tooling autocomplete ? -->
-    <Copy SourceFiles="$(PkgNETStandard_Library)/build/netstandard2.0/ref/netstandard.xml" DestinationFiles="$(TargetDir)netstandard.xml" ContinueOnError="false" />
+	  <Copy SourceFiles="$(PkgNETStandard_Library)/build/netstandard2.0/ref/netstandard.xml" DestinationFiles="$(TargetDir)netstandard.xml" ContinueOnError="false" />
+
+	  <!--because <FSharpCoreIncludeDocFileInOutput>true</FSharpCoreIncludeDocFileInOutput>  does not work in visual studio: -->
+	  <Copy SourceFiles="$(PkgFSharp_Core)/lib/netstandard2.0/FSharp.Core.xml" DestinationFiles="$(TargetDir)FSharp.Core.xml" ContinueOnError="false" />
+	  
+	  <Copy SourceFiles="$(PkgFSharp_Compiler_Service)/lib/netstandard2.0/FSharp.Compiler.Service.xml" DestinationFiles="$(TargetDir)FSharp.Compiler.Service.xml" ContinueOnError="false" />
+	  <Copy SourceFiles="$(PkgAvalonLog)/lib/net472/AvalonLog.xml" DestinationFiles="$(TargetDir)AvalonLog.xml" ContinueOnError="false" />
+	  <Copy SourceFiles="$(PkgAvalonEditB)/lib/net472/AvalonEditB.xml" DestinationFiles="$(TargetDir)AvalonEditB.xml" ContinueOnError="false" />
+	  <Copy SourceFiles="$(PkgFsEx_Wpf)/lib/net472/FsEx.Wpf.xml" DestinationFiles="$(TargetDir)FsEx.Wpf.xml" ContinueOnError="false" />
 
   </Target>
 

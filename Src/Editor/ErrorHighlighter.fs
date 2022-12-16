@@ -194,7 +194,7 @@ type ErrorRenderer (ed:TextEditor, folds:Folding.FoldingManager, log:ISeffLog) =
                 fold.DecorateRectangle <- 
                     Action<Rect,DrawingContext>( fun rect ctx ->
                         let geo = ErrorUtil.getSquiggleLine(rect)
-                        if isNull fold.BackbgroundColor then ctx.DrawRectangle(segToMark.BackgroundBrush, null, rect) // in case of selection highlighting skip brush only use Pen                        
+                        if isNull fold.BackgroundColor then ctx.DrawRectangle(segToMark.BackgroundBrush, null, rect) // in case of selection highlighting skip brush only use Pen                        
                         ctx.DrawGeometry(Brushes.Transparent, segToMark.UnderlinePen, geo)
                         )  
         let es = res.errors

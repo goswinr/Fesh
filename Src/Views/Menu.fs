@@ -390,9 +390,6 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, statusBar:SeffStatusBar, log:
                 menuItem cmds.ResetFSI
                 ]
 
-
-
-
         // add menu to open file path if there is on on current line
         tabs.Control.PreviewMouseRightButtonDown.Add ( fun m ->
             RecognizePath.addPathIfPresentToMenu (m, tempItemsInEditorMenu, tabs.Control.ContextMenu, tabs.Current.AvaEdit , tabs.AddFile)

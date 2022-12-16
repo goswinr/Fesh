@@ -261,7 +261,7 @@ type AsyncStatus (grid:TabsAndLog) as this =
         this.MouseDown.Add(fun _ -> fsi.ToggleSync()) //done in fsi module      // TODO better make it dependent on commands , not fsi
         fsi.OnModeChanged.Add(function
             | InSync             -> this.Text <- sync
-            | Async472 | Async60 -> this.Text <- asyn  )
+            | Async472 | Async70 -> this.Text <- asyn  )
 
 #nowarn "44" //for obsolete grid.Log.AvalonLog.AvalonEdit
 

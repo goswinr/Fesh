@@ -45,8 +45,8 @@ type ColumnRulers (editor:TextEditor, log: ISeffLog)  as this =
         for uiElm in editor.TextArea.LeftMargins do
             let marginCcolor =  Brushes.White |> darker 7 // set color
             match uiElm with
-            | :? LineNumberMargin as lnm  ->  lnm.BackbgroundColor <- marginCcolor
-            | :? FoldingMargin as fm ->       fm.BackbgroundColor <- marginCcolor
+            | :? LineNumberMargin as lnm ->  lnm.BackgroundColor <- marginCcolor
+            | :? FoldingMargin    as fm  ->  fm.BackgroundColor  <- marginCcolor
             | _-> ()//log.PrintfnAppErrorMsg "other left marging: %A" uiElm // TODO other left marging: System.Windows.Shapes.Line
 
 

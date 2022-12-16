@@ -90,7 +90,7 @@ module SelectionHighlighting =
    
     let clearFolds(ed:IEditor) = 
         for fold in ed.FoldingManager.AllFoldings do 
-            fold.BackbgroundColor <- null 
+            fold.BackgroundColor <- null 
     
     let private foundNoneSel(ava:TextEditor, selTextHiLi:SelectionColorizier) =
         foundNoneRedraw(ava, selTextHiLi)  |> ignore 
@@ -132,13 +132,13 @@ module SelectionHighlighting =
             | NoCode -> empty // for pereformance dont request full codestring if missing
             | CodeID (code,_) ->
                 let mutable index = code.IndexOf(highTxt, 0, StringComparison.Ordinal)  
-                for fold in ed.FoldingManager.AllFoldings do fold.BackbgroundColor <- null // reset all first, before setting some
+                for fold in ed.FoldingManager.AllFoldings do fold.BackgroundColor <- null // reset all first, before setting some
                 let offsets = ResizeArray<int>()
                 while index >= 0 do                    
                     offsets.Add(index)
                     // check for text that is folded away:
                     let infs = ed.FoldingManager.GetFoldingsContaining(index)
-                    for inf in infs do inf.BackbgroundColor <- colorEditor                    
+                    for inf in infs do inf.BackgroundColor <- colorEditor                    
                     let st =  index + highTxt.Length // endOffset // TODO or just +1 ???????
                     if st >= code.Length then
                         index <- -1 // this happens when word to highlight is at document end

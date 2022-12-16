@@ -47,12 +47,10 @@ type Seff (config:Config,log:Log) =
             match tabs.Fsi.AskIfCancellingIsOk () with
             | NotEvaluating   -> ()
             | YesAsync472     -> tabs.Fsi.CancelIfAsync()
+            | YesAsync70      -> tabs.Fsi.CancelIfAsync()
             | UserDoesntWantTo-> e.Cancel <- true // dont close window
             | NotPossibleSync -> () // cant show a dialog when in sync mode. show dialog from new thread ? TODO
-            | NoAsync60       ->
-                match MessageBox.Show("Do you want to close the window while net50 code is still evaluating?", "Close Window during Evaluation?", MessageBoxButton.YesNo, MessageBoxImage.Exclamation, MessageBoxResult.No) with
-                | MessageBoxResult.Yes -> ()
-                | _  -> e.Cancel <- true // dont close window
+            
 
             //second check for unsaved files if not already canceled
             if not e.Cancel then

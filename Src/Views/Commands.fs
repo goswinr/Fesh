@@ -49,7 +49,7 @@ type Commands (grid:TabsAndLog, statusBar:SeffStatusBar)  =
 
     let isEse   (_:obj) = tabs.Current.Editor.AvaEdit.SelectionLength > 0
     let isLse   (_:obj) = log.AvalonLog.Selection.Length > 0
-    let isAsy472(_:obj) = fsi.State = Evaluating && fsi.Mode = Async472
+    let isAsy472(_:obj) = fsi.State = Evaluating && match fsi.Mode with  Async472 |Async70 -> true | InSync -> false
     //let isAsy   (_:obj) = fsi.State = Evaluating && fsi.Mode.IsAsync
 
     // NOTE :--------------------------------------------------------------------
