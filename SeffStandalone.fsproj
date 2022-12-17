@@ -58,17 +58,17 @@
 
   <ItemGroup>
     <!--
-	<Reference Include="AvalonEditB"> <HintPath>..\AvalonLog\bin\Release\net472\AvalonEditB.dll</HintPath>	  </Reference>
-	<Reference Include="AvalonLog"> <HintPath>..\AvalonLog\bin\Release\net472\AvalonLog.dll</HintPath>	  </Reference>
-	 -->
-	<PackageReference Include="AvalonLog" Version="0.8.2" GeneratePathProperty="true"/>	  	  
+    <Reference Include="AvalonEditB"> <HintPath>..\AvalonLog\bin\Release\net472\AvalonEditB.dll</HintPath>	  </Reference>
+    <Reference Include="AvalonLog"> <HintPath>..\AvalonLog\bin\Release\net472\AvalonLog.dll</HintPath>	  </Reference>
+    -->
+    <PackageReference Include="AvalonLog" Version="0.8.2" GeneratePathProperty="true"/>	  	  
     <PackageReference Update="FSharp.Core" Version="7.0.0" GeneratePathProperty="true"/>
     <PackageReference Include="FSharp.Compiler.Service" Version="42.7.101" GeneratePathProperty="true"/>
     <PackageReference Include="FsEx.Wpf" Version="0.3.1"  GeneratePathProperty="true"/>
-	<PackageReference Include="AvalonEditB" Version="1.5.1" GeneratePathProperty="true"/>	  <!-- just to pull in XML too below-->
+    <PackageReference Include="AvalonEditB" Version="1.5.1" GeneratePathProperty="true"/>	  <!-- just to pull in XML too below-->
 
-	<PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.1" PrivateAssets="All" IncludeAssets="runtime; build; native; contentfiles; analyzers; buildtransitive" />
-	<!-- https://docs.microsoft.com/en-us/nuget/consume-packages/package-references-in-project-files#controlling-dependency-assets -->
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.1" PrivateAssets="All" IncludeAssets="runtime; build; native; contentfiles; analyzers; buildtransitive" />
+    <!-- https://docs.microsoft.com/en-us/nuget/consume-packages/package-references-in-project-files#controlling-dependency-assets -->
 
     <!--this reference is needed for tooling only, it might not be installed on host PC. see also https://github.com/fsprojects/IfSharp/issues/213 -->
     <PackageReference Include="NETStandard.Library" Version="2.0.3" GeneratePathProperty="true" />

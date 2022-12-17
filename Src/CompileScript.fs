@@ -15,7 +15,7 @@ module CompileScript =
 
     let libFolderName = "lib"
 
-    // TODO realy only <PlatformTarget>x64</PlatformTarget><!--  x64 is required e.g by Rhino, dont us just 'Platform' tag-->   ??
+    // TODO really only <PlatformTarget>x64</PlatformTarget><!--  x64 is required e.g by Rhino, don't us just 'Platform' tag-->   ??
 
     let baseXml = """<?xml version="1.0" encoding="utf-8"?>
         <Project Sdk="Microsoft.NET.Sdk">

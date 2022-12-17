@@ -178,7 +178,7 @@ type CheckerStatus (grid:TabsAndLog) as this =
         checker.OnChecking.Add updateCheckState
         this.MouseLeftButtonDown.Add ( fun a -> CheckerStatus.goToNextSegment(grid.Tabs.Current.Editor))
         
-        (* covered by Ctrl +P for persitent Panel:        
+        (* covered by Ctrl +P for persistent Panel:        
         this.MouseRightButtonDown.Add ( fun a ->
             match tabs.Current.Editor.FileCheckState with
             | Done res ->
@@ -251,8 +251,8 @@ type AsyncStatus (grid:TabsAndLog) as this =
     inherit TextBlock()
     let fsi = grid.Tabs.Fsi
     let isAsync = grid.Config.Settings.GetBool ("asyncFsi", true)
-    let sync = "FSI evaluation mode: Synchronos"
-    let asyn = "FSI evaluation mode: Asynchronos"
+    let sync = "FSI evaluation mode: Synchronous"
+    let asyn = "FSI evaluation mode: Asynchronous"
 
     do
         this.Padding <- textPadding
@@ -304,7 +304,7 @@ type SelectedEditorTextStatus (grid:TabsAndLog) as this =
                setText(res) 
                )
        
-        // on each click loop through all locations where text apears
+        // on each click loop through all locations where text appears
         this.MouseDown.Add ( fun _ -> // press mouse to scroll to them
             match hiliRes with 
             |FoundNone    -> ()               
@@ -362,7 +362,7 @@ type SelectedLogTextStatus (grid:TabsAndLog) as this =
                setText(res) 
                )
 
-        // on each click loop through all locations where text apears
+        // on each click loop through all locations where text appears
         this.MouseDown.Add ( fun _ -> // press mouse to scroll to them             
             match hiliRes with 
             |FoundNone    -> ()               

@@ -82,7 +82,7 @@ type FullCodeAndId =
     | NoCode
 
 
-/// the Code beeing processed in fs Checker
+/// the Code being processed in fs Checker
 type CodeInChecker = 
     | FullCode    of CodeAsString
     | PartialCode of CodeAsString // happens for autocomplete triggers

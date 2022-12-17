@@ -101,10 +101,10 @@ type Fsi private (config:Config) =
             asyncContext <- None
             asyncThread <- None
             #if NETFRAMEWORK
-            // Thread.Abort method is not supported in .NET 6 https://github.com/dotnet/runtime/issues/41291  but in ther is a new way in net7 ! 
+            // Thread.Abort method is not supported in .NET 6 https://github.com/dotnet/runtime/issues/41291  but in there is a new way in net7 ! 
             // dsyme: Thread.Abort - it is needed in interruptible interactive execution scenarios: https://github.com/dotnet/fsharp/issues/9397#issuecomment-648376476
             // TODO in the standalone version using the cancellation token should work too
-            thr.Abort() // raises OperationCanceledException on Netframework and would raise Platfrom-not-supported-Exception on net60
+            thr.Abort() // raises OperationCanceledException on Netframework and would raise Platform-not-supported-Exception on net60
             #else
             net7cancellationToken.Cancel()
             net7cancellationToken <- new CancellationTokenSource()
@@ -203,7 +203,7 @@ type Fsi private (config:Config) =
             // showProperties = true
             // addedPrinters = [] 
             //settings.ShowDeclarationValues <- true // use this instead of switching the quiet flag ?
-            fsiObj.PrintWidth <- 200 //TODO adapt to Log view size taking fontsize into account
+            fsiObj.PrintWidth <- 200 //TODO adapt to Log view size taking font size into account
             fsiObj.FloatingPointFormat <- "g7" 
             fsiObj.AddPrinter<DateTime>(fun d -> if d.Hour=0 && d.Minute=0 && d.Second = 0 then d.ToString("yyyy-MM-dd") else d.ToString("yyyy-MM-dd HH:mm:ss"))
             // https://github.com/dotnet/fsharp/blob/4978145c8516351b1338262b6b9bdf2d0372e757/src/fsharp/fsi/fsi.fs#L2839
@@ -215,7 +215,7 @@ type Fsi private (config:Config) =
             FsiEvaluationSession.Create(fsiConfig, fsiArgs, inStream, log.TextWriterFsiStdOut, log.TextWriterFsiErrorOut) //, collectible=false ??) //https://github.com/dotnet/fsharp/blob/6b0719845c928361e63f6e38a9cce4ae7d621fbf/src/fsharp/fsi/fsi.fs#L2440
         else
             (*  This is needed since FCS 34. it solves https://github.com/dotnet/fsharp/issues/9064
-            FCS takes the current Directory wich might be the one of the hosting App and will then probaly not contain FSharp.Core.
+            FCS takes the current Directory which might be the one of the hosting App and will then probably not contain FSharp.Core.
             at https://github.com/dotnet/fsharp/blob/7b46dad60df8da830dcc398c0d4a66f6cdf75cb1/src/Compiler/Interactive/fsi.fs#L3213   *)
             let prevDir = Environment.CurrentDirectory
             Directory.SetCurrentDirectory(Path.GetDirectoryName(Reflection.Assembly.GetAssembly([].GetType()).Location))    
@@ -298,7 +298,7 @@ type Fsi private (config:Config) =
     //This construct is deprecated in net6.0 . Recovery from corrupted process state exceptions is not supported; HandleProcessCorruptedStateExceptionsAttribute is ignored.
     let evalSave (sess:FsiEvaluationSession, code:string, codeToEv:CodeToEval) =
         #if NETFRAMEWORK
-        // Cancelation happens via Thread Abort 
+        // Cancellation happens via Thread Abort 
         // TODO actually using the token would work too but only is session.Run() has been called before, 
         // but that fails when hosted. see https://github.com/dotnet/fsharp/issues/14486
         let evaluatedTo, errs = 
@@ -310,7 +310,7 @@ type Fsi private (config:Config) =
             try sess.EvalInteractionNonThrowing(code, net7cancellationToken.Token) 
             with e -> Choice2Of2 e , [| |]            
         handeleEvaluationResult(evaluatedTo, errs, codeToEv)                   
-        //dont do Sytem.Runtime.ControlledExecution.Run(action, net7cancellationToken.Token) // this is actually already done by FSI 
+        //don't do System.Runtime.ControlledExecution.Run(action, net7cancellationToken.Token) // this is actually already done by FSI 
         //when using: Run method: Compiler Error:input.fsx (1,1)-(1,1) interactive error internal error: The thread is already executing the ControlledExecution.Run method.
         #endif
 
@@ -333,8 +333,8 @@ type Fsi private (config:Config) =
                 match sessionOpt with
                 |None ->
                     pendingEval <- Some codeToEv
-                    //startedEv.Trigger(codeToEv) //  to show "FSI is running" immediately , even while initalizing?
-                    //initFsi()  //dont ! not needed !, setting pendingEval is enough
+                    //startedEv.Trigger(codeToEv) //  to show "FSI is running" immediately , even while initializing?
+                    //initFsi()  //don't ! not needed !, setting pendingEval is enough
                     //previously: log.PrintfnFsiErrorMsg "Please wait till FSI is initialized for running scripts"
 
                 |Some session ->
@@ -346,7 +346,7 @@ type Fsi private (config:Config) =
                         // set context this or other async thread: 
                         match mode with 
                         |InSync -> 
-                            do! Async.Sleep 1 // this helps to show "FSI is running" immediately in staus bar
+                            do! Async.Sleep 1 // this helps to show "FSI is running" immediately in status bar
                             do! Async.SwitchToContext SyncWpf.context
                         |Async472| Async70 -> 
                             match asyncContext, asyncThread with 
@@ -416,8 +416,9 @@ type Fsi private (config:Config) =
                 // This Run call crashes the app when hosted in Rhino  and Standalone too ?! 
                 // see https://github.com/dotnet/fsharp/issues/14486
                 // and https://github.com/dotnet/fsharp/blob/main/src/Compiler/Interactive/fsi.fs#L3759
-                // But it is needed to be able to cancel the evaluations in net7 and make the above net7cancellationToken work.                
-                //if not config.Hosting.IsHosted then  fsiSession.Run()
+                // Is it needed to be able to cancel the evaluations in net7 and make the above net7cancellationToken work ?? 
+                // https://github.com/dotnet/fsharp/issues/14489              
+                // if not config.Hosting.IsHosted then  fsiSession.Run()
 
                 match prevState with
                 |Initializing |Ready |Evaluating -> log.PrintfnInfoMsg "FSharp Interactive session reset." // in %s" timer.tocEx
@@ -437,8 +438,6 @@ type Fsi private (config:Config) =
                 |Async472| Async70 ->  abortThenMakeAndStartAsyncThread()
 
                 do! Async.SwitchToContext SyncWpf.context
-                
-                
 
                 match pendingEval with 
                 |None -> 

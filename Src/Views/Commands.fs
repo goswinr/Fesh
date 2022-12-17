@@ -100,7 +100,7 @@ type Commands (grid:TabsAndLog, statusBar:SeffStatusBar)  =
     member val RunTextTillCursor = {name= "Evaluate till Cursor"                ;gesture= "F3"             ;cmd= mkCmdSimple (fun _ -> evalTillCursor())           ;tip= "Sends all lines till and including the current line to FSharp Interactive." }   
 
     
-    member val GoToError         = {name= "Sroll to Errors"               ;gesture= "Ctrl + E"        ;cmd= mkCmdSimple (fun _ -> goToError())             ;tip= "Scroll step by step through error segments. Unfold if needed" }
+    member val GoToError         = {name= "Scroll to Errors"              ;gesture= "Ctrl + E"        ;cmd= mkCmdSimple (fun _ -> goToError())             ;tip= "Scroll step by step through error segments. Unfold if needed" }
     member val ClearLog          = {name= "Clear Log"                     ;gesture= "Ctrl + Alt + C"  ;cmd= mkCmdSimple (fun _ -> log.Clear())             ;tip= "Clear all text from FSI Log window"  }
     member val CancelFSI         = {name= "Cancel FSI"                    ;gesture= "Ctrl + Break"    ;cmd= mkCmd isAsy472 (fun _ -> fsi.CancelIfAsync())  ;tip= "Cancel running FSI evaluation \r\n(only available on .NET Framework and only in asynchronous mode)" }
     member val ResetFSI          = {name= "Reset FSI"                     ;gesture= "Ctrl + Alt + R"  ;cmd= mkCmdSimple (fun _ -> log.Clear();fsi.Reset()) ;tip= "Clear all text from FSI Log window and reset FSharp Interactive" }

@@ -94,7 +94,7 @@ type Tab (editor:Editor, config:Seff.Config.Config, allFileInfos:seq<IO.FileInfo
             headerShowsSaved       <- false
 
 
-    let upadteIsCodeSaved(isSaved)= 
+    let updateIsCodeSaved(isSaved)= 
         isCodeSaved <- isSaved
         if not isSaved && headerShowsSaved then
             setHeader()
@@ -114,19 +114,19 @@ type Tab (editor:Editor, config:Seff.Config.Config, allFileInfos:seq<IO.FileInfo
             config.RecentlyUsedFiles.AddAndSave(fi)         
             config.OpenTabs.Save(editor.FilePath , allFileInfos)
     
-    let watcher = new FileWatcher(editor, upadteIsCodeSaved, setNewPath)
+    let watcher = new FileWatcher(editor, updateIsCodeSaved, setNewPath)
 
     do
         base.Content <- editor.AvaEdit
         base.Header <- header
-        // TODO wrap tabitem in border elemet and the style the border insetad ??
+        // TODO wrap tabitem in border element and the style the border instead ??
         //base.Padding <- Thickness(2.)   // don't messes it all up
         //base.Margin <- Thickness(2.)   // don't messes it all up
         //base.BorderThickness <- Thickness(4.)       // don't messes it all up
         //base.BorderBrush <- Brushes.Blue            // don't messes it all up
         //base.Margin <- Thickness(3., 0. , 0. , 0.)  //left ,top, right, bottom) // don't messes it all up
         setHeader()
-        editor.AvaEdit.TextChanged.Add(fun _ -> upadteIsCodeSaved(false))
+        editor.AvaEdit.TextChanged.Add(fun _ -> updateIsCodeSaved(false))
 
 
     member this.FileWatcher = watcher
@@ -134,7 +134,7 @@ type Tab (editor:Editor, config:Seff.Config.Config, allFileInfos:seq<IO.FileInfo
 
     member this.IsCodeSaved
         with get()       = isCodeSaved
-        and set(isSaved) = upadteIsCodeSaved(isSaved)
+        and set(isSaved) = updateIsCodeSaved(isSaved)
 
     /// this gets and set FileInfo on the Editor
     member this.FilePath
