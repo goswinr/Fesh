@@ -248,7 +248,10 @@ type Fsi private (config:Config) =
 
             |Choice2Of2 exn ->
                 match exn with
-                | :? OperationCanceledException ->
+                | :? OperationCanceledException -> 
+                    // thread.Abort raises a Threading.ThreadAbortException but it gets converted to a OperationCanceledException in FCS: fsi.fs line 3027
+                    // FCS also handel the required ResetAbort:
+                    // https://learn.microsoft.com/en-us/dotnet/api/system.threading.thread.abort?view=netframework-4.7.2#system-threading-thread-abort
                     canceledEv.Trigger(codeToEv)
                     isReadyEv.Trigger()
                     if config.Hosting.IsHosted && mode = FsiMode.Async472 && isNull exn.StackTrace  then
@@ -260,18 +263,18 @@ type Fsi private (config:Config) =
                     runtimeErrorEv.Trigger(exn)
                     isReadyEv.Trigger()
                     log.PrintfnFsiErrorMsg "Compiler Error:"
-                    let mutable postMsg = ""
-                    for e in errs do
-                        let msg = sprintf "%A" e
-                        if msg.Contains "is defined in an assembly that is not referenced." then
-                            postMsg <-
-                                "Fix:\r\n" +
-                                "  For assembly reference errors that are not shown by editor tooling try to re-arrange the initial loading sequences of '#r' statements\r\n" +
-                                "  This error might happen when you are loading a dll with #r that is already loaded, but from a different location\r\n" +
-                                "  E.G. as a dependency from a already loaded dll."
-                        log.PrintfnFsiErrorMsg "%A" e
-                    if postMsg <> "" then                                    
-                        log.PrintfnFsiErrorMsg "%s" postMsg
+                    let es = 
+                        errs
+                        |> Array.map (sprintf "%A")
+                        |> Array.distinct
+                    for e in es do 
+                        log.PrintfnFsiErrorMsg "%s" e
+                    
+                    if es|> Array.exists ( fun s -> s.Contains "is defined in an assembly that is not referenced." ) then 
+                        log.PrintfnInfoMsg "%s" "For assembly reference errors that are not shown by editor tooling try to re-arrange the initial loading sequences of '#r' statements"
+                        log.PrintfnInfoMsg "%s" "This error might happen when you are loading a dll with #r that is already loaded, but from a different location"
+                        log.PrintfnInfoMsg "%s" "E.G. as a dependency from a already loaded dll."
+
 
                 | _ -> // any other runtimne exception
                     runtimeErrorEv.Trigger(exn)  // in seff.fs this is used to ensure the main window is visible, because it might be hidden manually, or not visible from the start ( e.g. current script is evaluated in Seff.Rhino)                             
