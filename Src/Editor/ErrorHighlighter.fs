@@ -109,10 +109,16 @@ module ErrorUtil =
             scrollToIdx <- scrollToIdx+1            
             scrollToIdx
 
-    let getNextSegment(ed:IEditor)= 
+    let getNextSegment(ed:IEditor)=         
         match ed.FileCheckState with 
-        | Done res -> Some <| getSegment (ed.AvaEdit.Document) (res.errors.errorsAndWarnings.[getNextErrrorIdx res.errors])
-        | _ -> None
+        | Done res ->
+            let ers = res.errors.errorsAndWarnings
+            if ers.Count=0 then 
+                None 
+            else  
+                Some <| getSegment (ed.AvaEdit.Document) (ers.[getNextErrrorIdx res.errors])
+        | NotStarted| GettingCode _ | Checking _| Failed -> 
+            None
             
        
         
