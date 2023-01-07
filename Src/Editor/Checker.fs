@@ -1,6 +1,7 @@
 ﻿namespace Seff.Editor
 
 open System
+open System.Collections.Generic
 open System.Threading
 
 open AvalonEditB
@@ -47,7 +48,7 @@ type Checker private (config:Config)  =
         checkingEv.Trigger(iEditor) // to show in statusbar
         let doc = iEditor.AvaEdit.Document // access document before starting async
         async {
-            do! Async.Sleep 200 // TODO add lag so that the checker does not run all the time while typing??
+            //do! Async.Sleep 200 // TODO add lag so that the checker does not run all the time while typing. not neded any more since delayDocChange function
             match checker with
             | Some ch -> ()
             | None ->
@@ -242,41 +243,56 @@ type Checker private (config:Config)  =
     /// Triggers Event<FSharpErrorInfo[]> event after calling the continuation
     member this.CheckThenHighlightAndFold (iEditor:IEditor)  =  checkCode (iEditor, 0,  None)
 
-    /// checks for items available for completion
-    /// does not raise 
-    member this.GetCompletions (iEditor:IEditor, pos :PositionInCode, ifDotSetback, continueOnUI: DeclarationListInfo*FSharpSymbolUse list list  -> unit) = 
+    /// checks for items available for completion    
+    member this.GetCompletions (iEditor:IEditor, pos :PositionInCode, ifDotSetback, continueOnUIthread: DeclarationListInfo -> unit, optArgsDict:Dictionary<string,ResizeArray<OptDefArg>>) = 
         let getSymbolsAndDecls(res:CheckResults) = 
             let thisId = !checkId
             //see https://stackoverflow.com/questions/46980690/f-compiler-service-get-a-list-of-names-visible-in-the-scope
             //and https://github.com/fsharp/FSharp.Compiler.Service/issues/835
             async{
-                let colSetBack = pos.column - ifDotSetback
-                let partialLongName = QuickParse.GetPartialLongNameEx(pos.lineToCaret, colSetBack - 1) //- 1) ??TODO is minus one correct ? https://github.com/fsharp/FSharp.Compiler.Service/issues/837
-                //log.PrintfnDebugMsg "GetPartialLongNameEx on: '%s' setback: %d is:\r\n%A" pos.lineToCaret colSetBack partialLongName
-                //log.PrintfnDebugMsg "GetDeclarationListInfo on: '%s' row: %d, col: %d, colSetBack:%d, ifDotSetback:%d\r\n" pos.lineToCaret pos.row pos.column colSetBack ifDotSetback
+                let colSetBack = pos.column - ifDotSetback                
+                let partialLongName = QuickParse.GetPartialLongNameEx(pos.lineToCaret, colSetBack - 1) //TODO is minus one correct ? https://github.com/fsharp/FSharp.Compiler.Service/issues/837
+                
                 if !checkId = thisId  then
+                    //ISeffLog.log.PrintfnDebugMsg "*3.0 - checkRes.GetDeclarationListSymbols..."
                     let symUse = 
                         res.checkRes.GetDeclarationListSymbols(
                             Some res.parseRes,  // ParsedFileResultsOpt
                             pos.row,            // line
                             pos.lineToCaret ,   // lineText
                             partialLongName     // PartialLongName
-                            //( fun _ -> [] )     // getAllEntities: (unit -> AssemblySymbol list)
+                            //( fun _ -> [] )   // getAllEntities: (unit -> AssemblySymbol list)
                             )
                     if !checkId = thisId  then
+                        
+                        //ISeffLog.log.PrintfnDebugMsg "*3.1 - checkRes.GetDeclarationListInfo..."
                         let decls = 
                             res.checkRes.GetDeclarationListInfo(            //TODO take declaration from Symbol list !
                                 Some res.parseRes,  // ParsedFileResultsOpt
                                 pos.row,            // line
                                 pos.lineToCaret ,   // lineText
                                 partialLongName     // PartialLongName
-                                //( fun _ -> [] )     // getAllEntities: (unit -> AssemblySymbol list)
+                                //( fun _ -> [] )   // getAllEntities: (unit -> AssemblySymbol list)
                                 )
+
                         if !checkId = thisId  then
-                            if decls.IsError then log.PrintfnAppErrorMsg "*ERROR in GetDeclarationListInfo: %A" decls //TODO use log
-                            else
+                            //ISeffLog.log.PrintfnDebugMsg "*3.2 - checkRes.GetDeclarationListInfo found %d on: '%s' , setback: %d  partialLongName: '%A'" decls.Items.Length pos.lineToCaret  colSetBack partialLongName
+                            if decls.IsError then 
+                                log.PrintfnAppErrorMsg "*ERROR in GetDeclarationListInfo: %A" decls //TODO use log
+                            else                                
+                                // Find whichparamters are optional and set the value on the passed in dictionary.
+                                // For adding question marks to optional arguments.
+                                // This is still done in Async mode
+                                optArgsDict.Clear() //clean up from last time, or keep ?
+                                for symbs in symUse do
+                                    for symb in symbs do
+                                        let opts = TypeInfo.namesOfOptionalArgs(symb)
+                                        if opts.Count>0 then
+                                            optArgsDict.[symb.Symbol.FullName] <- opts
+                                
+                                
                                 do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context
-                                continueOnUI( decls, symUse)
+                                continueOnUIthread( decls)
             } |> Async.StartImmediate // we are on thread pool already
 
         checkCode(iEditor, pos.offset, Some getSymbolsAndDecls) //TODO can existing parse results be used ? or do they miss the dot so don't show dot completions ?

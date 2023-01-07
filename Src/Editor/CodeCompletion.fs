@@ -126,7 +126,7 @@ type Completions(avaEdit:TextEditor,config:Config, checker:Checker) =
     let mutable win : CompletionWindow option = None
 
     /// for adding question marks to optional arguments:
-    let optArgsDict = Dictionary() 
+    let optArgsDict = new Dictionary<string,ResizeArray<OptDefArg>>() 
 
     let showingEv = Event<unit>()
 
@@ -205,16 +205,7 @@ type Completions(avaEdit:TextEditor,config:Config, checker:Checker) =
         //ISeffLog.log.PrintfnDebugMsg "TryShow Completion Window for '%s'" pos.lineToCaret
         let ifDotSetback = if charBefore = Dot then setback else 0
 
-        let contOnUI (decls: DeclarationListInfo, declSymbs: FSharpSymbolUse list list) = 
-
-            // TODO move out of UI thread
-            // for adding question marks to optional arguments:
-            compl.OptArgsDict.Clear() //TODO make persistent on class for caching
-            for symbs in declSymbs do
-                for symb in symbs do
-                    let opts = TypeInfo.namesOfOptionalArgs( symb)
-                    if opts.Count>0 then
-                        compl.OptArgsDict.[symb.Symbol.FullName]<- opts
+        let continueOnUIthread (decls: DeclarationListInfo) = 
 
 
             let completionLines = ResizeArray<ICompletionData>()
@@ -291,5 +282,5 @@ type Completions(avaEdit:TextEditor,config:Config, checker:Checker) =
             else
                 compl.Checker.CheckThenHighlightAndFold(iEditor)// start new full check, this on was trimmed at offset.
 
-        compl.Checker.GetCompletions(iEditor, pos, ifDotSetback, contOnUI)
+        compl.Checker.GetCompletions(iEditor, pos, ifDotSetback, continueOnUIthread, compl.OptArgsDict)
 

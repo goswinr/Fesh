@@ -30,7 +30,7 @@ open Seff.Model
 open Seff.XmlParser
 
 
-type OptDefArg   = { name:string } //; defVal:string} //  TODO actual default value from attribute  seems to be not available via FCS see below in: namesOfOptnlArgs(fsu:FSharpSymbolUse)
+type OptDefArg  = string //{ name:string ; defVal:string} //  TODO actual default value from attribute  seems to be not available via FCS see below in: namesOfOptnlArgs(fsu:FSharpSymbolUse)
 
 type DllPath = string
 type ErrMsg = string
@@ -40,7 +40,7 @@ type ToolTipData = {
     name          : string; 
     signature     : TaggedText[]
     fullName      : PathWithNameSpace
-    optDefs       : ResizeArray<OptDefArg> 
+    optDefs       : ResizeArray<string> 
     xmlDoc        : Result<XmlParser.Child*DllPath,ErrMsg>
     }
 
@@ -103,7 +103,7 @@ type TypeInfo private () =
                 match ts.[i-1].Text with
                 |"?" ->  tb.Inlines.Add( new Run(t.Text , Foreground = gray, Background=bG )) // sometimes optional arguments have already a question mark but not always
                 | _ ->
-                    match td.optDefs |> Seq.tryFind ( fun oa -> oa.name = t.Text ) with
+                    match td.optDefs |> Seq.tryFind ( fun oa -> oa = t.Text ) with
                     | Some od ->  tb.Inlines.Add( new Run("?"+t.Text , Foreground = gray , Background=bG))
                     | None    ->  tb.Inlines.Add( new Run(t.Text     , Foreground = black , Background=bG))
 
@@ -201,7 +201,7 @@ type TypeInfo private () =
     static let codeRun (td:ToolTipData) t : seq<Run>= 
         [
         new Run(" ") 
-        match td.optDefs |> Seq.tryFind ( fun oa -> oa.name = t ) with
+        match td.optDefs |> Seq.tryFind ( fun oa -> oa = t ) with
         | Some od ->  new Run("?"+t ,FontFamily = Style.fontEditor, FontSize = Style.fontSize*1.1,  Foreground = gray,   Background = white) 
         | None    ->  new Run(t ,FontFamily = Style.fontEditor, FontSize = Style.fontSize*1.1,  Foreground = black,   Background = white)         
         new Run(" ") 
@@ -445,7 +445,7 @@ type TypeInfo private () =
                 for ps in x.CurriedParameterGroups do
                     for p in ps do
                         if p.IsOptionalArg then
-                            optDefs.Add  {name = p.FullName} //; defVal="?" }
+                            optDefs.Add p.FullName
                             // TODO p.Attributes is always empty even for DefaultParameterValueAttribute ! why ?
                             // all below fails to get the default arg :
                             //match p.TryGetAttribute<System.Runtime.InteropServices.DefaultParameterValueAttribute>() with
@@ -461,7 +461,7 @@ type TypeInfo private () =
                             //log.PrintfnDebugMsg "optional full name: %s" c.FullName
             | _ -> ()
         with e -> 
-            () //ISeffLog.log.PrintfnAppErrorMsg "Error while trying to show a Tool tip in Seff.\r\nYou can ignore this error.\r\nin TypeInfo.namesOfOptnlArgs: %A" e
+            ISeffLog.log.PrintfnAppErrorMsg "Error while trying to get optional Arguments in a given method.\r\nTypeInfo.namesOfOptnlArgs: %A" e
         optDefs
     
 
@@ -477,7 +477,7 @@ type TypeInfo private () =
 
     static member namesOfOptionalArgs(fsu:FSharpSymbolUse) = namesOfOptnlArgs(fsu)
 
-    static member makeSeffToolTipDataList (sdtt: ToolTipText, fullName:string, optArgs:ResizeArray<OptDefArg>) = makeToolTipDataList (sdtt, fullName, optArgs)
+    static member makeSeffToolTipDataList (sdtt: ToolTipText, fullName:string, optArgs:ResizeArray<string>) = makeToolTipDataList (sdtt, fullName, optArgs)
 
     static member getPanel  (tds:ToolTipData list, ed:ToolTipExtraData) = 
         cachedToolTipData  <- tds

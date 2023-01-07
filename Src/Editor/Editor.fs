@@ -161,11 +161,8 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
         // or use avaEdit.Document.Changing event ??
         //avaEdit.Document.Changed.Add(fun a -> ISeffLog.log.PrintfnColor 100 222 160 "Document.Changed:\r\n'%s'" avaEdit.Text)
         avaEdit.Document.Changed.Add(fun a -> ed.EvalTracker.SetLastChangeAt(a.Offset))
-        avaEdit.Document.Changed.Add(fun a -> 
-            match DocChanged.docChanged(a,ed,compls) with // the trigger for Autocomplete
-            |DocChanged.DoNothing ->()
-            |DocChanged.CheckCode -> ed.GlobalChecker.CheckThenHighlightAndFold(ed)
-            )        
+        avaEdit.Document.Changed.Add(fun a -> DocChanged.delayDocChange(a, ed, compls, ed.GlobalChecker) ) // to trigger for Autocomplete or error highlighting with immediate delay, (instead of delay in checkCode function.)
+                          
 
         // check if closing and inserting from completion window is desired now:
         avaEdit.TextArea.TextEntering.Add (DocChanged.closeAndMaybeInsertFromCompletionWindow compls)

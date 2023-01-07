@@ -70,7 +70,7 @@ module DocChanged =
             | -1 -> false
             | _ -> true 
         
-        /// like lastIndex but  test if its the first char or preceeded by a space 
+        /// like lastIndex but test if its the first char or preceeded by a space 
         let lastIdxAtStartOrWithSpace inString find txt = 
             let i = 
                 if inString then NotInQuotes.lastIndexOfFromInside  find txt 
@@ -131,84 +131,103 @@ module DocChanged =
                 elif lastIdx inStr " downto " ln > forIdx then ShowAll 
                 else isDU (forIdx+3) ln
         
-        let isBarDeclaration inStr (ln:string) = // also covers the  'as' binding        
+        let isBarDeclaration inStr (ln:string) = // also covers the 'as' binding        
             let barIdx = lastIdxAtStartOrWithSpace inStr "|" ln // test if its the first char or preceded by a space 
             if barIdx = -1 then  
                 ShowAll
             else 
                 if   containsFrom barIdx "->"      ln then ShowAll                
+                elif containsFrom barIdx "."       ln then ShowAll  // a DU mebmer with full Qualification              
                 elif containsFrom barIdx " when "  ln then ShowAll
                 elif containsFrom barIdx ":?"      ln then  (if containsFrom barIdx  " as " ln then DontShow   else ShowAll)
-                else isDU (barIdx+1) ln                 
+                else isDU (barIdx+1) ln         
+                
+        let isThisMemberDeclaration inStr (ln:string) = // to not outcomplete on 'member this' (before the dot)
+            let barIdx = lastIdxAtStartOrWithSpace inStr "member" ln // test if its the first char or preceded by a space 
+            if barIdx = -1 then  
+                ShowAll
+            else 
+                if   containsFrom barIdx "."  ln then ShowAll                
+                else DontShow 
+
            
         //-------------------------------------------------------------------------------------------
         //-------------------------------------------------------------------------------------------
         
-        let show (pos:PositionInCode, compls:Completions, ed:IEditor, forDUonly) = 
-            let ln = pos.lineToCaret
-            let setback     = lastNonFSharpNameCharPosition ln // to maybe replace some previous characters too
-            let query       = ln.Substring(ln.Length - setback)
+        let show (pos:PositionInCode, compls:Completions, ed:IEditor, forDUonly, checker:Checker) : unit= 
+            let lnToCaret = pos.lineToCaret
+            let setback     = lastNonFSharpNameCharPosition lnToCaret // to maybe replace some previous characters too
+            let query       = lnToCaret.Substring(lnToCaret.Length - setback)
             let isKeyword   = keywords.Contains query
             //ISeffLog.log.PrintfnDebugMsg "show: pos:%A setback='%d'" pos setback
 
             let charBeforeQueryDU = 
                 let i = pos.column - setback - 1
-                if i >= 0 && i < ln.Length then
-                    if ln.[i] = '.' then Dot else NotDot
+                if i >= 0 && i < lnToCaret.Length then
+                    if lnToCaret.[i] = '.' then 
+                        Dot 
+                    else 
+                        NotDot
                 else
                     NotDot
 
             if charBeforeQueryDU = NotDot && isKeyword then
-                //ISeffLog.log.PrintfnDebugMsg "*2.1-textChanged highlighting with: query='%s', charBefore='%A', isKey=%b, setback='%d', line='%s' " query charBeforeQueryDU isKeyword setback ln
-                CheckCode
+                //ISeffLog.log.PrintfnDebugMsg "*2.1-show: just highlighting with: lnToCaret='%s' query='%s', charBefore='%A', isKey=%b, setback='%d', onlyDU:%b' " lnToCaret query charBeforeQueryDU isKeyword setback forDUonly
+                checker.CheckThenHighlightAndFold(ed)
             else
-                //ISeffLog.log.PrintfnDebugMsg "*2.2-Completion window opening with: query='%s', charBefore='%A', isKey=%b, setback='%d', onlyDU:%b" query charBeforeQueryDU isKeyword setback forDUonly
-                let last = ln.[ln.Length-1]
+                //ISeffLog.log.PrintfnDebugMsg "*2.2-show: try window opening with: lnToCaret='%s' query='%s', charBefore='%A', isKey=%b, setback='%d', onlyDU:%b" lnToCaret query charBeforeQueryDU isKeyword setback forDUonly
+                let last = lnToCaret.[lnToCaret.Length-1]
                 Completions.TryShow(ed, compls, pos, last , setback, query, charBeforeQueryDU, forDUonly)
-                DoNothing
+                () // DoNothing
 
 
-        let maybeShowComletionWindow (compls:Completions,ed:IEditor) :DoNext =            
+        let maybeShowComletionWindow (compls:Completions,ed:IEditor, checker:Checker) : unit =            
             let pos = currentLineBeforeCaret(ed.AvaEdit) 
             let ln = pos.lineToCaret // this line will include the character that trigger auto completion(dot or first letter)
             let len = ln.Length
             if len=0 then // line is empty
-                DoNothing
+                () // DoNothing
             else
                 let last = ln.[len-1]
                 if isCaretInComment ln then 
-                    if last <> '/' then CheckCode // to make sure comment was not just typed (then still check)
-                    else DoNothing 
+                    if last <> '/' then checker.CheckThenHighlightAndFold(ed) // to make sure comment was not just typed (then still check)
+                    else () // DoNothing 
                 else
                     let inStr = not <| NotInQuotes.isLastCharOutsideQuotes ln                    
                     match isLetDeclaration inStr ln with 
                     |DontShow -> 
                         //ISeffLog.log.PrintfnDebugMsg "noShow because isLetDeclaration: %s" ln
-                        CheckCode // keep on writing the current new varaiable name for a binding , dont open any completion windows
-                    |ShowOnlyDU -> show(pos,compls,ed,true)
+                        checker.CheckThenHighlightAndFold(ed) // keep on writing the current new varaiable name for a binding , dont open any completion windows
+                    |ShowOnlyDU -> show(pos,compls,ed,true, checker)
                     |ShowAll -> 
                         match isFunDeclaration inStr ln with 
                         |DontShow -> 
                             //ISeffLog.log.PrintfnDebugMsg "noShow because isFunDeclaration: %s" ln
-                            CheckCode 
-                        |ShowOnlyDU -> show(pos,compls,ed,true)
+                            checker.CheckThenHighlightAndFold(ed) 
+                        |ShowOnlyDU -> show(pos,compls,ed,true, checker)
                         |ShowAll ->
                             match isForDeclaration inStr ln with 
                             |DontShow -> 
                                 //ISeffLog.log.PrintfnDebugMsg "noShow because isForDeclaration: %s" ln
-                                CheckCode 
-                            |ShowOnlyDU -> show(pos,compls,ed,true)
-                            |ShowAll ->
+                                checker.CheckThenHighlightAndFold(ed) 
+                            |ShowOnlyDU -> show(pos,compls,ed,true, checker)
+                            |ShowAll ->                                
                                 match isBarDeclaration inStr ln with 
                                 |DontShow -> 
                                     //ISeffLog.log.PrintfnDebugMsg "noShow because isBarDeclaration: %s" ln
-                                    CheckCode 
-                                |ShowOnlyDU -> show(pos,compls,ed,true)
-                                |ShowAll ->    show(pos,compls,ed,false) // most comon case
+                                    checker.CheckThenHighlightAndFold(ed) 
+                                |ShowOnlyDU -> show(pos,compls,ed,true, checker)
+                                |ShowAll    ->                                 
+                                    match isThisMemberDeclaration inStr ln with 
+                                    |DontShow -> 
+                                        //ISeffLog.log.PrintfnDebugMsg "noShow because isThisMemberDeclaration: %s" ln
+                                        checker.CheckThenHighlightAndFold(ed) 
+                                    |ShowOnlyDU -> show(pos,compls,ed,true, checker)
+                                    |ShowAll    ->  show(pos,compls,ed,false, checker) // this is the most comon case
 
     open Internal
 
-    let docChanged (e:DocumentChangeEventArgs,ed:IEditor, compls:Completions) : DoNext = 
+    let docChanged (e:DocumentChangeEventArgs,ed:IEditor, compls:Completions, checker:Checker) : unit = 
         //ISeffLog.log.PrintfnDebugMsg "*Document.Changed Event: deleted %d '%s', inserted %d '%s', completion hasItems: %b, isOpen: %b , Just closed: %b" e.RemovalLength e.RemovedText.Text e.InsertionLength e.InsertedText.Text compls.HasItems compls.IsOpen compls.JustClosed
                         
         if compls.IsOpen then   // just keep on tying in completion window, no type checking !
@@ -216,30 +235,46 @@ module DocChanged =
                 //let currentText = getField(typeof<CodeCompletion.CompletionList>,w.CompletionList,"currentText") :?> string // TODO this property should be public in avaloneditB !                
                 //log.PrintfnDebugMsg "currentText: '%s'" currentText
                 //log.PrintfnDebugMsg "w.CompletionList.CompletionData.Count:%d" w.CompletionList.ListBox.VisibleItemCount
-                DoNothing
+                () // DoNothing
             else
                 compls.Close()
-                DoNothing // do nothing because if the doc changed a separate event will be triggered for that
+                ()  // do nothing because if the doc changed a separate event will be triggered for that
 
         else //no completion window open , do type check..  
             match e.InsertedText.Text with
-            |"."  ->  maybeShowComletionWindow(compls,ed) // EnteredDot  
+            |"."  ->  maybeShowComletionWindow(compls,ed, checker) // EnteredDot  
             | txt when txt.Length = 1 ->
                 if compls.JustClosed then   // check to avoid re-trigger of window on single char completions
-                    compls.JustClosed<-false
-                    CheckCode // CompletionWinClosed 
+                    compls.JustClosed <- false                    
+                    checker.CheckThenHighlightAndFold(ed) // CompletionWinClosed 
+
                 else
                     let c = txt.[0]
                     if Char.IsLetter(c) 
                         || c='_' // for __SOURCE_DIRECTORY__
                         || c='`' 
                         || c='#'  then    // for #if directives
-                            maybeShowComletionWindow(compls,ed) // EnteredOneIdentifierChar  
+                            maybeShowComletionWindow(compls,ed, checker) // EnteredOneIdentifierChar  
                     else 
-                        CheckCode // EnteredOneNonIdentifierChar
+                        checker.CheckThenHighlightAndFold(ed) // EnteredOneNonIdentifierChar
 
-            | _  -> CheckCode //OtherChange: several characters(paste) , delete or an insert from the completion window
+            | _  -> checker.CheckThenHighlightAndFold(ed) //OtherChange: several characters(paste) , delete or an insert from the completion window
+    
 
-           
+    /// delay reaction to doc changes
+    open System.Threading
+    let private changeId = ref 0L
 
+    /// only react to the last change after 200 ms
+    let delayDocChange(e:DocumentChangeEventArgs,ed:IEditor, compls:Completions, checker:Checker) : unit = 
+        
+        /// do timing as low level as possible: see Async.Sleep in  https://github.com/dotnet/fsharp/blob/main/src/fsharp/FSharp.Core/async.fs#L1587
+        let mutable timer :option<Timer> = None
+        let k = Interlocked.Increment changeId
+        let action =  TimerCallback(fun _ ->
+            if !changeId= k then ed.AvaEdit.Dispatcher.Invoke(fun () ->  docChanged (e,ed, compls, checker))
+            if timer.IsSome then timer.Value.Dispose() // dispose inside callback, like in Async.Sleep implementation
+            )
+        timer <- Some (new Threading.Timer(action, null, dueTime = 200 , period = -1))
+        
 
