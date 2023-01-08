@@ -100,8 +100,7 @@ type Log private () =
 
     member this.FsiErrorsStringBuilder = fsiErrorsStringBuilder  
 
-    member internal this.AdjustToSettingsInConfig(config:Config)= 
-        //this.OnPrint.Add (config.AssemblyReferenceStatistic.RecordFromlog) // TODO: does this have print performance impact ? measure do async ?
+    member internal this.AdjustToSettingsInConfig(config:Config)=         
         setLineWrap( config.Settings.GetBool ("logHasLineWrap", true) )
         log.FontSize  <- config.Settings.GetFloat ("FontSize" , Seff.Style.fontSize )
 

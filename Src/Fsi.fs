@@ -206,6 +206,8 @@ type Fsi private (config:Config) =
             fsiObj.PrintWidth <- 200 //TODO adapt to Log view size taking font size into account
             fsiObj.FloatingPointFormat <- "g7" 
             fsiObj.AddPrinter<DateTime>(fun d -> if d.Hour=0 && d.Minute=0 && d.Second = 0 then d.ToString("yyyy-MM-dd") else d.ToString("yyyy-MM-dd HH:mm:ss"))
+            fsiObj.AddPrinter<DateTimeOffset>(fun d -> d.ToString("yyyy-MM-dd HH:mm:ss K"))
+           
             // https://github.com/dotnet/fsharp/blob/4978145c8516351b1338262b6b9bdf2d0372e757/src/fsharp/fsi/fsi.fs#L2839
             FsiEvaluationSession.GetDefaultConfiguration(fsiObj, useFsiAuxLib = false) // useFsiAuxLib = FSharp.Compiler.Interactive.Settings.dll . But it is missing in FCS !! 
 
@@ -421,7 +423,8 @@ type Fsi private (config:Config) =
                 // and https://github.com/dotnet/fsharp/blob/main/src/Compiler/Interactive/fsi.fs#L3759
                 // Is it needed to be able to cancel the evaluations in net7 and make the above net7cancellationToken work ?? 
                 // https://github.com/dotnet/fsharp/issues/14489              
-                // if not config.Hosting.IsHosted then  fsiSession.Run()
+                // if not config.Hosting.IsHosted then fsiSession.Run()// not needed, coverd by WPF app loop:  https://github.com/dotnet/fsharp/issues/14486#issuecomment-1358310942
+
 
                 match prevState with
                 |Initializing |Ready |Evaluating -> log.PrintfnInfoMsg "FSharp Interactive session reset." // in %s" timer.tocEx
