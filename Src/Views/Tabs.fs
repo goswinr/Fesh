@@ -41,9 +41,11 @@ type Tabs(config:Config, win:Window) =
 
     let allFileInfos = seq{ for t in allTabs do match t.FilePath with NotSet ->() |SetTo fi -> yield fi } //TODO does this reevaluate every time?
 
-    let currentTabChangedEv = new Event<Tab>() //to Trigger Fs Checker and status bar update
+    let currentTabChangedEv = new Event<Tab>() //to Trigger Fs Checker and status bar update 
 
     let mutable current =  Unchecked.defaultof<Tab>
+
+    let enviroDefaultDir = Environment.CurrentDirectory 
 
     let workingDirectory () = 
         match current.FilePath with
@@ -66,7 +68,8 @@ type Tabs(config:Config, win:Window) =
                 match saveKind with
                 |SaveNewLocation ->
                     t.IsCodeSaved <- true
-                    t.FilePath <- SetTo fi //this also updates the Tab header and set file info on editor                    
+                    t.FilePath <- SetTo fi //this also updates the Tab header and set file info on editor    
+                    Environment.CurrentDirectory <- fi.Directory.FullName 
                     config.RecentlyUsedFiles.AddAndSave(fi)          
                     config.OpenTabs.Save(t.FilePath , allFileInfos)   
                     config.FoldingStatus.Set(t.Editor) // otherwise no record would exist for the new file name
@@ -74,11 +77,12 @@ type Tabs(config:Config, win:Window) =
                 |SaveNewLocationSync -> 
                     t.IsCodeSaved <- true
                     t.FilePath <- SetTo fi //this also updates the Tab header and set file info on editor
+                    Environment.CurrentDirectory <- fi.Directory.FullName  
                     config.RecentlyUsedFiles.AddAndSaveSync(fi)         
                     config.OpenTabs.SaveSync(t.FilePath , allFileInfos)
                     config.FoldingStatus.Set(t.Editor) // otherwise no record would exist for the new file name
                     log.PrintfnInfoMsg "File saved as:\r\n\"%s\"" fi.FullName   
-                |SaveInPlace ->
+                |SaveInPlace -> // also called for Save-All command
                     t.IsCodeSaved <- true
                     log.PrintfnInfoMsg "File saved:\r\n\"%s\"" fi.FullName
                 |SaveExport ->
@@ -151,7 +155,7 @@ type Tabs(config:Config, win:Window) =
             elif (fi.Refresh(); fi.Exists) then
                 saveAt(t, fi, SaveInPlace)
             else
-                log.PrintfnIOErrorMsg "File does not exist on drive anymore:\r\n%s" fi.FullName
+                log.PrintfnIOErrorMsg "File does not exist on drive anymore. Resaving it at:\r\n%s" fi.FullName
                 saveAsDialog(t, SaveNewLocation)
         |NotSet ->
                 saveAsDialog(t, SaveNewLocation)
@@ -292,6 +296,8 @@ type Tabs(config:Config, win:Window) =
             current <- tab
             IEditor.current <- Some (tab.Editor:>IEditor)
 
+        Environment.CurrentDirectory <- match current.FilePath with |SetTo fi -> fi.Directory.FullName  |NotSet -> enviroDefaultDir // to use __SOURCE_DIRECTORY__
+
         // then start highlighting errors on current tab only
         current.Editor.GlobalChecker.CheckThenHighlightAndFold(current.Editor)
         config.OpenTabs.Save(current.FilePath , allFileInfos)
@@ -314,8 +320,9 @@ type Tabs(config:Config, win:Window) =
                 for t in allTabs do
                     t.IsCurrent <- false  // first set all false then one true
                 tab.IsCurrent <- true
+                Environment.CurrentDirectory <- match current.FilePath with |SetTo fi -> fi.Directory.FullName  |NotSet -> enviroDefaultDir // to use __SOURCE_DIRECTORY__
                 currentTabChangedEv.Trigger(tab) // to update statusbar
-                //log.PrintfnDebugMsg "New current Tab %A " tab.FilePath
+                
                 if tab.Editor.FileCheckState = FileCheckState.NotStarted then
                     //log.PrintfnDebugMsg "FileCheckState.NotStarted: starting: %A " tab.FilePath
                     tab.Editor.GlobalChecker.CheckThenHighlightAndFold(tab.Editor)  // only actually highlights if editor has needsChecking=true
@@ -332,7 +339,8 @@ type Tabs(config:Config, win:Window) =
     //--------------- Public members------------------
 
 
-    [<CLIEvent>]  member this.OnTabChanged = currentTabChangedEv.Publish
+    [<CLIEvent>]  
+    member this.OnTabChanged = currentTabChangedEv.Publish
 
     member this.Control = tabs
 
