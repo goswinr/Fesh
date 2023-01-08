@@ -236,7 +236,7 @@ module KeyboardShortcuts =
     /// gets attached to ech editor instance. via avaEdit.PreviewKeyDown.Add
     /// except for Alt and arrow keys that are handeled via KeyboardNative
     let previewKeyDown (ed:TextEditor, ke:Input.KeyEventArgs, compls:Completions, search:Search.SearchPanel) = 
-        if search.IsClosed || not search.IsFocused then
+        if ed.TextArea.IsFocused then
             match realKey ke  with
             |Input.Key.Back -> // also do if completion window is open
                 // TODO check for modifier keys like Alt or Ctrl ?

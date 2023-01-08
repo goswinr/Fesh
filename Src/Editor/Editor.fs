@@ -72,9 +72,11 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
 
         //avaEdit.Foreground<-Brushes.HotPink
         SyntaxHighlighting.setFSharp(avaEdit,false)
-
+        search.MarkerCornerRadius <- 0.
         search.MatchCase  <- true //config.Settings.GetBool("SearchMatchCase", true) // TODO how to save changes ?
-        search.WholeWords <- true //config.Settings.GetBool("SearchWholeWords", true)
+        search.WholeWords <- false //config.Settings.GetBool("SearchWholeWords", false)
+
+        //avaEdit.TextArea.Document.TextChanged.Add ( fun a -> ISeffLog.printError "Seff TextArea.Document.TextChanged")// debug only
         
 
     member val IsCurrent = false with get,set //  this is managed in Tabs.selectionChanged event handler
