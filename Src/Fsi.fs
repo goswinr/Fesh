@@ -96,6 +96,8 @@ type Fsi private (config:Config) =
     let abortThenMakeAndStartAsyncThread() = 
         //shutDownThreadEv.Trigger() // don't do this ! this shuts down all of Seff !!
 
+        // Use Interrupt instead of Abort  ? see https://github.com/dotnet/fsharp/pull/14546#pullrequestreview-1240043309
+
         match asyncThread with 
         |Some thr -> 
             asyncContext <- None
@@ -223,7 +225,9 @@ type Fsi private (config:Config) =
             Directory.SetCurrentDirectory(Path.GetDirectoryName(Reflection.Assembly.GetAssembly([].GetType()).Location))    
             let fsiSession = FsiEvaluationSession.Create(fsiConfig, fsiArgs, inStream, log.TextWriterFsiStdOut, log.TextWriterFsiErrorOut) //, collectible=false ??) //https://github.com/dotnet/fsharp/blob/6b0719845c928361e63f6e38a9cce4ae7d621fbf/src/fsharp/fsi/fsi.fs#L2440
             Directory.SetCurrentDirectory(prevDir)
-            fsiSession 
+            
+            //fsiSession.Run() // don't call Run(), crashes app, done by WPF App.Run(). see https://github.com/dotnet/fsharp/issues/14486
+            fsiSession
         
     let handeleEvaluationResult (evaluatedTo:Choice<FsiValue option,exn>, errs: FSharpDiagnostic[], codeToEv:CodeToEval) =
         // switch back to sync Thread:
@@ -304,8 +308,7 @@ type Fsi private (config:Config) =
     let evalSave (sess:FsiEvaluationSession, code:string, codeToEv:CodeToEval) =
         #if NETFRAMEWORK
         // Cancellation happens via Thread Abort 
-        // TODO actually using the token would work too but only is session.Run() has been called before, 
-        // but that fails when hosted. see https://github.com/dotnet/fsharp/issues/14486
+        // TODO actually using the token would work too but only if session.Run() has been called before,but that fails when hosted. see https://github.com/dotnet/fsharp/issues/14486
         let evaluatedTo, errs = 
             try sess.EvalInteractionNonThrowing(code) // cancellation token here fails to cancel in sync, might still throw OperationCanceledException if async
             with e -> Choice2Of2 e , [| |]            
@@ -418,12 +421,14 @@ type Fsi private (config:Config) =
                 sessionOpt <- Some <| fsiSession              
                 
                 //timer.stop()
-                // This Run call crashes the app when hosted in Rhino  and Standalone too ?! 
+
+                // fsiSession.Run()// don't do this, coverd by WPF app loop:  https://github.com/dotnet/fsharp/issues/14486#issuecomment-1358310942
+                // This Run call crashes the app when hosted in Rhino and Standalone too ! 
                 // see https://github.com/dotnet/fsharp/issues/14486
                 // and https://github.com/dotnet/fsharp/blob/main/src/Compiler/Interactive/fsi.fs#L3759
                 // Is it needed to be able to cancel the evaluations in net7 and make the above net7cancellationToken work ?? 
+                // see https://github.com/dotnet/fsharp/pull/14546
                 // https://github.com/dotnet/fsharp/issues/14489              
-                // if not config.Hosting.IsHosted then fsiSession.Run()// not needed, coverd by WPF app loop:  https://github.com/dotnet/fsharp/issues/14486#issuecomment-1358310942
 
 
                 match prevState with
