@@ -8,6 +8,7 @@ open AvalonEditB.Document
 
 open Seff.Model
 open Seff.Config
+open Seff.Util.Str
 
 
 [<Struct>]
@@ -176,12 +177,13 @@ type Foldings(ed:TextEditor, checker:Checker, config:Config, edId:Guid) =
                                 let folds=ResizeArray<NewFolding>()
                                 for f in foldings do
                                     //ISeffLog.log.PrintfnDebugMsg "Foldings from %d to %d  that is  %d lines" f.foldStartOff  f.foldEndOff f.linesInFold
-                                    let fo = new NewFolding(f.foldStartOff, f.foldEndOff)
+                                    let fo = new NewFolding(f.foldStartOff, f.foldEndOff)                                    
                                     fo.Name <- textInFoldBox f.linesInFold
                                     folds.Add(fo) //if NewFolding type is created async a waiting symbol appears on top of it
 
-                                let firstErrorOffset = -1 //The first position of a parse error. Existing foldings starting after this offset will be kept even if they don't appear in newFoldings. Use -1 for this parameter if there were no parse errors)
-                                manager.UpdateFoldings(folds,firstErrorOffset)
+                                // Existing foldings starting after this offset will be kept even if they don't appear in newFoldings. Use -1 for this parameter if there were no parse errors)
+                                let firstErrorOffset = -1 //The first position of a parse error. 
+                                manager.UpdateFoldings(folds, firstErrorOffset)
                                 config.FoldingStatus.Set(iEditor) // so that when new foldings appear they are saved immediately
 
                 } |>  Async.Start
@@ -219,12 +221,16 @@ type Foldings(ed:TextEditor, checker:Checker, config:Config, edId:Guid) =
         config.FoldingStatus.Set(ied) // so that they are saved immediately
 
     static member CollapsePrimary(ied:IEditor, config:Config) = 
-        for f in ied.FoldingManager.AllFoldings do
+        for f in ied.FoldingManager.AllFoldings do            
             match f.Tag with // cast might fail ??
              | :? int as tag ->
                     if tag  = 0 then // nestingLevel
                         f.IsFolded <- true
-             | _ -> ()
+             | _ -> // because only foldins at opening get a tag, not later ones
+                let ln = ied.AvaEdit.Document.GetLineByOffset(f.StartOffset)    
+                let st = ied.AvaEdit.Document.GetCharAt(ln.Offset)
+                if st<> ' ' then 
+                    f.IsFolded <- true             
         config.FoldingStatus.Set(ied) // so that they are saved immediately
     
     /// open any foldings if required and optionally select at location

@@ -18,14 +18,7 @@ open Seff.Model
 open Seff.Config
 
 
-module UtilCompletion = 
-    let charsThatNeedTicks = 
-            [|' '  ; '-' ; '+' ; '*' ; '/' ; '=' ; ',' ; ';' ; '~' ; '%' ; '&' ; '@' ; '#' ; '$' ;
-              '\\' ; '|' ; '!' ; '?' ; '(' ; ')' ; '[' ; ']' ; '<' ; '>' ; '{' ; '}' |]
-    
-    let inline needsTicks(s:string) = 
-        s.IndexOfAny charsThatNeedTicks >= 0
-
+module UtilCompletion =     
     
     let mkTexBlock(txt,style) = // the displayed item in the completion window 
         let mutable tb = Controls.TextBlock()
@@ -90,7 +83,7 @@ type CompletionItem(ed:IEditor,config:Config, getToolTip, it:DeclarationListItem
             elif it.NameInList = "struct" then
                 "[<Struct>]"
             else
-                it.NameInCode 
+                it.NameInCode // may include backticks
 
         //config.Log.PrintfDebugMsg "completionSegment: '%s' : %A" (textArea.Document.GetText(completionSegment)) completionSegment
         if Selection.getSelType textArea = Selection.RectSel then
@@ -192,12 +185,12 @@ type Completions(avaEdit:TextEditor,config:Config, checker:Checker) =
 
     member this.ComplWin
         with get() = win
-        and set(w) = win<-w
+        and set(w) = win <- w
 
     /// for a given method name returns a list of optional argument names
     member this.OptArgsDict = optArgsDict
 
-    static member TryShow(iEditor:IEditor,compl:Completions, pos:PositionInCode , lastChar:char, setback:int, query:string, charBefore:CharBeforeQuery, onlyDU:bool) = 
+    static member TryShow(iEditor:IEditor, compl:Completions, pos:PositionInCode , lastChar:char, setback:int, charBefore:CharBeforeQuery, onlyDU:bool) = 
         //a static method so that it can take an IEditor as argument
         let log = compl.Log
         let config = compl.Config
@@ -205,82 +198,87 @@ type Completions(avaEdit:TextEditor,config:Config, checker:Checker) =
         //ISeffLog.log.PrintfnDebugMsg "TryShow Completion Window for '%s'" pos.lineToCaret
         let ifDotSetback = if charBefore = Dot then setback else 0
 
-        let continueOnUIthread (decls: DeclarationListInfo) = 
-
-
-            let completionLines = ResizeArray<ICompletionData>()
-            if not onlyDU && charBefore = NotDot then
-                completionLines.Add( CompletionItemForKeyWord(iEditor,config,"#if INTERACTIVE",     "Compiler directive to exclude code in compiled format, close with #endif or #else" ) :> ICompletionData)    |>ignore
-                completionLines.Add( CompletionItemForKeyWord(iEditor,config,"#if COMPILED",        "Compiler directive to exclude code in interactive format, close with #endif or #else" ) :> ICompletionData)    |>ignore
-                completionLines.Add( CompletionItemForKeyWord(iEditor,config,"#else",               "else of compiler directives " ) :> ICompletionData)    |>ignore
-                completionLines.Add( CompletionItemForKeyWord(iEditor,config,"#endif",              "End of compiler directive " ) :> ICompletionData)    |>ignore
+        let continueOnUIthread (decls: DeclarationListInfo) =             
+            let caretOff = avaEdit.TextArea.Caret.Offset
+            if caretOff >= pos.offset && IEditor.current.Value.Id = iEditor.Id then // safety check just in case the fsharp checker took very long and this has changed in the meantime
+                let completionLines = ResizeArray<ICompletionData>()
+                if not onlyDU && charBefore = NotDot then
+                    completionLines.Add( CompletionItemForKeyWord(iEditor,config,"#if INTERACTIVE",     "Compiler directive to exclude code in compiled format, close with #endif or #else" ) :> ICompletionData)    |>ignore
+                    completionLines.Add( CompletionItemForKeyWord(iEditor,config,"#if COMPILED",        "Compiler directive to exclude code in interactive format, close with #endif or #else" ) :> ICompletionData)    |>ignore
+                    completionLines.Add( CompletionItemForKeyWord(iEditor,config,"#else",               "else of compiler directives " ) :> ICompletionData)    |>ignore
+                    completionLines.Add( CompletionItemForKeyWord(iEditor,config,"#endif",              "End of compiler directive " ) :> ICompletionData)    |>ignore
                 
-                completionLines.Add( CompletionItemForKeyWord(iEditor,config,"__SOURCE_DIRECTORY__","Evaluates to the current full path of the source directory" ) :> ICompletionData)    |>ignore
-                completionLines.Add( CompletionItemForKeyWord(iEditor,config,"__SOURCE_FILE__"     ,"Evaluates to the current source file name, without its path") :> ICompletionData)    |>ignore
-                completionLines.Add( CompletionItemForKeyWord(iEditor,config,"__LINE__",            "Evaluates to the current line number") :> ICompletionData)    |>ignore
-                for kw,desc in FSharpKeywords.KeywordsWithDescription  do // add keywords to list
-                    completionLines.Add( CompletionItemForKeyWord(iEditor,config,kw,desc) :> ICompletionData) |>ignore
+                    completionLines.Add( CompletionItemForKeyWord(iEditor,config,"__SOURCE_DIRECTORY__","Evaluates to the current full path of the source directory" ) :> ICompletionData)    |>ignore
+                    completionLines.Add( CompletionItemForKeyWord(iEditor,config,"__SOURCE_FILE__"     ,"Evaluates to the current source file name, without its path") :> ICompletionData)    |>ignore
+                    completionLines.Add( CompletionItemForKeyWord(iEditor,config,"__LINE__",            "Evaluates to the current line number") :> ICompletionData)    |>ignore
+                    for kw,desc in FSharpKeywords.KeywordsWithDescription  do // add keywords to list
+                        completionLines.Add( CompletionItemForKeyWord(iEditor,config,kw,desc) :> ICompletionData) |>ignore
 
-            for it in decls.Items do
-                match it.Glyph with
-                |FSharpGlyph.Union
-                |FSharpGlyph.Module
-                |FSharpGlyph.EnumMember -> completionLines.Add (new CompletionItem(iEditor,config, compl.GetToolTip, it, (lastChar = '.'))) // for DU completion add just some.
-                | _ -> if not onlyDU then  completionLines.Add (new CompletionItem(iEditor,config, compl.GetToolTip, it, (lastChar = '.'))) // for normal completion add all others too.
+                for it in decls.Items do
+                    match it.Glyph with
+                    |FSharpGlyph.Union
+                    |FSharpGlyph.Module
+                    |FSharpGlyph.EnumMember -> completionLines.Add (new CompletionItem(iEditor,config, compl.GetToolTip, it, (lastChar = '.'))) // for DU completion add just some.
+                    | _ -> if not onlyDU then  completionLines.Add (new CompletionItem(iEditor,config, compl.GetToolTip, it, (lastChar = '.'))) // for normal completion add all others too.
 
-            if completionLines.Count > 0 then
-                compl.ShowingEv.Trigger() // to close error and type info tooltip
+                if completionLines.Count > 0 then
+                    compl.ShowingEv.Trigger() // to close error and type info tooltip
 
-                let w =  new CodeCompletion.CompletionWindow(avaEdit.TextArea)
-                compl.ComplWin <- Some w 
-                //w.CompletionList.Height <- 400.  // has  UI bug  //TODO
-                //w.Height <- 400. // does not work               
-                w.BorderThickness <- Thickness(0.0) //https://stackoverflow.com/questions/33149105/how-to-change-the-style-on-avalonedit-codecompletion-window
-                w.ResizeMode      <- ResizeMode.NoResize // needed to have no border!
-                w.WindowStyle     <- WindowStyle.None // = no border                
-                w.SizeToContent   <- SizeToContent.WidthAndHeight // https://github.com/icsharpcode/AvalonEdit/blob/master/ICSharpCode.AvalonEdit/CodeCompletion/CompletionWindow.cs#L47
-                w.MinHeight <- avaEdit.FontSize
-                w.MinWidth  <- avaEdit.FontSize * 8.0
-                w.Closed.Add (fun _  ->
-                        compl.Close()
-                        compl.Checker.CheckThenHighlightAndFold(iEditor) //needed ! because window might close immediately after showing if there are no matches
-                        //config.Log.PrintfnDebugMsg "Completion window just closed with selected item: %A " w.CompletionList.SelectedItem
-                        )
+                    let w =  new CodeCompletion.CompletionWindow(avaEdit.TextArea)
+                    compl.ComplWin <- Some w 
+                    w.MaxHeight <- 500 // default 300
+                    w.Width <- 250 // default 175
+                    //w.CompletionList.Height <- 400.  // has  UI bug  
+                    //w.Height <- 400. // does not work               
+                    w.BorderThickness <- Thickness(0.0) //https://stackoverflow.com/questions/33149105/how-to-change-the-style-on-avalonedit-codecompletion-window
+                    w.ResizeMode      <- ResizeMode.NoResize // needed to have no border!
+                    w.WindowStyle     <- WindowStyle.None // = no border                
+                    w.SizeToContent   <- SizeToContent.WidthAndHeight // https://github.com/icsharpcode/AvalonEdit/blob/master/ICSharpCode.AvalonEdit/CodeCompletion/CompletionWindow.cs#L47
+                    w.MinHeight <- avaEdit.FontSize
+                    w.MinWidth  <- avaEdit.FontSize * 8.0
+                    w.Closed.Add (fun _  ->
+                            compl.Close()
+                            compl.Checker.CheckThenHighlightAndFold(iEditor) //needed ! because window might close immediately after showing if there are no matches
+                            //ISeffLog.log.PrintfnDebugMsg "Completion window just closed with selected item: %A " w.CompletionList.SelectedItem
+                            )
 
-                w.CompletionList.SelectionChanged.Add(fun _ -> if w.CompletionList.ListBox.Items.Count=0 then w.Close()) // otherwise empty box might be shown and only get closed on second character
-                w.Loaded.Add(                         fun _ -> if w.CompletionList.ListBox.Items.Count=0 then w.Close()) // close immediately if completion list is empty
+                    w.CompletionList.SelectionChanged.Add(fun _ -> if w.CompletionList.ListBox.Items.Count=0 then w.Close()) // otherwise empty box might be shown and only get closed on second character
+                    w.Loaded.Add(                         fun _ -> if w.CompletionList.ListBox.Items.Count=0 then w.Close()) // close immediately if completion list is empty
 
-                w.CloseAutomatically <-true
-                w.CloseWhenCaretAtBeginning <- true
+                    w.CloseAutomatically <-true
+                    w.CloseWhenCaretAtBeginning <- true
 
-                //w.CompletionList.InsertionRequested.Add (fun _ -> avaEdit.LastTextChangeWasFromCompletionWindow <- true) // BAD !! triggers after text instead and text-changed is triggered on single letter
+                    //w.CompletionList.InsertionRequested.Add (fun _ -> avaEdit.LastTextChangeWasFromCompletionWindow <- true) // BAD !! triggers after text instead and text-changed is triggered on single letter
+                    //w.CompletionList.ListBox.SelectionChanged.Add (fun e -> //TODO this is not the correct event to hook up to
+                    //    try if not w.CompletionList.ListBox.HasItems then w.Close()
+                    //    with  _ -> log.PrintfnDebugMsg "Null ref HasItems")// because sometime empty completion window stays open
+                    
+                    
+                    //ISeffLog.log.PrintfnDebugMsg "*4.1: pos.offset: %d , w.StartOffset %d , setback %d" pos.offset w.StartOffset setback                    
+                    let stOff = pos.offset - setback // just using w.StartOffset - setback would sometimes be one too big.( race condition of typing speed)
+                    w.StartOffset <- stOff // to replace some previous characters too
 
-                //w.CompletionList.ListBox.SelectionChanged.Add (fun e -> //TODO this is not the correct event to hook up to
-                //    try if not w.CompletionList.ListBox.HasItems then w.Close()
-                //    with  _ -> log.PrintfnDebugMsg "Null ref HasItems")// because sometime empty completion window stays open
+                    for cln in completionLines do
+                        w.CompletionList.CompletionData.Add (cln)
+                    
+                    
+                    let prefilter = avaEdit.Document.GetText(stOff, caretOff-stOff)// prefilter needs to be calculated here, a few characters might have been added after getCompletions started async.
+                    //ISeffLog.log.PrintfnDebugMsg "*4.2: prefilter '%s' (query:  would be '%s')" prefilter query
+                    if prefilter.Length > 0 then 
+                        w.CompletionList.SelectItem(prefilter) //to pre-filter the list by al typed characters
+                    
 
+                    //ISeffLog.log.PrintfnDebugMsg "Show Completion Window with %d items" w.CompletionList.CompletionData.Count
+                    try w.Show() 
+                    with e -> ISeffLog.log.PrintfnAppErrorMsg "Error in Showing Code Completion Window: %A" e
 
-                w.StartOffset <- w.StartOffset - setback // to maybe replace some previous characters too
-
-                for cln in completionLines do
-                    w.CompletionList.CompletionData.Add (cln)
-
-                if query.Length > 0 then
-                    w.CompletionList.SelectItem(query) //to pre-filter the list if query present
-
-                try
-                    //log.PrintfnDebugMsg "Show Completion Window with %d items" w.CompletionList.CompletionData.Count
-                    w.Show()
-                with e ->
-                    log.PrintfnAppErrorMsg "Error in Showing Code Completion Window: %A" e
-
-                // Event sequence on pressing enter in completion window:
-                // (1)Close window
-                // (2)insert text into editor (triggers completion if one char only)
-                // (3)raise InsertionRequested event
-                // https://github.com/icsharpcode/AvalonEdit/blob/8fca62270d8ed3694810308061ff55c8820c8dfc/AvalonEditB/CodeCompletion/CompletionWindow.cs#L100
-            else
-                compl.Checker.CheckThenHighlightAndFold(iEditor)// start new full check, this on was trimmed at offset.
+                    // Event sequence on pressing enter in completion window:
+                    // (1)Close window
+                    // (2)insert text into editor (triggers completion if one char only)
+                    // (3)raise InsertionRequested event
+                    // https://github.com/icsharpcode/AvalonEdit/blob/8fca62270d8ed3694810308061ff55c8820c8dfc/AvalonEditB/CodeCompletion/CompletionWindow.cs#L100
+                else
+                    compl.Checker.CheckThenHighlightAndFold(iEditor)// start new full check, this on was trimmed at offset.
 
         compl.Checker.GetCompletions(iEditor, pos, ifDotSetback, continueOnUIthread, compl.OptArgsDict)
 

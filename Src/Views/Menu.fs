@@ -217,7 +217,6 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, statusBar:SeffStatusBar, log:
 
 
     do
-
         updateMenu bar [// this function is called after window is layed out otherwise somehow the menu does not show. e.g.  if it is just a let value. // TODO still true ?
             fileMenu,[
                 menuItem cmds.NewTab
@@ -323,9 +322,8 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, statusBar:SeffStatusBar, log:
                 sep()
                 menuItem cmds.PopOutToolTip
                 ]
-            MenuItem(Header = "_About"),[
-                //menuItem cmds.About
-                menuItem cmds.Version
+            MenuItem(Header = "_About"),[                
+                menuItem cmds.Help
                 sep()
                 menuItem cmds.SettingsFolder
                 menuItem cmds.AppFolder

@@ -11,7 +11,7 @@ open Seff.Config
 
 /// A class holding the main grid of Tabs and the log Window
 /// Includes logic for toggeling the view split and saving and restoring size and position
-type TabsAndLog (config:Config, tabs:Tabs, log:Log, win:Views.Window) as this = 
+type TabsAndLog (config:Config, tabs:Tabs, log:Log, win:Views.SeffWindow) as this = 
 
     let gridSplitterSize = 4.0
 

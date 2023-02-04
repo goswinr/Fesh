@@ -202,10 +202,13 @@ module CompileScript =
         gray "starting MSBuild.exe ..."
         let msBuildFolders = 
             [
+            config.Settings.Get "MSBuild.exe" |> Option.defaultValue ""
+            @"C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Current\Bin\MSBuild.exe"
+            @"C:\Program Files\Microsoft Visual Studio\2022\Professional\MSBuild\Current\Bin\MSBuild.exe"
+            @"C:\Program Files\Microsoft Visual Studio\2022\Enterprise\MSBuild\Current\Bin\MSBuild.exe"
             @"C:\Program Files (x86)\Microsoft Visual Studio\2019\Professional\MSBuild\Current\Bin\MSBuild.exe"
             @"C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\MSBuild\Current\Bin\MSBuild.exe"
             @"C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\MSBuild\Current\Bin\MSBuild.exe"
-            config.Settings.Get "MSBuild.exe" |> Option.defaultValue ""
             ]
 
         match msBuildFolders |> Seq.tryFind File.Exists with
@@ -215,15 +218,18 @@ module CompileScript =
             ISeffLog.log.PrintfnIOErrorMsg  "If you have MSBuild.exe on your PC please add the path to the settings file like this:"
             ISeffLog.log.PrintfnAppErrorMsg "MSBuild.exe=C:\Folder\Where\it\is\MSBuild.exe"
             ISeffLog.log.PrintfnIOErrorMsg  "the settings file is at %s" config.Hosting.SettingsFileInfo.FullName
+            false
         | Some msBuildexe ->
             p.StartInfo.FileName <- "\"" + msBuildexe + "\""
-            p.StartInfo.Arguments <- String.concat " " ["\"" + fsProj + "\"" ;  "-restore" ; "/property:Configuration=Release"]
-
+            p.StartInfo.Arguments <- String.concat " " ["\"" + fsProj + "\"" ;  "-restore" ] //; "/property:Configuration=Release"] configuration should be specified in the fsproj file
+            true
 
     let dotnetBuild(p:Diagnostics.Process, fsProj)= 
+        // TODO check if dotnet sdk is installed
         gray "starting dotnet build ..."
         p.StartInfo.FileName <- "dotnet"
         p.StartInfo.Arguments <- String.concat " " ["build"; "\"" + fsProj + "\""  ;  "--configuration Release"]
+        true
 
 
     let compileScript(code, fp:FilePath, useMSBuild,config:Config.Config) = 
@@ -264,45 +270,47 @@ module CompileScript =
                             //https://stackoverflow.com/questions/1145969/processinfo-and-redirectstandardoutput
                             let p = new System.Diagnostics.Process()
                             p.EnableRaisingEvents <- true
-                            if useMSBuild then msBuild     ( p, fsProj, config)
-                            else               dotnetBuild ( p, fsProj)
-                            ISeffLog.log.PrintfnColor 0 0 200 "%s %s" p.StartInfo.FileName p.StartInfo.Arguments
-                            p.StartInfo.UseShellExecute <- false
-                            p.StartInfo.CreateNoWindow <- true //true if the process should be started without creating a new window to contain it
-                            p.StartInfo.RedirectStandardError <-true
-                            p.StartInfo.RedirectStandardOutput <-true
-                            // for console also see https://stackoverflow.com/a/1427817/969070
-                            p.StartInfo.StandardOutputEncoding <- Text.Encoding.GetEncoding(Globalization.CultureInfo.CurrentCulture.TextInfo.OEMCodePage) //https://stackoverflow.com/a/48436394/969070
-                            p.StartInfo.StandardErrorEncoding  <- Text.Encoding.GetEncoding(Globalization.CultureInfo.CurrentCulture.TextInfo.OEMCodePage) //https://stackoverflow.com/a/48436394/969070
-                            p.OutputDataReceived.Add ( fun d ->
-                                let txt = d.Data
-                                if not <| isNull txt then // happens often actually
-                                    if   txt.Contains "Build FAILED." then      ISeffLog.log.PrintfnColor 220 0 150  "%s" txt
-                                    elif txt.Contains "error FS"   then         ISeffLog.log.PrintfnColor 220 0 0  "%s" txt
-                                    elif txt.Contains "Build succeeded." then   green  "%s" txt
-                                    elif txt.Contains outLiteral  then                                        
-                                        resultDll <- txt.Replace(outLiteral,"").Trim()                                        
-                                        gray "%s" txt
+                            let compilerExists = 
+                                if useMSBuild then msBuild     ( p, fsProj, config)
+                                else               dotnetBuild ( p, fsProj)
+                            if compilerExists then
+                                ISeffLog.log.PrintfnColor 0 0 200 "%s %s" p.StartInfo.FileName p.StartInfo.Arguments
+                                p.StartInfo.UseShellExecute <- false
+                                p.StartInfo.CreateNoWindow <- true //true if the process should be started without creating a new window to contain it
+                                p.StartInfo.RedirectStandardError <-true
+                                p.StartInfo.RedirectStandardOutput <-true
+                                // for console also see https://stackoverflow.com/a/1427817/969070
+                                p.StartInfo.StandardOutputEncoding <- Text.Encoding.GetEncoding(Globalization.CultureInfo.CurrentCulture.TextInfo.OEMCodePage) //https://stackoverflow.com/a/48436394/969070
+                                p.StartInfo.StandardErrorEncoding  <- Text.Encoding.GetEncoding(Globalization.CultureInfo.CurrentCulture.TextInfo.OEMCodePage) //https://stackoverflow.com/a/48436394/969070
+                                p.OutputDataReceived.Add ( fun d ->
+                                    let txt = d.Data
+                                    if not <| isNull txt then // happens often actually
+                                        if   txt.Contains "Build FAILED." then      ISeffLog.log.PrintfnColor 220 0 150  "%s" txt
+                                        elif txt.Contains "error FS"   then         ISeffLog.log.PrintfnColor 220 0 0  "%s" txt
+                                        elif txt.Contains "Build succeeded." then   green  "%s" txt
+                                        elif txt.Contains outLiteral  then                                        
+                                            resultDll <- txt.Replace(outLiteral,"").Trim()                                        
+                                            gray "%s" txt
+                                        else
+                                            gray "%s" txt
+                                        )
+                                p.ErrorDataReceived.Add (  fun d -> ISeffLog.log.PrintfnAppErrorMsg "%s" d.Data)
+                                p.Exited.Add( fun _ ->
+                                    if resultDll <> "" then
+                                        gray  "*build done! This line is copied to your clipboard, paste via Ctrl + V :"
+                                        ISeffLog.log.PrintfColor  190 0 50 "#r @\""
+                                        ISeffLog.log.PrintfColor  0 0 0 "%s" resultDll
+                                        ISeffLog.log.PrintfnColor 190 0 50 "\""
+                                        FsEx.Wpf.SyncWpf.doSync ( fun () -> Clipboard.SetText("#r @\"" + resultDll + "\"\r\n") )
                                     else
-                                        gray "%s" txt
+                                        gray  "*build process ended!"
+                                    gray "--------------------------------------------------------------------------------"
                                     )
-                            p.ErrorDataReceived.Add (  fun d -> ISeffLog.log.PrintfnAppErrorMsg "%s" d.Data)
-                            p.Exited.Add( fun _ ->
-                                if resultDll <> "" then
-                                    gray  "*build done! This line is copied to your clipboard, paste via Ctrl + V :"
-                                    ISeffLog.log.PrintfColor  190 0 50 "#r @\""
-                                    ISeffLog.log.PrintfColor  0 0 0 "%s" resultDll
-                                    ISeffLog.log.PrintfnColor 190 0 50 "\""
-                                    FsEx.Wpf.SyncWpf.doSync ( fun () -> Clipboard.SetText("#r @\"" + resultDll + "\"\r\n") )
-                                else
-                                    gray  "*build process ended!"
-                                gray "--------------------------------------------------------------------------------"
-                                )
-                            p.Start() |> ignore
-                            p.BeginOutputReadLine()
-                            p.BeginErrorReadLine()
-                            //log.PrintfnInfoMsg "compiling to %s" (IO.Path.Combine(projFolder,"bin","Release","netstandard2.0",nameSpace+".dll"))
-                            p.WaitForExit()
+                                p.Start() |> ignore
+                                p.BeginOutputReadLine()
+                                p.BeginErrorReadLine()
+                                //log.PrintfnInfoMsg "compiling to %s" (IO.Path.Combine(projFolder,"bin","Release","netstandard2.0",nameSpace+".dll"))
+                                p.WaitForExit()
                 with
                     e -> ISeffLog.log.PrintfnAppErrorMsg "%A" e
             } |> Async.Start

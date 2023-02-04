@@ -230,7 +230,7 @@ type Checker private (config:Config)  =
 
     member this.GlobalCheckState = globalCheckState
 
-    /// ensures only one instance is created
+    /// Ensures only one instance is created
     static member GetOrCreate(config) = 
         match singleInstance with
         |Some ch -> ch
@@ -243,7 +243,7 @@ type Checker private (config:Config)  =
     /// Triggers Event<FSharpErrorInfo[]> event after calling the continuation
     member this.CheckThenHighlightAndFold (iEditor:IEditor)  =  checkCode (iEditor, 0,  None)
 
-    /// checks for items available for completion    
+    /// Checks for items available for completion    
     member this.GetCompletions (iEditor:IEditor, pos :PositionInCode, ifDotSetback, continueOnUIthread: DeclarationListInfo -> unit, optArgsDict:Dictionary<string,ResizeArray<OptDefArg>>) = 
         let getSymbolsAndDecls(res:CheckResults) = 
             let thisId = !checkId
@@ -251,32 +251,33 @@ type Checker private (config:Config)  =
             //and https://github.com/fsharp/FSharp.Compiler.Service/issues/835
             async{
                 let colSetBack = pos.column - ifDotSetback                
-                let partialLongName = QuickParse.GetPartialLongNameEx(pos.lineToCaret, colSetBack - 1) //TODO is minus one correct ? https://github.com/fsharp/FSharp.Compiler.Service/issues/837
+                let partLoName = QuickParse.GetPartialLongNameEx(pos.lineToCaret, colSetBack - 1) //TODO is minus one correct ? https://github.com/fsharp/FSharp.Compiler.Service/issues/837
                 
                 if !checkId = thisId  then
                     //ISeffLog.log.PrintfnDebugMsg "*3.0 - checkRes.GetDeclarationListSymbols..."
-                    let symUse = 
+                    let symUse = // Symbols are only for finding out if an argument is optional
                         res.checkRes.GetDeclarationListSymbols(
                             Some res.parseRes,  // ParsedFileResultsOpt
                             pos.row,            // line
                             pos.lineToCaret ,   // lineText
-                            partialLongName     // PartialLongName
+                            partLoName          // PartialLongName
                             //( fun _ -> [] )   // getAllEntities: (unit -> AssemblySymbol list)
                             )
-                    if !checkId = thisId  then
-                        
+                    
+                    if !checkId = thisId  then                        
                         //ISeffLog.log.PrintfnDebugMsg "*3.1 - checkRes.GetDeclarationListInfo..."
-                        let decls = 
+                        let decls = // for auto completion
                             res.checkRes.GetDeclarationListInfo(            //TODO take declaration from Symbol list !
                                 Some res.parseRes,  // ParsedFileResultsOpt
                                 pos.row,            // line
                                 pos.lineToCaret ,   // lineText
-                                partialLongName     // PartialLongName
+                                partLoName          // PartialLongName
                                 //( fun _ -> [] )   // getAllEntities: (unit -> AssemblySymbol list)
+                                // completionContextAtPos //  TODO use it ?   Completion context for a particular position computed in advance.
                                 )
 
                         if !checkId = thisId  then
-                            //ISeffLog.log.PrintfnDebugMsg "*3.2 - checkRes.GetDeclarationListInfo found %d on: '%s' , setback: %d  partialLongName: '%A'" decls.Items.Length pos.lineToCaret  colSetBack partialLongName
+                            //ISeffLog.log.PrintfnDebugMsg "*3.2 - checkRes.GetDeclarationListInfo found %d on: '%s' , QualifyingIdents: %A  PartialIdent: '%A'" decls.Items.Length pos.lineToCaret  partLoName.QualifyingIdents partLoName.PartialIdent
                             if decls.IsError then 
                                 log.PrintfnAppErrorMsg "*ERROR in GetDeclarationListInfo: %A" decls //TODO use log
                             else                                
@@ -288,8 +289,7 @@ type Checker private (config:Config)  =
                                     for symb in symbs do
                                         let opts = TypeInfo.namesOfOptionalArgs(symb)
                                         if opts.Count>0 then
-                                            optArgsDict.[symb.Symbol.FullName] <- opts
-                                
+                                            optArgsDict.[symb.Symbol.FullName] <- opts                                
                                 
                                 do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context
                                 continueOnUIthread( decls)

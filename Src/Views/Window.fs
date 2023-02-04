@@ -5,12 +5,12 @@ open System.Windows.Media.Imaging
 open System.Runtime.InteropServices
 open Seff.Model
 open Seff.Config
-
+open Seff.Util
 
 
 /// A class holding the main WPF Window
 /// Includes loading icon
-type Window (config:Config)= 
+type SeffWindow (config:Config)= 
 
     let win = new FsEx.Wpf.PositionedWindow(config.Hosting.SettingsFileInfo,ISeffLog.printError)
 
@@ -19,15 +19,33 @@ type Window (config:Config)=
     do
         if win.Settings.GetBool ("WindowIsMax", false) then
             wasMax <- true
+        
+        // Set Title Bar:  
+        let name =         
+            match config.Hosting.HostName with
+            |None     -> "Seff  |  Scripting editor for fsharp"        
+            |Some n   -> "Seff  |  Scripting editor for fsharp in " + n
 
-        let plat = if Environment.Is64BitProcess then "  |  64bit" else "  |  32bit"
-        let v = [].GetType().Assembly.GetName().Version
-        let fscore = sprintf  "  |  Fsharp.Core %d.%d.%d" v.Major v.Minor v.Revision
-        let frameW = "  |  " + RuntimeInformation.FrameworkDescription
-        win.Title       <- match config.Hosting.HostName with
-                           |None     -> "Seff  |  Scripting editor for fsharp"         + plat + frameW + fscore
-                           |Some n   -> "Seff  |  Scripting editor for fsharp in " + n + plat + frameW + fscore
+        let plat = 
+            if Environment.Is64BitProcess then "  |  64bit" else "  |  32bit"
+               
+        let version = 
+            let v = Reflection.Assembly.GetAssembly(typeof<ISeffLog>).GetName().Version
+            $"  |  v {v.Major}.{v.Minor}.{v.Revision}"  + if  v.MinorRevision <> 0s then $".{v.MinorRevision}" else ""
 
+        let fscore  = 
+            let v = [].GetType().Assembly.GetName().Version 
+            $"  |  Fsharp.Core {v.Major}.{v.Minor}.{v.Revision}"  + if  v.MinorRevision <> 0s then $".{v.MinorRevision}" else ""
+
+        let frameW =
+            let d = RuntimeInformation.FrameworkDescription
+            let t = if d.EndsWith ".0" then d[..^2] else d
+            $"  |  {t}" 
+
+        win.Title <- name + version + plat + frameW + fscore
+             
+
+        //Add Icon:
         try
             // Add the Icon at the top left of the window and in the status bar, musst be called  after loading window.
             // Media/logo.ico with Build action : "Resource"
@@ -43,7 +61,7 @@ type Window (config:Config)=
             config.Log.PrintfnAppErrorMsg  "Failed to load Media/logo.ico from Application.ResourceStream : %A" ex
 
     /// The main WPF Window
-    member this.Window = win
+    member this.Window : FsEx.Wpf.PositionedWindow = win //:> System.Windows.Window // cast to a FsEx.Wpf.PositionedWindow
 
     /// Indicating if the Window is in Full-screen mode or minimized mode (not normal mode)
     member this.IsMinOrMax = win.IsMinOrMax

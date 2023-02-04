@@ -159,9 +159,11 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
         //----------------------------------  
 
         // or use avaEdit.Document.Changing event ??
-        //avaEdit.Document.Changed.Add(fun a -> ISeffLog.log.PrintfnColor 100 222 160 "Document.Changed:\r\n'%s'" avaEdit.Text)
-        avaEdit.Document.Changed.Add(fun a -> ed.EvalTracker.SetLastChangeAt(a.Offset))
-        avaEdit.Document.Changed.Add(fun a -> DocChanged.delayDocChange(a, ed, compls, ed.GlobalChecker) ) // to trigger for Autocomplete or error highlighting with immediate delay, (instead of delay in checkCode function.)
+        //avaEdit.Document.Changed.Add(fun a -> ISeffLog.log.PrintfnColor 100 222 160 "Document.Changed:\r\n'%s'" avaEdit.Text)        
+        avaEdit.Document.Changed.Add(fun a -> 
+            DocChanged.delayDocChange(a, ed, compls, ed.GlobalChecker) // to trigger for Autocomplete or error highlighting with immediate delay, (instead of delay in checkCode function.)
+            ed.EvalTracker.SetLastChangeAt(a.Offset)
+            ) 
                           
 
         // check if closing and inserting from completion window is desired now:
@@ -169,7 +171,7 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
 
         ed.GlobalChecker.OnCheckedForErrors.Add(fun (iEditorOfCheck,chRes) -> // this then triggers folding too, statusbar update is added in statusbar class
             if iEditorOfCheck.Id = ed.Id then // make sure it draws only on one editor, not all!
-                AutoFixErrors.refrences(iEditorOfCheck,chRes)
+                AutoFixErrors.refrences(iEditorOfCheck, chRes)
                 ed.ErrorHighlighter.Draw(ed)
             )
 

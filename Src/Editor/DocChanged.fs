@@ -38,7 +38,7 @@ module DocChanged =
             //else compls.JustClosed<-false
 
 
-    module Internal =     
+    module InternalDocChange =     
         type ShowAutocomplete = 
              | DontShow     
              | ShowOnlyDU   
@@ -157,8 +157,7 @@ module DocChanged =
         let show (pos:PositionInCode, compls:Completions, ed:IEditor, forDUonly, checker:Checker) : unit= 
             let lnToCaret = pos.lineToCaret
             let setback     = lastNonFSharpNameCharPosition lnToCaret // to maybe replace some previous characters too
-            let query       = lnToCaret.Substring(lnToCaret.Length - setback)
-            let isKeyword   = keywords.Contains query
+            let query       = lnToCaret.Substring(lnToCaret.Length - setback)            
             //ISeffLog.log.PrintfnDebugMsg "show: pos:%A setback='%d'" pos setback
 
             let charBeforeQueryDU = 
@@ -171,14 +170,13 @@ module DocChanged =
                 else
                     NotDot
 
-            if charBeforeQueryDU = NotDot && isKeyword then
-                //ISeffLog.log.PrintfnDebugMsg "*2.1-show: just highlighting with: lnToCaret='%s' query='%s', charBefore='%A', isKey=%b, setback='%d', onlyDU:%b' " lnToCaret query charBeforeQueryDU isKeyword setback forDUonly
+            if charBeforeQueryDU = NotDot && keywords.Contains query then
+                //ISeffLog.log.PrintfnDebugMsg "*2.1-show: just highlighting with: lnToCaret='%s' \r\n query='%s', charBefore='%A',  setback='%d', onlyDU:%b' " lnToCaret query charBeforeQueryDU setback forDUonly
                 checker.CheckThenHighlightAndFold(ed)
             else
-                //ISeffLog.log.PrintfnDebugMsg "*2.2-show: try window opening with: lnToCaret='%s' query='%s', charBefore='%A', isKey=%b, setback='%d', onlyDU:%b" lnToCaret query charBeforeQueryDU isKeyword setback forDUonly
+                //ISeffLog.log.PrintfnDebugMsg "*2.2-show: try window opening with: lnToCaret='%s' \r\n query='%s', charBefore='%A',  setback='%d', onlyDU:%b" lnToCaret query charBeforeQueryDU  setback forDUonly
                 let last = lnToCaret.[lnToCaret.Length-1]
-                Completions.TryShow(ed, compls, pos, last , setback, query, charBeforeQueryDU, forDUonly)
-                () // DoNothing
+                Completions.TryShow(ed, compls, pos, last , setback, charBeforeQueryDU, forDUonly)                
 
 
         let maybeShowComletionWindow (compls:Completions,ed:IEditor, checker:Checker) : unit =            
@@ -223,9 +221,9 @@ module DocChanged =
                                         //ISeffLog.log.PrintfnDebugMsg "noShow because isThisMemberDeclaration: %s" ln
                                         checker.CheckThenHighlightAndFold(ed) 
                                     |ShowOnlyDU -> show(pos,compls,ed,true, checker)
-                                    |ShowAll    ->  show(pos,compls,ed,false, checker) // this is the most comon case
+                                    |ShowAll    -> show(pos,compls,ed,false, checker) // this is the most comon case
 
-    open Internal
+    open InternalDocChange
 
     let docChanged (e:DocumentChangeEventArgs,ed:IEditor, compls:Completions, checker:Checker) : unit = 
         //ISeffLog.log.PrintfnDebugMsg "*Document.Changed Event: deleted %d '%s', inserted %d '%s', completion hasItems: %b, isOpen: %b , Just closed: %b" e.RemovalLength e.RemovedText.Text e.InsertionLength e.InsertedText.Text compls.HasItems compls.IsOpen compls.JustClosed
@@ -266,11 +264,10 @@ module DocChanged =
     let private changeId = ref 0L
 
     /// only react to the last change after 200 ms
-    let delayDocChange(e:DocumentChangeEventArgs,ed:IEditor, compls:Completions, checker:Checker) : unit = 
-        
+    let delayDocChange(e:DocumentChangeEventArgs,ed:IEditor, compls:Completions, checker:Checker) : unit =         
         /// do timing as low level as possible: see Async.Sleep in  https://github.com/dotnet/fsharp/blob/main/src/fsharp/FSharp.Core/async.fs#L1587
-        let mutable timer :option<Timer> = None
         let k = Interlocked.Increment changeId
+        let mutable timer :option<Timer> = None
         let action =  TimerCallback(fun _ ->
             if !changeId= k then ed.AvaEdit.Dispatcher.Invoke(fun () ->  docChanged (e,ed, compls, checker))
             if timer.IsSome then timer.Value.Dispose() // dispose inside callback, like in Async.Sleep implementation

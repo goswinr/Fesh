@@ -15,7 +15,7 @@ open Seff.Model
 /// this is passed on to hosting apps
 type Seff (config:Config,log:Log) = 
 
-    let win = new Views.Window(config)
+    let win = new Views.SeffWindow(config)
     let tabs = new Tabs(config, win.Window)
     let tabsAndLog = new TabsAndLog(config, tabs, log, win)
 
@@ -27,7 +27,7 @@ type Seff (config:Config,log:Log) =
     do
         dockP.Margin <- Thickness(tabsAndLog.GridSplitterSize)
 
-        commands.SetUpGestureInputBindings()
+        commands.SetUpGestureInputBindings()        
 
         win.Window.AllowDrop <- true // so it works on tab bar
         win.Window.Drop.Add (fun e -> CursorBehavior.TabBarDragAndDrop(tabs.AddFiles, e)) // text editor has it own drag event, this aplies to all other area ( eg log, tab bar) except the editor (see handler)
@@ -38,8 +38,7 @@ type Seff (config:Config,log:Log) =
         win.Window.ContentRendered.Add(fun _    -> KeyboardNative.hookUpForAltKeys(win.Window) )
         win.Window.Closed.Add(         fun _    -> KeyboardNative.unHookForAltKeys() |> ignore )
         KeyboardNative.OnAltKeyCombo.Add(fun ac -> KeyboardShortcuts.altKeyCombo(ac) )
-
-        //win.Window.PreviewKeyDown.Add( fun k -> log.PrintfnDebugMsg "key down: %A syss: %A" k.Key k.SystemKey)
+        
         //if config.Hosting.IsStandalone then win.Window.ContentRendered.Add(fun _ -> log.PrintfnInfoMsg "* Time for loading and rendering of main window: %s"  Timer.InstanceStartup.tocEx)
 
         win.Window.Closing.Add( fun (e:ComponentModel.CancelEventArgs) ->

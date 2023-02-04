@@ -9,7 +9,7 @@ open Seff.Config
 
 module Initialize = 
 
-    let everything(mode:HostedStartUpData option, startupArgs:string[])= 
+    let everything(mode:HostedStartUpData option, startupArgs:string[]): Seff = 
 
         //match mode with None ->  Timer.InstanceStartup.tic()   | _ -> ()  // optional timer for full init process
 
