@@ -122,8 +122,8 @@ type Commands (grid:TabsAndLog, statusBar:SeffStatusBar)  =
 
     // About Menu
     member val Help              = {name= "Hompage / Help"        ;gesture= ""               ;cmd= mkCmdSimple (fun _ -> Process.Start("https://github.com/goswinr/Seff") |> ignore ) ;tip= "Opens a browser window showing https://github.com/goswinr/Seff/"  }
-    member val SettingsFolder    = {name= "Open Settings Folder"  ;gesture= ""               ;cmd= mkCmdSimple (fun _ -> config.Hosting.OpenSettingsFolder())                         ;tip= "Opens the Folder where user settings such as default file content is saved." }
-    member val AppFolder         = {name= "Open App Folder"       ;gesture= ""               ;cmd= mkCmdSimple (fun _ -> config.Hosting.OpenAppFolder())                              ;tip= "Opens the Folder where this App (Seff.exe) is loaded from." }
+    member val SettingsFolder    = {name= "Open Settings Folder"  ;gesture= ""               ;cmd= mkCmdSimple (fun _ -> config.RunContext.OpenSettingsFolder())                         ;tip= "Opens the Folder where user settings such as default file content is saved." }
+    member val AppFolder         = {name= "Open App Folder"       ;gesture= ""               ;cmd= mkCmdSimple (fun _ -> config.RunContext.OpenAppFolder())                              ;tip= "Opens the Folder where this App (Seff.exe) is loaded from." }
     member val OpenXshdFile      = {name= "Open and watch SyntaxHighlighting in VS Code" ;gesture= ""  ;cmd= mkCmdSimple (fun _ -> SyntaxHighlighting.openVSCode(tabs.CurrAvaEdit))       ;tip= "Opens the SyntaxHighlightingFSharp.xshd, file in VS Code.\r\nWatches the file for changes and reloads automatically." }
     //member val ReloadXshdFile  = {name= "Reload SyntaxHighlighting" ;gesture= "F10"            ;cmd= mkCmdSimple (fun _ -> SyntaxHighlighting.setFSharp(tabs.CurrAvaEdit,true))         ;tip= "Reloads SyntaxHighlightingFSharp.xshd, this is useful for testing new highlighting files without a restart." }
 
@@ -202,7 +202,7 @@ type Commands (grid:TabsAndLog, statusBar:SeffStatusBar)  =
                this.ClearLog
                this.CancelFSI
                this.ResetFSI
-               //if config.Hosting.IsHosted then this.ToggleSync
+               //if config.RunContext.IsHosted then this.ToggleSync
                this.CompileScriptSDK
                this.CompileScriptMSB
                //this.ToggleSplit

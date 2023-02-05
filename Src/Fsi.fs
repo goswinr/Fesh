@@ -181,7 +181,7 @@ type Fsi private (config:Config) =
                 | false, None    -> args
                 | true , None    -> Array.append args [| "--quiet"|] // TODO or fsi.ShowDeclarationValues <- false ??
                 | false , Some i -> args |> Array.removeAt i            
-            if config.Hosting.IsRunningOnDotNetCore then // --multiemit is always there on netCore
+            if config.RunContext.IsRunningOnDotNetCore then // --multiemit is always there on netCore
                 qargs 
             else
                 match qargs |> Array.tryFindIndex (fun s -> s="--multiemit") with 
@@ -215,7 +215,7 @@ type Fsi private (config:Config) =
 
         let inStream = new StringReader("")
         //for i,ar in Seq.indexed fsiArgs  do ISeffLog.log.PrintfnDebugMsg $"{i} arg: {ar} "
-        if config.Hosting.IsStandalone then  
+        if config.RunContext.IsStandalone then  
             FsiEvaluationSession.Create(fsiConfig, fsiArgs, inStream, log.TextWriterFsiStdOut, log.TextWriterFsiErrorOut) //, collectible=false ??) //https://github.com/dotnet/fsharp/blob/6b0719845c928361e63f6e38a9cce4ae7d621fbf/src/fsharp/fsi/fsi.fs#L2440
         else
             (*  This is needed since FCS 34. it solves https://github.com/dotnet/fsharp/issues/9064
@@ -260,7 +260,7 @@ type Fsi private (config:Config) =
                     // https://learn.microsoft.com/en-us/dotnet/api/system.threading.thread.abort?view=netframework-4.7.2#system-threading-thread-abort
                     canceledEv.Trigger(codeToEv)
                     isReadyEv.Trigger()
-                    if config.Hosting.IsHosted && mode = FsiMode.Async472 && isNull exn.StackTrace  then
+                    if config.RunContext.IsHosted && mode = FsiMode.Async472 && isNull exn.StackTrace  then
                         log.PrintfnFsiErrorMsg "FSI evaluation was canceled,\r\nif you did not trigger this cancellation try running FSI in Synchronous evaluation mode (instead of Async)."
                     else
                         log.PrintfnInfoMsg "FSI evaluation was canceled by user!" 
@@ -335,7 +335,7 @@ type Fsi private (config:Config) =
             | FsiSegment seg -> seg.text
 
         if not(String.IsNullOrWhiteSpace fsCode) then
-            if not config.Hosting.FsiCanRun then
+            if not config.RunContext.FsiCanRun then
                 log.PrintfnAppErrorMsg "The Hosting App has blocked Fsi from Running, maybe because the App is busy in another command or task."
             else
                 match sessionOpt with
@@ -436,7 +436,7 @@ type Fsi private (config:Config) =
                 |NotLoaded  ->                     () //log.PrintfnInfoMsg "FSharp 40.0 Interactive session created." // in %s"  timer.tocEx
 
                 (*
-                if config.Hosting.IsHosted then
+                if config.RunContext.IsHosted then
                     match mode with
                     |InSync ->             log.PrintfnInfoMsg "FSharp Interactive will evaluate synchronously on UI Thread."
                     |Async472| Async60 ->  log.PrintfnInfoMsg "FSharp Interactive will evaluate asynchronously on a new Thread with ApartmentState.STA."

@@ -15,9 +15,9 @@ open Seff.Model
 
 
 
-type DefaultCode  ( hostInfo:Hosting) = 
+type DefaultCode  ( runContext:RunContext) = 
 
-    let filePath0 = hostInfo.GetPathToSaveAppData("DefaultCode.fsx")
+    let filePath0 = runContext.GetPathToSaveAppData("DefaultCode.fsx")
 
     let writer = SaveReadWriter(filePath0,ISeffLog.printError)
 

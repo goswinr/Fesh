@@ -10,7 +10,7 @@ open Seff
 open Seff.Model
 
 /// A class to hold the statistic of most used toplevel auto completions
-type AutoCompleteStatistic  ( hostInfo:Hosting) = 
+type AutoCompleteStatistic  ( runContext:RunContext) = 
 
     let customPriorities = [
         // first item wil have highest priority
@@ -24,7 +24,7 @@ type AutoCompleteStatistic  ( hostInfo:Hosting) =
 
     let  sep = '=' // key value separator like in ini files
 
-    let filePath0 = hostInfo.GetPathToSaveAppData("AutoCompleteStatistic.txt")
+    let filePath0 = runContext.GetPathToSaveAppData("AutoCompleteStatistic.txt")
 
     let writer = SaveReadWriter(filePath0,ISeffLog.printError)
 

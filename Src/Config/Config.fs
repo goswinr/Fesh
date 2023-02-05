@@ -5,16 +5,16 @@ open Seff.Model
 
 type Config (log:ISeffLog, startUpData:HostedStartUpData option, startupArgs:string[]) = 
 
-    let  hosting                    = Hosting                     (startUpData)
-    let  settings                   = FsEx.Wpf.Settings           (hosting.SettingsFileInfo,ISeffLog.printError)
-    let  recentlyUsedFiles          = RecentlyUsedFiles           (hosting)
-    let  openTabs                   = OpenTabs                    (hosting, startupArgs)
-    let  defaultCode                = DefaultCode                 (hosting)
-    let  autoCompleteStatistic      = AutoCompleteStatistic       (hosting)
-    let  fsiArguments               = FsiArguments                (hosting)
-    let  foldingStatus              = FoldingStatus               (hosting, recentlyUsedFiles)
+    let  runContext                 = new RunContext                  (startUpData)
+    let  settings                   = new FsEx.Wpf.Settings           (runContext.SettingsFileInfo,ISeffLog.printError)
+    let  recentlyUsedFiles          = new RecentlyUsedFiles           (runContext)
+    let  openTabs                   = new OpenTabs                    (runContext, startupArgs)
+    let  defaultCode                = new DefaultCode                 (runContext)
+    let  autoCompleteStatistic      = new AutoCompleteStatistic       (runContext)
+    let  fsiArguments               = new FsiArguments                (runContext)
+    let  foldingStatus              = new FoldingStatus               (runContext, recentlyUsedFiles)
 
-    member this.Hosting                    = hosting
+    member this.RunContext                 = runContext
     member this.Settings                   = settings
     member this.RecentlyUsedFiles          = recentlyUsedFiles
     member this.OpenTabs                   = openTabs

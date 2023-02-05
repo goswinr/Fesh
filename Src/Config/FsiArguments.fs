@@ -8,9 +8,9 @@ open Seff
 open Seff.Model
 
 
-type FsiArguments   ( hostInfo:Hosting) = 
+type FsiArguments   ( runContext:RunContext) = 
 
-    let filePath0 = hostInfo.GetPathToSaveAppData("FsiArguments .txt")
+    let filePath0 = runContext.GetPathToSaveAppData("FsiArguments .txt")
     let writer = SaveReadWriter(filePath0,ISeffLog.printError)
 
     // "--shadowcopyreferences" is ignored https://github.com/fsharp/FSharp.Compiler.Service/issues/292

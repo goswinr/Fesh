@@ -13,9 +13,9 @@ open Seff.Model
 type FileToOpen = {file:FileInfo; makeCurrent:bool}
 
 /// files that are open when closing the editor window, for next restart
-type OpenTabs  (hostInfo:Hosting, startupArgs:string[]) = 
+type OpenTabs  (runContext:RunContext, startupArgs:string[]) = 
 
-    let filePath0 = hostInfo.GetPathToSaveAppData("CurrentlyOpenFiles.txt")
+    let filePath0 = runContext.GetPathToSaveAppData("CurrentlyOpenFiles.txt")
     let writer = SaveReadWriter(filePath0,ISeffLog.printError)
 
     let currentTabPreFix = "*Current tab:* " //a string that can never be part of a filename

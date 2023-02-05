@@ -1,7 +1,6 @@
 ﻿namespace Seff
 
 open System
-open System.IO
 open System.Windows
 
 open Seff.Views
@@ -21,8 +20,8 @@ module Initialize =
 
         // to still show-tooltip-when a button(or menu item ) is disabled-by-command
         // https://stackoverflow.com/questions/4153539/wpf-how-to-show-tooltip-when-button-disabled-by-command
-        Controls.ToolTipService.ShowOnDisabledProperty.OverrideMetadata  (typeof<Controls.Control>, new FrameworkPropertyMetadata( true )             )
-        Controls.ToolTipService.ShowDurationProperty.OverrideMetadata    (typeof<DependencyObject>, new FrameworkPropertyMetadata( Int32.MaxValue )   )
+        Controls.ToolTipService.ShowOnDisabledProperty.OverrideMetadata  (typeof<Controls.Control>, new FrameworkPropertyMetadata( true )            )
+        Controls.ToolTipService.ShowDurationProperty.OverrideMetadata    (typeof<DependencyObject>, new FrameworkPropertyMetadata( Int32.MaxValue )  )
         Controls.ToolTipService.InitialShowDelayProperty.OverrideMetadata(typeof<DependencyObject>, new FrameworkPropertyMetadata( 50 )              )
         Controls.ToolTipService.InitialShowDelayProperty.OverrideMetadata(typeof<FrameworkElement>, new FrameworkPropertyMetadata( 50 )              ) // also set in Editor.fs
 
@@ -44,7 +43,7 @@ module Initialize =
             log.PrintfnAppErrorMsg "Setting up Global Error Handling via FsEx.Wpf.ErrorHandeling failed. Or is done already? Is FsEx.Wpf already loaded by another plug-in?\r\n%A" e 
            
         let config = new Config(log, mode, startupArgs)
-        log.AdjustToSettingsInConfig(config)
+        log.AdjustToSettingsInConfig(config)          
 
         Seff(config, log)
 
@@ -57,12 +56,6 @@ module Initialize =
         //with  _ ->
         //    if FrameworkCompatibilityPreferences.KeepTextBoxDisplaySynchronizedWithTextProperty then
         //        log.PrintfnAppErrorMsg "could not set KeepTextBoxDisplaySynchronizedWithTextProperty to false "
-
-
-
-
-
-
 
 
 

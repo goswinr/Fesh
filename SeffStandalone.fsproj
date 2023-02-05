@@ -89,7 +89,7 @@
     <Compile Include="Src/Timer.fs" />
     <Compile Include="Src/Style.fs" />
     <Compile Include="Src/Model.fs" />
-    <Compile Include="Src/Config/Hosting.fs" />
+    <Compile Include="Src/Config/RunContext.fs" />
     <Compile Include="Src/Config/DefaultCode.fs" />
     <Compile Include="Src/Config/FsiArguments.fs" />
     <Compile Include="Src/Config/OpenTabs.fs" />

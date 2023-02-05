@@ -299,7 +299,7 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, statusBar:SeffStatusBar, log:
                 menuItem cmds.ClearLog
                 menuItem cmds.CancelFSI
                 menuItem cmds.ResetFSI
-                if config.Hosting.IsHosted then
+                if config.RunContext.IsHosted then
                     sep()
                     menuItem cmds.ToggleSync
                 sep()

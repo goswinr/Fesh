@@ -17,9 +17,9 @@ type UsedFile = {
     lastOpenedUTC:DateTime
     }
 
-type RecentlyUsedFiles  ( hostInfo:Hosting) = 
+type RecentlyUsedFiles  ( runContext:RunContext) = 
 
-    let filePath0 = hostInfo.GetPathToSaveAppData("RecentlyUsedFiles.txt")
+    let filePath0 = runContext.GetPathToSaveAppData("RecentlyUsedFiles.txt")
 
     let writer = SaveReadWriter(filePath0,ISeffLog.printError)
 

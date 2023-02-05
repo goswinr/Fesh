@@ -217,7 +217,7 @@ module CompileScript =
             ISeffLog.log.PrintfnIOErrorMsg  "MSBuild.exe not found at:\r\n%s " (msBuildFolders |> String.concat Environment.NewLine)
             ISeffLog.log.PrintfnIOErrorMsg  "If you have MSBuild.exe on your PC please add the path to the settings file like this:"
             ISeffLog.log.PrintfnAppErrorMsg "MSBuild.exe=C:\Folder\Where\it\is\MSBuild.exe"
-            ISeffLog.log.PrintfnIOErrorMsg  "the settings file is at %s" config.Hosting.SettingsFileInfo.FullName
+            ISeffLog.log.PrintfnIOErrorMsg  "the settings file is at %s" config.RunContext.SettingsFileInfo.FullName
             false
         | Some msBuildexe ->
             p.StartInfo.FileName <- "\"" + msBuildexe + "\""

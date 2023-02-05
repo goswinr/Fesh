@@ -14,11 +14,11 @@ open Seff.Model
 
 
 /// A class to hold the statistic of most used toplevel auto completions
-type FoldingStatus ( hostInfo:Hosting, recentlyUsedFiles:RecentlyUsedFiles) = 
+type FoldingStatus ( runContext:RunContext, recentlyUsedFiles:RecentlyUsedFiles) = 
 
     let  sep = '|' // separator
 
-    let filePath0 = hostInfo.GetPathToSaveAppData("FoldingStatus.txt")
+    let filePath0 = runContext.GetPathToSaveAppData("FoldingStatus.txt")
 
     let writer = SaveReadWriter(filePath0,ISeffLog.printError)
 

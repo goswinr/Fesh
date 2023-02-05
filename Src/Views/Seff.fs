@@ -39,7 +39,7 @@ type Seff (config:Config,log:Log) =
         win.Window.Closed.Add(         fun _    -> KeyboardNative.unHookForAltKeys() |> ignore )
         KeyboardNative.OnAltKeyCombo.Add(fun ac -> KeyboardShortcuts.altKeyCombo(ac) )
         
-        //if config.Hosting.IsStandalone then win.Window.ContentRendered.Add(fun _ -> log.PrintfnInfoMsg "* Time for loading and rendering of main window: %s"  Timer.InstanceStartup.tocEx)
+        //if config.RunContext.IsStandalone then win.Window.ContentRendered.Add(fun _ -> log.PrintfnInfoMsg "* Time for loading and rendering of main window: %s"  Timer.InstanceStartup.tocEx)
 
         win.Window.Closing.Add( fun (e:ComponentModel.CancelEventArgs) ->
             // first check for running FSI

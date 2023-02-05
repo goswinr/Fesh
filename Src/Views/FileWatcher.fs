@@ -2,15 +2,11 @@
 
 open System
 open System.IO
-open System.Windows.Controls
 open System.Windows
-open System.Windows.Media
 
 open Seff
 open Seff.Editor
 open Seff.Model
-open Seff.Util
-open AvalonLog.Brush
 
 
 type FileChange = 

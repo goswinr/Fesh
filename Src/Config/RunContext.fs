@@ -3,7 +3,6 @@
 open System
 open Seff.Model
 
-
 /// mainWindowHandle: Pointer to main window(nativeInt),
 /// hostName: a string for the name of the hosting App (will be used for settings file name an displayed in the Title Bar.
 /// fsiCanRun: a function to check if evaluation of fsi is currently allowed
@@ -15,50 +14,52 @@ type HostedStartUpData = {
     logo:option<Uri>
     }
 
-//type StartupMode =  Standalone  | Hosted of HostedStartUpData
-
-
 /// A class to hold the current App Run context (Standalone or Hosted)
-type Hosting (startUpData:HostedStartUpData option) = 
+type RunContext (startUpData:HostedStartUpData option) = 
 
     let isRunningOnDotNetCore = 
         Runtime.InteropServices.RuntimeInformation.FrameworkDescription.StartsWith(".NET Framework", StringComparison.OrdinalIgnoreCase) |> not
         //Type.GetType("System.Runtime.Loader.AssemblyLoadContext") <> null // https://github.com/dotnet/runtime/issues/22779#issuecomment-315527735
 
-    let configFolder = 
+    let settingsFolder = 
         let appData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData)
-        let p = IO.Path.Combine(appData,"Seff")
-        IO.Directory.CreateDirectory(p) |> ignore
-        p
-
-    let hostName = //to get a valid filename from any host app name supplied not allowed : < > : " / \ | ? *
-        match startUpData with
-        |None ->  "Standalone"
-        |Some sd ->
-            let mutable n = sd.hostName
-            for c in IO.Path.GetInvalidFileNameChars() do  n <- n.Replace(c, '_')
-            "Hosted." + n
+        let path = 
+            match startUpData with
+            |None ->  
+                IO.Path.Combine(appData,"Seff") // Standalone
+            |Some sd ->
+                let mutable host = sd.hostName
+                for c in IO.Path.GetInvalidFileNameChars() do host <- host.Replace(c, '_') // make sure host name is a valid file name
+                IO.Path.Combine(appData,"Seff",host) 
+        
+        IO.Directory.CreateDirectory(path) |> ignore
+        path
 
     let settingsFileInfo = 
-        IO.Path.Combine(configFolder, hostName + ".Settings.txt")
+        IO.Path.Combine(settingsFolder, "Settings.txt")
         |> IO.FileInfo
 
-    /// To get a path where to save the setting files
-    member this.GetPathToSaveAppData (fileNameInclExt) = 
-        let file = sprintf "%s.%s" hostName fileNameInclExt
-        IO.Path.Combine(configFolder, file )
+    let positionedWindowSettingsFileInfo = 
+        IO.Path.Combine(settingsFolder, "PositionedWindow.txt")
+        |> IO.FileInfo
 
-    member this.ConfigFolder = configFolder
+    /// To get a path where to save the setting files, give file name including extension
+    member this.GetPathToSaveAppData (fileNameInclExt:string) = 
+        IO.Path.Combine(settingsFolder, fileNameInclExt )
 
+    member this.SettingsFolder = settingsFolder
+    
     member this.SettingsFileInfo = settingsFileInfo
 
-    member this.FsiCanRun    =   match startUpData with None ->  true  | Some d -> d.fsiCanRun()
+    member this.PositionedWindowSettingsFileInfo = positionedWindowSettingsFileInfo
 
-    member this.HostName     =  match startUpData with None ->  None | Some d -> Some d.hostName
+    member this.FsiCanRun    = match startUpData with None ->  true | Some d -> d.fsiCanRun()
 
-    member this.IsHosted     = match startUpData with None ->  false | Some _ -> true
+    member this.HostName     = match startUpData with None ->  None | Some d -> Some d.hostName
 
-    member this.IsStandalone = match startUpData with None ->  true  | Some _ -> false
+    member this.IsHosted     = match startUpData with None ->  false| Some _ -> true
+
+    member this.IsStandalone = match startUpData with None ->  true | Some _ -> false
 
     member this.Logo         = match startUpData with None ->  None | Some d -> d.logo
 
@@ -66,7 +67,7 @@ type Hosting (startUpData:HostedStartUpData option) =
 
     /// opens up Explorer.exe
     member this.OpenSettingsFolder()= 
-        Diagnostics.Process.Start("explorer.exe", "\"" + configFolder+ "\"")        |> ignore
+        Diagnostics.Process.Start("explorer.exe", "\"" + settingsFolder+ "\"")        |> ignore
 
     /// opens up Explorer.exe with folder of Seff.exe
     member this.OpenAppFolder()= 

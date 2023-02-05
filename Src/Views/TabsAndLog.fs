@@ -15,6 +15,7 @@ type TabsAndLog (config:Config, tabs:Tabs, log:Log, win:Views.SeffWindow) as thi
 
     let gridSplitterSize = 4.0
 
+
     let grid                = new Grid()
     let editorRowHeight     = new RowDefinition   (Height = makeGridLength (config.Settings.GetFloat ("EditorHeight"  ,400.0)))
     let logRowHeight        = new RowDefinition   (Height = makeGridLength (config.Settings.GetFloat ("LogHeight"     ,400.0)))
@@ -25,7 +26,7 @@ type TabsAndLog (config:Config, tabs:Tabs, log:Log, win:Views.SeffWindow) as thi
     let mutable isLogMaxed = false
 
     let setGridHor() = 
-        config.Settings.SetBool ("isVertSplit", false) |> ignore
+        config.Settings.SetBool ("IsViewSplitVertical", false) |> ignore
         setGridHorizontal grid [
             tabs.Control        :> UIElement, editorRowHeight
             splitterHor         :> UIElement, RowDefinition(Height = GridLength.Auto)
@@ -33,7 +34,7 @@ type TabsAndLog (config:Config, tabs:Tabs, log:Log, win:Views.SeffWindow) as thi
             ]
 
     let setGridVert() = 
-        config.Settings.SetBool ("isVertSplit", true) |> ignore
+        config.Settings.SetBool ("IsViewSplitVertical", true) |> ignore
         setGridVertical grid [
             tabs.Control        :> UIElement, editorColumnWidth
             splitterVert        :> UIElement, ColumnDefinition(Width = GridLength.Auto)
@@ -44,7 +45,7 @@ type TabsAndLog (config:Config, tabs:Tabs, log:Log, win:Views.SeffWindow) as thi
 
     do
         TabsAndLog.Instance <- this
-        if config.Settings.GetBool ("isVertSplit", true) then setGridVert()
+        if config.Settings.GetBool ("IsViewSplitVertical", true) then setGridVert()
         else                                               setGridHor()
 
         splitterHor.Height <- gridSplitterSize
@@ -80,8 +81,8 @@ type TabsAndLog (config:Config, tabs:Tabs, log:Log, win:Views.SeffWindow) as thi
         and set v = instance <- v
 
     member this.ToggleSplit() = 
-        if config.Settings.GetBool ("isVertSplit", true) then setGridHor()
-        else                                                  setGridVert()
+        if config.Settings.GetBool ("IsViewSplitVertical", true) then setGridHor()
+        else                                                          setGridVert()
         config.Settings.Save ()
 
     member this.ToggleMaxLog() = 
