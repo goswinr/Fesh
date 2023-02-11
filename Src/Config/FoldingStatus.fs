@@ -1,14 +1,9 @@
 ﻿namespace Seff.Config
 
-open System
+
 open System.Text
 open System.Collections.Generic
-open System.IO
-
-open AvalonEditB.Folding
-
 open FsEx.Wpf
-
 open Seff
 open Seff.Model
 

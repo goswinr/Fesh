@@ -1,18 +1,9 @@
 ﻿namespace Seff.Config
 
-open Seff
 open System
-open System
-open System.Windows
-open System.Threading
-open System.Text
-open System.Collections.Generic
 open System.IO
-
 open FsEx.Wpf
-
 open Seff.Model
-
 
 
 type DefaultCode  ( runContext:RunContext) = 

@@ -76,6 +76,15 @@ type TabsAndLog (config:Config, tabs:Tabs, log:Log, win:Views.SeffWindow) as thi
                 config.Settings.Save ()
                 )
 
+        win.Window.StateChanged.Add (fun e ->
+            match win.Window.WindowState with
+            | WindowState.Normal ->
+                if isLogMaxed then this.ToggleMaxLog() // to also switch back from maximised whne the windo size gets restored
+            | _ -> ()
+            //| WindowState.Maximized -> // normally the state change event comes after the location change event but before size changed. async sleep in LocationChanged prevents this                ()
+            //| WindowState.Minimized -> 
+            )
+
     static member Instance
         with get() = instance
         and set v = instance <- v
@@ -86,13 +95,13 @@ type TabsAndLog (config:Config, tabs:Tabs, log:Log, win:Views.SeffWindow) as thi
         config.Settings.Save ()
 
     member this.ToggleMaxLog() = 
-        if  isLogMaxed then // if it is already maxed then size down again
-            isLogMaxed <- false
-            editorRowHeight.Height   <- makeGridLength <|config.Settings.GetFloat ("EditorHeight",  99.)
-            logRowHeight.Height      <- makeGridLength <|config.Settings.GetFloat ("LogHeight"   ,  99.)
+        if isLogMaxed then // if it is already maxed then size down again
+            isLogMaxed <- false// do first
+            editorRowHeight.Height   <- makeGridLength <|config.Settings.GetFloat ("EditorHeight", 99.)
+            logRowHeight.Height      <- makeGridLength <|config.Settings.GetFloat ("LogHeight"   , 99.)
             editorColumnWidth.Width  <- makeGridLength <|config.Settings.GetFloat ("EditorWidth" , 99. )
             logColumnWidth.Width     <- makeGridLength <|config.Settings.GetFloat ("LogWidth"    , 99. )
-            if not win.WasMax then win.Window.WindowState <- WindowState.Normal
+            if not win.WasMax then win.Window.WindowState <- WindowState.Normal // do last because of  win.Window.StateChanged.Add handler above
         else
             // maximise log view
             isLogMaxed <- true

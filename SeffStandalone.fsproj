@@ -26,13 +26,13 @@
     <Product>Seff</Product>
     <PackageId>Seff</PackageId>
 
-    <Version>0.2.0</Version>
-    <AssemblyVersion>0.2.0</AssemblyVersion>
-    <FileVersion>0.2.0</FileVersion>
+    <Version>1.0.0</Version>
+    <AssemblyVersion>1.0.0</AssemblyVersion>
+    <FileVersion>1.0.0</FileVersion>
     <PackageReleaseNotes>First public release</PackageReleaseNotes>
     <Company>Goswin Rothenthal</Company><!--shows up on file preview on exe in explorer-->
     <Authors>GoswinR</Authors>
-    <Copyright>Goswin Rothenthal 2021</Copyright>
+    <Copyright>Goswin Rothenthal 2019</Copyright>
 
     <Description>A hostable fsharp scripting editor for Windows based on Avalonedit</Description>
     <ApplicationIcon>Media/logo.ico</ApplicationIcon>
@@ -40,17 +40,7 @@
 
     <Configurations>Release</Configurations>
     <DefineConstants Condition="'$(TargetFramework)' == 'net472'">NETFRAMEWORK</DefineConstants>
-    
-    <!-- 
-    <Platforms>x64;x86</Platforms> 
-    <OutputPath Condition="'$(Platform)'=='x64'">binStandalone/x64/</OutputPath>
-    <OutputPath Condition="'$(Platform)'=='x86'">binStandalone/x86/</OutputPath>
-    
-    <PlatformTargets>x64;x86</PlatformTargets>
-    <OutputPath Condition="'$(PlatformTarget)'=='x64'">binStandalone/x64/</OutputPath>
-    <OutputPath Condition="'$(PlatformTarget)'=='x86'">binStandalone/x86/</OutputPath>
-      -->
-
+	
     <RuntimeIdentifiers>win-x64;win-x86</RuntimeIdentifiers>
     <OutputPath>binStandalone</OutputPath>    
   </PropertyGroup>
@@ -64,7 +54,7 @@
     <PackageReference Include="AvalonLog" Version="0.8.3" GeneratePathProperty="true" />	  	  
     <PackageReference Update="FSharp.Core" Version="7.0.0" GeneratePathProperty="true" />
     <PackageReference Include="FSharp.Compiler.Service" Version="42.7.101" GeneratePathProperty="true" />
-    <PackageReference Include="FsEx.Wpf" Version="0.3.1" GeneratePathProperty="true" />
+    <PackageReference Include="FsEx.Wpf" Version="0.4.0" GeneratePathProperty="true" />
     <PackageReference Include="AvalonEditB" Version="1.6.0" GeneratePathProperty="true" />	  <!-- just to pull in XML too below-->
 
     <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.1" PrivateAssets="All" IncludeAssets="runtime; build; native; contentfiles; analyzers; buildtransitive" />
@@ -91,6 +81,7 @@
     <Compile Include="Src/Model.fs" />
     <Compile Include="Src/Config/RunContext.fs" />
     <Compile Include="Src/Config/DefaultCode.fs" />
+    <Compile Include="Src/Config/ScriptCompilerTemplate.fs" />
     <Compile Include="Src/Config/FsiArguments.fs" />
     <Compile Include="Src/Config/OpenTabs.fs" />
     <Compile Include="Src/Config/RecentlyUsedFiles.fs" />

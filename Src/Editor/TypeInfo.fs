@@ -496,7 +496,7 @@ type TypeInfo private () =
         let pos = iEditor.AvaEdit.GetPositionFromPoint(e.GetPosition(iEditor.AvaEdit))
         if pos.HasValue then
             match iEditor.FileCheckState with
-            | GettingCode _ | Checking _ |Failed | NotStarted -> ()
+            | GettingCode _ | Checking _ |CheckFailed | NotStarted -> ()
             | Done res ->
                 let line = pos.Value.Line
 

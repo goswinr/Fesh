@@ -149,7 +149,7 @@ type CheckerStatus (grid:TabsAndLog) as this =
                             this.Text <- checkingTxt
                             this.Background <- waitCol //originalBackGround
                             this.ToolTip <- sprintf "Checking %s for Errors ..." tabs.Current.FormattedFileName
-                    | Done _ | NotStarted | Failed -> ()
+                    | Done _ | NotStarted | CheckFailed -> ()
             } |> Async.StartImmediate
 
         | NotStarted -> // these below never happen because event is only triggered on success
@@ -158,7 +158,7 @@ type CheckerStatus (grid:TabsAndLog) as this =
             this.ToolTip <- "Initializing compiler . . ."
             this.Background <- waitCol //originalBackGround
 
-        | Failed -> // these below never happen because event is only triggered on success
+        | CheckFailed -> // these below never happen because event is only triggered on success
             lastErrCount <- -1
             this.Text <- "Fs Checker failed to complete."
             this.ToolTip <- "Fs Checker failed to complete."

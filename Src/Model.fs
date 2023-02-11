@@ -122,11 +122,11 @@ type FileCheckState =
     /// The CheckResults are always local per Editor
     | Done of CheckResults
 
-    | Failed
+    | CheckFailed
 
     member this.FullCodeAndId  = 
         match this with
-        | NotStarted | GettingCode _  | Failed -> NoCode
+        | NotStarted | GettingCode _  | CheckFailed -> NoCode
         | Checking (id, c)  ->  match c        with  FullCode s -> CodeID (s,id          )  | PartialCode _ -> NoCode
         | Done res          ->  match res.code with  FullCode s -> CodeID (s,res.checkId )  | PartialCode _ -> NoCode
 
@@ -144,7 +144,7 @@ type FileCheckState =
         match this with
         | NotStarted        ->  "FileCheckState.NotStarted"
         | GettingCode _     -> "FileCheckState.GettingCode"
-        | Failed            -> "FileCheckState.Failed"
+        | CheckFailed       -> "FileCheckState.Failed"
         | Checking (id, c)  ->  "FileCheckState.Checking"
         | Done res          ->  "FileCheckState.Done with " +  res.checkRes.Diagnostics.Length.ToString() +  " infos, warnings or errors"
 

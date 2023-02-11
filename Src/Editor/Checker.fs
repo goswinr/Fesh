@@ -176,7 +176,7 @@ type Checker private (config:Config)  =
 
                                 | FSharpCheckFileAnswer.Aborted  ->
                                     log.PrintfnAppErrorMsg "FSharpChecker.ParseAndCheckFileInProject(filepath, 0, sourceText , options) returned: FSharpCheckFileAnswer.Aborted\r\nFSharpParseFileResults is: %A" parseRes
-                                    globalCheckState <-Failed
+                                    globalCheckState <-CheckFailed
                                     iEditor.FileCheckState <- globalCheckState
                             with e ->
                                 log.PrintfnAppErrorMsg "Error in ParseAndCheckFileInProject Block.\r\n This may be from a Type Provider or you are using another version of FSharpCompilerService.dll than at compile time?"
@@ -184,7 +184,7 @@ type Checker private (config:Config)  =
                                 log.PrintfnAppErrorMsg "%s" e.Message
                                 log.PrintfnAppErrorMsg "InnerException:\r\n%A" e.InnerException
                                 if notNull e.InnerException then log.PrintfnAppErrorMsg "%s" e.InnerException.Message
-                                globalCheckState <-Failed
+                                globalCheckState <-CheckFailed
                                 iEditor.FileCheckState <- globalCheckState
                         else
                             () //ISeffLog.log.PrintfnDebugMsg $"other is running 2: this{thisId} other {!checkId} "
@@ -193,7 +193,7 @@ type Checker private (config:Config)  =
                             log.PrintfnAppErrorMsg "Error in GetProjectOptionsFromScript Block.\r\nMaybe you are using another version of FSharpCompilerService.dll than at compile time?:"
                             log.PrintfnAppErrorMsg "%A" e
                             log.PrintfnAppErrorMsg "%s" e.Message
-                            globalCheckState <-Failed
+                            globalCheckState <-CheckFailed
                             iEditor.FileCheckState <- globalCheckState
             else
                 () //ISeffLog.log.PrintfnDebugMsg $"other is running 1: this{thisId} other {!checkId} "

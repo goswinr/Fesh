@@ -23,15 +23,15 @@ type SeffWindow (config:Config)=
         // Set Title Bar:  
         let name =         
             match config.RunContext.HostName with
-            |None     -> "Seff  |  Scripting editor for fsharp"        
-            |Some n   -> "Seff  |  Scripting editor for fsharp in " + n
+            |None     -> "Seff"          //, a Scripting editor for fsharp"        
+            |Some n   -> "Seff for " + n //, a Scripting editor for fsharp in " + n
 
         let plat = 
             if Environment.Is64BitProcess then "  |  64bit" else "  |  32bit"
                
         let version = 
             let v = Reflection.Assembly.GetAssembly(typeof<ISeffLog>).GetName().Version
-            $"  |  v {v.Major}.{v.Minor}.{v.Revision}"  + if  v.MinorRevision <> 0s then $".{v.MinorRevision}" else ""
+            $" {v.Major}.{v.Minor}.{v.Revision}"  + if  v.MinorRevision <> 0s then $".{v.MinorRevision}" else ""
 
         let fscore  = 
             let v = [].GetType().Assembly.GetName().Version 

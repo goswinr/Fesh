@@ -154,7 +154,7 @@ type SemanticColorizier (ied:TextEditor, edId:Guid, ch:Checker) =
         |Checking _
         |GettingCode _
         |NotStarted 
-        |Failed -> ()
+        |CheckFailed -> ()
         |Done chRes ->
             if chRes.editorId = edId then                     
                 if lastCheckId <> chRes.checkId then // to make sure this update only happens on the firts line 

@@ -8,59 +8,12 @@ open System.Drawing
 
 open Seff.Model
 open Seff.Util
+open Seff.Config
 open System.Text
 
 
 module CompileScript = 
-
-    let libFolderName = "lib"
-
-    // TODO really only <PlatformTarget>x64</PlatformTarget><!--  x64 is required e.g by Rhino, don't us just 'Platform' tag-->   ??
-
-    let baseXml = """<?xml version="1.0" encoding="utf-8"?>
-        <Project Sdk="Microsoft.NET.Sdk">
-          <PropertyGroup>
-            <OutputType>Library</OutputType>
-            <TargetFramework>net48</TargetFramework>
-            <LangVersion>preview</LangVersion>
-            <SatelliteResourceLanguages>en</SatelliteResourceLanguages> <!--to only have the English resources of Fsharp.Core-->
-
-            <RootNamespace>rootNamespace</RootNamespace> <!-- set by Seff scriptcompiler-->
-            <AssemblyName>assemblyName</AssemblyName>    <!-- set by Seff scriptcompiler-->
-
-            <GenerateDocumentationFile>true</GenerateDocumentationFile>
-            <NeutralLanguage>en</NeutralLanguage>
-
-            <Version>9.9.9.1</Version><!-- set by Seff scriptcompiler-->
-            <AssemblyVersion>9.9.9.2</AssemblyVersion><!-- set by Seff scriptcompiler-->
-            <FileVersion>9.9.9.3</FileVersion><!-- set by Seff scriptcompiler-->
-
-            <!--<PlatformTarget>x64</PlatformTarget>  x64 is required e.g by Rhino, don't us just 'Platform' tag-->
-
-          </PropertyGroup>
-
-          <ItemGroup>
-            <!--<PackageReference Update="FSharp.Core" Version="5.0.2" /> don't include in libraries-->
-            <!--PLACEHOLDER FOR NUGETS--> <!-- set by Seff scriptcompiler-->
-          </ItemGroup>
-
-          <ItemGroup>
-            <!--PLACEHOLDER FOR REFERENCES--> <!-- set by Seff scriptcompiler-->
-          </ItemGroup>
-
-          <ItemGroup>
-            <!--PLACEHOLDER FOR FILES--> <!-- set by Seff scriptcompiler-->
-          </ItemGroup>
-
-          <!--
-          <Target Name="DeleteObjFolder" BeforeTargets="AfterBuild"> <RemoveDir Directories="obj" ContinueOnError="true" /> </Target>
-          -->
-
-        </Project>
-        """
-
-    
-
+  
     /// also removes "_" ;  "-" ; "+"; "|"; " " from string 
     /// first letter will be capital
     let toCamelCase (s:string) = 
@@ -72,11 +25,9 @@ module CompileScript =
 
     let replace (a:string) (b:string) (s:string) = s.Replace(a,b)
 
-
     type DllRef = {fullPath:string option; fileName:string; nameNoExt:string; copyLocal:bool}
     type FsxRef = {fullPath:string; fileName:string}
     type NugetRef = {name:string; version:string}
-
 
     let getRefs(code:string) : ResizeArray<DllRef>*ResizeArray<FsxRef>*ResizeArray<NugetRef>*string= 
         let refs = ResizeArray()
@@ -122,8 +73,6 @@ module CompileScript =
 
         refs, fsxs, nugs, (codeWithoutNugetRefs.ToString())
 
-    let mutable version = "0.1.0.0" // TODO find way to increment
-
     //if last write is more than 1h ago ask for overwrite permissions
     let overWriteExisting fsProj = 
         let maxAgeHours = 0.5
@@ -144,7 +93,7 @@ module CompileScript =
 
     let getNugsXml (nugs:ResizeArray<NugetRef>) : string = 
            seq{ for nug in nugs  do  "<PackageReference Include=\"" + nug.name + "\" Version=\"" + nug.version + "\" />" }
-           |> String.concat (Environment.NewLine  + "    ")
+           |> String.concat (Environment.NewLine  + String(' ',4) )
 
     let getRefsXml (libFolderFull:string,  refs:ResizeArray<DllRef>) : string= 
         seq{
@@ -167,12 +116,12 @@ module CompileScript =
                         let pdbn = Path.ChangeExtension(newp,"pdb")
                         if IO.File.Exists pdbn then IO.File.Delete pdbn
                         if IO.File.Exists (pdb) then IO.File.Copy(pdb, pdbn)
-                        "<Reference Include=\"" + ref.nameNoExt + "\"><HintPath>" + libFolderName + "/" + ref.fileName + "</HintPath></Reference>"
+                        "<Reference Include=\"" + ref.nameNoExt + "\"><HintPath>" + ScriptCompilerFsproj.LibFolderName + "/" + ref.fileName + "</HintPath></Reference>"
 
                     else
                         "<Reference Include=\"" + ref.nameNoExt + "\"><HintPath>" + fPath + "</HintPath><Private>False</Private></Reference>"
         }
-        |> String.concat (Environment.NewLine  + "    ")
+        |> String.concat (Environment.NewLine  + String(' ',4) )
 
     let getFsxXml (projFolder:string, nameSpace, code, fsxloads:ResizeArray<FsxRef>) : string= 
         seq{
@@ -188,7 +137,7 @@ module CompileScript =
             IO.File.WriteAllText(fsxPath,code,Text.Encoding.UTF8)
             yield     "<Compile Include=\"" + fsxName + "\" />"
         }
-        |> String.concat (Environment.NewLine + "    ")
+        |> String.concat (Environment.NewLine + String(' ',4) )
 
 
     //TODO  use https://github.com/Tyrrrz/CliWrap ??
@@ -228,11 +177,10 @@ module CompileScript =
         // TODO check if dotnet sdk is installed
         gray "starting dotnet build ..."
         p.StartInfo.FileName <- "dotnet"
-        p.StartInfo.Arguments <- String.concat " " ["build"; "\"" + fsProj + "\""  ;  "--configuration Release"]
+        p.StartInfo.Arguments <- String.concat " " ["build"; "\"" + fsProj + "\""  ] //;  "--configuration Release"] configuration is part of fsproj file
         true
 
-
-    let compileScript(code, fp:FilePath, useMSBuild,config:Config.Config) = 
+    let compileScript(code, fp:FilePath, useMSBuild, config:Config) = 
         match fp with
         | NotSet -> ISeffLog.log.PrintfnAppErrorMsg "Cannot compile an unsaved script save it first"
         | SetTo fi ->
@@ -245,7 +193,7 @@ module CompileScript =
                     let mutable resultDll = "" // found via matching on outLiteral below
                     let folderName = "fsxDll_" + nameSpace
                     let projFolder = IO.Path.Combine(fi.DirectoryName,folderName)
-                    let libFolderFull = IO.Path.Combine(projFolder,libFolderName) 
+                    let libFolderFull = IO.Path.Combine(projFolder, ScriptCompilerFsproj.LibFolderName) 
                     IO.Directory.CreateDirectory(libFolderFull)  |> ignore
                     IO.Directory.CreateDirectory(projFolder)  |> ignore
                     let fsProj = IO.Path.Combine(projFolder,nameSpace + ".fsproj")
@@ -254,16 +202,13 @@ module CompileScript =
                         let fsxXml = getFsxXml(projFolder, nameSpace ,codeWithoutNugetRefs, fsxs)
                         let refXml = getRefsXml(libFolderFull,refs)
                         let nugXml = getNugsXml(nugs)
-                        baseXml
-                        |> replace "        " "" //clear white space at beginning of lines
-                        |> replace "rootNamespace" nameSpace
-                        |> replace "assemblyName" nameSpace
-                        |> replace "9.9.9.1" version
-                        |> replace "9.9.9.2" version
-                        |> replace "9.9.9.3" version
-                        |> replace "<!--PLACEHOLDER FOR NUGETS-->" nugXml
-                        |> replace "<!--PLACEHOLDER FOR REFERENCES-->" refXml
-                        |> replace "<!--PLACEHOLDER FOR FILES-->" fsxXml
+                        config.ScriptCompilerFsproj.Get()                        
+                        |> replace "{rootNamespace}" nameSpace
+                        |> replace "{assemblyName}" nameSpace
+                        |> replace "{version}" ScriptCompilerFsproj.AssemblyVersionToWrite
+                        |> replace "{nuget-packages}" nugXml
+                        |> replace "{dll-file-references}" refXml
+                        |> replace "{code-files}" fsxXml
                         |> fun s ->
                             IO.File.WriteAllText(fsProj,s,Text.Encoding.UTF8)
                             gray "project files created at %s" fsProj

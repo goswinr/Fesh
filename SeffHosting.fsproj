@@ -19,13 +19,13 @@
     <Product>Seff</Product>
     <PackageId>Seff</PackageId>
 
-    <Version>0.2.0</Version>
-    <AssemblyVersion>0.2.0</AssemblyVersion>
-    <FileVersion>0.2.0</FileVersion>
+    <Version>1.0.0</Version>
+    <AssemblyVersion>1.0.0</AssemblyVersion>
+    <FileVersion>1.0.0</FileVersion>
     <PackageReleaseNotes>First public release</PackageReleaseNotes>
 
     <Authors>GoswinR</Authors>
-    <Copyright>Goswin Rothenthal 2021</Copyright>
+    <Copyright>Goswin Rothenthal 2019</Copyright>
 
     <Description>A hostable fsharp scripting editor for Windows based on Avalonedit</Description>
     <ApplicationIcon>Media/logo.ico</ApplicationIcon>
@@ -56,7 +56,7 @@
     <!-- normally don't include FSharp.Core in a library, but Update to latest version is needed for latest FSharp.Compiler.Service-->
 	  <PackageReference Update="FSharp.Core" Version="7.0.0" />
 	  <PackageReference Include="FSharp.Compiler.Service" Version="42.7.101" />
-	  <PackageReference Include="FsEx.Wpf" Version="0.3.1" />
+	  <PackageReference Include="FsEx.Wpf" Version="0.4.0" />
 	  <PackageReference Include="AvalonLog" Version="0.8.3" />
 	    
 
@@ -82,6 +82,7 @@
     <Compile Include="Src/Model.fs" />
     <Compile Include="Src/Config/RunContext.fs" />
     <Compile Include="Src/Config/DefaultCode.fs" />
+	<Compile Include="Src/Config/ScriptCompilerTemplate.fs" />
     <Compile Include="Src/Config/FsiArguments.fs" />
     <Compile Include="Src/Config/OpenTabs.fs" />
     <Compile Include="Src/Config/RecentlyUsedFiles.fs" />
