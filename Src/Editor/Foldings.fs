@@ -135,7 +135,7 @@ type Foldings(ed:TextEditor, checker:Checker, config:Config, edId:Guid) =
         if edId=iEditor.Id then // foldEditor will be called on each tab, to update only current editor check id
             //ISeffLog.log.PrintfnDebugMsg "folding1: %s" iEditor.FilePath.File
             async{
-                match iEditor.FileCheckState.FullCodeAndId with
+                match iEditor.FileCheckState.CodeAndId with
                 | NoCode ->()
                 | CodeID (code,checkId) ->
                     let foldings = 

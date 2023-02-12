@@ -1,4 +1,4 @@
-﻿namespace Seff.Views
+namespace Seff.Views
 
 open System
 open System.IO
@@ -7,110 +7,91 @@ open System.Windows
 open Seff
 open Seff.Editor
 open Seff.Model
+open FsEx.Wpf
 
 
-type FileChange = 
-    |Changed
-    |Renamed
-    |Deleted
-    
-
-type FileWatcher(editor:Editor, updateIsCodeSaved:bool->unit, setNewPath:FileWatcher*FilePath->unit) as this = 
-    inherit FileSystemWatcher()
-
-    let onFocusActions = ResizeArray<unit->unit>()
-
+type FileChangeTracker (editor:Editor, setCodeSavedStatus:bool->unit) =
     let nl = System.Environment.NewLine
-
-    let askToUpdate (path:string, newCode:string) = 
-        let msg = $"File{nl}{path}{nl}was changed by some other process.{nl}Do you want to reload it?" 
-        match MessageBox.Show(msg, "! File Changed !" , MessageBoxButton.YesNo, MessageBoxImage.Exclamation, MessageBoxResult.Yes, MessageBoxOptions.DefaultDesktopOnly) with //https://stackoverflow.com/a/53009621
-        | MessageBoxResult.Yes ->
-            editor.Folds.SetToDoOneFullReload()     // to keep folding state
-            //editor.AvaEdit.Text <- newCode        // this does NOT allows undo or redo
-            editor.AvaEdit.Document.Text <- newCode // this allows undo and redo
-            updateIsCodeSaved(true)
-        | _  ->
-            updateIsCodeSaved(false)
+    let ta = editor.AvaEdit.TextArea
+    let watcher = new FileSystemWatcher()
     
-    let showChangedWindow =  editor.Config.Settings.GetBoolSaveDefault ("ShowFileChangedByOtherProcessWindow", true)
+    let mutable checkPending = false
 
-    let mutable deleted = false
+    /// TODO in case of renaming MessageBox is shown and file gets set to unsaved. But doesn't switch to new filename automatically.
 
-    let change(kind:FileChange, path:string, oldPath:string) = 
-        //ISeffLog.printError($"FileWatcher event {kind} {path}!")
-        //this.EnableRaisingEvents <- false // pause watching
+    let setCode(newCode,ed:Editor)=
+        let av = ed.AvaEdit
+        let cOff = av.CaretOffset
+        av.Document.Text <- newCode // this allows undo and redo, just setting AvaEdit.Text not
+        editor.CodeAtLastSave <- newCode
+        if av.Document.TextLength > cOff then 
+            av.CaretOffset <- cOff //reset Caret to same position
+
+    let check() = 
+        match editor.FilePath with
+        |NotSet ->() 
+        |SetTo fi ->        
+            async{                
+                do! Async.Sleep 200 //wait so that the new tab can be displayed first
+                if fi.Exists then
+                    let fileCode = IO.File.ReadAllText(fi.FullName)
+                    if fileCode <> editor.CodeAtLastSave then // this means that the last file saving was not done by Seff
+                        do! Async.SwitchToContext SyncWpf.context                         
+                        match MessageBox.Show($"File{nl}{nl}{fi.Name}{nl}{nl}was changed.{nl}Do you want to reload it?", 
+                            "! File Changed !" , 
+                            MessageBoxButton.YesNo, MessageBoxImage.Exclamation, MessageBoxResult.Yes, MessageBoxOptions.DefaultDesktopOnly) with //https://stackoverflow.com/a/53009621
+                        | MessageBoxResult.Yes ->                            
+                            setCode(fileCode, editor)
+                            setCodeSavedStatus(true)
+                        | _  ->
+                            setCodeSavedStatus(false)
+                        
+                else
+                    do! Async.SwitchToContext SyncWpf.context
+                    setCodeSavedStatus(false)
+                    MessageBox.Show($"{fi.Name}{nl}{nl}was deleted or renamed.{nl}{nl}at {fi.DirectoryName}", 
+                        "! File deleted or renamed!",
+                        MessageBoxButton.OK, MessageBoxImage.Exclamation, MessageBoxResult.OK, MessageBoxOptions.DefaultDesktopOnly) |> ignore                    
+            } 
+            |>Async.Start
+    
+
+    /// this will only check the file for diffs if focused and active
+    let bufferedCheck() =
+        checkPending <- true        
         async{
-            do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context        
-            match kind with
-            |Renamed -> 
-                let fi = SetTo(FileInfo(path))
-                setNewPath(this,fi)
-                //updateIsCodeSaved(false) // mark unsaved so that via saving the recent files list is updated too
-                MessageBox.Show($"File{nl}{oldPath}{nl}was renamed to{nl}{path}.", "! File renamed !", MessageBoxButton.OK, MessageBoxImage.Exclamation, MessageBoxResult.OK, MessageBoxOptions.DefaultDesktopOnly)|> ignore
-            
-            |Deleted -> 
-                deleted <- true
-                do! Async.Sleep 300 // wait first and only raise deleted event if there is no changed event in the meantime
-                if deleted && IO.File.Exists(path) |> not then // double check file really doesn't exist, false alarms  happen wehen a file is deleted and the saved again from Seff
-                    updateIsCodeSaved(false)
-                    MessageBox.Show($"File{nl}{path}{nl}was deleted.", "! File deleted !",MessageBoxButton.OK, MessageBoxImage.Exclamation, MessageBoxResult.OK, MessageBoxOptions.DefaultDesktopOnly)|> ignore
-                    
-            
-            |Changed ->                 
-                deleted <- false // to not raise deleted event  too
-                if showChangedWindow then 
-                    let doc = editor.AvaEdit.Document
-                    do! Async.SwitchToThreadPool()
-                    let uiCode = doc.CreateSnapshot().Text
-                    do! Async.Sleep 100 // to be sure file access is not blocked by other app
-                    try
-                        let fileCode =  File.ReadAllText(path, Text.Encoding.UTF8)
-                        if uiCode <> fileCode then
-                            do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context
-                            if editor.AvaEdit.IsFocused then
-                                askToUpdate(path,fileCode)
-                            else
-                                onFocusActions.Add (fun () ->  askToUpdate(path,fileCode) )
-                    with e ->
-                        editor.Log.PrintfnAppErrorMsg "File changed but cant read changes from file system to compare if its the same as the currently shown file. %A " e
-            
-            //this.EnableRaisingEvents <- true // restart watching
+            do! Async.SwitchToContext SyncWpf.context 
+            if ta.IsFocused && SeffWindow.Current.IsActive then
+                do! Async.Sleep 1000 // during this wait some other file watch events might happen
+                if checkPending then 
+                    checkPending <- false                    
+                    check()
             }
-            |> Async.StartImmediate
-    
+            |> Async.Start
 
-    do
-        this.NotifyFilter <-       NotifyFilters.LastWrite
-                               ||| NotifyFilters.FileName
-                               ||| NotifyFilters.DirectoryName
-                            // ||| NotifyFilters.Attributes
-                            // ||| NotifyFilters.CreationTime
-                            // ||| NotifyFilters.LastAccess
-                            // ||| NotifyFilters.Security
-                            // ||| NotifyFilters.Size
 
-        this.Renamed.Add (fun a -> change(Renamed,a.FullPath,a.OldFullPath) )        
-        this.Deleted.Add (fun a -> change(Deleted,a.FullPath,"") )           
-        this.Changed.Add (fun a -> change(Changed,a.FullPath,"") )
-        //this.Created.Add (fun a -> ISeffLog.printError($"FileWatcher Created {a.FullPath}!"))
-        
-        
-        editor.AvaEdit.GotFocus.Add ( fun a ->
-            if onFocusActions.Count > 0 then
-                let actions = ResizeArray(onFocusActions)
-                onFocusActions.Clear() // clone and clear first
-                for action in actions do action()
-            )
-
+    let setWatcher() =
         match editor.FilePath with
         |NotSet ->
-            this.EnableRaisingEvents <- false
-        |SetTo fi ->
-            this.Path <- fi.DirectoryName
-            this.Filter <- fi.Name
-            this.EnableRaisingEvents <- true // must be after setting path
+            watcher.EnableRaisingEvents <- false
+        |SetTo fi -> 
+            watcher.Path   <- fi.DirectoryName
+            watcher.Filter <- fi.Name
+            watcher.EnableRaisingEvents <- true // must be after setting path
+            watcher.NotifyFilter <- NotifyFilters.LastWrite ||| NotifyFilters.FileName||| NotifyFilters.DirectoryName 
+            watcher.Renamed.Add (fun _ -> bufferedCheck() ) 
+            watcher.Deleted.Add (fun _ -> bufferedCheck() )
+            watcher.Changed.Add (fun _ -> bufferedCheck() )
 
-    /// to delay showing the changed message till either the editor or the window gets focus, if they are not focused yet
-    member this.OnFocusActions = onFocusActions
-
+    do
+        ta.GotFocus.Add (fun _ -> check())
+        setWatcher()
+    
+    /// to update the location if file location chnaged
+    member _.ResetPath() = 
+        setWatcher()
+    
+    /// sets watcher.EnableRaisingEvents <- false 
+    member _.Stop()=
+       watcher.EnableRaisingEvents <- false 
+            

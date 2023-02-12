@@ -65,6 +65,7 @@ type Tabs(config:Config, win:Window) =
             try
                 let txt = t.AvaEdit.Text
                 IO.File.WriteAllText(fi.FullName, txt, Text.Encoding.UTF8)
+                t.Editor.CodeAtLastSave <- txt
                 match saveKind with
                 |SaveNewLocation ->
                     t.IsCodeSaved <- true
@@ -133,6 +134,7 @@ type Tabs(config:Config, win:Window) =
                         log.PrintfnIOErrorMsg "saveAsync: Directory does not exist:\r\n%s" fi.Directory.FullName
                     else
                         IO.File.WriteAllText(fi.FullName, txt,Text.Encoding.UTF8)
+                        t.Editor.CodeAtLastSave <- txt
                         t.AvaEdit.Dispatcher.Invoke(fun ()->
                             t.IsCodeSaved <- true
                             log.PrintfnInfoMsg "File saved."
@@ -185,15 +187,12 @@ type Tabs(config:Config, win:Window) =
             | MessageBoxResult.No -> true
             | _ -> false
 
-    let closeTab(t:Tab)= 
-        let wasWatching = t.FileWatcher.EnableRaisingEvents
-        t.FileWatcher.EnableRaisingEvents <- false
+    let closeTab(t:Tab)=
         if askIfClosingTabIsOk(t) then
+            t.FileTracker.Stop()
             tabs.Items.Remove(t)
             config.OpenTabs.Save (t.FilePath , allFileInfos) //saving removed file, not added
-        else // closing cancelled, keep on watching file
-            if wasWatching then
-                t.FileWatcher.EnableRaisingEvents <- true
+        
 
     /// addTab(Tab, makeCurrent, moreTabsToCome)
     let addTab(tab:Tab, makeCurrent, moreTabsToCome) = 
@@ -243,6 +242,7 @@ type Tabs(config:Config, win:Window) =
                 try
                     let code =  IO.File.ReadAllText (fi.FullName, Text.Encoding.UTF8)
                     let t = new Tab(Editor.SetUp(code, config, SetTo fi), config, allFileInfos)
+                    t.Editor.CodeAtLastSave <- code
                     //log.PrintfnDebugMsg "adding Tab %A in %A " t.FilePath t.Editor.FileCheckState
                     addTab(t,makeCurrent, moreTabsToCome)
                     true
@@ -389,37 +389,48 @@ type Tabs(config:Config, win:Window) =
 
     /// Returns true if saving operation was not canceled
     member this.SaveIncremental (t:Tab) = 
-        let incrC (c:Char)   = string( int c - 48 + 1) // 48 = int '0'
-        let incrS (c:string) = string( int c      + 1)        
+        let isNum c = c >= '0' && c <= '9'
+        let incrC (c:Char)   = string( int c - 48 + 1) // 48 = int '0'            
         match t.FilePath with
         |SetTo fi ->  
+
+            let ne = fi.Name
+            let ex = fi.Extension
+            let n  = ne.Substring(0,ne.Length-ex.Length)
             let save (nn:string) :bool = 
-                let p = Path.Combine(fi.DirectoryName, nn )
+                let p = Path.Combine(fi.DirectoryName, nn + ex )
                 let ni = FileInfo(p)
                 if ni.Exists then
                     this.SaveAs(t)
                 else
                     saveAt(t,ni, SaveNewLocation)
-             
-            let replaceEnd       (e:string) = (Util.Str.removeAtEnd (fi.Extension.Length + e.Length) fi.Name) + e + fi.Extension |> save            
-            let appendEnd        (e:string) = (Util.Str.removeAtEnd (fi.Extension.Length           ) fi.Name) + e + fi.Extension |> save
-            let trimOneAppendEnd (e:string) = (Util.Str.removeAtEnd (fi.Extension.Length + 1       ) fi.Name) + e + fi.Extension |> save
             
-            let fn = fi.Name  
-            if fn.Length > 1 then 
-                let l = fn.[fn.Length - fi.Extension.Length - 1] // last char           
-                if  '0' <= l && l <= '8' then replaceEnd (incrC l)
-                elif            l  = '9' then 
-                    if fn.Length < 6 then trimOneAppendEnd ("10")
-                    else
-                   
-                        let ll =  fn.[- fi.Extension.Length - 2] // second last char 
-                        if  '0' <= ll && ll <= '8' then replaceEnd (incrC ll + "0")
-                        elif             ll  = '9' then this.SaveAs(t) // reached 99
-                        else appendEnd ("_01")
-                else appendEnd ("_01")
+            let l = n[n.Length-1]
+            let nn = // the new sufix
+                if isNum l then 
+                    if n.Length = 1 then 
+                        match l with 
+                        | '9' -> "10"
+                        |  i  -> incrC i
+                    else                    
+                        let ll = n[n.Length-2]
+                        let abc = n.Substring(0,n.Length-2)
+                        if isNum ll then
+                            match ll,l with 
+                            | '9','9' -> "" // null sentinel
+                            |  i ,'9' -> abc + incrC  i + "0"
+                            |  i , j  -> abc + string i + incrC j
+                        else
+                            match l with 
+                            | '9' -> abc + "10"
+                            |  i   -> abc + incrC i
+                else
+                    ne + "_01"
+                
+            if nn<>"" then 
+                save nn
             else
-            this.SaveAs(t)
+                this.SaveAs(t)
 
         |NotSet ->
             log.PrintfnIOErrorMsg "Can't Save Incrementing unsaved file."

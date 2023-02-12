@@ -40,8 +40,8 @@ type Checker private (config:Config)  =
     
     let entityCache = EntityCache() // used in GetAllEntities method
 
-    /// to check full code use 0 as 'tillOffset', at the end either a event is raised or continuation called if present
-    let checkCode(iEditor:IEditor, tillOffset, continueOnThreadPool:Option<CheckResults->unit>) = 
+    /// At the end either a event is raised or continuation called if present.
+    let checkCode(iEditor:IEditor,  continueOnThreadPool:Option<CheckResults->unit>) = 
         let thisId = Interlocked.Increment checkId
         //ISeffLog.log.PrintfnDebugMsg $"checking with id  {thisId} ..."
         globalCheckState <- GettingCode thisId
@@ -62,21 +62,15 @@ type Checker private (config:Config)  =
                 checker <- Some ch
 
             if !checkId = thisId then
-                let codeInChecker = 
-                    if tillOffset = 0 then  FullCode    (doc.CreateSnapshot().Text) // the only threadsafe way to access the code string
-                    else                    PartialCode (doc.CreateSnapshot(0, tillOffset).Text)
+                // NOTE just checking only Partial Code till caret with (doc.CreateSnapshot(0, tillOffset).Text) would make the GetDeclarationsList method miss some declarations !!
+                let codeInChecker : CodeAsString = (doc.CreateSnapshot().Text) // the only threadsafe way to access the code string
 
                 globalCheckState <- Checking (thisId , codeInChecker)
                 iEditor.FileCheckState <- globalCheckState
-
-                match codeInChecker with
-                |PartialCode _-> ()
-                |FullCode _ ->
-                    do! Async.SwitchToContext(FsEx.Wpf.SyncWpf.context)
-                    if !checkId = thisId then
-                        fullCodeAvailableEv.Trigger(iEditor)
-                    do! Async.SwitchToThreadPool()
-
+                
+                do! Async.SwitchToContext(FsEx.Wpf.SyncWpf.context)
+                if !checkId = thisId then  fullCodeAvailableEv.Trigger(iEditor)
+                do! Async.SwitchToThreadPool()
 
                 let fileFsx = 
                     match iEditor.FilePath with
@@ -90,7 +84,7 @@ type Checker private (config:Config)  =
 
                 if !checkId = thisId  then
                     try
-                        let sourceText = Text.SourceText.ofString codeInChecker.FsCode
+                        let sourceText = Text.SourceText.ofString codeInChecker
                         // see https://github.com/dotnet/fsharp/issues/7669 for performance problems
                         
                         // For a given script file, get the FSharpProjectOptions implied by the #load closure.
@@ -116,18 +110,18 @@ type Checker private (config:Config)  =
                                                                          //,loadedTimeStamp: DateTime *
 
                                                                          #if NETFRAMEWORK
-                                                                         ,otherFlags       = [| "--targetprofile:mscorlib"; "--langversion:preview" |] //https://github.com/fsharp/FsAutoComplete/blob/f176825521215725e5b7ba888d4bb11d1e408e56/src/FsAutoComplete.Core/CompilerServiceInterface.fs#L178
-                                                                         //,useFsiAuxLib = true // so that fsi object is available // doesn't work
-                                                                         ,useSdkRefs        = false
+                                                                         //https://github.com/fsharp/FsAutoComplete/blob/f176825521215725e5b7ba888d4bb11d1e408e56/src/FsAutoComplete.Core/CompilerServiceInterface.fs#L178
+                                                                         ,otherFlags            = [| "--targetprofile:mscorlib"; "--langversion:preview" |]
+                                                                         ,useSdkRefs            = false
                                                                          ,assumeDotNetFramework = true
                                                                          
                                                                          #else
-                                                                         ,otherFlags       = [| "--targetprofile:netstandard"; "--langversion:preview" |] 
-                                                                         //,useFsiAuxLib = true // so that fsi object is available // doesn't work
-                                                                         ,useSdkRefs        =true
+                                                                         ,otherFlags            = [| "--targetprofile:netstandard"; "--langversion:preview" |]                                                                          
+                                                                         ,useSdkRefs            = true
                                                                          ,assumeDotNetFramework = false
                                                                          #endif
 
+                                                                         //,useFsiAuxLib = true // so that fsi object is available // doesn't work
                                                                          //,sdkDirOverride: string *
                                                                          //,optionsStamp: int64 *
                                                                          //,userOpName: string
@@ -160,7 +154,7 @@ type Checker private (config:Config)  =
 
                                         match continueOnThreadPool with
                                         | Some f ->
-                                            try
+                                            try 
                                                 f(res) // calls GetDeclarationListInfo and GetDeclarationListSymbols for finding optional arguments
                                             with
                                                 e -> log.PrintfnAppErrorMsg "The continuation after ParseAndCheckFileInProject failed with:\r\n %A" e
@@ -244,7 +238,7 @@ type Checker private (config:Config)  =
             ch
 
     /// Triggers Event<FSharpErrorInfo[]> event after calling the continuation
-    member this.CheckThenHighlightAndFold (iEditor:IEditor)  =  checkCode (iEditor, 0,  None)
+    member this.CheckThenHighlightAndFold (iEditor:IEditor)  =  checkCode (iEditor, None)
 
     /// used as optional argument to GetDeclarationListSymbols
     member this.GetAllEntities(res: CheckResults, publicOnly: bool): AssemblySymbol list = 
@@ -292,27 +286,26 @@ type Checker private (config:Config)  =
                     //ISeffLog.log.PrintfnDebugMsg "*3.0 - checkRes.GetDeclarationListSymbols..."
                     let symUse = // Symbols are only for finding out if an argument is optional
                         res.checkRes.GetDeclarationListSymbols(
-                            Some res.parseRes,  // ParsedFileResultsOpt
-                            pos.row,            // line
-                            pos.lineToCaret ,   // lineText
-                            partLoName          // PartialLongName
-                            //( fun _ -> [] )   // getAllEntities: (unit -> AssemblySymbol list)
+                            Some res.parseRes  // ParsedFileResultsOpt
+                            , pos.row          // line
+                            , pos.lineToCaret  // lineText
+                            , partLoName       // PartialLongName
+                            //, (fun () -> this.GetAllEntities(res, true)) // getAllEntities: (unit -> AssemblySymbol list) // TODO use that too like FsAutocomplete does ???   
                             )
                     
-                    if !checkId = thisId  then 
-                        //ISeffLog.log.PrintfnDebugMsg "*3.1 - checkRes.GetDeclarationListInfo..."
+                    if !checkId = thisId  then                         
                         let decls = // for auto completion
                             res.checkRes.GetDeclarationListInfo(            //TODO can I take declaration from Symbol list? ( the GetDeclarationListSymbols above) ?
                                   Some res.parseRes  // ParsedFileResultsOpt
                                 , pos.row            // line
                                 , pos.lineToCaret    // lineText
-                                , partLoName          // PartialLongName
-                              //, (fun () -> this.GetAllEntities(res, true)) // getAllEntities: (unit -> AssemblySymbol list) // TODO use that too like FsAutocomplete does ???                               
-                              //, completionContextAtPos //  TODO use it ?   Completion context for a particular position computed in advance.
+                                , partLoName         // PartialLongName
+                                //, (fun () -> this.GetAllEntities(res, true)) // getAllEntities: (unit -> AssemblySymbol list) // TODO use that too like FsAutocomplete does ???                               
+                                //, completionContextAtPos //  TODO use it ?   Completion context for a particular position computed in advance.
                                 )
 
                         if !checkId = thisId  then
-                            //ISeffLog.log.PrintfnDebugMsg "*3.2 - checkRes.GetDeclarationListInfo found %d on lineToCaret:\r\n  '%s'\r\n  QualifyingIdents: %A,  PartialIdent: '%A', lastDotPos: %A" decls.Items.Length pos.lineToCaret  partLoName.QualifyingIdents partLoName.PartialIdent partLoName.LastDotPos
+                            //ISeffLog.log.PrintfnDebugMsg "*3.2 - GetDeclarationListInfo found %d on lineToCaret:\r\n  '%s'\r\n  QualifyingIdents: %A,  PartialIdent: '%A', lastDotPos: %A" decls.Items.Length pos.lineToCaret  partLoName.QualifyingIdents partLoName.PartialIdent partLoName.LastDotPos
                             if decls.IsError then 
                                 log.PrintfnAppErrorMsg "*ERROR in GetDeclarationListInfo: %A" decls //TODO use log
                             else                                
@@ -329,5 +322,5 @@ type Checker private (config:Config)  =
                                 do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context
                                 continueOnUIthread( decls)
             } |> Async.StartImmediate // we are on thread pool already
-
-        checkCode(iEditor, pos.offset, Some getSymbolsAndDecls) //TODO can existing parse results be used ? or do they miss the dot so don't show dot completions ?
+        
+        checkCode(iEditor, Some getSymbolsAndDecls) //TODO can existing parse results be used ? or do they miss the dot so don't show dot completions ?

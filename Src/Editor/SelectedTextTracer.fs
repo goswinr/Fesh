@@ -125,7 +125,7 @@ module SelectionHighlighting =
 
         let checkFoldedBoxes (ed:IEditor,highTxt) =
             // for status bar and folds :
-            match ed.FileCheckState.FullCodeAndId with
+            match ed.FileCheckState.CodeAndId with
             | NoCode -> empty // for pereformance dont request full codestring if missing
             | CodeID (code,_) ->
                 let mutable index = code.IndexOf(highTxt, 0, StringComparison.Ordinal)  

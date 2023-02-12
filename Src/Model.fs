@@ -12,6 +12,7 @@ open FSharp.Compiler
 
 
 type ISeffLog = 
+
     // this interface allows the Config to be declared before the Log
     // the Log is created first with this interface and then Config gets it in the constructor   
     abstract member PrintfnRuntimeErr  : Printf.StringFormat<'T,unit> -> 'T
@@ -37,7 +38,7 @@ type ISeffLog =
     abstract member TextWriterConsoleOut   : TextWriter
     abstract member TextWriterConsoleError : TextWriter
 
-    /// An additional textwriter to also write Info, AppError, IOError,Debug and FsiError messages to.
+    /// An additional textwriter to also write Info, AppError, IOError, Debug and FsiError messages to.
     /// But not any other text printed with any custom color. 
     abstract member AdditionalLogger : option<TextWriter> with get,set
 
@@ -48,7 +49,7 @@ type ISeffLog =
 module ISeffLog = 
 
     /// A reference to the global single instance of the Log view, will be set immediately after construction
-    /// declared here  in Utils so it can be used in other modules that are declared before Log view
+    /// declared here in Utils so it can be used in other modules that are declared before Log view.
     let mutable log = 
         Unchecked.defaultof<ISeffLog> //set immediately when Log instance is created in Initialize.everything
 
@@ -73,20 +74,15 @@ module ISeffLog =
 /// So that at we can check if a local and a global CheckResult are the same
 type CheckId = int64
 
+/// just an alias for a string
 type CodeAsString = string
 
 /// The Result when trying to get the current code from the checker
 /// (and not from the editor where the tree would have to be converted to a string)
-type FullCodeAndId = 
+type CodeAndId = 
     | CodeID of string * CheckId
     | NoCode
 
-
-/// the Code being processed in fs Checker
-type CodeInChecker = 
-    | FullCode    of CodeAsString
-    | PartialCode of CodeAsString // happens for autocomplete triggers
-    member this.FsCode = match this with  FullCode s -> s  | PartialCode s -> s
 
 type ErrorsBySeverity = {
     errors             : ResizeArray<Diagnostics.FSharpDiagnostic>
@@ -101,7 +97,7 @@ type CheckResults = {
     parseRes    :FSharpParseFileResults
     checkRes    :FSharpCheckFileResults
     errors      :ErrorsBySeverity
-    code        :CodeInChecker
+    code        :CodeAsString
     checkId     :CheckId 
     editorId    :Guid
     }
@@ -117,34 +113,34 @@ type FileCheckState =
     | GettingCode of CheckId
 
     /// Got the code form avalon edit async, now running in FCS async
-    | Checking of CheckId * CodeInChecker
+    | Checking of CheckId * CodeAsString
 
     /// The CheckResults are always local per Editor
     | Done of CheckResults
 
     | CheckFailed
 
-    member this.FullCodeAndId  = 
+    member this.CodeAndId  = 
         match this with
         | NotStarted | GettingCode _  | CheckFailed -> NoCode
-        | Checking (id, c)  ->  match c        with  FullCode s -> CodeID (s,id          )  | PartialCode _ -> NoCode
-        | Done res          ->  match res.code with  FullCode s -> CodeID (s,res.checkId )  | PartialCode _ -> NoCode
+        | Checking (id, c)  ->  CodeID (c       ,id)  
+        | Done res          ->  CodeID (res.code,res.checkId ) 
 
 
     /// to compare local EditorCheckState with GlobalCheckState
     member this.SameIdAndFullCode (globalChSt:FileCheckState) = 
-        match this.FullCodeAndId with
+        match this.CodeAndId with
         |NoCode -> NoCode
         |CodeID (id, c)  ->
-            match globalChSt.FullCodeAndId with
+            match globalChSt.CodeAndId with
             |NoCode -> NoCode
             |CodeID (gid, _) as ci -> if gid=id then ci  else NoCode
 
     override this.ToString() = 
         match this with
         | NotStarted        ->  "FileCheckState.NotStarted"
-        | GettingCode _     -> "FileCheckState.GettingCode"
-        | CheckFailed       -> "FileCheckState.Failed"
+        | GettingCode _     ->  "FileCheckState.GettingCode"
+        | CheckFailed       ->  "FileCheckState.Failed"
         | Checking (id, c)  ->  "FileCheckState.Checking"
         | Done res          ->  "FileCheckState.Done with " +  res.checkRes.Diagnostics.Length.ToString() +  " infos, warnings or errors"
 
@@ -192,8 +188,6 @@ type CodeToEval = {
     amount:FsiCodeAmount
     logger:option<TextWriter>
     }
-
-//type TextChange =      EnteredDot | EnteredOneIdentifierChar | EnteredOneNonIdentifierChar | CompletionWinClosed | OtherChange //| EnteredQuote
 
 type CharBeforeQuery = Dot | NotDot
 

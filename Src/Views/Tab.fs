@@ -1,4 +1,4 @@
-﻿namespace Seff.Views
+namespace Seff.Views
 
 open System
 open System.Windows.Controls
@@ -99,22 +99,10 @@ type Tab (editor:Editor, config:Seff.Config.Config, allFileInfos:seq<IO.FileInfo
         if not isSaved && headerShowsSaved then
             setHeader()
         elif isSaved && not headerShowsSaved  then
-            setHeader()    
-
-    let setNewPath(w:FileWatcher,fp:FilePath) = 
-        editor.SetFilePathMustBeInSyncWithTabsPath(fp)
-        setHeader()
-        // update file watcher:
-        match editor.FilePath with
-        |NotSet -> ()
-        |SetTo fi ->
-            w.Path <- fi.DirectoryName
-            w.Filter <- fi.Name
-            w.EnableRaisingEvents <- true    
-            config.RecentlyUsedFiles.AddAndSave(fi)         
-            config.OpenTabs.Save(editor.FilePath , allFileInfos)
+            setHeader()   
     
-    let watcher = new FileWatcher(editor, updateIsCodeSaved, setNewPath)
+    let fileTracker = 
+        new FileChangeTracker (editor, updateIsCodeSaved)
 
     do
         base.Content <- editor.AvaEdit
@@ -128,21 +116,29 @@ type Tab (editor:Editor, config:Seff.Config.Config, allFileInfos:seq<IO.FileInfo
         setHeader()
         editor.AvaEdit.TextChanged.Add(fun _ -> updateIsCodeSaved(false))
 
-
-    member this.FileWatcher = watcher
-
-
-    member this.IsCodeSaved
+    member _.FileTracker = fileTracker
+    
+    member _.IsCodeSaved
         with get()       = isCodeSaved
         and set(isSaved) = updateIsCodeSaved(isSaved)
 
     /// this gets and set FileInfo on the Editor
-    member this.FilePath
-        with get() = editor.FilePath
-        and set(fp:FilePath) = setNewPath(watcher,fp)
+    member _.FilePath
+        with get() = 
+                editor.FilePath
+
+        and set(fp:FilePath) = 
+                editor.SetFilePathMustBeInSyncWithTabsPath(fp) 
+                setHeader()        
+                match editor.FilePath with
+                |NotSet -> ()
+                |SetTo fi ->             
+                    config.RecentlyUsedFiles.AddAndSave(fi)         
+                    config.OpenTabs.Save(editor.FilePath , allFileInfos) 
+                    fileTracker.ResetPath()
 
 
-    member this.CloseButton = closeButton // public so click event can be attached later in Tabs.fs AddTab
+    member _.CloseButton = closeButton // public so click event can be attached later in Tabs.fs AddTab
 
     member this.FormattedFileName = 
         match this.FilePath with
@@ -150,7 +146,7 @@ type Tab (editor:Editor, config:Seff.Config.Config, allFileInfos:seq<IO.FileInfo
         |NotSet     -> textBlock.Text
 
     /// this gets and sets IsCurrent on the Editor
-    member this.IsCurrent
+    member _.IsCurrent
         with get() = editor.IsCurrent
         and set(c) = editor.IsCurrent <- c
 

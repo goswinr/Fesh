@@ -161,9 +161,7 @@ type SemanticColorizier (ied:TextEditor, edId:Guid, ch:Checker) =
                     lastCheckId <- chRes.checkId  
                     allRanges <- chRes.checkRes.GetSemanticClassification(None)
                     setUnusedDecl(chRes)
-                    match chRes.code with 
-                    |PartialCode _ -> () // should never happen
-                    |FullCode    s -> lastCode <- s
+                    lastCode <- chRes.code
                     
         let lineNo = line.LineNumber
         let offSt = line.Offset    

@@ -66,7 +66,7 @@ type BracketHighlighter (ed:TextEditor) =
     //member val Log : ISeffLog option= None with get , set
 
     member this.FindBrackets (ed:IEditor) = 
-        match ed.FileCheckState.FullCodeAndId with
+        match ed.FileCheckState.CodeAndId with
         | NoCode ->()
         | CodeID (tx,_) ->
             let len2 = tx.Length  - 1

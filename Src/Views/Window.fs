@@ -13,10 +13,13 @@ open Seff.Util
 type SeffWindow (config:Config)= 
 
     let win = new FsEx.Wpf.PositionedWindow(config.RunContext.PositionedWindowSettingsFileInfo, ISeffLog.printError)
+    
 
     let mutable wasMax = false //indicating if the Window was in Full-screen mode before switching to temporary Log only full-screen
 
     do
+        SeffWindow.Current <- win 
+        
         if win.Settings.GetBool ("WindowIsMax", false) then
             wasMax <- true
         
@@ -70,6 +73,9 @@ type SeffWindow (config:Config)=
     member this.WasMax
         with get() = wasMax
         and set(v) = wasMax <- v
+    
+    // this member is needed in FileWatcher
+    static member val Current = Unchecked.defaultof<FsEx.Wpf.PositionedWindow> with get,set 
 
 
 

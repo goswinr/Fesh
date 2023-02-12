@@ -60,17 +60,7 @@ type Seff (config:Config,log:Log) =
         
         win.Window.Closed.Add(fun _ ->  tabs.Fsi.TriggerShutDownThreadEv() )// to clean up threads
 
-
         win.Window.ContentRendered.Add(fun _ -> tabs.CurrAvaEdit.Focus() |> ignore )
-
-        // to show file changed event only when app gets focus again
-        win.Window.Activated.Add( fun a ->
-            // only show thw events of the current active tab:
-            //then other get shown when then editor chnages focus see FileWatcher.fs
-            let actions = ResizeArray(tabs.Current.FileWatcher.OnFocusActions)
-            tabs.Current.FileWatcher.OnFocusActions.Clear() // clone and clear first
-            for action in actions do action()
-            )
 
         tabs.Fsi.OnRuntimeError.Add(fun _ ->  
             let w = win.Window // because it might be hidden manually, or not visible from the start ( e.g. current script is evaluated in Seff.Rhino)

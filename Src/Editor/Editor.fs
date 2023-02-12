@@ -39,7 +39,7 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
     let rulers =            new ColumnRulers(avaEdit, log) // do foldings first
     
     let mutable checkState = FileCheckState.NotStarted // local to this editor
-    let mutable filePath = filePath
+    let mutable filePath   = filePath
 
     //let mutable needsChecking = true // so that on a tab change a recheck is not triggered if not needed
 
@@ -85,6 +85,8 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
     
     member val SemanticRanges : SemanticClassificationItem [] = [| |] with get,set
 
+    member val CodeAtLastSave : string = "" with get,set // used to check if file was changed in the background by other apps
+
     // all instances of Editor refer to the same checker instance
     member this.GlobalChecker = checker
 
@@ -99,8 +101,9 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
     member this.Folds = folds
 
     member this.Search = search
-
-    member this.SetFilePathMustBeInSyncWithTabsPath(v) = filePath <- v // only the Tab class containing this editor takes care of updating this
+    
+    /// Only the Tab class containing this editor takes care of updating this.
+    member this.SetFilePathMustBeInSyncWithTabsPath(v) = filePath <- v 
 
     member val HighlightText = fun (t:string) -> () with get, set // this function will be set below in SetUp static member        
 

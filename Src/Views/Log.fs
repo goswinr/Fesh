@@ -26,8 +26,8 @@ module LogColors =
     let fsiErrorMsg   = Brushes.Magenta                   |> freeze
     let appErrorMsg   = Brushes.LightSalmon |> darker 20  |> freeze
     let iOErrorMsg    = Brushes.DarkRed                   |> freeze
-    let debugMsg      = Brushes.Green                     |> freeze
-    let runtimeErr    = Brushes.Red          |> darker 55 |> freeze
+    let debugMsg      = Brushes.LightSeaGreen             |> freeze
+    let runtimeErr    = Brushes.Red         |> darker 55  |> freeze
 
     //let red           = Brushes.Red                     |> freeze
     //let green         = Brushes.Green                   |> freeze
