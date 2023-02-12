@@ -392,37 +392,37 @@ type Tabs(config:Config, win:Window) =
         let incrC (c:Char)   = string( int c - 48 + 1) // 48 = int '0'
         let incrS (c:string) = string( int c      + 1)        
         match t.FilePath with
-        |SetTo fi ->             
-            if fi.Extension = ".fsx" then // just in case it is not??
-                let save (nn:string) :bool = 
-                    let p = Path.Combine(fi.DirectoryName, nn )
-                    let ni = FileInfo(p)
-                    if ni.Exists then
-                        this.SaveAs(t)
-                    else
-                        saveAt(t,ni, SaveNewLocation)
+        |SetTo fi ->  
+            let save (nn:string) :bool = 
+                let p = Path.Combine(fi.DirectoryName, nn )
+                let ni = FileInfo(p)
+                if ni.Exists then
+                    this.SaveAs(t)
+                else
+                    saveAt(t,ni, SaveNewLocation)
+             
+            let replaceEnd       (e:string) = (Util.Str.removeAtEnd (fi.Extension.Length + e.Length) fi.Name) + e + fi.Extension |> save            
+            let appendEnd        (e:string) = (Util.Str.removeAtEnd (fi.Extension.Length           ) fi.Name) + e + fi.Extension |> save
+            let trimOneAppendEnd (e:string) = (Util.Str.removeAtEnd (fi.Extension.Length + 1       ) fi.Name) + e + fi.Extension |> save
             
-                let replaceEnd       (e:string) = (Util.Str.removeAtEnd (4+e.Length) fi.Name) + e + ".fsx" |> save            
-                let appendEnd        (e:string) = (Util.Str.removeAtEnd (4         ) fi.Name) + e + ".fsx" |> save
-                let trimOneAppendEnd (e:string) = (Util.Str.removeAtEnd (5         ) fi.Name) + e + ".fsx" |> save
-            
-                let fn = fi.Name            
-                let l = fn.[fn.Length-5] // last char           
+            let fn = fi.Name  
+            if fn.Length > 1 then 
+                let l = fn.[fn.Length - fi.Extension.Length - 1] // last char           
                 if  '0' <= l && l <= '8' then replaceEnd (incrC l)
                 elif            l  = '9' then 
                     if fn.Length < 6 then trimOneAppendEnd ("10")
                     else
                    
-                        let ll =  fn.[fn.Length-6] // second last char 
+                        let ll =  fn.[- fi.Extension.Length - 2] // second last char 
                         if  '0' <= ll && ll <= '8' then replaceEnd (incrC ll + "0")
                         elif             ll  = '9' then this.SaveAs(t) // reached 99
                         else appendEnd ("_01")
                 else appendEnd ("_01")
             else
-                this.SaveAs(t)
+            this.SaveAs(t)
 
         |NotSet ->
-            log.PrintfnIOErrorMsg "can't Save Incrementing unsaved file"
+            log.PrintfnIOErrorMsg "Can't Save Incrementing unsaved file."
             this.SaveAs(t)
 
     /// will display a dialog if there are unsaved files.

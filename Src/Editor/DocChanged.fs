@@ -174,7 +174,7 @@ module DocChanged =
                 //ISeffLog.log.PrintfnDebugMsg "*2.1-show: just highlighting with: lnToCaret='%s' \r\n query='%s', charBefore='%A',  setback='%d', onlyDU:%b' " lnToCaret query charBeforeQueryDU setback forDUonly
                 checker.CheckThenHighlightAndFold(ed)
             else
-                //ISeffLog.log.PrintfnDebugMsg "*2.2-show: try window opening with: lnToCaret='%s' \r\n query='%s', charBefore='%A',  setback='%d', onlyDU:%b" lnToCaret query charBeforeQueryDU  setback forDUonly
+                //ISeffLog.log.PrintfnDebugMsg "*2.2-show: try window opening with: lnToCaret=\r\n  '%s'\r\n  query='%s', charBefore='%A', setback='%d', onlyDU:%b" lnToCaret query charBeforeQueryDU  setback forDUonly
                 let last = lnToCaret.[lnToCaret.Length-1]
                 Completions.TryShow(ed, compls, pos, last , setback, charBeforeQueryDU, forDUonly)                
 

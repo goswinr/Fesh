@@ -78,7 +78,7 @@ type CompletionItem(ed:IEditor,config:Config, getToolTip, it:DeclarationListItem
             if it.Glyph = FSharpGlyph.Class && it.NameInList.EndsWith "Attribute" then
                 "[<" + it.NameInList.Replace("Attribute",">]")
 
-            // elif UtilCompletion.needsTicks it.Name then "``" + it.Name + "``" // fixed in "FSharp.Compiler.Service" Version="42.7.100" by using it.NameInCode ???
+            // elif UtilCompletion.needsTicks it.Name then "``" + it.Name + "``" // fixed in FSharp.Compiler.Service 42.7.100 by using it.NameInCode 
 
             elif it.NameInList = "struct" then
                 "[<Struct>]"

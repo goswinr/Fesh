@@ -315,7 +315,8 @@ type Fsi private (config:Config) =
         handeleEvaluationResult(evaluatedTo, errs, codeToEv)
         #else
         let evaluatedTo, errs = 
-            try sess.EvalInteractionNonThrowing(code, net7cancellationToken.Token) 
+            //try sess.EvalInteractionNonThrowing(code, net7cancellationToken.Token) 
+            try sess.EvalInteractionNonThrowing(code)
             with e -> Choice2Of2 e , [| |]            
         handeleEvaluationResult(evaluatedTo, errs, codeToEv)                   
         //don't do System.Runtime.ControlledExecution.Run(action, net7cancellationToken.Token) // this is actually already done by FSI 

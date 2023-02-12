@@ -17,7 +17,7 @@ open Seff.Config
 open Seff.Util.General
 
 
-/// only a single instance of checker exist that is referenced on all editors
+/// Only a single instance of checker exist that is referenced on all editors
 type Checker private (config:Config)  = 
 
     let log = config.Log
@@ -37,6 +37,8 @@ type Checker private (config:Config)  =
     let firstCheckDoneEv = new Event<unit>() // to first check file, then start FSI
 
     let mutable globalCheckState = FileCheckState.NotStarted
+    
+    let entityCache = EntityCache() // used in GetAllEntities method
 
     /// to check full code use 0 as 'tillOffset', at the end either a event is raised or continuation called if present
     let checkCode(iEditor:IEditor, tillOffset, continueOnThreadPool:Option<CheckResults->unit>) = 
@@ -202,6 +204,7 @@ type Checker private (config:Config)  =
             } |> Async.Start
 
     static let mutable singleInstance :Checker option  = None
+      
 
     //--------------------public --------------
 
@@ -243,6 +246,38 @@ type Checker private (config:Config)  =
     /// Triggers Event<FSharpErrorInfo[]> event after calling the continuation
     member this.CheckThenHighlightAndFold (iEditor:IEditor)  =  checkCode (iEditor, 0,  None)
 
+    /// used as optional argument to GetDeclarationListSymbols
+    member this.GetAllEntities(res: CheckResults, publicOnly: bool): AssemblySymbol list = 
+        let checkResults = res.checkRes
+        // from https://github.com/fsharp/FsAutoComplete/blob/fdeca2f5ffc329fad4a3f0a8b75af5aeed192799/src/FsAutoComplete.Core/ParseAndCheckResults.fs#L659
+        try
+            [ 
+                //ISeffLog.log.PrintfnDebugMsg "getAllEntities .." 
+                yield! AssemblyContent.GetAssemblySignatureContent AssemblyContentType.Full checkResults.PartialAssemblySignature
+                let ctx = checkResults.ProjectContext
+                                    
+                let assembliesByFileName =
+                    ctx.GetReferencedAssemblies()
+                    |> List.groupBy (fun asm -> asm.FileName)
+                    |> List.rev // if mscorlib.dll is the first then FSC raises exception when we try to get Content.Entities from it.
+                                    
+                for fileName, signatures in assembliesByFileName do
+                let contentType =
+                    if publicOnly then
+                        AssemblyContentType.Public
+                    else
+                        AssemblyContentType.Full
+                                    
+                let content =
+                    AssemblyContent.GetAssemblyContent entityCache.Locking contentType fileName signatures
+                                    
+                yield! content 
+            ]
+                                
+        with e ->
+            ISeffLog.log.PrintfnAppErrorMsg "getAllEntities failed with %A" e
+            []
+
     /// Checks for items available for completion    
     member this.GetCompletions (iEditor:IEditor, pos :PositionInCode, ifDotSetback, continueOnUIthread: DeclarationListInfo -> unit, optArgsDict:Dictionary<string,ResizeArray<OptDefArg>>) = 
         let getSymbolsAndDecls(res:CheckResults) = 
@@ -264,20 +299,20 @@ type Checker private (config:Config)  =
                             //( fun _ -> [] )   // getAllEntities: (unit -> AssemblySymbol list)
                             )
                     
-                    if !checkId = thisId  then                        
+                    if !checkId = thisId  then 
                         //ISeffLog.log.PrintfnDebugMsg "*3.1 - checkRes.GetDeclarationListInfo..."
                         let decls = // for auto completion
-                            res.checkRes.GetDeclarationListInfo(            //TODO take declaration from Symbol list !
-                                Some res.parseRes,  // ParsedFileResultsOpt
-                                pos.row,            // line
-                                pos.lineToCaret ,   // lineText
-                                partLoName          // PartialLongName
-                                //( fun _ -> [] )   // getAllEntities: (unit -> AssemblySymbol list)
-                                // completionContextAtPos //  TODO use it ?   Completion context for a particular position computed in advance.
+                            res.checkRes.GetDeclarationListInfo(            //TODO can I take declaration from Symbol list? ( the GetDeclarationListSymbols above) ?
+                                  Some res.parseRes  // ParsedFileResultsOpt
+                                , pos.row            // line
+                                , pos.lineToCaret    // lineText
+                                , partLoName          // PartialLongName
+                              //, (fun () -> this.GetAllEntities(res, true)) // getAllEntities: (unit -> AssemblySymbol list) // TODO use that too like FsAutocomplete does ???                               
+                              //, completionContextAtPos //  TODO use it ?   Completion context for a particular position computed in advance.
                                 )
 
                         if !checkId = thisId  then
-                            //ISeffLog.log.PrintfnDebugMsg "*3.2 - checkRes.GetDeclarationListInfo found %d on: '%s' , QualifyingIdents: %A  PartialIdent: '%A'" decls.Items.Length pos.lineToCaret  partLoName.QualifyingIdents partLoName.PartialIdent
+                            //ISeffLog.log.PrintfnDebugMsg "*3.2 - checkRes.GetDeclarationListInfo found %d on lineToCaret:\r\n  '%s'\r\n  QualifyingIdents: %A,  PartialIdent: '%A', lastDotPos: %A" decls.Items.Length pos.lineToCaret  partLoName.QualifyingIdents partLoName.PartialIdent partLoName.LastDotPos
                             if decls.IsError then 
                                 log.PrintfnAppErrorMsg "*ERROR in GetDeclarationListInfo: %A" decls //TODO use log
                             else                                
