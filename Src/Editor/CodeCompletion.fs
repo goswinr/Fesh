@@ -238,7 +238,7 @@ type Completions(avaEdit:TextEditor,config:Config, checker:Checker) =
                     w.MinWidth  <- avaEdit.FontSize * 8.0
                     w.Closed.Add (fun _  ->
                             compl.Close()
-                            compl.Checker.CheckThenHighlightAndFold(iEditor) //needed ! because window might close immediately after showing if there are no matches
+                            //compl.Checker.CheckThenHighlightAndFold(iEditor) //duplicate check . needed ? because window might close immediately after showing if there are no matches
                             //ISeffLog.log.PrintfnDebugMsg "Completion window just closed with selected item: %A " w.CompletionList.SelectedItem
                             )
 
@@ -247,13 +247,7 @@ type Completions(avaEdit:TextEditor,config:Config, checker:Checker) =
 
                     w.CloseAutomatically <-true
                     w.CloseWhenCaretAtBeginning <- true
-
-                    //w.CompletionList.InsertionRequested.Add (fun _ -> avaEdit.LastTextChangeWasFromCompletionWindow <- true) // BAD !! triggers after text instead and text-changed is triggered on single letter
-                    //w.CompletionList.ListBox.SelectionChanged.Add (fun e -> //TODO this is not the correct event to hook up to
-                    //    try if not w.CompletionList.ListBox.HasItems then w.Close()
-                    //    with  _ -> log.PrintfnDebugMsg "Null ref HasItems")// because sometime empty completion window stays open
-                    
-                    
+                                        
                     //ISeffLog.log.PrintfnDebugMsg "*4.1: pos.offset: %d , w.StartOffset %d , setback %d" pos.offset w.StartOffset setback                    
                     let stOff = pos.offset - setback // just using w.StartOffset - setback would sometimes be one too big.( race condition of typing speed)
                     w.StartOffset <- stOff // to replace some previous characters too
@@ -277,7 +271,7 @@ type Completions(avaEdit:TextEditor,config:Config, checker:Checker) =
                     // (2)insert text into editor (triggers completion if one char only)
                     // (3)raise InsertionRequested event
                     // https://github.com/icsharpcode/AvalonEdit/blob/8fca62270d8ed3694810308061ff55c8820c8dfc/AvalonEditB/CodeCompletion/CompletionWindow.cs#L100
-                else
+                else                    
                     compl.Checker.CheckThenHighlightAndFold(iEditor)// start new full check, this on was trimmed at offset.
 
         compl.Checker.GetCompletions(iEditor, pos, ifDotSetback, continueOnUIthread, compl.OptArgsDict)

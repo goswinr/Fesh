@@ -69,7 +69,9 @@ type Checker private (config:Config)  =
                 iEditor.FileCheckState <- globalCheckState
                 
                 do! Async.SwitchToContext(FsEx.Wpf.SyncWpf.context)
-                if !checkId = thisId then  fullCodeAvailableEv.Trigger(iEditor)
+                if !checkId = thisId then  
+                    //ISeffLog.log.PrintfnColor 100 100 200 $"checkCode:fullCodeAvailableEv, continue: '{continueOnThreadPool}'"
+                    fullCodeAvailableEv.Trigger(iEditor)
                 do! Async.SwitchToThreadPool()
 
                 let fileFsx = 
@@ -226,6 +228,10 @@ type Checker private (config:Config)  =
     member this.OnFirstCheckDone = firstCheckDoneEv.Publish
 
     member this.GlobalCheckState = globalCheckState
+    
+    member this.SetDocChanging() = 
+        Interlocked.Increment checkId |> ignore
+        globalCheckState <- DocChanging
 
     /// Ensures only one instance is created
     static member GetOrCreate(config) = 

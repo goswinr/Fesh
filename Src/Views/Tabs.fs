@@ -107,7 +107,7 @@ type Tabs(config:Config, win:Window) =
             dlg.FileName <- fi.Name
         dlg.DefaultExt <- ".fsx"
         dlg.Title <- sprintf "Save File As for: %s" (match t.FilePath with NotSet -> t.FormattedFileName |SetTo fi -> fi.FullName )
-        dlg.Filter <- "FSharp Script Files(*.fsx)|*.fsx|Text Files(*.txt)|*.txt|All Files(*.*)|*"
+        dlg.Filter <- "FSharp Files(*.fsx, *.fs)|*.fsx;*.fs|Text Files(*.txt)|*.txt|All Files(*.*)|*"
         if isTrue (dlg.ShowDialog()) then
             let fi = new FileInfo(dlg.FileName)
             if fi.Exists then
@@ -397,9 +397,8 @@ type Tabs(config:Config, win:Window) =
             let ne = fi.Name
             let ex = fi.Extension
             let n  = ne.Substring(0,ne.Length-ex.Length)
-            let save (nn:string) :bool = 
-                let p = Path.Combine(fi.DirectoryName, nn + ex )
-                let ni = FileInfo(p)
+            let save (nn:string) :bool =                 
+                let ni = FileInfo(Path.Combine(fi.DirectoryName, nn + ex ))
                 if ni.Exists then
                     this.SaveAs(t)
                 else

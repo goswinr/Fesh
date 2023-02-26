@@ -8,7 +8,7 @@ open Seff
 open Seff.Model
 
 
-/// A class to hold the statistic of most used toplevel auto completions
+/// A class to hold the folding status for all recently used files
 type FoldingStatus ( runContext:RunContext, recentlyUsedFiles:RecentlyUsedFiles) = 
 
     let  sep = '|' // separator
@@ -55,7 +55,7 @@ type FoldingStatus ( runContext:RunContext, recentlyUsedFiles:RecentlyUsedFiles)
             match foldingStatus.TryGetValue fi.FullName with
             |true,vs -> vs
             |_      ->
-                match foldingStatus.TryGetValue fi.Name with
+                match foldingStatus.TryGetValue fi.Name with // just in case the file moved folder
                 |true,vs -> vs
                 |_      -> [| |]
 
@@ -66,7 +66,7 @@ type FoldingStatus ( runContext:RunContext, recentlyUsedFiles:RecentlyUsedFiles)
             let vs = [| for f in ed.FoldingManager.AllFoldings do f.IsFolded |]
             let ok, curr = foldingStatus.TryGetValue fi.Name
             if not ok || curr <> vs then // only update if ther are changes or setting is missing.
-                foldingStatus.[fi.Name] <- vs
+                foldingStatus.[fi.Name] <- vs // so that it still works in case the file moves folder
                 foldingStatus.[fi.FullName] <- vs
                 writer.WriteIfLast (foldingStatusAsString, 800)
 

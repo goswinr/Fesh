@@ -37,7 +37,7 @@ type Commands (grid:TabsAndLog, statusBar:SeffStatusBar)  =
     let evalSelectedText()     =  fsi.Evaluate {editor=tabs.Current.Editor; amount = FsiSegment <|SelectionForEval.current (tabs.CurrAvaEdit)                   ; logger=None}   // null or empty check is done in fsi.Evaluate
     let evalTillCursor()       =  fsi.Evaluate {editor=tabs.Current.Editor; amount = FsiSegment <|SelectionForEval.linesTillCursor(tabs.CurrAvaEdit)            ; logger=None}
 
-    let goToError()            = match ErrorUtil.getNextSegment(tabs.Current.Editor) with Some s -> Foldings.GoToOffsetAndUnfold(s.StartOffset, s.Length, tabs.Current.Editor, config, false) | None -> ()
+    let goToError()            = match ErrorUtil.getNextSegment(tabs.Current.Editor) with Some s -> Foldings.GoToOffsetAndUnfold(s.StartOffset, s.Length, tabs.Current.Editor, tabs.Current.Editor.Folds, config, false) | None -> ()
 
     //let evalFromCursor()       =  let ln,tx = Selection.linesFromCursor(tabs.CurrAvaEdit)             in  fsi.Evaluate {editor=tabs.Current.Editor; code = tx ; file=tabs.Current.FilePath; allOfFile=false; fromLine = ln }
 
@@ -115,9 +115,9 @@ type Commands (grid:TabsAndLog, statusBar:SeffStatusBar)  =
     member val ToggleLogLineWrap = {name= "Toggle Line Wrapping in Log"   ;gesture= "Alt + Z"     ;cmd= mkCmdSimple (fun _ -> log.ToggleLineWrap(config)) ;tip= "Toggle Line Wrapping in Log window" }
     member val FontBigger        = {name= "Make Font Bigger"              ;gesture= "Ctrl + '+'"  ;cmd= mkCmdSimple (fun _ -> fonts.FontsBigger())        ;tip= "Increase Text Size for both Editor and Log" }
     member val FontSmaller       = {name= "Make Font Smaller"             ;gesture= "Ctrl + '-'"  ;cmd= mkCmdSimple (fun _ -> fonts.FontsSmaller())       ;tip= "Decrease Text Size for both Editor and Log" }
-    member val CollapseCode      = {name= "Collapse all Code Foldings"    ;gesture= ""            ;cmd= mkCmdSimple (fun _ -> Foldings.CollapseAll(tabs.Current.Editor,tabs.Config))     ;tip= "Collapse all Code Foldings in this file" }
-    member val CollapsePrim      = {name= "Collapse primary Code Foldings";gesture= ""            ;cmd= mkCmdSimple (fun _ -> Foldings.CollapsePrimary(tabs.Current.Editor,tabs.Config)) ;tip= "Collapse primary Code Foldings, doesn't change secondary or tertiary foldings" }
-    member val ExpandCode        = {name= "Expand all Code Foldings"      ;gesture= ""            ;cmd= mkCmdSimple (fun _ -> Foldings.ExpandAll(tabs.Current.Editor,tabs.Config))       ;tip= "Expand or unfold all Code Foldings in this file"  }
+    member val CollapseCode      = {name= "Collapse all Code Foldings"    ;gesture= ""            ;cmd= mkCmdSimple (fun _ -> Foldings.CollapseAll    (tabs.Current.Editor, tabs.Current.Editor.Folds, tabs.Config)) ;tip= "Collapse all Code Foldings in this file" }
+    member val CollapsePrim      = {name= "Collapse primary Code Foldings";gesture= ""            ;cmd= mkCmdSimple (fun _ -> Foldings.CollapsePrimary(tabs.Current.Editor, tabs.Current.Editor.Folds, tabs.Config)) ;tip= "Collapse primary Code Foldings, doesn't change secondary or tertiary foldings" }
+    member val ExpandCode        = {name= "Expand all Code Foldings"      ;gesture= ""            ;cmd= mkCmdSimple (fun _ -> Foldings.ExpandAll      (tabs.Current.Editor, tabs.Current.Editor.Folds, tabs.Config)) ;tip= "Expand or unfold all Code Foldings in this file"  }
     member val PopOutToolTip     = {name= "Make Tooltip persistent"       ;gesture= "Ctrl + P"    ;cmd= mkCmdSimple (fun _ -> PopOut.create(grid,statusBar))  ;tip= "Makes all currently showing ToolTip, Typeinfo or Errorinfo windows persistent as pop up window" }
 
     // About Menu

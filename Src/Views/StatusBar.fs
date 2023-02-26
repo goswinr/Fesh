@@ -135,6 +135,8 @@ type CheckerStatus (grid:TabsAndLog) as this =
                 tip.VerticalOffset <- -6.0
                 this.ToolTip <- tip
                     
+        | DocChanging ->
+            ()
 
         | GettingCode id0
         | Checking (id0,_) ->
@@ -149,7 +151,7 @@ type CheckerStatus (grid:TabsAndLog) as this =
                             this.Text <- checkingTxt
                             this.Background <- waitCol //originalBackGround
                             this.ToolTip <- sprintf "Checking %s for Errors ..." tabs.Current.FormattedFileName
-                    | Done _ | NotStarted | CheckFailed -> ()
+                    | Done _ | DocChanging | NotStarted | CheckFailed -> ()
             } |> Async.StartImmediate
 
         | NotStarted -> // these below never happen because event is only triggered on success
@@ -196,7 +198,7 @@ type CheckerStatus (grid:TabsAndLog) as this =
     static member goToNextSegment(ed:Editor) =
         match ErrorUtil.getNextSegment(ed) with 
         |None -> ()
-        |Some seg -> Foldings.GoToOffsetAndUnfold(seg.StartOffset,seg.Length, ed, ed.Config , false)
+        |Some seg -> Foldings.GoToOffsetAndUnfold(seg.StartOffset,seg.Length, ed, ed.Folds, ed.Config , false)
 
 type FsiRunStatus (grid:TabsAndLog) as this = 
     inherit TextBlock()
@@ -313,7 +315,7 @@ type SelectedEditorTextStatus (grid:TabsAndLog) as this =
                 let ed = grid.Tabs.Current.Editor
                 let off = hr.offsets.[scrollToIdx]
                 if off < ed.AvaEdit.Document.TextLength then                    
-                    Foldings.GoToOffsetAndUnfold(off, hr.text.Length, ed, ed.Config, true )                    
+                    Foldings.GoToOffsetAndUnfold(off, hr.text.Length, ed, ed.Folds, ed.Config, true )                    
                     scrollToIdx <- scrollToIdx + 1
                 else
                     scrollToIdx <- 0

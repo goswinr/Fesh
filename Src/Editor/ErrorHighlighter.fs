@@ -69,19 +69,26 @@ module ErrorUtil =
     let inline linesStartAtOne i = if i<1 then 1 else i 
 
     let getSegment (doc:TextDocument) ( e:FSharpDiagnostic) =
-        let s = TextSegment()
-        let st = doc.GetOffset(new TextLocation(linesStartAtOne e.StartLine, e.StartColumn + 1 ))
-        let en = doc.GetOffset(new TextLocation(linesStartAtOne e.EndLine  , e.EndColumn   + 1 ))
-        if st<en then 
-            s.StartOffset <- st
-            s.EndOffset  <-  en
-        elif st>en then // should never happen // this FCS bug has happened in the past, for Parse-and-check-file-in-project errors the segments can be wrong
-            s.StartOffset <- en
-            s.EndOffset  <-  st 
-        else // st=en  // should never happen
-            s.StartOffset <- st
-            s.EndOffset   <- st + 1 // just in case, so it is at least on char long
-        s   
+        try
+            let s = TextSegment()
+            let st = doc.GetOffset(new TextLocation(linesStartAtOne e.StartLine, e.StartColumn + 1 ))
+            let en = doc.GetOffset(new TextLocation(linesStartAtOne e.EndLine  , e.EndColumn   + 1 ))
+            if st<en then 
+                s.StartOffset <- st
+                s.EndOffset  <-  en
+            elif st>en then // should never happen // this FCS bug has happened in the past, for Parse-and-check-file-in-project errors the segments can be wrong
+                s.StartOffset <- en
+                s.EndOffset  <-  st 
+            else // st=en  // should never happen
+                s.StartOffset <- st
+                s.EndOffset   <- st + 1 // just in case, so it is at least on char long
+            Some s 
+         with 
+            //In a rare race condition the segment is beyond the end of the document because it was just deleted:
+            | :? ArgumentOutOfRangeException -> 
+                None 
+            | e -> 
+                raise e
 
     
     let getSquiggleLine(r:Rect):StreamGeometry = 
@@ -116,10 +123,9 @@ module ErrorUtil =
             if ers.Count=0 then 
                 None 
             else  
-                Some <| getSegment (ed.AvaEdit.Document) (ers.[getNextErrrorIdx res.errors])
-        | NotStarted| GettingCode _ | Checking _| CheckFailed -> 
-            None
-            
+                getSegment (ed.AvaEdit.Document) (ers.[getNextErrrorIdx res.errors])
+        | NotStarted | DocChanging | GettingCode _ | Checking _| CheckFailed -> 
+            None           
        
         
 /// This segment also contains back and foreground color and diagnostic display text
@@ -190,24 +196,26 @@ type ErrorRenderer (ed:TextEditor, folds:Folding.FoldingManager, log:ISeffLog) =
 
     /// Update list of Segments to actually mark (first nine only per Severity) and ensure drawing the error squiggle on the surrounding folding box too
     member _.AddSegments( res: CheckResults )= 
-        let mark(e:FSharpDiagnostic) = 
-            let seg = ErrorUtil.getSegment doc e  
-            let segToMark = SegmentToMark ( seg.StartOffset, seg.Length, e )
-            segments.Add (segToMark)
-            for fold in folds.GetFoldingsContaining(seg.StartOffset) do
-                //if fold.IsFolded then // do on all folds !
-                //fold.BackbgroundColor  <- ErrorStyle.errBackGr // done via ctx.DrawRectangle(ErrorStyle.errBackGr
-                fold.DecorateRectangle <- 
-                    Action<Rect,DrawingContext>( fun rect ctx ->
-                        let geo = ErrorUtil.getSquiggleLine(rect)
-                        if isNull fold.BackgroundColor then ctx.DrawRectangle(segToMark.BackgroundBrush, null, rect) // in case of selection highlighting skip brush only use Pen                        
-                        ctx.DrawGeometry(Brushes.Transparent, segToMark.UnderlinePen, geo)
-                        )  
+        let mark(e:FSharpDiagnostic) =             
+            match ErrorUtil.getSegment doc e with 
+            |None -> ()
+            |Some seg -> 
+                let segToMark = SegmentToMark ( seg.StartOffset, seg.Length, e )
+                segments.Add (segToMark)
+                for fold in folds.GetFoldingsContaining(seg.StartOffset) do
+                    //if fold.IsFolded then // do on all folds !
+                    //fold.BackbgroundColor  <- ErrorStyle.errBackGr // done via ctx.DrawRectangle(ErrorStyle.errBackGr
+                    fold.DecorateRectangle <- 
+                        Action<Rect,DrawingContext>( fun rect ctx ->
+                            let geo = ErrorUtil.getSquiggleLine(rect)
+                            if isNull fold.BackgroundColor then ctx.DrawRectangle(segToMark.BackgroundBrush, null, rect) // in case of selection highlighting skip brush only use Pen                        
+                            ctx.DrawGeometry(Brushes.Transparent, segToMark.UnderlinePen, geo)
+                            )  
         let es = res.errors
-        for h in es.hiddens  |> Seq.truncate 9  do mark(h)    // TODo only highlight the first 9 ?            
+        for h in es.hiddens  |> Seq.truncate 9  do mark(h)    // TODO only highlight the first 9 ?            
         for i in es.infos    |> Seq.truncate 9  do mark(i)                
         for w in es.warnings |> Seq.truncate 9  do mark(w)                
-        for e in es.errors   |> Seq.truncate 9  do mark(e)   // draw error last, after warning, to be on top of them!   
+        for e in es.errors   |> Seq.truncate 9  do mark(e)   // draw errors last, after warnings, to be on top of them!   
             
         txA.TextView.Redraw()
 
@@ -284,7 +292,7 @@ type ErrorHighlighter (ed:TextEditor, folds:Folding.FoldingManager, log:ISeffLog
             renderer.Clear()
             renderer.AddSegments(res)
             drawnEv.Trigger(iEditor) // to update foldings now
-        | NotStarted | GettingCode _ | Checking _ | CheckFailed -> ()
+        | NotStarted | DocChanging | GettingCode _ | Checking _ | CheckFailed -> ()
 
     member this.ToolTip = tip
 

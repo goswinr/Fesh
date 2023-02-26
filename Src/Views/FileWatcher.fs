@@ -32,7 +32,8 @@ type FileChangeTracker (editor:Editor, setCodeSavedStatus:bool->unit) =
         |NotSet ->() 
         |SetTo fi ->        
             async{                
-                do! Async.Sleep 200 //wait so that the new tab can be displayed first
+                do! Async.Sleep 200 // wait so that the new tab can be displayed first, ( on tab switches)
+                fi.Refresh() // with out this it would raise missing in case of save incrementing
                 if fi.Exists then
                     let fileCode = IO.File.ReadAllText(fi.FullName)
                     if fileCode <> editor.CodeAtLastSave then // this means that the last file saving was not done by Seff

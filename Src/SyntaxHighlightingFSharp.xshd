@@ -13,8 +13,8 @@
   use this extension to show colors in vs code:
   https://marketplace.visualstudio.com/items?itemName=kamikillerto.vscode-colorize  
   -->
-  <Color name="Comment"             foreground="#11AA11" />
-  <Color name="DocComment"          foreground="#007700" />
+  <Color name="Comment"             foreground="#22AA22" />
+  <Color name="DocComment"          foreground="#005500" />
   <Color name="TODO"                foreground="#EE0000"  fontWeight="bold"/>
   <Color name="HACK"                foreground="#D0D000"  fontWeight="bold"/>
   
@@ -36,6 +36,7 @@
   <Color name="Punctuation"         foreground="#7788FF" />
   <Color name="Attributes"          foreground="#AA88AA" />  
   <Color name="Keywords"            foreground="#0000DD" /> <!--fontWeight="bold" -->
+  <Color name="KeywordsBang"        foreground="#2200DD"  fontWeight="bold" />
   <Color name="ReservedKeywords"    foreground="#7777FF" /> <!--fontWeight="bold" -->
   <Color name="MethodCall"          foreground="#0000AA" /> <!-- fontWeight="bold" fontStyle="italic"-->
   <Color name="NumberLiteral"       foreground="#990077" />
@@ -43,7 +44,7 @@
   <Color name="ExponentNumberLit"   foreground="#1199DD" />
   <Color name="HexNumberLiteral"    foreground="#FF8800" />
   <Color name="BinNumberLiteral"    foreground="#FF8800" /> 
-  <Color name="NumberType"          foreground="#AA8888" />
+  <Color name="NumberType"          foreground="#888888" />
   <Color name="FailPath"            foreground="#888888" />
   <Color name="FailString"          foreground="#D0A040" />  
   <Color name="Exception"           foreground="#C06030" />
@@ -69,8 +70,8 @@
   <Color name="InDoubleTicks"       foreground="#005555" />
 
 
-  <!-- Regexes that are listed higer have precedence of lower positions in this list
-  Spans are overwriting rules even if rule apears before the span!-->
+  <!-- ReExes that are listed higher have precedence of lower positions in this list
+  Spans are overwriting rules even if rule appears before the span!-->
 
   <RuleSet name="_DocCommentSet">
     <Span color="DocComment">
@@ -156,10 +157,10 @@
     <Keywords color="TrueCol">    <Word>true</Word>    </Keywords>  
     <Keywords color="FalseCol">   <Word>false</Word>   </Keywords>
 
-    <Rule color="Keywords">match!</Rule> <!-- beacuse exclamation mark does not work in <Word> -->
-    <Rule color="Keywords">let!</Rule>
-    <Rule color="Keywords">do!</Rule>
-    <Rule color="Keywords">yield!</Rule>
+    <Rule color="KeywordsBang">match!</Rule> <!-- because exclamation mark does not work in <Word> -->
+    <Rule color="KeywordsBang">let!</Rule>
+    <Rule color="KeywordsBang">do!</Rule>
+    <Rule color="KeywordsBang">yield!</Rule>
 
     <Keywords color="Keywords">
     
@@ -290,7 +291,6 @@
       <Begin color="StringEscaped">\{</Begin>  
       <End color="StringEscaped">\}</End> 
     </Span> 
-
   </RuleSet >
   
   <RuleSet name="LoadDllSet">
@@ -300,7 +300,6 @@
       <Begin color="CompilerDirectives">\#if\s*COMPILED </Begin> <!-- '#' needs to be escaped too, \#  it is a regex comment  --> 
       <End color="CompilerDirectives">\#endif\b|\#else\b</End> 
     </Span>   
-
 
     <Span color="CompilerDirectives" multiline="false">
       <Begin color="CompilerDirectives">\#if\b </Begin> <!-- '#' needs to be escaped too, \#  it is a regex comment  -->      
@@ -319,11 +318,11 @@
         
         <Span color="LoadNuget" multiline="false">
           <Begin color="LoadDllPath">"nuget:</Begin>  
-          <End color="LoadDllPath">"</End> 
+          <End color="LoadDllPath">"|(,\s\d+.\d+.\d+")</End> 
         </Span> 
         <Span color="LoadDll" multiline="false">
-          <Begin color="LoadDllPath">@?"[^\s\/][^"]+(\\|\/)|@?"(?=[^\s\/])</Begin>  
-          <End color="LoadDllPath">"</End> 
+          <Begin color="LoadDllPath">@?"[^\s\/][^"]+(\\|\/)|@?"(?=[^\s\/])</Begin>  <!--matches the directories part of a full file path-->
+          <End color="LoadDllPath">"|(.dll")</End> 
         </Span>
       </RuleSet >  
     </Span>
@@ -339,12 +338,13 @@
         </Span> 
       </RuleSet >  
     </Span>
+
   </RuleSet >
   
   <RuleSet name="StringSet">
   
     <Span color="Char" > 
-      <Begin>'(?=\\)|'.(?=')</Begin>  <!-- a ' followed by one or zero \ then any char and then anoter ' in look ahead-->
+      <Begin>'(?=\\)|'.(?=')</Begin>  <!-- a ' followed by one or zero \ then any char and then another ' in look ahead-->
       <End>'</End>     
       <RuleSet>
         <Import ruleSet="_StringEscapeSet"/>
@@ -398,7 +398,7 @@
       </RuleSet>
     </Span>
     <Span color="FailString">  
-      <Begin color= "FailPath" >failwithf?\s*\$\"</Begin>  <!-- With $"{}" formating  -->      
+      <Begin color= "FailPath" >failwithf?\s*\$\"</Begin>  <!-- With $"{}" formatting  -->      
       <End   color= "FailPath" >\"</End>      
       <RuleSet>
         <Import ruleSet="_StringEscapeSet"/>
@@ -412,7 +412,7 @@
       <End   color= "FailPath" >\"</End>      
       <RuleSet>
         <Import ruleSet="_StringEscapeSet"/>
-        <!-- <Import ruleSet="_StringFormatSet"/> formating not possible in failIfFalse and simliar functions -->
+        <!-- <Import ruleSet="_StringFormatSet"/> formatting not possible in failIfFalse and similar functions -->
       </RuleSet>
     </Span>
 
@@ -424,7 +424,7 @@
     </Keywords>
   
     <Span color="PrintString" >      
-      <Begin color= "PrintStatement" >\bPrintfn?\.\w+\s+\"</Begin> <!-- for Printfn.red and similar functions. With $"{}" formating -->
+      <Begin color= "PrintStatement" >\bPrintfn?\.\w+\s+\"</Begin> <!-- for Printfn.red and similar functions. With $"{}" formatting -->
       <End   color= "PrintStatement" >\"</End>     
       <RuleSet>
         <Import ruleSet="_StringEscapeSet"/>
@@ -433,7 +433,7 @@
     </Span>
 
     <Span color="PrintString" >      
-      <Begin color= "PrintStatement" >\bPrintfn?\.\w+\s+\$\"</Begin> <!-- for Printfn.red and similar functions. With $"{}" formating -->
+      <Begin color= "PrintStatement" >\bPrintfn?\.\w+\s+\$\"</Begin> <!-- for Printfn.red and similar functions. With $"{}" formatting -->
       <End   color= "PrintStatement" >\"</End>     
       <RuleSet>
         <Import ruleSet="_StringEscapeSet"/>
@@ -443,7 +443,7 @@
     </Span>
 
     <Span color="PrintString" >      
-      <Begin color= "PrintStatement" >\be?printf?n?\s*\$\"</Begin> <!-- With $"{}" formating  -->
+      <Begin color= "PrintStatement" >\be?printf?n?\s*\$\"</Begin> <!-- With $"{}" formatting  -->
       <End   color= "PrintStatement" >\"</End>     
       <RuleSet>
         <Import ruleSet="_StringEscapeSet"/>
@@ -480,13 +480,13 @@
     
     <Rule color="ExponentNumberLit">\b0[xX]</Rule>
     <Rule color="ExponentNumberLit">\b0[bB]</Rule>
-    <Rule color="HexNumberLiteral">(?&lt;=[xX])[0-9a-fA-F_]+</Rule>
-    <Rule color="BinNumberLiteral">(?&lt;=[bB])[01_]+</Rule>
+    <Rule color="HexNumberLiteral">(?&lt;=0[xX])[0-9a-fA-F_]+</Rule>
+    <Rule color="BinNumberLiteral">(?&lt;=0[bB])[01_]+</Rule>
     <Rule color="ExponentNumberLit">(?&lt;=\d)[eE][+-]?[0-9]+ </Rule><!-- (?&lt;=\d) is a positive lookbehind for digits -->
-    <Rule color="NumberLiteral">[0-9_]+\.?[0-9_]*</Rule>
+    <Rule color="NumberLiteral">\b[0-9_]+\.?[0-9_]*</Rule>
     <Rule color="Punctuation">[0-9\w]\-</Rule> <!-- to exclude a 'x-1' to be highlighted below too: -->
     <Rule color="NegNumberLiteral">(?&lt;!\d)-[0-9_]+\.?[0-9_]*</Rule> <!-- (?&lt;!\d) is a negative lookbehind for digits -->
-    <Rule color="NumberType">(?&lt;=[0-9\.])[yfsuLULmM][yL]?</Rule> <!-- (?&lt;!\d) is a negative lookbehind for digits -->
+    <!-- <Rule color="NumberType">(?&lt;=[0-9a-fA-F\.])[yfsuLULmM][yL]?</Rule> this fails for letters a-F -->    <!-- (?&lt;!\d) is a negative lookbehind for digits -->
     
     
     <Rule color="Semicolon">;</Rule>

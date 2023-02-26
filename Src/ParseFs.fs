@@ -1,9 +1,13 @@
 ﻿namespace Seff.Util
-
-
 open System
 
-/// simple parsing of Fsharp code
+
+
+(*
+Works fine but currently unused:
+
+
+/// Simple parsing of Fsharp code
 module ParseFs = 
 
     type State = 
@@ -12,7 +16,7 @@ module ParseFs =
         |InBlockComment
         |InString
         |InAtString      // with @
-        |InRawString     // with """
+        |InRawString     // with three qotes
 
     [<Struct>]
     type Position = {offset:int; line:int}
@@ -94,9 +98,10 @@ module ParseFs =
                     | _                          -> find 1 state
 
         find 0 Code     // 0 since initial 'i' value is 0
-
-    /// a find function that will search full text from index
-    /// the search function shall return true on find success
+    
+    
+    // a find function that will search full text from index
+    // the search function shall return true on find success
     let findInText search fromIdx (tx:string) = 
 
         let len = tx.Length
@@ -112,10 +117,11 @@ module ParseFs =
                     if tx.[i] = '\n' then line <-line + 1
                     find (i+1)
         find fromIdx
+   
 
     /// Only starts search when not in comment or string literal
     /// Will search one char backward backwards from current position.
-    /// Last charcter of search can be a quote or other non search delimter.
+    /// Last character of search can be a quote or other non search delimter.
     /// Since it searches backward this allows to find ending blocks of strings and comments too,
     let findWordBackward (word:string) fromIdx (inText:string) = 
         let last = word.Length-1
@@ -169,3 +175,4 @@ module ParseFs =
         |ValueSome p -> Some p
         |ValueNone   -> None
 
+*)

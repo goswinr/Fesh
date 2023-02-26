@@ -35,8 +35,7 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
 
     let search =            Search.SearchPanel.Install(avaEdit)
 
-    let compls =            new Completions(avaEdit,config,checker)
-    let rulers =            new ColumnRulers(avaEdit, log) // do foldings first
+    let compls =            new Completions(avaEdit,config,checker)    
     
     let mutable checkState = FileCheckState.NotStarted // local to this editor
     let mutable filePath   = filePath
@@ -58,7 +57,7 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
 
         avaEdit.Options.ShowTabs <- false // they are always converted to spaces, see above
         avaEdit.Options.ConvertTabsToSpaces <- true
-        avaEdit.Options.IndentationSize <- 4
+        avaEdit.Options.IndentationSize <- config.Settings.GetIntSaveDefault("IndentationSize", 4)
         avaEdit.Options.HideCursorWhileTyping <- false
         avaEdit.TextArea.SelectionCornerRadius <- 0.0
         avaEdit.TextArea.SelectionBorder <- null
@@ -141,7 +140,9 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
         let ed = Editor(code, config, filePath )
         let avaEdit = ed.AvaEdit
         let compls = ed.Completions
-        let log = ed.Log        
+        let log = ed.Log      
+        
+        
 
         ed.HighlightText <- SelectionHighlighting.HiEditor.setup(ed)        
         //BracketHighlighter.Setup(ed, ed.GlobalChecker) // Disabled! TODO: fix bug first !!!
@@ -155,14 +156,21 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
 
         // setup and tracking folding status, (needs a ref to file path:  )
         ed.Folds.InitState( ed )
-        ed.Folds.Margin.MouseUp.Add (fun e -> config.FoldingStatus.Set(ed) )
+        ed.Folds.Margin.MouseUp.Add (fun e -> 
+            ed.Folds.UpdateCollapseStatus()
+            config.FoldingStatus.Set(ed) )
+        
+        avaEdit.TextArea.TextView.LineTransformers.Add(new NonStandartIndentColorizier(ed.Folds.BadIndentations))  
+
+        let rulers =  new ColumnRulers(avaEdit, log) // draw last , so on top? do foldings first
 
         //----------------------------------
         //--FS Checker and Code completion--
         //----------------------------------  
 
         // or use avaEdit.Document.Changing event ??
-        //avaEdit.Document.Changed.Add(fun a -> ISeffLog.log.PrintfnColor 100 222 160 "Document.Changed:\r\n'%s'" avaEdit.Text)        
+        //avaEdit.Document.Changed.Add(fun a -> ISeffLog.log.PrintfnColor 100 222 160 "Document.Changed:\r\n'%s'" avaEdit.Text)
+        avaEdit.Document.Changing.Add(fun _ -> ed.GlobalChecker.SetDocChanging())
         avaEdit.Document.Changed.Add(fun a -> 
             DocChanged.delayDocChange(a, ed, compls, ed.GlobalChecker) // to trigger for Autocomplete or error highlighting with immediate delay, (instead of delay in checkCode function.)
             ed.EvalTracker.SetLastChangeAt(a.Offset)

@@ -1,12 +1,34 @@
 ﻿namespace Seff.Editor
 
 open System
-
+open System.Windows.Input
 open AvalonEditB
 open AvalonEditB.Editing
 open AvalonEditB.Document
-
 open Seff.Model
+
+[<RequireQualifiedAccess>]
+module Mouse = 
+          
+    let getOffset(e: MouseEventArgs, ed:TextEditor) = 
+        let textView = ed.TextArea.TextView
+        let mutable pt = e.GetPosition(textView);
+        if pt.Y < 0 && pt.Y > textView.ActualHeight then  
+            None
+        else
+            let pt = pt +  textView.ScrollOffset
+            let vline = textView.GetVisualLineFromVisualTop(pt.Y)    
+            if isNull vline then 
+                None
+            else
+                let visualColumn     = vline.GetVisualColumn(pt, allowVirtualSpace = false)
+                let visualColumnVirt = vline.GetVisualColumn(pt, allowVirtualSpace = true) 
+                if visualColumnVirt > visualColumn then // mouse beyond end of line
+                    None
+                else
+                    let relOffset = vline.FirstDocumentLine.Offset
+                    let docOff = vline.GetRelativeOffset(visualColumn) + relOffset
+                    Some docOff
 
 module Selection = 
 

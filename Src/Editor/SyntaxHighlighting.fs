@@ -50,6 +50,7 @@ module SyntaxHighlighting =
 
     /// includes file system watcher for FileChanged
     let watch(path:FileInfo,ed:TextEditor) =
+        path.Refresh()
         if not isWatching && path.Exists  then 
             let file = path.Name
             let folder = path.DirectoryName

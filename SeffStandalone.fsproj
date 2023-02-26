@@ -53,7 +53,7 @@
     -->
     <PackageReference Include="AvalonLog" Version="0.8.3" GeneratePathProperty="true" />	  	  
     <PackageReference Update="FSharp.Core" Version="7.0.200" GeneratePathProperty="true" />
-    <PackageReference Include="FSharp.Compiler.Service" Version="43.7.200"  GeneratePathProperty="true" />
+    <PackageReference Include="FSharp.Compiler.Service" Version="43.7.200" GeneratePathProperty="true" />
     <PackageReference Include="FsEx.Wpf" Version="0.4.0" GeneratePathProperty="true" />
     <PackageReference Include="AvalonEditB" Version="1.6.0" GeneratePathProperty="true" />	  <!-- just to pull in XML too below-->
 
