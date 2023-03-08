@@ -1,11 +1,9 @@
 ﻿namespace Seff
 
-
 open System
 open System.IO
 open System.Threading
 open System.Windows
-open System.Windows.Media
 
 open Seff.Model
 open Seff.Config
@@ -134,37 +132,37 @@ type Fsi private (config:Config) =
         asyncThread <- Some thread
     
     (* does not work somehow see issues, just set System.Environment.CurrentDirectory instead on every tab change !?
-    let mutable currentDir = ""
-    let mutable currentFile = ""
-    let mutable currentTopLine = 1
-    let setDir (session:FsiEvaluationSession) (fi:FileInfo) = 
-        try
-            let dir = fi.DirectoryName
-            if dir <> currentDir then
-                let cd = sprintf "# silentCd @\"%s\" \n ;;" dir
-                session.EvalInteraction(cd)//does it work ? see https://github.com/fsharp/FSharp.Compiler.Service/issues/957
-                currentDir <- dir
-                log.PrintfnInfoMsg "Current directory set to:%s" dir
-            else
-                log.PrintfnDebugMsg  "Current directory is already set to:%s" dir
-        with e->
-            log.PrintfnFsiErrorMsg "silentCD on FSI failed: %A" e
+        let mutable currentDir = ""
+        let mutable currentFile = ""
+        let mutable currentTopLine = 1
+        let setDir (session:FsiEvaluationSession) (fi:FileInfo) = 
+            try
+                let dir = fi.DirectoryName
+                if dir <> currentDir then
+                    let cd = sprintf "# silentCd @\"%s\" \n ;;" dir
+                    session.EvalInteraction(cd)//does it work ? see https://github.com/fsharp/FSharp.Compiler.Service/issues/957
+                    currentDir <- dir
+                    log.PrintfnInfoMsg "Current directory set to:%s" dir
+                else
+                    log.PrintfnDebugMsg  "Current directory is already set to:%s" dir
+            with e->
+                log.PrintfnFsiErrorMsg "silentCD on FSI failed: %A" e
 
-    let setFileAndLine (session:FsiEvaluationSession) (topLine:int) (fi:FileInfo) = 
-        try
-            let file = fi.FullName
-            if file  <> currentFile || currentTopLine <> topLine then
-                let ln = sprintf "# %d @\"%s\"  \n ;;" topLine file // then \n before the ;; is required somehow.
-                session.EvalInteraction(ln) //does it work ? see https://github.com/fsharp/FSharp.Compiler.Service/issues/957
-                if file  <> currentFile then
-                    log.PrintfnInfoMsg "Current line set to %d , file set to:%s" topLine file
-                currentFile <- file
-                currentTopLine <- topLine
-            else
-                log.PrintfnDebugMsg  "Current line and file and is already set to Line %d for:%s" topLine file
-        with e->
-            log.PrintfnFsiErrorMsg "setFileAndLine on FSI failed: %A" e
-    *)  
+        let setFileAndLine (session:FsiEvaluationSession) (topLine:int) (fi:FileInfo) = 
+            try
+                let file = fi.FullName
+                if file  <> currentFile || currentTopLine <> topLine then
+                    let ln = sprintf "# %d @\"%s\"  \n ;;" topLine file // then \n before the ;; is required somehow.
+                    session.EvalInteraction(ln) //does it work ? see https://github.com/fsharp/FSharp.Compiler.Service/issues/957
+                    if file  <> currentFile then
+                        log.PrintfnInfoMsg "Current line set to %d , file set to:%s" topLine file
+                    currentFile <- file
+                    currentTopLine <- topLine
+                else
+                    log.PrintfnDebugMsg  "Current line and file and is already set to Line %d for:%s" topLine file
+            with e->
+                log.PrintfnFsiErrorMsg "setFileAndLine on FSI failed: %A" e
+        *)  
     
     let createSession() =         
         let fsiArgs =
@@ -369,7 +367,8 @@ type Fsi private (config:Config) =
                                 |Some actx2 , Some athr  when athr.IsAlive ->                              
                                     do! Async.SwitchToContext actx2
                                 |_ -> 
-                                    ISeffLog.log.PrintfnFsiErrorMsg "asyncContext is None or asyncThread is not alive. abortMakeAndStartAsyncThread() cannot create it either! evaluation happens in sync"
+                                    ISeffLog.log.PrintfnFsiErrorMsg "asyncContext is None or asyncThread is not alive." 
+                                    ISeffLog.log.PrintfnFsiErrorMsg "abortMakeAndStartAsyncThread() cannot create it either! evaluation happens in sync"
                                     do! Async.SwitchToContext SyncWpf.context
 
                         //Done already at startup in Initialize.fs, not needed here? AppDomain.CurrentDomain is the same ? 
@@ -481,7 +480,7 @@ type Fsi private (config:Config) =
     /// starts a new Fsi session
     member this.Initialize() =  initFsi(config) // Checker class will call this after first run of checker, to start fsi when checker is  idle
 
-    member this.CancelIfAsync() = 
+    member this.CancelIfAsync() = // this is called directly from UI
         match state  with
         | Ready | Initializing | NotLoaded -> ()
         | Evaluating ->
@@ -491,7 +490,7 @@ type Fsi private (config:Config) =
                 abortThenMakeAndStartAsyncThread()
                 state  <- Ready
                 //isReadyEv.Trigger() // TODO needed
-
+    
 
     member this.AskIfCancellingIsOk() = 
         match state with
@@ -500,7 +499,14 @@ type Fsi private (config:Config) =
             match mode with
             |InSync -> NotPossibleSync
             |Async70 -> 
-                match MessageBox.Show("Do you want to Cancel currently running code?", "Cancel Current Evaluation?", MessageBoxButton.YesNo, MessageBoxImage.Exclamation, MessageBoxResult.No) with
+                match MessageBox.Show(
+                    IEditor.mainWindow,
+                    "Do you want to Cancel currently running code?", 
+                    "Cancel Current Evaluation?", 
+                    MessageBoxButton.YesNo, 
+                    MessageBoxImage.Exclamation, 
+                    MessageBoxResult.No,// default result 
+                    MessageBoxOptions.None) with
                 | MessageBoxResult.Yes ->
                     match state with // might have changed in the meantime of Message box show
                     | Ready | Initializing | NotLoaded -> NotEvaluating
@@ -510,7 +516,14 @@ type Fsi private (config:Config) =
                     | Ready | Initializing | NotLoaded -> NotEvaluating
                     | Evaluating -> UserDoesntWantTo
             |Async472 ->
-                match MessageBox.Show("Do you want to Cancel currently running code?", "Cancel Current Evaluation?", MessageBoxButton.YesNo, MessageBoxImage.Exclamation, MessageBoxResult.No) with
+                match MessageBox.Show(
+                    IEditor.mainWindow,
+                    "Do you want to Cancel currently running code?", 
+                    "Cancel Current Evaluation?", 
+                    MessageBoxButton.YesNo, 
+                    MessageBoxImage.Exclamation, 
+                    MessageBoxResult.No,// default result 
+                    MessageBoxOptions.None) with
                 | MessageBoxResult.Yes ->
                     match state with // might have changed in the meantime of Message box show
                     | Ready | Initializing | NotLoaded -> NotEvaluating
@@ -519,26 +532,31 @@ type Fsi private (config:Config) =
                     match state with // might have changed in the meantime of Message box show
                     | Ready | Initializing | NotLoaded -> NotEvaluating
                     | Evaluating -> UserDoesntWantTo
+        
+    // without this back and forth swith the UI freezes 
+    // after showing the MessageBox.Show( "Do you want to Cancel currently running code?",
+    member this.EvalDelayed(code)=
+        async{  
+            do! Async.Sleep 20
+            do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context 
+            eval(code)
+        } |> Async.StartImmediate
 
-
-    ///shows UI to confirm canceling, returns new state
-    member this.AskAndCancel() = 
-        match this.AskIfCancellingIsOk () with
-        | NotEvaluating    -> Ready
-        | YesAsync472      -> this.CancelIfAsync();Ready
-        | YesAsync70       -> this.CancelIfAsync() ;Ready        
-        | UserDoesntWantTo -> Evaluating
-        | NotPossibleSync  -> Evaluating     // UI for this only available in asynchronous mode anyway, see Commands
 
     member this.Evaluate(code:CodeToEval) = 
-        //if DateTime.Today > DateTime(2022, 12, 30) then 
-        //    log.PrintfnFsiErrorMsg "*** Your Seff Editor has expired, please download a new version. or contact goswin@rothenthal.com ***"        
-        //else
-            //if DateTime.Today > DateTime(2022, 10, 30) then log.PrintfnFsiErrorMsg "*** Your Seff Editor will expire on 2022-12-31, please download a new version soon. or contact goswin@rothenthal.com***"            
+        if DateTime.Today > DateTime(2023, 12, 31) then 
+            log.PrintfnFsiErrorMsg "*** Your Seff Editor has expired, please download a new version. ***"        
+            log.PrintfnFsiErrorMsg "*** https://github.com/goswinr/Seff ***"        
+            log.PrintfnFsiErrorMsg "*** or contact goswin@rothenthal.com ***"        
+        else
+            if DateTime.Today > DateTime(2023, 10, 30) then 
+                    log.PrintfnFsiErrorMsg "*** Your Seff Editor will expire on 2023-12-31, please download a new version soon.***"  
+                    log.PrintfnFsiErrorMsg "*** https://github.com/goswinr/Seff ***"        
+                    log.PrintfnFsiErrorMsg "*** or contact goswin@rothenthal.com ***" 
             match this.AskIfCancellingIsOk () with
             | NotEvaluating   -> eval(code)
-            | YesAsync472     -> this.CancelIfAsync();eval(code)
-            | YesAsync70      -> this.CancelIfAsync();eval(code)            
+            | YesAsync472     -> this.CancelIfAsync();this.EvalDelayed(code)
+            | YesAsync70      -> this.CancelIfAsync();this.EvalDelayed(code)            
             | UserDoesntWantTo-> ()
             | NotPossibleSync -> log.PrintfnInfoMsg "Wait till current synchronous evaluation completes before starting new one."
 
@@ -555,7 +573,7 @@ type Fsi private (config:Config) =
     member this.SetMode(sync:FsiMode) = 
         let setConfig()= 
             match mode with
-            |InSync            ->  config.Settings.SetBool ("asyncFsi", false)    |> ignore
+            |InSync            -> config.Settings.SetBool ("asyncFsi", false)    |> ignore
             |Async472| Async70 -> config.Settings.SetBool ("asyncFsi", true)     |> ignore
 
         match this.AskIfCancellingIsOk() with

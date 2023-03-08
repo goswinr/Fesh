@@ -4,7 +4,6 @@
 open System.Text
 open System.Collections.Generic
 open FsEx.Wpf
-open Seff
 open Seff.Model
 
 

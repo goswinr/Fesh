@@ -172,6 +172,9 @@ module IEditor =
     /// A global reference to the current Editor
     let mutable current :option<IEditor> = None
 
+    /// A global reference to the current main window
+    let mutable mainWindow = Unchecked.defaultof<FsEx.Wpf.PositionedWindow>
+
 
 //---- Fsi types ------------
 type CodeSegment = {

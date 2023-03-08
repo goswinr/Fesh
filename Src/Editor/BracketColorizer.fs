@@ -29,6 +29,13 @@ type BracketKind =
 [<Struct>]
 type BracketInfo = {bracket: BracketKind; off:int;  color:SolidColorBrush; idx:int}
 
+module Render = 
+    
+    let inline setTextColor (b:SolidColorBrush) (el:Rendering.VisualLineElement) = 
+        el.TextRunProperties.SetForegroundBrush(b)    
+
+    let inline setBgColor (b:SolidColorBrush) (el:Rendering.VisualLineElement) = 
+        el.TextRunProperties.SetBackgroundBrush(b)
 
 /// Highlight-all-occurrences-of-selected-text in Text View
 type BracketHighlighter (ed:TextEditor) = 
@@ -36,17 +43,17 @@ type BracketHighlighter (ed:TextEditor) =
 
     let colErr = Brushes.Red
 
-    let unclosedBg = Brushes.Pink |> brighter 25
+    let unclosedBg = Brushes.Pink |> brighter 25  |> freeze
     //let pairBg =     Brushes.Gray |> brighter 85
-    let pairBg =     Brushes.Moccasin// |> brighter 125
+    //let pairBg =     Brushes.Moccasin |> freeze// |> brighter 125
+    let pairBg =     Brushes.PaleGreen  |> freeze// |> brighter 125
 
     let colors = [|
-        null // the first one is null ( to keep the coloring from xshd file)
-        Brushes.Magenta //|> darker 60
-        Brushes.DarkGreen //    |> darker 70
-        Brushes.DarkOrange
-        Brushes.Blue    |> brighter 40
-        Brushes.Yellow  |> darker 40
+        null // the first one is null ( to keep the coloring from xshd file)        
+        Brushes.DarkOrange |> darker 40    |> freeze
+        Brushes.Green      |> darker 20    |> freeze
+        Brushes.Blue       |> brighter 40  |> freeze
+        Brushes.Magenta    |> darker 70    |> freeze
         |]
 
     let nextColor i = colors.[i % colors.Length]
@@ -62,14 +69,14 @@ type BracketHighlighter (ed:TextEditor) =
     let mutable pairStart = -1
     let mutable pairEnd = -1
     let mutable pairLen = -1
-
-    //member val Log : ISeffLog option= None with get , set
+    
+        
 
     member this.FindBrackets (ed:IEditor) = 
         match ed.FileCheckState.CodeAndId with
         | NoCode ->()
         | CodeID (tx,_) ->
-            let len2 = tx.Length  - 1
+            let len2 = tx.Length - 1
 
             Brs.Clear()
             Offs.Clear()
@@ -88,7 +95,6 @@ type BracketHighlighter (ed:TextEditor) =
             let mutable inAtString     = false // with @
             let mutable inRawString    = false // with @
 
-
             let rec find i = 
                 if i < len2  then
                     let t0 = tx.[i]
@@ -102,8 +108,9 @@ type BracketHighlighter (ed:TextEditor) =
                           else find (i+1)
 
                     elif inString then
-                        if   t0='\\' && t1 = '"'  then     find (i+2) //an escaped quote in a string
-                        elif t0= '"' then  inString <- false;    find (i+1)
+                        if   t0='\\' && t1 = '"'  then  find (i+2) //an escaped quote in a string
+                        elif t0='\\' && t1 = '\\' then  find (i+2) //an escaped baslash in a string
+                        elif t0= '"'              then  inString <- false;    find (i+1)
                         else find (i+1)
 
                     elif inAtString then
@@ -118,14 +125,14 @@ type BracketHighlighter (ed:TextEditor) =
                         // opening brackets
                         if  t0='{' then
                             if  t1 = '|' then Brs.Add  OpAnRec ; Offs.Add i ; find (i+2)
-                            else                    Brs.Add  OpCurly ; Offs.Add i ; find (i+1)
+                            else              Brs.Add  OpCurly ; Offs.Add i ; find (i+1)
                         elif  t0='[' then
                             if   t1 = '|' then Brs.Add  OpArr  ; Offs.Add i  ; find (i+2)
-                            else                     Brs.Add  OpRect ; Offs.Add i  ; find (i+1)
+                            else               Brs.Add  OpRect ; Offs.Add i  ; find (i+1)
                         elif
                             t0='(' then
-                                if    t1 = ')' then                             find (i+2) // skip '(' followed by ')'
-                                elif  t1 = '*' then   inBlockComment <- true ;  find (i+2) // skip '(' followed by ')'
+                                if    t1 = ')' then                             find (i+2) // skip '(' followed by ')' directly
+                                elif  t1 = '*' then   inBlockComment <- true ;  find (i+2) 
 
                                 else                     Brs.Add  OpRound ; Offs.Add i ; find (i+1)
 
@@ -133,7 +140,7 @@ type BracketHighlighter (ed:TextEditor) =
                         elif t0 = '|' then
                             if   t1 = ']' then Brs.Add ClArr  ; Offs.Add i  ; find (i+2)
                             elif t1 = '}' then Brs.Add ClRect ; Offs.Add i  ; find (i+2)
-                            else                                                    find (i+1)
+                            else                                              find (i+1)
 
                         elif  t0='}' then Brs.Add ClCurly ; Offs.Add i ; find (i+1)
                         elif  t0=']' then Brs.Add ClRect  ; Offs.Add i ; find (i+1)
@@ -141,14 +148,14 @@ type BracketHighlighter (ed:TextEditor) =
 
                         // escape cases:
 
-                        elif  t0='@' && t1 = '"' then inAtString <- true    ; find (i+2)
-                        elif  t0='"' && t1 = '"' && i+1 < len2 && tx.[i+2] = '"' then  inRawString <- true;    find (i+3)
-                        elif  t0='"'  then inString <- true            ; find (i+1)
-                        elif  t0='/'  && t1 = '/'  then inComment <- true    ; find (i+2)
+                        elif  t0='@' && t1 = '"'                                 then inAtString    <- true; find (i+2)
+                        elif  t0='"' && t1 = '"' && i+1 < len2 && tx.[i+2] = '"' then inRawString   <- true; find (i+3)
+                        elif  t0='"'                                             then inString      <- true; find (i+1)
+                        elif  t0='/'  && t1 = '/'                                then inComment     <- true; find (i+2)
                         // if char just jump over it
                         elif  t0='\'' then
-                            if    i+1  < len2 && tx.[i+2] = '\''                     then   find (i+3) // a regular  character, including quote "
-                            elif  i+2  < len2 && t1 = '\\' && tx.[i+3]  = '\'' then   find (i+4) // a simple escaped character
+                            if    i+1  < len2 && tx.[i+2] = '\''                                 then   find (i+3) // a regular  character, including quote "
+                            elif  i+2  < len2 && t1 = '\\' && tx.[i+3]  = '\''                   then   find (i+4) // a simple escaped character
                             elif  i+6  < len2 && t1 = '\\' && tx.[i+2] = 'u' && tx.[i+7]  = '\'' then   find (i+8) // a 16 bit unicode character
                             elif  i+10 < len2 && t1 = '\\' && tx.[i+2] = 'U' && tx.[i+11] = '\'' then   find (i+12) // a 32 bit unicode character
                             else find (i+1)
@@ -219,7 +226,7 @@ type BracketHighlighter (ed:TextEditor) =
     member this.HighlightPair(ed:IEditor) = 
         if ed.AvaEdit.TextArea.Selection.Length = 0 then
             let pos = ed.AvaEdit.TextArea.Caret.Offset
-            for i = 0 to Offs.Count - 1 do // or binary search
+            for i = 0 to Offs.Count - 1 do // TODO: binary search
                 let off = Offs.[i]
                 if off = pos || off = pos - 1  then
                     //this.Log.Value.PrintfnDebugMsg "Bracket %d to %d on Line %d " off (off+1) line.LineNumber
@@ -233,14 +240,13 @@ type BracketHighlighter (ed:TextEditor) =
                             //ed.Log.PrintfnAppErrorMsg "Cant find corresponding End bracket for %A in %s" Brs.[i] (Selection.currentLine ed.AvaEdit)
                             pairEnd <- -1
 
-                    | ClRound | ClRect | ClCurly| ClAnRec | ClArr    ->
+                    | ClAnRec | ClArr | ClRect | ClCurly | ClRound     ->
                         pairEnd <- off
                         let ok,ps = PairStarts.TryGetValue(pairEnd)
                         if ok then pairStart <- ps.off
                         else
                             //ed.Log.PrintfnAppErrorMsg "Cant find corresponding Start bracket for %A in %s" Brs.[i] (Selection.currentLine ed.AvaEdit)
                             pairStart <- -1
-
 
                     pairLen <-
                         match Brs.[i] with
@@ -250,31 +256,68 @@ type BracketHighlighter (ed:TextEditor) =
                     //ed.Log.PrintfnDebugMsg "pairStart %d pairEnd %d pairLen %d" pairStart pairEnd pairLen
                     if pairStart >=0 && pairEnd > pairStart then
                         ed.AvaEdit.TextArea.TextView.Redraw()
+                
+                // for marking to work right after two char bracket like |]
+                elif off = pos - 2  then 
+                    //this.Log.Value.PrintfnDebugMsg "Bracket %d to %d on Line %d " off (off+1) line.LineNumber
+
+                    let mutable isTwoChars = true
+                    match Brs.[i] with
+                    | OpRect | OpCurly | OpRound   -> isTwoChars<- false// skip single char
+                    | OpAnRec | OpArr ->
+                        pairStart <- off
+                        let ok,pe = PairEnds.TryGetValue(pairStart)
+                        if ok then pairEnd <- pe.off
+                        else
+                            //ed.Log.PrintfnAppErrorMsg "Cant find corresponding End bracket for %A in %s" Brs.[i] (Selection.currentLine ed.AvaEdit)
+                            pairEnd <- -1
+
+                    | ClRect| ClCurly| ClRound  -> isTwoChars<- false// skip single char
+                    | ClAnRec | ClArr-> 
+                        pairEnd <- off
+                        let ok,ps = PairStarts.TryGetValue(pairEnd)
+                        if ok then pairStart <- ps.off
+                        else
+                            //ed.Log.PrintfnAppErrorMsg "Cant find corresponding Start bracket for %A in %s" Brs.[i] (Selection.currentLine ed.AvaEdit)
+                            pairStart <- -1
+                    
+                    if isTwoChars then 
+                        pairLen <-
+                            match Brs.[i] with
+                            | ClRound | OpRect | OpCurly | OpRound  | ClRect | ClCurly  -> 1
+                            | OpAnRec | OpArr | ClAnRec | ClArr                         -> 2
+
+                        //ed.Log.PrintfnDebugMsg "pairStart %d pairEnd %d pairLen %d" pairStart pairEnd pairLen
+                        if pairStart >=0 && pairEnd > pairStart then
+                            ed.AvaEdit.TextArea.TextView.Redraw()
+
+
 
     /// This gets called for every visible line on any view change
     override this.ColorizeLine(line:Document.DocumentLine) = 
         if Brs.Count > 0 &&  Cols.Count = Offs.Count then
-            let st = line.Offset
-            let en = line.EndOffset
-            for i = 0 to Offs.Count - 1 do // or binary search
+            let st   = line.Offset
+            let en  = line.EndOffset
+            
+            for i = 0 to Offs.Count - 1 do // TODO: binary search
                 if notNull Cols.[i] then // the first one is null ( to keep the coloring from xshd file)
                     let off = Offs.[i]
                     if off >= st && off < en then
                         //this.Log.Value.PrintfnDebugMsg "Bracket %d to %d on Line %d " off (off+1) line.LineNumber
                         match Brs.[i] with
-                        | ClRound | OpRect | OpCurly | OpRound  | ClRect | ClCurly  -> base.ChangeLinePart( off, off+1, fun el -> el.TextRunProperties.SetForegroundBrush(Cols.[i]))
-                        | OpAnRec | OpArr | ClAnRec | ClArr                         -> base.ChangeLinePart( off, off+2, fun el -> el.TextRunProperties.SetForegroundBrush(Cols.[i]))
+                        | ClRound | OpRect | OpCurly | OpRound  | ClRect | ClCurly  -> base.ChangeLinePart( off, off+1, Render.setTextColor Cols.[i] )
+                        | OpAnRec | OpArr | ClAnRec | ClArr  ->    if off < en-1 then  base.ChangeLinePart( off, off+2, Render.setTextColor Cols.[i] )
 
             for i = 0 to Unclosed.Count - 1 do // or binary search
                 let off = Unclosed.[i]
                 if off >= st && off < en then
                     match UnclosedBr.[i] with
-                    | ClRound | OpRect | OpCurly | OpRound  | ClRect | ClCurly  -> base.ChangeLinePart( off, off+1, fun el -> el.TextRunProperties.SetBackgroundBrush(unclosedBg))
-                    | OpAnRec | OpArr | ClAnRec | ClArr                         -> base.ChangeLinePart( off, off+2, fun el -> el.TextRunProperties.SetBackgroundBrush(unclosedBg))
+                    | ClRound | OpRect | OpCurly | OpRound  | ClRect | ClCurly  -> base.ChangeLinePart( off, off+1, Render.setBgColor unclosedBg)
+                    | OpAnRec | OpArr | ClAnRec | ClArr  ->    if off < en-1 then  base.ChangeLinePart( off, off+2, Render.setBgColor unclosedBg )
 
 
-            if pairStart >= st && pairStart < en then  base.ChangeLinePart( pairStart, pairStart + pairLen, fun el -> el.TextRunProperties.SetBackgroundBrush(pairBg))
-            if pairEnd   >= st && pairEnd   < en then  base.ChangeLinePart( pairEnd  , pairEnd   + pairLen, fun el -> el.TextRunProperties.SetBackgroundBrush(pairBg))
+            if pairStart >= st && pairStart <= en-pairLen then  base.ChangeLinePart( pairStart, pairStart + pairLen, Render.setBgColor pairBg)
+            if pairEnd   >= st && pairEnd   <= en-pairLen then  base.ChangeLinePart( pairEnd  , pairEnd   + pairLen, Render.setBgColor pairBg)
 
 
         //else this.Log.Value.PrintfnAppErrorMsg "Brs %d Offs %d Cols %d,  on Line %d " Brs.Count  Offs.Count Cols.Count  line.LineNumber
@@ -282,7 +325,7 @@ type BracketHighlighter (ed:TextEditor) =
 
 
     static member Setup(ed:IEditor, ch:Checker) = 
-        if false then // TODO fix bug first !!!
+        //if false then // TODO fix bug first !!!
             let brh = BracketHighlighter(ed.AvaEdit)
             //brh.Log <- Some ed.Log
             ed.AvaEdit.TextArea.TextView.LineTransformers.Add(brh)

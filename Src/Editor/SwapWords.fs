@@ -4,7 +4,6 @@ open System
 
 open AvalonEditB
 
-
 module SwapWords = 
 
     /// swap currently selected word with word before on same line

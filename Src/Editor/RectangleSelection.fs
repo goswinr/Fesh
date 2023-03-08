@@ -7,11 +7,6 @@ open AvalonEditB
 open AvalonEditB.Editing
 open AvalonEditB.Document
 
-
-
-open Seff.Model
-
-
 module RectangleSelection = 
 
     open Selection

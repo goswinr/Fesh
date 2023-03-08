@@ -91,6 +91,7 @@
 
     <Compile Include="Src/Fsi.fs" />
     <Compile Include="Src/CompileScript.fs" />
+    <Compile Include="Src/Editor/AutoFixErrors.fs" />
 
     <Compile Include="Src/Editor/Selection.fs" />
     <Compile Include="Src/Editor/RectangleSelection.fs" />
@@ -111,9 +112,8 @@
     <Compile Include="Src/Editor/SwapLines.fs" />
     <Compile Include="Src/Editor/CursorBehavior.fs" />
     <Compile Include="Src/Editor/KeyboardShortcuts.fs" />
-    <Compile Include="Src/Editor/Formatting.fs" />
+    <Compile Include="Src\Editor\AlignText.fs" />
     <Compile Include="Src/Editor/DocChanged.fs" />
-    <Compile Include="Src/Editor/AutoFixErrors.fs" />
     <Compile Include="Src/Editor/Editor.fs" />
 
     <Compile Include="Src/Views/Log.fs" />

@@ -36,7 +36,6 @@ type ColumnRulers (editor:TextEditor, log: ISeffLog)  as this =
     let columns = ResizeArray(columnsInit)
 
 
-
     do
         editor.TextArea.TextView.BackgroundRenderers.Add(this)
 

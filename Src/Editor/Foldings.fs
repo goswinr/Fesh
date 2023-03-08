@@ -1,24 +1,14 @@
 ﻿namespace Seff.Editor
 
 open System
+open System.Collections.Generic
+open System.Windows.Media
 
 open AvalonEditB
 open AvalonEditB.Folding
-open AvalonEditB.Document
-
+open AvalonLog.Brush
 open Seff.Model
 open Seff.Config
-open Seff.Util.Str
-open System.Collections.Generic
-
-open System
-open System.Windows.Media
-open AvalonEditB
-open Seff.Util.General
-open Seff.Util
-open Seff.Model
-open Seff.Editor.Selection
-open AvalonLog.Brush
 
 [<Struct>]
 type Fold = {foldStartOff:int; foldEndOff:int; linesInFold: int ; nestingLevel:int}
@@ -38,7 +28,8 @@ type NonStandartIndentColorizier (badInds:ResizeArray<NonStandartIndent>) =
 
     let brush = 
         //Color.FromArgb(100uy,255uy,255uy,0uy)
-        Color.FromArgb(30uy,0uy,0uy,255uy) // a very light transparent blue, transparanet to show coloum rulers behind
+        //Color.FromArgb(30uy,0uy,0uy,255uy) // a very light transparent blue, transparanet to show coloum rulers behind
+        Color.FromArgb(30uy,255uy,140uy,0uy) // a very light transparent Orange, transparanet to show coloum rulers behind
         |> SolidColorBrush
         |> freeze
 

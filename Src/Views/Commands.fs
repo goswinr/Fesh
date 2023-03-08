@@ -1,8 +1,6 @@
 ﻿namespace Seff.Views
 
-open System
 open System.Diagnostics
-open System.Windows
 open System.Windows.Input
 
 open AvalonEditB
@@ -13,7 +11,6 @@ open FsEx.Wpf.Command
 open Seff
 open Seff.Model
 open Seff.Editor
-open Seff.Editor.Selection
 open Seff.Editor.SelectionForEval
 
 
@@ -83,7 +80,7 @@ type Commands (grid:TabsAndLog, statusBar:SeffStatusBar)  =
     member val ToTitleCase       = {name= "To Titlecase "             ;gesture= ""               ;cmd=AvalonEditCommands.ConvertToTitleCase                                   ;tip= "Converts the selected text to Titlecase."  }
     member val ToggleBoolean     = {name= "Toggle bool literal"       ;gesture= "Ctrl + T"       ;cmd = mkCmdSimple (fun _ -> CursorBehavior.toggleBoolean(tabs.CurrAvaEdit) );tip= "Converts a 'true' literal to 'false' and a 'false' literal to 'true' if they are currently selected exclusively." }
 
-    member val AlignCode         = {name= "Align Code Vertically"     ;gesture= "Ctrl + I"       ;cmd = mkCmdSimple (fun _ -> Formatting.alignByNonLetters(tabs.Current.Editor))  ;tip= "Experimental Feature, Tries to inserts spaces where required so that non letter symbols align vertically." }
+    member val AlignCode         = {name= "Align Code Vertically"     ;gesture= "Ctrl + I"       ;cmd = mkCmdSimple (fun _ -> AlignText.alignByNonLetters(tabs.Current.Editor))  ;tip= "Experimental Feature, Tries to inserts spaces where required so that non letter symbols align vertically." }
 
     // Select menu:
     member val SelectLine        = {name= "Select Current Line"       ;gesture= "Ctrl  + L"     ;cmd= mkCmdSimple (fun _ -> expandSelectionToFullLines(tabs.CurrAvaEdit) |> ignore )  ;tip= "Select current line"} // TODO compare VSCODE shortcuts to  see https://github.com/icsharpcode/SharpDevelop/wiki/Keyboard-Shortcuts

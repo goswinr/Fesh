@@ -9,7 +9,6 @@ open AvalonEditB.CodeCompletion
 open AvalonEditB.Editing
 open AvalonEditB.Document
 
-open FSharp.Compiler.CodeAnalysis
 open FSharp.Compiler.EditorServices
 open FSharp.Compiler.Tokenization // for keywords
 
@@ -30,6 +29,10 @@ module UtilCompletion =
         tb.Padding <- Thickness(0. , 0. , 8. , 0. ) //left top right bottom / so that it does not appear to be trimmed
         tb
 
+    
+    /// the window may just have closed, but for pressing esc, not for completion insertion
+    /// this si only true if it just cloed for insertion
+    let mutable  justCompleted = false 
 
 type CompletionItemForKeyWord(ed:IEditor,config:Config, text:string, toolTip:string) =  
     let priority =  1.0 + config.AutoCompleteStatistic.Get(text)        // create once and cache ?
@@ -41,6 +44,7 @@ type CompletionItemForKeyWord(ed:IEditor,config:Config, text:string, toolTip:str
     member this.Priority = priority
     member this.Text = text
     member this.Complete (textArea:TextArea, completionSegment:ISegment, e:EventArgs ) = 
+        UtilCompletion.justCompleted <- true
         if Selection.getSelType textArea = Selection.RectSel then       RectangleSelection.complete (ed.AvaEdit, completionSegment, text)
         else                                                            textArea.Document.Replace(completionSegment, text)
 
@@ -73,6 +77,7 @@ type CompletionItem(ed:IEditor,config:Config, getToolTip, it:DeclarationListItem
     member this.Text = it.NameInList // not used for display, but for priority sorting ? 
     member this.Complete (textArea:TextArea, completionSegment:ISegment, e:EventArgs) = 
         //log.PrintfnDebugMsg "%s is %A and %A" it.Name it.Glyph it.Kind        
+        UtilCompletion.justCompleted <- true
         let compl = 
             //TODO move this logic out here
             if it.Glyph = FSharpGlyph.Class && it.NameInList.EndsWith "Attribute" then
@@ -152,8 +157,8 @@ type Completions(avaEdit:TextEditor,config:Config, checker:Checker) =
     
     /// to not trigger completion again on one letter completions
     member this.JustClosed
-                with get() = justClosed
-                and set(v) = justClosed <- v
+       with get() = justClosed
+       and set(v) = justClosed <- v
 
     [<CLIEvent>] member this.OnShowing = showingEv.Publish
     member this.ShowingEv = showingEv
@@ -183,24 +188,26 @@ type Completions(avaEdit:TextEditor,config:Config, checker:Checker) =
     member this.Checker = checker
     member this.Config = config
 
-    member this.ComplWin
-        with get() = win
-        and set(w) = win <- w
+    member this.ComplWin 
+        with get() : Option<CompletionWindow>  = win
+        and set(w  : Option<CompletionWindow>) = win <- w
 
     /// for a given method name returns a list of optional argument names
     member this.OptArgsDict = optArgsDict
 
+
     static member TryShow(iEditor:IEditor, compl:Completions, pos:PositionInCode , lastChar:char, setback:int, charBefore:CharBeforeQuery, onlyDU:bool) = 
-        //a static method so that it can take an IEditor as argument
-        let log = compl.Log
+        //a static method so that it can take an IEditor as argument        
         let config = compl.Config
         let avaEdit = iEditor.AvaEdit
-        //ISeffLog.log.PrintfnDebugMsg "TryShow Completion Window for '%s'" pos.lineToCaret
         let ifDotSetback = if charBefore = Dot then setback else 0
+        //ISeffLog.log.PrintfnDebugMsg "*4.0 TryShow Completion Window for '%s'" pos.lineToCaret
 
-        let continueOnUIthread (decls: DeclarationListInfo) =             
+        let continueOnUIthread (decls: DeclarationListInfo) = 
             let caretOff = avaEdit.TextArea.Caret.Offset
-            if caretOff >= pos.offset && IEditor.current.Value.Id = iEditor.Id then // safety check just in case the fsharp checker took very long and this has changed in the meantime
+            if not AutoFixErrors.isMessageBoxOpen  // because msg box would apear behind completion window and type info
+            && caretOff >= pos.offset 
+            && IEditor.current.Value.Id = iEditor.Id then // safety check just in case the fsharp checker took very long and this has changed in the meantime
                 let completionLines = ResizeArray<ICompletionData>()
                 if not onlyDU && charBefore = NotDot then
                     completionLines.Add( CompletionItemForKeyWord(iEditor,config,"#if INTERACTIVE",     "Compiler directive to exclude code in compiled format, close with #endif or #else" ) :> ICompletionData)    |>ignore
@@ -221,10 +228,13 @@ type Completions(avaEdit:TextEditor,config:Config, checker:Checker) =
                     |FSharpGlyph.EnumMember -> completionLines.Add (new CompletionItem(iEditor,config, compl.GetToolTip, it, (lastChar = '.'))) // for DU completion add just some.
                     | _ -> if not onlyDU then  completionLines.Add (new CompletionItem(iEditor,config, compl.GetToolTip, it, (lastChar = '.'))) // for normal completion add all others too.
 
-                if completionLines.Count > 0 then
+                if completionLines.Count = 0 then
+                    compl.Checker.CheckThenHighlightAndFold(iEditor)// start new full check, this one was trimmed at offset.
+                else                    
                     compl.ShowingEv.Trigger() // to close error and type info tooltip
 
                     let w =  new CodeCompletion.CompletionWindow(avaEdit.TextArea)
+                    UtilCompletion.justCompleted <- false
                     compl.ComplWin <- Some w 
                     w.MaxHeight <- 500 // default 300
                     w.Width <- 250 // default 175
@@ -236,15 +246,16 @@ type Completions(avaEdit:TextEditor,config:Config, checker:Checker) =
                     w.SizeToContent   <- SizeToContent.WidthAndHeight // https://github.com/icsharpcode/AvalonEdit/blob/master/ICSharpCode.AvalonEdit/CodeCompletion/CompletionWindow.cs#L47
                     w.MinHeight <- avaEdit.FontSize
                     w.MinWidth  <- avaEdit.FontSize * 8.0
-                    w.Closed.Add (fun _  ->
+                    w.Closed.Add (fun _  -> 
                             compl.Close()
-                            //compl.Checker.CheckThenHighlightAndFold(iEditor) //duplicate check . needed ? because window might close immediately after showing if there are no matches
                             //ISeffLog.log.PrintfnDebugMsg "Completion window just closed with selected item: %A " w.CompletionList.SelectedItem
+                            if not UtilCompletion.justCompleted then 
+                                compl.Checker.CheckThenHighlightAndFold(iEditor) //because window might close immediately after showing if there are no matches
                             )
 
-                    w.CompletionList.SelectionChanged.Add(fun _ -> if w.CompletionList.ListBox.Items.Count=0 then w.Close()) // otherwise empty box might be shown and only get closed on second character
-                    w.Loaded.Add(                         fun _ -> if w.CompletionList.ListBox.Items.Count=0 then w.Close()) // close immediately if completion list is empty
-
+                    w.CompletionList.SelectionChanged.Add(fun _ -> 
+                        if w.CompletionList.ListBox.Items.Count=0 then w.Close() ) // Close() then triggers CheckThenHighlightAndFold
+                           
                     w.CloseAutomatically <-true
                     w.CloseWhenCaretAtBeginning <- true
                                         
@@ -253,26 +264,31 @@ type Completions(avaEdit:TextEditor,config:Config, checker:Checker) =
                     w.StartOffset <- stOff // to replace some previous characters too
 
                     for cln in completionLines do
-                        w.CompletionList.CompletionData.Add (cln)
-                    
+                        w.CompletionList.CompletionData.Add (cln)                    
                     
                     let prefilter = avaEdit.Document.GetText(stOff, caretOff-stOff)// prefilter needs to be calculated here, a few characters might have been added after getCompletions started async.
-                    //ISeffLog.log.PrintfnDebugMsg "*4.2: prefilter '%s' (query:  would be '%s')" prefilter query
+                    //ISeffLog.log.PrintfnDebugMsg "*4.2: prefilter '%s'" prefilter 
                     if prefilter.Length > 0 then 
                         w.CompletionList.SelectItem(prefilter) //to pre-filter the list by al typed characters
-                    
+                        //ISeffLog.log.PrintfnDebugMsg "*4.3: count after SelectItem(prefilter): %d" w.CompletionList.ListBox.Items.Count
 
-                    //ISeffLog.log.PrintfnDebugMsg "Show Completion Window with %d items" w.CompletionList.CompletionData.Count
-                    try w.Show() 
-                    with e -> ISeffLog.log.PrintfnAppErrorMsg "Error in Showing Code Completion Window: %A" e
+                    if w.CompletionList.ListBox.Items.Count > 0 then 
+                        //ISeffLog.log.PrintfnDebugMsg "*4.4 Show Completion Window with %d items" w.CompletionList.ListBox.Items.Count
+                        try 
+                            w.Show() 
+                        with 
+                            e -> ISeffLog.log.PrintfnAppErrorMsg "Error in Showing Code Completion Window: %A" e
+                    else
+                        //ISeffLog.log.PrintfnDebugMsg "*4.5 Skiped showing empty Completion Window"
+                        compl.Close() // needed, otherwise it will not show again
+                        compl.Checker.CheckThenHighlightAndFold(iEditor)
 
                     // Event sequence on pressing enter in completion window:
                     // (1)Close window
                     // (2)insert text into editor (triggers completion if one char only)
                     // (3)raise InsertionRequested event
                     // https://github.com/icsharpcode/AvalonEdit/blob/8fca62270d8ed3694810308061ff55c8820c8dfc/AvalonEditB/CodeCompletion/CompletionWindow.cs#L100
-                else                    
-                    compl.Checker.CheckThenHighlightAndFold(iEditor)// start new full check, this on was trimmed at offset.
+                
 
         compl.Checker.GetCompletions(iEditor, pos, ifDotSetback, continueOnUIthread, compl.OptArgsDict)
 

@@ -8,8 +8,6 @@ open System.Windows.Documents
 open System.Windows.Controls
 open System.Windows.Controls.Primitives // status bar
 
-open FSharp.Compiler.Diagnostics
-
 open AvalonEditB
 open AvalonLog.Brush
 
@@ -168,7 +166,7 @@ type CheckerStatus (grid:TabsAndLog) as this =
 
     
     
-
+    
     do
         lastErrCount <- -1
         this.Padding <-textPadding
@@ -198,7 +196,8 @@ type CheckerStatus (grid:TabsAndLog) as this =
     static member goToNextSegment(ed:Editor) =
         match ErrorUtil.getNextSegment(ed) with 
         |None -> ()
-        |Some seg -> Foldings.GoToOffsetAndUnfold(seg.StartOffset,seg.Length, ed, ed.Folds, ed.Config , false)
+        |Some seg ->             
+            Foldings.GoToOffsetAndUnfold(seg.StartOffset, seg.Length, ed, ed.Folds, ed.Config , false)
 
 type FsiRunStatus (grid:TabsAndLog) as this = 
     inherit TextBlock()

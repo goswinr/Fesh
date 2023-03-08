@@ -22,7 +22,7 @@ module LogColors =
     let fsiStdOut     = Brushes.DarkGray |> darker 20     |> freeze // values printed by fsi itself like "val it = ...."
     let fsiErrorOut   = Brushes.DarkMagenta               |> freeze //are they all caught by evaluate non throwing ? prints "Stopped due to error" on non compiling code
     let consoleError  = Brushes.OrangeRed                 |> freeze // this is used by eprintfn
-    let infoMsg       = Brushes.LightSeaGreen             |> freeze
+    let infoMsg       = Brushes.LightSteelBlue            |> freeze
     let fsiErrorMsg   = Brushes.Magenta                   |> freeze
     let appErrorMsg   = Brushes.LightSalmon |> darker 20  |> freeze
     let iOErrorMsg    = Brushes.DarkRed                   |> freeze
@@ -184,7 +184,7 @@ type Log private () =
             fi.Refresh()
             if fi.Directory.Exists then dlg.InitialDirectory <- fi.DirectoryName
             dlg.FileName <- fi.Name + "_Log"
-        dlg.Title <- "SaveText from Log Window of " + Style.dialogCaption
+        dlg.Title <- "Seff | SaveText from Log Window"
         dlg.DefaultExt <- ".txt"
         dlg.Filter <- "Text Files(*.txt)|*.txt|Text Files(*.csv)|*.csv|All Files(*.*)|*"
         if isTrue (dlg.ShowDialog()) then
@@ -208,7 +208,7 @@ type Log private () =
                fi.Refresh()
                if fi.Directory.Exists then dlg.InitialDirectory <- fi.DirectoryName
                dlg.FileName <- fi.Name + "_Log"
-           dlg.Title <- "Save Selected Text from Log Window of " + Style.dialogCaption
+           dlg.Title <- "Seff | Save Selected Text from Log Window"
            dlg.DefaultExt <- ".txt"
            dlg.Filter <- "Text Files(*.txt)|*.txt|Text Files(*.csv)|*.csv|All Files(*.*)|*"
            if isTrue (dlg.ShowDialog()) then

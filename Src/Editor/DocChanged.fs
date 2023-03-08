@@ -1,22 +1,16 @@
 ﻿namespace Seff.Editor
 
-
 open System
-open System.Text
 open System.Windows
-open System.Windows.Media
 open System.Windows.Input
 
 open FSharp.Compiler.Tokenization // for keywords
 
 open AvalonEditB
-open AvalonEditB.Utils
 open AvalonEditB.Document
-open AvalonLog
 
 open Seff
 open Seff.Model
-open Seff.Config
 open Seff.Util
 open Seff.Util.Str
 
@@ -32,10 +26,10 @@ module DocChanged =
             match ev.Text with              //enter and tab is not needed  here for  insertion,  insertion with Tab or Enter is built into Avalonedit!!
             |" " -> compls.Close()
             |"." -> compls.RequestInsertion(ev) // insert on dot too? //TODO only when more than one char is typed in completion window??
-            |"(" -> compls.RequestInsertion(ev) // insert on open Bracket too?
             | _  -> () // other triggers https://github.com/icsharpcode/AvalonEdit/blob/28b887f78c821c7fede1d4fc461bde64f5f21bd1/AvalonEditB/CodeCompletion/CompletionList.cs#L171
 
-            //else compls.JustClosed<-false
+          //|"(" -> compls.RequestInsertion(ev) // insert on open Bracket too?
+       //else compls.JustClosed<-false
 
 
     module InternalDocChange =     
@@ -158,7 +152,7 @@ module DocChanged =
             let lnToCaret = pos.lineToCaret
             let setback     = lastNonFSharpNameCharPosition lnToCaret // to maybe replace some previous characters too
             let query       = lnToCaret.Substring(lnToCaret.Length - setback)            
-            //ISeffLog.log.PrintfnDebugMsg "show: pos:%A setback='%d'" pos setback
+            //ISeffLog.log.PrintfnDebugMsg "2.1 show: pos:%A setback='%d'" pos setback
 
             let charBeforeQueryDU = 
                 let i = pos.column - setback - 1
@@ -171,10 +165,10 @@ module DocChanged =
                     NotDot
 
             if charBeforeQueryDU = NotDot && keywords.Contains query then
-                //ISeffLog.log.PrintfnDebugMsg "*2.1-show: just highlighting with: lnToCaret='%s' \r\n query='%s', charBefore='%A',  setback='%d', onlyDU:%b' " lnToCaret query charBeforeQueryDU setback forDUonly
+                //ISeffLog.log.PrintfnDebugMsg "*2.2a-show: just highlighting with: lnToCaret='%s' \r\n query='%s', charBefore='%A',  setback='%d', onlyDU:%b' " lnToCaret query charBeforeQueryDU setback forDUonly
                 checker.CheckThenHighlightAndFold(ed)
             else
-                //ISeffLog.log.PrintfnDebugMsg "*2.2-show: try window opening with: lnToCaret=\r\n  '%s'\r\n  query='%s', charBefore='%A', setback='%d', onlyDU:%b" lnToCaret query charBeforeQueryDU  setback forDUonly
+                //ISeffLog.log.PrintfnDebugMsg "*2.2b-show: try window opening with: lnToCaret=\r\n  '%s'\r\n  query='%s', charBefore='%A', setback='%d', onlyDU:%b" lnToCaret query charBeforeQueryDU  setback forDUonly
                 let last = lnToCaret.[lnToCaret.Length-1]
                 Completions.TryShow(ed, compls, pos, last , setback, charBeforeQueryDU, forDUonly)                
 
@@ -183,6 +177,7 @@ module DocChanged =
             let pos = currentLineBeforeCaret(ed.AvaEdit) 
             let ln = pos.lineToCaret // this line will include the character that trigger auto completion(dot or first letter)
             let len = ln.Length
+            //ISeffLog.log.PrintfnDebugMsg "*1.1 maybeShowComletionWindow for lineToCaret: \r\n    '%s'" ln
             if len=0 then // line is empty
                 () // DoNothing
             else
@@ -226,7 +221,7 @@ module DocChanged =
     open InternalDocChange
 
     let docChanged (e:DocumentChangeEventArgs,ed:IEditor, compls:Completions, checker:Checker) : unit = 
-        //ISeffLog.log.PrintfnDebugMsg "*Document.Changed Event: deleted %d '%s', inserted %d '%s', completion hasItems: %b, isOpen: %b , Just closed: %b" e.RemovalLength e.RemovedText.Text e.InsertionLength e.InsertedText.Text compls.HasItems compls.IsOpen compls.JustClosed
+        //ISeffLog.log.PrintfnDebugMsg "*1.1 Document.Changed Event: deleted %d '%s', inserted %d '%s', completion hasItems: %b, isOpen: %b , Just closed: %b" e.RemovalLength e.RemovedText.Text e.InsertionLength e.InsertedText.Text compls.HasItems compls.IsOpen compls.JustClosed
                         
         if compls.IsOpen then   // just keep on tying in completion window, no type checking !
             if compls.HasItems then 
@@ -238,28 +233,27 @@ module DocChanged =
                 compls.Close()
                 ()  // do nothing because if the doc changed a separate event will be triggered for that
 
-        else //no completion window open , do type check..  
+        else //no completion window is open:
             match e.InsertedText.Text with
             |"."  ->  maybeShowComletionWindow(compls,ed, checker) // EnteredDot  
             | txt when txt.Length = 1 ->
                 if compls.JustClosed then   // check to avoid re-trigger of window on single char completions
                     compls.JustClosed <- false                    
-                    checker.CheckThenHighlightAndFold(ed) // CompletionWinClosed 
-
+                    checker.CheckThenHighlightAndFold(ed) // because CompletionWinClosed 
                 else
                     let c = txt.[0]
                     if Char.IsLetter(c) 
                         || c='_' // for __SOURCE_DIRECTORY__
                         || c='`' 
                         || c='#'  then    // for #if directives
-                            maybeShowComletionWindow(compls,ed, checker) // EnteredOneIdentifierChar  
+                            maybeShowComletionWindow(compls,ed, checker) // because  EnteredOneIdentifierChar  
                     else 
-                        checker.CheckThenHighlightAndFold(ed) // EnteredOneNonIdentifierChar
+                        checker.CheckThenHighlightAndFold(ed) // because  EnteredOneNonIdentifierChar
 
-            | _  -> checker.CheckThenHighlightAndFold(ed) //OtherChange: several characters(paste) , delete or an insert from the completion window
+            | _  -> checker.CheckThenHighlightAndFold(ed) // because OtherChange: several characters(paste) , delete or an insert from the completion window
     
 
-    /// delay reaction to doc changes
+    // delay and buffer reaction to doc changes
     open System.Threading
     let private changeId = ref 0L
 

@@ -9,8 +9,6 @@ open AvalonEditB.Rendering
 
 open AvalonLog.Brush
 
-open Seff
-open Seff.Util
 open Seff.Util.General
 open Seff.Model
 

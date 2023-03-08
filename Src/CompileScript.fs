@@ -4,7 +4,6 @@ open System
 open System.Windows
 open System.IO
 open System.Drawing
-//open System.Windows.Forms
 
 open Seff.Model
 open Seff.Util
@@ -74,22 +73,33 @@ module CompileScript =
         refs, fsxs, nugs, (codeWithoutNugetRefs.ToString())
 
     //if last write is more than 1h ago ask for overwrite permissions
-    let overWriteExisting fsProj = 
-        let maxAgeHours = 0.5
-        let fi = FileInfo(fsProj)
-        if fi.Exists then
-            let age = DateTime.UtcNow - fi.LastWriteTimeUtc
-            if age > (TimeSpan.FromHours maxAgeHours) then
-                let msg = sprintf "Do you want to recompile and overwrite the existing files?\r\n \r\n%s\r\n \r\nthat are %.2f days old at\r\n \r\n(This dialog only shows if the last compilation was more than %.1f hours ago.)"fi.FullName age.TotalDays  maxAgeHours
-                //match MessageBox.Show(msg, Style.dialogCaption, MessageBoxButtons.YesNo, MessageBoxIcon.Exclamation, MessageBoxDefaultButton.Button2) with  // uses Windows.Forms  
-                match MessageBox.Show(msg, Style.dialogCaption, MessageBoxButton.YesNo, MessageBoxImage.Exclamation, MessageBoxResult.No) with  // uses  WPF
-                | MessageBoxResult.Yes-> true
-                | MessageBoxResult.No-> false
-                | _ -> false
-            else
-                true
-        else
-            true
+    let overWriteExisting fsProj :bool= 
+        async{  
+            do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context 
+            let maxAgeHours = 0.5
+            let fi = FileInfo(fsProj)
+            return
+                if fi.Exists then
+                    let age = DateTime.UtcNow - fi.LastWriteTimeUtc
+                    if age > (TimeSpan.FromHours maxAgeHours) then
+                        let msg = sprintf "Do you want to recompile and overwrite the existing files?\r\n \r\n%s\r\n \r\nthat are %.2f days old at\r\n \r\n(This dialog only shows if the last compilation was more than %.1f hours ago.)"fi.FullName age.TotalDays  maxAgeHours
+                        //match MessageBox.Show(msg, Style.dialogCaption, MessageBoxButtons.YesNo, MessageBoxIcon.Exclamation, MessageBoxDefaultButton.Button2) with  // uses Windows.Forms  
+                        match MessageBox.Show(
+                            IEditor.mainWindow, 
+                            msg, 
+                            "Recompile and overwrite?", 
+                            MessageBoxButton.YesNo, 
+                            MessageBoxImage.Exclamation, 
+                            MessageBoxResult.No,// default result 
+                            MessageBoxOptions.None) with
+                        | MessageBoxResult.Yes-> true
+                        | MessageBoxResult.No-> false
+                        | _ -> false
+                    else
+                        true
+                else
+                    true
+        }|>  Async.RunSynchronously
 
     let getNugsXml (nugs:ResizeArray<NugetRef>) : string = 
            seq{ for nug in nugs  do  "<PackageReference Include=\"" + nug.name + "\" Version=\"" + nug.version + "\" />" }

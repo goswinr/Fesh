@@ -11,7 +11,6 @@ open Seff.Editor
 open Seff.Model
 open Seff.Util.General
 open Seff.Config
-open Seff.Style
 
 type SavingKind = 
     | SaveInPlace
@@ -24,13 +23,13 @@ type SavingKind =
 /// Window is needed for closing after last Tab closed
 type Tabs(config:Config, win:Window) = 
 
-    let tabs = new TabControl(
-                        Padding = Thickness(0.6),
-                        Margin = Thickness( 0.6),
-                        BorderThickness = Thickness(0.6),
-                        BorderBrush = Brushes.Black
-                        )
-
+    let tabs = 
+        new TabControl(
+            Padding = Thickness(0.6),
+            Margin = Thickness( 0.6),
+            BorderThickness = Thickness(0.6),
+            BorderBrush = Brushes.Black
+            )
 
 
     let log = config.Log
@@ -110,9 +109,15 @@ type Tabs(config:Config, win:Window) =
         dlg.Filter <- "FSharp Files(*.fsx, *.fs)|*.fsx;*.fs|Text Files(*.txt)|*.txt|All Files(*.*)|*"
         if isTrue (dlg.ShowDialog()) then
             let fi = new FileInfo(dlg.FileName)
-            if fi.Exists then
-                let msg = sprintf "Do you want to overwrite the existing file?\r\n%s\r\nwith\r\n%s"fi.FullName t.FormattedFileName
-                match MessageBox.Show(msg, Style.dialogCaption, MessageBoxButton.YesNo, MessageBoxImage.Question) with
+            if fi.Exists then                
+                match MessageBox.Show(
+                    IEditor.mainWindow, 
+                    $"Do you want to overwrite the existing file?\r\n{fi.FullName}\r\nwith\r\n{t.FormattedFileName}" , 
+                    "Overwrite file?", 
+                    MessageBoxButton.YesNo, 
+                    MessageBoxImage.Question, 
+                    MessageBoxResult.No,// default result 
+                    MessageBoxOptions.None) with
                 | MessageBoxResult.Yes -> saveAt (t, fi, saveKind)
                 | MessageBoxResult.No -> false
                 | _ -> false
@@ -181,10 +186,17 @@ type Tabs(config:Config, win:Window) =
     let askIfClosingTabIsOk(t:Tab) :bool= 
         if t.IsCodeSaved then true
         else
-            let msg = sprintf "Do you want to save the changes to:\r\n%s\r\nbefore closing this tab?" t.FormattedFileName
-            match MessageBox.Show(msg, Style.dialogCaption, MessageBoxButton.YesNoCancel, MessageBoxImage.Question) with
+            match MessageBox.Show(
+                win, 
+                $"Do you want to save the changes to:\r\n{t.FormattedFileName}\r\nbefore closing this tab?" , 
+                "Save Changes?", 
+                MessageBoxButton.YesNoCancel, 
+                MessageBoxImage.Question, 
+                MessageBoxResult.Yes,// default result 
+                MessageBoxOptions.None) with
             | MessageBoxResult.Yes -> trySave t
             | MessageBoxResult.No -> true
+            | MessageBoxResult.Cancel -> false
             | _ -> false
 
     let closeTab(t:Tab)=
@@ -231,7 +243,7 @@ type Tabs(config:Config, win:Window) =
         if fi.Exists then
             match allTabs |> Seq.indexed |> Seq.tryFind (fun (_,t) -> areFilePathsSame fi t.FilePath) with // check if file is already open
             | Some (i,t) ->
-                if makeCurrent && not t.IsCurrent then
+                if makeCurrent then // && not t.IsCurrent then
                     tabs.SelectedIndex <- i
                     current <- t
                     IEditor.current <- Some (t.Editor:>IEditor)
@@ -251,7 +263,14 @@ type Tabs(config:Config, win:Window) =
                     false
         else
             log.PrintfnIOErrorMsg "File not found:\r\n%s" fi.FullName
-            MessageBox.Show("File not found:\r\n"+fi.FullName , dialogCaption, MessageBoxButton.OK, MessageBoxImage.Error) |> ignore
+            MessageBox.Show(
+                win, 
+                $"File not found:\r\n\r\n{fi.FullName}" , 
+                "File not found !", 
+                MessageBoxButton.OK, 
+                MessageBoxImage.Error, 
+                MessageBoxResult.OK ,// default result 
+                MessageBoxOptions.None) |> ignore
             false
 
     /// Return true if at least one file was opened correctly
@@ -273,7 +292,7 @@ type Tabs(config:Config, win:Window) =
         | Some t -> t.Refresh(); if  t.Exists then  dlg.InitialDirectory <- t.FullName
         | _ -> ()
         dlg.DefaultExt <- ".fsx"
-        dlg.Title <- "Open file for " + Style.dialogCaption
+        dlg.Title <- "Seff | Open file"
         dlg.Filter <- "FSharp Files(*.fsx, *.fs)|*.fsx;*.fs|Text Files(*.txt)|*.txt|All Files(*.*)|*"
         if isTrue (dlg.ShowDialog()) then
             tryAddFiles dlg.FileNames
@@ -289,14 +308,21 @@ type Tabs(config:Config, win:Window) =
         if tabs.Items.Count=0 then //Open default file if none found in recent files or args
             let t = new Tab(Editor.New(config), config, allFileInfos)
             addTab(t, true, true) |> ignore
+        
+        let curTab = 
+            if tabs.SelectedIndex = -1 then   
+                //make one tab current if none yet , happens if current file on last closing was an unsaved file
+                tabs.SelectedIndex <- 0
+                tabs.Items.[0] :?> Tab
+            else 
+                tabs.Items.[tabs.SelectedIndex] :?> Tab
+        
+        curTab.IsCurrent <- true
+        current <- curTab
+        IEditor.current <- Some (curTab.Editor:>IEditor)
 
-        if tabs.SelectedIndex = -1 then    //make one tab current if none yet , happens if current file on last closing was an unsaved file
-            tabs.SelectedIndex <- 0
-            let tab = Seq.head allTabs
-            current <- tab
-            IEditor.current <- Some (tab.Editor:>IEditor)
-
-        Environment.CurrentDirectory <- match current.FilePath with |SetTo fi -> fi.Directory.FullName  |NotSet -> enviroDefaultDir // to use __SOURCE_DIRECTORY__
+        // to be able to use __SOURCE_DIRECTORY__ :
+        Environment.CurrentDirectory <- match current.FilePath with |SetTo fi -> fi.Directory.FullName  |NotSet -> enviroDefaultDir 
 
         // then start highlighting errors on current tab only
         current.Editor.GlobalChecker.CheckThenHighlightAndFold(current.Editor)
@@ -316,7 +342,7 @@ type Tabs(config:Config, win:Window) =
                     else                             tabs.SelectedItem
                 let tab = tab :?> Tab
                 current <- tab
-                IEditor.current <- Some (tab.Editor:>IEditor)
+                IEditor.current <- Some (tab.Editor:>IEditor)                
                 for t in allTabs do
                     t.IsCurrent <- false  // first set all false then one true
                 tab.IsCurrent <- true
@@ -444,10 +470,19 @@ type Tabs(config:Config, win:Window) =
         if  Seq.isEmpty openFs then
             true
         else
-            let msg = openFs  |> Seq.fold (fun m t ->
+            let msg = 
+                openFs  |> Seq.fold (fun m t ->
                 let name  = match t.FilePath with NotSet -> t.FormattedFileName |SetTo fi ->fi.Name
                 sprintf "%s\r\n \r\n%s" m name) "Do you want to\r\nsave the changes to:"
-            match MessageBox.Show(msg, Style.dialogCaption, MessageBoxButton.YesNoCancel, MessageBoxImage.Question) with
+            
+            match MessageBox.Show(
+                win, 
+                msg, 
+                "Save Changes?", 
+                MessageBoxButton.YesNoCancel, 
+                MessageBoxImage.Question, 
+                MessageBoxResult.Yes,// default result 
+                MessageBoxOptions.None) with
             | MessageBoxResult.Yes ->
                 seq { for t in allTabs do if not t.IsCodeSaved then yield trySaveBeforeClosing t } // if saving was canceled ( eg, no filename picked) then cancel closing
                 |> Seq.forall id // checks if all are true, if one file-saving was canceled return false,  so the closing of the main window can be aborted

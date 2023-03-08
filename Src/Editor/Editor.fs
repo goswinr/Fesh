@@ -20,6 +20,7 @@ open Seff.Config
 open Seff.Util.Str
 open FSharp.Compiler.EditorServices
 
+
  /// The tab that holds the tab header and the code editor
 type Editor private (code:string, config:Config, filePath:FilePath)  = 
     let avaEdit = new TextEditor()
@@ -119,7 +120,7 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
     
     member this.Log = log
     
-    member this.IsComplWinOpen  = compls.IsOpen
+    member this.IsComplWinOpen  = compls.IsOpen    
 
     member this.EvaluateFrom    = evalTracker.EvaluateFrom
 
@@ -131,7 +132,7 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
         member _.Log             = log
         member _.FoldingManager  = folds.Manager
         member _.EvaluateFrom    = evalTracker.EvaluateFrom
-        member _.IsComplWinOpen  = compls.IsOpen
+        member _.IsComplWinOpen  = compls.IsOpen        
         member _.SemanticRanges  = semanticHighlighter.Ranges
 
     /// sets up Text change event handlers
@@ -140,12 +141,10 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
         let ed = Editor(code, config, filePath )
         let avaEdit = ed.AvaEdit
         let compls = ed.Completions
-        let log = ed.Log      
-        
-        
+        let log = ed.Log  
 
         ed.HighlightText <- SelectionHighlighting.HiEditor.setup(ed)        
-        //BracketHighlighter.Setup(ed, ed.GlobalChecker) // Disabled! TODO: fix bug first !!!
+        BracketHighlighter.Setup(ed, ed.GlobalChecker) 
 
         Logging.LogAction <- new Action<string>( fun (s:string) -> log.PrintfnDebugMsg "Logging.Log: %s" s)
 
@@ -174,8 +173,7 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
         avaEdit.Document.Changed.Add(fun a -> 
             DocChanged.delayDocChange(a, ed, compls, ed.GlobalChecker) // to trigger for Autocomplete or error highlighting with immediate delay, (instead of delay in checkCode function.)
             ed.EvalTracker.SetLastChangeAt(a.Offset)
-            ) 
-                          
+            )                           
 
         // check if closing and inserting from completion window is desired now:
         avaEdit.TextArea.TextEntering.Add (DocChanged.closeAndMaybeInsertFromCompletionWindow compls)
@@ -197,7 +195,6 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
         avaEdit.TextArea.TextEntering.Add (fun _ -> ed.TypeInfoTip.IsOpen <- false )// close type info on typing
 
         ed
-
 
     ///additional constructor using default code
     static member New (config:Config) =  Editor.SetUp( config.DefaultCode.Get() , config, NotSet)

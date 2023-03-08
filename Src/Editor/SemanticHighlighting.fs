@@ -2,34 +2,32 @@
 
 open System
 open System.Windows.Media
-open AvalonEditB
-open AvalonEditB.Rendering
-open Seff.Util.General
-open Seff.Util
-open Seff.Util
-open Seff.Model
-open Seff.Editor.Selection
 open FSharp.Compiler
 open FSharp.Compiler.EditorServices
+open AvalonEditB
+open AvalonEditB.Rendering
 open AvalonLog.Brush
+open Seff.Model
 
 // see  https://github.com/dotnet/fsharp/blob/main/src/Compiler/Service/SemanticClassification.fs
 
 module SemColor = 
 
-    let ReferenceType                = Brushes.DarkTurquoise |> darker 80   |> freeze
-    let ValueType                    = Brushes.Maroon         |> darker 40 |> freeze
+    let ValueType                    = Brushes.MediumOrchid  |> darker 40 |> freeze
+    let ReferenceType                = Brushes.MediumVioletRed  |> darker 60   |> freeze
+    let Type                         = Brushes.MediumVioletRed  |> darker 60 |> freeze
     let UnionCase                    = Brushes.LightSkyBlue  |> darker 100  |> freeze
     let UnionCaseField               = Brushes.LightSkyBlue  |> darker 100 |> freeze
-    let Function                     = Brushes.DarkGoldenrod |> darker 80 |> freeze
-    let Property                     = Brushes.Indigo |> freeze
-    let MutableVar                   = Brushes.Goldenrod |> freeze
-    let Module                       = Brushes.SteelBlue |> freeze
-    let Namespace                    = Brushes.Black |> freeze
+    let Function                     = Brushes.DarkGoldenrod |> darker 60 |> freeze
+    let Property                     = Brushes.DarkTurquoise |> darker 110 |> freeze
+    let MutableVar                   = Brushes.Goldenrod |> darker 20 |> freeze
+    let MutableRecordField           = Brushes.Goldenrod |> darker 20 |> freeze
+    let Module                       = Brushes.Black |> freeze
+    let Namespace                    = Brushes.Black  |> freeze //
     //let Printf                       = Brushes.Plum      |> freeze // cover by xshd
     let ComputationExpression        = Brushes.DarkGray |> freeze
-    let IntrinsicFunction            = Brushes.DarkGray |> freeze
-    let Enumeration                  = Brushes.DarkGray |> freeze
+    let IntrinsicFunction            = Brushes.DarkBlue |> freeze
+    let Enumeration                  = Brushes.Indigo |> freeze
     let Interface                    = Brushes.DarkGray |> freeze
     let TypeArgument                 = Brushes.SlateBlue |> freeze
     let Operator                     = Brushes.MediumSlateBlue |> freeze
@@ -41,21 +39,19 @@ module SemColor =
     let ConstructorForReferenceType  = Brushes.Brown |> freeze
     let ConstructorForValueType      = Brushes.SandyBrown |> darker 80 |> freeze
     let Literal                      = Brushes.SeaGreen |> freeze
-    let RecordField                  = Brushes.DarkSlateBlue  |> freeze
-    let MutableRecordField           = Brushes.Goldenrod |> freeze
+    let RecordField                  = Brushes.DarkSlateGray |> darker 10 |> freeze
     let RecordFieldAsFunction        = Brushes.Plum |> freeze
     let Exception                    = Brushes.HotPink |> darker 40   |> freeze
     let Field                        = Brushes.MediumPurple |> freeze
     let Event                        = Brushes.Olive |> freeze
     let Delegate                     = Brushes.DarkOliveGreen |> freeze
     let NamedArgument                = Brushes.PaleVioletRed |> darker 80 |> freeze
-    let Value                        = Brushes.DarkSlateBlue |> freeze
-    let LocalValue                   = Brushes.DarkSlateBlue |> freeze
-    let Type                         = Brushes.Teal |> freeze
+    let Value                        = Brushes.DarkRed  |> darker 20 |> freeze
+    let LocalValue                   = Brushes.DarkRed  |> darker 40 |> freeze
     let TypeDef                      = Brushes.Thistle |> darker 50 |> freeze
     let Plaintext                    = Brushes.OrangeRed |> darker 60 |> freeze   
     
-    let UnUsed                       = Brushes.Gray |> freeze   
+    let UnUsed                       = Brushes.Gray |> brighter 30 |> freeze   
 
 module SemAction = 
     open SemColor

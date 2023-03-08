@@ -2,13 +2,10 @@
 
 open System
 open System.Text
-
-
-
 open Seff.Model
-open Seff.Util
 
-module Formatting = 
+
+module AlignText = 
 
     let findCharOld (c:Char) (fromIndex:int) (sb:StringBuilder) = 
         let rec find i = 
@@ -42,7 +39,7 @@ module Formatting =
         //&& (    Char.IsPunctuation c
         //     || Char.IsSymbol      c )
         match c with 
-        | '=' | ',' | ';' | '(' | ')' | '[' | ']' | '{' | '}' -> true
+        | '=' | ':' | ',' | ';' | '|' | '(' | ')' | '[' | ']' | '{' | '}' -> true
         | _ -> false      
         
 

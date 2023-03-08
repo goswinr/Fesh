@@ -1,8 +1,6 @@
 ﻿namespace Seff.Editor
 
-
 open System
-open System.IO
 
 open System.Collections.Generic
 open System.Windows
@@ -10,8 +8,6 @@ open System.Windows.Controls
 open System.Windows.Media
 open System.Windows.Input
 open System.Windows.Documents
-
-open AvalonEditB.Document
 
 open AvalonLog.Brush
 
@@ -22,13 +18,7 @@ open FSharp.Compiler.EditorServices    // Misc functionality for editors, e.g. i
 open FSharp.Compiler.Symbols           // FSharpEntity etc
 open FSharp.Compiler.Text              // ISourceFile, Range, TaggedText and other things
 open FSharp.Compiler.Tokenization      // FSharpLineTokenizer etc.
-open FSharp.Compiler
-open FSharp.Compiler.CodeAnalysis
-open FSharp.Compiler.EditorServices
 open FSharp.Compiler.Syntax
-open FSharp.Compiler.Text
-open FSharp.Compiler.Text
-open FSharp.Compiler.Tokenization
 
 open Seff
 open Seff.Util
@@ -118,7 +108,6 @@ type TypeInfo private () =
                 if t.Text = "val" then bG <- null // val is the listing of members in a type , not a return value anymore
                 tb.Inlines.Add( new Run(t.Text, Foreground = blue, Background=bG ))
 
-            | TextTag.Operator -> tb.Inlines.Add( new Run(t.Text, Foreground = Brushes.Green, Background=bG ))
             | TextTag.Punctuation->
                 match t.Text with
                 | "?"        ->   tb.Inlines.Add( new Run(t.Text, Foreground = gray, Background=bG))
@@ -126,6 +115,7 @@ type TypeInfo private () =
                 |  _         ->  tb.Inlines.Add( new Run(t.Text, Foreground = purple , Background=bG))
                 //if i >= lastArrI then bG <- white // to have a white color on return value
 
+            | TextTag.Operator //  also used for  DU names in `` ``  !?
             | TextTag.RecordField
             | TextTag.Method
             | TextTag.Property
@@ -378,7 +368,7 @@ type TypeInfo private () =
         |Some r ->                 
                 let f = r.FileName.Replace('\\','/')
                 if f <> "unknown" then 
-                    let tb = TextBlockSelectable(Text = sprintf "define at: %s  Line:%d" f r.StartLine)
+                    let tb = TextBlockSelectable(Text = sprintf "defined at: %s  Line:%d" f r.StartLine)
                     tb.FontSize <- Style.fontSize  * 0.85
                     tb.Foreground <-black
                     //tb.FontFamily <- new FontFamily ("Arial") // or use default of device
@@ -444,8 +434,8 @@ type TypeInfo private () =
 
 
     /// Returns the names of optional Arguments in a given method call.
-    static let namesOfOptnlArgs(fsu:FSharpSymbolUse)  :ResizeArray<OptDefArg>= 
-        let optDefs = ResizeArray<OptDefArg>(0)
+    static let namesOfOptnlArgs(fsu:FSharpSymbolUse, iEditor:IEditor)  :ResizeArray<OptDefArg>= 
+        let optDefs = ResizeArray<OptDefArg>(0)        
         try
             match fsu.Symbol with
             | :? FSharpMemberOrFunctionOrValue as x ->
@@ -467,8 +457,15 @@ type TypeInfo private () =
 
                             //log.PrintfnDebugMsg "optional full name: %s" c.FullName
             | _ -> ()
-        with e -> 
-            ISeffLog.log.PrintfnAppErrorMsg "Error while trying to get optional Arguments in a given method.\r\nTypeInfo.namesOfOptnlArgs: %A" e
+        with e ->
+            //| :? FSharp.Compiler.DiagnosticsLogger.StopProcessingExn  -> //not public !!  
+            if e.Message.Contains "must add a reference to assembly '" then 
+                AutoFixErrors.check(e.Message,iEditor)
+            else
+                ISeffLog.log.PrintfnAppErrorMsg "GetOptTypeInfo Error: %s:\r\n%s" (e.GetType().FullName) e.Message            
+                if notNull e.InnerException then 
+                    ISeffLog.log.PrintfnAppErrorMsg "InnerException: %s:\r\n %s" (e.GetType().FullName) e.Message
+            
         optDefs
     
     
@@ -480,7 +477,7 @@ type TypeInfo private () =
 
     static member loadingText = loadingTxt
 
-    static member namesOfOptionalArgs(fsu:FSharpSymbolUse) = namesOfOptnlArgs(fsu)
+    static member namesOfOptionalArgs(fsu:FSharpSymbolUse, iEditor:IEditor) = namesOfOptnlArgs(fsu,iEditor)
 
     static member makeSeffToolTipDataList (sdtt: ToolTipText, fullName:string, optArgs:ResizeArray<string>) = makeToolTipDataList (sdtt, fullName, optArgs)
 
@@ -532,7 +529,7 @@ type TypeInfo private () =
                         let symbol = res.checkRes.GetSymbolUseAtLocation(lineNo, colAtEndOfNames, lineTxt, qualId )                                //only to get to info about optional parameters
                         let fullName = if symbol.IsSome then symbol.Value.Symbol.FullName else ""
 
-                        let optArgs = if symbol.IsSome then namesOfOptnlArgs(symbol.Value) else ResizeArray(0)
+                        let optArgs = if symbol.IsSome then namesOfOptnlArgs(symbol.Value, iEditor) else ResizeArray(0)
                         let ttds = makeToolTipDataList (ttt, fullName ,optArgs) //TODO can this still be async ?
                         
                         do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context

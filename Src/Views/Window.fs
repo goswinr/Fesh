@@ -5,8 +5,6 @@ open System.Windows.Media.Imaging
 open System.Runtime.InteropServices
 open Seff.Model
 open Seff.Config
-open Seff.Util
-
 
 /// A class holding the main WPF Window
 /// Includes loading icon
@@ -18,7 +16,7 @@ type SeffWindow (config:Config)=
     let mutable wasMax = false //indicating if the Window was in Full-screen mode before switching to temporary Log only full-screen
 
     do
-        SeffWindow.Current <- win 
+        IEditor.mainWindow <- win 
         
         if win.Settings.GetBool ("WindowIsMax", false) then
             wasMax <- true
@@ -74,8 +72,8 @@ type SeffWindow (config:Config)=
         with get() = wasMax
         and set(v) = wasMax <- v
     
-    // this member is needed in FileWatcher
-    static member val Current = Unchecked.defaultof<FsEx.Wpf.PositionedWindow> with get,set 
+    
+   
 
 
 

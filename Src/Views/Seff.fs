@@ -7,7 +7,6 @@ open FsEx.Wpf.DependencyProps
 open Seff.Views
 open Seff.Config
 open Seff.Editor
-open Seff.Model
 
 //#nowarn "44" // for AppDomain.GetCurrentThreadId()
 

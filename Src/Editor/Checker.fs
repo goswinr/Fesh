@@ -4,7 +4,6 @@ open System
 open System.Collections.Generic
 open System.Threading
 
-open AvalonEditB
 open Seff.Util.General
 
 open FSharp.Compiler
@@ -14,7 +13,6 @@ open FSharp.Compiler.EditorServices
 open Seff
 open Seff.Model
 open Seff.Config
-open Seff.Util.General
 
 
 /// Only a single instance of checker exist that is referenced on all editors
@@ -321,7 +319,7 @@ type Checker private (config:Config)  =
                                 optArgsDict.Clear() //clean up from last time, or keep ?
                                 for symbs in symUse do
                                     for symb in symbs do
-                                        let opts = TypeInfo.namesOfOptionalArgs(symb)
+                                        let opts = TypeInfo.namesOfOptionalArgs(symb, iEditor)
                                         if opts.Count>0 then
                                             optArgsDict.[symb.Symbol.FullName] <- opts                                
                                 

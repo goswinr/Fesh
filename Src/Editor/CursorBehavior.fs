@@ -2,14 +2,13 @@
 
 open System
 open System.Windows
-open System.Windows.Input
 
 open AvalonEditB
 open AvalonEditB.Document
 
 open Seff.Model
 open Seff.Util.Str
-open System.Reflection.Metadata.Ecma335
+
 
 module Doc = 
 

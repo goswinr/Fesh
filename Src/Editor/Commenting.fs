@@ -1,12 +1,10 @@
 ﻿namespace Seff.Editor
 
-open System
 open AvalonEditB
 open Seff.Util
 
 /// Commenting:  turning code into Comments and back
 module Commenting = 
-
 
     let comment(avaEdit:TextEditor) = 
         let doc = avaEdit.Document

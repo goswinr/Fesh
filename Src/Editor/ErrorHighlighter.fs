@@ -41,6 +41,9 @@ module ErrorUtil =
         
     let mutable private scrollToIdx = -1
 
+    /// becaus the UI gets a lag if there are 100 of errors to draw
+    let maxAmountOfErrorsToDraw = 12 
+
     /// split errors by severity and sort by line number 
     let getBySeverity(checkRes:CodeAnalysis.FSharpCheckFileResults)  =
         scrollToIdx <- -1
@@ -107,23 +110,36 @@ module ErrorUtil =
         geometry  
     
 
-    let getNextErrrorIdx( bySev:ErrorsBySeverity ) =
-        if bySev.errorsAndWarnings.Count=0 then -1
-        elif scrollToIdx >= bySev.errorsAndWarnings.Count-1 then 
+    let getNextErrrorIdx( ews:ResizeArray<FSharpDiagnostic> ) =
+        if ews.Count=0 then 
+            -1
+        elif scrollToIdx >= ews.Count-1  || scrollToIdx >= maxAmountOfErrorsToDraw then 
             scrollToIdx <- 0   
             0
         else         
-            scrollToIdx <- scrollToIdx+1            
+            scrollToIdx <- scrollToIdx + 1            
             scrollToIdx
 
-    let getNextSegment(ed:IEditor)=         
+    let rec getNextSegment(ed:IEditor)=         
         match ed.FileCheckState with 
         | Done res ->
-            let ers = res.errors.errorsAndWarnings
-            if ers.Count=0 then 
+            let ews = res.errors.errorsAndWarnings
+            if ews.Count=0 then 
                 None 
             else  
-                getSegment (ed.AvaEdit.Document) (ers.[getNextErrrorIdx res.errors])
+                let i = getNextErrrorIdx ews
+                if i < 0 then 
+                    None
+                elif i=0 then 
+                    getSegment ed.AvaEdit.Document ews[i]
+                else 
+                    let p = ews[i-1]
+                    let t = ews[i  ]
+                    if p.StartLine = t.StartLine then // loop on if not first and same line as last
+                        getNextSegment(ed)
+                    else                
+                        getSegment ed.AvaEdit.Document t
+
         | NotStarted | DocChanging | GettingCode _ | Checking _| CheckFailed -> 
             None           
        
@@ -192,7 +208,7 @@ type ErrorRenderer (ed:TextEditor, folds:Folding.FoldingManager, log:ISeffLog) =
             log.PrintfnAppErrorMsg "ERROR in ErrorRenderer.Draw: %A" ex
 
     member _.Layer = KnownLayer.Selection // for IBackgroundRenderer
-    member _.Transform(context:ITextRunConstructionContext , elements:IList<VisualLineElement>)=() // needed ? // for IVisualLineTransformer
+    member _.Transform(context:ITextRunConstructionContext , elements:IList<VisualLineElement>)=() // TODO needed ? // for IVisualLineTransformer
 
     /// Update list of Segments to actually mark (first nine only per Severity) and ensure drawing the error squiggle on the surrounding folding box too
     member _.AddSegments( res: CheckResults )= 
@@ -212,10 +228,10 @@ type ErrorRenderer (ed:TextEditor, folds:Folding.FoldingManager, log:ISeffLog) =
                             ctx.DrawGeometry(Brushes.Transparent, segToMark.UnderlinePen, geo)
                             )  
         let es = res.errors
-        for h in es.hiddens  |> Seq.truncate 9  do mark(h)    // TODO only highlight the first 9 ?            
-        for i in es.infos    |> Seq.truncate 9  do mark(i)                
-        for w in es.warnings |> Seq.truncate 9  do mark(w)                
-        for e in es.errors   |> Seq.truncate 9  do mark(e)   // draw errors last, after warnings, to be on top of them!   
+        for h in es.hiddens  |> Seq.truncate ErrorUtil.maxAmountOfErrorsToDraw  do mark(h)    // TODO only highlight the first 9 ?            
+        for i in es.infos    |> Seq.truncate ErrorUtil.maxAmountOfErrorsToDraw  do mark(i)                
+        for w in es.warnings |> Seq.truncate ErrorUtil.maxAmountOfErrorsToDraw  do mark(w)                
+        for e in es.errors   |> Seq.truncate ErrorUtil.maxAmountOfErrorsToDraw  do mark(e)   // draw errors last, after warnings, to be on top of them!   
             
         txA.TextView.Redraw()
 

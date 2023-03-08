@@ -1,6 +1,5 @@
 ﻿namespace Seff.Config
 
-open System
 open System.IO
 open FsEx.Wpf
 open Seff.Model
