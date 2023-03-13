@@ -10,42 +10,36 @@ open Seff.Config
 /// Includes loading icon
 type SeffWindow (config:Config)= 
 
-    let win = new FsEx.Wpf.PositionedWindow(config.RunContext.PositionedWindowSettingsFileInfo, ISeffLog.printError)
+    let win =         
+        let w = new FsEx.Wpf.PositionedWindow(config.RunContext.PositionedWindowSettingsFileInfo, ISeffLog.printError)
+        IEditor.mainWindow <- w
+        w
     
+    let mutable wasMax = win.Settings.GetBool ("WindowIsMax", false) //indicating if the Window was in Full-screen mode before switching to temporary Log only full-screen
 
-    let mutable wasMax = false //indicating if the Window was in Full-screen mode before switching to temporary Log only full-screen
+    // for Title Bar:  
+    let appName =         
+        match config.RunContext.HostName with
+        |None     -> "Seff"          //, a Scripting editor for fsharp"        
+        |Some n   -> "Seff for " + n //, a Scripting editor for fsharp in " + n
 
-    do
-        IEditor.mainWindow <- win 
-        
-        if win.Settings.GetBool ("WindowIsMax", false) then
-            wasMax <- true
-        
-        // Set Title Bar:  
-        let name =         
-            match config.RunContext.HostName with
-            |None     -> "Seff"          //, a Scripting editor for fsharp"        
-            |Some n   -> "Seff for " + n //, a Scripting editor for fsharp in " + n
-
-        let plat = 
-            if Environment.Is64BitProcess then "  |  64bit" else "  |  32bit"
+    let plat = 
+        if Environment.Is64BitProcess then "64bit" else "32bit"
                
-        let version = 
-            let v = Reflection.Assembly.GetAssembly(typeof<ISeffLog>).GetName().Version
-            $" {v.Major}.{v.Minor}.{v.Revision}"  + if  v.MinorRevision <> 0s then $".{v.MinorRevision}" else ""
+    let version = 
+        let v = Reflection.Assembly.GetAssembly(typeof<ISeffLog>).GetName().Version
+        $"v{v.Major}.{v.Minor}.{v.Revision}"  + if  v.MinorRevision <> 0s then $".{v.MinorRevision}" else ""
 
-        let fscore  = 
-            let v = [].GetType().Assembly.GetName().Version 
-            $"  |  Fsharp.Core {v.Major}.{v.Minor}.{v.Revision}"  + if  v.MinorRevision <> 0s then $".{v.MinorRevision}" else ""
+    let fscore  = 
+        let v = [].GetType().Assembly.GetName().Version 
+        $"Fsharp.Core {v.Major}.{v.Minor}.{v.Revision}"  + if  v.MinorRevision <> 0s then $".{v.MinorRevision}" else ""
 
-        let frameW =
-            let d = RuntimeInformation.FrameworkDescription
-            let t = if d.EndsWith ".0" then d[..^2] else d
-            $"  |  {t}" 
-
-        win.Title <- name + version + plat + frameW + fscore
-             
-
+    let frameW =
+        let d = RuntimeInformation.FrameworkDescription
+        let t = if d.EndsWith ".0" then d[..^2] else d
+        $"{t}"  
+    
+    do   
         //Add Icon:
         try
             // Add the Icon at the top left of the window and in the status bar, musst be called  after loading window.
@@ -71,6 +65,34 @@ type SeffWindow (config:Config)=
     member this.WasMax
         with get() = wasMax
         and set(v) = wasMax <- v
+
+    member this.setFileNameInTitle (fp:FilePath) =         
+        
+        match fp with 
+        |NotSet dummyName -> 
+            let txt =  
+                [
+                dummyName
+                appName 
+                version
+                plat 
+                frameW 
+                fscore                
+                ] |> String.concat "  -  "
+            win.Title <- txt         
+        
+        |SetTo fi -> 
+            let txt =  
+                [
+                fi.Name
+                appName 
+                version
+                plat 
+                frameW 
+                fscore
+                fi.DirectoryName
+                ] |> String.concat "  -  "
+            win.Title <- txt 
     
     
    

@@ -77,10 +77,19 @@ type Checker private (config:Config)  =
                     |SetTo fi ->
                         let n = fi.FullName
                         if not <| n.EndsWith(".fsx",StringComparison.InvariantCultureIgnoreCase) then n + ".fsx" else n // required by FCS, oddly !
-                    |NotSet -> 
+                    |NotSet dummyName ->
                         // TODO this name should be unique even for unsaved files !!for caching
                         // Used to differentiate between scripts, to consider each script a separate project.
-                        "UnSavedFile.fsx" // .fsx file required by FCS , oddly ! //TODO check if file can contain invalid path characters like *
+                        // .fsx file suffix is required by FCS , oddly ! //TODO check if file can contain invalid path characters like *
+                        let cl = dummyName.Replace( "*", "")                        
+                        if cl.EndsWith(".fsx", StringComparison.InvariantCultureIgnoreCase) then 
+                            cl
+                        elif cl.EndsWith(".fs", StringComparison.InvariantCultureIgnoreCase) then 
+                            cl
+                        else
+                            cl+".fsx"
+
+                        
 
                 if !checkId = thisId  then
                     try

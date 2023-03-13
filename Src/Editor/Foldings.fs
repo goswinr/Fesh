@@ -26,10 +26,9 @@ type NonStandartIndent = { badIndent: int; lineStartOffset:int; lineNo: int }
 type NonStandartIndentColorizier (badInds:ResizeArray<NonStandartIndent>) = 
     inherit Rendering.DocumentColorizingTransformer() 
 
-    let brush = 
-        //Color.FromArgb(100uy,255uy,255uy,0uy)
-        //Color.FromArgb(30uy,0uy,0uy,255uy) // a very light transparent blue, transparanet to show coloum rulers behind
-        Color.FromArgb(30uy,255uy,140uy,0uy) // a very light transparent Orange, transparanet to show coloum rulers behind
+    let brush =        
+        //Color.FromArgb(30uy,255uy,140uy,0uy) // a very light transparent Orange, transparanet to show coloum rulers behind
+        Color.FromArgb(40uy,255uy,255uy,0uy) // a very light transparent Yellow, transparanet to show coloum rulers behind
         |> SolidColorBrush
         |> freeze
 

@@ -27,7 +27,7 @@ type Commands (grid:TabsAndLog, statusBar:SeffStatusBar)  =
     let evalAllText()          =                                             fsi.Evaluate {editor=tabs.Current.Editor; amount=All; logger=None}
     let evalAllTextSave()      =               tabs.SaveAsync(tabs.Current); fsi.Evaluate {editor=tabs.Current.Editor; amount=All; logger=None}
     let evalAllTextSaveClear() =  log.Clear(); tabs.SaveAsync(tabs.Current); fsi.Evaluate {editor=tabs.Current.Editor; amount=All; logger=None}
-    let evalContinue()         =  (if tabs.Current.FilePath<>NotSet then tabs.SaveAsync(tabs.Current)); fsi.Evaluate {editor=tabs.Current.Editor; amount=ContinueFromChanges; logger=None}
+    let evalContinue()         =  (if tabs.Current.FilePath.IsSet then tabs.SaveAsync(tabs.Current)); fsi.Evaluate {editor=tabs.Current.Editor; amount=ContinueFromChanges; logger=None}
     let markEvaluated()        =  tabs.Current.Editor.EvalTracker.MarkEvaluatedTillOffset(Selection.currentLineEnd tabs.CurrAvaEdit + 2 )
 
     let evalSelectedLines()    =  fsi.Evaluate {editor=tabs.Current.Editor; amount = FsiSegment <|SelectionForEval.expandSelectionToFullLines(tabs.CurrAvaEdit) ; logger=None}

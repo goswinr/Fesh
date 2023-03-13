@@ -62,7 +62,7 @@ type CheckerStatus (grid:TabsAndLog) as this =
             if erk>0 then
                 if addPersistInfo then TextBlock(Text = "Click on text in statusbar or press Ctrl + E keys to scroll to first error.", FontSize = Style.fontSize * 0.75, FontStyle = FontStyles.Italic, Margin=Thickness 3.0)
                 if addPersistInfo then TextBlock(Text = "Press Ctrl + P to persist this tooltip window.", FontSize = Style.fontSize * 0.75, FontStyle = FontStyles.Italic, Margin=Thickness 3.0)                
-                TextBlockSelectable(Text = "File: " + tabs.Current.FormattedFileName, FontSize = Style.fontSize * 0.8, Margin=Thickness 3.0 )
+                TextBlockSelectable(Text = "File: " + tabs.Current.FullNameOrDummy, FontSize = Style.fontSize * 0.8, Margin=Thickness 3.0 )
                 TextBlock(Text = "Errors:", FontSize = Style.fontSize , FontWeight = FontWeights.Bold )
             for e in Seq.truncate 10 es.errors do
                 TextBlockSelectable(Text = sprintf "• line %d: %s: %s" e.StartLine e.ErrorNumberText e.Message, FontSize = Style.fontSize * 0.9, Margin=Thickness 3.0 )
@@ -104,7 +104,7 @@ type CheckerStatus (grid:TabsAndLog) as this =
                 if lastErrCount <> 0  || lastFile <> tabs.Current.Editor.Id then // no UI update needed in this case
                     this.Text <- "No compiler errors"
                     this.Background <- okColor
-                    this.ToolTip <- "FSharp Compiler Service found no Errors in"+ Environment.NewLine + tabs.Current.FormattedFileName
+                    this.ToolTip <- "FSharp Compiler Service found no Errors in"+ Environment.NewLine + tabs.Current.FullNameOrDummy
                     lastFile <- tabs.Current.Editor.Id
                     lastErrCount <- 0
                     scrollToSegm <- None
@@ -148,7 +148,7 @@ type CheckerStatus (grid:TabsAndLog) as this =
                             lastErrCount <- -1
                             this.Text <- checkingTxt
                             this.Background <- waitCol //originalBackGround
-                            this.ToolTip <- sprintf "Checking %s for Errors ..." tabs.Current.FormattedFileName
+                            this.ToolTip <- sprintf "Checking %s for Errors ..." tabs.Current.FullNameOrDummy
                     | Done _ | DocChanging | NotStarted | CheckFailed -> ()
             } |> Async.StartImmediate
 
@@ -219,8 +219,8 @@ type FsiRunStatus (grid:TabsAndLog) as this =
                 | FsiSegment _        ->  this.Inlines.Add(new Run ("FSI is running a part of ", Foreground = grayText))
                 this.Inlines.Add( new Run (fi.Name, FontFamily = Style.fontEditor) )
                 this.Inlines.Add( new Run (" . . ."                                           , Foreground = grayText))
-            |NotSet ->
-                this.Inlines.Add( "FSI is running . . ." )
+            |NotSet dummyName ->
+                this.Inlines.Add( "FSI is running "+dummyName + " . . ." )
             )
 
         grid.Tabs.Fsi.OnIsReady.Add(fun _ ->

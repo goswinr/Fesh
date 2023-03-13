@@ -44,13 +44,13 @@ type BracketHighlighter (ed:TextEditor) =
     let colErr = Brushes.Red
 
     let unclosedBg = Brushes.Pink |> brighter 25  |> freeze
-    //let pairBg =     Brushes.Gray |> brighter 85
+    let pairBg =     Brushes.Gray |> brighter 55
     //let pairBg =     Brushes.Moccasin |> freeze// |> brighter 125
-    let pairBg =     Brushes.PaleGreen  |> freeze// |> brighter 125
+    //let pairBg =     Brushes.PaleGreen  |> freeze// |> brighter 125
 
     let colors = [|
         null // the first one is null ( to keep the coloring from xshd file)        
-        Brushes.DarkOrange |> darker 40    |> freeze
+        Brushes.DarkOrange |> darker 60    |> freeze
         Brushes.Green      |> darker 20    |> freeze
         Brushes.Blue       |> brighter 40  |> freeze
         Brushes.Magenta    |> darker 70    |> freeze
@@ -68,9 +68,7 @@ type BracketHighlighter (ed:TextEditor) =
 
     let mutable pairStart = -1
     let mutable pairEnd = -1
-    let mutable pairLen = -1
-    
-        
+    let mutable pairLen = -1          
 
     member this.FindBrackets (ed:IEditor) = 
         match ed.FileCheckState.CodeAndId with

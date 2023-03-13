@@ -192,7 +192,7 @@ module CompileScript =
 
     let compileScript(code, fp:FilePath, useMSBuild, config:Config) = 
         match fp with
-        | NotSet -> ISeffLog.log.PrintfnAppErrorMsg "Cannot compile an unsaved script save it first"
+        | NotSet _ -> ISeffLog.log.PrintfnAppErrorMsg "Cannot compile an unsaved script save it first"
         | SetTo fi ->
             async{
                 try

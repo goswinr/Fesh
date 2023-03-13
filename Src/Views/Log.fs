@@ -179,7 +179,7 @@ type Log private () =
     member this.SaveAllText (pathHint: FilePath) = 
         let dlg = new Microsoft.Win32.SaveFileDialog()
         match pathHint with
-        |NotSet ->()
+        |NotSet _ ->()
         |SetTo fi ->
             fi.Refresh()
             if fi.Directory.Exists then dlg.InitialDirectory <- fi.DirectoryName
@@ -203,7 +203,7 @@ type Log private () =
 
            let dlg = new Microsoft.Win32.SaveFileDialog()
            match pathHint with
-           |NotSet ->()
+           |NotSet _ ->()
            |SetTo fi ->
                fi.Refresh()
                if fi.Directory.Exists then dlg.InitialDirectory <- fi.DirectoryName

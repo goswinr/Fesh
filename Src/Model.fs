@@ -151,7 +151,10 @@ type FileCheckState =
 
 type FilePath = 
     | SetTo of FileInfo
-    | NotSet
+    | NotSet of string
+
+    member this.IsnotSet = match this with  SetTo _ -> false | NotSet _ -> true
+    member this.IsSet    = match this with  SetTo _ ->  true | NotSet _ -> false
   
 
 // so that the Editor can be used before declared

@@ -22,7 +22,7 @@ type OpenTabs  (runContext:RunContext, startupArgs:string[]) =
 
     let mutable allFiles:seq<FileInfo> = Seq.empty
 
-    let mutable currentFile:FilePath = NotSet
+    let mutable currentFile:FilePath = NotSet "*No current tab*"
 
     let filesInArgs = startupArgs |> Array.filter File.Exists
 
@@ -63,7 +63,7 @@ type OpenTabs  (runContext:RunContext, startupArgs:string[]) =
         |]
 
     let getText() = 
-        let curr = match currentFile with NotSet ->"*No current tab*" |SetTo fi -> currentTabPreFix + fi.FullName
+        let curr = match currentFile with NotSet dummyTXT -> dummyTXT |SetTo fi -> currentTabPreFix + fi.FullName
         let sb = StringBuilder()
         sb.AppendLine(curr) |> ignore // first line is filepath and name for current tab (repeats below)
         for f in allFiles do

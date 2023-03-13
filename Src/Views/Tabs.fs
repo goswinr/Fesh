@@ -38,7 +38,7 @@ type Tabs(config:Config, win:Window) =
 
     let allTabs:seq<Tab> =  Seq.cast tabs.Items
 
-    let allFileInfos = seq{ for t in allTabs do match t.FilePath with NotSet ->() |SetTo fi -> yield fi } //TODO does this reevaluate every time?
+    let allFileInfos = seq{ for t in allTabs do match t.FilePath with NotSet _ ->() |SetTo fi -> yield fi } //TODO does this re-evaluate every time?
 
     let currentTabChangedEv = new Event<Tab>() //to Trigger Fs Checker and status bar update 
 
@@ -46,14 +46,35 @@ type Tabs(config:Config, win:Window) =
 
     let enviroDefaultDir = Environment.CurrentDirectory 
 
+    let setCurrentTab(idx) =        
+        tabs.SelectedIndex <- idx
+        let t = tabs.Items[idx] :?> Tab
+        current <- t
+        IEditor.current <- Some (t.Editor:>IEditor)                
+        for t in allTabs do
+            t.IsCurrent <- false  // first set all false then one true
+        t.IsCurrent <- true
+        currentTabChangedEv.Trigger(t) // to update statusbar
+        
+        let dir = 
+            match current.FilePath with 
+            |SetTo fi -> fi.Directory.FullName  
+            |NotSet _ -> enviroDefaultDir 
+        Environment.CurrentDirectory <- dir // to be able to use __SOURCE_DIRECTORY__  
+        
+        t.Editor.GlobalChecker.CheckThenHighlightAndFold(t.Editor) 
+        // TODO make sure to reset checker if it is currently still running from another file
+        // even though the error highlighter is only called if the editor id is the same, see Editor.fs:  ed.GlobalChecker.OnChecked.Add(fun ...
+
+        config.OpenTabs.Save(t.FilePath , allFileInfos)
+
     let workingDirectory () = 
         match current.FilePath with
         |SetTo fi -> Some fi.Directory
-        |NotSet ->
+        |NotSet _ ->
             match allFileInfos |> Seq.tryHead with
             |Some fi -> Some fi.Directory
             |None    -> config.RecentlyUsedFiles.MostRecentPath
-
 
     let saveAt (t:Tab, fi:FileInfo, saveKind:SavingKind) = 
         fi.Refresh()
@@ -99,20 +120,20 @@ type Tabs(config:Config, win:Window) =
     let saveAsDialog (t:Tab, saveKind:SavingKind) :bool= 
         let dlg = new Microsoft.Win32.SaveFileDialog()
         match t.FilePath with
-        |NotSet ->()
+        |NotSet _ ->()
         |SetTo fi ->
             fi.Refresh()
             if fi.Directory.Exists then dlg.InitialDirectory <- fi.DirectoryName
             dlg.FileName <- fi.Name
         dlg.DefaultExt <- ".fsx"
-        dlg.Title <- sprintf "Save File As for: %s" (match t.FilePath with NotSet -> t.FormattedFileName |SetTo fi -> fi.FullName )
+        dlg.Title <- sprintf "Save File As for: %s" (match t.FilePath with NotSet dummyName -> dummyName |SetTo fi -> fi.FullName )
         dlg.Filter <- "FSharp Files(*.fsx, *.fs)|*.fsx;*.fs|Text Files(*.txt)|*.txt|All Files(*.*)|*"
         if isTrue (dlg.ShowDialog()) then
             let fi = new FileInfo(dlg.FileName)
             if fi.Exists then                
                 match MessageBox.Show(
                     IEditor.mainWindow, 
-                    $"Do you want to overwrite the existing file?\r\n{fi.FullName}\r\nwith\r\n{t.FormattedFileName}" , 
+                    $"Do you want to overwrite the existing file?\r\n{fi.FullName}" , 
                     "Overwrite file?", 
                     MessageBoxButton.YesNo, 
                     MessageBoxImage.Question, 
@@ -129,7 +150,7 @@ type Tabs(config:Config, win:Window) =
 
     let saveAsync (t:Tab) = 
         match t.FilePath with
-        | NotSet -> if not <| saveAsDialog(t,SaveNewLocation) then log.PrintfnIOErrorMsg "saveAsync and saveAsDialog: did not save previously unsaved file."
+        | NotSet _ -> if not <| saveAsDialog(t,SaveNewLocation) then log.PrintfnIOErrorMsg "saveAsync and saveAsDialog: did not save previously unsaved file."
         | SetTo fi ->
             let txt = t.AvaEdit.Text
             async{
@@ -164,7 +185,7 @@ type Tabs(config:Config, win:Window) =
             else
                 log.PrintfnIOErrorMsg "File does not exist on drive anymore. Resaving it at:\r\n%s" fi.FullName
                 saveAsDialog(t, SaveNewLocation)
-        |NotSet ->
+        |NotSet _ ->
                 saveAsDialog(t, SaveNewLocation)
 
 
@@ -178,17 +199,18 @@ type Tabs(config:Config, win:Window) =
                 saveAt(t, fi, SaveInPlace)
             else                
                 saveAsDialog(t, SaveNewLocationSync)
-        |NotSet ->
+        |NotSet _ ->
                 saveAsDialog(t, SaveNewLocationSync)
 
 
     /// Returns true if file is saved or if closing ok (not canceled by user)
     let askIfClosingTabIsOk(t:Tab) :bool= 
-        if t.IsCodeSaved then true
-        else
+        if t.IsCodeSaved then 
+            true
+        else            
             match MessageBox.Show(
                 win, 
-                $"Do you want to save the changes to:\r\n{t.FormattedFileName}\r\nbefore closing this tab?" , 
+                $"Do you want to save the changes to:\r\n{t.FullNameOrDummy}\r\nbefore closing this tab?" , 
                 "Save Changes?", 
                 MessageBoxButton.YesNoCancel, 
                 MessageBoxImage.Question, 
@@ -208,47 +230,45 @@ type Tabs(config:Config, win:Window) =
 
     /// addTab(Tab, makeCurrent, moreTabsToCome)
     let addTab(tab:Tab, makeCurrent, moreTabsToCome) = 
-        let ix = tabs.Items.Add tab
+        let idx = tabs.Items.Add tab
         if makeCurrent then
-            tabs.SelectedIndex <- ix
-            current <-  tab
-            IEditor.current <- Some (tab.Editor:>IEditor)
-            // also close any tab that only has default code:
-            if tab.FilePath <> NotSet then
-                let rems = allTabs  |> Seq.filter ( fun (t:Tab) -> t.FilePath = NotSet && t.IsCodeSaved=true ) |> Array.ofSeq // force enumeration
-                for rem in rems do tabs.Items.Remove rem
+            setCurrentTab(idx)           
 
+        tab.CloseButton.Click.Add (fun _ -> closeTab(tab))
+        
         match tab.FilePath with
-        |SetTo fi ->
+        |SetTo fi ->            
             if moreTabsToCome then
                 config.RecentlyUsedFiles.Add(fi)
             else
-                config.RecentlyUsedFiles.AddAndSave(fi)
-                config.OpenTabs.Save(tab.FilePath , allFileInfos)  // if makeCurrent this is done in tabs.SelectionChanged event handler below
-        |NotSet -> ()
-
-        tab.CloseButton.Click.Add (fun _ -> closeTab(tab))
+                // also close any tab that only has default code:            
+                allTabs  
+                |> Seq.filter ( fun (t:Tab) -> t.FilePath.IsnotSet && t.IsCodeSaved=true ) // no explicit criteria for beeing the default code!
+                |> Array.ofSeq // force enumeration and cache
+                |> Seq.iter ( fun t -> tabs.Items.Remove t)
+                
+                config.RecentlyUsedFiles.AddAndSave(fi)                
+        |NotSet _ -> 
+            ()        
+        
 
     /// Checks if file is open already then calls addTab.
     /// tryAddFile(fi:FileInfo, makeCurrent, moreTabsToCome)
     let tryAddFile(fi:FileInfo, makeCurrent, moreTabsToCome) :bool = 
-        let areFilesSame (a:FileInfo) (b:FileInfo) = a.FullName.ToLowerInvariant() = b.FullName.ToLowerInvariant()
-
+        let areFilesSame (a:FileInfo) (b:FileInfo) = 
+            a.FullName.ToLowerInvariant() = b.FullName.ToLowerInvariant()
         let areFilePathsSame (a:FileInfo ) (b:FilePath) = 
             match b with
             |SetTo bb -> areFilesSame bb a
-            |NotSet -> false
+            |NotSet _ -> false
 
         fi.Refresh()
         if fi.Exists then
             match allTabs |> Seq.indexed |> Seq.tryFind (fun (_,t) -> areFilePathsSame fi t.FilePath) with // check if file is already open
             | Some (i,t) ->
                 if makeCurrent then // && not t.IsCurrent then
-                    tabs.SelectedIndex <- i
-                    current <- t
-                    IEditor.current <- Some (t.Editor:>IEditor)
-                    config.RecentlyUsedFiles.AddAndSave(fi) // to move it up to top of stack
-                    //config.OpenTabs.Save(t.FileInfo , allFileInfos) // done in SelectionChanged event below
+                    setCurrentTab(i)                    
+                    config.RecentlyUsedFiles.AddAndSave(fi) // to move it up to top of stack                    
                 true
             | None -> // regular case, actually open file
                 try
@@ -298,9 +318,9 @@ type Tabs(config:Config, win:Window) =
             tryAddFiles dlg.FileNames
         else
             false
-
+    
+    
     do
-
         // --------------first load tabs from last session including startup args--------------
         for f in config.OpenTabs.Get() do
             tryAddFile( f.file, f.makeCurrent, true)  |> ignore
@@ -309,25 +329,9 @@ type Tabs(config:Config, win:Window) =
             let t = new Tab(Editor.New(config), config, allFileInfos)
             addTab(t, true, true) |> ignore
         
-        let curTab = 
-            if tabs.SelectedIndex = -1 then   
-                //make one tab current if none yet , happens if current file on last closing was an unsaved file
-                tabs.SelectedIndex <- 0
-                tabs.Items.[0] :?> Tab
-            else 
-                tabs.Items.[tabs.SelectedIndex] :?> Tab
-        
-        curTab.IsCurrent <- true
-        current <- curTab
-        IEditor.current <- Some (curTab.Editor:>IEditor)
-
-        // to be able to use __SOURCE_DIRECTORY__ :
-        Environment.CurrentDirectory <- match current.FilePath with |SetTo fi -> fi.Directory.FullName  |NotSet -> enviroDefaultDir 
-
-        // then start highlighting errors on current tab only
-        current.Editor.GlobalChecker.CheckThenHighlightAndFold(current.Editor)
-        config.OpenTabs.Save(current.FilePath , allFileInfos)
-        // config.RecentlyUsedFiles.Save is called in addTab function
+        if tabs.SelectedIndex = -1 then  //make one tab current if none yet , happens if current file on last closing was an unsaved file                    
+            setCurrentTab(0)   
+     
 
         // set up tab change events last so this doesn't get triggered on every tab while opening files initially
         tabs.SelectionChanged.Add( fun _->
@@ -337,27 +341,9 @@ type Tabs(config:Config, win:Window) =
                 addTab(tab, true, false)
 
             else
-                let tab = 
-                    if isNull tabs.SelectedItem then tabs.Items.[0] //log.PrintfnAppErrorMsg "Tabs SelectionChanged handler: there was no tab selected by default" //  does happen
-                    else                             tabs.SelectedItem
-                let tab = tab :?> Tab
-                current <- tab
-                IEditor.current <- Some (tab.Editor:>IEditor)                
-                for t in allTabs do
-                    t.IsCurrent <- false  // first set all false then one true
-                tab.IsCurrent <- true
-                Environment.CurrentDirectory <- match current.FilePath with |SetTo fi -> fi.Directory.FullName  |NotSet -> enviroDefaultDir // to use __SOURCE_DIRECTORY__
-                currentTabChangedEv.Trigger(tab) // to update statusbar
-                
-                if tab.Editor.FileCheckState = FileCheckState.NotStarted then
-                    //log.PrintfnDebugMsg "FileCheckState.NotStarted: starting: %A " tab.FilePath
-                    tab.Editor.GlobalChecker.CheckThenHighlightAndFold(tab.Editor)  // only actually highlights if editor has needsChecking=true
-
-                // TODO make sure to reset checker if it is currently still running from another file
-                // even though the error highlighter is only called if the editor id is the same, see Editor.fs:  ed.GlobalChecker.OnChecked.Add(fun ...
-
-                config.OpenTabs.Save(tab.FilePath , allFileInfos)
-                // config.RecentlyUsedFiles.Save is called in addTab function
+                let idx = max 0 tabs.SelectedIndex // might be -1 too , there was no tab selected by default" //  does happen                                  
+                setCurrentTab(idx)               
+                               
             )
 
 
@@ -457,8 +443,8 @@ type Tabs(config:Config, win:Window) =
             else
                 this.SaveAs(t)
 
-        |NotSet ->
-            log.PrintfnIOErrorMsg "Can't Save Incrementing unsaved file."
+        |NotSet _ ->
+            //log.PrintfnIOErrorMsg "Can't Save Incrementing unsaved file."
             this.SaveAs(t)
 
     /// will display a dialog if there are unsaved files.
@@ -472,7 +458,7 @@ type Tabs(config:Config, win:Window) =
         else
             let msg = 
                 openFs  |> Seq.fold (fun m t ->
-                let name  = match t.FilePath with NotSet -> t.FormattedFileName |SetTo fi ->fi.Name
+                let name  = match t.FilePath with NotSet dummyName -> dummyName |SetTo fi ->fi.Name
                 sprintf "%s\r\n \r\n%s" m name) "Do you want to\r\nsave the changes to:"
             
             match MessageBox.Show(

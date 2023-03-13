@@ -38,7 +38,7 @@ module Keys =
         | k                      -> k
 
 module KeyboardNative = 
-    // TODO this global key hook might cause th app to be flagged as spyware/ keylogger ??
+    // TODO this global key hook might cause the app to be flagged as spyware/ keylogger ??
 
     // all of this module only exists to be able to use Alt and Up in Rhino too , not just standalone.
     // see bug https://discourse.mcneel.com/t/using-alt-up-key-in-plugin-does-not-work/105740/3
@@ -190,7 +190,6 @@ module KeyboardNative =
         //ISeffLog.log.PrintfnDebugMsg  "moduleHandle at :%d" moduleHandle
         //ISeffLog.log.PrintfnDebugMsg  "hhook at:%d" hhook
 
-
     (*
     /// Create a global low level keyboard hook
     let hookUpUser32() = 
@@ -230,8 +229,7 @@ module KeyboardShortcuts =
             | AltUp    -> SwapLines.swapLinesUp(ed)
             | AltDown  -> SwapLines.swapLinesDown(ed)
             | AltRight -> SwapWords.right(ed.AvaEdit)  |> ignore
-            | AltLeft  -> SwapWords.left(ed.AvaEdit) |> ignore
-
+            | AltLeft  -> SwapWords.left(ed.AvaEdit)   |> ignore
 
     /// gets attached to ech editor instance. via avaEdit.PreviewKeyDown.Add
     /// except for Alt and arrow keys that are handeled via KeyboardNative
@@ -270,7 +268,6 @@ module KeyboardShortcuts =
                         //ke.Handled <- true
                         ()
 
-
             | Input.Key.Up ->
                 if isDown Ctrl && isUp Shift then
                     if isDown Alt then
@@ -279,7 +276,6 @@ module KeyboardShortcuts =
                         //SwapLines.swapLinesUp(ed) // on Ctrl + Up
                         //ke.Handled <- true
                         ()
-
 
             | Input.Key.Left ->
                 if isDown Ctrl && isUp Shift then

@@ -20,6 +20,16 @@ open Seff.Config
 open Seff.Util.Str
 open FSharp.Compiler.EditorServices
 
+/// returns a bigger integer on each access for naming unsaved files
+type Counter private () = 
+    static let unsavedFile = ref 0
+
+    /// Returns a bigger integer on each access
+    /// used to give each unsaved file a unique number
+    static member UnsavedFileName() = 
+        incr unsavedFile
+        sprintf "*unsaved-%d*" !unsavedFile
+
 
  /// The tab that holds the tab header and the code editor
 type Editor private (code:string, config:Config, filePath:FilePath)  = 
@@ -197,4 +207,6 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
         ed
 
     ///additional constructor using default code
-    static member New (config:Config) =  Editor.SetUp( config.DefaultCode.Get() , config, NotSet)
+    static member New (config:Config) =  
+        let dummyName = Counter.UnsavedFileName()
+        Editor.SetUp( config.DefaultCode.Get() , config, NotSet dummyName)

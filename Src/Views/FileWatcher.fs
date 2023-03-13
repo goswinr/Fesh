@@ -28,7 +28,7 @@ type FileChangeTracker (editor:Editor, setCodeSavedStatus:bool->unit) =
 
     let check() = 
         match editor.FilePath with
-        |NotSet ->() 
+        |NotSet _ ->() 
         |SetTo fi ->        
             async{                
                 do! Async.Sleep 200 // wait so that the new tab can be displayed first, ( on tab switches)
@@ -88,7 +88,7 @@ type FileChangeTracker (editor:Editor, setCodeSavedStatus:bool->unit) =
 
     let setWatcher() =
         match editor.FilePath with
-        |NotSet ->
+        |NotSet _ ->
             watcher.EnableRaisingEvents <- false
         |SetTo fi -> 
             watcher.Path   <- fi.DirectoryName

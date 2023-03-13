@@ -53,19 +53,15 @@ type TypeInfo private () =
 
     static let loadingTxt =  "Loading type info ..."
 
-    static let darkgray     = Brushes.Gray       |> darker    40 |> freeze
-    static let gray         = Brushes.Gray                       |> freeze
-    static let lightgray    = Brushes.Gray       |> brighter 100 |> freeze
-    static let blue         = Brushes.Blue       |> darker    90 |> freeze
-    static let darkblue     = Brushes.DarkSlateBlue |> darker  20|> freeze
-    static let darkgreen    = Brushes.DarkGreen  |> darker    20 |> freeze 
-    static let darkpurple   = Brushes.Purple     |> darker    90 |> freeze
-    static let purple       = Brushes.Purple     |> brighter  40 |> freeze
     static let black        = Brushes.Black                      |> freeze
+    static let gray         = Brushes.Gray                       |> freeze
+    static let purple       = Brushes.Purple     |> brighter  40 |> freeze
+    
+    static let blue         = Brushes.Blue       |> darker    90 |> freeze    
     static let red          = Brushes.DarkSalmon |> darker   120 |> freeze
     static let fullred      = Brushes.Red        |> darker    60 |> freeze
-    static let cyan         = Brushes.DarkCyan   |> darker    60 |> freeze
-    static let white        = Brushes.White      |> darker    5  |> freeze
+    static let cyan         = Brushes.DarkCyan   |> darker    60 |> freeze    
+
 
     static let maxCharInSignLine = 100
 
@@ -75,45 +71,37 @@ type TypeInfo private () =
         tb.FontSize   <- Style.fontSize * 1.2
         tb.FontFamily <- Style.fontEditor
         let ts = td.signature
-        let mutable len = 0
-        //let lastArrI = // used for giving the return value a different background            
-        //    ts 
-        //    |> Array.tryFindIndexBack ( fun t -> t.Tag=TextTag.Punctuation && t.Text = "->") 
-        //    |> Option.defaultWith (fun () -> 
-        //        ts 
-        //        |> Array.tryFindIndexBack ( fun t -> t.Tag=TextTag.Punctuation && t.Text = ":") 
-        //        |> Option.defaultValue 999999
-        //        )
-            
-            
-        let mutable bG :SolidColorBrush = null // used for giving the return value a different background
+        let mutable len = 0        
+        
+        let inline lengthCeck() =
+            if len > maxCharInSignLine then
+                tb.Inlines.Add( new Run("\r\n    "))
+                len <- 0              
+        
         for i=0 to ts.Length-1 do
             let t = ts.[i]
             len <- len + t.Text.Length
 
             match t.Tag with
             | TextTag.Parameter ->
-                if len > maxCharInSignLine then
-                        tb.Inlines.Add( new Run("\r\n    ", Background=bG))
-                        len <- 0                
+                lengthCeck()              
                 // if a parameter is optional add a question mark to the signature
                 match ts.[i-1].Text with
-                |"?" ->  tb.Inlines.Add( new Run(t.Text , Foreground = gray, Background=bG )) // sometimes optional arguments have already a question mark but not always
+                |"?" ->  tb.Inlines.Add( new Run(t.Text , Foreground = gray)) // sometimes optional arguments have already a question mark but not always
                 | _ ->
                     match td.optDefs |> Seq.tryFind ( fun oa -> oa = t.Text ) with
-                    | Some od ->  tb.Inlines.Add( new Run("?"+t.Text , Foreground = gray , Background=bG))
-                    | None    ->  tb.Inlines.Add( new Run(t.Text     , Foreground = black , Background=bG))
+                    | Some od ->  tb.Inlines.Add( new Run("?"+t.Text , Foreground = gray ))
+                    | None    ->  tb.Inlines.Add( new Run(t.Text     , Foreground = black ))
 
-            | TextTag.Keyword ->
-                if t.Text = "val" then bG <- null // val is the listing of members in a type , not a return value anymore
-                tb.Inlines.Add( new Run(t.Text, Foreground = blue, Background=bG ))
+            | TextTag.Keyword ->                
+                lengthCeck() 
+                tb.Inlines.Add( new Run(t.Text, Foreground = blue))
 
             | TextTag.Punctuation->
                 match t.Text with
-                | "?"        ->   tb.Inlines.Add( new Run(t.Text, Foreground = gray, Background=bG))
-                | "*" | "->" ->  tb.Inlines.Add( new Run(t.Text, Foreground = fullred, Background=bG))                    
-                |  _         ->  tb.Inlines.Add( new Run(t.Text, Foreground = purple , Background=bG))
-                //if i >= lastArrI then bG <- white // to have a white color on return value
+                | "?"        ->   tb.Inlines.Add( new Run(t.Text, Foreground = gray))
+                | "*" | "->" ->  tb.Inlines.Add( new Run(t.Text, Foreground = fullred))                    
+                |  _         ->  tb.Inlines.Add( new Run(t.Text, Foreground = purple ))                
 
             | TextTag.Operator //  also used for  DU names in `` ``  !?
             | TextTag.RecordField
@@ -122,28 +110,27 @@ type TypeInfo private () =
             | TextTag.Field
             | TextTag.ModuleBinding
             | TextTag.UnionCase
-            | TextTag.Member ->   tb.Inlines.Add( new Run(t.Text, Foreground = red, Background=bG ))
+            | TextTag.Member ->   tb.Inlines.Add( new Run(t.Text, Foreground = red))
 
             | TextTag.Struct
             | TextTag.Class
             | TextTag.Interface
             | TextTag.Function
-            | TextTag.Alias ->   tb.Inlines.Add( new Run(t.Text, Foreground = cyan, Background=bG ))
+            | TextTag.Alias ->   tb.Inlines.Add( new Run(t.Text, Foreground = cyan))
 
-            | TextTag.TypeParameter ->   tb.Inlines.Add( new Run(t.Text, Foreground = cyan, Background=bG ))   // generative argument like 'T or 'a
+            | TextTag.TypeParameter ->   tb.Inlines.Add( new Run(t.Text, Foreground = cyan))   // generative argument like 'T or 'a
 
             | TextTag.UnknownType
-            | TextTag.UnknownEntity ->   tb.Inlines.Add( new Run(t.Text, Foreground = gray, Background=bG ))
+            | TextTag.UnknownEntity ->   tb.Inlines.Add( new Run(t.Text, Foreground = gray))
 
             | TextTag.LineBreak ->
                 len <- t.Text.Length // reset after line break
-                tb.Inlines.Add( new Run(t.Text, Background=bG))
+                tb.Inlines.Add( new Run(t.Text))
 
             | TextTag.Space -> 
                 // skip one space after colon before type tag
-                if   t.Text.Length=1 && ts.[max 0 (i-1)].Text=":" && ts.[max 0 (i-2)].Tag=TextTag.Parameter then () 
-                //if i = lastArrI+1 then tb.Inlines.Add( new Run(t.Text, Background=null)) // used for giving the return value a different background 
-                else tb.Inlines.Add( new Run(t.Text, Background=bG))
+                if t.Text.Length=1 && ts.[max 0 (i-1)].Text=":" && ts.[max 0 (i-2)].Tag=TextTag.Parameter then ()                 
+                else tb.Inlines.Add( new Run(t.Text))
 
             | TextTag.Namespace
             | TextTag.ActivePatternCase
@@ -159,7 +146,7 @@ type TypeInfo private () =
             | TextTag.StringLiteral
             | TextTag.Text
             | TextTag.UnknownType
-            | TextTag.UnknownEntity ->    tb.Inlines.Add( new Run(t.Text, Background=bG))
+            | TextTag.UnknownEntity ->    tb.Inlines.Add( new Run(t.Text))
 
         (*
         let debugHelp = 
@@ -194,6 +181,12 @@ type TypeInfo private () =
         match t.IndexOf '\n' with 
         | -1 -> t
         | i  -> s 
+    /// check if List has at least two items 
+    static let twoOrMore = function [] | [_] -> false |_ -> true   
+
+    static let darkgray     = Brushes.Gray       |> darker    40 |> freeze
+    static let darkblue     = Brushes.DarkSlateBlue |> darker 20 |> freeze
+    static let white        = Brushes.White      |> darker    5  |> freeze
 
     static let codeRun (td:ToolTipData) t : seq<Run>= 
         [
@@ -203,9 +196,6 @@ type TypeInfo private () =
         | None    ->  new Run(t ,FontFamily = Style.fontEditor, FontSize = Style.fontSize*1.1,  Foreground = black,   Background = white)         
         new Run(" ") 
         ]
-
-    /// check if List has at least two items 
-    static let twoOrMore = function [] | [_] -> false |_ -> true       
 
     static let mainXmlBlock (node:XmlParser.Child, td:ToolTipData): TextBlockSelectable =
         let tb = new TextBlockSelectable()
@@ -375,8 +365,7 @@ type TypeInfo private () =
                     add tb 
                 
         ScrollViewer(Content=panel , VerticalScrollBarVisibility = ScrollBarVisibility.Auto ) //TODO cant be scrolled, never gets focus? because completion window keeps focus on editor?
-
-    
+            
 
     /// Returns docstring und dll path
     static let findXmlDoc (cmt:FSharpXmlDoc) : Result<XmlParser.Child*DllPath, ErrMsg> = 
@@ -405,9 +394,7 @@ type TypeInfo private () =
                 |true , node ->  Ok (node  , dllFile)
                 |false, _    ->  Error $"no xml doc found for member '{memberName}' in \r\n'{fi.FullName}'\r\n"
             | Error e ->
-                Error e         
- 
-
+                Error e 
 
     static let makeToolTipDataList (sdtt: ToolTipText, fullName:string, optDfes:ResizeArray<OptDefArg>) : ToolTipData list= 
         match sdtt with

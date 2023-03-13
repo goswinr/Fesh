@@ -11,13 +11,7 @@ open Seff.Model
 open AvalonLog.Brush
 
 
-/// returns a bigger integer on each access for naming unsaved files
-type Counter private () = 
-    static let unsavedFile = ref 0
 
-    /// Returns a bigger integer on each access
-    /// used to give each unsaved file a unique number
-    static member UnsavedFile = incr unsavedFile ;  !unsavedFile
 
 module TabStyle = 
     let savedHeader   =  Brushes.Black  |> freeze
@@ -82,14 +76,15 @@ type Tab (editor:Editor, config:Seff.Config.Config, allFileInfos:seq<IO.FileInfo
             textBlock.Text          <- fi.Name + "*"
             textBlock.Foreground    <- TabStyle.changedHeader
             headerShowsSaved        <- false
-        |NotSet,true    ->
+        |NotSet dummyName,true    ->
             textBlock.ToolTip      <- "This file just shows the default code for every new file."
-            textBlock.Text         <- sprintf "*unsaved-%d*" Counter.UnsavedFile
+            textBlock.Text         <- dummyName
             textBlock.Foreground   <- TabStyle.unsavedHeader
             headerShowsSaved       <- true
-        |NotSet,false    ->
+        |NotSet dummyName,false    ->
             textBlock.ToolTip      <- "This file has not yet been saved to disk."
-            if not ( textBlock.Text.EndsWith "*") then textBlock.Text <- textBlock.Text + "*"
+            textBlock.Text         <- dummyName
+            //if not ( textBlock.Text.EndsWith "*") then textBlock.Text <- textBlock.Text + "*"
             textBlock.Foreground   <- TabStyle.changedHeader
             headerShowsSaved       <- false
 
@@ -131,7 +126,7 @@ type Tab (editor:Editor, config:Seff.Config.Config, allFileInfos:seq<IO.FileInfo
                 editor.SetFilePathMustBeInSyncWithTabsPath(fp) 
                 setHeader()        
                 match editor.FilePath with
-                |NotSet -> ()
+                |NotSet _ -> ()
                 |SetTo fi ->             
                     config.RecentlyUsedFiles.AddAndSave(fi)         
                     config.OpenTabs.Save(editor.FilePath , allFileInfos) 
@@ -140,10 +135,10 @@ type Tab (editor:Editor, config:Seff.Config.Config, allFileInfos:seq<IO.FileInfo
 
     member _.CloseButton = closeButton // public so click event can be attached later in Tabs.fs AddTab
 
-    member this.FormattedFileName = 
+    member this.FullNameOrDummy = 
         match this.FilePath with
-        |SetTo fi   -> sprintf "%s" fi.FullName //sprintf "%s\r\nat\r\n%s" fi.Name fi.DirectoryName
-        |NotSet     -> textBlock.Text
+        |SetTo fi          -> sprintf "%s" fi.FullName //sprintf "%s\r\nat\r\n%s" fi.Name fi.DirectoryName
+        |NotSet dummyName  -> dummyName
 
     /// this gets and sets IsCurrent on the Editor
     member _.IsCurrent

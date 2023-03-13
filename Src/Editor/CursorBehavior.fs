@@ -360,7 +360,7 @@ module CursorBehavior  =
                 ||
                 (c > '9' && c < 'A')
                 ||
-                (c > 'Z' && c < '_') // _ then ` tehn a
+                (c > 'Z' && c < '_') // _ then ` then a
                 ||
                 c > 'z'
                 

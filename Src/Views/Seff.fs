@@ -61,6 +61,9 @@ type Seff (config:Config,log:Log) =
 
         win.Window.ContentRendered.Add(fun _ -> tabs.CurrAvaEdit.Focus() |> ignore )
 
+        win.setFileNameInTitle(tabs.Current.FilePath)// initial set
+        tabs.OnTabChanged.Add ( fun t -> win.setFileNameInTitle(t.FilePath))
+
         tabs.Fsi.OnRuntimeError.Add(fun _ ->  
             let w = win.Window // because it might be hidden manually, or not visible from the start ( e.g. current script is evaluated in Seff.Rhino)
             if w.Visibility <> Visibility.Visible || w.WindowState=WindowState.Minimized then  win.Window.Show() ) 

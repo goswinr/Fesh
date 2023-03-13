@@ -16,6 +16,7 @@ open Seff.Util
 open Seff.Config
 open Seff.Views.MenuUtil
 
+
 type HeaderGestureTooltip = {
     header:string
     gesture:string
@@ -23,7 +24,8 @@ type HeaderGestureTooltip = {
     }
 
 
-module private RecognizePath = 
+module RecognizePath = 
+    open Seff.Editor.Selection
 
     let filePathStartRegex = Text.RegularExpressions.Regex("""[A-Z]:[\\/]""") // C:\    
     let filePathEndRegex = Text.RegularExpressions.Regex("""[\"<>:|?*]""") // invalid characters in file path
@@ -52,6 +54,30 @@ module private RecognizePath =
 
         let pos = ava.GetPositionFromPoint(m.GetPosition(ava))
         if pos.HasValue then
+            //(1) add Google search
+            match getSelType(ava.TextArea) with
+            |NoSel
+            |RectSel -> ()
+            |RegSel -> 
+                let pos = ava.GetPositionFromPoint(m.GetPosition(ava))
+                if pos.HasValue then
+                    let p = pos.Value
+                    let selPos = getSelectionOrdered(ava.TextArea)
+                    if selPos.stPos.Line = p.Line then 
+                        let txt = ava.TextArea.Selection.GetText()
+                        if txt.Length > 2 then 
+                            let cmd = {
+                                name = sprintf "Do a Google search for '%s'" txt
+                                gesture = ""
+                                cmd = mkCmdSimple (fun _ -> Diagnostics.Process.Start(sprintf "https://www.google.com/search?q=%s" txt) |> ignore )
+                                tip = sprintf "This Command will open your default browser and do a google seach for\r\n'%s'" txt
+                                }
+                            menu.Items.Insert(0, Separator():> Control)
+                            incr tempItemsInMenu
+                            menu.Items.Insert(0, menuItem cmd)
+                            incr tempItemsInMenu
+            
+            //(2) recognice a file path
             let line = ava.Document.GetLineByNumber(pos.Value.Line)
             let lineTxt  = ava.Document.GetText(line)
             let ss = filePathStartRegex.Matches(lineTxt)
@@ -392,6 +418,8 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, statusBar:SeffStatusBar, log:
         tabs.Control.PreviewMouseRightButtonDown.Add ( fun m ->
             RecognizePath.addPathIfPresentToMenu (m, tempItemsInEditorMenu, tabs.Control.ContextMenu, tabs.Current.AvaEdit , tabs.AddFile)
             )
+
+
         // add menu to open file path if there is on on current line
         log.AvalonLog.PreviewMouseRightButtonDown.Add ( fun m ->
             RecognizePath.addPathIfPresentToMenu (m, tempItemsInLogMenu, log.AvalonLog.ContextMenu, log.AvalonLog.AvalonEdit , tabs.AddFile)

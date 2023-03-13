@@ -49,7 +49,7 @@ type FoldingStatus ( runContext:RunContext, recentlyUsedFiles:RecentlyUsedFiles)
 
     member this.Get(ed:IEditor) = 
         match ed.FilePath with
-        | NotSet -> [| |]
+        | NotSet _ -> [| |]
         | SetTo fi ->
             match foldingStatus.TryGetValue fi.FullName with
             |true,vs -> vs
@@ -60,7 +60,7 @@ type FoldingStatus ( runContext:RunContext, recentlyUsedFiles:RecentlyUsedFiles)
 
     member this.Set(ed:IEditor) = // gets call on every new folds found
         match ed.FilePath with
-        | NotSet -> ()
+        | NotSet _ -> ()
         | SetTo fi ->
             let vs = [| for f in ed.FoldingManager.AllFoldings do f.IsFolded |]
             let ok, curr = foldingStatus.TryGetValue fi.Name
