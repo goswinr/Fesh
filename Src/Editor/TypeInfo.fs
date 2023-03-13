@@ -315,7 +315,7 @@ type TypeInfo private () =
                     //else                    assemblies.Add(ass) |> ignore
                     subAdd <| mainXmlBlock (node, td)
                 |Error errTxt  ->
-                    subAdd<|  TextBlockSelectable(Text = errTxt, FontSize = Style.fontSize  * 0.80 , FontFamily = Style.fontToolTip, Foreground = gray )                   
+                    subAdd<|  TextBlockSelectable(Text = errTxt, FontSize = Style.fontSize  * 0.75 , FontFamily = Style.fontToolTip, Foreground = gray )                   
                 
                 let border = Border()
                 border.Child <- subPanel
@@ -328,7 +328,7 @@ type TypeInfo private () =
             // add full name:
             if td.fullName<>"" then 
                 let tb = new TextBlockSelectable()     
-                tb.Inlines.Add( new Run("Full name: ",  Foreground = darkgray))
+                //tb.Inlines.Add( new Run("Full name: ",  Foreground = darkgray))
                 tb.Inlines.Add( new Run(td.fullName  ,  Foreground = darkblue))
                 tb.Foreground <- darkblue
                 tb.FontSize <- Style.fontSize  * 1.0
@@ -492,16 +492,46 @@ type TypeInfo private () =
                 let ln = doc.GetLineByOffset(off)  
                 let lineTxt = doc.GetText ln
                 let lineNo = ln.LineNumber
-                match QuickParse.GetCompleteIdentifierIsland false lineTxt (off-ln.Offset) with 
+                let offLn = off-ln.Offset
+                let island = 
+                    match QuickParse.GetCompleteIdentifierIsland false lineTxt offLn with 
+                    |Some (word, colAtEndOfNames, isQuotedIdentifier)-> Some (word, colAtEndOfNames, isQuotedIdentifier)                    
+                    |None -> // find operators because QuickParse.GetCompleteIdentifierIsland does not find them:                       
+                        let nextW =
+                            let rec find i = 
+                                if i=lineTxt.Length then i//-1
+                                else
+                                    let c = lineTxt[i]
+                                    if c=' ' || c= '\r' || c='\n' then i//-1
+                                    else find (i+1)
+                            find offLn
+                        let prevW =
+                            let rec find i = 
+                                if i = -1 then 0
+                                else
+                                    let c = lineTxt[i]
+                                    if c=' ' || c= '\r' || c='\n' then i+1
+                                    else find (i-1)
+                            find offLn
+                        if prevW<nextW then 
+                            let word = lineTxt.Substring(prevW,nextW-prevW)
+                            Some (word, nextW, false) //word, colAtEndOfNames, isQuotedIdentifier
+                        else
+                            None
+
+                match island with 
                 |None -> ()
+                    //ISeffLog.log.PrintfnDebugMsg "QuickParse.GetCompleteIdentifierIsland failed : lineTxt:%A, txt: '%s'"  lineTxt (lineTxt.Substring(offLn-1,3))
+
                 |Some (word, colAtEndOfNames, isQuotedIdentifier) -> 
                     tip.Content <- loadingTxt
                     tip.PlacementTarget <- iEditor.AvaEdit // required for property inheritance
                     tip.StaysOpen <- true
                     tip.IsOpen <- true
                     async{ 
-                        let qualId  = PrettyNaming.GetLongNameFromString word                        
-                        
+                        let qualId  = PrettyNaming.GetLongNameFromString word   
+                        //ISeffLog.log.PrintfnDebugMsg "GetToolTip:colAtEndOfNames:%A, lineTxt:%A, qualId:%A" colAtEndOfNames lineTxt qualId
+
                         // <summary>Compute a formatted tooltip for the given location</summary>
                         // <param name="line">The line number where the information is being requested.</param>
                         // <param name="colAtEndOfNames">The column number at the end of the identifiers where the information is being requested.</param>
@@ -511,9 +541,15 @@ type TypeInfo private () =
                         //              an attempt is made to give a tooltip for a #r "..." location.
                         //              Use a value from FSharpTokenInfo.Tag, or FSharpTokenTag.Identifier, unless you have other information available.</param>
                         // <param name="userOpName">An optional string used for tracing compiler operations associated with this request.</param>
-
-                        let ttt    = res.checkRes.GetToolTip            (lineNo, colAtEndOfNames, lineTxt, qualId, FSharpTokenTag.Identifier)      //TODO, can this call be avoided use info from below symbol call ? // TODO move into checker
-                        let symbol = res.checkRes.GetSymbolUseAtLocation(lineNo, colAtEndOfNames, lineTxt, qualId )                                //only to get to info about optional parameters
+                        let ttt  =  
+                            let r = res.checkRes.GetToolTip (lineNo, colAtEndOfNames, lineTxt, qualId, FSharpTokenTag.Identifier) 
+                            match r with
+                            | ToolTipText.ToolTipText (els) ->
+                                match els with
+                                |[]  -> res.checkRes.GetToolTip (lineNo, colAtEndOfNames, lineTxt, qualId, FSharpTokenTag.String) // this gives info about referenced assemblies that the first try does not give                                       
+                                |els -> r
+                        
+                        let symbol = res.checkRes.GetSymbolUseAtLocation(lineNo, colAtEndOfNames, lineTxt, qualId )  //only to get to info about optional parameters
                         let fullName = if symbol.IsSome then symbol.Value.Symbol.FullName else ""
 
                         let optArgs = if symbol.IsSome then namesOfOptnlArgs(symbol.Value, iEditor) else ResizeArray(0)
@@ -524,8 +560,7 @@ type TypeInfo private () =
                         if List.isEmpty ttds then                                                     
                             tip.Content <- new TextBlock(Text = "No type info found for:\r\n'" + word + "'", FontSize = Style.fontSize  * 0.65 ,FontFamily = Style.fontToolTip, Foreground = gray )                            
                             //ed.TypeInfoToolTip.IsOpen <- false
-                        else
-                            
+                        else                            
                             let sem, declLoc, dllLoc = 
                                 match symbol with 
                                 |None -> None,None,None
@@ -541,8 +576,7 @@ type TypeInfo private () =
                                     let colSt  = l.StartColumn
                                     let colEn  = l.EndColumn                                    
                                     let sem = iEditor.SemanticRanges |> Array.tryFind (fun s -> let r = s.Range in r.StartLine=lineNo && r.EndLine=lineNo && r.StartColumn=colSt && r.EndColumn=colEn)                                        
-                                    sem, s.Symbol.DeclarationLocation ,s.Symbol.Assembly.FileName
-                            
+                                    sem, s.Symbol.DeclarationLocation ,s.Symbol.Assembly.FileName                            
                             
                             let ed = {declListItem=None; semanticClass=sem; declLocation=declLoc; dllLocation=dllLoc }
                             let ttPanel = TypeInfo.getPanel (ttds, ed )

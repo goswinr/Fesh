@@ -33,7 +33,7 @@
   <Color name="LoadNuget"           foreground="#CD10A0" fontWeight="bold" /> <!-- #r the nuget name -->
   <Color name="LoadPath"            foreground="#0000B0" /> <!-- for #I path -->
   
-  <Color name="Punctuation"         foreground="#7788FF" />
+  <Color name="Punctuation"         foreground="#7755FF" />
   <Color name="Attributes"          foreground="#AA88AA" />  
   <Color name="Keywords"            foreground="#0000DD" /> 
   <Color name="KeywordsBang"        foreground="#2200DD"  fontWeight="bold" />
@@ -387,7 +387,9 @@
     </Span>
   </RuleSet>
   
-  <RuleSet name="PunctuationSet">         
+  <RuleSet name="PunctuationSet">   
+    <Rule color="Punctuation">-&gt;</Rule>       
+    <Rule color="Punctuation">&lt;-</Rule>       
     <!-- <Rule color="Punctuation">[ \[ \]  \| \\ \( \) &lt; &gt; &amp; \? , \. :  \{ \} \+ \* \^ ~ ! / % = ]</Rule>  -->
     <!-- <Rule color="Punctuation">[ \. \$ \^ \{ \[ \( \| \) \* \+ \? \\ &lt; &gt; &amp;  , : \] \}  ~ ! / % = - ]</Rule>  -->
     <Rule color="Punctuation">[ \. \$ \^ \{ \[ \( \| \)   \? \\ &lt; &gt; &amp;  , : \] \}  ~ !  % = ]</Rule> <!-- without operators-->
@@ -416,7 +418,7 @@
     </Span>
 
     <Span color="FailString">  <!-- for failIfFalse and failIfNull. part of FsEx.dll-->
-      <Begin color= "FailPath" >failIf\w+\s*\(?\s*\$?\"</Begin>  
+      <Begin color= "FailPath" >failIf\w+\s*\$?\"</Begin>  
       <End   color= "FailPath" >\"</End>      
       <RuleSet>
         <Import ruleSet="_StringEscapeSet"/>
@@ -428,7 +430,6 @@
     <Keywords color = "PrintStatement">
       <Word>print</Word> <!-- part of FsEx.dll-->      
       <Word>printFull</Word>
-
     </Keywords>
   
     <Span color="PrintString" >      
