@@ -138,7 +138,7 @@ module Selection =
         | _ ->  None
 
 
-    /// Returns true if nothin is selected in textarea
+    /// Returns true if nothing is selected in textarea
     let hasNoSelection (ta:TextArea) = 
         match ta.Selection with
         | null -> true  // does this actually happen?
@@ -159,7 +159,7 @@ module Selection =
         let  line = avaEdit.Document.GetLineByOffset(offset)
         line.LineNumber, avaEdit.Document.GetText(line.Offset, line.Length)
 
-    /// Offset at line End ( exluding \r and \n that probably follow
+    /// Offset at line End ( excluding \r and \n that probably follow
     let currentLineEnd (avaEdit:TextEditor) : int= 
         let offset = avaEdit.CaretOffset
         let  line = avaEdit.Document.GetLineByOffset(offset)
@@ -199,7 +199,7 @@ module SelectionForEval =
         let t = avaEdit.SelectedText
         {
         text = t + Environment.NewLine // add line return so that EvaluationTracker.fs knows it is the full line and can jump to next line.
-        startLine = s.StartPosition.Line // not st.LineNumber becaus this may juat as wel be the last line
+        startLine = s.StartPosition.Line // not st.LineNumber because this may just as wel be the last line
         startOffset = avaEdit.SelectionStart
         length = t.Length + Environment.NewLine.Length
         }

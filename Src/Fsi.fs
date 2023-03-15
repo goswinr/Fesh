@@ -422,7 +422,7 @@ type Fsi private (config:Config) =
                 
                 //timer.stop()
 
-                // fsiSession.Run()// don't do this, coverd by WPF app loop:  https://github.com/dotnet/fsharp/issues/14486#issuecomment-1358310942
+                // fsiSession.Run()// don't do this, covered by WPF app loop:  https://github.com/dotnet/fsharp/issues/14486#issuecomment-1358310942
                 // This Run call crashes the app when hosted in Rhino and Standalone too ! 
                 // see https://github.com/dotnet/fsharp/issues/14486
                 // and https://github.com/dotnet/fsharp/blob/main/src/Compiler/Interactive/fsi.fs#L3759
@@ -533,7 +533,7 @@ type Fsi private (config:Config) =
                     | Ready | Initializing | NotLoaded -> NotEvaluating
                     | Evaluating -> UserDoesntWantTo
         
-    // without this back and forth swith the UI freezes 
+    // without this back and forth switch the UI freezes 
     // after showing the MessageBox.Show( "Do you want to Cancel currently running code?",
     member this.EvalDelayed(code)=
         async{  

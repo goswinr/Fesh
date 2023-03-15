@@ -17,7 +17,7 @@ open FSharp.Compiler.CodeAnalysis
 open FSharp.Compiler.EditorServices    // Misc functionality for editors, e.g. interface stub generation
 open FSharp.Compiler.Symbols           // FSharpEntity etc
 open FSharp.Compiler.Text              // ISourceFile, Range, TaggedText and other things
-open FSharp.Compiler.Tokenization      // FSharpLineTokenizer etc.
+open FSharp.Compiler.Tokenization      // FSharpLineTokenizer , and keywords etc.
 open FSharp.Compiler.Syntax
 
 open Seff
@@ -43,10 +43,11 @@ type ToolTipData = {
 
 type ToolTipExtraData ={
     declListItem  : DeclarationListItem option        // only for autocomplete tooltips
-    semanticClass : SemanticClassificationItem option // only for mose over type info tooltips
-    declLocation  : Range option                      // only for mose over type info tooltips
-    dllLocation   : string option                     // only for mose over type info tooltips
+    semanticClass : SemanticClassificationItem option // only for mouse over type info tooltips
+    declLocation  : Range option                      // only for mouse over type info tooltips
+    dllLocation   : string option                     // only for mouse over type info tooltips
     }
+    
 
 ///a static class for creating tooltips
 type TypeInfo private () = 
@@ -459,6 +460,10 @@ type TypeInfo private () =
     static let mutable cachedToolTipData: list<ToolTipData> = []
     static let mutable cachedExtraData = {declListItem=None;semanticClass=None;declLocation=None;dllLocation=None }
     
+    static let fsKeywords = 
+        FSharpKeywords.KeywordsWithDescription
+        |> Seq.map fst
+        |> HashSet
 
     //--------------public values and functions -----------------
 
@@ -497,27 +502,30 @@ type TypeInfo private () =
                     match QuickParse.GetCompleteIdentifierIsland false lineTxt offLn with 
                     |Some (word, colAtEndOfNames, isQuotedIdentifier)-> Some (word, colAtEndOfNames, isQuotedIdentifier)                    
                     |None -> // find operators because QuickParse.GetCompleteIdentifierIsland does not find them:                       
-                        let nextW =
-                            let rec find i = 
-                                if i=lineTxt.Length then i//-1
-                                else
-                                    let c = lineTxt[i]
-                                    if c=' ' || c= '\r' || c='\n' then i//-1
-                                    else find (i+1)
-                            find offLn
-                        let prevW =
-                            let rec find i = 
-                                if i = -1 then 0
-                                else
-                                    let c = lineTxt[i]
-                                    if c=' ' || c= '\r' || c='\n' then i+1
-                                    else find (i-1)
-                            find offLn
-                        if prevW<nextW then 
-                            let word = lineTxt.Substring(prevW,nextW-prevW)
-                            Some (word, nextW, false) //word, colAtEndOfNames, isQuotedIdentifier
-                        else
+                        if offLn >= lineTxt.Length then 
                             None
+                        else
+                            let nextW =
+                                let rec find i = 
+                                    if i=lineTxt.Length then i//-1
+                                    else
+                                        let c = lineTxt[i]
+                                        if c=' ' || c= '\r' || c='\n' then i//-1
+                                        else find (i+1)
+                                find offLn
+                            let prevW =
+                                let rec find i = 
+                                    if i = -1 then 0
+                                    else
+                                        let c = lineTxt[i]
+                                        if c=' ' || c= '\r' || c='\n' then i+1
+                                        else find (i-1)
+                                find offLn
+                            if prevW<nextW then 
+                                let word = lineTxt.Substring(prevW,nextW-prevW)
+                                Some (word, nextW, false) //word, colAtEndOfNames, isQuotedIdentifier
+                            else
+                                None
 
                 match island with 
                 |None -> ()
@@ -530,7 +538,7 @@ type TypeInfo private () =
                     tip.IsOpen <- true
                     async{ 
                         let qualId  = PrettyNaming.GetLongNameFromString word   
-                        //ISeffLog.log.PrintfnDebugMsg "GetToolTip:colAtEndOfNames:%A, lineTxt:%A, qualId:%A" colAtEndOfNames lineTxt qualId
+                        // ISeffLog.log.PrintfnDebugMsg "GetToolTip:colAtEndOfNames:%A, lineTxt:%A, qualId:%A" colAtEndOfNames lineTxt qualId
 
                         // <summary>Compute a formatted tooltip for the given location</summary>
                         // <param name="line">The line number where the information is being requested.</param>
@@ -544,9 +552,13 @@ type TypeInfo private () =
                         let ttt  =  
                             let r = res.checkRes.GetToolTip (lineNo, colAtEndOfNames, lineTxt, qualId, FSharpTokenTag.Identifier) 
                             match r with
-                            | ToolTipText.ToolTipText (els) ->
+                            | ToolTipText.ToolTipText (els) ->                                
                                 match els with
-                                |[]  -> res.checkRes.GetToolTip (lineNo, colAtEndOfNames, lineTxt, qualId, FSharpTokenTag.String) // this gives info about referenced assemblies that the first try does not give                                       
+                                |[]  -> 
+                                    match qualId with 
+                                    |[fsKeyword] when fsKeywords.Contains(fsKeyword) -> res.checkRes.GetKeywordTooltip qualId
+                                    | _ ->                                 
+                                        res.checkRes.GetToolTip (lineNo, colAtEndOfNames, lineTxt, qualId, FSharpTokenTag.String) // this gives info about referenced assemblies that the first try does not give                                       
                                 |els -> r
                         
                         let symbol = res.checkRes.GetSymbolUseAtLocation(lineNo, colAtEndOfNames, lineTxt, qualId )  //only to get to info about optional parameters

@@ -16,7 +16,7 @@ module SyntaxHighlighting =
         if fsHighlighting.IsNone || forceReLoad then
             async{
                 try
-                    //let stream = Reflection.Assembly.GetExecutingAssembly().GetManifestResourceStream("FSharpSynatxHighlighter2.xshd") // Build action : Embeded Resource; Copy to ouput Dir: NO
+                    //let stream = Reflection.Assembly.GetExecutingAssembly().GetManifestResourceStream("FSharpSyntaxHighlighter.xshd") // Build action : Embedded Resource; Copy to output Dir: NO
                     let assemblyLocation = IO.Path.GetDirectoryName(Reflection.Assembly.GetExecutingAssembly().Location)
                     let path = Path.Combine(assemblyLocation,"SyntaxHighlightingFSharp.xshd")
                     filePath <- path

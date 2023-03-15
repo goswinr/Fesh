@@ -64,9 +64,9 @@ module PopOut =
                 | :? ToolTip as tt -> 
                     match tt.Content with 
                     | :? StackPanel  -> showWindow ("Seff PopOut| Compiler Error Info ", (fun () -> statusBar.CheckerStatus.GetErrorPanelCached ed) , parent)
-                    | _ -> () // if ToolTip is just a string ?? dont pop out                
+                    | _ -> () // if ToolTip is just a string ?? don't pop out                
                 | :? StackPanel  -> showWindow ("Seff PopOut| Compiler Error Info ", (fun () -> statusBar.CheckerStatus.GetErrorPanelCached ed), parent)
-                | _ -> () // if ToolTip is just a string?? dont pop out
+                | _ -> () // if ToolTip is just a string?? don't pop out
 
         if ed.TypeInfoTip.IsOpen then
             showWindow ("Seff PopOut| Type Info ", (fun () -> Some<|  TypeInfo.getPanelCached ()), parent)

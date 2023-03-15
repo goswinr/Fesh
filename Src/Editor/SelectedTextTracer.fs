@@ -10,7 +10,7 @@ open Seff.Editor.Selection
 
 /// A DocumentColorizingTransformer.
 /// Used to Highlight-all-occurrences-of-selected-text in Text View.
-type SelectionColorizier (ed:TextEditor,color:SolidColorBrush) = 
+type SelectionColorizer (ed:TextEditor,color:SolidColorBrush) = 
     inherit Rendering.DocumentColorizingTransformer()
     //  from https://stackoverflow.com/questions/9223674/highlight-all-occurrences-of-selected-word-in-avalonedit
        
@@ -48,7 +48,7 @@ type SelectionColorizier (ed:TextEditor,color:SolidColorBrush) =
 
                     // here end offset needs + 1  to be the first character without highlighting
                     base.ChangeLinePart( st,en + 1, fun el -> el.TextRunProperties.SetBackgroundBrush(color))
-                let start = index + highTxt.Length // search fromthis for next occurrence in this line 
+                let start = index + highTxt.Length // search from this for next occurrence in this line 
                 index <- linetext.IndexOf(highTxt, start, StringComparison.Ordinal)
 
 
@@ -80,7 +80,7 @@ module SelectionHighlighting =
 
     let private empty = ResizeArray<int>(0)
 
-    let private foundNoneRedraw(ava:TextEditor, selTextHiLi:SelectionColorizier) = 
+    let private foundNoneRedraw(ava:TextEditor, selTextHiLi:SelectionColorizer) = 
         selTextHiLi.HighlightText <- null
         selTextHiLi.ExcludeFrom   <- -1
         selTextHiLi.ExcludeTill   <- -1
@@ -90,20 +90,20 @@ module SelectionHighlighting =
         for fold in ed.FoldingManager.AllFoldings do 
             fold.BackgroundColor <- null 
     
-    let private foundNoneSel(ava:TextEditor, selTextHiLi:SelectionColorizier) =
+    let private foundNoneSel(ava:TextEditor, selTextHiLi:SelectionColorizer) =
         foundNoneRedraw(ava, selTextHiLi)  |> ignore 
         selectionChangedEv.Trigger(ava, FoundNone )
 
-    let private foundNoneReq(ava:TextEditor, selTextHiLi:SelectionColorizier) =
+    let private foundNoneReq(ava:TextEditor, selTextHiLi:SelectionColorizer) =
         foundNoneRedraw(ava, selTextHiLi)  |> ignore 
         highlightRequestedEv.Trigger(ava, FoundNone )
 
-    let private foundNoneSelFold(ed:IEditor, selTextHiLi:SelectionColorizier) =
+    let private foundNoneSelFold(ed:IEditor, selTextHiLi:SelectionColorizer) =
         clearFolds(ed)
         foundNoneRedraw(ed.AvaEdit, selTextHiLi)  |> ignore 
         selectionChangedEv.Trigger(ed.AvaEdit, FoundNone )
 
-    let private foundNoneReqFold(ed:IEditor, selTextHiLi:SelectionColorizier) =
+    let private foundNoneReqFold(ed:IEditor, selTextHiLi:SelectionColorizer) =
         clearFolds(ed)
         foundNoneRedraw(ed.AvaEdit, selTextHiLi)  |> ignore 
         highlightRequestedEv.Trigger(ed.AvaEdit, FoundNone )
@@ -112,7 +112,7 @@ module SelectionHighlighting =
     let inline isTextToHighlight(t:string) = 
         t.Length > 1 && not (Str.isJustSpaceCharsOrEmpty t)  && not <| t.Contains("\n") 
 
-    let setSelHighglight(t:string, ava:TextEditor, hiLi:SelectionColorizier) = 
+    let setSelHighlight(t:string, ava:TextEditor, hiLi:SelectionColorizer) = 
         let cselst = ava.SelectionStart
         hiLi.ExcludeFrom   <- cselst // to exclude current selection from highlighting
         hiLi.ExcludeTill   <- cselst + t.Length - 1 // end offset is the last character with highlighting           
@@ -126,7 +126,7 @@ module SelectionHighlighting =
         let checkFoldedBoxes (ed:IEditor,highTxt) =
             // for status bar and folds :
             match ed.FileCheckState.CodeAndId with
-            | NoCode -> empty // for pereformance dont request full codestring if missing
+            | NoCode -> empty // for performance don't request full codestring if missing
             | CodeID (code,_) ->
                 let mutable index = code.IndexOf(highTxt, 0, StringComparison.Ordinal)  
                 for fold in ed.FoldingManager.AllFoldings do fold.BackgroundColor <- null // reset all first, before setting some
@@ -144,17 +144,17 @@ module SelectionHighlighting =
                         index <- code.IndexOf(highTxt, st, StringComparison.Ordinal)
                 offsets        
     
-        let handleSelection(ed:IEditor, selTextHiLi:SelectionColorizier) =
+        let handleSelection(ed:IEditor, selTextHiLi:SelectionColorizer) =
             match Selection.getSelType ed.AvaEdit.TextArea with 
             |RegSel  -> 
                 let t = ed.AvaEdit.SelectedText
                 if isTextToHighlight t then  //min two chars and no line breaks                    
-                    let st = setSelHighglight(t,ed.AvaEdit,selTextHiLi)                
+                    let st = setSelHighlight(t,ed.AvaEdit,selTextHiLi)                
                     let offs = checkFoldedBoxes(ed,t)
                     if offs.Count > 0 then 
                         selectionChangedEv.Trigger(ed.AvaEdit, FoundSome {text=t; offsets=offs; selectionAt = st})
                         ed.AvaEdit.TextArea.TextView.Redraw()
-                    else // this case should actullay never happen:
+                    else // this case should actually never happen:
                         foundNoneSel(ed.AvaEdit, selTextHiLi)// no need to clear folds here too 
                 else
                     foundNoneSelFold(ed, selTextHiLi) 
@@ -164,8 +164,8 @@ module SelectionHighlighting =
 
         /// returns a function for highlighting that does not call the UI continuation
         let setup(ed:IEditor) : (string->unit) =         
-            // new higlighter per editor instance
-            let selTextHiLi = new SelectionColorizier(ed.AvaEdit,colorEditor)
+            // new highlighter per editor instance
+            let selTextHiLi = new SelectionColorizer(ed.AvaEdit,colorEditor)
             let ta = ed.AvaEdit.TextArea
             ta.TextView.LineTransformers.Add(selTextHiLi)        
             ta.SelectionChanged.Add ( fun a -> handleSelection(ed, selTextHiLi) )
@@ -180,7 +180,7 @@ module SelectionHighlighting =
                     if offs.Count > 0 then
                         ed.AvaEdit.TextArea.TextView.Redraw()
                         highlightRequestedEv.Trigger(ed.AvaEdit, FoundSome {text=txt; offsets=offs; selectionAt= -1})
-                    else // this case should actullay never happen:
+                    else // this case should actually never happen:
                         foundNoneReq(ed.AvaEdit, selTextHiLi)// no need to clear folds here too 
                 else  
                     foundNoneReqFold(ed, selTextHiLi) 
@@ -188,7 +188,7 @@ module SelectionHighlighting =
 
     module HiLog =
 
-        let checkFoldedBoxesAsync(lg:TextEditor, selTextHiLi:SelectionColorizier, text, st, fromSelection)=
+        let checkFoldedBoxesAsync(lg:TextEditor, selTextHiLi:SelectionColorizer, text, st, fromSelection)=
             let doc = lg.Document // get doc in sync first !
             async{  
                 // search full log async, it might be very large
@@ -211,7 +211,7 @@ module SelectionHighlighting =
                     else                 highlightRequestedEv.Trigger(lg, r) 
                     lg.TextArea.TextView.Redraw()
                 
-                else // this case should actullay never happen:
+                else // this case should actually never happen:
                     if fromSelection then  foundNoneSel(lg, selTextHiLi)                         
                     else                   foundNoneReq(lg, selTextHiLi)  
                     
@@ -219,12 +219,12 @@ module SelectionHighlighting =
                 |> Async.Start
 
 
-        let handleSelection (lg:TextEditor, selTextHiLi:SelectionColorizier) =             
+        let handleSelection (lg:TextEditor, selTextHiLi:SelectionColorizer) =             
             match Selection.getSelType lg.TextArea with 
             |RegSel  -> 
                 let t = lg.SelectedText
                 if isTextToHighlight t then  //min two chars and no line breaks                    
-                    let st = setSelHighglight(t,lg,selTextHiLi)                
+                    let st = setSelHighlight(t,lg,selTextHiLi)                
                     checkFoldedBoxesAsync(lg, selTextHiLi, t,st,true)  
                 else
                     foundNoneSel(lg, selTextHiLi)
@@ -234,8 +234,8 @@ module SelectionHighlighting =
         // returns a function for highlighting that does not call the UI continuation
         let setup(lg:TextEditor)  =         
             let ta = lg.TextArea
-            // new higlighter per editor instance
-            let selTextHiLi = new SelectionColorizier(lg,colorLog)
+            // new highlighter per editor instance
+            let selTextHiLi = new SelectionColorizer(lg,colorLog)
             ta.TextView.LineTransformers.Add(selTextHiLi)        
             ta.SelectionChanged.Add ( fun a -> handleSelection(lg,  selTextHiLi) )
 
@@ -246,7 +246,7 @@ module SelectionHighlighting =
                     selTextHiLi.HighlightText <- txt
                     selTextHiLi.ExcludeFrom   <- -1
                     selTextHiLi.ExcludeTill   <- -1
-                    let st = setSelHighglight(txt,lg,selTextHiLi) 
+                    let st = setSelHighlight(txt,lg,selTextHiLi) 
                     checkFoldedBoxesAsync(lg,selTextHiLi,txt,st,false) 
                 else
                    foundNoneReq(lg, selTextHiLi)  

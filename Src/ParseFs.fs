@@ -121,7 +121,7 @@ module ParseFs =
 
     /// Only starts search when not in comment or string literal
     /// Will search one char backward backwards from current position.
-    /// Last character of search can be a quote or other non search delimter.
+    /// Last character of search can be a quote or other non search delimiter.
     /// Since it searches backward this allows to find ending blocks of strings and comments too,
     let findWordBackward (word:string) fromIdx (inText:string) = 
         let last = word.Length-1

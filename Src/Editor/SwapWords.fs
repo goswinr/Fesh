@@ -59,7 +59,7 @@ module SwapWords =
                     elif c = '\n'  then -69
                     else getNextStart (i+1)
             let nextStart = getNextStart (seg.EndOffset + 1)
-            if nextStart < 0 then false // line or filr end found
+            if nextStart < 0 then false // line or file end found
             else
                 let rec getNextEnd i = 
                     if  i=doc.TextLength then i-1

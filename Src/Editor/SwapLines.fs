@@ -10,9 +10,7 @@ module SwapLines =
         |ThisAndOther of Seg * Seg
         |EndOrStartOfDoc
 
-
     /// TODO jump over folded block too !
-
 
     let swapLinesUp(ed:IEditor) = 
         let avaEdit = ed.AvaEdit

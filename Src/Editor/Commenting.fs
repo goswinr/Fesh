@@ -47,7 +47,7 @@ module Commenting =
                 match Seq.tryFindIndex (fun c -> c <>' ')  dl with
                 | None -> ucomm ln.NextLine // do not comment empty lines
                 | Some i ->
-                    if  dl.Length > i && // ther must be 2 chars min.
+                    if  dl.Length > i && // there must be 2 chars min.
                         dl.[i]  ='/' &&
                         dl.[i+1]='/' then doc.Remove(ln.Offset + i , 2)
                     ucomm ln.NextLine
@@ -66,7 +66,7 @@ module Commenting =
                 match Seq.tryFindIndex (fun c -> c <>' ')  dl with
                 | None -> toggle ln.NextLine // do not comment empty lines
                 | Some i ->
-                    if  dl.Length > i && // ther must be 2 chars min.
+                    if  dl.Length > i && // there must be 2 chars min.
                         dl.[i]  ='/' &&
                         dl.[i+1]='/' then doc.Remove(ln.Offset + i , 2)
                     else

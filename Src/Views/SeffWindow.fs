@@ -66,8 +66,7 @@ type SeffWindow (config:Config)=
         with get() = wasMax
         and set(v) = wasMax <- v
 
-    member this.setFileNameInTitle (fp:FilePath) =         
-        
+    member this.SetFileNameInTitle (fp:FilePath) =
         match fp with 
         |NotSet dummyName -> 
             let txt =  

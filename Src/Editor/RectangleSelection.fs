@@ -11,7 +11,7 @@ module RectangleSelection =
 
     open Selection
 
-    //all this functions is neded because ReplaceSelectionWithText of rectangular selection does not work well on all font sizes e.g. consolas 17.5
+    //all this functions is needed because ReplaceSelectionWithText of rectangular selection does not work well on all font sizes e.g. consolas 17.5
 
     let private setNewEmpty (ta:TextArea, s:SelectionPos, vcol, checkWithColInSelpos) = 
         //ISeffLog.log.PrintfnDebugMsg "caret2: %A "ta.Caret.Position
@@ -125,12 +125,12 @@ module RectangleSelection =
             doc.Remove(stOff + minVisCol , delLenLoc)
 
         let spacesToAdd = minVisCol - len
-        if spacesToAdd > 0 then // in case this line is shorten than the visual colum with virtual white space
+        if spacesToAdd > 0 then // in case this line is shorten than the visual column with virtual white space
             doc.Insert(stOff + len                , new String(' ', spacesToAdd) )
             doc.Insert(stOff + len + spacesToAdd  , text)
         else
             doc.Insert(stOff + minVisCol , text)
-        doc.EndUpdate() // finsh doc update beforee recreating selecltion
+        doc.EndUpdate() // finish doc update before recreating selection
         setNewEmpty (ed.TextArea, s, minVisCol + text.Length, false)
 
 
@@ -169,7 +169,7 @@ module RectangleSelection =
         setNewEmpty (ed.TextArea, s, minVisCol,true)
 
 
-    /// when pressing delete key on empty rect selection, delet on char on right
+    /// when pressing delete key on empty rect selection, delete on char on right
     let private deleteRight (ed:TextEditor, s:SelectionPos) = 
         let doc = ed.Document
         let col = s.stPos.VisualColumn
@@ -198,7 +198,7 @@ module RectangleSelection =
         if ln.Length - col > 0 then // in case if line is shorter than block selection
             doc.Remove(ln.Offset + col , 1)
         doc.EndUpdate()
-        setNewEmpty (ed.TextArea, s, col,true)// neede in manual version
+        setNewEmpty (ed.TextArea, s, col,true)// needed in manual version
 
 
     let private deleteLeft (ed:TextEditor, s:SelectionPos) = 
@@ -240,7 +240,7 @@ module RectangleSelection =
         let ta = ed.TextArea
         let doc = ed.Document
         doc.BeginUpdate()
-        for i,seg in ta.Selection.Segments |> Seq.indexed |> Seq.rev do // do from bottom up so tht the segments are alwas correct, otherwise they would need incrementing too
+        for i,seg in ta.Selection.Segments |> Seq.indexed |> Seq.rev do // do from bottom up so tht the segments are always correct, otherwise they would need incrementing too
             let newTxt = if lines.Length > i then lines.[i] else ""
             doc.Replace(seg,newTxt)
         doc.EndUpdate()
@@ -265,7 +265,7 @@ module RectangleSelection =
 
     let insertText (ed:TextEditor, txt: string) = 
         match txt with
-        | null | "" | "\x1b" | "\b" -> ()  // see avalonedit scource
+        | null | "" | "\x1b" | "\b" -> ()  // see avalonedit source
         // ASCII 0x1b = ESC.
         // also see TextArea.OnTextInput implementation
         // WPF produces a TextInput event with that old ASCII control char

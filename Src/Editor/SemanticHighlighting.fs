@@ -101,7 +101,7 @@ type Sc = SemanticClassificationType
 
 /// A DocumentColorizingTransformer.
 /// Used to do semantic highlighting
-type SemanticColorizier (ied:TextEditor, edId:Guid, ch:Checker) = 
+type SemanticColorizer (ied:TextEditor, edId:Guid, ch:Checker) = 
     inherit Rendering.DocumentColorizingTransformer()
     
     let mutable lastCheckId = -1L
@@ -131,7 +131,7 @@ type SemanticColorizier (ied:TextEditor, edId:Guid, ch:Checker) =
         let w = lastCode.[st..en]
         w.StartsWith "Printf"
     
-    /// becaus some thims the range of a property starts before the point
+    /// because some times the range of a property starts before the point
     let correctStart(st:int, en:int) =        
         match lastCode.IndexOf('.',st,en-st) with 
         | -1 -> st 
@@ -154,7 +154,7 @@ type SemanticColorizier (ied:TextEditor, edId:Guid, ch:Checker) =
         | CheckFailed -> ()
         | Done chRes ->
             if chRes.editorId = edId then                     
-                if lastCheckId <> chRes.checkId then // to make sure this update only happens on the firts line 
+                if lastCheckId <> chRes.checkId then // to make sure this update only happens on the first line 
                     lastCheckId <- chRes.checkId  
                     allRanges <- chRes.checkRes.GetSemanticClassification(None)
                     setUnusedDecl(chRes)
@@ -171,9 +171,9 @@ type SemanticColorizier (ied:TextEditor, edId:Guid, ch:Checker) =
             if r.StartLine = lineNo && r.EndLine = lineNo then 
                 let st = offSt + sem.Range.StartColumn
                 let en = offSt + sem.Range.EndColumn
-                // saftey check since we are reusing old ranges untill new check results are available:
+                // safety check since we are reusing old ranges until new check results are available:
                 if en >  offSt  && en <= offEn && st >= offSt  && st <  offEn && en < lastCode.Length then 
-                    //try // beacuse other wise Seff crashes with  AppDomain.CurrentDomain.UnhandledException on bad ranges
+                    //try // because other wise Seff crashes with  AppDomain.CurrentDomain.UnhandledException on bad ranges
                     match sem.Type with 
                     | Sc.ReferenceType               -> base.ChangeLinePart(st,en, SemAction.ReferenceType              )
                     | Sc.ValueType                   -> base.ChangeLinePart(st,en, SemAction.ValueType                  )
@@ -229,7 +229,7 @@ type SemanticColorizier (ied:TextEditor, edId:Guid, ch:Checker) =
 module SemanticHighlighting =
 
     let setup (ed:TextEditor, edId:Guid, ch:Checker)  =        
-        let semHiLi = new SemanticColorizier(ed,edId,ch)        
+        let semHiLi = new SemanticColorizer(ed,edId,ch)        
         ed.TextArea.TextView.LineTransformers.Add(semHiLi)        
         semHiLi
 

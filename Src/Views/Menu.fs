@@ -70,14 +70,14 @@ module RecognizePath =
                                 name = sprintf "Do a Google search for '%s'" txt
                                 gesture = ""
                                 cmd = mkCmdSimple (fun _ -> Diagnostics.Process.Start(sprintf "https://www.google.com/search?q=%s" txt) |> ignore )
-                                tip = sprintf "This Command will open your default browser and do a google seach for\r\n'%s'" txt
+                                tip = sprintf "This Command will open your default browser and do a google search for\r\n'%s'" txt
                                 }
                             menu.Items.Insert(0, Separator():> Control)
                             incr tempItemsInMenu
                             menu.Items.Insert(0, menuItem cmd)
                             incr tempItemsInMenu
             
-            //(2) recognice a file path
+            //(2) recognize a file path
             let line = ava.Document.GetLineByNumber(pos.Value.Line)
             let lineTxt  = ava.Document.GetText(line)
             let ss = filePathStartRegex.Matches(lineTxt)
@@ -196,7 +196,7 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, statusBar:SeffStatusBar, log:
 
             //create time separator if not existing yet
             let tb(s) = 
-                if not<| HeaderIsIn.Contains s then // so that haeder appears only once
+                if not<| HeaderIsIn.Contains s then // so that header appears only once
                     HeaderIsIn.Add s  |> ignore
                     let tb = TextBlock (Text= "          - " + s + " -", FontWeight = FontWeights.Bold)
                     let mi = MenuItem (Header = tb )
@@ -236,7 +236,7 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, statusBar:SeffStatusBar, log:
 
         } |> Async.Start
 
-    /// for right clicking on file pathes:
+    /// for right clicking on file paths:
 
     let tempItemsInEditorMenu = ref 0
     let tempItemsInLogMenu = ref 0

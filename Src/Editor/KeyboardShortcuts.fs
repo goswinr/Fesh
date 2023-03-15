@@ -255,6 +255,7 @@ module KeyboardShortcuts =
                 && isUp Alt
                 && isUp Shift 
                 && compls.IsNotOpen then CursorBehavior.addFSharpIndentation(ed,ke)  // add indent after do, for , ->, = 
+            
             (*
             handled in: let altKeyCombo(akey:AltKeyCombo)
             | Input.Key.Down ->

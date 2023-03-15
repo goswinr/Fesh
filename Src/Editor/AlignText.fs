@@ -76,23 +76,23 @@ module AlignText =
 
             let stringBuilders = lns |> Array.map ( fun ln -> StringBuilder(ln))
 
-            let mutable serachFrom = 0
+            let mutable searchFrom = 0
 
             for alignChr in alignChars do
-                let offs = stringBuilders |> Array.map ( findCharExcludeInStringLiterals alignChr serachFrom)
+                let offs = stringBuilders |> Array.map ( findCharExcludeInStringLiterals alignChr searchFrom)
                 let maxOff = Array.max offs
                 //ed.Log.PrintfnDebugMsg "Char: '%c' at maxOff: %d" sc maxOff
                 for sb in stringBuilders do
                     //ed.Log.PrintfIOErrorMsg "Ln:%d" (i+s.stPos.Line)
-                    let foundPos = findCharExcludeInStringLiterals alignChr serachFrom sb
+                    let foundPos = findCharExcludeInStringLiterals alignChr searchFrom sb
                     let diff = maxOff - foundPos
                     if diff > 0 && foundPos > 0 then
                         //ed.Log.PrintfnAppErrorMsg " insert:%d spaces at max (from %d ,  pos %d)" diff from p
-                        sb.Insert(max serachFrom foundPos,String(' ', diff)) |> ignore
+                        sb.Insert(max searchFrom foundPos,String(' ', diff)) |> ignore
 
                     //else ed.Log.PrintfnFsiErrorMsg " NO insert:%d spaces at max (from %d ,  pos %d)" diff from p
 
-                serachFrom <- maxOff
+                searchFrom <- maxOff
 
             stringBuilders
             |> Seq.map ( fun sb -> sb.ToString())

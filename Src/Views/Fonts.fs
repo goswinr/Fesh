@@ -25,7 +25,7 @@ type Fonts (grid:TabsAndLog) = // will be constructed as part of Commands class
         config.Settings.SetFloat ("FontSize", newSize)
         Style.fontSize <- newSize
         config.Settings.Save ()
-        log.PrintfnInfoMsg "new Fontsize: %.2f" newSize
+        log.PrintfnInfoMsg "new font size: %.2f" newSize
 
 
     let fontExists(f:FontFamily) = 
@@ -86,7 +86,7 @@ type Fonts (grid:TabsAndLog) = // will be constructed as part of Commands class
         //setToolTip( FontFamily ("Verdana") |> logIfFontIsMissing) 
 
 
-    // this fonsize makes block selection delete fail on the last line: 17.0252982466288 happens at 17.5 too
+    // this font size makes block selection delete fail on the last line: 17.0252982466288 happens at 17.5 too
 
     /// affects Editor and Log
     member this.FontsBigger()= 

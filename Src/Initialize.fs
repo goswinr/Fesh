@@ -28,7 +28,7 @@ module Initialize =
         /// ------------------ Log and Config --------------------
 
 
-        let log  = Log.Create() // this should be done as early as possibel so that logging works
+        let log  = Log.Create() // this should be done as early as possible so that logging works
 
         //try to fix missing line numbers in hosted context:but does not help, https://github.com/dotnet/fsharp/discussions/13293#discussioncomment-2949022
         //Directory.SetCurrentDirectory(Path.GetDirectoryName(Reflection.Assembly.GetAssembly([].GetType()).Location)) 
@@ -51,7 +51,7 @@ module Initialize =
         // not needed?
         //try
         //    // so that wpf textboxes that are bound to floats can have a dot input too. see https://stackoverflow.com/a/35942615/969070
-        //    // setting this might fails when a hosting WPF process is alread up and running (eg loaded in another WPF thread)
+        //    // setting this might fails when a hosting WPF process is already up and running (eg loaded in another WPF thread)
         //    FrameworkCompatibilityPreferences.KeepTextBoxDisplaySynchronizedWithTextProperty <- false
         //with  _ ->
         //    if FrameworkCompatibilityPreferences.KeepTextBoxDisplaySynchronizedWithTextProperty then

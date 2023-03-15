@@ -40,7 +40,7 @@ module AutoFixErrors =
         |None -> ()
 
 
-    let refrences(ied:IEditor,ch:CheckResults) =
+    let references(ied:IEditor,ch:CheckResults) =
         for e in ch.checkRes.Diagnostics do 
             if e.ErrorNumber = 1108 then 
                 check(e.Message, ied) 

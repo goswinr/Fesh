@@ -74,8 +74,8 @@ module Doc =
 
 
     /// Will do a bound check and return less chars if needed
-    let (*inline*) getTextBeforOffsetSkipSpaces desiredCharsCount offset  (doc:TextDocument) = // removed inline to have function name in error stack trace
-        if desiredCharsCount < 0 then failwithf "getTextBeforOffsetSkipSpaces desiredCharsCount=%d must be positive" desiredCharsCount
+    let (*inline*) getTextBeforeOffsetSkipSpaces desiredCharsCount offset  (doc:TextDocument) = // removed inline to have function name in error stack trace
+        if desiredCharsCount < 0 then failwithf "getTextBeforeOffsetSkipSpaces desiredCharsCount=%d must be positive" desiredCharsCount
         elif desiredCharsCount = 0 then ""                   
         elif offset-desiredCharsCount < 0 then ""
         //elif offset < desiredCharsCount then // coverd by bound check below
@@ -192,13 +192,13 @@ module CursorBehavior  =
                 doc.Replace(seg, "false")
         doc.EndUpdate()
 
-    /// When pressing enter add indentation on next line if appropiate for FSharp.
+    /// When pressing enter add indentation on next line if appropriate for FSharp.
     /// for avaEdit.PreviewKeyDown
     let internal addFSharpIndentation(ed:TextEditor,e:Input.KeyEventArgs) = 
-        if hasNoSelection ed.TextArea  then // TODO what happens if there is a selction ?? or also use to replace selected text ??
+        if hasNoSelection ed.TextArea  then // TODO what happens if there is a selection ?? or also use to replace selected text ??
             let caret = ed.CaretOffset
             let doc = ed.Document            
-            let trimmed = Doc.getTextBeforOffsetSkipSpaces 6 caret doc
+            let trimmed = Doc.getTextBeforeOffsetSkipSpaces 6 caret doc
             //ISeffLog.log.PrintfnDebugMsg "current line ='%s'" (doc.GetText(doc.GetLineByOffset(caret)))
             //ISeffLog.log.PrintfnDebugMsg "trimmed='%s' (%d chars)" trimmed trimmed.Length
             
@@ -242,12 +242,12 @@ module CursorBehavior  =
                         ed.CaretOffset <- caret + insertText.Length //+ spaces                
                         e.Handled <- true // to not actually add another new line too // TODO raise TextArea.TextEntered Event ?
                 else 
-                    // also indent on any regulat 'return'
-                    // this would actully also be done by the DefaultIndentationStrategy of Avalonedit but the DefaultIndentationStrategy 
+                    // also indent on any regular 'return'
+                    // this would actually also be done by the DefaultIndentationStrategy of Avalonedit but the DefaultIndentationStrategy 
                     // would raise the document text change event twice, once after 'return' and once after indenting.
                     // this does not work well with the current implementation of the Evaluation tracker.
                     // the below code does the same as the DefaultIndentationStrategy but avoids raising to events.
-                    // DefaultIndentationStrategy does not get triggered becaus of the e.Handled <- true
+                    // DefaultIndentationStrategy does not get triggered because of the e.Handled <- true
                     
                     let st = Doc.spacesAtStartOfLineAndBeforeOffset caret doc                
                     let insertText = Environment.NewLine + String(' ',st)
@@ -261,7 +261,7 @@ module CursorBehavior  =
 
 
 
-    /// Removes 4 charactes (Options.IndentationSize)
+    /// Removes 4 characters (Options.IndentationSize)
     /// On pressing backspace key instead of one
     let internal backspace4Chars(ed:TextEditor,e:Input.KeyEventArgs) = 
         let doc = ed.Document
@@ -287,12 +287,12 @@ module CursorBehavior  =
             let nc = Doc.nextNonWhiteCharOneLine caret doc
             let len = nc - caret
             //ed.Log.PrintfnDebugMsg "remove len=%d "len
-            if len>2 then // leave handeling  other cases especially the end of flie to avaedit
+            if len>2 then // leave handling  other cases especially the end of file to avaedit
                 if caret = 0  then
                     doc.Replace(caret,len  , " ")//  add space at start
                 else
                     match doc.GetCharAt(caret-1) with
-                    |' ' | '\n' -> doc.Remove(caret, len) // dont add space because there is already one before
+                    |' ' | '\n' -> doc.Remove(caret, len) // don't add space because there is already one before
                     |_ -> doc.Replace(caret,len  , " ")//  add space
 
                 e.Handled <- true // TODO raise TextArea.TextEntered Event ?
@@ -314,7 +314,7 @@ module CursorBehavior  =
         //    a.Handled <- true
 
         // space  after:
-        | ")" // this bracket get added most of the time atuomtically via addClosingBraket()
+        | ")" // this bracket get added most of the time automatically via addClosingBracket()
         | ","
         | ";"  as c ->
             if Selection.hasNoSelection ed.TextArea && not <| Doc.isCaretInStringOrChar(ed)  then
@@ -322,7 +322,7 @@ module CursorBehavior  =
                 e.Handled <- true // TODO raise TextArea.TextEntered Event ?
         | _ -> ()
     
-    let addClosingBraket(ed:TextEditor, e:Input.TextCompositionEventArgs) = 
+    let addClosingBracket(ed:TextEditor, e:Input.TextCompositionEventArgs) = 
         let inline addPair caretForward (s:string)  = 
             let caret = ed.TextArea.Caret.Offset 
             ed.Document.Insert(caret, s ); 
@@ -331,7 +331,7 @@ module CursorBehavior  =
         
         let inline prevChar() = ed.Document.GetCharAt(max 0 (ed.TextArea.Caret.Offset-1))  
         
-        /// test if nect caracter is whitespace or end of file
+        /// test if next character is whitespace or end of file
         let inline nextSpace() =
             let i = ed.TextArea.Caret.Offset
             if ed.Document.TextLength <= i then 
@@ -340,16 +340,16 @@ module CursorBehavior  =
                 let c = ed.Document.GetCharAt(i)                 
                 c=' '|| c='\r'
         
-        /// test if next caracter is whitespace, double quote or end of file
+        /// test if next character is whitespace, double quote or end of file
         let inline nextSpaceQ() =
             let i = ed.TextArea.Caret.Offset
             if ed.Document.TextLength <= i then 
                 true
             else
                 let c = ed.Document.GetCharAt(i) 
-                c=' '|| c='\r'|| c='"' // " for beeing in a string
+                c=' '|| c='\r'|| c='"' // " for being in a string
 
-        /// test if previous caracter is not from the alaphanumeric( so a space, a bracket or similar)
+        /// test if previous character is not from the alphanumeric( so a space, a bracket or similar)
         let inline prevNonAlpha() =
             let i = ed.TextArea.Caret.Offset
             if i = 0  then 
@@ -383,7 +383,7 @@ module CursorBehavior  =
         match Selection.getSelType(ed.TextArea) with
         |RectSel -> ()
         
-        // if there is a simple selction on one line surround it in Brackets
+        // if there is a simple selection on one line surround it in Brackets
         |RegSel -> 
             match e.Text with
             | "("  ->
@@ -398,7 +398,7 @@ module CursorBehavior  =
                     e.Handled<-true
             | _ -> ()
 
-        // if no selction for an opening brcket add a closing bracket
+        // if no selection for an opening bracket add a closing bracket
         |NoSel -> 
             
             match e.Text with
@@ -407,8 +407,8 @@ module CursorBehavior  =
             | "["  -> if nextSpace()  then addPair 1 "[]"
             | "'"  -> if nextSpace()&&prevNonAlpha()  then addPair 1 "''"
             | "\"" -> if nextSpace()&&evenQuoteCount() then addPair 1 "\"\""
-            | "$"  -> if nextSpace()  then addPair 2 "$\"\"" // for formating string
-            | "`"  -> if nextSpace()  then addPair 2 "````"  // for formating string
+            | "$"  -> if nextSpace()  then addPair 2 "$\"\"" // for formatting string
+            | "`"  -> if nextSpace()  then addPair 2 "````"  // for formatting string
             
             | "|" -> 
                 // first check previous character:
@@ -428,11 +428,11 @@ module CursorBehavior  =
     let previewTextInput(ed:TextEditor, e:Input.TextCompositionEventArgs) = 
          //if not ed.IsComplWinOpen then
         match getSelType(ed.TextArea) with
-        | RectSel ->  RectangleSelection.insertText(ed, e.Text) ; e.Handled <- true // all input in rectangular selection is handeled here.
+        | RectSel ->  RectangleSelection.insertText(ed, e.Text) ; e.Handled <- true // all input in rectangular selection is handled here.
         | NoSel | RegSel ->     
             addWhitespaceAfterChar(ed,e)
             if not e.Handled then 
-                addClosingBraket(ed,e)
+                addClosingBracket(ed,e)
 
 
     let TextAreaDragAndDrop (ed:TextEditor,  e:DragEventArgs) = 
@@ -446,7 +446,7 @@ module CursorBehavior  =
             //    | Some p  ->
             //        ParseFs.findWordAhead "@\"" p.offset code
             //    | None ->
-            //        let rec allRefs off =  // loop to skip over the #r and #I statments
+            //        let rec allRefs off =  // loop to skip over the #r and #I statements
             //            match ParseFs.findWordAhead "#" off code with
             //            | Some p -> allRefs (p.offset + 7)  // gap of 7 between #r or #load and @"C:\...
             //            | None -> off
@@ -554,7 +554,7 @@ module CursorBehavior  =
         
         match e.Source with 
         | :? AvalonEditB.TextEditor  as te ->  
-                // do only when on AvalonLog, not if drap happens on code editor, for code editor the file is not opened 
+                // do only when on AvalonLog, not if drop happens on code editor, for code editor the file is not opened 
                 // but a link to it inserted into the code, see separate TextAreaDragAndDrop event above.        
                 if te.IsReadOnly then addTabsForFiles() 
                 else () // do nothing

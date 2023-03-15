@@ -31,7 +31,7 @@ module UtilCompletion =
 
     
     /// the window may just have closed, but for pressing esc, not for completion insertion
-    /// this si only true if it just cloed for insertion
+    /// this is only true if it just closed for insertion
     let mutable  justCompleted = false 
 
 type CompletionItemForKeyWord(ed:IEditor,config:Config, text:string, toolTip:string) =  
@@ -205,7 +205,7 @@ type Completions(avaEdit:TextEditor,config:Config, checker:Checker) =
 
         let continueOnUIthread (decls: DeclarationListInfo) = 
             let caretOff = avaEdit.TextArea.Caret.Offset
-            if not AutoFixErrors.isMessageBoxOpen  // because msg box would apear behind completion window and type info
+            if not AutoFixErrors.isMessageBoxOpen  // because msg box would appear behind completion window and type info
             && caretOff >= pos.offset 
             && IEditor.current.Value.Id = iEditor.Id then // safety check just in case the fsharp checker took very long and this has changed in the meantime
                 let completionLines = ResizeArray<ICompletionData>()
@@ -279,7 +279,7 @@ type Completions(avaEdit:TextEditor,config:Config, checker:Checker) =
                         with 
                             e -> ISeffLog.log.PrintfnAppErrorMsg "Error in Showing Code Completion Window: %A" e
                     else
-                        //ISeffLog.log.PrintfnDebugMsg "*4.5 Skiped showing empty Completion Window"
+                        //ISeffLog.log.PrintfnDebugMsg "*4.5 Skipped showing empty Completion Window"
                         compl.Close() // needed, otherwise it will not show again
                         compl.Checker.CheckThenHighlightAndFold(iEditor)
 

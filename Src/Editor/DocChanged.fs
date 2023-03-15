@@ -9,7 +9,6 @@ open FSharp.Compiler.Tokenization // for keywords
 open AvalonEditB
 open AvalonEditB.Document
 
-open Seff
 open Seff.Model
 open Seff.Util
 open Seff.Util.Str
@@ -64,13 +63,13 @@ module DocChanged =
             | -1 -> false
             | _ -> true 
         
-        /// like lastIndex but test if its the first char or preceeded by a space 
+        /// like lastIndex but test if its the first char or preceded by a space 
         let lastIdxAtStartOrWithSpace inString find txt = 
             let i = 
                 if inString then NotInQuotes.lastIndexOfFromInside  find txt 
                 else             NotInQuotes.lastIndexOfFromOutside find txt
-            if i= -1 then -1
-            elif i = 0 || txt.[i-1] = ' ' then i // test if its the first char or preceeded by a space 
+            if   i = -1 then -1
+            elif i = 0 || txt.[i-1] = ' ' then i // test if its the first char or preceded by a space 
             else -1
 
         let isCaretInComment ln =  
@@ -104,7 +103,7 @@ module DocChanged =
             if letIdx = -1 then ShowAll
             else
                 let eqIdx    = lastIdx inStr "=" ln                       
-                let colonIdx = lastIdx inStr  ":" ln   
+                let colonIdx = lastIdx inStr ":" ln   
                 if (max eqIdx colonIdx) < letIdx then isDU (letIdx+3) ln else ShowAll
 
         let isFunDeclaration inStr (ln:string) = 
@@ -131,12 +130,12 @@ module DocChanged =
                 ShowAll
             else 
                 if   containsFrom barIdx "->"      ln then ShowAll                
-                elif containsFrom barIdx "."       ln then ShowAll  // a DU mebmer with full Qualification              
+                elif containsFrom barIdx "."       ln then ShowAll  // a DU member with full Qualification              
                 elif containsFrom barIdx " when "  ln then ShowAll
                 elif containsFrom barIdx ":?"      ln then  (if containsFrom barIdx  " as " ln then DontShow   else ShowAll)
                 else isDU (barIdx+1) ln         
                 
-        let isThisMemberDeclaration inStr (ln:string) = // to not outcomplete on 'member this' (before the dot)
+        let isThisMemberDeclaration inStr (ln:string) = // to not autocomplete on 'member this' (before the dot)
             let barIdx = lastIdxAtStartOrWithSpace inStr "member" ln // test if its the first char or preceded by a space 
             if barIdx = -1 then  
                 ShowAll
@@ -173,11 +172,11 @@ module DocChanged =
                 Completions.TryShow(ed, compls, pos, last , setback, charBeforeQueryDU, forDUonly)                
 
 
-        let maybeShowComletionWindow (compls:Completions,ed:IEditor, checker:Checker) : unit =            
+        let maybeShowCompletionWindow (compls:Completions,ed:IEditor, checker:Checker) : unit =            
             let pos = currentLineBeforeCaret(ed.AvaEdit) 
             let ln = pos.lineToCaret // this line will include the character that trigger auto completion(dot or first letter)
             let len = ln.Length
-            //ISeffLog.log.PrintfnDebugMsg "*1.1 maybeShowComletionWindow for lineToCaret: \r\n    '%s'" ln
+            //ISeffLog.log.PrintfnDebugMsg "*1.1 maybeShowCompletionWindow for lineToCaret: \r\n    '%s'" ln
             if len=0 then // line is empty
                 () // DoNothing
             else
@@ -190,7 +189,7 @@ module DocChanged =
                     match isLetDeclaration inStr ln with 
                     |DontShow -> 
                         //ISeffLog.log.PrintfnDebugMsg "noShow because isLetDeclaration: %s" ln
-                        checker.CheckThenHighlightAndFold(ed) // keep on writing the current new varaiable name for a binding , dont open any completion windows
+                        checker.CheckThenHighlightAndFold(ed) // keep on writing the current new variable name for a binding , don't open any completion windows
                     |ShowOnlyDU -> show(pos,compls,ed,true, checker)
                     |ShowAll -> 
                         match isFunDeclaration inStr ln with 
@@ -216,7 +215,7 @@ module DocChanged =
                                         //ISeffLog.log.PrintfnDebugMsg "noShow because isThisMemberDeclaration: %s" ln
                                         checker.CheckThenHighlightAndFold(ed) 
                                     |ShowOnlyDU -> show(pos,compls,ed,true, checker)
-                                    |ShowAll    -> show(pos,compls,ed,false, checker) // this is the most comon case
+                                    |ShowAll    -> show(pos,compls,ed,false, checker) // this is the most common case
 
     open InternalDocChange
 
@@ -235,7 +234,7 @@ module DocChanged =
 
         else //no completion window is open:
             match e.InsertedText.Text with
-            |"."  ->  maybeShowComletionWindow(compls,ed, checker) // EnteredDot  
+            |"."  ->  maybeShowCompletionWindow(compls,ed, checker) // EnteredDot  
             | txt when txt.Length = 1 ->
                 if compls.JustClosed then   // check to avoid re-trigger of window on single char completions
                     compls.JustClosed <- false                    
@@ -246,7 +245,7 @@ module DocChanged =
                         || c='_' // for __SOURCE_DIRECTORY__
                         || c='`' 
                         || c='#'  then    // for #if directives
-                            maybeShowComletionWindow(compls,ed, checker) // because  EnteredOneIdentifierChar  
+                            maybeShowCompletionWindow(compls,ed, checker) // because  EnteredOneIdentifierChar  
                     else 
                         checker.CheckThenHighlightAndFold(ed) // because  EnteredOneNonIdentifierChar
 

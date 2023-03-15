@@ -10,7 +10,7 @@ open Seff
 open Seff.Config
 
 /// A class holding the main grid of Tabs and the log Window
-/// Includes logic for toggeling the view split and saving and restoring size and position
+/// Includes logic for toggling the view split and saving and restoring size and position
 type TabsAndLog (config:Config, tabs:Tabs, log:Log, win:Views.SeffWindow) as this = 
 
     let gridSplitterSize = 4.0
@@ -79,7 +79,7 @@ type TabsAndLog (config:Config, tabs:Tabs, log:Log, win:Views.SeffWindow) as thi
         win.Window.StateChanged.Add (fun e ->
             match win.Window.WindowState with
             | WindowState.Normal ->
-                if isLogMaxed then this.ToggleMaxLog() // to also switch back from maximised whne the windo size gets restored
+                if isLogMaxed then this.ToggleMaxLog() // to also switch back from maximised when the window size gets restored
             | _ -> ()
             //| WindowState.Maximized -> // normally the state change event comes after the location change event but before size changed. async sleep in LocationChanged prevents this                ()
             //| WindowState.Minimized -> 

@@ -25,7 +25,7 @@ module TabStyle =
 
 
  /// The tab that holds the tab header logic and the code editor
-type Tab (editor:Editor, config:Seff.Config.Config, allFileInfos:seq<IO.FileInfo>) = 
+type Tab (editor:Editor) = //, config:Seff.Config.Config, allFileInfos:seq<IO.FileInfo>) = 
     inherit TabItem()
 
     let mutable isCodeSaved        = true
@@ -59,10 +59,7 @@ type Tab (editor:Editor, config:Seff.Config.Config, allFileInfos:seq<IO.FileInfo
         p.Children.Add textBlock  |> ignore
         p.Children.Add closeButton |> ignore
         p
-        //let bor = new Border()
-        //bor.Background <- Brushes.Blueb.Padding <- new Thickness(2.)
-        //bor.Child <- p
-        //bor
+        
 
     let setHeader() = 
         match editor.FilePath, isCodeSaved with
@@ -117,26 +114,13 @@ type Tab (editor:Editor, config:Seff.Config.Config, allFileInfos:seq<IO.FileInfo
         with get()       = isCodeSaved
         and set(isSaved) = updateIsCodeSaved(isSaved)
 
-    /// this gets and set FileInfo on the Editor
-    member _.FilePath
-        with get() = 
-                editor.FilePath
-
-        and set(fp:FilePath) = 
-                editor.SetFilePathMustBeInSyncWithTabsPath(fp) 
-                setHeader()        
-                match editor.FilePath with
-                |NotSet _ -> ()
-                |SetTo fi ->             
-                    config.RecentlyUsedFiles.AddAndSave(fi)         
-                    config.OpenTabs.Save(editor.FilePath , allFileInfos) 
-                    fileTracker.ResetPath()
+    member _.UpdateTabHeader() = setHeader()
 
 
     member _.CloseButton = closeButton // public so click event can be attached later in Tabs.fs AddTab
 
-    member this.FullNameOrDummy = 
-        match this.FilePath with
+    member this.FormattedFileName = 
+        match editor.FilePath with
         |SetTo fi          -> sprintf "%s" fi.FullName //sprintf "%s\r\nat\r\n%s" fi.Name fi.DirectoryName
         |NotSet dummyName  -> dummyName
 

@@ -107,7 +107,7 @@ type FileChangeTracker (editor:Editor, setCodeSavedStatus:bool->unit) =
 
         setWatcher()
     
-    /// to update the location if file location chnaged
+    /// to update the location if file location changed
     member _.ResetPath() = 
         setWatcher()
     

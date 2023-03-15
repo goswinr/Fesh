@@ -107,7 +107,7 @@ type BracketHighlighter (ed:TextEditor) =
 
                     elif inString then
                         if   t0='\\' && t1 = '"'  then  find (i+2) //an escaped quote in a string
-                        elif t0='\\' && t1 = '\\' then  find (i+2) //an escaped baslash in a string
+                        elif t0='\\' && t1 = '\\' then  find (i+2) //an escaped backslash in a string
                         elif t0= '"'              then  inString <- false;    find (i+1)
                         else find (i+1)
 

@@ -48,7 +48,7 @@ type Checker private (config:Config)  =
         checkingEv.Trigger(iEditor) // to show in statusbar
         let doc = iEditor.AvaEdit.Document // access document before starting async
         async {
-            //do! Async.Sleep 200 // TODO add lag so that the checker does not run all the time while typing. not neded any more since delayDocChange function
+            //do! Async.Sleep 200 // TODO add lag so that the checker does not run all the time while typing. not needed any more since delayDocChange function
             match checker with
             | Some ch -> ()
             | None ->
@@ -322,7 +322,7 @@ type Checker private (config:Config)  =
                             if decls.IsError then 
                                 log.PrintfnAppErrorMsg "*ERROR in GetDeclarationListInfo: %A" decls //TODO use log
                             else                                
-                                // Find whichparamters are optional and set the value on the passed in dictionary.
+                                // Find which parameters are optional and set the value on the passed in dictionary.
                                 // For adding question marks to optional arguments.
                                 // This is still done in Async mode
                                 optArgsDict.Clear() //clean up from last time, or keep ?

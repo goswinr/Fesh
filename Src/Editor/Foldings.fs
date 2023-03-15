@@ -20,15 +20,15 @@ type FoldStart = {indent: int; lineEndOff:int; line: int; indexInFolds:int; nest
 type Indent = { indent: int; wordStartOff:int }
 
 [<Struct>]
-type NonStandartIndent = { badIndent: int; lineStartOffset:int; lineNo: int }
+type NonStandardIndent = { badIndent: int; lineStartOffset:int; lineNo: int }
 
 
-type NonStandartIndentColorizier (badInds:ResizeArray<NonStandartIndent>) = 
+type NonStandardIndentColorizer (badInds:ResizeArray<NonStandardIndent>) = 
     inherit Rendering.DocumentColorizingTransformer() 
 
     let brush =        
-        //Color.FromArgb(30uy,255uy,140uy,0uy) // a very light transparent Orange, transparanet to show coloum rulers behind
-        Color.FromArgb(40uy,255uy,255uy,0uy) // a very light transparent Yellow, transparanet to show coloum rulers behind
+        //Color.FromArgb(30uy,255uy,140uy,0uy) // a very light transparent Orange, transparent to show column rulers behind
+        Color.FromArgb(40uy,255uy,255uy,0uy) // a very light transparent Yellow, transparent to show columnrulers behind
         |> SolidColorBrush
         |> freeze
 
@@ -51,15 +51,15 @@ type Foldings(ed:TextEditor, checker:Checker, config:Config, edId:Guid) =
 
     let minLineCountDiffToOuter = 9 // if inner folding is just 9 line shorter than outer folding don't do it
 
-    let manager = Folding.FoldingManager.Install(ed.TextArea)  // color of margin is set in ColoumRulers.fs
+    let manager = Folding.FoldingManager.Install(ed.TextArea)  // color of margin is set in ColumRulers.fs
 
     // color for folding box is set in SelectedTextHighlighter
 
     let FoldingStack = Stack<FoldStart>()
     let Folds = ResizeArray<Fold>()
-    let BadIndents = ResizeArray<NonStandartIndent>()
+    let BadIndents = ResizeArray<NonStandardIndent>()
 
-    let mutable isIntialLoad = true
+    let mutable isInitialLoad = true
 
     let defaultIndenting = ed.Options.IndentationSize
     let mutable lastBadIndentSize = 0
@@ -131,11 +131,11 @@ type Foldings(ed:TextEditor, checker:Checker, config:Config, edId:Guid) =
                     else
                         take <- false
             
-            // check no standart indenrtation
+            // check no standart indentation
             // do first
             if lastBadIndentSize > 0 then                 
                 //let ln = ed.Document.GetLineByOffset(off) 
-                //ISeffLog.printError $"bad indent on line {no}={ln.LineNumber} : {lastBadIndentSize}, confirm LineOfset {ln.Offset}={off}"
+                //ISeffLog.printError $"bad indent on line {no}={ln.LineNumber} : {lastBadIndentSize}, confirm LineOffset {ln.Offset}={off}"
                 BadIndents.Add{ badIndent=lastBadIndentSize; lineStartOffset = off-lastBadIndentSize ; lineNo=no }
                 lastBadIndentSize <- 0 
 
@@ -157,7 +157,7 @@ type Foldings(ed:TextEditor, checker:Checker, config:Config, edId:Guid) =
     // there is a risk for collision but it is small
     let collapseStatus = Dictionary<int,bool>()
 
-    // get hash of firts line
+    // get hash of first line
     let getHash(off) =
         let d = ed.Document
         let mutable hash = off 
@@ -204,7 +204,7 @@ type Foldings(ed:TextEditor, checker:Checker, config:Config, edId:Guid) =
                         match iEditor.FileCheckState.SameIdAndFullCode(checker.GlobalCheckState) with
                         | NoCode -> ()
                         | CodeID _ ->
-                            if isIntialLoad then                                
+                            if isInitialLoad then                                
                                 while config.FoldingStatus.WaitingForFileRead do
                                     // check like this because reading of file data happens async
                                     ISeffLog.log.PrintfnDebugMsg "waiting to load last code folding status.. "
@@ -218,7 +218,7 @@ type Foldings(ed:TextEditor, checker:Checker, config:Config, edId:Guid) =
                                     fs.IsFolded <- folded
                                     fs.Title <- textInFoldBox f.linesInFold
                                 updateCollapseStatus()
-                                isIntialLoad <- false
+                                isInitialLoad <- false
 
                             else
                                 let folds=ResizeArray<NewFolding>()
@@ -297,7 +297,7 @@ type Foldings(ed:TextEditor, checker:Checker, config:Config, edId:Guid) =
              | :? int as tag ->
                     if tag  = 0 then // nestingLevel
                         f.IsFolded <- true
-             | _ -> // because only foldins at opening get a tag, not later ones
+             | _ -> // because only foldings at opening get a tag, not later ones
                 let ln = ied.AvaEdit.Document.GetLineByOffset(f.StartOffset)    
                 let st = ied.AvaEdit.Document.GetCharAt(ln.Offset)
                 if st<> ' ' then 

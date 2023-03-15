@@ -110,10 +110,7 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
 
     member this.Folds = folds
 
-    member this.Search = search
-    
-    /// Only the Tab class containing this editor takes care of updating this.
-    member this.SetFilePathMustBeInSyncWithTabsPath(v) = filePath <- v 
+    member this.Search = search    
 
     member val HighlightText = fun (t:string) -> () with get, set // this function will be set below in SetUp static member        
 
@@ -126,7 +123,7 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
     /// This CheckState is local to the current editor
     member this.FileCheckState  with get() = checkState  and  set(v) = checkState <- v
     
-    member this.FilePath        with get() = filePath    
+    member this.FilePath        with get() = filePath    and set (v)= filePath <- v
     
     member this.Log = log
     
@@ -138,7 +135,7 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
         member _.Id              = id
         member _.AvaEdit         = avaEdit
         member _.FileCheckState  with get() = checkState and  set(v) = checkState <- v
-        member _.FilePath        = filePath // interface does not need setter
+        member _.FilePath        = filePath // the interface is get only, it does not need a setter
         member _.Log             = log
         member _.FoldingManager  = folds.Manager
         member _.EvaluateFrom    = evalTracker.EvaluateFrom
@@ -169,7 +166,7 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
             ed.Folds.UpdateCollapseStatus()
             config.FoldingStatus.Set(ed) )
         
-        avaEdit.TextArea.TextView.LineTransformers.Add(new NonStandartIndentColorizier(ed.Folds.BadIndentations))  
+        avaEdit.TextArea.TextView.LineTransformers.Add(new NonStandardIndentColorizer(ed.Folds.BadIndentations))  
 
         let rulers =  new ColumnRulers(avaEdit, log) // draw last , so on top? do foldings first
 
@@ -190,7 +187,7 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
 
         ed.GlobalChecker.OnCheckedForErrors.Add(fun (iEditorOfCheck,chRes) -> // this then triggers folding too, statusbar update is added in statusbar class
             if iEditorOfCheck.Id = ed.Id then // make sure it draws only on one editor, not all!
-                AutoFixErrors.refrences(iEditorOfCheck, chRes)
+                AutoFixErrors.references(iEditorOfCheck, chRes)
                 ed.ErrorHighlighter.Draw(ed)
             )
 

@@ -8,7 +8,7 @@ open System
 
 (*
 /// A performance timer that also measures Garbage Collection Generations.
-/// includes nice formating of ms , sec, and minutes
+/// includes nice formatting of ms , sec, and minutes
 /// Similar to the #time;; statement built in to FSI
 /// The timer starts immediately when created
 type Timer() = 
@@ -59,12 +59,12 @@ type Timer() =
 
     let stopWatch = new Diagnostics.Stopwatch()
 
-    do ticWithGC stopWatch kGC // start stopwatch immediatly
+    do ticWithGC stopWatch kGC // start stopwatch immediately
 
-    ///Returns time since last tic (or toc) as string, resetes clock
+    ///Returns time since last tic (or toc) as string, resets clock
     member this.tocEx = tocWithGC stopWatch kGC
 
-    ///Returns time since last tic (or toc) as string, resetes clock
+    ///Returns time since last tic (or toc) as string, resets clock
     member this.toc = tocNoGC stopWatch
 
     ///Reset and start Timer
@@ -73,6 +73,6 @@ type Timer() =
     ///Stops Timer
     member this.stop() =  stopWatch.Stop()
 
-    /// an instance of a timer to be used to measure statup performance
+    /// an instance of a timer to be used to measure startup performance
     static member val InstanceStartup = Timer()
 *)

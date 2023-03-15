@@ -41,7 +41,7 @@ module ErrorUtil =
         
     let mutable private scrollToIdx = -1
 
-    /// becaus the UI gets a lag if there are 100 of errors to draw
+    /// because the UI gets a lag if there are 100 of errors to draw
     let maxAmountOfErrorsToDraw = 12 
 
     /// split errors by severity and sort by line number 
@@ -185,7 +185,7 @@ type ErrorRenderer (ed:TextEditor, folds:Folding.FoldingManager, log:ISeffLog) =
     let txA = ed.TextArea
     let segments = new TextSegmentCollection<SegmentToMark>(doc)
 
-    /// Draw the error sqiggle  on the code
+    /// Draw the error squiggle  on the code
     member _.Draw (textView:TextView , drawingContext:DrawingContext) = // for IBackgroundRenderer
         try
             let vls = textView.VisualLines
@@ -199,7 +199,7 @@ type ErrorRenderer (ed:TextEditor, folds:Folding.FoldingManager, log:ISeffLog) =
                     let boundaryPolygon= geoBuilder.CreateGeometry() // creates one boundary round the text
                     drawingContext.DrawGeometry(segment.BackgroundBrush, null, boundaryPolygon)
 
-                    //foreground,  squiggels:
+                    //foreground,  squiggles:
                     for rect in BackgroundGeometryBuilder.GetRectsForSegment(textView, segment) do
                         let geo = ErrorUtil.getSquiggleLine(rect)
                         drawingContext.DrawGeometry(Brushes.Transparent, segment.UnderlinePen, geo)

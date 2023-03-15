@@ -199,13 +199,13 @@ module XmlParser =
                 i<-i+1 // advance reading name
                 readAttrs ps
         
-        /// as opposed to get children this allows any character exept '<' 
+        /// as opposed to get children this allows any character except '<' 
         let rec readText (cs:Child list) :Child list =  
             if i > till then  
                 cs // exit recursion end of reading range,  or file
             else
                 match x[i] with 
-                | '<' -> trimAppendEndText sb cs   // end of text,  TODO  or us trimAppendText to trim leadin space ??
+                | '<' -> trimAppendEndText sb cs   // end of text,  TODO  or us trimAppendText to trim leading space ??
                 | '&' -> 
                         match x[i+1 .. i+2] with 
                         | "lt" -> i<-i+4 ;  add '<'   // &lt;  

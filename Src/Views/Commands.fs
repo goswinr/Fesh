@@ -27,7 +27,7 @@ type Commands (grid:TabsAndLog, statusBar:SeffStatusBar)  =
     let evalAllText()          =                                             fsi.Evaluate {editor=tabs.Current.Editor; amount=All; logger=None}
     let evalAllTextSave()      =               tabs.SaveAsync(tabs.Current); fsi.Evaluate {editor=tabs.Current.Editor; amount=All; logger=None}
     let evalAllTextSaveClear() =  log.Clear(); tabs.SaveAsync(tabs.Current); fsi.Evaluate {editor=tabs.Current.Editor; amount=All; logger=None}
-    let evalContinue()         =  (if tabs.Current.FilePath.IsSet then tabs.SaveAsync(tabs.Current)); fsi.Evaluate {editor=tabs.Current.Editor; amount=ContinueFromChanges; logger=None}
+    let evalContinue()         =  (if tabs.Current.Editor.FilePath.IsSet then tabs.SaveAsync(tabs.Current)); fsi.Evaluate {editor=tabs.Current.Editor; amount=ContinueFromChanges; logger=None}
     let markEvaluated()        =  tabs.Current.Editor.EvalTracker.MarkEvaluatedTillOffset(Selection.currentLineEnd tabs.CurrAvaEdit + 2 )
 
     let evalSelectedLines()    =  fsi.Evaluate {editor=tabs.Current.Editor; amount = FsiSegment <|SelectionForEval.expandSelectionToFullLines(tabs.CurrAvaEdit) ; logger=None}
@@ -36,9 +36,9 @@ type Commands (grid:TabsAndLog, statusBar:SeffStatusBar)  =
 
     let goToError()            = match ErrorUtil.getNextSegment(tabs.Current.Editor) with Some s -> Foldings.GoToOffsetAndUnfold(s.StartOffset, s.Length, tabs.Current.Editor, tabs.Current.Editor.Folds, config, false) | None -> ()
 
-    //let evalFromCursor()       =  let ln,tx = Selection.linesFromCursor(tabs.CurrAvaEdit)             in  fsi.Evaluate {editor=tabs.Current.Editor; code = tx ; file=tabs.Current.FilePath; allOfFile=false; fromLine = ln }
+    //let evalFromCursor()       =  let ln,tx = Selection.linesFromCursor(tabs.CurrAvaEdit)             in  fsi.Evaluate {editor=tabs.Current.Editor; code = tx ; file=tabs.Current.Editor.FilePath; allOfFile=false; fromLine = ln }
 
-    let compileScr(useMsBuild) = CompileScript.compileScript(tabs.CurrAvaEdit.Text, tabs.Current.FilePath,  useMsBuild, grid.Config)
+    let compileScr(useMsBuild) = CompileScript.compileScript(tabs.CurrAvaEdit.Text, tabs.Current.Editor.FilePath,  useMsBuild, grid.Config)
 
     //let version = lazy (let an = Reflection.Assembly.GetAssembly(tabs.GetType()).GetName() in sprintf "%s %s" an.Name (an.Version.ToString()))
 
@@ -55,7 +55,7 @@ type Commands (grid:TabsAndLog, statusBar:SeffStatusBar)  =
     // NOTE :--------------------------------------------------------------------
 
     // File menu:
-    member val NewTab            = {name= "New File"                  ;gesture= "Ctrl + N"       ;cmd= mkCmdSimple (fun _ -> tabs.AddTab(new Tab(Editor.New(config), config, tabs.AllFileInfos),true))      ;tip= "Create a new script file."   }
+    member val NewTab            = {name= "New File"                  ;gesture= "Ctrl + N"       ;cmd= mkCmdSimple (fun _ -> tabs.AddTab(new Tab(Editor.New(config)),true))    ;tip= "Create a new script file."   }
     member val OpenTemplateFile  = {name= "Edit Template File"        ;gesture= ""               ;cmd= mkCmdSimple (fun _ -> tabs.AddFile(config.DefaultCode.FileInfo,true)|> ignore)     ;tip= "Opens the template file that is used when creating a New File ( Ctrl + N)." }
     member val OpenFile          = {name= "Open File"                 ;gesture= "Ctrl + O"       ;cmd= mkCmdSimple (fun _ -> tabs.OpenFile())                                 ;tip= "Open a script file."  }
     member val Save              = {name= "Save"                      ;gesture= "Ctrl + S"       ;cmd= mkCmdSimple (fun _ -> tabs.Save(tabs.Current) |> ignore )              ;tip= "Saves the file. Shows a dialog only if the open file does not exist anymore." }
@@ -64,8 +64,8 @@ type Commands (grid:TabsAndLog, statusBar:SeffStatusBar)  =
     member val SaveIncrementing  = {name= "Save Incrementing"         ;gesture= ""               ;cmd= mkCmdSimple (fun _ -> tabs.SaveIncremental(tabs.Current) |> ignore)    ;tip= "Save with increased last character of filename.\r\nCan be alphabetic or numeric ( e.g.  d->e or 5->6).\r\nDoes not overwrite any existing file."}
     member val SaveAll           = {name= "Save All"                  ;gesture= "Ctrl + Shift + S";cmd= mkCmdSimple (fun _ -> for t in tabs.AllTabs do tabs.Save(t) |> ignore);tip= "Saves all tabs. Shows a dialog only if the open file does not exist on disk." }
     member val Close             = {name= "Close File"                ;gesture= "Ctrl + F4"      ;cmd= mkCmdSimple (fun _ -> tabs.CloseTab(tabs.Current))                     ;tip= "Closes the current tab, if there is only one tab then the window will be closed."}
-    member val SaveLog           = {name= "Save Text in Log"          ;gesture= ""               ;cmd= mkCmdSimple (fun _ -> log.SaveAllText(tabs.Current.FilePath))          ;tip= "Save all text from Log Window." }
-    member val SaveLogSel        = {name= "Save Selected Text in Log" ;gesture= ""               ;cmd= mkCmd isLse (fun _ -> log.SaveSelectedText(tabs.Current.FilePath))     ;tip= "Save selected text from Log Window."  }
+    member val SaveLog           = {name= "Save Text in Log"          ;gesture= ""               ;cmd= mkCmdSimple (fun _ -> log.SaveAllText(tabs.Current.Editor.FilePath))          ;tip= "Save all text from Log Window." }
+    member val SaveLogSel        = {name= "Save Selected Text in Log" ;gesture= ""               ;cmd= mkCmd isLse (fun _ -> log.SaveSelectedText(tabs.Current.Editor.FilePath))     ;tip= "Save selected text from Log Window."  }
 
     // Edit menu:
     member val Comment           = {name= "Comment"                   ;gesture= "Ctrl + K"       ;cmd= mkCmdSimple (fun _ -> Commenting.comment tabs.CurrAvaEdit)             ;tip= "Removes '//' at the beginning of current line, \r\nor from all line touched by current selection" }
@@ -115,10 +115,10 @@ type Commands (grid:TabsAndLog, statusBar:SeffStatusBar)  =
     member val CollapseCode      = {name= "Collapse all Code Foldings"    ;gesture= ""            ;cmd= mkCmdSimple (fun _ -> Foldings.CollapseAll    (tabs.Current.Editor, tabs.Current.Editor.Folds, tabs.Config)) ;tip= "Collapse all Code Foldings in this file" }
     member val CollapsePrim      = {name= "Collapse primary Code Foldings";gesture= ""            ;cmd= mkCmdSimple (fun _ -> Foldings.CollapsePrimary(tabs.Current.Editor, tabs.Current.Editor.Folds, tabs.Config)) ;tip= "Collapse primary Code Foldings, doesn't change secondary or tertiary foldings" }
     member val ExpandCode        = {name= "Expand all Code Foldings"      ;gesture= ""            ;cmd= mkCmdSimple (fun _ -> Foldings.ExpandAll      (tabs.Current.Editor, tabs.Current.Editor.Folds, tabs.Config)) ;tip= "Expand or unfold all Code Foldings in this file"  }
-    member val PopOutToolTip     = {name= "Make Tooltip persistent"       ;gesture= "Ctrl + P"    ;cmd= mkCmdSimple (fun _ -> PopOut.create(grid,statusBar))  ;tip= "Makes all currently showing ToolTip, Typeinfo or Errorinfo windows persistent as pop up window" }
+    member val PopOutToolTip     = {name= "Make Tooltip persistent"       ;gesture= "Ctrl + P"    ;cmd= mkCmdSimple (fun _ -> PopOut.create(grid,statusBar))  ;tip= "Makes all currently showing ToolTip, TypeInfo or ErrorInfo windows persistent as pop up window" }
 
     // About Menu
-    member val Help              = {name= "Hompage / Help"        ;gesture= ""               ;cmd= mkCmdSimple (fun _ -> Process.Start("https://github.com/goswinr/Seff") |> ignore ) ;tip= "Opens a browser window showing https://github.com/goswinr/Seff/"  }
+    member val Help              = {name= "Homepage / Help"        ;gesture= ""               ;cmd= mkCmdSimple (fun _ -> Process.Start("https://github.com/goswinr/Seff") |> ignore ) ;tip= "Opens a browser window showing https://github.com/goswinr/Seff/"  }
     member val SettingsFolder    = {name= "Open Settings Folder"  ;gesture= ""               ;cmd= mkCmdSimple (fun _ -> config.RunContext.OpenSettingsFolder())                         ;tip= "Opens the Folder where user settings such as default file content is saved." }
     member val AppFolder         = {name= "Open App Folder"       ;gesture= ""               ;cmd= mkCmdSimple (fun _ -> config.RunContext.OpenAppFolder())                              ;tip= "Opens the Folder where this App (Seff.exe) is loaded from." }
     member val OpenXshdFile      = {name= "Open and watch SyntaxHighlighting in VS Code" ;gesture= ""  ;cmd= mkCmdSimple (fun _ -> SyntaxHighlighting.openVSCode(tabs.CurrAvaEdit))       ;tip= "Opens the SyntaxHighlightingFSharp.xshd, file in VS Code.\r\nWatches the file for changes and reloads automatically." }

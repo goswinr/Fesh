@@ -13,7 +13,7 @@ module AutoOpenDateTime =
         /// yyyy-MM-dd
         static member todayStr    = System.DateTime.Now.ToString("yyyy-MM-dd")
         // month
-        static member log()          = System.DateTime.Now.ToString("yyyy-MM")
+        static member log()       = System.DateTime.Now.ToString("yyyy-MM")
 
 
 /// Utility functions for System.Windows.Media.Pen
@@ -44,7 +44,7 @@ module General =
 
     let inline notNull x = match x with null -> false | _ -> true
 
-    /// get flolder location of Executing Assembly
+    /// get folder location of Executing Assembly
     let assemblyLocation() = 
         IO.Path.GetDirectoryName(Reflection.Assembly.GetExecutingAssembly().Location)
 
@@ -86,12 +86,13 @@ module Str  =
     let low1 (s:String) = 
         if s="" then s else Char.ToLower(s.[0]).ToString() + s.Substring(1)
 
+    
     /// Trims strings to 80 chars for showing in one line.
     /// It returns the input string trimmed to 80 chars, a count of skipped characters and the last 5 characters
     /// Replace line breaks with '\r\n' or '\n' literal
     /// Does not include surrounding quotes
     /// If string is null returns "-null string-"
-    let truncateFormatedInOneLine (stringToTrim:string) :string = 
+    let truncateFormattedInOneLine (stringToTrim:string) :string = 
         if isNull stringToTrim then "-null string-"
         else
             let s = 
@@ -179,7 +180,7 @@ module Str  =
         i - off
 
 
-    /// backtrack till non Whitspace
+    /// backtrack till non Whitespace
     /// Returns new offset
     let inline findBackNonWhiteFrom off (str:string) = 
         let mutable i = off
@@ -197,7 +198,7 @@ module Str  =
         isSpace
 
 
-    /// counts how many time a substring occures in a string
+    /// counts how many time a substring occurs in a string
     let inline countSubString (sub:string) (s:string) = 
         let mutable k =  0
         let mutable i = s.IndexOf(sub, StringComparison.Ordinal)
@@ -206,7 +207,7 @@ module Str  =
             i <- s.IndexOf(sub,i + sub.Length, StringComparison.Ordinal)
         k
 
-    /// counts how many time a character occures in a string
+    /// counts how many time a character occurs in a string
     let inline countChar (c:char) (s:string) = 
         let mutable k =  0
         let mutable i = s.IndexOf(c)
@@ -249,7 +250,7 @@ module Str  =
                 if p >=0 then ch <- s.[p]
             i
 
-    /// test if char is Fharp opreator, includes '~'
+    /// test if char is FSharp operator, includes '~'
     let isOperator (c:Char)= 
         // https://docs.microsoft.com/en-us/dotnet/fsharp/language-reference/operator-overloading
         '!'=c || '%'=c || '&'=c || '*'=c || '+'=c || '-'=c || '.'=c || '|'=c ||
@@ -258,16 +259,16 @@ module Str  =
     /// split string into two elements,
     /// splitter is not included in the two return strings.
     /// if splitter not found first string is same as input, second string is empty
-    let splitOnce (spliter:string) (s:string) = 
-        let start = s.IndexOf(spliter, StringComparison.Ordinal) //TODO replace with name and implementation from FsEX
+    let splitOnce (splitter:string) (s:string) = 
+        let start = s.IndexOf(splitter, StringComparison.Ordinal) //TODO replace with name and implementation from FsEX
         if start = -1 then s,""
-        else               s.Substring(0, start), s.Substring(start + spliter.Length)
+        else               s.Substring(0, start), s.Substring(start + splitter.Length)
 
     /// finds text between two strings
     /// between "X" "T" "cXabTk" = "c", "ab", "k"
     /// delimiters are excluded
     /// if not both splitters are found returns original string and two empty strings
-    /// previously called between, but now with new retuen value on fail
+    /// previously called between, but now with new return value on fail
     let splitTwice (startChar:string) (endChar:string) (s:string) = 
         let start = s.IndexOf(startChar, StringComparison.Ordinal)
         if start = -1 then s,"",""
@@ -292,10 +293,10 @@ module Str  =
 
     /// finds text after a given string
     /// delimiters is excluded
-    let after (spliter:string) (s:string) = 
-        let start = s.IndexOf(spliter, StringComparison.Ordinal)
+    let after (splitter:string) (s:string) = 
+        let start = s.IndexOf(splitter, StringComparison.Ordinal)
         if start = -1 then None
-        else  Some <| s.Substring(start + spliter.Length)
+        else  Some <| s.Substring(start + splitter.Length)
 
     /// reduce string if longer than max, add suffix if trimmed
     let shrink (max:int) (suffix:string) (s:string) = 
@@ -311,7 +312,7 @@ module Str  =
         else s.Substring(0,s.Length-count)
 
 
-/// for searching in string but skiping over everything that is in double quotes.
+/// for searching in string but skipping over everything that is in double quotes.
 // also skips over escaped double quotes \"
 [<RequireQualifiedAccess>]
 module NotInQuotes = 
@@ -331,7 +332,7 @@ module NotInQuotes =
         loop fromIdx
 
     
-    /// index of a sub string in a string  but ignore everything that is between double quotes(skiping escaped quotes)
+    /// index of a sub string in a string  but ignore everything that is between double quotes(skipping escaped quotes)
     let indexOf (find:string) (txt:string)= 
         let rec loop fromIdx =         
             if fromIdx = txt.Length then -1 
@@ -351,11 +352,11 @@ module NotInQuotes =
                             | qei -> loop (qei+1) 
         loop 0    
     
-    /// test if a string contains a string but ignore everything that is between double quotes(skiping escaped quotes)
+    /// test if a string contains a string but ignore everything that is between double quotes(skipping escaped quotes)
     let contains (find:string) (txt:string)= 
         indexOf find txt > -1 
         
-    /// check if the last character is in a string literal (= insite quotes)
+    /// check if the last character is in a string literal (= inside quotes)
     let isLastCharOutsideQuotes (txt:string)  =  
         let rec loop fromIdx =
             if fromIdx = txt.Length then true 
@@ -384,7 +385,7 @@ module NotInQuotes =
     
     /// for starting to search from outside quotes. 
     /// test if a string contains a string from the end 
-    /// but ignore everything that is between double quotes(skiping escaped quotes).
+    /// but ignore everything that is between double quotes(skipping escaped quotes).
     /// before caling this make sure isLastCharOutsideQuotes is true
     let lastIndexOfFromOutside (find:string) (txt:string)= 
         let rec loop fromIdx =         
@@ -407,8 +408,8 @@ module NotInQuotes =
     
     /// for starting to search from inside quotes.    
     /// test if a string contains a string from the end 
-    /// but ignore everything that is between double quotes(skiping escaped quotes)
-    /// before caling this make sure isLastCharOutsideQuotes is false
+    /// but ignore everything that is between double quotes(skipping escaped quotes)
+    /// before calling this make sure isLastCharOutsideQuotes is false
     let lastIndexOfFromInside (find:string) (txt:string)= 
         let rec loop fromIdx =         
             if fromIdx = -1 then -1 
@@ -432,15 +433,12 @@ module NotInQuotes =
         
         
     /// test if a string contains a string from the end 
-    /// but ignore everything that is between double quotes(skiping escaped quotes)
+    /// but ignore everything that is between double quotes(skipping escaped quotes)
     let lastIndexOf (find:string) (txt:string)=  
         if isLastCharOutsideQuotes txt then lastIndexOfFromOutside find txt
         else                                lastIndexOfFromInside  find txt
-        
-        
     
-   
-    
+  
 
 (*  module Extern = 
         open System.Runtime.InteropServices
