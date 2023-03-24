@@ -14,50 +14,73 @@ open Seff
 open Seff.Model
 open Seff.Config
 
-
 /// Only a single instance of checker exist that is referenced on all editors
 type Checker private (config:Config)  = 
 
-    let log = config.Log
-
-    let mutable checker: FSharpChecker Option = None
-
     let checkId = ref 0L
-
-    let checkingEv = new Event< IEditor > ()
-
-    let checkedEv = new Event< IEditor*CheckResults > ()
-
-    let fullCodeAvailableEv = new Event< IEditor > ()
-
+    let mutable fsChecker: FSharpChecker Option = None // "you should generally use one global, shared FSharpChecker for everything in an IDE application." from http://fsharp.github.io/FSharp.Compiler.Service/caches.html
     let mutable isFirstCheck = true
-
-    let firstCheckDoneEv = new Event<unit>() // to first check file, then start FSI
-
     let mutable globalCheckState = FileCheckState.NotStarted
-    
+
     let entityCache = EntityCache() // used in GetAllEntities method
 
+    let checkingEv          = new Event<IEditor> ()
+    let checkedEv           = new Event<IEditor*CheckResults> ()
+    let fullCodeAvailableEv = new Event<IEditor> ()
+    let firstCheckDoneEv    = new Event<unit>() // to first check file, then start FSI
+    
+
     /// At the end either a event is raised or continuation called if present.
-    let checkCode(iEditor:IEditor,  continueOnThreadPool:Option<CheckResults->unit>) = 
+    let checkCode(iEditor:IEditor,  continueOnThreadPool:Option<CheckResults->unit>, stopWaitingForCompletionWindow: unit-> unit) = 
         let thisId = Interlocked.Increment checkId
-        //ISeffLog.log.PrintfnDebugMsg $"checking with id  {thisId} ..."
+        ISeffLog.log.PrintfnDebugMsg $" C1-checkCode: strt with id  {thisId} ..."
         globalCheckState <- GettingCode thisId
         iEditor.FileCheckState <- globalCheckState
 
         checkingEv.Trigger(iEditor) // to show in statusbar
         let doc = iEditor.AvaEdit.Document // access document before starting async
+        let mutable stoppedEarly = true
         async {
             //do! Async.Sleep 200 // TODO add lag so that the checker does not run all the time while typing. not needed any more since delayDocChange function
-            match checker with
+            match fsChecker with
             | Some ch -> ()
             | None ->
-                // http://fsharp.github.io/FSharp.Compiler.Service/caches.html
-                // https://github.com/fsharp/FSharp.Compiler.Service/blob/71272426d0e554e0bac32ad349bbd9f5fa8a3be9/src/fsharp/service/service.fs#L35
+                // http://fsharp.github.io/FSharp.Compiler.Service/caches.html    
                 Environment.SetEnvironmentVariable ("FCS_ParseFileCacheSize", "5")
+
+                // https://github.com/dotnet/fsharp/blob/main/src/Compiler/Service/service.fsi#L27:
+                // projectCacheSize                                      = The optional size of the project checking cache.
+                // keepAssemblyContents                                  = Keep the checked contents of projects.
+                // keepAllBackgroundResolutions                          = If false, do not keep full intermediate checking results from background checking suitable for returning from 
+                //                                                          GetBackgroundCheckResultsForFileInProject. This reduces memory usage.
+                // legacyReferenceResolver                               = An optional resolver for legacy MSBuild references
+                // tryGetMetadataSnapshot                                = An optional resolver to access the contents of .NET binaries in a memory-efficient way
+                // suggestNamesForErrors                                 = Indicate whether name suggestion should be enabled
+                // keepAllBackgroundSymbolUses                           = Indicate whether all symbol uses should be kept in background checking
+                // enableBackgroundItemKeyStoreAndSemanticClassification = Indicates whether a table of symbol keys should be kept for background compilation
+                // enablePartialTypeChecking                             = Indicates whether to perform partial type checking. Cannot be set to true if keepAssmeblyContents is true. 
+                //                                                          If set to true, can cause duplicate type-checks when richer information on a file is needed, but can skip background type-checking 
+                //                                                          entirely on implementation files with signature files.
+                // parallelReferenceResolution                           = Indicates whether to resolve references in parallel.
+                // captureIdentifiersWhenParsing                         = When set to true we create a set of all identifiers for each parsed file which can be used to speed up finding references.
+                // documentSource  (Experimental)                        = Default: FileSystem. You can use Custom source to provide a function that will return the source for a given file path instead 
+                //                                                          of reading it from the file system. Note that with this option the FSharpChecker will also not monitor the file system for file changes. 
+                //                                                          It will expect to be notified of changes via the NotifyFileChanged method.
+                // useSyntaxTreeCache  (Experimental)                    = Default: true. Indicates whether to keep parsing results in a cache.
+
+                // defaults: https://github.com/dotnet/fsharp/blob/main/src/Compiler/Service/service.fs#LL1339C9-L1357C68
+                // keepAssemblyContents =  false
+                // keepAllBackgroundResolutions =  true
+                // suggestNamesForErrors =  false
+                // keepAllBackgroundSymbolUses =  true
+                // enableBackgroundItemKeyStoreAndSemanticClassification = false
+                // enablePartialTypeChecking =  false
+                // captureIdentifiersWhenParsing =  false
+                // useSyntaxTreeCache =  true
+
                 // "you should generally use one global, shared FSharpChecker for everything in an IDE application." from http://fsharp.github.io/FSharp.Compiler.Service/caches.html
                 let ch = FSharpChecker.Create(suggestNamesForErrors=true) //TODO default options OK?
-                checker <- Some ch
+                fsChecker <- Some ch
 
             if !checkId = thisId then
                 // NOTE just checking only Partial Code till caret with (doc.CreateSnapshot(0, tillOffset).Text) would make the GetDeclarationsList method miss some declarations !!
@@ -66,10 +89,11 @@ type Checker private (config:Config)  =
                 globalCheckState <- Checking (thisId , codeInChecker)
                 iEditor.FileCheckState <- globalCheckState
                 
-                do! Async.SwitchToContext(FsEx.Wpf.SyncWpf.context)
+                do! Async.SwitchToContext(FsEx.Wpf.SyncWpf.context)// just for fullCodeAvailableEv event
                 if !checkId = thisId then  
-                    //ISeffLog.log.PrintfnColor 100 100 200 $"checkCode:fullCodeAvailableEv, continue: '{continueOnThreadPool}'"
+                    ISeffLog.log.PrintfnColor 100 100 200 $"C2-checkCode:: fullCodeAvailable"
                     fullCodeAvailableEv.Trigger(iEditor)
+                
                 do! Async.SwitchToThreadPool()
 
                 let fileFsx = 
@@ -92,6 +116,8 @@ type Checker private (config:Config)  =
                         
 
                 if !checkId = thisId  then
+                    let log = config.Log
+                    
                     try
                         let sourceText = Text.SourceText.ofString codeInChecker
                         // see https://github.com/dotnet/fsharp/issues/7669 for performance problems
@@ -113,7 +139,7 @@ type Checker private (config:Config)  =
                         // optionsStamp: An optional unique stamp for the options.
                         // userOpName: An optional string used for tracing compiler operations associated with this request.
                         let! options, optionsErr = 
-                                checker.Value.GetProjectOptionsFromScript(fileName          = fileFsx
+                                fsChecker.Value.GetProjectOptionsFromScript(fileName          = fileFsx
                                                                          ,source            = sourceText
                                                                          ,previewEnabled    = true // // Bug in FCS! if otherFlags argument is given the value here is ignored !
                                                                          //,loadedTimeStamp: DateTime *
@@ -140,14 +166,14 @@ type Checker private (config:Config)  =
                         // Not needed because these errors are reported by ParseAndCheckFileInProject too
                         //for oe in optionsErr do 
                         //    let msg = sprintf "%A" oe |> Util.Str.truncateToMaxLines 3
-                        //    ISeffLog.log.PrintfnFsiErrorMsg "Error in GetProjectOptionsFromScript:\r\n%A" msg
-
+                        //    ISeffLog.log.PrintfnFsiErrorMsg "Error in GetProjectOptionsFromScript:\r\n%A" msg                                                
                        
                         if !checkId = thisId  then
                             try                                
-                                let! parseRes , checkAnswer = checker.Value.ParseAndCheckFileInProject(fileFsx, 0, sourceText, options) // can also be done in two  calls   //TODO really use check file in project for scripts??
+                                let! parseRes , checkAnswer = fsChecker.Value.ParseAndCheckFileInProject(fileFsx, 0, sourceText, options) // can also be done in two  calls   //TODO really use check file in project for scripts??
                                 match checkAnswer with
                                 | FSharpCheckFileAnswer.Succeeded checkRes ->
+                                    ISeffLog.log.PrintfnColor 100 100 200 $"C4-checkCode:: FSharpCheckFileAnswer.Succeeded"
                                     if !checkId = thisId  then // this ensures that status gets set to done if no checker has started in the meantime
                                         let res =
                                             {
@@ -163,7 +189,9 @@ type Checker private (config:Config)  =
 
                                         match continueOnThreadPool with
                                         | Some f ->
-                                            try 
+                                            try
+                                                stoppedEarly <- false                                               
+                                                ISeffLog.log.PrintfnColor 100 100 200 $"C5-checkCode:: continue GetDeclarationListInfo.."
                                                 f(res) // calls GetDeclarationListInfo and GetDeclarationListSymbols for finding optional arguments
                                             with
                                                 e -> log.PrintfnAppErrorMsg "The continuation after ParseAndCheckFileInProject failed with:\r\n %A" e
@@ -181,7 +209,7 @@ type Checker private (config:Config)  =
 
                                 | FSharpCheckFileAnswer.Aborted  ->
                                     log.PrintfnAppErrorMsg "FSharpChecker.ParseAndCheckFileInProject(filepath, 0, sourceText , options) returned: FSharpCheckFileAnswer.Aborted\r\nFSharpParseFileResults is: %A" parseRes
-                                    globalCheckState <-CheckFailed
+                                    globalCheckState <- CheckFailed
                                     iEditor.FileCheckState <- globalCheckState
                             with e ->
                                 log.PrintfnAppErrorMsg "Error in ParseAndCheckFileInProject Block.\r\n This may be from a Type Provider or you are using another version of FSharpCompilerService.dll than at compile time?"
@@ -189,7 +217,7 @@ type Checker private (config:Config)  =
                                 log.PrintfnAppErrorMsg "%s" e.Message
                                 log.PrintfnAppErrorMsg "InnerException:\r\n%A" e.InnerException
                                 if notNull e.InnerException then log.PrintfnAppErrorMsg "%s" e.InnerException.Message
-                                globalCheckState <-CheckFailed
+                                globalCheckState <- CheckFailed
                                 iEditor.FileCheckState <- globalCheckState
                         else
                             () //ISeffLog.log.PrintfnDebugMsg $"other is running 2: this{thisId} other {!checkId} "
@@ -198,60 +226,56 @@ type Checker private (config:Config)  =
                             log.PrintfnAppErrorMsg "Error in GetProjectOptionsFromScript Block.\r\nMaybe you are using another version of FSharpCompilerService.dll than at compile time?:"
                             log.PrintfnAppErrorMsg "%A" e
                             log.PrintfnAppErrorMsg "%s" e.Message
-                            globalCheckState <-CheckFailed
+                            globalCheckState <- CheckFailed
                             iEditor.FileCheckState <- globalCheckState
             else
                 () //ISeffLog.log.PrintfnDebugMsg $"other is running 1: this{thisId} other {!checkId} "
             
             //ISeffLog.log.PrintfnDebugMsg $"checking  id  {thisId} Result: {globalCheckState}."
+            if stoppedEarly then stopWaitingForCompletionWindow()
             } |> Async.Start
 
     static let mutable singleInstance :Checker option  = None
-      
-
-    //--------------------public --------------
+    
+    
+    //-----------------------------------------------------------------
+    //---------------instance  members----------------------------------
+    //-----------------------------------------------------------------
 
     /// every time a new call to the global type checker happens this gets incremented
     /// this happens when the document changes, not for type info requests
     member _.CurrentCheckId = !checkId
 
-    member val Fsi  = Fsi.GetOrCreate(config) //  but  Fsi.Initialize() is only called in OnFirstCheckDone
+    member _.FsChecker = fsChecker
+
+    member _.GlobalCheckState = globalCheckState   
 
     /// This event is raised on UI thread when a checker session starts.
     [<CLIEvent>] 
     member this.OnChecking = checkingEv.Publish
-
-    /// the async method doc.CreateSnapshot() completed
-    [<CLIEvent>] 
-    member this.OnFullCodeAvailable = fullCodeAvailableEv.Publish
 
     /// This event is raised on UI thread
     /// only when checking for errors not when checking for autocomplete
     [<CLIEvent>]
     member this.OnCheckedForErrors = checkedEv.Publish
 
+    /// the async method doc.CreateSnapshot() completed
+    [<CLIEvent>] 
+    member this.OnFullCodeAvailable = fullCodeAvailableEv.Publish
+
     /// this event is raised on UI thread
     [<CLIEvent>] 
     member this.OnFirstCheckDone = firstCheckDoneEv.Publish
 
-    member this.GlobalCheckState = globalCheckState
+    member val Fsi  = Fsi.GetOrCreate(config) //  but  Fsi.Initialize() is only called in OnFirstCheckDone
     
     member this.SetDocChanging() = 
         Interlocked.Increment checkId |> ignore
-        globalCheckState <- DocChanging
-
-    /// Ensures only one instance is created
-    static member GetOrCreate(config) = 
-        match singleInstance with
-        |Some ch -> ch
-        |None ->
-            let ch = new Checker(config)
-            singleInstance <- Some ch;
-            ch.OnFirstCheckDone.Add ( fun ()-> ch.Fsi.Initialize() ) // to start fsi when checker is idle
-            ch
-
+        globalCheckState <- FileCheckState.DocChanging
+    
+    
     /// Triggers Event<FSharpErrorInfo[]> event after calling the continuation
-    member this.CheckThenHighlightAndFold (iEditor:IEditor)  =  checkCode (iEditor, None)
+    member this.CheckThenHighlightAndFold (iEditor:IEditor)  =  checkCode (iEditor, None, fun ()->() )
 
     /// used as optional argument to GetDeclarationListSymbols
     member this.GetAllEntities(res: CheckResults, publicOnly: bool): AssemblySymbol list = 
@@ -286,15 +310,23 @@ type Checker private (config:Config)  =
             []
 
     /// Checks for items available for completion    
-    member this.GetCompletions (iEditor:IEditor, pos :PositionInCode, ifDotSetback, continueOnUIthread: DeclarationListInfo -> unit, optArgsDict:Dictionary<string,ResizeArray<OptDefArg>>) = 
+    member this.GetCompletions (
+                                iEditor:IEditor, 
+                                pos :PositionInCode, 
+                                ifDotSetback, 
+                                continueOnUIthread: DeclarationListInfo -> unit, 
+                                optArgsDict:Dictionary<string,ResizeArray<OptDefArg>>,
+                                stopWaiting: unit-> unit ) = 
         let getSymbolsAndDecls(res:CheckResults) = 
             let thisId = !checkId
             //see https://stackoverflow.com/questions/46980690/f-compiler-service-get-a-list-of-names-visible-in-the-scope
             //and https://github.com/fsharp/FSharp.Compiler.Service/issues/835
             async{
+                ISeffLog.log.PrintfnDebugMsg "*3.1 - GetCompletions .."
                 let colSetBack = pos.column - ifDotSetback                
                 let partLoName = QuickParse.GetPartialLongNameEx(pos.lineToCaret, colSetBack - 1) //TODO is minus one correct ? https://github.com/fsharp/FSharp.Compiler.Service/issues/837
-                
+                let mutable doStop = true
+
                 if !checkId = thisId  then
                     //ISeffLog.log.PrintfnDebugMsg "*3.0 - checkRes.GetDeclarationListSymbols..."
                     let symUse = // Symbols are only for finding out if an argument is optional
@@ -318,9 +350,9 @@ type Checker private (config:Config)  =
                                 )
 
                         if !checkId = thisId  then
-                            //ISeffLog.log.PrintfnDebugMsg "*3.2 - GetDeclarationListInfo found %d on lineToCaret:\r\n  '%s'\r\n  QualifyingIdents: %A,  PartialIdent: '%A', lastDotPos: %A" decls.Items.Length pos.lineToCaret  partLoName.QualifyingIdents partLoName.PartialIdent partLoName.LastDotPos
+                            ISeffLog.log.PrintfnDebugMsg "*3.2 - GetDeclarationListInfo found %d on lineToCaret:\r\n  '%s'\r\n  QualifyingIdents: %A,  PartialIdent: '%A', lastDotPos: %A" decls.Items.Length pos.lineToCaret  partLoName.QualifyingIdents partLoName.PartialIdent partLoName.LastDotPos
                             if decls.IsError then 
-                                log.PrintfnAppErrorMsg "*ERROR in GetDeclarationListInfo: %A" decls //TODO use log
+                                ISeffLog.log.PrintfnAppErrorMsg "*ERROR in GetDeclarationListInfo: %A" decls //TODO use log
                             else                                
                                 // Find which parameters are optional and set the value on the passed in dictionary.
                                 // For adding question marks to optional arguments.
@@ -333,7 +365,51 @@ type Checker private (config:Config)  =
                                             optArgsDict.[symb.Symbol.FullName] <- opts                                
                                 
                                 do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context
+                                // while we are waiting no new checker shall be triggered, all typing during waiting  for the checker should just become a  prefilter for the completion window
+                                doStop <- false
+                                stopWaiting()// stop before showing, so that a completion can trigger the next type check ?
                                 continueOnUIthread( decls)
-            } |> Async.StartImmediate // we are on thread pool already
+                
+                if doStop then stopWaiting() // redundant just for savety if checker exited early 
+                } 
+            |> Async.StartImmediate // we are on thread pool already
         
-        checkCode(iEditor, Some getSymbolsAndDecls) //TODO can existing parse results be used ? or do they miss the dot so don't show dot completions ?
+        ISeffLog.log.PrintfnDebugMsg "*3.0 - checkCode .."
+        checkCode(iEditor, Some getSymbolsAndDecls, stopWaiting) //TODO can existing parse results be used ? or do they miss the dot so don't show dot completions ?
+
+
+    member this.DisposeForReseting(iEditor:IEditor) =
+        Interlocked.Increment checkId |> ignore
+        globalCheckState <- FileCheckState.NotStarted
+        checkingEv.Trigger(iEditor) // to update status bar to initializing 
+        match fsChecker with
+        |None -> ()
+        |Some ch -> ch.ClearCache([])
+        isFirstCheck <- true // this will trigger a new FSI instance via OnFirstCheckDone event
+        fsChecker <- None // a new one will be created then in checkCode()
+        
+    
+    //-----------------------------------------------------------------
+    //---------------static members----------------------------------
+    //-----------------------------------------------------------------
+
+
+    /// Create a new Checker and new reset FSI session !!
+    static member Reset(config, iEditor:IEditor) = 
+        match singleInstance with
+        |None ->   ()
+        |Some ch ->                
+            ch.DisposeForReseting(iEditor)
+            ISeffLog.log.PrintfnInfoMsg "New type checker created." 
+            ch.CheckThenHighlightAndFold(iEditor) // this wil create a new checker instance, trigger OnFirstCheckDone and reinitalize FSI
+            
+
+    /// Ensures only one instance is created
+    static member GetOrCreate(config) = 
+        match singleInstance with
+        |Some ch -> ch
+        |None ->            
+            let ch = new Checker(config)
+            singleInstance <- Some ch            
+            ch.OnFirstCheckDone.Add ( fun ()-> ch.Fsi.Initialize() ) // to start fsi when checker is idle after first check
+            ch

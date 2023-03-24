@@ -73,10 +73,11 @@ type Tabs(config:Config, seffWin:SeffWindow) =
 
         config.OpenTabs.Save(t.Editor.FilePath , allFileInfos)
     
-    let fileWasSavedAs(t:Tab,fi:FileInfo,sync) = 
+    let fileWasSavedAs(savedCode, t:Tab, fi:FileInfo, sync) = 
         t.FileTracker.ResetPath()
         t.IsCodeSaved <- true
         t.Editor.FilePath <- SetTo fi //this also updates the Tab header and set file info on editor
+        t.Editor.CodeAtLastSave <- savedCode 
         t.UpdateTabHeader()
         seffWin.SetFileNameInTitle(t.Editor.FilePath)
         Environment.CurrentDirectory <- fi.Directory.FullName
@@ -105,13 +106,13 @@ type Tabs(config:Config, seffWin:SeffWindow) =
         else
             try
                 let txt = t.AvaEdit.Text
-                IO.File.WriteAllText(fi.FullName, txt, Text.Encoding.UTF8)
-                t.Editor.CodeAtLastSave <- txt
+                IO.File.WriteAllText(fi.FullName, txt, Text.Encoding.UTF8)                
                 match saveKind with
-                |SaveNewLocation ->     fileWasSavedAs(t,fi,false)   
-                |SaveNewLocationSync -> fileWasSavedAs(t,fi,true)    
+                |SaveNewLocation     -> fileWasSavedAs(txt,t,fi,false)   
+                |SaveNewLocationSync -> fileWasSavedAs(txt,t,fi,true)    
                 |SaveInPlace -> // also called for Save-All command
                     t.IsCodeSaved <- true
+                    t.Editor.CodeAtLastSave <- txt
                     log.PrintfnInfoMsg "File saved:\r\n\"%s\"" fi.FullName
                 |SaveExport ->
                     config.FoldingStatus.Set(t.Editor) // otherwise no record would exist for the new file name
@@ -152,9 +153,12 @@ type Tabs(config:Config, seffWin:SeffWindow) =
         else
             false
 
-    let saveAsync (t:Tab) = 
+    let saveAsync (t:Tab) =  /// gets called from evalAllText(),  evalAllTextSave()  and  evalAllTextSaveClear() only
         match t.Editor.FilePath with
-        | NotSet _ -> if not <| saveAsDialog(t,SaveNewLocation) then log.PrintfnIOErrorMsg "saveAsync and saveAsDialog: did not save previously unsaved file."
+        | NotSet _ -> 
+            let saved = saveAsDialog(t,SaveNewLocation)
+            //if not saved  then log.PrintfnIOErrorMsg "saveAsync and saveAsDialog: did not save previously unsaved file."
+            ()
         | SetTo fi ->
             let txt = t.AvaEdit.Text
             async{
@@ -398,7 +402,7 @@ type Tabs(config:Config, seffWin:SeffWindow) =
     /// Returns true if saving operation was not canceled
     member this.Save(t:Tab) = trySave(t)
 
-    /// prints errors to log
+    /// Prints errors to log
     member this.SaveAsync(t:Tab) = saveAsync(t)
 
     /// Returns true if saving operation was not canceled

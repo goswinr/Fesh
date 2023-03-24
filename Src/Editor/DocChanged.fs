@@ -143,17 +143,14 @@ module DocChanged =
                 if   containsFrom barIdx "."  ln then ShowAll                
                 else DontShow 
 
-           
-        //-------------------------------------------------------------------------------------------
-        //-------------------------------------------------------------------------------------------
-        
+     
         let show (pos:PositionInCode, compls:Completions, ed:IEditor, forDUonly, checker:Checker) : unit= 
             let lnToCaret = pos.lineToCaret
             let setback     = lastNonFSharpNameCharPosition lnToCaret // to maybe replace some previous characters too
             let query       = lnToCaret.Substring(lnToCaret.Length - setback)            
             //ISeffLog.log.PrintfnDebugMsg "2.1 show: pos:%A setback='%d'" pos setback
 
-            let charBeforeQueryDU = 
+            let dotBefore = 
                 let i = pos.column - setback - 1
                 if i >= 0 && i < lnToCaret.Length then
                     if lnToCaret.[i] = '.' then 
@@ -163,13 +160,13 @@ module DocChanged =
                 else
                     NotDot
 
-            if charBeforeQueryDU = NotDot && keywords.Contains query then
-                //ISeffLog.log.PrintfnDebugMsg "*2.2a-show: just highlighting with: lnToCaret='%s' \r\n query='%s', charBefore='%A',  setback='%d', onlyDU:%b' " lnToCaret query charBeforeQueryDU setback forDUonly
+            if dotBefore = NotDot && keywords.Contains query then
+                //ISeffLog.log.PrintfnDebugMsg "*2.2a-show: just highlighting with: lnToCaret='%s' \r\n query='%s', dotBefore='%A',  setback='%d', onlyDU:%b' " lnToCaret query dotBefore setback forDUonly
                 checker.CheckThenHighlightAndFold(ed)
             else
-                //ISeffLog.log.PrintfnDebugMsg "*2.2b-show: try window opening with: lnToCaret=\r\n  '%s'\r\n  query='%s', charBefore='%A', setback='%d', onlyDU:%b" lnToCaret query charBeforeQueryDU  setback forDUonly
+                //ISeffLog.log.PrintfnDebugMsg "*2.2b-show: try window opening with: lnToCaret=\r\n  '%s'\r\n  query='%s', dotBefore='%A', setback='%d', onlyDU:%b" lnToCaret query dotBefore  setback forDUonly
                 let last = lnToCaret.[lnToCaret.Length-1]
-                Completions.TryShow(ed, compls, pos, last , setback, charBeforeQueryDU, forDUonly)                
+                Completions.TryShow(ed, compls, pos, last , setback, dotBefore, forDUonly)                
 
 
         let maybeShowCompletionWindow (compls:Completions,ed:IEditor, checker:Checker) : unit =            
@@ -218,11 +215,16 @@ module DocChanged =
                                     |ShowAll    -> show(pos,compls,ed,false, checker) // this is the most common case
 
     open InternalDocChange
+        
 
     let docChanged (e:DocumentChangeEventArgs,ed:IEditor, compls:Completions, checker:Checker) : unit = 
-        //ISeffLog.log.PrintfnDebugMsg "*1.1 Document.Changed Event: deleted %d '%s', inserted %d '%s', completion hasItems: %b, isOpen: %b , Just closed: %b" e.RemovalLength e.RemovedText.Text e.InsertionLength e.InsertedText.Text compls.HasItems compls.IsOpen compls.JustClosed
+        ISeffLog.log.PrintfnDebugMsg "*1.1 Document.Changed Event: deleted: %d '%s', inserted %d '%s', completion hasItems: %b, isOpen: %b , Just closed: %b IsWaitingForTypeChecker %b" e.RemovalLength e.RemovedText.Text e.InsertionLength e.InsertedText.Text compls.HasItems compls.IsOpen compls.JustClosed Completions.IsWaitingForTypeChecker
                         
-        if compls.IsOpen then   // just keep on tying in completion window, no type checking !
+        if Completions.IsWaitingForTypeChecker then 
+            () // just keep on tying in completion window, no type checking !
+
+        elif compls.IsOpen then   
+            // just keep on tying in completion window, no type checking !
             if compls.HasItems then 
                 //let currentText = getField(typeof<CodeCompletion.CompletionList>,w.CompletionList,"currentText") :?> string // TODO this property should be public in avaloneditB !                
                 //log.PrintfnDebugMsg "currentText: '%s'" currentText
@@ -232,32 +234,43 @@ module DocChanged =
                 compls.Close()
                 ()  // do nothing because if the doc changed a separate event will be triggered for that
 
-        else //no completion window is open:
-            match e.InsertedText.Text with
-            |"."  ->  maybeShowCompletionWindow(compls,ed, checker) // EnteredDot  
-            | txt when txt.Length = 1 ->
-                if compls.JustClosed then   // check to avoid re-trigger of window on single char completions
+        else // the completion window is NOT open or not about to be opend after type checking:
+            
+            if e.InsertionLength = 1 && e.RemovalLength = 0 then 
+                let txt = e.InsertedText.Text
+                let c = txt.[0]
+                if c= '.' then // do even if compls.JustClosed
+                    maybeShowCompletionWindow(compls,ed, checker) // EnteredDot 
+                
+                elif compls.JustClosed then   // check to avoid re-trigger of window on single char completions
                     compls.JustClosed <- false                    
                     checker.CheckThenHighlightAndFold(ed) // because CompletionWinClosed 
+                
                 else
-                    let c = txt.[0]
                     if Char.IsLetter(c) 
                         || c='_' // for __SOURCE_DIRECTORY__
                         || c='`' 
                         || c='#'  then    // for #if directives
                             maybeShowCompletionWindow(compls,ed, checker) // because  EnteredOneIdentifierChar  
                     else 
-                        checker.CheckThenHighlightAndFold(ed) // because  EnteredOneNonIdentifierChar
+                        checker.CheckThenHighlightAndFold(ed) // because EnteredOneIdentifierChar  
+            
+            // also show completion on deleting charcters ?
+            elif e.InsertionLength = 0 && e.RemovalLength = 1 then 
+                maybeShowCompletionWindow(compls,ed, checker) // because singleChar deletion 
+                
+            else
+              checker.CheckThenHighlightAndFold(ed) // because OtherChange: several characters(paste) , delete or an insert from the completion window
+             
 
-            | _  -> checker.CheckThenHighlightAndFold(ed) // because OtherChange: several characters(paste) , delete or an insert from the completion window
-    
+    (* unused:
 
     // delay and buffer reaction to doc changes
     open System.Threading
     let private changeId = ref 0L
 
-    /// only react to the last change after 200 ms
-    let delayDocChange(e:DocumentChangeEventArgs,ed:IEditor, compls:Completions, checker:Checker) : unit =         
+    /// only react to the last change after 100 ms
+    let delayDocChange(e:DocumentChangeEventArgs, ed:IEditor, compls:Completions, checker:Checker) : unit =         
         /// do timing as low level as possible: see Async.Sleep in  https://github.com/dotnet/fsharp/blob/main/src/fsharp/FSharp.Core/async.fs#L1587
         let k = Interlocked.Increment changeId
         let mutable timer :option<Timer> = None
@@ -265,6 +278,7 @@ module DocChanged =
             if !changeId= k then ed.AvaEdit.Dispatcher.Invoke(fun () ->  docChanged (e,ed, compls, checker))
             if timer.IsSome then timer.Value.Dispose() // dispose inside callback, like in Async.Sleep implementation
             )
-        timer <- Some (new Threading.Timer(action, null, dueTime = 200 , period = -1))
+        timer <- Some (new Threading.Timer(action, null, dueTime = 100 , period = -1))
+    *)
         
 

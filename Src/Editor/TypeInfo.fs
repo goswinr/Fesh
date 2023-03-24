@@ -66,6 +66,9 @@ type TypeInfo private () =
 
     static let maxCharInSignLine = 100
 
+    static let loggedErrors = HashSet<string>()
+
+
     static let coloredSignature(td:ToolTipData): TextBlockSelectable = 
         let tb = TextBlockSelectable()
         tb.Foreground <- black
@@ -406,10 +409,12 @@ type TypeInfo private () =
                 [ for el in els do
                     match el with
                     | ToolTipElement.None ->
-                        yield {name = ""; signature = [||]; fullName=""; optDefs=optDfes; xmlDoc = Error  "*FSharpStructuredToolTipElement.None*"}
+                        yield {name = ""; signature = [||]; fullName=""; optDefs=optDfes; xmlDoc = Error  "*no xml doc string*"}
 
                     | ToolTipElement.CompositionError(text) ->
-                        yield {name = ""; signature = [||]; fullName=""; optDefs=optDfes; xmlDoc = Error ("*FSharpStructuredToolTipElement.CompositionError: "+ text)}
+                        if loggedErrors.Add(text) then // print only once
+                            ISeffLog.log.PrintfnIOErrorMsg "Trying to get a Tooltip for 'fullName' failed with:\r\n%s" text
+                        yield {name = ""; signature = [||]; fullName=""; optDefs=optDfes; xmlDoc = Error ("*FSharpStructuredToolTipElement.CompositionError:\r\n"+ text)}
 
                     | ToolTipElement.Group(tooTipElemDataList) ->
                         for tooTipElemData in tooTipElemDataList do                            

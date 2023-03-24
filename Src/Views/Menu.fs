@@ -63,7 +63,7 @@ module RecognizePath =
                 if pos.HasValue then
                     let p = pos.Value
                     let selPos = getSelectionOrdered(ava.TextArea)
-                    if selPos.stPos.Line = p.Line then 
+                    if selPos.stPos.Line = p.Line && selPos.enPos.Line = selPos.stPos.Line then // only if curser is at selection. And selection is just one line.
                         let txt = ava.TextArea.Selection.GetText()
                         if txt.Length > 2 then 
                             let cmd = {

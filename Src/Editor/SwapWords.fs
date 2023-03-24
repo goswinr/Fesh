@@ -1,7 +1,6 @@
 ﻿namespace Seff.Editor
 
 open System
-
 open AvalonEditB
 
 module SwapWords = 

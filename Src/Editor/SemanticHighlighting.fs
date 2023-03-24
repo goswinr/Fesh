@@ -107,7 +107,7 @@ type SemanticColorizer (ied:TextEditor, edId:Guid, ch:Checker) =
     let mutable lastCheckId = -1L
     let mutable lastCode = ""
 
-    let mutable allRanges = [||]
+    let mutable allRanges: SemanticClassificationItem[] = [||]
 
     let mutable unusedDecl = ResizeArray()
 
@@ -142,7 +142,6 @@ type SemanticColorizer (ied:TextEditor, edId:Guid, ch:Checker) =
         el.TextRunProperties.SetForegroundBrush(Brushes.Red)
     
     member _.Ranges :SemanticClassificationItem [] = allRanges
-
 
     /// This gets called for every visible line on any view change
     override this.ColorizeLine(line:Document.DocumentLine) =

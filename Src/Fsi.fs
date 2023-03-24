@@ -166,25 +166,16 @@ type Fsi private (config:Config) =
     
     let createSession() =         
         let fsiArgs =
-            // first arg is ignored:
-            //      https://github.com/fsharp/FSharp.Compiler.Service/issues/420
-            // and  https://github.com/fsharp/FSharp.Compiler.Service/issues/877
-            // and  https://github.com/fsharp/FSharp.Compiler.Service/issues/878        
-            // "--shadowcopyreferences" is ignored https://github.com/fsharp/FSharp.Compiler.Service/issues/292
+            // see: Config/FsiArgumnets.fs
             let args = config.FsiArguments.Get            
             let beQuiet = config.Settings.GetBool ("fsiOutputQuiet", false)
-            let qargs = 
-                match beQuiet, args |> Array.tryFindIndex (fun s -> s="--quiet") with 
-                | true , Some _  -> args
-                | false, None    -> args
-                | true , None    -> Array.append args [| "--quiet"|] // TODO or fsi.ShowDeclarationValues <- false ??
-                | false , Some i -> args |> Array.removeAt i            
-            if config.RunContext.IsRunningOnDotNetCore then // --multiemit is always there on netCore
-                qargs 
-            else
-                match qargs |> Array.tryFindIndex (fun s -> s="--multiemit") with 
-                | Some _  -> qargs
-                | None    -> Array.append qargs [| "--multiemit"|] // to have line numbers in exceptions: https://github.com/dotnet/fsharp/discussions/13293
+             
+            match beQuiet, args |> Array.tryFindIndex (fun s -> s="--quiet") with 
+            | true , Some _  -> args
+            | false, None    -> args
+            | true , None    -> Array.append args [| "--quiet"|] // TODO or fsi.ShowDeclarationValues <- false ??
+            | false, Some i  -> args |> Array.removeAt i            
+            
         
         let fsiConfig = 
             let fsiObj = Interactive.Shell.Settings.fsi

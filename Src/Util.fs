@@ -313,7 +313,7 @@ module Str  =
 
 
 /// for searching in string but skipping over everything that is in double quotes.
-// also skips over escaped double quotes \"
+/// also skips over escaped double quotes \"
 [<RequireQualifiedAccess>]
 module NotInQuotes = 
     // tested OK !

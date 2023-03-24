@@ -12,6 +12,7 @@ open Seff.Util.General
 
 
 type BracketKind = 
+    // opening Brackets:
     | OpAnRec // {|
     | OpArr  // [|
 
@@ -19,6 +20,7 @@ type BracketKind =
     | OpCurly
     | OpRound
 
+    // Closing Brackets:
     | ClAnRec // |}
     | ClArr
 

@@ -198,7 +198,7 @@ type CodeToEval = {
     logger:option<TextWriter>
     }
 
-type CharBeforeQuery = Dot | NotDot
+type DotOrNot = Dot | NotDot // used in code completion
 
 type PositionInCode = { lineToCaret:string ; row:int; column:int; offset:int }
 
