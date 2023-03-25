@@ -140,7 +140,7 @@ module ErrorUtil =
                     else                
                         getSegment ed.AvaEdit.Document t
 
-        | NotStarted | DocChanging | GettingCode _ | Checking _| CheckFailed -> 
+        | NotStarted |  GettingCode _ | Checking _| CheckFailed -> 
             None           
        
         
@@ -308,7 +308,7 @@ type ErrorHighlighter (ed:TextEditor, folds:Folding.FoldingManager, log:ISeffLog
             renderer.Clear()
             renderer.AddSegments(res)
             drawnEv.Trigger(iEditor) // to update foldings now
-        | NotStarted | DocChanging | GettingCode _ | Checking _ | CheckFailed -> ()
+        | NotStarted |  GettingCode _ | Checking _ | CheckFailed -> ()
 
     member this.ToolTip = tip
 

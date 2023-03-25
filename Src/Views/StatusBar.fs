@@ -132,9 +132,7 @@ type CheckerStatus (grid:TabsAndLog) as this =
                 tip.Placement <- Primitives.PlacementMode.Top //https://docs.microsoft.com/en-us/dotnet/framework/wpf/controls/popup-placement-behavior
                 tip.VerticalOffset <- -6.0
                 this.ToolTip <- tip
-                    
-        | DocChanging ->
-            ()
+                            
 
         | GettingCode id0
         | Checking (id0,_) ->
@@ -149,7 +147,7 @@ type CheckerStatus (grid:TabsAndLog) as this =
                             this.Text <- checkingTxt
                             this.Background <- waitCol //originalBackGround
                             this.ToolTip <- sprintf "Checking %s for Errors ..." tabs.Current.FormattedFileName
-                    | Done _ | DocChanging | NotStarted | CheckFailed -> ()
+                    | Done _  | NotStarted | CheckFailed -> ()
             } |> Async.StartImmediate
 
         | NotStarted -> // these below never happen because event is only triggered on success

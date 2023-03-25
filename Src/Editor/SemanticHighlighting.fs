@@ -149,7 +149,6 @@ type SemanticColorizer (ied:TextEditor, edId:Guid, ch:Checker) =
         | Checking _
         | GettingCode _
         | NotStarted 
-        | DocChanging 
         | CheckFailed -> ()
         | Done chRes ->
             if chRes.editorId = edId then                     

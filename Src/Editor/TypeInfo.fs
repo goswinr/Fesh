@@ -492,7 +492,7 @@ type TypeInfo private () =
         // see https://github.com/icsharpcode/AvalonEdit/blob/master/ICSharpCode.AvalonEdit/Editing/SelectionMouseHandler.cs#L477
         
         match iEditor.FileCheckState with
-        | DocChanging | GettingCode _ | Checking _ |CheckFailed | NotStarted -> ()
+        | GettingCode _ | Checking _ |CheckFailed | NotStarted -> ()
         | Done res when res.checkRes.HasFullTypeCheckInfo ->
             let av = iEditor.AvaEdit 
             match Mouse.getOffset (e,av) with

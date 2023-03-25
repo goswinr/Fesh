@@ -128,11 +128,7 @@ type Completions(avaEdit:TextEditor,config:Config, checker:Checker) =
     let optArgsDict = new Dictionary<string,ResizeArray<OptDefArg>>() 
 
     let showingEv = Event<unit>()
-
-    let mutable justClosed = false // to avoid retrigger of completion window on single char completions
-
-    let mutable hasStackPanelTypeInfo = false // to indicate that the stack panel is not showing the loading text but the actual type info 
-
+        
     let selectedCompletionText ()= 
         match win with
         |None -> ""
@@ -140,6 +136,16 @@ type Completions(avaEdit:TextEditor,config:Config, checker:Checker) =
             match w.CompletionList.SelectedItem with
             | null -> ""
             | i -> i.Text
+
+    /// While we are waiting no new checker shall be triggered, 
+    /// all typing during waiting for the checker should just become a  prefilter for the completion window
+    static member val IsWaitingForTypeChecker = false with get,set
+    
+    /// To avoid retrigger of completion window on single char completions
+    static member val JustClosed = false with get,set
+
+    /// To indicate that the stack panel is not showing the loading text but the actual type info 
+    static member val HasStackPanelTypeInfo = false with get, set
 
     member this.IsOpen = win.IsSome
 
@@ -152,14 +158,11 @@ type Completions(avaEdit:TextEditor,config:Config, checker:Checker) =
         if win.IsSome then
             win.Value.Close()
             win <- None
-        justClosed <- true // to not trigger completion again on one letter completions
-
+        Completions.JustClosed              <- true // to not trigger completion again on one letter completions
+        Completions.IsWaitingForTypeChecker <- false
+        
     member this.RequestInsertion(ev) = if win.IsSome then win.Value.CompletionList.RequestInsertion(ev)
     
-    /// to not trigger completion again on one letter completions
-    member this.JustClosed
-       with get() = justClosed
-       and set(v) = justClosed <- v
 
     [<CLIEvent>] 
     member this.OnShowing = showingEv.Publish // to close other tooltips that might be open from type info
@@ -167,7 +170,7 @@ type Completions(avaEdit:TextEditor,config:Config, checker:Checker) =
 
     /// Initially returns "loading.." text and triggers async computation to get and update with actual text
     member this.GetToolTip(it:DeclarationListItem)= 
-        hasStackPanelTypeInfo <-false
+        Completions.HasStackPanelTypeInfo <-false
         async{
             let ttText = it.Description            
             let structured = 
@@ -178,13 +181,12 @@ type Completions(avaEdit:TextEditor,config:Config, checker:Checker) =
                 if this.IsOpen then // might get closed during context switch
                     if selectedCompletionText() = it.NameInList then
                         win.Value.ToolTipContent <- TypeInfo.getPanel (structured, {declListItem=Some it; semanticClass=None; declLocation=None; dllLocation=None })
-                        hasStackPanelTypeInfo <-true
+                        Completions.HasStackPanelTypeInfo <-true
                         //TODO add structure to a Dict so it does not need recomputing if browsing up and down items in the completion list.
         } |> Async.Start
         TypeInfo.loadingText :> obj
     
-    /// To indicate that the stack panel is not showing the loading text but the actual type info 
-    member this.HasStackPanelTypeInfo = hasStackPanelTypeInfo
+    
 
     member this.Log = log
     member this.Checker = checker
@@ -197,10 +199,6 @@ type Completions(avaEdit:TextEditor,config:Config, checker:Checker) =
     /// for a given method name returns a list of optional argument names
     member this.OptArgsDict = optArgsDict
 
-    /// while we are waiting no new checker shall be triggered, 
-    /// all typing during waiting for the checker should just become a  prefilter for the completion window
-    static member val IsWaitingForTypeChecker = false with get,set
-
 
     static member TryShow(iEditor:IEditor, compl:Completions, pos:PositionInCode , lastChar:char, setback:int, dotBefore:DotOrNot, onlyDU:bool) = 
         //a static method so that it can take an IEditor as argument        
@@ -212,7 +210,7 @@ type Completions(avaEdit:TextEditor,config:Config, checker:Checker) =
         
         let continueOnUIthread (decls: DeclarationListInfo) =             
             let caret = avaEdit.TextArea.Caret
-            
+            let mutable checkingStoppedEarly0 = true
             if AutoFixErrors.isMessageBoxOpen then // because msg box would appear behind completion window and type info
                 ISeffLog.log.PrintfnDebugMsg "*4.1 AutoFixErrors.isMessageBoxOpen "
             elif caret.Offset < pos.offset then 
@@ -293,6 +291,7 @@ type Completions(avaEdit:TextEditor,config:Config, checker:Checker) =
                     if w.CompletionList.ListBox.Items.Count > 0 then 
                         ISeffLog.log.PrintfnDebugMsg "*5.4 Show Completion Window with %d items prefilter: '%s' " w.CompletionList.ListBox.Items.Count prefilter
                         try 
+                            checkingStoppedEarly0<- false
                             w.Show() 
                         with 
                             e -> ISeffLog.log.PrintfnAppErrorMsg "Error in Showing Code Completion Window: %A" e
@@ -306,7 +305,10 @@ type Completions(avaEdit:TextEditor,config:Config, checker:Checker) =
                     // (2)insert text into editor (triggers completion if one char only)
                     // (3)raise InsertionRequested event
                     // https://github.com/icsharpcode/AvalonEdit/blob/8fca62270d8ed3694810308061ff55c8820c8dfc/AvalonEditB/CodeCompletion/CompletionWindow.cs#L100
-                
+            
+            // do in any case    
+            if checkingStoppedEarly0 then Completions.IsWaitingForTypeChecker <- false
+
         Completions.IsWaitingForTypeChecker <- true
         let stopWaiting = ( fun () -> Completions.IsWaitingForTypeChecker <- false)
         compl.Checker.GetCompletions(iEditor, pos, ifDotSetback, continueOnUIthread, compl.OptArgsDict, stopWaiting)

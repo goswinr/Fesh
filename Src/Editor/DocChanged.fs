@@ -218,7 +218,7 @@ module DocChanged =
         
 
     let docChanged (e:DocumentChangeEventArgs,ed:IEditor, compls:Completions, checker:Checker) : unit = 
-        ISeffLog.log.PrintfnDebugMsg "*1.1 Document.Changed Event: deleted: %d '%s', inserted %d '%s', completion hasItems: %b, isOpen: %b , Just closed: %b IsWaitingForTypeChecker %b" e.RemovalLength e.RemovedText.Text e.InsertionLength e.InsertedText.Text compls.HasItems compls.IsOpen compls.JustClosed Completions.IsWaitingForTypeChecker
+        ISeffLog.log.PrintfnDebugMsg "*1.1 Document.Changed Event: deleted: %d '%s', inserted %d '%s', completion hasItems: %b, isOpen: %b , Just closed: %b, IsWaitingForTypeChecker %b" e.RemovalLength e.RemovedText.Text e.InsertionLength e.InsertedText.Text compls.HasItems compls.IsOpen Completions.JustClosed Completions.IsWaitingForTypeChecker
                         
         if Completions.IsWaitingForTypeChecker then 
             () // just keep on tying in completion window, no type checking !
@@ -242,8 +242,8 @@ module DocChanged =
                 if c= '.' then // do even if compls.JustClosed
                     maybeShowCompletionWindow(compls,ed, checker) // EnteredDot 
                 
-                elif compls.JustClosed then   // check to avoid re-trigger of window on single char completions
-                    compls.JustClosed <- false                    
+                elif Completions.JustClosed then   // check to avoid re-trigger of window on single char completions
+                    Completions.JustClosed <- false                    
                     checker.CheckThenHighlightAndFold(ed) // because CompletionWinClosed 
                 
                 else

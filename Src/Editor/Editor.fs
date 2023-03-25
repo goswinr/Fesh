@@ -174,10 +174,33 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
         //----------------------------------
         //--FS Checker and Code completion--
         //----------------------------------  
+        
+        (* https://github.com/icsharpcode/AvalonEdit/blob/master/ICSharpCode.AvalonEdit.Sample/document.html
+        Change Events:
+            Here is the order in which events are raised during a document update:
+            BeginUpdate()
 
-        // or use avaEdit.Document.Changing event ??
-        //avaEdit.Document.Changed.Add(fun a -> ISeffLog.log.PrintfnColor 100 222 160 "Document.Changed:\r\n'%s'" avaEdit.Text)
-        avaEdit.Document.Changing.Add(fun _ -> ed.GlobalChecker.SetDocChanging())
+            UpdateStarted event is raised
+            Insert() / Remove() / Replace()
+
+            Changing event is raised
+            The document is changed
+            TextAnchor.Deleted events are raised if anchors were in the deleted text portion
+            Changed event is raised
+            EndUpdate()
+
+            TextChanged event is raised
+            TextLengthChanged event is raised
+            LineCountChanged event is raised
+            UpdateFinished event is raised
+        If the insert/remove/replace methods are called without a call to BeginUpdate(), they will call BeginUpdate() and EndUpdate() to ensure no change happens outside of UpdateStarted/UpdateFinished.
+
+        There can be multiple document changes between the BeginUpdate() and EndUpdate() calls. In this case, the events associated with EndUpdate will be raised only once after the whole document update is done.
+
+        The UndoStack listens to the UpdateStarted and UpdateFinished events to group all changes into a single undo step.
+        *) 
+        
+        //avaEdit.Document.Changing.Add(fun _ -> ed.GlobalChecker.SetDocChanging())
         avaEdit.Document.Changed.Add(fun a -> 
             //DocChanged.delayDocChange(a, ed, compls, ed.GlobalChecker) // to trigger for Autocomplete or error highlighting with immediate delay, (instead of delay in checkCode function.)
             DocChanged.docChanged(a, ed, compls, ed.GlobalChecker)

@@ -71,7 +71,7 @@ module PopOut =
         if ed.TypeInfoTip.IsOpen then
             showWindow ("Seff PopOut| Type Info ", (fun () -> Some<|  TypeInfo.getPanelCached ()), parent)
 
-        if ed.Completions.IsOpen  && ed.Completions.HasStackPanelTypeInfo then
+        if ed.Completions.IsOpen  && Completions.HasStackPanelTypeInfo then
             showWindow ("Seff PopOut| Autocomplete Type Info ", (fun () -> Some<|  TypeInfo.getPanelCached ()), parent)
 
 

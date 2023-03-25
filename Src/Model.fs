@@ -109,7 +109,7 @@ type CheckResults = {
 type FileCheckState = 
     | NotStarted
 
-    | DocChanging
+    //| DocChanging
 
     /// Getting the code form avalon edit text editor asynchronous
     | GettingCode of CheckId
@@ -124,7 +124,8 @@ type FileCheckState =
 
     member this.CodeAndId  = 
         match this with
-        | NotStarted | DocChanging | GettingCode _  | CheckFailed -> NoCode
+        //| DocChanging 
+        | NotStarted   | GettingCode _  | CheckFailed -> NoCode
         | Checking (id, c)  ->  CodeID (c       ,id)  
         | Done res          ->  CodeID (res.code,res.checkId ) 
 
@@ -141,7 +142,7 @@ type FileCheckState =
     override this.ToString() = 
         match this with
         | NotStarted        ->  "FileCheckState.NotStarted"
-        | DocChanging       ->  "FileCheckState.DocChanging"
+        //| DocChanging       ->  "FileCheckState.DocChanging"
         | GettingCode _     ->  "FileCheckState.GettingCode"
         | CheckFailed       ->  "FileCheckState.Failed"
         | Checking (id, c)  ->  "FileCheckState.Checking"
