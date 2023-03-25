@@ -124,7 +124,6 @@ type FileCheckState =
 
     member this.CodeAndId  = 
         match this with
-        //| DocChanging 
         | NotStarted   | GettingCode _  | CheckFailed -> NoCode
         | Checking (id, c)  ->  CodeID (c       ,id)  
         | Done res          ->  CodeID (res.code,res.checkId ) 
@@ -142,12 +141,10 @@ type FileCheckState =
     override this.ToString() = 
         match this with
         | NotStarted        ->  "FileCheckState.NotStarted"
-        //| DocChanging       ->  "FileCheckState.DocChanging"
         | GettingCode _     ->  "FileCheckState.GettingCode"
         | CheckFailed       ->  "FileCheckState.Failed"
         | Checking (id, c)  ->  "FileCheckState.Checking"
         | Done res          ->  "FileCheckState.Done with " +  res.checkRes.Diagnostics.Length.ToString() +  " infos, warnings or errors"
-
 
 
 type FilePath = 

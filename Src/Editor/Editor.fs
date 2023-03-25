@@ -207,7 +207,7 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
             ed.EvalTracker.SetLastChangeAt(a.Offset)
             )                           
 
-        // check if closing and inserting from completion window is desired now:
+        // check if closing and inserting from completion window is desired with currently typed character:
         avaEdit.TextArea.TextEntering.Add (DocChanged.closeAndMaybeInsertFromCompletionWindow compls)
 
         ed.GlobalChecker.OnCheckedForErrors.Add(fun (iEditorOfCheck,chRes) -> // this then triggers folding too, statusbar update is added in statusbar class

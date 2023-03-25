@@ -160,10 +160,7 @@ type CheckerStatus (grid:TabsAndLog) as this =
             lastErrCount <- -1
             this.Text <- "Fs Checker failed to complete."
             this.ToolTip <- "Fs Checker failed to complete."
-            this.Background <- failedCol
-
-    
-    
+            this.Background <- failedCol    
     
     do
         lastErrCount <- -1

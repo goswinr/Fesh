@@ -218,7 +218,7 @@ module DocChanged =
         
 
     let docChanged (e:DocumentChangeEventArgs,ed:IEditor, compls:Completions, checker:Checker) : unit = 
-        ISeffLog.log.PrintfnDebugMsg "*1.1 Document.Changed Event: deleted: %d '%s', inserted %d '%s', completion hasItems: %b, isOpen: %b , Just closed: %b, IsWaitingForTypeChecker %b" e.RemovalLength e.RemovedText.Text e.InsertionLength e.InsertedText.Text compls.HasItems compls.IsOpen Completions.JustClosed Completions.IsWaitingForTypeChecker
+        //ISeffLog.log.PrintfnDebugMsg "*1.1 Document.Changed Event: deleted: %d '%s', inserted %d '%s', completion hasItems: %b, isOpen: %b , Just closed: %b, IsWaitingForTypeChecker %b" e.RemovalLength e.RemovedText.Text e.InsertionLength e.InsertedText.Text compls.HasItems compls.IsOpen Completions.JustClosed Completions.IsWaitingForTypeChecker
                         
         if Completions.IsWaitingForTypeChecker then 
             () // just keep on tying in completion window, no type checking !
@@ -236,14 +236,15 @@ module DocChanged =
 
         else // the completion window is NOT open or not about to be opend after type checking:
             
+            // also show completion entering one characters ?
             if e.InsertionLength = 1 && e.RemovalLength = 0 then 
                 let txt = e.InsertedText.Text
                 let c = txt.[0]
                 if c= '.' then // do even if compls.JustClosed
-                    maybeShowCompletionWindow(compls,ed, checker) // EnteredDot 
-                
-                elif Completions.JustClosed then   // check to avoid re-trigger of window on single char completions
-                    Completions.JustClosed <- false                    
+                    maybeShowCompletionWindow(compls,ed, checker) // EnteredDot                 
+                  
+                elif UtilCompletion.justCompleted then   // check to avoid re-trigger of window on single char completions
+                    UtilCompletion.justCompleted <- false
                     checker.CheckThenHighlightAndFold(ed) // because CompletionWinClosed 
                 
                 else
@@ -255,12 +256,14 @@ module DocChanged =
                     else 
                         checker.CheckThenHighlightAndFold(ed) // because EnteredOneIdentifierChar  
             
-            // also show completion on deleting charcters ?
+            // also show completion on deleting one characters ?
             elif e.InsertionLength = 0 && e.RemovalLength = 1 then 
                 maybeShowCompletionWindow(compls,ed, checker) // because singleChar deletion 
-                
+            
+            // more than one character added or deleted
             else
-              checker.CheckThenHighlightAndFold(ed) // because OtherChange: several characters(paste) , delete or an insert from the completion window
+                Completions.IsWaitingForTypeChecker <- false // really needed here?
+                checker.CheckThenHighlightAndFold(ed) // because OtherChange: several characters(paste) , delete or an insert from the completion window
              
 
     (* unused:

@@ -33,7 +33,7 @@ type Checker private (config:Config)  =
     /// At the end either a event is raised or continuation called if present.
     let checkCode(iEditor:IEditor,  continueOnThreadPool:Option<CheckResults->unit>, stopWaitingForCompletionWindow2: unit-> unit) = 
         let thisId = Interlocked.Increment checkId
-        ISeffLog.log.PrintfnColor 100 100 200 $"C1-checkCode id {thisId}: start"
+        // ISeffLog.log.PrintfnColor 100 100 200 $"C1-checkCode id {thisId}: start"
         globalCheckState <- GettingCode thisId
         iEditor.FileCheckState <- globalCheckState
 
@@ -91,7 +91,7 @@ type Checker private (config:Config)  =
                 
                 do! Async.SwitchToContext(FsEx.Wpf.SyncWpf.context)// just for fullCodeAvailableEv event
                 if !checkId = thisId then  
-                    ISeffLog.log.PrintfnColor 100 100 200 $"C2-checkCode id {thisId}: fullCodeAvailable"
+                    // ISeffLog.log.PrintfnColor 100 100 200 $"C2-checkCode id {thisId}: fullCodeAvailable"
                     fullCodeAvailableEv.Trigger(iEditor)
                 
                 do! Async.SwitchToThreadPool()
@@ -117,7 +117,7 @@ type Checker private (config:Config)  =
 
                 if !checkId = thisId  then
                     let log = config.Log
-                    ISeffLog.log.PrintfnColor 100 100 200 $"C3-checkCode id {thisId}: GetProjectOptionsFromScript"
+                    // ISeffLog.log.PrintfnColor 100 100 200 $"C3-checkCode id {thisId}: GetProjectOptionsFromScript"
                     try
                         let sourceText = Text.SourceText.ofString codeInChecker
                         // see https://github.com/dotnet/fsharp/issues/7669 for performance problems
@@ -170,11 +170,11 @@ type Checker private (config:Config)  =
                        
                         if !checkId = thisId  then
                             try                                
-                                ISeffLog.log.PrintfnColor 100 100 200 $"C4-checkCode id {thisId}: ParseAndCheckFileInProject"
+                                // ISeffLog.log.PrintfnColor 100 100 200 $"C4-checkCode id {thisId}: ParseAndCheckFileInProject"
                                 let! parseRes , checkAnswer = fsChecker.Value.ParseAndCheckFileInProject(fileFsx, 0, sourceText, options) // can also be done in two  calls   //TODO really use check file in project for scripts??
                                 match checkAnswer with
                                 | FSharpCheckFileAnswer.Succeeded checkRes ->
-                                    ISeffLog.log.PrintfnColor 100 100 200 $"C5-checkCode id {thisId} = !checkId {!checkId}: FSharpCheckFileAnswer.Succeeded"
+                                    // ISeffLog.log.PrintfnColor 100 100 200 $"C5-checkCode id {thisId} = !checkId {!checkId}: FSharpCheckFileAnswer.Succeeded"
                                     if !checkId = thisId  then // this ensures that status gets set to done if no checker has started in the meantime                                        
                                         let res =
                                             {
@@ -191,7 +191,7 @@ type Checker private (config:Config)  =
                                         | Some f ->                                            
                                             try
                                                 checkingStoppedEarly2 <- false                                               
-                                                ISeffLog.log.PrintfnColor 100 100 200 $"C6-checkCode id {thisId}: continue GetDeclarationListInfo.."
+                                                // ISeffLog.log.PrintfnColor 100 100 200 $"C6-checkCode id {thisId}: continue GetDeclarationListInfo.."
                                                 f(res) // calls GetDeclarationListInfo and GetDeclarationListSymbols for finding optional arguments
                                             with
                                                 e -> log.PrintfnAppErrorMsg "The continuation after ParseAndCheckFileInProject failed with:\r\n %A" e
@@ -202,7 +202,7 @@ type Checker private (config:Config)  =
                                             try
                                                 if !checkId = thisId  then                                                
                                                     checkedEv.Trigger(iEditor,res) // to mark statusbar , and highlighting errors
-                                                    ISeffLog.log.PrintfnColor 100 100 200 $"C6-checkCode id {thisId}: ended after OnCheckedForErrors event "
+                                                    // ISeffLog.log.PrintfnColor 100 100 200 $"C6-checkCode id {thisId}: ended after OnCheckedForErrors event "
                                                     if isFirstCheck then
                                                         firstCheckDoneEv.Trigger() // to now start FSI
                                                         isFirstCheck <- false
@@ -270,11 +270,7 @@ type Checker private (config:Config)  =
     member this.OnFirstCheckDone = firstCheckDoneEv.Publish
 
     member val Fsi  = Fsi.GetOrCreate(config) //  but  Fsi.Initialize() is only called in OnFirstCheckDone
-    
-    //member this.SetDocChanging() = 
-    //    Interlocked.Increment checkId |> ignore
-    //    globalCheckState <- FileCheckState.DocChanging
-    
+        
     
     /// Triggers Event<FSharpErrorInfo[]> event after calling the continuation
     member this.CheckThenHighlightAndFold (iEditor:IEditor)  =  checkCode (iEditor, None, fun ()->() )
@@ -324,7 +320,7 @@ type Checker private (config:Config)  =
             //see https://stackoverflow.com/questions/46980690/f-compiler-service-get-a-list-of-names-visible-in-the-scope
             //and https://github.com/fsharp/FSharp.Compiler.Service/issues/835
             async{
-                ISeffLog.log.PrintfnDebugMsg "*3.1 - GetDeclarationListInfo .."
+                // ISeffLog.log.PrintfnDebugMsg "*3.1 - GetDeclarationListInfo .."
                 let colSetBack = pos.column - ifDotSetback                
                 let partLoName = QuickParse.GetPartialLongNameEx(pos.lineToCaret, colSetBack - 1) //TODO is minus one correct ? https://github.com/fsharp/FSharp.Compiler.Service/issues/837
                 let mutable checkingStoppedEarly1 = true
@@ -368,15 +364,14 @@ type Checker private (config:Config)  =
                                 
                                 do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context
                                 // while we are waiting no new checker shall be triggered, all typing during waiting  for the checker should just become a  prefilter for the completion window
-                                checkingStoppedEarly1 <- false
-                                ISeffLog.log.PrintfnColor 200 100 30 $"*3.2 - GetDeclarationListInfo found {decls.Items.Length} completions."                                
+                                checkingStoppedEarly1 <- false                                
                                 continueOnUIthread( decls)
                 
                 if checkingStoppedEarly1 then stopWaitingForCompletionWindow1() // redundant just for savety if checker exited early 
                 } 
             |> Async.StartImmediate // we are on thread pool already
         
-        ISeffLog.log.PrintfnDebugMsg "*3.0 - checkCode .."
+        // ISeffLog.log.PrintfnDebugMsg "*3.0 - checkCode .."
         checkCode(iEditor, Some getSymbolsAndDecls, stopWaitingForCompletionWindow1) //TODO can existing parse results be used ? or do they miss the dot so don't show dot completions ?
 
 
