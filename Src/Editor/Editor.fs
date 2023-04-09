@@ -124,6 +124,7 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
     /// This CheckState is local to the current editor
     member this.FileCheckState  with get() = checkState  and  set(v) = checkState <- v
     
+    /// seting this alone does not change the tab header !!
     member this.FilePath        with get() = filePath    and set (v)= filePath <- v
     
     member this.Log = log

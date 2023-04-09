@@ -180,7 +180,7 @@ type Log private () =
         let dlg = new Microsoft.Win32.SaveFileDialog()
         match pathHint with
         |NotSet _ ->()
-        |SetTo fi ->
+        |Deleted fi |SetTo fi ->
             fi.Refresh()
             if fi.Directory.Exists then dlg.InitialDirectory <- fi.DirectoryName
             dlg.FileName <- fi.Name + "_Log"
@@ -204,7 +204,7 @@ type Log private () =
            let dlg = new Microsoft.Win32.SaveFileDialog()
            match pathHint with
            |NotSet _ ->()
-           |SetTo fi ->
+           |Deleted fi |SetTo fi ->
                fi.Refresh()
                if fi.Directory.Exists then dlg.InitialDirectory <- fi.DirectoryName
                dlg.FileName <- fi.Name + "_Log"

@@ -80,7 +80,7 @@ type SeffWindow (config:Config)=
                 ] |> String.concat "  -  "
             win.Title <- txt         
         
-        |SetTo fi -> 
+        |Deleted fi |SetTo fi -> 
             let txt =  
                 [
                 fi.Name

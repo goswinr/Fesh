@@ -29,21 +29,23 @@ type FileChangeTracker (editor:Editor, setCodeSavedStatus:bool->unit) =
     let check(reason) = 
         match editor.FilePath with
         |NotSet _ ->() 
-        |SetTo _ ->        
+        |Deleted _  |SetTo _ ->        
             async{                
-                do! Async.Sleep 300 // wait so that the new tab can be displayed first, ( on tab switches)
-                // editor.FilePath might have chnage in the Async.Sleep wait if this check was just 
+                do! Async.Sleep 500 // wait so that the new tab can be displayed first, ( on tab switches)
+                // editor.FilePath might have change in the Async.Sleep wait if this check was just 
                 // triggred from reactivatong the main window aftyer closing a saveAs dialog.
                 // so get it again
                 match editor.FilePath with
-                |NotSet _ -> () 
-                |SetTo fi ->                 
-                    fi.Refresh() // with out this it would raise missing in case of save incrementing
-                    if fi.Exists then
+                |NotSet _ -> () // do nothing, no file watching on files without a path
+
+                |Deleted fi -> 
+                    fi.Refresh() 
+                    if fi.Exists then //file was deleted and now exist again ??
+                        editor.FilePath <- SetTo fi
                         let fileCode = IO.File.ReadAllText(fi.FullName)
-                        if fileCode <> editor.CodeAtLastSave then // this means that the last file saving was not done by Seff
-                            printfn "fileCode: \r\n%s" fileCode
-                            printfn "CodeAtLastSave: \r\n%s" editor.CodeAtLastSave
+                        if fileCode = editor.CodeAtLastSave then
+                            setCodeSavedStatus(true)
+                        else
                             // actually messages MessageBox shows nicer when triggered async:
                             do! Async.SwitchToContext SyncWpf.context                        
                             match MessageBox.Show(
@@ -61,9 +63,39 @@ type FileChangeTracker (editor:Editor, setCodeSavedStatus:bool->unit) =
                                 setCodeSavedStatus(true)
                             | _  ->
                                 setCodeSavedStatus(false)
+                    else
+                        // do nothing, the file is still deleted
+                        ()                
+                
+                |SetTo fi ->                 
+                    fi.Refresh() // with out this it would raise missing in case of save incrementing
+                    if fi.Exists then
+                        let fileCode = IO.File.ReadAllText(fi.FullName)
+                        if fileCode <> editor.CodeAtLastSave then // this means that the last file saving was not done by Seff                            
+                            // actually messages MessageBox shows nicer when triggered async:
+                            do! Async.SwitchToContext SyncWpf.context                        
+                            match MessageBox.Show(
+                                IEditor.mainWindow, 
+                                // $"{reason}: File{nl}{nl}{fi.Name}{nl}{nl}was changed.{nl}Do you want to reload it?", // Debug
+                                $"File{nl}{nl}{fi.Name}{nl}{nl}was changed.{nl}Do you want to reload it?",
+                                "Reload Changes?", 
+                                MessageBoxButton.YesNo, 
+                                MessageBoxImage.Exclamation, 
+                                MessageBoxResult.Yes,// default result 
+                                MessageBoxOptions.None) with // previously MessageBoxOptions.DefaultDesktopOnly
+                        
+                            | MessageBoxResult.Yes -> 
+                                setCode(fileCode, editor)
+                                setCodeSavedStatus(true)
+                            | _  ->
+                                setCodeSavedStatus(false)
+                        else
+                            setCodeSavedStatus(true)
                         
                     else
-                        do! Async.SwitchToContext SyncWpf.context
+                        editor.FilePath <- Deleted fi                        
+                        do! Async.SwitchToContext SyncWpf.context                        
+                        setCodeSavedStatus(false)
                         MessageBox.Show(
                             IEditor.mainWindow, 
                             //$"{reason}: {fi.Name}{nl}{nl}was deleted or renamed.{nl}{nl}at {fi.DirectoryName}", // Debug
@@ -76,8 +108,7 @@ type FileChangeTracker (editor:Editor, setCodeSavedStatus:bool->unit) =
                             )
                             |> ignore                     
                     
-                        setCodeSavedStatus(false)                    
-                                
+                       
             } 
             |>Async.Start
     
@@ -100,7 +131,8 @@ type FileChangeTracker (editor:Editor, setCodeSavedStatus:bool->unit) =
         match editor.FilePath with
         |NotSet _ ->
             watcher.EnableRaisingEvents <- false
-        |SetTo fi -> 
+        |SetTo fi 
+        |Deleted fi -> 
             watcher.Path   <- fi.DirectoryName
             watcher.Filter <- fi.Name
             watcher.EnableRaisingEvents <- true // must be after setting path
@@ -108,11 +140,12 @@ type FileChangeTracker (editor:Editor, setCodeSavedStatus:bool->unit) =
             watcher.Renamed.Add (fun _ -> bufferedCheck("buffered Renamed") ) 
             watcher.Deleted.Add (fun _ -> bufferedCheck("buffered Deleted") )
             watcher.Changed.Add (fun _ -> bufferedCheck("buffered Changed") )
+            watcher.Created.Add (fun _ -> bufferedCheck("buffered Created") ) // recreated after deletion
 
     do
         // https://wpf.2000things.com/2012/07/30/613-window-event-sequence/
 
-        ta.GotFocus.Add (fun _ -> check("ta.GotFocus")) 
+        ta.GotFocus.Add (fun _ -> check("ta.GotFocus")) // this also get triggered when one of the above message boxes gets closed
 
         IEditor.mainWindow.Activated.Add (fun _ -> if editor.IsCurrent then check("mainWindow.Activated") )           
 

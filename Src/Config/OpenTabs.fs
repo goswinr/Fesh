@@ -12,7 +12,7 @@ open Seff.Model
 
 type FileToOpen = {file:FileInfo; makeCurrent:bool}
 
-/// files that are open when closing the editor window, for next restart
+/// Files that are open when closing the editor window, for next restart
 type OpenTabs  (runContext:RunContext, startupArgs:string[]) = 
 
     let filePath0 = runContext.GetPathToSaveAppData("CurrentlyOpenFiles.txt")
@@ -63,7 +63,7 @@ type OpenTabs  (runContext:RunContext, startupArgs:string[]) =
         |]
 
     let getText() = 
-        let curr = match currentFile with NotSet dummyTXT -> dummyTXT |SetTo fi -> currentTabPreFix + fi.FullName
+        let curr = match currentFile with NotSet dummyTXT -> dummyTXT |Deleted fi |SetTo fi -> currentTabPreFix + fi.FullName
         let sb = StringBuilder()
         sb.AppendLine(curr) |> ignore // first line is filepath and name for current tab (repeats below)
         for f in allFiles do

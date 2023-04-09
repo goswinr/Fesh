@@ -39,7 +39,8 @@ type Tabs(config:Config, seffWin:SeffWindow) =
 
     let allTabs:seq<Tab> =  Seq.cast tabs.Items
 
-    let allFileInfos = seq{ for t in allTabs do match t.Editor.FilePath with NotSet _ ->() |SetTo fi -> yield fi } //TODO does this re-evaluate every time?
+    // excludes deleted files
+    let allExistingFileInfos = seq{ for t in allTabs do match t.Editor.FilePath with NotSet _  |Deleted _-> () |SetTo fi -> yield fi } //TODO does this re-evaluate every time?
 
     let currentTabChangedEv = new Event<Tab>() //to Trigger Fs Checker and status bar update 
 
@@ -60,10 +61,18 @@ type Tabs(config:Config, seffWin:SeffWindow) =
 
         currentTabChangedEv.Trigger(t) // to update statusbar
         
-        let dir = 
+        let dir =             
             match current.Editor.FilePath with 
-            |SetTo fi -> fi.Directory.FullName  
-            |NotSet _ -> enviroDefaultDir 
+            |SetTo fi  
+            |Deleted fi -> 
+                fi.Refresh()
+                if fi.Directory.Exists then // the directory might be deleted too
+                    fi.Directory.FullName
+                else
+                    enviroDefaultDir
+            |NotSet _ -> 
+                enviroDefaultDir 
+        
         Environment.CurrentDirectory <- dir // to be able to use __SOURCE_DIRECTORY__  
 
         t.Editor.GlobalChecker.CheckThenHighlightAndFold(t.Editor) 
@@ -71,7 +80,7 @@ type Tabs(config:Config, seffWin:SeffWindow) =
         // even though the error highlighter is only called if the editor id is the same, see Editor.fs:  
         // ed.GlobalChecker.OnChecked.Add(fun ...
 
-        config.OpenTabs.Save(t.Editor.FilePath , allFileInfos)
+        config.OpenTabs.Save(t.Editor.FilePath , allExistingFileInfos)
     
     let fileWasSavedAs(savedCode, t:Tab, fi:FileInfo, sync) = 
         t.FileTracker.ResetPath()
@@ -83,20 +92,28 @@ type Tabs(config:Config, seffWin:SeffWindow) =
         Environment.CurrentDirectory <- fi.Directory.FullName
         config.FoldingStatus.Set(t.Editor) // otherwise no record would exist for the new file name
         if sync then 
-            config.OpenTabs.SaveSync(t.Editor.FilePath , allFileInfos)
+            config.OpenTabs.SaveSync(t.Editor.FilePath , allExistingFileInfos)
             config.RecentlyUsedFiles.AddAndSaveSync(fi)         
         else
-            config.OpenTabs.Save(t.Editor.FilePath , allFileInfos)
+            config.OpenTabs.Save(t.Editor.FilePath , allExistingFileInfos)
             config.RecentlyUsedFiles.AddAndSave(fi)   
         log.PrintfnInfoMsg "File saved as:\r\n\"%s\"" fi.FullName  
 
     let workingDirectory () = 
         match current.Editor.FilePath with
         |SetTo fi -> Some fi.Directory
+        |Deleted fi -> 
+            if fi.Directory.Exists then // the directory might be deleted too
+                Some fi.Directory
+            else
+                match allExistingFileInfos |> Seq.tryHead with
+                |Some fi -> Some fi.Directory
+                |None    -> config.RecentlyUsedFiles.MostRecentPath
         |NotSet _ ->
-            match allFileInfos |> Seq.tryHead with
+            match allExistingFileInfos |> Seq.tryHead with
             |Some fi -> Some fi.Directory
             |None    -> config.RecentlyUsedFiles.MostRecentPath
+
 
     let saveAt (t:Tab, fi:FileInfo, saveKind:SavingKind) = 
         fi.Refresh()
@@ -127,29 +144,32 @@ type Tabs(config:Config, seffWin:SeffWindow) =
         let dlg = new Microsoft.Win32.SaveFileDialog()
         match t.Editor.FilePath with
         |NotSet _ ->()
-        |SetTo fi ->
+        |Deleted fi |SetTo fi ->
             fi.Refresh()
-            if fi.Directory.Exists then dlg.InitialDirectory <- fi.DirectoryName
+            if fi.Directory.Exists then 
+                dlg.InitialDirectory <- fi.DirectoryName
             dlg.FileName <- fi.Name
         dlg.DefaultExt <- ".fsx"
-        dlg.Title <- sprintf "Save File As for: %s" (match t.Editor.FilePath with NotSet dummyName -> dummyName |SetTo fi -> fi.FullName )
+        dlg.Title <- sprintf "Save File As for: %s" (match t.Editor.FilePath with NotSet dummyName -> dummyName  |Deleted fi |SetTo fi -> fi.FullName )
         dlg.Filter <- "FSharp Files(*.fsx, *.fs)|*.fsx;*.fs|Text Files(*.txt)|*.txt|All Files(*.*)|*"
         if isTrue (dlg.ShowDialog()) then
             let fi = new FileInfo(dlg.FileName)
-            if fi.Exists then                
-                match MessageBox.Show(
-                    IEditor.mainWindow, 
-                    $"Do you want to overwrite the existing file?\r\n{fi.FullName}" , 
-                    "Overwrite file?", 
-                    MessageBoxButton.YesNo, 
-                    MessageBoxImage.Question, 
-                    MessageBoxResult.No,// default result 
-                    MessageBoxOptions.None) with
-                | MessageBoxResult.Yes -> saveAt (t, fi, saveKind)
-                | MessageBoxResult.No -> false
-                | _ -> false
-            else
-                saveAt (t, fi, saveKind)
+            //this check is not needed, it is done by SaveFileDialog already:
+            //if fi.Exists then                
+            //    match MessageBox.Show(
+            //        IEditor.mainWindow, 
+            //        $"Do you want to overwrite the existing file?\r\n{fi.FullName}" , 
+            //        "Overwrite file?", 
+            //        MessageBoxButton.YesNo, 
+            //        MessageBoxImage.Question, 
+            //        MessageBoxResult.No,// default result 
+            //        MessageBoxOptions.None) with
+            //    | MessageBoxResult.Yes -> saveAt (t, fi, saveKind)
+            //    | MessageBoxResult.No -> false
+            //    | _ -> false
+            //else
+            
+            saveAt (t, fi, saveKind)
         else
             false
 
@@ -165,7 +185,7 @@ type Tabs(config:Config, seffWin:SeffWindow) =
                 try
                     fi.Refresh()
                     if not <| fi.Directory.Exists then
-                        log.PrintfnIOErrorMsg "saveAsync: Directory does not exist:\r\n%s" fi.Directory.FullName
+                        log.PrintfnIOErrorMsg "saveAsync: Directory does not exist, file not saved :\r\n%s" fi.Directory.FullName
                     else
                         IO.File.WriteAllText(fi.FullName, txt,Text.Encoding.UTF8)
                         t.Editor.CodeAtLastSave <- txt
@@ -177,6 +197,9 @@ type Tabs(config:Config, seffWin:SeffWindow) =
                     with e ->
                         log.PrintfnIOErrorMsg "saveAsync failed for: %s failed with %A" fi.FullName e
                     } |> Async.Start
+         |Deleted _ -> 
+            saveAsDialog(t, SaveNewLocation)
+            |> ignore 
 
     let export(t:Tab):bool= 
         saveAsDialog (t, SaveExport)
@@ -193,6 +216,7 @@ type Tabs(config:Config, seffWin:SeffWindow) =
             else
                 log.PrintfnIOErrorMsg "File does not exist on drive anymore. Resaving it at:\r\n%s" fi.FullName
                 saveAsDialog(t, SaveNewLocation)
+        |Deleted _
         |NotSet _ ->
                 saveAsDialog(t, SaveNewLocation)
 
@@ -207,6 +231,7 @@ type Tabs(config:Config, seffWin:SeffWindow) =
                 saveAt(t, fi, SaveInPlace)
             else                
                 saveAsDialog(t, SaveNewLocationSync)
+        |Deleted _
         |NotSet _ ->
                 saveAsDialog(t, SaveNewLocationSync)
 
@@ -216,24 +241,28 @@ type Tabs(config:Config, seffWin:SeffWindow) =
         if t.IsCodeSaved then 
             true
         else            
-            match MessageBox.Show(
-                win, 
-                $"Do you want to save the changes to:\r\n{t.FormattedFileName}\r\nbefore closing this tab?" , 
-                "Save Changes?", 
-                MessageBoxButton.YesNoCancel, 
-                MessageBoxImage.Question, 
-                MessageBoxResult.Yes,// default result 
-                MessageBoxOptions.None) with
-            | MessageBoxResult.Yes -> trySave t
-            | MessageBoxResult.No -> true
-            | MessageBoxResult.Cancel -> false
-            | _ -> false
+            match t.Editor.FilePath with
+            |Deleted _ ->  true // Dont ask for saving a file that is already deleted
+            |SetTo _ 
+            |NotSet _ -> 
+                match MessageBox.Show(
+                    win, 
+                    $"Do you want to save the changes to:\r\n{t.FormattedFileName}\r\nbefore closing this tab?" , 
+                    "Save Changes?", 
+                    MessageBoxButton.YesNoCancel, 
+                    MessageBoxImage.Question, 
+                    MessageBoxResult.Yes,// default result 
+                    MessageBoxOptions.None) with
+                | MessageBoxResult.Yes -> trySave t
+                | MessageBoxResult.No -> true
+                | MessageBoxResult.Cancel -> false
+                | _ -> false
 
     let closeTab(t:Tab)=
         if askIfClosingTabIsOk(t) then
             t.FileTracker.Stop()
             tabs.Items.Remove(t)
-            config.OpenTabs.Save (t.Editor.FilePath , allFileInfos) //saving removed file, not added
+            config.OpenTabs.Save (t.Editor.FilePath , allExistingFileInfos) //saving removed file, not added
         
 
     /// addTab(Tab, makeCurrent, moreTabsToCome)
@@ -251,14 +280,15 @@ type Tabs(config:Config, seffWin:SeffWindow) =
             else
                 // also close any tab that only has default code:            
                 allTabs  
-                |> Seq.filter ( fun (t:Tab) -> t.Editor.FilePath.IsnotSet && t.IsCodeSaved=true ) // no explicit criteria for beeing the default code!
+                |> Seq.filter ( fun (t:Tab) -> t.Editor.FilePath.DoesNotExistsAsFile && t.IsCodeSaved=true ) // no explicit criteria for beeing the default code!
                 |> Array.ofSeq // force enumeration and cache
                 |> Seq.iter ( fun t -> tabs.Items.Remove t)
                 
                 config.RecentlyUsedFiles.AddAndSave(fi)                
         |NotSet _ -> 
             ()        
-        
+        |Deleted _ -> 
+            ISeffLog.log.PrintfnAppErrorMsg "addTab for a deleted file should never happen !"
 
     /// Checks if file is open already then calls addTab.
     /// tryAddFile(fi:FileInfo, makeCurrent, moreTabsToCome)
@@ -269,6 +299,9 @@ type Tabs(config:Config, seffWin:SeffWindow) =
             match b with
             |SetTo bb -> areFilesSame bb a
             |NotSet _ -> false
+            |Deleted _ -> 
+                ISeffLog.log.PrintfnAppErrorMsg "tryAddFile for a deleted file should never happen !"
+                false
 
         fi.Refresh()
         if fi.Exists then
@@ -373,7 +406,8 @@ type Tabs(config:Config, seffWin:SeffWindow) =
 
     member this.CurrAvaEdit = current.Editor.AvaEdit
 
-    member this.AllFileInfos = allFileInfos
+    // exludes files that are deleted but still open in editor
+    member this.AllExistingFileInfos = allExistingFileInfos
 
     member this.AllTabs = allTabs
 
@@ -413,17 +447,20 @@ type Tabs(config:Config, seffWin:SeffWindow) =
         let isNum c = c >= '0' && c <= '9'
         let incrC (c:Char)   = string( int c - 48 + 1) // 48 = int '0'            
         match t.Editor.FilePath with
+        |Deleted fi
         |SetTo fi ->  
-
             let ne = fi.Name
             let ex = fi.Extension
             let n  = ne.Substring(0,ne.Length-ex.Length)
             let save (nn:string) :bool =                 
                 let ni = FileInfo(Path.Combine(fi.DirectoryName, nn + ex ))
-                if ni.Exists then
-                    this.SaveAs(t)
-                else
-                    saveAt(t,ni, SaveNewLocation)
+                if ni.Directory.Exists then                 
+                    if ni.Exists then
+                        this.SaveAs(t)
+                    else
+                        saveAt(t,ni, SaveNewLocation)
+                else // directory was deleted too save a new path:
+                    saveAsDialog(t, SaveNewLocation)
             
             let l = n[n.Length-1]
             let nn = // the new sufix
@@ -456,7 +493,7 @@ type Tabs(config:Config, seffWin:SeffWindow) =
             //log.PrintfnIOErrorMsg "Can't Save Incrementing unsaved file."
             this.SaveAs(t)
 
-    /// will display a dialog if there are unsaved files.
+    /// Will display a dialog if there are unsaved files.
     /// if user clicks yes it will attempt to save files.
     /// Returns true if all files are saved or unsaved changes are ignored (closing not canceled by user).
     member this.AskForFileSavingToKnowIfClosingWindowIsOk()= 
@@ -467,8 +504,8 @@ type Tabs(config:Config, seffWin:SeffWindow) =
         else
             let msg = 
                 openFs  |> Seq.fold (fun m t ->
-                let name  = match t.Editor.FilePath with NotSet dummyName -> dummyName |SetTo fi ->fi.Name
-                sprintf "%s\r\n \r\n%s" m name) "Do you want to\r\nsave the changes to:"
+                    let name  = match t.Editor.FilePath with NotSet dummyName -> dummyName  |Deleted fi |SetTo fi -> fi.Name
+                    sprintf "%s\r\n \r\n%s" m name) "Do you want to\r\nsave the changes to:"
             
             match MessageBox.Show(
                 win, 

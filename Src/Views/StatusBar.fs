@@ -207,7 +207,7 @@ type FsiRunStatus (grid:TabsAndLog) as this =
             this.Background <- activeCol
             this.Inlines.Clear()
             match codeToEval.editor.FilePath with
-            |SetTo fi ->
+            |Deleted fi|SetTo fi ->
                 match codeToEval.amount with
                 | All                 ->  this.Inlines.Add(new Run ("FSI is running ",           Foreground = grayText))
                 | ContinueFromChanges ->  this.Inlines.Add(new Run ("FSI continues to run ",  Foreground = grayText))

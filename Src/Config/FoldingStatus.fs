@@ -50,10 +50,10 @@ type FoldingStatus ( runContext:RunContext, recentlyUsedFiles:RecentlyUsedFiles)
     member this.Get(ed:IEditor) = 
         match ed.FilePath with
         | NotSet _ -> [| |]
-        | SetTo fi ->
+        | Deleted fi | SetTo fi ->
             match foldingStatus.TryGetValue fi.FullName with
             |true,vs -> vs
-            |_      ->
+            |_      -> 
                 match foldingStatus.TryGetValue fi.Name with // just in case the file moved folder
                 |true,vs -> vs
                 |_      -> [| |]
@@ -61,12 +61,12 @@ type FoldingStatus ( runContext:RunContext, recentlyUsedFiles:RecentlyUsedFiles)
     member this.Set(ed:IEditor) = // gets call on every new folds found
         match ed.FilePath with
         | NotSet _ -> ()
-        | SetTo fi ->
+        | Deleted fi | SetTo fi ->
             let vs = [| for f in ed.FoldingManager.AllFoldings do f.IsFolded |]
-            let ok, curr = foldingStatus.TryGetValue fi.Name
+            let ok, curr = foldingStatus.TryGetValue fi.FullName
             if not ok || curr <> vs then // only update if ther are changes or setting is missing.
-                foldingStatus.[fi.Name] <- vs // so that it still works in case the file moves folder
-                foldingStatus.[fi.FullName] <- vs
+                foldingStatus.[fi.FullName] <- vs 
+                foldingStatus.[fi.Name]     <- vs // so that it still works in case the file moves folder
                 writer.WriteIfLast (foldingStatusAsString, 800)
 
     member this.Save() = 

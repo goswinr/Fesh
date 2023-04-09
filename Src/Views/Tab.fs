@@ -11,15 +11,13 @@ open Seff.Model
 open AvalonLog.Brush
 
 
-
-
 module TabStyle = 
     let savedHeader   =  Brushes.Black  |> freeze
     let changedHeader =  Brushes.Red    |> darker 90   |> freeze
+    let deletedHeader =  Brushes.Red    |> darker 20   |> freeze
     let unsavedHeader =  Brushes.Gray   |> brighter 40 |> freeze
     // button in header
-    let redButton     =  ofRGB 232 17 35 // same red color as default for the main window
-    //let whiteButton   =  brushOfRGB 255 255 255 // for white cross inside red button
+    let redButton     =  ofRGB 232 17 35 // same red color as default for the main window    
     let grayButton    =  ofRGB 150 150 150 // for gray cross inside red button
     let transpButton  =  ofARGB 0 255 255 255 // fully transparent
 
@@ -28,8 +26,8 @@ module TabStyle =
 type Tab (editor:Editor) = //, config:Seff.Config.Config, allFileInfos:seq<IO.FileInfo>) = 
     inherit TabItem()
 
+    // thes two are used to avoid redrawing header on very keystroke:
     let mutable isCodeSaved        = true
-
     let mutable headerShowsSaved   = true
 
     let textBlock = new TextBlock(VerticalAlignment = VerticalAlignment.Center) //, Padding = Thickness(2.) ) , FontFamily = Style.fontEditor)
@@ -64,37 +62,49 @@ type Tab (editor:Editor) = //, config:Seff.Config.Config, allFileInfos:seq<IO.Fi
     let setHeader() = 
         match editor.FilePath, isCodeSaved with
         |SetTo fi , true ->
-            textBlock.ToolTip       <- "File saved at:\r\n" + fi.FullName
-            textBlock.Text          <- fi.Name
-            textBlock.Foreground    <- TabStyle.savedHeader
-            headerShowsSaved        <- true
-        |SetTo fi , false ->
-            textBlock.ToolTip       <- "File with unsaved changes from :\r\n" + fi.FullName
-            textBlock.Text          <- fi.Name + "*"
-            textBlock.Foreground    <- TabStyle.changedHeader
-            headerShowsSaved        <- false
-        |NotSet dummyName,true    ->
-            textBlock.ToolTip      <- "This file just shows the default code for every new file."
-            textBlock.Text         <- dummyName
-            textBlock.Foreground   <- TabStyle.unsavedHeader
-            headerShowsSaved       <- true
-        |NotSet dummyName,false    ->
-            textBlock.ToolTip      <- "This file has not yet been saved to disk."
-            textBlock.Text         <- dummyName
+            textBlock.ToolTip         <- "File saved at:\r\n" + fi.FullName
+            textBlock.Text            <- fi.Name
+            textBlock.TextDecorations <- null
+            textBlock.Foreground      <- TabStyle.savedHeader
+            headerShowsSaved          <- true
+        |SetTo fi , false ->          
+            textBlock.ToolTip         <- "File with unsaved changes from :\r\n" + fi.FullName
+            textBlock.Text            <- fi.Name + "*"
+            textBlock.TextDecorations <- null
+            textBlock.Foreground      <- TabStyle.changedHeader
+            headerShowsSaved          <- false
+        |NotSet dummyName,true ->     
+            textBlock.ToolTip         <- "This file just shows the default code for every new file."
+            textBlock.Text            <- dummyName
+            textBlock.TextDecorations <- null
+            textBlock.Foreground      <- TabStyle.unsavedHeader
+            headerShowsSaved          <- true
+        |NotSet dummyName,false ->     
+            textBlock.ToolTip         <- "This file has not yet been saved to disk."
+            textBlock.Text            <- dummyName
+            textBlock.TextDecorations <- null
             //if not ( textBlock.Text.EndsWith "*") then textBlock.Text <- textBlock.Text + "*"
-            textBlock.Foreground   <- TabStyle.changedHeader
-            headerShowsSaved       <- false
+            textBlock.Foreground      <- TabStyle.changedHeader
+            headerShowsSaved          <- false
+        |Deleted dfi, _ -> 
+            textBlock.ToolTip         <- "This file has been deleted (or renamed) from:\r\n" + dfi.FullName
+            textBlock.Text            <- dfi.Name
+            textBlock.TextDecorations <- TextDecorations.Strikethrough
+            textBlock.Foreground      <- TabStyle.deletedHeader
+            headerShowsSaved          <- false
 
-
-    let updateIsCodeSaved(isSaved)= 
+    // this gets called on every character typed
+    let setCodeSavedStatus(isSaved)= 
         isCodeSaved <- isSaved
         if not isSaved && headerShowsSaved then
             setHeader()
         elif isSaved && not headerShowsSaved  then
             setHeader()   
+
+ 
     
     let fileTracker = 
-        new FileChangeTracker (editor, updateIsCodeSaved)
+        new FileChangeTracker (editor, setCodeSavedStatus)
 
     do
         base.Content <- editor.AvaEdit
@@ -106,22 +116,24 @@ type Tab (editor:Editor) = //, config:Seff.Config.Config, allFileInfos:seq<IO.Fi
         //base.BorderBrush <- Brushes.Blue            // don't messes it all up
         //base.Margin <- Thickness(3., 0. , 0. , 0.)  //left ,top, right, bottom) // don't messes it all up
         setHeader()
-        editor.AvaEdit.TextChanged.Add(fun _ -> updateIsCodeSaved(false))
+        editor.AvaEdit.TextChanged.Add(fun _ -> setCodeSavedStatus(false))
 
     member _.FileTracker = fileTracker
     
     member _.IsCodeSaved
         with get()       = isCodeSaved
-        and set(isSaved) = updateIsCodeSaved(isSaved)
+        and set(isSaved) = setCodeSavedStatus(isSaved)
 
     member _.UpdateTabHeader() = setHeader()
 
 
     member _.CloseButton = closeButton // public so click event can be attached later in Tabs.fs AddTab
 
+    /// used in compiler error messages
     member this.FormattedFileName = 
         match editor.FilePath with
         |SetTo fi          -> sprintf "%s" fi.FullName //sprintf "%s\r\nat\r\n%s" fi.Name fi.DirectoryName
+        |Deleted fi        -> sprintf "(deleted): %s" fi.FullName //sprintf "%s\r\nat\r\n%s" fi.Name fi.DirectoryName
         |NotSet dummyName  -> dummyName
 
     /// this gets and sets IsCurrent on the Editor

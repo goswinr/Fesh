@@ -98,7 +98,7 @@ type Checker private (config:Config)  =
 
                 let fileFsx = 
                     match iEditor.FilePath with
-                    |SetTo fi ->
+                    |Deleted fi |SetTo fi ->
                         let n = fi.FullName
                         if not <| n.EndsWith(".fsx",StringComparison.InvariantCultureIgnoreCase) then n + ".fsx" else n // required by FCS, oddly !
                     |NotSet dummyName ->
@@ -139,28 +139,28 @@ type Checker private (config:Config)  =
                         // optionsStamp: An optional unique stamp for the options.
                         // userOpName: An optional string used for tracing compiler operations associated with this request.
                         let! options, optionsErr = 
-                                fsChecker.Value.GetProjectOptionsFromScript(fileName          = fileFsx
-                                                                         ,source            = sourceText
-                                                                         ,previewEnabled    = true // // Bug in FCS! if otherFlags argument is given the value here is ignored !
-                                                                         //,loadedTimeStamp: DateTime *
+                            fsChecker.Value.GetProjectOptionsFromScript(fileName        = fileFsx
+                                                                        ,source            = sourceText
+                                                                        ,previewEnabled    = true // // Bug in FCS! if otherFlags argument is given the value here is ignored !
+                                                                        //,loadedTimeStamp: DateTime *
 
-                                                                         #if NETFRAMEWORK
-                                                                         //https://github.com/fsharp/FsAutoComplete/blob/f176825521215725e5b7ba888d4bb11d1e408e56/src/FsAutoComplete.Core/CompilerServiceInterface.fs#L178
-                                                                         ,otherFlags            = [| "--targetprofile:mscorlib"; "--langversion:preview" |]
-                                                                         ,useSdkRefs            = false
-                                                                         ,assumeDotNetFramework = true
+                                                                        #if NETFRAMEWORK
+                                                                        //https://github.com/fsharp/FsAutoComplete/blob/f176825521215725e5b7ba888d4bb11d1e408e56/src/FsAutoComplete.Core/CompilerServiceInterface.fs#L178
+                                                                        ,otherFlags            = [| "--targetprofile:mscorlib"; "--langversion:preview" |]
+                                                                        ,useSdkRefs            = false
+                                                                        ,assumeDotNetFramework = true
                                                                          
-                                                                         #else
-                                                                         ,otherFlags            = [| "--targetprofile:netstandard"; "--langversion:preview" |]                                                                          
-                                                                         ,useSdkRefs            = true
-                                                                         ,assumeDotNetFramework = false
-                                                                         #endif
+                                                                        #else
+                                                                        ,otherFlags            = [| "--targetprofile:netstandard"; "--langversion:preview" |]                                                                          
+                                                                        ,useSdkRefs            = true
+                                                                        ,assumeDotNetFramework = false
+                                                                        #endif
 
-                                                                         //,useFsiAuxLib = true // so that fsi object is available // doesn't work
-                                                                         //,sdkDirOverride: string *
-                                                                         //,optionsStamp: int64 *
-                                                                         //,userOpName: string
-                                                                         )
+                                                                        //,useFsiAuxLib = true // so that fsi object is available // doesn't work
+                                                                        //,sdkDirOverride: string *
+                                                                        //,optionsStamp: int64 *
+                                                                        //,userOpName: string
+                                                                        )
                         
                         
                         // Not needed because these errors are reported by ParseAndCheckFileInProject too
