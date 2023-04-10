@@ -543,17 +543,17 @@ type TypeInfo private () =
                     tip.IsOpen <- true
                     async{ 
                         let qualId  = PrettyNaming.GetLongNameFromString word   
-                        // ISeffLog.log.PrintfnDebugMsg "GetToolTip:colAtEndOfNames:%A, lineTxt:%A, qualId:%A" colAtEndOfNames lineTxt qualId
+                        //ISeffLog.log.PrintfnDebugMsg "GetToolTip:colAtEndOfNames:%A, lineTxt:%A, qualId:%A" colAtEndOfNames lineTxt qualId
 
-                        // <summary>Compute a formatted tooltip for the given location</summary>
-                        // <param name="line">The line number where the information is being requested.</param>
-                        // <param name="colAtEndOfNames">The column number at the end of the identifiers where the information is being requested.</param>
-                        // <param name="lineText">The text of the line where the information is being requested.</param>
-                        // <param name="names">The identifiers at the location where the information is being requested.</param>
-                        // <param name="tokenTag">Used to discriminate between 'identifiers', 'strings' and others. For strings,
-                        //              an attempt is made to give a tooltip for a #r "..." location.
-                        //              Use a value from FSharpTokenInfo.Tag, or FSharpTokenTag.Identifier, unless you have other information available.</param>
-                        // <param name="userOpName">An optional string used for tracing compiler operations associated with this request.</param>
+                        // Compute a formatted tooltip for the given location
+                        // line:  The line number where the information is being requested.</param>
+                        // colAtEndOfNames:  The column number at the end of the identifiers where the information is being requested.</param>
+                        // lineText:  The text of the line where the information is being requested.</param>
+                        // names:  The identifiers at the location where the information is being requested.</param>
+                        // tokenTag:  Used to discriminate between 'identifiers', 'strings' and others. For strings,
+                        // an attempt is made to give a tooltip for a #r "..." location.
+                        // Use a value from FSharpTokenInfo.Tag, or FSharpTokenTag.Identifier, unless you have other information available.</param>
+                        // userOpName:  An optional string used for tracing compiler operations associated with this request.</param>
                         let ttt  =  
                             let r = res.checkRes.GetToolTip (lineNo, colAtEndOfNames, lineTxt, qualId, FSharpTokenTag.Identifier) 
                             match r with

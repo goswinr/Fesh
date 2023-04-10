@@ -320,7 +320,7 @@ type Checker private (config:Config)  =
             //see https://stackoverflow.com/questions/46980690/f-compiler-service-get-a-list-of-names-visible-in-the-scope
             //and https://github.com/fsharp/FSharp.Compiler.Service/issues/835
             async{
-                // ISeffLog.log.PrintfnDebugMsg "*3.1 - GetDeclarationListInfo .."
+                //ISeffLog.log.PrintfnDebugMsg "*3.1 - GetDeclarationListInfo .."
                 let colSetBack = pos.column - ifDotSetback                
                 let partLoName = QuickParse.GetPartialLongNameEx(pos.lineToCaret, colSetBack - 1) //TODO is minus one correct ? https://github.com/fsharp/FSharp.Compiler.Service/issues/837
                 let mutable checkingStoppedEarly1 = true
@@ -371,7 +371,7 @@ type Checker private (config:Config)  =
                 } 
             |> Async.StartImmediate // we are on thread pool already
         
-        // ISeffLog.log.PrintfnDebugMsg "*3.0 - checkCode .."
+        //ISeffLog.log.PrintfnDebugMsg "*3.0 - checkCode .."
         checkCode(iEditor, Some getSymbolsAndDecls, stopWaitingForCompletionWindow1) //TODO can existing parse results be used ? or do they miss the dot so don't show dot completions ?
 
 

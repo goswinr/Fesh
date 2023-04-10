@@ -68,7 +68,7 @@ type CompletionItem(ed:IEditor,config:Config, getToolTip, it:DeclarationListItem
              | _                                          -> FontStyles.Italic
 
     let priority = //if it.IsOwnMember then 1. else 1.
-        if isDotCompletion then 1.0// not on Dot completion
+        if isDotCompletion then 1.0 // not on Dot completion
         else                    1.0 + config.AutoCompleteStatistic.Get(it.NameInList) //if p>1.0 then log.PrintfnDebugMsg "%s %g" it.Name p    
     
     let textBlock = UtilCompletion.mkTexBlock(it.NameInList ,FontStyles.Normal)   // create once and cache ?  
@@ -207,13 +207,13 @@ type Completions(avaEdit:TextEditor,config:Config, checker:Checker) =
             let caret = avaEdit.TextArea.Caret
             let mutable checkingStoppedEarly0 = true
             if AutoFixErrors.isMessageBoxOpen then // because msg box would appear behind completion window and type info
-                () // ISeffLog.log.PrintfnDebugMsg "*4.1 AutoFixErrors.isMessageBoxOpen "
+                () //ISeffLog.log.PrintfnDebugMsg "*4.1 AutoFixErrors.isMessageBoxOpen "
             elif caret.Offset < pos.offset then 
-                () // ISeffLog.log.PrintfnDebugMsg "*4.2 caret.Offset < pos.offset "
+                () //ISeffLog.log.PrintfnDebugMsg "*4.2 caret.Offset < pos.offset "
             elif  caret.Line <> pos.row then 
-                () // ISeffLog.log.PrintfnDebugMsg "*4.3 caret.Line <> pos.row "
+                () //ISeffLog.log.PrintfnDebugMsg "*4.3 caret.Line <> pos.row "
             elif IEditor.current.Value.Id <> iEditor.Id then // safety check just in case the fsharp checker took very long and this has changed in the meantime
-                () // ISeffLog.log.PrintfnDebugMsg "*4.4 IEditor.current.Value.Id <> iEditor.Id "
+                () //ISeffLog.log.PrintfnDebugMsg "*4.4 IEditor.current.Value.Id <> iEditor.Id "
             else    
                 let completionLines = ResizeArray<ICompletionData>()
                 if not onlyDU && dotBefore = NotDot then
@@ -264,10 +264,10 @@ type Completions(avaEdit:TextEditor,config:Config, checker:Checker) =
                             )
 
                     w.CompletionList.SelectionChanged.Add(fun _ -> 
-                        if w.CompletionList.ListBox.Items.Count=0 then w.Close() ) // Close() then triggers CheckThenHighlightAndFold
+                        if w.CompletionList.ListBox.Items.Count = 0 then w.Close() ) // Close() then triggers CheckThenHighlightAndFold
                            
-                    w.CloseAutomatically <-true
-                    w.CloseWhenCaretAtBeginning <- true
+                    w.CloseAutomatically <- true
+                    w.CloseWhenCaretAtBeginning <- false
                                         
                     //ISeffLog.log.PrintfnDebugMsg "*5.1: pos.offset: %d , w.StartOffset %d , setback %d" pos.offset w.StartOffset setback                    
                     let stOff = pos.offset - setback // just using w.StartOffset - setback would sometimes be one too big.( race condition of typing speed)
@@ -286,8 +286,10 @@ type Completions(avaEdit:TextEditor,config:Config, checker:Checker) =
                     if w.CompletionList.ListBox.Items.Count > 0 then 
                         //ISeffLog.log.PrintfnDebugMsg "*5.4 Show Completion Window with %d items prefilter: '%s' " w.CompletionList.ListBox.Items.Count prefilter
                         try 
-                            checkingStoppedEarly0<- false
+                            checkingStoppedEarly0 <- false                            
                             w.Show() 
+                            //can be set false now because new checking is prevented by the now open completion window
+                            Completions.IsWaitingForTypeChecker <- false
                         with 
                             e -> ISeffLog.log.PrintfnAppErrorMsg "Error in Showing Code Completion Window: %A" e
                     else

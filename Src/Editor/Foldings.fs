@@ -207,7 +207,7 @@ type Foldings(ed:TextEditor, checker:Checker, config:Config, edId:Guid) =
                             if isInitialLoad then                                
                                 while config.FoldingStatus.WaitingForFileRead do
                                     // check like this because reading of file data happens async
-                                    // ISeffLog.log.PrintfnDebugMsg "waiting to load last code folding status.. "
+                                    //ISeffLog.log.PrintfnDebugMsg "waiting to load last code folding status.. "
                                     do! Async.Sleep 50
                                 let vs = config.FoldingStatus.Get(iEditor)
                                 for i = 0 to foldings.Count-1 do

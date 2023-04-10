@@ -76,10 +76,13 @@ module DocChanged =
              NotInQuotes.contains "//" ln
     
         // is a discriminated union that wants autocomplete
-        let inline isDU fromIdx ln =
+        let isDU fromIdx ln =
+            //printfn $"indexOfFirstNonWhiteAfter fromIdx {fromIdx} of '{ln}'"
             let fi = indexOfFirstNonWhiteAfter fromIdx ln
-            if fi < fromIdx then ShowAll // fromIdx-1 returned, non white letter was not found
+            if fi < fromIdx then 
+                ShowAll // fromIdx-1 returned, non white letter was not found
             else
+                //printfn $"getting {fi} of '{ln}'"
                 let first = ln.[fi]
                 if 'A' <= first && first <= 'Z' then // starts with a capital letter , TODO or use Char.isUpper for full Unicode spectrum ?
                     match ln.IndexOf(' ',fi) with // and has no space 
@@ -116,7 +119,7 @@ module DocChanged =
                 if (max eqIdx colonIdx) < funIdx then isDU (funIdx+4) ln else ShowAll
         
         let isForDeclaration inStr (ln:string) =         
-            let forIdx = lastIdxAtStartOrWithSpace inStr "for " ln // test if its the first char or preceded by a space 
+            let forIdx = lastIdxAtStartOrWithSpace inStr "for " ln // test if its the first char or preceeded by a space 
             if forIdx = -1 then  ShowAll
             else 
                 if   lastIdx inStr " in "     ln > forIdx then ShowAll 
@@ -216,11 +219,17 @@ module DocChanged =
                                     |ShowOnlyDU -> show(pos,compls,ed,true, checker)
                                     |ShowAll    -> show(pos,compls,ed,false, checker) // this is the most common case
 
+    
+    let inline prevChar (e:DocumentChangeEventArgs)(ed:IEditor) = 
+        let o = e.Offset-1
+        if o = -1 then '\n' // if at start of document
+        else  ed.AvaEdit.Document.GetCharAt(o)
+    
     open InternalDocChange
         
 
     let docChanged (e:DocumentChangeEventArgs,ed:IEditor, compls:Completions, checker:Checker) : unit = 
-        //ISeffLog.log.PrintfnDebugMsg "*1.1 Document.Changed Event: deleted: %d '%s', inserted %d '%s', completion hasItems: %b, isOpen: %b , Just closed: %b, IsWaitingForTypeChecker %b" e.RemovalLength e.RemovedText.Text e.InsertionLength e.InsertedText.Text compls.HasItems compls.IsOpen Completions.JustClosed Completions.IsWaitingForTypeChecker
+        //ISeffLog.log.PrintfnDebugMsg "*1.1 Document.Changed Event: deleted: %d '%s', inserted %d '%s', completion hasItems: %b, isOpen: %b , Just closed: %b, IsWaitingForTypeChecker %b" e.RemovalLength e.RemovedText.Text e.InsertionLength e.InsertedText.Text compls.HasItems compls.IsOpen UtilCompletion.justCompleted Completions.IsWaitingForTypeChecker
                         
         if Completions.IsWaitingForTypeChecker then 
             () // just keep on tying in completion window, no type checking !
@@ -229,10 +238,12 @@ module DocChanged =
             // just keep on tying in completion window, no type checking !
             if compls.HasItems then 
                 //let currentText = getField(typeof<CodeCompletion.CompletionList>,w.CompletionList,"currentText") :?> string // TODO this property should be public in avaloneditB !                
-                //log.PrintfnDebugMsg "currentText: '%s'" currentText
-                //log.PrintfnDebugMsg "w.CompletionList.CompletionData.Count:%d" w.CompletionList.ListBox.VisibleItemCount
+                //ISeffLog.log.PrintfnDebugMsg "currentText: '%s'" currentText
+                //let w = compls.ComplWin.Value
+                //ISeffLog.log.PrintfnDebugMsg "HasItems CompletionList.CompletionData.Count:%d" w.CompletionList.ListBox.VisibleItemCount 
                 () // DoNothing
             else
+                //ISeffLog.log.PrintfnDebugMsg $"not compls.HasItems."
                 compls.Close()
                 ()  // do nothing because if the doc changed a separate event will be triggered for that
 
@@ -243,24 +254,35 @@ module DocChanged =
                 let txt = e.InsertedText.Text
                 let c = txt.[0]
                 if c= '.' then // do even if compls.JustClosed
-                    maybeShowCompletionWindow(compls,ed, checker) // EnteredDot                 
+                    maybeShowCompletionWindow(compls, ed, checker) // EnteredDot                 
                   
                 elif UtilCompletion.justCompleted then   // check to avoid re-trigger of window on single char completions
                     UtilCompletion.justCompleted <- false
                     checker.CheckThenHighlightAndFold(ed) // because CompletionWinClosed 
                 
                 else
+                    // do not if compls.JustClosed
                     if Char.IsLetter(c) 
                         || c='_' // for __SOURCE_DIRECTORY__
-                        || c='`' 
+                        || c='`' // for complex F# names in `` ``
                         || c='#'  then    // for #if directives
-                            maybeShowCompletionWindow(compls,ed, checker) // because  EnteredOneIdentifierChar  
+                            maybeShowCompletionWindow(compls, ed, checker) // because  EnteredOneIdentifierChar  
+                    
+                    // a digit typed directly after a character
+                    elif Char.IsDigit(c) && Char.IsLetter(prevChar e ed) then 
+                        maybeShowCompletionWindow(compls, ed, checker) // because  EnteredOneIdentifierChar 
                     else 
                         checker.CheckThenHighlightAndFold(ed) // because EnteredOneIdentifierChar  
             
             // also show completion on deleting one characters ?
             elif e.InsertionLength = 0 && e.RemovalLength = 1 then 
-                maybeShowCompletionWindow(compls,ed, checker) // because singleChar deletion 
+                //only complet on deletion if ther are chars behind                
+                let pr = prevChar e ed
+                //ISeffLog.log.PrintfnDebugMsg $"char befoer del '{pr}'"
+                if Char.IsLetterOrDigit(pr)  then // if prev char  is . or `` then this is caugth in compls.HasItems=false above
+                    maybeShowCompletionWindow(compls, ed, checker) 
+                else
+                    checker.CheckThenHighlightAndFold(ed) 
             
             // more than one character added or deleted
             else

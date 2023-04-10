@@ -221,7 +221,7 @@ module Str  =
         match s.LastIndexOf(sub, StringComparison.Ordinal) with
         | -1 -> None
         | i  -> Some (s.Substring(i + sub.Length))
-         /// returns the remainder after the last substring found
+        
 
     
     /// returns the index of the first non white char from start index
@@ -229,9 +229,9 @@ module Str  =
     let inline indexOfFirstNonWhiteAfter idx (s:string) = 
         let mutable loop = true
         let mutable i = idx-1
-        while loop && i < s.Length do
+        while loop && i < s.Length - 1 do
             i <- i + 1
-            loop <- s.[i]=' '
+            loop <- s.[i] = ' '
         i
 
 
@@ -388,10 +388,11 @@ module NotInQuotes =
     /// but ignore everything that is between double quotes(skipping escaped quotes).
     /// before caling this make sure isLastCharOutsideQuotes is true
     let lastIndexOfFromOutside (find:string) (txt:string)= 
+        //printf $"find '{find}' in '{txt}'"
         let rec loop fromIdx =         
             if fromIdx = -1 then -1 
             else 
-                match txt.LastIndexOf(find, fromIdx,StringComparison.Ordinal) with 
+                match txt.LastIndexOf(find, fromIdx, StringComparison.Ordinal) with 
                 | -1 -> -1
                 | fi -> 
                     match txt.LastIndexOf('"', fromIdx) with 
@@ -404,7 +405,9 @@ module NotInQuotes =
                             | -1  -> -1 //should not happen // no start of string found,  search started inside a string 
                             | qsi -> loop(qsi-1) // string had a start 
                                     
-        loop (txt.Length-1) 
+        let r = loop (txt.Length-1) 
+        //printfn $" = {r}"
+        r
     
     /// for starting to search from inside quotes.    
     /// test if a string contains a string from the end 
