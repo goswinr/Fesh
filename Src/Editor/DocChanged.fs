@@ -174,13 +174,15 @@ module DocChanged =
             let ln = pos.lineToCaret // this line will include the character that trigger auto completion(dot or first letter)
             let len = ln.Length
             //ISeffLog.log.PrintfnDebugMsg "*1.1 maybeShowCompletionWindow for lineToCaret: \r\n    '%s'" ln
-            if len=0 then // line is empty
-                () // DoNothing
+            if len=0 then // line is empty, still check because deleting might have removed errors.
+                checker.CheckThenHighlightAndFold(ed)
             else
                 let last = ln.[len-1]
                 if isCaretInComment ln then 
-                    if last <> '/' then checker.CheckThenHighlightAndFold(ed) // to make sure comment was not just typed (then still check)
-                    else () // DoNothing 
+                    if last = '/' then checker.CheckThenHighlightAndFold(ed) // to make sure comment was not just typed (then still check)
+                    else 
+                        //ISeffLog.log.PrintfnDebugMsg " DoNothing because isCaretInComment: %s" ln
+                        () // DoNothing 
                 else
                     let inStr = not <| NotInQuotes.isLastCharOutsideQuotes ln                    
                     match isLetDeclaration inStr ln with 
