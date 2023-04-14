@@ -73,7 +73,7 @@ type TypeInfo private () =
         let tb = TextBlockSelectable()
         tb.Foreground <- black
         tb.FontSize   <- Style.fontSize * 1.2
-        tb.FontFamily <- Style.fontEditor
+        tb.FontFamily <- Style.fontToolTip
         let ts = td.signature
         let mutable len = 0        
         
@@ -275,7 +275,7 @@ type TypeInfo private () =
             let tb = new TextBlockSelectable(Text = dItem.Glyph.ToString() )
             tb.Foreground <- Brushes.DarkOrange |> darker 10
             tb.FontSize <- Style.fontSize  * 0.95
-            tb.FontFamily <- Style.fontEditor
+            tb.FontFamily <- Style.fontToolTip
             //tb.FontWeight <- FontWeights.Bold
             add tb  
             
@@ -286,7 +286,7 @@ type TypeInfo private () =
             //let tb = new TextBlockSelectable(Text = $"{sem.Type}, {sem.Range.EndColumn-sem.Range.StartColumn} chars") //from {sem.Range.StartColumn}")
             tb.Foreground <- Brushes.DarkOrange |> darker 10
             tb.FontSize <- Style.fontSize  * 0.95
-            tb.FontFamily <- Style.fontEditor
+            tb.FontFamily <- Style.fontToolTip
             //tb.FontWeight <- FontWeights.Bold
             add tb  
 
@@ -336,7 +336,7 @@ type TypeInfo private () =
                 tb.Inlines.Add( new Run(td.fullName  ,  Foreground = darkblue))
                 tb.Foreground <- darkblue
                 tb.FontSize <- Style.fontSize  * 1.0
-                tb.FontFamily <- Style.fontEditor
+                tb.FontFamily <- Style.fontToolTip
                 add tb 
 
         if assemblies.Count > 0 then

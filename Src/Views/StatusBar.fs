@@ -339,7 +339,7 @@ type SelectedLogTextStatus (grid:TabsAndLog) as this =
             |FoundSome hr -> 
                 this.Inlines.Clear()
                 this.Inlines.Add( sprintf "%d of " hr.offsets.Count)
-                this.Inlines.Add( new Run (hr.text, FontFamily = Style.fontEditor, Background = SelectionHighlighting.colorLog))
+                this.Inlines.Add( new Run (hr.text, FontFamily = Style.fontLog, Background = SelectionHighlighting.colorLog))
                 this.Inlines.Add( sprintf " (%d Chars) " hr.text.Length)       
         
         

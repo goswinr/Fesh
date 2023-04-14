@@ -24,7 +24,7 @@ module SemColor =
     let MutableRecordField           = Brushes.Goldenrod |> darker 20 |> freeze
     let Module                       = Brushes.Black |> freeze
     let Namespace                    = Brushes.Black  |> freeze //
-    //let Printf                       = Brushes.Plum      |> freeze // cover by xshd
+    //let Printf                       = Brushes.Plum      |> freeze // covered by xshd
     let ComputationExpression        = Brushes.DarkGray |> freeze
     let IntrinsicFunction            = Brushes.DarkBlue |> freeze
     let Enumeration                  = Brushes.Indigo |> freeze
@@ -56,6 +56,15 @@ module SemColor =
 module SemAction = 
     open SemColor
 
+    let makeOblique (el:VisualLineElement) =
+        let tf = el.TextRunProperties.Typeface               
+        el.TextRunProperties.SetTypeface(new Typeface(
+            tf.FontFamily,
+            Windows.FontStyles.Italic,
+            Windows.FontWeights.Bold,
+            tf.Stretch))
+
+
     let ReferenceType                (el:VisualLineElement) = el.TextRunProperties.SetForegroundBrush(ReferenceType              )
     let ValueType                    (el:VisualLineElement) = el.TextRunProperties.SetForegroundBrush(ValueType                  )
     let UnionCase                    (el:VisualLineElement) = el.TextRunProperties.SetForegroundBrush(UnionCase                  )
@@ -65,7 +74,7 @@ module SemAction =
     let MutableVar                   (el:VisualLineElement) = el.TextRunProperties.SetForegroundBrush(MutableVar                 )
     let Module                       (el:VisualLineElement) = el.TextRunProperties.SetForegroundBrush(Module                     )
     let Namespace                    (el:VisualLineElement) = el.TextRunProperties.SetForegroundBrush(Namespace                  )
-    //let Printf                       (el:VisualLineElement) = el.TextRunProperties.SetForegroundBrush(Printf                     )
+    //let Printf                     (el:VisualLineElement) = el.TextRunProperties.SetForegroundBrush(Printf                     )
     let ComputationExpression        (el:VisualLineElement) = el.TextRunProperties.SetForegroundBrush(ComputationExpression      )
     let IntrinsicFunction            (el:VisualLineElement) = el.TextRunProperties.SetForegroundBrush(IntrinsicFunction          )
     let Enumeration                  (el:VisualLineElement) = el.TextRunProperties.SetForegroundBrush(Enumeration                )
@@ -89,7 +98,7 @@ module SemAction =
     let Delegate                     (el:VisualLineElement) = el.TextRunProperties.SetForegroundBrush(Delegate                   )
     let NamedArgument                (el:VisualLineElement) = el.TextRunProperties.SetForegroundBrush(NamedArgument              )
     let Value                        (el:VisualLineElement) = el.TextRunProperties.SetForegroundBrush(Value                      )
-    let LocalValue                   (el:VisualLineElement) = el.TextRunProperties.SetForegroundBrush(LocalValue                 )
+    let LocalValue                   (el:VisualLineElement) = el.TextRunProperties.SetForegroundBrush(LocalValue                 ); makeOblique el
     let Type                         (el:VisualLineElement) = el.TextRunProperties.SetForegroundBrush(Type                       )
     let TypeDef                      (el:VisualLineElement) = el.TextRunProperties.SetForegroundBrush(TypeDef                    )
     let Plaintext                    (el:VisualLineElement) = el.TextRunProperties.SetForegroundBrush(Plaintext                  )
