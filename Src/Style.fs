@@ -1,6 +1,9 @@
 ﻿namespace Seff
 
-open System.Windows.Media // for font
+
+
+open System.Windows // for FontStyles
+open System.Windows.Media // for FontFamily
 
 module Style =  
 
@@ -11,4 +14,8 @@ module Style =
 
     let mutable fontSize = 14.0 // will be updated via Fonts.fs
 
-    //TODO try https://fonttools.readthedocs.io/en/latest/subset/index.html to reduce Fira code an others to be without ligatures
+    let mutable italicBoldEditorTf =  new Typeface(fontEditor, FontStyles.Italic, FontWeights.Bold, FontStretches.Normal) 
+
+
+
+    //TODO try https://fonttools.readthedocs.io/en/latest/subset/index.html to reduce Fira code an others to be without ligatures ?

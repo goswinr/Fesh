@@ -56,13 +56,15 @@ module SemColor =
 module SemAction = 
     open SemColor
 
-    let makeOblique (el:VisualLineElement) =
-        let tf = el.TextRunProperties.Typeface               
-        el.TextRunProperties.SetTypeface(new Typeface(
-            tf.FontFamily,
-            Windows.FontStyles.Italic,
-            Windows.FontWeights.Bold,
-            tf.Stretch))
+    let stylisticSet1 = 
+        {new DefaultTextRunTypographyProperties() with 
+            override this.StylisticSet1 with get() = true
+        }
+
+
+    let makeCursive (el:VisualLineElement) =              
+        el.TextRunProperties.SetTypeface(Seff.Style.italicBoldEditorTf)
+        el.TextRunProperties.SetTypographyProperties(stylisticSet1) // for cursive set of cascadia mono
 
 
     let ReferenceType                (el:VisualLineElement) = el.TextRunProperties.SetForegroundBrush(ReferenceType              )
@@ -98,7 +100,7 @@ module SemAction =
     let Delegate                     (el:VisualLineElement) = el.TextRunProperties.SetForegroundBrush(Delegate                   )
     let NamedArgument                (el:VisualLineElement) = el.TextRunProperties.SetForegroundBrush(NamedArgument              )
     let Value                        (el:VisualLineElement) = el.TextRunProperties.SetForegroundBrush(Value                      )
-    let LocalValue                   (el:VisualLineElement) = el.TextRunProperties.SetForegroundBrush(LocalValue                 ); makeOblique el
+    let LocalValue                   (el:VisualLineElement) = el.TextRunProperties.SetForegroundBrush(LocalValue                 ); makeCursive el
     let Type                         (el:VisualLineElement) = el.TextRunProperties.SetForegroundBrush(Type                       )
     let TypeDef                      (el:VisualLineElement) = el.TextRunProperties.SetForegroundBrush(TypeDef                    )
     let Plaintext                    (el:VisualLineElement) = el.TextRunProperties.SetForegroundBrush(Plaintext                  )

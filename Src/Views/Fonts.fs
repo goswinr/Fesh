@@ -1,7 +1,8 @@
 ﻿namespace Seff.Views
 
 open System
-open System.Windows.Media
+open System.Windows //for FontStyles
+open System.Windows.Media // for Fontfamilly
 open Seff.Model
 open Seff
 open AvalonEditB.Rendering
@@ -20,6 +21,8 @@ type Fonts (grid:TabsAndLog) = // will be constructed as part of Commands class
         "Cascadia Mono" // Cascadia Mono is without ligatures
         "Consolas" // only consolas renders fast
         |]  
+
+    
 
     /// test if font is installed
     let isInstalled (f:FontFamily) = 
@@ -88,6 +91,7 @@ type Fonts (grid:TabsAndLog) = // will be constructed as part of Commands class
         match tryGetFontOrAlt "FontEditor" with 
         |Some f -> 
             Style.fontEditor <- f
+            Style.italicBoldEditorTf <- Typeface(f, FontStyles.Italic, FontWeights.Bold, FontStretches.Normal) 
             for t in tabs.AllTabs do  t.Editor.AvaEdit.FontFamily  <- f
             sett.Set ("FontEditor", f.Source)
             sett.Save() 
@@ -115,7 +119,7 @@ type Fonts (grid:TabsAndLog) = // will be constructed as part of Commands class
         log.AvalonLog.FontSize <- newSize
         for t in tabs.AllTabs do
             t.Editor.AvaEdit.FontSize  <- newSize
-        sett.SetFloat ("FontSize", newSize)
+        sett.SetFloat ("SizeOfFont", newSize)
         Style.fontSize <- newSize
         sett.Save ()
         log.PrintfnInfoMsg "new font size: %.2f" newSize
@@ -151,4 +155,58 @@ type Fonts (grid:TabsAndLog) = // will be constructed as part of Commands class
         //    else                1.
         //if cs > 5. then setSize(cs-step)
 
+(*
+module Typography = 
 
+    open System.Windows
+    open System.Windows.Media.TextFormatting
+
+    // from https://github.com/icsharpcode/AvalonEdit/blob/master/ICSharpCode.AvalonEdit/Rendering/DefaultTextRunTypographyProperties.cs
+    // avalonedit commet on RunTransformers: For some strange reason, WPF requires that either all or none of the typography properties are set.
+
+    type DefaultTextRunTypographyProperties() =
+        inherit TextRunTypographyProperties()
+        override this.Variants with get() = FontVariants.Normal
+        override this.StylisticSet1 with get() = false
+        override this.StylisticSet2 with get() = false
+        override this.StylisticSet3 with get() = false
+        override this.StylisticSet4 with get() = false
+        override this.StylisticSet5 with get() = false
+        override this.StylisticSet6 with get() = false
+        override this.StylisticSet7 with get() = false
+        override this.StylisticSet8 with get() = false
+        override this.StylisticSet9 with get() = false
+        override this.StylisticSet10 with get() = false
+        override this.StylisticSet11 with get() = false
+        override this.StylisticSet12 with get() = false
+        override this.StylisticSet13 with get() = false
+        override this.StylisticSet14 with get() = false
+        override this.StylisticSet15 with get() = false
+        override this.StylisticSet16 with get() = false
+        override this.StylisticSet17 with get() = false
+        override this.StylisticSet18 with get() = false
+        override this.StylisticSet19 with get() = false
+        override this.StylisticSet20 with get() = false
+        override this.StylisticAlternates with get() = 0
+        override this.StandardSwashes with get() = 0
+        override this.StandardLigatures with get() = false
+        override this.SlashedZero with get() = false
+        override this.NumeralStyle with get() = FontNumeralStyle.Normal
+        override this.NumeralAlignment with get() = FontNumeralAlignment.Normal
+        override this.MathematicalGreek with get() = false
+        override this.Kerning with get() = true
+        override this.HistoricalLigatures with get() = false
+        override this.HistoricalForms with get() = false
+        override this.Fraction with get() = FontFraction.Normal
+        override this.EastAsianWidths with get() = FontEastAsianWidths.Normal
+        override this.EastAsianLanguage with get() = FontEastAsianLanguage.Normal
+        override this.EastAsianExpertForms with get() = false
+        override this.DiscretionaryLigatures with get() = false
+        override this.ContextualSwashes with get() = 0
+        override this.ContextualLigatures with get() = true
+        override this.ContextualAlternates with get() = true
+        override this.CaseSensitiveForms with get() = false
+        override this.CapitalSpacing with get() = false
+        override this.Capitals with get() = FontCapitals.Normal
+        override this.AnnotationAlternates with get() = 0
+*)
