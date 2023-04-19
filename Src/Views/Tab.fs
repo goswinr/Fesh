@@ -58,50 +58,51 @@ type Tab (editor:Editor) = //, config:Seff.Config.Config, allFileInfos:seq<IO.Fi
         p.Children.Add closeButton |> ignore
         p
         
-
+    /// tread safe (for file watcher)
     let setHeader() = 
-        match editor.FilePath, isCodeSaved with
-        |SetTo fi , true ->
-            textBlock.ToolTip         <- "File saved at:\r\n" + fi.FullName
-            textBlock.Text            <- fi.Name
-            textBlock.TextDecorations <- null
-            textBlock.Foreground      <- TabStyle.savedHeader
-            headerShowsSaved          <- true
-        |SetTo fi , false ->          
-            textBlock.ToolTip         <- "File with unsaved changes from :\r\n" + fi.FullName
-            textBlock.Text            <- fi.Name + "*"
-            textBlock.TextDecorations <- null
-            textBlock.Foreground      <- TabStyle.changedHeader
-            headerShowsSaved          <- false
-        |NotSet dummyName,true ->     
-            textBlock.ToolTip         <- "This file just shows the default code for every new file."
-            textBlock.Text            <- dummyName
-            textBlock.TextDecorations <- null
-            textBlock.Foreground      <- TabStyle.unsavedHeader
-            headerShowsSaved          <- true
-        |NotSet dummyName,false ->     
-            textBlock.ToolTip         <- "This file has not yet been saved to disk."
-            textBlock.Text            <- dummyName
-            textBlock.TextDecorations <- null
-            //if not ( textBlock.Text.EndsWith "*") then textBlock.Text <- textBlock.Text + "*"
-            textBlock.Foreground      <- TabStyle.changedHeader
-            headerShowsSaved          <- false
-        |Deleted dfi, _ -> 
-            textBlock.ToolTip         <- "This file has been deleted (or renamed) from:\r\n" + dfi.FullName
-            textBlock.Text            <- dfi.Name
-            textBlock.TextDecorations <- TextDecorations.Strikethrough
-            textBlock.Foreground      <- TabStyle.deletedHeader
-            headerShowsSaved          <- false
+        editor.AvaEdit.Dispatcher.Invoke(fun () -> 
+            match editor.FilePath, isCodeSaved with
+            |SetTo fi , true ->
+                textBlock.ToolTip         <- "File saved at:\r\n" + fi.FullName
+                textBlock.Text            <- fi.Name
+                textBlock.TextDecorations <- null
+                textBlock.Foreground      <- TabStyle.savedHeader
+                headerShowsSaved          <- true
+            |SetTo fi , false ->          
+                textBlock.ToolTip         <- "File with unsaved changes from :\r\n" + fi.FullName
+                textBlock.Text            <- fi.Name + "*"
+                textBlock.TextDecorations <- null
+                textBlock.Foreground      <- TabStyle.changedHeader
+                headerShowsSaved          <- false
+            |NotSet dummyName,true ->     
+                textBlock.ToolTip         <- "This file just shows the default code for every new file."
+                textBlock.Text            <- dummyName
+                textBlock.TextDecorations <- null
+                textBlock.Foreground      <- TabStyle.unsavedHeader
+                headerShowsSaved          <- true
+            |NotSet dummyName,false ->     
+                textBlock.ToolTip         <- "This file has not yet been saved to disk."
+                textBlock.Text            <- dummyName
+                textBlock.TextDecorations <- null
+                //if not ( textBlock.Text.EndsWith "*") then textBlock.Text <- textBlock.Text + "*"
+                textBlock.Foreground      <- TabStyle.changedHeader
+                headerShowsSaved          <- false
+            |Deleted dfi, _ -> 
+                textBlock.ToolTip         <- "This file has been deleted (or renamed) from:\r\n" + dfi.FullName
+                textBlock.Text            <- dfi.Name
+                textBlock.TextDecorations <- TextDecorations.Strikethrough
+                textBlock.Foreground      <- TabStyle.deletedHeader
+                headerShowsSaved          <- false
+            )
 
-    // this gets called on every character typed
+    /// this gets called on every character typed.
+    // can be called async too.
     let setCodeSavedStatus(isSaved)= 
         isCodeSaved <- isSaved
-        if not isSaved && headerShowsSaved then
+        if not isSaved && headerShowsSaved then // to only update header if actually required
             setHeader()
-        elif isSaved && not headerShowsSaved  then
-            setHeader()   
-
- 
+        elif isSaved && not headerShowsSaved  then // to only update header if actually required
+            setHeader() 
     
     let fileTracker = 
         new FileChangeTracker (editor, setCodeSavedStatus)

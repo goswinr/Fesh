@@ -19,12 +19,14 @@ type FileChangeTracker (editor:Editor, setCodeSavedStatus:bool->unit) =
     /// TODO in case of renaming MessageBox is shown and file gets set to unsaved. But doesn't switch to new filename automatically.
 
     let setCode(newCode,ed:Editor)=
-        let av = ed.AvaEdit
-        let cOff = av.CaretOffset
-        av.Document.Text <- newCode // this allows undo and redo, just setting AvaEdit.Text not
-        editor.CodeAtLastSave <- newCode
-        if av.Document.TextLength > cOff then 
-            av.CaretOffset <- cOff //reset Caret to same position
+        ed.AvaEdit.Dispatcher.Invoke ( fun () -> 
+            let av = ed.AvaEdit
+            let cOff = av.CaretOffset
+            av.Document.Text <- newCode // this allows undo and redo, just setting AvaEdit.Text not
+            editor.CodeAtLastSave <- newCode
+            if av.Document.TextLength > cOff then 
+                av.CaretOffset <- cOff //reset Caret to same position
+            )
 
     let check(reason) = 
         match editor.FilePath with
@@ -43,11 +45,10 @@ type FileChangeTracker (editor:Editor, setCodeSavedStatus:bool->unit) =
                     if fi.Exists then //file was deleted and now exist again ??
                         editor.FilePath <- SetTo fi
                         let fileCode = IO.File.ReadAllText(fi.FullName)
-                        if fileCode = editor.CodeAtLastSave then
+                        if fileCode = editor.CodeAtLastSave then                            
                             setCodeSavedStatus(true)
                         else
-                            // actually messages MessageBox shows nicer when triggered async:
-                            do! Async.SwitchToContext SyncWpf.context                        
+                            do! Async.SwitchToContext SyncWpf.context                                                  
                             match MessageBox.Show(
                                 IEditor.mainWindow, 
                                 // $"{reason}: File{nl}{nl}{fi.Name}{nl}{nl}was changed.{nl}Do you want to reload it?", // Debug
@@ -72,8 +73,7 @@ type FileChangeTracker (editor:Editor, setCodeSavedStatus:bool->unit) =
                     if fi.Exists then
                         let fileCode = IO.File.ReadAllText(fi.FullName)
                         if fileCode <> editor.CodeAtLastSave then // this means that the last file saving was not done by Seff                            
-                            // actually messages MessageBox shows nicer when triggered async:
-                            do! Async.SwitchToContext SyncWpf.context                        
+                            do! Async.SwitchToContext SyncWpf.context                                                  
                             match MessageBox.Show(
                                 IEditor.mainWindow, 
                                 // $"{reason}: File{nl}{nl}{fi.Name}{nl}{nl}was changed.{nl}Do you want to reload it?", // Debug
@@ -94,8 +94,8 @@ type FileChangeTracker (editor:Editor, setCodeSavedStatus:bool->unit) =
                         
                     else
                         editor.FilePath <- Deleted fi                        
-                        do! Async.SwitchToContext SyncWpf.context                        
                         setCodeSavedStatus(false)
+                        do! Async.SwitchToContext SyncWpf.context 
                         MessageBox.Show(
                             IEditor.mainWindow, 
                             //$"{reason}: {fi.Name}{nl}{nl}was deleted or renamed.{nl}{nl}at {fi.DirectoryName}", // Debug
