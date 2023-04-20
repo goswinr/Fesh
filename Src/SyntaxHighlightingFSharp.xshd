@@ -2,24 +2,29 @@
 <SyntaxDefinition name = "F#" extensions = ".fs;.fsi;.fsx" xmlns="http://icsharpcode.net/sharpdevelop/syntaxdefinition/2008">
   
   <!-- 
+  http://avalonedit.net/documentation/html/4d4ceb51-154d-43f0-b876-ad9640c5d2d8.htm
+
   copied and adapted from 
-  https://raw.githubusercontent.com/icsharpcode/AvalonEdit/master/ICSharpCode.AvalonEdit/Highlighting/Resources/CSharp-Mode.xshd 
+  https://github.com/icsharpcode/AvalonEdit/tree/master/ICSharpCode.AvalonEdit/Highlighting/Resources 
   https://github.com/icsharpcode/SharpDevelop/wiki/XSHD-Tags
   https://github.com/icsharpcode/SharpDevelop/wiki/Syntax-highlighting    
   The named colors 'Comment' and 'String' are also used in SharpDevelop to detect if a line is inside a multiline string/comment 
+  
+  AvalonEditB supports all System.Windows.FontWeights, (while the original  SharpDevelop.AvalonEdit only supports normal and bold.)
+  see schema https://github.com/goswinr/AvalonEditB/blob/main/AvalonEditB/Highlighting/Resources/ModeV2.xsd
   -->
   
   <!-- 
   use this extension to show colors in vs code:
   https://marketplace.visualstudio.com/items?itemName=kamikillerto.vscode-colorize  
   -->
-  <Color name="Comment"             foreground="#22AA22" />
+  <Color name="Comment"             foreground="#22AA22" fontWeight="200" fontStyle="italic"/> <!--stylisticSet1="true"-->
   <Color name="DocComment"          foreground="#005500" />
   <Color name="TODO"                foreground="#EE0000"  fontWeight="bold"/>
-  <Color name="HACK"                foreground="#D0D000"  fontWeight="bold"/>
+  <Color name="HACK"                foreground="#A0A000"  fontWeight="bold"/>
   
-  <Color name="String"              foreground="#BB1111" />
-  <Color name="StringVerbatim"      foreground="#CC0000" />  
+  <Color name="String"              foreground="#BB1111" fontWeight="bold" fontStyle="italic" />
+  <Color name="StringVerbatim"      foreground="#CC0000" fontWeight="bold" fontStyle="italic" />  
   <Color name="StringFormatting"    foreground="#990099" />
   <Color name="StringEscaped"       foreground="#A050CC" />  
   <Color name="DollarInlines"       foreground="#000088" />
@@ -48,12 +53,12 @@
   <Color name="BinNumberLiteral"    foreground="#FF8800" /> 
   <Color name="NumberType"          foreground="#888888" />
   <Color name="FailPath"            foreground="#888888" />
-  <Color name="FailString"          foreground="#D0A040" />  
+  <Color name="FailString"          foreground="#D0A040" fontWeight="normal" fontStyle="italic" />  
   <Color name="Exception"           foreground="#C06030" />
   <Color name="PrintStatement"      foreground="#206060" />
   <Color name="PrintString"         foreground="#E08070" />
-  <Color name="TrueCol"             foreground="#008090" fontStyle="italic" fontWeight="bold" />
-  <Color name="FalseCol"            foreground="#A70090" fontStyle="italic" fontWeight="bold" />
+  <Color name="TrueCol"             foreground="#008090" fontWeight="800" fontStyle="italic" /> 
+  <Color name="FalseCol"            foreground="#A70090" fontWeight="800" fontStyle="italic" /> 
   <Color name="Semicolon"           foreground="#A0A0A0" />
   <!-- 
   <Color name="TypeAnnotation"      foreground="#2080B0" /> 

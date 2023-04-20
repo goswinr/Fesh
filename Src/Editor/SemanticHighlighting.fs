@@ -56,11 +56,11 @@ module SemColor =
 module SemAction = 
     open SemColor
 
+    /// this allows using the cursive version of Cascadia Mono
     let stylisticSet1 = 
         {new DefaultTextRunTypographyProperties() with 
             override this.StylisticSet1 with get() = true
         }
-
 
     let makeCursive (el:VisualLineElement) =              
         el.TextRunProperties.SetTypeface(Seff.Style.italicBoldEditorTf)
@@ -171,29 +171,33 @@ type SemanticColorizer (ied:TextEditor, edId:Guid, ch:Checker) =
                     
         let lineNo = line.LineNumber
         let offSt = line.Offset    
-        let offEn = offSt + line.Length    
-                    
+        let offEn = offSt + line.Length 
+        
+        if lineNo = 1  then   ISeffLog.log.PrintfnDebugMsg $"Full redraw of all visual lines , no cache."
+        
         // TODO use binary search instead !!
-        for i=allRanges.Length-1 downto 0 do // doing a reverse search solves a highlighting problem where ranges overlap
+        for i = allRanges.Length-1 downto 0 do // doing a reverse search solves a highlighting problem where ranges overlap
             let sem = allRanges.[i]
-            let r = sem.Range
-            if r.StartLine = lineNo && r.EndLine = lineNo then 
+            let r = sem.Range            
+            //if r.StartLine <= lineNo && r.EndLine >= lineNo then   ISeffLog.log.PrintfnDebugMsg $"line {lineNo} {sem.Type} from {r.StartColumn} to {r.EndColumn}"            
+            
+            if r.StartLine = lineNo && r.EndLine = lineNo then                 
                 let st = offSt + sem.Range.StartColumn
                 let en = offSt + sem.Range.EndColumn
                 // safety check since we are reusing old ranges until new check results are available:
+                // because otherwise Seff crashes with  AppDomain.CurrentDomain.UnhandledException on bad ranges ?
                 if en >  offSt  && en <= offEn && st >= offSt  && st <  offEn && en < lastCode.Length then 
-                    //try // because other wise Seff crashes with  AppDomain.CurrentDomain.UnhandledException on bad ranges
+                    //try 
                     match sem.Type with 
                     | Sc.ReferenceType               -> base.ChangeLinePart(st,en, SemAction.ReferenceType              )
                     | Sc.ValueType                   -> base.ChangeLinePart(st,en, SemAction.ValueType                  )
                     | Sc.UnionCase                   -> base.ChangeLinePart(st,en, SemAction.UnionCase                  )
                     | Sc.UnionCaseField              -> base.ChangeLinePart(st,en, SemAction.UnionCaseField             )
                     | Sc.Function                    -> if not(skipFunc(st,en)) then base.ChangeLinePart(st,en, SemAction.Function)
-                    | Sc.Property                    -> base.ChangeLinePart(correctStart(st,en),en, SemAction.Property                   )
+                    | Sc.Property                    -> base.ChangeLinePart(correctStart(st,en),en, SemAction.Property  )// correct so that a string or number literal before the dot does not get colored
                     | Sc.MutableVar                  -> base.ChangeLinePart(st,en, SemAction.MutableVar                 )
-                    | Sc.Module                      -> if not(skipModul(st,en)) then base.ChangeLinePart(st,en, SemAction.Module                     )
+                    | Sc.Module                      -> if not(skipModul(st,en)) then base.ChangeLinePart(st,en, SemAction.Module )
                     | Sc.Namespace                   -> base.ChangeLinePart(st,en, SemAction.Namespace                  )
-                    //| Sc.Printf                      -> base.ChangeLinePart(st,en, SemAction.Printf                     ) // covered in xshd file 
                     | Sc.ComputationExpression       -> base.ChangeLinePart(st,en, SemAction.ComputationExpression      )
                     | Sc.IntrinsicFunction           -> base.ChangeLinePart(st,en, SemAction.IntrinsicFunction          )
                     | Sc.Enumeration                 -> base.ChangeLinePart(st,en, SemAction.Enumeration                )
@@ -203,8 +207,8 @@ type SemanticColorizer (ied:TextEditor, edId:Guid, ch:Checker) =
                     | Sc.DisposableType              -> base.ChangeLinePart(st,en, SemAction.DisposableType             )
                     | Sc.DisposableTopLevelValue     -> base.ChangeLinePart(st,en, SemAction.DisposableTopLevelValue    )
                     | Sc.DisposableLocalValue        -> base.ChangeLinePart(st,en, SemAction.DisposableLocalValue       )
-                    | Sc.Method                      -> base.ChangeLinePart(st,en, SemAction.Method                     )
-                    | Sc.ExtensionMethod             -> base.ChangeLinePart(st,en, SemAction.ExtensionMethod            )
+                    | Sc.Method                      -> base.ChangeLinePart(correctStart(st,en),en, SemAction.Method    )// correct so that a string or number literal befor the dot does not get colored
+                    | Sc.ExtensionMethod             -> base.ChangeLinePart(correctStart(st,en),en, SemAction.ExtensionMethod)
                     | Sc.ConstructorForReferenceType -> base.ChangeLinePart(st,en, SemAction.ConstructorForReferenceType)
                     | Sc.ConstructorForValueType     -> base.ChangeLinePart(st,en, SemAction.ConstructorForValueType    )
                     | Sc.Literal                     -> base.ChangeLinePart(st,en, SemAction.Literal                    )
@@ -221,12 +225,19 @@ type SemanticColorizer (ied:TextEditor, edId:Guid, ch:Checker) =
                     | Sc.Type                        -> base.ChangeLinePart(st,en, SemAction.Type                       )
                     | Sc.TypeDef                     -> base.ChangeLinePart(st,en, SemAction.TypeDef                    )
                     | Sc.Plaintext                   -> base.ChangeLinePart(st,en, SemAction.Plaintext                  )  
-                    | _ -> () 
+                    | Sc.Printf                      -> () //base.ChangeLinePart(st,en, SemAction.Printf                ) // covered in xshd file 
+                    | _ -> () // the above actually covers all SemanticClassificationTypes
+                    
+                    
                     //with e -> 
                     //    ISeffLog.printError  $"sem.type {sem.Type}:\r\n on line {line} for {r}"
                     //    ISeffLog.printError  $"offSt {offSt} to offEn{offEn} for , st:{st} to en:{en}"
-                    //    ISeffLog.printError  $"MSG:{e}" 
-                        
+                    //    ISeffLog.printError  $"MSG:{e}"
+                //else
+                //    ISeffLog.log.PrintfnDebugMsg $"Semantic highlight on line {lineNo} skiped for {sem.Type} because false:  
+                //        en {en} >  offSt{offSt} : {en >  offSt}  && en <= offEn: {en <= offEn} && st >= offSt: {st >= offSt}  && st <  offEn: {st <  offEn} && en < lastCode.Length: {en < lastCode.Length}"
+                
+                
         for r in unusedDecl do                     
             if r.StartLine = lineNo && r.EndLine = lineNo then 
                 let st = offSt + r.StartColumn
