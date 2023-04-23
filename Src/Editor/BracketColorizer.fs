@@ -72,6 +72,8 @@ type BracketHighlighter (ed:TextEditor) =
     let mutable pairEnd = -1
     let mutable pairLen = -1          
 
+    let mutable prevPairSeg = None
+
     member this.FindBrackets (ed:IEditor) = 
         match ed.FileCheckState.CodeAndId with
         | NoCode ->()
@@ -213,17 +215,35 @@ type BracketHighlighter (ed:TextEditor) =
 
 
             //for i=0 to Cols.Count-1 do ed.Log.PrintfnDebugMsg "%A in %A at %d" Brs.[i] Cols.[i] Offs.[i]
-            //ed.Log.PrintfnDebugMsg "%d Brackets" Brs.Count
+            ISeffLog.log.PrintfnDebugMsg "%d Brackets found " Brs.Count
             //if Brs.Count = 0 then ed.Log.PrintfnDebugMsg "inComment   inBlockComment  inString  %b %b %b" inComment   inBlockComment  inString
 
             // find error in remaining stack items:
             for e in st do
                 Unclosed.Add   e.off
                 UnclosedBr.Add e.bracket
-
-            ed.AvaEdit.TextArea.TextView.Redraw()
+            
+            //Actually not needed:
+            //ed.AvaEdit.TextArea.TextView.Redraw()
 
     member this.HighlightPair(ed:IEditor) = 
+                
+        let inline hilight(pairStart,pairEnd) =
+            let seg = RedrawSegment(pairStart,pairEnd)            
+            match prevPairSeg with 
+            |Some s -> 
+                let m = seg.Merge(s)                    
+                ISeffLog.printnColor 150 222 50 $"HighlightPair merged {m}"
+                ed.AvaEdit.TextArea.TextView.Redraw(m)
+                prevPairSeg <- Some seg
+            |None ->
+                ISeffLog.printnColor 150 222 50 $"HighlightPair {seg}"
+                ed.AvaEdit.TextArea.TextView.Redraw(seg)
+                prevPairSeg <- Some seg
+            true
+
+        let mutable anyFound = false
+        
         if ed.AvaEdit.TextArea.Selection.Length = 0 then
             let pos = ed.AvaEdit.TextArea.Caret.Offset
             for i = 0 to Offs.Count - 1 do // TODO: binary search
@@ -255,7 +275,7 @@ type BracketHighlighter (ed:TextEditor) =
 
                     //ed.Log.PrintfnDebugMsg "pairStart %d pairEnd %d pairLen %d" pairStart pairEnd pairLen
                     if pairStart >=0 && pairEnd > pairStart then
-                        ed.AvaEdit.TextArea.TextView.Redraw()
+                        anyFound <-hilight(pairStart,pairEnd)
                 
                 // for marking to work right after two char bracket like |]
                 elif off = pos - 2  then 
@@ -288,10 +308,18 @@ type BracketHighlighter (ed:TextEditor) =
                             | OpAnRec | OpArr | ClAnRec | ClArr                         -> 2
 
                         //ed.Log.PrintfnDebugMsg "pairStart %d pairEnd %d pairLen %d" pairStart pairEnd pairLen
-                        if pairStart >=0 && pairEnd > pairStart then
-                            ed.AvaEdit.TextArea.TextView.Redraw()
+                        if pairStart >=0 && pairEnd > pairStart then                            
+                            anyFound <- hilight(pairStart,pairEnd)
 
-
+        // actually those highligts can stay, no nead to clear ??
+        //if not anyFound then 
+        //    match prevPairSeg with 
+        //    |Some s ->                  
+        //        //ISeffLog.printnColor 150 222 50 "HighlightPair seg only cleared"
+        //        ed.AvaEdit.TextArea.TextView.Redraw(s)
+        //        prevPairSeg <- None
+        //    |None ->
+        //        ()
 
     /// This gets called for every visible line on any view change
     override this.ColorizeLine(line:Document.DocumentLine) = 

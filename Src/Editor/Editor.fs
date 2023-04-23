@@ -150,10 +150,11 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
         let ed = Editor(code, config, filePath )
         let avaEdit = ed.AvaEdit
         let compls = ed.Completions
-        let log = ed.Log  
-
+        let log = ed.Log
+        
         ed.HighlightText <- SelectionHighlighting.HiEditor.setup(ed)        
         BracketHighlighter.Setup(ed, ed.GlobalChecker) 
+        
 
         Logging.LogAction <- new Action<string>( fun (s:string) -> log.PrintfnDebugMsg "Logging.Log: %s" s)
 

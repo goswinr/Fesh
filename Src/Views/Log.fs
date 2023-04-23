@@ -44,7 +44,7 @@ type Log private () =
     let mutable addLogger : option<TextWriter> = None
 
     do
-        log.SelectedTextHighLighter.IsEnabled <- false
+        log.SelectedTextHighLighter.IsEnabled <- false // because there is a custom highlighter here that covers both log and editor
         
         //styling:
         log.BorderThickness <- new Thickness( 0.5)

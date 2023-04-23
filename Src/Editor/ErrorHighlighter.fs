@@ -45,7 +45,7 @@ module ErrorUtil =
     let maxAmountOfErrorsToDraw = 12 
 
     /// split errors by severity and sort by line number 
-    let getBySeverity(checkRes:CodeAnalysis.FSharpCheckFileResults)  =
+    let getBySeverity(checkRes:CodeAnalysis.FSharpCheckFileResults) :ErrorsBySeverity =
         scrollToIdx <- -1
         let was = ResizeArray()  // Warnings
         let ers = ResizeArray()  // Errors
@@ -66,7 +66,9 @@ module ErrorUtil =
         his.Sort( fun x y -> Operators.compare x.StartLine y.StartLine)
         erWs.Sort(fun x y -> Operators.compare x.StartLine y.StartLine)
         { errors = ers; warnings = was; infos = ins; hiddens = his; errorsAndWarnings = erWs }
+    
 
+   
 
     /// because FSharpDiagnostic might have line number 0 form Parse-and-check-file-in-project errors, but Avalonedit starts at 1
     let inline linesStartAtOne i = if i<1 then 1 else i 
@@ -142,7 +144,23 @@ module ErrorUtil =
 
         | NotStarted |  GettingCode _ | Checking _| CheckFailed -> 
             None           
-       
+
+type RedrawSegment(startOffset,  endOffset)  = 
+    member s.Offset      = startOffset
+    member s.EndOffset   = endOffset
+    member s.Length      = endOffset - startOffset
+    
+    override s.ToString() = $"RedrawSegment form: {s.Offset}, len:{s.Length}"
+
+    interface ISegment with 
+        member s.Offset      = startOffset
+        member s.EndOffset   = endOffset
+        member s.Length      = endOffset - startOffset  
+        
+    member t.Merge (o:RedrawSegment) = 
+        new RedrawSegment(
+            min t.Offset o.Offset, 
+            max t.EndOffset o.EndOffset )
         
 /// This segment also contains back and foreground color and diagnostic display text
 type SegmentToMark (startOffset, length, e:FSharpDiagnostic)  = 
@@ -169,6 +187,7 @@ type SegmentToMark (startOffset, length, e:FSharpDiagnostic)  =
   
     do
         base.StartOffset <- startOffset
+        base.EndOffset   <- startOffset + length
         base.Length      <- length
 
     member _.Message           =  msg
@@ -184,6 +203,9 @@ type ErrorRenderer (ed:TextEditor, folds:Folding.FoldingManager, log:ISeffLog) =
     let doc = ed.Document
     let txA = ed.TextArea
     let segments = new TextSegmentCollection<SegmentToMark>(doc)
+    let mutable prevHash = 0L 
+    let mutable prevSeg = None
+
 
     /// Draw the error squiggle  on the code
     member _.Draw (textView:TextView , drawingContext:DrawingContext) = // for IBackgroundRenderer
@@ -211,14 +233,24 @@ type ErrorRenderer (ed:TextEditor, folds:Folding.FoldingManager, log:ISeffLog) =
     member _.Transform(context:ITextRunConstructionContext , elements:IList<VisualLineElement>)=() // TODO needed ? // for IVisualLineTransformer
 
     /// Update list of Segments to actually mark (first nine only per Severity) and ensure drawing the error squiggle on the surrounding folding box too
-    member _.AddSegments( res: CheckResults )= 
+    member _.AddSegments( res: CheckResults ) =         
+        let mutable hash = 0L
+        let mutable firstOff = -1
+        let mutable lastOff = -1
         let mark(e:FSharpDiagnostic) =             
             match ErrorUtil.getSegment doc e with 
             |None -> ()
             |Some seg -> 
-                let segToMark = SegmentToMark ( seg.StartOffset, seg.Length, e )
+                let st = seg.StartOffset
+                firstOff <- min firstOff st
+                lastOff  <- max lastOff seg.EndOffset
+                let segToMark = SegmentToMark ( st, seg.Length, e )
+                hash <- hash <<< 7
+                hash <- hash + int64 st
+                hash <- hash <<< 7
+                hash <- hash + int64 seg.Length
                 segments.Add (segToMark)
-                for fold in folds.GetFoldingsContaining(seg.StartOffset) do
+                for fold in folds.GetFoldingsContaining(st) do
                     //if fold.IsFolded then // do on all folds !
                     //fold.BackbgroundColor  <- ErrorStyle.errBackGr // done via ctx.DrawRectangle(ErrorStyle.errBackGr
                     fold.DecorateRectangle <- 
@@ -227,19 +259,46 @@ type ErrorRenderer (ed:TextEditor, folds:Folding.FoldingManager, log:ISeffLog) =
                             if isNull fold.BackgroundColor then ctx.DrawRectangle(segToMark.BackgroundBrush, null, rect) // in case of selection highlighting skip brush only use Pen                        
                             ctx.DrawGeometry(Brushes.Transparent, segToMark.UnderlinePen, geo)
                             )  
+        // first clear:
+        if segments.Count > 0 then
+            segments.Clear()
+            for fold in folds.AllFoldings do fold.DecorateRectangle <- null
+        // then refill:
         let es = res.errors
         for h in es.hiddens  |> Seq.truncate ErrorUtil.maxAmountOfErrorsToDraw  do mark(h)    // TODO only highlight the first 9 ?            
         for i in es.infos    |> Seq.truncate ErrorUtil.maxAmountOfErrorsToDraw  do mark(i)                
         for w in es.warnings |> Seq.truncate ErrorUtil.maxAmountOfErrorsToDraw  do mark(w)                
         for e in es.errors   |> Seq.truncate ErrorUtil.maxAmountOfErrorsToDraw  do mark(e)   // draw errors last, after warnings, to be on top of them!   
+        
+        // to only redraw on chnages:
+        if prevHash <> hash then 
+            prevHash <- hash
+            if lastOff > 0 then 
+                let seg = RedrawSegment(firstOff,lastOff)
+                match prevSeg with 
+                |Some s -> 
+                    let m = seg.Merge(s)                    
+                    ISeffLog.printnColor 200 0 0 "Err Segs:prev seg merged redraw"
+                    txA.TextView.Redraw(m)
+                    prevSeg <- Some seg
+                |None ->
+                    ISeffLog.printnColor 200 0 0 "Err Segs:segredraw"
+                    txA.TextView.Redraw(seg)
+                    prevSeg <- Some seg
+                
             
-        txA.TextView.Redraw()
+            else // no errors found, clear if not done yet
+                match prevSeg with 
+                |Some s -> 
+                    ISeffLog.printnColor 200 0 0 "Err Segs: prev seg redraw"
+                    txA.TextView.Redraw(s)
+                    prevSeg <- None
+                |None ->
+                    ISeffLog.printnColor 0 222 0 "Err Segs:no AddSegments redraw"
+                    ()
+        else
+            ISeffLog.printnColor 0 222 0 "Err Segs:no AddSegments redraw no hash"
 
-    member _.Clear()= 
-        if segments.Count > 0 then
-            segments.Clear()
-            for fold in folds.AllFoldings do fold.DecorateRectangle <- null
-            txA.TextView.Redraw()
 
     member _.GetSegmentsAtOffset(offset) = segments.FindSegmentsContaining(offset)
 
@@ -304,8 +363,7 @@ type ErrorHighlighter (ed:TextEditor, folds:Folding.FoldingManager, log:ISeffLog
     /// threadsafe
     member this.Draw( iEditor: IEditor ) = // this is used as Checker.OnChecked event handler
         match iEditor.FileCheckState with
-        | Done res ->
-            renderer.Clear()
+        | Done res ->            
             renderer.AddSegments(res)
             drawnEv.Trigger(iEditor) // to update foldings now
         | NotStarted |  GettingCode _ | Checking _ | CheckFailed -> ()

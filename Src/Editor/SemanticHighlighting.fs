@@ -172,8 +172,9 @@ type SemanticColorizer (ied:TextEditor, edId:Guid, ch:Checker) =
         let lineNo = line.LineNumber
         let offSt = line.Offset    
         let offEn = offSt + line.Length 
-        
-        if lineNo = 1  then   ISeffLog.log.PrintfnDebugMsg $"Full redraw of all visual lines , no cache."
+                
+        if lineNo = 100  then   ISeffLog.log.PrintfnDebugMsg $"redraw line 100"
+        if lineNo = 200  then   ISeffLog.log.PrintfnDebugMsg $"redraw line 200"
         
         // TODO use binary search instead !!
         for i = allRanges.Length-1 downto 0 do // doing a reverse search solves a highlighting problem where ranges overlap
@@ -249,6 +250,11 @@ type SemanticColorizer (ied:TextEditor, edId:Guid, ch:Checker) =
 module SemanticHighlighting =
 
     let setup (ed:TextEditor, edId:Guid, ch:Checker)  =        
+        ch.OnCheckedForErrors.Add(fun (e,_)-> 
+            if e.SemanticRanges.Length = 0 then // len 0 means semantic coloring has never run
+                ed.TextArea.TextView.Redraw()
+                )
+        
         let semHiLi = new SemanticColorizer(ed,edId,ch)        
         ed.TextArea.TextView.LineTransformers.Add(semHiLi)        
         semHiLi

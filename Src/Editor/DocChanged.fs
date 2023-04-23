@@ -226,11 +226,16 @@ module DocChanged =
         else  ed.AvaEdit.Document.GetCharAt(o)
     
     open InternalDocChange
-        
+    
+    /// This id increments on every change, not just on new checks started 
+    /// used in bracket colorizer    
+    let mutable docChangeId = 0L
 
     let docChanged (e:DocumentChangeEventArgs,ed:IEditor, compls:Completions, checker:Checker) : unit = 
         //ISeffLog.log.PrintfnDebugMsg "*1.1 Document.Changed Event: deleted: %d '%s', inserted %d '%s', completion hasItems: %b, isOpen: %b , Just closed: %b, IsWaitingForTypeChecker %b" e.RemovalLength e.RemovedText.Text e.InsertionLength e.InsertedText.Text compls.HasItems compls.IsOpen UtilCompletion.justCompleted Completions.IsWaitingForTypeChecker
-                        
+        
+        docChangeId <- docChangeId + 1L
+         
         if Completions.IsWaitingForTypeChecker then 
             () // just keep on tying in completion window, no type checking !
 
