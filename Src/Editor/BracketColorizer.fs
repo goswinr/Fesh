@@ -310,16 +310,17 @@ type BracketHighlighter (ed:TextEditor) =
                         //ed.Log.PrintfnDebugMsg "pairStart %d pairEnd %d pairLen %d" pairStart pairEnd pairLen
                         if pairStart >=0 && pairEnd > pairStart then                            
                             anyFound <- hilight(pairStart,pairEnd)
-
-        // actually those highligts can stay, no nead to clear ??
-        //if not anyFound then 
-        //    match prevPairSeg with 
-        //    |Some s ->                  
-        //        //ISeffLog.printnColor 150 222 50 "HighlightPair seg only cleared"
-        //        ed.AvaEdit.TextArea.TextView.Redraw(s)
-        //        prevPairSeg <- None
-        //    |None ->
-        //        ()
+        (*
+        // Actually those highligts can stay, no need to clear.
+        if not anyFound then 
+            match prevPairSeg with 
+            |Some s ->                  
+                //ISeffLog.printnColor 150 222 50 "HighlightPair seg only cleared"
+                ed.AvaEdit.TextArea.TextView.Redraw(s)
+                prevPairSeg <- None
+            |None ->
+                ()
+        *)
 
     /// This gets called for every visible line on any view change
     override this.ColorizeLine(line:Document.DocumentLine) = 

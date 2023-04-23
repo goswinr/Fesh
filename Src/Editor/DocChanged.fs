@@ -182,10 +182,12 @@ module DocChanged =
             else
                 let last = ln.[len-1]
                 if isCaretInComment ln then 
-                    if last = '/' then checker.CheckThenHighlightAndFold(ed) // to make sure comment was not just typed (then still check)
+                    if last = '/' then 
+                        checker.CheckThenHighlightAndFold(ed) // to make sure comment was not just typed (then still check)
                     else 
                         //ISeffLog.log.PrintfnDebugMsg " DoNothing because isCaretInComment: %s" ln
-                        () // DoNothing 
+                        // DoNothing, we are typing somewhere in a comment
+                        () 
                 else
                     let inStr = not <| NotInQuotes.isLastCharOutsideQuotes ln                    
                     match isLetDeclaration inStr ln with 
@@ -236,8 +238,11 @@ module DocChanged =
         
         docChangeId <- docChangeId + 1L
          
-        if Completions.IsWaitingForTypeChecker then 
-            () // just keep on tying in completion window, no type checking !
+        if Completions.IsWaitingForTypeChecker then
+            // no type checking !
+            // just keep on tying, 
+            // the typed caharcters wil become a prefilter for the  in completion window
+            () // DoNothing
 
         elif compls.IsOpen then   
             // just keep on tying in completion window, no type checking !
@@ -249,8 +254,8 @@ module DocChanged =
                 () // DoNothing
             else
                 //ISeffLog.log.PrintfnDebugMsg $"not compls.HasItems."
+                // DoNothing, because if the doc changed a separate event will be triggered for that
                 compls.Close()
-                ()  // do nothing because if the doc changed a separate event will be triggered for that
 
         else // the completion window is NOT open or not about to be opend after type checking:
             
