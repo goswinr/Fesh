@@ -236,11 +236,15 @@ type Commands (grid:TabsAndLog, statusBar:SeffStatusBar)  =
 
             try
                 let bindings = 
-                    [|  for cmd in allCustomCommands do
+                    [|  for cmd in allCustomCommands do                            
                             match cmd.gesture.Trim() with
                             | "" -> log.PrintfnAppErrorMsg "*SetUpGestureInputBindings: Input gesture is empty for '%s'" cmd.name
                             | "Ctrl + '+'" | "Ctrl + +" | "Ctrl +" -> // because  gg.Split('+') would fail
                                 yield InputBinding(cmd.cmd,  KeyGesture(Key.Add,ModifierKeys.Control))
+                                yield InputBinding(cmd.cmd,  KeyGesture(Key.OemPlus,ModifierKeys.Control))// for microsoft surface keyboard
+                            | "Ctrl + '-'" | "Ctrl + -" | "Ctrl -" -> // because  gg.Split('+') would fail
+                                yield InputBinding(cmd.cmd,  KeyGesture(Key.Subtract,ModifierKeys.Control))
+                                yield InputBinding(cmd.cmd,  KeyGesture(Key.OemMinus,ModifierKeys.Control))// for microsoft surface keyboard
                             | gg ->
                                 yield
                                     match gg.Split('+') |> Array.map ( fun k -> k.Trim()) with

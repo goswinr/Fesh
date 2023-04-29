@@ -6,7 +6,7 @@ open System
 
 // performance timer, unused currently
 
-(*
+
 /// A performance timer that also measures Garbage Collection Generations.
 /// includes nice formatting of ms , sec, and minutes
 /// Similar to the #time;; statement built in to FSI
@@ -75,4 +75,7 @@ type Timer() =
 
     /// an instance of a timer to be used to measure startup performance
     static member val InstanceStartup = Timer()
-*)
+
+    /// an instance of a timer to be used to measure reddraw performance
+    static member val InstanceRedraw = Timer()
+

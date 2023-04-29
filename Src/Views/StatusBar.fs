@@ -231,7 +231,7 @@ type FsiOutputStatus (grid:TabsAndLog) as this =
     do
         this.Padding <- textPadding
         this.Text <- if isOff() then offTxt else onTxt
-        this.ToolTip <- "Click here to enable or disable the default output from fsi in the log window"
+        this.ToolTip <- "Click here to enable or disable the default output from fsi in the log window\r\n(This will also reset FSI.)"
         this.MouseLeftButtonDown.Add ( fun a ->
             if isOff() then
                 this.Text <- onTxt
@@ -263,7 +263,7 @@ type AsyncStatus (grid:TabsAndLog) as this =
 
 type SelectedEditorTextStatus (grid:TabsAndLog) as this = 
     inherit TextBlock() 
-    let desc = "Editor Selection Highlighting" 
+    let desc = " " //Editor Selection Highlighting" 
     let baseTxt = "Highlights and counts the occurrences of the currently selected Text in the current Editor.\r\nMinimum two characters and but line breaks.\r\nClick here to scroll through all occurrences."
     let mutable scrollToIdx = 0
     let mutable hiliRes  = FoundNone // for clicking and scrolling through them 
@@ -321,7 +321,7 @@ type SelectedEditorTextStatus (grid:TabsAndLog) as this =
 
 type SelectedLogTextStatus (grid:TabsAndLog) as this = 
     inherit TextBlock()
-    let desc = "Log Selection Highlighting " 
+    let desc = " " //Log Selection Highlighting " 
     let baseTxt = "Highlights and counts the occurrences of the currently selected Text in the Log output.\r\nMinimum two characters and but line breaks.\r\nClick here to scroll through all occurrences."
     let mutable scrollToIdx = 0    
     let mutable hiliRes  = FoundNone
@@ -380,25 +380,34 @@ type SelectedLogTextStatus (grid:TabsAndLog) as this =
 type SeffStatusBar (grid:TabsAndLog)  = 
     let bar = new Primitives.StatusBar()
 
+    let addSep (side:Dock) =         
+        let s = new Separator()
+        DockPanel.SetDock(s,side)
+        bar.Items.Add s |> ignore
+
+
     let add (side:Dock) (e:UIElement) = 
         let bi = new StatusBarItem(Content=e)
         DockPanel.SetDock(bi,side)
         bar.Items.Add bi |> ignore
 
-        let s = new Separator()
-        DockPanel.SetDock(s,side)
-        bar.Items.Add s |> ignore
 
     let fsi = FsiRunStatus (grid)
     let errs = CheckerStatus(grid)
     do
-        add Dock.Left  <| errs
-        add Dock.Left  <| fsi
-        add Dock.Left  <| SelectedEditorTextStatus(grid)
-        add Dock.Left  <| SelectedLogTextStatus(grid)
+        add    Dock.Left  <| errs
+        addSep Dock.Left 
+        add    Dock.Left  <| fsi
+        addSep Dock.Left 
+        add    Dock.Left  <| SelectedEditorTextStatus(grid)
+        add    Dock.Left  <| SelectedLogTextStatus(grid)
 
-        add Dock.Right  <| FsiOutputStatus(grid)
-        if grid.Config.RunContext.IsHosted then     add Dock.Right  <|  AsyncStatus(grid)
+        add    Dock.Right  <| FsiOutputStatus(grid)
+        addSep Dock.Right
+        
+        if grid.Config.RunContext.IsHosted then
+            add    Dock.Right  <|  AsyncStatus(grid)
+            addSep Dock.Right
 
         bar.Items.Add (new StatusBarItem()) |> ignore // to fill remaining gap
 

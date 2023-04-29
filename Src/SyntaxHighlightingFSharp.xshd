@@ -10,7 +10,7 @@
   https://github.com/icsharpcode/SharpDevelop/wiki/Syntax-highlighting    
   The named colors 'Comment' and 'String' are also used in SharpDevelop to detect if a line is inside a multiline string/comment 
   
-  AvalonEditB supports all System.Windows.FontWeights, (while the original  SharpDevelop.AvalonEdit only supports normal and bold.)
+  AvalonEditB supports all named System.Windows.FontWeights, (while the original SharpDevelop.AvalonEdit only supports normal and bold.)
   see schema https://github.com/goswinr/AvalonEditB/blob/main/AvalonEditB/Highlighting/Resources/ModeV2.xsd
   -->
   
@@ -18,13 +18,13 @@
   use this extension to show colors in vs code:
   https://marketplace.visualstudio.com/items?itemName=kamikillerto.vscode-colorize  
   -->
-  <Color name="Comment"             foreground="#22AA22" fontWeight="200" fontStyle="italic"/> <!--stylisticSet1="true"-->
+  <Color name="Comment"             foreground="#22AA22" fontWeight="300" fontStyle="italic" stylisticSet1="true"/> 
   <Color name="DocComment"          foreground="#005500" />
-  <Color name="TODO"                foreground="#EE0000"  fontWeight="bold"/>
-  <Color name="HACK"                foreground="#A0A000"  fontWeight="bold"/>
+  <Color name="TODO"                foreground="#EE0000" fontWeight="800"/>
+  <Color name="HACK"                foreground="#A0A000" fontWeight="800"/>
   
-  <Color name="String"              foreground="#BB1111" fontWeight="bold" fontStyle="italic" />
-  <Color name="StringVerbatim"      foreground="#CC0000" fontWeight="bold" fontStyle="italic" />  
+  <Color name="String"              foreground="#BB1111" />
+  <Color name="StringVerbatim"      foreground="#CC0000" />  
   <Color name="StringFormatting"    foreground="#990099" />
   <Color name="StringEscaped"       foreground="#A050CC" />  
   <Color name="DollarInlines"       foreground="#000088" />
@@ -40,14 +40,14 @@
   
   <Color name="Punctuation"         foreground="#7755FF" />
   <Color name="Attributes"          foreground="#AA88AA" />  
-  <Color name="Keywords"            foreground="#0000DD" /> 
-  <Color name="KeywordsBang"        foreground="#2200DD"  fontWeight="bold" />
-  <Color name="Keywords2"           foreground="#BB0044" /> 
-  <Color name="Keywords2Bang"       foreground="#BB0044"  fontWeight="bold" />
-  <Color name="ReservedKeywords"    foreground="#7777FF" /> <!--fontWeight="bold" -->
+  <Color name="Keywords"            foreground="#0000DD"  fontWeight="normal" fontStyle="italic"  stylisticSet1="true"/>
+  <Color name="KeywordsBang"        foreground="#2200DD"  fontWeight="bold"   fontStyle="italic"  stylisticSet1="true"/>
+  <Color name="Keywords2"           foreground="#BB0044"  fontWeight="bold"   fontStyle="italic"  stylisticSet1="true"/>
+  <Color name="Keywords2Bang"       foreground="#BB0044"  fontWeight="bold"   fontStyle="italic"  stylisticSet1="true"/> 
+  <Color name="ReservedKeywords"    foreground="#7777FF" /> <!-- fontWeight="bold" -->
   <Color name="MethodCall"          foreground="#0000AA" /> <!-- fontWeight="bold" fontStyle="italic"-->
   <Color name="NumberLiteral"       foreground="#CD10A0" />
-  <Color name="NegNumberLiteral"    foreground="#FF0077"  fontWeight="bold" />
+  <Color name="NegNumberLiteral"    foreground="#FF0077" /> <!--fontWeight="bold" -->
   <Color name="ExponentNumberLit"   foreground="#1199DD" />
   <Color name="HexNumberLiteral"    foreground="#FF8800" />
   <Color name="BinNumberLiteral"    foreground="#FF8800" /> 

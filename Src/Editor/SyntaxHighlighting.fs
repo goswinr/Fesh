@@ -26,7 +26,7 @@ module SyntaxHighlighting =
                     //HighlightingManager.Instance.RegisterHighlighting("F#", [| ".fsx"; ".fs";".fsi" |], fsh)
                     fsHighlighting <- Some fsh
                     do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context
-                    ed.SyntaxHighlighting <- fsh
+                    //ed.SyntaxHighlighting <- fsh
                     if forceReLoad then ISeffLog.log.PrintfnInfoMsg "loaded syntax highlighting from: %s" path
                 with e ->
                     ISeffLog.log.PrintfnAppErrorMsg "Error loading Syntax Highlighting: %A" e

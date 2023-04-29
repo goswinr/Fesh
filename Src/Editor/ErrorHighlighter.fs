@@ -278,11 +278,11 @@ type ErrorRenderer (ed:TextEditor, folds:Folding.FoldingManager, log:ISeffLog) =
                 match prevSeg with 
                 |Some s -> 
                     let m = seg.Merge(s)                    
-                    ISeffLog.printnColor 200 0 0 "Err Segs:prev seg merged redraw"
+                    //ISeffLog.printnColor 200 0 0 "Err Segs:prev seg merged redraw"
                     txA.TextView.Redraw(m)
                     prevSeg <- Some seg
                 |None ->
-                    ISeffLog.printnColor 200 0 0 "Err Segs:segredraw"
+                    //ISeffLog.printnColor 200 0 0 "Err Segs:segredraw"
                     txA.TextView.Redraw(seg)
                     prevSeg <- Some seg
                 
@@ -290,14 +290,14 @@ type ErrorRenderer (ed:TextEditor, folds:Folding.FoldingManager, log:ISeffLog) =
             else // no errors found, clear if not done yet
                 match prevSeg with 
                 |Some s -> 
-                    ISeffLog.printnColor 200 0 0 "Err Segs: prev seg redraw"
+                    //ISeffLog.printnColor 200 0 0 "Err Segs: prev seg redraw"
                     txA.TextView.Redraw(s)
                     prevSeg <- None
                 |None ->
-                    ISeffLog.printnColor 0 222 0 "Err Segs:no AddSegments redraw"
+                    //ISeffLog.printnColor 0 222 0 "Err Segs:no AddSegments redraw"
                     ()
-        else
-            ISeffLog.printnColor 0 222 0 "Err Segs:no AddSegments redraw no hash"
+        //else
+            //ISeffLog.printnColor 0 222 0 "Err Segs:no AddSegments redraw no hash"
 
 
     member _.GetSegmentsAtOffset(offset) = segments.FindSegmentsContaining(offset)

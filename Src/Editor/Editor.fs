@@ -19,6 +19,7 @@ open Seff.Model
 open Seff.Config
 open Seff.Util.Str
 open FSharp.Compiler.EditorServices
+open AvalonEditB.Rendering
 
 /// returns a bigger integer on each access for naming unsaved files
 type Counter private () = 
@@ -169,7 +170,9 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
             ed.Folds.UpdateCollapseStatus()
             config.FoldingStatus.Set(ed) )
         
-        avaEdit.TextArea.TextView.LineTransformers.Add(new NonStandardIndentColorizer(ed.Folds.BadIndentations))  
+        avaEdit.TextArea.TextView.LineTransformers.Add(new NonStandardIndentColorizer(ed.Folds.BadIndentations))
+        
+        
 
         let rulers =  new ColumnRulers(avaEdit, log) // draw last , so on top? do foldings first
 
@@ -211,6 +214,7 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
 
         // check if closing and inserting from completion window is desired with currently typed character:
         avaEdit.TextArea.TextEntering.Add (DocChanged.closeAndMaybeInsertFromCompletionWindow compls)
+        avaEdit.TextArea.TextEntering.Add (fun _ -> ed.TypeInfoTip.IsOpen <- false )// close type info on typing
 
         ed.GlobalChecker.OnCheckedForErrors.Add(fun (iEditorOfCheck,chRes) -> // this then triggers folding too, statusbar update is added in statusbar class
             if iEditorOfCheck.Id = ed.Id then // make sure it draws only on one editor, not all!
@@ -220,13 +224,12 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
 
         compls.OnShowing.Add(fun _ -> ed.ErrorHighlighter.ToolTip.IsOpen <- false)
         compls.OnShowing.Add(fun _ -> ed.TypeInfoTip.IsOpen              <- false)
-        ed.TypeInfoTip.SetValue(Controls.ToolTipService.InitialShowDelayProperty, 50) // also set in Initialize.fs
+        ed.TypeInfoTip.SetValue(Controls.ToolTipService.InitialShowDelayProperty, 50) // this delay is also set in Initialize.fs
 
+        
         // Mouse Hover:
         avaEdit.TextArea.TextView.MouseHover.Add(fun e -> TypeInfo.mouseHover(e, ed, ed.TypeInfoTip))
         avaEdit.TextArea.TextView.MouseHoverStopped.Add(fun _ -> ed.TypeInfoTip.IsOpen <- false )
-        
-        avaEdit.TextArea.TextEntering.Add (fun _ -> ed.TypeInfoTip.IsOpen <- false )// close type info on typing
 
         ed
 

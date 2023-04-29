@@ -12,6 +12,7 @@ open AvalonEditB.Document
 open Seff.Model
 open Seff.Util
 open Seff.Util.Str
+open Seff
 
 
 [<RequireQualifiedAccess>]
@@ -176,7 +177,7 @@ module DocChanged =
             let pos = currentLineBeforeCaret(ed.AvaEdit) 
             let ln = pos.lineToCaret // this line will include the character that trigger auto completion(dot or first letter)
             let len = ln.Length
-            //ISeffLog.log.PrintfnDebugMsg "*1.1 maybeShowCompletionWindow for lineToCaret: \r\n    '%s'" ln
+            //ISeffLog.log.PrintfnDebugMsg "*2.1 maybeShowCompletionWindow for lineToCaret: \r\n    '%s'" ln
             if len=0 then // line is empty, still check because deleting might have removed errors.
                 checker.CheckThenHighlightAndFold(ed)
             else
@@ -229,16 +230,29 @@ module DocChanged =
     
     open InternalDocChange
     
+    // used with a auto hotkey script that simulates 28 key presses starting with ß ending with £
+    let logPerformance (t:string)=
+        match t with 
+        |"ß" -> Timer.InstanceRedraw.tic()
+        |"£" -> eprintfn $"{Timer.InstanceRedraw.tocEx}"
+        | _  -> () 
+    
+    let docChanged (e:DocumentChangeEventArgs,ed:IEditor, compls:Completions, checker:Checker) : unit = 
+           //ISeffLog.log.PrintfnDebugMsg "*1.1 Document.Changed Event: deleted: %d '%s', inserted %d '%s', completion hasItems: %b, isOpen: %b , Just closed: %b, IsWaitingForTypeChecker %b" e.RemovalLength e.RemovedText.Text e.InsertionLength e.InsertedText.Text compls.HasItems compls.IsOpen UtilCompletion.justCompleted Completions.IsWaitingForTypeChecker
+           logPerformance( e.InsertedText.Text)
+
     /// This id increments on every change, not just on new checks started 
     /// used in bracket colorizer    
     let mutable docChangeId = 0L
 
-    let docChanged (e:DocumentChangeEventArgs,ed:IEditor, compls:Completions, checker:Checker) : unit = 
+    let docChanged2 (e:DocumentChangeEventArgs,ed:IEditor, compls:Completions, checker:Checker) : unit = 
         //ISeffLog.log.PrintfnDebugMsg "*1.1 Document.Changed Event: deleted: %d '%s', inserted %d '%s', completion hasItems: %b, isOpen: %b , Just closed: %b, IsWaitingForTypeChecker %b" e.RemovalLength e.RemovedText.Text e.InsertionLength e.InsertedText.Text compls.HasItems compls.IsOpen UtilCompletion.justCompleted Completions.IsWaitingForTypeChecker
-        
+        logPerformance( e.InsertedText.Text)
+
         docChangeId <- docChangeId + 1L
          
         if Completions.IsWaitingForTypeChecker then
+            //ISeffLog.log.PrintfnDebugMsg "*1.2 Document.Changed Event: IsWaitingForTypeChecker"
             // no type checking !
             // just keep on tying, 
             // the typed caharcters wil become a prefilter for the  in completion window

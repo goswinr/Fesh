@@ -81,11 +81,12 @@ module SelectionHighlighting =
     let private empty = ResizeArray<int>(0)
 
     let private foundNoneRedraw(ava:TextEditor, selTextHiLi:SelectionColorizer) = 
-        selTextHiLi.HighlightText <- null
-        selTextHiLi.ExcludeFrom   <- -1
-        selTextHiLi.ExcludeTill   <- -1
-        ISeffLog.printnColor 200 99 0 "foundNoneRedraw"
-        ava.TextArea.TextView.Redraw() //delete redraw ??
+        if notNull selTextHiLi.HighlightText then // to not needlessly redraw
+            selTextHiLi.HighlightText<- null
+            selTextHiLi.ExcludeFrom   <- -1
+            selTextHiLi.ExcludeTill   <- -1
+            //ISeffLog.printnColor 200 99 0 "foundNoneRedraw"
+            ava.TextArea.TextView.Redraw() //delete redraw ??
    
     let clearFolds(ed:IEditor) = 
         for fold in ed.FoldingManager.AllFoldings do 
@@ -180,7 +181,7 @@ module SelectionHighlighting =
                     let offs = checkFoldedBoxes(ed,t)
                     if offs.Count > 0 then 
                         selectionChangedEv.Trigger(av, FoundSome {text=t; offsets=offs; selectionAt = st})
-                        ISeffLog.printnColor 200 99 0 "handleSelection Redraw"
+                        //ISeffLog.printnColor 200 99 0 "handleSelection Redraw"
                         av.TextArea.TextView.Redraw() 
 
                     else // this case should actually never happen:
@@ -209,7 +210,7 @@ module SelectionHighlighting =
                     let offs = checkFoldedBoxes(ed,txt)  
                     if offs.Count > 0 then
                         highlightRequestedEv.Trigger(av, FoundSome {text=txt; offsets=offs; selectionAt= -1})
-                        ISeffLog.printnColor 200 99 0 "setup Redraw"
+                        //ISeffLog.printnColor 200 99 0 "hili setup Redraw"
                         ed.AvaEdit.TextArea.TextView.Redraw()
                     else // this case should actually never happen:
                         foundNoneReq(av, selTextHiLi)// no need to clear folds here too 

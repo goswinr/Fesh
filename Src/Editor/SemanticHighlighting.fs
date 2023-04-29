@@ -8,6 +8,7 @@ open AvalonEditB
 open AvalonEditB.Rendering
 open AvalonLog.Brush
 open Seff.Model
+open System.Windows
 
 // see  https://github.com/dotnet/fsharp/blob/main/src/Compiler/Service/SemanticClassification.fs
 
@@ -63,6 +64,10 @@ module SemAction =
         }
 
     let makeCursive (el:VisualLineElement) =              
+        // let f = el.TextRunProperties.Typeface.FontFamily
+        // let tf = new Typeface(f, FontStyles.Italic, FontWeights.Bold, FontStretches.Normal)
+        // eprintfn $"makeCursive {f}"
+        // el.TextRunProperties.SetTypeface(tf)
         el.TextRunProperties.SetTypeface(Seff.Style.italicBoldEditorTf)
         el.TextRunProperties.SetTypographyProperties(stylisticSet1) // for cursive set of cascadia mono
 
@@ -76,7 +81,7 @@ module SemAction =
     let MutableVar                   (el:VisualLineElement) = el.TextRunProperties.SetForegroundBrush(MutableVar                 )
     let Module                       (el:VisualLineElement) = el.TextRunProperties.SetForegroundBrush(Module                     )
     let Namespace                    (el:VisualLineElement) = el.TextRunProperties.SetForegroundBrush(Namespace                  )
-    //let Printf                     (el:VisualLineElement) = el.TextRunProperties.SetForegroundBrush(Printf                     )
+    //let Printf                     (el:VisualLineElement) = el.TextRunProperties.SetForegroundBrush(Printf                     ) // covered by xshd
     let ComputationExpression        (el:VisualLineElement) = el.TextRunProperties.SetForegroundBrush(ComputationExpression      )
     let IntrinsicFunction            (el:VisualLineElement) = el.TextRunProperties.SetForegroundBrush(IntrinsicFunction          )
     let Enumeration                  (el:VisualLineElement) = el.TextRunProperties.SetForegroundBrush(Enumeration                )
@@ -100,7 +105,7 @@ module SemAction =
     let Delegate                     (el:VisualLineElement) = el.TextRunProperties.SetForegroundBrush(Delegate                   )
     let NamedArgument                (el:VisualLineElement) = el.TextRunProperties.SetForegroundBrush(NamedArgument              )
     let Value                        (el:VisualLineElement) = el.TextRunProperties.SetForegroundBrush(Value                      )
-    let LocalValue                   (el:VisualLineElement) = el.TextRunProperties.SetForegroundBrush(LocalValue                 ); makeCursive el
+    let LocalValue                   (el:VisualLineElement) = el.TextRunProperties.SetForegroundBrush(LocalValue                 )//; makeCursive el
     let Type                         (el:VisualLineElement) = el.TextRunProperties.SetForegroundBrush(Type                       )
     let TypeDef                      (el:VisualLineElement) = el.TextRunProperties.SetForegroundBrush(TypeDef                    )
     let Plaintext                    (el:VisualLineElement) = el.TextRunProperties.SetForegroundBrush(Plaintext                  )
@@ -173,8 +178,8 @@ type SemanticColorizer (ied:TextEditor, edId:Guid, ch:Checker) =
         let offSt = line.Offset    
         let offEn = offSt + line.Length 
                 
-        if lineNo = 100  then   ISeffLog.log.PrintfnDebugMsg $"redraw line 100"
-        if lineNo = 200  then   ISeffLog.log.PrintfnDebugMsg $"redraw line 200"
+        if lineNo = 101  then   ISeffLog.log.PrintfnDebugMsg $"redraw line 101"
+        //if lineNo = 201  then   ISeffLog.log.PrintfnDebugMsg $"redraw line 201"
         
         // TODO use binary search instead !!
         for i = allRanges.Length-1 downto 0 do // doing a reverse search solves a highlighting problem where ranges overlap
@@ -250,6 +255,7 @@ type SemanticColorizer (ied:TextEditor, edId:Guid, ch:Checker) =
 module SemanticHighlighting =
 
     let setup (ed:TextEditor, edId:Guid, ch:Checker)  =        
+        // for first highlighting after file opening only:
         ch.OnCheckedForErrors.Add(fun (e,_)-> 
             if e.SemanticRanges.Length = 0 then // len 0 means semantic coloring has never run
                 ed.TextArea.TextView.Redraw()

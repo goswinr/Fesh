@@ -233,11 +233,11 @@ type BracketHighlighter (ed:TextEditor) =
             match prevPairSeg with 
             |Some s -> 
                 let m = seg.Merge(s)                    
-                ISeffLog.printnColor 150 222 50 $"HighlightPair merged {m}"
+                //ISeffLog.printnColor 150 222 50 $"HighlightPair merged {m}"
                 ed.AvaEdit.TextArea.TextView.Redraw(m)
                 prevPairSeg <- Some seg
             |None ->
-                ISeffLog.printnColor 150 222 50 $"HighlightPair {seg}"
+                //ISeffLog.printnColor 150 222 50 $"HighlightPair {seg}"
                 ed.AvaEdit.TextArea.TextView.Redraw(seg)
                 prevPairSeg <- Some seg
             true
@@ -354,16 +354,16 @@ type BracketHighlighter (ed:TextEditor) =
 
 
     static member Setup(ed:IEditor, ch:Checker) = 
-        //if false then // TODO fix bug first !!!
-            let brh = BracketHighlighter(ed.AvaEdit)
-            //brh.Log <- Some ed.Log
-            ed.AvaEdit.TextArea.TextView.LineTransformers.Add(brh)
+        
+        let brh = BracketHighlighter(ed.AvaEdit)
+        //brh.Log <- Some ed.Log
+        ed.AvaEdit.TextArea.TextView.LineTransformers.Add(brh)
 
-            ch.OnFullCodeAvailable.Add( fun ched ->
-              if ched.Id = ed.Id then
-                  //ed.Log.PrintfnInfoMsg "OnFullCodeAvailable checking Brackets"
-                  brh.FindBrackets(ed) )
+        //ch.OnFullCodeAvailable.Add( fun ched ->
+        //    if ched.Id = ed.Id then
+        //        //ed.Log.PrintfnInfoMsg "OnFullCodeAvailable checking Brackets"
+        //        brh.FindBrackets(ed) )
 
-            ed.AvaEdit.TextArea.Caret.PositionChanged.Add ( fun e -> brh.HighlightPair(ed))
+        ed.AvaEdit.TextArea.Caret.PositionChanged.Add ( fun e -> brh.HighlightPair(ed))
 
 

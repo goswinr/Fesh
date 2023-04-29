@@ -90,8 +90,11 @@ type Fonts (grid:TabsAndLog) = // will be constructed as part of Commands class
     let setEditor() = // on log and all tabs
         match tryGetFontOrAlt "FontEditor" with 
         |Some f -> 
-            Style.fontEditor <- f
-            Style.italicBoldEditorTf <- Typeface(f, FontStyles.Italic, FontWeights.Bold, FontStretches.Normal) 
+            Style.fontEditor <- f            
+            Style.italicBoldEditorTf  <-  new Typeface(f, FontStyles.Italic, FontWeights.Bold,  FontStretches.Normal) 
+            Style.italicEditorTf      <-  new Typeface(f, FontStyles.Italic, FontWeights.Bold,  FontStretches.Normal) 
+            Style.boldEditorTf        <-  new Typeface(f, FontStyles.Italic, FontWeights.Normal, FontStretches.Normal)
+
             for t in tabs.AllTabs do  t.Editor.AvaEdit.FontFamily  <- f
             sett.Set ("FontEditor", f.Source)
             sett.Save() 
