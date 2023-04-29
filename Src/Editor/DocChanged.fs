@@ -136,6 +136,7 @@ module DocChanged =
                 if   containsFrom barIdx "->"      ln then ShowAll                
                 elif containsFrom barIdx "."       ln then ShowAll  // a DU member with full Qualification              
                 elif containsFrom barIdx " when "  ln then ShowAll
+                elif containsFrom barIdx " of "    ln then ShowAll
                 elif containsFrom barIdx ":?"      ln then  (if containsFrom barIdx  " as " ln then DontShow   else ShowAll)
                 else isDU (barIdx+1) ln         
                 

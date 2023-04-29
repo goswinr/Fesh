@@ -354,8 +354,7 @@ type BracketHighlighter (ed:TextEditor) =
 
     static member Setup(ed:IEditor, ch:Checker) = 
         
-        let brh = BracketHighlighter(ed.AvaEdit)
-        //brh.Log <- Some ed.Log
+        let brh = BracketHighlighter(ed.AvaEdit)        
         ed.AvaEdit.TextArea.TextView.LineTransformers.Add(brh)
 
         ch.OnFullCodeAvailable.Add( fun ched ->
