@@ -62,7 +62,8 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
         avaEdit.HorizontalScrollBarVisibility <- Controls.ScrollBarVisibility.Auto
         avaEdit.Options.HighlightCurrentLine <- true // http://stackoverflow.com/questions/5072761/avalonedit-highlight-current-line-even-when-not-focused
         avaEdit.Options.EnableHyperlinks <- true
-        avaEdit.TextArea.TextView.LinkTextForegroundBrush <- Brushes.DarkGreen
+        avaEdit.Options.EnableEmailHyperlinks <- false
+        avaEdit.TextArea.TextView.LinkTextForegroundBrush <- Brushes.DarkGreen |> AvalonLog.Brush.freeze
         avaEdit.Options.EnableTextDragDrop <- true
 
         avaEdit.Options.ShowSpaces <- false

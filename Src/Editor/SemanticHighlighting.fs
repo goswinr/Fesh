@@ -14,45 +14,45 @@ open System.Windows
 
 module SemColor = 
 
-    let ValueType                    = Brushes.MediumOrchid  |> darker 40 |> freeze
-    let ReferenceType                = Brushes.MediumVioletRed  |> darker 60   |> freeze
-    let Type                         = Brushes.MediumVioletRed  |> darker 60 |> freeze
-    let UnionCase                    = Brushes.LightSkyBlue  |> darker 100  |> freeze
-    let UnionCaseField               = Brushes.LightSkyBlue  |> darker 100 |> freeze
-    let Function                     = Brushes.DarkGoldenrod |> darker 60 |> freeze
-    let Property                     = Brushes.DarkTurquoise |> darker 110 |> freeze
-    let MutableVar                   = Brushes.Goldenrod |> darker 20 |> freeze
-    let MutableRecordField           = Brushes.Goldenrod |> darker 20 |> freeze
-    let Module                       = Brushes.Black |> freeze
-    let Namespace                    = Brushes.Black  |> freeze //
-    //let Printf                       = Brushes.Plum      |> freeze // covered by xshd
-    let ComputationExpression        = Brushes.DarkGray |> freeze
-    let IntrinsicFunction            = Brushes.DarkBlue |> freeze
-    let Enumeration                  = Brushes.Indigo |> freeze
-    let Interface                    = Brushes.DarkGray |> freeze
-    let TypeArgument                 = Brushes.SlateBlue |> freeze
-    let Operator                     = Brushes.MediumSlateBlue |> freeze
-    let DisposableType               = Brushes.DarkOrchid |> freeze
-    let DisposableTopLevelValue      = Brushes.DarkOrchid |> freeze
-    let DisposableLocalValue         = Brushes.DarkOrchid |> freeze
-    let Method                       = Brushes.DarkTurquoise |> darker 60 |> freeze
-    let ExtensionMethod              = Brushes.RoyalBlue     |> darker 30 |> freeze
-    let ConstructorForReferenceType  = Brushes.Brown |> freeze
-    let ConstructorForValueType      = Brushes.SandyBrown |> darker 80 |> freeze
-    let Literal                      = Brushes.SeaGreen |> freeze
-    let RecordField                  = Brushes.DarkSlateGray |> darker 10 |> freeze
-    let RecordFieldAsFunction        = Brushes.Plum |> freeze
-    let Exception                    = Brushes.HotPink |> darker 40   |> freeze
-    let Field                        = Brushes.MediumPurple |> freeze
-    let Event                        = Brushes.Olive |> freeze
-    let Delegate                     = Brushes.DarkOliveGreen |> freeze
-    let NamedArgument                = Brushes.PaleVioletRed |> darker 80 |> freeze
-    let Value                        = Brushes.DarkRed  |> darker 20 |> freeze
-    let LocalValue                   = Brushes.DarkRed  |> darker 40 |> freeze
-    let TypeDef                      = Brushes.Thistle |> darker 50 |> freeze
-    let Plaintext                    = Brushes.OrangeRed |> darker 60 |> freeze   
-    
-    let UnUsed                       = Brushes.Gray |> brighter 30 |> freeze   
+    let ValueType                    = freeze <| Brushes.MediumOrchid  |> darker 40
+    let ReferenceType                = freeze <| Brushes.MediumVioletRed  |> darker 60  
+    let Type                         = freeze <| Brushes.MediumVioletRed  |> darker 60
+    let UnionCase                    = freeze <| Brushes.LightSkyBlue  |> darker 100 
+    let UnionCaseField               = freeze <| Brushes.LightSkyBlue  |> darker 100
+    let Function                     = freeze <| Brushes.DarkGoldenrod |> darker 60
+    let Property                     = freeze <| Brushes.DarkTurquoise |> darker 110
+    let MutableVar                   = freeze <| Brushes.Goldenrod |> darker 20
+    let MutableRecordField           = freeze <| Brushes.Goldenrod |> darker 20
+    let Module                       = freeze <| Brushes.Black
+    let Namespace                    = freeze <| Brushes.Black  
+    //let Printf                     = freeze <| Brushes.Plum      // covered by xshd
+    let ComputationExpression        = freeze <| Brushes.DarkGray
+    let IntrinsicFunction            = freeze <| Brushes.DarkBlue
+    let Enumeration                  = freeze <| Brushes.Indigo
+    let Interface                    = freeze <| Brushes.DarkGray
+    let TypeArgument                 = freeze <| Brushes.SlateBlue
+    let Operator                     = freeze <| Brushes.MediumSlateBlue
+    let DisposableType               = freeze <| Brushes.DarkOrchid
+    let DisposableTopLevelValue      = freeze <| Brushes.DarkOrchid
+    let DisposableLocalValue         = freeze <| Brushes.DarkOrchid
+    let Method                       = freeze <| Brushes.DarkTurquoise |> darker 60
+    let ExtensionMethod              = freeze <| Brushes.RoyalBlue     |> darker 30
+    let ConstructorForReferenceType  = freeze <| Brushes.Brown
+    let ConstructorForValueType      = freeze <| Brushes.SandyBrown |> darker 80
+    let Literal                      = freeze <| Brushes.SeaGreen
+    let RecordField                  = freeze <| Brushes.DarkSlateGray |> darker 10
+    let RecordFieldAsFunction        = freeze <| Brushes.Plum
+    let Exception                    = freeze <| Brushes.HotPink |> darker 40  
+    let Field                        = freeze <| Brushes.MediumPurple
+    let Event                        = freeze <| Brushes.Olive
+    let Delegate                     = freeze <| Brushes.DarkOliveGreen
+    let NamedArgument                = freeze <| Brushes.PaleVioletRed |> darker 80
+    let Value                        = freeze <| Brushes.DarkRed  |> darker 20
+    let LocalValue                   = freeze <| Brushes.DarkRed  |> darker 40
+    let TypeDef                      = freeze <| Brushes.Thistle |> darker 50
+    let Plaintext                    = freeze <| Brushes.OrangeRed |> darker 60   
+                                        
+    let UnUsed                       = freeze <| Brushes.Gray |> brighter 30   
 
 module SemAction = 
     open SemColor
@@ -176,10 +176,7 @@ type SemanticColorizer (ied:TextEditor, edId:Guid, ch:Checker) =
                     
         let lineNo = line.LineNumber
         let offSt = line.Offset    
-        let offEn = offSt + line.Length 
-                
-        if lineNo = 101  then   ISeffLog.log.PrintfnDebugMsg $"redraw line 101"
-        //if lineNo = 201  then   ISeffLog.log.PrintfnDebugMsg $"redraw line 201"
+        let offEn = offSt + line.Length         
         
         // TODO use binary search instead !!
         for i = allRanges.Length-1 downto 0 do // doing a reverse search solves a highlighting problem where ranges overlap
@@ -250,7 +247,14 @@ type SemanticColorizer (ied:TextEditor, edId:Guid, ch:Checker) =
                 let en = offSt + r.EndColumn
                 if en >  offSt  && en <= offEn && st >= offSt  && st <  offEn && en < lastCode.Length then
                     base.ChangeLinePart(st,en, SemAction.UnUsed) 
-                        
+
+type DebugColorizer () = 
+    inherit Rendering.DocumentColorizingTransformer()
+        
+    override this.ColorizeLine(line:Document.DocumentLine) = 
+        let lineNo = line.LineNumber
+        if lineNo = 101  then   
+            ISeffLog.log.PrintfnDebugMsg $"redraw line 101"                        
 
 module SemanticHighlighting =
 
@@ -262,7 +266,8 @@ module SemanticHighlighting =
                 )
         
         let semHiLi = new SemanticColorizer(ed,edId,ch)        
-        ed.TextArea.TextView.LineTransformers.Add(semHiLi)        
+        //ed.TextArea.TextView.LineTransformers.Add(semHiLi)        
+        ed.TextArea.TextView.LineTransformers.Add(new DebugColorizer())        
         semHiLi
 
 
