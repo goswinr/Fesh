@@ -19,7 +19,7 @@ module SemColor =
     let Type                         = freeze <| Brushes.MediumVioletRed  |> darker 60
     let UnionCase                    = freeze <| Brushes.LightSkyBlue  |> darker 100 
     let UnionCaseField               = freeze <| Brushes.LightSkyBlue  |> darker 100
-    let Function                     = freeze <| Brushes.DarkGoldenrod |> darker 60
+    let Function                     = freeze <| Brushes.DarkGoldenrod |> darker 40
     let Property                     = freeze <| Brushes.DarkTurquoise |> darker 110
     let MutableVar                   = freeze <| Brushes.Goldenrod |> darker 20
     let MutableRecordField           = freeze <| Brushes.Goldenrod |> darker 20
@@ -36,7 +36,7 @@ module SemColor =
     let DisposableTopLevelValue      = freeze <| Brushes.DarkOrchid
     let DisposableLocalValue         = freeze <| Brushes.DarkOrchid
     let Method                       = freeze <| Brushes.DarkTurquoise |> darker 60
-    let ExtensionMethod              = freeze <| Brushes.RoyalBlue     |> darker 30
+    let ExtensionMethod              = freeze <| Brushes.DarkTurquoise |> darker 30
     let ConstructorForReferenceType  = freeze <| Brushes.Brown
     let ConstructorForValueType      = freeze <| Brushes.SandyBrown |> darker 80
     let Literal                      = freeze <| Brushes.SeaGreen
@@ -266,8 +266,8 @@ module SemanticHighlighting =
                 )
         
         let semHiLi = new SemanticColorizer(ed,edId,ch)        
-        //ed.TextArea.TextView.LineTransformers.Add(semHiLi)        
-        ed.TextArea.TextView.LineTransformers.Add(new DebugColorizer())        
+        ed.TextArea.TextView.LineTransformers.Add(semHiLi)        
+        //ed.TextArea.TextView.LineTransformers.Add(new DebugColorizer())        
         semHiLi
 
 

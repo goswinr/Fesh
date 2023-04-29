@@ -235,22 +235,12 @@ module DocChanged =
         match t with 
         |"ß" -> Timer.InstanceRedraw.tic()
         |"£" -> eprintfn $"{Timer.InstanceRedraw.tocEx}"
-        | _  -> () 
-    
+        | _  -> ()         
+
+   
     let docChanged (e:DocumentChangeEventArgs,ed:IEditor, compls:Completions, checker:Checker) : unit = 
-           //ISeffLog.log.PrintfnDebugMsg "*1.1 Document.Changed Event: deleted: %d '%s', inserted %d '%s', completion hasItems: %b, isOpen: %b , Just closed: %b, IsWaitingForTypeChecker %b" e.RemovalLength e.RemovedText.Text e.InsertionLength e.InsertedText.Text compls.HasItems compls.IsOpen UtilCompletion.justCompleted Completions.IsWaitingForTypeChecker
-           logPerformance( e.InsertedText.Text)
-
-    /// This id increments on every change, not just on new checks started 
-    /// used in bracket colorizer    
-    let mutable docChangeId = 0L
-
-    let docChanged2 (e:DocumentChangeEventArgs,ed:IEditor, compls:Completions, checker:Checker) : unit = 
         //ISeffLog.log.PrintfnDebugMsg "*1.1 Document.Changed Event: deleted: %d '%s', inserted %d '%s', completion hasItems: %b, isOpen: %b , Just closed: %b, IsWaitingForTypeChecker %b" e.RemovalLength e.RemovedText.Text e.InsertionLength e.InsertedText.Text compls.HasItems compls.IsOpen UtilCompletion.justCompleted Completions.IsWaitingForTypeChecker
-        logPerformance( e.InsertedText.Text)
-
-        docChangeId <- docChangeId + 1L
-         
+                        
         if Completions.IsWaitingForTypeChecker then
             //ISeffLog.log.PrintfnDebugMsg "*1.2 Document.Changed Event: IsWaitingForTypeChecker"
             // no type checking !
@@ -314,8 +304,8 @@ module DocChanged =
                 checker.CheckThenHighlightAndFold(ed) // because OtherChange: several characters(paste) , delete or an insert from the completion window
              
 
-    (* unused:
-
+    
+    (*
     // delay and buffer reaction to doc changes
     open System.Threading
     let private changeId = ref 0L
@@ -324,12 +314,13 @@ module DocChanged =
     let delayDocChange(e:DocumentChangeEventArgs, ed:IEditor, compls:Completions, checker:Checker) : unit =         
         /// do timing as low level as possible: see Async.Sleep in  https://github.com/dotnet/fsharp/blob/main/src/fsharp/FSharp.Core/async.fs#L1587
         let k = Interlocked.Increment changeId
-        let mutable timer :option<Timer> = None
+        let mutable timer : option<Timer> = None
         let action =  TimerCallback(fun _ ->
             if !changeId= k then ed.AvaEdit.Dispatcher.Invoke(fun () ->  docChanged (e,ed, compls, checker))
             if timer.IsSome then timer.Value.Dispose() // dispose inside callback, like in Async.Sleep implementation
             )
-        timer <- Some (new Threading.Timer(action, null, dueTime = 100 , period = -1))
+        timer <- Some (new Threading.Timer(action, null, dueTime = 200 , period = -1))
     *)
+    
         
 

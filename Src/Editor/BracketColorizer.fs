@@ -215,16 +215,15 @@ type BracketHighlighter (ed:TextEditor) =
 
 
             //for i=0 to Cols.Count-1 do ed.Log.PrintfnDebugMsg "%A in %A at %d" Brs.[i] Cols.[i] Offs.[i]
-            ISeffLog.log.PrintfnDebugMsg "%d Brackets found " Brs.Count
+            //ISeffLog.log.PrintfnDebugMsg "%d Brackets found " Brs.Count
             //if Brs.Count = 0 then ed.Log.PrintfnDebugMsg "inComment   inBlockComment  inString  %b %b %b" inComment   inBlockComment  inString
 
             // find error in remaining stack items:
             for e in st do
                 Unclosed.Add   e.off
-                UnclosedBr.Add e.bracket
+                UnclosedBr.Add e.bracket            
             
-            //Actually not needed:
-            //ed.AvaEdit.TextArea.TextView.Redraw()
+            ed.AvaEdit.TextArea.TextView.Redraw()
 
     member this.HighlightPair(ed:IEditor) = 
                 
@@ -359,10 +358,10 @@ type BracketHighlighter (ed:TextEditor) =
         //brh.Log <- Some ed.Log
         ed.AvaEdit.TextArea.TextView.LineTransformers.Add(brh)
 
-        //ch.OnFullCodeAvailable.Add( fun ched ->
-        //    if ched.Id = ed.Id then
-        //        //ed.Log.PrintfnInfoMsg "OnFullCodeAvailable checking Brackets"
-        //        brh.FindBrackets(ed) )
+        ch.OnFullCodeAvailable.Add( fun ched ->
+            if ched.Id = ed.Id then
+                //ed.Log.PrintfnInfoMsg "OnFullCodeAvailable checking Brackets"
+                brh.FindBrackets(ed) )
 
         ed.AvaEdit.TextArea.Caret.PositionChanged.Add ( fun e -> brh.HighlightPair(ed))
 

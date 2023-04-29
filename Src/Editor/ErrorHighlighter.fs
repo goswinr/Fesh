@@ -351,13 +351,13 @@ type ErrorHighlighter (ed:TextEditor, folds:Folding.FoldingManager, log:ISeffLog
     do
         tView.BackgroundRenderers.Add(renderer)
         tView.LineTransformers.Add(   renderer)
-        tView.Services.AddService(typeof<ErrorRenderer> , renderer) // TODO, what for?
+        //tView.Services.AddService(typeof<ErrorRenderer> , renderer) // TODO, what for?
 
         tView.MouseHover.Add        (showErrorToolTip)
         tView.MouseHoverStopped.Add ( fun e ->  tip.IsOpen <- false ) //; e.Handled <- true) )
-        tView.VisualLinesChanged.Add( fun e ->  tip.IsOpen <- false ) // on scroll  or resize?
+        tView.VisualLinesChanged.Add( fun e ->  tip.IsOpen <- false ) // on scroll and resize
 
-    [<CLIEvent>] member this.OnDrawn = drawnEv.Publish
+    //[<CLIEvent>] member this.OnDrawn = drawnEv.Publish
 
     /// draws underlines
     /// threadsafe

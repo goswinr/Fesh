@@ -171,8 +171,7 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
             ed.Folds.UpdateCollapseStatus()
             config.FoldingStatus.Set(ed) )
         
-        avaEdit.TextArea.TextView.LineTransformers.Add(new NonStandardIndentColorizer(ed.Folds.BadIndentations))
-        
+        avaEdit.TextArea.TextView.LineTransformers.Add(new NonStandardIndentColorizer(ed.Folds.BadIndentations))        
         
 
         let rulers =  new ColumnRulers(avaEdit, log) // draw last , so on top? do foldings first
@@ -204,10 +203,10 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
         There can be multiple document changes between the BeginUpdate() and EndUpdate() calls. In this case, the events associated with EndUpdate will be raised only once after the whole document update is done.
 
         The UndoStack listens to the UpdateStarted and UpdateFinished events to group all changes into a single undo step.
-        *) 
+        *)         
         
-        //avaEdit.Document.Changing.Add(fun _ -> ed.GlobalChecker.SetDocChanging())
         avaEdit.Document.Changed.Add(fun a -> 
+            DocChanged.logPerformance( a.InsertedText.Text)
             //DocChanged.delayDocChange(a, ed, compls, ed.GlobalChecker) // to trigger for Autocomplete or error highlighting with immediate delay, (instead of delay in checkCode function.)
             DocChanged.docChanged(a, ed, compls, ed.GlobalChecker)
             ed.EvalTracker.SetLastChangeAt(a.Offset)
