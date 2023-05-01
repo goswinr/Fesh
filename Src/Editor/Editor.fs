@@ -34,61 +34,56 @@ type Counter private () =
 
  /// The tab that holds the tab header and the code editor
 type Editor private (code:string, config:Config, filePath:FilePath)  = 
-    let avaEdit = new TextEditor()
-    let id = Guid.NewGuid()
-    let log = config.Log
+    let avaEdit = 
+        let av = TextEditor()
+        av.Options.IndentationSize <- config.Settings.GetIntSaveDefault("IndentationSize", 4) // do first because its used by tabs to spaces below.
+        av.Text <- code |> unifyLineEndings |> tabsToSpaces av.Options.IndentationSize
 
-    let checker =           Checker.GetOrCreate(config)
-
-    let folds =             new Foldings(avaEdit,checker, config, id)
-    let evalTracker      =  new EvaluationTracker(avaEdit,checker, id)
-    let errorHighlighter =  new ErrorHighlighter(avaEdit,folds.Manager, log)
-    let semanticHighlighter = SemanticHighlighting.setup(avaEdit,id,checker)
-
-    let search =            Search.SearchPanel.Install(avaEdit)
-
-    let compls =            new Completions(avaEdit,config,checker)    
-    
-    let mutable checkState = FileCheckState.NotStarted // local to this editor
-    let mutable filePath   = filePath
-
-    //let mutable needsChecking = true // so that on a tab change a recheck is not triggered if not needed
-
-    do
-        avaEdit.BorderThickness <- new Thickness( 0.0)
-        avaEdit.Text <- code |> unifyLineEndings |> tabsToSpaces avaEdit.Options.IndentationSize
-        avaEdit.ShowLineNumbers <- true // background color is set in ColumnRulers.cs
-        avaEdit.VerticalScrollBarVisibility <- Controls.ScrollBarVisibility.Auto
-        avaEdit.HorizontalScrollBarVisibility <- Controls.ScrollBarVisibility.Auto
-        avaEdit.Options.HighlightCurrentLine <- true // http://stackoverflow.com/questions/5072761/avalonedit-highlight-current-line-even-when-not-focused
-        avaEdit.Options.EnableHyperlinks <- true
-        avaEdit.Options.EnableEmailHyperlinks <- false
-        avaEdit.TextArea.TextView.LinkTextForegroundBrush <- Brushes.DarkGreen |> AvalonLog.Brush.freeze
-        avaEdit.Options.EnableTextDragDrop <- true
-
-        avaEdit.Options.ShowSpaces <- false
-
-        avaEdit.Options.ShowTabs <- false // they are always converted to spaces, see above
-        avaEdit.Options.ConvertTabsToSpaces <- true
-        avaEdit.Options.IndentationSize <- config.Settings.GetIntSaveDefault("IndentationSize", 4)
-        avaEdit.Options.HideCursorWhileTyping <- false
-        avaEdit.TextArea.SelectionCornerRadius <- 0.0
-        avaEdit.TextArea.SelectionBorder <- null
-        avaEdit.FontFamily <- StyleState.fontEditor
-        avaEdit.FontSize <- config.Settings.GetFloat("SizeOfFont", StyleState.fontSize) // TODO odd sizes like  17.0252982466288  makes block selection delete fail on the last line
-        avaEdit.AllowDrop <- true
+        av.BorderThickness <- new Thickness( 0.0)
+        av.ShowLineNumbers <- true // background color is set in ColumnRulers.cs
+        av.VerticalScrollBarVisibility <- Controls.ScrollBarVisibility.Auto
+        av.HorizontalScrollBarVisibility <- Controls.ScrollBarVisibility.Auto
+        av.Options.HighlightCurrentLine <- true // http://stackoverflow.com/questions/5072761/avalonedit-highlight-current-line-even-when-not-focused
+        av.Options.EnableHyperlinks <- true
+        av.Options.EnableEmailHyperlinks <- false
+        av.TextArea.TextView.LinkTextForegroundBrush <- Brushes.DarkGreen |> AvalonLog.Brush.freeze
+        av.Options.EnableTextDragDrop <- true
+        av.Options.ShowSpaces <- false
+        av.Options.ShowTabs <- false // they are always converted to spaces, see above
+        av.Options.ConvertTabsToSpaces <- true
+        av.Options.HideCursorWhileTyping <- false
+        av.TextArea.SelectionCornerRadius <- 0.0
+        av.TextArea.SelectionBorder <- null
+        av.FontFamily <- StyleState.fontEditor
+        av.FontSize <- config.Settings.GetFloat("SizeOfFont", StyleState.fontSize) // TODO odd sizes like  17.0252982466288  makes block selection delete fail on the last line
+        av.AllowDrop <- true
         //avaEdit.TextArea.TextView.CurrentLineBackground <- Brushes.Ivory |> Brush.brighter 10 |> Brush.freeze
         //avaEdit.TextArea.TextView.CurrentLineBorder <- new Pen(Brushes.Gainsboro|> Brush.freeze, 2.0) |> Util.Pen.freeze
         //avaEdit.TextArea.AllowCaretOutsideSelection <- true
         //avaEdit.Options.EnableVirtualSpace <- true // to postion caret anywhere in editor
+        av
 
+    let search =            
+        let se = Search.SearchPanel.Install(avaEdit)
+        se.MarkerCornerRadius <- 0.
+        se.MatchCase  <- true  // config.Settings.GetBool("SearchMatchCase", true) // TODO how to save changes ?
+        se.WholeWords <- false // config.Settings.GetBool("SearchWholeWords", false)
+        se
+
+    let id = Guid.NewGuid()    
+    let mutable checkState = FileCheckState.NotStarted // local to this editor
+    let mutable filePath   = filePath    
+
+    let checker             = Checker.GetOrCreate(config)
+    let folds               = new Foldings(avaEdit,checker, config, id)
+    let evalTracker         = new EvaluationTracker(avaEdit, checker, id)
+    let errorHighlighter    = new ErrorHighlighter(avaEdit, folds.Manager)
+    let semanticHighlighter = SemanticHighlighting.setup(avaEdit, id, checker)
+    let compls              = new Completions(avaEdit, config, checker)    
+
+    do               
+        SyntaxHighlighting.setFSharp(avaEdit,false) 
         
-        SyntaxHighlighting.setFSharp(avaEdit,false)
-        search.MarkerCornerRadius <- 0.
-        search.MatchCase  <- true //config.Settings.GetBool("SearchMatchCase", true) // TODO how to save changes ?
-        search.WholeWords <- false //config.Settings.GetBool("SearchWholeWords", false)
-
-        //avaEdit.TextArea.Document.TextChanged.Add ( fun a -> ISeffLog.printError "Seff TextArea.Document.TextChanged")// debug only
         
 
     member val IsCurrent = false with get,set //  this is managed in Tabs.selectionChanged event handler
@@ -113,11 +108,12 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
     member this.Folds = folds
 
     member this.Search = search    
-
-    member val HighlightText = fun (t:string) -> () with get, set // this function will be set below in SetUp static member        
+    
+    /// This function will be set below in SetUp static member of Editor.
+    /// It is used to highlight text in the editor , for example to match the current selction in Log.
+    member val HighlightText = fun (t:string) -> () with get, set 
 
     // IEditor members:
-
     member this.Id              = id    
     member this.AvaEdit         = avaEdit
     
@@ -127,7 +123,7 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
     /// seting this alone does not change the tab header !!
     member this.FilePath        with get() = filePath    and set (v)= filePath <- v
     
-    member this.Log = log    
+    member this.Log = config.Log   
     member this.IsComplWinOpen  = compls.IsOpen
     member this.EvaluateFrom    = evalTracker.EvaluateFrom
 
@@ -136,7 +132,7 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
         member _.AvaEdit         = avaEdit
         member _.FileCheckState  with get() = checkState and  set(v) = checkState <- v
         member _.FilePath        = filePath // the interface is get only, it does not need a setter
-        member _.Log             = log
+        member _.Log             = config.Log
         member _.FoldingManager  = folds.Manager
         member _.EvaluateFrom    = evalTracker.EvaluateFrom
         member _.IsComplWinOpen  = compls.IsOpen        
@@ -147,19 +143,18 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
     static member SetUp  (code:string, config:Config, filePath:FilePath ) = 
         let ed = Editor(code, config, filePath )
         let avaEdit = ed.AvaEdit
-        let compls = ed.Completions
-        let log = ed.Log
+        let compls = ed.Completions        
         
         ed.HighlightText <- SelectionHighlighting.HiEditor.setup(ed)        
         BracketHighlighter.Setup(ed, ed.GlobalChecker) 
         
-
-        Logging.LogAction <- new Action<string>( fun (s:string) -> log.PrintfnDebugMsg "Logging.Log: %s" s)
+        // for logging Degug and Error Messages in AvalonEditB
+        Logging.LogAction <- new Action<string>( fun (s:string) -> ISeffLog.log.PrintfnDebugMsg "AvalonEditB Logging.Log: %s" s)
 
         avaEdit.Drop.Add                      (fun e -> DragAndDrop.onTextArea(  avaEdit, e))
         avaEdit.PreviewKeyDown.Add            (fun e -> KeyboardShortcuts.previewKeyDown(    ed     , e))  // A single Key event arg, indent and dedent, and change block selection delete behavior
         avaEdit.TextArea.PreviewTextInput.Add (fun e -> CursorBehavior.previewTextInput(     avaEdit, e))  // A TextCompositionEventArgs that has a string , handeling typing in rectangular selection
-        avaEdit.TextArea.AlternativeRectangularPaste <- Action<string,bool>( fun txt txtIsFromOtherRectSel -> RectangleSelection.paste(ed.AvaEdit,txt,txtIsFromOtherRectSel)) //TODO check txtIsFromOtherRectSel on pasting text with \r\n
+        avaEdit.TextArea.AlternativeRectangularPaste <- Action<string,bool>( fun txt txtIsFromOtherRectSel -> RectangleSelection.paste(ed.AvaEdit, txt, txtIsFromOtherRectSel)) //TODO check txtIsFromOtherRectSel on pasting text with \r\n
 
         // setup and tracking folding status, (needs a ref to file path:  )
         ed.Folds.InitState( ed )
@@ -170,7 +165,7 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
         avaEdit.TextArea.TextView.LineTransformers.Add(new NonStandardIndentColorizer(ed.Folds.BadIndentations))        
         
 
-        let rulers =  new ColumnRulers(avaEdit, log) // draw last , so on top? do foldings first
+        let rulers =  new ColumnRulers(avaEdit) // draw last , so on top? do foldings first
 
         //----------------------------------
         //--FS Checker and Code completion--
@@ -178,7 +173,7 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
         
         
         avaEdit.Document.Changed.Add(fun a -> 
-            DocChanged.logPerformance( a.InsertedText.Text)
+            DocChanged.logPerformance( a.InsertedText.Text) // autohokey SendInput of ßabcdefghijklmnopqrstuvwxyz£
             //DocChanged.delayDocChange(a, ed, compls, ed.GlobalChecker) // to trigger for Autocomplete or error highlighting with immediate delay, (instead of delay in checkCode function.)
             DocChanged.docChanged(a, ed, compls, ed.GlobalChecker)
             ed.EvalTracker.SetLastChangeAt(a.Offset)

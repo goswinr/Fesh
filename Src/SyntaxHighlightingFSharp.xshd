@@ -393,12 +393,13 @@
   </RuleSet>
   
   <RuleSet name="PunctuationSet">   
-    <Rule color="Punctuation">-&gt;</Rule>       
-    <Rule color="Punctuation">&lt;-</Rule>       
-    <!-- <Rule color="Punctuation">[ \[ \]  \| \\ \( \) &lt; &gt; &amp; \? , \. :  \{ \} \+ \* \^ ~ ! / % = ]</Rule>  -->
-    <!-- <Rule color="Punctuation">[ \. \$ \^ \{ \[ \( \| \) \* \+ \? \\ &lt; &gt; &amp;  , : \] \}  ~ ! / % = - ]</Rule>  -->
-    <Rule color="Punctuation">[ \. \$ \^ \{ \[ \( \| \)   \? \\ &lt; &gt; &amp;  , : \] \}  ~ !  % = ]</Rule> <!-- without operators-->
-    <!-- . $ ^ { [ ( | ) * + ? \ need escape -->    
+    <!-- the back and forward arrows : -->     
+    <Rule color="Punctuation">-&gt;</Rule>  
+    <Rule color="Punctuation">&lt;-</Rule>
+    <!-- any single character punctuation
+     . $ ^ { [ ( | ) * + ? \ need escape 
+      but excluding math operators: -->    
+    <Rule color="Punctuation">[ \. \$ \^ \{ \[ \( \| \)   \? \\ &lt; &gt; &amp;  , : \] \}  ~ !  % = ]</Rule> 
   </RuleSet>
 
   
@@ -482,7 +483,7 @@
   </RuleSet> 
 
   <RuleSet name="CodeMain">
-     <Import ruleSet="CommentSet"/> 
+    <Import ruleSet="CommentSet"/> 
     <Import ruleSet="InlineCommentSet"/> 
     <Import ruleSet="StringSet"/>
     <Import ruleSet="KeywordSet"/>    
@@ -499,11 +500,10 @@
     <Rule color="ExponentNumberLit">(?&lt;=\d)[eE][+-]?[0-9]+ </Rule><!-- (?&lt;=\d) is a positive lookbehind for digits -->
     <Rule color="NumberLiteral">\b[0-9_]+\.?[0-9_]*</Rule>
     <Rule color="Punctuation">[0-9\w]\-</Rule> <!-- to exclude a 'x-1' to be highlighted below too: -->
-    <Rule color="NegNumberLiteral">(?&lt;!\d)-[0-9_]+\.?[0-9_]*</Rule> <!-- (?&lt;!\d) is a negative lookbehind for digits -->
-    <!-- <Rule color="NumberType">(?&lt;=[0-9a-fA-F\.])[yfsuLULmM][yL]?</Rule> this fails for letters a-F -->    <!-- (?&lt;!\d) is a negative lookbehind for digits -->
-    
+    <Rule color="NegNumberLiteral">(?&lt;!\d)-[0-9_]+\.?[0-9_]*</Rule> <!-- (?&lt;!\d) is a negative lookbehind for digits -->        
     
     <Rule color="Semicolon">;</Rule>
+
     <Span color="NonEval" multiline="true" > <!--anything after a double semicolon is ignored in FSI-->
       <Begin>;;</Begin> 
       <End>justAnyStringThatNeverHappens</End>
@@ -517,13 +517,14 @@
         <Import ruleSet="PunctuationSet"/>         
       </RuleSet>
     </Span>
+
   </RuleSet>
   
-  <!--the main set (must not have a name attribute)-->  
+  <!--the main set (it must not have a name attribute): -->  
   <RuleSet>   
     <Import ruleSet="LoadDllSet"/>     
     <Import ruleSet="CodeMain"/>  
-    <!-- import last :-->  
+    <!-- import last: -->  
     <Import ruleSet="PunctuationSet"/>  
   </RuleSet>
 

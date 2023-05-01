@@ -198,7 +198,7 @@ type SegmentToMark (startOffset, length, e:FSharpDiagnostic)  =
 
 
 /// IBackgroundRenderer and IVisualLineTransformer
-type ErrorRenderer (ed:TextEditor, folds:Folding.FoldingManager, log:ISeffLog) = 
+type ErrorRenderer (ed:TextEditor, folds:Folding.FoldingManager) = 
 
     let doc = ed.Document
     let txA = ed.TextArea
@@ -227,7 +227,7 @@ type ErrorRenderer (ed:TextEditor, folds:Folding.FoldingManager, log:ISeffLog) =
                         drawingContext.DrawGeometry(Brushes.Transparent, segment.UnderlinePen, geo)
                         //break //TODO why break in original code on //https://stackoverflow.com/questions/11149907/showing-invalid-xml-syntax-with-avalonedit
         with ex ->
-            log.PrintfnAppErrorMsg "ERROR in ErrorRenderer.Draw: %A" ex
+            ISeffLog.log.PrintfnAppErrorMsg "ERROR in ErrorRenderer.Draw: %A" ex
 
     member _.Layer = KnownLayer.Selection // for IBackgroundRenderer
     member _.Transform(context:ITextRunConstructionContext , elements:IList<VisualLineElement>)=() // TODO needed ? // for IVisualLineTransformer
@@ -310,10 +310,10 @@ type ErrorRenderer (ed:TextEditor, folds:Folding.FoldingManager, log:ISeffLog) =
         member this.Transform(ctx,es) = this.Transform(ctx,es)
 
 
-type ErrorHighlighter (ed:TextEditor, folds:Folding.FoldingManager, log:ISeffLog) = 
+type ErrorHighlighter (ed:TextEditor, folds:Folding.FoldingManager) = 
 
     let tView= ed.TextArea.TextView
-    let renderer = ErrorRenderer(ed,folds,log)
+    let renderer = ErrorRenderer(ed,folds)
     let tip = new ToolTip(IsOpen=false) // TODO replace with something that can be pinned// TODO use popup instead of tooltip so it can be pinned?
 
     let drawnEv = new Event<IEditor>()

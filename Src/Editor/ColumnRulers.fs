@@ -13,9 +13,9 @@ open AvalonEditB.Folding
 
 open AvalonLog.Brush
 
-open Seff.Model
 
-type ColumnRulers (editor:TextEditor, log: ISeffLog)  as this = 
+
+type ColumnRulers (editor:TextEditor)  as this = 
     //https://github.com/icsharpcode/AvalonEdit/blob/master/ICSharpCode.AvalonEdit/Rendering/ColumnRulerRenderer.cs
 
     let columnsInit = 

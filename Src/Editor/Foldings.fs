@@ -28,7 +28,7 @@ type NonStandardIndentColorizer (badInds:ResizeArray<NonStandardIndent>) =
 
     let brush =        
         //Color.FromArgb(30uy,255uy,140uy,0uy) // a very light transparent Orange, transparent to show column rulers behind
-        Color.FromArgb(40uy,255uy,255uy,0uy) // a very light transparent Yellow, transparent to show columnrulers behind
+        Color.FromArgb(50uy,255uy,255uy,0uy) // a very light transparent Yellow, transparent to show columnrulers behind
         |> SolidColorBrush
         |> freeze
 
@@ -233,7 +233,7 @@ type Foldings(ed:TextEditor, checker:Checker, config:Config, edId:Guid) =
                                 let firstErrorOffset = -1 //The first position of a parse error. 
                                 manager.UpdateFoldings(folds, firstErrorOffset)
                                 
-                                // restore state after caret , because state gets lost after an auto complete                                
+                                // restore state after caret , because state gets lost after an auto complete insertion                             
                                 let co = iEditor.AvaEdit.CaretOffset
                                 for f in manager.AllFoldings do 
                                     if f.StartOffset > co then                                         
