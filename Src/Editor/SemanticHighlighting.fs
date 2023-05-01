@@ -21,8 +21,8 @@ module SemColor =
     let UnionCaseField               = freeze <| Brushes.LightSkyBlue  |> darker 100
     let Function                     = freeze <| Brushes.DarkGoldenrod |> darker 40
     let Property                     = freeze <| Brushes.DarkTurquoise |> darker 110
-    let MutableVar                   = freeze <| Brushes.Goldenrod |> darker 20
-    let MutableRecordField           = freeze <| Brushes.Goldenrod |> darker 20
+    let MutableVar                   = freeze <| Brushes.Goldenrod     |> darker 20
+    let MutableRecordField           = freeze <| Brushes.Goldenrod     |> darker 20
     let Module                       = freeze <| Brushes.Black
     let Namespace                    = freeze <| Brushes.Black  
     //let Printf                     = freeze <| Brushes.Plum      // covered by xshd
@@ -38,7 +38,7 @@ module SemColor =
     let Method                       = freeze <| Brushes.DarkTurquoise |> darker 60
     let ExtensionMethod              = freeze <| Brushes.DarkTurquoise |> darker 30
     let ConstructorForReferenceType  = freeze <| Brushes.Brown
-    let ConstructorForValueType      = freeze <| Brushes.SandyBrown |> darker 80
+    let ConstructorForValueType      = freeze <| Brushes.SandyBrown    |> darker 80
     let Literal                      = freeze <| Brushes.SeaGreen
     let RecordField                  = freeze <| Brushes.DarkSlateGray |> darker 10
     let RecordFieldAsFunction        = freeze <| Brushes.Plum
@@ -47,10 +47,10 @@ module SemColor =
     let Event                        = freeze <| Brushes.Olive
     let Delegate                     = freeze <| Brushes.DarkOliveGreen
     let NamedArgument                = freeze <| Brushes.PaleVioletRed |> darker 80
-    let Value                        = freeze <| Brushes.DarkRed  |> darker 20
-    let LocalValue                   = freeze <| Brushes.DarkRed  |> darker 40
-    let TypeDef                      = freeze <| Brushes.Thistle |> darker 50
-    let Plaintext                    = freeze <| Brushes.OrangeRed |> darker 60   
+    let Value                        = freeze <| Brushes.DarkRed       |> darker 20
+    let LocalValue                   = freeze <| Brushes.DarkRed       |> darker 40
+    let TypeDef                      = freeze <| Brushes.Thistle       |> darker 50
+    let Plaintext                    = freeze <| Brushes.OrangeRed     |> darker 60   
                                         
     let UnUsed                       = freeze <| Brushes.Gray |> brighter 30   
 
@@ -72,45 +72,46 @@ module SemAction =
         el.TextRunProperties.SetTypographyProperties(stylisticSet1) // for cursive set of cascadia mono
 
 
-    let ReferenceType                (el:VisualLineElement) = el.TextRunProperties.SetForegroundBrush(ReferenceType              )
-    let ValueType                    (el:VisualLineElement) = el.TextRunProperties.SetForegroundBrush(ValueType                  )
-    let UnionCase                    (el:VisualLineElement) = el.TextRunProperties.SetForegroundBrush(UnionCase                  )
-    let UnionCaseField               (el:VisualLineElement) = el.TextRunProperties.SetForegroundBrush(UnionCaseField             )
-    let Function                     (el:VisualLineElement) = el.TextRunProperties.SetForegroundBrush(Function                   )
-    let Property                     (el:VisualLineElement) = el.TextRunProperties.SetForegroundBrush(Property                   )
-    let MutableVar                   (el:VisualLineElement) = el.TextRunProperties.SetForegroundBrush(MutableVar                 )
-    let Module                       (el:VisualLineElement) = el.TextRunProperties.SetForegroundBrush(Module                     )
-    let Namespace                    (el:VisualLineElement) = el.TextRunProperties.SetForegroundBrush(Namespace                  )
-    //let Printf                     (el:VisualLineElement) = el.TextRunProperties.SetForegroundBrush(Printf                     ) // covered by xshd
-    let ComputationExpression        (el:VisualLineElement) = el.TextRunProperties.SetForegroundBrush(ComputationExpression      )
-    let IntrinsicFunction            (el:VisualLineElement) = el.TextRunProperties.SetForegroundBrush(IntrinsicFunction          )
-    let Enumeration                  (el:VisualLineElement) = el.TextRunProperties.SetForegroundBrush(Enumeration                )
-    let Interface                    (el:VisualLineElement) = el.TextRunProperties.SetForegroundBrush(Interface                  )
-    let TypeArgument                 (el:VisualLineElement) = el.TextRunProperties.SetForegroundBrush(TypeArgument               )
-    let Operator                     (el:VisualLineElement) = el.TextRunProperties.SetForegroundBrush(Operator                   )
-    let DisposableType               (el:VisualLineElement) = el.TextRunProperties.SetForegroundBrush(DisposableType             )
-    let DisposableTopLevelValue      (el:VisualLineElement) = el.TextRunProperties.SetForegroundBrush(DisposableTopLevelValue    )
-    let DisposableLocalValue         (el:VisualLineElement) = el.TextRunProperties.SetForegroundBrush(DisposableLocalValue       )
-    let Method                       (el:VisualLineElement) = el.TextRunProperties.SetForegroundBrush(Method                     )
-    let ExtensionMethod              (el:VisualLineElement) = el.TextRunProperties.SetForegroundBrush(ExtensionMethod            )
-    let ConstructorForReferenceType  (el:VisualLineElement) = el.TextRunProperties.SetForegroundBrush(ConstructorForReferenceType)
-    let ConstructorForValueType      (el:VisualLineElement) = el.TextRunProperties.SetForegroundBrush(ConstructorForValueType    )
-    let Literal                      (el:VisualLineElement) = el.TextRunProperties.SetForegroundBrush(Literal                    )
-    let RecordField                  (el:VisualLineElement) = el.TextRunProperties.SetForegroundBrush(RecordField                )
-    let MutableRecordField           (el:VisualLineElement) = el.TextRunProperties.SetForegroundBrush(MutableRecordField         )
-    let RecordFieldAsFunction        (el:VisualLineElement) = el.TextRunProperties.SetForegroundBrush(RecordFieldAsFunction      )
-    let Exception                    (el:VisualLineElement) = el.TextRunProperties.SetForegroundBrush(Exception                  )
-    let Field                        (el:VisualLineElement) = el.TextRunProperties.SetForegroundBrush(Field                      )
-    let Event                        (el:VisualLineElement) = el.TextRunProperties.SetForegroundBrush(Event                      )
-    let Delegate                     (el:VisualLineElement) = el.TextRunProperties.SetForegroundBrush(Delegate                   )
-    let NamedArgument                (el:VisualLineElement) = el.TextRunProperties.SetForegroundBrush(NamedArgument              )
-    let Value                        (el:VisualLineElement) = el.TextRunProperties.SetForegroundBrush(Value                      )
-    let LocalValue                   (el:VisualLineElement) = el.TextRunProperties.SetForegroundBrush(LocalValue                 )//; makeCursive el
-    let Type                         (el:VisualLineElement) = el.TextRunProperties.SetForegroundBrush(Type                       )
-    let TypeDef                      (el:VisualLineElement) = el.TextRunProperties.SetForegroundBrush(TypeDef                    )
-    let Plaintext                    (el:VisualLineElement) = el.TextRunProperties.SetForegroundBrush(Plaintext                  )
-
-    let UnUsed                       (el:VisualLineElement) = el.TextRunProperties.SetForegroundBrush(UnUsed )
+    let ReferenceTypeA              = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(ReferenceType              ))
+    let ReferenceType               = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(ReferenceType              ))
+    let ValueType                   = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(ValueType                  ))
+    let UnionCase                   = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(UnionCase                  ))
+    let UnionCaseField              = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(UnionCaseField             ))
+    let Function                    = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(Function                   ))
+    let Property                    = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(Property                   ))
+    let MutableVar                  = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(MutableVar                 ))
+    let Module                      = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(Module                     ))
+    let Namespace                   = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(Namespace                  ))
+    //let Printf                    = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(Printf                     )) // covered by xshd
+    let ComputationExpression       = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(ComputationExpression      ))
+    let IntrinsicFunction           = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(IntrinsicFunction          ))
+    let Enumeration                 = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(Enumeration                ))
+    let Interface                   = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(Interface                  ))
+    let TypeArgument                = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(TypeArgument               ))
+    let Operator                    = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(Operator                   ))
+    let DisposableType              = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(DisposableType             ))
+    let DisposableTopLevelValue     = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(DisposableTopLevelValue    ))
+    let DisposableLocalValue        = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(DisposableLocalValue       ))
+    let Method                      = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(Method                     ))
+    let ExtensionMethod             = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(ExtensionMethod            ))
+    let ConstructorForReferenceType = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(ConstructorForReferenceType))
+    let ConstructorForValueType     = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(ConstructorForValueType    ))
+    let Literal                     = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(Literal                    ))
+    let RecordField                 = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(RecordField                ))
+    let MutableRecordField          = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(MutableRecordField         ))
+    let RecordFieldAsFunction       = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(RecordFieldAsFunction      ))
+    let Exception                   = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(Exception                  ))
+    let Field                       = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(Field                      ))
+    let Event                       = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(Event                      ))
+    let Delegate                    = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(Delegate                   ))
+    let NamedArgument               = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(NamedArgument              ))
+    let Value                       = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(Value                      ))
+    let LocalValue                  = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(LocalValue                 ))//; makeCursive el
+    let Type                        = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(Type                       ))
+    let TypeDef                     = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(TypeDef                    ))
+    let Plaintext                   = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(Plaintext                  ))
+                                    
+    let UnUsed                      = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(UnUsed))
    
 // type alias
 type Sc = SemanticClassificationType
@@ -152,7 +153,6 @@ type SemanticColorizer (ied:TextEditor, edId:Guid, ch:Checker) =
         match lastCode.IndexOf('.',st,en-st) with 
         | -1 -> st 
         |  i -> i + 1
-
 
     let action (el:VisualLineElement,brush:SolidColorBrush,r:Text.Range) =
         el.TextRunProperties.SetForegroundBrush(Brushes.Red)
