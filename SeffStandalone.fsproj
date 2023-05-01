@@ -77,7 +77,7 @@
     <Compile Include="Src/Util.fs" />
     <Compile Include="Src/ParseFs.fs" />
     <Compile Include="Src/Timer.fs" />
-    <Compile Include="Src\StyleState.fs" />
+    <Compile Include="Src/StyleState.fs" />
     <Compile Include="Src/Model.fs" />
     <Compile Include="Src/Config/RunContext.fs" />
     <Compile Include="Src/Config/DefaultCode.fs" />
@@ -91,7 +91,7 @@
 
     <Compile Include="Src/Fsi.fs" />
     <Compile Include="Src/CompileScript.fs" />
-    <Compile Include="Src\XmlParser.fs" />
+    <Compile Include="Src/XmlParser.fs" />
     <Compile Include="Src/Editor/AutoFixErrors.fs" />
 
     <Compile Include="Src/Editor/Selection.fs" />

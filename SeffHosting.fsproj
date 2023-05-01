@@ -75,31 +75,36 @@
     <!-- <Resource Include="Media/FiraCode-Regular.ttf" /> -->
 	<None Include="Src/SyntaxHighlightingFSharp.xshd" CopyToOutputDirectory="PreserveNewest" TargetPath="SyntaxHighlightingFSharp.xshd" Pack="true" PackagePath="\" />
 
-	 <Compile Include="Src/Util.fs" />
-    <Compile Include="Src/ParseFs.fs" />
-    <Compile Include="Src/Timer.fs" />
-    <Compile Include="Src/StyleState.fs" />
-    <Compile Include="Src/Model.fs" />
-    <Compile Include="Src/Config/RunContext.fs" />
-    <Compile Include="Src/Config/DefaultCode.fs" />
+	<Compile Include="Src/Util.fs" />
+	<Compile Include="Src/ParseFs.fs" />
+	<Compile Include="Src/Timer.fs" />
+	<Compile Include="Src/StyleState.fs" />
+	<Compile Include="Src/Model.fs" />
+	<Compile Include="Src/Config/RunContext.fs" />
+	<Compile Include="Src/Config/DefaultCode.fs" />
 	<Compile Include="Src/Config/ScriptCompilerTemplate.fs" />
-    <Compile Include="Src/Config/FsiArguments.fs" />
-    <Compile Include="Src/Config/OpenTabs.fs" />
-    <Compile Include="Src/Config/RecentlyUsedFiles.fs" />
-    <Compile Include="Src/Config/AutoCompleteStatistic.fs" />    
-    <Compile Include="Src/Config/FoldingStatus.fs" />
-    <Compile Include="Src/Config/Config.fs" />
+	<Compile Include="Src/Config/FsiArguments.fs" />
+	<Compile Include="Src/Config/OpenTabs.fs" />
+	<Compile Include="Src/Config/RecentlyUsedFiles.fs" />
+	<Compile Include="Src/Config/AutoCompleteStatistic.fs" />
+	<Compile Include="Src/Config/FoldingStatus.fs" />
+	<Compile Include="Src/Config/Config.fs" />
 
-    <Compile Include="Src/Fsi.fs" />
-    <Compile Include="Src/CompileScript.fs" />
+	<Compile Include="Src/Fsi.fs" />
+	<Compile Include="Src/CompileScript.fs" />
+	<Compile Include="Src/XmlParser.fs" />
+	<Compile Include="Src/Editor/AutoFixErrors.fs" />
 
-	<Compile Include="Src/Editor/AutoFixErrors.fs" /> 
 	<Compile Include="Src/Editor/Selection.fs" />
 	<Compile Include="Src/Editor/RectangleSelection.fs" />
 	<Compile Include="Src/Editor/SwapWords.fs" />
 	<Compile Include="Src/Editor/Commenting.fs" />
-	<Compile Include="Src/Editor/DocString.fs" />
-	<Compile Include="Src/Editor/SyntaxHighlighting.fs" />
+	<Compile Include="Src/Editor/ColumnRulers.fs" />
+	<Compile Include="Src/Editor/SwapLines.fs" />
+	<Compile Include="Src/Editor/CursorBehavior.fs" />
+	<Compile Include="Src/Editor/KeyboardShortcuts.fs" />
+	<Compile Include="Src/Editor/AlignText.fs" />
+	<Compile Include="Src/Editor/XshdHighlighting.fs" />
 	<Compile Include="Src/Editor/ErrorHighlighter.fs" />
 	<Compile Include="Src/Editor/TypeInfo.fs" />
 	<Compile Include="Src/Editor/Checker.fs" />
@@ -109,29 +114,24 @@
 	<Compile Include="Src/Editor/SelectedTextTracer.fs" />
 	<Compile Include="Src/Editor/SemanticHighlighting.fs" />
 	<Compile Include="Src/Editor/BracketColorizer.fs" />
-	<Compile Include="Src/Editor/ColumnRulers.fs" />
-	<Compile Include="Src/Editor/SwapLines.fs" />
-	<Compile Include="Src/Editor/CursorBehavior.fs" />
-	<Compile Include="Src/Editor/KeyboardShortcuts.fs" />
-	<Compile Include="Src/Editor/AlignText.fs" />
 	<Compile Include="Src/Editor/DocChanged.fs" />
 	<Compile Include="Src/Editor/Editor.fs" />
 
-    <Compile Include="Src/Views/Log.fs" />
-    <Compile Include="Src/Views/SeffWindow.fs" />
-    <Compile Include="Src/Views/FileWatcher.fs" />
-    <Compile Include="Src/Views/Tab.fs" />
-    <Compile Include="Src/Views/Tabs.fs" />
-    <Compile Include="Src/Views/TabsAndLog.fs" />
-    <Compile Include="Src/Views/Fonts.fs" />
-    <Compile Include="Src/Views/StatusBar.fs" />
-    <Compile Include="Src/Views/PopOut.fs" />
-    <Compile Include="Src/Views/Commands.fs" />
-    <Compile Include="Src/Views/Menu.fs" />
-    <Compile Include="Src/Views/Seff.fs" />
+	<Compile Include="Src/Views/Log.fs" />
+	<Compile Include="Src/Views/SeffWindow.fs" />
+	<Compile Include="Src/Views/FileWatcher.fs" />
+	<Compile Include="Src/Views/Tab.fs" />
+	<Compile Include="Src/Views/Tabs.fs" />
+	<Compile Include="Src/Views/TabsAndLog.fs" />
+	<Compile Include="Src/Views/Fonts.fs" />
+	<Compile Include="Src/Views/StatusBar.fs" />
+	<Compile Include="Src/Views/PopOut.fs" />
+	<Compile Include="Src/Views/Commands.fs" />
+	<Compile Include="Src/Views/Menu.fs" />
+	<Compile Include="Src/Views/Seff.fs" />
 
-    <Compile Include="Src/Initialize.fs" />
-    <Compile Include="Src/App.fs" />
+	<Compile Include="Src/Initialize.fs" />
+	<Compile Include="Src/App.fs" />
 
   </ItemGroup>
 

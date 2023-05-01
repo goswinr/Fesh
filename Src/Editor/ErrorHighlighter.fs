@@ -34,7 +34,7 @@ module ErrorStyle=
     let warnSquiggle    = Pen(  Brushes.Yellow  |> darker 40      |> freeze, 1.0) |> Pen.freeze
     let warnBackGr      =       Brushes.Yellow  |> brighter 200   |> freeze
 
-    let infoSquiggle    = Pen(  Brushes.Green  |> darker 5      |> freeze, 1.0) |> Pen.freeze
+    let infoSquiggle    = Pen(  Brushes.Green  |> darker 5       |> freeze, 1.0) |> Pen.freeze
     let infoBackGr      =       Brushes.Green  |> brighter 220   |> freeze
 
 module ErrorUtil =    
@@ -42,7 +42,7 @@ module ErrorUtil =
     let mutable private scrollToIdx = -1
 
     /// because the UI gets a lag if there are 100 of errors to draw
-    let maxAmountOfErrorsToDraw = 12 
+    let maxAmountOfErrorsToDraw = 7 
 
     /// split errors by severity and sort by line number 
     let getBySeverity(checkRes:CodeAnalysis.FSharpCheckFileResults) :ErrorsBySeverity =
@@ -205,7 +205,6 @@ type ErrorRenderer (ed:TextEditor, folds:Folding.FoldingManager) =
     let segments = new TextSegmentCollection<SegmentToMark>(doc)
     let mutable prevHash = 0L 
     let mutable prevSeg = None
-
 
     /// Draw the error squiggle  on the code
     member _.Draw (textView:TextView , drawingContext:DrawingContext) = // for IBackgroundRenderer
