@@ -74,8 +74,8 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
         avaEdit.Options.HideCursorWhileTyping <- false
         avaEdit.TextArea.SelectionCornerRadius <- 0.0
         avaEdit.TextArea.SelectionBorder <- null
-        avaEdit.FontFamily <- Style.fontEditor
-        avaEdit.FontSize <- config.Settings.GetFloat("SizeOfFont", Style.fontSize) // TODO odd sizes like  17.0252982466288  makes block selection delete fail on the last line
+        avaEdit.FontFamily <- StyleState.fontEditor
+        avaEdit.FontSize <- config.Settings.GetFloat("SizeOfFont", StyleState.fontSize) // TODO odd sizes like  17.0252982466288  makes block selection delete fail on the last line
         avaEdit.AllowDrop <- true
         //avaEdit.TextArea.TextView.CurrentLineBackground <- Brushes.Ivory |> Brush.brighter 10 |> Brush.freeze
         //avaEdit.TextArea.TextView.CurrentLineBorder <- new Pen(Brushes.Gainsboro|> Brush.freeze, 2.0) |> Util.Pen.freeze
@@ -98,8 +98,7 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
     member val SemanticRanges : SemanticClassificationItem [] = [| |] with get,set
 
     member val CodeAtLastSave : string = "" with get,set // used to check if file was changed in the background by other apps in FileChangeTracker
-   // member val PathAtLastSave : string = "" with get,set // used to check if unsaved file was saved under a new name in FileChangeTracker (and ch
-
+   
     // all instances of Editor refer to the same checker instance
     member this.GlobalChecker = checker
 
@@ -119,8 +118,7 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
 
     // IEditor members:
 
-    member this.Id              = id
-    
+    member this.Id              = id    
     member this.AvaEdit         = avaEdit
     
     /// This CheckState is local to the current editor
@@ -129,10 +127,8 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
     /// seting this alone does not change the tab header !!
     member this.FilePath        with get() = filePath    and set (v)= filePath <- v
     
-    member this.Log = log
-    
-    member this.IsComplWinOpen  = compls.IsOpen    
-
+    member this.Log = log    
+    member this.IsComplWinOpen  = compls.IsOpen
     member this.EvaluateFrom    = evalTracker.EvaluateFrom
 
     interface IEditor with
@@ -160,9 +156,9 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
 
         Logging.LogAction <- new Action<string>( fun (s:string) -> log.PrintfnDebugMsg "Logging.Log: %s" s)
 
-        avaEdit.Drop.Add                      (fun e -> CursorBehavior.TextAreaDragAndDrop(  avaEdit, e))
-        avaEdit.PreviewKeyDown.Add            (fun e -> KeyboardShortcuts.previewKeyDown(    avaEdit, e, compls, ed.Search))   //to indent and dedent, and change block selection delete behavior
-        avaEdit.TextArea.PreviewTextInput.Add (fun e -> CursorBehavior.previewTextInput(     avaEdit, e))   //to change block selection delete behavior
+        avaEdit.Drop.Add                      (fun e -> DragAndDrop.onTextArea(  avaEdit, e))
+        avaEdit.PreviewKeyDown.Add            (fun e -> KeyboardShortcuts.previewKeyDown(    ed     , e))  // A single Key event arg, indent and dedent, and change block selection delete behavior
+        avaEdit.TextArea.PreviewTextInput.Add (fun e -> CursorBehavior.previewTextInput(     avaEdit, e))  // A TextCompositionEventArgs that has a string , handeling typing in rectangular selection
         avaEdit.TextArea.AlternativeRectangularPaste <- Action<string,bool>( fun txt txtIsFromOtherRectSel -> RectangleSelection.paste(ed.AvaEdit,txt,txtIsFromOtherRectSel)) //TODO check txtIsFromOtherRectSel on pasting text with \r\n
 
         // setup and tracking folding status, (needs a ref to file path:  )
@@ -178,32 +174,8 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
 
         //----------------------------------
         //--FS Checker and Code completion--
-        //----------------------------------  
+        //----------------------------------         
         
-        (* https://github.com/icsharpcode/AvalonEdit/blob/master/ICSharpCode.AvalonEdit.Sample/document.html
-        Change Events:
-            Here is the order in which events are raised during a document update:
-            BeginUpdate()
-
-            UpdateStarted event is raised
-            Insert() / Remove() / Replace()
-
-            Changing event is raised
-            The document is changed
-            TextAnchor.Deleted events are raised if anchors were in the deleted text portion
-            Changed event is raised
-            EndUpdate()
-
-            TextChanged event is raised
-            TextLengthChanged event is raised
-            LineCountChanged event is raised
-            UpdateFinished event is raised
-        If the insert/remove/replace methods are called without a call to BeginUpdate(), they will call BeginUpdate() and EndUpdate() to ensure no change happens outside of UpdateStarted/UpdateFinished.
-
-        There can be multiple document changes between the BeginUpdate() and EndUpdate() calls. In this case, the events associated with EndUpdate will be raised only once after the whole document update is done.
-
-        The UndoStack listens to the UpdateStarted and UpdateFinished events to group all changes into a single undo step.
-        *)         
         
         avaEdit.Document.Changed.Add(fun a -> 
             DocChanged.logPerformance( a.InsertedText.Text)
@@ -237,3 +209,30 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
     static member New (config:Config) =  
         let dummyName = Counter.UnsavedFileName()
         Editor.SetUp( config.DefaultCode.Get() , config, NotSet dummyName)
+
+
+    (* https://github.com/icsharpcode/AvalonEdit/blob/master/ICSharpCode.AvalonEdit.Sample/document.html
+
+        Change Events:
+            Here is the order in which events are raised during a document update:
+            BeginUpdate()
+
+            UpdateStarted event is raised
+            Insert() / Remove() / Replace()
+
+            Changing event is raised
+            The document is changed
+            TextAnchor.Deleted events are raised if anchors were in the deleted text portion
+            Changed event is raised
+            EndUpdate()
+
+            TextChanged event is raised
+            TextLengthChanged event is raised
+            LineCountChanged event is raised
+            UpdateFinished event is raised
+        If the insert/remove/replace methods are called without a call to BeginUpdate(), they will call BeginUpdate() and EndUpdate() to ensure no change happens outside of UpdateStarted/UpdateFinished.
+
+        There can be multiple document changes between the BeginUpdate() and EndUpdate() calls. In this case, the events associated with EndUpdate will be raised only once after the whole document update is done.
+
+        The UndoStack listens to the UpdateStarted and UpdateFinished events to group all changes into a single undo step.
+        *) 

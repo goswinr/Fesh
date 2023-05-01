@@ -37,7 +37,7 @@ module Keys =
         | Key.DeadCharProcessed  -> e.DeadCharProcessedKey
         | k                      -> k
 
-module KeyboardNative = 
+module KeyboardNative  = 
     // TODO this global key hook might cause the app to be flagged as spyware/ keylogger ??
 
     // all of this module only exists to be able to use Alt and Up in Rhino too , not just standalone.
@@ -233,19 +233,22 @@ module KeyboardShortcuts =
 
     /// gets attached to ech editor instance. via avaEdit.PreviewKeyDown.Add
     /// except for Alt and arrow keys that are handeled via KeyboardNative
-    let previewKeyDown (ed:TextEditor, ke:Input.KeyEventArgs, compls:Completions, search:Search.SearchPanel) = 
-        if ed.TextArea.IsFocused then
+    let previewKeyDown (ied:IEditor, ke:Input.KeyEventArgs) =  
+        let ed = ied.AvaEdit
+        let ta = ed.TextArea
+        let sel = getSelType(ta)
+        if ta.IsFocused then // to skip if search panel is focused 
             match realKey ke  with
             |Input.Key.Back -> // also do if completion window is open
                 // TODO check for modifier keys like Alt or Ctrl ?
-                match getSelType(ed.TextArea) with
+                match sel with
                 | NoSel   ->   CursorBehavior.backspace4Chars(ed,ke)
                 | RectSel ->   RectangleSelection.backspaceKey(ed) ; ke.Handled <- true
                 | RegSel  ->   ()
 
             |Input.Key.Delete -> // also do if completion window is open
                 // TODO check for modifier keys like Alt or Ctrl ?
-                match getSelType(ed.TextArea) with
+                match sel with
                 | NoSel   ->  CursorBehavior.deleteTillNonWhite(ed,ke)
                 | RectSel ->  RectangleSelection.deleteKey(ed) ; ke.Handled <- true
                 | RegSel  ->  ()
@@ -254,7 +257,7 @@ module KeyboardShortcuts =
                 if isUp Ctrl // if alt or ctrl is down this means sending to fsi ...
                 && isUp Alt
                 && isUp Shift 
-                && compls.IsNotOpen then CursorBehavior.addFSharpIndentation(ed,ke)  // add indent after do, for , ->, = 
+                && not ied.IsComplWinOpen then CursorBehavior.addFSharpIndentation(ed,ke)  // add indent after do, for , ->, = 
             
             (*
             handled in: let altKeyCombo(akey:AltKeyCombo)
@@ -293,4 +296,4 @@ module KeyboardShortcuts =
 
             | _ -> ()
 
-
+    

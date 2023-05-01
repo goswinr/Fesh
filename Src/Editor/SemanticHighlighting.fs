@@ -68,7 +68,7 @@ module SemAction =
         // let tf = new Typeface(f, FontStyles.Italic, FontWeights.Bold, FontStretches.Normal)
         // eprintfn $"makeCursive {f}"
         // el.TextRunProperties.SetTypeface(tf)
-        el.TextRunProperties.SetTypeface(Seff.Style.italicBoldEditorTf)
+        el.TextRunProperties.SetTypeface(Seff.StyleState.italicBoldEditorTf)
         el.TextRunProperties.SetTypographyProperties(stylisticSet1) // for cursive set of cascadia mono
 
 

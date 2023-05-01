@@ -77,7 +77,7 @@
     <Compile Include="Src/Util.fs" />
     <Compile Include="Src/ParseFs.fs" />
     <Compile Include="Src/Timer.fs" />
-    <Compile Include="Src/Style.fs" />
+    <Compile Include="Src\StyleState.fs" />
     <Compile Include="Src/Model.fs" />
     <Compile Include="Src/Config/RunContext.fs" />
     <Compile Include="Src/Config/DefaultCode.fs" />
@@ -91,14 +91,19 @@
 
     <Compile Include="Src/Fsi.fs" />
     <Compile Include="Src/CompileScript.fs" />
+    <Compile Include="Src\XmlParser.fs" />
     <Compile Include="Src/Editor/AutoFixErrors.fs" />
 
     <Compile Include="Src/Editor/Selection.fs" />
     <Compile Include="Src/Editor/RectangleSelection.fs" />
     <Compile Include="Src/Editor/SwapWords.fs" />
     <Compile Include="Src/Editor/Commenting.fs" />
-    <Compile Include="Src/Editor/DocString.fs" />
-    <Compile Include="Src/Editor/SyntaxHighlighting.fs" />
+    <Compile Include="Src/Editor/ColumnRulers.fs" />
+    <Compile Include="Src/Editor/SwapLines.fs" />
+    <Compile Include="Src/Editor/CursorBehavior.fs" />
+    <Compile Include="Src/Editor/KeyboardShortcuts.fs" />
+    <Compile Include="Src/Editor/AlignText.fs" />
+    <Compile Include="Src/Editor/XshdHighlighting.fs" />
     <Compile Include="Src/Editor/ErrorHighlighter.fs" />
     <Compile Include="Src/Editor/TypeInfo.fs" />
     <Compile Include="Src/Editor/Checker.fs" />
@@ -108,11 +113,6 @@
     <Compile Include="Src/Editor/SelectedTextTracer.fs" />
     <Compile Include="Src/Editor/SemanticHighlighting.fs" />
     <Compile Include="Src/Editor/BracketColorizer.fs" />
-    <Compile Include="Src/Editor/ColumnRulers.fs" />
-    <Compile Include="Src/Editor/SwapLines.fs" />
-    <Compile Include="Src/Editor/CursorBehavior.fs" />
-    <Compile Include="Src/Editor/KeyboardShortcuts.fs" />
-    <Compile Include="Src/Editor/AlignText.fs" />
     <Compile Include="Src/Editor/DocChanged.fs" />
     <Compile Include="Src/Editor/Editor.fs" />
 

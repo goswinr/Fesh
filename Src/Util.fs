@@ -312,8 +312,8 @@ module Str  =
         else s.Substring(0,s.Length-count)
 
 
-/// for searching in string but skipping over everything that is in double quotes.
-/// also skips over escaped double quotes \"
+/// For searching in string but skipping over everything that is in double quotes.
+/// Also skips over escaped double quotes \"
 [<RequireQualifiedAccess>]
 module NotInQuotes = 
     // tested OK !

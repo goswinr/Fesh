@@ -1,10 +1,14 @@
 ﻿namespace Seff.Util
-open System
 
-
+()
 
 (*
 Works fine but currently unused:
+
+
+
+open System
+
 
 
 /// Simple parsing of Fsharp code

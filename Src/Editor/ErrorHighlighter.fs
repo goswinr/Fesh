@@ -330,8 +330,8 @@ type ErrorHighlighter (ed:TextEditor, folds:Folding.FoldingManager, log:ISeffLog
                 let seg = segmentsAtOffset.[0] // TODO show all Errors at this segment not just first ?
                 let tb = new TextBlock()
                 tb.Text <- seg.Message       //TODO move styling out of event handler ?
-                tb.FontSize <- Style.fontSize
-                tb.FontFamily <- Style.fontToolTip //TODO use another monospace font ?
+                tb.FontSize <- StyleState.fontSize
+                tb.FontFamily <- StyleState.fontToolTip //TODO use another monospace font ?
                 tb.TextWrapping <- TextWrapping.Wrap
                 //tb.Foreground <- Media.SolidColorBrush(if seg.IsWarning then Colors.DarkRed else Colors.DarkGreen)
                 tip.Content <- tb

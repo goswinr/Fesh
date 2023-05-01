@@ -83,7 +83,7 @@ module CompileScript =
                     let age = DateTime.UtcNow - fi.LastWriteTimeUtc
                     if age > (TimeSpan.FromHours maxAgeHours) then
                         let msg = sprintf "Do you want to recompile and overwrite the existing files?\r\n \r\n%s\r\n \r\nthat are %.2f days old at\r\n \r\n(This dialog only shows if the last compilation was more than %.1f hours ago.)"fi.FullName age.TotalDays  maxAgeHours
-                        //match MessageBox.Show(msg, Style.dialogCaption, MessageBoxButtons.YesNo, MessageBoxIcon.Exclamation, MessageBoxDefaultButton.Button2) with  // uses Windows.Forms  
+                        //match MessageBox.Show(msg, StyleState.dialogCaption, MessageBoxButtons.YesNo, MessageBoxIcon.Exclamation, MessageBoxDefaultButton.Button2) with  // uses Windows.Forms  
                         match MessageBox.Show(
                             IEditor.mainWindow, 
                             msg, 

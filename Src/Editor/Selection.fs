@@ -9,7 +9,8 @@ open Seff.Model
 
 [<RequireQualifiedAccess>]
 module Mouse = 
-          
+    
+    /// Get Document Offset from mouse position event
     let getOffset(e: MouseEventArgs, ed:TextEditor) = 
         let textView = ed.TextArea.TextView
         let mutable pt = e.GetPosition(textView);
@@ -218,10 +219,11 @@ module SelectionForEval =
         length = t.Length + Environment.NewLine.Length
         }
 
-
-    // returns start line umber and selected text, end offset
-    //let linesFromCursor(avaEdit:TextEditor) = 
-    //    let doc = avaEdit.Document
-    //    let st = doc.GetLineByOffset(avaEdit.SelectionStart)
-    //    avaEdit.Select(st.Offset,avaEdit.Document.TextLength-st.Offset)
-    //    st.LineNumber,avaEdit.SelectedText
+    (*
+    /// returns start line umber and selected text, end offset
+    let linesFromCursor(avaEdit:TextEditor) = 
+        let doc = avaEdit.Document
+        let st = doc.GetLineByOffset(avaEdit.SelectionStart)
+        avaEdit.Select(st.Offset,avaEdit.Document.TextLength-st.Offset)
+        st.LineNumber,avaEdit.SelectedText
+    *)

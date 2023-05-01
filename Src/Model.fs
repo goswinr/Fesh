@@ -51,7 +51,7 @@ module ISeffLog =
     /// A reference to the global single instance of the Log view, will be set immediately after construction
     /// declared here in Utils so it can be used in other modules that are declared before Log view.
     let mutable log = 
-        Unchecked.defaultof<ISeffLog> //set immediately when Log instance is created in Initialize.everything
+        Unchecked.defaultof<ISeffLog> //set immediately when Log instance is created in function Initialize.everything()
 
     /// A simple error logging function using PrintfnAppErrorMsg
     let printError s = 
@@ -154,8 +154,7 @@ type FilePath =
 
     member this.DoesNotExistsAsFile = match this with  SetTo _ ->  false | Deleted _ |NotSet _ -> true
     member this.ExistsAsFile        = match this with  SetTo _ ->  true  | Deleted _ |NotSet _ -> false
-    //member this.IsnotSet = match this with  SetTo _ ->  false | NotSet _ -> true
-    //member this.IsSet    = match this with  SetTo _ ->  true  | NotSet _ -> false
+
   
 
 // so that the Editor can be used before declared

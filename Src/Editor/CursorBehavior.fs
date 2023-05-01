@@ -13,8 +13,8 @@ open Seff.Util.Str
 module Doc = 
 
     /// Offset is at Line end.
-    /// or only has spaces before line end
-    let (*inline*) offsetIsAtLineEnd offset (doc:TextDocument) = // removed inline to have function name in error stack trace
+    /// Or only has spaces before line end
+    let offsetIsAtLineEnd offset (doc:TextDocument) = // removed inline to have function name in error stack trace
         let last = doc.TextLength - 1
         let rec isAtLineEnd off =  // or only has spaces before line end
             if off > last then true // file end
@@ -28,7 +28,7 @@ module Doc =
 
 
     /// Does not look for spaces after caret
-    let (*inline*) spacesAtStartOfLineAndBeforeOffset offset (doc:TextDocument) = // removed inline to have function name in error stack trace
+    let spacesAtStartOfLineAndBeforeOffset offset (doc:TextDocument) = // removed inline to have function name in error stack trace
         let rec find off  k =  // or only has spaces before line end
             if off < 0 then k
             else
@@ -40,7 +40,7 @@ module Doc =
         find (offset-1) 0
     
     /// If caret is in comment ( not at end of comment line) returns amount of slashes, otherwise 0
-    let isCaretInComment caret (doc:TextDocument):int =
+    let isCaretInComment (caret:int) (doc:TextDocument):int =
         let ln = doc.GetLineByOffset(caret)
         let rec isInside pos = 
             pos = ln.EndOffset
@@ -60,21 +60,24 @@ module Doc =
             find ln.Offset 0
         else 
             0
+    
+    (* unused:
 
-    //let (*inline*) commentSlashesTillCaret caret (doc:TextDocument) = // removed inline to have function name in error stack trace
-    //    let ln = doc.GetLineByOffset(caret)
-    //    let rec find off k = 
-    //        if off = caret then k
-    //        else
-    //            match doc.GetCharAt(off) with
-    //            | ' ' when k=0-> find (off+1) k               
-    //            | '/' -> find (off+1) (k+1)   
-    //            |  _ -> k
-    //    find ln.Offset 0
+    let commentSlashesTillCaret caret (doc:TextDocument) = // removed inline to have function name in error stack trace
+        let ln = doc.GetLineByOffset(caret)
+        let rec find off k = 
+            if off = caret then k
+            else
+                match doc.GetCharAt(off) with
+                | ' ' when k=0-> find (off+1) k               
+                | '/' -> find (off+1) (k+1)   
+                |  _ -> k
+        find ln.Offset 0
+    *)
 
-
+    /// Returns the string directly before the offset, it will be maximum of the specified length
     /// Will do a bound check and return less chars if needed
-    let (*inline*) getTextBeforeOffsetSkipSpaces desiredCharsCount offset  (doc:TextDocument) = // removed inline to have function name in error stack trace
+    let getTextBeforeOffsetSkipSpaces desiredCharsCount offset  (doc:TextDocument) = // removed inline to have function name in error stack trace
         if desiredCharsCount < 0 then failwithf "getTextBeforeOffsetSkipSpaces desiredCharsCount=%d must be positive" desiredCharsCount
         elif desiredCharsCount = 0 then ""                   
         elif offset-desiredCharsCount < 0 then ""
@@ -98,7 +101,7 @@ module Doc =
                 doc.GetText(st,len)    
 
     /// Returns offset of next non white char, passing max one line break
-    let (*inline*) nextNonWhiteCharOneLine offset (doc:TextDocument) = // removed inline to have function name in error stack trace
+    let nextNonWhiteCharOneLine offset (doc:TextDocument) = // removed inline to have function name in error stack trace
         let len = doc.TextLength
         let rec find off rs = 
             if off >= len then len
@@ -110,7 +113,7 @@ module Doc =
         find offset false
 
     /// Returns spaces till next non white char on same line, or 0 if the rest of the line is just whitespace
-    let (*inline*) countNextSpaces offset (doc:TextDocument) = // removed inline to have function name in error stack trace
+    let countNextSpaces offset (doc:TextDocument) = // removed inline to have function name in error stack trace
         let last = doc.TextLength - 1
         let rec find off  k = 
             if off > last then k
@@ -121,12 +124,14 @@ module Doc =
         find offset 0
 
     /// State of the caret
-    // used in isCaretInStringOrChar
+    /// used in isCaretInStringOrChar
     type internal State = 
         |Code  // in code
         |Str   // in string
         |Chr   // in  character
         |ChrSt // at character start, needed because ''' and '\'' are both valid
+    
+    (* better use the highlighing engines state because it also works for multiline strings: 
 
     /// Checks if Caret is in String or Character quotes: " or '
     /// only checks current line
@@ -171,6 +176,7 @@ module Doc =
         |Str
         |Chr
         |ChrSt -> true
+    *)
 
 
 module CursorBehavior  = 
@@ -317,7 +323,7 @@ module CursorBehavior  =
         | ")" // this bracket get added most of the time automatically via addClosingBracket()
         | ","
         | ";"  as c ->
-            if Selection.hasNoSelection ed.TextArea && not <| Doc.isCaretInStringOrChar(ed)  then
+            if Selection.hasNoSelection ed.TextArea (* && not <| Doc.isCaretInStringOrChar(ed) *)  then
                 ed.Document.Insert(ed.TextArea.Caret.Offset, c + " ") // add trailing space
                 e.Handled <- true // TODO raise TextArea.TextEntered Event ?
         | _ -> ()
@@ -424,18 +430,23 @@ module CursorBehavior  =
             
             | _ -> ()
 
-
+    
     let previewTextInput(ed:TextEditor, e:Input.TextCompositionEventArgs) = 
-         //if not ed.IsComplWinOpen then
+        // not needed: if not ed.IsComplWinOpen then
         match getSelType(ed.TextArea) with
-        | RectSel ->  RectangleSelection.insertText(ed, e.Text) ; e.Handled <- true // all input in rectangular selection is handled here.
+        | RectSel ->  
+            RectangleSelection.insertText(ed, e.Text) ; e.Handled <- true // all input in rectangular selection is handled here.
         | NoSel | RegSel ->     
             addWhitespaceAfterChar(ed,e)
             if not e.Handled then 
                 addClosingBracket(ed,e)
+    
 
 
-    let TextAreaDragAndDrop (ed:TextEditor,  e:DragEventArgs) = 
+[<RequireQualifiedAccess>]
+module DragAndDrop = 
+    
+    let onTextArea (ed:TextEditor,  e:DragEventArgs) = 
         let doc = ed.Document
         if e.Data.GetDataPresent DataFormats.FileDrop then
             let isDll (p:string) = p.EndsWith(".dll", StringComparison.OrdinalIgnoreCase) ||  p.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)
@@ -531,7 +542,7 @@ module CursorBehavior  =
 
     /// A Event handler that will open a new tab per file.
     /// If event comes from a AvalonEditB.TextEditor that is not read only ( like the Log) the event is ignored.
-    let TabBarDragAndDrop (openFiles: string[] -> bool, e:DragEventArgs) = 
+    let onTabHeaders (openFiles: string[] -> bool, e:DragEventArgs) = 
         //ISeffLog.log.PrintfnDebugMsg "Drop onto e.Source :%A ; e.OriginalSource:%A" e.Source e.OriginalSource
         let addTabsForFiles() = 
             if e.Data.GetDataPresent DataFormats.FileDrop then

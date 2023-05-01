@@ -60,35 +60,35 @@ type CheckerStatus (grid:TabsAndLog) as this =
         let hik = es.hiddens.Count
         makePanelVert [
             if erk>0 then
-                if addPersistInfo then TextBlock(Text = "Click on text in statusbar or press Ctrl + E keys to scroll to first error.", FontSize = Style.fontSize * 0.75, FontStyle = FontStyles.Italic, Margin=Thickness 3.0)
-                if addPersistInfo then TextBlock(Text = "Press Ctrl + P to persist this tooltip window.", FontSize = Style.fontSize * 0.75, FontStyle = FontStyles.Italic, Margin=Thickness 3.0)                
-                TextBlockSelectable(Text = "File: " + tabs.Current.FormattedFileName, FontSize = Style.fontSize * 0.8, Margin=Thickness 3.0 )
-                TextBlock(Text = "Errors:", FontSize = Style.fontSize , FontWeight = FontWeights.Bold )
+                if addPersistInfo then TextBlock(Text = "Click on text in statusbar or press Ctrl + E keys to scroll to first error.", FontSize = StyleState.fontSize * 0.75, FontStyle = FontStyles.Italic, Margin=Thickness 3.0)
+                if addPersistInfo then TextBlock(Text = "Press Ctrl + P to persist this tooltip window.", FontSize = StyleState.fontSize * 0.75, FontStyle = FontStyles.Italic, Margin=Thickness 3.0)                
+                TextBlockSelectable(Text = "File: " + tabs.Current.FormattedFileName, FontSize = StyleState.fontSize * 0.8, Margin=Thickness 3.0 )
+                TextBlock(Text = "Errors:", FontSize = StyleState.fontSize , FontWeight = FontWeights.Bold )
             for e in Seq.truncate 10 es.errors do
-                TextBlockSelectable(Text = sprintf "• line %d: %s: %s" e.StartLine e.ErrorNumberText e.Message, FontSize = Style.fontSize * 0.9, Margin=Thickness 3.0 )
+                TextBlockSelectable(Text = sprintf "• line %d: %s: %s" e.StartLine e.ErrorNumberText e.Message, FontSize = StyleState.fontSize * 0.9, Margin=Thickness 3.0 )
             if erk > 10 then
-                TextBlock(Text = sprintf "• and %d more ..." (erk-10), FontSize = Style.fontSize * 0.9)
+                TextBlock(Text = sprintf "• and %d more ..." (erk-10), FontSize = StyleState.fontSize * 0.9)
 
             if wak>0 then
-                TextBlock(Text="Warnings:", FontSize = Style.fontSize , FontWeight = FontWeights.Bold )
+                TextBlock(Text="Warnings:", FontSize = StyleState.fontSize , FontWeight = FontWeights.Bold )
             for w in Seq.truncate 10 es.warnings do
-                TextBlockSelectable(Text = sprintf "• line %d: %s: %s" w.StartLine w.ErrorNumberText w.Message, FontSize = Style.fontSize * 0.9, Margin=Thickness 3.0 )
+                TextBlockSelectable(Text = sprintf "• line %d: %s: %s" w.StartLine w.ErrorNumberText w.Message, FontSize = StyleState.fontSize * 0.9, Margin=Thickness 3.0 )
             if wak > 10 then
-                TextBlock(Text = sprintf "• and %d more ..." (wak-10), FontSize = Style.fontSize * 0.9)  
+                TextBlock(Text = sprintf "• and %d more ..." (wak-10), FontSize = StyleState.fontSize * 0.9)  
                 
             if ink>0 then
-                TextBlock(Text="Infos:", FontSize = Style.fontSize , FontWeight = FontWeights.Bold )
+                TextBlock(Text="Infos:", FontSize = StyleState.fontSize , FontWeight = FontWeights.Bold )
             for i in Seq.truncate 10 es.infos do
-                TextBlockSelectable(Text = sprintf "• line %d: %s: %s" i.StartLine i.ErrorNumberText i.Message, FontSize = Style.fontSize * 0.9, Margin=Thickness 3.0 )
+                TextBlockSelectable(Text = sprintf "• line %d: %s: %s" i.StartLine i.ErrorNumberText i.Message, FontSize = StyleState.fontSize * 0.9, Margin=Thickness 3.0 )
             if ink > 10 then
-                TextBlock(Text = sprintf "• and %d more ..." (ink-10), FontSize = Style.fontSize * 0.9)  
+                TextBlock(Text = sprintf "• and %d more ..." (ink-10), FontSize = StyleState.fontSize * 0.9)  
             
             if hik>0 then
-                TextBlock(Text="Hidden Infos:", FontSize = Style.fontSize , FontWeight = FontWeights.Bold )
+                TextBlock(Text="Hidden Infos:", FontSize = StyleState.fontSize , FontWeight = FontWeights.Bold )
             for h in Seq.truncate 10 es.hiddens do
-                TextBlockSelectable(Text = sprintf "• line %d: %s: %s" h.StartLine h.ErrorNumberText h.Message, FontSize = Style.fontSize * 0.9, Margin=Thickness 3.0 )
+                TextBlockSelectable(Text = sprintf "• line %d: %s: %s" h.StartLine h.ErrorNumberText h.Message, FontSize = StyleState.fontSize * 0.9, Margin=Thickness 3.0 )
             if hik > 10 then
-                TextBlock(Text = sprintf "• and %d more ..." (ink-10), FontSize = Style.fontSize * 0.9)  
+                TextBlock(Text = sprintf "• and %d more ..." (ink-10), FontSize = StyleState.fontSize * 0.9)  
             ]
 
 
@@ -212,7 +212,7 @@ type FsiRunStatus (grid:TabsAndLog) as this =
                 | All                 ->  this.Inlines.Add(new Run ("FSI is running ",           Foreground = grayText))
                 | ContinueFromChanges ->  this.Inlines.Add(new Run ("FSI continues to run ",  Foreground = grayText))
                 | FsiSegment _        ->  this.Inlines.Add(new Run ("FSI is running a part of ", Foreground = grayText))
-                this.Inlines.Add( new Run (fi.Name, FontFamily = Style.fontEditor) )
+                this.Inlines.Add( new Run (fi.Name, FontFamily = StyleState.fontEditor) )
                 this.Inlines.Add( new Run (" . . ."                                           , Foreground = grayText))
             |NotSet dummyName ->
                 this.Inlines.Add( "FSI is running "+dummyName + " . . ." )
@@ -281,7 +281,7 @@ type SelectedEditorTextStatus (grid:TabsAndLog) as this =
             |FoundSome hr -> 
                 this.Inlines.Clear()
                 this.Inlines.Add( sprintf "%d of " hr.offsets.Count)
-                this.Inlines.Add( new Run (hr.text, FontFamily = Style.fontEditor, Background = SelectionHighlighting.colorEditor))
+                this.Inlines.Add( new Run (hr.text, FontFamily = StyleState.fontEditor, Background = SelectionHighlighting.colorEditor))
                 this.Inlines.Add( sprintf " (%d Chars) " hr.text.Length)       
         
         
@@ -339,7 +339,7 @@ type SelectedLogTextStatus (grid:TabsAndLog) as this =
             |FoundSome hr -> 
                 this.Inlines.Clear()
                 this.Inlines.Add( sprintf "%d of " hr.offsets.Count)
-                this.Inlines.Add( new Run (hr.text, FontFamily = Style.fontLog, Background = SelectionHighlighting.colorLog))
+                this.Inlines.Add( new Run (hr.text, FontFamily = StyleState.fontLog, Background = SelectionHighlighting.colorLog))
                 this.Inlines.Add( sprintf " (%d Chars) " hr.text.Length)       
         
         

@@ -30,7 +30,7 @@ type Tab (editor:Editor) = //, config:Seff.Config.Config, allFileInfos:seq<IO.Fi
     let mutable isCodeSaved        = true
     let mutable headerShowsSaved   = true
 
-    let textBlock = new TextBlock(VerticalAlignment = VerticalAlignment.Center) //, Padding = Thickness(2.) ) , FontFamily = Style.fontEditor)
+    let textBlock = new TextBlock(VerticalAlignment = VerticalAlignment.Center) //, Padding = Thickness(2.) ) , FontFamily = StyleState.fontEditor)
 
     let closeButton = 
         let b =  new Button()

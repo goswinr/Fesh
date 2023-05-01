@@ -72,8 +72,8 @@ type TypeInfo private () =
     static let coloredSignature(td:ToolTipData): TextBlockSelectable = 
         let tb = TextBlockSelectable()
         tb.Foreground <- black
-        tb.FontSize   <- Style.fontSize * 1.2
-        tb.FontFamily <- Style.fontToolTip
+        tb.FontSize   <- StyleState.fontSize * 1.2
+        tb.FontFamily <- StyleState.fontToolTip
         let ts = td.signature
         let mutable len = 0        
         
@@ -196,15 +196,15 @@ type TypeInfo private () =
         [
         new Run(" ") 
         match td.optDefs |> Seq.tryFind ( fun oa -> oa = t ) with
-        | Some od ->  new Run("?"+t ,FontFamily = Style.fontEditor, FontSize = Style.fontSize*1.1,  Foreground = gray,   Background = white) 
-        | None    ->  new Run(t ,FontFamily = Style.fontEditor, FontSize = Style.fontSize*1.1,  Foreground = black,   Background = white)         
+        | Some od ->  new Run("?"+t ,FontFamily = StyleState.fontEditor, FontSize = StyleState.fontSize*1.1,  Foreground = gray,   Background = white) 
+        | None    ->  new Run(t ,FontFamily = StyleState.fontEditor, FontSize = StyleState.fontSize*1.1,  Foreground = black,   Background = white)         
         new Run(" ") 
         ]
 
     static let mainXmlBlock (node:XmlParser.Child, td:ToolTipData): TextBlockSelectable =
         let tb = new TextBlockSelectable()
-        tb.FontSize   <- Style.fontSize  * 1.0
-        tb.FontFamily <- Style.fontToolTip        
+        tb.FontSize   <- StyleState.fontSize  * 1.0
+        tb.FontFamily <- StyleState.fontToolTip        
         let mutable last = "" 
         
         let rec loop (c:XmlParser.Child) parentName addTitle d = 
@@ -267,15 +267,15 @@ type TypeInfo private () =
         let inline add(e:UIElement) =  panel.Children.Add e |> ignore            
 
         if addPersistInfo then 
-            add <|  TextBlock(Text = "Press Ctrl + P to persist this window.", FontSize = Style.fontSize * 0.75) 
+            add <|  TextBlock(Text = "Press Ctrl + P to persist this window.", FontSize = StyleState.fontSize * 0.75) 
         
         match ted.declListItem with
         |None -> ()
         |Some dItem -> 
             let tb = new TextBlockSelectable(Text = dItem.Glyph.ToString() )
             tb.Foreground <- Brushes.DarkOrange |> darker 10
-            tb.FontSize <- Style.fontSize  * 0.95
-            tb.FontFamily <- Style.fontToolTip
+            tb.FontSize <- StyleState.fontSize  * 0.95
+            tb.FontFamily <- StyleState.fontToolTip
             //tb.FontWeight <- FontWeights.Bold
             add tb  
             
@@ -285,8 +285,8 @@ type TypeInfo private () =
             let tb = new TextBlockSelectable(Text = sem.Type.ToString() )
             //let tb = new TextBlockSelectable(Text = $"{sem.Type}, {sem.Range.EndColumn-sem.Range.StartColumn} chars") //from {sem.Range.StartColumn}")
             tb.Foreground <- Brushes.DarkOrange |> darker 10
-            tb.FontSize <- Style.fontSize  * 0.95
-            tb.FontFamily <- Style.fontToolTip
+            tb.FontSize <- StyleState.fontSize  * 0.95
+            tb.FontFamily <- StyleState.fontToolTip
             //tb.FontWeight <- FontWeights.Bold
             add tb  
 
@@ -304,8 +304,8 @@ type TypeInfo private () =
                 if td.name <> "" then
                     let tb = new TextBlockSelectable(Text= "Name: " + td.name)
                     tb.Foreground <- black
-                    tb.FontSize <- Style.fontSize * 0.9
-                    //tb.FontFamily <- Style.elronet
+                    tb.FontSize <- StyleState.fontSize * 0.9
+                    //tb.FontFamily <- StyleState.elronet
                     tb.FontWeight <- FontWeights.Bold
                     subAdd tb
 
@@ -319,7 +319,7 @@ type TypeInfo private () =
                     //else                    assemblies.Add(ass) |> ignore
                     subAdd <| mainXmlBlock (node, td)
                 |Error errTxt  ->
-                    subAdd<|  TextBlockSelectable(Text = errTxt, FontSize = Style.fontSize  * 0.75 , FontFamily = Style.fontToolTip, Foreground = gray )                   
+                    subAdd<|  TextBlockSelectable(Text = errTxt, FontSize = StyleState.fontSize  * 0.75 , FontFamily = StyleState.fontToolTip, Foreground = gray )                   
                 
                 let border = Border()
                 border.Child <- subPanel
@@ -335,15 +335,15 @@ type TypeInfo private () =
                 //tb.Inlines.Add( new Run("Full name: ",  Foreground = darkgray))
                 tb.Inlines.Add( new Run(td.fullName  ,  Foreground = darkblue))
                 tb.Foreground <- darkblue
-                tb.FontSize <- Style.fontSize  * 1.0
-                tb.FontFamily <- Style.fontToolTip
+                tb.FontSize <- StyleState.fontSize  * 1.0
+                tb.FontFamily <- StyleState.fontToolTip
                 add tb 
 
         if assemblies.Count > 0 then
             let tb = 
                 if assemblies.Count = 1 then new TextBlockSelectable(Text= "assembly: "   + Seq.head assemblies)
                 else                         new TextBlockSelectable(Text= "assemblies: " + String.concat "\r\n" assemblies)
-            tb.FontSize <- Style.fontSize  * 0.85
+            tb.FontSize <- StyleState.fontSize  * 0.85
             tb.Foreground <-black
             //tb.FontFamily <- new FontFamily ("Arial") // or use default of device
             add tb   
@@ -352,7 +352,7 @@ type TypeInfo private () =
             |None -> ()
             |Some f -> 
                     let tb = TextBlockSelectable(Text= "assembly path: " + f)
-                    tb.FontSize <- Style.fontSize  * 0.85
+                    tb.FontSize <- StyleState.fontSize  * 0.85
                     tb.Foreground <-black
                     //tb.FontFamily <- new FontFamily ("Arial") // or use default of device
                     add tb 
@@ -363,7 +363,7 @@ type TypeInfo private () =
                 let f = r.FileName.Replace('\\','/')
                 if f <> "unknown" then 
                     let tb = TextBlockSelectable(Text = sprintf "defined at: %s  Line:%d" f r.StartLine)
-                    tb.FontSize <- Style.fontSize  * 0.85
+                    tb.FontSize <- StyleState.fontSize  * 0.85
                     tb.Foreground <-black
                     //tb.FontFamily <- new FontFamily ("Arial") // or use default of device
                     add tb 
@@ -575,7 +575,7 @@ type TypeInfo private () =
                         do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context
                         
                         if List.isEmpty ttds then                                                     
-                            tip.Content <- new TextBlock(Text = "No type info found for:\r\n'" + word + "'", FontSize = Style.fontSize  * 0.65 ,FontFamily = Style.fontToolTip, Foreground = gray )                            
+                            tip.Content <- new TextBlock(Text = "No type info found for:\r\n'" + word + "'", FontSize = StyleState.fontSize  * 0.65 ,FontFamily = StyleState.fontToolTip, Foreground = gray )                            
                             //ed.TypeInfoToolTip.IsOpen <- false
                         else                            
                             let sem, declLoc, dllLoc = 

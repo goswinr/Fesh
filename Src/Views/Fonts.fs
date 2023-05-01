@@ -81,7 +81,7 @@ type Fonts (grid:TabsAndLog) = // will be constructed as part of Commands class
     let setLog() =                 
         match tryGetFontOrAlt "FontLog" with 
         |Some f -> 
-            Style.fontLog <- f
+            StyleState.fontLog <- f
             log.AvalonLog.FontFamily <- f
             sett.Set ("FontLog", f.Source)
             sett.Save()
@@ -90,10 +90,10 @@ type Fonts (grid:TabsAndLog) = // will be constructed as part of Commands class
     let setEditor() = // on log and all tabs
         match tryGetFontOrAlt "FontEditor" with 
         |Some f -> 
-            Style.fontEditor <- f            
-            Style.italicBoldEditorTf  <-  new Typeface(f, FontStyles.Italic, FontWeights.Bold,  FontStretches.Normal) 
-            Style.italicEditorTf      <-  new Typeface(f, FontStyles.Italic, FontWeights.Bold,  FontStretches.Normal) 
-            Style.boldEditorTf        <-  new Typeface(f, FontStyles.Italic, FontWeights.Normal, FontStretches.Normal)
+            StyleState.fontEditor <- f            
+            StyleState.italicBoldEditorTf  <-  new Typeface(f, FontStyles.Italic, FontWeights.Bold,  FontStretches.Normal) 
+            StyleState.italicEditorTf      <-  new Typeface(f, FontStyles.Italic, FontWeights.Bold,  FontStretches.Normal) 
+            StyleState.boldEditorTf        <-  new Typeface(f, FontStyles.Italic, FontWeights.Normal, FontStretches.Normal)
 
             for t in tabs.AllTabs do  t.Editor.AvaEdit.FontFamily  <- f
             sett.Set ("FontEditor", f.Source)
@@ -113,7 +113,7 @@ type Fonts (grid:TabsAndLog) = // will be constructed as part of Commands class
     let setToolTip() = // on log and all tabs
         match tryGetFontOrAlt "FontToolTip" with 
         |Some f -> 
-            Style.fontToolTip <- f
+            StyleState.fontToolTip <- f
             sett.Set ("FontToolTip", f.Source)
             sett.Save()
         |None -> ()
@@ -123,7 +123,7 @@ type Fonts (grid:TabsAndLog) = // will be constructed as part of Commands class
         for t in tabs.AllTabs do
             t.Editor.AvaEdit.FontSize  <- newSize
         sett.SetFloat ("SizeOfFont", newSize)
-        Style.fontSize <- newSize
+        StyleState.fontSize <- newSize
         sett.Save ()
         log.PrintfnInfoMsg "new font size: %.2f" newSize
 

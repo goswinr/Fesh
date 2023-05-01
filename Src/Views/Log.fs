@@ -102,7 +102,7 @@ type Log private () =
 
     member internal this.AdjustToSettingsInConfig(config:Config)=         
         setLineWrap( config.Settings.GetBool ("logHasLineWrap", true) )
-        log.FontSize  <- config.Settings.GetFloat ("SizeOfFont" , Seff.Style.fontSize )
+        log.FontSize  <- config.Settings.GetFloat ("SizeOfFont" , Seff.StyleState.fontSize )
 
     member this.ToggleLineWrap(config:Config)= 
         let newState = not log.WordWrap

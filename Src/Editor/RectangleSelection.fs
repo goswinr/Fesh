@@ -262,10 +262,10 @@ module RectangleSelection =
         else
             delete (ed, s)
 
-
+    /// The replacment for the OnTextInput handler on TextArea of AvalonEditB
     let insertText (ed:TextEditor, txt: string) = 
         match txt with
-        | null | "" | "\x1b" | "\b" -> ()  // see avalonedit source
+        | null | "" | "\x1b" | "\b" -> ()  // see avalonedit source OnTextInput event handler on Text Area
         // ASCII 0x1b = ESC.
         // also see TextArea.OnTextInput implementation
         // WPF produces a TextInput event with that old ASCII control char

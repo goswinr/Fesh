@@ -5,7 +5,7 @@
 open System.Windows // for FontStyles
 open System.Windows.Media // for FontFamily
 
-module Style =  
+module StyleState =  
 
     // used for startup only, will be set f in  Fonts.fs :
     let mutable fontEditor      = FontFamily("Consolas") 

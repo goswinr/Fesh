@@ -25,8 +25,8 @@ module UtilCompletion =
     let mkTexBlock(txt,style) = // the displayed item in the completion window 
         let mutable tb = Controls.TextBlock()
         tb.Text <- txt
-        tb.FontFamily <- Style.fontEditor
-        tb.FontSize <-   Style.fontSize
+        tb.FontFamily <- StyleState.fontEditor
+        tb.FontSize <-   StyleState.fontSize
         //tb.Foreground  <- col // fails on selection, does not get color inverted//check  https://blogs.msdn.microsoft.com/text/2009/08/28/selection-brush/ ??        
         tb.FontStyle <- style
         tb.Padding <- Thickness(0. , 0. , 8. , 0. ) //left top right bottom / so that it does not appear to be trimmed
