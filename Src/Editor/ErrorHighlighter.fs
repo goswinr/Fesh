@@ -365,7 +365,7 @@ type ErrorHighlighter (ed:TextEditor, folds:Folding.FoldingManager) =
         | Done res ->            
             renderer.AddSegments(res)
             drawnEv.Trigger(iEditor) // to update foldings now
-        | NotStarted |  GettingCode _ | Checking _ | CheckFailed -> ()
+        | NotStarted  | Checking _ | CheckFailed -> ()
 
     member this.ToolTip = tip
 

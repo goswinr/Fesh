@@ -1,5 +1,7 @@
 namespace Seff.Editor
 
+
+
 // Highlighting needs:
     
 
@@ -39,11 +41,15 @@ type SelectionChangedConsequence =
     | HighlightSelection // and redraw all or find range ?
     | NoSelectionHighlight // just on char,  white or multiline
 
+open Seff.Model
 
 /// Tracking the lastest change Ids to the document
 type InteractionState() =
 
+    /// Does not increment while  waiting for completion window to open 
+    /// or while waiting for an item in the completion window to be picked
     member val DocChangedId  = ref 0L with get 
    
     member val DocChangedConsequence = React with get, set
 
+    

@@ -109,12 +109,7 @@ type CheckResults = {
 type FileCheckState = 
     | NotStarted
 
-    //| DocChanging
-
-    /// Getting the code from avalon edit text editor asynchronous
-    | GettingCode of CheckId
-
-    /// Got the code from avalon edit async, now running in FCS async
+    /// Got the code from AvalonEdit async, now running in FCS async
     | Checking of CheckId * CodeAsString
 
     /// The CheckResults are always local per Editor
@@ -124,7 +119,7 @@ type FileCheckState =
 
     member this.CodeAndId  = 
         match this with
-        | NotStarted   | GettingCode _  | CheckFailed -> NoCode
+        | NotStarted   |  CheckFailed -> NoCode
         | Checking (id, c)  ->  CodeID (c       ,id)  
         | Done res          ->  CodeID (res.code,res.checkId ) 
 
@@ -141,7 +136,6 @@ type FileCheckState =
     override this.ToString() = 
         match this with
         | NotStarted        ->  "FileCheckState.NotStarted"
-        | GettingCode _     ->  "FileCheckState.GettingCode"
         | CheckFailed       ->  "FileCheckState.Failed"
         | Checking (id, c)  ->  "FileCheckState.Checking"
         | Done res          ->  "FileCheckState.Done with " +  res.checkRes.Diagnostics.Length.ToString() +  " infos, warnings or errors"

@@ -132,15 +132,12 @@ type CheckerStatus (grid:TabsAndLog) as this =
                 tip.Placement <- Primitives.PlacementMode.Top //https://docs.microsoft.com/en-us/dotnet/framework/wpf/controls/popup-placement-behavior
                 tip.VerticalOffset <- -6.0
                 this.ToolTip <- tip
-                            
-
-        | GettingCode id0
+              
         | Checking (id0,_) ->
             async{
                 do! Async.Sleep 300 // delay  to only show check in progress massage if it takes long, otherwise just show results via on checked event
                 if iEditor.Id = tabs.Current.Editor.Id then // to cancel if tab changed
-                    match iEditor.FileCheckState with
-                    | GettingCode id300
+                    match iEditor.FileCheckState with                    
                     | Checking (id300,_) ->
                         if id300 = id0 then // this is still the most recent checker
                             lastErrCount <- -1

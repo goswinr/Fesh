@@ -1,14 +1,9 @@
 ﻿namespace Seff.Editor
 
 open System
-open System.Windows.Media
-open FSharp.Compiler
-open FSharp.Compiler.EditorServices
 open AvalonEditB
 open AvalonEditB.Rendering
-open AvalonLog.Brush
 open Seff.Model
-open System.Windows
 
 
 type Change = {
