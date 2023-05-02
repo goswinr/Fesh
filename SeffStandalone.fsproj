@@ -1,79 +1,77 @@
-<?xml version="1.0" encoding="utf-8"?>
-<Project Sdk="Microsoft.NET.Sdk.WindowsDesktop"> <!--WinDesktop for WPF, it is also needed so that resources work with dotnet build, 'WindowsDesktop' must be included when building for net472 and net6.0-->
-
- <PropertyGroup>
-    <OutputType>WinExe</OutputType>    
-    <TargetFrameworks>net472;net7.0-windows</TargetFrameworks>    
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk.WindowsDesktop">
+  <!--WinDesktop for WPF, it is also needed so that resources work with dotnet build, 'WindowsDesktop' must be included when building for net472 and net6.0-->
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFrameworks>net472;net7.0-windows</TargetFrameworks>
     <UseWPF>true</UseWPF>
-    <UseWindowsForms>true</UseWindowsForms> <!--inherited from Avalonedit ?-->
+    <UseWindowsForms>true</UseWindowsForms>
+    <!--inherited from Avalonedit ?-->
     <LangVersion>preview</LangVersion>
-
     <!--<PublishSingleFile>true</PublishSingleFile>
     <SelfContained>true</SelfContained>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <PublishReadyToRun>true</PublishReadyToRun>  
 	   doesn't work, long build times  ?-->
-
     <NeutralLanguage>en</NeutralLanguage>
-    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>    <!--to only have the English resources-->
-    <GenerateDocumentationFile>true</GenerateDocumentationFile> <!-- just in case the editor itself gets refrenced from a script , normaly -->
-    <FSharpCoreIncludeDocFileInOutput>true</FSharpCoreIncludeDocFileInOutput> <!-- does not work when used in visual studio? only dotnet sdk ?-->
-
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+    <!--to only have the English resources-->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <!-- just in case the editor itself gets refrenced from a script , normaly -->
+    <FSharpCoreIncludeDocFileInOutput>true</FSharpCoreIncludeDocFileInOutput>
+    <!-- does not work when used in visual studio? only dotnet sdk ?-->
     <RootNamespace>Seff</RootNamespace>
     <AssemblyName>Seff</AssemblyName>
     <AssemblyTitle>Seff</AssemblyTitle>
     <Title>Seff</Title>
     <Product>Seff</Product>
     <PackageId>Seff</PackageId>
-
     <Version>0.9.0</Version>
     <AssemblyVersion>0.9.0</AssemblyVersion>
     <FileVersion>0.9.0</FileVersion>
     <PackageReleaseNotes>First public release</PackageReleaseNotes>
-    <Company>Goswin Rothenthal</Company><!--shows up on file preview on exe in explorer-->
+    <Company>Goswin Rothenthal</Company>
+    <!--shows up on file preview on exe in explorer-->
     <Authors>GoswinR</Authors>
     <Copyright>Goswin Rothenthal 2019</Copyright>
-
     <Description>A hostable fsharp scripting editor for Windows based on Avalonedit</Description>
     <ApplicationIcon>Media/logo.ico</ApplicationIcon>
-    <Win32Resource>Media/logo.res</Win32Resource>  <!-- Win32Resource for Application Icon in explorer-->
-
+    <Win32Resource>Media/logo.res</Win32Resource>
+    <!-- Win32Resource for Application Icon in explorer-->
     <Configurations>Release</Configurations>
     <DefineConstants Condition="'$(TargetFramework)' == 'net472'">NETFRAMEWORK</DefineConstants>
-	
     <RuntimeIdentifiers>win-x64;win-x86</RuntimeIdentifiers>
-    <OutputPath>binStandalone</OutputPath>    
+    <OutputPath>binStandalone</OutputPath>
   </PropertyGroup>
-
-
   <ItemGroup>
     <!--
     <Reference Include="AvalonEditB"> <HintPath>..\AvalonLog\bin\Release\net472\AvalonEditB.dll</HintPath>	  </Reference>
     <Reference Include="AvalonLog"> <HintPath>..\AvalonLog\bin\Release\net472\AvalonLog.dll</HintPath>	  </Reference>
     -->
-    <PackageReference Include="AvalonLog" Version="0.9.1" GeneratePathProperty="true" />	  	  
+    <PackageReference Include="AvalonLog" Version="0.9.1" GeneratePathProperty="true" />
     <PackageReference Update="FSharp.Core" Version="7.0.200" GeneratePathProperty="true" />
     <PackageReference Include="FSharp.Compiler.Service" Version="43.7.200" GeneratePathProperty="true" />
     <PackageReference Include="FsEx.Wpf" Version="0.5.0" GeneratePathProperty="true" />
-    <PackageReference Include="AvalonEditB" Version="1.7.1" GeneratePathProperty="true" />	  <!-- just to pull in XML too below-->
-
+    <PackageReference Include="AvalonEditB" Version="1.7.1" GeneratePathProperty="true" />
+    <!-- just to pull in XML too below-->
     <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.1" PrivateAssets="All" IncludeAssets="runtime; build; native; contentfiles; analyzers; buildtransitive" />
     <!-- https://docs.microsoft.com/en-us/nuget/consume-packages/package-references-in-project-files#controlling-dependency-assets -->
-
     <!--this reference is needed for tooling only, it might not be installed on host PC. see also https://github.com/fsprojects/IfSharp/issues/213 -->
     <PackageReference Include="NETStandard.Library" Version="2.0.3" GeneratePathProperty="true" />
   </ItemGroup>
-
   <ItemGroup>
     <None Include="README.md" />
     <None Include="Media/READMEnuget.md" Pack="true" PackagePath="\" />
-    <None Include="Media/logo128.png" Pack="true" PackagePath="\" /> <!--PackagePath = "\" makes the file available to nuget pack tool-->
-    <EmbeddedResource Include="Media/logo.res" /> <!--  for Application Icon in explorer-->
-    <Resource Include="Media/logo.ico" />       <!--  for Application Icon in primary windows-->
-    <Resource Include="Media/logoGray.ico" />    <!--  for Application Icon in secondary PopOut windows--> 
-    <!-- <Resource Include="Media/FiraCode-Regular.ttf" /> -->   
+    <None Include="Media/logo128.png" Pack="true" PackagePath="\" />
+    <!--PackagePath = "\" makes the file available to nuget pack tool-->
+    <EmbeddedResource Include="Media/logo.res" />
+    <!--  for Application Icon in explorer-->
+    <Resource Include="Media/logo.ico" />
+    <!--  for Application Icon in primary windows-->
+    <Resource Include="Media/logoGray.ico" />
+    <!--  for Application Icon in secondary PopOut windows-->
+    <!-- <Resource Include="Media/FiraCode-Regular.ttf" /> -->
     <None Include="Src/SyntaxHighlightingFSharp.xshd" CopyToOutputDirectory="PreserveNewest" TargetPath="SyntaxHighlightingFSharp.xshd" />
-
     <Compile Include="Src/Util.fs" />
     <Compile Include="Src/ParseFs.fs" />
     <Compile Include="Src/Timer.fs" />
@@ -88,12 +86,10 @@
     <Compile Include="Src/Config/AutoCompleteStatistic.fs" />
     <Compile Include="Src/Config/FoldingStatus.fs" />
     <Compile Include="Src/Config/Config.fs" />
-
     <Compile Include="Src/Fsi.fs" />
     <Compile Include="Src/CompileScript.fs" />
     <Compile Include="Src/XmlParser.fs" />
     <Compile Include="Src/Editor/AutoFixErrors.fs" />
-
     <Compile Include="Src/Editor/Selection.fs" />
     <Compile Include="Src/Editor/RectangleSelection.fs" />
     <Compile Include="Src/Editor/SwapWords.fs" />
@@ -104,9 +100,11 @@
     <Compile Include="Src/Editor/KeyboardShortcuts.fs" />
     <Compile Include="Src/Editor/AlignText.fs" />
     <Compile Include="Src/Editor/XshdHighlighting.fs" />
-    <Compile Include="Src\Editor\LineTransformer.fs" />
+    <Compile Include="Src/Editor/InteractionState.fs" />
+    <Compile Include="Src\Editor\FastColorizer.fs" />
     <Compile Include="Src/Editor/ErrorHighlighter.fs" />
     <Compile Include="Src/Editor/TypeInfo.fs" />
+    <Compile Include="Src\Editor\Checker2.fs" />
     <Compile Include="Src/Editor/Checker.fs" />
     <Compile Include="Src/Editor/CodeCompletion.fs" />
     <Compile Include="Src/Editor/Foldings.fs" />
@@ -115,8 +113,8 @@
     <Compile Include="Src/Editor/SemanticHighlighting.fs" />
     <Compile Include="Src/Editor/BracketColorizer.fs" />
     <Compile Include="Src/Editor/DocChanged.fs" />
+    <Compile Include="Src/Editor/DocChanged2.fs" />
     <Compile Include="Src/Editor/Editor.fs" />
-
     <Compile Include="Src/Views/Log.fs" />
     <Compile Include="Src/Views/SeffWindow.fs" />
     <Compile Include="Src/Views/FileWatcher.fs" />
@@ -129,32 +127,20 @@
     <Compile Include="Src/Views/Commands.fs" />
     <Compile Include="Src/Views/Menu.fs" />
     <Compile Include="Src/Views/Seff.fs" />
-
     <Compile Include="Src/Initialize.fs" />
     <Compile Include="Src/App.fs" />
-    
     <None Include="SeffHosting.fsproj" />
   </ItemGroup>
-
-
-
   <Target Name="CopyFilesOverAfterBuild" BeforeTargets="AfterBuild">
-
     <!--dll is needed for editor tooling only, it might not be installed on host PC . see also  https://github.com/fsprojects/IfSharp/issues/213 -->
     <Copy SourceFiles="$(PkgNETStandard_Library)/build/netstandard2.0/ref/netstandard.dll" DestinationFiles="$(TargetDir)netstandard.dll" ContinueOnError="false" />
-
     <!-- needed for editor tooling autocomplete ? -->
-	  <Copy SourceFiles="$(PkgNETStandard_Library)/build/netstandard2.0/ref/netstandard.xml" DestinationFiles="$(TargetDir)netstandard.xml" ContinueOnError="false" />
-
-	  <!--because <FSharpCoreIncludeDocFileInOutput>true</FSharpCoreIncludeDocFileInOutput>  does not work in visual studio: -->
-	  <Copy SourceFiles="$(PkgFSharp_Core)/lib/netstandard2.0/FSharp.Core.xml" DestinationFiles="$(TargetDir)FSharp.Core.xml" ContinueOnError="false" />
-	  
-	  <Copy SourceFiles="$(PkgFSharp_Compiler_Service)/lib/netstandard2.0/FSharp.Compiler.Service.xml" DestinationFiles="$(TargetDir)FSharp.Compiler.Service.xml" ContinueOnError="false" />
-	  <Copy SourceFiles="$(PkgAvalonLog)/lib/net472/AvalonLog.xml" DestinationFiles="$(TargetDir)AvalonLog.xml" ContinueOnError="false" />
-	  <Copy SourceFiles="$(PkgAvalonEditB)/lib/net472/AvalonEditB.xml" DestinationFiles="$(TargetDir)AvalonEditB.xml" ContinueOnError="false" />
-	  <Copy SourceFiles="$(PkgFsEx_Wpf)/lib/net472/FsEx.Wpf.xml" DestinationFiles="$(TargetDir)FsEx.Wpf.xml" ContinueOnError="false" />
-
+    <Copy SourceFiles="$(PkgNETStandard_Library)/build/netstandard2.0/ref/netstandard.xml" DestinationFiles="$(TargetDir)netstandard.xml" ContinueOnError="false" />
+    <!--because <FSharpCoreIncludeDocFileInOutput>true</FSharpCoreIncludeDocFileInOutput>  does not work in visual studio: -->
+    <Copy SourceFiles="$(PkgFSharp_Core)/lib/netstandard2.0/FSharp.Core.xml" DestinationFiles="$(TargetDir)FSharp.Core.xml" ContinueOnError="false" />
+    <Copy SourceFiles="$(PkgFSharp_Compiler_Service)/lib/netstandard2.0/FSharp.Compiler.Service.xml" DestinationFiles="$(TargetDir)FSharp.Compiler.Service.xml" ContinueOnError="false" />
+    <Copy SourceFiles="$(PkgAvalonLog)/lib/net472/AvalonLog.xml" DestinationFiles="$(TargetDir)AvalonLog.xml" ContinueOnError="false" />
+    <Copy SourceFiles="$(PkgAvalonEditB)/lib/net472/AvalonEditB.xml" DestinationFiles="$(TargetDir)AvalonEditB.xml" ContinueOnError="false" />
+    <Copy SourceFiles="$(PkgFsEx_Wpf)/lib/net472/FsEx.Wpf.xml" DestinationFiles="$(TargetDir)FsEx.Wpf.xml" ContinueOnError="false" />
   </Target>
-
 </Project>
-

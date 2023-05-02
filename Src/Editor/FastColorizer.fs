@@ -17,7 +17,7 @@ type Change = {
     action: Action<VisualLineElement>
     }
 
-/// for accessing the highlighting of a line in constant time
+/// For accessing the highlighting of a line in constant time
 type LineTransformers() =    
 
     let lines = ResizeArray<ResizeArray<Change>>()
@@ -38,22 +38,34 @@ type LineTransformers() =
 
 
 /// An efficient DocumentColorizingTransformer using line number indices into a line transformer list.
-type FastColorizer (lts:LineTransformers) = 
-    inherit Rendering.DocumentColorizingTransformer()    
+type FastColorizer () = 
+    inherit Rendering.DocumentColorizingTransformer()   
+
+    let lts = LineTransformers() 
+    
+    let mutable shift = 0
+
+    member _.AdjustShift (s:int) = shift <- shift + s
+
+    member _.ResetShift () = shift <- 0
+
+    member _.Transformers = lts
 
     /// This gets called for every visible line on every Redraw
     override this.ColorizeLine(line:Document.DocumentLine) =   
         let lineNo = line.LineNumber
         let offSt  = line.Offset    
-        let offEn  = offSt + line.Length         
+        let offEn  = line.EndOffset        
         
         if lineNo >= lts.Lines.Count then 
             ISeffLog.log.PrintfnDebugMsg $"Cant get line index {lineNo} from {lts.Lines.Count} lines in LineTransformer"
         else
             for ch in lts.Lines[lineNo] do  
-                if   ch.form > offEn then ISeffLog.log.PrintfnDebugMsg $"ch.form {ch.form} > offEn {offEn} in LineTransformer"
-                elif ch.till > offEn then ISeffLog.log.PrintfnDebugMsg $"ch.till {ch.till} > offEn {offEn} in LineTransformer"
-                elif ch.till < offSt then ISeffLog.log.PrintfnDebugMsg $"ch.till {ch.till} < offSt {offSt} in LineTransformer"
-                elif ch.form < offSt then ISeffLog.log.PrintfnDebugMsg $"ch.form {ch.form} < offSt {offSt} in LineTransformer"            
+                let from = ch.form + shift
+                let till = ch.till + shift
+                if   from > offEn then ISeffLog.log.PrintfnDebugMsg $"ch.form {ch.form} + shift {shift} > offEn {offEn} in LineTransformer"
+                elif till > offEn then ISeffLog.log.PrintfnDebugMsg $"ch.till {ch.till} + shift {shift} > offEn {offEn} in LineTransformer"
+                elif till < offSt then ISeffLog.log.PrintfnDebugMsg $"ch.till {ch.till} + shift {shift} < offSt {offSt} in LineTransformer"
+                elif from < offSt then ISeffLog.log.PrintfnDebugMsg $"ch.form {ch.form} + shift {shift} < offSt {offSt} in LineTransformer"            
                 else
-                    base.ChangeLinePart(ch.form,ch.till,ch.action) 
+                    base.ChangeLinePart(from, till, ch.action) 

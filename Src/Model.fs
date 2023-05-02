@@ -53,16 +53,16 @@ module ISeffLog =
     let mutable log = 
         Unchecked.defaultof<ISeffLog> //set immediately when Log instance is created in function Initialize.everything()
 
-    /// A simple error logging function using PrintfnAppErrorMsg
+    /// A simple error logging function using PrintfnAppErrorMsg.
     let printError s = 
         if Object.ReferenceEquals(log,null) then printfn "%s" s
         else log.PrintfnAppErrorMsg "%s" s
 
-    let mutable printColor : int-> int -> int -> string -> unit = //don't rename!! It's used via reflection in FsEx
-        fun r g b s -> printf "%s" s  //implementation is changed  when Log instance is created
+    let mutable printColor : int-> int -> int -> string -> unit = //don't rename!! It's used via reflection in FsEx.
+        fun r g b s -> printf "%s" s  //this implementation is changed  when Log instance is created.
 
-    let mutable printnColor : int-> int -> int -> string -> unit = //don't rename!! It's used via reflection in FsEx
-        fun r g b s -> printfn "%s" s //implementation is changed  when Log instance is created
+    let mutable printnColor : int-> int -> int -> string -> unit = //don't rename!! It's used via reflection in FsEx.
+        fun r g b s -> printfn "%s" s //this implementation is changed  when Log instance is created.
 
     let mutable clear : unit -> unit =  //don't rename!! It's used via reflection in FsEx
         fun () -> () //implementation is changed  when Log instance is created
@@ -111,10 +111,10 @@ type FileCheckState =
 
     //| DocChanging
 
-    /// Getting the code form avalon edit text editor asynchronous
+    /// Getting the code from avalon edit text editor asynchronous
     | GettingCode of CheckId
 
-    /// Got the code form avalon edit async, now running in FCS async
+    /// Got the code from avalon edit async, now running in FCS async
     | Checking of CheckId * CodeAsString
 
     /// The CheckResults are always local per Editor

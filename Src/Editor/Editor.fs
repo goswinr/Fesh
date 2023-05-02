@@ -20,6 +20,7 @@ open Seff.Config
 open Seff.Util.Str
 open FSharp.Compiler.EditorServices
 open AvalonEditB.Rendering
+open System.Threading
 
 /// returns a bigger integer on each access for naming unsaved files
 type Counter private () = 
@@ -110,7 +111,7 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
     member this.Search = search    
     
     /// This function will be set below in SetUp static member of Editor.
-    /// It is used to highlight text in the editor , for example to match the current selction in Log.
+    /// It is used to highlight text in the editor , for example to match the current selection in Log.
     member val HighlightText = fun (t:string) -> () with get, set 
 
     // IEditor members:
@@ -120,7 +121,7 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
     /// This CheckState is local to the current editor
     member this.FileCheckState  with get() = checkState  and  set(v) = checkState <- v
     
-    /// seting this alone does not change the tab header !!
+    /// setting this alone does not change the tab header !!
     member this.FilePath        with get() = filePath    and set (v)= filePath <- v
     
     member this.Log = config.Log   
@@ -153,7 +154,7 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
 
         avaEdit.Drop.Add                      (fun e -> DragAndDrop.onTextArea(  avaEdit, e))
         avaEdit.PreviewKeyDown.Add            (fun e -> KeyboardShortcuts.previewKeyDown(    ed     , e))  // A single Key event arg, indent and dedent, and change block selection delete behavior
-        avaEdit.TextArea.PreviewTextInput.Add (fun e -> CursorBehavior.previewTextInput(     avaEdit, e))  // A TextCompositionEventArgs that has a string , handeling typing in rectangular selection
+        avaEdit.TextArea.PreviewTextInput.Add (fun e -> CursorBehavior.previewTextInput(     avaEdit, e))  // A TextCompositionEventArgs that has a string , handling typing in rectangular selection
         avaEdit.TextArea.AlternativeRectangularPaste <- Action<string,bool>( fun txt txtIsFromOtherRectSel -> RectangleSelection.paste(ed.AvaEdit, txt, txtIsFromOtherRectSel)) //TODO check txtIsFromOtherRectSel on pasting text with \r\n
 
         // setup and tracking folding status, (needs a ref to file path:  )
@@ -169,11 +170,17 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
 
         //----------------------------------
         //--FS Checker and Code completion--
-        //----------------------------------         
+        //----------------------------------    
+
+        let state = new InteractionState()        
+        let fastColor = FastColorizer()
+        avaEdit.Document.Changing.Add(DocChanged2.changing fastColor)
+        avaEdit.Document.Changed.Add (DocChanged2.changed  fastColor state)
+             
         
         
         avaEdit.Document.Changed.Add(fun a -> 
-            DocChanged.logPerformance( a.InsertedText.Text) // autohotkey SendInput of ßabcdefghijklmnopqrstuvwxyz£
+            DocChanged.logPerformance( a.InsertedText.Text) // AutoHotKey SendInput of ßabcdefghijklmnopqrstuvwxyz£
             //DocChanged.delayDocChange(a, ed, compls, ed.GlobalChecker) // to trigger for Autocomplete or error highlighting with immediate delay, (instead of delay in checkCode function.)
             DocChanged.docChanged(a, ed, compls, ed.GlobalChecker)
             ed.EvalTracker.SetLastChangeAt(a.Offset)
