@@ -32,7 +32,7 @@ module UtilCompletion =
         tb.Padding <- Thickness(0. , 0. , 8. , 0. ) //left top right bottom / so that it does not appear to be trimmed
         tb
     
-    /// To avoid retrigger of completion window on single char completions
+    /// To avoid re-trigger of completion window on single char completions
     /// the window may just have closed, but for pressing esc, not for completion insertion
     /// this is only true if it just closed for insertion
     let mutable  justCompleted = false 

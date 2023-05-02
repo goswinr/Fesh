@@ -38,7 +38,7 @@ module DocChanged =
              | ShowOnlyDU   
              | ShowAll      
     
-        let keywords = FSharpKeywords.KeywordsWithDescription |> List.map fst |> Collections.Generic.HashSet // used in analysing text change
+        let keywords = FSharpKeywords.KeywordsWithDescription |> List.map fst |> Collections.Generic.HashSet // used in analyzing text change
 
         /// this line will include the character that trigger auto completion(dot or first letter)
         let currentLineBeforeCaret(avaEdit:TextEditor) : PositionInCode =         
@@ -120,7 +120,7 @@ module DocChanged =
                 if (max eqIdx colonIdx) < funIdx then isDU (funIdx+4) ln else ShowAll
         
         let isForDeclaration inStr (ln:string) =         
-            let forIdx = lastIdxAtStartOrWithSpace inStr "for " ln // test if its the first char or preceeded by a space 
+            let forIdx = lastIdxAtStartOrWithSpace inStr "for " ln // test if its the first char or preceded by a space 
             if forIdx = -1 then  ShowAll
             else 
                 if   lastIdx inStr " in "     ln > forIdx then ShowAll 
@@ -246,7 +246,7 @@ module DocChanged =
             //ISeffLog.log.PrintfnDebugMsg "*1.2 Document.Changed Event: IsWaitingForTypeChecker"
             // no type checking !
             // just keep on tying, 
-            // the typed caharcters wil become a prefilter for the  in completion window
+            // the typed characters wil become a prefilter for the  in completion window
             () // DoNothing
 
         elif compls.IsOpen then   
@@ -262,7 +262,7 @@ module DocChanged =
                 // DoNothing, because if the doc changed a separate event will be triggered for that
                 compls.Close()
 
-        else // the completion window is NOT open or not about to be opend after type checking:
+        else // the completion window is NOT open or not about to be opened after type checking:
             
             // also show completion entering one characters ?
             if e.InsertionLength = 1 && e.RemovalLength = 0 then 
@@ -291,10 +291,10 @@ module DocChanged =
             
             // also show completion on deleting one characters ?
             elif e.InsertionLength = 0 && e.RemovalLength = 1 then 
-                //only complet on deletion if ther are chars behind                
+                //only complete on deletion if there are chars behind                
                 let pr = prevChar e ed
-                //ISeffLog.log.PrintfnDebugMsg $"char befoer del '{pr}'"
-                if Char.IsLetterOrDigit(pr)  then // if prev char  is . or `` then this is caugth in compls.HasItems=false above
+                //ISeffLog.log.PrintfnDebugMsg $"char before del '{pr}'"
+                if Char.IsLetterOrDigit(pr)  then // if prev char  is . or `` then this is caught in compls.HasItems=false above
                     maybeShowCompletionWindow(compls, ed, checker) 
                 else
                     checker.CheckThenHighlightAndFold(ed) 

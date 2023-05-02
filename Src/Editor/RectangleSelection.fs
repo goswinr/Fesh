@@ -235,7 +235,7 @@ module RectangleSelection =
 
 
     /// when block selection is pasted into block selection do line by line
-    let private pasteLinebyLine (ed:TextEditor, fullText:string) = 
+    let private pasteLineByLine (ed:TextEditor, fullText:string) = 
         let lines = fullText.Split('\n') |> Array.map ( fun t -> t.Replace("\r",""))
         let ta = ed.TextArea
         let doc = ed.Document
@@ -246,7 +246,7 @@ module RectangleSelection =
         doc.EndUpdate()
 
 
-    //TODO add checks for beeing over folded block !
+    //TODO add checks for being over folded block !
 
     let deleteKey (ed:TextEditor) = 
         let s = getSelectionOrdered ed.TextArea
@@ -262,7 +262,7 @@ module RectangleSelection =
         else
             delete (ed, s)
 
-    /// The replacment for the OnTextInput handler on TextArea of AvalonEditB
+    /// The replacement for the OnTextInput handler on TextArea of AvalonEditB
     let insertText (ed:TextEditor, txt: string) = 
         match txt with
         | null | "" | "\x1b" | "\b" -> ()  // see avalonedit source OnTextInput event handler on Text Area
@@ -288,7 +288,7 @@ module RectangleSelection =
             if not <| txt.Contains("\n") && not <| txt.Contains("\r") then // TODO maybe only do line by line paste if the lines count in selection and text to paste is same or similar ??
                 insertText (ed, txt)
             else
-                pasteLinebyLine (ed, txt)
+                pasteLineByLine (ed, txt)
 
     let complete (ed:TextEditor, completionSegment:ISegment, txt:string) = 
         let len = completionSegment.Length

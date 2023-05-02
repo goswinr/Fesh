@@ -28,7 +28,7 @@ type NonStandardIndentColorizer (badInds:ResizeArray<NonStandardIndent>) =
 
     let brush =        
         //Color.FromArgb(30uy,255uy,140uy,0uy) // a very light transparent Orange, transparent to show column rulers behind
-        Color.FromArgb(50uy,255uy,255uy,0uy) // a very light transparent Yellow, transparent to show columnrulers behind
+        Color.FromArgb(50uy,255uy,255uy,0uy) // a very light transparent Yellow, transparent to show column rulers behind
         |> SolidColorBrush
         |> freeze
 

@@ -41,18 +41,18 @@ module Commenting =
         let doc = avaEdit.Document
         let start = doc.GetLineByOffset(avaEdit.SelectionStart)
         let endeNext = doc.GetLineByOffset(avaEdit.SelectionStart + avaEdit.SelectionLength).NextLine
-        let rec ucomm ln = 
+        let rec uComm ln = 
             if ln <> endeNext then
                 let dl = doc.GetText(ln).TrimEnd()
                 match Seq.tryFindIndex (fun c -> c <>' ')  dl with
-                | None -> ucomm ln.NextLine // do not comment empty lines
+                | None -> uComm ln.NextLine // do not comment empty lines
                 | Some i ->
                     if  dl.Length > i && // there must be 2 chars min.
                         dl.[i]  ='/' &&
                         dl.[i+1]='/' then doc.Remove(ln.Offset + i , 2)
-                    ucomm ln.NextLine
+                    uComm ln.NextLine
         doc.BeginUpdate()
-        ucomm start
+        uComm start
         doc.EndUpdate()
         
 

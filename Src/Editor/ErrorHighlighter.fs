@@ -112,7 +112,7 @@ module ErrorUtil =
         geometry  
     
 
-    let getNextErrrorIdx( ews:ResizeArray<FSharpDiagnostic> ) =
+    let getNextErrorIdx( ews:ResizeArray<FSharpDiagnostic> ) =
         if ews.Count=0 then 
             -1
         elif scrollToIdx >= ews.Count-1  || scrollToIdx >= maxAmountOfErrorsToDraw then 
@@ -129,7 +129,7 @@ module ErrorUtil =
             if ews.Count=0 then 
                 None 
             else  
-                let i = getNextErrrorIdx ews
+                let i = getNextErrorIdx ews
                 if i < 0 then 
                     None
                 elif i=0 then 

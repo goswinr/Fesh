@@ -18,17 +18,17 @@ module Mouse =
             None
         else
             let pt = pt +  textView.ScrollOffset
-            let vline = textView.GetVisualLineFromVisualTop(pt.Y)    
-            if isNull vline then 
+            let vLine = textView.GetVisualLineFromVisualTop(pt.Y)    
+            if isNull vLine then 
                 None
             else
-                let visualColumn     = vline.GetVisualColumn(pt, allowVirtualSpace = false)
-                let visualColumnVirt = vline.GetVisualColumn(pt, allowVirtualSpace = true) 
+                let visualColumn     = vLine.GetVisualColumn(pt, allowVirtualSpace = false)
+                let visualColumnVirt = vLine.GetVisualColumn(pt, allowVirtualSpace = true) 
                 if visualColumnVirt > visualColumn then // mouse beyond end of line
                     None
                 else
-                    let relOffset = vline.FirstDocumentLine.Offset
-                    let docOff = vline.GetRelativeOffset(visualColumn) + relOffset
+                    let relOffset = vLine.FirstDocumentLine.Offset
+                    let docOff = vLine.GetRelativeOffset(visualColumn) + relOffset
                     Some docOff
 
 module Selection = 

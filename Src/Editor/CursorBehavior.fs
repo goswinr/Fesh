@@ -81,7 +81,7 @@ module Doc =
         if desiredCharsCount < 0 then failwithf "getTextBeforeOffsetSkipSpaces desiredCharsCount=%d must be positive" desiredCharsCount
         elif desiredCharsCount = 0 then ""                   
         elif offset-desiredCharsCount < 0 then ""
-        //elif offset < desiredCharsCount then // coverd by bound check below
+        //elif offset < desiredCharsCount then // covered by bound check below
         elif offset=doc.TextLength then // special case for end of document            
             doc.GetText(offset-desiredCharsCount,desiredCharsCount)
         else            
@@ -131,7 +131,7 @@ module Doc =
         |Chr   // in  character
         |ChrSt // at character start, needed because ''' and '\'' are both valid
     
-    (* better use the highlighing engines state because it also works for multiline strings: 
+    (* better use the highlighting engines state because it also works for multiline strings: 
 
     /// Checks if Caret is in String or Character quotes: " or '
     /// only checks current line
@@ -293,7 +293,7 @@ module CursorBehavior  =
             let nc = Doc.nextNonWhiteCharOneLine caret doc
             let len = nc - caret
             //ed.Log.PrintfnDebugMsg "remove len=%d "len
-            if len>2 then // leave handling  other cases especially the end of file to avaedit
+            if len>2 then // leave handling  other cases especially the end of file to avaEdit
                 if caret = 0  then
                     doc.Replace(caret,len  , " ")//  add space at start
                 else

@@ -101,7 +101,7 @@ type EvaluationTrackerRenderer (ed:TextEditor) =
                     evaluatedCodeSeg   <- newSegmentTill(j+1)
                     ed.TextArea.TextView.Redraw()
                 else
-                    let rec searchback after i = 
+                    let rec searchBack after i = 
                         if i = -1 then 0
                         else
                             let this = doc.GetCharAt(i)
@@ -112,11 +112,11 @@ type EvaluationTrackerRenderer (ed:TextEditor) =
                                     j <- j-1
                                 j+1
                             else
-                                searchback this (i-1)
+                                searchBack this (i-1)
 
                     //ISeffLog.log.PrintfnColor 0 200 100 "topMostUnEvaluated-1: %d" (topMostUnEvaluated-1)
                     let segmentEnd = 
-                        let segEnd = searchback lastInEval topMostUnEvaluated   // GetCharAt     cant be -1 because there is a check at the top
+                        let segEnd = searchBack lastInEval topMostUnEvaluated   // GetCharAt     cant be -1 because there is a check at the top
                         
                         /// now include any attributes and comments in the lines above , and skip whitespace again                       
                         let rec moveUp (ln:DocumentLine) =                             
@@ -185,7 +185,7 @@ type EvaluationTrackerRenderer (ed:TextEditor) =
                 drawingContext.DrawGeometry(backGround, null, boundaryPolygon) // pen could be null too
                 //drawingContext.DrawGeometry(backGround, border, boundaryPolygon) // pen could be null too
 
-                // TODO draw a draggabel separator instead:
+                // TODO draw a dragable separator instead:
                 // http://www.fssnip.net/9N/title/Drag-move-for-GUI-controls
             with ex ->
                 ISeffLog.log.PrintfnAppErrorMsg "ERROR in EvaluationTrackerRenderer.Draw(): %A" ex

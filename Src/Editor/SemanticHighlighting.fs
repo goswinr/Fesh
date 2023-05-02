@@ -210,7 +210,7 @@ type SemanticColorizer (ied:TextEditor, edId:Guid, ch:Checker) =
                     | Sc.DisposableType              -> base.ChangeLinePart(st,en, SemAction.DisposableType             )
                     | Sc.DisposableTopLevelValue     -> base.ChangeLinePart(st,en, SemAction.DisposableTopLevelValue    )
                     | Sc.DisposableLocalValue        -> base.ChangeLinePart(st,en, SemAction.DisposableLocalValue       )
-                    | Sc.Method                      -> base.ChangeLinePart(correctStart(st,en),en, SemAction.Method    )// correct so that a string or number literal befor the dot does not get colored
+                    | Sc.Method                      -> base.ChangeLinePart(correctStart(st,en),en, SemAction.Method    )// correct so that a string or number literal before the dot does not get colored
                     | Sc.ExtensionMethod             -> base.ChangeLinePart(correctStart(st,en),en, SemAction.ExtensionMethod)
                     | Sc.ConstructorForReferenceType -> base.ChangeLinePart(st,en, SemAction.ConstructorForReferenceType)
                     | Sc.ConstructorForValueType     -> base.ChangeLinePart(st,en, SemAction.ConstructorForValueType    )
@@ -237,7 +237,7 @@ type SemanticColorizer (ied:TextEditor, edId:Guid, ch:Checker) =
                     //    ISeffLog.printError  $"offSt {offSt} to offEn{offEn} for , st:{st} to en:{en}"
                     //    ISeffLog.printError  $"MSG:{e}"
                 //else
-                //    ISeffLog.log.PrintfnDebugMsg $"Semantic highlight on line {lineNo} skiped for {sem.Type} because false:  
+                //    ISeffLog.log.PrintfnDebugMsg $"Semantic highlight on line {lineNo} skipped for {sem.Type} because false:  
                 //        en {en} >  offSt{offSt} : {en >  offSt}  && en <= offEn: {en <= offEn} && st >= offSt: {st >= offSt}  && st <  offEn: {st <  offEn} && en < lastCode.Length: {en < lastCode.Length}"
                 
                 

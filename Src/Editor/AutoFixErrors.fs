@@ -10,7 +10,7 @@ module AutoFixErrors =
     
     let asked  = HashSet<string>()
     
-    let mutable isMessageBoxOpen = false // because msg box would apear behind completion window and type info
+    let mutable isMessageBoxOpen = false // because msg box would appear behind completion window and type info
      
     let ask(msg:string,ass:string,ied:IEditor) =
         // it is actually better to stat the message box from another thread ?
@@ -19,7 +19,7 @@ module AutoFixErrors =
             do! Async.SwitchToContext SyncWpf.context 
             match MessageBox.Show(
                 IEditor.mainWindow,
-                $"Do you want to add a refrence to\r\n\r\n{ass}.dll\r\n\r\non the first line of the script? \r\n\r\nTo fix this Error:\r\n{msg}" , 
+                $"Do you want to add a reference to\r\n\r\n{ass}.dll\r\n\r\non the first line of the script? \r\n\r\nTo fix this Error:\r\n{msg}" , 
                 $"Add a reference to {ass} ?", 
                 MessageBoxButton.YesNo, 
                 MessageBoxImage.Question, 

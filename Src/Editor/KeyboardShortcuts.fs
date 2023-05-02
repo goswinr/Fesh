@@ -70,7 +70,7 @@ module KeyboardNative  =
 
 
     /// <summary>Defines the callback type for the hook
-    /// param "code" The hook code, if it isn't >= 0, the function shouldn't do anyting
+    /// param "code" The hook code, if it isn't >= 0, the function shouldn't do anything
     /// param "wParam" The event type
     /// param "lParam" The keyhook event information</summary>
     type KeyboardHookProc = 
@@ -232,7 +232,7 @@ module KeyboardShortcuts =
             | AltLeft  -> SwapWords.left(ed.AvaEdit)   |> ignore
 
     /// gets attached to ech editor instance. via avaEdit.PreviewKeyDown.Add
-    /// except for Alt and arrow keys that are handeled via KeyboardNative
+    /// except for Alt and arrow keys that are handled via KeyboardNative
     let previewKeyDown (ied:IEditor, ke:Input.KeyEventArgs) =  
         let ed = ied.AvaEdit
         let ta = ed.TextArea

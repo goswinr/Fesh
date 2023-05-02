@@ -148,7 +148,7 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
         ed.HighlightText <- SelectionHighlighting.HiEditor.setup(ed)        
         BracketHighlighter.Setup(ed, ed.GlobalChecker) 
         
-        // for logging Degug and Error Messages in AvalonEditB
+        // for logging Debug and Error Messages in AvalonEditB
         Logging.LogAction <- new Action<string>( fun (s:string) -> ISeffLog.log.PrintfnDebugMsg "AvalonEditB Logging.Log: %s" s)
 
         avaEdit.Drop.Add                      (fun e -> DragAndDrop.onTextArea(  avaEdit, e))
@@ -173,7 +173,7 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
         
         
         avaEdit.Document.Changed.Add(fun a -> 
-            DocChanged.logPerformance( a.InsertedText.Text) // autohokey SendInput of ßabcdefghijklmnopqrstuvwxyz£
+            DocChanged.logPerformance( a.InsertedText.Text) // autohotkey SendInput of ßabcdefghijklmnopqrstuvwxyz£
             //DocChanged.delayDocChange(a, ed, compls, ed.GlobalChecker) // to trigger for Autocomplete or error highlighting with immediate delay, (instead of delay in checkCode function.)
             DocChanged.docChanged(a, ed, compls, ed.GlobalChecker)
             ed.EvalTracker.SetLastChangeAt(a.Offset)

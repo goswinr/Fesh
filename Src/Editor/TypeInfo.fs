@@ -305,7 +305,6 @@ type TypeInfo private () =
                     let tb = new TextBlockSelectable(Text= "Name: " + td.name)
                     tb.Foreground <- black
                     tb.FontSize <- StyleState.fontSize * 0.9
-                    //tb.FontFamily <- StyleState.elronet
                     tb.FontWeight <- FontWeights.Bold
                     subAdd tb
 
@@ -400,7 +399,7 @@ type TypeInfo private () =
             | Error e ->
                 Error e 
 
-    static let makeToolTipDataList (sdtt: ToolTipText, fullName:string, optDfes:ResizeArray<OptDefArg>) : ToolTipData list= 
+    static let makeToolTipDataList (sdtt: ToolTipText, fullName:string, optDefs:ResizeArray<OptDefArg>) : ToolTipData list= 
         match sdtt with
         | ToolTipText.ToolTipText (els) ->
             match els with
@@ -409,19 +408,19 @@ type TypeInfo private () =
                 [ for el in els do
                     match el with
                     | ToolTipElement.None ->
-                        yield {name = ""; signature = [||]; fullName=""; optDefs=optDfes; xmlDoc = Error  "*no xml doc string*"}
+                        yield {name = ""; signature = [||]; fullName=""; optDefs=optDefs; xmlDoc = Error  "*no xml doc string*"}
 
                     | ToolTipElement.CompositionError(text) ->
                         if loggedErrors.Add(text) then // print only once
                             ISeffLog.log.PrintfnIOErrorMsg "Trying to get a Tooltip for 'fullName' failed with:\r\n%s" text
-                        yield {name = ""; signature = [||]; fullName=""; optDefs=optDfes; xmlDoc = Error ("*FSharpStructuredToolTipElement.CompositionError:\r\n"+ text)}
+                        yield {name = ""; signature = [||]; fullName=""; optDefs=optDefs; xmlDoc = Error ("*FSharpStructuredToolTipElement.CompositionError:\r\n"+ text)}
 
                     | ToolTipElement.Group(tooTipElemDataList) ->
                         for tooTipElemData in tooTipElemDataList do                            
                             yield { name      = Option.defaultValue "" tooTipElemData.ParamName
                                     signature = tooTipElemData.MainDescription 
                                     fullName  = fullName
-                                    optDefs   = optDfes
+                                    optDefs   = optDefs
                                     xmlDoc    = findXmlDoc tooTipElemData.XmlDoc}
                 ]
 

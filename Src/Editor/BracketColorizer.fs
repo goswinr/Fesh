@@ -227,7 +227,7 @@ type BracketHighlighter (ed:TextEditor) =
 
     member this.HighlightPair(ed:IEditor) = 
                 
-        let inline hilight(pairStart,pairEnd) =
+        let inline highLight(pairStart,pairEnd) =
             let seg = RedrawSegment(pairStart,pairEnd)            
             match prevPairSeg with 
             |Some s -> 
@@ -274,7 +274,7 @@ type BracketHighlighter (ed:TextEditor) =
 
                     //ed.Log.PrintfnDebugMsg "pairStart %d pairEnd %d pairLen %d" pairStart pairEnd pairLen
                     if pairStart >=0 && pairEnd > pairStart then
-                        anyFound <-hilight(pairStart,pairEnd)
+                        anyFound <-highLight(pairStart,pairEnd)
                 
                 // for marking to work right after two char bracket like |]
                 elif off = pos - 2  then 
@@ -308,9 +308,9 @@ type BracketHighlighter (ed:TextEditor) =
 
                         //ed.Log.PrintfnDebugMsg "pairStart %d pairEnd %d pairLen %d" pairStart pairEnd pairLen
                         if pairStart >=0 && pairEnd > pairStart then                            
-                            anyFound <- hilight(pairStart,pairEnd)
+                            anyFound <- highLight(pairStart,pairEnd)
         (*
-        // Actually those highligts can stay, no need to clear.
+        // Actually those highlights can stay, no need to clear.
         if not anyFound then 
             match prevPairSeg with 
             |Some s ->                  

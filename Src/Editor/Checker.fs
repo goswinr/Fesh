@@ -367,7 +367,7 @@ type Checker private (config:Config)  =
                                 checkingStoppedEarly1 <- false                                
                                 continueOnUIthread( decls)
                 
-                if checkingStoppedEarly1 then stopWaitingForCompletionWindow1() // redundant just for savety if checker exited early 
+                if checkingStoppedEarly1 then stopWaitingForCompletionWindow1() // redundant just for safety if checker exited early 
                 } 
             |> Async.StartImmediate // we are on thread pool already
         
@@ -375,7 +375,7 @@ type Checker private (config:Config)  =
         checkCode(iEditor, Some getSymbolsAndDecls, stopWaitingForCompletionWindow1) //TODO can existing parse results be used ? or do they miss the dot so don't show dot completions ?
 
 
-    member this.DisposeForReseting(iEditor:IEditor) =
+    member this.DisposeForResetting(iEditor:IEditor) =
         Interlocked.Increment checkId |> ignore
         globalCheckState <- FileCheckState.NotStarted
         checkingEv.Trigger(iEditor) // to update status bar to initializing 
@@ -396,9 +396,9 @@ type Checker private (config:Config)  =
         match singleInstance with
         |None ->   ()
         |Some ch ->                
-            ch.DisposeForReseting(iEditor)
+            ch.DisposeForResetting(iEditor)
             ISeffLog.log.PrintfnInfoMsg "New type checker created." 
-            ch.CheckThenHighlightAndFold(iEditor) // this wil create a new checker instance, trigger OnFirstCheckDone and reinitalize FSI
+            ch.CheckThenHighlightAndFold(iEditor) // this wil create a new checker instance, trigger OnFirstCheckDone and re-initialize FSI
             
 
     /// Ensures only one instance is created
