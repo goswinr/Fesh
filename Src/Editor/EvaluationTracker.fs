@@ -11,7 +11,7 @@ open AvalonLog.Brush
 
 open Seff.Util.General
 open Seff.Model
-
+open Seff
 
 module private EvaluationTrackerRendererUtil = 
 
@@ -197,7 +197,7 @@ type EvaluationTrackerRenderer (ed:TextEditor) =
         member this.Draw(tv,dc) = this.Draw(tv,dc)
         member this.Layer = this.Layer
 
-
+(*
 
 type EvaluationTracker (ed:TextEditor, checker:Checker, edId:Guid) = 
 
@@ -207,9 +207,10 @@ type EvaluationTracker (ed:TextEditor, checker:Checker, edId:Guid) =
 
     do
         ed.TextArea.TextView.BackgroundRenderers.Add(renderer)
-        checker.Fsi.OnReset.Add       (fun evc -> renderer.MarkNoneEvaluated()) // reset for all editors
-        checker.Fsi.OnCanceled.Add    (fun evc -> if evc.editor.Id = edId then renderer.MarkNoneEvaluated())
-        checker.Fsi.OnCompletedOk.Add (fun evc ->
+        Fsi.GetOrCreate()
+        Fsi.OnReset.Add       (fun evc -> renderer.MarkNoneEvaluated()) // reset for all editors
+        Fsi.OnCanceled.Add    (fun evc -> if evc.editor.Id = edId then renderer.MarkNoneEvaluated())
+        Fsi.OnCompletedOk.Add (fun evc ->
             if evc.editor.Id = edId then  //this event will be hooked up for each tab so check id too
                 //ISeffLog.log.PrintfnColor 150 150 150  "Fsi.OnCompletedOk:%A" evc
                 //ISeffLog.log.PrintfnFsiErrorMsg "Fsi.OnCompletedOk:renderer.EvaluateFrom:%d" renderer.EvaluateFrom
@@ -233,4 +234,5 @@ type EvaluationTracker (ed:TextEditor, checker:Checker, edId:Guid) =
 
 
 
+*)
 

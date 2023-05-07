@@ -20,7 +20,7 @@ type LinePartChange =
     reason: ChangeReason
     }
 
-    static member make(from,till,action,reason) = 
+    static member make (from,till,action,reason) = 
         {
         from  =from  
         till  =till  
@@ -29,22 +29,25 @@ type LinePartChange =
         }
 
 /// For accessing the highlighting of a line in constant time
-type LineTransformers() =    
+type LineTransformers<'T>() =    
 
-    let lines = ResizeArray<ResizeArray<LinePartChange>>(256)// for approx 256 lines on screen
+    let lines = ResizeArray<ResizeArray<'T>>(512)// for approx 512 lines on screen
 
-    member _.Lines = lines
+    let empty = ResizeArray<'T>(0)
+
+    //member _.Lines = lines // don make public
+
+    member _.LineCount = lines.Count
 
     /// removes all items from one line that have a given transformer reason
-    member _.RemoveByReason (lineNo, reason) = 
+    member _.RemoveByPredicate (lineNo, predicate: 'T -> bool) = 
         if lineNo >= 0 && lineNo < lines.Count then 
             let ts = lines[lineNo]
-            ts.RemoveAll(fun t -> t.reason = reason)  |> ignore<int>
-
+            ts.RemoveAll(predicate)  |> ignore<int>
 
     member _.Insert(line,c) =         
         while lines.Count <= line  do // fill up missing lines
-            lines.Add ( new ResizeArray<LinePartChange>(16))// for approx 16 tokens per line
+            lines.Add ( new ResizeArray<'T>(8))// for approx 16 tokens per line
         lines[line].Add c
         
     member _.ClearLine(line) =
@@ -53,6 +56,12 @@ type LineTransformers() =
     member _.ClearAllLines() =
         for line in lines do 
             line.Clear()
+
+    /// Safely gets a Line returns emppty if index out of range
+    member _.Line(lineNumber) =
+        if lineNumber<lines.Count then  lines.[lineNumber]
+        else empty
+
 
 
 /// An efficient DocumentColorizingTransformer using line number indices into a line transformer list.
@@ -75,10 +84,10 @@ type FastColorizer () =
         let offSt  = line.Offset    
         let offEn  = line.EndOffset        
         
-        if lineNo >= lts.Lines.Count then 
-            ISeffLog.log.PrintfnDebugMsg $"Cant get line index {lineNo} from {lts.Lines.Count} lines in LineTransformer"
+        if lineNo >= lts.LineCount then 
+            ISeffLog.log.PrintfnDebugMsg $"Cant get line index {lineNo} from {lts.LineCount} lines in LineTransformer"
         else
-            for ch in lts.Lines[lineNo] do  
+            for ch in lts.Line(lineNo) do  
                 let from = ch.from + shift
                 let till = ch.till + shift
                 if   from > offEn then ISeffLog.log.PrintfnDebugMsg $"ch.form {ch.from} + shift {shift} > offEn {offEn} in LineTransformer"
@@ -86,4 +95,5 @@ type FastColorizer () =
                 elif till < offSt then ISeffLog.log.PrintfnDebugMsg $"ch.till {ch.till} + shift {shift} < offSt {offSt} in LineTransformer"
                 elif from < offSt then ISeffLog.log.PrintfnDebugMsg $"ch.form {ch.from} + shift {shift} < offSt {offSt} in LineTransformer"            
                 else
-                    base.ChangeLinePart(from, till, ch.action) 
+                    base.ChangeLinePart(from, till, ch.action)
+                    //base.CurrentContext.VisualLine.

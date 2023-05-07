@@ -35,7 +35,10 @@ type Tabs(config:Config, seffWin:SeffWindow) =
 
     let log = config.Log
 
-    let fsi = Fsi.GetOrCreate(config)
+    let fsi = 
+        let f = Fsi.GetOrCreate(config)
+        f.Initialize()
+        f
 
     let allTabs:seq<Tab> =  Seq.cast tabs.Items
 
@@ -75,7 +78,9 @@ type Tabs(config:Config, seffWin:SeffWindow) =
         
         Environment.CurrentDirectory <- dir // to be able to use __SOURCE_DIRECTORY__  
 
-        t.Editor.GlobalChecker.CheckThenHighlightAndFold(t.Editor) 
+        let ed = t.Editor
+        DocChangeMark.markFoldCheckHighlightAsync(ed, ed.Services, ed.State, ed.State.Increment())
+        
         // TODO make sure to reset checker if it is currently still running from another file
         // even though the error highlighter is only called if the editor id is the same, see Editor.fs:  
         // ed.GlobalChecker.OnChecked.Add(fun ...
@@ -83,19 +88,20 @@ type Tabs(config:Config, seffWin:SeffWindow) =
         config.OpenTabs.Save(t.Editor.FilePath , allExistingFileInfos)
     
     let fileWasSavedAs(savedCode, t:Tab, fi:FileInfo, sync) = 
+        let ed = t.Editor
         t.FileTracker.ResetPath()
         t.IsCodeSaved <- true
-        t.Editor.FilePath <- SetTo fi //this also updates the Tab header and set file info on editor
-        t.Editor.CodeAtLastSave <- savedCode 
+        ed.FilePath <- SetTo fi //this also updates the Tab header and set file info on editor
+        ed.CodeAtLastSave <- savedCode 
         t.UpdateTabHeader()
-        seffWin.SetFileNameInTitle(t.Editor.FilePath)
+        seffWin.SetFileNameInTitle(ed.FilePath)
         Environment.CurrentDirectory <- fi.Directory.FullName
-        config.FoldingStatus.Set(t.Editor) // otherwise no record would exist for the new file name
+        config.FoldingStatus.Set(ed.FilePath , ed.Folds.Manager) // otherwise no record would exist for the new file name
         if sync then 
-            config.OpenTabs.SaveSync(t.Editor.FilePath , allExistingFileInfos)
+            config.OpenTabs.SaveSync(ed.FilePath , allExistingFileInfos)
             config.RecentlyUsedFiles.AddAndSaveSync(fi)         
         else
-            config.OpenTabs.Save(t.Editor.FilePath , allExistingFileInfos)
+            config.OpenTabs.Save(ed.FilePath , allExistingFileInfos)
             config.RecentlyUsedFiles.AddAndSave(fi)   
         log.PrintfnInfoMsg "File saved as:\r\n\"%s\"" fi.FullName  
 
@@ -132,7 +138,7 @@ type Tabs(config:Config, seffWin:SeffWindow) =
                     t.Editor.CodeAtLastSave <- txt
                     log.PrintfnInfoMsg "File saved:\r\n\"%s\"" fi.FullName
                 |SaveExport ->
-                    config.FoldingStatus.Set(t.Editor) // otherwise no record would exist for the new file name
+                    config.FoldingStatus.Set(t.Editor.FilePath , t.Editor.Folds.Manager) // otherwise no record would exist for the new file name
                     log.PrintfnInfoMsg "File exported to:\r\n\"%s\"" fi.FullName
                 true
             with e ->

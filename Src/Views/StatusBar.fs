@@ -44,12 +44,11 @@ type CheckerStatus (grid:TabsAndLog) as this =
 
     let tabs = grid.Tabs
     let checkingTxt = "Checking for Errors ..."
-    let checker = Checker.GetOrCreate(grid.Config)
+    //let checker = Checker.GetOrCreate(grid.Config)  // DELETE
     //let originalBackGround = this.Background
 
     let mutable lastErrCount = -1
-    let mutable lastFile = Guid.Empty
-
+    let mutable lastFile : TextEditor = null
     let mutable scrollToSegm = None
     
 
@@ -92,24 +91,24 @@ type CheckerStatus (grid:TabsAndLog) as this =
             ]
 
 
-    let updateCheckState(iEditor:IEditor)= 
+    let updateCheckState(checkState:FileCheckState)= 
         //log.PrintfnDebugMsg "Setting errors for %A %A " iEditor.FileInfo iEditor.CheckRes.Value.checkRes.Errors.Length
-        match iEditor.FileCheckState with
+        match checkState with
         | Done res ->
             //ISeffLog.log.PrintfnDebugMsg $"checking  Done. Arrived in status bar with {res.checkRes.Diagnostics.Length} msgs"
             let es = res.errors
             let erWas = es.errorsAndWarnings  
 
             if erWas.Count = 0 then
-                if lastErrCount <> 0  || lastFile <> tabs.Current.Editor.Id then // no UI update needed in this case
+                if lastErrCount <> 0  || lastFile <> tabs.Current.Editor.AvaEdit then // no UI update needed in this case
                     this.Text <- "No compiler errors"
                     this.Background <- okColor
                     this.ToolTip <- "FSharp Compiler Service found no Errors in"+ Environment.NewLine + tabs.Current.FormattedFileName
-                    lastFile <- tabs.Current.Editor.Id
+                    lastFile <- tabs.Current.Editor.AvaEdit
                     lastErrCount <- 0
                     scrollToSegm <- None
             else
-                lastFile <- tabs.Current.Editor.Id
+                lastFile <- tabs.Current.Editor.AvaEdit
                 lastErrCount <- erWas.Count
                 erWas.Sort(fun x y -> Operators.compare x.StartLine y.StartLine)// sort because we are not sure if they are already sorted                
                     
@@ -133,20 +132,21 @@ type CheckerStatus (grid:TabsAndLog) as this =
                 tip.VerticalOffset <- -6.0
                 this.ToolTip <- tip
               
-        | Checking (id0,_) ->
+        | Checking ->
             async{
                 do! Async.Sleep 300 // delay  to only show check in progress massage if it takes long, otherwise just show results via on checked event
-                if iEditor.Id = tabs.Current.Editor.Id then // to cancel if tab changed
-                    match iEditor.FileCheckState with                    
-                    | Checking (id300,_) ->
-                        if id300 = id0 then // this is still the most recent checker
-                            lastErrCount <- -1
-                            this.Text <- checkingTxt
-                            this.Background <- waitCol //originalBackGround
-                            this.ToolTip <- sprintf "Checking %s for Errors ..." tabs.Current.FormattedFileName
-                    | Done _  | NotStarted | CheckFailed -> ()
+                //if iEditor.Id = tabs.Current.Editor.Id then // to cancel if tab changed  // DELETE
+                //if IEditor.isCurrent iEditor.AvaEdit then  // to cancel if tab changed
+                match checkState with                    
+                | Checking  ->
+                        lastErrCount <- -1
+                        this.Text <- checkingTxt
+                        this.Background <- waitCol //originalBackGround
+                        this.ToolTip <- sprintf "Checking %s for Errors ..." tabs.Current.FormattedFileName
+                | Done _   -> ()
             } |> Async.StartImmediate
-
+        
+        (*  // DELETE
         | NotStarted -> // these below never happen because event is only triggered on success
             lastErrCount <- -1
             this.Text <- "Initializing compiler . . ."
@@ -158,6 +158,7 @@ type CheckerStatus (grid:TabsAndLog) as this =
             this.Text <- "Fs Checker failed to complete."
             this.ToolTip <- "Fs Checker failed to complete."
             this.Background <- failedCol    
+        *)
     
     do
         lastErrCount <- -1
@@ -165,9 +166,8 @@ type CheckerStatus (grid:TabsAndLog) as this =
         this.Text <- checkingTxt
         this.Background <- waitCol //originalBackGround
 
-        tabs.OnTabChanged.Add (fun t -> updateCheckState(t.Editor))
-        checker.OnCheckedForErrors.Add (fun (ed,_) ->  updateCheckState(ed))
-        checker.OnChecking.Add updateCheckState
+        tabs.OnTabChanged.Add (fun t -> updateCheckState(t.Editor.FileCheckState))
+        Checker.CheckingStateChanged.Add updateCheckState        
         this.MouseLeftButtonDown.Add ( fun a -> CheckerStatus.goToNextSegment(grid.Tabs.Current.Editor))
         
         (* covered by Ctrl +P for persistent Panel:        
@@ -188,8 +188,7 @@ type CheckerStatus (grid:TabsAndLog) as this =
     static member goToNextSegment(ed:Editor) =
         match ErrorUtil.getNextSegment(ed) with 
         |None -> ()
-        |Some seg ->             
-            Foldings.GoToOffsetAndUnfold(seg.StartOffset, seg.Length, ed, ed.Folds, ed.Config , false)
+        |Some seg ->  ed.Folds.GoToOffsetAndUnfold (seg.StartOffset, seg.Length, false)
 
 type FsiRunStatus (grid:TabsAndLog) as this = 
     inherit TextBlock()
@@ -306,7 +305,7 @@ type SelectedEditorTextStatus (grid:TabsAndLog) as this =
                 let ed = grid.Tabs.Current.Editor
                 let off = hr.offsets.[scrollToIdx]
                 if off < ed.AvaEdit.Document.TextLength then                    
-                    Foldings.GoToOffsetAndUnfold(off, hr.text.Length, ed, ed.Folds, ed.Config, true )                    
+                    ed.Folds.GoToOffsetAndUnfold(off, hr.text.Length, true )                    
                     scrollToIdx <- scrollToIdx + 1
                 else
                     scrollToIdx <- 0

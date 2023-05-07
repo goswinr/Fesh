@@ -102,7 +102,8 @@
     <Compile Include="Src/Editor/XshdHighlighting.fs" />
     <Compile Include="Src\Editor\FastColorizer.fs" />
     <Compile Include="Src/Editor/InteractionState.fs" />
-    <Compile Include="Src/Editor/ErrorHighlighter.fs" />
+    <Compile Include="Src\Editor\ErrorHighlighter.fs" />
+    <Compile Include="Src\Editor\ErrorHighlighterOld.fs" />
     <Compile Include="Src/Editor/TypeInfo.fs" />
     <Compile Include="Src\Editor\Checker.fs" />
     <Compile Include="Src\Editor\CheckerOLD.fs" />
@@ -110,7 +111,7 @@
     <Compile Include="Src/Editor/Foldings.fs" />
     <Compile Include="Src/Editor/EvaluationTracker.fs" />
     <Compile Include="Src/Editor/SelectedTextTracer.fs" />
-    <Compile Include="Src/Editor/SemanticHighlighting.fs" />
+    <Compile Include="Src\Editor\SemanticHighlighter.fs" />
     <Compile Include="Src\Editor\BracketHighlighter.fs" />
     <Compile Include="Src\Editor\DocChangedOLD.fs" />
     <Compile Include="Src\Editor\DocChanged.fs" />

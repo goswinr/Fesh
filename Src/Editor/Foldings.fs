@@ -268,11 +268,23 @@ type Foldings(ed:TextEditor, state:InteractionState, getFilePath:unit->FilePath)
 
             } |>  Async.Start
 
+    let margin = 
+        ed.TextArea.LeftMargins
+        |> Seq.tryFind ( fun m -> m :? Folding.FoldingMargin )
+        |> Option.defaultWith (fun () -> failwithf "Failed to find Folding.FoldingMargin")
+        :?> Folding.FoldingMargin
+
     // When the full text gets replaced ( eg via git branch change).
     // manager.UpdateFoldings(..) cannot remember old locations and keep state
     do 
+        // set up intial state:
         let vs = state.Config.FoldingStatus.Get(getFilePath())
         for f,s in Seq.zip manager.AllFoldings vs do f.IsFolded <- s
+        
+        margin.MouseUp.Add (fun e -> 
+            updateCollapseStatus()
+            state.Config.FoldingStatus.Set(getFilePath(), manager)
+            )
 
     /// runs first part async
     member _.UpdateFoldsAndBadIndents(fullCode, id) = foldEditor(fullCode, id)
@@ -281,12 +293,14 @@ type Foldings(ed:TextEditor, state:InteractionState, getFilePath:unit->FilePath)
 
     [<CLIEvent>] 
     member _.FoundBadIndents = foundBadIndentsEv.Publish
-  
+    
+    (*
     member _.Margin = 
         ed.TextArea.LeftMargins
         |> Seq.tryFind ( fun m -> m :? Folding.FoldingMargin )
         |> Option.defaultWith (fun () -> failwithf "Failed to find Folding.FoldingMargin")
         :?> Folding.FoldingMargin
+    *)
 
     // member _.UpdateCollapseStatus() = updateCollapseStatus()  // DELETE
 

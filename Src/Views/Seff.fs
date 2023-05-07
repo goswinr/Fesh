@@ -77,7 +77,7 @@ type Seff (config:Config,log:Log) =
 
     member this.Menu = menu
 
-    member this.Checker = Checker.GetOrCreate(config)
+    //member this.Checker = Checker.GetOrCreate(config)  // DELETE
 
     member this.Fsi = tabs.Fsi
 

@@ -491,7 +491,7 @@ type TypeInfo private () =
         // see https://github.com/icsharpcode/AvalonEdit/blob/master/ICSharpCode.AvalonEdit/Editing/SelectionMouseHandler.cs#L477
         
         match iEditor.FileCheckState with
-        | GettingCode _ | Checking _ |CheckFailed | NotStarted -> ()
+        | Checking -> ()  //_ |CheckFailed | NotStarted | GettingCode _ -> ()  // DELETE
         | Done res when res.checkRes.HasFullTypeCheckInfo ->
             let av = iEditor.AvaEdit 
             match Mouse.getOffset (e,av) with
@@ -591,7 +591,11 @@ type TypeInfo private () =
                                     let lineNo = l.StartLine
                                     let colSt  = l.StartColumn
                                     let colEn  = l.EndColumn                                    
-                                    let sem = iEditor.SemanticRanges |> Array.tryFind (fun s -> let r = s.Range in r.StartLine=lineNo && r.EndLine=lineNo && r.StartColumn=colSt && r.EndColumn=colEn)                                        
+                                    //let sem = iEditor.SemanticRanges |> Array.tryFind (fun s -> let r = s.Range in r.StartLine=lineNo && r.EndLine=lineNo && r.StartColumn=colSt && r.EndColumn=colEn)                                        
+                                    let sem = 
+                                        res.checkRes.GetSemanticClassification(Some s.Range)
+                                        |> Array.tryHead
+                                        
                                     sem, s.Symbol.DeclarationLocation ,s.Symbol.Assembly.FileName                            
                             
                             let ed = {declListItem=None; semanticClass=sem; declLocation=declLoc; dllLocation=dllLoc }

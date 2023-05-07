@@ -5,6 +5,7 @@ open System.Collections.Generic
 open FsEx.Wpf
 open Seff
 open Seff.Model
+open FSharp.Compiler.CodeAnalysis
 
 module AutoFixErrors = 
     
@@ -43,7 +44,7 @@ module AutoFixErrors =
         |None -> ()
 
 
-    let references(ied:IEditor,ch:CheckResults) =
-        for e in ch.checkRes.Diagnostics do 
+    let references(checkRes:FSharpCheckFileResults) =
+        for e in checkRes.Diagnostics do 
             if e.ErrorNumber = 1108 then 
-                check(e.Message, ied) 
+                check(e.Message) 

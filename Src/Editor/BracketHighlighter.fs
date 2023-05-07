@@ -9,6 +9,7 @@ open AvalonLog.Brush
 
 open Seff.Model
 open Seff.Util.General
+open AvalonEditB.Document
 
 
 type BracketKind = 
@@ -36,10 +37,28 @@ type BracketInfo = {
     color:SolidColorBrush 
     idx:int}
 
+type RedrawSegment(startOffset,  endOffset)  = 
+    member s.Offset      = startOffset
+    member s.EndOffset   = endOffset
+    member s.Length      = endOffset - startOffset
+    
+    override s.ToString() = $"RedrawSegment form: {s.Offset}, len:{s.Length}"
+
+    interface ISegment with 
+        member s.Offset      = startOffset
+        member s.EndOffset   = endOffset
+        member s.Length      = endOffset - startOffset  
+        
+    member t.Merge (o:RedrawSegment) = 
+        new RedrawSegment(
+            min t.Offset o.Offset, 
+            max t.EndOffset o.EndOffset )
+
 module Render = 
     
     let inline setTextColor (b:SolidColorBrush) (el:Rendering.VisualLineElement) = 
-        el.TextRunProperties.SetForegroundBrush(b)    
+        el.TextRunProperties.SetForegroundBrush(b) 
+        
 
     let inline setBgColor (b:SolidColorBrush) (el:Rendering.VisualLineElement) = 
         el.TextRunProperties.SetBackgroundBrush(b)
@@ -338,8 +357,8 @@ type BracketHighlighter (ed:TextEditor, state:InteractionState) =
     let updatePairTransformers() =
         if pairStart > 0 && pairEnd > 0  then // must check both
             // first remove previous transformers
-            transformers.RemoveByReason(prevStartLn,CurrentBracketPair) // also works in prevStartLn is -1
-            transformers.RemoveByReason(prevEndLn,CurrentBracketPair)            
+            transformers.RemoveByPredicate(prevStartLn,fun r -> r.reason = CurrentBracketPair) // also works in prevStartLn is -1
+            transformers.RemoveByPredicate(prevEndLn,fun r -> r.reason = CurrentBracketPair)            
             transformers.Insert(pairStartLn, LinePartChange.make( pairStart, pairStart + pairLen, Render.setBgColor pairBg, CurrentBracketPair))
             transformers.Insert(pairEndLn  , LinePartChange.make( pairEnd  , pairEnd   + pairLen, Render.setBgColor pairBg, CurrentBracketPair))
     

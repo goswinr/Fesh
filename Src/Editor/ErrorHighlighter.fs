@@ -9,6 +9,7 @@ open System.Collections.Generic
 
 open FSharp.Compiler
 open FSharp.Compiler.Diagnostics
+open FSharp.Compiler.EditorServices
 
 open AvalonEditB
 open AvalonEditB.Document
@@ -23,7 +24,7 @@ open Seff.Model
 
 //read: http://danielgrunwald.de/coding/AvalonEdit/rendering.php
 
-// taken from //https://stackoverflow.com/questions/11149907/showing-invalid-xml-syntax-with-avalonedit
+// originally taken from //https://stackoverflow.com/questions/11149907/showing-invalid-xml-syntax-with-avalonedit
 // better would be https://github.com/icsharpcode/SharpDevelop/blob/master/src/AddIns/DisplayBindings/AvalonEdit.AddIn/Src/Textsegmentservice.cs
 
 
@@ -37,16 +38,52 @@ module ErrorStyle=
     let infoSquiggle    = Pen(  Brushes.Green  |> darker 5       |> freeze, 1.0) |> Pen.freeze
     let infoBackGr      =       Brushes.Green  |> brighter 220   |> freeze
 
+
+/// ISegment: This segment also contains back and foreground color and diagnostic display text
+type SegmentToMark (startOffset,  endOffset, e:FSharpDiagnostic)  = 
+
+    let underlinePen = 
+        match e.Severity with
+        | FSharpDiagnosticSeverity.Info    -> ErrorStyle.infoSquiggle
+        | FSharpDiagnosticSeverity.Hidden  -> ErrorStyle.infoSquiggle
+        | FSharpDiagnosticSeverity.Warning -> ErrorStyle.warnSquiggle
+        | FSharpDiagnosticSeverity.Error   -> ErrorStyle.errSquiggle 
+    let backgroundBrush =
+        match e.Severity with
+        | FSharpDiagnosticSeverity.Hidden  -> ErrorStyle.infoBackGr
+        | FSharpDiagnosticSeverity.Info    -> ErrorStyle.infoBackGr
+        | FSharpDiagnosticSeverity.Warning -> ErrorStyle.warnBackGr
+        | FSharpDiagnosticSeverity.Error   -> ErrorStyle.errBackGr 
+    let msg = 
+        match e.Severity with
+        | FSharpDiagnosticSeverity.Hidden  -> sprintf "• Hidden Info: %s: %s"  e.ErrorNumberText e.Message 
+        | FSharpDiagnosticSeverity.Info    -> sprintf "• Info: %s: %s"         e.ErrorNumberText e.Message 
+        | FSharpDiagnosticSeverity.Warning -> sprintf "• Warning: %s: %s"      e.ErrorNumberText e.Message 
+        | FSharpDiagnosticSeverity.Error   -> sprintf "• Error: %s: %s"        e.ErrorNumberText e.Message   
+   
+    member s.Offset      = startOffset
+    member s.EndOffset   = endOffset
+    member s.Length      = endOffset - startOffset
+
+    member _.Message           =  msg
+    member _.Diagnostic        =  e
+    member _.Severity          =  e.Severity 
+    member _.UnderlinePen      =  underlinePen
+    member _.BackgroundBrush   =  backgroundBrush
+
+    interface ISegment with 
+        member s.Offset      = startOffset
+        member s.EndOffset   = endOffset
+        member s.Length      = endOffset - startOffset 
+
 module ErrorUtil =    
         
+    /// for clicking through the errors in the status bar 
     let mutable private scrollToIdx = -1
-
-    /// because the UI gets a lag if there are 100 of errors to draw
-    let maxAmountOfErrorsToDraw = 7 
 
     /// split errors by severity and sort by line number 
     let getBySeverity(checkRes:CodeAnalysis.FSharpCheckFileResults) :ErrorsBySeverity =
-        scrollToIdx <- -1
+        scrollToIdx <- -1 // reset first scroll to error when clicking in status bar
         let was = ResizeArray()  // Warnings
         let ers = ResizeArray()  // Errors
         let ins = ResizeArray()  // Infos        
@@ -66,12 +103,8 @@ module ErrorUtil =
         his.Sort( fun x y -> Operators.compare x.StartLine y.StartLine)
         erWs.Sort(fun x y -> Operators.compare x.StartLine y.StartLine)
         { errors = ers; warnings = was; infos = ins; hiddens = his; errorsAndWarnings = erWs }
-    
 
-   
-
-    /// because FSharpDiagnostic might have line number 0 form Parse-and-check-file-in-project errors, but Avalonedit starts at 1
-    let inline linesStartAtOne i = if i<1 then 1 else i 
+    let linesStartAtOne i = if i<1 then 1 else i 
 
     let getSegment (doc:TextDocument) ( e:FSharpDiagnostic) =
         try
@@ -93,8 +126,7 @@ module ErrorUtil =
             | :? ArgumentOutOfRangeException -> 
                 None 
             | e -> 
-                raise e
-
+                raise e 
     
     let getSquiggleLine(r:Rect):StreamGeometry = 
         let startPoint = r.BottomLeft
@@ -111,19 +143,21 @@ module ErrorUtil =
         geometry.Freeze()
         geometry  
     
+    
 
     let getNextErrorIdx( ews:ResizeArray<FSharpDiagnostic> ) =
         if ews.Count=0 then 
             -1
-        elif scrollToIdx >= ews.Count-1  || scrollToIdx >= maxAmountOfErrorsToDraw then 
+        elif scrollToIdx >= ews.Count-1 then // || scrollToIdx >= maxAmountOfErrorsToDraw then 
             scrollToIdx <- 0   
             0
         else         
             scrollToIdx <- scrollToIdx + 1            
             scrollToIdx
 
-    let rec getNextSegment(ed:IEditor)=         
-        match ed.FileCheckState with 
+    let rec getNextSegment(ied:IEditor) =         
+        match ied.FileCheckState with
+        | Checking  ->  None 
         | Done res ->
             let ews = res.errors.errorsAndWarnings
             if ews.Count=0 then 
@@ -133,209 +167,126 @@ module ErrorUtil =
                 if i < 0 then 
                     None
                 elif i=0 then 
-                    getSegment ed.AvaEdit.Document ews[i]
+                    getSegment ied.AvaEdit.Document ews[i]
                 else 
                     let p = ews[i-1]
                     let t = ews[i  ]
                     if p.StartLine = t.StartLine then // loop on if not first and same line as last
-                        getNextSegment(ed)
+                        getNextSegment(ied)
                     else                
-                        getSegment ed.AvaEdit.Document t
+                        getSegment ied.AvaEdit.Document t
 
-        | NotStarted |  GettingCode _ | Checking _| CheckFailed -> 
-            None           
-
-type RedrawSegment(startOffset,  endOffset)  = 
-    member s.Offset      = startOffset
-    member s.EndOffset   = endOffset
-    member s.Length      = endOffset - startOffset
     
-    override s.ToString() = $"RedrawSegment form: {s.Offset}, len:{s.Length}"
+    
 
-    interface ISegment with 
-        member s.Offset      = startOffset
-        member s.EndOffset   = endOffset
-        member s.Length      = endOffset - startOffset  
-        
-    member t.Merge (o:RedrawSegment) = 
-        new RedrawSegment(
-            min t.Offset o.Offset, 
-            max t.EndOffset o.EndOffset )
-        
-/// This segment also contains back and foreground color and diagnostic display text
-type SegmentToMark (startOffset, length, e:FSharpDiagnostic)  = 
-    inherit TextSegment()
-
-    let underlinePen = 
-        match e.Severity with
-        | FSharpDiagnosticSeverity.Info    -> ErrorStyle.infoSquiggle
-        | FSharpDiagnosticSeverity.Hidden  -> ErrorStyle.infoSquiggle
-        | FSharpDiagnosticSeverity.Warning -> ErrorStyle.warnSquiggle
-        | FSharpDiagnosticSeverity.Error   -> ErrorStyle.errSquiggle 
-    let backgroundBrush =
-        match e.Severity with
-        | FSharpDiagnosticSeverity.Hidden  -> ErrorStyle.infoBackGr
-        | FSharpDiagnosticSeverity.Info    -> ErrorStyle.infoBackGr
-        | FSharpDiagnosticSeverity.Warning -> ErrorStyle.warnBackGr
-        | FSharpDiagnosticSeverity.Error   -> ErrorStyle.errBackGr 
-    let msg = 
-        match e.Severity with
-        | FSharpDiagnosticSeverity.Hidden  -> sprintf "• Hidden Info: %s: %s"  e.ErrorNumberText e.Message 
-        | FSharpDiagnosticSeverity.Info    -> sprintf "• Info: %s: %s"         e.ErrorNumberText e.Message 
-        | FSharpDiagnosticSeverity.Warning -> sprintf "• Warning: %s: %s"      e.ErrorNumberText e.Message 
-        | FSharpDiagnosticSeverity.Error   -> sprintf "• Error: %s: %s"        e.ErrorNumberText e.Message 
-  
-    do
-        base.StartOffset <- startOffset
-        base.EndOffset   <- startOffset + length
-        base.Length      <- length
-
-    member _.Message           =  msg
-    member _.Diagnostic        =  e
-    member _.Severity          =  e.Severity 
-    member _.UnderlinePen      =  underlinePen
-    member _.BackgroundBrush   =  backgroundBrush
-
-
-/// IBackgroundRenderer and IVisualLineTransformer
-type ErrorRenderer (ed:TextEditor, folds:Folding.FoldingManager) = 
-
-    let doc = ed.Document
-    let txA = ed.TextArea
-    let segments = new TextSegmentCollection<SegmentToMark>(doc)
-    let mutable prevHash = 0L 
-    let mutable prevSeg = None
+/// IBackgroundRenderer only neded because 
+type ErrorRenderer (state: InteractionState, segms:LineTransformers<SegmentToMark>) = 
+    let trans = state.FastColorizer.Transformers
 
     /// Draw the error squiggle  on the code
-    member _.Draw (textView:TextView , drawingContext:DrawingContext) = // for IBackgroundRenderer
-        try
-            let vls = textView.VisualLines
-            if textView.VisualLinesValid  && vls.Count > 0 then
-                let  viewStart = vls.First().FirstDocumentLine.Offset
-                let  viewEnd =   vls.Last().LastDocumentLine.EndOffset
-                for segment in segments.FindOverlappingSegments(viewStart, viewEnd - viewStart) do
-                    // background color:
-                    let geoBuilder = new BackgroundGeometryBuilder (AlignToWholePixels = true, CornerRadius = 0.)
-                    geoBuilder.AddSegment(textView, segment)
-                    let boundaryPolygon= geoBuilder.CreateGeometry() // creates one boundary round the text
-                    drawingContext.DrawGeometry(segment.BackgroundBrush, null, boundaryPolygon)
+    member _.Draw (textView:TextView , drawingContext:DrawingContext) = // for IBackgroundRenderer        
+        let vls = textView.VisualLines
+        for vl in vls do 
+            let ln = vl.FirstDocumentLine                
+            for seg in segms.Line(ln.LineNumber) do
+                    
+                // background color: Done in Error Highlighter
+                //let geoBuilder = new BackgroundGeometryBuilder (AlignToWholePixels = true, CornerRadius = 0.)
+                //geoBuilder.AddSegment(textView, seg)
+                //let boundaryPolygon= geoBuilder.CreateGeometry() // creates one boundary round the text
+                //drawingContext.DrawGeometry(seg.BackgroundBrush, null, boundaryPolygon)
 
-                    //foreground,  squiggles:
-                    for rect in BackgroundGeometryBuilder.GetRectsForSegment(textView, segment) do
-                        let geo = ErrorUtil.getSquiggleLine(rect)
-                        drawingContext.DrawGeometry(Brushes.Transparent, segment.UnderlinePen, geo)
-                        //break //TODO why break in original code on //https://stackoverflow.com/questions/11149907/showing-invalid-xml-syntax-with-avalonedit
-        with ex ->
-            ISeffLog.log.PrintfnAppErrorMsg "ERROR in ErrorRenderer.Draw: %A" ex
+                //foreground,  squiggles:
+                for rect in BackgroundGeometryBuilder.GetRectsForSegment(textView, seg) do
+                    let geo = ErrorUtil.getSquiggleLine(rect)
+                    drawingContext.DrawGeometry(Brushes.Transparent, seg.UnderlinePen, geo)
+                    //based on //https://stackoverflow.com/questions/11149907/showing-invalid-xml-syntax-with-avalonedit
+       
 
     member _.Layer = KnownLayer.Selection // for IBackgroundRenderer
-    member _.Transform(context:ITextRunConstructionContext , elements:IList<VisualLineElement>)=() // TODO needed ? // for IVisualLineTransformer
-
-    /// Update list of Segments to actually mark (first nine only per Severity) and ensure drawing the error squiggle on the surrounding folding box too
-    member _.AddSegments( res: CheckResults ) =         
-        let mutable hash = 0L
-        let mutable firstOff = -1
-        let mutable lastOff = -1
-        let mark(e:FSharpDiagnostic) =             
-            match ErrorUtil.getSegment doc e with 
-            |None -> ()
-            |Some seg -> 
-                let st = seg.StartOffset
-                firstOff <- min firstOff st
-                lastOff  <- max lastOff seg.EndOffset
-                let segToMark = SegmentToMark ( st, seg.Length, e )
-                hash <- hash <<< 7
-                hash <- hash + int64 st
-                hash <- hash <<< 7
-                hash <- hash + int64 seg.Length
-                segments.Add (segToMark)
-                for fold in folds.GetFoldingsContaining(st) do
-                    //if fold.IsFolded then // do on all folds !
-                    //fold.BackbgroundColor  <- ErrorStyle.errBackGr // done via ctx.DrawRectangle(ErrorStyle.errBackGr
-                    fold.DecorateRectangle <- 
-                        Action<Rect,DrawingContext>( fun rect ctx ->
-                            let geo = ErrorUtil.getSquiggleLine(rect)
-                            if isNull fold.BackgroundColor then ctx.DrawRectangle(segToMark.BackgroundBrush, null, rect) // in case of selection highlighting skip brush only use Pen                        
-                            ctx.DrawGeometry(Brushes.Transparent, segToMark.UnderlinePen, geo)
-                            )  
-        // first clear:
-        if segments.Count > 0 then
-            segments.Clear()
-            for fold in folds.AllFoldings do fold.DecorateRectangle <- null
-        // then refill:
-        let es = res.errors
-        for h in es.hiddens  |> Seq.truncate ErrorUtil.maxAmountOfErrorsToDraw  do mark(h)    // TODO only highlight the first 9 ?            
-        for i in es.infos    |> Seq.truncate ErrorUtil.maxAmountOfErrorsToDraw  do mark(i)                
-        for w in es.warnings |> Seq.truncate ErrorUtil.maxAmountOfErrorsToDraw  do mark(w)                
-        for e in es.errors   |> Seq.truncate ErrorUtil.maxAmountOfErrorsToDraw  do mark(e)   // draw errors last, after warnings, to be on top of them!   
-        
-        // to only redraw on chnages:
-        if prevHash <> hash then 
-            prevHash <- hash
-            if lastOff > 0 then 
-                let seg = RedrawSegment(firstOff,lastOff)
-                match prevSeg with 
-                |Some s -> 
-                    let m = seg.Merge(s)                    
-                    //ISeffLog.printnColor 200 0 0 "Err Segs:prev seg merged redraw"
-                    txA.TextView.Redraw(m)
-                    prevSeg <- Some seg
-                |None ->
-                    //ISeffLog.printnColor 200 0 0 "Err Segs:segredraw"
-                    txA.TextView.Redraw(seg)
-                    prevSeg <- Some seg
-                
-            
-            else // no errors found, clear if not done yet
-                match prevSeg with 
-                |Some s -> 
-                    //ISeffLog.printnColor 200 0 0 "Err Segs: prev seg redraw"
-                    txA.TextView.Redraw(s)
-                    prevSeg <- None
-                |None ->
-                    //ISeffLog.printnColor 0 222 0 "Err Segs:no AddSegments redraw"
-                    ()
-        //else
-            //ISeffLog.printnColor 0 222 0 "Err Segs:no AddSegments redraw no hash"
-
-
-    member _.GetSegmentsAtOffset(offset) = segments.FindSegmentsContaining(offset)
 
     interface IBackgroundRenderer with
         member this.Draw(tv,dc) = this.Draw(tv,dc)
         member this.Layer = this.Layer
 
-    interface IVisualLineTransformer with // needed ?
-        member this.Transform(ctx,es) = this.Transform(ctx,es)
 
+type ErrorHighlighter (ed:TextEditor, state:InteractionState, folds:Folding.FoldingManager) = 
+    
+    let actionError   = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetBackgroundBrush(ErrorStyle.errBackGr))
+    let actionWarning = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetBackgroundBrush(ErrorStyle.warnBackGr)) 
+    let actionInfo    = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetBackgroundBrush(ErrorStyle.infoBackGr)) 
+    let actionHidden  = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetBackgroundBrush(ErrorStyle.infoBackGr))
+    
+    let segments = LineTransformers<SegmentToMark>()
+    let foundErrorsEv = new Event<unit>()
+    let tip = new ToolTip(IsOpen=false) 
 
-type ErrorHighlighter (ed:TextEditor, folds:Folding.FoldingManager) = 
-
+    let trans = state.FastColorizer.Transformers
     let tView= ed.TextArea.TextView
-    let renderer = ErrorRenderer(ed,folds)
-    let tip = new ToolTip(IsOpen=false) // TODO replace with something that can be pinned// TODO use popup instead of tooltip so it can be pinned?
 
-    let drawnEv = new Event<IEditor>()
+    /// because FSharpDiagnostic might have line number 0 form Parse-and-check-file-in-project errors, but Avalonedit starts at 1
+    let linesStartAtOne i = if i<1 then 1 else i 
+    
+    let getOffsets (lineOffs:ResizeArray<int<off>>, e:FSharpDiagnostic) =
+        let ln  = linesStartAtOne e.StartLine        
+        let st = int lineOffs.[ln] + e.StartColumn + 1
+        let ln  = linesStartAtOne e.EndLine       
+        let en = int lineOffs.[ln] + e.EndColumn + 1
+        if st < en then 
+            st, en
+        elif st > en then // should never happen // this FCS bug has happened in the past, for Parse-and-check-file-in-project errors the segments can be wrong
+            en, st 
+        else // st=en  // should never happen
+            st, st + 1 // just in case, so it is at least on char long
+    
+    
 
+    let insert (e:FSharpDiagnostic, lineOffs:ResizeArray<int<off>>, action) = 
+        // handle multiline Errors
+        let lnNoSt = linesStartAtOne e.StartLine   
+        let lnNoEn = linesStartAtOne e.EndLine        
+        for lnNo = lnNoSt to lnNoEn do
+            let st0,en0 = getOffsets (lineOffs,e)    // might be multiline         
+            let lnSt = lineOffs.[lnNo]              |> int
+            let lnEn = lineOffs.[lnNo+1] - 2<off>   |> int
+            let st  = max lnSt st0 // trimm to this line 
+            let en  = min lnEn en0
+            trans.Insert(lnNo, LinePartChange.make(st,en, action, CheckerError))
+            segments.Insert(lnNo, SegmentToMark(st ,en , e))
+            
+    
+    let updateFolds(e:FSharpDiagnostic, lineOffs:ResizeArray<int<off>>, brush, pen) = 
+        let lnNoSt = linesStartAtOne e.StartLine 
+        let offset = int lineOffs.[lnNoSt] + e.StartColumn        
+        for fold in folds.GetFoldingsContaining(offset) do
+            //if fold.IsFolded then // do on all folds, so they show correctly when collapsing !
+            //fold.BackbgroundColor  <- ErrorStyle.errBackGr // done via ctx.DrawRectangle(ErrorStyle.errBackGr
+            fold.DecorateRectangle <- 
+                Action<Rect,DrawingContext>( fun rect ctx ->
+                    let geo = ErrorUtil.getSquiggleLine(rect)
+                    if isNull fold.BackgroundColor then // in case of selection highlighting skip brush, only use Pen  
+                        ctx.DrawRectangle(brush, null, rect)                       
+                    ctx.DrawGeometry(Brushes.Transparent, pen, geo)
+                    )      
+    
+    
     let showErrorToolTip(mouse:Input.MouseEventArgs) = 
         let pos = tView.GetPositionFloor(mouse.GetPosition(tView) + tView.ScrollOffset)
         if pos.HasValue then
-            let logicalPosition = pos.Value.Location
-            let offset = ed.Document.GetOffset(logicalPosition)
-            let segmentsAtOffset = renderer.GetSegmentsAtOffset(offset)
-            //let seg = segmentsAtOffset.FirstOrDefault(fun renderer -> renderer.Message <> null)//LINQ ??
-            //if notNull seg && notNull tab.ErrorToolTip then
-            if segmentsAtOffset.Count > 0 then
-                let seg = segmentsAtOffset.[0] // TODO show all Errors at this segment not just first ?
+            let loc = pos.Value.Location
+            let offset = ed.Document.GetOffset(loc)
+            segments.Line(loc.Line)
+            |> Seq.tryFind( fun s ->  offset >= s.Offset && offset <= s.EndOffset )
+            |> Option.iter(fun segm ->    
                 let tb = new TextBlock()
-                tb.Text <- seg.Message       //TODO move styling out of event handler ?
-                tb.FontSize <- StyleState.fontSize
+                tb.Text <- segm.Message       //TODO move styling out of event handler ?
+                tb.FontSize <- StyleState.fontSize * 0.9
                 tb.FontFamily <- StyleState.fontToolTip //TODO use another monospace font ?
                 tb.TextWrapping <- TextWrapping.Wrap
                 //tb.Foreground <- Media.SolidColorBrush(if seg.IsWarning then Colors.DarkRed else Colors.DarkGreen)
                 tip.Content <- tb
 
-                let pos = ed.Document.GetLocation(seg.StartOffset)
+                let pos = ed.Document.GetLocation(segm.Offset)
                 let tvpos = new TextViewPosition(pos.Line,pos.Column)
                 let pt = tView.GetVisualPosition(tvpos, Rendering.VisualYPosition.LineTop)
                 let ptInclScroll = pt - tView.ScrollOffset
@@ -344,28 +295,39 @@ type ErrorHighlighter (ed:TextEditor, folds:Folding.FoldingManager) =
                 tip.Placement <- Primitives.PlacementMode.Top //https://docs.microsoft.com/en-us/dotnet/framework/wpf/controls/popup-placement-behavior
                 tip.VerticalOffset <- -6.0
 
-                tip.IsOpen <- true
-                //e.Handled <- true // don't, MouseHover might still trigger type info tooltip
-
+                tip.IsOpen <- true                
+                )    
+    
     do
-        tView.BackgroundRenderers.Add(renderer)
-        tView.LineTransformers.Add(   renderer)
-        //tView.Services.AddService(typeof<ErrorRenderer> , renderer) // TODO, what for?
+        tView.BackgroundRenderers.Add(new ErrorRenderer(state,segments)) 
 
         tView.MouseHover.Add        (showErrorToolTip)
         tView.MouseHoverStopped.Add ( fun e ->  tip.IsOpen <- false ) //; e.Handled <- true) )
         tView.VisualLinesChanged.Add( fun e ->  tip.IsOpen <- false ) // on scroll and resize
 
-    //[<CLIEvent>] member this.OnDrawn = drawnEv.Publish
 
-    /// draws underlines
-    /// threadsafe
-    member this.Draw( iEditor: IEditor ) = // this is used as Checker.OnChecked event handler
-        match iEditor.FileCheckState with
-        | Done res ->            
-            renderer.AddSegments(res)
-            drawnEv.Trigger(iEditor) // to update foldings now
-        | NotStarted  | Checking _ | CheckFailed -> ()
+    [<CLIEvent>] 
+    member _.FoundErrors = foundErrorsEv.Publish
+    
+    member _.UpdateErrs(errs:ErrorsBySeverity, lineOffs:ResizeArray<int<off>>, id) = 
+        if state.DocChangedId.Value = id then
+            segments.ClearAllLines() // first clear
+            for h in errs.hiddens  do insert(h, lineOffs, actionHidden)
+            for i in errs.infos    do insert(i, lineOffs, actionInfo)              
+            for w in errs.warnings do insert(w, lineOffs, actionWarning)              
+            for e in errs.errors   do insert(e, lineOffs, actionError)
+            async{
+                do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context
+                for fold in folds.AllFoldings do fold.DecorateRectangle <- null // first clear
+                for h in errs.hiddens  do updateFolds(h, lineOffs, ErrorStyle.infoBackGr, ErrorStyle.infoSquiggle) 
+                for i in errs.infos    do updateFolds(i, lineOffs, ErrorStyle.infoBackGr, ErrorStyle.infoSquiggle)
+                for w in errs.warnings do updateFolds(w, lineOffs, ErrorStyle.warnBackGr, ErrorStyle.warnSquiggle)
+                for e in errs.errors   do updateFolds(e, lineOffs, ErrorStyle.errBackGr , ErrorStyle.errSquiggle)
+            } |> Async.RunSynchronously
+
+            foundErrorsEv.Trigger()
+
+
 
     member this.ToolTip = tip
 

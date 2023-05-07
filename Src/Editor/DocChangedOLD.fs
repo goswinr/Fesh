@@ -1,4 +1,6 @@
 ﻿namespace Seff.Editor
+()
+(*
 
 open System
 open System.Windows
@@ -325,3 +327,4 @@ module DocChangedOLD =
     
         
 
+*)

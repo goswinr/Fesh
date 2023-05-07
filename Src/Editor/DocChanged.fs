@@ -27,6 +27,27 @@ type EditorServices = {
     }
 
 module DocChangeUtil = 
+    
+    let getLineStartOffsets(code:string) =
+        let lineStartOffsets = ResizeArray<int<off>>(512)
+
+        lineStartOffsets.Add(0<off>) // line 0 does not exist 
+        lineStartOffsets.Add(0<off>) // line 1 starts at offset 0
+        let rec loop i =
+            if i < code.Length then 
+                match code.IndexOf('\n',i) with 
+                | -1 -> ()
+                | i -> 
+                    lineStartOffsets.Add(LanguagePrimitives.Int32WithMeasure i + 1<off>)
+                    loop (i+1) 
+        
+        loop 0
+        lineStartOffsets.Add(LanguagePrimitives.Int32WithMeasure code.Length)// so there is always a next line, even for the last
+        lineStartOffsets
+
+    
+    
+    
     /// returns the total character count change -1 or +1 depending if its a insert or remove
     let isSingleCharChange (a:DocumentChangeEventArgs) =
         match a.InsertionLength, a.RemovalLength with
@@ -92,81 +113,78 @@ module DocChangeUtil =
         else
             None
 
+module Redrawing = 
+
+    [<Flags;RequireQualifiedAccess>]
+    type Scan1State =
+        | None      = 0b0000000
+        | BadIndent = 0b0000001
+        | Brackets  = 0b0000010
+        | All       = 0b0000011
 
 
-[<Flags;RequireQualifiedAccess>]
-type Scan1State =
-    | None      = 0b0000000
-    | BadIndent = 0b0000001
-    | Brackets  = 0b0000010
-    | All       = 0b0000011
-
-
-type RedrawingScan1(serv:EditorServices, ed:TextEditor) = 
+    type FirstEventCombiner(serv:EditorServices, ed:TextEditor) = 
     
-    let mutable scan = Scan1State.None        
+        let mutable scan = Scan1State.None        
     
-    let tryDraw() =  
-        if scan = Scan1State.All then 
-            ed.Dispatcher.Invoke (fun() -> ed.TextArea.TextView.Redraw()) //TODO only redraw parts of the view, or lower priority ?    
+        let tryDraw() =  
+            if scan = Scan1State.All then 
+                ed.Dispatcher.Invoke (fun() -> ed.TextArea.TextView.Redraw()) //TODO only redraw parts of the view, or lower priority ?    
     
-    let doneBadIndents() = scan <- scan &&& Scan1State.BadIndent;  tryDraw()
-    let doneBrackets()   = scan <- scan &&& Scan1State.Brackets;  tryDraw()
-    let reset() = scan <- Scan1State.None      
+        let doneBadIndents() = scan <- scan &&& Scan1State.BadIndent;  tryDraw()
+        let doneBrackets()   = scan <- scan &&& Scan1State.Brackets;  tryDraw()
+        let reset() = scan <- Scan1State.None      
 
-    do
-        serv.folds.FoundBadIndents.Add doneBadIndents
-        serv.brackets.FoundBrackets.Add doneBrackets
+        do
+            serv.folds.FoundBadIndents.Add doneBadIndents
+            serv.brackets.FoundBrackets.Add doneBrackets
 
-[<Flags;RequireQualifiedAccess>]
-type Scan2State =
-    | None      = 0b0000000
-    | Semantics = 0b0000001
-    | Errors    = 0b0000010
-    | All       = 0b0000011
+    [<Flags;RequireQualifiedAccess>]
+    type Scan2State =
+        | None      = 0b0000000
+        | Semantics = 0b0000001
+        | Errors    = 0b0000010
+        | All       = 0b0000011
 
 
-type RedrawingScan2(serv:EditorServices, ed:TextEditor) = 
+    type SecondEventCombiner(serv:EditorServices, ed:TextEditor) = 
     
-    let mutable scan = Scan2State.None        
+        let mutable scan = Scan2State.None        
     
-    let tryDraw() = 
-        if scan = Scan2State.All then  
-            ed.Dispatcher.Invoke (fun() -> ed.TextArea.TextView.Redraw()) //TODO only redraw parts of the view, or lower priority ?    
+        let tryDraw() = 
+            if scan = Scan2State.All then  
+                ed.Dispatcher.Invoke (fun() -> ed.TextArea.TextView.Redraw()) //TODO only redraw parts of the view, or lower priority ?    
     
-    let doneSemantics()  = scan <- scan &&& Scan2State.Semantics;  tryDraw()
-    let doneErrors()     = scan <- scan &&& Scan2State.Errors;  tryDraw()
-    let reset() = scan <- Scan2State.None
+        let doneSemantics()  = scan <- scan &&& Scan2State.Semantics;  tryDraw()
+        let doneErrors()     = scan <- scan &&& Scan2State.Errors   ;  tryDraw()
+        let reset() = scan <- Scan2State.None
         
-    do
-        serv.semantic.FoundSemantics.Add doneSemantics
-        serv.errors.
-        
-
-
+        do
+            serv.semantic.FoundSemantics.Add doneSemantics
+            serv.errors.FoundErrors.Add doneErrors
+      
 
 module DocChangeMark = 
     open DocChangeUtil
 
-   
-
 
     /// for multi char or line edits
     /// second: Errors and Semantic Highlighting on check result .    
-    let secondMarkingStep (fullCode:CodeAsString, serv:EditorServices ,  state:InteractionState, id) =
+    let secondMarkingStep (iEd:IEditor, serv:EditorServices, state:InteractionState, fullCode:CodeAsString, id) =
         async{  
             match Checker.CheckCode(iEd, fullCode,state,id) with 
             |None -> ()
             |Some res ->
-                serv.semantic.UpdateSemHiLiTransformers(fullCode, res.checkRes)
-                serv.errors.
+                let offs = getLineStartOffsets(fullCode)
+                serv.semantic.UpdateSemHiLiTransformers(fullCode, offs, res.checkRes,id)
+                serv.errors.UpdateErrs(res.errors,offs,id)
             
-            ()         
+                    
          } |> Async.Start
     
     /// for multi char or line edits
     /// first: Foldings, ColorBrackets and BadIndentation when full text available async.
-    let firstMarkingStep (fullCode:CodeAsString, serv:EditorServices,  state:InteractionState,  id) =
+    let firstMarkingStep (serv:EditorServices, state:InteractionState, fullCode:CodeAsString, id) =
          async{
             serv.folds.UpdateFoldsAndBadIndents(fullCode,id)
             serv.brackets.UpdateAllBrackets(fullCode, state.Caret, id)
@@ -175,20 +193,20 @@ module DocChangeMark =
          } |> Async.Start
     
     
-    let markFoldCheckHighlight (doc:TextDocument, serv:EditorServices,  state:InteractionState , id ) =               
+    let markFoldCheckHighlight (iEd:IEditor, doc:TextDocument, serv:EditorServices, state:InteractionState, id) =               
         // NOTE just checking only Partial Code till caret with (doc.CreateSnapshot(0, tillOffset).Text) 
         // would make the GetDeclarationsList method miss some declarations !!
         let fullCode = doc.CreateSnapshot().Text // the only threadsafe way to access the code string                    
         if id = state.DocChangedId.Value then
             //Redrawing.reset()            
             state.FastColorizer.Transformers.ClearAllLines()
-            firstMarkingStep  (fullCode, serv, state, id )
-            secondMarkingStep (fullCode, serv, state, id )
+            firstMarkingStep  (     serv, state, fullCode, id )
+            secondMarkingStep (iEd, serv, state, fullCode, id)
         
     
-    let markFoldCheckHighlightAsync (iEd:IEditor, serv:EditorServices,  state:InteractionState, id ) =
-        let doc = iEd.AvaEdit.Document
-        async { markFoldCheckHighlight (doc, serv, state,  id )} |> Async.Start
+    let markFoldCheckHighlightAsync (iEd:IEditor, serv:EditorServices, state:InteractionState, id ) =
+        let doc = iEd.AvaEdit.Document // get Doc in Sync
+        async { markFoldCheckHighlight (iEd, doc, serv, state, id)} |> Async.Start
     
 module DocChangeCompletion = 
     open DocChangeUtil
@@ -333,7 +351,7 @@ module DocChangeCompletion =
             state.JustCompleted <- false // reset it
             DocChangeMark.markFoldCheckHighlightAsync (iEd, serv, state, id)
         else            
-            let doc = iEd.AvaEdit.Document
+            let doc = iEd.AvaEdit.Document // get in sync
             async{                
                 match c with
                 | '_'  // for __SOURCE_DIRECTORY__
@@ -344,7 +362,7 @@ module DocChangeCompletion =
                     let show = MaybeShow.completionWindow(pos)
                     match show with 
                     |DoNothing  -> ()
-                    |JustMark   -> DocChangeMark.markFoldCheckHighlight(doc, serv, state, id)
+                    |JustMark   -> DocChangeMark.markFoldCheckHighlight(iEd, doc, serv, state, id)
                     |ShowAll    
                     |ShowOnlyDU -> 
                         let declsPosx  = 
@@ -370,9 +388,9 @@ module DocChangeCompletion =
                                 DocChangeMark.markFoldCheckHighlightAsync(iEd, serv, state, id)
                         |None -> 
                             state.DocChangedConsequence <- React
-                            DocChangeMark.markFoldCheckHighlight(doc, serv, state, id)
+                            DocChangeMark.markFoldCheckHighlight(iEd, doc, serv, state, id)
                 | _ ->                    
-                    DocChangeMark.markFoldCheckHighlight(doc, serv, state, id)
+                    DocChangeMark.markFoldCheckHighlight(iEd, doc, serv, state, id)
             
             } |> Async.Start
         

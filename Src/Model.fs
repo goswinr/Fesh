@@ -79,7 +79,7 @@ type ChnageId = int64
 type CodeAsString = string
 
 (*
-/// The Result when trying to get the current code from the checker
+/// The Result when trying to get the current code from the checker  // DELETE
 /// (and not from the editor where the tree would have to be converted to a string)
 type CodeAndId = 
     | CodeID of string * CheckId
@@ -117,9 +117,9 @@ type FullCheckResults = {
 
 type FileCheckState =     
     | Checking 
-    | Done     of ErrorsBySeverity
+    | Done     of FullCheckResults
 
-    (*
+    (*  // DELETE
 /// Represents the current sate of the  FSharp.Compiler.Service Checker
 /// It is stored globally in the Checker
 /// And locally in each Editor instance (they are compared via the CheckId)
@@ -170,14 +170,15 @@ type FilePath =
 
 // so that the Editor can be used before declared
 type IEditor = 
-    //abstract member Id             : Guid
     abstract member AvaEdit        : TextEditor
+    abstract member Code           : CodeAsString with get , set
     abstract member FileCheckState : FileCheckState with get , set
     abstract member FilePath       : FilePath
-    //abstract member Log            : ISeffLog
     abstract member FoldingManager : FoldingManager
     abstract member EvaluateFrom   : int
     abstract member IsComplWinOpen : bool
+    //abstract member Id             : Guid  // DELETE
+    //abstract member Log            : ISeffLog
     //abstract member SemanticRanges : FSharp.Compiler.EditorServices.SemanticClassificationItem []
     //abstract member Completions    :obj
 
@@ -195,6 +196,11 @@ module IEditor =
         |None   -> false
         |Some o -> o.AvaEdit = e 
 
+/// for offsets into the fullcode
+[<Measure>] type off 
+
+// for line numbers  // DELETE
+//[<Measure>] type lnNo
 
 //---- Fsi types ------------
 type CodeSegment = {
@@ -206,7 +212,7 @@ type CodeSegment = {
 
 type FsiCodeAmount = 
     | All
-    | ContinueFromChanges //of int
+    | ContinueFromChanges 
     | FsiSegment of  CodeSegment
 
 type CodeToEval = {

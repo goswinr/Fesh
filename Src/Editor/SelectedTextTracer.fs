@@ -150,35 +150,33 @@ module SelectionHighlighting =
         *)
                 
 
-        let checkFoldedBoxes (ed:IEditor,highTxt) =
+        let checkFoldedBoxes (ed:IEditor, fullCode:string ,highTxt) =
             // for status bar and folds :
-            match ed.FileCheckState.CodeAndId with
-            | NoCode -> empty // for performance don't request full codestring if missing
-            | CodeID (code,_) ->
-                let mutable index = code.IndexOf(highTxt, 0, StringComparison.Ordinal)  
-                for fold in ed.FoldingManager.AllFoldings do fold.BackgroundColor <- null // reset all first, before setting some
-                let offsets = ResizeArray<int>()
-                while index >= 0 do                    
-                    offsets.Add(index)
-                    // check for text that is folded away:
-                    let infs = ed.FoldingManager.GetFoldingsContaining(index)
-                    for inf in infs do inf.BackgroundColor <- colorEditor                    
-                    let st =  index + highTxt.Length // endOffset // TODO or just +1 ???????
-                    if st >= code.Length then
-                        index <- -1 // this happens when word to highlight is at document end
-                        //ISeffLog.log.PrintfnAppErrorMsg  "index  %d in %d ??" st code.Length
-                    else
-                        index <- code.IndexOf(highTxt, st, StringComparison.Ordinal)
-                offsets        
+           
+            let mutable index = fullCode.IndexOf(highTxt, 0, StringComparison.Ordinal)  
+            for fold in ed.FoldingManager.AllFoldings do fold.BackgroundColor <- null // reset all first, before setting some
+            let offsets = ResizeArray<int>()
+            while index >= 0 do                    
+                offsets.Add(index)
+                // check for text that is folded away:
+                let infs = ed.FoldingManager.GetFoldingsContaining(index)
+                for inf in infs do inf.BackgroundColor <- colorEditor                    
+                let st =  index + highTxt.Length // endOffset // TODO or just +1 ???????
+                if st >= fullCode.Length then
+                    index <- -1 // this happens when word to highlight is at document end
+                    //ISeffLog.log.PrintfnAppErrorMsg  "index  %d in %d ??" st code.Length
+                else
+                    index <- fullCode.IndexOf(highTxt, st, StringComparison.Ordinal)
+            offsets        
     
-        let handleSelection(ed:IEditor, selTextHiLi:SelectionColorizer) =
+        let handleSelection(ed:IEditor, fullCode:string, selTextHiLi:SelectionColorizer) =
             let av = ed.AvaEdit
             match Selection.getSelType av.TextArea with 
             |RegSel  -> 
                 let t = av.SelectedText
                 if isTextToHighlight t then  //is at least two chars and has no line breaks                    
                     let st = setSelHighlight(t,av, selTextHiLi)                
-                    let offs = checkFoldedBoxes(ed,t)
+                    let offs = checkFoldedBoxes(ed, fullCode,t)
                     if offs.Count > 0 then 
                         selectionChangedEv.Trigger(av, FoundSome {text=t; offsets=offs; selectionAt = st})
                         //ISeffLog.printnColor 200 99 0 "handleSelection Redraw"

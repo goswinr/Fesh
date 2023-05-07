@@ -82,7 +82,6 @@ type InteractionState(config:Seff.Config.Config) =
     /// this is only true if it just closed for insertion
     member val JustCompleted = false with get, set
 
-
     member val FastColorizer = new FastColorizer() with get    
     
     member val Caret = 0 with get, set

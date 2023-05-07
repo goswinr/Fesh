@@ -238,22 +238,23 @@ type Checker private ()  =
     static member OptArgsDict = optArgsDict
 
     /// Returns None if check failed or was superseeded by a newer Document chnage ID
-    static member CheckCode(iEd:IEditor, fullCode:CodeAsString, state:InteractionState,  chnageId) : option<FullCheckResults>=        
+    static member CheckCode(iEd:IEditor, fullCode:CodeAsString, state:InteractionState, chnageId) : option<FullCheckResults>=        
         updateCheckingState iEd Checking            
         match parseAndCheck(fullCode, state, iEd.FilePath, chnageId) with 
         |None ->
             None                
         |Some parseCheckRes ->
             let errs = ErrorUtil.getBySeverity parseCheckRes.checkRes                    
-            updateCheckingState iEd (Done errs)
-            Some{
+            let res = 
+                {
                 parseRes = parseCheckRes.parseRes
                 checkRes = parseCheckRes.checkRes 
                 errors   = errs
                 chnageId = chnageId
                 editor   = iEd.AvaEdit
                 }
-        
+            updateCheckingState iEd (Done res)
+            Some res
      
     /// Currently unusedoptional argument to GetDeclarationListSymbols
     /// Completion list would get huge !!!

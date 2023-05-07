@@ -147,7 +147,7 @@ type FileChangeTracker (editor:Editor, setCodeSavedStatus:bool->unit) =
 
         ta.GotFocus.Add (fun _ -> check("ta.GotFocus")) // this also get triggered when one of the above message boxes gets closed
 
-        IEditor.mainWindow.Activated.Add (fun _ -> if editor.IsCurrent then check("mainWindow.Activated") )           
+        IEditor.mainWindow.Activated.Add (fun _ -> if IEditor.isCurrent editor.AvaEdit then check("mainWindow.Activated") )           
 
         setWatcher()
     

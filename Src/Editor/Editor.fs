@@ -81,23 +81,22 @@ type Editor private (code:string, config:Config, initalFilePath:FilePath)  =
     let brackets = new BracketHighlighter(avaEdit, state)
     let compls   = new Completions(avaEdit)
     let semHiLi  = new SemanticHighlighter(avaEdit, state)
-    let errorHighlighter    = new ErrorHighlighter(avaEdit, folds.Manager)
+    let error    = new ErrorHighlighter(avaEdit, state,folds.Manager)
     //let evalTracker         = new EvaluationTracker(avaEdit, checker, id)
 
     let services = {
         folds       = folds
         brackets    = brackets
-        errors      = errorHighlighter
+        errors      = error
         semantic    = semHiLi
         compls      = compls 
         //evalTracker : EvaluationTracker
         //selectionHili   : SelectionHighlighter
         }
-
-    let scan1 = RedrawingScan1(services,avaEdit)
-    let scan2 = RedrawingScan2(services,avaEdit)
     
-    
+    //these two wil trigger the redraw after all async events have arrived
+    let _ = Redrawing.FirstEventCombiner(services,avaEdit)
+    let _ = Redrawing.SecondEventCombiner(services,avaEdit)
        
 
     do               
@@ -105,6 +104,7 @@ type Editor private (code:string, config:Config, initalFilePath:FilePath)  =
         SyntaxHighlighting.setFSharp(avaEdit,false) 
         
     member _.State = state    
+    member _.Services = services    
 
     //member val IsCurrent = false with get,set //  this is managed in Tabs.selectionChanged event handler
 
@@ -117,9 +117,9 @@ type Editor private (code:string, config:Config, initalFilePath:FilePath)  =
     // all instances of Editor refer to the same checker instance
     //member this.GlobalChecker = checker  // DELETE
 
-    member this.ErrorHighlighter = errorHighlighter
+    member this.ErrorHighlighter = error
 
-    member this.EvalTracker = evalTracker
+    //member this.EvalTracker = evalTracker
 
     member this.Completions = compls
 
@@ -145,17 +145,17 @@ type Editor private (code:string, config:Config, initalFilePath:FilePath)  =
     
     //member this.Log = config.Log   
     member this.IsComplWinOpen  = compls.IsOpen
-    member this.EvaluateFrom    = evalTracker.EvaluateFrom
+    member this.EvaluateFrom    = 0 //evalTracker.EvaluateFrom
 
     interface IEditor with
+        member this.AvaEdit         = avaEdit
+        member this.FileCheckState  with get() = checkState  and  set(v) = checkState <- v
+        member this.FilePath        = filePath // the interface is get only, it does not need a setter
+        member this.FoldingManager  = this.Folds.Manager
+        member this.EvaluateFrom    = this.EvaluateFrom
+        member this.IsComplWinOpen  = this.Completions.IsOpen       
         //member _.Id              = id  // DELETE
-        member _.AvaEdit         = avaEdit
-        member _.FileCheckState  with get() = checkState and  set(v) = checkState <- v
-        member _.FilePath        = filePath // the interface is get only, it does not need a setter
         //member _.Log             = config.Log // DELETE
-        member _.FoldingManager  = folds.Manager
-        member _.EvaluateFrom    = evalTracker.EvaluateFrom
-        member _.IsComplWinOpen  = compls.IsOpen        
         //member _.SemanticRanges  = semanticHighlighter.Ranges  // DELETE
         //member _.Completions     = compls :> obj
 
@@ -166,22 +166,8 @@ type Editor private (code:string, config:Config, initalFilePath:FilePath)  =
         let avaEdit = ed.AvaEdit
         let compls = ed.Completions 
         
-        
-        
-
-        let editorServices = {
-            folds           = folds
-            evalTracker     : EvaluationTracker
-            errorHili       : ErrorHighlighter
-            //semanticHili    : SemanticHighlighter
-            //selectionHili   : SelectionHighlighter
-            compls          : Completions  
-            }
-
-
-        
         ed.HighlightText <- SelectionHighlighting.HiEditor.setup(ed)        
-        BracketHighlighter.Setup(ed, ed.GlobalChecker) 
+         
         
         // for logging Debug and Error Messages in AvalonEditB
         Logging.LogAction <- new Action<string>( fun (s:string) -> ISeffLog.log.PrintfnDebugMsg "AvalonEditB Logging.Log: %s" s)
@@ -191,13 +177,8 @@ type Editor private (code:string, config:Config, initalFilePath:FilePath)  =
         avaEdit.TextArea.PreviewTextInput.Add (fun e -> CursorBehavior.previewTextInput(     avaEdit, e))  // A TextCompositionEventArgs that has a string , handling typing in rectangular selection
         avaEdit.TextArea.AlternativeRectangularPaste <- Action<string,bool>( fun txt txtIsFromOtherRectSel -> RectangleSelection.paste(ed.AvaEdit, txt, txtIsFromOtherRectSel)) //TODO check txtIsFromOtherRectSel on pasting text with \r\n
 
-        // setup and tracking folding status, (needs a ref to file path:  )
-        ed.Folds.InitState( ed )
-        ed.Folds.Margin.MouseUp.Add (fun e -> 
-            ed.Folds.UpdateCollapseStatus()
-            config.FoldingStatus.Set(ed) )
         
-        avaEdit.TextArea.TextView.LineTransformers.Add(new NonStandardIndentColorizer(ed.Folds.BadIndentations))        
+        //avaEdit.TextArea.TextView.LineTransformers.Add(new NonStandardIndentColorizer(ed.Folds.BadIndentations))  // DELETE       
         
 
         let rulers =  new ColumnRulers(avaEdit) // draw last , so on top? do foldings first
@@ -207,9 +188,9 @@ type Editor private (code:string, config:Config, initalFilePath:FilePath)  =
         //----------------------------------    
 
         
-        avaEdit.Document.Changing.Add(DocChangeEvents.changing state.FastColorizer)
-        avaEdit.Document.Changed.Add (DocChangeEvents.changed  ed state)
-        avaEdit.Document.Changed.Add(fun a -> ed.EvalTracker.SetLastChangeAt a.Offset)
+        avaEdit.Document.Changing.Add(DocChangeEvents.changing                ed.State.FastColorizer)
+        avaEdit.Document.Changed.Add (DocChangeEvents.changed  ed ed.Services ed.State)
+        //avaEdit.Document.Changed.Add(fun a -> ed.EvalTracker.SetLastChangeAt a.Offset)
                  
         // check if closing and inserting from completion window is desired with currently typed character:
         avaEdit.TextArea.TextEntering.Add (compls.MaybeInsertOrClose)
