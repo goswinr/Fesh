@@ -5,6 +5,7 @@ open System.Text
 open System.Collections.Generic
 open FsEx.Wpf
 open Seff.Model
+open AvalonEditB
 
 
 /// A class to hold the folding status for all recently used files
@@ -47,8 +48,8 @@ type FoldingStatus ( runContext:RunContext, recentlyUsedFiles:RecentlyUsedFiles)
     /// to indicate end of async reading
     member this.WaitingForFileRead = waitingForFileRead
 
-    member this.Get(ed:IEditor) = 
-        match ed.FilePath with
+    member this.Get(path:FilePath) = 
+        match path with
         | NotSet _ -> [| |]
         | Deleted fi | SetTo fi ->
             match foldingStatus.TryGetValue fi.FullName with
@@ -58,11 +59,11 @@ type FoldingStatus ( runContext:RunContext, recentlyUsedFiles:RecentlyUsedFiles)
                 |true,vs -> vs
                 |_      -> [| |]
 
-    member this.Set(ed:IEditor) = // gets call on every new folds found
-        match ed.FilePath with
+    member this.Set(path:FilePath, manager:Folding.FoldingManager) = // gets call on every new folds found
+        match path with
         | NotSet _ -> ()
         | Deleted fi | SetTo fi ->
-            let vs = [| for f in ed.FoldingManager.AllFoldings do f.IsFolded |]
+            let vs = [| for f in manager.AllFoldings do f.IsFolded |]
             let ok, curr = foldingStatus.TryGetValue fi.FullName
             if not ok || curr <> vs then // only update if ther are changes or setting is missing.
                 foldingStatus.[fi.FullName] <- vs 

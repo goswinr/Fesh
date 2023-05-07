@@ -112,7 +112,7 @@ type FullCheckResults = {
     checkRes    :FSharpCheckFileResults
     errors      :ErrorsBySeverity
     chnageId    :ChnageId 
-    editorId    :Guid
+    editor      :TextEditor
     }
 
 type FileCheckState =     
@@ -166,20 +166,20 @@ type FilePath =
 
     member this.DoesNotExistsAsFile = match this with  SetTo _ ->  false | Deleted _ |NotSet _ -> true
     member this.ExistsAsFile        = match this with  SetTo _ ->  true  | Deleted _ |NotSet _ -> false
-
   
 
 // so that the Editor can be used before declared
 type IEditor = 
-    abstract member Id             : Guid
+    //abstract member Id             : Guid
     abstract member AvaEdit        : TextEditor
     abstract member FileCheckState : FileCheckState with get , set
     abstract member FilePath       : FilePath
-    abstract member Log            : ISeffLog
+    //abstract member Log            : ISeffLog
     abstract member FoldingManager : FoldingManager
     abstract member EvaluateFrom   : int
     abstract member IsComplWinOpen : bool
-    abstract member SemanticRanges : FSharp.Compiler.EditorServices.SemanticClassificationItem []
+    //abstract member SemanticRanges : FSharp.Compiler.EditorServices.SemanticClassificationItem []
+    //abstract member Completions    :obj
 
 [<RequireQualifiedAccess>]
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
@@ -189,6 +189,11 @@ module IEditor =
 
     /// A global reference to the current main window
     let mutable mainWindow = Unchecked.defaultof<FsEx.Wpf.PositionedWindow>
+
+    let isCurrent(e:TextEditor)= 
+        match current with
+        |None   -> false
+        |Some o -> o.AvaEdit = e 
 
 
 //---- Fsi types ------------
@@ -210,7 +215,7 @@ type CodeToEval = {
     logger:option<TextWriter>
     }
 
-type DotOrNot = Dot | NotDot // used in code completion
+//type DotOrNot = Dot | NotDot // used in code completion  // DELETE
 
 type PositionInCode = { 
     lineToCaret:string  

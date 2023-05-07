@@ -34,7 +34,7 @@ type Counter private () =
 
 
  /// The tab that holds the tab header and the code editor
-type Editor private (code:string, config:Config, filePath:FilePath)  = 
+type Editor private (code:string, config:Config, initalFilePath:FilePath)  = 
     let avaEdit = 
         let av = TextEditor()
         av.Options.IndentationSize <- config.Settings.GetIntSaveDefault("IndentationSize", 4) // do first because its used by tabs to spaces below.
@@ -71,12 +71,17 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
         se.WholeWords <- false // config.Settings.GetBool("SearchWholeWords", false)
         se
 
-    let id = Guid.NewGuid()    
-    let mutable checkState = FileCheckState.NotStarted // local to this editor
-    let mutable filePath   = filePath    
+    //let id = Guid.NewGuid() // DELETE   
+    let mutable checkState = FileCheckState.Checking //.NotStarted // local to this editor
+    let mutable filePath   = initalFilePath  
+    
+    let getFilePath() = filePath
+    let state = new InteractionState(config)
+    let folds = new Foldings(avaEdit, state, getFilePath)
+     
 
-    let checker             = Checker.GetOrCreate(config)
-    let folds               = new Foldings(avaEdit,checker, config, id)
+    //let checker             = Checker.GetOrCreate(config)  // DELETE
+    
     let evalTracker         = new EvaluationTracker(avaEdit, checker, id)
     let errorHighlighter    = new ErrorHighlighter(avaEdit, folds.Manager)
     let semanticHighlighter = SemanticHighlighting.setup(avaEdit, id, checker)
@@ -85,18 +90,18 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
     do               
         SyntaxHighlighting.setFSharp(avaEdit,false) 
         
-        
+    member _.State = state    
 
-    member val IsCurrent = false with get,set //  this is managed in Tabs.selectionChanged event handler
+    //member val IsCurrent = false with get,set //  this is managed in Tabs.selectionChanged event handler
 
     member val TypeInfoTip = new Controls.ToolTip(IsOpen=false)    
     
-    member val SemanticRanges : SemanticClassificationItem [] = [| |] with get,set
+    //member val SemanticRanges : SemanticClassificationItem [] = [| |] with get,set
 
     member val CodeAtLastSave : string = "" with get,set // used to check if file was changed in the background by other apps in FileChangeTracker
    
     // all instances of Editor refer to the same checker instance
-    member this.GlobalChecker = checker
+    //member this.GlobalChecker = checker  // DELETE
 
     member this.ErrorHighlighter = errorHighlighter
 
@@ -104,7 +109,7 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
 
     member this.Completions = compls
 
-    member this.Config = config
+    //member this.Config = config
 
     member this.Folds = folds
 
@@ -115,7 +120,7 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
     member val HighlightText = fun (t:string) -> () with get, set 
 
     // IEditor members:
-    member this.Id              = id    
+    //member this.Id              = id    
     member this.AvaEdit         = avaEdit
     
     /// This CheckState is local to the current editor
@@ -124,27 +129,42 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
     /// setting this alone does not change the tab header !!
     member this.FilePath        with get() = filePath    and set (v)= filePath <- v
     
-    member this.Log = config.Log   
+    //member this.Log = config.Log   
     member this.IsComplWinOpen  = compls.IsOpen
     member this.EvaluateFrom    = evalTracker.EvaluateFrom
 
     interface IEditor with
-        member _.Id              = id
+        //member _.Id              = id  // DELETE
         member _.AvaEdit         = avaEdit
         member _.FileCheckState  with get() = checkState and  set(v) = checkState <- v
         member _.FilePath        = filePath // the interface is get only, it does not need a setter
-        member _.Log             = config.Log
+        //member _.Log             = config.Log // DELETE
         member _.FoldingManager  = folds.Manager
         member _.EvaluateFrom    = evalTracker.EvaluateFrom
         member _.IsComplWinOpen  = compls.IsOpen        
-        member _.SemanticRanges  = semanticHighlighter.Ranges
+        //member _.SemanticRanges  = semanticHighlighter.Ranges  // DELETE
+        //member _.Completions     = compls :> obj
 
     /// sets up Text change event handlers
     /// a static method so that an instance if IEditor can be used
     static member SetUp  (code:string, config:Config, filePath:FilePath ) = 
         let ed = Editor(code, config, filePath )
         let avaEdit = ed.AvaEdit
-        let compls = ed.Completions        
+        let compls = ed.Completions 
+        
+        
+        
+
+        let editorServices = {
+            folds           = folds
+            evalTracker     : EvaluationTracker
+            errorHili       : ErrorHighlighter
+            //semanticHili    : SemanticHighlighter
+            //selectionHili   : SelectionHighlighter
+            compls          : Completions  
+            }
+
+
         
         ed.HighlightText <- SelectionHighlighting.HiEditor.setup(ed)        
         BracketHighlighter.Setup(ed, ed.GlobalChecker) 
@@ -172,13 +192,16 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
         //--FS Checker and Code completion--
         //----------------------------------    
 
-        let state = new InteractionState()        
-        let fastColor = FastColorizer()
-        avaEdit.Document.Changing.Add(DocChangeEvents.changing fastColor)
-        avaEdit.Document.Changed.Add (DocChangeEvents.changed ed fastColor state)
-             
         
+        avaEdit.Document.Changing.Add(DocChangeEvents.changing state.FastColorizer)
+        avaEdit.Document.Changed.Add (DocChangeEvents.changed  ed state)
+        avaEdit.Document.Changed.Add(fun a -> ed.EvalTracker.SetLastChangeAt a.Offset)
+                 
+        // check if closing and inserting from completion window is desired with currently typed character:
+        avaEdit.TextArea.TextEntering.Add (compls.MaybeInsertOrClose)
+        avaEdit.TextArea.TextEntering.Add (fun _ -> ed.TypeInfoTip.IsOpen <- false )// close type info on typing
         
+        (*  // DELETE
         avaEdit.Document.Changed.Add(fun a -> 
             DocChanged.logPerformance( a.InsertedText.Text) // AutoHotKey SendInput of ßabcdefghijklmnopqrstuvwxyz£
             //DocChanged.delayDocChange(a, ed, compls, ed.GlobalChecker) // to trigger for Autocomplete or error highlighting with immediate delay, (instead of delay in checkCode function.)
@@ -195,6 +218,7 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
                 AutoFixErrors.references(iEditorOfCheck, chRes)
                 ed.ErrorHighlighter.Draw(ed)
             )
+        *)
 
         compls.OnShowing.Add(fun _ -> ed.ErrorHighlighter.ToolTip.IsOpen <- false)
         compls.OnShowing.Add(fun _ -> ed.TypeInfoTip.IsOpen              <- false)

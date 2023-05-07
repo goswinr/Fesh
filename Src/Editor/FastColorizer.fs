@@ -5,9 +5,10 @@ open AvalonEditB
 open AvalonEditB.Rendering
 open Seff.Model
 
-
+/// Given Start Offset and End Offset from Document
+[<Struct>]
 type LinePartChange = {
-    form:int
+    form: int
     till: int
     action: Action<VisualLineElement>
     }
@@ -15,13 +16,13 @@ type LinePartChange = {
 /// For accessing the highlighting of a line in constant time
 type LineTransformers() =    
 
-    let lines = ResizeArray<ResizeArray<LinePartChange>>()
+    let lines = ResizeArray<ResizeArray<LinePartChange>>(256)// for approx 256 lines on screen
 
     member _.Lines = lines
 
     member _.Insert(line,c) =         
         while lines.Count <= line  do // fill up missing lines
-            lines.Add ( new ResizeArray<LinePartChange>())
+            lines.Add ( new ResizeArray<LinePartChange>(16))// for approx 16 tokens per line
         lines[line].Add c
         
     member _.ClearLine(line) =

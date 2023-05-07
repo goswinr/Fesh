@@ -16,6 +16,15 @@ open Seff.Util.Str
 open Seff
 
 
+type EditorServices = {
+    folds           : Foldings
+    evalTracker     : EvaluationTracker
+    errorHili       : ErrorHighlighter
+    //semanticHili    : SemanticHighlighter
+    //selectionHili   : SelectionHighlighter
+    compls          : Completions  
+    }
+
 module DocChangeUtil = 
     /// returns the total character count change -1 or +1 depending if its a insert or remove
     let isSingleCharChange (a:DocumentChangeEventArgs) =
@@ -88,7 +97,7 @@ module DocChangeMark =
 
     /// for multi char or line edits
     /// second: Errors and Semantic Highlighting on check result .    
-    let secondMarkingStep (fullCode:CodeAsString ,  state:InteractionState) =
+    let secondMarkingStep (fullCode:CodeAsString, serv:EditorServices ,  state:InteractionState,id) =
         async{  
             
             
@@ -97,26 +106,26 @@ module DocChangeMark =
     
     /// for multi char or line edits
     /// first: Foldings, ColorBrackets and BadIndentation when full text available async.
-    let firstMarkingStep (fullCode:CodeAsString,  state:InteractionState) =
+    let firstMarkingStep (fullCode:CodeAsString, serv:EditorServices,  state:InteractionState, id) =
          async{  
-            
+            serv.folds.UpdateFoldsAndBadIndents(fullCode,id)
             
             ()         
          } |> Async.Start
     
     
-    let markFoldCheckHighlight (doc:TextDocument ,  state:InteractionState ,id ) =               
+    let markFoldCheckHighlight (doc:TextDocument, serv:EditorServices,  state:InteractionState , id ) =               
         // NOTE just checking only Partial Code till caret with (doc.CreateSnapshot(0, tillOffset).Text) 
         // would make the GetDeclarationsList method miss some declarations !!
         let fullCode = doc.CreateSnapshot().Text // the only threadsafe way to access the code string                    
         if id = state.DocChangedId.Value then  
-            firstMarkingStep  (fullCode,  state)
-            secondMarkingStep (fullCode,  state)
+            firstMarkingStep  (fullCode, serv, state, id )
+            secondMarkingStep (fullCode, serv, state, id )
         
     
-    let markFoldCheckHighlightAsync (iEd:IEditor ,  state:InteractionState,id ) =
+    let markFoldCheckHighlightAsync (iEd:IEditor, serv:EditorServices,  state:InteractionState, id ) =
         let doc = iEd.AvaEdit.Document
-        async { markFoldCheckHighlight (doc, state,id )} |> Async.Start
+        async { markFoldCheckHighlight (doc, serv, state, id )} |> Async.Start
     
 module DocChangeCompletion = 
     open DocChangeUtil
@@ -251,7 +260,7 @@ module DocChangeCompletion =
                 
     
     /// for single character edits
-    let singleCharChange (iEd:IEditor ,  state:InteractionState, id:int64)  =
+    let singleCharChange (iEd:IEditor, serv:EditorServices, state:InteractionState, id:int64)  =
         let pos = getPosInCode2(iEd.AvaEdit)
         let tx = pos.lineToCaret
         let c = tx[tx.Length-1]
@@ -259,7 +268,7 @@ module DocChangeCompletion =
         if c <> '.' && state.JustCompleted then 
             // if it is not a dot avoid re-trigger of completion window on single character completions, just check
             state.JustCompleted <- false // reset it
-            DocChangeMark.markFoldCheckHighlightAsync (iEd , state, id)
+            DocChangeMark.markFoldCheckHighlightAsync (iEd, serv, state, id)
         else            
             let doc = iEd.AvaEdit.Document
             async{                
@@ -272,23 +281,35 @@ module DocChangeCompletion =
                     let show = MaybeShow.completionWindow(pos)
                     match show with 
                     |DoNothing  -> ()
-                    |JustMark   -> DocChangeMark.markFoldCheckHighlight (doc, state, id)
+                    |JustMark   -> DocChangeMark.markFoldCheckHighlight(doc, serv, state, id)
                     |ShowAll    
                     |ShowOnlyDU -> 
-                        let r  = 
+                        let declsPosx  = 
                             Monads.maybe{
+                                let! _ = state.IsLatest id
+                                state.DocChangedConsequence <- WaitForCompletions
                                 let! code = getFullCode(doc, state, id)
                                 let! res = Checker.CheckCode(iEd, code, state, id)
-                                return!  Checker.GetCompletions(pos,res)                            
+                                let! declsPosx = Checker.GetCompletions(pos,res) 
+                                let! _ = state.IsLatest id
+                                return declsPosx
                             }
-                        match r with         
-                        |Some (decls,posx) ->
-                            do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context
-                            Completions.TryShow(state, decls,,show = ShowOnlyDU  )
                         
-                        |None -> ()
+                        match declsPosx with         
+                        |Some (decls,posx) ->
+                            /// try showing completion window:
+                            do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context                            
+                            let onlyDU = show = ShowOnlyDU 
+                            match serv.compls.TryShow(state, decls, posx, onlyDU ) with 
+                            |DidShow -> () // no need to do anything.
+                            |NoShow -> 
+                                state.DocChangedConsequence <- React
+                                DocChangeMark.markFoldCheckHighlightAsync(iEd, serv, state, id)
+                        |None -> 
+                            state.DocChangedConsequence <- React
+                            DocChangeMark.markFoldCheckHighlight(doc, serv, state, id)
                 | _ ->                    
-                    DocChangeMark.markFoldCheckHighlight (doc,  state)
+                    DocChangeMark.markFoldCheckHighlight(doc, serv, state, id)
             
             } |> Async.Start
         
@@ -307,7 +328,7 @@ module DocChangeEvents =
             fastColor.ResetShift() 
     
 
-    let changed (iEd:IEditor) (state:InteractionState) (eventArgs:DocumentChangeEventArgs)  =          
+    let changed (iEd:IEditor) (serv:EditorServices) (state:InteractionState) (eventArgs:DocumentChangeEventArgs)  =          
         match state.DocChangedConsequence with 
         | WaitForCompletions -> 
             // Do not increment DoChangeID counter
@@ -316,11 +337,9 @@ module DocChangeEvents =
             ()
         | React -> 
             let id = state.Increment()
-            match DocChangeUtil.isSingleCharChange eventArgs with 
-            |ValueSome _ -> 
-                DocChangeCompletion.singleCharChange (iEd,  state, id)
-            |ValueNone   -> 
-                DocChangeMark.markFoldCheckHighlightAsync (iEd ,state,id)
+            match isSingleCharChange eventArgs with 
+            |ValueSome _ ->DocChangeCompletion.singleCharChange (iEd, serv, state, id)
+            |ValueNone   ->DocChangeMark.markFoldCheckHighlightAsync (iEd, serv, state, id)
             
 
 

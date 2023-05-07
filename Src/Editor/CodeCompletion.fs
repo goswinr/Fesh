@@ -20,6 +20,8 @@ open System.Windows.Media
 open Seff.XmlParser
 
 
+type TryShow = DidShow | NoShow
+
 module UtilCompletion =     
     
     let mkTexBlock(txt,style) = // the displayed item in the completion window 
@@ -114,7 +116,7 @@ type CompletionItem(state: InteractionState, getToolTip, it:DeclarationListItem,
         member this.Priority        = this.Priority
         member this.Text            = this.Text // not used for display, but for priority sorting ? 
 
-type Completions(avaEdit:TextEditor, state: InteractionState) = 
+type Completions(avaEdit:TextEditor) = 
 
     let mutable win : CompletionWindow option = None   
             
@@ -130,29 +132,27 @@ type Completions(avaEdit:TextEditor, state: InteractionState) =
     let showingEv = Event<unit>()
 
     [<CLIEvent>] 
-    member this.OnShowing = showingEv.Publish // to close other tooltips that might be open from type info
-    member this.ShowingEv = showingEv // to trigger this event from the TryShow static member.
+    member _.OnShowing = showingEv.Publish // to close other tooltips that might be open from type info
+    
     
     /// To indicate that the stack panel is not showing the loading text but the actual type info 
-    member val HasStackPanelTypeInfo = false with get, set
+    //member val HasStackPanelTypeInfo = false with get, set
 
-    member this.IsOpen = win.IsSome
+    member _.IsOpen = win.IsSome
 
-    member this.IsNotOpen = win.IsNone
+    member _.IsNotOpen = win.IsNone
 
     /// Returns  win.CompletionList.ListBox.HasItems
-    member this.HasItems = win.IsSome && win.Value.CompletionList.ListBox.HasItems
+    //member this.HasItems = win.IsSome && win.Value.CompletionList.ListBox.HasItems
 
-    member this.Close() = 
+    member _.Close() = 
         if win.IsSome then
             win.Value.Close()
-            win <- None        
-        
-    member this.RequestInsertion(ev:EventArgs) = if win.IsSome then win.Value.CompletionList.RequestInsertion(ev)    
+            win <- None    
 
     /// Initially returns "loading.." text and triggers async computation to get and update with actual text
     member this.GetToolTip(it:DeclarationListItem)= 
-        this.HasStackPanelTypeInfo <-false
+        //this.HasStackPanelTypeInfo <-false DELETE
         async{
             let ttText = it.Description            
             let structured = 
@@ -163,43 +163,23 @@ type Completions(avaEdit:TextEditor, state: InteractionState) =
                 if this.IsOpen then // might get closed during context switch
                     if selectedCompletionText() = it.NameInList then
                         win.Value.ToolTipContent <- TypeInfo.getPanel (structured, {declListItem=Some it; semanticClass=None; declLocation=None; dllLocation=None })
-                        this.HasStackPanelTypeInfo <-true
-                        //TODO add structure to a Dict so it does not need recomputing if browsing up and down items in the completion list.
+                        //this.HasStackPanelTypeInfo <-true DELETE
+                        //TODO add structure to a Dict so it does not need to be recomputed if browsing up and down items in the completion list?
         } |> Async.Start
         TypeInfo.loadingText :> obj
         
 
-    member this.ComplWin  
+    member _.ComplWin  
         with get() : Option<CompletionWindow>  = win
         and set(w  : Option<CompletionWindow>) = win <- w
-
     
-    member _.Editor = avaEdit
-    
-    
-    //-----------------------------------------------------------------
-    //---------------static members------------------------------------
-    //-----------------------------------------------------------------
-
-    static member TryShow( state: InteractionState, decls: DeclarationListInfo, compl:Completions, pos:PositionInCodeEx, onlyDU:bool) = 
-              
-        
-        //let avaEdit = iEditor.AvaEdit
-        
-        //ISeffLog.log.PrintfnDebugMsg "*3.0 TryShow Completion Window for '%s'" pos.lineToCaret       
-                   
-        //let caret = avaEdit.TextArea.Caret
-        
+    member _.Editor = avaEdit        
+ 
+    member this.TryShow( state: InteractionState, decls: DeclarationListInfo, pos:PositionInCodeEx, onlyDU:bool) : TryShow = 
+                        
+        //ISeffLog.log.PrintfnDebugMsg "*3.0 TryShow Completion Window for '%s'" pos.lineToCaret
         if AutoFixErrors.isMessageBoxOpen then // because msg box would appear behind completion window and type info
-            None 
-        
-        //elif caret.Offset < pos.offset then // DELETE
-        //    ISeffLog.log.PrintfnDebugMsg "*4.2 caret.Offset < pos.offset "
-        //    None
-        //elif  caret.Line <> pos.row then 
-        //    None //ISeffLog.log.PrintfnDebugMsg "*4.3 caret.Line <> pos.row "
-        //elif IEditor.current.Value.Id <> iEditor.Id then // safety check just in case the fsharp checker took very long and this has changed in the meantime
-        //    None //ISeffLog.log.PrintfnDebugMsg "*4.4 IEditor.current.Value.Id <> iEditor.Id "
+            NoShow 
         else    
             let completionLines = ResizeArray<ICompletionData>()
             if not onlyDU && not pos.dotBefore  then
@@ -218,18 +198,17 @@ type Completions(avaEdit:TextEditor, state: InteractionState) =
                 if onlyDU then 
                     match it.Glyph with
                     |FSharpGlyph.Union |FSharpGlyph.Module |FSharpGlyph.EnumMember -> 
-                        completionLines.Add (new CompletionItem(state, compl.GetToolTip, it, pos.dotBefore)) // for DU completion add just some.
+                        completionLines.Add (new CompletionItem(state, this.GetToolTip, it, pos.dotBefore)) // for DU completion add just some.
                     |_ -> ()
                 else 
-                    completionLines.Add (new CompletionItem(state, compl.GetToolTip, it, pos.dotBefore)) // for normal completion add all others too.
+                    completionLines.Add (new CompletionItem(state, this.GetToolTip, it, pos.dotBefore)) // for normal completion add all others too.
 
-            if completionLines.Count = 0 then
-                //compl.Checker.CheckThenHighlightAndFold(iEditor)// start new full check, this one was trimmed at offset.
-                None
+            if completionLines.Count = 0 then                
+                NoShow
             else                    
-                
-                let w =  new CodeCompletion.CompletionWindow(compl.Editor.TextArea)
-                compl.ComplWin <- Some w 
+                let ta = this.Editor.TextArea
+                let w =  new CodeCompletion.CompletionWindow(ta)
+                this.ComplWin <- Some w 
 
                 w.MaxHeight <- 500 // default 300
                 w.Width <- 250 // default 175
@@ -242,7 +221,13 @@ type Completions(avaEdit:TextEditor, state: InteractionState) =
                 w.MinHeight       <- StyleState.fontSize
                 w.MinWidth        <- StyleState.fontSize * 8.0
                 w.Closed.Add (fun _  -> 
-                        compl.Close()
+                        // Event sequence on pressing enter in completion window:
+                        // (1)raise InsertionRequested event
+                        // (1)in one of the evemnt handles first Closes window
+                        // (3)then on the item line this.Complete (TextArea, ISegment, EventArgs) is called
+                        // https://github.com/goswinr/AvalonEditB/blob/main/AvalonEditB/CodeCompletion/CompletionWindow.cs#L110
+                        state.DocChangedConsequence <- React
+                        this.Close()
                         //ISeffLog.log.PrintfnDebugMsg "Completion window just closed with selected item: %A " w.CompletionList.SelectedItem
                         //if not UtilCompletion.justCompleted then // DELETE
                         //    compl.Checker.CheckThenHighlightAndFold(iEditor) //because window might close immediately after showing if there are no matches to prefilter
@@ -261,31 +246,50 @@ type Completions(avaEdit:TextEditor, state: InteractionState) =
                 let complData =  w.CompletionList.CompletionData              
                 for cln in completionLines do
                     complData.Add (cln)                    
-                    
-                let prefilter = compl.Editor.Document.GetText(stOff, compl.Editor.TextArea.Caret.Offset-stOff)// prefilter needs to be calculated here, a few characters might have been added after getCompletions started async.
-                //ISeffLog.log.PrintfnDebugMsg "*5.2: prefilter '%s'" prefilter 
-                if prefilter.Length > 0 then 
-                    w.CompletionList.SelectItem(prefilter) //to pre-filter the list by al typed characters
-                    //ISeffLog.log.PrintfnDebugMsg "*5.3: count after SelectItem(prefilter): %d" w.CompletionList.ListBox.Items.Count
-                            
-                if w.CompletionList.ListBox.Items.Count > 0 then 
-                    //ISeffLog.log.PrintfnDebugMsg "*5.4 Show Completion Window with %d items prefilter: '%s' " w.CompletionList.ListBox.Items.Count prefilter
-                     
-                    compl.ShowingEv.Trigger() // to close error and type info tooltip                           
-                    w.Show()
-                    Some compl
-                   
+                
+                let caret = ta.Caret 
+                // prefilter needs to be calculated here, a few characters might have been added after getCompletions started async.
+                let prefilterLength = caret.Offset-stOff
+                if prefilterLength < 0 then 
+                    this.Close() // needed, otherwise it will not show again
+                    NoShow
                 else
-                    //ISeffLog.log.PrintfnDebugMsg "*5.5 Skipped showing empty Completion Window"
-                    compl.Close() // needed, otherwise it will not show again
-                    //compl.Checker.CheckThenHighlightAndFold(iEditor) /// DELETE all CheckThenHighlightAndFold
-                    None
+                    let prefilter = this.Editor.Document.GetText(stOff, prefilterLength )
+                    //ISeffLog.log.PrintfnDebugMsg "*5.2: prefilter '%s'" prefilter 
+                    
+                    if prefilter.Length > 0 then 
+                        w.CompletionList.SelectItem(prefilter) //to pre-filter the list by al typed characters
+                        //ISeffLog.log.PrintfnDebugMsg "*5.3: count after SelectItem(prefilter): %d" w.CompletionList.ListBox.Items.Count                            
+                
+                    if w.CompletionList.ListBox.Items.Count > 0 
+                        && not AutoFixErrors.isMessageBoxOpen  // because msg box would appear behind completion window and type info
+                        && IEditor.isCurrent this.Editor // switched to other editor
+                        && caret.Line = pos.row // moved cursor to other line
+                        && caret.Offset >= pos.offset then // moved cursor back befor completion ( e.g. via deleting)      
+        
+                            //ISeffLog.log.PrintfnDebugMsg "*5.4 Show Completion Window with %d items prefilter: '%s' " w.CompletionList.ListBox.Items.Count prefilter                     
+                            showingEv.Trigger() // to close error and type info tooltip                           
+                            w.Show()
+                            DidShow                   
+                    else
+                        //ISeffLog.log.PrintfnDebugMsg "*5.5 Skipped showing empty Completion Window"
+                        this.Close() // needed, otherwise it will not show again                        
+                        NoShow
 
-                // Event sequence on pressing enter in completion window:
-                // (1)Close window
-                // (2)insert text into editor (triggers completion if one char only)
-                // (3)raise InsertionRequested event
-                // https://github.com/icsharpcode/AvalonEdit/blob/8fca62270d8ed3694810308061ff55c8820c8dfc/AvalonEditB/CodeCompletion/CompletionWindow.cs#L100
+    /// For closing and inserting from completion window
+    member this.MaybeInsertOrClose  (ev:Input.TextCompositionEventArgs) = 
+        if this.IsOpen then
+            //c hecking for Tab or Enter key is not needed  here for  insertion,  
+            // insertion with Tab or Enter key is built into Avalonedit!!
             
+            match ev.Text with              
+            |" " -> this.Close()
+            
+            // insert on dot too? //TODO only when more than one char is typed in completion window??
+            |"." -> win.Value.CompletionList.RequestInsertion(ev) 
+            
+            | _  -> () // other triggers https://github.com/icsharpcode/AvalonEdit/blob/28b887f78c821c7fede1d4fc461bde64f5f21bd1/AvalonEditB/CodeCompletion/CompletionList.cs#L171
 
-
+            // insert on open Bracket too?
+            //|"(" -> compls.RequestInsertion(ev) 
+                    

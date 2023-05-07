@@ -251,7 +251,7 @@ type Checker private ()  =
                 checkRes = parseCheckRes.checkRes 
                 errors   = errs
                 chnageId = chnageId
-                editorId = iEd.Id
+                editor   = iEd.AvaEdit
                 }
         
      

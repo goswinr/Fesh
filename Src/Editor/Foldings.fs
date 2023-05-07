@@ -5,6 +5,7 @@ open System.Collections.Generic
 open System.Windows.Media
 
 open AvalonEditB
+open AvalonEditB.Rendering
 open AvalonEditB.Folding
 open AvalonLog.Brush
 open Seff.Model
@@ -21,6 +22,8 @@ type Indent = { indent: int; wordStartOff:int }
 
 [<Struct>]
 type NonStandardIndent = { badIndent: int; lineStartOffset:int; lineNo: int }
+
+
 
 
 type NonStandardIndentColorizer (badInds:ResizeArray<NonStandardIndent>) = 
@@ -41,8 +44,16 @@ type NonStandardIndentColorizer (badInds:ResizeArray<NonStandardIndent>) =
                     base.ChangeLinePart( i.lineStartOffset, eOff, fun el -> el.TextRunProperties.SetBackgroundBrush(brush))
 
 
-type Foldings(ed:TextEditor, checker:Checker, config:Config, edId:Guid) = 
-
+type Foldings(ed:TextEditor, state:InteractionState, getFilePath:unit->FilePath) = 
+    
+    let badIndentBrush =        
+        //Color.FromArgb(30uy,255uy,140uy,0uy) // a very light transparent Orange, transparent to show column rulers behind
+        Color.FromArgb(50uy,255uy,255uy,0uy) // a very light transparent Yellow, transparent to show column rulers behind
+        |> SolidColorBrush
+        |> freeze
+    
+    let badIndentAction  = Action<VisualLineElement>(fun el -> el.TextRunProperties.SetBackgroundBrush(badIndentBrush))       
+    
     let maxDepth = 1 // maximum amount of nested foldings
 
     let minLinesOutside = 2 // minimum line count for outer folding
@@ -52,12 +63,16 @@ type Foldings(ed:TextEditor, checker:Checker, config:Config, edId:Guid) =
     let minLineCountDiffToOuter = 9 // if inner folding is just 9 line shorter than outer folding don't do it
 
     let manager = Folding.FoldingManager.Install(ed.TextArea)  // color of margin is set in ColumRulers.fs
+    
+    let foldStatus = state.Config.FoldingStatus
 
-    // color for folding box is set in SelectedTextHighlighter
+    let saveFoldingStatus() = foldStatus.Set(getFilePath(),manager)
+ 
+    // the color for folding box is set in SelectedTextHighlighter
 
     let FoldingStack = Stack<FoldStart>()
     let Folds = ResizeArray<Fold>()
-    let BadIndents = ResizeArray<NonStandardIndent>()
+    //let BadIndents = ResizeArray<NonStandardIndent>()
 
     let mutable isInitialLoad = true
 
@@ -67,8 +82,7 @@ type Foldings(ed:TextEditor, checker:Checker, config:Config, edId:Guid) =
     let findFoldings (tx:string) :unit = 
 
         FoldingStack.Clear() // Collections.Generic.Stack<FoldStart>
-        Folds.Clear() // ResizeArray<Fold>       
-        BadIndents.Clear()
+        Folds.Clear() // ResizeArray<Fold>  
 
         let mutable lineNo = 1
 
@@ -136,9 +150,10 @@ type Foldings(ed:TextEditor, checker:Checker, config:Config, edId:Guid) =
             if lastBadIndentSize > 0 then                 
                 //let ln = ed.Document.GetLineByOffset(off) 
                 //ISeffLog.printError $"bad indent on line {no}={ln.LineNumber} : {lastBadIndentSize}, confirm LineOffset {ln.Offset}={off}"
-                BadIndents.Add{ badIndent=lastBadIndentSize; lineStartOffset = off-lastBadIndentSize ; lineNo=no }
+                //BadIndents.Add{ badIndent=lastBadIndentSize; lineStartOffset = off-lastBadIndentSize ; lineNo=no }  // DELETE
+                let stOff = off-lastBadIndentSize
+                state.FastColorizer.Transformers.Insert(no, {form=stOff; till=stOff+lastBadIndentSize; action=badIndentAction })
                 lastBadIndentSize <- 0 
-
             
             // do last:
             if le.indent % defaultIndenting <> 0 then 
@@ -174,154 +189,144 @@ type Foldings(ed:TextEditor, checker:Checker, config:Config, edId:Guid) =
         for f in  manager.AllFoldings do             
             collapseStatus.[getHash f.StartOffset] <- f.IsFolded 
 
+        
+
 
     ///Get foldings at every line that is followed by an indent
-    let foldEditor (iEditor:IEditor) = 
-        //config.Log.PrintfnDebugMsg "folding: %s %A = %A" iEditor.FilePath.File edId iEditor.Id
-        if edId=iEditor.Id then // foldEditor will be called on each tab, to update only current editor check id
-            //ISeffLog.log.PrintfnDebugMsg "folding1: %s" iEditor.FilePath.File
-            async{
-                match iEditor.FileCheckState.CodeAndId with
-                | NoCode ->()
-                | CodeID (code,checkId) ->
-                    let foldings = 
-                        findFoldings code                        
-                        let l = Folds.Count-1
-                        let fs = ResizeArray(max 0 l)// would be -1 if no foldings
-                        let mutable lastOuter = {foldStartOff = -99; foldEndOff = -99 ; linesInFold = -99 ; nestingLevel = -99}
-                        for i=0 to l do
-                            let f = Folds.[i]
-                            if f.foldEndOff > 0 then // filter out to short blocks that are left as dummy
-                                if  f.nestingLevel = 0 then
-                                    lastOuter <- f
-                                    fs.Add f
-                                elif f.linesInFold + minLineCountDiffToOuter < lastOuter.linesInFold then // filter out inner blocks that are almost the size of the outer block
-                                    fs.Add f
-                        fs
+    let foldEditor (fullCode:string, id:int64) = 
+               
+        //ISeffLog.log.PrintfnDebugMsg "folding1: %s" iEditor.FilePath.File
+        async{                
+            let foldings = 
+                findFoldings fullCode                        
+                let l = Folds.Count-1
+                let fs = ResizeArray(max 0 l)// would be -1 if no foldings
+                let mutable lastOuter = {foldStartOff = -99; foldEndOff = -99 ; linesInFold = -99 ; nestingLevel = -99}
+                for i=0 to l do
+                    let f = Folds.[i]
+                    if f.foldEndOff > 0 then // filter out to short blocks that are left as dummy
+                        if  f.nestingLevel = 0 then
+                            lastOuter <- f
+                            fs.Add f
+                        elif f.linesInFold + minLineCountDiffToOuter < lastOuter.linesInFold then // filter out inner blocks that are almost the size of the outer block
+                            fs.Add f
+                fs       
+                
+            if isInitialLoad then                                
+                while foldStatus.WaitingForFileRead do
+                    // check like this because reading of file data happens async
+                    //ISeffLog.log.PrintfnDebugMsg "waiting to load last code folding status.. "
+                    do! Async.Sleep 50
+                let vs = foldStatus.Get(getFilePath())
+                    
+                do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context 
+                    
+                for i = 0 to foldings.Count-1 do
+                    let f = foldings.[i]
+                    let folded = if  i < vs.Length then  vs.[i]  else false
+                    let fs = manager.CreateFolding(f.foldStartOff, f.foldEndOff)
+                    fs.Tag <- box f.nestingLevel
+                    fs.IsFolded <- folded
+                    fs.Title <- textInFoldBox f.linesInFold
+                updateCollapseStatus()
+                isInitialLoad <- false
 
-                    if checker.CurrentCheckId = checkId then
-                        do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context
-                        match iEditor.FileCheckState.SameIdAndFullCode(checker.GlobalCheckState) with
-                        | NoCode -> ()
-                        | CodeID _ ->
-                            if isInitialLoad then                                
-                                while config.FoldingStatus.WaitingForFileRead do
-                                    // check like this because reading of file data happens async
-                                    //ISeffLog.log.PrintfnDebugMsg "waiting to load last code folding status.. "
-                                    do! Async.Sleep 50
-                                let vs = config.FoldingStatus.Get(iEditor)
-                                for i = 0 to foldings.Count-1 do
-                                    let f = foldings.[i]
-                                    let folded = if  i < vs.Length then  vs.[i]  else false
-                                    let fs = manager.CreateFolding(f.foldStartOff, f.foldEndOff)
-                                    fs.Tag <- box f.nestingLevel
-                                    fs.IsFolded <- folded
-                                    fs.Title <- textInFoldBox f.linesInFold
-                                updateCollapseStatus()
-                                isInitialLoad <- false
+            elif state.DocChangedId.Value = id then
+                do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context  
+                    
+                let folds=ResizeArray<NewFolding>()                                
+                for f in foldings do
+                    //ISeffLog.log.PrintfnDebugMsg "Foldings from %d to %d  that is  %d lines" f.foldStartOff  f.foldEndOff f.linesInFold
+                    let fo = new NewFolding(f.foldStartOff, f.foldEndOff) 
+                    fo.Name <- textInFoldBox f.linesInFold
+                    folds.Add(fo) //if NewFolding type is created async a waiting symbol appears on top of it
 
-                            else
-                                let folds=ResizeArray<NewFolding>()
+                // Existing foldings starting after this offset will be kept even if they don't appear in newFoldings. Use -1 for this parameter if there were no parse errors)
+                let firstErrorOffset = -1 //The first position of a parse error. 
+                manager.UpdateFoldings(folds, firstErrorOffset)
                                 
-                                for f in foldings do
-                                    //ISeffLog.log.PrintfnDebugMsg "Foldings from %d to %d  that is  %d lines" f.foldStartOff  f.foldEndOff f.linesInFold
-                                    let fo = new NewFolding(f.foldStartOff, f.foldEndOff) 
-                                    fo.Name <- textInFoldBox f.linesInFold
-                                    folds.Add(fo) //if NewFolding type is created async a waiting symbol appears on top of it
+                // restore state after caret , because state gets lost after an auto complete insertion                             
+                let co = ed.CaretOffset
+                for f in manager.AllFoldings do 
+                    if f.StartOffset > co then                                         
+                        match collapseStatus.TryGetValue (getHash f.StartOffset) with 
+                        |false , _ -> ()
+                        |true , isCollapsed -> 
+                            f.IsFolded <- isCollapsed 
+                            //let d = iEditor.AvaEdit.Document
+                            //let ln = d.GetLineByOffset f.StartOffset
+                            //if isCollapsed <> f.IsFolded then 
+                            //    if isCollapsed then  ISeffLog.printnColor 200 0 0 $"try collapse {ln.LineNumber}: {d.GetText ln}"
+                            //    else                 ISeffLog.printnColor 0 200 0 $"try open {ln.LineNumber}:{d.GetText ln}"
+                //ISeffLog.printnColor 100 100 100 $"---------end of try collapse---------------------"
 
-                                // Existing foldings starting after this offset will be kept even if they don't appear in newFoldings. Use -1 for this parameter if there were no parse errors)
-                                let firstErrorOffset = -1 //The first position of a parse error. 
-                                manager.UpdateFoldings(folds, firstErrorOffset)
-                                
-                                // restore state after caret , because state gets lost after an auto complete insertion                             
-                                let co = iEditor.AvaEdit.CaretOffset
-                                for f in manager.AllFoldings do 
-                                    if f.StartOffset > co then                                         
-                                        match collapseStatus.TryGetValue (getHash f.StartOffset) with 
-                                        |false , _ -> ()
-                                        |true , isCollapsed -> 
-                                            f.IsFolded <- isCollapsed 
-                                            //let d = iEditor.AvaEdit.Document
-                                            //let ln = d.GetLineByOffset f.StartOffset
-                                            //if isCollapsed <> f.IsFolded then 
-                                            //    if isCollapsed then  ISeffLog.printnColor 200 0 0 $"try collapse {ln.LineNumber}: {d.GetText ln}"
-                                            //    else                 ISeffLog.printnColor 0 200 0 $"try open {ln.LineNumber}:{d.GetText ln}"
-                                //ISeffLog.printnColor 100 100 100 $"---------end of try collapse---------------------"
+                saveFoldingStatus() // so that when new foldings appear they are saved immediately
 
-                                config.FoldingStatus.Set(iEditor) // so that when new foldings appear they are saved immediately
+            } |>  Async.Start
 
-                } |>  Async.Start
-
-
-    do
-        checker.OnFullCodeAvailable.Add foldEditor // will add an event for each new tab, foldEditor skips updating if it is not current editor
-        // event for tracking folding status via mouse up in margin is attached in editor.setup()
-    
-    
-    // UNUSED : ?
-    // Because when the full text gets replaced ( eg via git branch change).
+    // When the full text gets replaced ( eg via git branch change).
     // manager.UpdateFoldings(..) cannot remember old locations and keep state
-    // member this.SetToDoOneFullReload() =  isIntialLoad <- true
-
-    member this.InitState(ied:IEditor) = 
-        let vs = config.FoldingStatus.Get(ied)
+    do 
+        let vs = state.Config.FoldingStatus.Get(getFilePath())
         for f,s in Seq.zip manager.AllFoldings vs do f.IsFolded <- s
 
-    member this.Manager = manager
+    
+    member _.UpdateFoldsAndBadIndents(fullCode, id) = foldEditor(fullCode, id)
+    
+    member _.Manager = manager
 
-    member this.BadIndentations = BadIndents
-
-    member this.Margin = 
+  
+    member _.Margin = 
         ed.TextArea.LeftMargins
         |> Seq.tryFind ( fun m -> m :? Folding.FoldingMargin )
         |> Option.defaultWith (fun () -> failwithf "Failed to find Folding.FoldingMargin")
         :?> Folding.FoldingMargin
 
-    member this.UpdateCollapseStatus() = updateCollapseStatus() 
+    // member _.UpdateCollapseStatus() = updateCollapseStatus()  // DELETE
 
-    static member ExpandAll(ied:IEditor, folds:Foldings, config:Config) = 
-        for f in ied.FoldingManager.AllFoldings do
+    member _.ExpandAll() = 
+        for f in manager.AllFoldings do
             f.IsFolded <- false
-        folds.UpdateCollapseStatus()
-        config.FoldingStatus.Set(ied) // so that they are saved immediately
+        updateCollapseStatus()
+        saveFoldingStatus() // so that they are saved immediately
 
-    static member CollapseAll(ied:IEditor, folds:Foldings, config:Config) = 
-        for f in ied.FoldingManager.AllFoldings do
+    member _.CollapseAll() = 
+        for f in manager.AllFoldings do
             f.IsFolded <- true
-        folds.UpdateCollapseStatus()
-        config.FoldingStatus.Set(ied) // so that they are saved immediately
+        updateCollapseStatus()
+        saveFoldingStatus() // so that they are saved immediately
 
-    static member CollapsePrimary(ied:IEditor, folds:Foldings, config:Config) = 
-        for f in ied.FoldingManager.AllFoldings do            
+    member _.CollapsePrimary() = 
+        for f in manager.AllFoldings do            
             match f.Tag with // cast might fail ??
              | :? int as tag ->
                     if tag  = 0 then // nestingLevel
                         f.IsFolded <- true
              | _ -> // because only foldings at opening get a tag, not later ones
-                let ln = ied.AvaEdit.Document.GetLineByOffset(f.StartOffset)    
-                let st = ied.AvaEdit.Document.GetCharAt(ln.Offset)
+                let ln = ed.Document.GetLineByOffset(f.StartOffset)    
+                let st = ed.Document.GetCharAt(ln.Offset)
                 if st<> ' ' then 
                     f.IsFolded <- true             
-        folds.UpdateCollapseStatus()
-        config.FoldingStatus.Set(ied) // so that they are saved immediately
+        updateCollapseStatus()
+        saveFoldingStatus() // so that they are saved immediately
     
-    /// open any foldings if required and optionally select at location
-    static member GoToOffsetAndUnfold(offset, length, ied:IEditor, folds:Foldings, config:Config, selectText) =         
+    /// Open any foldings if required and optionally select at location
+    member _.GoToOffsetAndUnfold(offset, length,selectText) =         
         let mutable unfoldedOneOrMore = false
-        for fold in ied.FoldingManager.GetFoldingsContaining(offset) do
+        for fold in manager.GetFoldingsContaining(offset) do
             if fold.IsFolded then
                 fold.IsFolded <- false
                 unfoldedOneOrMore <- true
-        let ln = ied.AvaEdit.Document.GetLineByOffset(offset)
-        ied.AvaEdit.ScrollTo(ln.LineNumber,1)
-        //ied.AvaEdit.CaretOffset<- loc.EndOffset // done by ied.AvaEdit.Select too
+        let ln = ed.Document.GetLineByOffset(offset)
+        ed.ScrollTo(ln.LineNumber,1)
+        //ed.CaretOffset<- loc.EndOffset // done by ed.Select(..) too
         if selectText then 
-            ied.AvaEdit.Select(offset, length)
+            ed.Select(offset, length)
         else 
-            ied.AvaEdit.CaretOffset<-offset 
+            ed.CaretOffset<-offset 
 
         if unfoldedOneOrMore then
-            folds.UpdateCollapseStatus()
-            config.FoldingStatus.Set(ied) // so that they are saved immediately
+            updateCollapseStatus()
+            saveFoldingStatus() // so that they are saved immediately
     
    

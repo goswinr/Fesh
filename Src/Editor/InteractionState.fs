@@ -3,7 +3,7 @@ namespace Seff.Editor
 
 
 // Highlighting needs:
-    
+(*
 
 type AfterWait = 
     | DidNotEvenShow // prefilter found no items
@@ -41,6 +41,7 @@ type SelectionChangedConsequence =
 
 
 
+*)    
 
 
 

@@ -16,7 +16,7 @@ open Seff
 
 
 [<RequireQualifiedAccess>]
-module DocChanged =
+module DocChangedOLD =
     
     type DoNext =  CheckCode | DoNothing
 
@@ -25,7 +25,7 @@ module DocChanged =
         if compls.IsOpen then
             match ev.Text with              //enter and tab is not needed  here for  insertion,  insertion with Tab or Enter is built into Avalonedit!!
             |" " -> compls.Close()
-            |"." -> compls.RequestInsertion(ev) // insert on dot too? //TODO only when more than one char is typed in completion window??
+            //|"." -> compls.RequestInsertion(ev) // insert on dot too? //TODO only when more than one char is typed in completion window??
             | _  -> () // other triggers https://github.com/icsharpcode/AvalonEdit/blob/28b887f78c821c7fede1d4fc461bde64f5f21bd1/AvalonEditB/CodeCompletion/CompletionList.cs#L171
 
           //|"(" -> compls.RequestInsertion(ev) // insert on open Bracket too?
