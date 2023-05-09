@@ -93,144 +93,172 @@ module FsChecker =
         // optionsStamp: An optional unique stamp for the options.
         // userOpName: An optional string used for tracing compiler operations associated with this request.
         async {
-            let! options, optionsErr =             
-                fsChecker.GetProjectOptionsFromScript(fileName           = fileFsx
-                                                    ,source            = sourceText
-                                                    ,previewEnabled    = true // // Bug in FCS! if otherFlags argument is given the value here is ignored !
-                                                    //,loadedTimeStamp: DateTime *
+             try
+                let! options, optionsErr =             
+                    fsChecker.GetProjectOptionsFromScript(fileName           = fileFsx
+                                                        ,source            = sourceText
+                                                        ,previewEnabled    = true // // Bug in FCS! if otherFlags argument is given the value here is ignored !
+                                                        //,loadedTimeStamp: DateTime *
     
-                                                    #if NETFRAMEWORK
-                                                    //https://github.com/fsharp/FsAutoComplete/blob/f176825521215725e5b7ba888d4bb11d1e408e56/src/FsAutoComplete.Core/CompilerServiceInterface.fs#L178
-                                                    ,otherFlags            = [| "--targetprofile:mscorlib"; "--langversion:preview" |]
-                                                    ,useSdkRefs            = false
-                                                    ,assumeDotNetFramework = true
+                                                        #if NETFRAMEWORK
+                                                        //https://github.com/fsharp/FsAutoComplete/blob/f176825521215725e5b7ba888d4bb11d1e408e56/src/FsAutoComplete.Core/CompilerServiceInterface.fs#L178
+                                                        ,otherFlags            = [| "--targetprofile:mscorlib"; "--langversion:preview" |]
+                                                        ,useSdkRefs            = false
+                                                        ,assumeDotNetFramework = true
                                                         
-                                                    #else
-                                                    ,otherFlags            = [| "--targetprofile:netstandard"; "--langversion:preview" |]                                                                          
-                                                    ,useSdkRefs            = true
-                                                    ,assumeDotNetFramework = false
-                                                    #endif
+                                                        #else
+                                                        ,otherFlags            = [| "--targetprofile:netstandard"; "--langversion:preview" |]                                                                          
+                                                        ,useSdkRefs            = true
+                                                        ,assumeDotNetFramework = false
+                                                        #endif
     
-                                                    //,useFsiAuxLib = true // so that fsi object is available // doesn't work
-                                                    //,sdkDirOverride: string *
-                                                    //,optionsStamp: int64 *
-                                                    //,userOpName: string
-                                                    )
-            // Not needed because these errors are reported by ParseAndCheckFileInProject too
-            //for oe in optionsErr do 
-            //    let msg = sprintf "%A" oe |> Util.Str.truncateToMaxLines 3
-            //    ISeffLog.log.PrintfnFsiErrorMsg "Error in GetProjectOptionsFromScript:\r\n%A" msg  
-            return options
+                                                        //,useFsiAuxLib = true // so that fsi object is available // doesn't work
+                                                        //,sdkDirOverride: string *
+                                                        //,optionsStamp: int64 *
+                                                        //,userOpName: string
+                                                        )
+                // Not needed because these errors are reported by ParseAndCheckFileInProject too
+                //for oe in optionsErr do 
+                //    let msg = sprintf "%A" oe |> Util.Str.truncateToMaxLines 3
+                //    ISeffLog.log.PrintfnFsiErrorMsg "Error in GetProjectOptionsFromScript:\r\n%A" msg  
+                return Some options
+             with e ->
+                ISeffLog.log.PrintfnAppErrorMsg "Error in GetProjectOptionsFromScript Block.\r\nMaybe you are using another version of FSharpCompilerService.dll than at compile time?:"
+                ISeffLog.log.PrintfnAppErrorMsg "%A" e
+                ISeffLog.log.PrintfnAppErrorMsg "%s" e.Message                
+                return None
         }
-        
+
+    let parseAndCheck (fsChecker:FSharpChecker, fileFsx, sourceText, options) =
+        async {
+            try
+                // ISeffLog.log.PrintfnColor 100 100 200 $"C4-checkCode id {thisId}: ParseAndCheckFileInProject"
+                let! parseRes , checkAnswer = fsChecker.ParseAndCheckFileInProject(fileFsx, 0, sourceText, options) // can also be done in two  calls   //TODO really use check file in project for scripts??
+                match checkAnswer with
+                | FSharpCheckFileAnswer.Succeeded checkRes ->
+                    // ISeffLog.log.PrintfnColor 100 100 200 $"C5-checkCode id {thisId} = !checkId {!checkId}: FSharpCheckFileAnswer.Succeeded"                                                     
+                    return Some (parseRes , checkAnswer)                       
+
+                | FSharpCheckFileAnswer.Aborted  ->
+                    ISeffLog.log.PrintfnAppErrorMsg "FSharpChecker.ParseAndCheckFileInProject(filepath, 0, sourceText , options) returned: FSharpCheckFileAnswer.Aborted\r\nFSharpParseFileResults is: %A" parseRes
+                    return None
+            
+            with e ->
+                ISeffLog.log.PrintfnAppErrorMsg "Error in ParseAndCheckFileInProject Block.\r\n This may be from a Type Provider or you are using another version of FSharpCompilerService.dll than at compile time?"
+                ISeffLog.log.PrintfnAppErrorMsg "%A" e
+                ISeffLog.log.PrintfnAppErrorMsg "%s" e.Message
+                ISeffLog.log.PrintfnAppErrorMsg "InnerException:\r\n%A" e.InnerException
+                if notNull e.InnerException then ISeffLog.log.PrintfnAppErrorMsg "%s" e.InnerException.Message
+                return None
+        }
 
 /// Only a single instance of checker exist that is referenced on all editors
 type Checker2 private (config:Config)  = 
 
     let mutable fsChecker: FSharpChecker Option = None // "you should generally use one global, shared FSharpChecker for everything in an IDE application." from http://fsharp.github.io/FSharp.Compiler.Service/caches.html
  
-    let mutable globalCheckState = FileCheckState.NotStarted
 
     let entityCache = EntityCache() // used in GetAllEntities method
 
     let checkingEv          = new Event<IEditor> ()
     let checkedEv           = new Event<IEditor*CheckResults> ()
 
-
     /// At the end either a event is raised or continuation called if present.
-    let checkCode(fullCode:CodeAsString, state:InteractionState, iEditor:IEditor) = 
+    let checkCode(fullCode:CodeAsString, state:InteractionState, iEditor:IEditor, chnageId) = 
         
         match fsChecker with
         | Some _ -> ()
         | None    ->  fsChecker <- Some (FsChecker.getNew())
 
-            if !checkId = thisId then
-                
+        iEditor.FileCheckState <- Checking (state.DocChangedId.Value , fullCode)
+        let fileFsx = FsChecker.getFsxFileNameForChecker iEditor
+        let sourceText = Text.SourceText.ofString fullCode
+        async{
+            match! FsChecker.getOptions(fsChecker.Value, fileFsx, sourceText) with 
+            |None -> 
+                iEditor.FileCheckState <- CheckFailed
+            |Some options -> 
+                match! FsChecker.parseAndCheck(fsChecker.Value, fileFsx, sourceText, options) with 
+                |None -> 
+                    iEditor.FileCheckState <- CheckFailed
+                |Some (parseRes , checkAnswer) ->
+                    let res =
+                        {
+                        parseRes = parseRes  
+                        checkRes = checkRes
+                        errors   = ErrorUtil.getBySeverity checkRes
+                        code     = fullCode  
+                        chnageId  = chnageId
+                        editorId = iEditor.Id
+                        }
 
-                globalCheckState <- Checking (thisId , codeInChecker)
-                iEditor.FileCheckState <- globalCheckState
-                
-                do! Async.SwitchToContext(FsEx.Wpf.SyncWpf.context)// just for fullCodeAvailableEv event
-                if !checkId = thisId then  
-                    // ISeffLog.log.PrintfnColor 100 100 200 $"C2-checkCode id {thisId}: fullCodeAvailable"
-                    fullCodeAvailableEv.Trigger(iEditor)
-                
-                do! Async.SwitchToThreadPool()
 
-                let fileFsx = FsChecker.getFsxFileNameForChecker iEditor
-                    
+            
+            
+            
+            try                                                
+                                                                                
                         
+                        // ISeffLog.log.PrintfnColor 100 100 200 $"C4-checkCode id {thisId}: ParseAndCheckFileInProject"
+                        let! parseRes , checkAnswer = fsChecker.Value.ParseAndCheckFileInProject(fileFsx, 0, sourceText, options) // can also be done in two  calls   //TODO really use check file in project for scripts??
+                        match checkAnswer with
+                        | FSharpCheckFileAnswer.Succeeded checkRes ->
+                            // ISeffLog.log.PrintfnColor 100 100 200 $"C5-checkCode id {thisId} = !checkId {!checkId}: FSharpCheckFileAnswer.Succeeded"
+                            if !checkId = thisId  then // this ensures that status gets set to done if no checker has started in the meantime                                        
+                                let res =
+                                    {
+                                    parseRes = parseRes  
+                                    checkRes = checkRes
+                                    errors   = ErrorUtil.getBySeverity checkRes
+                                    code     = fullCode  
+                                    checkId  = thisId
+                                    editorId = iEditor.Id
+                                    }
+                                globalCheckState <- Done res
+                                iEditor.FileCheckState <- globalCheckState                                        
+                                match continueOnThreadPool with
+                                | Some f ->                                            
+                                    try
+                                        checkingStoppedEarly2 <- false                                               
+                                        // ISeffLog.log.PrintfnColor 100 100 200 $"C6-checkCode id {thisId}: continue GetDeclarationListInfo.."
+                                        f(res) // calls GetDeclarationListInfo and GetDeclarationListSymbols for finding optional arguments
+                                    with
+                                        e -> log.PrintfnAppErrorMsg "The continuation after ParseAndCheckFileInProject failed with:\r\n %A" e
 
-                if !checkId = thisId  then
-                    let log = config.Log
-                    // ISeffLog.log.PrintfnColor 100 100 200 $"C3-checkCode id {thisId}: GetProjectOptionsFromScript"
-                    try
-                        let sourceText = Text.SourceText.ofString codeInChecker                        
-                        let! options = FsChecker.getOptions(fsChecker.Value, fileFsx, sourceText)
-                                                                      
-                       
-                        if !checkId = thisId  then
-                            try                                
-                                // ISeffLog.log.PrintfnColor 100 100 200 $"C4-checkCode id {thisId}: ParseAndCheckFileInProject"
-                                let! parseRes , checkAnswer = fsChecker.Value.ParseAndCheckFileInProject(fileFsx, 0, sourceText, options) // can also be done in two  calls   //TODO really use check file in project for scripts??
-                                match checkAnswer with
-                                | FSharpCheckFileAnswer.Succeeded checkRes ->
-                                    // ISeffLog.log.PrintfnColor 100 100 200 $"C5-checkCode id {thisId} = !checkId {!checkId}: FSharpCheckFileAnswer.Succeeded"
-                                    if !checkId = thisId  then // this ensures that status gets set to done if no checker has started in the meantime                                        
-                                        let res =
-                                            {
-                                            parseRes = parseRes  
-                                            checkRes = checkRes
-                                            errors   = ErrorUtil.getBySeverity checkRes
-                                            code     = codeInChecker  
-                                            checkId  = thisId
-                                            editorId = iEditor.Id
-                                            }
-                                        globalCheckState <- Done res
-                                        iEditor.FileCheckState <- globalCheckState                                        
-                                        match continueOnThreadPool with
-                                        | Some f ->                                            
-                                            try
-                                                checkingStoppedEarly2 <- false                                               
-                                                // ISeffLog.log.PrintfnColor 100 100 200 $"C6-checkCode id {thisId}: continue GetDeclarationListInfo.."
-                                                f(res) // calls GetDeclarationListInfo and GetDeclarationListSymbols for finding optional arguments
-                                            with
-                                                e -> log.PrintfnAppErrorMsg "The continuation after ParseAndCheckFileInProject failed with:\r\n %A" e
-
-                                        | None ->
-                                            do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context
+                                | None ->
+                                    do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context
                                             
-                                            try
-                                                if !checkId = thisId  then                                                
-                                                    checkedEv.Trigger(iEditor,res) // to mark statusbar , and highlighting errors
-                                                    // ISeffLog.log.PrintfnColor 100 100 200 $"C6-checkCode id {thisId}: ended after OnCheckedForErrors event "
-                                                    if isFirstCheck then
-                                                        firstCheckDoneEv.Trigger() // to now start FSI
-                                                        isFirstCheck <- false
-                                            with
-                                                e -> log.PrintfnAppErrorMsg "The checked Event after ParseAndCheckFileInProject failed with:\r\n %A" e
+                                    try
+                                        if !checkId = thisId  then                                                
+                                            checkedEv.Trigger(iEditor,res) // to mark statusbar , and highlighting errors
+                                            // ISeffLog.log.PrintfnColor 100 100 200 $"C6-checkCode id {thisId}: ended after OnCheckedForErrors event "
+                                            if isFirstCheck then
+                                                firstCheckDoneEv.Trigger() // to now start FSI
+                                                isFirstCheck <- false
+                                    with
+                                        e -> log.PrintfnAppErrorMsg "The checked Event after ParseAndCheckFileInProject failed with:\r\n %A" e
 
-                                | FSharpCheckFileAnswer.Aborted  ->
-                                    log.PrintfnAppErrorMsg "FSharpChecker.ParseAndCheckFileInProject(filepath, 0, sourceText , options) returned: FSharpCheckFileAnswer.Aborted\r\nFSharpParseFileResults is: %A" parseRes
-                                    globalCheckState <- CheckFailed
-                                    iEditor.FileCheckState <- globalCheckState
-                            with e ->
-                                log.PrintfnAppErrorMsg "Error in ParseAndCheckFileInProject Block.\r\n This may be from a Type Provider or you are using another version of FSharpCompilerService.dll than at compile time?"
-                                log.PrintfnAppErrorMsg "%A" e
-                                log.PrintfnAppErrorMsg "%s" e.Message
-                                log.PrintfnAppErrorMsg "InnerException:\r\n%A" e.InnerException
-                                if notNull e.InnerException then log.PrintfnAppErrorMsg "%s" e.InnerException.Message
-                                globalCheckState <- CheckFailed
-                                iEditor.FileCheckState <- globalCheckState
-                        else
-                            () //ISeffLog.log.PrintfnDebugMsg $"other is running 2: this{thisId} other {!checkId} "
-
-                    with e ->
-                            log.PrintfnAppErrorMsg "Error in GetProjectOptionsFromScript Block.\r\nMaybe you are using another version of FSharpCompilerService.dll than at compile time?:"
-                            log.PrintfnAppErrorMsg "%A" e
-                            log.PrintfnAppErrorMsg "%s" e.Message
+                        | FSharpCheckFileAnswer.Aborted  ->
+                            log.PrintfnAppErrorMsg "FSharpChecker.ParseAndCheckFileInProject(filepath, 0, sourceText , options) returned: FSharpCheckFileAnswer.Aborted\r\nFSharpParseFileResults is: %A" parseRes
                             globalCheckState <- CheckFailed
                             iEditor.FileCheckState <- globalCheckState
+                    with e ->
+                        log.PrintfnAppErrorMsg "Error in ParseAndCheckFileInProject Block.\r\n This may be from a Type Provider or you are using another version of FSharpCompilerService.dll than at compile time?"
+                        log.PrintfnAppErrorMsg "%A" e
+                        log.PrintfnAppErrorMsg "%s" e.Message
+                        log.PrintfnAppErrorMsg "InnerException:\r\n%A" e.InnerException
+                        if notNull e.InnerException then log.PrintfnAppErrorMsg "%s" e.InnerException.Message
+                        globalCheckState <- CheckFailed
+                        iEditor.FileCheckState <- globalCheckState
+            else
+                () //ISeffLog.log.PrintfnDebugMsg $"other is running 2: this{thisId} other {!checkId} "
+
+            with e ->
+                    log.PrintfnAppErrorMsg "Error in GetProjectOptionsFromScript Block.\r\nMaybe you are using another version of FSharpCompilerService.dll than at compile time?:"
+                    log.PrintfnAppErrorMsg "%A" e
+                    log.PrintfnAppErrorMsg "%s" e.Message
+                    globalCheckState <- CheckFailed
+                    iEditor.FileCheckState <- globalCheckState
             else
                 () //ISeffLog.log.PrintfnDebugMsg $"other is running 1: this{thisId} other {!checkId} "
             

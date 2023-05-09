@@ -6,7 +6,7 @@ open AvalonEditB.Rendering
 open Seff.Model
 
 
-type Change = {
+type LinePartChange = {
     form:int
     till: int
     action: Action<VisualLineElement>
@@ -15,13 +15,13 @@ type Change = {
 /// For accessing the highlighting of a line in constant time
 type LineTransformers() =    
 
-    let lines = ResizeArray<ResizeArray<Change>>()
+    let lines = ResizeArray<ResizeArray<LinePartChange>>()
 
     member _.Lines = lines
 
     member _.Insert(line,c) =         
         while lines.Count <= line  do // fill up missing lines
-            lines.Add ( ResizeArray())
+            lines.Add ( new ResizeArray<LinePartChange>())
         lines[line].Add c
         
     member _.ClearLine(line) =

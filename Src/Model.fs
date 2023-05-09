@@ -70,9 +70,9 @@ module ISeffLog =
 
 // ---- Editor types -----------
 
-/// To give each call to the Fs Checker a unique ID
-/// So that at we can check if a local and a global CheckResult are the same
-type CheckId = int64
+/// To give each doc chnage a unique ID
+/// So that at we can check if a CheckResult still corresponds to the latest changes
+type ChnageId = int64
 
 /// just an alias for a string
 type CodeAsString = string
@@ -98,7 +98,7 @@ type CheckResults = {
     checkRes    :FSharpCheckFileResults
     errors      :ErrorsBySeverity
     code        :CodeAsString
-    checkId     :CheckId 
+    chnageId    :CheckId 
     editorId    :Guid
     }
 
@@ -194,10 +194,19 @@ type CodeToEval = {
 
 type DotOrNot = Dot | NotDot // used in code completion
 
-type PositionInCode = { lineToCaret:string ; row:int; column:int; offset:int }
+type PositionInCode = { 
+    lineToCaret:string  
+    row:int
+    column:int 
+    offset:int 
+    }
 
-// Menu and commands:
-
-type CommandInfo = {name:string; gesture:string; cmd:ICommand; tip:string }
+/// UI Menu and commands:
+type CommandInfo = {
+    name:string
+    gesture:string 
+    cmd:ICommand 
+    tip:string 
+    }
 
 

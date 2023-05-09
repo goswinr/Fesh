@@ -35,7 +35,7 @@ module UtilCompletion =
     /// To avoid re-trigger of completion window on single char completions
     /// the window may just have closed, but for pressing esc, not for completion insertion
     /// this is only true if it just closed for insertion
-    let mutable  justCompleted = false 
+    let mutable  justCompleted = false // old here DELETE !!
 
 type CompletionItemForKeyWord(ed:IEditor,config:Config, text:string, toolTip:string) =  
     let priority =  1.0 + config.AutoCompleteStatistic.Get(text)        // create once and cache ?

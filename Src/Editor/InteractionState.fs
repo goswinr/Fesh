@@ -25,9 +25,7 @@ type ReactToChange =
     //| JustShift // when typing single chars in in comments or strings (detect via xshd highlighting)
 
 
-type DocChangedConsequence = 
-    | React //of ReactToChange
-    | WaitForCompletions //of AfterWait
+
     
     
 /// Do on mouse hover too ?
@@ -41,7 +39,21 @@ type SelectionChangedConsequence =
     | HighlightSelection // and redraw all or find range ?
     | NoSelectionHighlight // just on char,  white or multiline
 
-open Seff.Model
+
+
+
+
+
+
+
+
+
+
+
+
+type DocChangedConsequence = 
+    | React
+    | WaitForCompletions 
 
 /// Tracking the lastest change Ids to the document
 type InteractionState() =
@@ -52,4 +64,7 @@ type InteractionState() =
    
     member val DocChangedConsequence = React with get, set
 
-    
+    /// To avoid re-trigger of completion window on single char completions
+    /// the window may just have closed, but for pressing esc, not for completion insertion
+    /// this is only true if it just closed for insertion
+    member val JustCompleted = false with get, set

@@ -76,7 +76,7 @@ module DocChanged =
         let isCaretInComment ln =  
              NotInQuotes.contains "//" ln
     
-        // is a discriminated union that wants autocomplete
+        /// is a discriminated union that wants autocomplete
         let isDU fromIdx ln =
             //printfn $"indexOfFirstNonWhiteAfter fromIdx {fromIdx} of '{ln}'"
             let fi = indexOfFirstNonWhiteAfter fromIdx ln
@@ -271,7 +271,7 @@ module DocChanged =
                 if c= '.' then // do even if compls.JustClosed
                     maybeShowCompletionWindow(compls, ed, checker) // EnteredDot                 
                   
-                elif UtilCompletion.justCompleted then   // check to avoid re-trigger of window on single char completions
+                elif UtilCompletion.justCompleted then   // check to avoid re-trigger of window on single character completions
                     UtilCompletion.justCompleted <- false
                     checker.CheckThenHighlightAndFold(ed) // because CompletionWinClosed 
                 

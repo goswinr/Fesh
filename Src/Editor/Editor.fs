@@ -174,8 +174,8 @@ type Editor private (code:string, config:Config, filePath:FilePath)  =
 
         let state = new InteractionState()        
         let fastColor = FastColorizer()
-        avaEdit.Document.Changing.Add(DocChanged2.changing fastColor)
-        avaEdit.Document.Changed.Add (DocChanged2.changed  fastColor state)
+        avaEdit.Document.Changing.Add(DocChangeEvents.changing fastColor)
+        avaEdit.Document.Changed.Add (DocChangeEvents.changed ed fastColor state)
              
         
         
