@@ -12,7 +12,7 @@ module AutoFixErrors =
     
     let mutable isMessageBoxOpen = false // because msg box would appear behind completion window and type info
      
-    let ask(msg:string,ass:string,ied:IEditor) =
+    let ask(msg:string,ass:string) =
         // it is actually better to stat the message box from another thread ?
         isMessageBoxOpen <- true        
         async{  
@@ -26,17 +26,20 @@ module AutoFixErrors =
                 MessageBoxResult.Yes,// default result 
                 MessageBoxOptions.None) with
             | MessageBoxResult.Yes -> 
-                do! Async.SwitchToContext SyncWpf.context                        
-                ied.AvaEdit.Document.Insert(0, $"#r \"{ass}\"\r\n") 
+                do! Async.SwitchToContext SyncWpf.context
+                match IEditor.current with 
+                |Some ied -> 
+                    ied.AvaEdit.Document.Insert(0, $"#r \"{ass}\"\r\n") 
+                |None -> ()
             | _ -> ()
             
             isMessageBoxOpen <- false
         }|> Async.Start
 
-    let check(msg,ied:IEditor) =
+    let check(msg) =
         match Util.Str.between "must add a reference to assembly '" ","  msg with 
         |Some ass -> 
-            if asked.Add msg then ask(msg,ass,ied)            
+            if asked.Add msg then ask(msg,ass)            
         |None -> ()
 
 

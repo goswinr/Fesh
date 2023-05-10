@@ -426,7 +426,7 @@ type TypeInfo private () =
 
 
     /// Returns the names of optional Arguments in a given method call.
-    static let namesOfOptnlArgs(fsu:FSharpSymbolUse, iEditor:IEditor)  :ResizeArray<OptDefArg>= 
+    static let namesOfOptnlArgs(fsu:FSharpSymbolUse)  :ResizeArray<OptDefArg>= 
         let optDefs = ResizeArray<OptDefArg>(0)        
         try
             match fsu.Symbol with
@@ -452,7 +452,7 @@ type TypeInfo private () =
         with e ->
             //| :? FSharp.Compiler.DiagnosticsLogger.StopProcessingExn  -> //not public !!  
             if e.Message.Contains "must add a reference to assembly '" then 
-                AutoFixErrors.check(e.Message,iEditor)
+                AutoFixErrors.check(e.Message)
             else
                 ISeffLog.log.PrintfnAppErrorMsg "GetOptTypeInfo Error: %s:\r\n%s" (e.GetType().FullName) e.Message            
                 if notNull e.InnerException then 
@@ -473,7 +473,7 @@ type TypeInfo private () =
 
     static member loadingText = loadingTxt
 
-    static member namesOfOptionalArgs(fsu:FSharpSymbolUse, iEditor:IEditor) = namesOfOptnlArgs(fsu,iEditor)
+    static member namesOfOptionalArgs(fsu:FSharpSymbolUse) = namesOfOptnlArgs(fsu)
 
     static member makeSeffToolTipDataList (sdtt: ToolTipText, fullName:string, optArgs:ResizeArray<string>) = makeToolTipDataList (sdtt, fullName, optArgs)
 
@@ -568,7 +568,7 @@ type TypeInfo private () =
                         let symbol = res.checkRes.GetSymbolUseAtLocation(lineNo, colAtEndOfNames, lineTxt, qualId )  //only to get to info about optional parameters
                         let fullName = if symbol.IsSome then symbol.Value.Symbol.FullName else ""
 
-                        let optArgs = if symbol.IsSome then namesOfOptnlArgs(symbol.Value, iEditor) else ResizeArray(0)
+                        let optArgs = if symbol.IsSome then namesOfOptnlArgs(symbol.Value) else ResizeArray(0)
                         let ttds = makeToolTipDataList (ttt, fullName ,optArgs) //TODO can this still be async ?
                         
                         do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context

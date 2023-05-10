@@ -440,8 +440,110 @@ module NotInQuotes =
     let lastIndexOf (find:string) (txt:string)=  
         if isLastCharOutsideQuotes txt then lastIndexOfFromOutside find txt
         else                                lastIndexOfFromInside  find txt
+
+
+module Monads =  
+
+    /// The maybe monad.
+    type MaybeBuilder() = 
+        // from https://github.com/fsprojects/FSharpx.Extras/blob/master/src/FSharpx.Extras/ComputationExpressions/Option.fs
+        // This monad is my own and uses an 'T option. Others generally make their own Maybe<'T> type from Option<'T>.
+        // The builder approach is from Matthew Podwysocki's excellent Creating Extended Builders series
+        // http://codebetter.com/blogs/matthew.podwysocki/archive/2010/01/18/much-ado-about-monads-creating-extended-builders.aspx.
+
+        member inline this.Return(x) = Some x
+
+        member inline this.ReturnFrom(m: option<'T>) = m
+
+        member inline this.Bind(m, f) = Option.bind f m
+
+        member inline this.Zero() = None
+
+        member inline this.Combine(m, f) = Option.bind f m
+
+        member inline this.Delay(f: unit -> _) = f
+
+        member inline this.Run(f) = f()
+
+        member inline this.TryWith(m, h) = 
+            try this.ReturnFrom(m)
+            with e -> h e
+
+        member inline  this.TryFinally(m, compensation) = 
+            try this.ReturnFrom(m)
+            finally compensation()
+
+        member inline this.Using(res:#IDisposable, body) = 
+            this.TryFinally(body res, fun () -> match res with null -> () | disp -> disp.Dispose())
+
+        member this.While(guard, f) = 
+            if not (guard()) then Some () else
+            do f() |> ignore
+            this.While(guard, f)
+
+        member inline  this.For(sequence:seq<_>, body) = 
+            this.Using(sequence.GetEnumerator(), fun enum -> this.While(enum.MoveNext, this.Delay(fun () -> body enum.Current))) 
     
-  
+    /// A maybe monad for option types.
+    let maybe = MaybeBuilder()
+
+    /// Generic monadic operators    
+    module Operators =
+        //https://github.com/fsprojects/FSharpx.Extras/blob/master/src/FSharpx.Extras/ComputationExpressions/Operators.fs
+
+
+        /// Inject a value into the monadic type
+        let inline returnM builder x = (^M: (member Return: 'b -> 'c) (builder, x))
+        let inline bindM builder m f = (^M: (member Bind: 'd * ('e -> 'c) -> 'c) (builder, m, f))
+        let inline liftM builder f m =
+            let inline ret x = returnM builder (f x)
+            bindM builder m ret
+
+        /// Sequential application
+        let inline applyM (builder1:^M1) (builder2:^M2) f m =
+            bindM builder1 f <| fun f' ->
+                bindM builder2 m <| fun m' ->
+                    returnM builder2 (f' m') 
+        
+        /// Inject a value into the option type
+        let inline returnMM x = returnM maybe x
+
+        /// Sequentially compose two actions, passing any value produced by the first as an argument to the second.
+        let inline (>>=) m f = bindM maybe m f
+
+        /// Flipped >>=
+        let inline (=<<) f m = bindM maybe m f
+
+        /// Sequential application
+        let inline (<*>) f m = applyM maybe maybe f m
+
+        /// Sequential application
+        let inline ap m f = f <*> m
+
+        /// Infix map
+        let inline (<!>) f m = Option.map f m
+
+        /// Promote a function to a monad/applicative, scanning the monadic/applicative arguments from left to right.
+        let inline lift2 f a b = returnMM f <*> a <*> b
+
+        /// Sequence actions, discarding the value of the first argument.
+        let inline ( *>) x y = lift2 (fun _ z -> z) x y
+
+        /// Sequence actions, discarding the value of the second argument.
+        let inline ( <*) x y = lift2 (fun z _ -> z) x y
+
+        /// Sequentially compose two maybe actions, discarding any value produced by the first
+        let inline (>>.) m f = bindM maybe m (fun _ -> f)
+
+        /// Left-to-right Kleisli composition
+        let inline (>=>) f g = fun x -> f x >>= g
+
+         /// Transforms a function by flipping the order of its arguments.
+        let inline flip f a b = f b a
+
+        /// Right-to-left Kleisli composition
+        let inline (<=<) x = flip (>=>) x
+
 
 (*  module Extern = 
         open System.Runtime.InteropServices

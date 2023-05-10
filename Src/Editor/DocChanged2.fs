@@ -16,9 +16,6 @@ open Seff.Util.Str
 open Seff
 
 
-
-
-
 module DocChangeUtil = 
     /// returns the total character count change -1 or +1 depending if its a insert or remove
     let isSingleCharChange (a:DocumentChangeEventArgs) =
@@ -82,7 +79,7 @@ module DocChangeMark =
 
     /// for multi char or line edits
     /// second: Errors and Semantic Highlighting on check result .    
-    let secondMarkingStep (fullCode:CodeAsString , fastColor:FastColorizer, state:InteractionState) =
+    let secondMarkingStep (fullCode:CodeAsString ,  state:InteractionState) =
         async{  
             
             
@@ -91,7 +88,7 @@ module DocChangeMark =
     
     /// for multi char or line edits
     /// first: Foldings, ColorBrackets and BadIndentation when full text available async.
-    let firstMarkingStep (fullCode:CodeAsString, fastColor:FastColorizer, state:InteractionState) =
+    let firstMarkingStep (fullCode:CodeAsString,  state:InteractionState) =
          async{  
             
             
@@ -99,151 +96,156 @@ module DocChangeMark =
          } |> Async.Start
     
     
-    let markFoldCheckHighlight (doc:TextDocument , fastColor:FastColorizer, state:InteractionState) = 
+    let markFoldCheckHighlight (doc:TextDocument ,  state:InteractionState) = 
         let id = Interlocked.Increment state.DocChangedId        
         // NOTE just checking only Partial Code till caret with (doc.CreateSnapshot(0, tillOffset).Text) 
         // would make the GetDeclarationsList method miss some declarations !!
         let fullCode = doc.CreateSnapshot().Text // the only threadsafe way to access the code string                    
         if id = state.DocChangedId.Value then  
-            firstMarkingStep  (fullCode, fastColor, state)
-            secondMarkingStep (fullCode, fastColor, state)
+            firstMarkingStep  (fullCode,  state)
+            secondMarkingStep (fullCode,  state)
         
     
-    let markFoldCheckHighlightAsync (iEd:IEditor , fastColor:FastColorizer, state:InteractionState) =
+    let markFoldCheckHighlightAsync (iEd:IEditor ,  state:InteractionState) =
         let doc = iEd.AvaEdit.Document
-        async { markFoldCheckHighlight (doc, fastColor, state)} |> Async.Start
+        async { markFoldCheckHighlight (doc,  state)} |> Async.Start
     
 module DocChangeCompletion = 
     open DocChangeUtil
     
     type ShowAutocomplete = DoNothing| JustMark| ShowOnlyDU | ShowAll  
-    //--------------------------------------------------------------------------------------------
-    //-----------check the four ways to bind a name: let, for, fun, match with | ---------------
-    //-------------------------------------------------------------------------------------------
-    
-    let private lastIdx inString find txt = 
-        if inString then NotInQuotes.lastIndexOfFromInside  find txt 
-        else             NotInQuotes.lastIndexOfFromOutside find txt
 
-    /// like lastIndex but test if its the first char or preceded by a space 
-    let private lastIdxAtStartOrWithSpace inString find txt = 
-        let i = 
+    [<RequireQualifiedAccess>]
+    module MaybeShow = 
+
+
+        //--------------------------------------------------------------------------------------------
+        //-----------check the four ways to bind a name: let, for, fun, match with | ---------------
+        //-------------------------------------------------------------------------------------------
+    
+        let private lastIdx inString find txt = 
             if inString then NotInQuotes.lastIndexOfFromInside  find txt 
             else             NotInQuotes.lastIndexOfFromOutside find txt
-        if   i = -1 then -1
-        elif i = 0 || txt.[i-1] = ' ' then i // test if its the first char or preceded by a space 
-        else -1
+
+        /// like lastIndex but test if its the first char or preceded by a space 
+        let private lastIdxAtStartOrWithSpace inString find txt = 
+            let i = 
+                if inString then NotInQuotes.lastIndexOfFromInside  find txt 
+                else             NotInQuotes.lastIndexOfFromOutside find txt
+            if   i = -1 then -1
+            elif i = 0 || txt.[i-1] = ' ' then i // test if its the first char or preceded by a space 
+            else -1
     
-    let private containsFrom idx (find:string) (txt:String) =
-        match txt.IndexOf(find,idx,StringComparison.Ordinal) with 
-        | -1 -> false
-        | _ -> true 
+        let private containsFrom idx (find:string) (txt:String) =
+            match txt.IndexOf(find,idx,StringComparison.Ordinal) with 
+            | -1 -> false
+            | _ -> true 
     
-    /// is a discriminated union that wants autocomplete
-    let private isDU fromIdx ln =
-        //printfn $"indexOfFirstNonWhiteAfter fromIdx {fromIdx} of '{ln}'"
-        let fi = indexOfFirstNonWhiteAfter fromIdx ln
-        if fi < fromIdx then 
-            ShowAll // fromIdx-1 returned, non white letter was not found
-        else
-            //printfn $"getting {fi} of '{ln}'"
-            let first = ln.[fi]
-            if 'A' <= first && first <= 'Z' then // starts with a capital letter , TODO or use Char.isUpper for full Unicode spectrum ?
-                match ln.IndexOf(' ',fi) with // and has no space 
-                | -1 -> 
-                    match ln.IndexOf('(',fi) with // and has no open bracket
-                    | -1 -> ShowOnlyDU 
-                    | _ -> JustMark // writing a lowercase name binding as part of the uppercase DU's value
-                | _ -> JustMark
-            elif 'a' <= first && first <= 'z' then
-                JustMark // writing a lowercase name binding             
+        /// is a discriminated union that wants autocomplete
+        let private isDU fromIdx ln =
+            //printfn $"indexOfFirstNonWhiteAfter fromIdx {fromIdx} of '{ln}'"
+            let fi = indexOfFirstNonWhiteAfter fromIdx ln
+            if fi < fromIdx then 
+                ShowAll // fromIdx-1 returned, non white letter was not found
             else
-                ShowAll // writing not a DU but an operator like |> or |]
+                //printfn $"getting {fi} of '{ln}'"
+                let first = ln.[fi]
+                if 'A' <= first && first <= 'Z' then // starts with a capital letter , TODO or use Char.isUpper for full Unicode spectrum ?
+                    match ln.IndexOf(' ',fi) with // and has no space 
+                    | -1 -> 
+                        match ln.IndexOf('(',fi) with // and has no open bracket
+                        | -1 -> ShowOnlyDU 
+                        | _ -> JustMark // writing a lowercase name binding as part of the uppercase DU's value
+                    | _ -> JustMark
+                elif 'a' <= first && first <= 'z' then
+                    JustMark // writing a lowercase name binding             
+                else
+                    ShowAll // writing not a DU but an operator like |> or |]
 
 
-    let isLetDeclaration inStr (ln:string)  = 
-        //test if we are after a 'let' but before a '=' or ':'  
-        let letIdx = lastIdxAtStartOrWithSpace inStr "let " ln // test if its the first char or preceded by a space 
-        if letIdx = -1 then ShowAll
-        else
-            let eqIdx    = lastIdx inStr "=" ln                       
-            let colonIdx = lastIdx inStr ":" ln   
-            if (max eqIdx colonIdx) < letIdx then isDU (letIdx+3) ln else ShowAll
+        let isLetDeclaration inStr (ln:string)  = 
+            //test if we are after a 'let' but before a '=' or ':'  
+            let letIdx = lastIdxAtStartOrWithSpace inStr "let " ln // test if its the first char or preceded by a space 
+            if letIdx = -1 then ShowAll
+            else
+                let eqIdx    = lastIdx inStr "=" ln                       
+                let colonIdx = lastIdx inStr ":" ln   
+                if (max eqIdx colonIdx) < letIdx then isDU (letIdx+3) ln else ShowAll
 
-    let isFunDeclaration inStr (ln:string) = 
-        //test if we are after a 'fun' but before a '->' or ':'  
-        let funIdx = max (lastIdx inStr " fun " ln) (lastIdx inStr "(fun " ln) 
-        if funIdx = -1 then ShowAll
-        else
-            let eqIdx    = lastIdx inStr  "->" ln                       
-            let colonIdx = lastIdx inStr  ":" ln   
-            if (max eqIdx colonIdx) < funIdx then isDU (funIdx+4) ln else ShowAll
+        let isFunDeclaration inStr (ln:string) = 
+            //test if we are after a 'fun' but before a '->' or ':'  
+            let funIdx = max (lastIdx inStr " fun " ln) (lastIdx inStr "(fun " ln) 
+            if funIdx = -1 then ShowAll
+            else
+                let eqIdx    = lastIdx inStr  "->" ln                       
+                let colonIdx = lastIdx inStr  ":" ln   
+                if (max eqIdx colonIdx) < funIdx then isDU (funIdx+4) ln else ShowAll
         
-    let isForDeclaration inStr (ln:string) =         
-        let forIdx = lastIdxAtStartOrWithSpace inStr "for " ln // test if its the first char or preceded by a space 
-        if forIdx = -1 then  ShowAll
-        else 
-            if   lastIdx inStr " in "     ln > forIdx then ShowAll 
-            elif lastIdx inStr " to "     ln > forIdx then ShowAll 
-            elif lastIdx inStr " downto " ln > forIdx then ShowAll 
-            else isDU (forIdx+3) ln
+        let isForDeclaration inStr (ln:string) =         
+            let forIdx = lastIdxAtStartOrWithSpace inStr "for " ln // test if its the first char or preceded by a space 
+            if forIdx = -1 then  ShowAll
+            else 
+                if   lastIdx inStr " in "     ln > forIdx then ShowAll 
+                elif lastIdx inStr " to "     ln > forIdx then ShowAll 
+                elif lastIdx inStr " downto " ln > forIdx then ShowAll 
+                else isDU (forIdx+3) ln
         
-    let isBarDeclaration inStr (ln:string) = // also covers the 'as' binding        
-        let barIdx = lastIdxAtStartOrWithSpace inStr "|" ln // test if its the first char or preceded by a space 
-        if barIdx = -1 then  
-            ShowAll
-        else 
-            if   containsFrom barIdx "->"      ln then ShowAll                
-            elif containsFrom barIdx "."       ln then ShowAll  // a DU member with full Qualification              
-            elif containsFrom barIdx " when "  ln then ShowAll
-            elif containsFrom barIdx " of "    ln then ShowAll
-            elif containsFrom barIdx ":?"      ln then  (if containsFrom barIdx  " as " ln then JustMark   else ShowAll)
-            else isDU (barIdx+1) ln         
+        let isBarDeclaration inStr (ln:string) = // also covers the 'as' binding        
+            let barIdx = lastIdxAtStartOrWithSpace inStr "|" ln // test if its the first char or preceded by a space 
+            if barIdx = -1 then  
+                ShowAll
+            else 
+                if   containsFrom barIdx "->"      ln then ShowAll                
+                elif containsFrom barIdx "."       ln then ShowAll  // a DU member with full Qualification              
+                elif containsFrom barIdx " when "  ln then ShowAll
+                elif containsFrom barIdx " of "    ln then ShowAll
+                elif containsFrom barIdx ":?"      ln then  (if containsFrom barIdx  " as " ln then JustMark   else ShowAll)
+                else isDU (barIdx+1) ln         
                 
-    let isThisMemberDeclaration inStr (ln:string) = // to not autocomplete on 'member this' (before the dot)
-        let barIdx = lastIdxAtStartOrWithSpace inStr "member" ln // test if its the first char or preceded by a space 
-        if barIdx = -1 then  
-            ShowAll
-        else 
-            if   containsFrom barIdx "."  ln then ShowAll                
-            else JustMark 
+        let isThisMemberDeclaration inStr (ln:string) = // to not autocomplete on 'member this' (before the dot)
+            let barIdx = lastIdxAtStartOrWithSpace inStr "member" ln // test if its the first char or preceded by a space 
+            if barIdx = -1 then  
+                ShowAll
+            else 
+                if   containsFrom barIdx "."  ln then ShowAll                
+                else JustMark 
 
     
-    let bind (f:bool->string->ShowAutocomplete) inStr ln (prev:ShowAutocomplete) = 
-        match prev with
-        |ShowAll    -> f inStr ln
-        |ShowOnlyDU -> ShowOnlyDU
-        |JustMark   -> JustMark
-        |DoNothing  -> DoNothing
+        let bind (f:bool->string->ShowAutocomplete) inStr ln (prev:ShowAutocomplete) = 
+            match prev with
+            |ShowAll    -> f inStr ln
+            |ShowOnlyDU -> ShowOnlyDU
+            |JustMark   -> JustMark
+            |DoNothing  -> DoNothing
 
 
     
-    let maybeShowCompletionWindow ( ed:IEditor, doc:TextDocument, pos:PositionInCode,  checker:Checker) : ShowAutocomplete = 
-        let ln = pos.lineToCaret // this line will include the character that trigger auto completion(dot or first letter)
-        let len = ln.Length
-        //ISeffLog.log.PrintfnDebugMsg "*2.1 maybeShowCompletionWindow for lineToCaret: \r\n    '%s'" ln
-        if len=0 then // line is empty, still check because deleting might have removed errors.
-            JustMark
-        else
-            let last = ln.[len-1]
-            if isCaretInComment ln then 
-                if last = '/' then 
-                    JustMark // to make sure comment was not just typed (then still check)
-                else 
-                    // ISeffLog.log.PrintfnDebugMsg " DoNothing because isCaretInComment: %s" ln
-                    // DoNothing, we are typing somewhere in a comment
-                    DoNothing 
+        let completionWindow ( ed:IEditor, doc:TextDocument, pos:PositionInCode,  checker:Checker) : ShowAutocomplete = 
+            let ln = pos.lineToCaret // this line will include the character that trigger auto completion(dot or first letter)
+            let len = ln.Length
+            //ISeffLog.log.PrintfnDebugMsg "*2.1 maybeShowCompletionWindow for lineToCaret: \r\n    '%s'" ln
+            if len=0 then // line is empty, still check because deleting might have removed errors.
+                JustMark
             else
-                let inStr = not <| NotInQuotes.isLastCharOutsideQuotes ln                
-                isLetDeclaration                inStr ln
-                |> bind isFunDeclaration        inStr ln
-                |> bind isForDeclaration        inStr ln
-                |> bind isBarDeclaration        inStr ln
-                |> bind isThisMemberDeclaration inStr ln
+                let last = ln.[len-1]
+                if isCaretInComment ln then 
+                    if last = '/' then 
+                        JustMark // to make sure comment was not just typed (then still check)
+                    else 
+                        // ISeffLog.log.PrintfnDebugMsg " DoNothing because isCaretInComment: %s" ln
+                        // DoNothing, we are typing somewhere in a comment
+                        DoNothing 
+                else
+                    let inStr = not <| NotInQuotes.isLastCharOutsideQuotes ln                     
+                    isLetDeclaration                inStr ln // TODO rewrite with a beautiful monad
+                    |> bind isFunDeclaration        inStr ln
+                    |> bind isForDeclaration        inStr ln
+                    |> bind isBarDeclaration        inStr ln
+                    |> bind isThisMemberDeclaration inStr ln
                 
     
     /// for multiline edits
-    let singleCharChange (iEd:IEditor , fastColor:FastColorizer, state:InteractionState) =
+    let singleCharChange (iEd:IEditor ,  state:InteractionState) =
         let pos = getPosInCode2(iEd.AvaEdit)
         let tx = pos.lineToCaret
         let c = tx[tx.Length-1]
@@ -251,7 +253,7 @@ module DocChangeCompletion =
         if c <> '.' && state.JustCompleted then 
             // if it is not a dot avoid re-trigger of completion window on single character completions, just check
             state.JustCompleted <- false // reset it
-            DocChangeMark.markFoldCheckHighlightAsync (iEd , fastColor, state)
+            DocChangeMark.markFoldCheckHighlightAsync (iEd ,  state)
         else            
             let doc = iEd.AvaEdit.Document
             async{                
@@ -261,14 +263,14 @@ module DocChangeCompletion =
                 | '#'  // for #if directives
                 | '.' 
                 |  _ when isInFsharpIdentifier(c,pos) ->  
-                    match maybeShowCompletionWindow(pos, doc, iEd) with 
+                    match MaybeShow.completionWindow(pos, doc, iEd) with 
                     |DoNothing  -> ()
-                    |JustMark   -> DocChangeMark.markFoldCheckHighlight (doc, fastColor, state)
+                    |JustMark   -> DocChangeMark.markFoldCheckHighlight (doc,  state)
                     |ShowAll    -> 
                     |ShowOnlyDU -> 
 
                 | _ ->                    
-                    DocChangeMark.markFoldCheckHighlight (doc, fastColor, state)
+                    DocChangeMark.markFoldCheckHighlight (doc,  state)
             
             } |> Async.Start
         
@@ -296,9 +298,9 @@ module DocChangeEvents =
         | React -> 
             match DocChangeUtil.isSingleCharChange eventArgs with 
             |ValueSome _ -> 
-                DocChangeCompletion.singleCharChange (iEd, fastColor, state)
+                DocChangeCompletion.singleCharChange (iEd,  state)
             |ValueNone   -> 
-                DocChangeMark.markFoldCheckHighlightAsync (iEd , fastColor, state)
+                DocChangeMark.markFoldCheckHighlightAsync (iEd ,  state)
             
 
 

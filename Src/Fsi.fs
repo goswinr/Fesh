@@ -398,6 +398,7 @@ type Fsi private (config:Config) =
         match state with
         | Initializing -> log.PrintfnInfoMsg "FSI initialization can't be started because it is already in process.."
         | NotLoaded | Ready | Evaluating ->
+            
             let  prevState = state
             state <- Initializing
             async{
@@ -434,7 +435,8 @@ type Fsi private (config:Config) =
                 else
                     log.PrintfnInfoMsg "FSharp Interactive will evaluate asynchronously on a new Thread with ApartmentState.STA."
                 *)                
-
+                
+                // TODO what happens in Abort if current state is NotLoaded
                 match mode with
                 |InSync ->   () 
                 |Async472| Async70 ->  abortThenMakeAndStartAsyncThread()
@@ -461,8 +463,10 @@ type Fsi private (config:Config) =
         |Some fsi -> fsi
         |None -> singleInstance <- Some (new Fsi(config)); singleInstance.Value
 
-
+    //------------------------------------------
     //-------------- public interface: ---------
+    //------------------------------------------
+    //------------------------------------------
 
     member this.State = state
 

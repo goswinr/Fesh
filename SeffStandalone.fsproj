@@ -100,12 +100,12 @@
     <Compile Include="Src/Editor/KeyboardShortcuts.fs" />
     <Compile Include="Src/Editor/AlignText.fs" />
     <Compile Include="Src/Editor/XshdHighlighting.fs" />
-    <Compile Include="Src/Editor/InteractionState.fs" />
     <Compile Include="Src\Editor\FastColorizer.fs" />
+    <Compile Include="Src/Editor/InteractionState.fs" />
     <Compile Include="Src/Editor/ErrorHighlighter.fs" />
     <Compile Include="Src/Editor/TypeInfo.fs" />
-    <Compile Include="Src\Editor\Checker2.fs" />
-    <Compile Include="Src/Editor/Checker.fs" />
+    <Compile Include="Src\Editor\Checker.fs" />
+    <Compile Include="Src\Editor\CheckerOLD.fs" />
     <Compile Include="Src/Editor/CodeCompletion.fs" />
     <Compile Include="Src/Editor/Foldings.fs" />
     <Compile Include="Src/Editor/EvaluationTracker.fs" />

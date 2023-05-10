@@ -71,26 +71,19 @@ module ISeffLog =
 // ---- Editor types -----------
 
 /// To give each doc chnage a unique ID
+/// Only chanages while not waiting for completion window
 /// So that at we can check if a CheckResult still corresponds to the latest changes
 type ChnageId = int64
 
 /// just an alias for a string
 type CodeAsString = string
 
+(*
 /// The Result when trying to get the current code from the checker
 /// (and not from the editor where the tree would have to be converted to a string)
 type CodeAndId = 
     | CodeID of string * CheckId
     | NoCode
-
-
-type ErrorsBySeverity = {
-    errors             : ResizeArray<Diagnostics.FSharpDiagnostic>
-    warnings           : ResizeArray<Diagnostics.FSharpDiagnostic>
-    infos              : ResizeArray<Diagnostics.FSharpDiagnostic>
-    hiddens            : ResizeArray<Diagnostics.FSharpDiagnostic> 
-    errorsAndWarnings  : ResizeArray<Diagnostics.FSharpDiagnostic> 
-    }
 
 /// The Results from FSharp.Compiler.Service
 type CheckResults = {
@@ -102,7 +95,31 @@ type CheckResults = {
     editorId    :Guid
     }
 
+*)
 
+
+type ErrorsBySeverity = {
+    errors             : ResizeArray<Diagnostics.FSharpDiagnostic>
+    warnings           : ResizeArray<Diagnostics.FSharpDiagnostic>
+    infos              : ResizeArray<Diagnostics.FSharpDiagnostic>
+    hiddens            : ResizeArray<Diagnostics.FSharpDiagnostic> 
+    errorsAndWarnings  : ResizeArray<Diagnostics.FSharpDiagnostic> 
+    }
+
+/// The Results from FSharp.Compiler.Service
+type FullCheckResults = {
+    parseRes    :FSharpParseFileResults
+    checkRes    :FSharpCheckFileResults
+    errors      :ErrorsBySeverity
+    chnageId    :ChnageId 
+    editorId    :Guid
+    }
+
+type FileCheckState =     
+    | Checking 
+    | Done     of ErrorsBySeverity
+
+    (*
 /// Represents the current sate of the  FSharp.Compiler.Service Checker
 /// It is stored globally in the Checker
 /// And locally in each Editor instance (they are compared via the CheckId)
@@ -110,7 +127,7 @@ type FileCheckState =
     | NotStarted
 
     /// Got the code from AvalonEdit async, now running in FCS async
-    | Checking of CheckId * CodeAsString
+    | Checking of CheckId * CodeAsString 
 
     /// The CheckResults are always local per Editor
     | Done of CheckResults
@@ -120,8 +137,8 @@ type FileCheckState =
     member this.CodeAndId  = 
         match this with
         | NotStarted   |  CheckFailed -> NoCode
-        | Checking (id, c)  ->  CodeID (c       ,id)  
-        | Done res          ->  CodeID (res.code,res.checkId ) 
+        | Checking (id, c)  ->  CodeID (c       , id)  
+        | Done res          ->  CodeID (res.code, res.checkId ) 
 
 
     /// to compare local EditorCheckState with GlobalCheckState
@@ -139,6 +156,7 @@ type FileCheckState =
         | CheckFailed       ->  "FileCheckState.Failed"
         | Checking (id, c)  ->  "FileCheckState.Checking"
         | Done res          ->  "FileCheckState.Done with " +  res.checkRes.Diagnostics.Length.ToString() +  " infos, warnings or errors"
+    *)
 
 
 type FilePath = 

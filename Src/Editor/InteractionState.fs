@@ -25,8 +25,6 @@ type ReactToChange =
     //| JustShift // when typing single chars in in comments or strings (detect via xshd highlighting)
 
 
-
-    
     
 /// Do on mouse hover too ?
 type CaretChangedConsequence = 
@@ -58,9 +56,17 @@ type DocChangedConsequence =
 /// Tracking the lastest change Ids to the document
 type InteractionState() =
 
-    /// Does not increment while  waiting for completion window to open 
-    /// or while waiting for an item in the completion window to be picked
+    /// Does not increment while waiting for completion window to open 
+    /// Or while waiting for an item in the completion window to be picked
     member val DocChangedId  = ref 0L with get 
+
+    /// Checks if passed in int64 is same as current DocChangedId.
+    /// if yes retuns Some true ( usefull for monadic chaining)
+    member this.IfIsLatest id x =  if this.DocChangedId.Value = id then Some x else None
+
+    /// Checks if passed in int64 is same as current DocChangedId.
+    // if yes retuns second input ( usefull for monadic chaining)
+    member this.IsLatest id  =  if this.DocChangedId.Value = id then Some true else None
    
     member val DocChangedConsequence = React with get, set
 
@@ -68,3 +74,6 @@ type InteractionState() =
     /// the window may just have closed, but for pressing esc, not for completion insertion
     /// this is only true if it just closed for insertion
     member val JustCompleted = false with get, set
+
+
+    member val FastColorizer = new FastColorizer() with get
