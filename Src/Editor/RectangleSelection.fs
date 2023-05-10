@@ -78,8 +78,8 @@ module RectangleSelection =
         doc.EndUpdate()
         setNewEmpty (ed.TextArea, s, visCol + text.Length, false)
 
-    let private replace (ed:TextEditor, s:SelectionPos, text:string)  = 
-        let doc = ed.Document
+    let private replace (ta:TextArea, s:SelectionPos, text:string)  = 
+        let doc = ta.Document
         let minVisCol = s.stPos.VisualColumn
         let maxVisCol = s.enPos.VisualColumn
         doc.BeginUpdate()
@@ -131,7 +131,7 @@ module RectangleSelection =
         else
             doc.Insert(stOff + minVisCol , text)
         doc.EndUpdate() // finish doc update before recreating selection
-        setNewEmpty (ed.TextArea, s, minVisCol + text.Length, false)
+        setNewEmpty (ta, s, minVisCol + text.Length, false)
 
 
     let private delete (ed:TextEditor, s:SelectionPos) = 
@@ -279,7 +279,7 @@ module RectangleSelection =
             if s.stPos.VisualColumn = s.enPos.VisualColumn then
                 insert (ed, s, txt)
             else
-                replace (ed, s, txt)
+                replace (ed.TextArea, s, txt)
 
     let paste(ed:TextEditor, txt: string, txtIsFromOtherRectSel:bool)= 
         if not txtIsFromOtherRectSel then
@@ -290,10 +290,10 @@ module RectangleSelection =
             else
                 pasteLineByLine (ed, txt)
 
-    let complete (ed:TextEditor, completionSegment:ISegment, txt:string) = 
+    let complete (ta:TextArea, completionSegment:ISegment, txt:string) = 
         let len = completionSegment.Length
-        let s = getSelectionOrdered ed.TextArea
+        let s = getSelectionOrdered ta
         let p = {s with stPos = TextViewPosition( s.stPos.Line,  s.stPos.Column - len , s.stPos.VisualColumn - len) }
-        replace (ed, p, txt)
+        replace (ta, p, txt)
 
 

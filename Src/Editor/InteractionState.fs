@@ -54,11 +54,17 @@ type DocChangedConsequence =
     | WaitForCompletions 
 
 /// Tracking the lastest change Ids to the document
-type InteractionState() =
+type InteractionState(config:Seff.Config.Config) =
+    
+    member _.Config = config
 
     /// Does not increment while waiting for completion window to open 
     /// Or while waiting for an item in the completion window to be picked
     member val DocChangedId  = ref 0L with get 
+
+    /// Threadsave Increment of DocChangedId
+    /// Returns the incremented value.
+    member this.Increment() = System.Threading.Interlocked.Increment this.DocChangedId
 
     /// Checks if passed in int64 is same as current DocChangedId.
     /// if yes retuns Some true ( usefull for monadic chaining)

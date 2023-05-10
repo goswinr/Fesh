@@ -197,7 +197,8 @@ type Checker private ()  =
     static let mutable fsChecker: FSharpChecker Option = None // "you should generally use one global, shared FSharpChecker for everything in an IDE application." from http://fsharp.github.io/FSharp.Compiler.Service/caches.html
     
     static let entityCache = EntityCache() // used in GetAllEntities method
-
+    
+    /// for a given method name returns a list of optional argument names
     static let optArgsDict = Dictionary<string,ResizeArray<OptDefArg>>()
 
     static let checkingStateEv = new Event<FileCheckState> () 
@@ -225,15 +226,19 @@ type Checker private ()  =
             }
     
     //-----------------------------------------------------------------
-    //---------------static members----------------------------------
+    //---------------static members------------------------------------
     //-----------------------------------------------------------------
     
+
     /// This event is raised on UI thread when a checker session starts.
     [<CLIEvent>] 
     static member CheckingStateChanged = checkingStateEv.Publish
+    
+    /// for a given method name returns a list of optional argument names
+    static member OptArgsDict = optArgsDict
 
     /// Returns None if check failed or was superseeded by a newer Document chnage ID
-    static member CheckCode(iEd:IEditor, fullCode:CodeAsString, state:InteractionState, filePath:FilePath, chnageId) : option<FullCheckResults>=        
+    static member CheckCode(iEd:IEditor, fullCode:CodeAsString, state:InteractionState,  chnageId) : option<FullCheckResults>=        
         updateCheckingState iEd Checking            
         match parseAndCheck(fullCode, state, iEd.FilePath, chnageId) with 
         |None ->

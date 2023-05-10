@@ -1,6 +1,7 @@
-﻿namespace Seff.Editor
+namespace Seff.Editor
 
 open System
+open System.Threading
 open System.Windows
 open System.Windows.Input
 
@@ -15,69 +16,141 @@ open Seff.Util.Str
 open Seff
 
 
-[<RequireQualifiedAccess>]
-module DocChanged =
+module DocChangeUtil = 
+    /// returns the total character count change -1 or +1 depending if its a insert or remove
+    let isSingleCharChange (a:DocumentChangeEventArgs) =
+        match a.InsertionLength, a.RemovalLength with
+        | 1, 0 -> ValueSome  1
+        | 1, 1 -> ValueSome  0
+        | 0, 1 -> ValueSome -1
+        | _    -> ValueNone
     
-    type DoNext =  CheckCode | DoNothing
-
-    /// for closing and inserting from completion window
-    let closeAndMaybeInsertFromCompletionWindow (compls:Completions) (ev:TextCompositionEventArgs) = 
-        if compls.IsOpen then
-            match ev.Text with              //enter and tab is not needed  here for  insertion,  insertion with Tab or Enter is built into Avalonedit!!
-            |" " -> compls.Close()
-            |"." -> compls.RequestInsertion(ev) // insert on dot too? //TODO only when more than one char is typed in completion window??
-            | _  -> () // other triggers https://github.com/icsharpcode/AvalonEdit/blob/28b887f78c821c7fede1d4fc461bde64f5f21bd1/AvalonEditB/CodeCompletion/CompletionList.cs#L171
-
-          //|"(" -> compls.RequestInsertion(ev) // insert on open Bracket too?
-       //else compls.JustClosed<-false
-
-
-    module InternalDocChange =     
-        type ShowAutocomplete = 
-             | DontShow     
-             | ShowOnlyDU   
-             | ShowAll      
+    /// returns the cLine of code that contains the given offset.
+    /// from start of line till given offset 
+    let getLine(code:string, off) =  
+        let rec loop (i) =         
+            if i = -1 then 0
+            else 
+                match code[i] with 
+                | '\n' -> i-1
+                | _ -> loop (i-1)
+        let st = loop off
+        code.Substring(st,off-st)
     
-        let keywords = FSharpKeywords.KeywordsWithDescription |> List.map fst |> Collections.Generic.HashSet // used in analyzing text change
+    let getPosInCode(caretOff, line, code:string): PositionInCode  =        
+        let lineToCaret = getLine(code, caretOff)
+        { 
+        lineToCaret = lineToCaret// this line will include the character that trigger auto completion(dot or first letter)
+        row =    line
+        column = lineToCaret.Length // equal to amount of characters in lineToCaret
+        offset = caretOff 
+        }
 
-        /// this line will include the character that trigger auto completion(dot or first letter)
-        let currentLineBeforeCaret(avaEdit:TextEditor) : PositionInCode =         
-            let doc = avaEdit.Document
-            let car = avaEdit.TextArea.Caret
-            let caretOffset = car.Offset
-            let ln = doc.GetLineByOffset(caretOffset)
-            let caretOffsetInThisLine = caretOffset - ln.Offset
-            { 
-            lineToCaret = doc.GetText(ln.Offset, caretOffsetInThisLine)// this line will include the character that trigger auto completion(dot or first letter)
-            row =    car.Line
-            column = caretOffsetInThisLine // equal to amount of characters in lineToCaret
-            offset = caretOffset 
-            } 
+    let getPosInCode2(avaEdit:TextEditor) : PositionInCode =         
+        let doc = avaEdit.Document
+        let car = avaEdit.TextArea.Caret
+        let caretOffset = car.Offset
+        let ln = doc.GetLineByOffset(caretOffset)
+        let caretOffsetInThisLine = caretOffset - ln.Offset
+        { 
+        lineToCaret = doc.GetText(ln.Offset, caretOffsetInThisLine)// this line will include the character that trigger auto completion(dot or first letter)
+        row =    car.Line
+        column = caretOffsetInThisLine // equal to amount of characters in lineToCaret
+        offset = caretOffset 
+        }
 
-        let lastIdx inString find txt = 
+    /// checks if it is a letter or a digit preceded by a letter 
+    let inline isInFsharpIdentifier (c , p:PositionInCode) = 
+        if Char.IsLetter c then 
+            true
+        elif Char.IsDigit c then // TODO allow several digits after letter too ?
+            let tx = p.lineToCaret
+            let len = tx.Length
+            len > 1 && Char.IsLetter(tx[len-1] )
+        else
+            false
+
+    let isCaretInComment ln =  
+        NotInQuotes.contains "//" ln
+
+    let getFullCode(doc:TextDocument ,  state:InteractionState ,id) =
+        // NOTE just checking only Partial Code till caret with (doc.CreateSnapshot(0, tillOffset).Text) 
+        // would make the GetDeclarationsList method miss some declarations !!
+        let fullCode = doc.CreateSnapshot().Text // the only threadsafe way to access the code string                    
+        if id = state.DocChangedId.Value then  
+            Some fullCode
+        else
+            None
+
+module DocChangeMark = 
+    open DocChangeUtil
+
+
+    /// for multi char or line edits
+    /// second: Errors and Semantic Highlighting on check result .    
+    let secondMarkingStep (fullCode:CodeAsString ,  state:InteractionState) =
+        async{  
+            
+            
+            ()         
+         } |> Async.Start
+    
+    /// for multi char or line edits
+    /// first: Foldings, ColorBrackets and BadIndentation when full text available async.
+    let firstMarkingStep (fullCode:CodeAsString,  state:InteractionState) =
+         async{  
+            
+            
+            ()         
+         } |> Async.Start
+    
+    
+    let markFoldCheckHighlight (doc:TextDocument ,  state:InteractionState ,id ) =               
+        // NOTE just checking only Partial Code till caret with (doc.CreateSnapshot(0, tillOffset).Text) 
+        // would make the GetDeclarationsList method miss some declarations !!
+        let fullCode = doc.CreateSnapshot().Text // the only threadsafe way to access the code string                    
+        if id = state.DocChangedId.Value then  
+            firstMarkingStep  (fullCode,  state)
+            secondMarkingStep (fullCode,  state)
+        
+    
+    let markFoldCheckHighlightAsync (iEd:IEditor ,  state:InteractionState,id ) =
+        let doc = iEd.AvaEdit.Document
+        async { markFoldCheckHighlight (doc, state,id )} |> Async.Start
+    
+module DocChangeCompletion = 
+    open DocChangeUtil
+    
+    type ShowAutocomplete = DoNothing| JustMark| ShowOnlyDU | ShowAll  
+
+    [<RequireQualifiedAccess>]
+    module MaybeShow = 
+
+
+        //--------------------------------------------------------------------------------------------
+        //-----------check the four ways to bind a name: let, for, fun, match with | ---------------
+        //-------------------------------------------------------------------------------------------
+    
+        let private lastIdx inString find txt = 
             if inString then NotInQuotes.lastIndexOfFromInside  find txt 
             else             NotInQuotes.lastIndexOfFromOutside find txt
 
-
-        let inline containsFrom idx (find:string) (txt:String) =
-            match txt.IndexOf(find,idx,StringComparison.Ordinal) with 
-            | -1 -> false
-            | _ -> true 
-        
         /// like lastIndex but test if its the first char or preceded by a space 
-        let lastIdxAtStartOrWithSpace inString find txt = 
+        let private lastIdxAtStartOrWithSpace inString find txt = 
             let i = 
                 if inString then NotInQuotes.lastIndexOfFromInside  find txt 
                 else             NotInQuotes.lastIndexOfFromOutside find txt
             if   i = -1 then -1
             elif i = 0 || txt.[i-1] = ' ' then i // test if its the first char or preceded by a space 
             else -1
-
-        let isCaretInComment ln =  
-             NotInQuotes.contains "//" ln
+    
+        let private containsFrom idx (find:string) (txt:String) =
+            match txt.IndexOf(find,idx,StringComparison.Ordinal) with 
+            | -1 -> false
+            | _ -> true 
     
         /// is a discriminated union that wants autocomplete
-        let isDU fromIdx ln =
+        let private isDU fromIdx ln =
             //printfn $"indexOfFirstNonWhiteAfter fromIdx {fromIdx} of '{ln}'"
             let fi = indexOfFirstNonWhiteAfter fromIdx ln
             if fi < fromIdx then 
@@ -90,16 +163,13 @@ module DocChanged =
                     | -1 -> 
                         match ln.IndexOf('(',fi) with // and has no open bracket
                         | -1 -> ShowOnlyDU 
-                        | _ -> DontShow // writing a lowercase name binding as part of the uppercase DU's value
-                    | _ -> DontShow
+                        | _ -> JustMark // writing a lowercase name binding as part of the uppercase DU's value
+                    | _ -> JustMark
                 elif 'a' <= first && first <= 'z' then
-                    DontShow// writing a lowercase name binding             
+                    JustMark // writing a lowercase name binding             
                 else
-                    ShowAll // writing nut a DU but an operator like |> or |]
-    
-        //--------------------------------------------------------------------------------------------
-        //-----------check the four ways to bind a name: let, for, fun, match with | ---------------
-        //-------------------------------------------------------------------------------------------
+                    ShowAll // writing not a DU but an operator like |> or |]
+
 
         let isLetDeclaration inStr (ln:string)  = 
             //test if we are after a 'let' but before a '=' or ':'  
@@ -137,7 +207,7 @@ module DocChanged =
                 elif containsFrom barIdx "."       ln then ShowAll  // a DU member with full Qualification              
                 elif containsFrom barIdx " when "  ln then ShowAll
                 elif containsFrom barIdx " of "    ln then ShowAll
-                elif containsFrom barIdx ":?"      ln then  (if containsFrom barIdx  " as " ln then DontShow   else ShowAll)
+                elif containsFrom barIdx ":?"      ln then  (if containsFrom barIdx  " as " ln then JustMark   else ShowAll)
                 else isDU (barIdx+1) ln         
                 
         let isThisMemberDeclaration inStr (ln:string) = // to not autocomplete on 'member this' (before the dot)
@@ -146,182 +216,116 @@ module DocChanged =
                 ShowAll
             else 
                 if   containsFrom barIdx "."  ln then ShowAll                
-                else DontShow 
+                else JustMark 
 
-     
-        let show (pos:PositionInCode, compls:Completions, ed:IEditor, forDUonly, checker:Checker) : unit= 
-            let lnToCaret = pos.lineToCaret
-            let setback     = lastNonFSharpNameCharPosition lnToCaret // to maybe replace some previous characters too
-            let query       = lnToCaret.Substring(lnToCaret.Length - setback)            
-            //ISeffLog.log.PrintfnDebugMsg "2.1 show: pos:%A setback='%d'" pos setback
-
-            let dotBefore = 
-                let i = pos.column - setback - 1
-                if i >= 0 && i < lnToCaret.Length then
-                    if lnToCaret.[i] = '.' then 
-                        Dot 
-                    else 
-                        NotDot
-                else
-                    NotDot
-
-            if dotBefore = NotDot && keywords.Contains query then
-                //ISeffLog.log.PrintfnDebugMsg "*2.2a-show: just highlighting with: lnToCaret='%s' \r\n query='%s', dotBefore='%A',  setback='%d', onlyDU:%b' " lnToCaret query dotBefore setback forDUonly
-                checker.CheckThenHighlightAndFold(ed)
-            else
-                //ISeffLog.log.PrintfnDebugMsg "*2.2b-show: try window opening with: lnToCaret=\r\n  '%s'\r\n  query='%s', dotBefore='%A', setback='%d', onlyDU:%b" lnToCaret query dotBefore  setback forDUonly
-                let last = lnToCaret.[lnToCaret.Length-1]
-                Completions.TryShow(ed, compls, pos, last , setback, dotBefore, forDUonly)                
-
-
-        let maybeShowCompletionWindow (compls:Completions,ed:IEditor, checker:Checker) : unit =            
-            let pos = currentLineBeforeCaret(ed.AvaEdit) 
+    
+        let bind (f:bool->string->ShowAutocomplete) inStr ln (prev:ShowAutocomplete) = 
+            match prev with
+            |ShowAll    -> f inStr ln
+            |ShowOnlyDU -> ShowOnlyDU
+            |JustMark   -> JustMark
+            |DoNothing  -> DoNothing
+    
+        let completionWindow ( pos:PositionInCode) : ShowAutocomplete = 
             let ln = pos.lineToCaret // this line will include the character that trigger auto completion(dot or first letter)
             let len = ln.Length
             //ISeffLog.log.PrintfnDebugMsg "*2.1 maybeShowCompletionWindow for lineToCaret: \r\n    '%s'" ln
             if len=0 then // line is empty, still check because deleting might have removed errors.
-                checker.CheckThenHighlightAndFold(ed)
+                JustMark
             else
                 let last = ln.[len-1]
                 if isCaretInComment ln then 
                     if last = '/' then 
-                        checker.CheckThenHighlightAndFold(ed) // to make sure comment was not just typed (then still check)
+                        JustMark // to make sure comment was not just typed (then still check)
                     else 
-                        //ISeffLog.log.PrintfnDebugMsg " DoNothing because isCaretInComment: %s" ln
+                        // ISeffLog.log.PrintfnDebugMsg " DoNothing because isCaretInComment: %s" ln
                         // DoNothing, we are typing somewhere in a comment
-                        () 
+                        DoNothing 
                 else
-                    let inStr = not <| NotInQuotes.isLastCharOutsideQuotes ln                    
-                    match isLetDeclaration inStr ln with 
-                    |DontShow -> 
-                        //ISeffLog.log.PrintfnDebugMsg "noShow because isLetDeclaration: %s" ln
-                        checker.CheckThenHighlightAndFold(ed) // keep on writing the current new variable name for a binding , don't open any completion windows
-                    |ShowOnlyDU -> show(pos,compls,ed,true, checker)
-                    |ShowAll -> 
-                        match isFunDeclaration inStr ln with 
-                        |DontShow -> 
-                            //ISeffLog.log.PrintfnDebugMsg "noShow because isFunDeclaration: %s" ln
-                            checker.CheckThenHighlightAndFold(ed) 
-                        |ShowOnlyDU -> show(pos,compls,ed,true, checker)
-                        |ShowAll ->
-                            match isForDeclaration inStr ln with 
-                            |DontShow -> 
-                                //ISeffLog.log.PrintfnDebugMsg "noShow because isForDeclaration: %s" ln
-                                checker.CheckThenHighlightAndFold(ed) 
-                            |ShowOnlyDU -> show(pos,compls,ed,true, checker)
-                            |ShowAll ->                                
-                                match isBarDeclaration inStr ln with 
-                                |DontShow -> 
-                                    //ISeffLog.log.PrintfnDebugMsg "noShow because isBarDeclaration: %s" ln
-                                    checker.CheckThenHighlightAndFold(ed) 
-                                |ShowOnlyDU -> show(pos,compls,ed,true, checker)
-                                |ShowAll    ->                                 
-                                    match isThisMemberDeclaration inStr ln with 
-                                    |DontShow -> 
-                                        //ISeffLog.log.PrintfnDebugMsg "noShow because isThisMemberDeclaration: %s" ln
-                                        checker.CheckThenHighlightAndFold(ed) 
-                                    |ShowOnlyDU -> show(pos,compls,ed,true, checker)
-                                    |ShowAll    -> show(pos,compls,ed,false, checker) // this is the most common case
-
-    
-    let inline prevChar (e:DocumentChangeEventArgs)(ed:IEditor) = 
-        let o = e.Offset-1
-        if o = -1 then '\n' // if at start of document
-        else  ed.AvaEdit.Document.GetCharAt(o)
-    
-    open InternalDocChange
-    
-    // used with a auto hotkey script that simulates 28 key presses starting with ß ending with £
-    let logPerformance (t:string)=
-        match t with 
-        |"ß" -> Timer.InstanceRedraw.tic()
-        |"£" -> eprintfn $"{Timer.InstanceRedraw.tocEx}"
-        | _  -> ()         
-
-   
-    let docChanged (e:DocumentChangeEventArgs, ed:IEditor, compls:Completions, checker:Checker) : unit = 
-        //ISeffLog.log.PrintfnDebugMsg "*1.1 Document.Changed Event: deleted: %d '%s', inserted %d '%s', completion hasItems: %b, isOpen: %b , Just closed: %b, IsWaitingForTypeChecker %b" e.RemovalLength e.RemovedText.Text e.InsertionLength e.InsertedText.Text compls.HasItems compls.IsOpen UtilCompletion.justCompleted Completions.IsWaitingForTypeChecker
-                        
-        if Completions.IsWaitingForTypeChecker then
-            //ISeffLog.log.PrintfnDebugMsg "*1.2 Document.Changed Event: IsWaitingForTypeChecker"
-            // no type checking !
-            // just keep on tying, 
-            // the typed characters wil become a prefilter for the  in completion window
-            () // DoNothing
-
-        elif compls.IsOpen then   
-            // just keep on tying in completion window, no type checking !
-            if compls.HasItems then 
-                //let currentText = getField(typeof<CodeCompletion.CompletionList>,w.CompletionList,"currentText") :?> string // TODO this property should be public in avaloneditB !                
-                //ISeffLog.log.PrintfnDebugMsg "currentText: '%s'" currentText
-                //let w = compls.ComplWin.Value
-                //ISeffLog.log.PrintfnDebugMsg "HasItems CompletionList.CompletionData.Count:%d" w.CompletionList.ListBox.VisibleItemCount 
-                () // DoNothing
-            else
-                //ISeffLog.log.PrintfnDebugMsg $"not compls.HasItems."
-                // DoNothing, because if the doc changed a separate event will be triggered for that
-                compls.Close()
-
-        else // the completion window is NOT open or not about to be opened after type checking:
-            
-            // also show completion entering one characters ?
-            if e.InsertionLength = 1 && e.RemovalLength = 0 then 
-                let txt = e.InsertedText.Text
-                let c = txt.[0]
-                if c= '.' then // do even if compls.JustClosed
-                    maybeShowCompletionWindow(compls, ed, checker) // EnteredDot                 
-                  
-                elif UtilCompletion.justCompleted then   // check to avoid re-trigger of window on single character completions
-                    UtilCompletion.justCompleted <- false
-                    checker.CheckThenHighlightAndFold(ed) // because CompletionWinClosed 
+                    let inStr = not <| NotInQuotes.isLastCharOutsideQuotes ln                     
+                    isLetDeclaration                inStr ln // TODO rewrite with a beautiful monad
+                    |> bind isFunDeclaration        inStr ln
+                    |> bind isForDeclaration        inStr ln
+                    |> bind isBarDeclaration        inStr ln
+                    |> bind isThisMemberDeclaration inStr ln
                 
-                else
-                    // do not if compls.JustClosed
-                    if Char.IsLetter(c) 
-                        || c='_' // for __SOURCE_DIRECTORY__
-                        || c='`' // for complex F# names in `` ``
-                        || c='#'  then    // for #if directives
-                            maybeShowCompletionWindow(compls, ed, checker) // because  EnteredOneIdentifierChar  
-                    
-                    // a digit typed directly after a character
-                    elif Char.IsDigit(c) && Char.IsLetter(prevChar e ed) then 
-                        maybeShowCompletionWindow(compls, ed, checker) // because  EnteredOneIdentifierChar 
-                    else 
-                        checker.CheckThenHighlightAndFold(ed) // because EnteredOneIdentifierChar  
-            
-            // also show completion on deleting one characters ?
-            elif e.InsertionLength = 0 && e.RemovalLength = 1 then 
-                //only complete on deletion if there are chars behind                
-                let pr = prevChar e ed
-                //ISeffLog.log.PrintfnDebugMsg $"char before del '{pr}'"
-                if Char.IsLetterOrDigit(pr)  then // if prev char  is . or `` then this is caught in compls.HasItems=false above
-                    maybeShowCompletionWindow(compls, ed, checker) 
-                else
-                    checker.CheckThenHighlightAndFold(ed) 
-            
-            // more than one character added or deleted
-            else
-                Completions.IsWaitingForTypeChecker <- false // really needed here?
-                checker.CheckThenHighlightAndFold(ed) // because OtherChange: several characters(paste) , delete or an insert from the completion window
-             
-
     
-    (*
-    // delay and buffer reaction to doc changes
-    open System.Threading
-    let private changeId = ref 0L
+    /// for single character edits
+    let singleCharChange (iEd:IEditor ,  state:InteractionState, id:int64)  =
+        let pos = getPosInCode2(iEd.AvaEdit)
+        let tx = pos.lineToCaret
+        let c = tx[tx.Length-1]
 
-    /// only react to the last change after 100 ms
-    let delayDocChange(e:DocumentChangeEventArgs, ed:IEditor, compls:Completions, checker:Checker) : unit =         
-        /// do timing as low level as possible: see Async.Sleep in  https://github.com/dotnet/fsharp/blob/main/src/fsharp/FSharp.Core/async.fs#L1587
-        let k = Interlocked.Increment changeId
-        let mutable timer : option<Timer> = None
-        let action =  TimerCallback(fun _ ->
-            if !changeId= k then ed.AvaEdit.Dispatcher.Invoke(fun () ->  docChanged (e,ed, compls, checker))
-            if timer.IsSome then timer.Value.Dispose() // dispose inside callback, like in Async.Sleep implementation
-            )
-        timer <- Some (new Threading.Timer(action, null, dueTime = 200 , period = -1))
-    *)
-    
+        if c <> '.' && state.JustCompleted then 
+            // if it is not a dot avoid re-trigger of completion window on single character completions, just check
+            state.JustCompleted <- false // reset it
+            DocChangeMark.markFoldCheckHighlightAsync (iEd , state, id)
+        else            
+            let doc = iEd.AvaEdit.Document
+            async{                
+                match c with
+                | '_'  // for __SOURCE_DIRECTORY__
+                | '`'  // for complex F# names in `` ``
+                | '#'  // for #if directives
+                | '.' 
+                |  _ when isInFsharpIdentifier(c,pos) ->  
+                    let show = MaybeShow.completionWindow(pos)
+                    match show with 
+                    |DoNothing  -> ()
+                    |JustMark   -> DocChangeMark.markFoldCheckHighlight (doc, state, id)
+                    |ShowAll    
+                    |ShowOnlyDU -> 
+                        let r  = 
+                            Monads.maybe{
+                                let! code = getFullCode(doc, state, id)
+                                let! res = Checker.CheckCode(iEd, code, state, id)
+                                return!  Checker.GetCompletions(pos,res)                            
+                            }
+                        match r with         
+                        |Some (decls,posx) ->
+                            do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context
+                            Completions.TryShow(state, decls,,show = ShowOnlyDU  )
+                        
+                        |None -> ()
+                | _ ->                    
+                    DocChangeMark.markFoldCheckHighlight (doc,  state)
+            
+            } |> Async.Start
         
 
+
+module DocChangeEvents = 
+    open DocChangeUtil   
+
+    let changing (fastColor:FastColorizer) (a:DocumentChangeEventArgs) =             
+        match DocChangeUtil.isSingleCharChange a with 
+        |ValueSome s -> 
+            fastColor.AdjustShift s
+        |ValueNone   -> 
+            //a multi character change, just wait for type checker.., 
+            //because it might contain a line rturen and then just doing a shift would not work anymore
+            fastColor.ResetShift() 
+    
+
+    let changed (iEd:IEditor) (state:InteractionState) (eventArgs:DocumentChangeEventArgs)  =          
+        match state.DocChangedConsequence with 
+        | WaitForCompletions -> 
+            // Do not increment DoChangeID counter
+            // no type checking ! just keep on tying, 
+            // the typed characters wil become a prefilter for the  in completion window
+            ()
+        | React -> 
+            let id = state.Increment()
+            match DocChangeUtil.isSingleCharChange eventArgs with 
+            |ValueSome _ -> 
+                DocChangeCompletion.singleCharChange (iEd,  state, id)
+            |ValueNone   -> 
+                DocChangeMark.markFoldCheckHighlightAsync (iEd ,state,id)
+            
+
+
+
+
+            
+
+        

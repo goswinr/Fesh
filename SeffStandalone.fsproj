@@ -112,8 +112,8 @@
     <Compile Include="Src/Editor/SelectedTextTracer.fs" />
     <Compile Include="Src/Editor/SemanticHighlighting.fs" />
     <Compile Include="Src/Editor/BracketColorizer.fs" />
-    <Compile Include="Src/Editor/DocChanged.fs" />
-    <Compile Include="Src/Editor/DocChanged2.fs" />
+    <Compile Include="Src\Editor\DocChangedOLD.fs" />
+    <Compile Include="Src\Editor\DocChanged.fs" />
     <Compile Include="Src/Editor/Editor.fs" />
     <Compile Include="Src/Views/Log.fs" />
     <Compile Include="Src/Views/SeffWindow.fs" />
