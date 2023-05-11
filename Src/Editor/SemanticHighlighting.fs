@@ -248,6 +248,8 @@ type SemanticColorizer (ied:TextEditor, edId:Guid, ch:Checker) =
                 if en >  offSt  && en <= offEn && st >= offSt  && st <  offEn && en < lastCode.Length then
                     base.ChangeLinePart(st,en, SemAction.UnUsed) 
 
+
+(*
 type DebugColorizer () = 
     inherit Rendering.DocumentColorizingTransformer()
         
@@ -269,5 +271,6 @@ module SemanticHighlighting =
         ed.TextArea.TextView.LineTransformers.Add(semHiLi)        
         //ed.TextArea.TextView.LineTransformers.Add(new DebugColorizer())        
         semHiLi
+*)
 
 

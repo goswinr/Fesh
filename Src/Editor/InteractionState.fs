@@ -83,4 +83,6 @@ type InteractionState(config:Seff.Config.Config) =
     member val JustCompleted = false with get, set
 
 
-    member val FastColorizer = new FastColorizer() with get
+    member val FastColorizer = new FastColorizer() with get    
+    
+    member val Caret = 0 with get, set

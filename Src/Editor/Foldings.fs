@@ -9,7 +9,7 @@ open AvalonEditB.Rendering
 open AvalonEditB.Folding
 open AvalonLog.Brush
 open Seff.Model
-open Seff.Config
+
 
 [<Struct>]
 type Fold = {foldStartOff:int; foldEndOff:int; linesInFold: int ; nestingLevel:int}
@@ -25,7 +25,7 @@ type NonStandardIndent = { badIndent: int; lineStartOffset:int; lineNo: int }
 
 
 
-
+(*
 type NonStandardIndentColorizer (badInds:ResizeArray<NonStandardIndent>) = 
     inherit Rendering.DocumentColorizingTransformer() 
 
@@ -42,6 +42,7 @@ type NonStandardIndentColorizer (badInds:ResizeArray<NonStandardIndent>) =
                 let eOff = i.lineStartOffset + i.badIndent
                 if eOff < line.EndOffset then // check needed ! doc my have changed
                     base.ChangeLinePart( i.lineStartOffset, eOff, fun el -> el.TextRunProperties.SetBackgroundBrush(brush))
+*)  // DELETE
 
 
 type Foldings(ed:TextEditor, state:InteractionState, getFilePath:unit->FilePath) = 
@@ -109,7 +110,9 @@ type Foldings(ed:TextEditor, state:InteractionState, getFilePath:unit->FilePath)
             else
                 if tx.[off] = '\n'  then  off
                 else                      findLineEnd (off+1)
-
+        
+        let transformers = state.FastColorizer.Transformers
+        
         //ISeffLog.log.PrintfnDebugMsg "---------findFolds--------" 
         let rec findFolds ind off = 
             let no = lineNo
@@ -152,7 +155,7 @@ type Foldings(ed:TextEditor, state:InteractionState, getFilePath:unit->FilePath)
                 //ISeffLog.printError $"bad indent on line {no}={ln.LineNumber} : {lastBadIndentSize}, confirm LineOffset {ln.Offset}={off}"
                 //BadIndents.Add{ badIndent=lastBadIndentSize; lineStartOffset = off-lastBadIndentSize ; lineNo=no }  // DELETE
                 let stOff = off-lastBadIndentSize
-                state.FastColorizer.Transformers.Insert(no, {form=stOff; till=stOff+lastBadIndentSize; action=badIndentAction })
+                transformers.Insert(no, LinePartChange.make(stOff,stOff+lastBadIndentSize,badIndentAction,BadIndent))
                 lastBadIndentSize <- 0 
             
             // do last:
@@ -188,9 +191,8 @@ type Foldings(ed:TextEditor, state:InteractionState, getFilePath:unit->FilePath)
         collapseStatus.Clear()
         for f in  manager.AllFoldings do             
             collapseStatus.[getHash f.StartOffset] <- f.IsFolded 
-
-        
-
+    
+    let foundBadIndentsEv = new Event<unit>() 
 
     ///Get foldings at every line that is followed by an indent
     let foldEditor (fullCode:string, id:int64) = 
@@ -198,7 +200,8 @@ type Foldings(ed:TextEditor, state:InteractionState, getFilePath:unit->FilePath)
         //ISeffLog.log.PrintfnDebugMsg "folding1: %s" iEditor.FilePath.File
         async{                
             let foldings = 
-                findFoldings fullCode                        
+                findFoldings fullCode  
+                foundBadIndentsEv.Trigger()
                 let l = Folds.Count-1
                 let fs = ResizeArray(max 0 l)// would be -1 if no foldings
                 let mutable lastOuter = {foldStartOff = -99; foldEndOff = -99 ; linesInFold = -99 ; nestingLevel = -99}
@@ -230,6 +233,7 @@ type Foldings(ed:TextEditor, state:InteractionState, getFilePath:unit->FilePath)
                     fs.Title <- textInFoldBox f.linesInFold
                 updateCollapseStatus()
                 isInitialLoad <- false
+                
 
             elif state.DocChangedId.Value = id then
                 do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context  
@@ -270,11 +274,13 @@ type Foldings(ed:TextEditor, state:InteractionState, getFilePath:unit->FilePath)
         let vs = state.Config.FoldingStatus.Get(getFilePath())
         for f,s in Seq.zip manager.AllFoldings vs do f.IsFolded <- s
 
-    
+    /// runs first part async
     member _.UpdateFoldsAndBadIndents(fullCode, id) = foldEditor(fullCode, id)
     
     member _.Manager = manager
 
+    [<CLIEvent>] 
+    member _.FoundBadIndents = foundBadIndentsEv.Publish
   
     member _.Margin = 
         ed.TextArea.LeftMargins

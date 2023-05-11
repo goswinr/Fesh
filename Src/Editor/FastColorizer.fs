@@ -5,13 +5,28 @@ open AvalonEditB
 open AvalonEditB.Rendering
 open Seff.Model
 
+
+
+type ChangeReason = Semantic | Selection | BadIndent | MatchingBrackets | CurrentBracketPair | CheckerError 
+
+
 /// Given Start Offset and End Offset from Document
 [<Struct>]
-type LinePartChange = {
-    form: int
+type LinePartChange = 
+    {
+    from: int
     till: int
     action: Action<VisualLineElement>
+    reason: ChangeReason
     }
+
+    static member make(from,till,action,reason) = 
+        {
+        from  =from  
+        till  =till  
+        action=action
+        reason=reason
+        }
 
 /// For accessing the highlighting of a line in constant time
 type LineTransformers() =    
@@ -19,6 +34,13 @@ type LineTransformers() =
     let lines = ResizeArray<ResizeArray<LinePartChange>>(256)// for approx 256 lines on screen
 
     member _.Lines = lines
+
+    /// removes all items from one line that have a given transformer reason
+    member _.RemoveByReason (lineNo, reason) = 
+        if lineNo >= 0 && lineNo < lines.Count then 
+            let ts = lines[lineNo]
+            ts.RemoveAll(fun t -> t.reason = reason)  |> ignore<int>
+
 
     member _.Insert(line,c) =         
         while lines.Count <= line  do // fill up missing lines
@@ -57,7 +79,7 @@ type FastColorizer () =
             ISeffLog.log.PrintfnDebugMsg $"Cant get line index {lineNo} from {lts.Lines.Count} lines in LineTransformer"
         else
             for ch in lts.Lines[lineNo] do  
-                let from = ch.form + shift
+                let from = ch.from + shift
                 let till = ch.till + shift
                 if   from > offEn then ISeffLog.log.PrintfnDebugMsg $"ch.form {ch.form} + shift {shift} > offEn {offEn} in LineTransformer"
                 elif till > offEn then ISeffLog.log.PrintfnDebugMsg $"ch.till {ch.till} + shift {shift} > offEn {offEn} in LineTransformer"

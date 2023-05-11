@@ -73,21 +73,23 @@ type Editor private (code:string, config:Config, initalFilePath:FilePath)  =
 
     //let id = Guid.NewGuid() // DELETE   
     let mutable checkState = FileCheckState.Checking //.NotStarted // local to this editor
-    let mutable filePath   = initalFilePath  
-    
+    let mutable filePath   = initalFilePath
     let getFilePath() = filePath
-    let state = new InteractionState(config)
-    let folds = new Foldings(avaEdit, state, getFilePath)
-     
 
+    let state    = new InteractionState(config)
+    let folds    = new Foldings(avaEdit, state, getFilePath)
+    let brackets = new BracketHighlighter(avaEdit, state)
+    let compls   = new Completions(avaEdit)
+    
     //let checker             = Checker.GetOrCreate(config)  // DELETE
     
-    let evalTracker         = new EvaluationTracker(avaEdit, checker, id)
+    //let evalTracker         = new EvaluationTracker(avaEdit, checker, id)
     let errorHighlighter    = new ErrorHighlighter(avaEdit, folds.Manager)
     let semanticHighlighter = SemanticHighlighting.setup(avaEdit, id, checker)
-    let compls              = new Completions(avaEdit, config, checker)    
+       
 
     do               
+        avaEdit.TextArea.Caret.PositionChanged.Add (fun a -> state.Caret <- avaEdit.CaretOffset) // used in Bracket colorizer
         SyntaxHighlighting.setFSharp(avaEdit,false) 
         
     member _.State = state    

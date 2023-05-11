@@ -18,6 +18,7 @@ open Seff
 
 type EditorServices = {
     folds           : Foldings
+    brackets        : BracketHighlighter
     evalTracker     : EvaluationTracker
     errorHili       : ErrorHighlighter
     //semanticHili    : SemanticHighlighter
@@ -91,8 +92,45 @@ module DocChangeUtil =
         else
             None
 
+
+
+[<Flags>]
+[<RequireQualifiedAccess>]
+type Scan1State =
+    | None      = 0b0000000
+    | BadIndent = 0b0000001
+    | Brackets  = 0b0000010
+    | All       = 0b0000011
+
+
+
+type RedrawingScan1(serv:EditorServices, ed:TextEditor) = 
+    
+    let mutable scan = Scan1State.None
+        
+    
+    let tryDraw() = 
+        if scan = Scan1State.All then 
+            ed.TextArea.TextView.Redraw() //TODO only redraw parts of the view, or lower priority ?
+    
+    
+    let doneBadIndents() = scan <- scan &&& Scan1State.BadIndent;  tryDraw()
+    let doneBrackets()   = scan <- scan &&& Scan1State.Brackets;  tryDraw()
+
+    let reset() = scan <- Scan1State.None
+        
+
+    do
+        serv.folds.FoundBadIndents.Add doneBadIndents
+        serv.brackets.FoundBrackets.Add doneBrackets
+        
+
+
+
 module DocChangeMark = 
     open DocChangeUtil
+
+   
 
 
     /// for multi char or line edits
@@ -106,9 +144,12 @@ module DocChangeMark =
     
     /// for multi char or line edits
     /// first: Foldings, ColorBrackets and BadIndentation when full text available async.
-    let firstMarkingStep (fullCode:CodeAsString, serv:EditorServices,  state:InteractionState, id) =
+    let firstMarkingStep (fullCode:CodeAsString, serv:EditorServices,  state:InteractionState,  id) =
          async{  
+            //Redrawing.reset()            
+            state.FastColorizer.Transformers.ClearAllLines()
             serv.folds.UpdateFoldsAndBadIndents(fullCode,id)
+            serv.brackets.UpdateAllBrackets(fullCode, state.Caret, id)
             
             ()         
          } |> Async.Start
@@ -118,14 +159,14 @@ module DocChangeMark =
         // NOTE just checking only Partial Code till caret with (doc.CreateSnapshot(0, tillOffset).Text) 
         // would make the GetDeclarationsList method miss some declarations !!
         let fullCode = doc.CreateSnapshot().Text // the only threadsafe way to access the code string                    
-        if id = state.DocChangedId.Value then  
+        if id = state.DocChangedId.Value then
             firstMarkingStep  (fullCode, serv, state, id )
             secondMarkingStep (fullCode, serv, state, id )
         
     
     let markFoldCheckHighlightAsync (iEd:IEditor, serv:EditorServices,  state:InteractionState, id ) =
         let doc = iEd.AvaEdit.Document
-        async { markFoldCheckHighlight (doc, serv, state, id )} |> Async.Start
+        async { markFoldCheckHighlight (doc, serv, state,  id )} |> Async.Start
     
 module DocChangeCompletion = 
     open DocChangeUtil
