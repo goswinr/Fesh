@@ -2,13 +2,18 @@
 
 open System
 open System.Windows.Media
+
 open FSharp.Compiler
 open FSharp.Compiler.EditorServices
+open FSharp.Compiler.CodeAnalysis
+
 open AvalonEditB
 open AvalonEditB.Rendering
+
 open AvalonLog.Brush
+
 open Seff.Model
-open System.Windows
+
 
 // see  https://github.com/dotnet/fsharp/blob/main/src/Compiler/Service/SemanticClassification.fs
 
@@ -118,20 +123,22 @@ type Sc = SemanticClassificationType
 
 /// A DocumentColorizingTransformer.
 /// Used to do semantic highlighting
-type SemanticColorizer (ied:TextEditor, edId:Guid, ch:Checker) = 
-    inherit Rendering.DocumentColorizingTransformer()
-    
+type SemanticHighlighter (ied:TextEditor, state: InteractionState) = 
+    (*
+    inherit Rendering.DocumentColorizingTransformer() // DELETE
     let mutable lastCheckId = -1L
-    let mutable lastCode = ""
 
     let mutable allRanges: SemanticClassificationItem[] = [||]
+    *)
+    
+    let mutable lastCode = ""
 
     let mutable unusedDecl = ResizeArray()
 
-    let setUnusedDecl(chRes:CheckResults)=
+    let setUnusedDecl(checkRes:FSharpCheckFileResults)=
         unusedDecl.Clear()
         async{            
-            let! us = UnusedDeclarations.getUnusedDeclarations(chRes.checkRes,true)
+            let! us = UnusedDeclarations.getUnusedDeclarations(checkRes,true)
             for u in us do unusedDecl.Add u
             }  
         |> Async.RunSynchronously
@@ -157,10 +164,33 @@ type SemanticColorizer (ied:TextEditor, edId:Guid, ch:Checker) =
     let action (el:VisualLineElement,brush:SolidColorBrush,r:Text.Range) =
         el.TextRunProperties.SetForegroundBrush(Brushes.Red)
     
-    member _.Ranges :SemanticClassificationItem [] = allRanges
+    //member _.Ranges :SemanticClassificationItem [] = allRanges  // DELETE
 
-    /// This gets called for every visible line on any view change
-    override this.ColorizeLine(line:Document.DocumentLine) =
+    let lineStartOffsets = ResizeArray<int>()
+
+    let updateLineStartOffsets(tx:string)= 
+        lineStartOffsets.Clear()
+        lineStartOffsets.Add(0)
+        let rec loop i =
+            if i < tx.Length then 
+                match tx.IndexOf('\n',i) with 
+                | -1 -> ()
+                | i -> 
+                    lineStartOffsets.Add(i+1)
+                    loop (i+1) 
+        loop 0
+    
+    let foundSemanticsEv = new Event<unit>()
+
+    [<CLIEvent>] 
+    member _.FoundSemantics = foundSemanticsEv.Publish
+    
+    member _.UpdateSemHiLiTransformers(fullCode, checkRes:FSharpCheckFileResults) =
+        lastCode <- fullCode
+        updateLineStartOffsets(fullCode)
+        let allRanges = checkRes.GetSemanticClassification(None)
+        
+        (*  // DELETE
         match ch.GlobalCheckState with 
         | Checking _
         | GettingCode _
@@ -176,14 +206,8 @@ type SemanticColorizer (ied:TextEditor, edId:Guid, ch:Checker) =
                     
         let lineNo = line.LineNumber
         let offSt = line.Offset    
-        let offEn = offSt + line.Length         
-        
-        // TODO use binary search instead !!
-        for i = allRanges.Length-1 downto 0 do // doing a reverse search solves a highlighting problem where ranges overlap
-            let sem = allRanges.[i]
-            let r = sem.Range            
-            //if r.StartLine <= lineNo && r.EndLine >= lineNo then   ISeffLog.log.PrintfnDebugMsg $"line {lineNo} {sem.Type} from {r.StartColumn} to {r.EndColumn}"            
-            
+        let offEn = offSt + line.Length
+
             if r.StartLine = lineNo && r.EndLine = lineNo then                 
                 let st = offSt + sem.Range.StartColumn
                 let en = offSt + sem.Range.EndColumn
@@ -191,65 +215,83 @@ type SemanticColorizer (ied:TextEditor, edId:Guid, ch:Checker) =
                 // because otherwise Seff crashes with  AppDomain.CurrentDomain.UnhandledException on bad ranges ?
                 if en >  offSt  && en <= offEn && st >= offSt  && st <  offEn && en < lastCode.Length then 
                     //try 
-                    match sem.Type with 
-                    | Sc.ReferenceType               -> base.ChangeLinePart(st,en, SemAction.ReferenceType              )
-                    | Sc.ValueType                   -> base.ChangeLinePart(st,en, SemAction.ValueType                  )
-                    | Sc.UnionCase                   -> base.ChangeLinePart(st,en, SemAction.UnionCase                  )
-                    | Sc.UnionCaseField              -> base.ChangeLinePart(st,en, SemAction.UnionCaseField             )
-                    | Sc.Function                    -> if not(skipFunc(st,en)) then base.ChangeLinePart(st,en, SemAction.Function)
-                    | Sc.Property                    -> base.ChangeLinePart(correctStart(st,en),en, SemAction.Property  )// correct so that a string or number literal before the dot does not get colored
-                    | Sc.MutableVar                  -> base.ChangeLinePart(st,en, SemAction.MutableVar                 )
-                    | Sc.Module                      -> if not(skipModul(st,en)) then base.ChangeLinePart(st,en, SemAction.Module )
-                    | Sc.Namespace                   -> base.ChangeLinePart(st,en, SemAction.Namespace                  )
-                    | Sc.ComputationExpression       -> base.ChangeLinePart(st,en, SemAction.ComputationExpression      )
-                    | Sc.IntrinsicFunction           -> base.ChangeLinePart(st,en, SemAction.IntrinsicFunction          )
-                    | Sc.Enumeration                 -> base.ChangeLinePart(st,en, SemAction.Enumeration                )
-                    | Sc.Interface                   -> base.ChangeLinePart(st,en, SemAction.Interface                  )
-                    | Sc.TypeArgument                -> base.ChangeLinePart(st,en, SemAction.TypeArgument               )
-                    | Sc.Operator                    -> base.ChangeLinePart(st,en, SemAction.Operator                   )
-                    | Sc.DisposableType              -> base.ChangeLinePart(st,en, SemAction.DisposableType             )
-                    | Sc.DisposableTopLevelValue     -> base.ChangeLinePart(st,en, SemAction.DisposableTopLevelValue    )
-                    | Sc.DisposableLocalValue        -> base.ChangeLinePart(st,en, SemAction.DisposableLocalValue       )
-                    | Sc.Method                      -> base.ChangeLinePart(correctStart(st,en),en, SemAction.Method    )// correct so that a string or number literal before the dot does not get colored
-                    | Sc.ExtensionMethod             -> base.ChangeLinePart(correctStart(st,en),en, SemAction.ExtensionMethod)
-                    | Sc.ConstructorForReferenceType -> base.ChangeLinePart(st,en, SemAction.ConstructorForReferenceType)
-                    | Sc.ConstructorForValueType     -> base.ChangeLinePart(st,en, SemAction.ConstructorForValueType    )
-                    | Sc.Literal                     -> base.ChangeLinePart(st,en, SemAction.Literal                    )
-                    | Sc.RecordField                 -> base.ChangeLinePart(st,en, SemAction.RecordField                )
-                    | Sc.MutableRecordField          -> base.ChangeLinePart(st,en, SemAction.MutableRecordField         )
-                    | Sc.RecordFieldAsFunction       -> base.ChangeLinePart(st,en, SemAction.RecordFieldAsFunction      )
-                    | Sc.Exception                   -> base.ChangeLinePart(st,en, SemAction.Exception                  )
-                    | Sc.Field                       -> base.ChangeLinePart(st,en, SemAction.Field                      )
-                    | Sc.Event                       -> base.ChangeLinePart(st,en, SemAction.Event                      )
-                    | Sc.Delegate                    -> base.ChangeLinePart(st,en, SemAction.Delegate                   )
-                    | Sc.NamedArgument               -> base.ChangeLinePart(st,en, SemAction.NamedArgument              )
-                    | Sc.Value                       -> base.ChangeLinePart(st,en, SemAction.Value                      )
-                    | Sc.LocalValue                  -> base.ChangeLinePart(st,en, SemAction.LocalValue                 )
-                    | Sc.Type                        -> base.ChangeLinePart(st,en, SemAction.Type                       )
-                    | Sc.TypeDef                     -> base.ChangeLinePart(st,en, SemAction.TypeDef                    )
-                    | Sc.Plaintext                   -> base.ChangeLinePart(st,en, SemAction.Plaintext                  )  
-                    | Sc.Printf                      -> () //base.ChangeLinePart(st,en, SemAction.Printf                ) // covered in xshd file 
-                    | _ -> () // the above actually covers all SemanticClassificationTypes
+        *)
+        let transfs = state.FastColorizer.Transformers        
+
+        for i = allRanges.Length-1 downto 0 do // doing a reverse search solves a highlighting problem where ranges overlap
+            let sem = allRanges.[i]
+            let r = sem.Range            
+            let lineNo = r.StartLine
+            let offLn = lineStartOffsets[lineNo]
+            let st = offLn + r.StartColumn                
+            let en = offLn + r.EndColumn
+
+            let inline push(f,t,a) = transfs.Insert(lineNo,LinePartChange.make(f,t,a,Semantic))
+            
+            match sem.Type with 
+            | Sc.ReferenceType               -> push(st,en, SemAction.ReferenceType              )
+            | Sc.ValueType                   -> push(st,en, SemAction.ValueType                  )
+            | Sc.UnionCase                   -> push(st,en, SemAction.UnionCase                  )
+            | Sc.UnionCaseField              -> push(st,en, SemAction.UnionCaseField             )
+            | Sc.Function                    -> if not(skipFunc(st,en)) then push(st,en, SemAction.Function)
+            | Sc.Property                    -> push(correctStart(st,en),en, SemAction.Property  )// correct so that a string or number literal before the dot does not get colored
+            | Sc.MutableVar                  -> push(st,en, SemAction.MutableVar                 )
+            | Sc.Module                      -> if not(skipModul(st,en)) then push(st,en, SemAction.Module )
+            | Sc.Namespace                   -> push(st,en, SemAction.Namespace                  )
+            | Sc.ComputationExpression       -> push(st,en, SemAction.ComputationExpression      )
+            | Sc.IntrinsicFunction           -> push(st,en, SemAction.IntrinsicFunction          )
+            | Sc.Enumeration                 -> push(st,en, SemAction.Enumeration                )
+            | Sc.Interface                   -> push(st,en, SemAction.Interface                  )
+            | Sc.TypeArgument                -> push(st,en, SemAction.TypeArgument               )
+            | Sc.Operator                    -> push(st,en, SemAction.Operator                   )
+            | Sc.DisposableType              -> push(st,en, SemAction.DisposableType             )
+            | Sc.DisposableTopLevelValue     -> push(st,en, SemAction.DisposableTopLevelValue    )
+            | Sc.DisposableLocalValue        -> push(st,en, SemAction.DisposableLocalValue       )
+            | Sc.Method                      -> push(correctStart(st,en),en, SemAction.Method    )// correct so that a string or number literal before the dot does not get colored
+            | Sc.ExtensionMethod             -> push(correctStart(st,en),en, SemAction.ExtensionMethod)
+            | Sc.ConstructorForReferenceType -> push(st,en, SemAction.ConstructorForReferenceType)
+            | Sc.ConstructorForValueType     -> push(st,en, SemAction.ConstructorForValueType    )
+            | Sc.Literal                     -> push(st,en, SemAction.Literal                    )
+            | Sc.RecordField                 -> push(st,en, SemAction.RecordField                )
+            | Sc.MutableRecordField          -> push(st,en, SemAction.MutableRecordField         )
+            | Sc.RecordFieldAsFunction       -> push(st,en, SemAction.RecordFieldAsFunction      )
+            | Sc.Exception                   -> push(st,en, SemAction.Exception                  )
+            | Sc.Field                       -> push(st,en, SemAction.Field                      )
+            | Sc.Event                       -> push(st,en, SemAction.Event                      )
+            | Sc.Delegate                    -> push(st,en, SemAction.Delegate                   )
+            | Sc.NamedArgument               -> push(st,en, SemAction.NamedArgument              )
+            | Sc.Value                       -> push(st,en, SemAction.Value                      )
+            | Sc.LocalValue                  -> push(st,en, SemAction.LocalValue                 )
+            | Sc.Type                        -> push(st,en, SemAction.Type                       )
+            | Sc.TypeDef                     -> push(st,en, SemAction.TypeDef                    )
+            | Sc.Plaintext                   -> push(st,en, SemAction.Plaintext                  )  
+            | Sc.Printf                      -> () //push(st,en, SemAction.Printf                ) // covered in xshd file 
+            | _ -> () // the above actually covers all SemanticClassificationTypes
                     
                     
-                    //with e -> 
-                    //    ISeffLog.printError  $"sem.type {sem.Type}:\r\n on line {line} for {r}"
-                    //    ISeffLog.printError  $"offSt {offSt} to offEn{offEn} for , st:{st} to en:{en}"
-                    //    ISeffLog.printError  $"MSG:{e}"
-                //else
-                //    ISeffLog.log.PrintfnDebugMsg $"Semantic highlight on line {lineNo} skipped for {sem.Type} because false:  
-                //        en {en} >  offSt{offSt} : {en >  offSt}  && en <= offEn: {en <= offEn} && st >= offSt: {st >= offSt}  && st <  offEn: {st <  offEn} && en < lastCode.Length: {en < lastCode.Length}"
-                
+            //with e -> 
+            //    ISeffLog.printError  $"sem.type {sem.Type}:\r\n on line {line} for {r}"
+            //    ISeffLog.printError  $"offSt {offSt} to offEn{offEn} for , st:{st} to en:{en}"
+            //    ISeffLog.printError  $"MSG:{e}"
+             
                 
         for r in unusedDecl do                     
+            let lineNo = r.StartLine
+            let offLn = lineStartOffsets[lineNo]
+            let st = offLn + r.StartColumn                
+            let en = offLn + r.EndColumn
+            transfs.Insert(lineNo,LinePartChange.make(st,en, SemAction.UnUsed,Semantic))
+
+        foundSemanticsEv.Trigger()
+            
+(*
             if r.StartLine = lineNo && r.EndLine = lineNo then 
                 let st = offSt + r.StartColumn
                 let en = offSt + r.EndColumn
                 if en >  offSt  && en <= offEn && st >= offSt  && st <  offEn && en < lastCode.Length then
-                    base.ChangeLinePart(st,en, SemAction.UnUsed) 
+                    push(st,en, SemAction.UnUsed) 
 
 
-(*
 type DebugColorizer () = 
     inherit Rendering.DocumentColorizingTransformer()
         

@@ -155,7 +155,7 @@ type Foldings(ed:TextEditor, state:InteractionState, getFilePath:unit->FilePath)
                 //ISeffLog.printError $"bad indent on line {no}={ln.LineNumber} : {lastBadIndentSize}, confirm LineOffset {ln.Offset}={off}"
                 //BadIndents.Add{ badIndent=lastBadIndentSize; lineStartOffset = off-lastBadIndentSize ; lineNo=no }  // DELETE
                 let stOff = off-lastBadIndentSize
-                transformers.Insert(no, LinePartChange.make(stOff,stOff+lastBadIndentSize,badIndentAction,BadIndent))
+                transformers.Insert(no, LinePartChange.make(stOff, stOff+lastBadIndentSize, badIndentAction, BadIndent))
                 lastBadIndentSize <- 0 
             
             // do last:

@@ -17,13 +17,13 @@ open Seff
 
 
 type EditorServices = {
-    folds           : Foldings
-    brackets        : BracketHighlighter
-    evalTracker     : EvaluationTracker
-    errorHili       : ErrorHighlighter
-    //semanticHili    : SemanticHighlighter
+    folds       : Foldings
+    brackets    : BracketHighlighter
+    errors      : ErrorHighlighter
+    semantic    : SemanticHighlighter
+    compls      : Completions  
+    //evalTracker : EvaluationTracker
     //selectionHili   : SelectionHighlighter
-    compls          : Completions  
     }
 
 module DocChangeUtil = 
@@ -94,8 +94,7 @@ module DocChangeUtil =
 
 
 
-[<Flags>]
-[<RequireQualifiedAccess>]
+[<Flags;RequireQualifiedAccess>]
 type Scan1State =
     | None      = 0b0000000
     | BadIndent = 0b0000001
@@ -103,26 +102,45 @@ type Scan1State =
     | All       = 0b0000011
 
 
-
 type RedrawingScan1(serv:EditorServices, ed:TextEditor) = 
     
-    let mutable scan = Scan1State.None
-        
+    let mutable scan = Scan1State.None        
     
-    let tryDraw() = 
+    let tryDraw() =  
         if scan = Scan1State.All then 
-            ed.TextArea.TextView.Redraw() //TODO only redraw parts of the view, or lower priority ?
-    
+            ed.Dispatcher.Invoke (fun() -> ed.TextArea.TextView.Redraw()) //TODO only redraw parts of the view, or lower priority ?    
     
     let doneBadIndents() = scan <- scan &&& Scan1State.BadIndent;  tryDraw()
     let doneBrackets()   = scan <- scan &&& Scan1State.Brackets;  tryDraw()
-
-    let reset() = scan <- Scan1State.None
-        
+    let reset() = scan <- Scan1State.None      
 
     do
         serv.folds.FoundBadIndents.Add doneBadIndents
         serv.brackets.FoundBrackets.Add doneBrackets
+
+[<Flags;RequireQualifiedAccess>]
+type Scan2State =
+    | None      = 0b0000000
+    | Semantics = 0b0000001
+    | Errors    = 0b0000010
+    | All       = 0b0000011
+
+
+type RedrawingScan2(serv:EditorServices, ed:TextEditor) = 
+    
+    let mutable scan = Scan2State.None        
+    
+    let tryDraw() = 
+        if scan = Scan2State.All then  
+            ed.Dispatcher.Invoke (fun() -> ed.TextArea.TextView.Redraw()) //TODO only redraw parts of the view, or lower priority ?    
+    
+    let doneSemantics()  = scan <- scan &&& Scan2State.Semantics;  tryDraw()
+    let doneErrors()     = scan <- scan &&& Scan2State.Errors;  tryDraw()
+    let reset() = scan <- Scan2State.None
+        
+    do
+        serv.semantic.FoundSemantics.Add doneSemantics
+        serv.errors.
         
 
 
@@ -135,9 +153,13 @@ module DocChangeMark =
 
     /// for multi char or line edits
     /// second: Errors and Semantic Highlighting on check result .    
-    let secondMarkingStep (fullCode:CodeAsString, serv:EditorServices ,  state:InteractionState,id) =
+    let secondMarkingStep (fullCode:CodeAsString, serv:EditorServices ,  state:InteractionState, id) =
         async{  
-            
+            match Checker.CheckCode(iEd, fullCode,state,id) with 
+            |None -> ()
+            |Some res ->
+                serv.semantic.UpdateSemHiLiTransformers(fullCode, res.checkRes)
+                serv.errors.
             
             ()         
          } |> Async.Start
@@ -145,9 +167,7 @@ module DocChangeMark =
     /// for multi char or line edits
     /// first: Foldings, ColorBrackets and BadIndentation when full text available async.
     let firstMarkingStep (fullCode:CodeAsString, serv:EditorServices,  state:InteractionState,  id) =
-         async{  
-            //Redrawing.reset()            
-            state.FastColorizer.Transformers.ClearAllLines()
+         async{
             serv.folds.UpdateFoldsAndBadIndents(fullCode,id)
             serv.brackets.UpdateAllBrackets(fullCode, state.Caret, id)
             
@@ -160,6 +180,8 @@ module DocChangeMark =
         // would make the GetDeclarationsList method miss some declarations !!
         let fullCode = doc.CreateSnapshot().Text // the only threadsafe way to access the code string                    
         if id = state.DocChangedId.Value then
+            //Redrawing.reset()            
+            state.FastColorizer.Transformers.ClearAllLines()
             firstMarkingStep  (fullCode, serv, state, id )
             secondMarkingStep (fullCode, serv, state, id )
         

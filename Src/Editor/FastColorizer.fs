@@ -81,9 +81,9 @@ type FastColorizer () =
             for ch in lts.Lines[lineNo] do  
                 let from = ch.from + shift
                 let till = ch.till + shift
-                if   from > offEn then ISeffLog.log.PrintfnDebugMsg $"ch.form {ch.form} + shift {shift} > offEn {offEn} in LineTransformer"
+                if   from > offEn then ISeffLog.log.PrintfnDebugMsg $"ch.form {ch.from} + shift {shift} > offEn {offEn} in LineTransformer"
                 elif till > offEn then ISeffLog.log.PrintfnDebugMsg $"ch.till {ch.till} + shift {shift} > offEn {offEn} in LineTransformer"
                 elif till < offSt then ISeffLog.log.PrintfnDebugMsg $"ch.till {ch.till} + shift {shift} < offSt {offSt} in LineTransformer"
-                elif from < offSt then ISeffLog.log.PrintfnDebugMsg $"ch.form {ch.form} + shift {shift} < offSt {offSt} in LineTransformer"            
+                elif from < offSt then ISeffLog.log.PrintfnDebugMsg $"ch.form {ch.from} + shift {shift} < offSt {offSt} in LineTransformer"            
                 else
                     base.ChangeLinePart(from, till, ch.action) 

@@ -67,7 +67,7 @@ type Editor private (code:string, config:Config, initalFilePath:FilePath)  =
     let search =            
         let se = Search.SearchPanel.Install(avaEdit)
         se.MarkerCornerRadius <- 0.
-        se.MatchCase  <- true  // config.Settings.GetBool("SearchMatchCase", true) // TODO how to save changes ?
+        se.MatchCase  <- true  // config.Settings.GetBool("SearchMatchCase", true) // TODO how to actually save changes ?
         se.WholeWords <- false // config.Settings.GetBool("SearchWholeWords", false)
         se
 
@@ -80,12 +80,24 @@ type Editor private (code:string, config:Config, initalFilePath:FilePath)  =
     let folds    = new Foldings(avaEdit, state, getFilePath)
     let brackets = new BracketHighlighter(avaEdit, state)
     let compls   = new Completions(avaEdit)
-    
-    //let checker             = Checker.GetOrCreate(config)  // DELETE
-    
-    //let evalTracker         = new EvaluationTracker(avaEdit, checker, id)
+    let semHiLi  = new SemanticHighlighter(avaEdit, state)
     let errorHighlighter    = new ErrorHighlighter(avaEdit, folds.Manager)
-    let semanticHighlighter = SemanticHighlighting.setup(avaEdit, id, checker)
+    //let evalTracker         = new EvaluationTracker(avaEdit, checker, id)
+
+    let services = {
+        folds       = folds
+        brackets    = brackets
+        errors      = errorHighlighter
+        semantic    = semHiLi
+        compls      = compls 
+        //evalTracker : EvaluationTracker
+        //selectionHili   : SelectionHighlighter
+        }
+
+    let scan1 = RedrawingScan1(services,avaEdit)
+    let scan2 = RedrawingScan2(services,avaEdit)
+    
+    
        
 
     do               
