@@ -174,7 +174,8 @@ type Completions(avaEdit:TextEditor) =
         and set(w  : Option<CompletionWindow>) = win <- w
     
     member _.Editor = avaEdit        
- 
+    
+    /// must be called from UI thread
     member this.TryShow( state: InteractionState, decls: DeclarationListInfo, pos:PositionInCodeEx, onlyDU:bool) : TryShow = 
                         
         //ISeffLog.log.PrintfnDebugMsg "*3.0 TryShow Completion Window for '%s'" pos.lineToCaret

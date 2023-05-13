@@ -1,11 +1,6 @@
 namespace Seff.Editor
 
 open System
-open System.Threading
-open System.Windows
-open System.Windows.Input
-
-open FSharp.Compiler.Tokenization // for keywords
 
 open AvalonEditB
 open AvalonEditB.Document
@@ -103,15 +98,16 @@ module DocChangeUtil =
 
     let isCaretInComment ln =  
         NotInQuotes.contains "//" ln
-
-    let getFullCode(doc:TextDocument ,  state:InteractionState ,id) =
-        // NOTE just checking only Partial Code till caret with (doc.CreateSnapshot(0, tillOffset).Text) 
-        // would make the GetDeclarationsList method miss some declarations !!
-        let fullCode = doc.CreateSnapshot().Text // the only threadsafe way to access the code string                    
-        if id = state.DocChangedId.Value then  
-            Some fullCode
-        else
-            None
+    
+    // This can be called from an Async thread too // DELETE
+    //let getFullCode(doc:TextDocument ,  state:InteractionState ,id) =
+    //    // NOTE just checking only Partial Code till caret with (doc.CreateSnapshot(0, tillOffset).Text) 
+    //    // would make the GetDeclarationsList method miss some declarations !!
+    //    let fullCode = doc.CreateSnapshot().Text // the only threadsafe way to access the code string                    
+    //    if id = state.DocChangedId.Value then  
+    //        Some fullCode
+    //    else
+    //        None
 
 module Redrawing = 
 
@@ -168,9 +164,17 @@ module DocChangeMark =
     open DocChangeUtil
 
 
-    /// for multi char or line edits
-    /// second: Errors and Semantic Highlighting on check result .    
-    let secondMarkingStep (iEd:IEditor, serv:EditorServices, state:InteractionState, fullCode:CodeAsString, id) =
+    let markTwoSteps(iEd:IEditor, fullCode, serv:EditorServices, state:InteractionState, id) =  
+        //Redrawing.reset()            
+        state.FastColorizer.Transformers.ClearAllLines()
+        
+        /// first: Foldings, ColorBrackets and BadIndentation when full text available async.
+        async{
+            serv.folds.UpdateFoldsAndBadIndents(fullCode,id)
+            serv.brackets.UpdateAllBrackets(fullCode, state.Caret, id)
+         } |> Async.Start 
+        
+        /// second: Errors and Semantic Highlighting on check result .  
         async{  
             match Checker.CheckCode(iEd, fullCode,state,id) with 
             |None -> ()
@@ -178,39 +182,31 @@ module DocChangeMark =
                 let offs = getLineStartOffsets(fullCode)
                 serv.semantic.UpdateSemHiLiTransformers(fullCode, offs, res.checkRes,id)
                 serv.errors.UpdateErrs(res.errors,offs,id)
-            
-                    
-         } |> Async.Start
+        } |> Async.Start   
     
-    /// for multi char or line edits
-    /// first: Foldings, ColorBrackets and BadIndentation when full text available async.
-    let firstMarkingStep (serv:EditorServices, state:InteractionState, fullCode:CodeAsString, id) =
-         async{
-            serv.folds.UpdateFoldsAndBadIndents(fullCode,id)
-            serv.brackets.UpdateAllBrackets(fullCode, state.Caret, id)
-            
-            ()         
-         } |> Async.Start
-    
-    
-    let markFoldCheckHighlight (iEd:IEditor, doc:TextDocument, serv:EditorServices, state:InteractionState, id) =               
+    //To be called from any thread
+    let markFoldCheckHighlight(iEd:IEditor, doc:TextDocument, serv:EditorServices, state:InteractionState, id ) =        
         // NOTE just checking only Partial Code till caret with (doc.CreateSnapshot(0, tillOffset).Text) 
         // would make the GetDeclarationsList method miss some declarations !!
-        let fullCode = doc.CreateSnapshot().Text // the only threadsafe way to access the code string                    
-        if id = state.DocChangedId.Value then
-            //Redrawing.reset()            
-            state.FastColorizer.Transformers.ClearAllLines()
-            firstMarkingStep  (     serv, state, fullCode, id )
-            secondMarkingStep (iEd, serv, state, fullCode, id)
-        
-    
+        let fullCode = doc.CreateSnapshot().Text // the only threadsafe way to access the code string
+        if state.DocChangedId.Value = id then 
+            markTwoSteps (iEd, fullCode, serv, state, id)
+      
+    // To be called from UI thread
     let markFoldCheckHighlightAsync (iEd:IEditor, serv:EditorServices, state:InteractionState, id ) =
         let doc = iEd.AvaEdit.Document // get Doc in Sync
-        async { markFoldCheckHighlight (iEd, doc, serv, state, id)} |> Async.Start
+        async { 
+            do! Async.Sleep 50
+            // NOTE just checking only Partial Code till caret with (doc.CreateSnapshot(0, tillOffset).Text) 
+            // would make the GetDeclarationsList method miss some declarations !!
+            let fullCode = doc.CreateSnapshot().Text // the only threadsafe way to access the code string
+            if state.DocChangedId.Value = id then 
+                markTwoSteps (iEd, fullCode, serv, state, id)
+        } |> Async.Start
     
 module DocChangeCompletion = 
     open DocChangeUtil
-    
+
     type ShowAutocomplete = DoNothing| JustMark| ShowOnlyDU | ShowAll  
 
     [<RequireQualifiedAccess>]
@@ -353,43 +349,55 @@ module DocChangeCompletion =
         else            
             let doc = iEd.AvaEdit.Document // get in sync
             async{                
+                do! Async.Sleep 50
                 match c with
                 | '_'  // for __SOURCE_DIRECTORY__
                 | '`'  // for complex F# names in `` ``
                 | '#'  // for #if directives
                 | '.' 
-                |  _ when isInFsharpIdentifier(c,pos) ->  
+                |  _  when isInFsharpIdentifier(c,pos) ->  
                     let show = MaybeShow.completionWindow(pos)
                     match show with 
                     |DoNothing  -> ()
                     |JustMark   -> DocChangeMark.markFoldCheckHighlight(iEd, doc, serv, state, id)
                     |ShowAll    
                     |ShowOnlyDU -> 
+                        state.DocChangedConsequence <- WaitForCompletions
+                        let mutable fullCode = ""
                         let declsPosx  = 
                             Monads.maybe{
-                                let! _ = state.IsLatest id
-                                state.DocChangedConsequence <- WaitForCompletions
-                                let! code = getFullCode(doc, state, id)
-                                let! res = Checker.CheckCode(iEd, code, state, id)
-                                let! declsPosx = Checker.GetCompletions(pos,res) 
-                                let! _ = state.IsLatest id
-                                return declsPosx
+                                let! _          = state.IsLatest id
+                                let code        = doc.CreateSnapshot().Text // the only threadsafe way to access the code string
+                                fullCode <- code
+                                let! _          = state.IsLatest id
+                                let! res        = Checker.CheckCode(iEd, code, state, id)
+                                let! decls, pos = Checker.GetCompletions(pos,res) 
+                                let! _          = state.IsLatest id
+                                return decls, pos
                             }
                         
                         match declsPosx with         
-                        |Some (decls,posx) ->
-                            /// try showing completion window:
+                        |Some (decls, posx) ->
+                            // Switsch to Sync and try showing completion window:
                             do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context                            
                             let onlyDU = show = ShowOnlyDU 
                             match serv.compls.TryShow(state, decls, posx, onlyDU ) with 
-                            |DidShow -> () // no need to do anything.
+                            |DidShow -> 
+                                () // no need to do anything, DocChangedConsequence will be updated to 'React' when completion window closes
                             |NoShow -> 
                                 state.DocChangedConsequence <- React
-                                DocChangeMark.markFoldCheckHighlightAsync(iEd, serv, state, id)
+                                do! Async.SwitchToThreadPool()
+                                DocChangeMark.markTwoSteps(iEd, fullCode, serv, state, id)
                         |None -> 
                             state.DocChangedConsequence <- React
-                            DocChangeMark.markFoldCheckHighlight(iEd, doc, serv, state, id)
-                | _ ->                    
+                            do! Async.SwitchToThreadPool()
+                            if fullCode="" then 
+                                fullCode <- doc.CreateSnapshot().Text
+                            if state.DocChangedId.Value = id then 
+                                DocChangeMark.markTwoSteps (iEd, fullCode, serv, state, id)                            
+                | _ ->   
+                    // the typed charater should not trigger completion.                 
+                    // DocChangedConsequence is still  'React', no need to reset.
                     DocChangeMark.markFoldCheckHighlight(iEd, doc, serv, state, id)
             
             } |> Async.Start
@@ -412,12 +420,12 @@ module DocChangeEvents =
     let changed (iEd:IEditor) (serv:EditorServices) (state:InteractionState) (eventArgs:DocumentChangeEventArgs)  =          
         match state.DocChangedConsequence with 
         | WaitForCompletions -> 
-            // Do not increment DoChangeID counter
+            // Do not increment DoChangeID counter, this would cancel the showing of the completion window.
             // no type checking ! just keep on tying, 
             // the typed characters wil become a prefilter for the  in completion window
             ()
         | React -> 
-            let id = state.Increment()
+            let id = state.Increment() // only increment when a reaction is required
             match isSingleCharChange eventArgs with 
             |ValueSome _ ->DocChangeCompletion.singleCharChange (iEd, serv, state, id)
             |ValueNone   ->DocChangeMark.markFoldCheckHighlightAsync (iEd, serv, state, id)

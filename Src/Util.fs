@@ -562,6 +562,12 @@ module Monads =
         /// Right-to-left Kleisli composition
         let inline (<=<) x = flip (>=>) x
 
+        /// Sequentially compose monadic and non monadic actions, 
+        /// passing any value produced by the first as an argument to the second.
+        /// Similar to >>= but for functions that alays return a result (not a result option)
+        let inline (|>>) m f = liftM maybe f m //match m with Some x -> Some (f x)  |None -> None
+
+
 
 (*  module Extern = 
         open System.Runtime.InteropServices

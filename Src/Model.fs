@@ -78,26 +78,10 @@ type ChnageId = int64
 /// just an alias for a string
 type CodeAsString = string
 
-(*
-/// The Result when trying to get the current code from the checker  // DELETE
-/// (and not from the editor where the tree would have to be converted to a string)
-type CodeAndId = 
-    | CodeID of string * CheckId
-    | NoCode
+/// for offsets into the fullcode
+[<Measure>] type off 
 
-/// The Results from FSharp.Compiler.Service
-type CheckResults = {
-    parseRes    :FSharpParseFileResults
-    checkRes    :FSharpCheckFileResults
-    errors      :ErrorsBySeverity
-    code        :CodeAsString
-    chnageId    :CheckId 
-    editorId    :Guid
-    }
-
-*)
-
-
+/// The errors sorted into groups
 type ErrorsBySeverity = {
     errors             : ResizeArray<Diagnostics.FSharpDiagnostic>
     warnings           : ResizeArray<Diagnostics.FSharpDiagnostic>
@@ -119,45 +103,6 @@ type FileCheckState =
     | Checking 
     | Done     of FullCheckResults
 
-    (*  // DELETE
-/// Represents the current sate of the  FSharp.Compiler.Service Checker
-/// It is stored globally in the Checker
-/// And locally in each Editor instance (they are compared via the CheckId)
-type FileCheckState = 
-    | NotStarted
-
-    /// Got the code from AvalonEdit async, now running in FCS async
-    | Checking of CheckId * CodeAsString 
-
-    /// The CheckResults are always local per Editor
-    | Done of CheckResults
-
-    | CheckFailed
-
-    member this.CodeAndId  = 
-        match this with
-        | NotStarted   |  CheckFailed -> NoCode
-        | Checking (id, c)  ->  CodeID (c       , id)  
-        | Done res          ->  CodeID (res.code, res.checkId ) 
-
-
-    /// to compare local EditorCheckState with GlobalCheckState
-    member this.SameIdAndFullCode (globalChSt:FileCheckState) = 
-        match this.CodeAndId with
-        |NoCode -> NoCode
-        |CodeID (id, c)  ->
-            match globalChSt.CodeAndId with
-            |NoCode -> NoCode
-            |CodeID (gid, _) as ci -> if gid=id then ci  else NoCode
-
-    override this.ToString() = 
-        match this with
-        | NotStarted        ->  "FileCheckState.NotStarted"
-        | CheckFailed       ->  "FileCheckState.Failed"
-        | Checking (id, c)  ->  "FileCheckState.Checking"
-        | Done res          ->  "FileCheckState.Done with " +  res.checkRes.Diagnostics.Length.ToString() +  " infos, warnings or errors"
-    *)
-
 
 type FilePath = 
     | SetTo   of FileInfo
@@ -176,11 +121,7 @@ type IEditor =
     abstract member FilePath       : FilePath
     abstract member FoldingManager : FoldingManager
     abstract member EvaluateFrom   : int
-    abstract member IsComplWinOpen : bool
-    //abstract member Id             : Guid  // DELETE
-    //abstract member Log            : ISeffLog
-    //abstract member SemanticRanges : FSharp.Compiler.EditorServices.SemanticClassificationItem []
-    //abstract member Completions    :obj
+    abstract member IsComplWinOpen : bool   
 
 [<RequireQualifiedAccess>]
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
@@ -196,11 +137,7 @@ module IEditor =
         |None   -> false
         |Some o -> o.AvaEdit = e 
 
-/// for offsets into the fullcode
-[<Measure>] type off 
-
-// for line numbers  // DELETE
-//[<Measure>] type lnNo
+o
 
 //---- Fsi types ------------
 type CodeSegment = {
@@ -239,3 +176,63 @@ type CommandInfo = {
     }
 
 
+    
+    (*
+    /// The Result when trying to get the current code from the checker  // DELETE
+    /// (and not from the editor where the tree would have to be converted to a string)
+    type CodeAndId = 
+        | CodeID of string * CheckId
+        | NoCode
+    
+    /// The Results from FSharp.Compiler.Service
+    type CheckResults = {
+        parseRes    :FSharpParseFileResults
+        checkRes    :FSharpCheckFileResults
+        errors      :ErrorsBySeverity
+        code        :CodeAsString
+        chnageId    :CheckId 
+        editorId    :Guid
+        }
+    
+    *)
+    
+   
+   (*  // DELETE
+/// Represents the current sate of the  FSharp.Compiler.Service Checker
+/// It is stored globally in the Checker
+/// And locally in each Editor instance (they are compared via the CheckId)
+type FileCheckState = 
+   | NotStarted
+
+   /// Got the code from AvalonEdit async, now running in FCS async
+   | Checking of CheckId * CodeAsString 
+
+   /// The CheckResults are always local per Editor
+   | Done of CheckResults
+
+   | CheckFailed
+
+   member this.CodeAndId  = 
+       match this with
+       | NotStarted   |  CheckFailed -> NoCode
+       | Checking (id, c)  ->  CodeID (c       , id)  
+       | Done res          ->  CodeID (res.code, res.checkId ) 
+
+
+   /// to compare local EditorCheckState with GlobalCheckState
+   member this.SameIdAndFullCode (globalChSt:FileCheckState) = 
+       match this.CodeAndId with
+       |NoCode -> NoCode
+       |CodeID (id, c)  ->
+           match globalChSt.CodeAndId with
+           |NoCode -> NoCode
+           |CodeID (gid, _) as ci -> if gid=id then ci  else NoCode
+
+   override this.ToString() = 
+       match this with
+       | NotStarted        ->  "FileCheckState.NotStarted"
+       | CheckFailed       ->  "FileCheckState.Failed"
+       | Checking (id, c)  ->  "FileCheckState.Checking"
+       | Done res          ->  "FileCheckState.Done with " +  res.checkRes.Diagnostics.Length.ToString() +  " infos, warnings or errors"
+   *)
+ 
