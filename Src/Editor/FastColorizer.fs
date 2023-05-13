@@ -37,12 +37,11 @@ type LinePartChange =
 //        }
 
 /// For accessing the highlighting of a line in constant time
-type LineTransformers<'T>(capacityPerLine:int) =    
+type LineTransformers<'T>() =    
 
     let lines = ResizeArray<ResizeArray<'T>>(256)// for approx 512 lines on screen
 
-    let empty = ResizeArray<'T>(0)
-
+    let empty = ResizeArray<'T>()
     
     let mutable firtsIsSet = false
     let mutable first = Unchecked.defaultof<'T>
@@ -50,15 +49,28 @@ type LineTransformers<'T>(capacityPerLine:int) =
 
     member _.LineCount = lines.Count
 
-    member _.Insert(line, x) =         
-        while lines.Count <= line  do // fill up missing lines
-            lines.Add ( new ResizeArray<'T>(capacityPerLine))// for capacityPerLine tokens per line
+    /// insert the an new  Rarr with for all previous unset indices, 
+    /// future insert can happen in any order of line numbers line numbers. 
+    member _.InsertFlex(lineNumber, x, initCapacity:int) =         
+        while lines.Count <= lineNumber  do // fill up missing lines
+            lines.Add ( new ResizeArray<'T>(initCapacity))// for capacityPerLine tokens per line
         
-        lines[line].Add x
+        lines[lineNumber].Add x
         if not firtsIsSet then 
             first <- x
             firtsIsSet <- true
-        last <- x        
+        last <- x   
+    
+    /// insert the same empty Rarr for all previous unset indices, 
+    /// assumes future insert allwayas happens with increasing line numbers.
+    member _.InsertSorted(lineNumber, x) =         
+        while lines.Count <= lineNumber  do // fill up missing lines
+            lines.Add empty
+        lines[lineNumber].Add x
+        if not firtsIsSet then 
+            first <- x
+            firtsIsSet <- true
+        last <- x   
         
  
     /// does nothing if clear already
@@ -80,6 +92,9 @@ type LineTransformers<'T>(capacityPerLine:int) =
     member _.IsNotEmpty = firtsIsSet
 
     member _.Range = if firtsIsSet then Some (first,last) else None
+
+    member _.IsAnyBetween (from,till) =
+        
 
 
 
@@ -104,17 +119,20 @@ type FastColorizer(transformers:LineTransformers<LinePartChange> []) =
         let offSt  = line.Offset    
         let offEn  = line.EndOffset        
         
-        for lts in ltss do 
+        for j = 0 to ltss.Length-1 do
+            let lts = ltss.[j]
             if lineNo >= lts.LineCount then 
                 ISeffLog.log.PrintfnAppErrorMsg $"Cant get line index {lineNo} from {lts.LineCount} lines in LineTransformer"
             else
-                for ch in lts.Line(lineNo) do  
-                    let from = ch.from + shift
-                    let till = ch.till + shift
-                    if   from > offEn then ISeffLog.log.PrintfnAppErrorMsg $"ch.form {ch.from} + shift {shift} > offEn {offEn} in LineTransformer"
-                    elif till > offEn then ISeffLog.log.PrintfnAppErrorMsg $"ch.till {ch.till} + shift {shift} > offEn {offEn} in LineTransformer"
-                    elif till < offSt then ISeffLog.log.PrintfnAppErrorMsg $"ch.till {ch.till} + shift {shift} < offSt {offSt} in LineTransformer"
-                    elif from < offSt then ISeffLog.log.PrintfnAppErrorMsg $"ch.form {ch.from} + shift {shift} < offSt {offSt} in LineTransformer"            
+                let lpcs = lts.Line(lineNo) 
+                for i=0 to lpcs.Count-1 do  
+                    let lpc = lpcs[i]
+                    let from = lpc.from + shift
+                    let till = lpc.till + shift
+                    if   from > offEn then ISeffLog.log.PrintfnAppErrorMsg $"ch.form {lpc.from} + shift {shift} > offEn {offEn} in LineTransformer"
+                    elif till > offEn then ISeffLog.log.PrintfnAppErrorMsg $"ch.till {lpc.till} + shift {shift} > offEn {offEn} in LineTransformer"
+                    elif till < offSt then ISeffLog.log.PrintfnAppErrorMsg $"ch.till {lpc.till} + shift {shift} < offSt {offSt} in LineTransformer"
+                    elif from < offSt then ISeffLog.log.PrintfnAppErrorMsg $"ch.form {lpc.from} + shift {shift} < offSt {offSt} in LineTransformer"            
                     else
-                        base.ChangeLinePart(from, till, ch.act)
+                        base.ChangeLinePart(from, till, lpc.act)
                         //base.CurrentContext.VisualLine.

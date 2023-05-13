@@ -1,6 +1,8 @@
 namespace Seff.Editor
 
 open AvalonEditB.Folding
+open AvalonEditB.Document
+open AvalonEditB
 
 module FullCode = 
     
@@ -147,10 +149,12 @@ type DocChangedConsequence =
     | WaitForCompletions 
 
 /// Tracking the lastest change Ids to the document
-type InteractionState(ed:AvalonEditB.TextEditor, foldManager:FoldingManager, config:Seff.Config.Config) as this =
+/// foldManager may be null
+type InteractionState(ed:TextEditor, foldManager:FoldingManager, config:Seff.Config.Config) as this =
     
     let cid = ref 0L
 
+    //let folds = foldManager.AllFoldings :?> TextSegmentCollection<FoldingSection>
     
     /// Does not increment while waiting for completion window to open 
     /// Or while waiting for an item in the completion window to be picked
@@ -177,10 +181,10 @@ type InteractionState(ed:AvalonEditB.TextEditor, foldManager:FoldingManager, con
     member val JustCompleted = false with get, set
     
     
-    member val TransformersSemantic          = new LineTransformers<LinePartChange>(4) with get
-    member val TransformersAllBrackets       = new LineTransformers<LinePartChange>(4) with get
-    member val TransformersMatchingBrackets  = new LineTransformers<LinePartChange>(4) with get
-    member val TransformersSelection         = new LineTransformers<LinePartChange>(0) with get
+    member val TransformersSemantic          = new LineTransformers<LinePartChange>() with get
+    member val TransformersAllBrackets       = new LineTransformers<LinePartChange>() with get
+    member val TransformersMatchingBrackets  = new LineTransformers<LinePartChange>() with get
+    member val TransformersSelection         = new LineTransformers<LinePartChange>() with get
     member val FastColorizer = new FastColorizer( [|
                                     this.TransformersAllBrackets
                                     this.TransformersSelection
@@ -196,4 +200,6 @@ type InteractionState(ed:AvalonEditB.TextEditor, foldManager:FoldingManager, con
     
     member _.Editor = ed
 
-    member _.FoldManager = foldManager 
+    //member _.FoldSegments = folds
+
+    member _.FoldManager = foldManager |> Option.ofObj

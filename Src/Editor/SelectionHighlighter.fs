@@ -23,34 +23,42 @@ type SelectionHighlighter (edState:InteractionState, lgState:InteractionState) =
 
     let priority = Windows.Threading.DispatcherPriority.Render
 
+    let foundSelectionEditorEv = new Event<ResizeArray<int>>()
+    let foundSelectionLogEv = new Event<ResizeArray<int>>()
 
+    
     let isTextToHighlight(t:string) = 
         t.Length > 1 && not (Str.isJustSpaceCharsOrEmpty t)  && not <| t.Contains("\n") 
+     
+    let clearFolds(state: InteractionState)=
+        match state.FoldManager with 
+        |None   -> () // no folds on log
+        |Some m ->  
+            for f in m.AllFoldings do 
+                f.BackgroundColor <- null     
     
-    let checkFoldedBoxes (ed:IEditor, fullCode:string ,highTxt) =
-        // for status bar and folds :
-           
-        let mutable index = fullCode.IndexOf(highTxt, 0, StringComparison.Ordinal)  
-        for fold in ed.FoldingManager.AllFoldings do fold.BackgroundColor <- null // reset all first, before setting some
-        let offsets = ResizeArray<int>()
-        while index >= 0 do                    
-            offsets.Add(index)
-            // check for text that is folded away:
-            let infs = ed.FoldingManager.GetFoldingsContaining(index)
-            for inf in infs do inf.BackgroundColor <- colorEditor                    
-            let st =  index + highTxt.Length // endOffset // TODO or just +1 ???????
-            if st >= fullCode.Length then
-                index <- -1 // this happens when word to highlight is at document end
-                //ISeffLog.log.PrintfnAppErrorMsg  "index  %d in %d ??" st code.Length
-            else
-                index <- fullCode.IndexOf(highTxt, st, StringComparison.Ordinal)
-        offsets 
-    
+    let markFoldingsSorted(state: InteractionState, offs:ResizeArray<int>) =
+        match state.FoldManager with 
+        |None   -> () // no folds on log
+        |Some m ->
+            let mutable offsSearchFromIdx =  0
+            for f in m.AllFoldings do 
+                f.BackgroundColor <- null // first reset
+                let rec loop i =                 
+                    if i >= offs.Count then 
+                        offsSearchFromIdx <- i // to exit on all next fold immediatly
+                    else 
+                        let off = offs.[i]
+                        if f.EndOffset < off then // all following offset are bigger than this fold stop searching
+                            offsSearchFromIdx <- i // to search from this index on in next fold
+                        elif f.StartOffset < off && off < f.EndOffset then // this offest is the first within the range of the current fold
+                            f.BackgroundColor <- colorEditor 
+                            offsSearchFromIdx <- i // to search from this index on in next fold
+                        else
+                            loop (i+1)
 
-
-    let markFoldings() =
-        for fold in edState.FoldManager.AllFoldings do 
-            mar foldings
+                loop (offsSearchFromIdx)
+  
 
     let justClear(state:InteractionState) =
         let trans = state.TransformersSelection
@@ -60,10 +68,11 @@ type SelectionHighlighter (edState:InteractionState, lgState:InteractionState) =
             async{ 
                 trans.ClearAllLines()
                 do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context
+                clearFolds(state)
                 state.Editor.TextArea.TextView.Redraw(f.from, l.till, priority)
             }|> Async.Start
     
-    let mark (state:InteractionState, word:string, action, selectionStartOff) =
+    let mark (state:InteractionState, word:string, action, ev:Event<ResizeArray<int>>, selectionStartOff) =
         let id = state.DocChangedId.Value
         async{
             let lines = state.CodeLines
@@ -71,6 +80,7 @@ type SelectionHighlighter (edState:InteractionState, lgState:InteractionState) =
             let codeStr  = lines.FullCode
             let lastLineNo = lines.LastLineIdx
             let wordLen = word.Length
+            let offs = ResizeArray<int>()
             
             /// returns false if aborted because of newer doc change
             let rec loop lineNo = 
@@ -78,43 +88,51 @@ type SelectionHighlighter (edState:InteractionState, lgState:InteractionState) =
                     true // return true if loop completed
                 else
                     match lines.GetLine(lineNo, id) with 
-                    |ValueNone -> false // coun not get code lien, newer chnage happen 
+                    |ValueNone -> false // could not get code line, newer chnage happened already 
                     |ValueSome l -> 
                         let mutable off = codeStr.IndexOf(word, l.offStart, l.len, StringComparison.Ordinal)                        
                         while off >= 0 do
+                            offs.Add off // also add for current selction
                             if off <> selectionStartOff then // skip the actual current selction
-                                trans.Insert(lineNo, {from=off; till=off+wordLen; act=action})                                 
+                                trans.InsertSorted(lineNo, {from=off; till=off+wordLen; act=action})                                 
                             let start = off + word.Length // search from this for next occurrence in this line 
                             let lenReduction = start - l.offStart
                             let remainingLineLength = l.len - lenReduction
                             off <- codeStr.IndexOf(word, start, remainingLineLength , StringComparison.Ordinal)
+                            
                         loop (lineNo + 1)
             
             let prev = trans.Range
             trans.ClearAllLines() // does nothing if already all clered
-            if loop 1 then // test if thet is a newer doc change                 
+            if loop 1 then // tests if ther is a newer doc change                 
                 match  prev, trans.Range with 
-                | None       , None  -> () // nothing before nothing now
-                | Some (f,l) , None 
-                | None       , Some (f,l) ->
+                | None       , None  -> ()   // nothing before, nothing now
+                
+                | Some (f,l) , None          // some before, nothing now
+                | None       , Some (f,l) -> // nothing before, some now
                     do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context                    
+                    markFoldingsSorted(state,offs)
                     state.Editor.TextArea.TextView.Redraw(f.from, l.till, priority)
+                    ev.Trigger(offs)
+                
                 | Some (pf,pl),Some (f,l) ->   /// both prev and current version have a selection                 
                     do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context                    
+                    markFoldingsSorted(state,offs)
                     state.Editor.TextArea.TextView.Redraw(min pf.from f.from, max pl.till l.till, priority)
+                    ev.Trigger(offs)
+
             else
                 () // dont redraw, there is already a new docchange happening that will be drawn
         }|> Async.Start
-
     
     
     let markBoth(selectionStartOff, word, isFromEd) =
         if isFromEd then 
-            mark(edState, word, actionEditor, selectionStartOff)
-            mark(lgState, word, actionLog   , -1)
+            mark(edState, word, actionEditor, foundSelectionEditorEv, selectionStartOff)
+            mark(lgState, word, actionLog   , foundSelectionLogEv   , -1)
         else
-            mark(edState, word, actionEditor, -1)
-            mark(lgState, word, actionLog   , selectionStartOff)
+            mark(edState, word, actionEditor, foundSelectionEditorEv, -1)
+            mark(lgState, word, actionLog   , foundSelectionLogEv   , selectionStartOff)
 
     let clearBoth() =
         justClear(edState)
@@ -135,5 +153,12 @@ type SelectionHighlighter (edState:InteractionState, lgState:InteractionState) =
     
     
     do         
-        edState.Editor.TextArea.SelectionChanged.Add ( fun _ ->                              update(edState.Editor, true)  )        
-        lgState.Editor.TextArea.SelectionChanged.Add ( fun _ -> if IEditor.isCurrent ed then update(lgState.Editor, false) )
+        edState.Editor.TextArea.SelectionChanged.Add ( fun _ ->                                          update(edState.Editor, true)  )        
+        lgState.Editor.TextArea.SelectionChanged.Add ( fun _ -> if IEditor.isCurrent edState.Editor then update(lgState.Editor, false) )
+
+
+    [<CLIEvent>] 
+    member _.FoundSelectionsEditor = foundSelectionEditorEv.Publish
+    member _.FoundSelectionsLog    = foundSelectionLogEv.Publish
+
+    
