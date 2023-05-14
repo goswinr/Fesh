@@ -319,7 +319,10 @@ type Tabs(config:Config, seffWin:SeffWindow) =
                 true
             | None -> // regular case, actually open file
                 try
-                    let code =  IO.File.ReadAllText (fi.FullName, Text.Encoding.UTF8)
+                    let code =  
+                        IO.File.ReadAllText (fi.FullName, Text.Encoding.UTF8) 
+                        |> Util.Str.unifyLineEndings 
+                        |> Util.Str.tabsToSpaces (config.Settings.GetInt("IndentationSize",4))
                     let ed = Editor.SetUp(code, config, SetTo fi)
                     let t = new Tab(ed)
                     t.Editor.CodeAtLastSave <- code

@@ -38,7 +38,7 @@ type Editor private (code:string, config:Config, initalFilePath:FilePath)  =
     let avaEdit = 
         let av = TextEditor()
         av.Options.IndentationSize <- config.Settings.GetIntSaveDefault("IndentationSize", 4) // do first because its used by tabs to spaces below.
-        av.Text <- code |> unifyLineEndings |> tabsToSpaces av.Options.IndentationSize
+        av.Text <- code
 
         av.BorderThickness <- new Thickness( 0.0)
         av.ShowLineNumbers <- true // background color is set in ColumnRulers.cs
@@ -76,8 +76,9 @@ type Editor private (code:string, config:Config, initalFilePath:FilePath)  =
     let mutable filePath   = initalFilePath
     let getFilePath() = filePath
 
-    let state    = new InteractionState(config)
-    let folds    = new Foldings(avaEdit, state, getFilePath)
+    let foldMg = Folding.FoldingManager.Install(avaEdit.TextArea) 
+    let state    = new InteractionState(avaEdit,foldMg, config)
+    let folds    = new Foldings(avaEdit,foldMg, state, getFilePath)
     let brackets = new BracketHighlighter(avaEdit, state)
     let compls   = new Completions(avaEdit)
     let semHiLi  = new SemanticHighlighter(avaEdit, state)

@@ -45,7 +45,7 @@ type NonStandardIndentColorizer (badInds:ResizeArray<NonStandardIndent>) =
 *)  // DELETE
 
 
-type Foldings(ed:TextEditor, state:InteractionState, getFilePath:unit->FilePath) = 
+type Foldings(ed:TextEditor, manager:Folding.FoldingManager, state:InteractionState, getFilePath:unit->FilePath) = 
     
     let badIndentBrush =        
         //Color.FromArgb(30uy,255uy,140uy,0uy) // a very light transparent Orange, transparent to show column rulers behind
@@ -61,9 +61,7 @@ type Foldings(ed:TextEditor, state:InteractionState, getFilePath:unit->FilePath)
 
     let minLinesNested = 3 // minimum line count for inner folding
 
-    let minLineCountDiffToOuter = 9 // if inner folding is just 9 line shorter than outer folding don't do it
-
-    let manager = Folding.FoldingManager.Install(ed.TextArea)  // color of margin is set in ColumRulers.fs
+    let minLineCountDiffToOuter = 9 // if inner folding is just 9 line shorter than outer folding don't do it    
     
     let foldStatus = state.Config.FoldingStatus
 

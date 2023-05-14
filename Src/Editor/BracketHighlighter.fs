@@ -63,7 +63,7 @@ module Render =
     let inline setBgColor (b:SolidColorBrush) (el:Rendering.VisualLineElement) = 
         el.TextRunProperties.SetBackgroundBrush(b)
 
-/// Highlight-all-occurrences-of-selected-text in Text View
+
 type BracketHighlighter (ed:TextEditor, state:InteractionState) =     
 
     let colErr = Brushes.Red
@@ -90,16 +90,18 @@ type BracketHighlighter (ed:TextEditor, state:InteractionState) =
     let Unclosed   = ResizeArray<BracketInfo>() 
     let PairStarts = Dictionary<int,BracketInfo>()
     let PairEnds   = Dictionary<int,BracketInfo>() 
+    let mutable idAtListupdate = state.DocChangedId.Value
+    let mutable listsAreClean = false
     
     // for highlighting matching brackets at cursor:
     let mutable pairStart = -1
     let mutable pairStartLn = -1
     let mutable pairEnd = -1
     let mutable pairEndLn = -1
-    let mutable pairLen = -1     
-    
+    let mutable pairLen = -1         
     
     let findAllBrackets (tx:CodeAsString, id, cur:Int64 ref ) =         
+        listsAreClean <-false
         Brs.Clear()
         Offs.Clear()
         LineNos.Clear()
@@ -210,7 +212,6 @@ type BracketHighlighter (ed:TextEditor, state:InteractionState) =
                 elif t0=']' then push(ClRect , i, ln)
                 elif t0=')' then push(ClRound, i, ln)
 
-
         find 0
 
         // find matching brackets and colors via a Stack
@@ -252,7 +253,10 @@ type BracketHighlighter (ed:TextEditor, state:InteractionState) =
 
         // find error in remaining stack items:
         for e in stack do
-            Unclosed.Add e            
+            Unclosed.Add e  
+        
+        if cur.Value = id then 
+            listsAreClean <-true
     
     // for previous highlighting matching brackets at cursor:
     let mutable prevStartLn = -1
@@ -269,7 +273,7 @@ type BracketHighlighter (ed:TextEditor, state:InteractionState) =
         
         /// returns the index where found
         let rec binSearch lo hi =
-            if lo > hi then 
+            if lo > hi || not listsAreClean then 
                 None
             else
                 let mid = lo + (hi - lo) / 2
@@ -378,12 +382,16 @@ type BracketHighlighter (ed:TextEditor, state:InteractionState) =
     
     
     let caretPositionChanged(e:EventArgs) = 
+        let id = state.DocChangedId.Value
         let caretOff = ed.TextArea.Caret.Offset
         async{ 
-            findHighlightPairAtCursor(caretOff) 
-            updatePairTransformers()
-            do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context
-            redrawSegment()            
+            do! Async.Sleep 50 // wait for update the offset list Offs lists
+            if state.DocChangedId.Value = id then 
+                findHighlightPairAtCursor(caretOff) 
+                updatePairTransformers()
+                if state.DocChangedId.Value = id then 
+                    do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context
+                    redrawSegment()            
         } |> Async.Start    
     
     let foundBracketsEv = new Event<unit>()

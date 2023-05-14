@@ -20,7 +20,7 @@ module LogColors =
 
     let mutable consoleOut    = Brushes.Black             |> freeze // should be same as default  foreground. Will be set on foreground changes
     let fsiStdOut     = Brushes.DarkGray |> darker 20     |> freeze // values printed by fsi itself like "val it = ...."
-    let fsiErrorOut   = Brushes.DarkMagenta               |> freeze //are they all caught by evaluate non throwing ? prints "Stopped due to error" on non compiling code
+    let fsiErrorOut   = Brushes.DarkMagenta               |> freeze // are they all caught by evaluate non throwing ? prints "Stopped due to error" on non compiling code
     let consoleError  = Brushes.OrangeRed                 |> freeze // this is used by eprintfn
     let infoMsg       = Brushes.LightSteelBlue            |> freeze
     let fsiErrorMsg   = Brushes.Magenta                   |> freeze
@@ -74,7 +74,7 @@ type Log private () =
     let textWriterFsiErrorOut   =  log.GetConditionalTextWriter ( (fun s -> fsiErrorsStringBuilder.Append(s)|> ignore; true) ,  LogColors.fsiErrorOut) // use filter for side effect
 
     
-    /// for An additional textwriter to also write Info, AppError, IOError,Debug and FsiError messages to.
+    /// for an additional textwriter to also write Info, AppError, IOError,Debug and FsiError messages to.
     /// But not any other text printed with any custom color. 
     let appendAndLogLn (b:SolidColorBrush) (tx:string) =
         log.AppendLineWithBrush (b, tx)

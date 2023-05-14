@@ -147,6 +147,7 @@ module Str  =
     let unifyLineEndings (s:string) = 
         //Text.StringBuilder(s).Replace("\r\n", "\n").Replace("\r", "\n").Replace("\n", Environment.NewLine).ToString()
         //Regex.Replace(s, @"\r\n|\n\r|\n|\r", Environment.NewLine) //https://stackoverflow.com/questions/140926/normalize-newlines-in-c-sharp
+        //https://learn.microsoft.com/en-us/dotnet/standard/base-types/best-practices#interpreted-vs-compiled-regular-expressions
         Regex.Replace(s, @"\r\n|\n|\r", Environment.NewLine) // simplified from https://stackoverflow.com/questions/140926/normalize-newlines-in-c-sharp
 
     let tabsToSpaces spaces (s:string) = 
@@ -501,6 +502,50 @@ module Monads =
 
         member inline  this.For(sequence:seq<_>, body) = 
             this.Using(sequence.GetEnumerator(), fun enum -> this.While(enum.MoveNext, this.Delay(fun () -> body enum.Current))) 
+
+
+    /// The maybe monad.for Option Types
+    type ValueMaybeBuilder() = 
+        // from https://github.com/fsprojects/FSharpx.Extras/blob/master/src/FSharpx.Extras/ComputationExpressions/Option.fs
+        // This monad is my own and uses an 'T voption. Others generally make their own Maybe<'T> type from Option<'T>.
+        // The builder approach is from Matthew Podwysocki's excellent Creating Extended Builders series
+        // http://codebetter.com/blogs/matthew.podwysocki/archive/2010/01/18/much-ado-about-monads-creating-extended-builders.aspx.
+
+        member inline this.Return(x) = ValueSome x
+
+        member inline this.ReturnFrom(m: voption<'T>) = m
+
+        member inline this.Bind(m, f) = ValueOption.bind f m
+
+        member inline this.Zero() = ValueNone
+
+        member inline this.Combine(m, f) = ValueOption.bind f m
+
+        member inline this.Delay(f: unit -> _) = f
+
+        member inline this.Run(f) = f()
+
+        member inline this.TryWith(m, h) = 
+            try this.ReturnFrom(m)
+            with e -> h e
+
+        member inline  this.TryFinally(m, compensation) = 
+            try this.ReturnFrom(m)
+            finally compensation()
+
+        member inline this.Using(res:#IDisposable, body) = 
+            this.TryFinally(body res, fun () -> match res with null -> () | disp -> disp.Dispose())
+
+        member this.While(guard, f) = 
+            if not (guard()) then ValueSome () else
+            do f() |> ignore
+            this.While(guard, f)
+
+        member inline  this.For(sequence:seq<_>, body) = 
+            this.Using(sequence.GetEnumerator(), fun enum -> this.While(enum.MoveNext, this.Delay(fun () -> body enum.Current))) 
+
+    /// A maybe monad for value (struct) option types.
+    let vmaybe = ValueMaybeBuilder()
     
     /// A maybe monad for option types.
     let maybe = MaybeBuilder()

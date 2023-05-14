@@ -16,7 +16,7 @@ type SelectionColorizer (ed:TextEditor, color:SolidColorBrush) =
        
     let mutable highTxt:string = null
     let mutable exclStart = -1
-    let mutable exclEnd   = -1 // end offset is the last character with highlighting
+    let mutable exclEnd   = -1 // end offset is the last character with highlighting 
 
     member this.HighlightText 
         with get() = highTxt 
@@ -50,7 +50,6 @@ type SelectionColorizer (ed:TextEditor, color:SolidColorBrush) =
                     base.ChangeLinePart( st,en + 1, fun el -> el.TextRunProperties.SetBackgroundBrush(color))
                 let start = index + highTxt.Length // search from this for next occurrence in this line 
                 index <- linetext.IndexOf(highTxt, start, StringComparison.Ordinal)
-
 
 
 module SelectionHighlighting =     
@@ -120,35 +119,8 @@ module SelectionHighlighting =
         hiLi.ExcludeTill   <- selStart + t.Length - 1 // end offset is the last character with highlighting           
         hiLi.HighlightText <- t 
         selStart
-   
-
 
     module HiEditor =  
-        
-        (* 
-        on the second call to tv.Redraw(vln) tv.VisualLines is null.
-        AvalonEditB.Rendering.VisualLinesInvalidException: Exception of type 'AvalonEditB.Rendering.VisualLinesInvalidException' was thrown.
-           at AvalonEditB.Rendering.TextView.get_VisualLines()
-           at Seff.Editor.SelectionHighlighting.HiEditor.clearVisualLinesCacheThatContains(TextEditor e, String word) in D:\Git\Seff\Src\Editor\SelectedTextTracer.fs:line 143
-           at Seff.Editor.SelectionHighlighting.HiEditor.setup@201-4.Invoke(EventArgs _arg1) in D:\Git\Seff\Src\Editor\SelectedTextTracer.fs:line 201
-           at Microsoft.FSharp.Core.CompilerServices.RuntimeHelpers.h@401.Invoke(Object _arg1, TArgs args) in D:\a\_work\1\s\src\FSharp.Core\seqcore.fs:line 401
-           at AvalonEditB.Editing.TextArea.set_Selection(Selection value)
-           at AvalonEditB.Editing.SelectionMouseHandler.ExtendSelectionToMouse(MouseEventArgs e)            
-        
-                
-        // as an alternative to clear all via TextArea.TextView.Redraw () clear just some
-        let clearVisualLinesCacheThatContains(e:TextEditor, word:string) =
-            let tv = e.TextArea.TextView
-            let doc = e.Document
-            let vlns = tv.VisualLines          
-            for vln in  vlns do 
-                let ln = vln.FirstDocumentLine               
-                match doc.IndexOf(word, ln.Offset, ln.Length, StringComparison.Ordinal) with 
-                | -1  -> ()
-                | _   -> tv.Redraw(vln)        
-       
-        *)
-                
 
         let checkFoldedBoxes (ed:IEditor, fullCode:string ,highTxt) =
             // for status bar and folds :

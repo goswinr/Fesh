@@ -110,7 +110,8 @@
     <Compile Include="Src/Editor/CodeCompletion.fs" />
     <Compile Include="Src/Editor/Foldings.fs" />
     <Compile Include="Src/Editor/EvaluationTracker.fs" />
-    <Compile Include="Src/Editor/SelectedTextTracer.fs" />
+    <Compile Include="Src\Editor\SelectedTextTracerOLD.fs" />
+    <Compile Include="Src\Editor\SelectionHighlighter.fs" />
     <Compile Include="Src\Editor\SemanticHighlighter.fs" />
     <Compile Include="Src\Editor\BracketHighlighter.fs" />
     <Compile Include="Src\Editor\DocChangedOLD.fs" />
