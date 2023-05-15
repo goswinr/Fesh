@@ -21,7 +21,7 @@ type SavingKind =
 /// A class holding the Tab Control.
 /// Includes logic for saving and opening files.
 /// Window is needed for closing after last Tab closed
-type Tabs(config:Config, seffWin:SeffWindow) = 
+type Tabs(config:Config, log:Log,seffWin:SeffWindow) = 
 
     let tabs = 
         new TabControl(
@@ -33,7 +33,6 @@ type Tabs(config:Config, seffWin:SeffWindow) =
     
     let win = seffWin.Window
 
-    let log = config.Log
 
     let fsi = 
         let f = Fsi.GetOrCreate(config)
@@ -56,9 +55,9 @@ type Tabs(config:Config, seffWin:SeffWindow) =
         let t = tabs.Items[idx] :?> Tab
         current <- t
         IEditor.current <- Some (t.Editor:>IEditor)                
-        for t in allTabs do
-            t.IsCurrent <- false  // first set all false then one true
-        t.IsCurrent <- true
+        //for t in allTabs do
+        //    t.IsCurrent <- false  // first set all false then one true  // DELETE
+        //t.IsCurrent <- true
 
         seffWin.SetFileNameInTitle(t.Editor.FilePath)
 
@@ -323,7 +322,7 @@ type Tabs(config:Config, seffWin:SeffWindow) =
                         IO.File.ReadAllText (fi.FullName, Text.Encoding.UTF8) 
                         |> Util.Str.unifyLineEndings 
                         |> Util.Str.tabsToSpaces (config.Settings.GetInt("IndentationSize",4))
-                    let ed = Editor.SetUp(code, config, SetTo fi)
+                    let ed = Editor.SetUp(code, config, SetTo fi, log.State)
                     let t = new Tab(ed)
                     t.Editor.CodeAtLastSave <- code
                     //log.PrintfnDebugMsg "adding Tab %A in %A " t.Editor.FilePath t.Editor.FileCheckState
@@ -377,7 +376,7 @@ type Tabs(config:Config, seffWin:SeffWindow) =
             tryAddFile( f.file, f.makeCurrent, true)  |> ignore
 
         if tabs.Items.Count=0 then //Open default file if none found in recent files or args
-            let t = new Tab(Editor.New(config))
+            let t = new Tab(Editor.New(config,log.State))
             addTab(t, true, true) |> ignore
         
         if tabs.SelectedIndex = -1 then  //make one tab current if none yet , happens if current file on last closing was an unsaved file                    
@@ -388,7 +387,7 @@ type Tabs(config:Config, seffWin:SeffWindow) =
         tabs.SelectionChanged.Add( fun _->
             if tabs.Items.Count = 0 then //  happens when closing the last open tab
                 //create new tab
-                let tab = new Tab(Editor.New(config))
+                let tab = new Tab(Editor.New(config,log.State))
                 addTab(tab, true, false)
 
             else

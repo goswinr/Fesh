@@ -15,7 +15,6 @@ type TabsAndLog (config:Config, tabs:Tabs, log:Log, win:Views.SeffWindow) as thi
 
     let gridSplitterSize = 4.0
 
-
     let grid                = new Grid()
     let editorRowHeight     = new RowDefinition   (Height = makeGridLength (config.Settings.GetFloat ("EditorHeight"  ,400.0)))
     let logRowHeight        = new RowDefinition   (Height = makeGridLength (config.Settings.GetFloat ("LogHeight"     ,400.0)))

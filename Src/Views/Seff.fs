@@ -16,7 +16,7 @@ type Seff (config:Config,log:Log) =
 
     let seffWin = new Views.SeffWindow(config)
     let win = seffWin.Window
-    let tabs = new Tabs(config, seffWin)
+    let tabs = new Tabs(config, log, seffWin)
     let tabsAndLog = new TabsAndLog(config, tabs, log, seffWin)
 
     let statusBar = SeffStatusBar(tabsAndLog)

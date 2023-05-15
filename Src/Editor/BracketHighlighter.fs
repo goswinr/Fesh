@@ -366,8 +366,8 @@ type BracketHighlighter (state:InteractionState) =
         if pairStart > 0 && pairEnd > 0  then // must check both
             // first remove previous transformers
             transMatch.ClearAllLines()           
-            transMatch.InsertSorted(pairStartLn, {from=pairStart; till=pairStart + pairLen; act=actPair})
-            transMatch.InsertSorted(pairEndLn  , {from=pairEnd;   till=pairEnd   + pairLen; act=actPair})
+            transMatch.Insert(pairStartLn, {from=pairStart; till=pairStart + pairLen; act=actPair})
+            transMatch.Insert(pairEndLn  , {from=pairEnd;   till=pairEnd   + pairLen; act=actPair})
     
     let mutable prevPairSeg: RedrawSegment option = None
 
@@ -420,15 +420,15 @@ type BracketHighlighter (state:InteractionState) =
                     let lineNo = LineNos.[i]
                     //ISeffLog.log.PrintfnDebugMsg "Bracket %d to %d on Line %d " off (off+1) line.LineNumber
                     match Brs.[i] with
-                    | ClRound | OpRect | OpCurly | OpRound  | ClRect | ClCurly  -> transAll.InsertFlex(lineNo, {from=off; till=off+1; act= Acts.[i] })
-                    | OpAnRec | OpArr | ClAnRec | ClArr                         -> transAll.InsertFlex(lineNo, {from=off; till=off+2; act= Acts.[i] })
+                    | ClRound | OpRect | OpCurly | OpRound  | ClRect | ClCurly  -> transAll.Insert(lineNo, {from=off; till=off+1; act= Acts.[i] })
+                    | OpAnRec | OpArr | ClAnRec | ClArr                         -> transAll.Insert(lineNo, {from=off; till=off+2; act= Acts.[i] })
 
             for i = 0 to Unclosed.Count - 1 do 
                 let u = Unclosed[i]
                 let off = u.off
                 match u.bracket with
-                | ClRound | OpRect | OpCurly | OpRound  | ClRect | ClCurly  -> transAll.InsertFlex(u.lnNo, {from=off; till=off+1; act=actErr}) 
-                | OpAnRec | OpArr | ClAnRec | ClArr                         -> transAll.InsertFlex(u.lnNo, {from=off; till=off+2; act=actErr}) 
+                | ClRound | OpRect | OpCurly | OpRound  | ClRect | ClCurly  -> transAll.Insert(u.lnNo, {from=off; till=off+1; act=actErr}) 
+                | OpAnRec | OpArr | ClAnRec | ClArr                         -> transAll.Insert(u.lnNo, {from=off; till=off+2; act=actErr}) 
 
             updatePairTransformers()
             foundBracketsEv.Trigger()

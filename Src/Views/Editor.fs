@@ -14,7 +14,6 @@ open AvalonEditB.Document
 open AvalonLog
 
 open Seff
-open Seff.Editor.SelectionHighlighting
 open Seff.Model
 open Seff.Config
 open Seff.Util.Str
@@ -34,7 +33,7 @@ type Counter private () =
 
 
  /// The tab that holds the tab header and the code editor
-type Editor private (code:string, config:Config, initalFilePath:FilePath)  = 
+type Editor private (code:string, config:Config, initalFilePath:FilePath, logState:InteractionState)  = 
     let avaEdit = 
         let av = TextEditor()
         av.Options.IndentationSize <- config.Settings.GetIntSaveDefault("IndentationSize", 4) // do first because its used by tabs to spaces below.
@@ -82,8 +81,8 @@ type Editor private (code:string, config:Config, initalFilePath:FilePath)  =
     let brackets = new BracketHighlighter( state)
     let compls   = new Completions(avaEdit)
     let semHiLi  = new SemanticHighlighter(state)
-    let error    = new ErrorHighlighter(state,folds.Manager)
-    let selHili  = new SelectionHighlighter(state, config.Log)
+    let error    = new ErrorHighlighter(state,foldMg)
+    let selHili  = new SelectionHighlighter(state, logState)
     //let evalTracker         = new EvaluationTracker(avaEdit, checker, id)
 
     let services = {
@@ -152,9 +151,9 @@ type Editor private (code:string, config:Config, initalFilePath:FilePath)  =
         member this.AvaEdit         = avaEdit
         member this.FileCheckState  with get() = checkState  and  set(v) = checkState <- v
         member this.FilePath        = filePath // the interface is get only, it does not need a setter
-        member this.FoldingManager  = this.Folds.Manager
-        member this.EvaluateFrom    = this.EvaluateFrom
         member this.IsComplWinOpen  = this.Completions.IsOpen       
+        member this.FoldingManager  = foldMg
+        //member this.EvaluateFrom    = this.EvaluateFrom
         //member _.Id              = id  // DELETE
         //member _.Log             = config.Log // DELETE
         //member _.SemanticRanges  = semanticHighlighter.Ranges  // DELETE
@@ -162,13 +161,10 @@ type Editor private (code:string, config:Config, initalFilePath:FilePath)  =
 
     /// sets up Text change event handlers
     /// a static method so that an instance if IEditor can be used
-    static member SetUp  (code:string, config:Config, filePath:FilePath ) = 
-        let ed = Editor(code, config, filePath )
+    static member SetUp  (code:string, config:Config, filePath:FilePath ,logState:InteractionState) = 
+        let ed = Editor(code, config, filePath, logState )
         let avaEdit = ed.AvaEdit
-        let compls = ed.Completions 
-        
-        ed.HighlightText <- SelectionHighlighting.HiEditor.setup(ed)        
-         
+        let compls = ed.Completions          
         
         // for logging Debug and Error Messages in AvalonEditB
         Logging.LogAction <- new Action<string>( fun (s:string) -> ISeffLog.log.PrintfnDebugMsg "AvalonEditB Logging.Log: %s" s)
@@ -228,9 +224,9 @@ type Editor private (code:string, config:Config, initalFilePath:FilePath)  =
         ed
 
     ///additional constructor using default code
-    static member New (config:Config) =  
+    static member New (config:Config, logState:InteractionState) =  
         let dummyName = Counter.UnsavedFileName()
-        Editor.SetUp( config.DefaultCode.Get() , config, NotSet dummyName)
+        Editor.SetUp( config.DefaultCode.Get() , config, NotSet dummyName, logState)
 
 
     (* https://github.com/icsharpcode/AvalonEdit/blob/master/ICSharpCode.AvalonEdit.Sample/document.html

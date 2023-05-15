@@ -13,7 +13,6 @@ open AvalonLog.Brush
 
 open Seff
 open Seff.Editor
-open Seff.Editor.SelectionHighlighting
 open Seff.Model
 open FsEx.Wpf // for TextBlockSelectable
 open FsEx.Wpf.DependencyProps
@@ -257,6 +256,8 @@ type AsyncStatus (grid:TabsAndLog) as this =
 
 #nowarn "44" //for obsolete grid.Log.AvalonLog.AvalonEdit
 
+(*
+
 type SelectedEditorTextStatus (grid:TabsAndLog) as this = 
     inherit TextBlock() 
     let desc = " " //Editor Selection Highlighting" 
@@ -370,7 +371,7 @@ type SelectedLogTextStatus (grid:TabsAndLog) as this =
                     else
                         scrollToIdx <- 0
             )
-        
+*)       
         
 
 type SeffStatusBar (grid:TabsAndLog)  = 
@@ -395,8 +396,8 @@ type SeffStatusBar (grid:TabsAndLog)  =
         addSep Dock.Left 
         add    Dock.Left  <| fsi
         addSep Dock.Left 
-        add    Dock.Left  <| SelectedEditorTextStatus(grid)
-        add    Dock.Left  <| SelectedLogTextStatus(grid)
+        //add    Dock.Left  <| SelectedEditorTextStatus(grid)
+        //add    Dock.Left  <| SelectedLogTextStatus(grid)
 
         add    Dock.Right  <| FsiOutputStatus(grid)
         addSep Dock.Right

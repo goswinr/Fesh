@@ -215,15 +215,13 @@ module DocChangeMark =
     open DocChangeUtil
 
 
-    let markTwoSteps(iEd:IEditor, fullCode, serv:EditorServices, state:InteractionState, id) =  
-        //Redrawing.reset()            
-        state.FastColorizer.Transformers.ClearAllLines()
-        let caretOff
+    let markTwoSteps(iEd:IEditor, code, serv:EditorServices, state:InteractionState, id) =               
         /// first: Foldings, ColorBrackets and BadIndentation when full text available async.
         async{
-            state.TransformersAllBrackets.ClearAllLines()
-            serv.folds.UpdateFoldsAndBadIndents(fullCode,id)
-            serv.brackets.UpdateAllBrackets(fullCode, state., id)
+            if state.IsLatest id then 
+                state.TransformersAllBrackets.ClearAllLines()
+                serv.folds.UpdateFoldsAndBadIndents(code,id)
+                serv.brackets.UpdateAllBrackets(code, id)
          } |> Async.Start 
         
         /// second: Errors and Semantic Highlighting on check result .  
@@ -231,9 +229,12 @@ module DocChangeMark =
             match Checker.CheckCode(iEd, code,state,id) with 
             |None -> ()
             |Some res ->
-                let offs = getLineStartOffsets(code)
-                serv.semantic.UpdateSemHiLiTransformers(code, offs, res.checkRes,id)
-                serv.errors.UpdateErrs(res.errors,offs,id)
+                if state.IsLatest id then 
+                    let offs = getLineStartOffsets(code)
+                    if state.IsLatest id then 
+                        state.TransformersSemantic.ClearAllLines()
+                        serv.errors.UpdateErrs(res.errors,offs,id)
+                        serv.semantic.UpdateSemHiLiTransformers(code, offs, res.checkRes,id)
         } |> Async.Start   
     
     //To be called from any thread
@@ -247,9 +248,8 @@ module DocChangeMark =
     // To be called from UI thread
     let markFoldCheckHighlightAsync (iEd:IEditor, serv:EditorServices, state:InteractionState, id ) =
         let doc = iEd.AvaEdit.Document // get Doc in Sync
-        let caret = iEd.AvaEdit.CaretOffset
         async { 
-            do! Async.Sleep 50
+            do! Async.Sleep 30
             // NOTE just checking only Partial Code till caret with (doc.CreateSnapshot(0, tillOffset).Text) 
             // would make the GetDeclarationsList method miss some declarations !!
             let code = doc.CreateSnapshot().Text // the only threadsafe way to access the code string
@@ -401,7 +401,7 @@ module DocChangeCompletion =
         else            
             let doc = iEd.AvaEdit.Document // get in sync
             async{                
-                do! Async.Sleep 50
+                do! Async.Sleep 30
                 match c with
                 | '_'  // for __SOURCE_DIRECTORY__
                 | '`'  // for complex F# names in `` ``

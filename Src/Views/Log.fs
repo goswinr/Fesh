@@ -7,6 +7,9 @@ open System.Text
 open System.Windows.Controls
 open System.Windows
 
+open AvalonEditB
+open AvalonEditB.Utils
+open AvalonEditB.Document
 open AvalonLog.Brush
 
 open Seff
@@ -44,7 +47,7 @@ type Log private () =
     let mutable addLogger : option<TextWriter> = None
 
     do
-        log.SelectedTextHighLighter.IsEnabled <- false // because there is a custom highlighter here that covers both log and editor
+        log.SelectedTextHighLighter.IsEnabled <- false // because there is a custom highlighter here that covers both log and editor 
         
         //styling:
         log.BorderThickness <- new Thickness( 0.5)
@@ -87,22 +90,26 @@ type Log private () =
         match addLogger with 
         | Some tw -> tw.Write tx
         | None ->()
-
-    let highlightText = SelectionHighlighting.HiLog.setup(log.AvalonEdit)
     
+    let foldMg = Folding.FoldingManager.Install(log.AvalonEdit.TextArea) 
+    let mutable state: InteractionState = null  // will be set in AdjustToSettingsInConfig(...)
+
     //-----------------------------------------------------------
     //----------------------members:------------------------------------------
     //------------------------------------------------------------
 
-    member this.AvalonLog = log
-
-    member this. HighlightText = highlightText
+    member this.AvalonLog = log  
+    
+    member this.State = state    
 
     member this.FsiErrorsStringBuilder = fsiErrorsStringBuilder  
 
     member internal this.AdjustToSettingsInConfig(config:Config)=         
         setLineWrap( config.Settings.GetBool ("logHasLineWrap", true) )
         log.FontSize  <- config.Settings.GetFloat ("SizeOfFont" , Seff.StyleState.fontSize )
+        state <- new InteractionState(log.AvalonEdit, foldMg, config)
+        let folds  = new Foldings(foldMg, state, fun () -> SetTo (FileInfo "Seff.AvalonLog.Foldings"))
+        ()
 
     member this.ToggleLineWrap(config:Config)= 
         let newState = not log.WordWrap

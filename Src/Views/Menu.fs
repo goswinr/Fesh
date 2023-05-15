@@ -318,7 +318,7 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, statusBar:SeffStatusBar, log:
                 menuItem cmds.RunTextTillCursor
                 //menuItem cmds.RunTextFromCursor
                 menuItem cmds.EvalContinue
-                menuItem cmds.MarkEval
+                //menuItem cmds.MarkEval
                 sep()
                 menuItem cmds.GoToError
                 sep()
@@ -381,7 +381,7 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, statusBar:SeffStatusBar, log:
                 menuItem cmds.RunTextTillCursor
                 //menuItem cmds.RunTextFromCursor
                 menuItem cmds.EvalContinue
-                menuItem cmds.MarkEval
+                //menuItem cmds.MarkEval
                 sep()
                 menuItem cmds.RunAllText
                 menuItem cmds.RunCurrentLines

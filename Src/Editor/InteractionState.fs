@@ -112,9 +112,33 @@ type DocChangedConsequence =
 
 /// Tracking the lastest change Ids to the document
 /// foldManager may be null
-type InteractionState(ed:TextEditor, foldManager:FoldingManager, config:Seff.Config.Config) as this =
+[<AllowNullLiteral>] // for log initially
+type InteractionState(ed:TextEditor, foldManager:FoldingManager, config:Seff.Config.Config)  =
     
-    let changeId = ref 0L    
+    let changeId = ref 0L 
+    
+    /// reacts to doc changes
+    /// for Errors and semantics
+    let transformersSemantic          = new LineTransformers<LinePartChange>() 
+    
+    /// reacts to doc changes
+    /// for Brackets, and bad indents
+    let transformersAllBrackets       = new LineTransformers<LinePartChange>() 
+
+    /// reacts to caret changes
+    let transformersMatchingBrackets  = new LineTransformers<LinePartChange>()   
+
+    /// reacts to document chnages
+    let transformersSelection         = new LineTransformers<LinePartChange>() 
+    
+    let fastColorizer = new FastColorizer( [|
+                                    transformersAllBrackets
+                                    transformersSelection
+                                    transformersSemantic
+                                    transformersMatchingBrackets            
+                                    |] ) 
+
+
     
     /// Does not increment while waiting for completion window to open 
     /// Or while waiting for an item in the completion window to be picked
@@ -142,24 +166,20 @@ type InteractionState(ed:TextEditor, foldManager:FoldingManager, config:Seff.Con
     
     /// reacts to doc changes
     /// for Errors and semantics
-    member val TransformersSemantic          = new LineTransformers<LinePartChange>() with get
+    member _.TransformersSemantic          = transformersSemantic
     
     /// reacts to doc changes
     /// for Brackets, and bad indents
-    member val TransformersAllBrackets       = new LineTransformers<LinePartChange>() with get
+    member _.TransformersAllBrackets       = transformersAllBrackets
 
     /// reacts to caret changes
-    member val TransformersMatchingBrackets  = new LineTransformers<LinePartChange>() with get
-    
+    member _.TransformersMatchingBrackets  = transformersMatchingBrackets
 
     /// reacts to document chnages
-    member val TransformersSelection         = new LineTransformers<LinePartChange>() with get
-    member val FastColorizer = new FastColorizer( [|
-                                    this.TransformersAllBrackets
-                                    this.TransformersSelection
-                                    this.TransformersSemantic
-                                    this.TransformersMatchingBrackets            
-                                    |] ) with get 
+    member _.TransformersSelection         = transformersSelection
+    
+    member _.FastColorizer                 = fastColorizer                
+
 
     member _.Config = config
     

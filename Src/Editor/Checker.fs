@@ -215,17 +215,16 @@ type Checker private ()  =
         | None   ->  fsChecker <- Some (FsCheckerUtil.getNew())
         
         Monads.maybe{
-            let! _ = state.IsLatest chnageId
+            let! _ = state.IsLatestOpt chnageId
             let fileFsx    = FsCheckerUtil.getFsxFileNameForChecker filePath
             let sourceText = Text.SourceText.ofString fullCode
             return!
                 FsCheckerUtil.getOptions fsChecker.Value fileFsx sourceText
-                >>= state.IfIsLatest chnageId
+                <* state.IsLatestOpt chnageId
                 >>= FsCheckerUtil.parseAndCheckImpl fsChecker.Value fileFsx sourceText
-                >>= state.IfIsLatest chnageId
+                <*  state.IsLatestOpt chnageId
             }
-    
-    //-----------------------------------------------------------------
+        //-----------------------------------------------------------------
     //---------------static members------------------------------------
     //-----------------------------------------------------------------
     

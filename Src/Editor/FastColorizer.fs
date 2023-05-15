@@ -53,7 +53,7 @@ type LineTransformers<'T>() =
        
     member _.Insert(lineNumber, x) =         
         // fill up missing lines
-        while lineNumber < lines.Count   do 
+        while lineNumber > lines.Count   do 
             lines.Add empty        
         
         if lineNumber = lines.Count  then 

@@ -94,7 +94,7 @@ type SelectionHighlighter (edState:InteractionState, lgState:InteractionState) =
                         while off >= 0 do
                             offs.Add off // also add for current selction
                             if off <> selectionStartOff then // skip the actual current selction
-                                trans.InsertSorted(lineNo, {from=off; till=off+wordLen; act=action})                                 
+                                trans.Insert(lineNo, {from=off; till=off+wordLen; act=action})                                 
                             let start = off + word.Length // search from this for next occurrence in this line 
                             let lenReduction = start - l.offStart
                             let remainingLineLength = l.len - lenReduction

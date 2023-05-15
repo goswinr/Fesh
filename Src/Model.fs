@@ -115,13 +115,13 @@ type FilePath =
 
 // so that the Editor can be used before declared
 type IEditor = 
-    abstract member AvaEdit        : TextEditor
-    abstract member Code           : CodeAsString with get , set
+    abstract member AvaEdit        : TextEditor    
     abstract member FileCheckState : FileCheckState with get , set
-    abstract member FilePath       : FilePath
-    abstract member FoldingManager : FoldingManager
-    abstract member EvaluateFrom   : int
-    abstract member IsComplWinOpen : bool   
+    abstract member FilePath       : FilePath // saving settings in config , like fold status
+    abstract member IsComplWinOpen : bool   // for  checking when modifying keyboard events
+    abstract member FoldingManager : FoldingManager // so that fsi can go to error location and unfold
+    // DELETE
+    //abstract member EvaluateFrom   : int
 
 [<RequireQualifiedAccess>]
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
@@ -137,7 +137,7 @@ module IEditor =
         |None   -> false
         |Some o -> o.AvaEdit = e 
 
-o
+
 
 //---- Fsi types ------------
 type CodeSegment = {

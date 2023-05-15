@@ -137,10 +137,10 @@ type Tab (editor:Editor) = //, config:Seff.Config.Config, allFileInfos:seq<IO.Fi
         |Deleted fi        -> sprintf "(deleted): %s" fi.FullName //sprintf "%s\r\nat\r\n%s" fi.Name fi.DirectoryName
         |NotSet dummyName  -> dummyName
 
-    /// this gets and sets IsCurrent on the Editor
-    member _.IsCurrent
-        with get() = editor.IsCurrent
-        and set(c) = editor.IsCurrent <- c
+    ///// this gets and sets IsCurrent on the Editor
+    //member _.IsCurrent
+    //    with get() = editor.IsCurrent
+    //    and set(c) = editor.IsCurrent <- c  // DELETE
 
     member val Editor = editor
 
