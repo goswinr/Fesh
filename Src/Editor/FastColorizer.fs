@@ -43,60 +43,56 @@ type LineTransformers<'T>() =
 
     let empty = ResizeArray<'T>()
     
-    let mutable firtsIsSet = false
+    
     let mutable first = Unchecked.defaultof<'T>
     let mutable last  = Unchecked.defaultof<'T>
+    let mutable lastLine   = 0
+    let mutable firstLine  = Int32.MaxValue
 
     member _.LineCount = lines.Count
-
-    /// insert the an new  Rarr with for all previous unset indices, 
-    /// future insert can happen in any order of line numbers line numbers. 
-    member _.InsertFlex(lineNumber, x, initCapacity:int) =         
-        while lines.Count <= lineNumber  do // fill up missing lines
-            lines.Add ( new ResizeArray<'T>(initCapacity))// for capacityPerLine tokens per line
+       
+    member _.Insert(lineNumber, x) =         
+        // fill up missing lines
+        while lineNumber < lines.Count   do 
+            lines.Add empty        
         
-        lines[lineNumber].Add x
-        if not firtsIsSet then 
-            first <- x
-            firtsIsSet <- true
-        last <- x   
-    
-    /// insert the same empty Rarr for all previous unset indices, 
-    /// assumes future insert allwayas happens with increasing line numbers.
-    member _.InsertSorted(lineNumber, x) =         
-        while lines.Count <= lineNumber  do // fill up missing lines
-            lines.Add empty
-        lines[lineNumber].Add x
-        if not firtsIsSet then 
-            first <- x
-            firtsIsSet <- true
-        last <- x   
+        if lineNumber = lines.Count  then 
+            // add a new line        
+            let n = ResizeArray(4)
+            n.Add x
+            lines.Add n
+        else
+            // add to existing line
+            lines.[lineNumber].Add x 
         
- 
+        if lineNumber < firstLine then 
+            firstLine <- lineNumber
+            first <- x
+        if lineNumber > lastLine then 
+            lastLine <- lineNumber
+            last <- x
+        
+        
     /// does nothing if clear already
     member _.ClearAllLines() =        
-        if firtsIsSet then 
+        if lastLine > 0  then 
             for line in lines do 
                 line.Clear()
-            //lines.Clear() // dont do this so that allocated Lists stay alive and can be refilled fast        
-            firtsIsSet <- false        
-        
+            //lines.Clear() // dont do this too, so that allocated Lists stay alive and can be refilled fast        
+            lastLine  <- 0      
+            firstLine <- Int32.MaxValue
 
-    /// Safely gets a Line returns empty if index out of range
+    /// Safely gets a Line returns empty if index is out of range
     member _.Line(lineNumber) =
         if lineNumber>=0 && lineNumber<lines.Count then lines.[lineNumber]
         else empty
 
-    member _.IsEmpty = not firtsIsSet
+    member _.IsEmpty = lastLine = 0 
 
-    member _.IsNotEmpty = firtsIsSet
+    member _.IsNotEmpty = lastLine > 0 
 
-    member _.Range = if firtsIsSet then Some (first,last) else None
-
-    member _.IsAnyBetween (from,till) =
-        
-
-
+    member _.Range = if lastLine > 0  then Some (first,last) else None
+   
 
 
 /// An efficient DocumentColorizingTransformer using line number indices into a line transformer list.

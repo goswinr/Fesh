@@ -45,8 +45,9 @@ type NonStandardIndentColorizer (badInds:ResizeArray<NonStandardIndent>) =
 *)  // DELETE
 
 
-type Foldings(ed:TextEditor, manager:Folding.FoldingManager, state:InteractionState, getFilePath:unit->FilePath) = 
+type Foldings(manager:Folding.FoldingManager, state:InteractionState, getFilePath:unit->FilePath) = 
     
+
     let badIndentBrush =        
         //Color.FromArgb(30uy,255uy,140uy,0uy) // a very light transparent Orange, transparent to show column rulers behind
         Color.FromArgb(50uy,255uy,255uy,0uy) // a very light transparent Yellow, transparent to show column rulers behind
@@ -75,7 +76,7 @@ type Foldings(ed:TextEditor, manager:Folding.FoldingManager, state:InteractionSt
 
     let mutable isInitialLoad = true
 
-    let defaultIndenting = ed.Options.IndentationSize
+    let defaultIndenting = state.Editor.Options.IndentationSize
     let mutable lastBadIndentSize = 0
 
     let findFoldings (tx:string) :unit = 
@@ -109,7 +110,7 @@ type Foldings(ed:TextEditor, manager:Folding.FoldingManager, state:InteractionSt
                 if tx.[off] = '\n'  then  off
                 else                      findLineEnd (off+1)
         
-        let transformers = state.FastColorizer.Transformers
+        let transformers = state.TransformersAllBrackets
         
         //ISeffLog.log.PrintfnDebugMsg "---------findFolds--------" 
         let rec findFolds ind off = 
@@ -153,7 +154,7 @@ type Foldings(ed:TextEditor, manager:Folding.FoldingManager, state:InteractionSt
                 //ISeffLog.printError $"bad indent on line {no}={ln.LineNumber} : {lastBadIndentSize}, confirm LineOffset {ln.Offset}={off}"
                 //BadIndents.Add{ badIndent=lastBadIndentSize; lineStartOffset = off-lastBadIndentSize ; lineNo=no }  // DELETE
                 let stOff = off-lastBadIndentSize
-                transformers.Insert(no, LinePartChange.make(stOff, stOff+lastBadIndentSize, badIndentAction, BadIndent))
+                transformers.Insert(no, {from=stOff ; till=stOff+lastBadIndentSize  ; act=badIndentAction })
                 lastBadIndentSize <- 0 
             
             // do last:
@@ -173,7 +174,9 @@ type Foldings(ed:TextEditor, manager:Folding.FoldingManager, state:InteractionSt
     // there is a risk for collision but it is small
     let collapseStatus = Dictionary<int,bool>()
 
-    // get hash of first line
+    let ed = state.Editor
+
+    // get hash of first line of folding segmnet
     let getHash(off) =
         let d = ed.Document
         let mutable hash = off 
@@ -193,8 +196,7 @@ type Foldings(ed:TextEditor, manager:Folding.FoldingManager, state:InteractionSt
     let foundBadIndentsEv = new Event<unit>() 
 
     ///Get foldings at every line that is followed by an indent
-    let foldEditor (fullCode:string, id:int64) = 
-               
+    let foldEditor (fullCode:string, id:int64) =                
         //ISeffLog.log.PrintfnDebugMsg "folding1: %s" iEditor.FilePath.File
         async{                
             let foldings = 
@@ -220,8 +222,7 @@ type Foldings(ed:TextEditor, manager:Folding.FoldingManager, state:InteractionSt
                     do! Async.Sleep 50
                 let vs = foldStatus.Get(getFilePath())
                     
-                do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context 
-                    
+                do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context
                 for i = 0 to foldings.Count-1 do
                     let f = foldings.[i]
                     let folded = if  i < vs.Length then  vs.[i]  else false

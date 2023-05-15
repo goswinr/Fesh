@@ -123,7 +123,7 @@ type Sc = SemanticClassificationType
 
 /// A DocumentColorizingTransformer.
 /// Used to do semantic highlighting
-type SemanticHighlighter (ied:TextEditor, state: InteractionState) = 
+type SemanticHighlighter (state: InteractionState) = 
     (*
     inherit Rendering.DocumentColorizingTransformer() // DELETE
     let mutable lastCheckId = -1L
@@ -175,9 +175,10 @@ type SemanticHighlighter (ied:TextEditor, state: InteractionState) =
             lastCode <- fullCode        
             let allRanges = checkRes.GetSemanticClassification(None)
       
-            let transfs = state.FastColorizer.Transformers        
+            let transfs = state.TransformersSemantic       
 
-            for i = allRanges.Length-1 downto 0 do // doing a reverse search solves a highlighting problem where ranges overlap
+            //for i = allRanges.Length-1 downto 0 do // doing a reverse search solves a highlighting problem where ranges overlap(previously)
+            for i = 0 to allRanges.Length-1 do 
                 let sem = allRanges.[i]
                 let r = sem.Range            
                 let lineNo = r.StartLine
@@ -185,7 +186,7 @@ type SemanticHighlighter (ied:TextEditor, state: InteractionState) =
                 let st = int offLn + r.StartColumn                
                 let en = int offLn + r.EndColumn
 
-                let inline push(f,t,a) = transfs.Insert(lineNo,LinePartChange.make(f,t,a,Semantic))
+                let inline push(f,t,a) = transfs.Insert(lineNo,{from=f; till=t; act=a})
             
                 match sem.Type with 
                 | Sc.ReferenceType               -> push(st,en, SemAction.ReferenceType              )
@@ -239,7 +240,7 @@ type SemanticHighlighter (ied:TextEditor, state: InteractionState) =
                 let offLn = lineStartOffsets[lineNo]
                 let st = int offLn + r.StartColumn                
                 let en = int offLn + r.EndColumn
-                transfs.Insert(lineNo,LinePartChange.make(st,en, SemAction.UnUsed,Semantic))
+                transfs.Insert(lineNo, {from=st; till=en; act=SemAction.UnUsed})
 
         foundSemanticsEv.Trigger()
             

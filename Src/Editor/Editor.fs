@@ -77,12 +77,13 @@ type Editor private (code:string, config:Config, initalFilePath:FilePath)  =
     let getFilePath() = filePath
 
     let foldMg = Folding.FoldingManager.Install(avaEdit.TextArea) 
-    let state    = new InteractionState(avaEdit,foldMg, config)
-    let folds    = new Foldings(avaEdit,foldMg, state, getFilePath)
-    let brackets = new BracketHighlighter(avaEdit, state)
+    let state    = new InteractionState(avaEdit, foldMg, config)
+    let folds    = new Foldings(foldMg, state, getFilePath)
+    let brackets = new BracketHighlighter( state)
     let compls   = new Completions(avaEdit)
-    let semHiLi  = new SemanticHighlighter(avaEdit, state)
-    let error    = new ErrorHighlighter(avaEdit, state,folds.Manager)
+    let semHiLi  = new SemanticHighlighter(state)
+    let error    = new ErrorHighlighter(state,folds.Manager)
+    let selHili  = new SelectionHighlighter(state, config.Log)
     //let evalTracker         = new EvaluationTracker(avaEdit, checker, id)
 
     let services = {
@@ -100,8 +101,7 @@ type Editor private (code:string, config:Config, initalFilePath:FilePath)  =
     let _ = Redrawing.SecondEventCombiner(services,avaEdit)
        
 
-    do               
-        avaEdit.TextArea.Caret.PositionChanged.Add (fun a -> state.Caret <- avaEdit.CaretOffset) // used in Bracket colorizer
+    do  
         SyntaxHighlighting.setFSharp(avaEdit,false) 
         
     member _.State = state    

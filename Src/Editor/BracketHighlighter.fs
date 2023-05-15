@@ -10,6 +10,7 @@ open AvalonLog.Brush
 open Seff.Model
 open Seff.Util.General
 open AvalonEditB.Document
+open AvalonEditB.Rendering
 
 
 type BracketKind = 
@@ -34,7 +35,7 @@ type BracketInfo = {
     bracket: BracketKind
     off:int  
     lnNo:int  
-    color:SolidColorBrush 
+    color:Action<VisualLineElement>
     idx:int}
 
 type RedrawSegment(startOffset,  endOffset)  = 
@@ -64,14 +65,11 @@ module Render =
         el.TextRunProperties.SetBackgroundBrush(b)
 
 
-type BracketHighlighter (ed:TextEditor, state:InteractionState) =     
+type BracketHighlighter (state:InteractionState) =     
 
-    let colErr = Brushes.Red
-
-    let unclosedBg = Brushes.Pink |> brighter 25  |> freeze
-    let pairBg =     Brushes.Gray |> brighter 70
-    //let pairBg =     Brushes.Moccasin |> freeze// |> brighter 125
-    //let pairBg =     Brushes.PaleGreen  |> freeze// |> brighter 125
+    let colErr   = Brushes.Red                  |> freeze
+    let colErrBg = Brushes.Pink |> brighter 25  |> freeze
+    let colPair  = Brushes.Gray |> brighter 70  |> freeze  
 
     let colors = [|
         null // the first one is null ( to keep the coloring from xshd file)        
@@ -81,12 +79,18 @@ type BracketHighlighter (ed:TextEditor, state:InteractionState) =
         Brushes.Magenta    |> darker 70    |> freeze
         |]
 
-    let nextColor i = colors.[i % colors.Length]
+    let actErr      = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(colErr); el.TextRunProperties.SetBackgroundBrush(colErrBg))    
+    let actPair     = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetBackgroundBrush(colPair))
+
+    let acts = colors|> Array.map ( fun c -> if isNull c then null else new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(c)))
+
+    let nextAction i = acts.[i % acts.Length]
+    //let nextColor i = colors.[i % colors.Length]
 
     let Brs        = ResizeArray<BracketKind>()
     let Offs       = ResizeArray<int>() // doc offsets
     let LineNos    = ResizeArray<int>() // line numbers
-    let Cols       = ResizeArray<SolidColorBrush>()
+    let Acts       = ResizeArray<Action<VisualLineElement>>()
     let Unclosed   = ResizeArray<BracketInfo>() 
     let PairStarts = Dictionary<int,BracketInfo>()
     let PairEnds   = Dictionary<int,BracketInfo>() 
@@ -105,7 +109,7 @@ type BracketHighlighter (ed:TextEditor, state:InteractionState) =
         Brs.Clear()
         Offs.Clear()
         LineNos.Clear()
-        Cols.Clear()
+        Acts.Clear()
         Unclosed.Clear()
         PairStarts.Clear()
         PairEnds.Clear()
@@ -220,12 +224,12 @@ type BracketHighlighter (ed:TextEditor, state:InteractionState) =
             if cur.Value = id then 
                 match Brs.[i] with
                 | OpAnRec | OpArr  | OpRect  | OpCurly | OpRound  ->
-                    let col = nextColor (stack.Count)
+                    let col = nextAction (stack.Count)
                     stack.Push {bracket = Brs.[i]; off= Offs.[i]; lnNo = LineNos.[i]; color = col; idx=i}
-                    Cols.Add col
+                    Acts.Add col
                 | ClAnRec | ClArr  | ClRect  | ClCurly | ClRound  ->
                     if stack.Count = 0 then
-                        Cols.Add colErr
+                        Acts.Add actErr
                     else
                         let bc = stack.Peek()
                         let ok = 
@@ -238,11 +242,11 @@ type BracketHighlighter (ed:TextEditor, state:InteractionState) =
                             | OpAnRec | OpArr  | OpRect  | OpCurly | OpRound  -> false
                         if ok then
                             stack.Pop ()  |> ignore
-                            Cols.Add bc.color
+                            Acts.Add bc.color
                             PairEnds.[bc.off]     <- {bracket = Brs.[i]; off= Offs.[i]; lnNo = LineNos.[i]; color = bc.color; idx=i}
                             PairStarts.[Offs.[i]] <- bc
                         else
-                            Cols.Add colErr
+                            Acts.Add actErr
 
         //for k in PairEnds.Keys do   ed.Log.PrintfnDebugMsg   "start %d end  %d" k PairEnds.[k]
         //for k in PairStarts.Keys do   ed.Log.PrintfnDebugMsg "end  %d start  %d" k PairStarts.[k]
@@ -356,15 +360,14 @@ type BracketHighlighter (ed:TextEditor, state:InteractionState) =
                 if isTwoChars then 
                     pairLen <- 2                    
     
-    let transformers = state.FastColorizer.Transformers
+    let transMatch = state.TransformersMatchingBrackets
     
     let updatePairTransformers() =
         if pairStart > 0 && pairEnd > 0  then // must check both
             // first remove previous transformers
-            transformers.RemoveByPredicate(prevStartLn,fun r -> r.reason = CurrentBracketPair) // also works in prevStartLn is -1
-            transformers.RemoveByPredicate(prevEndLn,fun r -> r.reason = CurrentBracketPair)            
-            transformers.Insert(pairStartLn, LinePartChange.make( pairStart, pairStart + pairLen, Render.setBgColor pairBg, CurrentBracketPair))
-            transformers.Insert(pairEndLn  , LinePartChange.make( pairEnd  , pairEnd   + pairLen, Render.setBgColor pairBg, CurrentBracketPair))
+            transMatch.ClearAllLines()           
+            transMatch.InsertSorted(pairStartLn, {from=pairStart; till=pairStart + pairLen; act=actPair})
+            transMatch.InsertSorted(pairEndLn  , {from=pairEnd;   till=pairEnd   + pairLen; act=actPair})
     
     let mutable prevPairSeg: RedrawSegment option = None
 
@@ -374,16 +377,17 @@ type BracketHighlighter (ed:TextEditor, state:InteractionState) =
         |Some prev -> 
             let m = seg.Merge(prev)                    
             //ISeffLog.printnColor 150 222 50 $"HighlightPair merged {m}"
-            ed.TextArea.TextView.Redraw(m)            
+            state.Editor.TextArea.TextView.Redraw(m)            
         |None ->
             //ISeffLog.printnColor 150 222 50 $"HighlightPair {seg}"
-            ed.TextArea.TextView.Redraw(seg)
-        prevPairSeg <- Some seg        
+            state.Editor.TextArea.TextView.Redraw(seg)
+        prevPairSeg <- Some seg     
     
     
     let caretPositionChanged(e:EventArgs) = 
         let id = state.DocChangedId.Value
-        let caretOff = ed.TextArea.Caret.Offset
+        let caretOff = state.Editor.CaretOffset
+        state.Caret <- caretOff
         async{ 
             do! Async.Sleep 50 // wait for update the offset list Offs lists
             if state.DocChangedId.Value = id then 
@@ -395,41 +399,40 @@ type BracketHighlighter (ed:TextEditor, state:InteractionState) =
         } |> Async.Start    
     
     let foundBracketsEv = new Event<unit>()
+
+    let transAll = state.TransformersAllBrackets
     
     do
-        ed.TextArea.Caret.PositionChanged.Add (caretPositionChanged)
+        state.Editor.TextArea.Caret.PositionChanged.Add (caretPositionChanged)
     
     [<CLIEvent>] 
     member _.FoundBrackets = foundBracketsEv.Publish
     
     /// This gets called for every visible line on any view change
-    member _.UpdateAllBrackets(tx:CodeAsString, caretOff, id) = 
-        let cur = state.DocChangedId
-        async{
-            findAllBrackets(tx,id,cur)
-            findHighlightPairAtCursor(caretOff)
+    member _.UpdateAllBrackets(tx:CodeAsString, id) = 
+        let cur = state.DocChangedId        
+        findAllBrackets(tx,id,cur)
+        findHighlightPairAtCursor(state.Caret)
+        if Brs.Count > 0 &&  Acts.Count = Offs.Count && cur.Value = id then                            
+            for i = 0 to Offs.Count - 1 do 
+                if notNull Acts.[i] then // the first one is null ( to keep the coloring from xshd file)
+                    let off = Offs.[i] 
+                    let lineNo = LineNos.[i]
+                    //ISeffLog.log.PrintfnDebugMsg "Bracket %d to %d on Line %d " off (off+1) line.LineNumber
+                    match Brs.[i] with
+                    | ClRound | OpRect | OpCurly | OpRound  | ClRect | ClCurly  -> transAll.InsertFlex(lineNo, {from=off; till=off+1; act= Acts.[i] })
+                    | OpAnRec | OpArr | ClAnRec | ClArr                         -> transAll.InsertFlex(lineNo, {from=off; till=off+2; act= Acts.[i] })
 
-            if Brs.Count > 0 &&  Cols.Count = Offs.Count && cur.Value = id then                            
-                for i = 0 to Offs.Count - 1 do 
-                    if notNull Cols.[i] then // the first one is null ( to keep the coloring from xshd file)
-                        let off = Offs.[i] 
-                        let lineNo = LineNos.[i]
-                        //ISeffLog.log.PrintfnDebugMsg "Bracket %d to %d on Line %d " off (off+1) line.LineNumber
-                        match Brs.[i] with
-                        | ClRound | OpRect | OpCurly | OpRound  | ClRect | ClCurly  -> transformers.Insert(lineNo, LinePartChange.make(off, off+1, Render.setTextColor Cols.[i], MatchingBrackets ) )
-                        | OpAnRec | OpArr | ClAnRec | ClArr                         -> transformers.Insert(lineNo, LinePartChange.make(off, off+2, Render.setTextColor Cols.[i], MatchingBrackets ))
+            for i = 0 to Unclosed.Count - 1 do 
+                let u = Unclosed[i]
+                let off = u.off
+                match u.bracket with
+                | ClRound | OpRect | OpCurly | OpRound  | ClRect | ClCurly  -> transAll.InsertFlex(u.lnNo, {from=off; till=off+1; act=actErr}) 
+                | OpAnRec | OpArr | ClAnRec | ClArr                         -> transAll.InsertFlex(u.lnNo, {from=off; till=off+2; act=actErr}) 
 
-                for i = 0 to Unclosed.Count - 1 do 
-                    let u = Unclosed[i]
-                    let off = u.off
-                    match u.bracket with
-                    | ClRound | OpRect | OpCurly | OpRound  | ClRect | ClCurly  -> transformers.Insert(u.lnNo, LinePartChange.make( off, off+1, Render.setBgColor unclosedBg, MatchingBrackets))
-                    | OpAnRec | OpArr | ClAnRec | ClArr                        ->  transformers.Insert(u.lnNo, LinePartChange.make( off, off+2, Render.setBgColor unclosedBg, MatchingBrackets))
-
-                updatePairTransformers()
-                foundBracketsEv.Trigger()
-            
-        } |> Async.Start
+            updatePairTransformers()
+            foundBracketsEv.Trigger()
+        
 
 
    

@@ -218,20 +218,21 @@ module DocChangeMark =
     let markTwoSteps(iEd:IEditor, fullCode, serv:EditorServices, state:InteractionState, id) =  
         //Redrawing.reset()            
         state.FastColorizer.Transformers.ClearAllLines()
-        
+        let caretOff
         /// first: Foldings, ColorBrackets and BadIndentation when full text available async.
         async{
+            state.TransformersAllBrackets.ClearAllLines()
             serv.folds.UpdateFoldsAndBadIndents(fullCode,id)
-            serv.brackets.UpdateAllBrackets(fullCode, state.Caret, id)
+            serv.brackets.UpdateAllBrackets(fullCode, state., id)
          } |> Async.Start 
         
         /// second: Errors and Semantic Highlighting on check result .  
         async{  
-            match Checker.CheckCode(iEd, fullCode,state,id) with 
+            match Checker.CheckCode(iEd, code,state,id) with 
             |None -> ()
             |Some res ->
-                let offs = getLineStartOffsets(fullCode)
-                serv.semantic.UpdateSemHiLiTransformers(fullCode, offs, res.checkRes,id)
+                let offs = getLineStartOffsets(code)
+                serv.semantic.UpdateSemHiLiTransformers(code, offs, res.checkRes,id)
                 serv.errors.UpdateErrs(res.errors,offs,id)
         } |> Async.Start   
     
@@ -239,20 +240,21 @@ module DocChangeMark =
     let markFoldCheckHighlight(iEd:IEditor, doc:TextDocument, serv:EditorServices, state:InteractionState, id ) =        
         // NOTE just checking only Partial Code till caret with (doc.CreateSnapshot(0, tillOffset).Text) 
         // would make the GetDeclarationsList method miss some declarations !!
-        let fullCode = doc.CreateSnapshot().Text // the only threadsafe way to access the code string
+        let code = doc.CreateSnapshot().Text // the only threadsafe way to access the code string
         if state.DocChangedId.Value = id then 
-            markTwoSteps (iEd, fullCode, serv, state, id)
+            markTwoSteps (iEd, code, serv, state, id)
       
     // To be called from UI thread
     let markFoldCheckHighlightAsync (iEd:IEditor, serv:EditorServices, state:InteractionState, id ) =
         let doc = iEd.AvaEdit.Document // get Doc in Sync
+        let caret = iEd.AvaEdit.CaretOffset
         async { 
             do! Async.Sleep 50
             // NOTE just checking only Partial Code till caret with (doc.CreateSnapshot(0, tillOffset).Text) 
             // would make the GetDeclarationsList method miss some declarations !!
-            let fullCode = doc.CreateSnapshot().Text // the only threadsafe way to access the code string
+            let code = doc.CreateSnapshot().Text // the only threadsafe way to access the code string
             if state.DocChangedId.Value = id then 
-                markTwoSteps (iEd, fullCode, serv, state, id)
+                markTwoSteps (iEd, code, serv, state, id)
         } |> Async.Start
     
 module DocChangeCompletion = 
@@ -385,8 +387,7 @@ module DocChangeCompletion =
                     |> bind isForDeclaration        inStr ln
                     |> bind isBarDeclaration        inStr ln
                     |> bind isThisMemberDeclaration inStr ln
-                
-    
+     
     /// for single character edits
     let singleCharChange (iEd:IEditor, serv:EditorServices, state:InteractionState, id:int64)  =
         let pos = getPosInCode2(iEd.AvaEdit)
@@ -477,6 +478,7 @@ module DocChangeEvents =
             ()
         | React -> 
             let id = state.Increment() // only increment when a reaction is required
+            state.Caret <- state.Editor.CaretOffset
             match isSingleCharChange eventArgs with 
             |ValueSome _ ->DocChangeCompletion.singleCharChange (iEd, serv, state, id)
             |ValueNone   ->DocChangeMark.markFoldCheckHighlightAsync (iEd, serv, state, id)

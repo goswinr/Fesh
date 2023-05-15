@@ -1,5 +1,7 @@
 ﻿namespace Seff.Editor
 
+()
+(*
 open System
 open System.Windows.Media
 open AvalonEditB
@@ -253,3 +255,5 @@ module SelectionHighlighting =
                 else
                    foundNoneReq(lg, selTextHiLi)  
 
+
+*)

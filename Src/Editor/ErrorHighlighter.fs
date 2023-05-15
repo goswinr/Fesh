@@ -210,7 +210,7 @@ type ErrorRenderer (state: InteractionState, segms:LineTransformers<SegmentToMar
         member this.Layer = this.Layer
 
 
-type ErrorHighlighter (ed:TextEditor, state:InteractionState, folds:Folding.FoldingManager) = 
+type ErrorHighlighter ( state:InteractionState, folds:Folding.FoldingManager) = 
     
     let actionError   = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetBackgroundBrush(ErrorStyle.errBackGr))
     let actionWarning = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetBackgroundBrush(ErrorStyle.warnBackGr)) 
@@ -221,8 +221,9 @@ type ErrorHighlighter (ed:TextEditor, state:InteractionState, folds:Folding.Fold
     let foundErrorsEv = new Event<unit>()
     let tip = new ToolTip(IsOpen=false) 
 
-    let trans = state.FastColorizer.Transformers
-    let tView= ed.TextArea.TextView
+    let trans = state.TransformersSemantic
+    let ed = state.Editor
+    let tView = ed.TextArea.TextView
 
     /// because FSharpDiagnostic might have line number 0 form Parse-and-check-file-in-project errors, but Avalonedit starts at 1
     let linesStartAtOne i = if i<1 then 1 else i 
@@ -251,7 +252,7 @@ type ErrorHighlighter (ed:TextEditor, state:InteractionState, folds:Folding.Fold
             let lnEn = lineOffs.[lnNo+1] - 2<off>   |> int
             let st  = max lnSt st0 // trimm to this line 
             let en  = min lnEn en0
-            trans.Insert(lnNo, LinePartChange.make(st,en, action, CheckerError))
+            trans.Insert(lnNo, {from=st; till=en; act=action}) 
             segments.Insert(lnNo, SegmentToMark(st ,en , e))
             
     

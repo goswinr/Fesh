@@ -106,6 +106,71 @@ module FullCode =
             else 
                 ValueNone
 
+type DocChangedConsequence = 
+    | React
+    | WaitForCompletions 
+
+/// Tracking the lastest change Ids to the document
+/// foldManager may be null
+type InteractionState(ed:TextEditor, foldManager:FoldingManager, config:Seff.Config.Config) as this =
+    
+    let changeId = ref 0L    
+    
+    /// Does not increment while waiting for completion window to open 
+    /// Or while waiting for an item in the completion window to be picked
+    member _.DocChangedId  = changeId
+
+    /// Threadsave Increment of DocChangedId
+    /// Returns the incremented value.
+    member _.Increment() = System.Threading.Interlocked.Increment changeId
+ 
+    /// Checks if passed in int64 is same as current DocChangedId.
+    // if yes retuns second input ( usefull for monadic chaining)
+    member _.IsLatestOpt id  =  if changeId.Value = id then Some true else None
+
+    /// Checks if passed in int64 is same as current DocChangedId.
+    member _.IsLatest id  =  changeId.Value = id 
+   
+    member val DocChangedConsequence = React with get, set
+
+    member val CodeLines = FullCode.CodeLines(changeId) with get
+
+    /// To avoid re-trigger of completion window on single char completions
+    /// the window may just have closed, but for pressing esc, not for completion insertion
+    /// this is only true if it just closed for insertion
+    member val JustCompleted = false with get, set
+    
+    /// reacts to doc changes
+    /// for Errors and semantics
+    member val TransformersSemantic          = new LineTransformers<LinePartChange>() with get
+    
+    /// reacts to doc changes
+    /// for Brackets, and bad indents
+    member val TransformersAllBrackets       = new LineTransformers<LinePartChange>() with get
+
+    /// reacts to caret changes
+    member val TransformersMatchingBrackets  = new LineTransformers<LinePartChange>() with get
+    
+
+    /// reacts to document chnages
+    member val TransformersSelection         = new LineTransformers<LinePartChange>() with get
+    member val FastColorizer = new FastColorizer( [|
+                                    this.TransformersAllBrackets
+                                    this.TransformersSelection
+                                    this.TransformersSemantic
+                                    this.TransformersMatchingBrackets            
+                                    |] ) with get 
+
+    member _.Config = config
+    
+    member _.Editor = ed
+
+    member _.FoldManager = foldManager |> Option.ofObj
+
+    /// the caret position that can be savely accessed async
+    member val Caret = 0 with get,set
+    
+  
 
 // Highlighting needs:
 (*
@@ -141,65 +206,3 @@ type SelectionChangedConsequence =
     | HighlightSelection // and redraw all or find range ?
     | NoSelectionHighlight // just on char,  white or multiline
 *)    
-
-
-
-type DocChangedConsequence = 
-    | React
-    | WaitForCompletions 
-
-/// Tracking the lastest change Ids to the document
-/// foldManager may be null
-type InteractionState(ed:TextEditor, foldManager:FoldingManager, config:Seff.Config.Config) as this =
-    
-    let cid = ref 0L
-
-    //let folds = foldManager.AllFoldings :?> TextSegmentCollection<FoldingSection>
-    
-    /// Does not increment while waiting for completion window to open 
-    /// Or while waiting for an item in the completion window to be picked
-    member _.DocChangedId  = cid
-
-    /// Threadsave Increment of DocChangedId
-    /// Returns the incremented value.
-    member _.Increment() = System.Threading.Interlocked.Increment cid
- 
-    /// Checks if passed in int64 is same as current DocChangedId.
-    // if yes retuns second input ( usefull for monadic chaining)
-    member _.IsLatestOpt id  =  if cid.Value = id then Some true else None
-
-    /// Checks if passed in int64 is same as current DocChangedId.
-    member _.IsLatest id  =  cid.Value = id 
-   
-    member val DocChangedConsequence = React with get, set
-
-    member val CodeLines = FullCode.CodeLines(cid) with get
-
-    /// To avoid re-trigger of completion window on single char completions
-    /// the window may just have closed, but for pressing esc, not for completion insertion
-    /// this is only true if it just closed for insertion
-    member val JustCompleted = false with get, set
-    
-    
-    member val TransformersSemantic          = new LineTransformers<LinePartChange>() with get
-    member val TransformersAllBrackets       = new LineTransformers<LinePartChange>() with get
-    member val TransformersMatchingBrackets  = new LineTransformers<LinePartChange>() with get
-    member val TransformersSelection         = new LineTransformers<LinePartChange>() with get
-    member val FastColorizer = new FastColorizer( [|
-                                    this.TransformersAllBrackets
-                                    this.TransformersSelection
-                                    this.TransformersSemantic
-                                    this.TransformersMatchingBrackets            
-                                    |] ) with get    
-
-    
-
-    //member val Caret = 0 with get, set
-
-    member _.Config = config
-    
-    member _.Editor = ed
-
-    //member _.FoldSegments = folds
-
-    member _.FoldManager = foldManager |> Option.ofObj
