@@ -136,9 +136,10 @@ type InteractionState(ed:TextEditor, foldManager:FoldingManager, config:Seff.Con
     let fastColorizer = new FastColorizer( [|
                                     //transformersAllBrackets
                                     //transformersSelection
-                                    //transformersSemantic
+                                    transformersSemantic
                                     //transformersMatchingBrackets            
-                                    |] ) 
+                                    |] 
+                                    ,ed) 
 
 
     

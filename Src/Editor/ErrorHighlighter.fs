@@ -214,7 +214,7 @@ type ErrorRenderer (state: InteractionState, segms:LineTransformers<SegmentToMar
        
                         //let e = seg.Diagnostic in ISeffLog.log.PrintfnDebugMsg $"IBackgRe: DocLine {ln.LineNumber}: ErrLines{e.StartLine}.{e.StartColumn}-{e.EndLine}.{e.EndColumn}"   
 
-    member _.Layer = KnownLayer.Selection // for IBackgroundRenderer
+    member _.Layer = KnownLayer.Caret //.Selection // for IBackgroundRenderer
 
     interface IBackgroundRenderer with
         member this.Draw(tv,dc) = this.Draw(tv,dc)
@@ -246,9 +246,12 @@ type ErrorHighlighter ( state:InteractionState, folds:Folding.FoldingManager) =
             let st  = cln.offStart + e.StartColumn
             let en = 
                 if e.EndLine = e.StartLine then
-                    if e.StartColumn >= e.EndColumn then 
+                    if e.StartColumn > e.EndColumn then 
                         ISeffLog.log.PrintfnAppErrorMsg $"FSharp Checker reported an invalid error position: e.StartColumn <= e.EndColumn:\r\n {e}"
-                    cln.offStart + e.EndColumn           
+                    if e.StartColumn = e.EndColumn then // this actually happens as a result from fs checker
+                        cln.offStart + max cln.len 1
+                    else
+                        cln.offStart + e.EndColumn           
                 
                 elif e.EndLine > e.StartLine then // for multiline Errors only show first Line
                     cln.offStart + cln.len

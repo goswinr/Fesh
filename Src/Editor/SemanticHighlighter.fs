@@ -57,8 +57,8 @@ module SemColor =
                                         
     let UnUsed                       = freeze <| Brushes.Gray |> brighter 30   
 
-module SemAction = 
-    open SemColor
+type SemActions() =
+    
 
     /// this allows using the cursive version of Cascadia Mono
     let stylisticSet1 = 
@@ -75,46 +75,47 @@ module SemAction =
         el.TextRunProperties.SetTypographyProperties(stylisticSet1) // for cursive set of cascadia mono
 
 
-    let ReferenceTypeA              = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(ReferenceType              ))
-    let ReferenceType               = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(ReferenceType              ))
-    let ValueType                   = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(ValueType                  ))
-    let UnionCase                   = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(UnionCase                  ))
-    let UnionCaseField              = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(UnionCaseField             ))
-    let Function                    = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(Function                   ))
-    let Property                    = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(Property                   ))
-    let MutableVar                  = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(MutableVar                 ))
-    let Module                      = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(Module                     ))
-    let Namespace                   = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(Namespace                  ))
-    //let Printf                    = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(Printf                     )) // covered by xshd
-    let ComputationExpression       = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(ComputationExpression      ))
-    let IntrinsicFunction           = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(IntrinsicFunction          ))
-    let Enumeration                 = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(Enumeration                ))
-    let Interface                   = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(Interface                  ))
-    let TypeArgument                = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(TypeArgument               ))
-    let Operator                    = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(Operator                   ))
-    let DisposableType              = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(DisposableType             ))
-    let DisposableTopLevelValue     = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(DisposableTopLevelValue    ))
-    let DisposableLocalValue        = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(DisposableLocalValue       ))
-    let Method                      = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(Method                     ))
-    let ExtensionMethod             = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(ExtensionMethod            ))
-    let ConstructorForReferenceType = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(ConstructorForReferenceType))
-    let ConstructorForValueType     = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(ConstructorForValueType    ))
-    let Literal                     = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(Literal                    ))
-    let RecordField                 = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(RecordField                ))
-    let MutableRecordField          = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(MutableRecordField         ))
-    let RecordFieldAsFunction       = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(RecordFieldAsFunction      ))
-    let Exception                   = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(Exception                  ))
-    let Field                       = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(Field                      ))
-    let Event                       = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(Event                      ))
-    let Delegate                    = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(Delegate                   ))
-    let NamedArgument               = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(NamedArgument              ))
-    let Value                       = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(Value                      ))
-    let LocalValue                  = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(LocalValue                 ))//; makeCursive el
-    let Type                        = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(Type                       ))
-    let TypeDef                     = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(TypeDef                    ))
-    let Plaintext                   = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(Plaintext                  ))
-                                    
-    let UnUsed                      = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(UnUsed))
+    member val ReferenceTypeA              = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(SemColor.ReferenceType              ))
+    member val ReferenceType               = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(SemColor.ReferenceType              ))
+    member val ValueType                   = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(SemColor.ValueType                  ))
+    member val UnionCase                   = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(SemColor.UnionCase                  ))
+    member val UnionCaseField              = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(SemColor.UnionCaseField             ))
+    member val Function                    = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(SemColor.Function                   ))
+    member val Property                    = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(SemColor.Property                   ))
+    member val MutableVar                  = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(SemColor.MutableVar                 ))
+    member val Module                      = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(SemColor.Module                     ))
+    member val Namespace                   = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(SemColor.Namespace                  ))
+    //member val Printf                    = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(SemColor.Printf                     )) // covered by xshd
+    member val ComputationExpression       = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(SemColor.ComputationExpression      ))
+    member val IntrinsicFunction           = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(SemColor.IntrinsicFunction          ))
+    member val Enumeration                 = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(SemColor.Enumeration                ))
+    member val Interface                   = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(SemColor.Interface                  ))
+    member val TypeArgument                = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(SemColor.TypeArgument               ))
+    member val Operator                    = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(SemColor.Operator                   ))
+    member val DisposableType              = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(SemColor.DisposableType             ))
+    member val DisposableTopLevelValue     = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(SemColor.DisposableTopLevelValue    ))
+    member val DisposableLocalValue        = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(SemColor.DisposableLocalValue       ))
+    member val Method                      = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(SemColor.Method                     ))
+    member val ExtensionMethod             = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(SemColor.ExtensionMethod            ))
+    member val ConstructorForReferenceType = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(SemColor.ConstructorForReferenceType))
+    member val ConstructorForValueType     = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(SemColor.ConstructorForValueType    ))
+    member val Literal                     = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(SemColor.Literal                    ))
+    member val RecordField                 = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(SemColor.RecordField                ))
+    member val MutableRecordField          = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(SemColor.MutableRecordField         ))
+    member val RecordFieldAsFunction       = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(SemColor.RecordFieldAsFunction      ))
+    member val Exception                   = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(SemColor.Exception                  ))
+    member val Field                       = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(SemColor.Field                      ))
+    member val Event                       = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(SemColor.Event                      ))
+    member val Delegate                    = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(SemColor.Delegate                   ))
+    member val NamedArgument               = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(SemColor.NamedArgument              ))
+    member val Value                       = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(SemColor.Value                      ))
+    member val LocalValue                  = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(SemColor.LocalValue                 ))//; makeCursive el
+    member val Type                        = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(SemColor.Type                       ))
+    member val TypeDef                     = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(SemColor.TypeDef                    ))
+    member val Plaintext                   = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(SemColor.Plaintext                  ))
+                                
+    member val UnUsed                      = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(SemColor.UnUsed))
+
 
 // type alias
 type Sc = SemanticClassificationType
@@ -154,6 +155,7 @@ type SemanticHighlighter (state: InteractionState) =
     //let action (el:VisualLineElement,brush:SolidColorBrush,r:Text.Range) = el.TextRunProperties.SetForegroundBrush(Brushes.Red)
   
     let trans = state.TransformersSemantic   
+    let semActs = SemActions()
 
     let foundSemanticsEv = new Event<unit>()
 
@@ -176,46 +178,46 @@ type SemanticHighlighter (state: InteractionState) =
                     let st = offLn.offStart + r.StartColumn                 
                     let en = offLn.offStart + r.EndColumn
 
-                    let inline push(f,t,a) = trans.Insert(lineNo,{from=f; till=t; act=a})
+                    let inline push(f,t,a) =trans.Insert(lineNo,{from=f; till=t; act=a})
             
                     match sem.Type with 
-                    | Sc.ReferenceType               -> push(st,en, SemAction.ReferenceType              )
-                    | Sc.ValueType                   -> push(st,en, SemAction.ValueType                  )
-                    | Sc.UnionCase                   -> push(st,en, SemAction.UnionCase                  )
-                    | Sc.UnionCaseField              -> push(st,en, SemAction.UnionCaseField             )
-                    | Sc.Function                    -> if not(skipFunc(st,en)) then push(st,en, SemAction.Function)
-                    | Sc.Property                    -> push(correctStart(st,en),en, SemAction.Property  )// correct so that a string or number literal before the dot does not get colored
-                    | Sc.MutableVar                  -> push(st,en, SemAction.MutableVar                 )
-                    | Sc.Module                      -> if not(skipModul(st,en)) then push(st,en, SemAction.Module )
-                    | Sc.Namespace                   -> push(st,en, SemAction.Namespace                  )
-                    | Sc.ComputationExpression       -> push(st,en, SemAction.ComputationExpression      )
-                    | Sc.IntrinsicFunction           -> push(st,en, SemAction.IntrinsicFunction          )
-                    | Sc.Enumeration                 -> push(st,en, SemAction.Enumeration                )
-                    | Sc.Interface                   -> push(st,en, SemAction.Interface                  )
-                    | Sc.TypeArgument                -> push(st,en, SemAction.TypeArgument               )
-                    | Sc.Operator                    -> push(st,en, SemAction.Operator                   )
-                    | Sc.DisposableType              -> push(st,en, SemAction.DisposableType             )
-                    | Sc.DisposableTopLevelValue     -> push(st,en, SemAction.DisposableTopLevelValue    )
-                    | Sc.DisposableLocalValue        -> push(st,en, SemAction.DisposableLocalValue       )
-                    | Sc.Method                      -> push(correctStart(st,en),en, SemAction.Method    )// correct so that a string or number literal before the dot does not get colored
-                    | Sc.ExtensionMethod             -> push(correctStart(st,en),en, SemAction.ExtensionMethod)
-                    | Sc.ConstructorForReferenceType -> push(st,en, SemAction.ConstructorForReferenceType)
-                    | Sc.ConstructorForValueType     -> push(st,en, SemAction.ConstructorForValueType    )
-                    | Sc.Literal                     -> push(st,en, SemAction.Literal                    )
-                    | Sc.RecordField                 -> push(st,en, SemAction.RecordField                )
-                    | Sc.MutableRecordField          -> push(st,en, SemAction.MutableRecordField         )
-                    | Sc.RecordFieldAsFunction       -> push(st,en, SemAction.RecordFieldAsFunction      )
-                    | Sc.Exception                   -> push(st,en, SemAction.Exception                  )
-                    | Sc.Field                       -> push(st,en, SemAction.Field                      )
-                    | Sc.Event                       -> push(st,en, SemAction.Event                      )
-                    | Sc.Delegate                    -> push(st,en, SemAction.Delegate                   )
-                    | Sc.NamedArgument               -> push(st,en, SemAction.NamedArgument              )
-                    | Sc.Value                       -> push(st,en, SemAction.Value                      )
-                    | Sc.LocalValue                  -> push(st,en, SemAction.LocalValue                 )
-                    | Sc.Type                        -> push(st,en, SemAction.Type                       )
-                    | Sc.TypeDef                     -> push(st,en, SemAction.TypeDef                    )
-                    | Sc.Plaintext                   -> push(st,en, SemAction.Plaintext                  )  
-                    | Sc.Printf                      -> () //push(st,en, SemAction.Printf                ) // covered in xshd file 
+                    | Sc.ReferenceType               -> push(st,en, semActs.ReferenceType              )
+                    | Sc.ValueType                   -> push(st,en, semActs.ValueType                  )
+                    | Sc.UnionCase                   -> push(st,en, semActs.UnionCase                  )
+                    | Sc.UnionCaseField              -> push(st,en, semActs.UnionCaseField             )
+                    | Sc.Function                    -> if not(skipFunc(st,en)) then push(st,en, semActs.Function)
+                    | Sc.Property                    -> push(correctStart(st,en),en, semActs.Property  )// correct so that a string or number literal before the dot does not get colored
+                    | Sc.MutableVar                  -> push(st,en, semActs.MutableVar                 )
+                    | Sc.Module                      -> if not(skipModul(st,en)) then push(st,en, semActs.Module )
+                    | Sc.Namespace                   -> push(st,en, semActs.Namespace                  )
+                    | Sc.ComputationExpression       -> push(st,en, semActs.ComputationExpression      )
+                    | Sc.IntrinsicFunction           -> push(st,en, semActs.IntrinsicFunction          )
+                    | Sc.Enumeration                 -> push(st,en, semActs.Enumeration                )
+                    | Sc.Interface                   -> push(st,en, semActs.Interface                  )
+                    | Sc.TypeArgument                -> push(st,en, semActs.TypeArgument               )
+                    | Sc.Operator                    -> push(st,en, semActs.Operator                   )
+                    | Sc.DisposableType              -> push(st,en, semActs.DisposableType             )
+                    | Sc.DisposableTopLevelValue     -> push(st,en, semActs.DisposableTopLevelValue    )
+                    | Sc.DisposableLocalValue        -> push(st,en, semActs.DisposableLocalValue       )
+                    | Sc.Method                      -> push(correctStart(st,en),en, semActs.Method    )// correct so that a string or number literal before the dot does not get colored
+                    | Sc.ExtensionMethod             -> push(correctStart(st,en),en, semActs.ExtensionMethod)
+                    | Sc.ConstructorForReferenceType -> push(st,en, semActs.ConstructorForReferenceType)
+                    | Sc.ConstructorForValueType     -> push(st,en, semActs.ConstructorForValueType    )
+                    | Sc.Literal                     -> push(st,en, semActs.Literal                    )
+                    | Sc.RecordField                 -> push(st,en, semActs.RecordField                )
+                    | Sc.MutableRecordField          -> push(st,en, semActs.MutableRecordField         )
+                    | Sc.RecordFieldAsFunction       -> push(st,en, semActs.RecordFieldAsFunction      )
+                    | Sc.Exception                   -> push(st,en, semActs.Exception                  )
+                    | Sc.Field                       -> push(st,en, semActs.Field                      )
+                    | Sc.Event                       -> push(st,en, semActs.Event                      )
+                    | Sc.Delegate                    -> push(st,en, semActs.Delegate                   )
+                    | Sc.NamedArgument               -> push(st,en, semActs.NamedArgument              )
+                    | Sc.Value                       -> push(st,en, semActs.Value                      )
+                    | Sc.LocalValue                  -> push(st,en, semActs.LocalValue                 )
+                    | Sc.Type                        -> push(st,en, semActs.Type                       )
+                    | Sc.TypeDef                     -> push(st,en, semActs.TypeDef                    )
+                    | Sc.Plaintext                   -> push(st,en, semActs.Plaintext                  )  
+                    | Sc.Printf                      -> () //push(st,en, semActs.Printf                ) // covered in xshd file 
                     | _ -> () // the above actually covers all SemanticClassificationTypes
                     
                     
@@ -232,18 +234,18 @@ type SemanticHighlighter (state: InteractionState) =
                 | ValueSome offLn ->  
                     let st = offLn.offStart + r.StartColumn                
                     let en = offLn.offStart + r.EndColumn
-                    trans.Insert(lineNo, {from=st; till=en; act=SemAction.UnUsed})
+                    trans.Insert(lineNo, {from=st; till=en; act=semActs.UnUsed})
 
         foundSemanticsEv.Trigger()
     
-    member _.TransformerLineCount = trans.LineCount
+    member _.TransformerLineCount = trans.LineCount // used only for debugging ?
 
 (*  // DELETE
             if r.StartLine = lineNo && r.EndLine = lineNo then 
                 let st = offSt + r.StartColumn
                 let en = offSt + r.EndColumn
                 if en >  offSt  && en <= offEn && st >= offSt  && st <  offEn && en < lastCode.Length then
-                    push(st,en, SemAction.UnUsed) 
+                    push(st,en, semActs.UnUsed) 
 
 
 type DebugColorizer () = 
@@ -267,6 +269,8 @@ module SemanticHighlighting =
         ed.TextArea.TextView.LineTransformers.Add(semHiLi)        
         //ed.TextArea.TextView.LineTransformers.Add(new DebugColorizer())        
         semHiLi
+
+
 *)
 
 

@@ -100,7 +100,7 @@ module Redrawing =
             if scan = Scan1State.All then                 
                 scan <- Scan1State.None 
                 fast.ResetShift()
-                //printfn $"*Redraw {serv.brackets.TransformerLineCount} lines"
+                printfn $"*Redraw {serv.brackets.TransformerLineCount} lines"
                 ed.Dispatcher.Invoke (fun() -> ed.TextArea.TextView.Redraw()) //TODO only redraw parts of the view, or lower priority ?    
 
         let doneBadIndents() = scan <- scan ||| Scan1State.BadIndent;  tryDraw()
@@ -126,7 +126,8 @@ module Redrawing =
         let tryDraw() = 
             if scan = Scan2State.All then                 
                 scan <- Scan2State.None
-                //printfn $"**Redraw {serv.semantic.TransformerLineCount} lines*"
+                fast.ResetShift()
+                printfn $"**Redraw {serv.semantic.TransformerLineCount} lines*"
                 ed.Dispatcher.Invoke (fun() -> ed.TextArea.TextView.Redraw()) //TODO only redraw parts of the view, or lower priority ?    
     
         let doneSemantics()  = scan <- scan ||| Scan2State.Semantics;  tryDraw()
@@ -319,67 +320,70 @@ module DocChangeCompletion =
     let singleCharChange (iEd:IEditor, serv:EditorServices, state:InteractionState, id:int64)  =
         let pos = getPosInCode2(iEd.AvaEdit)
         let tx = pos.lineToCaret
-        let c = tx[tx.Length-1]
+        if tx.Length = 0 then // empty line after deleting
+            DocChangeMark.markFoldCheckHighlightAsync (iEd, serv, state, id)    
+        else
+            let c = tx[tx.Length-1]
 
-        if c <> '.' && state.JustCompleted then 
-            // if it is not a dot avoid re-trigger of completion window on single character completions, just check
-            state.JustCompleted <- false // reset it
-            DocChangeMark.markFoldCheckHighlightAsync (iEd, serv, state, id)
-        else            
-            let doc = iEd.AvaEdit.Document // get in sync
-            async{                
-                do! Async.Sleep 30
-                match c with
-                | '_'  // for __SOURCE_DIRECTORY__
-                | '`'  // for complex F# names in `` ``
-                | '#'  // for #if directives
-                | '.' 
-                |  _  when isInFsharpIdentifier(c,pos) ->  
-                    let show = MaybeShow.completionWindow(pos)
-                    match show with 
-                    |DoNothing  -> ()
-                    |JustMark   -> DocChangeMark.markFoldCheckHighlight(iEd, doc, serv, state, id)
-                    |ShowAll    
-                    |ShowOnlyDU -> 
-                        state.DocChangedConsequence <- WaitForCompletions
-                        let mutable fullCode = ""
-                        let declsPosx  = 
-                            Monads.maybe{
-                                let! _          = state.IsLatestOpt id
-                                let code        = doc.CreateSnapshot().Text // the only threadsafe way to access the code string
-                                fullCode <- code
-                                let! _          = state.IsLatestOpt id
-                                let! res        = Checker.CheckCode(iEd, state, code, id)
-                                let! decls, pos = Checker.GetCompletions(pos,res) 
-                                let! _          = state.IsLatestOpt id
-                                return decls, pos
-                            }
+            if c <> '.' && state.JustCompleted then 
+                // if it is not a dot avoid re-trigger of completion window on single character completions, just check
+                state.JustCompleted <- false // reset it
+                DocChangeMark.markFoldCheckHighlightAsync (iEd, serv, state, id)
+            else            
+                let doc = iEd.AvaEdit.Document // get in sync
+                async{                
+                    do! Async.Sleep 30
+                    match c with
+                    | '_'  // for __SOURCE_DIRECTORY__
+                    | '`'  // for complex F# names in `` ``
+                    | '#'  // for #if directives
+                    | '.' 
+                    |  _  when isInFsharpIdentifier(c,pos) ->  
+                        let show = MaybeShow.completionWindow(pos)
+                        match show with 
+                        |DoNothing  -> ()
+                        |JustMark   -> DocChangeMark.markFoldCheckHighlight(iEd, doc, serv, state, id)
+                        |ShowAll    
+                        |ShowOnlyDU -> 
+                            state.DocChangedConsequence <- WaitForCompletions
+                            let mutable fullCode = ""
+                            let declsPosx  = 
+                                Monads.maybe{
+                                    let! _          = state.IsLatestOpt id
+                                    let code        = doc.CreateSnapshot().Text // the only threadsafe way to access the code string
+                                    fullCode <- code
+                                    let! _          = state.IsLatestOpt id
+                                    let! res        = Checker.CheckCode(iEd, state, code, id)
+                                    let! decls, pos = Checker.GetCompletions(pos,res) 
+                                    let! _          = state.IsLatestOpt id
+                                    return decls, pos
+                                }
                         
-                        match declsPosx with         
-                        |Some (decls, posx) ->
-                            // Switsch to Sync and try showing completion window:
-                            do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context                            
-                            let onlyDU = show = ShowOnlyDU 
-                            match serv.compls.TryShow(state, decls, posx, onlyDU ) with 
-                            |DidShow -> 
-                                () // no need to do anything, DocChangedConsequence will be updated to 'React' when completion window closes
-                            |NoShow -> 
+                            match declsPosx with         
+                            |Some (decls, posx) ->
+                                // Switsch to Sync and try showing completion window:
+                                do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context                            
+                                let onlyDU = show = ShowOnlyDU 
+                                match serv.compls.TryShow(state, decls, posx, onlyDU ) with 
+                                |DidShow -> 
+                                    () // no need to do anything, DocChangedConsequence will be updated to 'React' when completion window closes
+                                |NoShow -> 
+                                    state.DocChangedConsequence <- React
+                                    do! Async.SwitchToThreadPool()
+                                    DocChangeMark.markTwoSteps(iEd, fullCode, serv, state, id)
+                            |None -> 
                                 state.DocChangedConsequence <- React
                                 do! Async.SwitchToThreadPool()
-                                DocChangeMark.markTwoSteps(iEd, fullCode, serv, state, id)
-                        |None -> 
-                            state.DocChangedConsequence <- React
-                            do! Async.SwitchToThreadPool()
-                            if fullCode="" then 
-                                fullCode <- doc.CreateSnapshot().Text
-                            if state.DocChangedId.Value = id then 
-                                DocChangeMark.markTwoSteps (iEd, fullCode, serv, state, id)                            
-                | _ ->   
-                    // the typed charater should not trigger completion.                 
-                    // DocChangedConsequence is still  'React', no need to reset.
-                    DocChangeMark.markFoldCheckHighlight(iEd, doc, serv, state, id)
+                                if fullCode="" then 
+                                    fullCode <- doc.CreateSnapshot().Text
+                                if state.DocChangedId.Value = id then 
+                                    DocChangeMark.markTwoSteps (iEd, fullCode, serv, state, id)                            
+                    | _ ->   
+                        // the typed charater should not trigger completion.                 
+                        // DocChangedConsequence is still  'React', no need to reset.
+                        DocChangeMark.markFoldCheckHighlight(iEd, doc, serv, state, id)
             
-            } |> Async.Start
+                } |> Async.Start
         
 
 module DocChangeEvents = 
@@ -388,7 +392,7 @@ module DocChangeEvents =
     let changing (fastColor:FastColorizer) (a:DocumentChangeEventArgs) =             
         match DocChangeUtil.isSingleCharChange a with 
         |ValueSome s -> 
-            fastColor.AdjustShift s
+            fastColor.AdjustShift {from=a.Offset; amount=s}
         |ValueNone   -> 
             //a multi character change, just wait for type checker.., 
             //because it might contain a line rturen and then just doing a shift would not work anymore
