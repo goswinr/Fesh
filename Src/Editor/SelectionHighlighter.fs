@@ -8,7 +8,6 @@ open Seff.Util.General
 open Seff.Util
 open Seff.Model
 open Seff.Editor.Selection
-open Seff.Editor.FullCode
 open Seff.Editor
 
 
@@ -88,12 +87,12 @@ type SelectionHighlighter (edState:InteractionState, lgState:InteractionState) =
                     true // return true if loop completed
                 else
                     match lines.GetLine(lineNo, id) with 
-                    |ValueNone -> false // could not get code line, newer chnage happened already 
+                    |ValueNone -> false // could not get code line, newer change happened already 
                     |ValueSome l -> 
                         let mutable off = codeStr.IndexOf(word, l.offStart, l.len, StringComparison.Ordinal)                        
                         while off >= 0 do
-                            offs.Add off // also add for current selction
-                            if off <> selectionStartOff then // skip the actual current selction
+                            offs.Add off // also add for current selection
+                            if off <> selectionStartOff then // skip the actual current selection
                                 trans.Insert(lineNo, {from=off; till=off+wordLen; act=action})                                 
                             let start = off + word.Length // search from this for next occurrence in this line 
                             let lenReduction = start - l.offStart
@@ -103,7 +102,7 @@ type SelectionHighlighter (edState:InteractionState, lgState:InteractionState) =
                         loop (lineNo + 1)
             
             let prev = trans.Range
-            trans.ClearAllLines() // does nothing if already all clered
+            trans.ClearAllLines() // does nothing if already all cleared
             if loop 1 then // tests if ther is a newer doc change                 
                 match  prev, trans.Range with 
                 | None       , None  -> ()   // nothing before, nothing now
@@ -115,7 +114,7 @@ type SelectionHighlighter (edState:InteractionState, lgState:InteractionState) =
                     state.Editor.TextArea.TextView.Redraw(f.from, l.till, priority)
                     ev.Trigger(offs)
                 
-                | Some (pf,pl),Some (f,l) ->   /// both prev and current version have a selection                 
+                | Some (pf,pl),Some (f,l) ->   // both prev and current version have a selection                 
                     do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context                    
                     markFoldingsSorted(state,offs)
                     state.Editor.TextArea.TextView.Redraw(min pf.from f.from, max pl.till l.till, priority)

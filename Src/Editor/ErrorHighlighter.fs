@@ -22,6 +22,7 @@ open Seff.Util
 open Seff.Model
 
 
+
 //read: http://danielgrunwald.de/coding/AvalonEdit/rendering.php
 
 // originally taken from //https://stackoverflow.com/questions/11149907/showing-invalid-xml-syntax-with-avalonedit
@@ -175,32 +176,34 @@ module ErrorUtil =
                         getNextSegment(ied)
                     else                
                         getSegment ied.AvaEdit.Document t
-
-    
-    
-
-/// IBackgroundRenderer only neded because 
+   
+ 
+/// IBackgroundRenderer only needed because 
 type ErrorRenderer (state: InteractionState, segms:LineTransformers<SegmentToMark>) = 
-    let trans = state.FastColorizer.Transformers
-
+    
     /// Draw the error squiggle  on the code
     member _.Draw (textView:TextView , drawingContext:DrawingContext) = // for IBackgroundRenderer        
+        //eprintfn $"Drawing : {segms.TotalCount} errs"
         let vls = textView.VisualLines
         for vl in vls do 
             let ln = vl.FirstDocumentLine                
-            for seg in segms.Line(ln.LineNumber) do
-                    
-                // background color: Done in Error Highlighter
-                //let geoBuilder = new BackgroundGeometryBuilder (AlignToWholePixels = true, CornerRadius = 0.)
-                //geoBuilder.AddSegment(textView, seg)
-                //let boundaryPolygon= geoBuilder.CreateGeometry() // creates one boundary round the text
-                //drawingContext.DrawGeometry(seg.BackgroundBrush, null, boundaryPolygon)
+            let segs = segms.Line(ln.LineNumber)
+            for i = 0 to segs.Count-1 do
+                if segs.Count > i then // saftey check because collection might get reset while iterating
+                    let seg = segs.[i]
+                    let e = seg.Diagnostic
+                    ISeffLog.log.PrintfnDebugMsg $"IBackgRe: DocLine {ln.LineNumber}: ErrLines{e.StartLine}.{e.StartColumn}-{e.EndLine}.{e.EndColumn}"   
+                    // background color: Done in Error Highlighter
+                    //let geoBuilder = new BackgroundGeometryBuilder (AlignToWholePixels = true, CornerRadius = 0.)
+                    //geoBuilder.AddSegment(textView, seg)
+                    //let boundaryPolygon= geoBuilder.CreateGeometry() // creates one boundary round the text
+                    //drawingContext.DrawGeometry(seg.BackgroundBrush, null, boundaryPolygon)
 
-                //foreground,  squiggles:
-                for rect in BackgroundGeometryBuilder.GetRectsForSegment(textView, seg) do
-                    let geo = ErrorUtil.getSquiggleLine(rect)
-                    drawingContext.DrawGeometry(Brushes.Transparent, seg.UnderlinePen, geo)
-                    //based on //https://stackoverflow.com/questions/11149907/showing-invalid-xml-syntax-with-avalonedit
+                    //foreground,  squiggles:
+                    for rect in BackgroundGeometryBuilder.GetRectsForSegment(textView, seg) do
+                        let geo = ErrorUtil.getSquiggleLine(rect)
+                        drawingContext.DrawGeometry(Brushes.Transparent, seg.UnderlinePen, geo)
+                        //based on //https://stackoverflow.com/questions/11149907/showing-invalid-xml-syntax-with-avalonedit
        
 
     member _.Layer = KnownLayer.Selection // for IBackgroundRenderer
@@ -224,51 +227,45 @@ type ErrorHighlighter ( state:InteractionState, folds:Folding.FoldingManager) =
     let trans = state.TransformersSemantic
     let ed = state.Editor
     let tView = ed.TextArea.TextView
+     
 
-    /// because FSharpDiagnostic might have line number 0 form Parse-and-check-file-in-project errors, but Avalonedit starts at 1
-    let linesStartAtOne i = if i<1 then 1 else i 
-    
-    let getOffsets (lineOffs:ResizeArray<int<off>>, e:FSharpDiagnostic) =
-        let ln  = linesStartAtOne e.StartLine        
-        let st = int lineOffs.[ln] + e.StartColumn + 1
-        let ln  = linesStartAtOne e.EndLine       
-        let en = int lineOffs.[ln] + e.EndColumn + 1
-        if st < en then 
-            st, en
-        elif st > en then // should never happen // this FCS bug has happened in the past, for Parse-and-check-file-in-project errors the segments can be wrong
-            en, st 
-        else // st=en  // should never happen
-            st, st + 1 // just in case, so it is at least on char long
-    
-    
-
-    let insert (e:FSharpDiagnostic, lineOffs:ResizeArray<int<off>>, action) = 
-        // handle multiline Errors
-        let lnNoSt = linesStartAtOne e.StartLine   
-        let lnNoEn = linesStartAtOne e.EndLine        
-        for lnNo = lnNoSt to lnNoEn do
-            let st0,en0 = getOffsets (lineOffs,e)    // might be multiline         
-            let lnSt = lineOffs.[lnNo]              |> int
-            let lnEn = lineOffs.[lnNo+1] - 2<off>   |> int
-            let st  = max lnSt st0 // trimm to this line 
-            let en  = min lnEn en0
+    let insert (e:FSharpDiagnostic, id, action) =         
+        let lnNo =  max 1 e.StartLine // because FSharpDiagnostic might have line number 0 form Parse-and-check-file-in-project errors, but Avalonedit starts at 1
+        match state.CodeLines.GetLine(lnNo,id) with 
+        | ValueNone -> ()
+        | ValueSome cln ->
+            let st  = cln.offStart + e.StartColumn
+            let en = 
+                if e.EndLine = e.StartLine then
+                    if e.StartColumn <= e.EndColumn then 
+                        ISeffLog.log.PrintfnAppErrorMsg $"FSharp Checker reported an invalid error position: e.StartColumn <= e.EndColumn:\r\n {e}"
+                    cln.offStart + e.EndColumn           
+                
+                elif e.EndLine > e.StartLine then // for multiline Errors only show first Line
+                    cln.offStart + cln.len
+                else 
+                    ISeffLog.log.PrintfnAppErrorMsg $"FSharp Checker reported an invalid error position: e.EndLine < e.StartLine:\r\n {e}"                                    
+                    cln.offStart + cln.len    
+                    
             trans.Insert(lnNo, {from=st; till=en; act=action}) 
-            segments.Insert(lnNo, SegmentToMark(st ,en , e))
-            
+            segments.Insert(lnNo, SegmentToMark(st ,en , e))                      
     
-    let updateFolds(e:FSharpDiagnostic, lineOffs:ResizeArray<int<off>>, brush, pen) = 
-        let lnNoSt = linesStartAtOne e.StartLine 
-        let offset = int lineOffs.[lnNoSt] + e.StartColumn        
-        for fold in folds.GetFoldingsContaining(offset) do
-            //if fold.IsFolded then // do on all folds, so they show correctly when collapsing !
-            //fold.BackbgroundColor  <- ErrorStyle.errBackGr // done via ctx.DrawRectangle(ErrorStyle.errBackGr
-            fold.DecorateRectangle <- 
-                Action<Rect,DrawingContext>( fun rect ctx ->
-                    let geo = ErrorUtil.getSquiggleLine(rect)
-                    if isNull fold.BackgroundColor then // in case of selection highlighting skip brush, only use Pen  
-                        ctx.DrawRectangle(brush, null, rect)                       
-                    ctx.DrawGeometry(Brushes.Transparent, pen, geo)
-                    )      
+    let updateFolds(e:FSharpDiagnostic, id, brush, pen) = 
+        let lnNo =  max 1 e.StartLine // because FSharpDiagnostic might have line number 0 
+        match state.CodeLines.GetLine(lnNo,id) with 
+        | ValueNone -> ()
+        | ValueSome cln ->
+            let offset = cln.offStart + e.StartColumn     
+            for fold in folds.GetFoldingsContaining(offset) do
+                //if fold.IsFolded then // do on all folds, so they show correctly when collapsing !
+                //fold.BackbgroundColor  <- ErrorStyle.errBackGr // done via ctx.DrawRectangle(ErrorStyle.errBackGr
+                fold.DecorateRectangle <- 
+                    Action<Rect,DrawingContext>( fun rect ctx ->
+                        let geo = ErrorUtil.getSquiggleLine(rect)
+                        if isNull fold.BackgroundColor then // in case of selection highlighting skip brush, only use Pen  
+                            ctx.DrawRectangle(brush, null, rect)                       
+                        ctx.DrawGeometry(Brushes.Transparent, pen, geo)
+                        )      
     
     
     let showErrorToolTip(mouse:Input.MouseEventArgs) = 
@@ -309,21 +306,25 @@ type ErrorHighlighter ( state:InteractionState, folds:Folding.FoldingManager) =
 
     [<CLIEvent>] 
     member _.FoundErrors = foundErrorsEv.Publish
+
+    member _.TransformerLineCount = trans.LineCount
     
-    member _.UpdateErrs(errs:ErrorsBySeverity, lineOffs:ResizeArray<int<off>>, id) = 
+    member _.UpdateErrs(errs:ErrorsBySeverity, id) = 
         if state.DocChangedId.Value = id then
-            segments.ClearAllLines() // first clear
-            for h in errs.hiddens  do insert(h, lineOffs, actionHidden)
-            for i in errs.infos    do insert(i, lineOffs, actionInfo)              
-            for w in errs.warnings do insert(w, lineOffs, actionWarning)              
-            for e in errs.errors   do insert(e, lineOffs, actionError)
+            //eprintfn $"clear and add {errs.errors.Count}"
+            segments.ClearAllLines() // first clear. no dont! clear is done in DocChanged.fs
+            for h in errs.hiddens  do insert(h, id ,actionHidden)
+            for i in errs.infos    do insert(i, id ,actionInfo)              
+            for w in errs.warnings do insert(w, id ,actionWarning)              
+            for e in errs.errors   do insert(e, id ,actionError)
+            //eprintfn $"inserted errs: {segments.TotalCount}"
             async{
                 do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context
                 for fold in folds.AllFoldings do fold.DecorateRectangle <- null // first clear
-                for h in errs.hiddens  do updateFolds(h, lineOffs, ErrorStyle.infoBackGr, ErrorStyle.infoSquiggle) 
-                for i in errs.infos    do updateFolds(i, lineOffs, ErrorStyle.infoBackGr, ErrorStyle.infoSquiggle)
-                for w in errs.warnings do updateFolds(w, lineOffs, ErrorStyle.warnBackGr, ErrorStyle.warnSquiggle)
-                for e in errs.errors   do updateFolds(e, lineOffs, ErrorStyle.errBackGr , ErrorStyle.errSquiggle)
+                for h in errs.hiddens  do updateFolds(h, id, ErrorStyle.infoBackGr, ErrorStyle.infoSquiggle) 
+                for i in errs.infos    do updateFolds(i, id, ErrorStyle.infoBackGr, ErrorStyle.infoSquiggle)
+                for w in errs.warnings do updateFolds(w, id, ErrorStyle.warnBackGr, ErrorStyle.warnSquiggle)
+                for e in errs.errors   do updateFolds(e, id, ErrorStyle.errBackGr , ErrorStyle.errSquiggle)
             } |> Async.RunSynchronously
 
             foundErrorsEv.Trigger()

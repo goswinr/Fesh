@@ -79,7 +79,8 @@ type Foldings(manager:Folding.FoldingManager, state:InteractionState, getFilePat
     let defaultIndenting = state.Editor.Options.IndentationSize
     let mutable lastBadIndentSize = 0
 
-    let findFoldings (tx:string) :unit = 
+    let findFoldings (clns:CodeLineTools.CodeLines) :unit = 
+        let tx = clns.FullCode
 
         FoldingStack.Clear() // Collections.Generic.Stack<FoldStart>
         Folds.Clear() // ResizeArray<Fold>  
@@ -196,11 +197,11 @@ type Foldings(manager:Folding.FoldingManager, state:InteractionState, getFilePat
     let foundBadIndentsEv = new Event<unit>() 
 
     ///Get foldings at every line that is followed by an indent
-    let foldEditor (fullCode:string, id:int64) =                
+    let foldEditor (id:int64) =                
         //ISeffLog.log.PrintfnDebugMsg "folding1: %s" iEditor.FilePath.File
         async{                
             let foldings = 
-                findFoldings fullCode  
+                findFoldings state.CodeLines  
                 foundBadIndentsEv.Trigger()
                 let l = Folds.Count-1
                 let fs = ResizeArray(max 0 l)// would be -1 if no foldings
@@ -286,7 +287,7 @@ type Foldings(manager:Folding.FoldingManager, state:InteractionState, getFilePat
             )
 
     /// runs first part async
-    member _.UpdateFoldsAndBadIndents(fullCode, id) = foldEditor(fullCode, id)
+    member _.UpdateFoldsAndBadIndents( id) = foldEditor( id)
     
     member _.Manager = manager
 

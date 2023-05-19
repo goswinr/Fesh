@@ -78,7 +78,7 @@ type ChnageId = int64
 /// just an alias for a string
 type CodeAsString = string
 
-/// for offsets into the fullcode
+/// for offsets into the fullCode
 [<Measure>] type off 
 
 /// The errors sorted into groups
@@ -220,7 +220,7 @@ type FileCheckState =
 
 
    /// to compare local EditorCheckState with GlobalCheckState
-   member this.SameIdAndFullCode (globalChSt:FileCheckState) = 
+   member this.SameIdAndfullCode (globalChSt:FileCheckState) = 
        match this.CodeAndId with
        |NoCode -> NoCode
        |CodeID (id, c)  ->

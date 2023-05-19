@@ -18,24 +18,6 @@ type LinePartChange =
     act: Action<VisualLineElement>
     }
 
-// Given Start Offset and End Offset from Document  // DELETE
-//[<Struct>]
-//type LinePartChangeEx = 
-//    {
-//    from: int
-//    till: int
-//    action: Action<VisualLineElement>
-//    reason: ChangeReason
-//    }
-//
-//    static member make (from,till,action,reason) = 
-//        {
-//        from  =from  
-//        till  =till  
-//        action=action
-//        reason=reason
-//        }
-
 /// For accessing the highlighting of a line in constant time
 type LineTransformers<'T>() =    
 
@@ -92,6 +74,12 @@ type LineTransformers<'T>() =
     member _.IsNotEmpty = lastLine > 0 
 
     member _.Range = if lastLine > 0  then Some (first,last) else None
+
+    member this.TotalCount = 
+        let mutable k =  0
+        for i=0 to lines.Count do
+            k <- k + this.Line(i).Count
+        k
    
 
 
@@ -118,17 +106,21 @@ type FastColorizer(transformers:LineTransformers<LinePartChange> []) =
         for j = 0 to ltss.Length-1 do
             let lts = ltss.[j]
             if lineNo >= lts.LineCount then 
-                ISeffLog.log.PrintfnAppErrorMsg $"Cant get line index {lineNo} from {lts.LineCount} lines in LineTransformer"
+                //ISeffLog.log.PrintfnAppErrorMsg $"Cant get line index {lineNo} from {lts.LineCount} lines in LineTransformer"
+                ()
             else
                 let lpcs = lts.Line(lineNo) 
                 for i=0 to lpcs.Count-1 do  
-                    let lpc = lpcs[i]
-                    let from = lpc.from + shift
-                    let till = lpc.till + shift
-                    if   from > offEn then ISeffLog.log.PrintfnAppErrorMsg $"ch.form {lpc.from} + shift {shift} > offEn {offEn} in LineTransformer"
-                    elif till > offEn then ISeffLog.log.PrintfnAppErrorMsg $"ch.till {lpc.till} + shift {shift} > offEn {offEn} in LineTransformer"
-                    elif till < offSt then ISeffLog.log.PrintfnAppErrorMsg $"ch.till {lpc.till} + shift {shift} < offSt {offSt} in LineTransformer"
-                    elif from < offSt then ISeffLog.log.PrintfnAppErrorMsg $"ch.form {lpc.from} + shift {shift} < offSt {offSt} in LineTransformer"            
+                    if i < lpcs.Count then // becaus it might get reset while iterating ?
+                        let lpc = lpcs[i]
+                        let from = lpc.from + shift
+                        let till = lpc.till + shift
+                        if   from > offEn then ISeffLog.log.PrintfnAppErrorMsg $"ch.form {lpc.from} + shift {shift} > offEn {offEn} in LineTransformer"
+                        elif till > offEn then ISeffLog.log.PrintfnAppErrorMsg $"ch.till {lpc.till} + shift {shift} > offEn {offEn} in LineTransformer"
+                        elif till < offSt then ISeffLog.log.PrintfnAppErrorMsg $"ch.till {lpc.till} + shift {shift} < offSt {offSt} in LineTransformer"
+                        elif from < offSt then ISeffLog.log.PrintfnAppErrorMsg $"ch.form {lpc.from} + shift {shift} < offSt {offSt} in LineTransformer"            
+                        else
+                            base.ChangeLinePart(from, till, lpc.act)
+                            //base.CurrentContext.VisualLine.
                     else
-                        base.ChangeLinePart(from, till, lpc.act)
-                        //base.CurrentContext.VisualLine.
+                        ISeffLog.log.PrintfnAppErrorMsg $"Line Count {lpcs.Count} was reset while iterating index{i}"

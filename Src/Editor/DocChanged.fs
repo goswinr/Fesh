@@ -17,29 +17,12 @@ type EditorServices = {
     errors      : ErrorHighlighter
     semantic    : SemanticHighlighter
     compls      : Completions  
+    selection   : SelectionHighlighter
     //evalTracker : EvaluationTracker
-    //selectionHili   : SelectionHighlighter
     }
 
 module DocChangeUtil = 
-    
-    let getLineStartOffsets(code:string) =
-        let lineStartOffsets = ResizeArray<int<off>>(512)
-
-        lineStartOffsets.Add(0<off>) // line 0 does not exist 
-        lineStartOffsets.Add(0<off>) // line 1 starts at offset 0
-        let rec loop i =
-            if i < code.Length then 
-                match code.IndexOf('\n',i) with 
-                | -1 -> ()
-                | i -> 
-                    lineStartOffsets.Add(LanguagePrimitives.Int32WithMeasure i + 1<off>)
-                    loop (i+1) 
-        
-        loop 0
-        lineStartOffsets.Add(LanguagePrimitives.Int32WithMeasure code.Length)// so there is always a next line, even for the last
-        lineStartOffsets    
-    
+   
     
     /// returns the total character count change -1 or +1 depending if its a insert or remove
     let isSingleCharChange (a:DocumentChangeEventArgs) =
@@ -114,11 +97,12 @@ module Redrawing =
     
         let tryDraw() =  
             if scan = Scan1State.All then 
+                scan <- Scan1State.None 
+                //printfn $"*Redraw {serv.brackets.TransformerLineCount} lines"
                 ed.Dispatcher.Invoke (fun() -> ed.TextArea.TextView.Redraw()) //TODO only redraw parts of the view, or lower priority ?    
-    
-        let doneBadIndents() = scan <- scan &&& Scan1State.BadIndent;  tryDraw()
-        let doneBrackets()   = scan <- scan &&& Scan1State.Brackets;  tryDraw()
-        let reset() = scan <- Scan1State.None      
+
+        let doneBadIndents() = scan <- scan ||| Scan1State.BadIndent;  tryDraw()
+        let doneBrackets()   = scan <- scan ||| Scan1State.Brackets ;  tryDraw()             
 
         do
             serv.folds.FoundBadIndents.Add doneBadIndents
@@ -137,105 +121,45 @@ module Redrawing =
         let mutable scan = Scan2State.None        
     
         let tryDraw() = 
-            if scan = Scan2State.All then  
+            if scan = Scan2State.All then 
+                scan <- Scan2State.None
+                //printfn $"**Redraw {serv.semantic.TransformerLineCount} lines*"
                 ed.Dispatcher.Invoke (fun() -> ed.TextArea.TextView.Redraw()) //TODO only redraw parts of the view, or lower priority ?    
     
-        let doneSemantics()  = scan <- scan &&& Scan2State.Semantics;  tryDraw()
-        let doneErrors()     = scan <- scan &&& Scan2State.Errors   ;  tryDraw()
-        let reset() = scan <- Scan2State.None
+        let doneSemantics()  = scan <- scan ||| Scan2State.Semantics;  tryDraw()
+        let doneErrors()     = scan <- scan ||| Scan2State.Errors   ;  tryDraw()
         
         do
             serv.semantic.FoundSemantics.Add doneSemantics
             serv.errors.FoundErrors.Add doneErrors
 
-module ParseFulCode = 
-    
-    /// offStart: the offset of the first chracter off this line 
-    /// indent:  the count of spaces at the start of this line 
-    /// len: the amount of characters in this line excluding the trailing \r\n
-    /// if indent equals len the line is only whitespace
-    [<Struct>]
-    type Line = {
-        offStart:int // the offset of the first chracter off this line 
-        indent:int // the count of spaces at the start of this line 
-        len: int // the amount of characters in this line excluding the trailing \r\n
-        }
 
-
-    /// Counts spaces after a position
-    let inline private spacesFrom off len (str:string) = 
-        let mutable ind = 0
-        while ind < len && str.[off+ind] = ' ' do
-            ind <- ind + 1
-        ind
-
-
-    type FullCode() =
-        
-        let lns = ResizeArray<Line>(256)
-
-        let mutable isDone = false
-
-        let parse(code:string) =
-            isDone <- false
-
-            let codeLen = code.Length
-
-            let rec loop stOff = 
-                if stOff >= codeLen then // last line 
-                    let len = codeLen - stOff
-                    lns.Add {offStart=stOff; indent=len; len=len}   
-                else
-                    match code.IndexOf ('\r', stOff) with //TODO '\r' might fail if Seff is ever ported to AvaloniaEdit to work on MAC
-                    | -1 -> 
-                        let len = codeLen - stOff
-                        let indent = spacesFrom stOff len code
-                        lns.Add {offStart=stOff; indent=indent; len=len}        
-                    | r -> 
-                        let len = r - stOff
-                        let indent = spacesFrom stOff len code
-                        lns.Add {offStart=stOff; indent=indent; len=len}
-                        loop (r+2)
-
-            lns.Add {offStart=0; indent=0; len=0}   // ad dummy line at index 0
-            loop (0)
-            isDone <- true            
-
-        member _.Lines = lns
-
-        member _.IsDone = isDone
-
-        member _.Parse code = parse code
-
-                    
-                 
-      
 
 module DocChangeMark = 
     open DocChangeUtil
+    open CodeLineTools
 
-
-    let markTwoSteps(iEd:IEditor, code, serv:EditorServices, state:InteractionState, id) =               
-        /// first: Foldings, ColorBrackets and BadIndentation when full text available async.
-        async{
-            if state.IsLatest id then 
-                state.TransformersAllBrackets.ClearAllLines()
-                serv.folds.UpdateFoldsAndBadIndents(code,id)
-                serv.brackets.UpdateAllBrackets(code, id)
-         } |> Async.Start 
-        
-        /// second: Errors and Semantic Highlighting on check result .  
-        async{  
-            match Checker.CheckCode(iEd, code,state,id) with 
-            |None -> ()
-            |Some res ->
-                if state.IsLatest id then 
-                    let offs = getLineStartOffsets(code)
+    let markTwoSteps(iEd:IEditor, code, serv:EditorServices, state:InteractionState, id) = 
+            /// first: Foldings, ColorBrackets and BadIndentation when full text available async.
+            async{
+                if state.CodeLines.Update(code,id) then 
+                    state.TransformersAllBrackets.ClearAllLines()
+                    serv.folds.UpdateFoldsAndBadIndents(id)
                     if state.IsLatest id then 
-                        state.TransformersSemantic.ClearAllLines()
-                        serv.errors.UpdateErrs(res.errors,offs,id)
-                        serv.semantic.UpdateSemHiLiTransformers(code, offs, res.checkRes,id)
-        } |> Async.Start   
+                        serv.brackets.UpdateAllBrackets( id)
+             } |> Async.Start 
+        
+            /// second: Errors and Semantic Highlighting on check result .  
+            async{  
+                state.TransformersSemantic.ClearAllLines()
+                match Checker.CheckCode(iEd, state, code, id) with // code checking does not need to wait for CodeLines.Update
+                |None -> ()
+                |Some res ->
+                    if state.IsLatest id then                    
+                        serv.errors.UpdateErrs(res.errors, id)
+                        if state.IsLatest id then 
+                            serv.semantic.UpdateSemHiLiTransformers( res.checkRes, id)
+            } |> Async.Start   
     
     //To be called from any thread
     let markFoldCheckHighlight(iEd:IEditor, doc:TextDocument, serv:EditorServices, state:InteractionState, id ) =        
@@ -422,7 +346,7 @@ module DocChangeCompletion =
                                 let code        = doc.CreateSnapshot().Text // the only threadsafe way to access the code string
                                 fullCode <- code
                                 let! _          = state.IsLatestOpt id
-                                let! res        = Checker.CheckCode(iEd, code, state, id)
+                                let! res        = Checker.CheckCode(iEd, state, code, id)
                                 let! decls, pos = Checker.GetCompletions(pos,res) 
                                 let! _          = state.IsLatestOpt id
                                 return decls, pos
@@ -455,7 +379,6 @@ module DocChangeCompletion =
             } |> Async.Start
         
 
-
 module DocChangeEvents = 
     open DocChangeUtil   
 
@@ -485,7 +408,24 @@ module DocChangeEvents =
             
 
 
-
+            
+               //let getLineStartOffsets(code:string) = `// DELETE
+               //    let lineStartOffsets = ResizeArray<int<off>>(512)
+               //
+               //    lineStartOffsets.Add(0<off>) // line 0 does not exist 
+               //    lineStartOffsets.Add(0<off>) // line 1 starts at offset 0
+               //    let rec loop i =
+               //        if i < code.Length then 
+               //            match code.IndexOf('\n',i) with 
+               //            | -1 -> ()
+               //            | i -> 
+               //                lineStartOffsets.Add(LanguagePrimitives.Int32WithMeasure i + 1<off>)
+               //                loop (i+1) 
+               //    
+               //    loop 0
+               //    lineStartOffsets.Add(LanguagePrimitives.Int32WithMeasure code.Length)// so there is always a next line, even for the last
+               //    lineStartOffsets    
+               
 
             
 

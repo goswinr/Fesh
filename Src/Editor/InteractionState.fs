@@ -4,14 +4,14 @@ open AvalonEditB.Folding
 open AvalonEditB.Document
 open AvalonEditB
 
-module FullCode = 
+module CodeLineTools = 
     
     /// offStart: the offset of the first chracter off this line 
     /// indent:  the count of spaces at the start of this line 
     /// len: the amount of characters in this line excluding the trailing \r\n
     /// if indent equals len the line is only whitespace
     [<Struct>]
-    type Line = {
+    type LineInfo = {
         offStart:int // the offset of the first chracter off this line 
         indent:int // the count of spaces at the start of this line 
         len: int // the amount of characters in this line excluding the trailing \r\n
@@ -32,7 +32,7 @@ module FullCode =
     /// if indent equals len the line is only whitespace
     type CodeLines(docChangedIdHolder:int64 ref) =
         
-        let lns = ResizeArray<Line>(256)
+        let lns = ResizeArray<LineInfo>(256)
 
         let mutable isDone = true
 
@@ -53,12 +53,12 @@ module FullCode =
                     | -1 -> 
                         let len = codeLen - stOff
                         let indent = spacesFrom stOff len code
-                        lns.Add {offStart=stOff; indent=indent; len=len}        
+                        lns.Add {offStart=stOff; indent=indent; len=len}  // the last line      
                     | r -> 
                         let len = r - stOff
                         let indent = spacesFrom stOff len code
                         lns.Add {offStart=stOff; indent=indent; len=len}
-                        loop (r+2)
+                        loop (r+2) // +2 to jump over \r and \n
 
             lns.Add {offStart=0; indent=0; len=0}   // ad dummy line at index 0
             loop (0)
@@ -72,24 +72,27 @@ module FullCode =
 
         member _.FullCode = fullCode
         
-        /// Safe: Only start sparsing when Done and also checks 
+        /// ThreadSafe and in Sync: Only start sparsing when Done and also checks 
         /// if docChangedIdHolder.Value = id before and after
-        member this.Update(code, chnageId): CodeLines option = 
+        /// returns True 
+        member this.Update(code, chnageId): bool = 
             async{
                 //Wait til done
                 while not isDone && docChangedIdHolder.Value = chnageId do // because the id might expire while waiting
                     do! Async.Sleep 10
                 return 
                     if docChangedIdHolder.Value <> chnageId then 
-                        None
+                        false
                     else
                         lns.Clear()
                         update code
                         if docChangedIdHolder.Value = chnageId then 
-                            Some this 
+                            true
                         else 
-                            None
+                            false
             } |> Async.RunSynchronously
+
+
 
         /// Safe: checks isDone && docChangedIdHolder.Value = id
         member this.Get(chnageId): CodeLines option =
@@ -97,7 +100,7 @@ module FullCode =
 
         /// Safe: checks isDone && docChangedIdHolder.Value = id
         /// retuns also none for bad indices
-        member this.GetLine(lineIdx, chnageId): Line voption =
+        member this.GetLine(lineIdx, chnageId): LineInfo voption =
             if isDone && docChangedIdHolder.Value = chnageId then 
                 if lineIdx < 0 || lineIdx >= lns.Count then 
                     ValueNone
@@ -132,10 +135,10 @@ type InteractionState(ed:TextEditor, foldManager:FoldingManager, config:Seff.Con
     let transformersSelection         = new LineTransformers<LinePartChange>() 
     
     let fastColorizer = new FastColorizer( [|
-                                    transformersAllBrackets
-                                    transformersSelection
-                                    transformersSemantic
-                                    transformersMatchingBrackets            
+                                    //transformersAllBrackets
+                                    //transformersSelection
+                                    //transformersSemantic
+                                    //transformersMatchingBrackets            
                                     |] ) 
 
 
@@ -157,7 +160,7 @@ type InteractionState(ed:TextEditor, foldManager:FoldingManager, config:Seff.Con
    
     member val DocChangedConsequence = React with get, set
 
-    member val CodeLines = FullCode.CodeLines(changeId) with get
+    member val CodeLines = CodeLineTools.CodeLines(changeId) with get
 
     /// To avoid re-trigger of completion window on single char completions
     /// the window may just have closed, but for pressing esc, not for completion insertion
@@ -190,7 +193,7 @@ type InteractionState(ed:TextEditor, foldManager:FoldingManager, config:Seff.Con
     /// the caret position that can be savely accessed async
     member val Caret = 0 with get,set
     
-  
+
 
 // Highlighting needs:
 (*
@@ -226,3 +229,79 @@ type SelectionChangedConsequence =
     | HighlightSelection // and redraw all or find range ?
     | NoSelectionHighlight // just on char,  white or multiline
 *)    
+
+
+
+
+(*
+module LineOffsets = 
+    
+    /// offStart: the offset of the first chracter off this line 
+    /// indent:  the count of spaces at the start of this line 
+    /// len: the amount of characters in this line excluding the trailing \r\n
+    /// if indent equals len the line is only whitespace
+    [<Struct>]
+    type LineOff = {
+        /// The offset of the first chracter off this line 
+        offStart:int 
+        /// The count of spaces at the start of this line 
+        indent:int 
+        /// The amount of characters in this line excluding the trailing \r\n
+        len: int 
+        }
+
+
+    /// Counts spaces after a position
+    let inline private spacesFrom off len (str:string) = 
+        let mutable ind = 0
+        while ind < len && str.[off+ind] = ' ' do
+            ind <- ind + 1
+        ind
+
+    /// Holds a list of:
+    /// offStart: the offset of the first chracter off this line 
+    /// indent:  the count of spaces at the start of this line 
+    /// len: the amount of characters in this line excluding the trailing \r\n
+    /// if indent equals len the line is only whitespace
+    type LineOffsets(code) =
+        
+        let lns = ResizeArray<LineOff>(256)
+
+        //let mutable isDone = false
+
+        let parse(code:string) =
+            //isDone <- false
+
+            let codeLen = code.Length
+
+            let rec loop stOff = 
+                if stOff >= codeLen then // last line 
+                    let len = codeLen - stOff
+                    lns.Add {offStart=stOff; indent=len; len=len}   
+                else
+                    match code.IndexOf ('\r', stOff) with //TODO '\r' might fail if Seff is ever ported to AvaloniaEdit to work on MAC
+                    | -1 -> 
+                        let len = codeLen - stOff
+                        let indent = spacesFrom stOff len code
+                        lns.Add {offStart=stOff; indent=indent; len=len}        
+                    | r -> 
+                        let len = r - stOff
+                        let indent = spacesFrom stOff len code
+                        lns.Add {offStart=stOff; indent=indent; len=len}
+                        loop (r+2)
+
+            lns.Add {offStart=0; indent=0; len=0}   // ad dummy line at index 0
+            loop (0)
+            //isDone <- true         
+        
+        do parse code
+
+        //member _.Lines = lns
+
+        //member _.IsDone = isDone
+
+        //member _.Parse code = parse code
+
+        member _.Item(lineNumber) = lns.[lineNumber]
+*)
+

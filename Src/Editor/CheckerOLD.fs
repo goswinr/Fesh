@@ -267,7 +267,7 @@ type Checker private (config:Config)  =
 
     /// the async method doc.CreateSnapshot() completed
     [<CLIEvent>] 
-    member this.OnFullCodeAvailable = fullCodeAvailableEv.Publish
+    member this.OnfullCodeAvailable = fullCodeAvailableEv.Publish
 
     /// this event is raised on UI thread
     [<CLIEvent>] 

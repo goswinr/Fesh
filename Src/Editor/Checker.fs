@@ -209,7 +209,7 @@ type Checker private ()  =
             checkingStateEv.Trigger state )
 
     /// At the end either a event is raised or continuation called if present.
-    static let parseAndCheck(fullCode:CodeAsString, state:InteractionState, filePath:FilePath, chnageId): option<ParseCheckRes> = 
+    static let parseAndCheck( state:InteractionState, code:string, filePath:FilePath, chnageId): option<ParseCheckRes> = 
         match fsChecker with
         | Some _ -> ()
         | None   ->  fsChecker <- Some (FsCheckerUtil.getNew())
@@ -217,14 +217,16 @@ type Checker private ()  =
         Monads.maybe{
             let! _ = state.IsLatestOpt chnageId
             let fileFsx    = FsCheckerUtil.getFsxFileNameForChecker filePath
-            let sourceText = Text.SourceText.ofString fullCode
+            let! _ = state.IsLatestOpt chnageId
+            let sourceText = Text.SourceText.ofString code
             return!
                 FsCheckerUtil.getOptions fsChecker.Value fileFsx sourceText
                 <* state.IsLatestOpt chnageId
                 >>= FsCheckerUtil.parseAndCheckImpl fsChecker.Value fileFsx sourceText
                 <*  state.IsLatestOpt chnageId
             }
-        //-----------------------------------------------------------------
+    
+    //-----------------------------------------------------------------
     //---------------static members------------------------------------
     //-----------------------------------------------------------------
     
@@ -236,11 +238,12 @@ type Checker private ()  =
     /// for a given method name returns a list of optional argument names
     static member OptArgsDict = optArgsDict
 
-    /// Returns None if check failed or was superseeded by a newer Document chnage ID
-    static member CheckCode(iEd:IEditor, fullCode:CodeAsString, state:InteractionState, chnageId) : option<FullCheckResults>=        
+    /// Returns None if check failed or was superseeded by a newer Document chanage ID
+    static member CheckCode(iEd:IEditor, state:InteractionState, code, chnageId) : option<FullCheckResults>=        
         updateCheckingState iEd Checking            
-        match parseAndCheck(fullCode, state, iEd.FilePath, chnageId) with 
+        match parseAndCheck( state, code, iEd.FilePath, chnageId) with 
         |None ->
+            ISeffLog.log.PrintfnDebugMsg $"*parseAndCheck: aborted early, waiting for newer checke state event."
             None                
         |Some parseCheckRes ->
             let errs = ErrorUtil.getBySeverity parseCheckRes.checkRes                    
@@ -255,7 +258,7 @@ type Checker private ()  =
             updateCheckingState iEd (Done res)
             Some res
      
-    /// Currently unusedoptional argument to GetDeclarationListSymbols
+    /// Currently unused optional argument to GetDeclarationListSymbols
     /// Completion list would get huge !!!
     static member GetAllEntities(res: FSharpCheckFileResults, publicOnly: bool): AssemblySymbol list =         
         // from https://github.com/fsharp/FsAutoComplete/blob/fdeca2f5ffc329fad4a3f0a8b75af5aeed192799/src/FsAutoComplete.Core/ParseAndCheckResults.fs#L659

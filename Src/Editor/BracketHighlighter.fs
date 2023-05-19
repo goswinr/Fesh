@@ -104,7 +104,9 @@ type BracketHighlighter (state:InteractionState) =
     let mutable pairEndLn = -1
     let mutable pairLen = -1         
     
-    let findAllBrackets (tx:CodeAsString, id, cur:Int64 ref ) =         
+    let findAllBrackets ( id) =         
+        let tx = state.CodeLines.FullCode
+        
         listsAreClean <-false
         Brs.Clear()
         Offs.Clear()
@@ -124,7 +126,7 @@ type BracketHighlighter (state:InteractionState) =
         let mutable inString       = false
         let mutable inAtString     = false // with @
         let mutable inRawString    = false // with @
-        let mutable ln             = 1 // line Number 
+        let mutable ln             = 1 // line Numbers start at 1
         
         let inline push (br, i, lnNo) =  
             Brs.Add br
@@ -134,11 +136,12 @@ type BracketHighlighter (state:InteractionState) =
         let len2 = tx.Length - 1
 
         let rec find i = 
-            if i < len2 && cur.Value = id then
+            if i < len2 && state.IsLatest id then
                 let t0 = tx.[i]
                 let t1 = tx.[i+1]
 
-                if t0='\n' then ln <- ln + 1
+                //if t0='\n' then ln <- ln + 1
+
 
                 if inComment then
                     if  t0='\n' then inComment <- false   ; find(i+1)
@@ -172,7 +175,7 @@ type BracketHighlighter (state:InteractionState) =
                         else               push(OpRect, i, ln)  ; find(i+1)
                     elif
                         t0='(' then
-                            if    t1 = ')' then                             find(i+2) // skip '(' followed by ')' directly
+                            if    t1 = ')' then                             find(i+2) // skip highlighting a '(' followed by ')' directly
                             elif  t1 = '*' then   inBlockComment <- true ;  find(i+2) 
 
                             else                     push(OpRound, i, ln) ; find(i+1)
@@ -204,7 +207,7 @@ type BracketHighlighter (state:InteractionState) =
                         find(i+1)
 
             // check last character of text
-            elif i>2 && i = tx.Length - 1  && not inComment && not inString && cur.Value = id then
+            elif i>2 && i = tx.Length - 1  && not inComment && not inString && state.IsLatest id then
                 let t0 = tx.[i]
                 if tx.[i-1] = '|' then
                     if   t0 = ']' then push(ClArr , i, ln)
@@ -221,7 +224,7 @@ type BracketHighlighter (state:InteractionState) =
         // find matching brackets and colors via a Stack
         let stack = Collections.Generic.Stack<BracketInfo>()
         for i=0 to  Brs.Count - 1 do
-            if cur.Value = id then 
+            if state.IsLatest id then 
                 match Brs.[i] with
                 | OpAnRec | OpArr  | OpRect  | OpCurly | OpRound  ->
                     let col = nextAction (stack.Count)
@@ -259,7 +262,7 @@ type BracketHighlighter (state:InteractionState) =
         for e in stack do
             Unclosed.Add e  
         
-        if cur.Value = id then 
+        if state.IsLatest id then 
             listsAreClean <-true
     
     // for previous highlighting matching brackets at cursor:
@@ -400,7 +403,7 @@ type BracketHighlighter (state:InteractionState) =
     
     let foundBracketsEv = new Event<unit>()
 
-    let transAll = state.TransformersAllBrackets
+    let trans = state.TransformersAllBrackets
     
     do
         state.Editor.TextArea.Caret.PositionChanged.Add (caretPositionChanged)
@@ -409,31 +412,30 @@ type BracketHighlighter (state:InteractionState) =
     member _.FoundBrackets = foundBracketsEv.Publish
     
     /// This gets called for every visible line on any view change
-    member _.UpdateAllBrackets(tx:CodeAsString, id) = 
-        let cur = state.DocChangedId        
-        findAllBrackets(tx,id,cur)
+    member _.UpdateAllBrackets(id) =                
+        findAllBrackets(id)
         findHighlightPairAtCursor(state.Caret)
-        if Brs.Count > 0 &&  Acts.Count = Offs.Count && cur.Value = id then                            
+        if Brs.Count > 0 &&  Acts.Count = Offs.Count && state.IsLatest id then                            
             for i = 0 to Offs.Count - 1 do 
                 if notNull Acts.[i] then // the first one is null ( to keep the coloring from xshd file)
                     let off = Offs.[i] 
                     let lineNo = LineNos.[i]
                     //ISeffLog.log.PrintfnDebugMsg "Bracket %d to %d on Line %d " off (off+1) line.LineNumber
                     match Brs.[i] with
-                    | ClRound | OpRect | OpCurly | OpRound  | ClRect | ClCurly  -> transAll.Insert(lineNo, {from=off; till=off+1; act= Acts.[i] })
-                    | OpAnRec | OpArr | ClAnRec | ClArr                         -> transAll.Insert(lineNo, {from=off; till=off+2; act= Acts.[i] })
+                    | ClRound | OpRect | OpCurly | OpRound  | ClRect | ClCurly  -> trans.Insert(lineNo, {from=off; till=off+1; act= Acts.[i] })
+                    | OpAnRec | OpArr | ClAnRec | ClArr                         -> trans.Insert(lineNo, {from=off; till=off+2; act= Acts.[i] })
 
             for i = 0 to Unclosed.Count - 1 do 
                 let u = Unclosed[i]
                 let off = u.off
                 match u.bracket with
-                | ClRound | OpRect | OpCurly | OpRound  | ClRect | ClCurly  -> transAll.Insert(u.lnNo, {from=off; till=off+1; act=actErr}) 
-                | OpAnRec | OpArr | ClAnRec | ClArr                         -> transAll.Insert(u.lnNo, {from=off; till=off+2; act=actErr}) 
+                | ClRound | OpRect | OpCurly | OpRound  | ClRect | ClCurly  -> trans.Insert(u.lnNo, {from=off; till=off+1; act=actErr}) 
+                | OpAnRec | OpArr | ClAnRec | ClArr                         -> trans.Insert(u.lnNo, {from=off; till=off+2; act=actErr}) 
 
             updatePairTransformers()
             foundBracketsEv.Trigger()
         
 
-
+    member _.TransformerLineCount = trans.LineCount
    
 

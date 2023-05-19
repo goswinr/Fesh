@@ -74,7 +74,7 @@ type Editor private (code:string, config:Config, initalFilePath:FilePath, logSta
     let mutable checkState = FileCheckState.Checking //.NotStarted // local to this editor
     let mutable filePath   = initalFilePath
     let getFilePath() = filePath
-
+        
     let foldMg = Folding.FoldingManager.Install(avaEdit.TextArea) 
     let state    = new InteractionState(avaEdit, foldMg, config)
     let folds    = new Foldings(foldMg, state, getFilePath)
@@ -85,14 +85,14 @@ type Editor private (code:string, config:Config, initalFilePath:FilePath, logSta
     let selHili  = new SelectionHighlighter(state, logState)
     //let evalTracker         = new EvaluationTracker(avaEdit, checker, id)
 
-    let services = {
+    let services :EditorServices = {
         folds       = folds
         brackets    = brackets
         errors      = error
         semantic    = semHiLi
         compls      = compls 
+        selection   = selHili
         //evalTracker : EvaluationTracker
-        //selectionHili   : SelectionHighlighter
         }
     
     //these two wil trigger the redraw after all async events have arrived
@@ -108,22 +108,17 @@ type Editor private (code:string, config:Config, initalFilePath:FilePath, logSta
 
     //member val IsCurrent = false with get,set //  this is managed in Tabs.selectionChanged event handler
 
-    member val TypeInfoTip = new Controls.ToolTip(IsOpen=false)    
-    
-    //member val SemanticRanges : SemanticClassificationItem [] = [| |] with get,set
+    member val TypeInfoTip = new Controls.ToolTip(IsOpen=false)  
 
     member val CodeAtLastSave : string = "" with get,set // used to check if file was changed in the background by other apps in FileChangeTracker
    
-    // all instances of Editor refer to the same checker instance
-    //member this.GlobalChecker = checker  // DELETE
-
     member this.ErrorHighlighter = error
 
     //member this.EvalTracker = evalTracker
 
     member this.Completions = compls
 
-    //member this.Config = config
+    //member this.Config = config// DELETE
 
     member this.Folds = folds
 
@@ -133,8 +128,7 @@ type Editor private (code:string, config:Config, initalFilePath:FilePath, logSta
     /// It is used to highlight text in the editor , for example to match the current selection in Log.
     member val HighlightText = fun (t:string) -> () with get, set 
 
-    // IEditor members:
-    //member this.Id              = id    
+    // IEditor members:       
     member this.AvaEdit         = avaEdit
     
     /// This CheckState is local to the current editor
@@ -156,7 +150,7 @@ type Editor private (code:string, config:Config, initalFilePath:FilePath, logSta
         //member this.EvaluateFrom    = this.EvaluateFrom
         //member _.Id              = id  // DELETE
         //member _.Log             = config.Log // DELETE
-        //member _.SemanticRanges  = semanticHighlighter.Ranges  // DELETE
+        //member _.SemanticRanges  = semanticHighlighter.Ranges  
         //member _.Completions     = compls :> obj
 
     /// sets up Text change event handlers
@@ -176,6 +170,7 @@ type Editor private (code:string, config:Config, initalFilePath:FilePath, logSta
 
         
         //avaEdit.TextArea.TextView.LineTransformers.Add(new NonStandardIndentColorizer(ed.Folds.BadIndentations))  // DELETE       
+        avaEdit.TextArea.TextView.LineTransformers.Add(ed.State.FastColorizer)  // DELETE       
         
 
         let rulers =  new ColumnRulers(avaEdit) // draw last , so on top? do foldings first
