@@ -95,6 +95,8 @@ type FastColorizer(transformers:LineTransformers<LinePartChange> []) =
 
     member _.ResetShift () = shift <- 0
 
+    member _.Shift = shift
+
     member _.Transformers = ltss
 
     /// This gets called for every visible line on every Redraw

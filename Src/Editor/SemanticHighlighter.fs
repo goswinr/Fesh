@@ -115,7 +115,6 @@ module SemAction =
     let Plaintext                   = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(Plaintext                  ))
                                     
     let UnUsed                      = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(UnUsed))
-        
 
 // type alias
 type Sc = SemanticClassificationType
@@ -123,14 +122,6 @@ type Sc = SemanticClassificationType
 /// A DocumentColorizingTransformer.
 /// Used to do semantic highlighting
 type SemanticHighlighter (state: InteractionState) = 
-    (*
-    inherit Rendering.DocumentColorizingTransformer() // DELETE
-    let mutable lastCheckId = -1L
-
-    let mutable allRanges: SemanticClassificationItem[] = [||]
-    *)
-    
-    let mutable lastCode = ""
 
     let mutable unusedDecl = ResizeArray()
 
@@ -144,24 +135,23 @@ type SemanticHighlighter (state: InteractionState) =
     
     // skip semantic highlighting for these, covered in xshd:
     let skipFunc(st:int, en:int)=        
-        let w = lastCode.[st..en]
+        let w = state.CodeLines.FullCode.[st..en]
         w.StartsWith    "failwith"
         || w.StartsWith "failIfFalse" // from FsEx
         || w.StartsWith "print"
         || w.StartsWith "eprint"
 
     let skipModul(st:int, en:int)=        
-        let w = lastCode.[st..en]
+        let w = state.CodeLines.FullCode.[st..en]
         w.StartsWith "Printf"
     
     /// because some times the range of a property starts before the point
     let correctStart(st:int, en:int) =        
-        match lastCode.IndexOf('.',st,en-st) with 
+        match state.CodeLines.FullCode.IndexOf('.',st,en-st) with 
         | -1 -> st 
         |  i -> i + 1
 
-    let action (el:VisualLineElement,brush:SolidColorBrush,r:Text.Range) =
-        el.TextRunProperties.SetForegroundBrush(Brushes.Red)
+    //let action (el:VisualLineElement,brush:SolidColorBrush,r:Text.Range) = el.TextRunProperties.SetForegroundBrush(Brushes.Red)
   
     let trans = state.TransformersSemantic   
 

@@ -93,7 +93,6 @@ module CodeLineTools =
             } |> Async.RunSynchronously
 
 
-
         /// Safe: checks isDone && docChangedIdHolder.Value = id
         member this.Get(chnageId): CodeLines option =
             if isDone && docChangedIdHolder.Value = chnageId then Some this else None

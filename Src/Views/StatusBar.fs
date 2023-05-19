@@ -135,16 +135,20 @@ type CheckerStatus (grid:TabsAndLog) as this =
                     tip.VerticalOffset <- -6.0
                     this.ToolTip <- tip
               
-        | Checking ->
+        | Checking ->            
             async{
-                do! Async.Sleep 300 // delay  to only show check in progress massage if it takes long, otherwise just show results via on checked event
-                //if iEditor.Id = tabs.Current.Editor.Id then // to cancel if tab changed  // DELETE
-                //if IEditor.isCurrent iEditor.AvaEdit then  // to cancel if tab changed
-                if k.Value = k0 then
-                    lastErrCount <- -1
-                    this.Text <- checkingTxt
-                    this.Background <- waitCol //originalBackGround
-                    this.ToolTip <- sprintf "Checking %s for Errors ..." tabs.Current.FormattedFileName
+                do! Async.Sleep 300 // delay  to only show check in progress massage if it takes long, otherwise just show results via on checked event                
+                match IEditor.current with 
+                |None -> ()
+                |Some e -> 
+                    match e.FileCheckState with
+                    | Done _ -> () //now need to update
+                    | Checking -> 
+                        if k.Value = k0 then 
+                            lastErrCount <- -1
+                            this.Text <- checkingTxt
+                            this.Background <- waitCol //originalBackGround
+                            this.ToolTip <- sprintf "Checking %s for Errors ..." tabs.Current.FormattedFileName
                     
             } |> Async.StartImmediate
         

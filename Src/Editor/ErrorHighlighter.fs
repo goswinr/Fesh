@@ -77,6 +77,13 @@ type SegmentToMark (startOffset,  endOffset, e:FSharpDiagnostic)  =
         member s.EndOffset   = endOffset
         member s.Length      = endOffset - startOffset 
 
+    //member s.Shifted (x)= 
+    //    {new ISegment with 
+    //        member _.Offset      = x + s.Offset     
+    //        member _.EndOffset   = x + s.EndOffset   
+    //        member _.Length      = s.Length 
+    //        }
+
 module ErrorUtil =    
         
     /// for clicking through the errors in the status bar 
@@ -179,32 +186,33 @@ module ErrorUtil =
    
  
 /// IBackgroundRenderer only needed because 
-type ErrorRenderer (state: InteractionState, segms:LineTransformers<SegmentToMark>) = 
+type ErrorRenderer (state: InteractionState, segms:LineTransformers<SegmentToMark>, errorTransformersUpToDate: bool ref) = 
     
     /// Draw the error squiggle  on the code
     member _.Draw (textView:TextView , drawingContext:DrawingContext) = // for IBackgroundRenderer        
-        //eprintfn $"Drawing : {segms.TotalCount} errs"
-        let vls = textView.VisualLines
-        for vl in vls do 
-            let ln = vl.FirstDocumentLine                
-            let segs = segms.Line(ln.LineNumber)
-            for i = 0 to segs.Count-1 do
-                if segs.Count > i then // saftey check because collection might get reset while iterating
-                    let seg = segs.[i]
-                    let e = seg.Diagnostic
-                    ISeffLog.log.PrintfnDebugMsg $"IBackgRe: DocLine {ln.LineNumber}: ErrLines{e.StartLine}.{e.StartColumn}-{e.EndLine}.{e.EndColumn}"   
-                    // background color: Done in Error Highlighter
-                    //let geoBuilder = new BackgroundGeometryBuilder (AlignToWholePixels = true, CornerRadius = 0.)
-                    //geoBuilder.AddSegment(textView, seg)
-                    //let boundaryPolygon= geoBuilder.CreateGeometry() // creates one boundary round the text
-                    //drawingContext.DrawGeometry(seg.BackgroundBrush, null, boundaryPolygon)
+        if errorTransformersUpToDate.Value then         
+            //eprintfn $"Drawing : {segms.TotalCount} errs"
+            let vls = textView.VisualLines
+            for vl in vls do 
+                let ln = vl.FirstDocumentLine                
+                let segs = segms.Line(ln.LineNumber)
+                for i = 0 to segs.Count-1 do
+                    if segs.Count > i then // saftey check because collection might get reset while iterating
+                        let seg = segs.[i]
+                    
+                        // background color: Done in Error Highlighter
+                        //let geoBuilder = new BackgroundGeometryBuilder (AlignToWholePixels = true, CornerRadius = 0.)
+                        //geoBuilder.AddSegment(textView, seg)
+                        //let boundaryPolygon= geoBuilder.CreateGeometry() // creates one boundary round the text
+                        //drawingContext.DrawGeometry(seg.BackgroundBrush, null, boundaryPolygon)
 
-                    //foreground,  squiggles:
-                    for rect in BackgroundGeometryBuilder.GetRectsForSegment(textView, seg) do
-                        let geo = ErrorUtil.getSquiggleLine(rect)
-                        drawingContext.DrawGeometry(Brushes.Transparent, seg.UnderlinePen, geo)
-                        //based on //https://stackoverflow.com/questions/11149907/showing-invalid-xml-syntax-with-avalonedit
+                        //foreground,  squiggles:
+                        for rect in BackgroundGeometryBuilder.GetRectsForSegment(textView, seg) do //seg.Shifted(state.FastColorizer.Shift)) do  // DELETE
+                            let geo = ErrorUtil.getSquiggleLine(rect)
+                            drawingContext.DrawGeometry(Brushes.Transparent, seg.UnderlinePen, geo)
+                            //based on //https://stackoverflow.com/questions/11149907/showing-invalid-xml-syntax-with-avalonedit
        
+                        //let e = seg.Diagnostic in ISeffLog.log.PrintfnDebugMsg $"IBackgRe: DocLine {ln.LineNumber}: ErrLines{e.StartLine}.{e.StartColumn}-{e.EndLine}.{e.EndColumn}"   
 
     member _.Layer = KnownLayer.Selection // for IBackgroundRenderer
 
@@ -227,7 +235,8 @@ type ErrorHighlighter ( state:InteractionState, folds:Folding.FoldingManager) =
     let trans = state.TransformersSemantic
     let ed = state.Editor
     let tView = ed.TextArea.TextView
-     
+    
+    let errorTransformersUpToDate = ref true
 
     let insert (e:FSharpDiagnostic, id, action) =         
         let lnNo =  max 1 e.StartLine // because FSharpDiagnostic might have line number 0 form Parse-and-check-file-in-project errors, but Avalonedit starts at 1
@@ -237,7 +246,7 @@ type ErrorHighlighter ( state:InteractionState, folds:Folding.FoldingManager) =
             let st  = cln.offStart + e.StartColumn
             let en = 
                 if e.EndLine = e.StartLine then
-                    if e.StartColumn <= e.EndColumn then 
+                    if e.StartColumn >= e.EndColumn then 
                         ISeffLog.log.PrintfnAppErrorMsg $"FSharp Checker reported an invalid error position: e.StartColumn <= e.EndColumn:\r\n {e}"
                     cln.offStart + e.EndColumn           
                 
@@ -297,7 +306,7 @@ type ErrorHighlighter ( state:InteractionState, folds:Folding.FoldingManager) =
                 )    
     
     do
-        tView.BackgroundRenderers.Add(new ErrorRenderer(state,segments)) 
+        tView.BackgroundRenderers.Add(new ErrorRenderer(state,segments,errorTransformersUpToDate)) 
 
         tView.MouseHover.Add        (showErrorToolTip)
         tView.MouseHoverStopped.Add ( fun e ->  tip.IsOpen <- false ) //; e.Handled <- true) )
@@ -308,8 +317,11 @@ type ErrorHighlighter ( state:InteractionState, folds:Folding.FoldingManager) =
     member _.FoundErrors = foundErrorsEv.Publish
 
     member _.TransformerLineCount = trans.LineCount
+
+    member _.InvalidateErrorTransformers() = errorTransformersUpToDate.Value <- false
     
     member _.UpdateErrs(errs:ErrorsBySeverity, id) = 
+        errorTransformersUpToDate.Value <- false
         if state.DocChangedId.Value = id then
             //eprintfn $"clear and add {errs.errors.Count}"
             segments.ClearAllLines() // first clear. no dont! clear is done in DocChanged.fs
@@ -326,8 +338,9 @@ type ErrorHighlighter ( state:InteractionState, folds:Folding.FoldingManager) =
                 for w in errs.warnings do updateFolds(w, id, ErrorStyle.warnBackGr, ErrorStyle.warnSquiggle)
                 for e in errs.errors   do updateFolds(e, id, ErrorStyle.errBackGr , ErrorStyle.errSquiggle)
             } |> Async.RunSynchronously
-
-            foundErrorsEv.Trigger()
+            if state.DocChangedId.Value = id then
+                errorTransformersUpToDate.Value <- true
+                foundErrorsEv.Trigger()
 
 
 

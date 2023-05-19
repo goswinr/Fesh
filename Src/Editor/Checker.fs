@@ -243,7 +243,7 @@ type Checker private ()  =
         updateCheckingState iEd Checking            
         match parseAndCheck( state, code, iEd.FilePath, chnageId) with 
         |None ->
-            ISeffLog.log.PrintfnDebugMsg $"*parseAndCheck: aborted early, waiting for newer checke state event."
+            //ISeffLog.log.PrintfnDebugMsg $"*parseAndCheck: aborted early, waiting for newer checke state event."
             None                
         |Some parseCheckRes ->
             let errs = ErrorUtil.getBySeverity parseCheckRes.checkRes                    

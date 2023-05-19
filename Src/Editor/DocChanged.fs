@@ -91,13 +91,15 @@ module Redrawing =
         | All       = 0b0000011
 
 
-    type FirstEventCombiner(serv:EditorServices, ed:TextEditor) = 
-    
+    type FirstEventCombiner(serv:EditorServices, state:InteractionState) = 
+        let ed = state.Editor
+        let fast = state.FastColorizer
         let mutable scan = Scan1State.None        
     
         let tryDraw() =  
-            if scan = Scan1State.All then 
+            if scan = Scan1State.All then                 
                 scan <- Scan1State.None 
+                fast.ResetShift()
                 //printfn $"*Redraw {serv.brackets.TransformerLineCount} lines"
                 ed.Dispatcher.Invoke (fun() -> ed.TextArea.TextView.Redraw()) //TODO only redraw parts of the view, or lower priority ?    
 
@@ -116,12 +118,13 @@ module Redrawing =
         | All       = 0b0000011
 
 
-    type SecondEventCombiner(serv:EditorServices, ed:TextEditor) = 
-    
+    type SecondEventCombiner(serv:EditorServices, state:InteractionState) = 
+        let ed = state.Editor
+        let fast = state.FastColorizer
         let mutable scan = Scan2State.None        
     
         let tryDraw() = 
-            if scan = Scan2State.All then 
+            if scan = Scan2State.All then                 
                 scan <- Scan2State.None
                 //printfn $"**Redraw {serv.semantic.TransformerLineCount} lines*"
                 ed.Dispatcher.Invoke (fun() -> ed.TextArea.TextView.Redraw()) //TODO only redraw parts of the view, or lower priority ?    
@@ -173,7 +176,7 @@ module DocChangeMark =
     let markFoldCheckHighlightAsync (iEd:IEditor, serv:EditorServices, state:InteractionState, id ) =
         let doc = iEd.AvaEdit.Document // get Doc in Sync
         async { 
-            do! Async.Sleep 30
+            do! Async.Sleep 20
             // NOTE just checking only Partial Code till caret with (doc.CreateSnapshot(0, tillOffset).Text) 
             // would make the GetDeclarationsList method miss some declarations !!
             let code = doc.CreateSnapshot().Text // the only threadsafe way to access the code string
@@ -393,6 +396,7 @@ module DocChangeEvents =
     
 
     let changed (iEd:IEditor) (serv:EditorServices) (state:InteractionState) (eventArgs:DocumentChangeEventArgs)  =          
+        serv.errors.InvalidateErrorTransformers()
         match state.DocChangedConsequence with 
         | WaitForCompletions -> 
             // Do not increment DoChangeID counter, this would cancel the showing of the completion window.
@@ -403,8 +407,8 @@ module DocChangeEvents =
             let id = state.Increment() // only increment when a reaction is required
             state.Caret <- state.Editor.CaretOffset
             match isSingleCharChange eventArgs with 
-            |ValueSome _ ->DocChangeCompletion.singleCharChange (iEd, serv, state, id)
-            |ValueNone   ->DocChangeMark.markFoldCheckHighlightAsync (iEd, serv, state, id)
+            |ValueSome _ -> DocChangeCompletion.singleCharChange (iEd, serv, state, id)
+            |ValueNone   -> DocChangeMark.markFoldCheckHighlightAsync (iEd, serv, state, id)
             
 
 

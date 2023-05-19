@@ -96,14 +96,14 @@ type Editor private (code:string, config:Config, initalFilePath:FilePath, logSta
         }
     
     //these two wil trigger the redraw after all async events have arrived
-    let _ = Redrawing.FirstEventCombiner(services,avaEdit)
-    let _ = Redrawing.SecondEventCombiner(services,avaEdit)
-       
+    let _ = Redrawing.FirstEventCombiner (services ,state)
+    let _ = Redrawing.SecondEventCombiner(services ,state)       
 
     do  
         SyntaxHighlighting.setFSharp(avaEdit,false) 
         
     member _.State = state    
+    
     member _.Services = services    
 
     //member val IsCurrent = false with get,set //  this is managed in Tabs.selectionChanged event handler
@@ -129,7 +129,7 @@ type Editor private (code:string, config:Config, initalFilePath:FilePath, logSta
     member val HighlightText = fun (t:string) -> () with get, set 
 
     // IEditor members:       
-    member this.AvaEdit         = avaEdit
+    member this.AvaEdit = avaEdit
     
     /// This CheckState is local to the current editor
     member this.FileCheckState  with get() = checkState  and  set(v) = checkState <- v
@@ -139,6 +139,7 @@ type Editor private (code:string, config:Config, initalFilePath:FilePath, logSta
     
     //member this.Log = config.Log   
     member this.IsComplWinOpen  = compls.IsOpen
+    
     member this.EvaluateFrom    = 0 //evalTracker.EvaluateFrom
 
     interface IEditor with
@@ -170,9 +171,8 @@ type Editor private (code:string, config:Config, initalFilePath:FilePath, logSta
 
         
         //avaEdit.TextArea.TextView.LineTransformers.Add(new NonStandardIndentColorizer(ed.Folds.BadIndentations))  // DELETE       
-        avaEdit.TextArea.TextView.LineTransformers.Add(ed.State.FastColorizer)  // DELETE       
+        avaEdit.TextArea.TextView.LineTransformers.Add(ed.State.FastColorizer)      
         
-
         let rulers =  new ColumnRulers(avaEdit) // draw last , so on top? do foldings first
 
         //----------------------------------
