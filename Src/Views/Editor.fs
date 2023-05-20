@@ -79,7 +79,7 @@ type Editor private (code:string, config:Config, initalFilePath:FilePath, logSta
     let state    = new InteractionState(avaEdit, foldMg, config)
     let folds    = new Foldings(foldMg, state, getFilePath)
     let brackets = new BracketHighlighter( state)
-    let compls   = new Completions(avaEdit)
+    let compls   = new Completions(state)
     let semHiLi  = new SemanticHighlighter(state)
     let error    = new ErrorHighlighter(state,foldMg)
     let selHili  = new SelectionHighlighter(state, logState)

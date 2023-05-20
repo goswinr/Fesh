@@ -200,11 +200,11 @@ type ErrorRenderer (state: InteractionState, segms:LineTransformers<SegmentToMar
                     if segs.Count > i then // saftey check because collection might get reset while iterating
                         let seg = segs.[i]
                     
-                        // background color: Done in Error Highlighter
-                        //let geoBuilder = new BackgroundGeometryBuilder (AlignToWholePixels = true, CornerRadius = 0.)
-                        //geoBuilder.AddSegment(textView, seg)
-                        //let boundaryPolygon= geoBuilder.CreateGeometry() // creates one boundary round the text
-                        //drawingContext.DrawGeometry(seg.BackgroundBrush, null, boundaryPolygon)
+                        // background color: 
+                        let geoBuilder = new BackgroundGeometryBuilder (AlignToWholePixels = true, CornerRadius = 0.)
+                        geoBuilder.AddSegment(textView, seg)
+                        let boundaryPolygon= geoBuilder.CreateGeometry() // creates one boundary round the text
+                        drawingContext.DrawGeometry(seg.BackgroundBrush, null, boundaryPolygon)
 
                         //foreground,  squiggles:
                         for rect in BackgroundGeometryBuilder.GetRectsForSegment(textView, seg) do //seg.Shifted(state.FastColorizer.Shift)) do  // DELETE
@@ -214,7 +214,7 @@ type ErrorRenderer (state: InteractionState, segms:LineTransformers<SegmentToMar
        
                         //let e = seg.Diagnostic in ISeffLog.log.PrintfnDebugMsg $"IBackgRe: DocLine {ln.LineNumber}: ErrLines{e.StartLine}.{e.StartColumn}-{e.EndLine}.{e.EndColumn}"   
 
-    member _.Layer = KnownLayer.Caret //.Selection // for IBackgroundRenderer
+    member _.Layer = KnownLayer.Selection // for IBackgroundRenderer
 
     interface IBackgroundRenderer with
         member this.Draw(tv,dc) = this.Draw(tv,dc)
@@ -259,8 +259,11 @@ type ErrorHighlighter ( state:InteractionState, folds:Folding.FoldingManager) =
                     ISeffLog.log.PrintfnAppErrorMsg $"FSharp Checker reported an invalid error position: e.EndLine < e.StartLine:\r\n {e}"                                    
                     cln.offStart + cln.len    
                     
-            trans.Insert(lnNo, {from=st; till=en; act=action}) 
-            segments.Insert(lnNo, SegmentToMark(st ,en , e))                      
+            segments.Insert(lnNo, SegmentToMark(st ,en , e))  
+            
+            //trans.Insert(lnNo, {from=st; till=en; act=action}) // skip trans.Insert, rather draw via IBackground renderer, 
+            //so the line transformers that als have the semantic info can be rest as late as possible. 
+            //in Semnatic highlighter afet cal to this class
     
     let updateFolds(e:FSharpDiagnostic, id, brush, pen) = 
         let lnNo =  max 1 e.StartLine // because FSharpDiagnostic might have line number 0 
@@ -309,7 +312,7 @@ type ErrorHighlighter ( state:InteractionState, folds:Folding.FoldingManager) =
                 )    
     
     do
-        tView.BackgroundRenderers.Add(new ErrorRenderer(state,segments,errorTransformersUpToDate)) 
+        tView.BackgroundRenderers.Add(new ErrorRenderer(state, segments, errorTransformersUpToDate)) 
 
         tView.MouseHover.Add        (showErrorToolTip)
         tView.MouseHoverStopped.Add ( fun e ->  tip.IsOpen <- false ) //; e.Handled <- true) )

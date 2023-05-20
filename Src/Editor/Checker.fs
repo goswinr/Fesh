@@ -193,6 +193,9 @@ module FsCheckerUtil =
 
 /// Only a single checker exist that is referenced on all editors
 type Checker private ()  = 
+    
+    /// when the checker is running just before completion window we actually don't want to update the status bar while the comletion window is open
+    static let mutable raiseStateChangedEvent = true
 
     static let mutable fsChecker: FSharpChecker Option = None // "you should generally use one global, shared FSharpChecker for everything in an IDE application." from http://fsharp.github.io/FSharp.Compiler.Service/caches.html
     
@@ -204,9 +207,9 @@ type Checker private ()  =
     static let checkingStateEv = new Event<FileCheckState> () 
 
     static let updateCheckingState (ied:IEditor) state = 
-        FsEx.Wpf.SyncWpf.doSync(fun () -> 
-            ied.FileCheckState <- state
-            checkingStateEv.Trigger state )
+        ied.FileCheckState <- state
+        if raiseStateChangedEvent then 
+            FsEx.Wpf.SyncWpf.doSync (fun () -> checkingStateEv.Trigger state )
 
     /// At the end either a event is raised or continuation called if present.
     static let parseAndCheck( state:InteractionState, code:string, filePath:FilePath, chnageId): option<ParseCheckRes> = 
@@ -239,7 +242,8 @@ type Checker private ()  =
     static member OptArgsDict = optArgsDict
 
     /// Returns None if check failed or was superseeded by a newer Document chanage ID
-    static member CheckCode(iEd:IEditor, state:InteractionState, code, chnageId) : option<FullCheckResults>=        
+    static member CheckCode(iEd:IEditor, state:InteractionState, code, chnageId, raiseEvent) : option<FullCheckResults>=        
+        raiseStateChangedEvent <- raiseEvent
         updateCheckingState iEd Checking            
         match parseAndCheck( state, code, iEd.FilePath, chnageId) with 
         |None ->

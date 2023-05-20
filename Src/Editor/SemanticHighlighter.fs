@@ -167,8 +167,9 @@ type SemanticHighlighter (state: InteractionState) =
             //lastCode <- fullCode        
             let allRanges = checkRes.GetSemanticClassification(None)
             
-            //for i = allRanges.Length-1 downto 0 do // doing a reverse search solves a highlighting problem where ranges overlap(previously)
-            for i = 0 to allRanges.Length-1 do 
+            trans.ClearAllLines()// do as late as possible , offset shifting should do its work till then 
+                        
+            for i = 0 to allRanges.Length-1 do // doing a reverse search solves a highlighting problem where ranges overlap(previously)
                 let sem = allRanges.[i]
                 let r = sem.Range            
                 let lineNo = max 1 r.StartLine
@@ -178,7 +179,7 @@ type SemanticHighlighter (state: InteractionState) =
                     let st = offLn.offStart + r.StartColumn                 
                     let en = offLn.offStart + r.EndColumn
 
-                    let inline push(f,t,a) =trans.Insert(lineNo,{from=f; till=t; act=a})
+                    let inline push(f,t,a) = trans.Insert(lineNo,{from=f; till=t; act=a})
             
                     match sem.Type with 
                     | Sc.ReferenceType               -> push(st,en, semActs.ReferenceType              )

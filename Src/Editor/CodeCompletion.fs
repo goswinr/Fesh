@@ -116,10 +116,13 @@ type CompletionItem(state: InteractionState, getToolTip, it:DeclarationListItem,
         member this.Priority        = this.Priority
         member this.Text            = this.Text // not used for display, but for priority sorting ? 
 
-type Completions(avaEdit:TextEditor) = 
+type Completions(state: InteractionState) = 
+    let avEd = state.Editor
 
     let mutable win : CompletionWindow option = None   
-            
+    
+    let mutable willInsert = false // to track if window closed without insertin ( e.g presing esc)
+             
     let selectedCompletionText ()= 
         match win with
         |None -> ""
@@ -132,8 +135,7 @@ type Completions(avaEdit:TextEditor) =
     let showingEv = Event<unit>()
 
     [<CLIEvent>] 
-    member _.OnShowing = showingEv.Publish // to close other tooltips that might be open from type info
-    
+    member _.OnShowing = showingEv.Publish // to close other tooltips that might be open from type info    
     
     /// To indicate that the stack panel is not showing the loading text but the actual type info 
     //member val HasStackPanelTypeInfo = false with get, set
@@ -146,9 +148,11 @@ type Completions(avaEdit:TextEditor) =
     //member this.HasItems = win.IsSome && win.Value.CompletionList.ListBox.HasItems
 
     member _.Close() = 
+        state.DocChangedConsequence <- React
         if win.IsSome then
             win.Value.Close()
-            win <- None    
+            win <- None
+        
 
     /// Initially returns "loading.." text and triggers async computation to get and update with actual text
     member this.GetToolTip(it:DeclarationListItem)= 
@@ -173,11 +177,11 @@ type Completions(avaEdit:TextEditor) =
         with get() : Option<CompletionWindow>  = win
         and set(w  : Option<CompletionWindow>) = win <- w
     
-    member _.Editor = avaEdit        
     
     /// must be called from UI thread
-    member this.TryShow( state: InteractionState, decls: DeclarationListInfo, pos:PositionInCodeEx, onlyDU:bool) : TryShow = 
-                        
+    member this.TryShow( decls: DeclarationListInfo, pos:PositionInCodeEx, onlyDU:bool, checkAndMark:unit->unit) : TryShow = 
+        willInsert <- false
+        
         //ISeffLog.log.PrintfnDebugMsg "*3.0 TryShow Completion Window for '%s'" pos.lineToCaret
         if AutoFixErrors.isMessageBoxOpen then // because msg box would appear behind completion window and type info
             NoShow 
@@ -207,7 +211,7 @@ type Completions(avaEdit:TextEditor) =
             if completionLines.Count = 0 then                
                 NoShow
             else                    
-                let ta = this.Editor.TextArea
+                let ta = avEd.TextArea
                 let w =  new CodeCompletion.CompletionWindow(ta)
                 this.ComplWin <- Some w 
 
@@ -221,17 +225,21 @@ type Completions(avaEdit:TextEditor) =
                 w.SizeToContent   <- SizeToContent.WidthAndHeight // https://github.com/icsharpcode/AvalonEdit/blob/master/ICSharpCode.AvalonEdit/CodeCompletion/CompletionWindow.cs#L47
                 w.MinHeight       <- StyleState.fontSize
                 w.MinWidth        <- StyleState.fontSize * 8.0
+                w.CompletionList.InsertionRequested.Add(fun _ -> willInsert <- true)
                 w.Closed.Add (fun _  -> 
                         // Event sequence on pressing enter in completion window:
                         // (1)raise InsertionRequested event
-                        // (1)in one of the evemnt handles first Closes window
+                        // (2)in one of the event handlers first Closes window
                         // (3)then on the item line this.Complete (TextArea, ISegment, EventArgs) is called
-                        // https://github.com/goswinr/AvalonEditB/blob/main/AvalonEditB/CodeCompletion/CompletionWindow.cs#L110
-                        state.DocChangedConsequence <- React
+                        // https://github.com/goswinr/AvalonEditB/blob/main/AvalonEditB/CodeCompletion/CompletionWindow.cs#L110                        
                         this.Close()
                         //ISeffLog.log.PrintfnDebugMsg "Completion window just closed with selected item: %A " w.CompletionList.SelectedItem
                         //if not UtilCompletion.justCompleted then // DELETE
                         //    compl.Checker.CheckThenHighlightAndFold(iEditor) //because window might close immediately after showing if there are no matches to prefilter
+
+                        if not willInsert then 
+                            willInsert <- false
+                            checkAndMark()
                         )
 
                 w.CompletionList.SelectionChanged.Add(fun _ -> 
@@ -255,7 +263,7 @@ type Completions(avaEdit:TextEditor) =
                     this.Close() // needed, otherwise it will not show again
                     NoShow
                 else
-                    let prefilter = this.Editor.Document.GetText(stOff, prefilterLength )
+                    let prefilter = avEd.Document.GetText(stOff, prefilterLength )
                     //ISeffLog.log.PrintfnDebugMsg "*5.2: prefilter '%s'" prefilter 
                     
                     if prefilter.Length > 0 then 
@@ -264,7 +272,7 @@ type Completions(avaEdit:TextEditor) =
                 
                     if w.CompletionList.ListBox.Items.Count > 0 
                         && not AutoFixErrors.isMessageBoxOpen  // because msg box would appear behind completion window and type info
-                        && IEditor.isCurrent this.Editor // switched to other editor
+                        && IEditor.isCurrent avEd // switched to other editor
                         && caret.Line = pos.row // moved cursor to other line
                         && caret.Offset >= pos.offset then // moved cursor back befor completion ( e.g. via deleting)      
         

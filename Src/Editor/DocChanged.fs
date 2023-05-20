@@ -94,13 +94,13 @@ module Redrawing =
     type FirstEventCombiner(serv:EditorServices, state:InteractionState) = 
         let ed = state.Editor
         let fast = state.FastColorizer
-        let mutable scan = Scan1State.None        
+        let mutable scan = Scan1State.None       
     
         let tryDraw() =  
             if scan = Scan1State.All then                 
                 scan <- Scan1State.None 
-                fast.ResetShift()
-                printfn $"*Redraw {serv.brackets.TransformerLineCount} lines"
+                //fast.ResetShift()
+                //printfn $"*Redraw BadInd+Brackets, {serv.brackets.TransformerLineCount} lines"
                 ed.Dispatcher.Invoke (fun() -> ed.TextArea.TextView.Redraw()) //TODO only redraw parts of the view, or lower priority ?    
 
         let doneBadIndents() = scan <- scan ||| Scan1State.BadIndent;  tryDraw()
@@ -123,15 +123,16 @@ module Redrawing =
         let fast = state.FastColorizer
         let mutable scan = Scan2State.None        
     
-        let tryDraw() = 
+        let tryDraw(msg:string) = 
+            //ISeffLog.printnColor 99 99 99 $"{msg} done"
             if scan = Scan2State.All then                 
                 scan <- Scan2State.None
                 fast.ResetShift()
-                printfn $"**Redraw {serv.semantic.TransformerLineCount} lines*"
+                //printfn $"*Redraw Err+Semantic, {serv.semantic.TransformerLineCount} lines*"
                 ed.Dispatcher.Invoke (fun() -> ed.TextArea.TextView.Redraw()) //TODO only redraw parts of the view, or lower priority ?    
     
-        let doneSemantics()  = scan <- scan ||| Scan2State.Semantics;  tryDraw()
-        let doneErrors()     = scan <- scan ||| Scan2State.Errors   ;  tryDraw()
+        let doneSemantics()  = scan <- scan ||| Scan2State.Semantics;  tryDraw("Sem")
+        let doneErrors()     = scan <- scan ||| Scan2State.Errors   ;  tryDraw("Errs")
         
         do
             serv.semantic.FoundSemantics.Add doneSemantics
@@ -147,22 +148,22 @@ module DocChangeMark =
             /// first: Foldings, ColorBrackets and BadIndentation when full text available async.
             async{
                 if state.CodeLines.Update(code,id) then 
-                    state.TransformersAllBrackets.ClearAllLines()
+                    state.TransformersAllBrackets.ClearAllLines()// do as late as possible , offset shifting should do its work   
                     serv.folds.UpdateFoldsAndBadIndents(id)
                     if state.IsLatest id then 
                         serv.brackets.UpdateAllBrackets( id)
              } |> Async.Start 
         
             /// second: Errors and Semantic Highlighting on check result .  
-            async{  
-                state.TransformersSemantic.ClearAllLines()
-                match Checker.CheckCode(iEd, state, code, id) with // code checking does not need to wait for CodeLines.Update
+            async{ 
+                match Checker.CheckCode(iEd, state, code, id, true) with // code checking does not need to wait for CodeLines.Update
                 |None -> ()
                 |Some res ->
-                    if state.IsLatest id then                    
+                    if state.IsLatest id then 
                         serv.errors.UpdateErrs(res.errors, id)
                         if state.IsLatest id then 
                             serv.semantic.UpdateSemHiLiTransformers( res.checkRes, id)
+            
             } |> Async.Start   
     
     //To be called from any thread
@@ -342,7 +343,9 @@ module DocChangeCompletion =
                         let show = MaybeShow.completionWindow(pos)
                         match show with 
                         |DoNothing  -> ()
+
                         |JustMark   -> DocChangeMark.markFoldCheckHighlight(iEd, doc, serv, state, id)
+                        
                         |ShowAll    
                         |ShowOnlyDU -> 
                             state.DocChangedConsequence <- WaitForCompletions
@@ -353,7 +356,7 @@ module DocChangeCompletion =
                                     let code        = doc.CreateSnapshot().Text // the only threadsafe way to access the code string
                                     fullCode <- code
                                     let! _          = state.IsLatestOpt id
-                                    let! res        = Checker.CheckCode(iEd, state, code, id)
+                                    let! res        = Checker.CheckCode(iEd, state, code, id, false)
                                     let! decls, pos = Checker.GetCompletions(pos,res) 
                                     let! _          = state.IsLatestOpt id
                                     return decls, pos
@@ -363,9 +366,10 @@ module DocChangeCompletion =
                             |Some (decls, posx) ->
                                 // Switsch to Sync and try showing completion window:
                                 do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context                            
-                                let onlyDU = show = ShowOnlyDU 
-                                match serv.compls.TryShow(state, decls, posx, onlyDU ) with 
-                                |DidShow -> 
+                                let onlyDU = show = ShowOnlyDU
+                                let checkAndMark() = DocChangeMark.markFoldCheckHighlightAsync (iEd, serv, state, state.DocChangedId.Value) // will be called if window closes without an insertion
+                                match serv.compls.TryShow(decls, posx, onlyDU,checkAndMark ) with 
+                                |DidShow ->                                     
                                     () // no need to do anything, DocChangedConsequence will be updated to 'React' when completion window closes
                                 |NoShow -> 
                                     state.DocChangedConsequence <- React
@@ -412,28 +416,7 @@ module DocChangeEvents =
             state.Caret <- state.Editor.CaretOffset
             match isSingleCharChange eventArgs with 
             |ValueSome _ -> DocChangeCompletion.singleCharChange (iEd, serv, state, id)
-            |ValueNone   -> DocChangeMark.markFoldCheckHighlightAsync (iEd, serv, state, id)
-            
-
-
-            
-               //let getLineStartOffsets(code:string) = `// DELETE
-               //    let lineStartOffsets = ResizeArray<int<off>>(512)
-               //
-               //    lineStartOffsets.Add(0<off>) // line 0 does not exist 
-               //    lineStartOffsets.Add(0<off>) // line 1 starts at offset 0
-               //    let rec loop i =
-               //        if i < code.Length then 
-               //            match code.IndexOf('\n',i) with 
-               //            | -1 -> ()
-               //            | i -> 
-               //                lineStartOffsets.Add(LanguagePrimitives.Int32WithMeasure i + 1<off>)
-               //                loop (i+1) 
-               //    
-               //    loop 0
-               //    lineStartOffsets.Add(LanguagePrimitives.Int32WithMeasure code.Length)// so there is always a next line, even for the last
-               //    lineStartOffsets    
-               
+            |ValueNone   -> DocChangeMark.markFoldCheckHighlightAsync (iEd, serv, state, id)            
 
             
 
