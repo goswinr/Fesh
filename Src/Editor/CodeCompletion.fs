@@ -182,7 +182,7 @@ type Completions(state: InteractionState) =
     member this.TryShow( decls: DeclarationListInfo, pos:PositionInCodeEx, onlyDU:bool, checkAndMark:unit->unit) : TryShow = 
         willInsert <- false
         
-        //ISeffLog.log.PrintfnDebugMsg "*3.0 TryShow Completion Window for '%s'" pos.lineToCaret
+        //ISeffLog.log.PrintfnDebugMsg "*3.0 TryShow Completion Window for:\r\n%A" pos
         if AutoFixErrors.isMessageBoxOpen then // because msg box would appear behind completion window and type info
             NoShow 
         else    

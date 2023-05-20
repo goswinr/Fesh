@@ -134,10 +134,10 @@ type InteractionState(ed:TextEditor, foldManager:FoldingManager, config:Seff.Con
     let transformersSelection         = new LineTransformers<LinePartChange>() 
     
     let fastColorizer = new FastColorizer( [|
-                                    //transformersAllBrackets
-                                    //transformersSelection
+                                    transformersAllBrackets
+                                    transformersSelection
                                     transformersSemantic
-                                    //transformersMatchingBrackets            
+                                    transformersMatchingBrackets            
                                     |] 
                                     ,ed) 
 

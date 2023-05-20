@@ -178,7 +178,7 @@ module DocChangeMark =
     let markFoldCheckHighlightAsync (iEd:IEditor, serv:EditorServices, state:InteractionState, id ) =
         let doc = iEd.AvaEdit.Document // get Doc in Sync
         async { 
-            do! Async.Sleep 20
+            do! Async.Sleep 100
             // NOTE just checking only Partial Code till caret with (doc.CreateSnapshot(0, tillOffset).Text) 
             // would make the GetDeclarationsList method miss some declarations !!
             let code = doc.CreateSnapshot().Text // the only threadsafe way to access the code string
@@ -317,30 +317,36 @@ module DocChangeCompletion =
                     |> bind isBarDeclaration        inStr ln
                     |> bind isThisMemberDeclaration inStr ln
      
+    let inline showOnLastChar (lastChar, pos) = 
+        lastChar = '_' || // for __SOURCE_DIRECTORY__
+        lastChar = '`' || // for complex F# names in `` ``
+        lastChar = '#' || // for #if directives
+        lastChar = '.' || // for dot completion
+        isInFsharpIdentifier(lastChar,pos) 
+
+
+
     /// for single character edits
-    let singleCharChange (iEd:IEditor, serv:EditorServices, state:InteractionState, id:int64)  =
+    let singleCharChange (iEd:IEditor, serv:EditorServices, state:InteractionState, id:int64)  =        
         let pos = getPosInCode2(iEd.AvaEdit)
-        let tx = pos.lineToCaret
+        //ISeffLog.log.PrintfnDebugMsg $"singleCharChange:\r\n{pos}"
+        let tx = pos.lineToCaret        
         if tx.Length = 0 then // empty line after deleting
             DocChangeMark.markFoldCheckHighlightAsync (iEd, serv, state, id)    
         else
-            let c = tx[tx.Length-1]
-
-            if c <> '.' && state.JustCompleted then 
+            let lastChar = tx[tx.Length-1]
+            if lastChar <> '.' && state.JustCompleted then 
                 // if it is not a dot avoid re-trigger of completion window on single character completions, just check
                 state.JustCompleted <- false // reset it
                 DocChangeMark.markFoldCheckHighlightAsync (iEd, serv, state, id)
-            else            
+            
+            else 
                 let doc = iEd.AvaEdit.Document // get in sync
                 async{                
-                    do! Async.Sleep 30
-                    match c with
-                    | '_'  // for __SOURCE_DIRECTORY__
-                    | '`'  // for complex F# names in `` ``
-                    | '#'  // for #if directives
-                    | '.' 
-                    |  _  when isInFsharpIdentifier(c,pos) ->  
+                    do! Async.Sleep 100                    
+                    if showOnLastChar (lastChar,pos) then
                         let show = MaybeShow.completionWindow(pos)
+                        ISeffLog.log.PrintfnDebugMsg $"MaybeShow.completionWindow for {lastChar} is {show}"
                         match show with 
                         |DoNothing  -> ()
 
@@ -368,7 +374,7 @@ module DocChangeCompletion =
                                 do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context                            
                                 let onlyDU = show = ShowOnlyDU
                                 let checkAndMark() = DocChangeMark.markFoldCheckHighlightAsync (iEd, serv, state, state.DocChangedId.Value) // will be called if window closes without an insertion
-                                match serv.compls.TryShow(decls, posx, onlyDU,checkAndMark ) with 
+                                match serv.compls.TryShow(decls, posx, onlyDU, checkAndMark ) with 
                                 |DidShow ->                                     
                                     () // no need to do anything, DocChangedConsequence will be updated to 'React' when completion window closes
                                 |NoShow -> 
@@ -382,7 +388,7 @@ module DocChangeCompletion =
                                     fullCode <- doc.CreateSnapshot().Text
                                 if state.DocChangedId.Value = id then 
                                     DocChangeMark.markTwoSteps (iEd, fullCode, serv, state, id)                            
-                    | _ ->   
+                    else   
                         // the typed charater should not trigger completion.                 
                         // DocChangedConsequence is still  'React', no need to reset.
                         DocChangeMark.markFoldCheckHighlight(iEd, doc, serv, state, id)
@@ -403,7 +409,7 @@ module DocChangeEvents =
             fastColor.ResetShift() 
     
 
-    let changed (iEd:IEditor) (serv:EditorServices) (state:InteractionState) (eventArgs:DocumentChangeEventArgs)  =          
+    let changed (iEd:IEditor) (serv:EditorServices) (state:InteractionState) (eventArgs:DocumentChangeEventArgs) : unit  =       
         serv.errors.InvalidateErrorTransformers()
         match state.DocChangedConsequence with 
         | WaitForCompletions -> 

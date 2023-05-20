@@ -69,9 +69,8 @@ type Editor private (code:string, config:Config, initalFilePath:FilePath, logSta
         se.MatchCase  <- true  // config.Settings.GetBool("SearchMatchCase", true) // TODO how to actually save changes ?
         se.WholeWords <- false // config.Settings.GetBool("SearchWholeWords", false)
         se
-
-    //let id = Guid.NewGuid() // DELETE   
-    let mutable checkState = FileCheckState.Checking //.NotStarted // local to this editor
+     
+    let mutable checkState = FileCheckState.Checking
     let mutable filePath   = initalFilePath
     let getFilePath() = filePath
         
@@ -104,10 +103,8 @@ type Editor private (code:string, config:Config, initalFilePath:FilePath, logSta
         
     member _.State = state    
     
-    member _.Services = services    
-
-    //member val IsCurrent = false with get,set //  this is managed in Tabs.selectionChanged event handler
-
+    member _.Services = services 
+ 
     member val TypeInfoTip = new Controls.ToolTip(IsOpen=false)  
 
     member val CodeAtLastSave : string = "" with get,set // used to check if file was changed in the background by other apps in FileChangeTracker
@@ -118,7 +115,6 @@ type Editor private (code:string, config:Config, initalFilePath:FilePath, logSta
 
     member this.Completions = compls
 
-    //member this.Config = config// DELETE
 
     member this.Folds = folds
 
@@ -149,10 +145,7 @@ type Editor private (code:string, config:Config, initalFilePath:FilePath, logSta
         member this.IsComplWinOpen  = this.Completions.IsOpen       
         member this.FoldingManager  = foldMg
         //member this.EvaluateFrom    = this.EvaluateFrom
-        //member _.Id              = id  // DELETE
-        //member _.Log             = config.Log // DELETE
-        //member _.SemanticRanges  = semanticHighlighter.Ranges  
-        //member _.Completions     = compls :> obj
+
 
     /// sets up Text change event handlers
     /// a static method so that an instance if IEditor can be used
@@ -169,8 +162,6 @@ type Editor private (code:string, config:Config, initalFilePath:FilePath, logSta
         avaEdit.TextArea.PreviewTextInput.Add (fun e -> CursorBehavior.previewTextInput(     avaEdit, e))  // A TextCompositionEventArgs that has a string , handling typing in rectangular selection
         avaEdit.TextArea.AlternativeRectangularPaste <- Action<string,bool>( fun txt txtIsFromOtherRectSel -> RectangleSelection.paste(ed.AvaEdit, txt, txtIsFromOtherRectSel)) //TODO check txtIsFromOtherRectSel on pasting text with \r\n
 
-        
-        //avaEdit.TextArea.TextView.LineTransformers.Add(new NonStandardIndentColorizer(ed.Folds.BadIndentations))  // DELETE       
         avaEdit.TextArea.TextView.LineTransformers.Add(ed.State.FastColorizer)      
         
         let rulers =  new ColumnRulers(avaEdit) // draw last , so on top? do foldings first

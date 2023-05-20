@@ -251,6 +251,7 @@
       <Word>with</Word>        
     </Keywords>
 
+    <!-- exclude for now to keep highlighting rules faster
     <Keywords color = "ReservedKeywords">
       <Word>atomic</Word>
       <Word>break</Word>
@@ -279,6 +280,8 @@
       <Word>virtual</Word>
       <Word>volatile</Word>
     </Keywords>
+    -->
+    
   </RuleSet>
   
   <RuleSet name="_StringEscapeSet"> 

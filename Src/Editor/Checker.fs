@@ -296,6 +296,7 @@ type Checker private ()  =
 
     /// Checks for items available for completion    
     static member GetCompletions (pos:PositionInCode, res:FullCheckResults ) =
+        //ISeffLog.log.PrintfnDebugMsg "*2.0 GetCompletions for:\r\n%A" pos
         let pCtx = PositionInCodeEx.get(pos)
         
         // Symbols are only for finding out if an argument is optional
