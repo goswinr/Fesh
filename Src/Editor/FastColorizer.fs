@@ -28,20 +28,19 @@ type LineTransformers<'T>() =
 
     let lines = ResizeArray<ResizeArray<'T>>(256)// for approx 512 lines on screen
 
-    let empty = ResizeArray<'T>()
-    
-    
     let mutable first = Unchecked.defaultof<'T>
     let mutable last  = Unchecked.defaultof<'T>
     let mutable lastLine   = 0
     let mutable firstLine  = Int32.MaxValue
+
+    let empty = ResizeArray<'T>()
 
     member _.LineCount = lines.Count
        
     member _.Insert(lineNumber, x) =         
         // fill up missing lines
         while lineNumber > lines.Count   do 
-            lines.Add empty        
+            lines.Add null
         
         if lineNumber = lines.Count  then 
             // add a new line        
@@ -50,7 +49,14 @@ type LineTransformers<'T>() =
             lines.Add n
         else
             // add to existing line
-            lines.[lineNumber].Add x 
+            let ln = lines.[lineNumber] 
+            if isNull ln then 
+                let n = ResizeArray(4)
+                lines.[lineNumber] <- n
+                n.Add x 
+            else
+                ln.Add x
+
         
         if lineNumber < firstLine then 
             firstLine <- lineNumber
@@ -63,15 +69,22 @@ type LineTransformers<'T>() =
     /// does nothing if clear already
     member _.ClearAllLines() =        
         if lastLine > 0  then 
-            for line in lines do 
-                line.Clear()
+            for i=0 to lines.Count-1 do
+                let ln = lines.[i] 
+                if not <| isNull ln then ln.Clear()
+                
             //lines.Clear() // dont do this too, so that allocated Lists stay alive and can be refilled fast        
             lastLine  <- 0      
             firstLine <- Int32.MaxValue
 
     /// Safely gets a Line returns empty if index is out of range
     member _.Line(lineNumber) =
-        if lineNumber>=0 && lineNumber<lines.Count then lines.[lineNumber]
+        if lineNumber>=0 && lineNumber<lines.Count then 
+            let ln = lines.[lineNumber] 
+            if isNull ln then 
+                empty 
+            else 
+                ln            
         else empty
 
     member _.IsEmpty = lastLine = 0 
@@ -82,10 +95,9 @@ type LineTransformers<'T>() =
 
     member this.TotalCount = 
         let mutable k =  0
-        for i=0 to lines.Count do
+        for i=0 to lines.Count-1 do
             k <- k + this.Line(i).Count
-        k
-   
+        k  
 
 
 /// An efficient DocumentColorizingTransformer using line number indices into a line transformer list.
@@ -128,7 +140,7 @@ type FastColorizer(transformers:LineTransformers<LinePartChange> [], ed:TextEdit
                         elif till < offSt then ISeffLog.log.PrintfnAppErrorMsg  $"***LineChangePart3 {from}-{till}; Docline {offSt}-{offEn} on line: {lineNo}; doc.Text.Length {ed.Document.TextLength} (shift:{shiftChecked})" 
                         elif from < offSt then ISeffLog.log.PrintfnAppErrorMsg $"****LineChangePart4 {from}-{till}; Docline {offSt}-{offEn} on line: {lineNo}; doc.Text.Length {ed.Document.TextLength} (shift:{shiftChecked})"           
                         else
-                            ISeffLog.log.PrintfnInfoMsg $"{from}-{till}; Docline {offSt}-{offEn} on line: {lineNo}; doc.Text.Length {ed.Document.TextLength} (shift:{shiftChecked})" 
+                            //ISeffLog.log.PrintfnInfoMsg $"{from}-{till}; Docline {offSt}-{offEn} on line: {lineNo}; doc.Text.Length {ed.Document.TextLength} (shift:{shiftChecked})" 
                             base.ChangeLinePart(from, till, lpc.act)
                             
                             
