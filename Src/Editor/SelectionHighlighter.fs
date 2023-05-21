@@ -11,19 +11,32 @@ open Seff.Editor.Selection
 open Seff.Editor
 
 
+module SelectionHighlighting =
+
+    let colorEditor  = Brushes.PaleTurquoise |> AvalonLog.Brush.freeze      
+
+    let colorLog     = Brushes.Blue          |> AvalonLog.Brush.brighter 210  |> AvalonLog.Brush.freeze
+
+    type SelOffsEvent= Event<string*ResizeArray<int>>
+    
+    let globalfoundSelectionEditorEvent = new SelOffsEvent()
+
+    [<CLIEvent>] 
+    let GlobalFoundSelectionsEditor = globalfoundSelectionEditorEvent.Publish
+
+
+open SelectionHighlighting
 
 /// Highlight-all-occurrences-of-selected-text in Text View
-type SelectionHighlighter (edState:InteractionState, lgState:InteractionState) =    
+type SelectionHighlighter (edState:InteractionState, lgStateOpt:InteractionState option) = 
     
-    let colorEditor  = Brushes.PaleTurquoise |> AvalonLog.Brush.freeze      
-    let colorLog     = Brushes.Blue          |> AvalonLog.Brush.brighter 210  |> AvalonLog.Brush.freeze
     let actionEditor  = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetBackgroundBrush(colorEditor))
     let actionLog     = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetBackgroundBrush(colorLog))
 
     let priority = Windows.Threading.DispatcherPriority.Render
 
-    let foundSelectionEditorEv = new Event<ResizeArray<int>>()
-    let foundSelectionLogEv = new Event<ResizeArray<int>>()
+    let foundSelectionEditorEv = new SelOffsEvent()
+    let foundSelectionLogEv    = new SelOffsEvent()
 
     
     let isTextToHighlight(t:string) = 
@@ -71,7 +84,7 @@ type SelectionHighlighter (edState:InteractionState, lgState:InteractionState) =
                 state.Editor.TextArea.TextView.Redraw(f.from, l.till, priority)
             }|> Async.Start
     
-    let mark (state:InteractionState, word:string, action, ev:Event<ResizeArray<int>>, selectionStartOff) =
+    let mark (state:InteractionState, word:string, action, event:SelOffsEvent, globalEvent:SelOffsEvent option, selectionStartOff) =
         let id = state.DocChangedId.Value
         async{
             let lines = state.CodeLines
@@ -112,13 +125,16 @@ type SelectionHighlighter (edState:InteractionState, lgState:InteractionState) =
                     do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context                    
                     markFoldingsSorted(state,offs)
                     state.Editor.TextArea.TextView.Redraw(f.from, l.till, priority)
-                    ev.Trigger(offs)
+                    event.Trigger(word,offs)
+                    match globalEvent with Some ev -> ev.Trigger(word,offs) | None -> ()
                 
                 | Some (pf,pl),Some (f,l) ->   // both prev and current version have a selection                 
                     do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context                    
                     markFoldingsSorted(state,offs)
                     state.Editor.TextArea.TextView.Redraw(min pf.from f.from, max pl.till l.till, priority)
-                    ev.Trigger(offs)
+                    event.Trigger(word,offs)
+                    match globalEvent with Some ev -> ev.Trigger(word,offs) | None -> ()
+
 
             else
                 () // dont redraw, there is already a new docchange happening that will be drawn
@@ -126,16 +142,22 @@ type SelectionHighlighter (edState:InteractionState, lgState:InteractionState) =
     
     
     let markBoth(selectionStartOff, word, isFromEd) =
-        if isFromEd then 
-            mark(edState, word, actionEditor, foundSelectionEditorEv, selectionStartOff)
-            mark(lgState, word, actionLog   , foundSelectionLogEv   , -1)
-        else
-            mark(edState, word, actionEditor, foundSelectionEditorEv, -1)
-            mark(lgState, word, actionLog   , foundSelectionLogEv   , selectionStartOff)
-
+        match lgStateOpt with 
+        |None -> ISeffLog.log.PrintfnAppErrorMsg "Interaction state not set on AvalonLog (1)" // should never happen
+        |Some lgState ->
+            if isFromEd then 
+                mark(edState, word, actionEditor, foundSelectionEditorEv, Some globalfoundSelectionEditorEvent, selectionStartOff)
+                mark(lgState, word, actionLog   , foundSelectionLogEv   , None  , -1)            
+            else
+                mark(edState, word, actionEditor, foundSelectionEditorEv, Some globalfoundSelectionEditorEvent, -1)
+                mark(lgState, word, actionLog   , foundSelectionLogEv   , None                                , selectionStartOff)
+              
     let clearBoth() =
-        justClear(edState)
-        justClear(lgState)
+        match lgStateOpt with 
+        |None -> ISeffLog.log.PrintfnAppErrorMsg "Interaction state not set on AvalonLog (2)" // should never happen
+        |Some lgState ->        
+            justClear(edState)
+            justClear(lgState)
     
     
     let update(this:TextEditor, isFromEd) =        
@@ -152,12 +174,17 @@ type SelectionHighlighter (edState:InteractionState, lgState:InteractionState) =
     
     
     do         
-        edState.Editor.TextArea.SelectionChanged.Add ( fun _ ->                                          update(edState.Editor, true)  )        
-        lgState.Editor.TextArea.SelectionChanged.Add ( fun _ -> if IEditor.isCurrent edState.Editor then update(lgState.Editor, false) )
+        match lgStateOpt with 
+        |None -> ISeffLog.log.PrintfnAppErrorMsg "Interaction state not set on AvalonLog (3)" // should never happen
+        |Some lgState ->         
+            edState.Editor.TextArea.SelectionChanged.Add ( fun _ ->                                          update(edState.Editor, true)  )        
+            lgState.Editor.TextArea.SelectionChanged.Add ( fun _ -> if IEditor.isCurrent edState.Editor then update(lgState.Editor, false) )
 
 
     [<CLIEvent>] 
     member _.FoundSelectionsEditor = foundSelectionEditorEv.Publish
+
+    [<CLIEvent>] 
     member _.FoundSelectionsLog    = foundSelectionLogEv.Publish
 
     

@@ -89,10 +89,16 @@ type Log private () =
         log.AppendWithBrush (b, tx)
         match addLogger with 
         | Some tw -> tw.Write tx
-        | None ->()
+        | None ->()    
     
-    let foldMg = Folding.FoldingManager.Install(log.AvalonEdit.TextArea) 
-    let mutable state: InteractionState = null  // will be set in AdjustToSettingsInConfig(...)
+    
+    // cant be set up because log is created before config , 
+    // will be set in this.FinishLogSetup(config) just below
+    let mutable state: InteractionState option = None 
+    let mutable folds:Foldings option = None
+    
+
+    let logChangeId = ref 0
 
     //-----------------------------------------------------------
     //----------------------members:------------------------------------------
@@ -101,15 +107,27 @@ type Log private () =
     member this.AvalonLog = log  
     
     member this.State = state    
+    
+    member this.Folds = folds
 
     member this.FsiErrorsStringBuilder = fsiErrorsStringBuilder  
 
-    member internal this.AdjustToSettingsInConfig(config:Config)=         
+    member internal this.FinishLogSetup(config:Config)=         
         setLineWrap( config.Settings.GetBool ("logHasLineWrap", true) )
         log.FontSize  <- config.Settings.GetFloat ("SizeOfFont" , Seff.StyleState.fontSize )
-        state <- new InteractionState(log.AvalonEdit, foldMg, config)
-        let folds  = new Foldings(foldMg, state, fun () -> SetTo (FileInfo "Seff.AvalonLog.Foldings"))
-        ()
+
+        let logEd = log.AvalonEdit
+        let getPath() = SetTo (FileInfo "Seff.AvalonLog.Foldings")
+        let foldMg = Folding.FoldingManager.Install(logEd.TextArea) 
+        let state1 = new InteractionState(logEd, foldMg, config)
+        let folds1  = new Foldings(foldMg, state1, getPath )
+        state <- Some state1
+        folds <- Some folds1
+        
+        logEd.DocumentChanged.Add( fun _ -> 
+            let i = Threading.Interlocked.Increment logChangeId
+            folds1.UpdateFoldsAndBadIndents(i)
+            )
 
     member this.ToggleLineWrap(config:Config)= 
         let newState = not log.WordWrap

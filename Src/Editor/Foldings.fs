@@ -264,7 +264,7 @@ type Foldings(manager:Folding.FoldingManager, state:InteractionState, getFilePat
                             //    else                 ISeffLog.printnColor 0 200 0 $"try open {ln.LineNumber}:{d.GetText ln}"
                 //ISeffLog.printnColor 100 100 100 $"---------end of try collapse---------------------"
 
-                saveFoldingStatus() // so that when new foldings appear they are saved immediately
+                saveFoldingStatus() // so that when new foldings appeared they are saved immediately
 
             } |>  Async.Start
 
@@ -331,7 +331,7 @@ type Foldings(manager:Folding.FoldingManager, state:InteractionState, getFilePat
         saveFoldingStatus() // so that they are saved immediately
     
     /// Open any foldings if required and optionally select at location
-    member _.GoToOffsetAndUnfold(offset, length,selectText) =         
+    member _.GoToOffsetAndUnfold(offset, length, selectText) =         
         let mutable unfoldedOneOrMore = false
         for fold in manager.GetFoldingsContaining(offset) do
             if fold.IsFolded then

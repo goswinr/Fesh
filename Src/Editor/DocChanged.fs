@@ -346,7 +346,7 @@ module DocChangeCompletion =
                     do! Async.Sleep 100                    
                     if showOnLastChar (lastChar,pos) then
                         let show = MaybeShow.completionWindow(pos)
-                        ISeffLog.log.PrintfnDebugMsg $"MaybeShow.completionWindow for {lastChar} is {show}"
+                        //ISeffLog.log.PrintfnDebugMsg $"MaybeShow.completionWindow for {lastChar} is {show}"
                         match show with 
                         |DoNothing  -> ()
 

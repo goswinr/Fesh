@@ -33,7 +33,7 @@ type Counter private () =
 
 
  /// The tab that holds the tab header and the code editor
-type Editor private (code:string, config:Config, initalFilePath:FilePath, logState:InteractionState)  = 
+type Editor private (code:string, config:Config, initalFilePath:FilePath, logState:InteractionState option)  = 
     let avaEdit = 
         let av = TextEditor()
         av.Options.IndentationSize <- config.Settings.GetIntSaveDefault("IndentationSize", 4) // do first because its used by tabs to spaces below.
@@ -149,7 +149,7 @@ type Editor private (code:string, config:Config, initalFilePath:FilePath, logSta
 
     /// sets up Text change event handlers
     /// a static method so that an instance if IEditor can be used
-    static member SetUp  (code:string, config:Config, filePath:FilePath ,logState:InteractionState) = 
+    static member SetUp  (code:string, config:Config, filePath:FilePath ,logState:InteractionState option) = 
         let ed = Editor(code, config, filePath, logState )
         let avaEdit = ed.AvaEdit
         let compls = ed.Completions          
@@ -210,7 +210,7 @@ type Editor private (code:string, config:Config, initalFilePath:FilePath, logSta
         ed
 
     ///additional constructor using default code
-    static member New (config:Config, logState:InteractionState) =  
+    static member New (config:Config, logState:InteractionState option) =  
         let dummyName = Counter.UnsavedFileName()
         Editor.SetUp( config.DefaultCode.Get() , config, NotSet dummyName, logState)
 

@@ -263,57 +263,39 @@ type AsyncStatus (grid:TabsAndLog) as this =
 
 #nowarn "44" //for obsolete grid.Log.AvalonLog.AvalonEdit
 
-(*
-
 type SelectedEditorTextStatus (grid:TabsAndLog) as this = 
     inherit TextBlock() 
     let desc = " " //Editor Selection Highlighting" 
     let baseTxt = "Highlights and counts the occurrences of the currently selected Text in the current Editor.\r\nMinimum two characters and but line breaks.\r\nClick here to scroll through all occurrences."
-    let mutable scrollToIdx = 0
-    let mutable hiliRes  = FoundNone // for clicking and scrolling through them 
+    let mutable scrollToIdx = 0  
+    let mutable lastSels = ResizeArray<int>()
+    let mutable lastWord = ""
     do
         this.Padding <- textPadding
         this.ToolTip <-  baseTxt
         this.Inlines.Add( desc)
-              
-        let logAva = grid.Log.AvalonLog.AvalonEdit
-        
-        let setText(res:HiLiResult) =
-            match res with 
-            |FoundNone -> 
-                this.Text <- desc  
-            |FoundSome hr -> 
-                this.Inlines.Clear()
-                this.Inlines.Add( sprintf "%d of " hr.offsets.Count)
-                this.Inlines.Add( new Run (hr.text, FontFamily = StyleState.fontEditor, Background = SelectionHighlighting.colorEditor))
-                this.Inlines.Add( sprintf " (%d Chars) " hr.text.Length)       
-        
-        
-        SelectionHighlighting.SelectionChanged.Add ( fun (ava:TextEditor, res:HiLiResult) ->                
-            if not <| Object.ReferenceEquals(ava,logAva) then
-                hiliRes<-res
-                setText(res)
-                match res with 
-                |FoundNone    -> grid.Log.HighlightText("")
-                |FoundSome hr -> grid.Log.HighlightText(hr.text)            
-                )
 
-        SelectionHighlighting.HighlightRequested.Add ( fun (ava:TextEditor, res:HiLiResult) ->                
-            if not <|Object.ReferenceEquals(ava,logAva) then 
-               hiliRes<-res
-               setText(res) 
-               )
+        SelectionHighlighting.GlobalFoundSelectionsEditor.Add(fun (word,offs) -> 
+            lastSels <- offs
+            lastWord <- word
+            if offs.Count = 0 then  
+                this.Text <- desc  
+            else
+                this.Inlines.Clear()
+                this.Inlines.Add( sprintf "%d of " offs.Count)
+                this.Inlines.Add( new Run (word, FontFamily = StyleState.fontEditor, Background = SelectionHighlighting.colorEditor))
+                this.Inlines.Add( sprintf " (%d Chars) " word.Length)
+            )
+
        
         // on each click loop through all locations where text appears
         this.MouseDown.Add ( fun _ -> // press mouse to scroll to them
-            match hiliRes with 
-            |FoundNone    -> ()               
-            |FoundSome hr -> 
-                if scrollToIdx >= hr.offsets.Count then scrollToIdx <- 0
+            if lastSels.Count > 0 then
+                if scrollToIdx >= lastSels.Count then scrollToIdx <- 0
                 let ed = grid.Tabs.Current.Editor
-                let off = hr.offsets.[scrollToIdx]
+                let off = lastSels.[scrollToIdx]
                 if off < ed.AvaEdit.Document.TextLength then                    
-                    ed.Folds.GoToOffsetAndUnfold(off, hr.text.Length, true )                    
+                    ed.Folds.GoToOffsetAndUnfold(off, lastWord.Length, true )                    
                     scrollToIdx <- scrollToIdx + 1
                 else
                     scrollToIdx <- 0
@@ -321,64 +303,46 @@ type SelectedEditorTextStatus (grid:TabsAndLog) as this =
 
         grid.Tabs.OnTabChanged.Add ( fun _ -> this.Text <- desc )
             
-     
+
 
 type SelectedLogTextStatus (grid:TabsAndLog) as this = 
     inherit TextBlock()
+    let logAva = grid.Log.AvalonLog.AvalonEdit
+    
     let desc = " " //Log Selection Highlighting " 
     let baseTxt = "Highlights and counts the occurrences of the currently selected Text in the Log output.\r\nMinimum two characters and but line breaks.\r\nClick here to scroll through all occurrences."
     let mutable scrollToIdx = 0    
-    let mutable hiliRes  = FoundNone
+    let mutable lastSels = ResizeArray<int>()
+    let mutable lastWord = ""
     do
-        this.Inlines.Add( desc)
         this.Padding <- textPadding
-        this.ToolTip <-  baseTxt        
+        this.ToolTip <-  baseTxt
+        this.Inlines.Add( desc)
 
-        let logAva = grid.Log.AvalonLog.AvalonEdit
-        
-        let setText(res:HiLiResult) =
-            match res with 
-            |FoundNone -> 
+        SelectionHighlighting.GlobalFoundSelectionsEditor.Add(fun (word,offs) -> 
+            lastSels <- offs
+            lastWord <- word
+            if offs.Count = 0 then  
                 this.Text <- desc  
-            |FoundSome hr -> 
+            else
                 this.Inlines.Clear()
-                this.Inlines.Add( sprintf "%d of " hr.offsets.Count)
-                this.Inlines.Add( new Run (hr.text, FontFamily = StyleState.fontLog, Background = SelectionHighlighting.colorLog))
-                this.Inlines.Add( sprintf " (%d Chars) " hr.text.Length)       
-        
-        
-        SelectionHighlighting.SelectionChanged.Add ( fun (ava:TextEditor, res:HiLiResult) ->                
-            if Object.ReferenceEquals(ava,logAva) then
-                hiliRes<-res
-                setText(res)
-                match res with 
-                |FoundNone    -> grid.Tabs.Current.Editor.HighlightText("")
-                |FoundSome hr -> grid.Tabs.Current.Editor.HighlightText(hr.text)
-                )
-
-        SelectionHighlighting.HighlightRequested.Add ( fun (ava:TextEditor, res:HiLiResult) ->                
-            if  Object.ReferenceEquals(ava,logAva) then 
-               hiliRes<-res
-               setText(res) 
-               )
-
-        // on each click loop through all locations where text appears
-        this.MouseDown.Add ( fun _ -> // press mouse to scroll to them             
-            match hiliRes with 
-            |FoundNone    -> ()               
-            |FoundSome hr ->
-                if hr.offsets.Count > 0 then 
-                    if scrollToIdx >= hr.offsets.Count then scrollToIdx <- 0                
-                    let off = hr.offsets.[scrollToIdx]                
-                    if off < logAva.Document.TextLength then
-                        let ln = logAva.Document.GetLineByOffset(off)
-                        logAva.ScrollTo(ln.LineNumber,1) 
-                        logAva.Select(off, hr.text.Length)
-                        scrollToIdx <- scrollToIdx + 1
-                    else
-                        scrollToIdx <- 0
+                this.Inlines.Add( sprintf "%d of " offs.Count)
+                this.Inlines.Add( new Run (word, FontFamily = StyleState.fontEditor, Background = SelectionHighlighting.colorLog))
+                this.Inlines.Add( sprintf " (%d Chars) " word.Length)
             )
-*)       
+
+       
+        // on each click loop through all locations where text appears
+        this.MouseDown.Add ( fun _ -> // press mouse to scroll to them
+            if lastSels.Count > 0 then
+                if scrollToIdx >= lastSels.Count then scrollToIdx <- 0                
+                let off = lastSels.[scrollToIdx]
+                if off < logAva.Document.TextLength then                    
+                    match grid.Log.Folds with Some f -> f.GoToOffsetAndUnfold(off, lastWord.Length, true )  |None ->()                  
+                    scrollToIdx <- scrollToIdx + 1
+                else
+                    scrollToIdx <- 0
+            )      
         
 
 type SeffStatusBar (grid:TabsAndLog)  = 
@@ -403,10 +367,9 @@ type SeffStatusBar (grid:TabsAndLog)  =
         addSep Dock.Left 
         add    Dock.Left  <| fsi
         addSep Dock.Left 
-        //add    Dock.Left  <| SelectedEditorTextStatus(grid)
-        //add    Dock.Left  <| SelectedLogTextStatus(grid)
-
-        add    Dock.Right  <| FsiOutputStatus(grid)
+        add    Dock.Left  <| SelectedEditorTextStatus(grid)
+        add    Dock.Left  <| SelectedLogTextStatus(grid)
+        add    Dock.Right <| FsiOutputStatus(grid)
         addSep Dock.Right
         
         if grid.Config.RunContext.IsHosted then

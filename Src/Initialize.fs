@@ -43,7 +43,7 @@ module Initialize =
             log.PrintfnAppErrorMsg "Setting up Global Error Handling via FsEx.Wpf.ErrorHandeling failed. Or is done already? Is FsEx.Wpf already loaded by another plug-in?\r\n%A" e 
            
         let config = new Config(log, mode, startupArgs)
-        log.AdjustToSettingsInConfig(config)          
+        log.FinishLogSetup(config)          
 
         Seff(config, log)
 
