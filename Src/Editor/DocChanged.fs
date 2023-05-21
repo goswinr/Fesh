@@ -18,7 +18,7 @@ type EditorServices = {
     semantic    : SemanticHighlighter
     compls      : Completions  
     selection   : SelectionHighlighter
-    //evalTracker : EvaluationTracker
+    evalTracker : EvaluationTracker
     }
 
 module DocChangeUtil = 

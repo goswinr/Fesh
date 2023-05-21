@@ -74,15 +74,15 @@ type Editor private (code:string, config:Config, initalFilePath:FilePath)  =
     let mutable filePath   = initalFilePath
     let getFilePath() = filePath
         
-    let foldMg   = Folding.FoldingManager.Install(avaEdit.TextArea) 
-    let state    = new InteractionState(avaEdit, foldMg, config)
-    let folds    = new Foldings(foldMg, state, getFilePath)
-    let brackets = new BracketHighlighter( state)
-    let compls   = new Completions(state)
-    let semHiLi  = new SemanticHighlighter(state)
-    let error    = new ErrorHighlighter(state,foldMg)
-    let selHili  = new SelectionHighlighter(state)
-    //let evalTracker   = new EvaluationTracker(avaEdit, checker, id)
+    let foldMg      = Folding.FoldingManager.Install(avaEdit.TextArea) 
+    let state       = new InteractionState(avaEdit, foldMg, config)
+    let folds       = new Foldings(foldMg, state, getFilePath)
+    let brackets    = new BracketHighlighter( state)
+    let compls      = new Completions(state)
+    let semHiLi     = new SemanticHighlighter(state)
+    let error       = new ErrorHighlighter(state,foldMg)
+    let selHili     = new SelectionHighlighter(state)
+    let evalTracker = new EvaluationTracker(avaEdit,config)
 
     let services :EditorServices = {
         folds       = folds
@@ -91,7 +91,7 @@ type Editor private (code:string, config:Config, initalFilePath:FilePath)  =
         semantic    = semHiLi
         compls      = compls 
         selection   = selHili
-        //evalTracker : EvaluationTracker
+        evalTracker = evalTracker
         }
     
     //these two wil trigger the redraw after all async events have arrived
@@ -173,30 +173,15 @@ type Editor private (code:string, config:Config, initalFilePath:FilePath)  =
         
         avaEdit.Document.Changing.Add(DocChangeEvents.changing                ed.State.FastColorizer)
         avaEdit.Document.Changed.Add (DocChangeEvents.changed  ed ed.Services ed.State)
-        //avaEdit.Document.Changed.Add(fun a -> ed.EvalTracker.SetLastChangeAt a.Offset)
+        avaEdit.Document.Changed.Add(fun a -> ed.Services.evalTracker.SetLastChangeAt a.Offset)
                  
         // check if closing and inserting from completion window is desired with currently typed character:
         avaEdit.TextArea.TextEntering.Add (compls.MaybeInsertOrClose)
         avaEdit.TextArea.TextEntering.Add (fun _ -> ed.TypeInfoTip.IsOpen <- false )// close type info on typing
         
-        (*  // DELETE
-        avaEdit.Document.Changed.Add(fun a -> 
-            DocChanged.logPerformance( a.InsertedText.Text) // AutoHotKey SendInput of ßabcdefghijklmnopqrstuvwxyz£
-            //DocChanged.delayDocChange(a, ed, compls, ed.GlobalChecker) // to trigger for Autocomplete or error highlighting with immediate delay, (instead of delay in checkCode function.)
-            DocChanged.docChanged(a, ed, compls, ed.GlobalChecker)
-            ed.EvalTracker.SetLastChangeAt(a.Offset)
-            )                           
-
-        // check if closing and inserting from completion window is desired with currently typed character:
-        avaEdit.TextArea.TextEntering.Add (DocChanged.closeAndMaybeInsertFromCompletionWindow compls)
-        avaEdit.TextArea.TextEntering.Add (fun _ -> ed.TypeInfoTip.IsOpen <- false )// close type info on typing
-
-        ed.GlobalChecker.OnCheckedForErrors.Add(fun (iEditorOfCheck,chRes) -> // this then triggers folding too, statusbar update is added in statusbar class
-            if iEditorOfCheck.Id = ed.Id then // make sure it draws only on one editor, not all!
-                AutoFixErrors.references(iEditorOfCheck, chRes)
-                ed.ErrorHighlighter.Draw(ed)
-            )
-        *)
+        
+        //avaEdit.Document.Changed.Add(fun a -> DocChange.logPerformance( a.InsertedText.Text)) // AutoHotKey SendInput of ßabcdefghijklmnopqrstuvwxyz£
+            
 
         compls.OnShowing.Add(fun _ -> ed.ErrorHighlighter.ToolTip.IsOpen <- false)
         compls.OnShowing.Add(fun _ -> ed.TypeInfoTip.IsOpen              <- false)
@@ -239,4 +224,4 @@ type Editor private (code:string, config:Config, initalFilePath:FilePath)  =
         There can be multiple document changes between the BeginUpdate() and EndUpdate() calls. In this case, the events associated with EndUpdate will be raised only once after the whole document update is done.
 
         The UndoStack listens to the UpdateStarted and UpdateFinished events to group all changes into a single undo step.
-        *) 
+        *)  

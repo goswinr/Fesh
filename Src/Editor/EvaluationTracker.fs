@@ -176,7 +176,7 @@ type EvaluationTrackerRenderer (ed:TextEditor) =
     member _.EvaluateFrom = topMostUnEvaluated
 
     // for IBackgroundRenderer
-    member _.Draw (textView:TextView , drawingContext:DrawingContext) = 
+    member _.Draw (textView:TextView , drawingContext:DrawingContext) =  
         if notNull evaluatedCodeSeg then
             try
                 let geoBuilder = new BackgroundGeometryBuilder (AlignToWholePixels = true, CornerRadius = 0.)
@@ -197,9 +197,9 @@ type EvaluationTrackerRenderer (ed:TextEditor) =
         member this.Draw(tv,dc) = this.Draw(tv,dc)
         member this.Layer = this.Layer
 
-(*
 
-type EvaluationTracker (ed:TextEditor, checker:Checker, edId:Guid) = 
+
+type EvaluationTracker (ed:TextEditor, config:Seff.Config.Config) = 
 
     let renderer = EvaluationTrackerRenderer(ed)
 
@@ -207,11 +207,11 @@ type EvaluationTracker (ed:TextEditor, checker:Checker, edId:Guid) =
 
     do
         ed.TextArea.TextView.BackgroundRenderers.Add(renderer)
-        Fsi.GetOrCreate()
-        Fsi.OnReset.Add       (fun evc -> renderer.MarkNoneEvaluated()) // reset for all editors
-        Fsi.OnCanceled.Add    (fun evc -> if evc.editor.Id = edId then renderer.MarkNoneEvaluated())
-        Fsi.OnCompletedOk.Add (fun evc ->
-            if evc.editor.Id = edId then  //this event will be hooked up for each tab so check id too
+        let fsi =Fsi.GetOrCreate(config)
+        fsi.OnReset.Add       (fun evc -> renderer.MarkNoneEvaluated()) // reset for all editors
+        fsi.OnCanceled.Add    (fun evc -> if IEditor.isCurrent ed then renderer.MarkNoneEvaluated())
+        fsi.OnCompletedOk.Add (fun evc ->
+            if IEditor.isCurrent ed then  //this event will be hooked up for each tab so check id too
                 //ISeffLog.log.PrintfnColor 150 150 150  "Fsi.OnCompletedOk:%A" evc
                 //ISeffLog.log.PrintfnFsiErrorMsg "Fsi.OnCompletedOk:renderer.EvaluateFrom:%d" renderer.EvaluateFrom
                 match evc.amount with
@@ -224,15 +224,15 @@ type EvaluationTracker (ed:TextEditor, checker:Checker, edId:Guid) =
                         //ISeffLog.log.PrintfnFsiErrorMsg "Fsi.OnCompletedOk,FsiSegment:renderer.EvaluateFrom:%d" renderer.EvaluateFrom
                 )
 
-    member _.SetLastChangeAt(off) =     renderer.SetLastChangeAt(off)
+    member _.SetLastChangeAt(off) =  renderer.SetLastChangeAt(off)
 
     /// Offset of where evaluation should continue from
-    member _.EvaluateFrom =             renderer.EvaluateFrom
+    member _.EvaluateFrom =    renderer.EvaluateFrom
 
     /// provide the index of the first unevaluated offset, this might be out of bound too if all doc is evaluated and will be checked
-    member _.MarkEvaluatedTillOffset(off) =      renderer.MarkEvaluatedTillOffset(off)
+    member _.MarkEvaluatedTillOffset(off) =  renderer.MarkEvaluatedTillOffset(off)
 
 
 
-*)
+
 
