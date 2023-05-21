@@ -204,7 +204,7 @@
       <Word>end</Word>
       <Word>exception</Word>
       <Word>extern</Word>
-      <Word>FALSE</Word>
+      <!-- <Word>FALSE</Word> -->
       <Word>finally</Word>
       <Word>fixed</Word>    
       <Word>for</Word>
@@ -238,7 +238,7 @@
       <Word>struct</Word>
       <Word>then</Word>
       <Word>to</Word>
-      <Word>TRUE</Word>
+      <!-- <Word>TRUE</Word> -->
       <Word>try</Word>      
       <Word>typeof</Word>
       <Word>type</Word>

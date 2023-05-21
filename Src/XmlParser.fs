@@ -255,7 +255,7 @@ module XmlParser =
                         readName()
                         let name = getConst sb 
                         // fix for https://github.com/dotnet/standard/issues/1527:
-                        if name = "p"  then  // always skip a <p...> node a closing (e.g. in netstandard.xml) 
+                        if name = "p"  then  // always skip a <p...> node without a closing (e.g. in netstandard.xml) 
                             skipTillAndWhite ">" 
                             readNodes cs  
                         elif name = "br"  then  // a simple <br> without a closing (e.g. in netstandard.xml)

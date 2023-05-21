@@ -215,7 +215,7 @@ type TypeInfo private () =
                 else                      tb.Inlines.Add( new Run(trimIfOneLiner t,  Foreground = darkblue, FontStyle = FontStyles.Italic)) 
                 
             |Node n ->  
-                if d=0 then                     
+                if d=0 then   // d for depth                  
                     if last<>n.name && addTitle then // && n.name <> "?name?" then // to not repeat the parameter header every time
                         last <- n.name
                         tb.Inlines.Add( new LineBreak()) 
@@ -228,13 +228,17 @@ type TypeInfo private () =
                         loop c n.name false (d+1)
                     tb.Inlines.Add( new LineBreak()) 
                     
+                    
                 elif n.children.IsEmpty && not n.attrs.IsEmpty then 
                     // e.g. for: <returns> <see langword="true" /> if <paramref name="objA" /> is the same instance as <paramref name="objB" /> or if both are null; otherwise, <see langword="false" />.</returns>
                     for at in n.attrs do 
-                        if at.name="cref" then  tb.Inlines.AddRange(  at.value |> fixTypeName |>  codeRun td)
-                        else                    tb.Inlines.AddRange(  at.value                |>  codeRun td)
-                        tb.Inlines.Add( new Run(" ")) 
+                        //printfn $"{n.name} {at.name}:{at.value }"
+                        if   at.name="cref"  then  tb.Inlines.AddRange(  at.value |> fixTypeName |>  codeRun td)                        
+                        else                       tb.Inlines.AddRange(  at.value                |>  codeRun td)
+                        //tb.Inlines.Add( new Run(" ")) 
                 else
+                    //for at in n.attrs do printfn $"ELSE:{n.name} {at.name}:{at.value } n.children.IsEmpty:{n.children.IsEmpty}={n.children.Length} n.attrs.IsEmpty:{n.attrs.IsEmpty}={n.attrs.Length}"
+                    //if not n.children.IsEmpty then printfn $"ELSE:{n.name}:{n.children.Head}"
                     match n.name with 
                     |"c"|"code" ->   for c in List.rev n.children do addCode c  (d+1)
                     |"para"     ->   for c in List.rev n.children do tb.Inlines.Add( new LineBreak()) ;loop    c n.name false (d+1)
