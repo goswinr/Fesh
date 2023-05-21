@@ -65,6 +65,217 @@ module Render =
         el.TextRunProperties.SetBackgroundBrush(b)
 
 
+module ParseBrackets = 
+    
+    [<Struct>]
+    type Bracket = {
+        bracket: BracketKind
+        from:int 
+        //till:int
+        }
+
+
+    type MuliLineState = RegCode | MulitComment | MulitString
+
+    
+    let all(lns:CodeLineTools.CodeLines, id) : ResizeArray<ResizeArray<Bracket>> option=
+        let code= lns.FullCode
+
+        let brss = ResizeArray<ResizeArray<Bracket>>() 
+               
+        //let mutable last = ClRound
+        
+        let readLine(brs:ResizeArray<Bracket>, prevState: MuliLineState, from, till) : MuliLineState =             
+            
+            let rec skipString chr i :int  =
+                if i < till then 
+                    let next = code[i+1]
+                    match chr ,next with 
+                    | '"' ,  _  -> i+1 // first char after string
+                    | '\\', '"' -> skipString next (i+1) // jump over escaped quote \"
+                    | _         -> skipString next (i+1)
+                else 
+                    till+1
+
+            // for strings starting with @
+            let rec skipAtString chr i :int =
+                if i < till then 
+                    let next = code[i+1]
+                    match chr ,next with 
+                    | '"' ,  _  -> i + 1 // first char after  @string                    
+                    | _         -> skipAtString next (i+1) 
+                else 
+                    till+1
+
+            let rec multiLineString chr next i :int =
+                if i+1 < till then
+                    let nnext = code[i+2]
+                    match chr , next, nnext with 
+                    | '"' ,'"' ,'"'   -> i+3 // first char after  multiline string                    
+                    | _               -> multiLineString next nnext (i+1) 
+                else 
+                    Int32.MaxValue
+
+            let rec multiLineComment chr  i :int =
+                if i+1 < till then                    
+                    let next = code[i+1]
+                    match chr , next with 
+                    | '*' ,')'    -> i+2 // first char after multiline comment                    
+                    | _           -> multiLineComment next (i+1) 
+                else 
+                    Int32.MaxValue
+            
+            let rec charLoop chr i : MuliLineState =                
+
+                let inline pushExit      br = brs.Add {bracket=br; from = i} ; RegCode
+                let inline pushOne  next br = brs.Add {bracket=br; from = i} ; charLoop next      (i+1)
+                let inline pushTwo       br = brs.Add {bracket=br; from = i} ; charLoop code[i+2] (i+2)
+                let inline loopOn        j  = if j <= till then charLoop code[j] (j) else RegCode
+                
+                let spaceLeft = till-i
+                if spaceLeft < 0 then // exit
+                    RegCode
+                elif spaceLeft = 0 then // the last char on this line 
+                    match chr with 
+                    | '[' -> pushExit OpRect
+                    | '(' -> pushExit OpRound
+                    | '{' -> pushExit OpCurly
+                    | ']' -> pushExit ClRect
+                    | ')' -> pushExit ClRound
+                    | '}' -> pushExit ClCurly
+                    |  _  -> RegCode // just exit loop
+                
+                else 
+                    let next = code[i+1] 
+                    match chr,next with 
+                    | '/','/' -> RegCode // a comment starts,  exit loop
+                    
+                    | '(','*' -> match multiLineComment next (i+1) with // a muliline comment starts,
+                                 | Int32.MaxValue -> MulitComment
+                                 | ii             -> loopOn  ii                    
+                    
+                    | '{','|' -> pushTwo OpAnRec
+                    | '[','|' -> pushTwo OpArr
+                    | '|','}' -> pushTwo ClAnRec
+                    | '|',']' -> pushTwo ClArr                   
+                    | '[', _  -> pushOne next OpRect
+                    | '(', _  -> pushOne next OpRound
+                    | '{', _  -> pushOne next OpCurly
+                    | ']', _  -> pushOne next ClRect
+                    | ')', _  -> pushOne next ClRound
+                    | '}', _  -> pushOne next ClCurly
+                    | '"','"' -> if spaceLeft >= 2 && code[i+2] = '"' then  // a muliline string starts,
+                                    match multiLineString next code[i+2] (i+2) with 
+                                    | Int32.MaxValue -> MulitString
+                                    | ii             -> loopOn  ii
+                                 else  
+                                    loopOn (i+3) // just an empty string
+
+                    | '@','"' -> if spaceLeft = 2 then RegCode // exit, only one char left, must be a closing quote for correct syntax
+                                 else skipAtString code[i+2] (i+2) |> loopOn //a @string starts,  
+
+                    | '"', _  -> skipString   next (i+1) |> loopOn// a string starts, 
+
+                    | _       -> charLoop next (i+1)
+
+
+            match till-from with 
+            | 0 -> prevState // empty line 
+            | 1 -> // a line one characters
+                match prevState with 
+                | RegCode      -> charLoop code[from] from
+                | MulitComment -> MulitComment
+                | MulitString  -> MulitString
+            | 2 -> // a line with two characters
+                match prevState with 
+                | RegCode      -> charLoop code[from] from
+                | MulitComment ->                     
+                    if code[from] = '*' && code[from+1]=')' then RegCode // end of multicomment
+                    else MulitComment//  multicomment continues
+                    
+                | MulitString  -> MulitString // would need 3 chars to stop multiline string
+            
+            | _ -> // a line with three or more characters
+                match prevState with 
+                | RegCode      -> charLoop code[from] from
+                | MulitComment -> 
+                    match multiLineComment code[from] from with // a muliline comment starts,
+                    | Int32.MaxValue -> MulitComment
+                    | ii             -> charLoop code[ii] ii
+                    
+                | MulitString  -> 
+                    match multiLineString code[from] code[from+1] from with 
+                    | Int32.MaxValue -> MulitString
+                    | ii             -> charLoop code[ii] ii
+
+        
+        /// retuns true if all lines are looped
+        let rec lineLoop (lineState:MuliLineState) lnNo =
+            if lnNo > lns.LastLineIdx then 
+                Some brss // looped till end
+            else                
+                match lns.GetLine(lnNo,id) with
+                |ValueNone -> None // loop aborted
+                |ValueSome l -> 
+                    let brs = new ResizeArray<Bracket>()
+                    let newLineState = readLine (brs, lineState ,l.offStart+l.indent, l.offStart+l.len)                    
+                    brss.Add brs     
+                    lineLoop newLineState (lnNo + 1)
+                    
+        lineLoop RegCode 0 // start at 0 even though the 0 line is always empty
+        
+      
+    let debugPrint(bss:ResizeArray<ResizeArray<Bracket>>, lns:CodeLineTools.CodeLines, id) :unit =
+        
+        let getBr = function
+            // Opening Brackets:
+            | OpAnRec -> "{|"
+            | OpArr   -> "[|"            
+            | OpRect  -> "["
+            | OpCurly -> "{"
+            | OpRound -> "("            
+            // Closing Brakets:
+            | ClAnRec -> "|}"
+            | ClArr   -> "|]"            
+            | ClRect  -> "]"
+            | ClCurly -> "}"
+            | ClRound -> ")" 
+            
+        let getBLen = function            
+            | OpAnRec -> 2
+            | OpArr   -> 2            
+            | ClAnRec -> 2
+            | ClArr   -> 2            
+            | OpRect  -> 1
+            | OpCurly -> 1
+            | OpRound -> 1  
+            | ClRect  -> 1
+            | ClCurly -> 1
+            | ClRound -> 1 
+        
+        
+        let mutable k = 0
+        for i=1 to bss.Count-1 do 
+            
+            let bs = bss[i]
+            match lns.GetLine(i,id) with
+            |ValueNone   -> () // loop aborted
+            |ValueSome l -> 
+                let mutable from = l.offStart
+                for b in bs do 
+                    k <- k+1
+                    let gapLen = b.from-from
+                    if gapLen<0 then 
+                        eprintfn $"debugPrint: b.from{b.from} - from{from} is negative"
+                    else
+                        let gap = String(' ', gapLen)
+                        from <- from + gapLen + getBLen b.bracket
+                        printf $"{gap}{getBr b.bracket}"
+                printfn ""
+        printfn $"Total {k} Brackets."
+
+
+
 type BracketHighlighter (state:InteractionState) =     
 
     let colErr   = Brushes.Red                  |> freeze
@@ -73,10 +284,10 @@ type BracketHighlighter (state:InteractionState) =
 
     let colors = [|
         null // the first one is null ( to keep the coloring from xshd file)        
-        Brushes.Yellow     |> darker 80    |> freeze
-        Brushes.Green      |> darker 20    |> freeze
-        Brushes.Blue       |> brighter 40  |> freeze
-        Brushes.Magenta    |> darker 70    |> freeze
+        Brushes.Goldenrod  |> darker 10    |> freeze
+        Brushes.Purple     |> brighter 10  |> freeze
+        Brushes.Green      |> darker 10    |> freeze
+        Brushes.Cyan       |> darker 50    |> freeze
         |]
 
     let actErr      = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(colErr); el.TextRunProperties.SetBackgroundBrush(colErrBg))    
@@ -85,7 +296,8 @@ type BracketHighlighter (state:InteractionState) =
     let acts = colors|> Array.map ( fun c -> if isNull c then null else new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(c)))
 
     let nextAction i = acts.[i % acts.Length]
-    //let nextColor i = colors.[i % colors.Length]
+
+
 
     let Brs        = ResizeArray<BracketKind>()
     let Offs       = ResizeArray<int>() // doc offsets
@@ -93,16 +305,10 @@ type BracketHighlighter (state:InteractionState) =
     let Acts       = ResizeArray<Action<VisualLineElement>>()
     let Unclosed   = ResizeArray<BracketInfo>() 
     let PairStarts = Dictionary<int,BracketInfo>()
-    let PairEnds   = Dictionary<int,BracketInfo>() 
-    let mutable idAtListupdate = state.DocChangedId.Value
+    let PairEnds   = Dictionary<int,BracketInfo>()     
     let mutable listsAreClean = false
     
-    // for highlighting matching brackets at cursor:
-    let mutable pairStart = -1
-    let mutable pairStartLn = -1
-    let mutable pairEnd = -1
-    let mutable pairEndLn = -1
-    let mutable pairLen = -1         
+       
     
     let findAllBrackets ( id) =         
         let tx = state.CodeLines.FullCode
@@ -115,11 +321,6 @@ type BracketHighlighter (state:InteractionState) =
         Unclosed.Clear()
         PairStarts.Clear()
         PairEnds.Clear()
-        pairStart <- -1
-        pairStartLn <- -1
-        pairEnd   <- -1
-        pairEndLn <- -1
-        pairLen   <- -1
 
         let mutable inComment      = false
         let mutable inBlockComment = false
@@ -268,11 +469,23 @@ type BracketHighlighter (state:InteractionState) =
     // for previous highlighting matching brackets at cursor:
     let mutable prevStartLn = -1
     let mutable prevEndLn = -1
+
+    // for highlighting matching brackets at cursor:
+    let mutable pairStart = -1
+    let mutable pairStartLn = -1
+    let mutable pairEnd = -1
+    let mutable pairEndLn = -1
+    let mutable pairLen = -1  
     
     /// this needs the offsets precomputed
     /// finds if offset is before or after the bracket, or in between for two char brackets
     let findHighlightPairAtCursor(caretOff) = 
-    
+       //pairStart <- -1
+       //pairStartLn <- -1
+       //pairEnd   <- -1
+       //pairEndLn <- -1
+       //pairLen   <- -1
+
         //if ed.TextArea.Selection.Length = 0 then // or always do ?
         
         let oMin = caretOff - 2
@@ -368,7 +581,8 @@ type BracketHighlighter (state:InteractionState) =
     let updatePairTransformers() =
         if pairStart > 0 && pairEnd > 0  then // must check both
             // first remove previous transformers
-            transMatch.ClearAllLines()           
+            transMatch.ClearAllLines() 
+            ISeffLog.log.PrintfnDebugMsg $"Pair {pairStart} to {pairEnd}" 
             transMatch.Insert(pairStartLn, {from=pairStart; till=pairStart + pairLen; act=actPair})
             transMatch.Insert(pairEndLn  , {from=pairEnd;   till=pairEnd   + pairLen; act=actPair})
     
@@ -385,20 +599,23 @@ type BracketHighlighter (state:InteractionState) =
             //ISeffLog.printnColor 150 222 50 $"HighlightPair {seg}"
             state.Editor.TextArea.TextView.Redraw(seg)
         prevPairSeg <- Some seg     
-    
-    
+        
     let caretPositionChanged(e:EventArgs) = 
         let id = state.DocChangedId.Value
         let caretOff = state.Editor.CaretOffset
-        state.Caret <- caretOff
+        state.Caret <- caretOff        
         async{ 
             do! Async.Sleep 50 // wait for update the offset list Offs lists
-            if state.DocChangedId.Value = id then 
+            while not listsAreClean do
+                do! Async.Sleep 50 // wait for update the offset list Offs lists
+            if state.DocChangedId.Value = id && listsAreClean then 
+                //ISeffLog.log.PrintfnDebugMsg $"searching for caret {caretOff} in {Offs.Count} Offs" 
                 findHighlightPairAtCursor(caretOff) 
                 updatePairTransformers()
-                if state.DocChangedId.Value = id then 
-                    do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context
-                    redrawSegment()            
+                if state.DocChangedId.Value = id && listsAreClean && transMatch.IsNotEmpty then 
+                        do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context
+                        //ISeffLog.log.PrintfnDebugMsg "``redrawSegment``" 
+                        redrawSegment()            
         } |> Async.Start    
     
     let foundBracketsEv = new Event<unit>()
@@ -412,9 +629,13 @@ type BracketHighlighter (state:InteractionState) =
     member _.FoundBrackets = foundBracketsEv.Publish
     
     /// This gets called for every visible line on any view change
-    member _.UpdateAllBrackets(id) =                
+    member _.UpdateAllBrackets(id) =
+        let code = state.CodeLines
+        let bss = ParseBrackets.all(code, id)
+        //if bss.IsSome then ParseBrackets.debugPrint(bss.Value,code,id)
+        
         findAllBrackets(id)
-        findHighlightPairAtCursor(state.Caret)
+        //findHighlightPairAtCursor(state.Caret)
         
         if Brs.Count > 0 &&  Acts.Count = Offs.Count && state.IsLatest id then                            
             for i = 0 to Offs.Count - 1 do 
