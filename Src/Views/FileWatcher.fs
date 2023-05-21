@@ -45,8 +45,8 @@ type FileChangeTracker (editor:Editor, setCodeSavedStatus:bool->unit) =
                     if fi.Exists then //file was deleted and now exist again ??
                         editor.FilePath <- SetTo fi
                         let fileCode = IO.File.ReadAllText(fi.FullName)
-                        if fileCode = editor.CodeAtLastSave then                            
-                            setCodeSavedStatus(true)
+                        if fileCode = editor.CodeAtLastSave then
+                            ()// dont !! editor.CodeAtLastSave might not be current code in Document :setCodeSavedStatus(true)
                         else
                             do! Async.SwitchToContext SyncWpf.context                                                  
                             match MessageBox.Show(
@@ -72,7 +72,9 @@ type FileChangeTracker (editor:Editor, setCodeSavedStatus:bool->unit) =
                     fi.Refresh() // with out this it would raise missing in case of save incrementing
                     if fi.Exists then
                         let fileCode = IO.File.ReadAllText(fi.FullName)
-                        if fileCode <> editor.CodeAtLastSave then // this means that the last file saving was not done by Seff                            
+                        if fileCode = editor.CodeAtLastSave then // this means that the last file saving was not done by Seff
+                            ()// dont !! editor.CodeAtLastSave might not be current code in Document :setCodeSavedStatus(true)    
+                        else
                             do! Async.SwitchToContext SyncWpf.context                                                  
                             match MessageBox.Show(
                                 IEditor.mainWindow, 
@@ -88,9 +90,7 @@ type FileChangeTracker (editor:Editor, setCodeSavedStatus:bool->unit) =
                                 setCode(fileCode, editor)
                                 setCodeSavedStatus(true)
                             | _  ->
-                                setCodeSavedStatus(false)
-                        else
-                            setCodeSavedStatus(true)
+                                setCodeSavedStatus(false)                        
                         
                     else
                         editor.FilePath <- Deleted fi                        

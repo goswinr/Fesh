@@ -18,7 +18,7 @@ module SelectionHighlighting =
 
     let colorLog     = Brushes.Blue          |> AvalonLog.Brush.brighter 210  |> AvalonLog.Brush.freeze
         
-    let foundSelectionLogEv    = new Event<bool>()
+    let foundSelectionLogEv    = new Event<bool>() 
     let foundSelectionEditorEv = new Event<bool>()
 
     [<CLIEvent>] 
@@ -81,7 +81,7 @@ type SelectionHighlighter (state:InteractionState) =
                 ed.TextArea.TextView.Redraw(f.from, l.till, priority)
             }|> Async.Start
     
-    let mark (word:string, selectionStartOff,triggerNext) =
+    let mark (word:string, selectionStartOff, triggerNext:bool) =
         let id = state.DocChangedId.Value
         async{
             let lines = state.CodeLines
@@ -117,8 +117,11 @@ type SelectionHighlighter (state:InteractionState) =
             lastWord <- word
             if loop 1 then // tests if ther is a newer doc change                 
                 match  prev, trans.Range with 
-                | None       , None  -> ()   // nothing before, nothing now
-                
+                | None       , None  ->    // nothing before, nothing now, but maybe just the current selection that doesnt need highlighting, but still show in status bar
+                    if offs.Count = 1 then 
+                        do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context                    
+                        foundSelectionEditorEv.Trigger(triggerNext) 
+
                 | Some (f,l) , None          // some before, nothing now
                 | None       , Some (f,l) -> // nothing before, some now
                     do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context
@@ -145,7 +148,7 @@ type SelectionHighlighter (state:InteractionState) =
             let word = ed.SelectedText
             if isTextToHighlight word then  //is at least two chars and has no line breaks
                 let startOff = ed.SelectionStart
-                mark(word, startOff,true)
+                mark(word, startOff, true)
             else
                 justClear()
         |NoSel   -> justClear()
@@ -195,7 +198,7 @@ type SelectionHighlighterLog (lg:TextEditor) =
     let mutable linesNeedUpdate = true
 
     
-    let mark (word:string, selectionStartOff,triggerNext) =
+    let mark (word:string, selectionStartOff,triggerNext:bool) =
         let doc = lg.Document
         async{
             if linesNeedUpdate then 
@@ -235,7 +238,10 @@ type SelectionHighlighterLog (lg:TextEditor) =
             lastWord <- word
             if loop 1 then // tests if ther is a newer doc change                 
                 match  prev, trans.Range with 
-                | None       , None  -> ()   // nothing before, nothing now
+                | None       , None  ->    // nothing before, nothing now, but maybe just the current selection that doesnt need highlighting, but still show in status bar
+                    if offs.Count = 1 then 
+                        do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context                    
+                        foundSelectionLogEv.Trigger(triggerNext) 
                 
                 | Some (f,l) , None          // some before, nothing now
                 | None       , Some (f,l) -> // nothing before, some now

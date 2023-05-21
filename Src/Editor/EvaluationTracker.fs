@@ -17,7 +17,9 @@ module private EvaluationTrackerRendererUtil =
 
     //let backGround = Brushes.Teal |> brighter 230 |> freeze
     //let backGround = Brushes.Ivory |> brighter 5   |> freeze
-    let backGround = Brushes.LightGray |> brighter 30   |> freeze
+    //let backGround = Brushes.LightGray |> brighter 30 |> freeze
+    let backGround = SolidColorBrush(Color.FromArgb(200uy,220uy,220uy,220uy))|> freeze
+    
 
     //let pen = new Pen(Brushes.Black |> freeze , 0.5)  |> Pen.freeze
     //let border = new Pen( Brushes.Teal |> freeze , 0.7)  |> Pen.freeze
@@ -191,7 +193,7 @@ type EvaluationTrackerRenderer (ed:TextEditor) =
                 ISeffLog.log.PrintfnAppErrorMsg "ERROR in EvaluationTrackerRenderer.Draw(): %A" ex
 
     // for IBackgroundRenderer
-    member _.Layer = KnownLayer.Background
+    member _.Layer = KnownLayer.Caret// KnownLayer.Background
 
     interface IBackgroundRenderer with
         member this.Draw(tv,dc) = this.Draw(tv,dc)

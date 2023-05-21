@@ -279,15 +279,15 @@ type SelectedEditorTextStatus (grid:TabsAndLog) as this =
             if triggerNext then
                 match grid.Log.SelectionHighlighter with 
                 |None -> ()
-                |Some hili -> hili.Mark(sel.Word,false)
-
+                |Some hili -> hili.Mark(sel.Word,false)            
+            
             if sel.Offsets.Count = 0 then  
                 this.Text <- desc  
             else
                 this.Inlines.Clear()
-                this.Inlines.Add( sprintf "%d of " sel.Offsets.Count)
+                this.Inlines.Add( $"%d{sel.Offsets.Count} of "  )
                 this.Inlines.Add( new Run (sel.Word, FontFamily = StyleState.fontEditor, Background = SelectionHighlighting.colorEditor))
-                this.Inlines.Add( sprintf " (%d Chars) " sel.Word.Length)
+                this.Inlines.Add( $" (%d{sel.Word.Length} Chars) " )
             )
 
        
@@ -320,7 +320,7 @@ type SelectedLogTextStatus (grid:TabsAndLog) as this =
         this.ToolTip <-  baseTxt
         this.Inlines.Add( desc)
  
-        SelectionHighlighting.FoundSelectionsLog.Add(fun triggerNext ->             
+        SelectionHighlighting.FoundSelectionsLog.Add(fun (triggerNext) ->             
             
             match log.SelectionHighlighter with 
             |None -> ()
@@ -332,7 +332,7 @@ type SelectedLogTextStatus (grid:TabsAndLog) as this =
                     this.Text <- desc  
                 else
                     this.Inlines.Clear()
-                    this.Inlines.Add( sprintf "%d of " hili.Offsets.Count)
+                    this.Inlines.Add( sprintf $"%d{hili.Offsets.Count} of ")
                     this.Inlines.Add( new Run (hili.Word, FontFamily = StyleState.fontEditor, Background = SelectionHighlighting.colorLog))
                     this.Inlines.Add( sprintf " (%d Chars) " hili.Word.Length)
             )

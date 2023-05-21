@@ -100,7 +100,8 @@ type Editor private (code:string, config:Config, initalFilePath:FilePath)  =
 
     do  
         SyntaxHighlighting.setFSharp(avaEdit,false) 
-        
+      
+    
     member _.State = state    
     
     member _.Services = services 

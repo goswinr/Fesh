@@ -189,6 +189,8 @@ type SemanticHighlighter (state: InteractionState) =
                     let st = offLn.offStart + r.StartColumn                 
                     let en = offLn.offStart + r.EndColumn
 
+                    //ISeffLog.log.PrintfnDebugMsg $"{lineNo}:{sem.Type} {r.StartColumn} to {r.EndColumn}"
+
                     let inline push(f,t,a) = trans.Insert(lineNo,{from=f; till=t; act=a})
             
                     match sem.Type with 
@@ -196,7 +198,7 @@ type SemanticHighlighter (state: InteractionState) =
                     | Sc.ValueType                   -> push(st,en, semActs.ValueType                  )
                     | Sc.UnionCase                   -> push(st,en, semActs.UnionCase                  )
                     | Sc.UnionCaseField              -> push(st,en, semActs.UnionCaseField             )
-                    | Sc.Function                    -> if not(skipFunc(st,en)) then push(st,en, semActs.Function)
+                    | Sc.Function                    -> if not(skipFunc(st,en)) then push(correctStart(st,en),en, semActs.Function)
                     | Sc.Property                    -> push(correctStart(st,en),en, semActs.Property  )// correct so that a string or number literal before the dot does not get colored
                     | Sc.MutableVar                  -> push(st,en, semActs.MutableVar                 )
                     | Sc.Module                      -> if not(skipModul(st,en)) then push(st,en, semActs.Module)

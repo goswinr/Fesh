@@ -51,13 +51,13 @@ type Tabs(config:Config, log:Log,seffWin:SeffWindow) =
     let enviroDefaultDir = Environment.CurrentDirectory 
 
     let setCurrentTab(idx) =        
+        if not <| Object.ReferenceEquals(null, current) then 
+            current.Editor.State.Increment()  |> ignore<int64> // to cancel any running checkers
+        
         tabs.SelectedIndex <- idx
         let t = tabs.Items[idx] :?> Tab
         current <- t
-        IEditor.current <- Some (t.Editor:>IEditor)                
-        //for t in allTabs do
-        //    t.IsCurrent <- false  // first set all false then one true  // DELETE
-        //t.IsCurrent <- true
+        IEditor.current <- Some (t.Editor:>IEditor)   
 
         seffWin.SetFileNameInTitle(t.Editor.FilePath)
 
@@ -80,9 +80,8 @@ type Tabs(config:Config, log:Log,seffWin:SeffWindow) =
         let ed = t.Editor
         DocChangeMark.markFoldCheckHighlightAsync(ed, ed.Services, ed.State, ed.State.Increment())
         
-        // TODO make sure to reset checker if it is currently still running from another file
-        // even though the error highlighter is only called if the editor id is the same, see Editor.fs:  
-        // ed.GlobalChecker.OnChecked.Add(fun ...
+        // TODO make sure to reset checker if it is currently still running from another file ??
+        // even though the error highlighter is only called if changeId is still the same          
 
         config.OpenTabs.Save(t.Editor.FilePath , allExistingFileInfos)
     

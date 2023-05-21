@@ -62,7 +62,7 @@ type Tab (editor:Editor) = //, config:Seff.Config.Config, allFileInfos:seq<IO.Fi
     let setHeader() = 
         editor.AvaEdit.Dispatcher.Invoke(fun () -> 
             match editor.FilePath, isCodeSaved with
-            |SetTo fi , true ->
+            |SetTo fi , true ->                
                 textBlock.ToolTip         <- "File saved at:\r\n" + fi.FullName
                 textBlock.Text            <- fi.Name
                 textBlock.TextDecorations <- null
