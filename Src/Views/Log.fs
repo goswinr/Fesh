@@ -95,7 +95,7 @@ type Log private () =
     // cant be set up because log is created before config , 
     // will be set in this.FinishLogSetup(config) just below
     let mutable state: InteractionState option = None 
-    let mutable folds:Foldings option = None
+    let mutable folds: Foldings option = None
     
 
     let logChangeId = ref 0
@@ -120,14 +120,15 @@ type Log private () =
         let getPath() = SetTo (FileInfo "Seff.AvalonLog.Foldings")
         let foldMg = Folding.FoldingManager.Install(logEd.TextArea) 
         let state1 = new InteractionState(logEd, foldMg, config)
-        let folds1  = new Foldings(foldMg, state1, getPath )
+        let folds1  = new Foldings(foldMg, state1, getPath )        
         state <- Some state1
         folds <- Some folds1
         
-        logEd.DocumentChanged.Add( fun _ -> 
-            let i = Threading.Interlocked.Increment logChangeId
-            folds1.UpdateFoldsAndBadIndents(i)
-            )
+        logEd.TextArea.TextView.LineTransformers.Add(state1.FastColorizer)   
+        //logEd.DocumentChanged.Add( fun _ -> 
+        //    let i = Threading.Interlocked.Increment logChangeId
+        //    folds1.UpdateFoldsAndBadIndents(i)
+        //    )
 
     member this.ToggleLineWrap(config:Config)= 
         let newState = not log.WordWrap

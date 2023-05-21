@@ -268,34 +268,33 @@ type SelectedEditorTextStatus (grid:TabsAndLog) as this =
     let desc = " " //Editor Selection Highlighting" 
     let baseTxt = "Highlights and counts the occurrences of the currently selected Text in the current Editor.\r\nMinimum two characters and but line breaks.\r\nClick here to scroll through all occurrences."
     let mutable scrollToIdx = 0  
-    let mutable lastSels = ResizeArray<int>()
-    let mutable lastWord = ""
+    
     do
         this.Padding <- textPadding
         this.ToolTip <-  baseTxt
         this.Inlines.Add( desc)
 
-        SelectionHighlighting.GlobalFoundSelectionsEditor.Add(fun (word,offs) -> 
-            lastSels <- offs
-            lastWord <- word
-            if offs.Count = 0 then  
+        SelectionHighlighting.FoundSelectionsEditor.Add(fun _ -> 
+            let sel = grid.Tabs.Current.Editor.Services.selection
+            if sel.Offsets.Count = 0 then  
                 this.Text <- desc  
             else
                 this.Inlines.Clear()
-                this.Inlines.Add( sprintf "%d of " offs.Count)
-                this.Inlines.Add( new Run (word, FontFamily = StyleState.fontEditor, Background = SelectionHighlighting.colorEditor))
-                this.Inlines.Add( sprintf " (%d Chars) " word.Length)
+                this.Inlines.Add( sprintf "%d of " sel.Offsets.Count)
+                this.Inlines.Add( new Run (sel.Word, FontFamily = StyleState.fontEditor, Background = SelectionHighlighting.colorEditor))
+                this.Inlines.Add( sprintf " (%d Chars) " sel.Word.Length)
             )
 
        
         // on each click loop through all locations where text appears
         this.MouseDown.Add ( fun _ -> // press mouse to scroll to them
-            if lastSels.Count > 0 then
-                if scrollToIdx >= lastSels.Count then scrollToIdx <- 0
+            let sel = grid.Tabs.Current.Editor.Services.selection
+            if sel.Offsets.Count > 0 then
+                if scrollToIdx >= sel.Offsets.Count then scrollToIdx <- 0
                 let ed = grid.Tabs.Current.Editor
-                let off = lastSels.[scrollToIdx]
+                let off = sel.Offsets.[scrollToIdx]
                 if off < ed.AvaEdit.Document.TextLength then                    
-                    ed.Folds.GoToOffsetAndUnfold(off, lastWord.Length, true )                    
+                    ed.Folds.GoToOffsetAndUnfold(off, sel.Word.Length, true )                    
                     scrollToIdx <- scrollToIdx + 1
                 else
                     scrollToIdx <- 0
@@ -311,34 +310,32 @@ type SelectedLogTextStatus (grid:TabsAndLog) as this =
     
     let desc = " " //Log Selection Highlighting " 
     let baseTxt = "Highlights and counts the occurrences of the currently selected Text in the Log output.\r\nMinimum two characters and but line breaks.\r\nClick here to scroll through all occurrences."
-    let mutable scrollToIdx = 0    
-    let mutable lastSels = ResizeArray<int>()
-    let mutable lastWord = ""
+    let mutable scrollToIdx = 0 
     do
         this.Padding <- textPadding
         this.ToolTip <-  baseTxt
         this.Inlines.Add( desc)
 
-        SelectionHighlighting.GlobalFoundSelectionsEditor.Add(fun (word,offs) -> 
-            lastSels <- offs
-            lastWord <- word
-            if offs.Count = 0 then  
+        SelectionHighlighting.FoundSelectionsLog.Add(fun _ ->             
+            let sel = grid.Tabs.Current.Editor.Services.selection
+            if sel.OffsetsLog.Count = 0 then  
                 this.Text <- desc  
             else
                 this.Inlines.Clear()
-                this.Inlines.Add( sprintf "%d of " offs.Count)
-                this.Inlines.Add( new Run (word, FontFamily = StyleState.fontEditor, Background = SelectionHighlighting.colorLog))
-                this.Inlines.Add( sprintf " (%d Chars) " word.Length)
+                this.Inlines.Add( sprintf "%d of " sel.OffsetsLog.Count)
+                this.Inlines.Add( new Run (sel.Word, FontFamily = StyleState.fontEditor, Background = SelectionHighlighting.colorLog))
+                this.Inlines.Add( sprintf " (%d Chars) " sel.Word.Length)
             )
 
        
         // on each click loop through all locations where text appears
         this.MouseDown.Add ( fun _ -> // press mouse to scroll to them
-            if lastSels.Count > 0 then
-                if scrollToIdx >= lastSels.Count then scrollToIdx <- 0                
-                let off = lastSels.[scrollToIdx]
+            let sel = grid.Tabs.Current.Editor.Services.selection
+            if sel.OffsetsLog.Count > 0 then
+                if scrollToIdx >= sel.OffsetsLog.Count then scrollToIdx <- 0                
+                let off = sel.OffsetsLog.[scrollToIdx]
                 if off < logAva.Document.TextLength then                    
-                    match grid.Log.Folds with Some f -> f.GoToOffsetAndUnfold(off, lastWord.Length, true )  |None ->()                  
+                    match grid.Log.Folds with Some f -> f.GoToOffsetAndUnfold(off, sel.Word.Length, true )  |None ->()                  
                     scrollToIdx <- scrollToIdx + 1
                 else
                     scrollToIdx <- 0

@@ -16,18 +16,21 @@ module SelectionHighlighting =
     let colorEditor  = Brushes.PaleTurquoise |> AvalonLog.Brush.freeze      
 
     let colorLog     = Brushes.Blue          |> AvalonLog.Brush.brighter 210  |> AvalonLog.Brush.freeze
-
-    type SelOffsEvent= Event<string*ResizeArray<int>>
-    
-    let globalfoundSelectionEditorEvent = new SelOffsEvent()
+        
+    let foundSelectionLogEv    = new Event<unit>()
+    let foundSelectionEditorEv = new Event<unit>()
 
     [<CLIEvent>] 
-    let GlobalFoundSelectionsEditor = globalfoundSelectionEditorEvent.Publish
+    let FoundSelectionsEditor = foundSelectionEditorEv.Publish
 
+    [<CLIEvent>] 
+    let FoundSelectionsLog    = foundSelectionLogEv.Publish
+
+    
 
 open SelectionHighlighting
 
-/// Highlight-all-occurrences-of-selected-text in Text View
+/// Highlight-all-occurrences-of-selected-text in Editor and Log
 type SelectionHighlighter (edState:InteractionState, lgStateOpt:InteractionState option) = 
     
     let actionEditor  = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetBackgroundBrush(colorEditor))
@@ -35,9 +38,9 @@ type SelectionHighlighter (edState:InteractionState, lgStateOpt:InteractionState
 
     let priority = Windows.Threading.DispatcherPriority.Render
 
-    let foundSelectionEditorEv = new SelOffsEvent()
-    let foundSelectionLogEv    = new SelOffsEvent()
-
+    let mutable lastWord = ""
+    let mutable lastSels = ResizeArray<int>()    
+    let mutable lastSelsLog = ResizeArray<int>()    
     
     let isTextToHighlight(t:string) = 
         t.Length > 1 && not (Str.isJustSpaceCharsOrEmpty t)  && not <| t.Contains("\n") 
@@ -84,7 +87,7 @@ type SelectionHighlighter (edState:InteractionState, lgStateOpt:InteractionState
                 state.Editor.TextArea.TextView.Redraw(f.from, l.till, priority)
             }|> Async.Start
     
-    let mark (state:InteractionState, word:string, action, event:SelOffsEvent, globalEvent:SelOffsEvent option, selectionStartOff) =
+    let mark (state:InteractionState, word:string, action, event:Event<unit>, isEditor, selectionStartOff) =
         let id = state.DocChangedId.Value
         async{
             let lines = state.CodeLines
@@ -116,28 +119,32 @@ type SelectionHighlighter (edState:InteractionState, lgStateOpt:InteractionState
             
             let prev = trans.Range
             trans.ClearAllLines() // does nothing if already all cleared
+            if isEditor then lastSels <- offs else lastSelsLog <- offs
+            lastWord <- word
             if loop 1 then // tests if ther is a newer doc change                 
                 match  prev, trans.Range with 
                 | None       , None  -> ()   // nothing before, nothing now
                 
                 | Some (f,l) , None          // some before, nothing now
                 | None       , Some (f,l) -> // nothing before, some now
-                    do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context                    
+                    do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context
                     markFoldingsSorted(state,offs)
                     state.Editor.TextArea.TextView.Redraw(f.from, l.till, priority)
-                    event.Trigger(word,offs)
-                    match globalEvent with Some ev -> ev.Trigger(word,offs) | None -> ()
+                    event.Trigger()                   
                 
                 | Some (pf,pl),Some (f,l) ->   // both prev and current version have a selection                 
-                    do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context                    
+                    do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context 
                     markFoldingsSorted(state,offs)
                     state.Editor.TextArea.TextView.Redraw(min pf.from f.from, max pl.till l.till, priority)
-                    event.Trigger(word,offs)
-                    match globalEvent with Some ev -> ev.Trigger(word,offs) | None -> ()
-
-
+                    event.Trigger()
             else
+                printfn $"cancelled redraw from Ed: {isEditor}"
                 () // dont redraw, there is already a new docchange happening that will be drawn
+            
+            if isEditor then 
+                printfn $"Found '{word}' {offs.Count} times in Editor:\r\n{lines.FullCode}"
+            else
+                printfn $"Found '{word}' {offs.Count} times in Log:\r\n{lines.FullCode}"
         }|> Async.Start
     
     
@@ -146,21 +153,26 @@ type SelectionHighlighter (edState:InteractionState, lgStateOpt:InteractionState
         |None -> ISeffLog.log.PrintfnAppErrorMsg "Interaction state not set on AvalonLog (1)" // should never happen
         |Some lgState ->
             if isFromEd then 
-                mark(edState, word, actionEditor, foundSelectionEditorEv, Some globalfoundSelectionEditorEvent, selectionStartOff)
-                mark(lgState, word, actionLog   , foundSelectionLogEv   , None  , -1)            
+                //mark(lgState, word, actionLog   , foundSelectionLogEv   , false,  -1)            
+                mark(edState, word, actionEditor, foundSelectionEditorEv, true,  selectionStartOff)
             else
-                mark(edState, word, actionEditor, foundSelectionEditorEv, Some globalfoundSelectionEditorEvent, -1)
-                mark(lgState, word, actionLog   , foundSelectionLogEv   , None                                , selectionStartOff)
+                mark(lgState, word, actionLog   , foundSelectionLogEv   , false,  selectionStartOff)
+                //mark(edState, word, actionEditor, foundSelectionEditorEv, true,  -1)
               
     let clearBoth() =
         match lgStateOpt with 
         |None -> ISeffLog.log.PrintfnAppErrorMsg "Interaction state not set on AvalonLog (2)" // should never happen
-        |Some lgState ->        
+        |Some lgState ->      
+            lastWord <- ""
+            lastSels <- ResizeArray<int>()    
+            lastSelsLog <- ResizeArray<int>() 
             justClear(edState)
             justClear(lgState)
+            foundSelectionLogEv.Trigger()
+            foundSelectionEditorEv.Trigger()
     
     
-    let update(this:TextEditor, isFromEd) =        
+    let updateBoth(this:TextEditor, isFromEd) =        
         match Selection.getSelType this.TextArea with 
         |RegSel  -> 
             let word = this.SelectedText
@@ -177,14 +189,9 @@ type SelectionHighlighter (edState:InteractionState, lgStateOpt:InteractionState
         match lgStateOpt with 
         |None -> ISeffLog.log.PrintfnAppErrorMsg "Interaction state not set on AvalonLog (3)" // should never happen
         |Some lgState ->         
-            edState.Editor.TextArea.SelectionChanged.Add ( fun _ ->                                          update(edState.Editor, true)  )        
-            lgState.Editor.TextArea.SelectionChanged.Add ( fun _ -> if IEditor.isCurrent edState.Editor then update(lgState.Editor, false) )
-
-
-    [<CLIEvent>] 
-    member _.FoundSelectionsEditor = foundSelectionEditorEv.Publish
-
-    [<CLIEvent>] 
-    member _.FoundSelectionsLog    = foundSelectionLogEv.Publish
-
+            edState.Editor.TextArea.SelectionChanged.Add ( fun _ ->                                          updateBoth(edState.Editor, true)  )        
+            lgState.Editor.TextArea.SelectionChanged.Add ( fun _ -> if IEditor.isCurrent edState.Editor then updateBoth(lgState.Editor, false) )
     
+    member _.Word    = lastWord 
+    member _.Offsets = lastSels    
+    member _.OffsetsLog = lastSelsLog
