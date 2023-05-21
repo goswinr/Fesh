@@ -99,7 +99,7 @@ type LineTransformers<'T>() =
         k  
 
 /// An efficient DocumentColorizingTransformer using line number indices into a line transformer list.
-type FastColorizer(transformers:LineTransformers<LinePartChange> [], ed:TextEditor) = 
+type FastColorizer(transformers:LineTransformers<LinePartChange> []) = 
     inherit Rendering.DocumentColorizingTransformer()   
 
     let ltss = transformers
@@ -117,7 +117,7 @@ type FastColorizer(transformers:LineTransformers<LinePartChange> [], ed:TextEdit
     member _.Transformers = ltss
 
     /// This gets called for every visible line on every Redraw
-    override this.ColorizeLine(line:Document.DocumentLine) =   
+    override _.ColorizeLine(line:Document.DocumentLine) =   
         let lineNo = line.LineNumber
         let offSt  = line.Offset    
         let offEn  = line.EndOffset        

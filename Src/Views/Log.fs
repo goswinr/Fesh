@@ -91,90 +91,71 @@ type Log private () =
         | Some tw -> tw.Write tx
         | None ->()    
     
-    
-    // cant be set up because log is created before config , 
-    // will be set in this.FinishLogSetup(config) just below
-    let mutable state: InteractionState option = None 
-    let mutable folds: Foldings option = None
-    
-
-    let logChangeId = ref 0
+    let mutable selHili: SelectionHighlighterLog option = None 
 
     //-----------------------------------------------------------
     //----------------------members:------------------------------------------
     //------------------------------------------------------------
 
-    member this.AvalonLog = log  
+    member _.SelectionHighlighter = selHili
     
-    member this.State = state    
-    
-    member this.Folds = folds
+    member _.AvalonLog = log
 
-    member this.FsiErrorsStringBuilder = fsiErrorsStringBuilder  
+    member _.AvalonEditLog = log.AvalonEdit
 
-    member internal this.FinishLogSetup(config:Config)=         
+    member _.FsiErrorsStringBuilder = fsiErrorsStringBuilder  
+
+    member internal _.FinishLogSetup(config:Config)=         
         setLineWrap( config.Settings.GetBool ("logHasLineWrap", true) )
         log.FontSize  <- config.Settings.GetFloat ("SizeOfFont" , Seff.StyleState.fontSize )
+        selHili <- Some (new SelectionHighlighterLog(log.AvalonEdit))
 
-        let logEd = log.AvalonEdit
-        let getPath() = SetTo (FileInfo "Seff.AvalonLog.Foldings")
-        let foldMg = Folding.FoldingManager.Install(logEd.TextArea) 
-        let state1 = new InteractionState(logEd, foldMg, config)
-        let folds1  = new Foldings(foldMg, state1, getPath )        
-        state <- Some state1
-        folds <- Some folds1
-        
-        logEd.TextArea.TextView.LineTransformers.Add(state1.FastColorizer)   
-        //logEd.DocumentChanged.Add( fun _ -> 
-        //    let i = Threading.Interlocked.Increment logChangeId
-        //    folds1.UpdateFoldsAndBadIndents(i)
-        //    )
 
-    member this.ToggleLineWrap(config:Config)= 
+    member _.ToggleLineWrap(config:Config)= 
         let newState = not log.WordWrap
         setLineWrap newState
         config.Settings.SetBool ("logHasLineWrap", newState)
         config.Settings.Save ()
 
-    member this.Clear() = log.Clear()
+    member _.Clear() = log.Clear()
 
     //used in FSI constructor:
-    member this.TextWriterFsiStdOut    = textWriterFsiStdOut
-    member this.TextWriterFsiErrorOut  = textWriterFsiErrorOut
-    member this.TextWriterConsoleOut   = textWriterConsoleOut
-    member this.TextWriterConsoleError = textWriterConsoleError
+    member _.TextWriterFsiStdOut    = textWriterFsiStdOut
+    member _.TextWriterFsiErrorOut  = textWriterFsiErrorOut
+    member _.TextWriterConsoleOut   = textWriterConsoleOut
+    member _.TextWriterConsoleError = textWriterConsoleError
 
-    member this.PrintfnRuntimeErr   msg =  Printf.kprintf ( appendAndLogLn LogColors.runtimeErr   ) msg
-    member this.PrintfnInfoMsg      msg =  Printf.kprintf ( appendAndLogLn LogColors.infoMsg      ) msg
-    member this.PrintfnAppErrorMsg  msg =  Printf.kprintf ( appendAndLogLn LogColors.appErrorMsg  ) msg
-    member this.PrintfnIOErrorMsg   msg =  Printf.kprintf ( appendAndLogLn LogColors.iOErrorMsg   ) msg
-    member this.PrintfnDebugMsg     msg =  Printf.kprintf ( appendAndLogLn LogColors.debugMsg     ) msg
-    member this.PrintfnFsiErrorMsg  msg =  Printf.kprintf ( appendAndLogLn LogColors.fsiErrorMsg  ) msg                                                                                                    
+    member _.PrintfnRuntimeErr   msg =  Printf.kprintf ( appendAndLogLn LogColors.runtimeErr   ) msg
+    member _.PrintfnInfoMsg      msg =  Printf.kprintf ( appendAndLogLn LogColors.infoMsg      ) msg
+    member _.PrintfnAppErrorMsg  msg =  Printf.kprintf ( appendAndLogLn LogColors.appErrorMsg  ) msg
+    member _.PrintfnIOErrorMsg   msg =  Printf.kprintf ( appendAndLogLn LogColors.iOErrorMsg   ) msg
+    member _.PrintfnDebugMsg     msg =  Printf.kprintf ( appendAndLogLn LogColors.debugMsg     ) msg
+    member _.PrintfnFsiErrorMsg  msg =  Printf.kprintf ( appendAndLogLn LogColors.fsiErrorMsg  ) msg                                                                                                    
     /// Prints without adding a new line at the end                                                 
-    member this.PrintfFsiErrorMsg   msg =  Printf.kprintf ( appendAndLog   LogColors.fsiErrorMsg  ) msg
+    member _.PrintfFsiErrorMsg   msg =  Printf.kprintf ( appendAndLog   LogColors.fsiErrorMsg  ) msg
 
 
     /// Change custom color to a RGB value ( each between 0 and 255). Then print
-    member this.PrintfnColor red green blue msg =  log.printfnColor red green blue msg
+    member _.PrintfnColor red green blue msg =  log.printfnColor red green blue msg
 
     /// Change custom color to a RGB value ( each between 0 and 255)
     /// Then print without adding a new line at the end
-    member this.PrintfColor red green blue msg = log.printfColor red green blue msg
+    member _.PrintfColor red green blue msg = log.printfColor red green blue msg
 
 
     // ------------------- for use from Seff.Rhino with just a string , no formatting: -------------------------------------
 
     /// Change custom color to a RGB value ( each between 0 and 255)
     /// Then print without adding a new line at the end
-    member this.PrintColor red green blue s = log.AppendWithColor (red, green, blue, s)
+    member _.PrintColor red green blue s = log.AppendWithColor (red, green, blue, s)
 
     /// Change custom color to a RGB value ( each between 0 and 255)
     /// Adds a new line at the end
-    member this.PrintnColor red green blue s = log.AppendLineWithColor (red, green, blue, s)
+    member _.PrintnColor red green blue s = log.AppendLineWithColor (red, green, blue, s)
 
     /// An additional textwriter to also write Info, AppError, IOError,Debug and FsiError messages to.
     /// But not any other text printed with any custom color. 
-    member this.AdditionalLogger with get() = addLogger and set l = addLogger <- l
+    member _.AdditionalLogger with get() = addLogger and set l = addLogger <- l
 
     interface ISeffLog with
         

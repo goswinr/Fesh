@@ -322,7 +322,7 @@ type Tabs(config:Config, log:Log,seffWin:SeffWindow) =
                         IO.File.ReadAllText (fi.FullName, Text.Encoding.UTF8) 
                         |> Util.Str.unifyLineEndings 
                         |> Util.Str.tabsToSpaces (config.Settings.GetInt("IndentationSize",4))
-                    let ed = Editor.SetUp(code, config, SetTo fi, log.State)
+                    let ed = Editor.SetUp(code, config, SetTo fi)
                     let t = new Tab(ed)
                     t.Editor.CodeAtLastSave <- code
                     //log.PrintfnDebugMsg "adding Tab %A in %A " t.Editor.FilePath t.Editor.FileCheckState
@@ -376,7 +376,7 @@ type Tabs(config:Config, log:Log,seffWin:SeffWindow) =
             tryAddFile( f.file, f.makeCurrent, true)  |> ignore
 
         if tabs.Items.Count=0 then //Open default file if none found in recent files or args
-            let t = new Tab(Editor.New(config,log.State))
+            let t = new Tab(Editor.New(config))
             addTab(t, true, true) |> ignore
         
         if tabs.SelectedIndex = -1 then  //make one tab current if none yet , happens if current file on last closing was an unsaved file                    
@@ -387,7 +387,7 @@ type Tabs(config:Config, log:Log,seffWin:SeffWindow) =
         tabs.SelectionChanged.Add( fun _->
             if tabs.Items.Count = 0 then //  happens when closing the last open tab
                 //create new tab
-                let tab = new Tab(Editor.New(config,log.State))
+                let tab = new Tab(Editor.New(config))
                 addTab(tab, true, false)
 
             else

@@ -56,7 +56,7 @@ type Commands (grid:TabsAndLog, statusBar:SeffStatusBar)  =
     // NOTE :--------------------------------------------------------------------
 
     // File menu:
-    member val NewTab            = {name= "New File"                  ;gesture= "Ctrl + N"       ;cmd= mkCmdSimple (fun _ -> tabs.AddTab(new Tab(Editor.New(config,log.State)),true))    ;tip= "Create a new script file."   }
+    member val NewTab            = {name= "New File"                  ;gesture= "Ctrl + N"       ;cmd= mkCmdSimple (fun _ -> tabs.AddTab(new Tab(Editor.New(config)),true))    ;tip= "Create a new script file."   }
     member val OpenTemplateFile  = {name= "Edit Template File"        ;gesture= ""               ;cmd= mkCmdSimple (fun _ -> tabs.AddFile(config.DefaultCode.FileInfo,true)|> ignore)     ;tip= "Opens the template file that is used when creating a New File ( Ctrl + N)." }
     member val OpenFile          = {name= "Open File"                 ;gesture= "Ctrl + O"       ;cmd= mkCmdSimple (fun _ -> tabs.OpenFile())                                 ;tip= "Open a script file."  }
     member val Save              = {name= "Save"                      ;gesture= "Ctrl + S"       ;cmd= mkCmdSimple (fun _ -> tabs.Save(tabs.Current) |> ignore )              ;tip= "Saves the file. Shows a dialog only if the open file does not exist anymore." }

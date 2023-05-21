@@ -75,7 +75,7 @@ module CodeLineTools =
         /// ThreadSafe and in Sync: Only start sparsing when Done and also checks 
         /// if docChangedIdHolder.Value = id before and after
         /// returns True 
-        member this.Update(code, chnageId): bool = 
+        member _.Update(code, chnageId): bool = 
             async{
                 //Wait til done
                 while not isDone && docChangedIdHolder.Value = chnageId do // because the id might expire while waiting
@@ -93,13 +93,12 @@ module CodeLineTools =
             } |> Async.RunSynchronously
 
 
-        /// Safe: checks isDone && docChangedIdHolder.Value = id
-        member this.Get(chnageId): CodeLines option =
-            if isDone && docChangedIdHolder.Value = chnageId then Some this else None
+        // Safe: checks isDone && docChangedIdHolder.Value = id
+        //member this.Get(chnageId): CodeLines option =  if isDone && docChangedIdHolder.Value = chnageId then Some this else None
 
         /// Safe: checks isDone && docChangedIdHolder.Value = id
         /// retuns also none for bad indices
-        member this.GetLine(lineIdx, chnageId): LineInfo voption =
+        member _.GetLine(lineIdx, chnageId): LineInfo voption =
             if isDone && docChangedIdHolder.Value = chnageId then 
                 if lineIdx < 0 || lineIdx >= lns.Count then 
                     ValueNone
@@ -107,7 +106,61 @@ module CodeLineTools =
                     ValueSome lns.[lineIdx]
             else 
                 ValueNone
+    
 
+    /// Holds a List who's indices correspond to each line with info about:
+    /// offStart: the offset of the first chracter off this line 
+    /// indent:  the count of spaces at the start of this line 
+    /// len: the amount of characters in this line excluding the trailing \r\n
+    /// if indent equals len the line is only whitespace
+    type CodeLinesSimple() =
+        
+        let lns = ResizeArray<LineInfo>(256)
+
+        let mutable fullCode = ""
+
+        let update(code:string) =            
+            fullCode <- code
+
+            let codeLen = code.Length
+
+            let rec loop stOff = 
+                if stOff >= codeLen then // last line 
+                    let len = codeLen - stOff
+                    lns.Add {offStart=stOff; indent=len; len=len}   
+                else
+                    match code.IndexOf ('\r', stOff) with //TODO '\r' might fail if Seff is ever ported to AvaloniaEdit to work on MAC
+                    | -1 -> 
+                        let len = codeLen - stOff
+                        let indent = spacesFrom stOff len code
+                        lns.Add {offStart=stOff; indent=indent; len=len}  // the last line      
+                    | r -> 
+                        let len = r - stOff
+                        let indent = spacesFrom stOff len code
+                        lns.Add {offStart=stOff; indent=indent; len=len}
+                        loop (r+2) // +2 to jump over \r and \n
+
+            lns.Add {offStart=0; indent=0; len=0}   // ad dummy line at index 0
+            loop (0)                      
+
+        member _.Lines = lns
+
+        member _.LastLineIdx = lns.Count - 1
+
+        member _.FullCode = fullCode
+                 
+        member _.Update(code) =             
+            lns.Clear()
+            update code
+
+        /// Safe: checks isDone && docChangedIdHolder.Value = id
+        /// retuns also none for bad indices
+        member _.GetLine(lineIdx, chnageId): LineInfo voption =
+            if lineIdx < 0 || lineIdx >= lns.Count then 
+                ValueNone
+            else
+                ValueSome lns.[lineIdx]
+           
 type DocChangedConsequence = 
     | React
     | WaitForCompletions 
@@ -133,13 +186,14 @@ type InteractionState(ed:TextEditor, foldManager:FoldingManager, config:Seff.Con
     /// reacts to document chnages
     let transformersSelection         = new LineTransformers<LinePartChange>() 
     
-    let fastColorizer = new FastColorizer( [|
+    let fastColorizer = new FastColorizer( 
+                                    [|
                                     transformersAllBrackets
                                     transformersSelection
                                     transformersSemantic
                                     transformersMatchingBrackets            
-                                    |] 
-                                    ,ed) 
+                                    |]
+                                    ) 
 
 
     
@@ -188,7 +242,7 @@ type InteractionState(ed:TextEditor, foldManager:FoldingManager, config:Seff.Con
     
     member _.Editor = ed
 
-    member _.FoldManager = foldManager |> Option.ofObj
+    member _.FoldManager = foldManager 
 
     /// the caret position that can be savely accessed async
     member val Caret = 0 with get,set

@@ -301,12 +301,11 @@ type SelectedEditorTextStatus (grid:TabsAndLog) as this =
             )  
 
         grid.Tabs.OnTabChanged.Add ( fun _ -> this.Text <- desc )
-            
-
+ 
 
 type SelectedLogTextStatus (grid:TabsAndLog) as this = 
     inherit TextBlock()
-    let logAva = grid.Log.AvalonLog.AvalonEdit
+    let log = grid.Log
     
     let desc = " " //Log Selection Highlighting " 
     let baseTxt = "Highlights and counts the occurrences of the currently selected Text in the Log output.\r\nMinimum two characters and but line breaks.\r\nClick here to scroll through all occurrences."
@@ -315,32 +314,39 @@ type SelectedLogTextStatus (grid:TabsAndLog) as this =
         this.Padding <- textPadding
         this.ToolTip <-  baseTxt
         this.Inlines.Add( desc)
-
+ 
         SelectionHighlighting.FoundSelectionsLog.Add(fun _ ->             
-            let sel = grid.Tabs.Current.Editor.Services.selection
-            if sel.OffsetsLog.Count = 0 then  
-                this.Text <- desc  
-            else
-                this.Inlines.Clear()
-                this.Inlines.Add( sprintf "%d of " sel.OffsetsLog.Count)
-                this.Inlines.Add( new Run (sel.Word, FontFamily = StyleState.fontEditor, Background = SelectionHighlighting.colorLog))
-                this.Inlines.Add( sprintf " (%d Chars) " sel.Word.Length)
+            match log.SelectionHighlighter with 
+            |None -> ()
+            |Some hili ->
+                if hili.Offsets.Count = 0 then  
+                    this.Text <- desc  
+                else
+                    this.Inlines.Clear()
+                    this.Inlines.Add( sprintf "%d of " hili.Offsets.Count)
+                    this.Inlines.Add( new Run (hili.Word, FontFamily = StyleState.fontEditor, Background = SelectionHighlighting.colorLog))
+                    this.Inlines.Add( sprintf " (%d Chars) " hili.Word.Length)
             )
-
+ 
        
         // on each click loop through all locations where text appears
         this.MouseDown.Add ( fun _ -> // press mouse to scroll to them
-            let sel = grid.Tabs.Current.Editor.Services.selection
-            if sel.OffsetsLog.Count > 0 then
-                if scrollToIdx >= sel.OffsetsLog.Count then scrollToIdx <- 0                
-                let off = sel.OffsetsLog.[scrollToIdx]
-                if off < logAva.Document.TextLength then                    
-                    match grid.Log.Folds with Some f -> f.GoToOffsetAndUnfold(off, sel.Word.Length, true )  |None ->()                  
-                    scrollToIdx <- scrollToIdx + 1
-                else
-                    scrollToIdx <- 0
-            )      
-        
+            match log.SelectionHighlighter with 
+            |None -> ()
+            |Some hili -> 
+                if hili.Offsets.Count > 0 then
+                    if scrollToIdx >= hili.Offsets.Count then scrollToIdx <- 0                
+                    let off = hili.Offsets.[scrollToIdx]
+                    let doc = log.AvalonEditLog.Document
+                    if off < doc.TextLength then
+                        //match log.Folds with Some f -> f.GoToOffsetAndUnfold(off, sel.Word.Length, true )  |None ->()                  
+                        let ln = doc.GetLineByOffset(off)
+                        log.AvalonEditLog.ScrollTo(ln.LineNumber,1)
+                        log.AvalonEditLog.Select(off, hili.Word.Length)                        
+                        scrollToIdx <- scrollToIdx + 1
+                    else
+                        scrollToIdx <- 0
+            )    
 
 type SeffStatusBar (grid:TabsAndLog)  = 
     let bar = new Primitives.StatusBar()

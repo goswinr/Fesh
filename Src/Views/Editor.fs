@@ -33,7 +33,7 @@ type Counter private () =
 
 
  /// The tab that holds the tab header and the code editor
-type Editor private (code:string, config:Config, initalFilePath:FilePath, logState:InteractionState option)  = 
+type Editor private (code:string, config:Config, initalFilePath:FilePath)  = 
     let avaEdit = 
         let av = TextEditor()
         av.Options.IndentationSize <- config.Settings.GetIntSaveDefault("IndentationSize", 4) // do first because its used by tabs to spaces below.
@@ -74,15 +74,15 @@ type Editor private (code:string, config:Config, initalFilePath:FilePath, logSta
     let mutable filePath   = initalFilePath
     let getFilePath() = filePath
         
-    let foldMg = Folding.FoldingManager.Install(avaEdit.TextArea) 
+    let foldMg   = Folding.FoldingManager.Install(avaEdit.TextArea) 
     let state    = new InteractionState(avaEdit, foldMg, config)
     let folds    = new Foldings(foldMg, state, getFilePath)
     let brackets = new BracketHighlighter( state)
     let compls   = new Completions(state)
     let semHiLi  = new SemanticHighlighter(state)
     let error    = new ErrorHighlighter(state,foldMg)
-    let selHili  = new SelectionHighlighter(state, logState)
-    //let evalTracker         = new EvaluationTracker(avaEdit, checker, id)
+    let selHili  = new SelectionHighlighter(state)
+    //let evalTracker   = new EvaluationTracker(avaEdit, checker, id)
 
     let services :EditorServices = {
         folds       = folds
@@ -109,48 +109,48 @@ type Editor private (code:string, config:Config, initalFilePath:FilePath, logSta
 
     member val CodeAtLastSave : string = "" with get,set // used to check if file was changed in the background by other apps in FileChangeTracker
    
-    member this.ErrorHighlighter = error
+    member _.ErrorHighlighter = error
 
     //member this.EvalTracker = evalTracker
 
-    member this.Completions = compls
+    member _.Completions = compls
 
 
-    member this.Folds = folds
+    member _.Folds = folds
 
-    member this.Search = search    
+    member _.Search = search    
     
     /// This function will be set below in SetUp static member of Editor.
     /// It is used to highlight text in the editor , for example to match the current selection in Log.
     member val HighlightText = fun (t:string) -> () with get, set 
 
     // IEditor members:       
-    member this.AvaEdit = avaEdit
+    member _.AvaEdit = avaEdit
     
     /// This CheckState is local to the current editor
-    member this.FileCheckState  with get() = checkState  and  set(v) = checkState <- v
+    member _.FileCheckState  with get() = checkState  and  set(v) = checkState <- v
     
     /// setting this alone does not change the tab header !!
-    member this.FilePath        with get() = filePath    and set (v)= filePath <- v
+    member _.FilePath        with get() = filePath    and set (v)= filePath <- v
     
     //member this.Log = config.Log   
     member this.IsComplWinOpen  = compls.IsOpen
     
-    member this.EvaluateFrom    = 0 //evalTracker.EvaluateFrom
+    member _.EvaluateFrom    = 0 //evalTracker.EvaluateFrom
 
     interface IEditor with
-        member this.AvaEdit         = avaEdit
-        member this.FileCheckState  with get() = checkState  and  set(v) = checkState <- v
-        member this.FilePath        = filePath // the interface is get only, it does not need a setter
-        member this.IsComplWinOpen  = this.Completions.IsOpen       
-        member this.FoldingManager  = foldMg
+        member _.AvaEdit         = avaEdit
+        member _.FileCheckState  with get() = checkState  and  set(v) = checkState <- v
+        member _.FilePath        = filePath // the interface is get only, it does not need a setter
+        member _.IsComplWinOpen  = compls.IsOpen      
+        member _.FoldingManager  = foldMg
         //member this.EvaluateFrom    = this.EvaluateFrom
 
 
     /// sets up Text change event handlers
     /// a static method so that an instance if IEditor can be used
-    static member SetUp  (code:string, config:Config, filePath:FilePath ,logState:InteractionState option) = 
-        let ed = Editor(code, config, filePath, logState )
+    static member SetUp  (code:string, config:Config, filePath:FilePath) = 
+        let ed = Editor(code, config, filePath )
         let avaEdit = ed.AvaEdit
         let compls = ed.Completions          
         
@@ -210,9 +210,9 @@ type Editor private (code:string, config:Config, initalFilePath:FilePath, logSta
         ed
 
     ///additional constructor using default code
-    static member New (config:Config, logState:InteractionState option) =  
+    static member New (config:Config) =  
         let dummyName = Counter.UnsavedFileName()
-        Editor.SetUp( config.DefaultCode.Get() , config, NotSet dummyName, logState)
+        Editor.SetUp( config.DefaultCode.Get() , config, NotSet dummyName)
 
 
     (* https://github.com/icsharpcode/AvalonEdit/blob/master/ICSharpCode.AvalonEdit.Sample/document.html
