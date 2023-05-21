@@ -22,6 +22,9 @@ open Seff.XmlParser
 
 type TryShow = DidShow | NoShow
 
+type ShowRestrictions =  JustAll |JustDU | JustKeyWords
+
+
 module UtilCompletion =     
     
     let mkTexBlock(txt,style) = // the displayed item in the completion window 
@@ -179,33 +182,39 @@ type Completions(state: InteractionState) =
     
     
     /// must be called from UI thread
-    member this.TryShow( decls: DeclarationListInfo, pos:PositionInCodeEx, onlyDU:bool, checkAndMark:unit->unit) : TryShow = 
+    member this.TryShow( decls: DeclarationListInfo, pos:PositionInCodeEx, restr:ShowRestrictions, checkAndMark:unit->unit) : TryShow = 
         willInsert <- false
         
-        //ISeffLog.log.PrintfnDebugMsg "*3.0 TryShow Completion Window for:\r\n%A" pos
+        //ISeffLog.log.PrintfnDebugMsg $"*3.0 TryShow Completion Window , {decls.Items.Length} items, onlyDU:{restr}:\r\n{pos}"
         if AutoFixErrors.isMessageBoxOpen then // because msg box would appear behind completion window and type info
             NoShow 
         else    
             let completionLines = ResizeArray<ICompletionData>()
-            if not onlyDU && not pos.dotBefore  then
-                completionLines.Add( CompletionItemForKeyWord(state,"#if INTERACTIVE",     "Compiler directive to exclude code in compiled format, close with #endif or #else" ) :> ICompletionData)    |>ignore
-                completionLines.Add( CompletionItemForKeyWord(state,"#if COMPILED",        "Compiler directive to exclude code in interactive format, close with #endif or #else" ) :> ICompletionData)    |>ignore
-                completionLines.Add( CompletionItemForKeyWord(state,"#else",               "else of compiler directives " ) :> ICompletionData)    |>ignore
-                completionLines.Add( CompletionItemForKeyWord(state,"#endif",              "End of compiler directive " ) :> ICompletionData)    |>ignore
-                                                              
-                completionLines.Add( CompletionItemForKeyWord(state,"__SOURCE_DIRECTORY__","Evaluates to the current full path of the source directory" ) :> ICompletionData)    |>ignore
-                completionLines.Add( CompletionItemForKeyWord(state,"__SOURCE_FILE__"     ,"Evaluates to the current source file name, without its path") :> ICompletionData)    |>ignore
-                completionLines.Add( CompletionItemForKeyWord(state,"__LINE__",            "Evaluates to the current line number") :> ICompletionData)    |>ignore
+            match restr with 
+            |JustKeyWords -> 
                 for kw,desc in FSharpKeywords.KeywordsWithDescription  do // add keywords to list
-                    completionLines.Add( CompletionItemForKeyWord(state,kw,desc) :> ICompletionData) |>ignore
-
-            for it in decls.Items do
-                if onlyDU then 
+                    if kw.StartsWith "pri" || kw.StartsWith "mut" || kw.StartsWith "inl" || kw.StartsWith "int" then 
+                        completionLines.Add( CompletionItemForKeyWord(state,kw,desc) :> ICompletionData) |>ignore
+            |JustDU -> 
+                for it in decls.Items do                
                     match it.Glyph with
                     |FSharpGlyph.Union |FSharpGlyph.Module |FSharpGlyph.EnumMember -> 
                         completionLines.Add (new CompletionItem(state, this.GetToolTip, it, pos.dotBefore)) // for DU completion add just some.
                     |_ -> ()
-                else 
+            |JustAll ->
+                if not pos.dotBefore  then
+                    completionLines.Add( CompletionItemForKeyWord(state,"#if INTERACTIVE",     "Compiler directive to exclude code in compiled format, close with #endif or #else" ) :> ICompletionData)    |>ignore
+                    completionLines.Add( CompletionItemForKeyWord(state,"#if COMPILED",        "Compiler directive to exclude code in interactive format, close with #endif or #else" ) :> ICompletionData)    |>ignore
+                    completionLines.Add( CompletionItemForKeyWord(state,"#else",               "else of compiler directives " ) :> ICompletionData)    |>ignore
+                    completionLines.Add( CompletionItemForKeyWord(state,"#endif",              "End of compiler directive " ) :> ICompletionData)    |>ignore
+                                                              
+                    completionLines.Add( CompletionItemForKeyWord(state,"__SOURCE_DIRECTORY__","Evaluates to the current full path of the source directory" ) :> ICompletionData)    |>ignore
+                    completionLines.Add( CompletionItemForKeyWord(state,"__SOURCE_FILE__"     ,"Evaluates to the current source file name, without its path") :> ICompletionData)    |>ignore
+                    completionLines.Add( CompletionItemForKeyWord(state,"__LINE__",            "Evaluates to the current line number") :> ICompletionData)    |>ignore
+                    for kw,desc in FSharpKeywords.KeywordsWithDescription  do // add keywords to list
+                        completionLines.Add( CompletionItemForKeyWord(state,kw,desc) :> ICompletionData) |>ignore            
+           
+                for it in decls.Items do
                     completionLines.Add (new CompletionItem(state, this.GetToolTip, it, pos.dotBefore)) // for normal completion add all others too.
 
             if completionLines.Count = 0 then                

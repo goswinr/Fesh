@@ -177,7 +177,7 @@ type EvaluationTrackerRenderer (ed:TextEditor) =
 
     // for IBackgroundRenderer
     member _.Draw (textView:TextView , drawingContext:DrawingContext) =  
-        if notNull evaluatedCodeSeg then
+        if notNull evaluatedCodeSeg then            
             try
                 let geoBuilder = new BackgroundGeometryBuilder (AlignToWholePixels = true, CornerRadius = 0.)
                 geoBuilder.AddSegment(textView, evaluatedCodeSeg) // TODO: what happens if the code became shorter and this segment is now bigger than the document ?
@@ -191,7 +191,7 @@ type EvaluationTrackerRenderer (ed:TextEditor) =
                 ISeffLog.log.PrintfnAppErrorMsg "ERROR in EvaluationTrackerRenderer.Draw(): %A" ex
 
     // for IBackgroundRenderer
-    member _.Layer = KnownLayer.Selection
+    member _.Layer = KnownLayer.Background
 
     interface IBackgroundRenderer with
         member this.Draw(tv,dc) = this.Draw(tv,dc)

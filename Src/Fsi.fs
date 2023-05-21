@@ -318,7 +318,7 @@ type Fsi private (config:Config) =
             match codeToEv.amount with
             |All -> avaEd.Text
             |ContinueFromChanges ->
-                let from = 0 // codeToEv.editor.EvaluateFrom
+                let from = codeToEv.editor.EvaluateFrom
                 let len = avaEd.Document.TextLength - from
                 if len > 0 then avaEd.Document.GetText(from , len )
                 else "" // ContinueFromChanges reached end, all of document is evaluated

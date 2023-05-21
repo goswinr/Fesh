@@ -189,7 +189,7 @@ module DocChangeMark =
 module DocChangeCompletion = 
     open DocChangeUtil
 
-    type ShowAutocomplete = DoNothing| JustMark| ShowOnlyDU | ShowAll  
+    type ShowAutocomplete = DoNothing | JustMark| ShowOnlyDU | ShowAll | ShowKeyWords 
 
     [<RequireQualifiedAccess>]
     module MaybeShow = 
@@ -215,17 +215,16 @@ module DocChangeCompletion =
         let private containsFrom idx (find:string) (txt:String) =
             match txt.IndexOf(find,idx,StringComparison.Ordinal) with 
             | -1 -> false
-            | _ -> true 
+            | _  -> true 
     
-        /// is a discriminated union that wants autocomplete
-        let private isDU fromIdx ln =
-            //printfn $"indexOfFirstNonWhiteAfter fromIdx {fromIdx} of '{ln}'"
+        /// Is a discriminated union that wants autocomplete
+        let private isDUorKeyword checkForKeyW fromIdx ln =            
             let fi = indexOfFirstNonWhiteAfter fromIdx ln
             if fi < fromIdx then 
                 ShowAll // fromIdx-1 returned, non white letter was not found
             else
-                //printfn $"getting {fi} of '{ln}'"
-                let first = ln.[fi]
+                let first = ln.[fi]               
+                
                 if 'A' <= first && first <= 'Z' then // starts with a capital letter , TODO or use Char.isUpper for full Unicode spectrum ?
                     match ln.IndexOf(' ',fi) with // and has no space 
                     | -1 -> 
@@ -233,20 +232,52 @@ module DocChangeCompletion =
                         | -1 -> ShowOnlyDU 
                         | _ -> JustMark // writing a lowercase name binding as part of the uppercase DU's value
                     | _ -> JustMark
-                elif 'a' <= first && first <= 'z' then
-                    JustMark // writing a lowercase name binding             
+                
+                elif 'a' <= first && first <= 'z' then    // a lower case identifier or a keyword 
+                    if checkForKeyW && ln.Length - fi > 2 then 
+                        match ln.Substring(fi,3) with 
+                        | "pri" ->  ShowKeyWords // private
+                        | "mut" ->  ShowKeyWords // mutable
+                        | "int" ->  ShowKeyWords // internal
+                        | "inl" ->  ShowKeyWords // inline
+                        | _     ->  JustMark 
+                    else
+                        JustMark // writing a lowercase name binding             
                 else
                     ShowAll // writing not a DU but an operator like |> or |]
+        
+        let private isKeyword fromIdx ln =            
+            let fi = indexOfFirstNonWhiteAfter fromIdx ln
+            if fi < fromIdx then 
+                false // fromIdx-1 returned, non white letter was not found
+            else
+                let first = ln.[fi]
+                if 'A' <= first && first <= 'Z' then // starts with a capital letter , TODO or use Char.isUpper for full Unicode spectrum ?
+                    false                
+                elif 'a' <= first && first <= 'z' then    // a lower case identifier or a keyword 
+                    if ln.Length - fi > 2 then 
+                        match ln.Substring(fi,3) with 
+                        | "pri" ->  true // private
+                        | "mut" ->  true // mutable
+                        | "int" ->  true // internal
+                        | "inl" ->  true // inline
+                        | _     ->  false
+                    else
+                        false // writing a lowercase name binding             
+                else
+                    false // writing not a DU but an operator like |> or |]
 
 
-        let isLetDeclaration inStr (ln:string)  = 
+        let isLetDeclaration inStr (ln:string)  =
             //test if we are after a 'let' but before a '=' or ':'  
             let letIdx = lastIdxAtStartOrWithSpace inStr "let " ln // test if its the first char or preceded by a space 
             if letIdx = -1 then ShowAll
             else
                 let eqIdx    = lastIdx inStr "=" ln                       
-                let colonIdx = lastIdx inStr ":" ln   
-                if (max eqIdx colonIdx) < letIdx then isDU (letIdx+3) ln else ShowAll
+                let colonIdx = lastIdx inStr ":" ln 
+                // a : or = is after the let, so show all completions
+                if max eqIdx colonIdx < letIdx then isDUorKeyword true (letIdx+3) ln  else ShowAll
+
 
         let isFunDeclaration inStr (ln:string) = 
             //test if we are after a 'fun' but before a '->' or ':'  
@@ -255,7 +286,7 @@ module DocChangeCompletion =
             else
                 let eqIdx    = lastIdx inStr  "->" ln                       
                 let colonIdx = lastIdx inStr  ":" ln   
-                if (max eqIdx colonIdx) < funIdx then isDU (funIdx+4) ln else ShowAll
+                if (max eqIdx colonIdx) < funIdx then isDUorKeyword false (funIdx+4) ln else ShowAll
         
         let isForDeclaration inStr (ln:string) =         
             let forIdx = lastIdxAtStartOrWithSpace inStr "for " ln // test if its the first char or preceded by a space 
@@ -264,7 +295,7 @@ module DocChangeCompletion =
                 if   lastIdx inStr " in "     ln > forIdx then ShowAll 
                 elif lastIdx inStr " to "     ln > forIdx then ShowAll 
                 elif lastIdx inStr " downto " ln > forIdx then ShowAll 
-                else isDU (forIdx+3) ln
+                else isDUorKeyword false (forIdx+3) ln
         
         let isBarDeclaration inStr (ln:string) = // also covers the 'as' binding        
             let barIdx = lastIdxAtStartOrWithSpace inStr "|" ln // test if its the first char or preceded by a space 
@@ -276,23 +307,25 @@ module DocChangeCompletion =
                 elif containsFrom barIdx " when "  ln then ShowAll
                 elif containsFrom barIdx " of "    ln then ShowAll
                 elif containsFrom barIdx ":?"      ln then  (if containsFrom barIdx  " as " ln then JustMark   else ShowAll)
-                else isDU (barIdx+1) ln         
+                else isDUorKeyword false (barIdx+1) ln         
                 
-        let isThisMemberDeclaration inStr (ln:string) = // to not autocomplete on 'member this' (before the dot)
-            let barIdx = lastIdxAtStartOrWithSpace inStr "member" ln // test if its the first char or preceded by a space 
-            if barIdx = -1 then  
+        let isThisMemberDeclaration inStr (ln:string) = // to not autocomplete on 'member this' (before the dot) but on keywords
+            let memIdx = lastIdxAtStartOrWithSpace inStr "member" ln // test if its the first char or preceded by a space 
+            if memIdx = -1 then  
                 ShowAll
             else 
-                if   containsFrom barIdx "."  ln then ShowAll                
+                if   containsFrom memIdx "."  ln then ShowAll                
+                elif isKeyword memIdx ln then ShowKeyWords
                 else JustMark 
 
     
         let bind (f:bool->string->ShowAutocomplete) inStr ln (prev:ShowAutocomplete) = 
             match prev with
-            |ShowAll    -> f inStr ln
-            |ShowOnlyDU -> ShowOnlyDU
-            |JustMark   -> JustMark
-            |DoNothing  -> DoNothing
+            |ShowAll      -> f inStr ln
+            |ShowOnlyDU   -> ShowOnlyDU
+            |JustMark     -> JustMark
+            |DoNothing    -> DoNothing
+            |ShowKeyWords -> ShowKeyWords
     
         let completionWindow ( pos:PositionInCode) : ShowAutocomplete = 
             let ln = pos.lineToCaret // this line will include the character that trigger auto completion(dot or first letter)
@@ -324,7 +357,13 @@ module DocChangeCompletion =
         lastChar = '.' || // for dot completion
         isInFsharpIdentifier(lastChar,pos) 
 
-
+    let getShowRestiction s = 
+        match s with 
+        |DoNothing   // never happens       
+        |JustMark    // never happens     
+        |ShowAll     -> JustAll
+        |ShowKeyWords-> JustKeyWords
+        |ShowOnlyDU  -> JustDU
 
     /// for single character edits
     let singleCharChange (iEd:IEditor, serv:EditorServices, state:InteractionState, id:int64)  =        
@@ -348,12 +387,9 @@ module DocChangeCompletion =
                         let show = MaybeShow.completionWindow(pos)
                         //ISeffLog.log.PrintfnDebugMsg $"MaybeShow.completionWindow for {lastChar} is {show}"
                         match show with 
-                        |DoNothing  -> ()
-
-                        |JustMark   -> DocChangeMark.markFoldCheckHighlight(iEd, doc, serv, state, id)
-                        
-                        |ShowAll    
-                        |ShowOnlyDU -> 
+                        |DoNothing                          -> ()
+                        |JustMark                           -> DocChangeMark.markFoldCheckHighlight(iEd, doc, serv, state, id)                        
+                        |ShowKeyWords  |ShowAll |ShowOnlyDU -> 
                             state.DocChangedConsequence <- WaitForCompletions
                             let mutable fullCode = ""
                             let declsPosx  = 
@@ -372,9 +408,9 @@ module DocChangeCompletion =
                             |Some (decls, posx) ->
                                 // Switsch to Sync and try showing completion window:
                                 do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context                            
-                                let onlyDU = show = ShowOnlyDU
+                                let showRestrictions = getShowRestiction show                                    
                                 let checkAndMark() = DocChangeMark.markFoldCheckHighlightAsync (iEd, serv, state, state.DocChangedId.Value) // will be called if window closes without an insertion
-                                match serv.compls.TryShow(decls, posx, onlyDU, checkAndMark ) with 
+                                match serv.compls.TryShow(decls, posx, showRestrictions, checkAndMark ) with 
                                 |DidShow ->                                     
                                     () // no need to do anything, DocChangedConsequence will be updated to 'React' when completion window closes
                                 |NoShow -> 
@@ -426,4 +462,7 @@ module DocChangeEvents =
 
             
 
-        
+    // used with a auto hotkey script that simulates 28 key presses starting with ß ending with £
+    let logPerformance (t:string)=
+        if   t ="ß" then Timer.InstanceRedraw.tic()
+        elif t="£" then  eprintfn $"{Timer.InstanceRedraw.tocEx}"

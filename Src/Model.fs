@@ -119,9 +119,8 @@ type IEditor =
     abstract member FileCheckState : FileCheckState with get , set
     abstract member FilePath       : FilePath // saving settings in config , like fold status
     abstract member IsComplWinOpen : bool   // for  checking when modifying keyboard events
-    abstract member FoldingManager : FoldingManager // so that fsi can go to error location and unfold
-    // DELETE
-    //abstract member EvaluateFrom   : int
+    abstract member FoldingManager : FoldingManager // so that fsi can go to error location and unfold    /
+    abstract member EvaluateFrom   : int
 
 [<RequireQualifiedAccess>]
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]

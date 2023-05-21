@@ -29,7 +29,7 @@ type Commands (grid:TabsAndLog, statusBar:SeffStatusBar)  =
     let evalAllTextSave()      =               tabs.SaveAsync(tabs.Current); fsi.Evaluate {editor=curr(); amount=All; logger=None}
     let evalAllTextSaveClear() =  log.Clear(); tabs.SaveAsync(tabs.Current); fsi.Evaluate {editor=curr(); amount=All; logger=None}
     let evalContinue()         =  (if curr().FilePath.ExistsAsFile then tabs.SaveAsync(tabs.Current)); fsi.Evaluate {editor=curr(); amount=ContinueFromChanges; logger=None}
-    //let markEvaluated()        =  curr().EvalTracker.MarkEvaluatedTillOffset(Selection.currentLineEnd tabs.CurrAvaEdit + 2 )
+    let markEvaluated()        =  curr().Services.evalTracker.MarkEvaluatedTillOffset(Selection.currentLineEnd tabs.CurrAvaEdit + 2 )
 
     let evalSelectedLines()    =  fsi.Evaluate {editor=curr(); amount = FsiSegment <|SelectionForEval.expandSelectionToFullLines(tabs.CurrAvaEdit) ; logger=None}
     let evalSelectedText()     =  fsi.Evaluate {editor=curr(); amount = FsiSegment <|SelectionForEval.current (tabs.CurrAvaEdit)                   ; logger=None}   // null or empty check is done in fsi.Evaluate
@@ -89,7 +89,7 @@ type Commands (grid:TabsAndLog, statusBar:SeffStatusBar)  =
     member val SwapWordRight     = {name= "Swap selected word right"  ;gesture= "Alt + Right"   ;cmd= mkCmdSimple (fun _ -> SwapWords.right tabs.CurrAvaEdit|> ignore )  ;tip= "Swaps the currently selected word with the word on the right. A word may include any letter, digit, underscore or dot."}
 
     // FSI menu:
-    //member val MarkEval          = {name= "Mark as Evaluated till Current Line" ;gesture= ""               ;cmd= mkCmdSimple (fun _ -> markEvaluated())        ;tip= "Mark text till current line inclusive as evaluated." }
+    member val MarkEval          = {name= "Mark as Evaluated till Current Line" ;gesture= ""               ;cmd= mkCmdSimple (fun _ -> markEvaluated())        ;tip= "Mark text till current line inclusive as evaluated." }
     member val EvalContinue      = {name= "Save, Continue Evaluation"           ;gesture= "F4"             ;cmd= mkCmdSimple (fun _ -> evalContinue())         ;tip= "Saves the current file only if ist has a file path, then sends all changed or new lines after end of gray background text to FSharp Interactive." }
     member val RunAllText        = {name= "Evaluate All"                        ;gesture= "F5"             ;cmd= mkCmdSimple (fun _ -> evalAllText() )         ;tip= "Send all text in the current file to FSharp Interactive." }
     member val RunAllTextSave    = {name= "Save, Evaluate All"                  ;gesture= "F6"             ;cmd= mkCmdSimple (fun _ -> evalAllTextSave())      ;tip= "First save current file, then send all it's text to FSharp Interactive." }

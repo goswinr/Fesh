@@ -126,6 +126,8 @@ type SemanticHighlighter (state: InteractionState) =
 
     let mutable unusedDecl = ResizeArray()
 
+    let codeLines = state.CodeLines
+
     let setUnusedDecl(checkRes:FSharpCheckFileResults)=
         unusedDecl.Clear()
         async{            
@@ -136,19 +138,19 @@ type SemanticHighlighter (state: InteractionState) =
     
     // skip semantic highlighting for these, covered in xshd:
     let skipFunc(st:int, en:int)=        
-        let w = state.CodeLines.FullCode.[st..en]
+        let w = codeLines.FullCode.[st..en]
         w.StartsWith    "failwith"
         || w.StartsWith "failIfFalse" // from FsEx
         || w.StartsWith "print"
         || w.StartsWith "eprint"
 
     let skipModul(st:int, en:int)=        
-        let w = state.CodeLines.FullCode.[st..en]
+        let w = codeLines.FullCode.[st..en]
         w.StartsWith "Printf"
     
     /// because some times the range of a property starts before the point
     let correctStart(st:int, en:int) =        
-        match state.CodeLines.FullCode.IndexOf('.',st,en-st) with 
+        match codeLines.FullCode.LastIndexOf('.',en,en-st) with // search from back to find last dot, there may be more than one
         | -1 -> st 
         |  i -> i + 1
 
@@ -173,7 +175,7 @@ type SemanticHighlighter (state: InteractionState) =
                 let sem = allRanges.[i]
                 let r = sem.Range            
                 let lineNo = max 1 r.StartLine
-                match state.CodeLines.GetLine(lineNo,id) with 
+                match codeLines.GetLine(lineNo,id) with 
                 | ValueNone -> ()
                 | ValueSome offLn ->                
                     let st = offLn.offStart + r.StartColumn                 
@@ -189,7 +191,7 @@ type SemanticHighlighter (state: InteractionState) =
                     | Sc.Function                    -> if not(skipFunc(st,en)) then push(st,en, semActs.Function)
                     | Sc.Property                    -> push(correctStart(st,en),en, semActs.Property  )// correct so that a string or number literal before the dot does not get colored
                     | Sc.MutableVar                  -> push(st,en, semActs.MutableVar                 )
-                    | Sc.Module                      -> if not(skipModul(st,en)) then push(st,en, semActs.Module )
+                    | Sc.Module                      -> if not(skipModul(st,en)) then push(st,en, semActs.Module)
                     | Sc.Namespace                   -> push(st,en, semActs.Namespace                  )
                     | Sc.ComputationExpression       -> push(st,en, semActs.ComputationExpression      )
                     | Sc.IntrinsicFunction           -> push(st,en, semActs.IntrinsicFunction          )
@@ -230,7 +232,7 @@ type SemanticHighlighter (state: InteractionState) =
                 
             for r in unusedDecl do                     
                 let lineNo = max 1 r.StartLine
-                match state.CodeLines.GetLine(lineNo,id) with 
+                match codeLines.GetLine(lineNo,id) with 
                 | ValueNone -> ()
                 | ValueSome offLn ->  
                     let st = offLn.offStart + r.StartColumn                

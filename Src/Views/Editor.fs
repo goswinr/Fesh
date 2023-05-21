@@ -136,7 +136,7 @@ type Editor private (code:string, config:Config, initalFilePath:FilePath)  =
     //member this.Log = config.Log   
     member this.IsComplWinOpen  = compls.IsOpen
     
-    member _.EvaluateFrom    = 0 //evalTracker.EvaluateFrom
+    member _.EvaluateFrom    = evalTracker.EvaluateFrom
 
     interface IEditor with
         member _.AvaEdit         = avaEdit
@@ -144,7 +144,7 @@ type Editor private (code:string, config:Config, initalFilePath:FilePath)  =
         member _.FilePath        = filePath // the interface is get only, it does not need a setter
         member _.IsComplWinOpen  = compls.IsOpen      
         member _.FoldingManager  = foldMg
-        //member this.EvaluateFrom    = this.EvaluateFrom
+        member _.EvaluateFrom    = evalTracker.EvaluateFrom
 
 
     /// sets up Text change event handlers
@@ -170,6 +170,7 @@ type Editor private (code:string, config:Config, initalFilePath:FilePath)  =
         //--FS Checker and Code completion--
         //----------------------------------    
 
+        //avaEdit.Document.Changed.Add(fun a -> DocChangeEvents.logPerformance( a.InsertedText.Text)) // AutoHotKey SendInput of ßabcdefghijklmnopqrstuvwxyz£
         
         avaEdit.Document.Changing.Add(DocChangeEvents.changing                ed.State.FastColorizer)
         avaEdit.Document.Changed.Add (DocChangeEvents.changed  ed ed.Services ed.State)
@@ -178,15 +179,12 @@ type Editor private (code:string, config:Config, initalFilePath:FilePath)  =
         // check if closing and inserting from completion window is desired with currently typed character:
         avaEdit.TextArea.TextEntering.Add (compls.MaybeInsertOrClose)
         avaEdit.TextArea.TextEntering.Add (fun _ -> ed.TypeInfoTip.IsOpen <- false )// close type info on typing
-        
-        
-        //avaEdit.Document.Changed.Add(fun a -> DocChange.logPerformance( a.InsertedText.Text)) // AutoHotKey SendInput of ßabcdefghijklmnopqrstuvwxyz£
-            
+           
 
         compls.OnShowing.Add(fun _ -> ed.ErrorHighlighter.ToolTip.IsOpen <- false)
         compls.OnShowing.Add(fun _ -> ed.TypeInfoTip.IsOpen              <- false)
         ed.TypeInfoTip.SetValue(Controls.ToolTipService.InitialShowDelayProperty, 50) // this delay is also set in Initialize.fs
-
+        avaEdit.KeyDown.Add (fun k -> match k.Key with |Key.Escape -> ed.TypeInfoTip.IsOpen <- false |_ -> ()) // close tooltip on Esc key
         
         // Mouse Hover:
         avaEdit.TextArea.TextView.MouseHover.Add(fun e -> TypeInfo.mouseHover(e, ed, ed.TypeInfoTip))

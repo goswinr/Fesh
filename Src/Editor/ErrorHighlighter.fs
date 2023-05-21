@@ -193,18 +193,20 @@ type ErrorRenderer (state: InteractionState, segms:LineTransformers<SegmentToMar
         if errorTransformersUpToDate.Value then         
             //eprintfn $"Drawing : {segms.TotalCount} errs"
             let vls = textView.VisualLines
+            let caret = state.Editor.CaretOffset
             for vl in vls do 
                 let ln = vl.FirstDocumentLine                
                 let segs = segms.Line(ln.LineNumber)
                 for i = 0 to segs.Count-1 do
                     if segs.Count > i then // saftey check because collection might get reset while iterating
                         let seg = segs.[i]
-                    
-                        // background color: 
-                        let geoBuilder = new BackgroundGeometryBuilder (AlignToWholePixels = true, CornerRadius = 0.)
-                        geoBuilder.AddSegment(textView, seg)
-                        let boundaryPolygon= geoBuilder.CreateGeometry() // creates one boundary round the text
-                        drawingContext.DrawGeometry(seg.BackgroundBrush, null, boundaryPolygon)
+                        
+                        if seg.EndOffset+5< caret || caret < seg.Offset-5 then // skip flashing background change at caret?
+                            // background color: 
+                            let geoBuilder = new BackgroundGeometryBuilder (AlignToWholePixels = true, CornerRadius = 0.)
+                            geoBuilder.AddSegment(textView, seg)
+                            let boundaryPolygon= geoBuilder.CreateGeometry() // creates one boundary round the text
+                            drawingContext.DrawGeometry(seg.BackgroundBrush, null, boundaryPolygon)
 
                         //foreground,  squiggles:
                         for rect in BackgroundGeometryBuilder.GetRectsForSegment(textView, seg) do //seg.Shifted(state.FastColorizer.Shift)) do  // DELETE
@@ -238,7 +240,7 @@ type ErrorHighlighter ( state:InteractionState, folds:Folding.FoldingManager) =
     
     let errorTransformersUpToDate = ref true
 
-    let insert (e:FSharpDiagnostic, id, action) =         
+    let insert (e:FSharpDiagnostic, id) =         
         let lnNo =  max 1 e.StartLine // because FSharpDiagnostic might have line number 0 form Parse-and-check-file-in-project errors, but Avalonedit starts at 1
         match state.CodeLines.GetLine(lnNo,id) with 
         | ValueNone -> ()
@@ -331,10 +333,10 @@ type ErrorHighlighter ( state:InteractionState, folds:Folding.FoldingManager) =
         if state.DocChangedId.Value = id then
             //eprintfn $"clear and add {errs.errors.Count}"
             segments.ClearAllLines() // first clear. no dont! clear is done in DocChanged.fs
-            for h in errs.hiddens  do insert(h, id ,actionHidden)
-            for i in errs.infos    do insert(i, id ,actionInfo)              
-            for w in errs.warnings do insert(w, id ,actionWarning)              
-            for e in errs.errors   do insert(e, id ,actionError)
+            for h in errs.hiddens  do insert(h, id )
+            for i in errs.infos    do insert(i, id )              
+            for w in errs.warnings do insert(w, id )              
+            for e in errs.errors   do insert(e, id )
             //eprintfn $"inserted errs: {segments.TotalCount}"
             async{
                 do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context
