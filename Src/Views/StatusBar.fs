@@ -274,8 +274,13 @@ type SelectedEditorTextStatus (grid:TabsAndLog) as this =
         this.ToolTip <-  baseTxt
         this.Inlines.Add( desc)
 
-        SelectionHighlighting.FoundSelectionsEditor.Add(fun _ -> 
+        SelectionHighlighting.FoundSelectionsEditor.Add(fun triggerNext  -> 
             let sel = grid.Tabs.Current.Editor.Services.selection
+            if triggerNext then
+                match grid.Log.SelectionHighlighter with 
+                |None -> ()
+                |Some hili -> hili.Mark(sel.Word,false)
+
             if sel.Offsets.Count = 0 then  
                 this.Text <- desc  
             else
@@ -315,10 +320,14 @@ type SelectedLogTextStatus (grid:TabsAndLog) as this =
         this.ToolTip <-  baseTxt
         this.Inlines.Add( desc)
  
-        SelectionHighlighting.FoundSelectionsLog.Add(fun _ ->             
+        SelectionHighlighting.FoundSelectionsLog.Add(fun triggerNext ->             
+            
             match log.SelectionHighlighter with 
             |None -> ()
             |Some hili ->
+                if triggerNext then 
+                    grid.Tabs.Current.Editor.Services.selection.Mark(hili.Word,false)
+
                 if hili.Offsets.Count = 0 then  
                     this.Text <- desc  
                 else

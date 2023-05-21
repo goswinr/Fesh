@@ -18,8 +18,8 @@ module SelectionHighlighting =
 
     let colorLog     = Brushes.Blue          |> AvalonLog.Brush.brighter 210  |> AvalonLog.Brush.freeze
         
-    let foundSelectionLogEv    = new Event<unit>()
-    let foundSelectionEditorEv = new Event<unit>()
+    let foundSelectionLogEv    = new Event<bool>()
+    let foundSelectionEditorEv = new Event<bool>()
 
     [<CLIEvent>] 
     let FoundSelectionsEditor = foundSelectionEditorEv.Publish
@@ -76,12 +76,12 @@ type SelectionHighlighter (state:InteractionState) =
             async{ 
                 trans.ClearAllLines()
                 do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context
-                foundSelectionEditorEv.Trigger()
+                foundSelectionEditorEv.Trigger(false)
                 for f in state.FoldManager.AllFoldings do  f.BackgroundColor <- null  
                 ed.TextArea.TextView.Redraw(f.from, l.till, priority)
             }|> Async.Start
     
-    let mark (word:string, selectionStartOff) =
+    let mark (word:string, selectionStartOff,triggerNext) =
         let id = state.DocChangedId.Value
         async{
             let lines = state.CodeLines
@@ -124,13 +124,13 @@ type SelectionHighlighter (state:InteractionState) =
                     do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context
                     markFoldingsSorted(offs)
                     ed.TextArea.TextView.Redraw(f.from, l.till, priority)
-                    foundSelectionEditorEv.Trigger()                   
+                    foundSelectionEditorEv.Trigger(triggerNext)                   
                 
                 | Some (pf,pl),Some (f,l) ->   // both prev and current version have a selection                 
                     do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context 
                     markFoldingsSorted(offs)
                     ed.TextArea.TextView.Redraw(min pf.from f.from, max pl.till l.till, priority)
-                    foundSelectionEditorEv.Trigger()
+                    foundSelectionEditorEv.Trigger(triggerNext)
             else
                 () // dont redraw, there is already a new docchange happening that will be drawn
             
@@ -145,7 +145,7 @@ type SelectionHighlighter (state:InteractionState) =
             let word = ed.SelectedText
             if isTextToHighlight word then  //is at least two chars and has no line breaks
                 let startOff = ed.SelectionStart
-                mark(word, startOff)
+                mark(word, startOff,true)
             else
                 justClear()
         |NoSel   -> justClear()
@@ -156,7 +156,9 @@ type SelectionHighlighter (state:InteractionState) =
         ed.TextArea.SelectionChanged.Add ( fun _ -> update() ) 
     
     member _.Word    = lastWord 
-    member _.Offsets = lastSels    
+    member _.Offsets = lastSels  
+    
+      member _.Mark(word,triggerNext) = mark(word,-1, triggerNext)
 
 /// Highlight-all-occurrences-of-selected-text in Log
 type SelectionHighlighterLog (lg:TextEditor) = 
@@ -183,7 +185,7 @@ type SelectionHighlighterLog (lg:TextEditor) =
             async{ 
                 trans.ClearAllLines()
                 do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context
-                foundSelectionLogEv.Trigger()
+                foundSelectionLogEv.Trigger(false)
                 //for f in state.FoldManager.AllFoldings do  f.BackgroundColor <- null  
                 lg.TextArea.TextView.Redraw(f.from, l.till, priority)
             }|> Async.Start
@@ -193,7 +195,7 @@ type SelectionHighlighterLog (lg:TextEditor) =
     let mutable linesNeedUpdate = true
 
     
-    let mark (word:string, selectionStartOff) =
+    let mark (word:string, selectionStartOff,triggerNext) =
         let doc = lg.Document
         async{
             if linesNeedUpdate then 
@@ -240,20 +242,18 @@ type SelectionHighlighterLog (lg:TextEditor) =
                     do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context
                     //markFoldingsSorted(offs)
                     lg.TextArea.TextView.Redraw(f.from, l.till, priority)
-                    foundSelectionLogEv.Trigger()                   
+                    foundSelectionLogEv.Trigger(triggerNext)                   
                 
                 | Some (pf,pl),Some (f,l) ->   // both prev and current version have a selection                 
                     do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context 
                     //markFoldingsSorted(offs)
                     lg.TextArea.TextView.Redraw(min pf.from f.from, max pl.till l.till, priority)
-                    foundSelectionLogEv.Trigger()
+                    foundSelectionLogEv.Trigger(triggerNext)
             else
                 () // dont redraw, there is already a new docchange happening that will be drawn
            
 
         }|> Async.Start
-    
-    
     
     
     let update() =    
@@ -262,7 +262,7 @@ type SelectionHighlighterLog (lg:TextEditor) =
             let word = lg.SelectedText
             if isTextToHighlight word then  //is at least two chars and has no line breaks
                 let startOff = lg.SelectionStart
-                mark(word, startOff)                
+                mark(word, startOff, true)                
             else
                 justClear()
         |NoSel   -> justClear()
@@ -275,4 +275,6 @@ type SelectionHighlighterLog (lg:TextEditor) =
         lg.TextArea.TextView.LineTransformers.Add colorizer
     
     member _.Word    = lastWord 
-    member _.Offsets = lastSels    
+    member _.Offsets = lastSels 
+    
+    member _.Mark(word,triggerNext) = mark(word,-1, triggerNext)
