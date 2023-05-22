@@ -275,6 +275,8 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, statusBar:SeffStatusBar, log:
                 menuItem cmds.Replace
                 sep()
                 menuItem cmds.DeleteLine
+                menuItem cmds.DeletePrevWord
+                menuItem cmds.DeleteNextWord
                 sep()
                 menuItem cmds.ToUppercase
                 menuItem cmds.Tolowercase

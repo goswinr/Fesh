@@ -1,5 +1,6 @@
 ﻿namespace Seff.Views
 
+open System.Windows.Documents
 open System.Diagnostics
 open System.Windows.Input
 
@@ -72,15 +73,9 @@ type Commands (grid:TabsAndLog, statusBar:SeffStatusBar)  =
     member val Comment           = {name= "Comment"                   ;gesture= "Ctrl + K"       ;cmd= mkCmdSimple (fun _ -> Commenting.comment tabs.CurrAvaEdit)             ;tip= "Removes '//' at the beginning of current line, \r\nor from all line touched by current selection" }
     member val UnComment         = {name= "Uncomment"                 ;gesture= "Ctrl + U"       ;cmd= mkCmdSimple (fun _ -> Commenting.unComment tabs.CurrAvaEdit)           ;tip= "Puts '//' at the beginning of current line, \r\nor all line touched by current selection" }
     member val ToggleComment     = {name= "Toggle Comment"            ;gesture= "Ctrl + /"       ;cmd= mkCmdSimple (fun _ -> Commenting.toggleComment tabs.CurrAvaEdit)       ;tip= "Toggles the commented lines in current selection." }
-
     member val SwapLineUp        = {name= "Swap Lines Up"             ;gesture= "Alt + Up"       ;cmd=mkCmdSimple (fun _ -> SwapLines.swapLinesUp  (curr()))     ;tip= "Swap the current line(s) with the previous line."  }
-    member val SwapLineDown      = {name= "Swap Lines Down"           ;gesture= "Alt + Down"     ;cmd=mkCmdSimple (fun _ -> SwapLines.swapLinesDown(curr()))     ;tip= "Swap the current line(s) with the next line."  }
-
-    member val ToUppercase       = {name= "To UPPERCASE"              ;gesture= ""               ;cmd=AvalonEditCommands.ConvertToUppercase                                   ;tip= "Converts the selected text to UPPERCASE."  }
-    member val Tolowercase       = {name= "To lowercase"              ;gesture= ""               ;cmd=AvalonEditCommands.ConvertToLowercase                                   ;tip= "Converts the selected text to lowercase."  }
-    member val ToTitleCase       = {name= "To Titlecase "             ;gesture= ""               ;cmd=AvalonEditCommands.ConvertToTitleCase                                   ;tip= "Converts the selected text to Titlecase."  }
+    member val SwapLineDown      = {name= "Swap Lines Down"           ;gesture= "Alt + Down"     ;cmd=mkCmdSimple (fun _ -> SwapLines.swapLinesDown(curr()))     ;tip= "Swap the current line(s) with the next line."  }    
     member val ToggleBoolean     = {name= "Toggle bool literal"       ;gesture= "Ctrl + T"       ;cmd = mkCmdSimple (fun _ -> CursorBehavior.toggleBoolean(tabs.CurrAvaEdit) );tip= "Converts a 'true' literal to 'false' and a 'false' literal to 'true' if they are currently selected exclusively." }
-
     member val AlignCode         = {name= "Align Code Vertically"     ;gesture= "Ctrl + I"       ;cmd = mkCmdSimple (fun _ -> AlignText.alignByNonLetters(curr()))  ;tip= "Experimental Feature, Tries to inserts spaces where required so that non letter symbols align vertically." }
 
     // Select menu:
@@ -136,8 +131,14 @@ type Commands (grid:TabsAndLog, statusBar:SeffStatusBar)  =
     member val Find      = {name= "Find"     ;gesture=  "Ctrl + F"   ;cmd= ApplicationCommands.Find   ; tip= "Find text of current selection." }
     member val Replace   = {name= "Replace"  ;gesture=  "Ctrl + H"   ;cmd= ApplicationCommands.Replace; tip= "Find and replace text of current selection."  }
 
-    member val DeleteLine = {name= "Delete Line"  ;gesture=  "Ctrl + D"       ;cmd = AvalonEditCommands.DeleteLine                ; tip= "Deletes the current line."  }
-    member val TrailWhite = {name= "Removes Trailing Whitespace" ;gesture= "" ;cmd = AvalonEditCommands.RemoveTrailingWhitespace  ; tip= "Removes trailing whitespace from the selected lines (or the whole document if the selection is empty)." }
+    member val ToUppercase       = {name= "To UPPERCASE"  ;gesture= ""               ;cmd=AvalonEditCommands.ConvertToUppercase                                   ;tip= "Converts the selected text to UPPERCASE."  }
+    member val Tolowercase       = {name= "To lowercase"  ;gesture= ""               ;cmd=AvalonEditCommands.ConvertToLowercase                                   ;tip= "Converts the selected text to lowercase."  }
+    member val ToTitleCase       = {name= "To Titlecase " ;gesture= ""               ;cmd=AvalonEditCommands.ConvertToTitleCase                                   ;tip= "Converts the selected text to Titlecase."  }
+
+    member val DeleteLine     = {name= "Delete Line"          ;gesture= "Ctrl + D"          ;cmd = AvalonEditCommands.DeleteLine         ; tip= "Deletes the current line."  }
+    member val DeleteNextWord = {name= "Delete Next Word"     ;gesture= "Ctrl + Del"        ;cmd = EditingCommands.DeleteNextWord        ; tip= "Deletes the word to the right of the caret." }
+    member val DeletePrevWord = {name= "Delete Previous Word" ;gesture= "Ctrl + Backspace"  ;cmd = EditingCommands.DeletePreviousWord    ; tip= "Deletes the word to the left of the caret." }
+    member val TrailWhite     = {name= "Removes Trailing Whitespace" ;gesture= "" ;cmd = AvalonEditCommands.RemoveTrailingWhitespace  ; tip= "Removes trailing whitespace from the selected lines (or the whole document if the selection is empty)." }
 
     // this shortcut is implemented in Avalonedit but I cant find out where the routed command class is
     //member val SelectLinesUp      = {name= "Select Lines Upwards"      ;gesture= "Shift + Up"     ;cmd = null ;tip= "Not implemented yet"}

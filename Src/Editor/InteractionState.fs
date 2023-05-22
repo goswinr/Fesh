@@ -24,7 +24,8 @@ module CodeLineTools =
         while ind < len && str.[off+ind] = ' ' do
             ind <- ind + 1
         ind
-
+    
+    /// used for Editor, not Log
     /// Holds a List who's indices correspond to each line with info about:
     /// offStart: the offset of the first chracter off this line 
     /// indent:  the count of spaces at the start of this line 
@@ -106,8 +107,22 @@ module CodeLineTools =
                     ValueSome lns.[lineIdx]
             else 
                 ValueNone
-    
 
+        /// Safe: checks isDone && docChangedIdHolder.Value = id
+        /// retuns also none for bad indices
+        member _.GetLineText(lineIdx, chnageId): string voption =
+            if isDone && docChangedIdHolder.Value = chnageId then 
+                if lineIdx < 0 || lineIdx >= lns.Count then 
+                    ValueNone
+                else
+                    let l = lns.[lineIdx]
+                    ValueSome (fullCode.Substring(l.offStart,l.len))
+                    
+            else 
+                ValueNone
+
+    
+    /// used for Log
     /// Holds a List who's indices correspond to each line with info about:
     /// offStart: the offset of the first chracter off this line 
     /// indent:  the count of spaces at the start of this line 
