@@ -208,6 +208,7 @@ type InteractionState(ed:TextEditor, foldManager:FoldingManager, config:Seff.Con
                                     transformersSemantic
                                     transformersMatchingBrackets            
                                     |]
+                                    ,ed // for debugging only
                                     ) 
 
 

@@ -140,7 +140,7 @@ type BracketHighlighter (state:InteractionState) =
                 let t0 = tx.[i]
                 let t1 = tx.[i+1]
 
-                //if t0='\n' then ln <- ln + 1
+                if t0='\n' then ln <- ln + 1
 
 
                 if inComment then
@@ -415,12 +415,13 @@ type BracketHighlighter (state:InteractionState) =
     member _.UpdateAllBrackets(id) =                
         findAllBrackets(id)
         findHighlightPairAtCursor(state.Caret)
+        
         if Brs.Count > 0 &&  Acts.Count = Offs.Count && state.IsLatest id then                            
             for i = 0 to Offs.Count - 1 do 
                 if notNull Acts.[i] then // the first one is null ( to keep the coloring from xshd file)
                     let off = Offs.[i] 
                     let lineNo = LineNos.[i]
-                    //ISeffLog.log.PrintfnDebugMsg "Bracket %d to %d on Line %d " off (off+1) line.LineNumber
+                    //ISeffLog.log.PrintfnDebugMsg "Bracket %d to %d on Line %d " off (off+1) lineNo
                     match Brs.[i] with
                     | ClRound | OpRect | OpCurly | OpRound  | ClRect | ClCurly  -> trans.Insert(lineNo, {from=off; till=off+1; act= Acts.[i] })
                     | OpAnRec | OpArr | ClAnRec | ClArr                         -> trans.Insert(lineNo, {from=off; till=off+2; act= Acts.[i] })

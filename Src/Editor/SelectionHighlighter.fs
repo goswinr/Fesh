@@ -174,7 +174,7 @@ type SelectionHighlighterLog (lg:TextEditor) =
         t.Length > 1 && not (Str.isJustSpaceCharsOrEmpty t)  && not <| t.Contains("\n") 
     
     let trans = LineTransformers<LinePartChange>()    
-    let colorizer = FastColorizer([|trans|]) 
+    let colorizer = FastColorizer([|trans|], lg ) 
 
     let justClear() =
         lastWord <- ""

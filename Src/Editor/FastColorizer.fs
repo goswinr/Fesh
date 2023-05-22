@@ -99,7 +99,7 @@ type LineTransformers<'T>() =
         k  
 
 /// An efficient DocumentColorizingTransformer using line number indices into a line transformer list.
-type FastColorizer(transformers:LineTransformers<LinePartChange> []) = 
+type FastColorizer(transformers:LineTransformers<LinePartChange> [], ed:TextEditor) = 
     inherit Rendering.DocumentColorizingTransformer()   
 
     let ltss = transformers
@@ -135,13 +135,15 @@ type FastColorizer(transformers:LineTransformers<LinePartChange> []) =
                         let shiftChecked = if lpc.from > shift.from then shift.amount else 0
                         let from = lpc.from + shiftChecked
                         let till = lpc.till + shiftChecked
-                        if   from > offEn then () // ISeffLog.log.PrintfnAppErrorMsg    $"*LineChangePart1 {from}-{till}; Docline {offSt}-{offEn} on line: {lineNo}; (shift:{shiftChecked})" // doc.Text.Length {ed.Document.TextLength}
-                        elif till > offEn then () // ISeffLog.log.PrintfnAppErrorMsg   $"**LineChangePart2 {from}-{till}; Docline {offSt}-{offEn} on line: {lineNo}; (shift:{shiftChecked})" 
-                        elif till < offSt then () // ISeffLog.log.PrintfnAppErrorMsg  $"***LineChangePart3 {from}-{till}; Docline {offSt}-{offEn} on line: {lineNo}; (shift:{shiftChecked})" 
-                        elif from < offSt then () // ISeffLog.log.PrintfnAppErrorMsg $"****LineChangePart4 {from}-{till}; Docline {offSt}-{offEn} on line: {lineNo}; (shift:{shiftChecked})"           
+                        if from >= till then () // negative length
+                            //let tx = ed.Document.GetText(line)
+                            //let seg = ed.Document.GetText(till, from-till)
+                            //ISeffLog.log.PrintfnAppErrorMsg $"*LineChangePart1 {from} >= {till}; Docline {offSt}-{offEn} on line: {lineNo}; (shift:{shiftChecked})"           
+                            //ISeffLog.log.PrintfnAppErrorMsg $"   '{seg}' in {lineNo}:'{tx}'"           
+                        elif till > offEn then () // ISeffLog.log.PrintfnAppErrorMsg $"**LineChangePart2 {from}-{till}; Docline {offSt}-{offEn} on line: {lineNo}; (shift:{shiftChecked})" 
+                        elif from < offSt then () // ISeffLog.log.PrintfnAppErrorMsg $"***LineChangePart3 {from}-{till}; Docline {offSt}-{offEn} on line: {lineNo}; (shift:{shiftChecked})"           
                         else
                             //ISeffLog.log.PrintfnInfoMsg $"{from}-{till}; Docline {offSt}-{offEn} on line: {lineNo}; doc.Text.Length {ed.Document.TextLength} (shift:{shiftChecked})" 
                             base.ChangeLinePart(from, till, lpc.act)
-                            
                             
                     //else  ISeffLog.log.PrintfnAppErrorMsg $"Line Count {lpcs.Count} was reset while iterating index{i}"  // DELETE
