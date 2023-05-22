@@ -200,14 +200,51 @@ type TypeInfo private () =
         | None    ->  new Run(t ,FontFamily = StyleState.fontEditor, FontSize = StyleState.fontSize*1.1,  Foreground = black,   Background = white)         
         new Run(" ") 
         ]
+    
+
+    static let debugPrint (c:Child) =    
+        let rec printx  i (c:Child) = 
+            let ind = String(' ',  i*4)
+            match c with 
+            | Text t ->  
+                ISeffLog.printColor 150 150 150 $"{ind}Text:"
+                ISeffLog.printnColor 150 150 0 $"{t}"
+            | Node n ->  
+                ISeffLog.printColor 150 0 150 $"{ind}Node"
+                ISeffLog.printColor 150 150 150 ":"
+                ISeffLog.printColor 150 150 0 $"{n.name}"
+                for at in n.attrs do  
+                    ISeffLog.printColor 0 150 150 $"; attr"
+                    ISeffLog.printColor 150 150 150 ":"
+                    ISeffLog.printColor 0 150 150 $"{at.name}"
+                    ISeffLog.printColor 150 150 150 "="
+                    ISeffLog.printColor 150 0 150 $"{at.value}"
+                ISeffLog.printnColor 150 150 150 ""    
+                for c in n.children do  
+                    printx (i+1) c 
+        printx 0 c
+    
+
+    static let nodesHasAttrsOnly(n:XmlParser.Node) = 
+        (n.children.IsEmpty && not n.attrs.IsEmpty)
+        ||
+        (
+        // catch cases from netstandard.xml from nuget where a name appears twice:
+        // <paramref name="totalWidth">totalWidth</paramref>
+        n.children.Length = 1 &&
+        n.attrs.Length = 1 &&
+        n.attrs.Head.name = "name" &&
+        n.attrs.Head.value = (match n.children.Head with Text t -> t |Node _ -> "")
+        )
 
     static let mainXmlBlock (node:XmlParser.Child, td:ToolTipData): TextBlockSelectable =
         let tb = new TextBlockSelectable()
         tb.FontSize   <- StyleState.fontSize  * 1.0
-        tb.FontFamily <- StyleState.fontToolTip        
+        tb.FontFamily <- StyleState.fontToolTip
+        tb.TextWrapping <- TextWrapping.Wrap
         let mutable last = "" 
         
-        let rec loop (c:XmlParser.Child) parentName addTitle d = 
+        let rec loop (c:XmlParser.Child) parentName addTitle d =             
             match c with
             |Text t ->  
                 // the main xml text description
@@ -226,16 +263,17 @@ type TypeInfo private () =
                         tb.Inlines.Add( new Run(": ",  Foreground = black))  
                     for c in List.rev n.children do 
                         loop c n.name false (d+1)
-                    tb.Inlines.Add( new LineBreak()) 
+                    tb.Inlines.Add( new LineBreak())
                     
                     
-                elif n.children.IsEmpty && not n.attrs.IsEmpty then 
+                elif nodesHasAttrsOnly n then 
                     // e.g. for: <returns> <see langword="true" /> if <paramref name="objA" /> is the same instance as <paramref name="objB" /> or if both are null; otherwise, <see langword="false" />.</returns>
                     for at in n.attrs do 
                         //printfn $"{n.name} {at.name}:{at.value }"
                         if   at.name="cref"  then  tb.Inlines.AddRange(  at.value |> fixTypeName |>  codeRun td)                        
                         else                       tb.Inlines.AddRange(  at.value                |>  codeRun td)
                         //tb.Inlines.Add( new Run(" ")) 
+
                 else
                     //for at in n.attrs do printfn $"ELSE:{n.name} {at.name}:{at.value } n.children.IsEmpty:{n.children.IsEmpty}={n.children.Length} n.attrs.IsEmpty:{n.attrs.IsEmpty}={n.attrs.Length}"
                     //if not n.children.IsEmpty then printfn $"ELSE:{n.name}:{n.children.Head}"
@@ -262,6 +300,10 @@ type TypeInfo private () =
         // remove last line break: 
         if tb.Inlines.LastInline  :? LineBreak then  tb.Inlines.Remove tb.Inlines.LastInline  |> ignore 
         
+        // match node with 
+        // |Node n -> for c in n.children do debugPrint c 
+        // | c ->  debugPrint c 
+        
         tb        
 
 
@@ -280,6 +322,7 @@ type TypeInfo private () =
             tb.Foreground <- Brushes.DarkOrange |> darker 10
             tb.FontSize <- StyleState.fontSize  * 0.95
             tb.FontFamily <- StyleState.fontToolTip
+            tb.TextWrapping <- TextWrapping.Wrap
             //tb.FontWeight <- FontWeights.Bold
             add tb  
             
@@ -291,6 +334,7 @@ type TypeInfo private () =
             tb.Foreground <- Brushes.DarkOrange |> darker 10
             tb.FontSize <- StyleState.fontSize  * 0.95
             tb.FontFamily <- StyleState.fontToolTip
+            tb.TextWrapping <- TextWrapping.Wrap
             //tb.FontWeight <- FontWeights.Bold
             add tb  
 
@@ -310,13 +354,14 @@ type TypeInfo private () =
                     tb.Foreground <- black
                     tb.FontSize <- StyleState.fontSize * 0.9
                     tb.FontWeight <- FontWeights.Bold
+                    tb.TextWrapping <- TextWrapping.Wrap
                     subAdd tb
 
                 subAdd <| coloredSignature(td) // the main colored signature of a F# value
 
                 // the main xml body
                 match td.xmlDoc with
-                |Ok (node, ass)     ->
+                |Ok (node, ass)     ->                    
                     if ass <> "" then assemblies.Add(ass) |> ignore
                     //if ass.Length > 10 then assemblies.Add("\r\n" + ass) |> ignore // it may be from more than one assembly? because of type extensions?
                     //else                    assemblies.Add(ass) |> ignore
@@ -340,6 +385,7 @@ type TypeInfo private () =
                 tb.Foreground <- darkblue
                 tb.FontSize <- StyleState.fontSize  * 1.0
                 tb.FontFamily <- StyleState.fontToolTip
+                tb.TextWrapping <- TextWrapping.Wrap
                 add tb 
 
         if assemblies.Count > 0 then
@@ -348,6 +394,7 @@ type TypeInfo private () =
                 else                         new TextBlockSelectable(Text= "assemblies: " + String.concat "\r\n" assemblies)
             tb.FontSize <- StyleState.fontSize  * 0.85
             tb.Foreground <-black
+            tb.TextWrapping <- TextWrapping.Wrap
             //tb.FontFamily <- new FontFamily ("Arial") // or use default of device
             add tb   
         else
@@ -396,10 +443,11 @@ type TypeInfo private () =
         
         | FSharpXmlDoc.FromXmlFile(dllFile, memberName) ->
             match DocString.getXmlDoc dllFile with
-            |Ok (fi, nodeDict) -> 
+            |Ok (xmlFi, nodeDict) -> 
+                //printfn $"reading xml:{xmlFi.FullName}"
                 match nodeDict.TryGetValue memberName with 
                 |true , node ->  Ok (node  , dllFile)
-                |false, _    ->  Error $"no xml doc found for member '{memberName}' in \r\n'{fi.FullName}'\r\n"
+                |false, _    ->  Error $"no xml doc found for member '{memberName}' in \r\n'{xmlFi.FullName}'\r\n"
             | Error e ->
                 Error e 
 
@@ -462,8 +510,7 @@ type TypeInfo private () =
                 if notNull e.InnerException then 
                     ISeffLog.log.PrintfnAppErrorMsg "InnerException: %s:\r\n %s" (e.GetType().FullName) e.Message
             
-        optDefs
-    
+        optDefs    
     
     static let mutable cachedToolTipData: list<ToolTipData> = []
     static let mutable cachedExtraData = {declListItem=None;semanticClass=None;declLocation=None;dllLocation=None }

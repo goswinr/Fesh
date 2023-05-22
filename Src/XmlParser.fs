@@ -326,10 +326,16 @@ module XmlParser =
  
 module DocString = 
     
-    let xmlDocCache = Dictionary<string, FileInfo*Dictionary<string, XmlParser.Child>>()
-    let failedPath  = Dictionary<string,string>()
+    type XmlFilePath = string
+    type XmlFileInfo = FileInfo
+    type DllFilePath = string
+    type DllFilePathError = string
+    type MemberName = string
 
-    let private getXmlDocImpl (dllFile:string) : Result<FileInfo*Dictionary<string, XmlParser.Child>,string>= 
+    let xmlDocCache = Dictionary<DllFilePath, XmlFileInfo*Dictionary<XmlFilePath, XmlParser.Child>>()
+    let failedPath  = Dictionary<DllFilePath, DllFilePathError>()
+
+    let private getXmlDocImpl (dllFile:DllFilePath) : Result<XmlFileInfo*Dictionary<MemberName, XmlParser.Child>, DllFilePathError>= 
         if xmlDocCache.ContainsKey dllFile then
             Ok xmlDocCache.[dllFile]
         else            
@@ -342,7 +348,7 @@ module DocString =
                         |> XmlParser.readAll
                         |> XmlParser.getMembers
                     let r = FileInfo xmlFile , ms 
-                    xmlDocCache.[dllFile]<- r
+                    xmlDocCache.[dllFile] <- r
                     Ok r
                 with e -> 
                     Error $"Error reading Xml File {e}"                       
@@ -350,7 +356,7 @@ module DocString =
                 Error $"Xml File not found for : '{dllFile}'"                         
     
     
-    let getXmlDoc(dllFile:string) : Result<FileInfo*Dictionary<string, XmlParser.Child>,string>= 
+    let getXmlDoc(dllFile:DllFilePath) : Result<XmlFileInfo*Dictionary<MemberName, XmlParser.Child>, DllFilePathError>= 
         if failedPath.ContainsKey dllFile then 
             Error(failedPath[dllFile]) // to not try accessing a failed path over and over again
         else
