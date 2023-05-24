@@ -18,7 +18,7 @@ module private EvaluationTrackerRendererUtil =
     //let backGround = Brushes.Teal |> brighter 230 |> freeze
     //let backGround = Brushes.Ivory |> brighter 5   |> freeze
     //let backGround = Brushes.LightGray |> brighter 30 |> freeze
-    let backGround = SolidColorBrush(Color.FromArgb(200uy,220uy,220uy,220uy))|> freeze
+    let backGround = SolidColorBrush(Color.FromArgb(140uy,235uy,235uy,235uy))|> freeze // a=0 : fully transparent A=255 opaque
     
 
     //let pen = new Pen(Brushes.Black |> freeze , 0.5)  |> Pen.freeze

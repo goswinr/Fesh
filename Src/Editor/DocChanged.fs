@@ -455,7 +455,7 @@ module DocChangeEvents =
             ()
         | React -> 
             let id = state.Increment() // only increment when a reaction is required
-            state.Caret <- state.Editor.CaretOffset
+            //state.Caret <- state.Editor.CaretOffset  // DELETE
             match isSingleCharChange eventArgs with 
             |ValueSome _ -> DocChangeCompletion.singleCharChange (iEd, serv, state, id)
             |ValueNone   -> DocChangeMark.markFoldCheckHighlightAsync (iEd, serv, state, id)            

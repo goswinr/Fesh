@@ -260,12 +260,12 @@ type InteractionState(ed:TextEditor, foldManager:FoldingManager, config:Seff.Con
 
     member _.FoldManager = foldManager 
 
-    /// the caret position that can be savely accessed async
-    member val Caret = 0 with get,set
+    // the caret position that can be savely accessed async  // DELETE
+    //member val Caret = 0 with get,set
     
 
 
-// Highlighting needs:
+// Highlighting needs:  // DELETE
 (*
 
 type AfterWait = 

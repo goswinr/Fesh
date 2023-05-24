@@ -36,7 +36,8 @@ type BracketInfo = {
     off:int  
     lnNo:int  
     color:Action<VisualLineElement>
-    idx:int}
+    idx:int
+    }
 
 type RedrawSegment(startOffset,  endOffset)  = 
     member s.Offset      = startOffset
@@ -60,24 +61,19 @@ module Render =
     let inline setTextColor (b:SolidColorBrush) (el:Rendering.VisualLineElement) = 
         el.TextRunProperties.SetForegroundBrush(b) 
         
-
     let inline setBgColor (b:SolidColorBrush) (el:Rendering.VisualLineElement) = 
         el.TextRunProperties.SetBackgroundBrush(b)
-
 
 module ParseBrackets = 
     
     [<Struct>]
     type Bracket = {
-        bracket: BracketKind
+        kind: BracketKind
         from:int 
-        //till:int
         }
-
-
-    type MuliLineState = RegCode | MulitComment | MulitString
-
     
+    type MuliLineState = RegCode | MulitComment | MulitString
+        
     let all(lns:CodeLineTools.CodeLines, id) : ResizeArray<ResizeArray<Bracket>> option=
         let code= lns.FullCode
 
@@ -127,9 +123,9 @@ module ParseBrackets =
             
             let rec charLoop chr i : MuliLineState =                
 
-                let inline pushExit      br = brs.Add {bracket=br; from = i} ; RegCode
-                let inline pushOne  next br = brs.Add {bracket=br; from = i} ; charLoop next      (i+1)
-                let inline pushTwo       br = brs.Add {bracket=br; from = i} ; charLoop code[i+2] (i+2)
+                let inline pushExit      br = brs.Add {kind=br; from = i} ; RegCode
+                let inline pushOne  next br = brs.Add {kind=br; from = i} ; charLoop next      (i+1)
+                let inline pushTwo       br = brs.Add {kind=br; from = i} ; charLoop code[i+2] (i+2)
                 let inline loopOn        j  = if j <= till then charLoop code[j] (j) else RegCode
                 
                 let spaceLeft = till-i
@@ -223,7 +219,82 @@ module ParseBrackets =
                     lineLoop newLineState (lnNo + 1)
                     
         lineLoop RegCode 0 // start at 0 even though the 0 line is always empty
-        
+    
+    let getBLen = function            
+        | OpAnRec -> 2
+        | OpArr   -> 2            
+        | ClAnRec -> 2
+        | ClArr   -> 2            
+        | OpRect  -> 1
+        | OpCurly -> 1
+        | OpRound -> 1  
+        | ClRect  -> 1
+        | ClCurly -> 1
+        | ClRound -> 1 
+
+    type BracketPair = {
+        line:int
+        from:int
+        till:int
+        kind:BracketKind
+        nestingDepth:int
+        mutable other:BracketPair option
+        }    
+
+    /// grouped by lines
+    let findAllPairs(bss: ResizeArray<ResizeArray<Bracket>>) :BracketPair[][] =
+        // find matching brackets and colors via a Stack 
+        let stack = Collections.Generic.Stack<BracketPair>()
+
+        let pss = Array.zeroCreate<BracketPair[]> bss.Count
+        for lineNo = 0 to bss.Count-1 do 
+            let bs = bss[lineNo]
+            let ps = Array.zeroCreate<BracketPair> bs.Count
+            pss[lineNo] <- ps
+            for j=0 to bs.Count-1 do 
+                let b = bs[j]                
+                match b.kind with
+                | OpAnRec | OpArr  | OpRect  | OpCurly | OpRound  ->
+                    let p = {line=lineNo; from=b.from; till = b.from + getBLen b.kind; kind=b.kind;  nestingDepth=stack.Count; other=None}
+                    ps[j] <- p
+                    stack.Push p 
+                | ClAnRec | ClArr  | ClRect  | ClCurly | ClRound  ->
+                    if stack.Count = 0 then //errror this closing was never opened
+                        let p = {line=lineNo; from=b.from; till = b.from + getBLen b.kind; kind=b.kind;  nestingDepth=stack.Count; other=None}
+                        ps[j] <- p
+                    else
+                        let prev = stack.Peek()
+                        let isCorrectClosing = // is the corrcet closing bracket
+                            match b.kind with
+                            | ClAnRec -> prev.kind = OpAnRec
+                            | ClArr   -> prev.kind = OpArr
+                            | ClRect  -> prev.kind = OpRect
+                            | ClCurly -> prev.kind = OpCurly
+                            | ClRound -> prev.kind = OpRound
+                            | OpAnRec | OpArr  | OpRect  | OpCurly | OpRound  -> false
+                        if isCorrectClosing then
+                            let other = stack.Pop() 
+                            let this = {line=lineNo; from=b.from; till = b.from + getBLen b.kind; kind=b.kind; nestingDepth=stack.Count; other=Some other}                            
+                            other.other <- Some this
+                            ps[j] <- this
+                        else
+                            let p = {line=lineNo; from=b.from; till = b.from + getBLen b.kind; kind=b.kind; nestingDepth=stack.Count; other=None}                            
+                            ps[j] <- p
+        pss
+
+    let getOnePair(pss: BracketPair[][], line:int, offset:int) : (BracketPair*BracketPair) option =
+        pss[line]
+        |> Array.tryFindBack ( fun p -> p.from <= offset && offset <= p.till+1  ) // + 1 to also catch caret right after bracket
+        |> Option.bind ( fun t -> 
+                match t.other with 
+                |Some o -> 
+                    // first sort them:
+                    let a,b = if o.from < t.from then o,t else t,o                    
+                    if b.from-a.till <= 1 then None // dont return a pair if only on char between them
+                    else                       Some(a,b)
+                |None  ->                      None
+                )
+    
       
     let debugPrint(bss:ResizeArray<ResizeArray<Bracket>>, lns:CodeLineTools.CodeLines, id) :unit =
         
@@ -239,20 +310,7 @@ module ParseBrackets =
             | ClArr   -> "|]"            
             | ClRect  -> "]"
             | ClCurly -> "}"
-            | ClRound -> ")" 
-            
-        let getBLen = function            
-            | OpAnRec -> 2
-            | OpArr   -> 2            
-            | ClAnRec -> 2
-            | ClArr   -> 2            
-            | OpRect  -> 1
-            | OpCurly -> 1
-            | OpRound -> 1  
-            | ClRect  -> 1
-            | ClCurly -> 1
-            | ClRound -> 1 
-        
+            | ClRound -> ")"   
         
         let mutable k = 0
         for i=1 to bss.Count-1 do 
@@ -269,25 +327,28 @@ module ParseBrackets =
                         eprintfn $"debugPrint: b.from{b.from} - from{from} is negative"
                     else
                         let gap = String(' ', gapLen)
-                        from <- from + gapLen + getBLen b.bracket
-                        printf $"{gap}{getBr b.bracket}"
+                        from <- from + gapLen + getBLen b.kind
+                        printf $"{gap}{getBr b.kind}"
                 printfn ""
         printfn $"Total {k} Brackets."
 
-
+open ParseBrackets
 
 type BracketHighlighter (state:InteractionState) =     
 
-    let colErr   = Brushes.Red                  |> freeze
-    let colErrBg = Brushes.Pink |> brighter 25  |> freeze
     let colPair  = Brushes.Gray |> brighter 70  |> freeze  
+    let colErr   = Brushes.Red                  |> freeze
+    //let colErrBg = Brushes.Pink |> brighter 25  |> freeze
+    let colErrBg = SolidColorBrush(Color.FromArgb(15uy,255uy,0uy,0uy))|> freeze // a=0 : fully transparent A=255 opaque
+
+    
 
     let colors = [|
         null // the first one is null ( to keep the coloring from xshd file)        
-        Brushes.Goldenrod  |> darker 10    |> freeze
-        Brushes.Purple     |> brighter 10  |> freeze
-        Brushes.Green      |> darker 10    |> freeze
-        Brushes.Cyan       |> darker 50    |> freeze
+        Brushes.Yellow     |> darker 30    |> freeze
+        Brushes.Purple     |> brighter 40  |> freeze
+        Brushes.Green      |> brighter 30    |> freeze
+        Brushes.Cyan       |> darker 40    |> freeze
         |]
 
     let actErr      = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(colErr); el.TextRunProperties.SetBackgroundBrush(colErrBg))    
@@ -295,333 +356,53 @@ type BracketHighlighter (state:InteractionState) =
 
     let acts = colors|> Array.map ( fun c -> if isNull c then null else new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(c)))
 
-    let nextAction i = acts.[i % acts.Length]
-
-
-
-    let Brs        = ResizeArray<BracketKind>()
-    let Offs       = ResizeArray<int>() // doc offsets
-    let LineNos    = ResizeArray<int>() // line numbers
-    let Acts       = ResizeArray<Action<VisualLineElement>>()
-    let Unclosed   = ResizeArray<BracketInfo>() 
-    let PairStarts = Dictionary<int,BracketInfo>()
-    let PairEnds   = Dictionary<int,BracketInfo>()     
-    let mutable listsAreClean = false
-    
-       
-    
-    let findAllBrackets ( id) =         
-        let tx = state.CodeLines.FullCode
-        
-        listsAreClean <-false
-        Brs.Clear()
-        Offs.Clear()
-        LineNos.Clear()
-        Acts.Clear()
-        Unclosed.Clear()
-        PairStarts.Clear()
-        PairEnds.Clear()
-
-        let mutable inComment      = false
-        let mutable inBlockComment = false
-        let mutable inString       = false
-        let mutable inAtString     = false // with @
-        let mutable inRawString    = false // with @
-        let mutable ln             = 1 // line Numbers start at 1
-        
-        let inline push (br, i, lnNo) =  
-            Brs.Add br
-            Offs.Add i
-            LineNos.Add lnNo
-        
-        let len2 = tx.Length - 1
-
-        let rec find i = 
-            if i < len2 && state.IsLatest id then
-                let t0 = tx.[i]
-                let t1 = tx.[i+1]
-
-                if t0='\n' then ln <- ln + 1
-
-
-                if inComment then
-                    if  t0='\n' then inComment <- false   ; find(i+1)
-                    else find(i+1)
-
-                elif inBlockComment then
-                    if  t0='*' && t1 = ')' then inBlockComment <- false  ; find(i+2)
-                    else find(i+1)
-
-                elif inString then
-                    if   t0='\\' && t1 = '"'  then  find(i+2) //an escaped quote in a string
-                    elif t0='\\' && t1 = '\\' then  find(i+2) //an escaped backslash in a string
-                    elif t0= '"'              then  inString <- false;  find(i+1)
-                    else find(i+1)
-
-                elif inAtString then
-                    if    t0= '"' then  inAtString <- false;  find(i+1)
-                    else find(i+1)
-
-                elif inRawString then
-                    if  t0='"' && t1 = '"' && i+1 < len2 && tx.[i+2] = '"' then  inRawString <- false;  find(i+3)
-                    else find(i+1)
-
-                else // in Code
-                    // opening brackets
-                    if  t0='{' then
-                        if  t1 = '|' then push(OpAnRec, i, ln) ; find(i+2)
-                        else              push(OpCurly, i, ln) ; find(i+1)
-                    elif  t0='[' then
-                        if   t1 = '|' then push(OpArr , i, ln)  ; find(i+2)
-                        else               push(OpRect, i, ln)  ; find(i+1)
-                    elif
-                        t0='(' then
-                            if    t1 = ')' then                             find(i+2) // skip highlighting a '(' followed by ')' directly
-                            elif  t1 = '*' then   inBlockComment <- true ;  find(i+2) 
-
-                            else                     push(OpRound, i, ln) ; find(i+1)
-
-                    // closing brackets
-                    elif t0 = '|' then
-                        if   t1 = ']' then push(ClArr , i, ln)  ; find(i+2)
-                        elif t1 = '}' then push(ClRect, i, ln)  ; find(i+2)
-                        else                                      find(i+1)
-
-                    elif  t0='}' then push(ClCurly, i, ln) ; find(i+1)
-                    elif  t0=']' then push(ClRect , i, ln) ; find(i+1)
-                    elif  t0=')' then push(ClRound, i, ln) ; find(i+1)
-
-                    // escape cases:
-
-                    elif  t0='@' && t1 = '"'                                 then inAtString    <- true; find(i+2)
-                    elif  t0='"' && t1 = '"' && i+1 < len2 && tx.[i+2] = '"' then inRawString   <- true; find(i+3)
-                    elif  t0='"'                                             then inString      <- true; find(i+1)
-                    elif  t0='/'  && t1 = '/'                                then inComment     <- true; find(i+2)
-                    // if char just jump over it
-                    elif  t0='\'' then
-                        if    i+1  < len2 && tx.[i+2] = '\''                                 then   find(i+3)  // a regular  character, including quote "
-                        elif  i+2  < len2 && t1 = '\\' && tx.[i+3]  = '\''                   then   find(i+4)  // a simple escaped character
-                        elif  i+6  < len2 && t1 = '\\' && tx.[i+2] = 'u' && tx.[i+7]  = '\'' then   find(i+8)  // a 16 bit unicode character
-                        elif  i+10 < len2 && t1 = '\\' && tx.[i+2] = 'U' && tx.[i+11] = '\'' then   find(i+12) // a 32 bit unicode character
-                        else find(i+1)
-                    else
-                        find(i+1)
-
-            // check last character of text
-            elif i>2 && i = tx.Length - 1  && not inComment && not inString && state.IsLatest id then
-                let t0 = tx.[i]
-                if tx.[i-1] = '|' then
-                    if   t0 = ']' then push(ClArr , i, ln)
-                    elif t0 = '}' then push(ClRect, i, ln)
-                elif t0='{' then push(OpCurly, i, ln)
-                elif t0='[' then push(OpRect , i, ln)
-                elif t0='(' then push(OpRound, i, ln)
-                elif t0='}' then push(ClCurly, i, ln)
-                elif t0=']' then push(ClRect , i, ln)
-                elif t0=')' then push(ClRound, i, ln)
-
-        find 0
-
-        // find matching brackets and colors via a Stack
-        let stack = Collections.Generic.Stack<BracketInfo>()
-        for i=0 to  Brs.Count - 1 do
-            if state.IsLatest id then 
-                match Brs.[i] with
-                | OpAnRec | OpArr  | OpRect  | OpCurly | OpRound  ->
-                    let col = nextAction (stack.Count)
-                    stack.Push {bracket = Brs.[i]; off= Offs.[i]; lnNo = LineNos.[i]; color = col; idx=i}
-                    Acts.Add col
-                | ClAnRec | ClArr  | ClRect  | ClCurly | ClRound  ->
-                    if stack.Count = 0 then
-                        Acts.Add actErr
-                    else
-                        let bc = stack.Peek()
-                        let ok = 
-                            match Brs.[i] with
-                            | ClAnRec -> bc.bracket = OpAnRec
-                            | ClArr   -> bc.bracket = OpArr
-                            | ClRect  -> bc.bracket = OpRect
-                            | ClCurly -> bc.bracket = OpCurly
-                            | ClRound -> bc.bracket = OpRound
-                            | OpAnRec | OpArr  | OpRect  | OpCurly | OpRound  -> false
-                        if ok then
-                            stack.Pop ()  |> ignore
-                            Acts.Add bc.color
-                            PairEnds.[bc.off]     <- {bracket = Brs.[i]; off= Offs.[i]; lnNo = LineNos.[i]; color = bc.color; idx=i}
-                            PairStarts.[Offs.[i]] <- bc
-                        else
-                            Acts.Add actErr
-
-        //for k in PairEnds.Keys do   ed.Log.PrintfnDebugMsg   "start %d end  %d" k PairEnds.[k]
-        //for k in PairStarts.Keys do   ed.Log.PrintfnDebugMsg "end  %d start  %d" k PairStarts.[k]
-
-        //for i=0 to Cols.Count-1 do ed.Log.PrintfnDebugMsg "%A in %A at %d" Brs.[i] Cols.[i] Offs.[i]
-        //ISeffLog.log.PrintfnDebugMsg "%d Brackets found " Brs.Count
-        //if Brs.Count = 0 then ed.Log.PrintfnDebugMsg "inComment   inBlockComment  inString  %b %b %b" inComment   inBlockComment  inString
-
-        // find error in remaining stack items:
-        for e in stack do
-            Unclosed.Add e  
-        
-        if state.IsLatest id then 
-            listsAreClean <-true
-    
-    // for previous highlighting matching brackets at cursor:
-    let mutable prevStartLn = -1
-    let mutable prevEndLn = -1
-
-    // for highlighting matching brackets at cursor:
-    let mutable pairStart = -1
-    let mutable pairStartLn = -1
-    let mutable pairEnd = -1
-    let mutable pairEndLn = -1
-    let mutable pairLen = -1  
-    
-    /// this needs the offsets precomputed
-    /// finds if offset is before or after the bracket, or in between for two char brackets
-    let findHighlightPairAtCursor(caretOff) = 
-       //pairStart <- -1
-       //pairStartLn <- -1
-       //pairEnd   <- -1
-       //pairEndLn <- -1
-       //pairLen   <- -1
-
-        //if ed.TextArea.Selection.Length = 0 then // or always do ?
-        
-        let oMin = caretOff - 2
-        let oMax = caretOff 
-        
-        /// returns the index where found
-        let rec binSearch lo hi =
-            if lo > hi || not listsAreClean then 
-                None
-            else
-                let mid = lo + (hi - lo) / 2
-                let o = Offs.[mid]
-                if   o < oMin then binSearch lo (mid - 1)
-                elif o > oMax then binSearch (mid + 1) hi
-                else Some mid 
-
-        match binSearch 0 (Offs.Count - 1) with 
-        | None -> () // do not clear previous highlighting pairs
-        | Some i -> 
-            let off = Offs.[i]
-            let ln = LineNos.[i]
-            if off = caretOff || off = caretOff - 1  then
-                //ISeffLog.log.PrintfnDebugMsg "Bracket %d to %d on Line %d " off (off+1) line.LineNumber
-                prevStartLn <- pairStartLn 
-                prevEndLn   <- pairEndLn 
-                match Brs.[i] with
-                | OpAnRec | OpArr | OpRect | OpCurly | OpRound   ->
-                    pairStart   <- off
-                    pairStartLn <- ln
-                    let ok,pe = PairEnds.TryGetValue(pairStart)
-                    if ok then 
-                        pairEnd   <- pe.off
-                        pairEndLn <- pe.lnNo
-                    else
-                        //ISeffLog.log.PrintfnAppErrorMsg "Cant find corresponding End bracket for %A in %s" Brs.[i] (Selection.currentLine ed.AvaEdit)
-                        pairEnd <- -1
-
-                | ClAnRec | ClArr | ClRect | ClCurly | ClRound     ->
-                    pairEnd   <- off
-                    pairEndLn <- ln
-                    let ok,ps = PairStarts.TryGetValue(pairEnd)
-                    if ok then 
-                        pairStart   <- ps.off
-                        pairStartLn <- ps.lnNo
-                    else
-                        //ISeffLog.log.PrintfnAppErrorMsg "Cant find corresponding Start bracket for %A in %s" Brs.[i] (Selection.currentLine ed.AvaEdit)
-                        pairStart <- -1
-
-                pairLen <-
-                    match Brs.[i] with
-                    | ClRound | OpRect | OpCurly | OpRound  | ClRect | ClCurly  -> 1
-                    | OpAnRec | OpArr | ClAnRec | ClArr                         -> 2
-
-                //ed.Log.PrintfnDebugMsg "pairStart %d pairEnd %d pairLen %d" pairStart pairEnd pairLen                
-                
-            // just for making to work right after two char bracket like |] too
-            elif off = caretOff - 2  then 
-                //ISeffLog.log.PrintfnDebugMsg "Bracket %d to %d on Line %d " off (off+1) line.LineNumber
-                prevStartLn <- pairStartLn 
-                prevEndLn   <- pairEndLn 
-
-                let mutable isTwoChars = true
-                match Brs.[i] with
-                | OpRect | OpCurly | OpRound   -> isTwoChars<- false // skip single char
-                | OpAnRec | OpArr ->
-                    pairStart <- off
-                    pairStartLn <- ln
-                    let ok,pe = PairEnds.TryGetValue(pairStart)
-                    if ok then 
-                        pairEnd   <- pe.off
-                        pairEndLn <- pe.lnNo
-                    else
-                        //ISeffLog.log.PrintfnAppErrorMsg "Cant find corresponding End bracket for %A in %s" Brs.[i] (Selection.currentLine ed.AvaEdit)
-                        pairEnd <- -1
-
-                | ClRect| ClCurly| ClRound  -> isTwoChars<- false// skip single char
-                | ClAnRec | ClArr-> 
-                    pairEnd <- off
-                    pairEndLn <- ln
-                    let ok,ps = PairStarts.TryGetValue(pairEnd)
-                    if ok then 
-                        pairStart   <- ps.off
-                        pairStartLn <- ps.lnNo
-                    else
-                        //ISeffLog.log.PrintfnAppErrorMsg "Cant find corresponding Start bracket for %A in %s" Brs.[i] (Selection.currentLine ed.AvaEdit)
-                        pairStart <- -1
-                    
-                if isTwoChars then 
-                    pairLen <- 2                    
+    // ----------coloring on pair of matching brackets at cursor:---------------
     
     let transMatch = state.TransformersMatchingBrackets
     
-    let updatePairTransformers() =
-        if pairStart > 0 && pairEnd > 0  then // must check both
-            // first remove previous transformers
-            transMatch.ClearAllLines() 
-            ISeffLog.log.PrintfnDebugMsg $"Pair {pairStart} to {pairEnd}" 
-            transMatch.Insert(pairStartLn, {from=pairStart; till=pairStart + pairLen; act=actPair})
-            transMatch.Insert(pairEndLn  , {from=pairEnd;   till=pairEnd   + pairLen; act=actPair})
-    
     let mutable prevPairSeg: RedrawSegment option = None
-
-    let redrawSegment() =
-        let seg = RedrawSegment(pairStart,pairEnd)            
-        match prevPairSeg with 
-        |Some prev -> 
-            let m = seg.Merge(prev)                    
-            //ISeffLog.printnColor 150 222 50 $"HighlightPair merged {m}"
-            state.Editor.TextArea.TextView.Redraw(m)            
-        |None ->
-            //ISeffLog.printnColor 150 222 50 $"HighlightPair {seg}"
-            state.Editor.TextArea.TextView.Redraw(seg)
-        prevPairSeg <- Some seg     
+    
+    let mutable allPairs : option<BracketPair[][]> = None
         
     let caretPositionChanged(e:EventArgs) = 
+        
         let id = state.DocChangedId.Value
-        let caretOff = state.Editor.CaretOffset
-        state.Caret <- caretOff        
+        let caret = state.Editor.TextArea.Caret
+        let caretOff = caret.Offset
+        let caretLine= caret.Line
+        //state.Caret <- caretOff  // DELETE        
         async{ 
             do! Async.Sleep 50 // wait for update the offset list Offs lists
-            while not listsAreClean do
+            while allPairs.IsNone do
                 do! Async.Sleep 50 // wait for update the offset list Offs lists
-            if state.DocChangedId.Value = id && listsAreClean then 
-                //ISeffLog.log.PrintfnDebugMsg $"searching for caret {caretOff} in {Offs.Count} Offs" 
-                findHighlightPairAtCursor(caretOff) 
-                updatePairTransformers()
-                if state.DocChangedId.Value = id && listsAreClean && transMatch.IsNotEmpty then 
+            if state.DocChangedId.Value = id then 
+               
+               match ParseBrackets.getOnePair(allPairs.Value, caretLine, caretOff) with 
+               |None -> ()
+               |Some (f,t) -> 
+                    transMatch.ClearAllLines()
+                    transMatch.Insert(f.line, {from=f.from; till=f.till; act = actPair})
+                    transMatch.Insert(t.line, {from=t.from; till=t.till; act = actPair})
+                    if state.DocChangedId.Value = id then 
                         do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context
-                        //ISeffLog.log.PrintfnDebugMsg "``redrawSegment``" 
-                        redrawSegment()            
+                        
+                        //redrawSegment:
+                        let seg = RedrawSegment(f.from,t.till)            
+                        match prevPairSeg with 
+                        |Some prev -> 
+                            let m = seg.Merge(prev) 
+                            state.Editor.TextArea.TextView.Redraw(m)            
+                        |None ->
+                            state.Editor.TextArea.TextView.Redraw(seg)
+                        prevPairSeg <- Some seg  
         } |> Async.Start    
     
     let foundBracketsEv = new Event<unit>()
 
     let trans = state.TransformersAllBrackets
-    
+
+    let nextAction i = acts.[i % acts.Length]
+
     do
         state.Editor.TextArea.Caret.PositionChanged.Add (caretPositionChanged)
     
@@ -629,35 +410,23 @@ type BracketHighlighter (state:InteractionState) =
     member _.FoundBrackets = foundBracketsEv.Publish
     
     /// This gets called for every visible line on any view change
-    member _.UpdateAllBrackets(id) =
-        let code = state.CodeLines
-        let bss = ParseBrackets.all(code, id)
-        //if bss.IsSome then ParseBrackets.debugPrint(bss.Value,code,id)
-        
-        findAllBrackets(id)
-        //findHighlightPairAtCursor(state.Caret)
-        
-        if Brs.Count > 0 &&  Acts.Count = Offs.Count && state.IsLatest id then                            
-            for i = 0 to Offs.Count - 1 do 
-                if notNull Acts.[i] then // the first one is null ( to keep the coloring from xshd file)
-                    let off = Offs.[i] 
-                    let lineNo = LineNos.[i]
-                    //ISeffLog.log.PrintfnDebugMsg "Bracket %d to %d on Line %d " off (off+1) lineNo
-                    match Brs.[i] with
-                    | ClRound | OpRect | OpCurly | OpRound  | ClRect | ClCurly  -> trans.Insert(lineNo, {from=off; till=off+1; act= Acts.[i] })
-                    | OpAnRec | OpArr | ClAnRec | ClArr                         -> trans.Insert(lineNo, {from=off; till=off+2; act= Acts.[i] })
+    member _.UpdateAllBrackets(id) =        
+        allPairs <- None
+        match ParseBrackets.all(state.CodeLines, id) with
+        |None -> ()
+        |Some bss ->            
+            let pss =  ParseBrackets.findAllPairs(bss)
+            if state.IsLatest id then 
+                allPairs <-Some pss
+                for lnNo = 0 to pss.Length - 1 do 
+                    let ps = pss[lnNo]
+                    for i = 0 to ps.Length - 1 do   
+                        let p = ps[i]
+                        let act = match p.other with |None -> actErr |Some _ -> nextAction p.nestingDepth
+                        trans.Insert(lnNo, {from=p.from; till=p.till; act= act })
+            foundBracketsEv.Trigger()        
 
-            for i = 0 to Unclosed.Count - 1 do 
-                let u = Unclosed[i]
-                let off = u.off
-                match u.bracket with
-                | ClRound | OpRect | OpCurly | OpRound  | ClRect | ClCurly  -> trans.Insert(u.lnNo, {from=off; till=off+1; act=actErr}) 
-                | OpAnRec | OpArr | ClAnRec | ClArr                         -> trans.Insert(u.lnNo, {from=off; till=off+2; act=actErr}) 
-
-            updatePairTransformers()
-            foundBracketsEv.Trigger()
-        
-
-    member _.TransformerLineCount = trans.LineCount
+    //member _.TransformerLineCount = trans.LineCount
+    
+    
    
-

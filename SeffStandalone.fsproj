@@ -72,6 +72,7 @@
     <!--  for Application Icon in secondary PopOut windows-->
     <!-- <Resource Include="Media/FiraCode-Regular.ttf" /> -->
     <None Include="Src/SyntaxHighlightingFSharp.xshd" CopyToOutputDirectory="PreserveNewest" TargetPath="SyntaxHighlightingFSharp.xshd" />
+    
     <Compile Include="Src/Util.fs" />
     <Compile Include="Src/ParseFs.fs" />
     <Compile Include="Src/Timer.fs" />

@@ -4,6 +4,7 @@ open System
 open AvalonEditB
 open AvalonEditB.Rendering
 open Seff.Model
+open Seff.Util.General
 
 
 
@@ -132,18 +133,19 @@ type FastColorizer(transformers:LineTransformers<LinePartChange> [], ed:TextEdit
                 for i=0 to lpcs.Count-1 do  
                     if i < lpcs.Count then // becaus it might get reset while iterating ?
                         let lpc = lpcs[i]
-                        let shiftChecked = if lpc.from > shift.from then shift.amount else 0
-                        let from = lpc.from + shiftChecked
-                        let till = lpc.till + shiftChecked
-                        if from >= till then () // negative length
-                            //let tx = ed.Document.GetText(line)
-                            //let seg = ed.Document.GetText(till, from-till)
-                            //ISeffLog.log.PrintfnAppErrorMsg $"*LineChangePart1 {from} >= {till}; Docline {offSt}-{offEn} on line: {lineNo}; (shift:{shiftChecked})"           
-                            //ISeffLog.log.PrintfnAppErrorMsg $"   '{seg}' in {lineNo}:'{tx}'"           
-                        elif till > offEn then () // ISeffLog.log.PrintfnAppErrorMsg $"**LineChangePart2 {from}-{till}; Docline {offSt}-{offEn} on line: {lineNo}; (shift:{shiftChecked})" 
-                        elif from < offSt then () // ISeffLog.log.PrintfnAppErrorMsg $"***LineChangePart3 {from}-{till}; Docline {offSt}-{offEn} on line: {lineNo}; (shift:{shiftChecked})"           
-                        else
-                            //ISeffLog.log.PrintfnInfoMsg $"{from}-{till}; Docline {offSt}-{offEn} on line: {lineNo}; doc.Text.Length {ed.Document.TextLength} (shift:{shiftChecked})" 
-                            base.ChangeLinePart(from, till, lpc.act)
+                        if notNull lpc.act then // because for coloring brackets it may be null to keep xshd coloring
+                            let shiftChecked = if lpc.from > shift.from then shift.amount else 0
+                            let from = lpc.from + shiftChecked
+                            let till = lpc.till + shiftChecked
+                            if from >= till then () // negative length
+                                //let tx = ed.Document.GetText(line)
+                                //let seg = ed.Document.GetText(till, from-till)
+                                //ISeffLog.log.PrintfnAppErrorMsg $"*LineChangePart1 {from} >= {till}; Docline {offSt}-{offEn} on line: {lineNo}; (shift:{shiftChecked})"           
+                                //ISeffLog.log.PrintfnAppErrorMsg $"   '{seg}' in {lineNo}:'{tx}'"           
+                            elif till > offEn then () // ISeffLog.log.PrintfnAppErrorMsg $"**LineChangePart2 {from}-{till}; Docline {offSt}-{offEn} on line: {lineNo}; (shift:{shiftChecked})" 
+                            elif from < offSt then () // ISeffLog.log.PrintfnAppErrorMsg $"***LineChangePart3 {from}-{till}; Docline {offSt}-{offEn} on line: {lineNo}; (shift:{shiftChecked})"           
+                            else
+                                //ISeffLog.log.PrintfnInfoMsg $"{from}-{till}; Docline {offSt}-{offEn} on line: {lineNo}; doc.Text.Length {ed.Document.TextLength} (shift:{shiftChecked})" 
+                                base.ChangeLinePart(from, till, lpc.act)
                             
                     //else  ISeffLog.log.PrintfnAppErrorMsg $"Line Count {lpcs.Count} was reset while iterating index{i}"  // DELETE
