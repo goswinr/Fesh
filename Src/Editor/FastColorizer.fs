@@ -51,13 +51,17 @@ type LineTransformers<'T>() =
             lines.Add n
         else
             // add to existing line
-            let ln = lines.[lineNumber] 
-            if isNull ln then 
-                let n = ResizeArray(4)
-                lines.[lineNumber] <- n
-                n.Add x 
-            else
-                ln.Add x
+            try // TODO DELETE?
+                let ln = lines.[lineNumber] 
+                if isNull ln then 
+                    let n = ResizeArray(4)
+                    lines.[lineNumber] <- n
+                    n.Add x 
+                else
+                    ln.Add x
+            with
+                | :? IndexOutOfRangeException -> failwithf $"LineTransformers: Tried to get line index {lineNumber} of {lines.Count}" 
+                | e -> raise e
         
         /// remeber the first and last line that has content to then only redraw those 
         if lineNumber < firstLine then 
