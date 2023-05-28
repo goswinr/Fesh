@@ -38,10 +38,11 @@ type LineTransformers<'T>() =
 
     member _.LineCount = lines.Count
        
-    member _.Insert(lineNumber, x) =         
+    member _.Insert(lineNumber:int, x:'T) =         
         
         // fill up missing lines
         for _ = lines.Count to lineNumber-1 do
+            //if lines.Count > 3000 then eprintfn $"LineTransformers: {lines.Count} lines?"
             lines.Add null
 
         if lineNumber = lines.Count  then 
@@ -49,19 +50,25 @@ type LineTransformers<'T>() =
             let n = ResizeArray(4)
             n.Add x
             lines.Add n
+            //if lines.Count > 3000 then eprintfn $"LineTransformers: {lines.Count} lines?"
         else
             // add to existing line
-            try // TODO DELETE?
-                let ln = lines.[lineNumber] 
-                if isNull ln then 
-                    let n = ResizeArray(4)
-                    lines.[lineNumber] <- n
-                    n.Add x 
-                else
-                    ln.Add x
-            with
-                | :? IndexOutOfRangeException -> failwithf $"LineTransformers: Tried to get line index {lineNumber} of {lines.Count}" 
-                | e -> raise e
+
+            //try // TODO DELETE?
+            let ln = lines.[lineNumber] 
+            if isNull ln then 
+                let n = ResizeArray(4)
+                lines.[lineNumber] <- n
+                n.Add x 
+            else
+                //if ln.Count < 2000 then 
+                //    if ln.Count > 100 then 
+                //        let t = typeof<'T>.Name
+                //        ISeffLog.log.PrintfnAppErrorMsg $"{t}: {ln.Count} on line {lineNumber}"
+                ln.Add x
+            //with
+            //    | :? IndexOutOfRangeException -> failwithf $"LineTransformers: Tried to get line index {lineNumber} of {lines.Count}" 
+            //    | e -> raise e
         
         /// remeber the first and last line that has content to then only redraw those 
         if lineNumber < firstLine then 

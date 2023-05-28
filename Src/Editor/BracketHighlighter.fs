@@ -377,7 +377,14 @@ type BracketHighlighter (state:InteractionState) =
             if state.DocChangedId.Value = id then 
                
                match ParseBrackets.getOnePair(allPairs.Value, caretLine, caretOff) with 
-               |None -> ()
+               |None -> 
+                    transMatch.ClearAllLines() // or keep showing the bracket highlighting ??
+                    match prevPairSeg with 
+                    |Some prev -> 
+                        state.Editor.TextArea.TextView.Redraw(prev)            
+                        prevPairSeg <- None
+                    |None ->()
+
                |Some (f,t) -> 
                     transMatch.ClearAllLines()
                     transMatch.Insert(f.line, {from=f.from; till=f.till; act = actPair})

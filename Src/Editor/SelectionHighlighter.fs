@@ -100,7 +100,7 @@ type SelectionHighlighter (state:InteractionState) =
                         let mutable off = codeStr.IndexOf(word, l.offStart, l.len, StringComparison.Ordinal)                        
                         while off >= 0 do
                             offs.Add off // also add for current selection
-                            if off <> selectionStartOff then // skip the actual current selection
+                            if off <> selectionStartOff then // skip the actual current selection                                
                                 trans.Insert(lineNo, {from=off; till=off+wordLen; act=action})                                 
                             let start = off + word.Length // search from this for next occurrence in this line 
                             let lenReduction = start - l.offStart
@@ -159,7 +159,7 @@ type SelectionHighlighter (state:InteractionState) =
     member _.Word    = lastWord 
     member _.Offsets = lastSels  
     
-      member _.Mark(word,triggerNext) = mark(word,-1, triggerNext)
+      member _.Mark(word,triggerNext) = if isTextToHighlight word then mark(word,-1, triggerNext)
 
 /// Highlight-all-occurrences-of-selected-text in Log 
 type SelectionHighlighterLog (lg:TextEditor) = 
@@ -231,6 +231,7 @@ type SelectionHighlighterLog (lg:TextEditor) =
                             while off >= 0 do
                                 offs.Add off // also add for current selection
                                 if off <> selectionStartOff then // skip the actual current selection
+                                    //ISeffLog.log.PrintfnInfoMsg $"trans.Insert({lineNo}, from={off}; till={off+wordLen}; act=action word='{word}'"
                                     trans.Insert(lineNo, {from=off; till=off+wordLen; act=action})                                 
                                 let start = off + word.Length // search from this for next occurrence in this line 
                                 let lenReduction = start - l.offStart
@@ -294,4 +295,4 @@ type SelectionHighlighterLog (lg:TextEditor) =
     member _.Word    = lastWord 
     member _.Offsets = lastSels 
     
-    member _.Mark(word, triggerNext) = mark(word,-1, triggerNext)
+    member _.Mark(word, triggerNext) = if isTextToHighlight word then mark(word,-1, triggerNext) // isTextToHighlight iss neded , word might be empty string
