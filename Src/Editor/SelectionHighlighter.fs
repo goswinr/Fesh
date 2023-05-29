@@ -62,9 +62,7 @@ type SelectionHighlighter (state:InteractionState) =
                         offsSearchFromIdx <- i // to search from this index on in next fold
                     else
                         loop (i+1)
-
-            loop (offsSearchFromIdx)
-  
+            loop (offsSearchFromIdx)  
 
     let justClear() =
         lastWord <- ""
@@ -163,7 +161,7 @@ type SelectionHighlighter (state:InteractionState) =
     
       member _.Mark(word,triggerNext) = mark(word,-1, triggerNext)
 
-/// Highlight-all-occurrences-of-selected-text in Log
+/// Highlight-all-occurrences-of-selected-text in Log 
 type SelectionHighlighterLog (lg:TextEditor) = 
     
     let action  = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetBackgroundBrush(colorLog))
@@ -196,67 +194,77 @@ type SelectionHighlighterLog (lg:TextEditor) =
           
     let lines = CodeLinesSimple()
     let mutable linesNeedUpdate = true
+    let logChangeID = ref 0L
+
+    let markCallID = ref 0L // because while getting the text below, the selection might have chnaged already
 
     
-    let mark (word:string, selectionStartOff,triggerNext:bool) =
+    let mark (word:string, selectionStartOff, triggerNext:bool) =
+        let mutable id = logChangeID.Value
+        let callId = Threading.Interlocked.Increment markCallID
         let doc = lg.Document
         async{
-            if linesNeedUpdate then 
-                linesNeedUpdate <- false
-                let t = doc.CreateSnapshot().Text
-                lines.Update(t)            
+            while linesNeedUpdate && logChangeID.Value = id do                 
+                do! Async.Sleep 40 // neded for getting correct text in snapshot
+                if logChangeID.Value = id then
+                    let t = doc.CreateSnapshot().Text
+                    lines.Update(t)
+                    if logChangeID.Value = id then // this forces waiting till there are no more updates
+                        linesNeedUpdate <- false 
+                    
             
+            if callId = markCallID.Value && logChangeID.Value = id  then // because while getting the text above, the selection might have chnaged already
+                let codeStr  = lines.FullCode
+                let lastLineNo = lines.LastLineIdx
+                let wordLen = word.Length
+                let offs = ResizeArray<int>()
             
-            let codeStr  = lines.FullCode
-            let lastLineNo = lines.LastLineIdx
-            let wordLen = word.Length
-            let offs = ResizeArray<int>()
-            
-            /// returns false if aborted because of newer doc change
-            let rec loop lineNo = 
-                if lineNo > lastLineNo then 
-                    true // return true if loop completed
-                else
-                    match lines.GetLine(lineNo, id) with 
-                    |ValueNone -> false // could not get code line, newer change happened already 
-                    |ValueSome l -> 
-                        let mutable off = codeStr.IndexOf(word, l.offStart, l.len, StringComparison.Ordinal)                        
-                        while off >= 0 do
-                            offs.Add off // also add for current selection
-                            if off <> selectionStartOff then // skip the actual current selection
-                                trans.Insert(lineNo, {from=off; till=off+wordLen; act=action})                                 
-                            let start = off + word.Length // search from this for next occurrence in this line 
-                            let lenReduction = start - l.offStart
-                            let remainingLineLength = l.len - lenReduction
-                            off <- codeStr.IndexOf(word, start, remainingLineLength , StringComparison.Ordinal)
+                /// returns false if aborted because of newer doc change
+                let rec loop lineNo = 
+                    if lineNo > lastLineNo then 
+                        true // return true if loop completed
+                    else
+                        match lines.GetLine(lineNo, id) with 
+                        |ValueNone -> false // could not get code line, newer change happened already 
+                        |ValueSome l -> 
+                            let mutable off = codeStr.IndexOf(word, l.offStart, l.len, StringComparison.Ordinal)                        
+                            while off >= 0 do
+                                offs.Add off // also add for current selection
+                                if off <> selectionStartOff then // skip the actual current selection
+                                    trans.Insert(lineNo, {from=off; till=off+wordLen; act=action})                                 
+                                let start = off + word.Length // search from this for next occurrence in this line 
+                                let lenReduction = start - l.offStart
+                                let remainingLineLength = l.len - lenReduction
+                                off <- codeStr.IndexOf(word, start, remainingLineLength , StringComparison.Ordinal)
                             
-                        loop (lineNo + 1)
-            
-            let prev = trans.Range
-            trans.ClearAllLines() // does nothing if already all cleared
-            lastSels <- offs 
-            lastWord <- word
-            if loop 1 then // tests if ther is a newer doc change                 
-                match  prev, trans.Range with 
-                | None       , None  ->    // nothing before, nothing now, but maybe just the current selection that doesnt need highlighting, but still show in status bar
-                    if offs.Count = 1 then 
-                        do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context                    
-                        foundSelectionLogEv.Trigger(triggerNext) 
+                            loop (lineNo + 1)
                 
-                | Some (f,l) , None          // some before, nothing now
-                | None       , Some (f,l) -> // nothing before, some now
-                    do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context
-                    //markFoldingsSorted(offs)
-                    lg.TextArea.TextView.Redraw(f.from, l.till, priority)
-                    foundSelectionLogEv.Trigger(triggerNext)                   
+                if callId = markCallID.Value then 
+                    let prev = trans.Range
+                    trans.ClearAllLines() // does nothing if already all cleared
+                    lastSels <- offs 
+                    lastWord <- word
+                    if loop 1 then // tests if there is a newer doc change                 
+                        match  prev, trans.Range with 
+                        | None       , None  ->    // nothing before, nothing now, but maybe just the current selection that doesn't need highlighting, but still needs to show in status bar
+                            if offs.Count = 1 then 
+                                do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context                    
+                                foundSelectionLogEv.Trigger(triggerNext) 
                 
-                | Some (pf,pl),Some (f,l) ->   // both prev and current version have a selection                 
-                    do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context 
-                    //markFoldingsSorted(offs)
-                    lg.TextArea.TextView.Redraw(min pf.from f.from, max pl.till l.till, priority)
-                    foundSelectionLogEv.Trigger(triggerNext)
-            else
-                () // dont redraw, there is already a new docchange happening that will be drawn
+                        | Some (f,l) , None          // some before, nothing now
+                        | None       , Some (f,l) -> // nothing before, some now
+                            do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context
+                            //markFoldingsSorted(offs)
+                            lg.TextArea.TextView.Redraw(f.from, l.till, priority)
+                            foundSelectionLogEv.Trigger(triggerNext)                   
+                
+                        | Some (pf,pl),Some (f,l) ->   // both prev and current version have a selection                 
+                            do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context 
+                            //markFoldingsSorted(offs)
+                            lg.TextArea.TextView.Redraw(min pf.from f.from, max pl.till l.till, priority)
+                            foundSelectionLogEv.Trigger(triggerNext)
+                    else
+                        () // dont redraw, there is already a new docchange happening that will be drawn
            
 
         }|> Async.Start
@@ -277,10 +285,13 @@ type SelectionHighlighterLog (lg:TextEditor) =
     
     do         
         lg.TextArea.SelectionChanged.Add ( fun _ -> update() ) 
-        lg.DocumentChanged.Add (fun _ -> linesNeedUpdate <- true)
+        //lg.Document.Changing.Add (fun _ ->Threading.Interlocked.Increment logChangeID |> ignore )
+        lg.Document.Changed.Add (fun _ -> 
+            Threading.Interlocked.Increment logChangeID |> ignore
+            linesNeedUpdate <- true)
         lg.TextArea.TextView.LineTransformers.Add colorizer
     
     member _.Word    = lastWord 
     member _.Offsets = lastSels 
     
-    member _.Mark(word,triggerNext) = mark(word,-1, triggerNext)
+    member _.Mark(word, triggerNext) = mark(word,-1, triggerNext)

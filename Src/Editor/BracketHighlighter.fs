@@ -334,7 +334,7 @@ open ParseBrackets
 
 type BracketHighlighter (state:InteractionState) =     
 
-    let colPair  = Brushes.Gray |> brighter 70  |> freeze  
+    let colPair  = Brushes.Gray |> brighter 90  |> freeze  
     let colErr   = Brushes.Red                  |> freeze
     //let colErrBg = Brushes.Pink |> brighter 25  |> freeze
     let colErrBg = SolidColorBrush(Color.FromArgb(15uy,255uy,0uy,0uy))|> freeze // a=0 : fully transparent A=255 opaque

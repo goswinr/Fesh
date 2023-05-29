@@ -126,8 +126,10 @@ type Fsi private (config:Config) =
                 // Start the Dispatcher Processing
                 System.Windows.Threading.Dispatcher.Run()
                 ))
-        thread.SetApartmentState(ApartmentState.STA)
-        thread.IsBackground <- true
+        #if NETFRAMEWORK
+        thread.SetApartmentState(ApartmentState.STA) // works only on net48?
+        #endif 
+        thread.IsBackground <- true        
         thread.Start()        
         asyncThread <- Some thread
     

@@ -1,7 +1,6 @@
 ﻿namespace Seff
 
 open System
-open System.IO
 open System.Windows
 open Seff.Config
 
@@ -30,7 +29,7 @@ module App =
     [< EntryPoint >]
     [< STAThread >]
     let runEditorStandalone (args: string []) : int = 
-        let app = Application() // do first so that pack Uris work
+        let app  = Application() // do first so that pack Uris work
         let seff = Initialize.everything (None, args)
         current <- seff
         app.Run(seff.Window)
