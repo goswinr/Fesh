@@ -173,7 +173,7 @@ type Editor private (code:string, config:Config, initalFilePath:FilePath)  =
 
         //avaEdit.Document.Changed.Add(fun a -> DocChangeEvents.logPerformance( a.InsertedText.Text)) // AutoHotKey SendInput of ßabcdefghijklmnopqrstuvwxyz£
         
-        avaEdit.Document.Changing.Add(DocChangeEvents.changing                ed.State.FastColorizer)
+        avaEdit.Document.Changing.Add(DocChangeEvents.changing ed.State)
         avaEdit.Document.Changed.Add (DocChangeEvents.changed  ed ed.Services ed.State)
         avaEdit.Document.Changed.Add(fun a -> ed.Services.evalTracker.SetLastChangeAt a.Offset)
                  

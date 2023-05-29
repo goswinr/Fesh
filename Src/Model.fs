@@ -107,10 +107,12 @@ type FileCheckState =
 type FilePath = 
     | SetTo   of FileInfo
     | Deleted of FileInfo
-    | NotSet  of string
+    | NotSet  of string // the dummy name to diplay in the tab header
 
     member this.DoesNotExistsAsFile = match this with  SetTo _ ->  false | Deleted _ |NotSet _ -> true
     member this.ExistsAsFile        = match this with  SetTo _ ->  true  | Deleted _ |NotSet _ -> false
+    member this.FileName            = match this with  SetTo f | Deleted f ->  f.Name |NotSet f -> f
+
   
 
 // so that the Editor can be used before declared
@@ -155,6 +157,7 @@ type CodeToEval = {
     editor:IEditor
     amount:FsiCodeAmount
     logger:option<TextWriter>
+    scriptName:string // the file name for reporting in errors
     }
 
 //type DotOrNot = Dot | NotDot // used in code completion  // DELETE

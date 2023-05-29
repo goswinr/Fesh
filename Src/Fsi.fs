@@ -274,6 +274,10 @@ type Fsi private (config:Config) =
                 | _ -> // any other runtimne exception
                     runtimeErrorEv.Trigger(exn)  // in seff.fs this is used to ensure the main window is visible, because it might be hidden manually, or not visible from the start ( e.g. current script is evaluated in Seff.Rhino)                             
                     log.PrintfnAppErrorMsg "Runtime Error:"
+                    match exn with 
+                    | :? Reflection.ReflectionTypeLoadException as ex -> for le in ex.LoaderExceptions do log.PrintfnFsiErrorMsg $"{le}"
+                    | _ -> ()
+
                     // find first error line in an fsx file    
                     let et = sprintf "%A" exn
                     let mutable isFirstFsx = true
@@ -299,13 +303,13 @@ type Fsi private (config:Config) =
         // Cancellation happens via Thread Abort 
         // TODO actually using the token would work too but only if session.Run() has been called before,but that fails when hosted. see https://github.com/dotnet/fsharp/issues/14486
         let evaluatedTo, errs = 
-            try sess.EvalInteractionNonThrowing(code) // cancellation token here fails to cancel in sync, might still throw OperationCanceledException if async
+            try sess.EvalInteractionNonThrowing(code, codeToEv.scriptName) // cancellation token here fails to cancel in sync, might still throw OperationCanceledException if async
             with e -> Choice2Of2 e , [| |]            
         handeleEvaluationResult(evaluatedTo, errs, codeToEv)
         #else
         let evaluatedTo, errs = 
-            //try sess.EvalInteractionNonThrowing(code, net7cancellationToken.Token) 
-            try sess.EvalInteractionNonThrowing(code)
+            //try sess.EvalInteractionNonThrowing(code, codeToEv.scriptName, net7cancellationToken.Token) 
+            try sess.EvalInteractionNonThrowing(code, codeToEv.scriptName)
             with e -> Choice2Of2 e , [| |]            
         handeleEvaluationResult(evaluatedTo, errs, codeToEv)                   
         //don't do System.Runtime.ControlledExecution.Run(action, net7cancellationToken.Token) // this is actually already done by FSI 

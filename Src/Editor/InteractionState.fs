@@ -39,6 +39,8 @@ module CodeLineTools =
 
         let mutable fullCode = ""
 
+        let mutable correspondingId = 0L
+
         let update(code:string) =
             isDone <- false
             fullCode <- code
@@ -72,7 +74,13 @@ module CodeLineTools =
         member _.IsDone = isDone
 
         member _.FullCode = fullCode
+
+        /// checks if this codelines correspond to a given ID
+        member _.IsFromID(id) = id = correspondingId
         
+        /// checks if this codelines does not correspond to a given ID
+        member _.IsNotFromId(id) = id <> correspondingId
+
         /// ThreadSafe and in Sync: Only start sparsing when Done and also checks 
         /// if docChangedIdHolder.Value = id before and after
         /// returns True 
@@ -88,6 +96,7 @@ module CodeLineTools =
                         lns.Clear()
                         update code
                         if docChangedIdHolder.Value = chnageId then 
+                            correspondingId <- chnageId
                             true
                         else 
                             false

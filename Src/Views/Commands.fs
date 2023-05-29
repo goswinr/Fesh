@@ -24,17 +24,18 @@ type Commands (grid:TabsAndLog, statusBar:SeffStatusBar)  =
     let config = grid.Config
     let fsi    = tabs.Fsi
 
-    let curr() = tabs.Current.Editor
+    let curr()  = tabs.Current.Editor
+    let fName() = tabs.Current.Editor.FilePath.FileName
 
-    let evalAllText()          =                                             fsi.Evaluate {editor=curr(); amount=All; logger=None}
-    let evalAllTextSave()      =               tabs.SaveAsync(tabs.Current); fsi.Evaluate {editor=curr(); amount=All; logger=None}
-    let evalAllTextSaveClear() =  log.Clear(); tabs.SaveAsync(tabs.Current); fsi.Evaluate {editor=curr(); amount=All; logger=None}
-    let evalContinue()         =  (if curr().FilePath.ExistsAsFile then tabs.SaveAsync(tabs.Current)); fsi.Evaluate {editor=curr(); amount=ContinueFromChanges; logger=None}
+    let evalAllText()          =                                             fsi.Evaluate {editor=curr(); amount=All; logger=None; scriptName=fName()}
+    let evalAllTextSave()      =               tabs.SaveAsync(tabs.Current); fsi.Evaluate {editor=curr(); amount=All; logger=None; scriptName=fName()}
+    let evalAllTextSaveClear() =  log.Clear(); tabs.SaveAsync(tabs.Current); fsi.Evaluate {editor=curr(); amount=All; logger=None; scriptName=fName()}
+    let evalContinue()         =  (if curr().FilePath.ExistsAsFile then tabs.SaveAsync(tabs.Current)); fsi.Evaluate {editor=curr(); amount=ContinueFromChanges; logger=None; scriptName=fName()}
     let markEvaluated()        =  curr().Services.evalTracker.MarkEvaluatedTillOffset(Selection.currentLineEnd tabs.CurrAvaEdit + 2 )
 
-    let evalSelectedLines()    =  fsi.Evaluate {editor=curr(); amount = FsiSegment <|SelectionForEval.expandSelectionToFullLines(tabs.CurrAvaEdit) ; logger=None}
-    let evalSelectedText()     =  fsi.Evaluate {editor=curr(); amount = FsiSegment <|SelectionForEval.current (tabs.CurrAvaEdit)                   ; logger=None}   // null or empty check is done in fsi.Evaluate
-    let evalTillCursor()       =  fsi.Evaluate {editor=curr(); amount = FsiSegment <|SelectionForEval.linesTillCursor(tabs.CurrAvaEdit)            ; logger=None}
+    let evalSelectedLines()    =  fsi.Evaluate {editor=curr(); amount = FsiSegment <|SelectionForEval.expandSelectionToFullLines(tabs.CurrAvaEdit) ; logger=None; scriptName=fName()}
+    let evalSelectedText()     =  fsi.Evaluate {editor=curr(); amount = FsiSegment <|SelectionForEval.current (tabs.CurrAvaEdit)                   ; logger=None; scriptName=fName()}   // null or empty check is done in fsi.Evaluate
+    let evalTillCursor()       =  fsi.Evaluate {editor=curr(); amount = FsiSegment <|SelectionForEval.linesTillCursor(tabs.CurrAvaEdit)            ; logger=None; scriptName=fName()}
 
     let goToError()            = match ErrorUtil.getNextSegment(curr()) with Some s -> curr().Folds.GoToOffsetAndUnfold(s.StartOffset, s.Length, false)| None -> ()
     let reset()                = log.Clear(); Checker.Reset(); Fsi.GetOrCreate(config).Initialize() 

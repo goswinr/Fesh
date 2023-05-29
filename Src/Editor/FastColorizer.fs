@@ -39,10 +39,11 @@ type LineTransformers<'T>() =
     member _.LineCount = lines.Count
        
     member _.Insert(lineNumber, x) =         
-        // fill up missing lines
-        while lineNumber > lines.Count   do 
-            lines.Add null
         
+        // fill up missing lines
+        for _ = lines.Count to lineNumber-1 do
+            lines.Add null
+
         if lineNumber = lines.Count  then 
             // add a new line        
             let n = ResizeArray(4)
@@ -145,7 +146,7 @@ type FastColorizer(transformers:LineTransformers<LinePartChange> [], ed:TextEdit
                             elif till > offEn then () // ISeffLog.log.PrintfnAppErrorMsg $"**LineChangePart2 {from}-{till}; Docline {offSt}-{offEn} on line: {lineNo}; (shift:{shiftChecked})" 
                             elif from < offSt then () // ISeffLog.log.PrintfnAppErrorMsg $"***LineChangePart3 {from}-{till}; Docline {offSt}-{offEn} on line: {lineNo}; (shift:{shiftChecked})"           
                             else
-                                //ISeffLog.log.PrintfnInfoMsg $"{from}-{till}; Docline {offSt}-{offEn} on line: {lineNo}; doc.Text.Length {ed.Document.TextLength} (shift:{shiftChecked})" 
+                                //ISeffLog.log.PrintfnDebugMsg $"{from}-{till}; Docline {offSt}-{offEn} on line: {lineNo}; doc.Text.Length {ed.Document.TextLength} (shift:{shiftChecked})" 
                                 base.ChangeLinePart(from, till, lpc.act)
                             
                     //else  ISeffLog.log.PrintfnAppErrorMsg $"Line Count {lpcs.Count} was reset while iterating index{i}"  // DELETE

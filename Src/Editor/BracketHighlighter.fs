@@ -72,7 +72,7 @@ module ParseBrackets =
         from:int 
         }
     
-    type MuliLineState = RegCode | MulitComment | MulitString
+    type MuliLineState = RegCode | MulitComment | SimpleString| RawAtString |RawTripleString
         
     let all(lns:CodeLineTools.CodeLines, id) : ResizeArray<ResizeArray<Bracket>> option=
         let code= lns.FullCode
@@ -81,58 +81,69 @@ module ParseBrackets =
                
         //let mutable last = ClRound
         
-        let readLine(brs:ResizeArray<Bracket>, prevState: MuliLineState, from, till) : MuliLineState =             
+        let readLine(brs:ResizeArray<Bracket>, prevState: MuliLineState, firstIdx, lastIdx) : MuliLineState =             
             
-            let rec skipString chr i :int  =
-                if i < till then 
+            /// for simple strings
+            let rec skipString chr i :int  =                
+                if i=lastIdx then
+                    match chr  with 
+                    | '"'  -> i+1                   
+                    |  _   -> Int32.MaxValue // string flows over to the next line 
+                else 
                     let next = code[i+1]
                     match chr ,next with 
                     | '"' ,  _  -> i+1 // first char after string
                     | '\\', '"' -> skipString next (i+1) // jump over escaped quote \"
                     | _         -> skipString next (i+1)
-                else 
-                    till+1
 
-            // for strings starting with @
-            let rec skipAtString chr i :int =
-                if i < till then 
-                    let next = code[i+1]
-                    match chr ,next with 
-                    | '"' ,  _  -> i + 1 // first char after  @string                    
-                    | _         -> skipAtString next (i+1) 
-                else 
-                    till+1
+            /// for strings starting with @"
+            let rec skipRawAtString chr i :int =
+                if i=lastIdx then
+                    match chr  with 
+                    | '"'  -> i+1 //                   
+                    |  _   -> Int32.MaxValue // string flows over to the next line 
+                else                     
+                    match chr with 
+                    | '"'  -> i + 1 // first char after  @string                    
+                    | _    -> skipRawAtString code[i+1] (i+1) 
 
-            let rec multiLineString chr next i :int =
-                if i+1 < till then
+            /// for strings starting with """
+            let rec skipRawTrippleString chr next i :int =
+                if i+2 <= lastIdx then
                     let nnext = code[i+2]
                     match chr , next, nnext with 
                     | '"' ,'"' ,'"'   -> i+3 // first char after  multiline string                    
-                    | _               -> multiLineString next nnext (i+1) 
+                    | _               -> skipRawTrippleString next nnext (i+1) 
                 else 
                     Int32.MaxValue
 
-            let rec multiLineComment chr  i :int =
-                if i+1 < till then                    
+            let rec skipMultiLineComment chr  i :int =
+                if i+1 < lastIdx then                    
                     let next = code[i+1]
                     match chr , next with 
                     | '*' ,')'    -> i+2 // first char after multiline comment                    
-                    | _           -> multiLineComment next (i+1) 
+                    | _           -> skipMultiLineComment next (i+1) 
                 else 
                     Int32.MaxValue
+            
+            
             
             let rec charLoop chr i : MuliLineState =                
 
                 let inline pushExit      br = brs.Add {kind=br; from = i} ; RegCode
                 let inline pushOne  next br = brs.Add {kind=br; from = i} ; charLoop next      (i+1)
                 let inline pushTwo       br = brs.Add {kind=br; from = i} ; charLoop code[i+2] (i+2)
-                let inline loopOn        j  = if j <= till then charLoop code[j] (j) else RegCode
+                let flowOnOrOver (state:MuliLineState) ii = 
+                    match ii with 
+                    | Int32.MaxValue -> state
+                    | jj             -> if jj <= lastIdx then charLoop code[jj] jj else  RegCode
                 
-                let spaceLeft = till-i
-                if spaceLeft < 0 then // exit
+                
+                if i > lastIdx then 
+                    //eprintfn $"i{i} > lastIdx{lastIdx} is unexpected: prevState{prevState}"
                     RegCode
-                elif spaceLeft = 0 then // the last char on this line 
-                    match chr with 
+                elif i = lastIdx then // i is the last char on this line 
+                    match chr with                 
                     | '[' -> pushExit OpRect
                     | '(' -> pushExit OpRound
                     | '{' -> pushExit OpCurly
@@ -144,11 +155,8 @@ module ParseBrackets =
                 else 
                     let next = code[i+1] 
                     match chr,next with 
-                    | '/','/' -> RegCode // a comment starts,  exit loop
-                    
-                    | '(','*' -> match multiLineComment next (i+1) with // a muliline comment starts,
-                                 | Int32.MaxValue -> MulitComment
-                                 | ii             -> loopOn  ii                    
+                    | '/','/' -> RegCode // a comment starts,  exit loop                    
+                    | '(','*' -> skipMultiLineComment next (i+1) |> flowOnOrOver MulitComment                                                  
                     
                     | '{','|' -> pushTwo OpAnRec
                     | '[','|' -> pushTwo OpArr
@@ -160,50 +168,36 @@ module ParseBrackets =
                     | ']', _  -> pushOne next ClRect
                     | ')', _  -> pushOne next ClRound
                     | '}', _  -> pushOne next ClCurly
-                    | '"','"' -> if spaceLeft >= 2 && code[i+2] = '"' then  // a muliline string starts,
-                                    match multiLineString next code[i+2] (i+2) with 
-                                    | Int32.MaxValue -> MulitString
-                                    | ii             -> loopOn  ii
+                    | '"','"' -> if i + 2 <= lastIdx then 
+                                    if code[i+2] = '"' then // a muliline string starts,
+                                        skipRawTrippleString next code[i+2] (i+2)  |> flowOnOrOver RawTripleString
+                                    else 
+                                        charLoop next (i+2) // just an empty string, line continue
                                  else  
-                                    loopOn (i+3) // just an empty string
+                                    RegCode // just an empty string, line ends
 
-                    | '@','"' -> if spaceLeft = 2 then RegCode // exit, only one char left, must be a closing quote for correct syntax
-                                 else skipAtString code[i+2] (i+2) |> loopOn //a @string starts,  
-
-                    | '"', _  -> skipString   next (i+1) |> loopOn// a string starts, 
+                    | '@','"' -> skipRawAtString next (i+1)  |> flowOnOrOver RawAtString  //a @string starts, 
+                    | '"', _  -> skipString      next (i+1)  |> flowOnOrOver SimpleString //a  regular string starts,                                      
 
                     | _       -> charLoop next (i+1)
 
-
-            match till-from with 
-            | 0 -> prevState // empty line 
-            | 1 -> // a line one characters
+            if firstIdx > lastIdx then // empty line 
+                prevState
+            else                
+                let flowOnOrOver (state:MuliLineState) ii = 
+                    match ii with 
+                    | Int32.MaxValue -> state
+                    | jj             -> if jj <= lastIdx then charLoop code[jj] jj else  RegCode
+                
                 match prevState with 
-                | RegCode      -> charLoop code[from] from
-                | MulitComment -> MulitComment
-                | MulitString  -> MulitString
-            | 2 -> // a line with two characters
-                match prevState with 
-                | RegCode      -> charLoop code[from] from
-                | MulitComment ->                     
-                    if code[from] = '*' && code[from+1]=')' then RegCode // end of multicomment
-                    else MulitComment//  multicomment continues
-                    
-                | MulitString  -> MulitString // would need 3 chars to stop multiline string
-            
-            | _ -> // a line with three or more characters
-                match prevState with 
-                | RegCode      -> charLoop code[from] from
-                | MulitComment -> 
-                    match multiLineComment code[from] from with // a muliline comment starts,
-                    | Int32.MaxValue -> MulitComment
-                    | ii             -> charLoop code[ii] ii
-                    
-                | MulitString  -> 
-                    match multiLineString code[from] code[from+1] from with 
-                    | Int32.MaxValue -> MulitString
-                    | ii             -> charLoop code[ii] ii
-
+                | RegCode          -> charLoop              code[firstIdx] firstIdx
+                | SimpleString     -> skipString            code[firstIdx] firstIdx |> flowOnOrOver SimpleString 
+                | RawAtString      -> skipRawAtString       code[firstIdx] firstIdx |> flowOnOrOver RawAtString
+                | MulitComment     -> skipMultiLineComment  code[firstIdx] firstIdx |> flowOnOrOver MulitComment
+                | RawTripleString  -> 
+                    if firstIdx < lastIdx then skipRawTrippleString code[firstIdx] code[firstIdx+1] firstIdx |> flowOnOrOver RawTripleString
+                    else RawTripleString           
+           
         
         /// retuns true if all lines are looped
         let rec lineLoop (lineState:MuliLineState) lnNo =
@@ -214,7 +208,7 @@ module ParseBrackets =
                 |ValueNone -> None // loop aborted
                 |ValueSome l -> 
                     let brs = new ResizeArray<Bracket>()
-                    let newLineState = readLine (brs, lineState ,l.offStart+l.indent, l.offStart+l.len)                    
+                    let newLineState = readLine (brs, lineState ,l.offStart+l.indent, l.offStart + l.len-1)                    
                     brss.Add brs     
                     lineLoop newLineState (lnNo + 1)
                     
@@ -283,17 +277,21 @@ module ParseBrackets =
         pss
 
     let getOnePair(pss: BracketPair[][], line:int, offset:int) : (BracketPair*BracketPair) option =
-        pss[line]
-        |> Array.tryFindBack ( fun p -> p.from <= offset && offset <= p.till+1  ) // + 1 to also catch caret right after bracket
-        |> Option.bind ( fun t -> 
-                match t.other with 
-                |Some o -> 
-                    // first sort them:
-                    let a,b = if o.from < t.from then o,t else t,o                    
-                    if b.from-a.till <= 1 then None // dont return a pair if only on char between them
-                    else                       Some(a,b)
-                |None  ->                      None
-                )
+        if line >= pss.Length then // this can happen when writing on last line and the codelienes are not yet updated
+            //eprintfn $"tried to get line {line} of {pss.Length}items"
+            None
+        else
+            pss[line]
+            |> Array.tryFindBack ( fun p -> p.from <= offset && offset <= p.till+1  ) // + 1 to also catch caret right after bracket
+            |> Option.bind ( fun t -> 
+                    match t.other with 
+                    |Some o -> 
+                        // first sort them:
+                        let a,b = if o.from < t.from then o,t else t,o                    
+                        if b.from-a.till <= 1 then None // dont return a pair if only on char between them
+                        else                       Some(a,b)
+                    |None  ->                      None
+                    )
     
       
     let debugPrint(bss:ResizeArray<ResizeArray<Bracket>>, lns:CodeLineTools.CodeLines, id) :unit =
@@ -345,9 +343,9 @@ type BracketHighlighter (state:InteractionState) =
 
     let colors = [|
         null // the first one is null ( to keep the coloring from xshd file)        
-        Brushes.Yellow     |> darker 30    |> freeze
         Brushes.Purple     |> brighter 40  |> freeze
-        Brushes.Green      |> brighter 30    |> freeze
+        Brushes.Orange     |> darker 30    |> freeze
+        Brushes.Green      |> brighter 30  |> freeze
         Brushes.Cyan       |> darker 40    |> freeze
         |]
 
@@ -365,15 +363,16 @@ type BracketHighlighter (state:InteractionState) =
     let mutable allPairs : option<BracketPair[][]> = None
         
     let caretPositionChanged(e:EventArgs) = 
-        
+        //transMatch.ClearAllLines()
+
         let id = state.DocChangedId.Value
         let caret = state.Editor.TextArea.Caret
         let caretOff = caret.Offset
         let caretLine= caret.Line
-        //state.Caret <- caretOff  // DELETE        
+              
         async{ 
             do! Async.Sleep 50 // wait for update the offset list Offs lists
-            while allPairs.IsNone do
+            while allPairs.IsNone || state.CodeLines.IsNotFromId id do
                 do! Async.Sleep 50 // wait for update the offset list Offs lists
             if state.DocChangedId.Value = id then 
                
@@ -384,9 +383,9 @@ type BracketHighlighter (state:InteractionState) =
                     transMatch.Insert(f.line, {from=f.from; till=f.till; act = actPair})
                     transMatch.Insert(t.line, {from=t.from; till=t.till; act = actPair})
                     if state.DocChangedId.Value = id then 
-                        do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context
-                        
                         //redrawSegment:
+                        do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context
+                        //ISeffLog.log.PrintfnDebugMsg $"redraw for caretPositionChanged , id:{id}"
                         let seg = RedrawSegment(f.from,t.till)            
                         match prevPairSeg with 
                         |Some prev -> 
@@ -405,6 +404,7 @@ type BracketHighlighter (state:InteractionState) =
 
     do
         state.Editor.TextArea.Caret.PositionChanged.Add (caretPositionChanged)
+        //state.Editor.Document.Changing.Add(fun a -> transMatch.ClearAllLines())
     
     [<CLIEvent>] 
     member _.FoundBrackets = foundBracketsEv.Publish
@@ -426,7 +426,7 @@ type BracketHighlighter (state:InteractionState) =
                         trans.Insert(lnNo, {from=p.from; till=p.till; act= act })
             foundBracketsEv.Trigger()        
 
-    //member _.TransformerLineCount = trans.LineCount
+   
     
     
    

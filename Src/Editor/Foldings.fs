@@ -50,7 +50,7 @@ type Foldings(manager:Folding.FoldingManager, state:InteractionState, getFilePat
 
     let badIndentBrush =        
         //Color.FromArgb(30uy,255uy,140uy,0uy) // a very light transparent Orange, transparent to show column rulers behind
-        Color.FromArgb(50uy,255uy,255uy,0uy) // a very light transparent Yellow, transparent to show column rulers behind
+        Color.FromArgb(40uy,255uy,255uy,0uy) // a very light transparent Yellow, transparent to show column rulers behind
         |> SolidColorBrush
         |> freeze
     

@@ -149,9 +149,9 @@ module DocChangeMark =
             async{
                 if state.CodeLines.Update(code,id) then 
                     state.TransformersAllBrackets.ClearAllLines()// do as late as possible , offset shifting should do its work   
-                    serv.folds.UpdateFoldsAndBadIndents(id)
+                    serv.brackets.UpdateAllBrackets(id)
                     if state.IsLatest id then 
-                        serv.brackets.UpdateAllBrackets( id)
+                        serv.folds.UpdateFoldsAndBadIndents(id)
              } |> Async.Start 
         
             /// second: Errors and Semantic Highlighting on check result .  
@@ -435,14 +435,18 @@ module DocChangeCompletion =
 module DocChangeEvents = 
     open DocChangeUtil   
 
-    let changing (fastColor:FastColorizer) (a:DocumentChangeEventArgs) =             
+    let changing  (state:InteractionState) (a:DocumentChangeEventArgs) =             
+        match state.DocChangedConsequence with 
+        | WaitForCompletions -> ()
+        | React -> state.Increment() |> ignore // incremenin this handler brfoper the chnage actually happens, but  only increment when a reaction is required
+        
         match DocChangeUtil.isSingleCharChange a with 
         |ValueSome s -> 
-            fastColor.AdjustShift {from=a.Offset; amount=s}
+            state.FastColorizer.AdjustShift {from=a.Offset; amount=s}
         |ValueNone   -> 
             //a multi character change, just wait for type checker.., 
             //because it might contain a line rturen and then just doing a shift would not work anymore
-            fastColor.ResetShift() 
+            state.FastColorizer.ResetShift() 
     
 
     let changed (iEd:IEditor) (serv:EditorServices) (state:InteractionState) (eventArgs:DocumentChangeEventArgs) : unit  =       
@@ -454,7 +458,7 @@ module DocChangeEvents =
             // the typed characters wil become a prefilter for the  in completion window
             ()
         | React -> 
-            let id = state.Increment() // only increment when a reaction is required
+            let id = state.DocChangedId.Value // the  increment was done befoer this event in Doc.Changing (not Chanaged) 
             //state.Caret <- state.Editor.CaretOffset  // DELETE
             match isSingleCharChange eventArgs with 
             |ValueSome _ -> DocChangeCompletion.singleCharChange (iEd, serv, state, id)
