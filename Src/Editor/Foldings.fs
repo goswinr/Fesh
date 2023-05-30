@@ -25,28 +25,13 @@ type NonStandardIndent = { badIndent: int; lineStartOffset:int; lineNo: int }
 
 
 
-(*
-type NonStandardIndentColorizer (badInds:ResizeArray<NonStandardIndent>) = 
-    inherit Rendering.DocumentColorizingTransformer() 
-
-    let brush =        
-        //Color.FromArgb(30uy,255uy,140uy,0uy) // a very light transparent Orange, transparent to show column rulers behind
-        Color.FromArgb(50uy,255uy,255uy,0uy) // a very light transparent Yellow, transparent to show column rulers behind
-        |> SolidColorBrush
-        |> freeze
-
-    /// This gets called for every visible line on any view change
-    override this.ColorizeLine(line:Document.DocumentLine) = 
-        for i in badInds do 
-            if i.lineStartOffset = line.Offset then 
-                let eOff = i.lineStartOffset + i.badIndent
-                if eOff < line.EndOffset then // check needed ! doc my have changed
-                    base.ChangeLinePart( i.lineStartOffset, eOff, fun el -> el.TextRunProperties.SetBackgroundBrush(brush))
-*)  // DELETE
-
-
 type Foldings(manager:Folding.FoldingManager, state:InteractionState, getFilePath:unit->FilePath) = 
-    
+    let foldStatus = state.Config.FoldingStatus
+
+    /// for brackets and bad indentation
+    let transformers = state.TransformersAllBrackets
+
+    let defaultIndenting = state.Editor.Options.IndentationSize
 
     let badIndentBrush =        
         //Color.FromArgb(30uy,255uy,140uy,0uy) // a very light transparent Orange, transparent to show column rulers behind
@@ -56,119 +41,86 @@ type Foldings(manager:Folding.FoldingManager, state:InteractionState, getFilePat
     
     let badIndentAction  = Action<VisualLineElement>(fun el -> el.TextRunProperties.SetBackgroundBrush(badIndentBrush))       
     
-    let maxDepth = 1 // maximum amount of nested foldings
+    /// maximum amount of nested foldings
+    let maxDepth = 1 
 
-    let minLinesOutside = 2 // minimum line count for outer folding
+    /// minimum line count for outer folding
+    let minLinesOutside = 2 
 
-    let minLinesNested = 3 // minimum line count for inner folding
+    /// minimum line count for inner folding
+    let minLinesNested = 3 
 
-    let minLineCountDiffToOuter = 9 // if inner folding is just 9 line shorter than outer folding don't do it    
-    
-    let foldStatus = state.Config.FoldingStatus
+    /// if inner folding is just 9 line shorter than outer folding don't do it    
+    let minLineCountDiffToOuter = 9    
+   
 
     let saveFoldingStatus() = foldStatus.Set(getFilePath(),manager)
  
     // the color for folding box is set in SelectedTextHighlighter
 
     let FoldingStack = Stack<FoldStart>()
-    let Folds = ResizeArray<Fold>()
-    //let BadIndents = ResizeArray<NonStandardIndent>()
+    let Folds = ResizeArray<Fold>()  
 
     let mutable isInitialLoad = true
 
-    let defaultIndenting = state.Editor.Options.IndentationSize
     let mutable lastBadIndentSize = 0
 
-    let findFoldings (clns:CodeLineTools.CodeLines) :unit = 
-        let tx = clns.FullCode
-
+    let findFoldings (clns:CodeLineTools.CodeLines, id) :bool = 
+        
         FoldingStack.Clear() // Collections.Generic.Stack<FoldStart>
         Folds.Clear() // ResizeArray<Fold>  
 
-        let mutable lineNo = 1
+        let mutable endOfPrevLineWithChars = -1 // will not get set on only whitespace lines empty lines 
 
-        let textLength = tx.Length
-
-        // returns offset of first VisibleChar
-        // jumps over empty lines
-        let rec findVisibleChar ind off = 
-            if  off >= textLength then  // never seems to happen because of 'if en > off then..' check in findFolds
-                //ISeffLog.log.PrintfnAppErrorMsg  $"off{off} = textLength"
-                { indent = 0; wordStartOff = off-1}
+        let rec loopLines (ind:int) (lnNo:int) = 
+            if lnNo > clns.LastLineIdx then //end of file
+                true
             else
-                let  c = tx.[off]
-                if   c = ' '   then                        findVisibleChar (ind+1) (off+1) //TODO ignores tabs
-                elif c = '\r'  then                        findVisibleChar 0       (off+1)
-                elif c = '\n'  then  lineNo <- lineNo + 1; findVisibleChar 0       (off+1)
-                else                                       
-                    //ISeffLog.log.PrintfnAppErrorMsg  $"first VisibleChar {c}"
-                    { indent= ind; wordStartOff=off}
-
-        // returns offset of '\n'
-        let rec findLineEnd off = 
-            if  off = textLength then  off-1
-            else
-                if tx.[off] = '\n'  then  off
-                else                      findLineEnd (off+1)
-        
-        let transformers = state.TransformersAllBrackets
-        
-        //ISeffLog.log.PrintfnDebugMsg "---------findFolds--------" 
-        let rec findFolds ind off = 
-            let no = lineNo
-            let en = findLineEnd off
-            //ISeffLog.log.PrintfnDebugMsg $"---en > off : {en > off }, en = off:{en = off }"
-
-            let le = findVisibleChar 0 en  
-           
-            if le.indent > ind then
-                //ISeffLog.log.PrintfnDebugMsg $"le.indent > ind: offset of first VisibleChar: le.indent={le.indent} (indent {ind}) in line {no} till {lineNo}"
-                let nestingLevel = FoldingStack.Count
-                if nestingLevel <= maxDepth then
-                    let index = Folds.Count
-                    Folds.Add  {foldStartOff = -99; foldEndOff = -99 ; linesInFold = -99 ; nestingLevel = nestingLevel} // dummy value to be mutated later, if not mutated it will be filter out in foldEditor function.
-                    FoldingStack.Push {indent= ind; lineEndOff = en ; line = no ; indexInFolds = index; nestingLevel = nestingLevel}
-                    //ISeffLog.log.PrintfnAppErrorMsg  " line: %d: indent %d start" no ind                
-
-            elif le.indent < ind then
-                //ISeffLog.log.PrintfnFsiErrorMsg $"le.indent < ind: offset of first VisibleChar: le.indent={le.indent} (indent {ind}) in line {no} till {lineNo}"                   
-                let mutable take = true
-                while FoldingStack.Count > 0 && take do
-                    let st = FoldingStack.Peek()
-                    if st.indent >= le.indent then
-                        FoldingStack.Pop()  |> ignore
-                        let lines = no - st.line
-                        if (st.nestingLevel = 0 && lines >= minLinesOutside)
-                        || (st.nestingLevel > 0 && lines >= minLinesNested ) then // only add if block has enough lines outer wise leave dummy inside list
-
-                            let foldStart = st.lineEndOff - 1 // the position of '\n' minus two ( does not work without the minus one)
-                            let foldEnd = en - 1 // the position of '\n' minus two
-                            Folds.[st.indexInFolds] <- {foldStartOff = foldStart; foldEndOff = foldEnd; linesInFold = lines ;nestingLevel = st.nestingLevel}
-                            //ISeffLog.log.PrintfnAppErrorMsg  "line: %d : indent %d end of %d lines " no st.indent lines
+                match clns.GetLine(lnNo,id) with 
+                |ValueNone -> false // did not reach end of code lines
+                |ValueSome li -> 
+                    if li.indent=li.len then // skip all white lines
+                        loopLines ind (lnNo+1)
                     else
-                        take <- false
-            
-            // check no standart indentation
-            // do first
-            if lastBadIndentSize > 0 then                 
-                //let ln = ed.Document.GetLineByOffset(off) 
-                //ISeffLog.printError $"bad indent on line {no}={ln.LineNumber} : {lastBadIndentSize}, confirm LineOffset {ln.Offset}={off}"
-                //BadIndents.Add{ badIndent=lastBadIndentSize; lineStartOffset = off-lastBadIndentSize ; lineNo=no }  // DELETE
-                let stOff = off-lastBadIndentSize
-                transformers.Insert(no, {from=stOff ; till=stOff+lastBadIndentSize  ; act=badIndentAction })
-                lastBadIndentSize <- 0 
-            
-            // do last:
-            if le.indent % defaultIndenting <> 0 then 
-                lastBadIndentSize <- le.indent 
+                        // (1) find bad indents:
+                        if li.indent % defaultIndenting <> 0 then 
+                            transformers.Insert(lnNo,{from=li.offStart; till=li.offStart+li.indent  ; act=badIndentAction })
+                    
+                        // (2) check folds:                       
+                        
+                        if li.indent > ind then
+                            //ISeffLog.log.PrintfnDebugMsg $"le.indent > (*ind*): offset of first VisibleChar: le.indent={le.indent} (indent {ind}) in line {no} till {lineNo}"
+                            let nestingLevel = FoldingStack.Count
+                            if nestingLevel <= maxDepth then
+                                let index = Folds.Count
+                                Folds.Add  {foldStartOff = -99; foldEndOff = -99 ; linesInFold = -99 ; nestingLevel = nestingLevel} // dummy value to be mutated later, if not mutated it will be filter out in foldEditor function.
+                                FoldingStack.Push {indent= ind; lineEndOff = endOfPrevLineWithChars ; line = lnNo ; indexInFolds = index; nestingLevel = nestingLevel}
+                                //ISeffLog.log.PrintfnAppErrorMsg  " line: %d: indent %d start" no ind                
 
-            if en > off then
-                findFolds le.indent le.wordStartOff // loop !
+                        elif li.indent < ind then
+                            //ISeffLog.log.PrintfnFsiErrorMsg $"le.indent < ind: offset of first VisibleChar: le.indent={le.indent} (indent {ind}) in line {no} till {lineNo}"                   
+                            let mutable take = true
+                            while FoldingStack.Count > 0 && take do
+                                let st = FoldingStack.Peek()
+                                if st.indent >= li.indent then
+                                    FoldingStack.Pop()  |> ignore
+                                    let lines = lnNo - st.line
+                                    if (st.nestingLevel = 0 && lines >= minLinesOutside)
+                                    || (st.nestingLevel > 0 && lines >= minLinesNested ) then // only add if block has enough lines outer wise leave dummy inside list
+                                        let foldStart = st.lineEndOff                                       
+                                        Folds.[st.indexInFolds] <- {foldStartOff = foldStart; foldEndOff = endOfPrevLineWithChars; linesInFold = lines ;nestingLevel = st.nestingLevel}
+                                        //ISeffLog.log.PrintfnAppErrorMsg  "line: %d : indent %d end of %d lines " no st.indent lines
+                                else
+                                    take <- false
+                        
+                        endOfPrevLineWithChars <- li.offStart + li.len // the last charcater on this line before\r\n
 
-        if tx.Length > 0 then // check needed for empty string
-            let le = findVisibleChar 0 0
-            findFolds le.indent le.wordStartOff
-      
+                        loopLines li.indent (lnNo+1)
+                    
+        loopLines 0 1 
+
+
+
     let textInFoldBox(count:int) = sprintf " ... %d folded lines " count
 
     // save folding id just as its characters length.
@@ -200,71 +152,71 @@ type Foldings(manager:Folding.FoldingManager, state:InteractionState, getFilePat
     let foldEditor (id:int64) =                
         //ISeffLog.log.PrintfnDebugMsg "folding1: %s" iEditor.FilePath.File
         async{                
-            let foldings = 
-                findFoldings state.CodeLines  
-                foundBadIndentsEv.Trigger()
-                let l = Folds.Count-1
-                let fs = ResizeArray(max 0 l)// would be -1 if no foldings
-                let mutable lastOuter = {foldStartOff = -99; foldEndOff = -99 ; linesInFold = -99 ; nestingLevel = -99}
-                for i=0 to l do
-                    let f = Folds.[i]
-                    if f.foldEndOff > 0 then // filter out to short blocks that are left as dummy
-                        if  f.nestingLevel = 0 then
-                            lastOuter <- f
-                            fs.Add f
-                        elif f.linesInFold + minLineCountDiffToOuter < lastOuter.linesInFold then // filter out inner blocks that are almost the size of the outer block
-                            fs.Add f
-                fs       
+            if findFoldings (state.CodeLines, id) then             
+                let foldings =
+                    foundBadIndentsEv.Trigger()
+                    let l = Folds.Count-1
+                    let fs = ResizeArray(max 0 l)// would be -1 if no foldings
+                    let mutable lastOuter = {foldStartOff = -99; foldEndOff = -99 ; linesInFold = -99 ; nestingLevel = -99}
+                    for i=0 to l do
+                        let f = Folds.[i]
+                        if f.foldEndOff > 0 then // filter out to short blocks that are left as dummy
+                            if  f.nestingLevel = 0 then
+                                lastOuter <- f
+                                fs.Add f
+                            elif f.linesInFold + minLineCountDiffToOuter < lastOuter.linesInFold then // filter out inner blocks that are almost the size of the outer block
+                                fs.Add f
+                    fs       
                 
-            if isInitialLoad then                                
-                while foldStatus.WaitingForFileRead do
-                    // check like this because reading of file data happens async
-                    //ISeffLog.log.PrintfnDebugMsg "waiting to load last code folding status.. "
-                    do! Async.Sleep 50
-                let vs = foldStatus.Get(getFilePath())
+                if isInitialLoad then                                
+                    while foldStatus.WaitingForFileRead do
+                        // check like this because reading of file data happens async
+                        //ISeffLog.log.PrintfnDebugMsg "waiting to load last code folding status.. "
+                        do! Async.Sleep 50
+                    let vs = foldStatus.Get(getFilePath())
                     
-                do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context
-                for i = 0 to foldings.Count-1 do
-                    let f = foldings.[i]
-                    let folded = if  i < vs.Length then  vs.[i]  else false
-                    let fs = manager.CreateFolding(f.foldStartOff, f.foldEndOff)
-                    fs.Tag <- box f.nestingLevel
-                    fs.IsFolded <- folded
-                    fs.Title <- textInFoldBox f.linesInFold
-                updateCollapseStatus()
-                isInitialLoad <- false
+                    do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context
+                    for i = 0 to foldings.Count-1 do
+                        let f = foldings.[i]
+                        let folded = if  i < vs.Length then  vs.[i]  else false
+                        let fs = manager.CreateFolding(f.foldStartOff, f.foldEndOff)
+                        fs.Tag <- box f.nestingLevel
+                        fs.IsFolded <- folded
+                        fs.Title <- textInFoldBox f.linesInFold
+                    updateCollapseStatus()
+                    isInitialLoad <- false
                 
 
-            elif state.DocChangedId.Value = id then
-                do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context  
+                elif state.DocChangedId.Value = id then
+                    do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context  
                     
-                let folds=ResizeArray<NewFolding>()                                
-                for f in foldings do
-                    //ISeffLog.log.PrintfnDebugMsg "Foldings from %d to %d  that is  %d lines" f.foldStartOff  f.foldEndOff f.linesInFold
-                    let fo = new NewFolding(f.foldStartOff, f.foldEndOff) 
-                    fo.Name <- textInFoldBox f.linesInFold
-                    folds.Add(fo) //if NewFolding type is created async a waiting symbol appears on top of it
+                    let folds=ResizeArray<NewFolding>()                                
+                    for f in foldings do
+                        //ISeffLog.log.PrintfnDebugMsg "Foldings from %d to %d  that is  %d lines" f.foldStartOff  f.foldEndOff f.linesInFold
+                        let fo = new NewFolding(f.foldStartOff, f.foldEndOff) 
+                        fo.Name <- textInFoldBox f.linesInFold
+                        folds.Add(fo) //if NewFolding type is created async a waiting symbol appears on top of it
 
-                // Existing foldings starting after this offset will be kept even if they don't appear in newFoldings. Use -1 for this parameter if there were no parse errors)
-                let firstErrorOffset = -1 //The first position of a parse error. 
-                manager.UpdateFoldings(folds, firstErrorOffset)
+                    // Existing foldings starting after this offset will be kept even if they don't appear in newFoldings. Use -1 for this parameter if there were no parse errors)
+                    let firstErrorOffset = -1 //The first position of a parse error. 
+                    manager.UpdateFoldings(folds, firstErrorOffset)
                                 
-                // restore state after caret , because state gets lost after an auto complete insertion                             
-                let co = ed.CaretOffset
-                for f in manager.AllFoldings do 
-                    if f.StartOffset > co then                                         
-                        match collapseStatus.TryGetValue (getHash f.StartOffset) with 
-                        |false , _ -> ()
-                        |true , isCollapsed -> 
-                            f.IsFolded <- isCollapsed 
-                            //let d = iEditor.AvaEdit.Document
-                            //let ln = d.GetLineByOffset f.StartOffset
-                            //if isCollapsed <> f.IsFolded then 
-                            //    if isCollapsed then  ISeffLog.printnColor 200 0 0 $"try collapse {ln.LineNumber}: {d.GetText ln}"
-                            //    else                 ISeffLog.printnColor 0 200 0 $"try open {ln.LineNumber}:{d.GetText ln}"
-                //ISeffLog.printnColor 100 100 100 $"---------end of try collapse---------------------"
+                    // restore state after caret , because state gets lost after an auto complete insertion                             
+                    let co = ed.CaretOffset
+                    for f in manager.AllFoldings do 
+                        if f.StartOffset > co then                                         
+                            match collapseStatus.TryGetValue (getHash f.StartOffset) with 
+                            |false , _ -> ()
+                            |true , isCollapsed -> 
+                                f.IsFolded <- isCollapsed 
+                                //let d = iEditor.AvaEdit.Document
+                                //let ln = d.GetLineByOffset f.StartOffset
+                                //if isCollapsed <> f.IsFolded then 
+                                //    if isCollapsed then  ISeffLog.printnColor 200 0 0 $"try collapse {ln.LineNumber}: {d.GetText ln}"
+                                //    else                 ISeffLog.printnColor 0 200 0 $"try open {ln.LineNumber}:{d.GetText ln}"
+                    //ISeffLog.printnColor 100 100 100 $"---------end of try collapse---------------------"
 
-                saveFoldingStatus() // so that when new foldings appeared they are saved immediately
+                    saveFoldingStatus() // so that when new foldings appeared they are saved immediately
 
             } |>  Async.Start
 
@@ -301,8 +253,6 @@ type Foldings(manager:Folding.FoldingManager, state:InteractionState, getFilePat
         |> Option.defaultWith (fun () -> failwithf "Failed to find Folding.FoldingMargin")
         :?> Folding.FoldingMargin
     *)
-
-    // member _.UpdateCollapseStatus() = updateCollapseStatus()  // DELETE
 
     member _.ExpandAll() = 
         for f in manager.AllFoldings do
@@ -348,5 +298,4 @@ type Foldings(manager:Folding.FoldingManager, state:InteractionState, getFilePat
         if unfoldedOneOrMore then
             updateCollapseStatus()
             saveFoldingStatus() // so that they are saved immediately
-    
-   
+
