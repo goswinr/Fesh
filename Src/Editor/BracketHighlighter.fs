@@ -8,6 +8,7 @@ open AvalonEditB
 open AvalonLog.Brush
 
 open Seff.Model
+open Seff.Util
 open Seff.Util.General
 open AvalonEditB.Document
 open AvalonEditB.Rendering
@@ -338,9 +339,7 @@ type BracketHighlighter (state:InteractionState) =
     let colErr   = Brushes.Red                  |> freeze
     //let colErrBg = Brushes.Pink |> brighter 25  |> freeze
     let colErrBg = SolidColorBrush(Color.FromArgb(15uy,255uy,0uy,0uy))|> freeze // a=0 : fully transparent A=255 opaque
-
     
-
     let colors = [|
         null // the first one is null ( to keep the coloring from xshd file)        
         Brushes.Purple     |> brighter 40  |> freeze
@@ -363,15 +362,14 @@ type BracketHighlighter (state:InteractionState) =
     let mutable allPairs : option<BracketPair[][]> = None
         
     let caretPositionChanged(e:EventArgs) = 
-        //transMatch.ClearAllLines()
-
+        //transMatch.ClearAllLines()        
         let id = state.DocChangedId.Value
         let caret = state.Editor.TextArea.Caret
         let caretOff = caret.Offset
         let caretLine= caret.Line
               
-        async{ 
-            do! Async.Sleep 50 // wait for update the offset list Offs lists
+        async{
+            do! Async.Sleep 50 // wait for update the offset list Offs lists            
             while allPairs.IsNone || state.CodeLines.IsNotFromId id do
                 do! Async.Sleep 50 // wait for update the offset list Offs lists
             if state.DocChangedId.Value = id then 

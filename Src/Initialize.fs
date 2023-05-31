@@ -1,12 +1,33 @@
 ﻿namespace Seff
 
 open System
+open System.IO
 open System.Windows
 
+open Seff.Model
 open Seff.Views
 open Seff.Config
+open Seff.Util
 
 module Initialize = 
+    
+    let saveBeforeFailing()= 
+        async{
+            match Model.IEditor.current with
+            |None -> ()
+            |Some ed -> 
+                match ed.FilePath with 
+                |NotSet _ -> ()
+                |Deleted _ -> ()
+                |SetTo fi -> 
+                    do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context
+                    let doc = ed.AvaEdit.Document
+                    do! Async.SwitchToThreadPool()
+                    let txt = doc.CreateSnapshot().Text
+                    let desk = Environment.GetFolderPath(Environment.SpecialFolder.Desktop)
+                    let p = Path.Combine(desk, Path.GetFileNameWithoutExtension(fi.Name) + " " + DateTime.nowStr + fi.Extension  )
+                    File.WriteAllText(p,txt)                
+        } |> Async.Start
 
     let everything(mode:HostedStartUpData option, startupArgs:string[]): Seff = 
 
@@ -15,6 +36,8 @@ module Initialize =
         FsEx.Wpf.SyncWpf.installSynchronizationContext(true)    // do first
 
         let en_US = Globalization.CultureInfo.CreateSpecificCulture("en-US")
+        Threading.Thread.CurrentThread.CurrentCulture <- en_US
+        Threading.Thread.CurrentThread.CurrentUICulture <- en_US
         Globalization.CultureInfo.DefaultThreadCurrentCulture   <- en_US
         Globalization.CultureInfo.DefaultThreadCurrentUICulture <- en_US
 
@@ -37,7 +60,10 @@ module Initialize =
         let appname = match mode with Some n -> "Seff." + n.hostName |None -> "Seff"
         try 
             // TODO attempt to save files before closing ?  or save anyway every 2 minutes to backup folder if less than 10k lines
-            let errHandler = FsEx.Wpf.ErrorHandling (appname, fun () -> "FSI Error Stream:\r\n" + log.FsiErrorsStringBuilder.ToString())
+            let errHandler = FsEx.Wpf.ErrorHandling (
+                appname, 
+                fun () -> saveBeforeFailing();  "FSI Error Stream:\r\n" + log.FsiErrorsStringBuilder.ToString()
+                )
             errHandler.Setup()// do as soon as log exists 
         with e ->
             log.PrintfnAppErrorMsg "Setting up Global Error Handling via FsEx.Wpf.ErrorHandeling failed. Or is done already? Is FsEx.Wpf already loaded by another plug-in?\r\n%A" e 

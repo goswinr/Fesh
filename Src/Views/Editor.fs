@@ -116,7 +116,6 @@ type Editor private (code:string, config:Config, initalFilePath:FilePath)  =
 
     member _.Completions = compls
 
-
     member _.Folds = folds
 
     member _.Search = search    
