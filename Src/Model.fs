@@ -160,7 +160,6 @@ type CodeToEval = {
     scriptName:string // the file name for reporting in errors
     }
 
-//type DotOrNot = Dot | NotDot // used in code completion  // DELETE
 
 type PositionInCode = { 
     lineToCaret:string  
@@ -177,64 +176,3 @@ type CommandInfo = {
     tip:string 
     }
 
-
-    
-    (*
-    /// The Result when trying to get the current code from the checker  // DELETE
-    /// (and not from the editor where the tree would have to be converted to a string)
-    type CodeAndId = 
-        | CodeID of string * CheckId
-        | NoCode
-    
-    /// The Results from FSharp.Compiler.Service
-    type CheckResults = {
-        parseRes    :FSharpParseFileResults
-        checkRes    :FSharpCheckFileResults
-        errors      :ErrorsBySeverity
-        code        :CodeAsString
-        changeId    :CheckId 
-        editorId    :Guid
-        }
-    
-    *)
-    
-   
-   (*  // DELETE
-/// Represents the current sate of the  FSharp.Compiler.Service Checker
-/// It is stored globally in the Checker
-/// And locally in each Editor instance (they are compared via the CheckId)
-type FileCheckState = 
-   | NotStarted
-
-   /// Got the code from AvalonEdit async, now running in FCS async
-   | Checking of CheckId * CodeAsString 
-
-   /// The CheckResults are always local per Editor
-   | Done of CheckResults
-
-   | CheckFailed
-
-   member this.CodeAndId  = 
-       match this with
-       | NotStarted   |  CheckFailed -> NoCode
-       | Checking (id, c)  ->  CodeID (c       , id)  
-       | Done res          ->  CodeID (res.code, res.checkId ) 
-
-
-   /// to compare local EditorCheckState with GlobalCheckState
-   member this.SameIdAndfullCode (globalChSt:FileCheckState) = 
-       match this.CodeAndId with
-       |NoCode -> NoCode
-       |CodeID (id, c)  ->
-           match globalChSt.CodeAndId with
-           |NoCode -> NoCode
-           |CodeID (gid, _) as ci -> if gid=id then ci  else NoCode
-
-   override this.ToString() = 
-       match this with
-       | NotStarted        ->  "FileCheckState.NotStarted"
-       | CheckFailed       ->  "FileCheckState.Failed"
-       | Checking (id, c)  ->  "FileCheckState.Checking"
-       | Done res          ->  "FileCheckState.Done with " +  res.checkRes.Diagnostics.Length.ToString() +  " infos, warnings or errors"
-   *)
- 

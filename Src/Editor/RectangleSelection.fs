@@ -70,7 +70,7 @@ module RectangleSelection =
         let len = ln.Length
         let spacesToAdd = visCol - len
         let stOff = ln.Offset
-        if spacesToAdd > 0 then // in case this line is shorten than the visual colum with virtual white space
+        if spacesToAdd > 0 then // in case this line is shorten than the visual column with virtual white space
             doc.Insert(stOff + len , new String(' ', spacesToAdd) )
             doc.Insert(stOff + len + spacesToAdd , text)
         else

@@ -177,7 +177,7 @@ type Tabs(config:Config, log:Log,seffWin:SeffWindow) =
         else
             false
 
-    let saveAsync (t:Tab) =  /// gets called from evalAllText(),  evalAllTextSave()  and  evalAllTextSaveClear() only
+    let saveAsync (t:Tab) =  // gets called from evalAllText(),  evalAllTextSave()  and  evalAllTextSaveClear() only
         match t.Editor.FilePath with
         | NotSet _ -> 
             let saved = saveAsDialog(t,SaveNewLocation)
@@ -218,7 +218,7 @@ type Tabs(config:Config, log:Log,seffWin:SeffWindow) =
             elif (fi.Refresh(); fi.Exists) then
                 saveAt(t, fi, SaveInPlace)
             else
-                log.PrintfnIOErrorMsg "File does not exist on drive anymore. Resaving it at:\r\n%s" fi.FullName
+                log.PrintfnIOErrorMsg "File does not exist on drive anymore. Re-saving it at:\r\n%s" fi.FullName
                 saveAsDialog(t, SaveNewLocation)
         |Deleted _
         |NotSet _ ->
@@ -284,7 +284,7 @@ type Tabs(config:Config, log:Log,seffWin:SeffWindow) =
             else
                 // also close any tab that only has default code:            
                 allTabs  
-                |> Seq.filter ( fun (t:Tab) -> t.Editor.FilePath.DoesNotExistsAsFile && t.IsCodeSaved=true ) // no explicit criteria for beeing the default code!
+                |> Seq.filter ( fun (t:Tab) -> t.Editor.FilePath.DoesNotExistsAsFile && t.IsCodeSaved=true ) // no explicit criteria for being the default code!
                 |> Array.ofSeq // force enumeration and cache
                 |> Seq.iter ( fun t -> tabs.Items.Remove t)
                 
@@ -413,14 +413,14 @@ type Tabs(config:Config, log:Log,seffWin:SeffWindow) =
 
     member this.CurrAvaEdit = current.Editor.AvaEdit
 
-    // exludes files that are deleted but still open in editor
+    // excludes files that are deleted but still open in editor
     member this.AllExistingFileInfos = allExistingFileInfos
 
     member this.AllTabs = allTabs
 
     member this.AddTab(tab:Tab, makeCurrent) = addTab(tab, makeCurrent, false)
 
-    /// Checks if file is open already then calls addTtab
+    /// Checks if file is open already then calls addTab
     member this.AddFile(fi:FileInfo, makeCurrent) =  tryAddFile(fi, makeCurrent,false)
 
     /// Checks if file is open already
@@ -470,7 +470,7 @@ type Tabs(config:Config, log:Log,seffWin:SeffWindow) =
                     saveAsDialog(t, SaveNewLocation)
             
             let l = n[n.Length-1]
-            let nn = // the new sufix
+            let nn = // the new suffix
                 if isNum l then 
                     if n.Length = 1 then 
                         match l with 

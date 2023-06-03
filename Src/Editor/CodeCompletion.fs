@@ -158,8 +158,7 @@ type Completions(state: InteractionState) =
         
 
     /// Initially returns "loading.." text and triggers async computation to get and update with actual text
-    member this.GetToolTip(it:DeclarationListItem)= 
-        //this.HasStackPanelTypeInfo <-false DELETE
+    member this.GetToolTip(it:DeclarationListItem)=         
         async{
             let ttText = it.Description            
             let structured = 
@@ -169,8 +168,7 @@ type Completions(state: InteractionState) =
                 do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context
                 if this.IsOpen then // might get closed during context switch
                     if selectedCompletionText() = it.NameInList then
-                        win.Value.ToolTipContent <- TypeInfo.getPanel (structured, {declListItem=Some it; semanticClass=None; declLocation=None; dllLocation=None })
-                        //this.HasStackPanelTypeInfo <-true DELETE
+                        win.Value.ToolTipContent <- TypeInfo.getPanel (structured, {declListItem=Some it; semanticClass=None; declLocation=None; dllLocation=None })                        
                         //TODO add structure to a Dict so it does not need to be recomputed if browsing up and down items in the completion list?
         } |> Async.Start
         TypeInfo.loadingText :> obj
@@ -242,9 +240,7 @@ type Completions(state: InteractionState) =
                         // (3)then on the item line this.Complete (TextArea, ISegment, EventArgs) is called
                         // https://github.com/goswinr/AvalonEditB/blob/main/AvalonEditB/CodeCompletion/CompletionWindow.cs#L110                        
                         this.Close()
-                        //ISeffLog.log.PrintfnDebugMsg "Completion window just closed with selected item: %A " w.CompletionList.SelectedItem
-                        //if not UtilCompletion.justCompleted then // DELETE
-                        //    compl.Checker.CheckThenHighlightAndFold(iEditor) //because window might close immediately after showing if there are no matches to prefilter
+                        //ISeffLog.log.PrintfnDebugMsg "Completion window just closed with selected item: %A " w.CompletionList.SelectedItem               
 
                         if not willInsert then 
                             willInsert <- false

@@ -44,8 +44,6 @@ type CheckerStatus (grid:TabsAndLog) as this =
 
     let tabs = grid.Tabs
     let checkingTxt = "Checking for Errors ..."
-    //let checker = Checker.GetOrCreate(grid.Config)  // DELETE
-    //let originalBackGround = this.Background
 
     let mutable lastErrCount = -1
     let mutable lastFile : TextEditor = null
@@ -176,16 +174,7 @@ type CheckerStatus (grid:TabsAndLog) as this =
         Checker.CheckingStateChanged.Add updateCheckState        
         this.MouseLeftButtonDown.Add ( fun a -> CheckerStatus.goToNextSegment(grid.Tabs.Current.Editor))
         
-        (* covered by Ctrl +P for persistent Panel:        
-        this.MouseRightButtonDown.Add ( fun a ->
-            match tabs.Current.Editor.FileCheckState with
-            | Done res ->
-                for e in res.checkRes.Diagnostics |> Seq.sortBy ( fun e -> e.StartLine) do
-                    ISeffLog.log.PrintfnInfoMsg "Line: %d %A %s: %s" e.StartLine e.Severity e.ErrorNumberText e.Message
-            | _ -> ()
-            )
-        *)
-    
+         
     member this.GetErrorPanelCached(ed:IEditor) = 
         match ed.FileCheckState with
         | Done res -> Some (getErrPanel(res.errors,false))               

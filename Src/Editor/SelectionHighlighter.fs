@@ -193,7 +193,7 @@ type SelectionHighlighterLog (lg:TextEditor) =
                 | Some (f,l) ->        
                     trans.ClearAllLines()
                     do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context                
-                    //for f in state.FoldManager.AllFoldings do  f.BackgroundColor <- null  
+                    // there are no foldings in Log. yet.  //for f in state.FoldManager.AllFoldings do  f.BackgroundColor <- null  
                     lg.TextArea.TextView.Redraw(f.from, l.till, priority)
                     foundSelectionLogEv.Trigger(triggerNext)
             }|> Async.Start
