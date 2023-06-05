@@ -144,8 +144,10 @@ module DocChangeMark =
     open DocChangeUtil
     open CodeLineTools
 
+    let mainWait = 300 // ms to wait before starting the first check after a change
+
     let markTwoSteps(iEd:IEditor, code, serv:EditorServices, state:InteractionState, id) = 
-            /// first: Foldings, ColorBrackets and BadIndentation when full text available async.
+            // first: Foldings, ColorBrackets and BadIndentation when full text available async.
             async{
                 if state.CodeLines.Update(code,id) then 
                     state.TransformersAllBrackets.ClearAllLines()// do as late as possible , offset shifting should do its work   
@@ -154,7 +156,7 @@ module DocChangeMark =
                         serv.folds.UpdateFoldsAndBadIndents(id)
              } |> Async.Start 
         
-            /// second: Errors and Semantic Highlighting on check result .  
+            // second: Errors and Semantic Highlighting on check result .  
             async{ 
                 match Checker.CheckCode(iEd, state, code, id, true) with // code checking does not need to wait for CodeLines.Update
                 |None -> ()
@@ -178,12 +180,13 @@ module DocChangeMark =
     let markFoldCheckHighlightAsync (iEd:IEditor, serv:EditorServices, state:InteractionState, id ) =
         let doc = iEd.AvaEdit.Document // get Doc in Sync
         async { 
-            do! Async.Sleep 100
-            // NOTE just checking only Partial Code till caret with (doc.CreateSnapshot(0, tillOffset).Text) 
-            // would make the GetDeclarationsList method miss some declarations !!
-            let code = doc.CreateSnapshot().Text // the only threadsafe way to access the code string
-            if state.DocChangedId.Value = id then 
-                markTwoSteps (iEd, code, serv, state, id)
+            do! Async.Sleep mainWait
+            if state.IsLatest id then 
+                // NOTE just checking only Partial Code till caret with (doc.CreateSnapshot(0, tillOffset).Text) 
+                // would make the GetDeclarationsList method miss some declarations !!
+                let code = doc.CreateSnapshot().Text // the only threadsafe way to access the code string
+                if state.IsLatest id then 
+                    markTwoSteps (iEd, code, serv, state, id)
         } |> Async.Start
     
 module DocChangeCompletion = 
@@ -357,7 +360,7 @@ module DocChangeCompletion =
         lastChar = '.' || // for dot completion
         isInFsharpIdentifier(lastChar,pos) 
 
-    let getShowRestiction s = 
+    let getShowRestriction s = 
         match s with 
         |DoNothing   // never happens       
         |JustMark    // never happens     
@@ -382,8 +385,8 @@ module DocChangeCompletion =
             else 
                 let doc = iEd.AvaEdit.Document // get in sync
                 async{                
-                    do! Async.Sleep 100                    
-                    if showOnLastChar (lastChar,pos) then
+                    do! Async.Sleep DocChangeMark.mainWait                    
+                    if state.IsLatest id && showOnLastChar (lastChar,pos) then
                         let show = MaybeShow.completionWindow(pos)
                         //ISeffLog.log.PrintfnDebugMsg $"MaybeShow.completionWindow for {lastChar} is {show}"
                         match show with 
@@ -406,9 +409,9 @@ module DocChangeCompletion =
                         
                             match declsPosx with         
                             |Some (decls, posx) ->
-                                // Switsch to Sync and try showing completion window:
+                                // Switch to Sync and try showing completion window:
                                 do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context                            
-                                let showRestrictions = getShowRestiction show                                    
+                                let showRestrictions = getShowRestriction show                                    
                                 let checkAndMark() = DocChangeMark.markFoldCheckHighlightAsync (iEd, serv, state, state.DocChangedId.Value) // will be called if window closes without an insertion
                                 match serv.compls.TryShow(decls, posx, showRestrictions, checkAndMark ) with 
                                 |DidShow ->                                     
@@ -425,7 +428,7 @@ module DocChangeCompletion =
                                 if state.DocChangedId.Value = id then 
                                     DocChangeMark.markTwoSteps (iEd, fullCode, serv, state, id)                            
                     else   
-                        // the typed charater should not trigger completion.                 
+                        // the typed character should not trigger completion.                 
                         // DocChangedConsequence is still  'React', no need to reset.
                         DocChangeMark.markFoldCheckHighlight(iEd, doc, serv, state, id)
             
@@ -438,14 +441,14 @@ module DocChangeEvents =
     let changing  (state:InteractionState) (a:DocumentChangeEventArgs) =             
         match state.DocChangedConsequence with 
         | WaitForCompletions -> ()
-        | React -> state.Increment() |> ignore // incremenin this handler brfoper the chnage actually happens, but  only increment when a reaction is required
+        | React -> state.Increment() |> ignore // incrementing this handler before the change actually happens, but  only increment when a reaction is required
         
         match DocChangeUtil.isSingleCharChange a with 
         |ValueSome s -> 
             state.FastColorizer.AdjustShift {from=a.Offset; amount=s}
         |ValueNone   -> 
             //a multi character change, just wait for type checker.., 
-            //because it might contain a line rturen and then just doing a shift would not work anymore
+            //because it might contain a line return and then just doing a shift would not work anymore
             state.FastColorizer.ResetShift() 
     
 
@@ -458,15 +461,15 @@ module DocChangeEvents =
             // the typed characters wil become a prefilter for the  in completion window
             ()
         | React -> 
-            let id = state.DocChangedId.Value // the  increment was done befoer this event in Doc.Changing (not Chanaged) 
-            //state.Caret <- state.Editor.CaretOffset  // DELETE
+            let id = state.DocChangedId.Value // the increment was done before this event in Doc.Changing (not Changed) 
+            
             match isSingleCharChange eventArgs with 
             |ValueSome _ -> DocChangeCompletion.singleCharChange (iEd, serv, state, id)
             |ValueNone   -> DocChangeMark.markFoldCheckHighlightAsync (iEd, serv, state, id)            
 
             
 
-    // used with a auto hotkey script that simulates 28 key presses starting with � ending with �
+    // used with a auto hotkey script that simulates 28 key presses starting with ß ending with £
     let logPerformance (t:string)=
-        if   t ="�" then Timer.InstanceRedraw.tic()
-        elif t="�" then  eprintfn $"{Timer.InstanceRedraw.tocEx}"
+        if   t = "ß" then Timer.InstanceRedraw.tic()
+        elif t = "£" then  eprintfn $"{Timer.InstanceRedraw.tocEx}"

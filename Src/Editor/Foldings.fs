@@ -12,7 +12,12 @@ open Seff.Model
 
 
 [<Struct>]
-type Fold = {foldStartOff:int; foldEndOff:int; linesInFold: int ; nestingLevel:int}
+type Fold = {
+        foldStartOff:int;
+        foldEndOff:int
+        linesInFold: int  
+        nestingLevel:int
+        }
 
 [<Struct>]
 type FoldStart = {indent: int; lineEndOff:int; line: int; indexInFolds:int; nestingLevel:int}
@@ -23,7 +28,6 @@ type Indent = { indent: int; wordStartOff:int }
 [<Struct>]
 type NonStandardIndent = { badIndent: int; lineStartOffset:int; lineNo: int }
 
-
 [<Struct>]
 type FoldFrom = {lineNo: int ; info: CodeLineTools.LineInfo}
 
@@ -31,7 +35,11 @@ type FoldFrom = {lineNo: int ; info: CodeLineTools.LineInfo}
 type Foldings(manager:Folding.FoldingManager, state:InteractionState, getFilePath:unit->FilePath) = 
     let foldStatus = state.Config.FoldingStatus
 
-    /// for brackets and bad indentation
+    // ----------------------------------
+    // ------- bad indentation ----------
+    // ----------------------------------
+
+    /// for bad indentation
     let transformers = state.TransformersAllBrackets
 
     let defaultIndenting = state.Editor.Options.IndentationSize
@@ -44,6 +52,12 @@ type Foldings(manager:Folding.FoldingManager, state:InteractionState, getFilePat
     
     let badIndentAction  = Action<VisualLineElement>(fun el -> el.TextRunProperties.SetBackgroundBrush(badIndentBrush))       
     
+    //let mutable lastBadIndentSize = 0
+
+    // ----------------------------------
+    // ------- foldings ----------
+    // ----------------------------------
+
     /// maximum amount of nested foldings
     let maxDepth = 1 // 1 = means one primary and one secondary nested
 
@@ -53,8 +67,8 @@ type Foldings(manager:Folding.FoldingManager, state:InteractionState, getFilePat
     /// minimum line count for inner folding
     let minLinesNested = 3 
 
-    /// if inner folding is just 9 line shorter than outer folding don't do it    
-    let minLineCountDiffToOuter = 9    
+    // if inner folding is just 9 line shorter than outer folding don't do it    
+    // let minLineCountDiffToOuter = 9    
    
 
     let saveFoldingStatus() = foldStatus.Set(getFilePath(),manager)
@@ -65,8 +79,7 @@ type Foldings(manager:Folding.FoldingManager, state:InteractionState, getFilePat
     let Folds = ResizeArray<Fold>()  
 
     let mutable isInitialLoad = true
-
-    let mutable lastBadIndentSize = 0
+   
 
     let findFoldings (clns:CodeLineTools.CodeLines, id) :bool = 
         
@@ -102,6 +115,13 @@ type Foldings(manager:Folding.FoldingManager, state:InteractionState, getFilePat
                 match clns.GetLine(lnNo, id) with 
                 |ValueNone -> false // did not reach end of code lines
                 |ValueSome this -> 
+                    // (1) find bad indents:
+                    if this.indent % defaultIndenting <> 0 then                         
+                        // printfn $"bad indent {this.indent} at line {lnNo}"
+                        transformers.Insert(lnNo, {from=this.offStart; till=this.offStart+this.indent; act=badIndentAction} )
+                                            
+                    // (2) find folds:                 
+                    
                     if this.indent=this.len then // skip all white lines
                         loopLines prevLnNo prev (lnNo+1)
                     
@@ -153,16 +173,19 @@ type Foldings(manager:Folding.FoldingManager, state:InteractionState, getFilePat
 
     let ed = state.Editor
 
-    // get hash of first line of folding segmnet
+    // get hash of first line of folding segment (iterating backwards)
     let getHash(off) =
         let d = ed.Document
         let mutable hash = off 
         let rec loop i =
-            let c = d.GetCharAt(i)
-            if c = '\r' then hash
+            if i < 0 then 
+                hash
             else
-                hash <- hash  + (97 * int c) 
-                loop (i+1)
+                let c = d.GetCharAt(i)
+                if c = '\r' then hash
+                else
+                    hash <- hash  + (97 * int c) 
+                    loop (i-1)
         loop off
 
     let updateCollapseStatus()=
@@ -176,9 +199,9 @@ type Foldings(manager:Folding.FoldingManager, state:InteractionState, getFilePat
     let foldEditor (id:int64) = 
         async{                
             if findFoldings (state.CodeLines, id) then
-                Folds|> Seff.Util.General.sortInPlaceBy ( fun f -> f.foldStartOff,f.linesInFold)                
-              
                 foundBadIndentsEv.Trigger()
+                Folds|> Seff.Util.General.sortInPlaceBy ( fun f -> f.foldStartOff,f.linesInFold) 
+                
                 if isInitialLoad then                                
                     while foldStatus.WaitingForFileRead do
                         // check like this because reading of file data happens async
@@ -203,11 +226,13 @@ type Foldings(manager:Folding.FoldingManager, state:InteractionState, getFilePat
                     do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context  
                     
                     let folds=ResizeArray<NewFolding>()                                
-                    for f in Folds do
-                        //ISeffLog.log.PrintfnDebugMsg "Foldings from %d to %d  that is  %d lines" f.foldStartOff  f.foldEndOff f.linesInFold
-                        let fo = new NewFolding(f.foldStartOff, f.foldEndOff) 
-                        fo.Name <- textInFoldBox f.linesInFold
-                        folds.Add(fo) //if NewFolding type is created async a waiting symbol appears on top of it
+                    for i=0 to Folds.Count - 1 do
+                        if i < Folds.Count then // because folds might get changed on another thread
+                            let f = Folds.[i]
+                            //ISeffLog.log.PrintfnDebugMsg "Foldings from %d to %d  that is  %d lines" f.foldStartOff  f.foldEndOff f.linesInFold
+                            let fo = new NewFolding(f.foldStartOff, f.foldEndOff) 
+                            fo.Name <- textInFoldBox f.linesInFold
+                            folds.Add(fo) //if NewFolding type is created async a waiting symbol appears on top of it
                         
                     
                     // Existing foldings starting after this offset will be kept even if they don't appear in newFoldings. Use -1 for this parameter if there were no parse errors)
@@ -228,7 +253,8 @@ type Foldings(manager:Folding.FoldingManager, state:InteractionState, getFilePat
                                 //    if isCollapsed then  ISeffLog.printnColor 200 0 0 $"try collapse {ln.LineNumber}: {d.GetText ln}"
                                 //    else                 ISeffLog.printnColor 0 200 0 $"try open {ln.LineNumber}:{d.GetText ln}"
                     //ISeffLog.printnColor 100 100 100 $"---------end of try collapse---------------------"
-                    state.Editor.TextArea.TextView.Redraw()
+                    //ISeffLog.log.PrintfnDebugMsg $"Updated {Folds.Count} Foldings "
+                    //state.Editor.TextArea.TextView.Redraw()
                     saveFoldingStatus() // so that when new foldings appeared they are saved immediately
 
             } |>  Async.Start
@@ -242,7 +268,7 @@ type Foldings(manager:Folding.FoldingManager, state:InteractionState, getFilePat
     // When the full text gets replaced ( eg via git branch change).
     // manager.UpdateFoldings(..) cannot remember old locations and keep state
     do 
-        // set up intial state:
+        // set up initial state:
         let vs = state.Config.FoldingStatus.Get(getFilePath())
         for f,s in Seq.zip manager.AllFoldings vs do f.IsFolded <- s
         
