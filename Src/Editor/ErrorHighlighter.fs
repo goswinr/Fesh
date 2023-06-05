@@ -198,7 +198,7 @@ type ErrorRenderer (state: InteractionState, segms:LineTransformers<SegmentToMar
                 let ln = vl.FirstDocumentLine                
                 let segs = segms.Line(ln.LineNumber)
                 for i = 0 to segs.Count-1 do
-                    if segs.Count > i then // saftey check because collection might get reset while iterating
+                    if segs.Count > i then // safety check because collection might get reset while iterating
                         let seg = segs.[i]
                         
                         if seg.EndOffset+5< caret || caret < seg.Offset-5 then // skip flashing background change at caret?

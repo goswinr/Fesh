@@ -71,7 +71,7 @@ type SemActions() =
         // eprintfn $"makeCursive {f}"
         // el.TextRunProperties.SetTypeface(tf)
         el.TextRunProperties.SetTypeface(StyleState.italicBoldEditorTf)
-        el.TextRunProperties.SetTypographyProperties(stylisticSet1) // for cursive set of cascadia mono
+        el.TextRunProperties.SetTypographyProperties(stylisticSet1) // for cursive set of Cascadia Mono
 
 
     member val ReferenceTypeA              = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(c_ReferenceType              ))
@@ -178,70 +178,66 @@ type SemanticHighlighter (state: InteractionState) =
             let allRanges = checkRes.GetSemanticClassification(None)
             
             trans.ClearAllLines()// do as late as possible , offset shifting should do its work till then 
-                        
-            for i = 0 to allRanges.Length-1 do // doing a reverse search solves a highlighting problem where ranges overlap(previously)
-                let sem = allRanges.[i]
-                let r = sem.Range            
-                let lineNo = max 1 r.StartLine
-                match codeLines.GetLine(lineNo,id) with 
-                | ValueNone -> ()
-                | ValueSome offLn ->                
-                    let st = offLn.offStart + r.StartColumn                 
-                    let en = offLn.offStart + r.EndColumn
 
-                    //ISeffLog.log.PrintfnDebugMsg $"{lineNo}:{sem.Type} {r.StartColumn} to {r.EndColumn}"
+            let rec loop i = 
+                if i = allRanges.Length then 
+                    true // reached end
+                else
+                    let sem = allRanges.[i]
+                    let r = sem.Range            
+                    let lineNo = max 1 r.StartLine
+                    match codeLines.GetLine(lineNo,id) with 
+                    | ValueNone -> false // exit early
+                    | ValueSome offLn ->                
+                        let st = offLn.offStart + r.StartColumn                 
+                        let en = offLn.offStart + r.EndColumn
+                        //ISeffLog.log.PrintfnDebugMsg $"{lineNo}:{sem.Type} {r.StartColumn} to {r.EndColumn}"
 
-                    let inline push(f,t,a) = trans.Insert(lineNo,{from=f; till=t; act=a})
-            
-                    match sem.Type with 
-                    | Sc.ReferenceType               -> push(st,en, semActs.ReferenceType              )
-                    | Sc.ValueType                   -> push(st,en, semActs.ValueType                  )
-                    | Sc.UnionCase                   -> push(st,en, semActs.UnionCase                  )
-                    | Sc.UnionCaseField              -> push(st,en, semActs.UnionCaseField             )
-                    | Sc.Function                    -> if not(skipFunc(st,en)) then push(correctStart(st,en),en, semActs.Function)
-                    | Sc.Property                    -> push(correctStart(st,en),en, semActs.Property  )// correct so that a string or number literal before the dot does not get colored
-                    | Sc.MutableVar                  -> push(st,en, semActs.MutableVar                 )
-                    | Sc.Module                      -> if not(skipModul(st,en)) then push(st,en, semActs.Module)
-                    | Sc.Namespace                   -> push(st,en, semActs.Namespace                  )
-                    | Sc.ComputationExpression       -> push(st,en, semActs.ComputationExpression      )
-                    | Sc.IntrinsicFunction           -> push(st,en, semActs.IntrinsicFunction          )
-                    | Sc.Enumeration                 -> push(st,en, semActs.Enumeration                )
-                    | Sc.Interface                   -> push(st,en, semActs.Interface                  )
-                    | Sc.TypeArgument                -> push(st,en, semActs.TypeArgument               )
-                    | Sc.Operator                    -> push(st,en, semActs.Operator                   )
-                    | Sc.DisposableType              -> push(st,en, semActs.DisposableType             )
-                    | Sc.DisposableTopLevelValue     -> push(st,en, semActs.DisposableTopLevelValue    )
-                    | Sc.DisposableLocalValue        -> push(st,en, semActs.DisposableLocalValue       )
-                    | Sc.Method                      -> push(correctStart(st,en),en, semActs.Method    )// correct so that a string or number literal before the dot does not get colored
-                    | Sc.ExtensionMethod             -> push(correctStart(st,en),en, semActs.ExtensionMethod)
-                    | Sc.ConstructorForReferenceType -> push(st,en, semActs.ConstructorForReferenceType)
-                    | Sc.ConstructorForValueType     -> push(st,en, semActs.ConstructorForValueType    )
-                    | Sc.Literal                     -> push(st,en, semActs.Literal                    )
-                    | Sc.RecordField                 -> push(st,en, semActs.RecordField                )
-                    | Sc.MutableRecordField          -> push(st,en, semActs.MutableRecordField         )
-                    | Sc.RecordFieldAsFunction       -> push(st,en, semActs.RecordFieldAsFunction      )
-                    | Sc.Exception                   -> push(st,en, semActs.Exception                  )
-                    | Sc.Field                       -> push(st,en, semActs.Field                      )
-                    | Sc.Event                       -> push(st,en, semActs.Event                      )
-                    | Sc.Delegate                    -> push(st,en, semActs.Delegate                   )
-                    | Sc.NamedArgument               -> push(st,en, semActs.NamedArgument              )
-                    | Sc.Value                       -> push(st,en, semActs.Value                      )
-                    | Sc.LocalValue                  -> push(st,en, semActs.LocalValue                 )
-                    | Sc.Type                        -> push(st,en, semActs.Type                       )
-                    | Sc.TypeDef                     -> push(st,en, semActs.TypeDef                    )
-                    | Sc.Plaintext                   -> push(st,en, semActs.Plaintext                  )  
-                    | Sc.Printf                      -> () //push(st,en, semActs.Printf                ) // covered in xshd file 
-                    | _ -> () // the above actually covers all SemanticClassificationTypes
+                        let inline push(f,t,a) =  trans.Insert(lineNo,{from=f; till=t; act=a})
+
+                        match sem.Type with 
+                        | Sc.ReferenceType               -> push(st,en, semActs.ReferenceType              )
+                        | Sc.ValueType                   -> push(st,en, semActs.ValueType                  )
+                        | Sc.UnionCase                   -> push(st,en, semActs.UnionCase                  )
+                        | Sc.UnionCaseField              -> push(st,en, semActs.UnionCaseField             )
+                        | Sc.Function                    -> if not(skipFunc(st,en)) then push(correctStart(st,en),en, semActs.Function)
+                        | Sc.Property                    -> push(correctStart(st,en),en, semActs.Property  )// correct so that a string or number literal before the dot does not get colored
+                        | Sc.MutableVar                  -> push(st,en, semActs.MutableVar                 )
+                        | Sc.Module                      -> if not(skipModul(st,en)) then push(st,en, semActs.Module)
+                        | Sc.Namespace                   -> push(st,en, semActs.Namespace                  )
+                        | Sc.ComputationExpression       -> push(st,en, semActs.ComputationExpression      )
+                        | Sc.IntrinsicFunction           -> push(st,en, semActs.IntrinsicFunction          )
+                        | Sc.Enumeration                 -> push(st,en, semActs.Enumeration                )
+                        | Sc.Interface                   -> push(st,en, semActs.Interface                  )
+                        | Sc.TypeArgument                -> push(st,en, semActs.TypeArgument               )
+                        | Sc.Operator                    -> push(st,en, semActs.Operator                   )
+                        | Sc.DisposableType              -> push(st,en, semActs.DisposableType             )
+                        | Sc.DisposableTopLevelValue     -> push(st,en, semActs.DisposableTopLevelValue    )
+                        | Sc.DisposableLocalValue        -> push(st,en, semActs.DisposableLocalValue       )
+                        | Sc.Method                      -> push(correctStart(st,en),en, semActs.Method    )// correct so that a string or number literal before the dot does not get colored
+                        | Sc.ExtensionMethod             -> push(correctStart(st,en),en, semActs.ExtensionMethod)
+                        | Sc.ConstructorForReferenceType -> push(st,en, semActs.ConstructorForReferenceType)
+                        | Sc.ConstructorForValueType     -> push(st,en, semActs.ConstructorForValueType    )
+                        | Sc.Literal                     -> push(st,en, semActs.Literal                    )
+                        | Sc.RecordField                 -> push(st,en, semActs.RecordField                )
+                        | Sc.MutableRecordField          -> push(st,en, semActs.MutableRecordField         )
+                        | Sc.RecordFieldAsFunction       -> push(st,en, semActs.RecordFieldAsFunction      )
+                        | Sc.Exception                   -> push(st,en, semActs.Exception                  )
+                        | Sc.Field                       -> push(st,en, semActs.Field                      )
+                        | Sc.Event                       -> push(st,en, semActs.Event                      )
+                        | Sc.Delegate                    -> push(st,en, semActs.Delegate                   )
+                        | Sc.NamedArgument               -> push(st,en, semActs.NamedArgument              )
+                        | Sc.Value                       -> push(st,en, semActs.Value                      )
+                        | Sc.LocalValue                  -> push(st,en, semActs.LocalValue                 )
+                        | Sc.Type                        -> push(st,en, semActs.Type                       )
+                        | Sc.TypeDef                     -> push(st,en, semActs.TypeDef                    )
+                        | Sc.Plaintext                   -> push(st,en, semActs.Plaintext                  )  
+                        | Sc.Printf                      -> () //push(st,en, semActs.Printf                ) // covered in xshd file 
+                        | _ -> () // the above actually covers all SemanticClassificationTypes
                     
-                    
-                    //with e ->  
-                    //    ISeffLog.printError  $"sem.type {sem.Type}:\r\n on line {line} for {r}"
-                    //    ISeffLog.printError  $"offSt {offSt} to offEn{offEn} for , st:{st} to en:{en}"
-                    //    ISeffLog.printError  $"MSG:{e}"
-             
-             
+                        loop (i+1)
 
-            if state.DocChangedId.Value = id then 
+            if loop 0 then 
                 setUnusedDecl(checkRes,  id)
                 if state.DocChangedId.Value = id then    
                     for r in unusedDecl do                     

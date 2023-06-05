@@ -107,7 +107,7 @@ module CodeLineTools =
         //member this.Get(changeId): CodeLines option =  if isDone && docChangedIdHolder.Value = changeId then Some this else None
 
         /// Safe: checks isDone && docChangedIdHolder.Value = id
-        /// retuns also none for bad indices
+        /// returns also none for bad indices
         member _.GetLine(lineIdx, changeId): LineInfo voption =
             if isDone && docChangedIdHolder.Value = changeId then 
                 if lineIdx < 0 || lineIdx >= lns.Count then 
@@ -118,7 +118,7 @@ module CodeLineTools =
                 ValueNone
 
         /// Safe: checks isDone && docChangedIdHolder.Value = id
-        /// retuns also none for bad indices
+        /// returns also none for bad indices
         member _.GetLineText(lineIdx, changeId): string voption =
             if isDone && docChangedIdHolder.Value = changeId then 
                 if lineIdx < 0 || lineIdx >= lns.Count then 
@@ -133,7 +133,7 @@ module CodeLineTools =
     
     /// used for Log
     /// Holds a List who's indices correspond to each line with info about:
-    /// offStart: the offset of the first chracter off this line 
+    /// offStart: the offset of the first character off this line 
     /// indent:  the count of spaces at the start of this line 
     /// len: the amount of characters in this line excluding the trailing \r\n
     /// if indent equals len the line is only whitespace
@@ -178,7 +178,7 @@ module CodeLineTools =
             update code
 
         /// Safe: checks isDone && docChangedIdHolder.Value = id
-        /// retuns also none for bad indices
+        /// returns also none for bad indices
         member _.GetLine(lineIdx, changeId): LineInfo voption =
             if lineIdx < 0 || lineIdx >= lns.Count then 
                 ValueNone
@@ -207,7 +207,7 @@ type InteractionState(ed:TextEditor, foldManager:FoldingManager, config:Seff.Con
     /// reacts to caret changes
     let transformersMatchingBrackets  = new LineTransformers<LinePartChange>()   
 
-    /// reacts to document chnages
+    /// reacts to document changes
     let transformersSelection         = new LineTransformers<LinePartChange>() 
     
     let fastColorizer = new FastColorizer( 
@@ -226,12 +226,12 @@ type InteractionState(ed:TextEditor, foldManager:FoldingManager, config:Seff.Con
     /// Or while waiting for an item in the completion window to be picked
     member _.DocChangedId  = changeId
 
-    /// Threadsave Increment of DocChangedId
+    /// Threadsafe Increment of DocChangedId
     /// Returns the incremented value.
     member _.Increment() = System.Threading.Interlocked.Increment changeId
  
     /// Checks if passed in int64 is same as current DocChangedId.
-    // if yes retuns second input ( usefull for monadic chaining)
+    // if yes returns second input ( useful for monadic chaining)
     member _.IsLatestOpt id  =  if changeId.Value = id then Some true else None
 
     /// Checks if passed in int64 is same as current DocChangedId.
@@ -257,7 +257,7 @@ type InteractionState(ed:TextEditor, foldManager:FoldingManager, config:Seff.Con
     /// reacts to caret changes
     member _.TransformersMatchingBrackets  = transformersMatchingBrackets
 
-    /// reacts to document chnages
+    /// reacts to document changes
     member _.TransformersSelection         = transformersSelection
     
     member _.FastColorizer                 = fastColorizer                
@@ -269,7 +269,7 @@ type InteractionState(ed:TextEditor, foldManager:FoldingManager, config:Seff.Con
 
     member _.FoldManager = foldManager 
 
-    // the caret position that can be savely accessed async  // DELETE
+    // the caret position that can be safely accessed async  // DELETE
     //member val Caret = 0 with get,set
     
 

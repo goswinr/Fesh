@@ -99,8 +99,8 @@ module Redrawing =
         let tryDraw() =  
             if scan = Scan1State.All then                 
                 scan <- Scan1State.None 
-                //fast.ResetShift()
-                //printfn $"*Redraw BadInd+Brackets, {serv.brackets.TransformerLineCount} lines"
+                //fast.ResetShift()                //
+                //printfn $"Redraw BadInd+Brackets"
                 ed.Dispatcher.Invoke (fun() -> ed.TextArea.TextView.Redraw()) //TODO only redraw parts of the view, or lower priority ?    
 
         let doneBadIndents() = scan <- scan ||| Scan1State.BadIndent;  tryDraw()
@@ -128,7 +128,7 @@ module Redrawing =
             if scan = Scan2State.All then                 
                 scan <- Scan2State.None
                 fast.ResetShift()
-                //printfn $"*Redraw Err+Semantic, {serv.semantic.TransformerLineCount} lines*"
+                //eprintfn $"Redraw Err+Semantic"
                 ed.Dispatcher.Invoke (fun() -> ed.TextArea.TextView.Redraw()) //TODO only redraw parts of the view, or lower priority ?    
     
         let doneSemantics()  = scan <- scan ||| Scan2State.Semantics;  tryDraw("Sem")

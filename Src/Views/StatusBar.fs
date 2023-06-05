@@ -279,7 +279,7 @@ type SelectedEditorTextStatus (grid:TabsAndLog) as this =
             if triggerNext then
                 match grid.Log.SelectionHighlighter with 
                 |None -> ()
-                |Some hili -> hili.Mark(sel.Word, false)            
+                |Some hili -> hili.Mark(sel.Word)            
             
             if sel.Offsets.Count = 0 then  
                 this.Text <- desc  
@@ -326,7 +326,7 @@ type SelectedLogTextStatus (grid:TabsAndLog) as this =
             |None -> ()
             |Some hili ->
                 if triggerNext then 
-                    grid.Tabs.Current.Editor.Services.selection.Mark(hili.Word,false)
+                    grid.Tabs.Current.Editor.Services.selection.Mark(hili.Word)
 
                 if hili.Offsets.Count = 0 then  
                     this.Text <- desc  

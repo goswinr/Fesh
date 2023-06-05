@@ -100,8 +100,7 @@ type EvaluationTrackerRenderer (ed:TextEditor) =
                     while j>0 && isWhite (doc.GetCharAt(j)) do // to remove white space too
                         j <- j-1
                     topMostUnEvaluated <- j+2
-                    evaluatedCodeSeg   <- newSegmentTill(j+1)
-                    ed.TextArea.TextView.Redraw()
+                    evaluatedCodeSeg   <- newSegmentTill(j+1)                    
                 else
                     let rec searchBack after i = 
                         if i = -1 then 0
@@ -145,7 +144,7 @@ type EvaluationTrackerRenderer (ed:TextEditor) =
                         topMostUnEvaluated <- segmentEnd+1
                         evaluatedCodeSeg   <- newSegmentTill(segmentEnd)
 
-                    ed.TextArea.TextView.Redraw()
+                ed.TextArea.TextView.Redraw()
 
 
     /// Triggered on each document changed

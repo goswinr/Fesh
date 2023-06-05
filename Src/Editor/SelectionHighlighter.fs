@@ -64,7 +64,7 @@ type SelectionHighlighter (state:InteractionState) =
                         loop (i+1)
             loop (offsSearchFromIdx)  
 
-    let justClear() =
+    let justClear(triggerNext) =
         lastWord <- ""
         lastSels <- ResizeArray<int>()  
         let trans = state.TransformersSelection
@@ -77,8 +77,10 @@ type SelectionHighlighter (state:InteractionState) =
                 foundSelectionEditorEv.Trigger(false)
                 for f in state.FoldManager.AllFoldings do  f.BackgroundColor <- null  
                 ed.TextArea.TextView.Redraw(f.from, l.till, priority)
+                foundSelectionEditorEv.Trigger(triggerNext)
             }|> Async.Start
     
+    // Called from StatusBar to highlight the current selection of Log in Editor too
     let mark (word:string, selectionStartOff, triggerNext:bool) =
         let id = state.DocChangedId.Value
         async{
@@ -113,9 +115,9 @@ type SelectionHighlighter (state:InteractionState) =
             trans.ClearAllLines() // does nothing if already all cleared
             lastSels <- offs 
             lastWord <- word
-            if loop 1 then // tests if ther is a newer doc change                 
+            if loop 1 then // tests if there is a newer doc change                 
                 match  prev, trans.Range with 
-                | None       , None  ->    // nothing before, nothing now, but maybe just the current selection that doesnt need highlighting, but still show in status bar
+                | None       , None  ->    // nothing before, nothing now, but maybe just the current selection that doesn't need highlighting, but still show in status bar
                     if offs.Count = 1 then 
                         do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context                    
                         foundSelectionEditorEv.Trigger(triggerNext) 
@@ -133,7 +135,7 @@ type SelectionHighlighter (state:InteractionState) =
                     ed.TextArea.TextView.Redraw(min pf.from f.from, max pl.till l.till, priority)
                     foundSelectionEditorEv.Trigger(triggerNext)
             else
-                () // dont redraw, there is already a new docchange happening that will be drawn
+                () // don't redraw, there is already a new doc change happening that will be drawn
             
 
         }|> Async.Start
@@ -148,9 +150,9 @@ type SelectionHighlighter (state:InteractionState) =
                 let startOff = ed.SelectionStart
                 mark(word, startOff, true)
             else
-                justClear()
-        |NoSel   -> justClear()
-        |RectSel -> justClear() 
+                justClear(true)
+        |NoSel   -> justClear(true)
+        |RectSel -> justClear(true) 
     
     
     do         
@@ -159,7 +161,7 @@ type SelectionHighlighter (state:InteractionState) =
     member _.Word    = lastWord 
     member _.Offsets = lastSels  
     
-      member _.Mark(word,triggerNext) = if isTextToHighlight word then mark(word,-1, triggerNext)
+      member _.Mark(word) = if isTextToHighlight word then mark(word,-1, false)else justClear(false) // isTextToHighlight is needed , word might be empty string
 
 /// Highlight-all-occurrences-of-selected-text in Log 
 type SelectionHighlighterLog (lg:TextEditor) = 
@@ -177,7 +179,7 @@ type SelectionHighlighterLog (lg:TextEditor) =
     let trans = LineTransformers<LinePartChange>()    
     let colorizer = FastColorizer([|trans|], lg ) 
 
-    let justClear() =
+    let justClear(triggerNext:bool) =
         lastWord <- ""
         lastSels <- ResizeArray<int>()  
         match trans.Range with 
@@ -189,6 +191,7 @@ type SelectionHighlighterLog (lg:TextEditor) =
                 foundSelectionLogEv.Trigger(false)
                 //for f in state.FoldManager.AllFoldings do  f.BackgroundColor <- null  
                 lg.TextArea.TextView.Redraw(f.from, l.till, priority)
+                foundSelectionLogEv.Trigger(triggerNext)
             }|> Async.Start
     
           
@@ -196,7 +199,7 @@ type SelectionHighlighterLog (lg:TextEditor) =
     let mutable linesNeedUpdate = true
     let logChangeID = ref 0L
 
-    let markCallID = ref 0L // because while getting the text below, the selection might have chnaged already
+    let markCallID = ref 0L // because while getting the text below, the selection might have changed already
 
     
     let mark (word:string, selectionStartOff, triggerNext:bool) =
@@ -205,7 +208,7 @@ type SelectionHighlighterLog (lg:TextEditor) =
         let doc = lg.Document
         async{
             while linesNeedUpdate && logChangeID.Value = id do                 
-                do! Async.Sleep 40 // neded for getting correct text in snapshot
+                do! Async.Sleep 50 // needed for getting correct text in snapshot
                 if logChangeID.Value = id then
                     let t = doc.CreateSnapshot().Text
                     lines.Update(t)
@@ -213,7 +216,7 @@ type SelectionHighlighterLog (lg:TextEditor) =
                         linesNeedUpdate <- false 
                     
             
-            if callId = markCallID.Value && logChangeID.Value = id  then // because while getting the text above, the selection might have chnaged already
+            if callId = markCallID.Value && logChangeID.Value = id  then // because while getting the text above, the selection might have changed already
                 let codeStr  = lines.FullCode
                 let lastLineNo = lines.LastLineIdx
                 let wordLen = word.Length
@@ -265,7 +268,7 @@ type SelectionHighlighterLog (lg:TextEditor) =
                             lg.TextArea.TextView.Redraw(min pf.from f.from, max pl.till l.till, priority)
                             foundSelectionLogEv.Trigger(triggerNext)
                     else
-                        () // dont redraw, there is already a new docchange happening that will be drawn
+                        () // don't redraw, there is already a new doc change happening that will be drawn
            
 
         }|> Async.Start
@@ -279,14 +282,13 @@ type SelectionHighlighterLog (lg:TextEditor) =
                 let startOff = lg.SelectionStart
                 mark(word, startOff, true)                
             else
-                justClear()
-        |NoSel   -> justClear()
-        |RectSel -> justClear() 
+                justClear(true)
+        |NoSel   -> justClear(true)
+        |RectSel -> justClear(true) 
     
     
     do         
-        lg.TextArea.SelectionChanged.Add ( fun _ -> update() ) 
-        //lg.Document.Changing.Add (fun _ ->Threading.Interlocked.Increment logChangeID |> ignore )
+        lg.TextArea.SelectionChanged.Add ( fun _ -> update() )        
         lg.Document.Changed.Add (fun _ -> 
             Threading.Interlocked.Increment logChangeID |> ignore
             linesNeedUpdate <- true)
@@ -295,4 +297,5 @@ type SelectionHighlighterLog (lg:TextEditor) =
     member _.Word    = lastWord 
     member _.Offsets = lastSels 
     
-    member _.Mark(word, triggerNext) = if isTextToHighlight word then mark(word,-1, triggerNext) // isTextToHighlight iss neded , word might be empty string
+    /// Called from StatusBar to highlight the current selection of Editor in Log too
+    member _.Mark(word) = if isTextToHighlight word then mark(word,-1, false) else justClear(false) // isTextToHighlight is needed , word might be empty string
