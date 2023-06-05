@@ -317,10 +317,10 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, statusBar:SeffStatusBar, log:
                 menuItem cmds.RunCurrentLines
                 menuItem cmds.RunSelectedText
                 sep()
-                menuItem cmds.RunTextTillCursor
                 //menuItem cmds.RunTextFromCursor
-                menuItem cmds.EvalContinue
-                menuItem cmds.MarkEval
+                if config.Settings.GetBool("TrackEvaluatedCode", false) then menuItem cmds.RunTextTillCursor
+                if config.Settings.GetBool("TrackEvaluatedCode", false) then menuItem cmds.EvalContinue
+                if config.Settings.GetBool("TrackEvaluatedCode", false) then menuItem cmds.MarkEval
                 sep()
                 menuItem cmds.GoToError
                 sep()

@@ -24,14 +24,15 @@ type Commands (grid:TabsAndLog, statusBar:SeffStatusBar)  =
     let config = grid.Config
     let fsi    = tabs.Fsi
 
-    let curr()  = tabs.Current.Editor
-    let fName() = tabs.Current.Editor.FilePath.FileName
+    let curr()   = tabs.Current.Editor
+    
+    let fName()  = tabs.Current.Editor.FilePath.FileName
 
     let evalAllText()          =                                             fsi.Evaluate {editor=curr(); amount=All; logger=None; scriptName=fName()}
     let evalAllTextSave()      =               tabs.SaveAsync(tabs.Current); fsi.Evaluate {editor=curr(); amount=All; logger=None; scriptName=fName()}
     let evalAllTextSaveClear() =  log.Clear(); tabs.SaveAsync(tabs.Current); fsi.Evaluate {editor=curr(); amount=All; logger=None; scriptName=fName()}
     let evalContinue()         =  (if curr().FilePath.ExistsAsFile then tabs.SaveAsync(tabs.Current)); fsi.Evaluate {editor=curr(); amount=ContinueFromChanges; logger=None; scriptName=fName()}
-    let markEvaluated()        =  curr().Services.evalTracker.MarkEvaluatedTillOffset(Selection.currentLineEnd tabs.CurrAvaEdit + 2 )
+    let markEvaluated()        =  match curr().Services.evalTracker with |Some et -> et.MarkEvaluatedTillOffset(Selection.currentLineEnd tabs.CurrAvaEdit + 2 ) |None -> ()
 
     let evalSelectedLines()    =  fsi.Evaluate {editor=curr(); amount = FsiSegment <|SelectionForEval.expandSelectionToFullLines(tabs.CurrAvaEdit) ; logger=None; scriptName=fName()}
     let evalSelectedText()     =  fsi.Evaluate {editor=curr(); amount = FsiSegment <|SelectionForEval.current (tabs.CurrAvaEdit)                   ; logger=None; scriptName=fName()}   // null or empty check is done in fsi.Evaluate
@@ -165,7 +166,7 @@ type Commands (grid:TabsAndLog, statusBar:SeffStatusBar)  =
             // some more gestures and selection depending  overwrites are defined in CursorBehavior.previewKeyDown
             // NOTE :--------------------------------------------------------------------
 
-            let allCustomCommands = [  //for setting up Key gestures below, excluding the ones already provided by avalonedit
+            let allCustomCommands = [|  //for setting up Key gestures below, excluding the ones already provided by avalonedit
                this.NewTab
                this.OpenFile
                //this.OpenTemplateFile
@@ -195,9 +196,9 @@ type Commands (grid:TabsAndLog, statusBar:SeffStatusBar)  =
                this.RunAllTxSaveClear
                this.RunCurrentLines
                this.RunSelectedText
-               this.RunTextTillCursor
                //this.RunTextFromCursor
-               this.EvalContinue
+               if config.Settings.GetBool("TrackEvaluatedCode", false) then this.RunTextTillCursor
+               if config.Settings.GetBool("TrackEvaluatedCode", false) then this.EvalContinue
                this.GoToError
                this.ClearLog
                this.CancelFSI
@@ -214,7 +215,7 @@ type Commands (grid:TabsAndLog, statusBar:SeffStatusBar)  =
                //this.SettingsFolder
                //this.AppFolder
                //this.ReloadXshdFile
-               ]
+               |]
 
 
             // these functions parse the KeyGesture from a string defined above.

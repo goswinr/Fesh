@@ -70,7 +70,7 @@ type LineTransformers<'T>() =
             //    | :? IndexOutOfRangeException -> failwithf $"LineTransformers: Tried to get line index {lineNumber} of {lines.Count}" 
             //    | e -> raise e
         
-        /// remeber the first and last line that has content to then only redraw those 
+        // remember the first and last line that has content to then only redraw those 
         if lineNumber < firstLine then 
             firstLine <- lineNumber
             first <- x
@@ -85,7 +85,7 @@ type LineTransformers<'T>() =
                 let ln = lines.[i] 
                 if not <| isNull ln then ln.Clear()
                 
-            //lines.Clear() // dont do this too, so that allocated Lists stay alive and can be refilled fast        
+            //lines.Clear() // don't do this too, so that allocated Lists stay alive and can be refilled fast        
             lastLine  <- 0      
             firstLine <- Int32.MaxValue
 

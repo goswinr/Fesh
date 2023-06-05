@@ -18,7 +18,7 @@ type EditorServices = {
     semantic    : SemanticHighlighter
     compls      : Completions  
     selection   : SelectionHighlighter
-    evalTracker : EvaluationTracker
+    evalTracker : option<EvaluationTracker>
     }
 
 module DocChangeUtil = 
@@ -466,7 +466,7 @@ module DocChangeEvents =
 
             
 
-    // used with a auto hotkey script that simulates 28 key presses starting with ß ending with £
+    // used with a auto hotkey script that simulates 28 key presses starting with ï¿½ ending with ï¿½
     let logPerformance (t:string)=
-        if   t ="ß" then Timer.InstanceRedraw.tic()
-        elif t="£" then  eprintfn $"{Timer.InstanceRedraw.tocEx}"
+        if   t ="ï¿½" then Timer.InstanceRedraw.tic()
+        elif t="ï¿½" then  eprintfn $"{Timer.InstanceRedraw.tocEx}"

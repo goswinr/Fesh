@@ -84,19 +84,19 @@ module CodeLineTools =
         /// ThreadSafe and in Sync: Only start sparsing when Done and also checks 
         /// if docChangedIdHolder.Value = id before and after
         /// returns True 
-        member _.Update(code, chnageId): bool = 
+        member _.Update(code, changeId): bool = 
             async{
                 //Wait til done
-                while not isDone && docChangedIdHolder.Value = chnageId do // because the id might expire while waiting
+                while not isDone && docChangedIdHolder.Value = changeId do // because the id might expire while waiting
                     do! Async.Sleep 10
                 return 
-                    if docChangedIdHolder.Value <> chnageId then 
+                    if docChangedIdHolder.Value <> changeId then 
                         false
                     else
                         lns.Clear()
                         update code
-                        if docChangedIdHolder.Value = chnageId then 
-                            correspondingId <- chnageId
+                        if docChangedIdHolder.Value = changeId then 
+                            correspondingId <- changeId
                             true
                         else 
                             false
@@ -104,12 +104,12 @@ module CodeLineTools =
 
 
         // Safe: checks isDone && docChangedIdHolder.Value = id
-        //member this.Get(chnageId): CodeLines option =  if isDone && docChangedIdHolder.Value = chnageId then Some this else None
+        //member this.Get(changeId): CodeLines option =  if isDone && docChangedIdHolder.Value = changeId then Some this else None
 
         /// Safe: checks isDone && docChangedIdHolder.Value = id
         /// retuns also none for bad indices
-        member _.GetLine(lineIdx, chnageId): LineInfo voption =
-            if isDone && docChangedIdHolder.Value = chnageId then 
+        member _.GetLine(lineIdx, changeId): LineInfo voption =
+            if isDone && docChangedIdHolder.Value = changeId then 
                 if lineIdx < 0 || lineIdx >= lns.Count then 
                     ValueNone
                 else
@@ -119,8 +119,8 @@ module CodeLineTools =
 
         /// Safe: checks isDone && docChangedIdHolder.Value = id
         /// retuns also none for bad indices
-        member _.GetLineText(lineIdx, chnageId): string voption =
-            if isDone && docChangedIdHolder.Value = chnageId then 
+        member _.GetLineText(lineIdx, changeId): string voption =
+            if isDone && docChangedIdHolder.Value = changeId then 
                 if lineIdx < 0 || lineIdx >= lns.Count then 
                     ValueNone
                 else
@@ -179,7 +179,7 @@ module CodeLineTools =
 
         /// Safe: checks isDone && docChangedIdHolder.Value = id
         /// retuns also none for bad indices
-        member _.GetLine(lineIdx, chnageId): LineInfo voption =
+        member _.GetLine(lineIdx, changeId): LineInfo voption =
             if lineIdx < 0 || lineIdx >= lns.Count then 
                 ValueNone
             else

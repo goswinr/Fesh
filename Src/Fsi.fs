@@ -273,11 +273,12 @@ type Fsi private (config:Config) =
                         log.PrintfnInfoMsg "%s" "E.G. as a dependency from a already loaded dll."
 
 
-                | _ -> // any other runtimne exception
+                | _ -> // any other runtime exception
                     runtimeErrorEv.Trigger(exn)  // in seff.fs this is used to ensure the main window is visible, because it might be hidden manually, or not visible from the start ( e.g. current script is evaluated in Seff.Rhino)                             
                     log.PrintfnAppErrorMsg "Runtime Error:"
                     match exn with 
-                    | :? Reflection.ReflectionTypeLoadException as ex -> for le in ex.LoaderExceptions do log.PrintfnFsiErrorMsg $"{le}"
+                    | :? Reflection.ReflectionTypeLoadException as ex -> 
+                            for le in ex.LoaderExceptions do log.PrintfnFsiErrorMsg $"{le}"
                     | _ -> ()
 
                     // find first error line in an fsx file    
@@ -324,11 +325,13 @@ type Fsi private (config:Config) =
             match codeToEv.amount with
             |All -> avaEd.Text
             |ContinueFromChanges ->
-                let from = codeToEv.editor.EvaluateFrom
-                let len = avaEd.Document.TextLength - from
-                if len > 0 then avaEd.Document.GetText(from , len )
-                else "" // ContinueFromChanges reached end, all of document is evaluated
-            | FsiSegment seg -> seg.text
+                match codeToEv.editor.EvaluateFrom with 
+                |None -> avaEd.Text
+                |Some from -> 
+                    let len = avaEd.Document.TextLength - from
+                    if len > 0 then avaEd.Document.GetText(from , len )
+                    else "" // ContinueFromChanges reached end, all of document is evaluated
+            | FsiSegment seg -> seg.text 
 
         if not(String.IsNullOrWhiteSpace fsCode) then
             if not config.RunContext.FsiCanRun then

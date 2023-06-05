@@ -82,7 +82,8 @@ type Editor private (code:string, config:Config, initalFilePath:FilePath)  =
     let semHiLi     = new SemanticHighlighter(state)
     let error       = new ErrorHighlighter(state,foldMg)
     let selHili     = new SelectionHighlighter(state)
-    let evalTracker = new EvaluationTracker(avaEdit,config)
+    let evalTracker =
+        if config.Settings.GetBool("TrackEvaluatedCode", false) then Some <| EvaluationTracker(avaEdit,config) else None       
 
     let services :EditorServices = {
         folds       = folds
@@ -111,9 +112,7 @@ type Editor private (code:string, config:Config, initalFilePath:FilePath)  =
     member val CodeAtLastSave : string = "" with get,set // used to check if file was changed in the background by other apps in FileChangeTracker
    
     member _.ErrorHighlighter = error
-
-    //member this.EvalTracker = evalTracker
-
+   
     member _.Completions = compls
 
     member _.Folds = folds
@@ -136,7 +135,7 @@ type Editor private (code:string, config:Config, initalFilePath:FilePath)  =
     //member this.Log = config.Log   
     member this.IsComplWinOpen  = compls.IsOpen
     
-    member _.EvaluateFrom    = evalTracker.EvaluateFrom
+    //member _.EvaluateFrom  = evalTracker.EvaluateFrom
 
     interface IEditor with
         member _.AvaEdit         = avaEdit
@@ -144,7 +143,7 @@ type Editor private (code:string, config:Config, initalFilePath:FilePath)  =
         member _.FilePath        = filePath // the interface is get only, it does not need a setter
         member _.IsComplWinOpen  = compls.IsOpen      
         member _.FoldingManager  = foldMg
-        member _.EvaluateFrom    = evalTracker.EvaluateFrom
+        member _.EvaluateFrom    = match evalTracker with Some et -> Some et.EvaluateFrom | None -> None
 
 
     /// sets up Text change event handlers
@@ -174,7 +173,7 @@ type Editor private (code:string, config:Config, initalFilePath:FilePath)  =
         
         avaEdit.Document.Changing.Add(DocChangeEvents.changing ed.State)
         avaEdit.Document.Changed.Add (DocChangeEvents.changed  ed ed.Services ed.State)
-        avaEdit.Document.Changed.Add(fun a -> ed.Services.evalTracker.SetLastChangeAt a.Offset)
+        avaEdit.Document.Changed.Add(fun a -> match ed.Services.evalTracker with Some et -> et.SetLastChangeAt a.Offset | None -> ())
                  
         // check if closing and inserting from completion window is desired with currently typed character:
         avaEdit.TextArea.TextEntering.Add (compls.MaybeInsertOrClose)

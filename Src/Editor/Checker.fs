@@ -212,21 +212,21 @@ type Checker private ()  =
             FsEx.Wpf.SyncWpf.doSync (fun () -> checkingStateEv.Trigger state )
 
     /// At the end either a event is raised or continuation called if present.
-    static let parseAndCheck( state:InteractionState, code:string, filePath:FilePath, chnageId): option<ParseCheckRes> = 
+    static let parseAndCheck( state:InteractionState, code:string, filePath:FilePath, changeId): option<ParseCheckRes> = 
         match fsChecker with
         | Some _ -> ()
         | None   ->  fsChecker <- Some (FsCheckerUtil.getNew())
         
         Monads.maybe{
-            let! _ = state.IsLatestOpt chnageId
+            let! _ = state.IsLatestOpt changeId
             let fileFsx    = FsCheckerUtil.getFsxFileNameForChecker filePath
-            let! _ = state.IsLatestOpt chnageId
+            let! _ = state.IsLatestOpt changeId
             let sourceText = Text.SourceText.ofString code
             return!
                 FsCheckerUtil.getOptions fsChecker.Value fileFsx sourceText
-                <* state.IsLatestOpt chnageId
+                <* state.IsLatestOpt changeId
                 >>= FsCheckerUtil.parseAndCheckImpl fsChecker.Value fileFsx sourceText
-                <*  state.IsLatestOpt chnageId
+                <*  state.IsLatestOpt changeId
             }
     
     //-----------------------------------------------------------------
@@ -242,10 +242,10 @@ type Checker private ()  =
     static member OptArgsDict = optArgsDict
 
     /// Returns None if check failed or was superseeded by a newer Document chanage ID
-    static member CheckCode(iEd:IEditor, state:InteractionState, code, chnageId, raiseEvent) : option<FullCheckResults>=        
+    static member CheckCode(iEd:IEditor, state:InteractionState, code, changeId, raiseEvent) : option<FullCheckResults>=        
         raiseStateChangedEvent <- raiseEvent
         updateCheckingState iEd Checking            
-        match parseAndCheck( state, code, iEd.FilePath, chnageId) with 
+        match parseAndCheck( state, code, iEd.FilePath, changeId) with 
         |None ->
             //ISeffLog.log.PrintfnDebugMsg $"*parseAndCheck: aborted early, waiting for newer checke state event."
             None                
@@ -256,7 +256,7 @@ type Checker private ()  =
                 parseRes = parseCheckRes.parseRes
                 checkRes = parseCheckRes.checkRes 
                 errors   = errs
-                chnageId = chnageId
+                changeId = changeId
                 editor   = iEd.AvaEdit
                 }
             updateCheckingState iEd (Done res)

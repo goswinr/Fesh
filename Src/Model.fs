@@ -73,7 +73,7 @@ module ISeffLog =
 /// To give each doc chnage a unique ID
 /// Only chanages while not waiting for completion window
 /// So that at we can check if a CheckResult still corresponds to the latest changes
-type ChnageId = int64
+type ChangeId = int64
 
 /// just an alias for a string
 type CodeAsString = string
@@ -95,7 +95,7 @@ type FullCheckResults = {
     parseRes    :FSharpParseFileResults
     checkRes    :FSharpCheckFileResults
     errors      :ErrorsBySeverity
-    chnageId    :ChnageId 
+    changeId    :ChangeId 
     editor      :TextEditor
     }
 
@@ -107,7 +107,7 @@ type FileCheckState =
 type FilePath = 
     | SetTo   of FileInfo
     | Deleted of FileInfo
-    | NotSet  of string // the dummy name to diplay in the tab header
+    | NotSet  of string // the dummy name to display in the tab header
 
     member this.DoesNotExistsAsFile = match this with  SetTo _ ->  false | Deleted _ |NotSet _ -> true
     member this.ExistsAsFile        = match this with  SetTo _ ->  true  | Deleted _ |NotSet _ -> false
@@ -122,7 +122,7 @@ type IEditor =
     abstract member FilePath       : FilePath // saving settings in config , like fold status
     abstract member IsComplWinOpen : bool   // for  checking when modifying keyboard events
     abstract member FoldingManager : FoldingManager // so that fsi can go to error location and unfold    /
-    abstract member EvaluateFrom   : int
+    abstract member EvaluateFrom   : int option // the line number to start evaluating from if EvaluationTracker is active
 
 [<RequireQualifiedAccess>]
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
@@ -192,7 +192,7 @@ type CommandInfo = {
         checkRes    :FSharpCheckFileResults
         errors      :ErrorsBySeverity
         code        :CodeAsString
-        chnageId    :CheckId 
+        changeId    :CheckId 
         editorId    :Guid
         }
     
