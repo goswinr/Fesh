@@ -246,7 +246,7 @@ type Tabs(config:Config, log:Log,seffWin:SeffWindow) =
             true
         else            
             match t.Editor.FilePath with
-            |Deleted _ ->  true // Dont ask for saving a file that is already deleted
+            |Deleted _ ->  true // don't ask for saving a file that is already deleted
             |SetTo _ 
             |NotSet _ -> 
                 match MessageBox.Show(

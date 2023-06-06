@@ -46,7 +46,7 @@ type FileChangeTracker (editor:Editor, setCodeSavedStatus:bool->unit) =
                         editor.FilePath <- SetTo fi
                         let fileCode = IO.File.ReadAllText(fi.FullName)
                         if fileCode = editor.CodeAtLastSave then
-                            ()// dont !! editor.CodeAtLastSave might not be current code in Document :setCodeSavedStatus(true)
+                            ()// don't !! editor.CodeAtLastSave might not be current code in Document :setCodeSavedStatus(true)
                         else
                             do! Async.SwitchToContext SyncWpf.context                                                  
                             match MessageBox.Show(
@@ -73,7 +73,7 @@ type FileChangeTracker (editor:Editor, setCodeSavedStatus:bool->unit) =
                     if fi.Exists then
                         let fileCode = IO.File.ReadAllText(fi.FullName)
                         if fileCode = editor.CodeAtLastSave then // this means that the last file saving was not done by Seff
-                            ()// dont !! editor.CodeAtLastSave might not be current code in Document :setCodeSavedStatus(true)    
+                            ()// don't !! editor.CodeAtLastSave might not be current code in Document :setCodeSavedStatus(true)    
                         else
                             do! Async.SwitchToContext SyncWpf.context                                                  
                             match MessageBox.Show(

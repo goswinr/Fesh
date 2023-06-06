@@ -52,12 +52,12 @@ type SelectionHighlighter (state:InteractionState) =
             f.BackgroundColor <- null // first reset
             let rec loop i =                 
                 if i >= offs.Count then 
-                    offsSearchFromIdx <- i // to exit on all next fold immediatly
+                    offsSearchFromIdx <- i // to exit on all next fold immediately
                 else 
                     let off = offs.[i]
                     if f.EndOffset < off then // all following offset are bigger than this fold stop searching
                         offsSearchFromIdx <- i // to search from this index on in next fold
-                    elif f.StartOffset < off && off < f.EndOffset then // this offest is the first within the range of the current fold
+                    elif f.StartOffset < off && off < f.EndOffset then // this offset is the first within the range of the current fold
                         f.BackgroundColor <- colorEditor 
                         offsSearchFromIdx <- i // to search from this index on in next fold
                     else
@@ -65,20 +65,23 @@ type SelectionHighlighter (state:InteractionState) =
             loop (offsSearchFromIdx)  
 
     let justClear(triggerNext) =
-        lastWord <- ""
-        lastSels <- ResizeArray<int>()  
-        let trans = state.TransformersSelection
-        match trans.Range with 
-        | None       -> () // no transformers there anyway
-        | Some (f,l) ->
+        if lastSels.Count > 0 then 
+            lastWord <- ""
+            lastSels.Clear()
+            let trans = state.TransformersSelection
             async{ 
-                trans.ClearAllLines()
-                do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context
-                foundSelectionEditorEv.Trigger(false)
-                for f in state.FoldManager.AllFoldings do  f.BackgroundColor <- null  
-                ed.TextArea.TextView.Redraw(f.from, l.till, priority)
-                foundSelectionEditorEv.Trigger(triggerNext)
-            }|> Async.Start
+                match trans.Range with 
+                | None   ->                     
+                    // still trigger event to clear the selection in StatusBar if it is just one without any highlighting
+                    do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context   
+                    foundSelectionEditorEv.Trigger(triggerNext)                     
+                | Some (f,l) ->                
+                    trans.ClearAllLines()
+                    do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context                
+                    for f in state.FoldManager.AllFoldings do  f.BackgroundColor <- null  
+                    ed.TextArea.TextView.Redraw(f.from, l.till, priority)                
+                    foundSelectionEditorEv.Trigger(triggerNext)
+                }|> Async.Start
     
     // Called from StatusBar to highlight the current selection of Log in Editor too
     let mark (word:string, selectionStartOff, triggerNext:bool) =
@@ -115,7 +118,7 @@ type SelectionHighlighter (state:InteractionState) =
             trans.ClearAllLines() // does nothing if already all cleared
             lastSels <- offs 
             lastWord <- word
-            if loop 1 then // tests if there is a newer doc change                 
+            if loop 1 then // tests if there is a newer doc change 
                 match  prev, trans.Range with 
                 | None       , None  ->    // nothing before, nothing now, but maybe just the current selection that doesn't need highlighting, but still show in status bar
                     if offs.Count = 1 then 
@@ -139,10 +142,8 @@ type SelectionHighlighter (state:InteractionState) =
             
 
         }|> Async.Start
-    
-    
-    
-    let update() =    
+     
+    let update() = 
         match Selection.getSelType ed.TextArea with 
         |RegSel  -> 
             let word = ed.SelectedText
@@ -161,7 +162,7 @@ type SelectionHighlighter (state:InteractionState) =
     member _.Word    = lastWord 
     member _.Offsets = lastSels  
     
-      member _.Mark(word) = if isTextToHighlight word then mark(word,-1, false)else justClear(false) // isTextToHighlight is needed , word might be empty string
+    member _.Mark(word) = if isTextToHighlight word then mark(word,-1, false)else justClear(false) // isTextToHighlight is needed , word might be empty string
 
 /// Highlight-all-occurrences-of-selected-text in Log 
 type SelectionHighlighterLog (lg:TextEditor) = 
@@ -180,18 +181,21 @@ type SelectionHighlighterLog (lg:TextEditor) =
     let colorizer = FastColorizer([|trans|], lg ) 
 
     let justClear(triggerNext:bool) =
-        lastWord <- ""
-        lastSels <- ResizeArray<int>()  
-        match trans.Range with 
-        | None       -> () // no transformers there anyway
-        | Some (f,l) ->
+        if lastSels.Count > 0 then 
+            lastWord <- ""
+            lastSels.Clear()            
             async{ 
-                trans.ClearAllLines()
-                do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context
-                foundSelectionLogEv.Trigger(false)
-                //for f in state.FoldManager.AllFoldings do  f.BackgroundColor <- null  
-                lg.TextArea.TextView.Redraw(f.from, l.till, priority)
-                foundSelectionLogEv.Trigger(triggerNext)
+                match trans.Range with 
+                | None   ->                     
+                    // still trigger event to clear the selection in StatusBar if it is just one without any highlighting
+                    do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context   
+                    foundSelectionEditorEv.Trigger(triggerNext)                     
+                | Some (f,l) ->        
+                    trans.ClearAllLines()
+                    do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context                
+                    //for f in state.FoldManager.AllFoldings do  f.BackgroundColor <- null  
+                    lg.TextArea.TextView.Redraw(f.from, l.till, priority)
+                    foundSelectionLogEv.Trigger(triggerNext)
             }|> Async.Start
     
           

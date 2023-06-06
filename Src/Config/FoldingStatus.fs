@@ -40,7 +40,7 @@ type FoldingStatus ( runContext:RunContext, recentlyUsedFiles:RecentlyUsedFiles)
     let foldingStatusAsString () = 
         let sb = StringBuilder()
         for KeyValue(k,v) in foldingStatus do
-            if recentlyUsedFiles.Contains(k)then // to limit number of files and remove files that dont exist anymore ?
+            if recentlyUsedFiles.Contains(k)then // to limit number of files and remove files that don't exist anymore ?
                 let vs= v |> Seq.map ( fun b -> if b then "1" else "0") |> String.concat ""
                 sb.Append(k).Append(sep).AppendLine(vs) |> ignore
         sb.ToString()

@@ -33,6 +33,7 @@ module Pen =
 
 
 module General = 
+    open System
 
     let rand = new Random() // to give each error checking call a unique id
 
@@ -69,7 +70,7 @@ module General =
                             return! loop()}
                 loop() )
 
-    let sortInPlaceBy<'T, 'Key when 'Key : comparison>  (projection : 'T -> 'Key) (rarr : ResizeArray<'T>) = 
+    let inline sortInPlaceBy<'T, 'Key when 'Key : comparison>  (projection : 'T -> 'Key) (rarr : ResizeArray<'T>) = 
         rarr.Sort (fun x y -> compare (projection x) (projection y))
 
     /// Returns the index of the item found.
@@ -77,7 +78,7 @@ module General =
     /// +1 when the first value is bigger than the second one 
     /// 0 for equality
     /// -1 when the first value is smaller than the second one 
-    let tryBinarySearchWith comparer (value: 'T) (rarr : ResizeArray<'T>) =
+    let inline tryBinarySearchWith comparer (value: 'T) (rarr : ResizeArray<'T>) =
         let rec loop lo hi =
             if lo > hi then None
             else
@@ -88,7 +89,22 @@ module General =
                 | _ -> loop lo (mid - 1)
 
         loop 0 (rarr.Count - 1)
-    
+
+
+    /// iterates a resize array and returns true if all items pass the test
+    let inline traverse (f: 'T->bool) (rarr : ResizeArray<'T>) =
+        let rec loop i =
+            if i=rarr.Count then 
+                true // all items passed
+            elif f rarr.[i] then
+                loop (i+1)
+            else
+                false // exited early                
+        loop 0   
+
+    /// for pipelining several functions like traverse
+    let ifTrueDo func predicate resizeArray condition : bool =
+        if condition then func predicate resizeArray else false
 
 
 

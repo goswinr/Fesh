@@ -170,7 +170,7 @@ module ParseBrackets =
                     | ')', _  -> pushOne next ClRound
                     | '}', _  -> pushOne next ClCurly
                     | '"','"' -> if i + 2 <= lastIdx then 
-                                    if code[i+2] = '"' then // a muliline string starts,
+                                    if code[i+2] = '"' then // a multiline string starts,
                                         skipRawTrippleString next code[i+2] (i+2)  |> flowOnOrOver RawTripleString
                                     else 
                                         charLoop next (i+2) // just an empty string, line continue
@@ -200,7 +200,7 @@ module ParseBrackets =
                     else RawTripleString           
            
         
-        /// retuns true if all lines are looped
+        /// returns true if all lines are looped
         let rec lineLoop (lineState:MuliLineState) lnNo =
             if lnNo > lns.LastLineIdx then 
                 Some brss // looped till end
@@ -254,12 +254,12 @@ module ParseBrackets =
                     ps[j] <- p
                     stack.Push p 
                 | ClAnRec | ClArr  | ClRect  | ClCurly | ClRound  ->
-                    if stack.Count = 0 then //errror this closing was never opened
+                    if stack.Count = 0 then //error this closing was never opened
                         let p = {line=lineNo; from=b.from; till = b.from + getBLen b.kind; kind=b.kind;  nestingDepth=stack.Count; other=None}
                         ps[j] <- p
                     else
                         let prev = stack.Peek()
-                        let isCorrectClosing = // is the corrcet closing bracket
+                        let isCorrectClosing = // is the correct closing bracket
                             match b.kind with
                             | ClAnRec -> prev.kind = OpAnRec
                             | ClArr   -> prev.kind = OpArr
@@ -278,7 +278,7 @@ module ParseBrackets =
         pss
 
     let getOnePair(pss: BracketPair[][], line:int, offset:int) : (BracketPair*BracketPair) option =
-        if line >= pss.Length then // this can happen when writing on last line and the codelienes are not yet updated
+        if line >= pss.Length then // this can happen when writing on last line and the code lines are not yet updated
             //eprintfn $"tried to get line {line} of {pss.Length}items"
             None
         else
@@ -289,7 +289,7 @@ module ParseBrackets =
                     |Some o -> 
                         // first sort them:
                         let a,b = if o.from < t.from then o,t else t,o                    
-                        if b.from-a.till <= 1 then None // dont return a pair if only on char between them
+                        if b.from-a.till <= 1 then None // don't return a pair if only on char between them
                         else                       Some(a,b)
                     |None  ->                      None
                     )
@@ -304,7 +304,7 @@ module ParseBrackets =
             | OpRect  -> "["
             | OpCurly -> "{"
             | OpRound -> "("            
-            // Closing Brakets:
+            // Closing Brackets:
             | ClAnRec -> "|}"
             | ClArr   -> "|]"            
             | ClRect  -> "]"
@@ -312,8 +312,7 @@ module ParseBrackets =
             | ClRound -> ")"   
         
         let mutable k = 0
-        for i=1 to bss.Count-1 do 
-            
+        for i=1 to bss.Count-1 do             
             let bs = bss[i]
             match lns.GetLine(i,id) with
             |ValueNone   -> () // loop aborted

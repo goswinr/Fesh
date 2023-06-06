@@ -111,7 +111,7 @@ module XmlParser =
         /// the main global index
         let mutable i = from  
         
-        /// the global stringbuilder used for all strings
+        /// the global string-builder used for all strings
         let sb = StringBuilder()
         let inline add (c:char) = sb.Append(c) |> ignore 
    
@@ -181,8 +181,8 @@ module XmlParser =
         /// on exit current char is '/' or '&gt;'
         let rec readAttrs (ps:Attr list) :Attr list = 
             match x[i] with 
-            | '>' -> ps //exit, but dont advance ,  leave this to caller 
-            | '/' -> ps //exit, but dont advance ,  leave this to caller 
+            | '>' -> ps //exit, but don't advance ,  leave this to caller 
+            | '/' -> ps //exit, but don't advance ,  leave this to caller 
             | ' ' -> i<-i+1 ; readAttrs ps // skip space
             | '=' ->  
                 let name = get sb

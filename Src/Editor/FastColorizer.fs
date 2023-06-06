@@ -41,51 +41,42 @@ type LineTransformers<'T>() =
     member _.Insert(lineNumber:int, x:'T) =         
         
         // fill up missing lines
-        for _ = lines.Count to lineNumber-1 do
-            //if lines.Count > 3000 then eprintfn $"LineTransformers: {lines.Count} lines?"
+        for _ = lines.Count to lineNumber-1 do            
             lines.Add null
 
         if lineNumber = lines.Count  then 
             // add a new line        
             let n = ResizeArray(4)
             n.Add x
-            lines.Add n
-            //if lines.Count > 3000 then eprintfn $"LineTransformers: {lines.Count} lines?"
+            lines.Add n            
+       
         else
-            // add to existing line
-
-            //try // TODO DELETE?
+            // add to existing line:            
             let ln = lines.[lineNumber] 
             if isNull ln then 
                 let n = ResizeArray(4)
                 lines.[lineNumber] <- n
                 n.Add x 
-            else
-                //if ln.Count < 2000 then 
-                //    if ln.Count > 100 then 
-                //        let t = typeof<'T>.Name
-                //        ISeffLog.log.PrintfnAppErrorMsg $"{t}: {ln.Count} on line {lineNumber}"
+            else                
                 ln.Add x
-            //with
-            //    | :? IndexOutOfRangeException -> failwithf $"LineTransformers: Tried to get line index {lineNumber} of {lines.Count}" 
-            //    | e -> raise e
+            
         
         // remember the first and last line that has content to then only redraw those 
         if lineNumber < firstLine then 
             firstLine <- lineNumber
-            first <- x
+            first     <- x
         if lineNumber > lastLine then 
             lastLine <- lineNumber
-            last <- x
+            last     <- x
            
     /// does nothing if clear already
     member _.ClearAllLines() =        
-        if lastLine > 0  then 
+        if firstLine < Int32.MaxValue  then 
             for i=0 to lines.Count-1 do
                 let ln = lines.[i] 
                 if not <| isNull ln then ln.Clear()
                 
-            //lines.Clear() // don't do this too, so that allocated Lists stay alive and can be refilled fast        
+            //lines.Clear() // don't do this too, so that allocated Lists stay alive and can be refilled faster.       
             lastLine  <- 0      
             firstLine <- Int32.MaxValue
 
@@ -103,7 +94,11 @@ type LineTransformers<'T>() =
 
     member _.IsNotEmpty = firstLine  < Int32.MaxValue
 
-    member _.Range = if firstLine  < Int32.MaxValue  then Some (first,last) else None
+    member _.Range = 
+        if firstLine = Int32.MaxValue  then 
+            None
+        else
+            Some (first,last) 
 
     member this.TotalCount = 
         let mutable k =  0

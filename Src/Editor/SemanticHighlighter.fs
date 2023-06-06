@@ -123,7 +123,7 @@ type Sc = SemanticClassificationType
 /// Used to do semantic highlighting
 type SemanticHighlighter (state: InteractionState) = 
 
-    let mutable unusedDecl = ResizeArray<Text.range>()
+    let unusedDecl = ResizeArray<Text.range>()
 
     let codeLines = state.CodeLines
 
@@ -179,7 +179,7 @@ type SemanticHighlighter (state: InteractionState) =
             
             trans.ClearAllLines()// do as late as possible , offset shifting should do its work till then 
 
-            let rec loop i = 
+            let rec loopTy i = 
                 if i = allRanges.Length then 
                     true // reached end
                 else
@@ -235,21 +235,26 @@ type SemanticHighlighter (state: InteractionState) =
                         | Sc.Printf                      -> () //push(st,en, semActs.Printf                ) // covered in xshd file 
                         | _ -> () // the above actually covers all SemanticClassificationTypes
                     
-                        loop (i+1)
+                        loopTy (i+1)
 
-            if loop 0 then 
+            if loopTy 0 then 
                 setUnusedDecl(checkRes,  id)
                 if state.DocChangedId.Value = id then    
-                    for r in unusedDecl do                     
-                        let lineNo = max 1 r.StartLine
-                        match codeLines.GetLine(lineNo,id) with 
-                        | ValueNone -> ()
-                        | ValueSome offLn ->  
-                            let st = offLn.offStart + r.StartColumn                
-                            let en = offLn.offStart + r.EndColumn
-                            trans.Insert(lineNo, {from=st; till=en; act=semActs.UnUsed})
-
-        foundSemanticsEv.Trigger()
+                    let rec loopUn i = 
+                        if i = unusedDecl.Count then 
+                            true // reached end
+                        else
+                            let r = unusedDecl.[i]
+                            let lineNo = max 1 r.StartLine
+                            match codeLines.GetLine(lineNo,id) with 
+                            | ValueNone -> false
+                            | ValueSome offLn ->  
+                                let st = offLn.offStart + r.StartColumn                
+                                let en = offLn.offStart + r.EndColumn
+                                trans.Insert(lineNo, {from=st; till=en; act=semActs.UnUsed})
+                                loopUn (i+1)
+                    if loopUn 0 then
+                        foundSemanticsEv.Trigger()
     
     member _.TransformerLineCount = trans.LineCount // used only for debugging ?
 

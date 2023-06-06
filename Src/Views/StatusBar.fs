@@ -375,12 +375,13 @@ type SeffStatusBar (grid:TabsAndLog)  =
     let fsi = FsiRunStatus (grid)
     let errs = CheckerStatus(grid)
     do
-        add    Dock.Left  <| errs
-        addSep Dock.Left 
-        add    Dock.Left  <| fsi
-        addSep Dock.Left 
+        add    Dock.Left  <| errs // on very left
+        addSep Dock.Left         
         add    Dock.Left  <| SelectedEditorTextStatus(grid)
         add    Dock.Left  <| SelectedLogTextStatus(grid)
+        
+        add    Dock.Right <| fsi // on very right
+        addSep Dock.Right
         add    Dock.Right <| FsiOutputStatus(grid)
         addSep Dock.Right
         

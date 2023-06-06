@@ -17,7 +17,7 @@ type FsiArguments   ( runContext:RunContext) =
             [| "first arg must be there but is ignored" ; "--langversion:preview"  ; "--exec"; "--debug+"; "--debug:full" ;"--optimize+" ; "--gui+" ; "--nologo"; "--multiemit+" |] 
     
     // Standalone with "--multiemit" to have line numbers in error messages see https://github.com/dotnet/fsharp/discussions/13293
-    // Hosted without "--multiemit", error line numbers dont work there anyway, and in addition accessing previously emited assemblies might fail with a TypeLoadException.
+    // Hosted without "--multiemit", error line numbers don't work there anyway, and in addition accessing previously emited assemblies might fail with a TypeLoadException.
     // see: https://fsharp.github.io/fsharp-compiler-docs/fsi-emit.html and https://github.com/dotnet/fsharp/blob/main/src/Compiler/Interactive/fsi.fs#L1171
 
     // first arg is ignored: https://github.com/fsharp/FSharp.Compiler.Service/issues/420

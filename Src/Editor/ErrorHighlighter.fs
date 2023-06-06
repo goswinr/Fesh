@@ -1,7 +1,6 @@
 ﻿namespace Seff.Editor
 
 open System
-open System.Linq // for First() and Last() on read only collections //TODO replace
 open System.Windows
 open System.Windows.Controls
 open System.Windows.Media
@@ -240,10 +239,10 @@ type ErrorHighlighter ( state:InteractionState, folds:Folding.FoldingManager) =
     
     let errorTransformersUpToDate = ref true
 
-    let insert (e:FSharpDiagnostic, id) =         
+    let insert id (e:FSharpDiagnostic) : bool =         
         let lnNo =  max 1 e.StartLine // because FSharpDiagnostic might have line number 0 form Parse-and-check-file-in-project errors, but Avalonedit starts at 1
         match state.CodeLines.GetLine(lnNo,id) with 
-        | ValueNone -> ()
+        | ValueNone -> false
         | ValueSome cln ->
             let st  = cln.offStart + e.StartColumn
             let en = 
@@ -262,15 +261,15 @@ type ErrorHighlighter ( state:InteractionState, folds:Folding.FoldingManager) =
                     cln.offStart + cln.len    
                     
             segments.Insert(lnNo, SegmentToMark(st ,en , e))  
-            
+            true
             //trans.Insert(lnNo, {from=st; till=en; act=action}) // skip trans.Insert, rather draw via IBackground renderer, 
             //so the line transformers that als have the semantic info can be rest as late as possible. 
-            //in Semnatic highlighter afet cal to this class
+            //in Semantic highlighter after call to this class
     
-    let updateFolds(e:FSharpDiagnostic, id, brush, pen) = 
+    let updateFolds id brush pen (e:FSharpDiagnostic): bool = 
         let lnNo =  max 1 e.StartLine // because FSharpDiagnostic might have line number 0 
         match state.CodeLines.GetLine(lnNo,id) with 
-        | ValueNone -> ()
+        | ValueNone -> false
         | ValueSome cln ->
             let offset = cln.offStart + e.StartColumn     
             for fold in folds.GetFoldingsContaining(offset) do
@@ -282,7 +281,8 @@ type ErrorHighlighter ( state:InteractionState, folds:Folding.FoldingManager) =
                         if isNull fold.BackgroundColor then // in case of selection highlighting skip brush, only use Pen  
                             ctx.DrawRectangle(brush, null, rect)                       
                         ctx.DrawGeometry(Brushes.Transparent, pen, geo)
-                        )      
+                        ) 
+            true     
     
     
     let showErrorToolTip(mouse:Input.MouseEventArgs) = 
@@ -332,25 +332,25 @@ type ErrorHighlighter ( state:InteractionState, folds:Folding.FoldingManager) =
         errorTransformersUpToDate.Value <- false
         if state.DocChangedId.Value = id then
             //eprintfn $"clear and add {errs.errors.Count}"
-            segments.ClearAllLines() // first clear. no dont! clear is done in DocChanged.fs
-            for h in errs.hiddens  do insert(h, id )
-            for i in errs.infos    do insert(i, id )              
-            for w in errs.warnings do insert(w, id )              
-            for e in errs.errors   do insert(e, id )
-            //eprintfn $"inserted errs: {segments.TotalCount}"
-            async{
-                do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context
-                for fold in folds.AllFoldings do fold.DecorateRectangle <- null // first clear
-                for h in errs.hiddens  do updateFolds(h, id, ErrorStyle.infoBackGr, ErrorStyle.infoSquiggle) 
-                for i in errs.infos    do updateFolds(i, id, ErrorStyle.infoBackGr, ErrorStyle.infoSquiggle)
-                for w in errs.warnings do updateFolds(w, id, ErrorStyle.warnBackGr, ErrorStyle.warnSquiggle)
-                for e in errs.errors   do updateFolds(e, id, ErrorStyle.errBackGr , ErrorStyle.errSquiggle)
-            } |> Async.RunSynchronously
-            if state.DocChangedId.Value = id then
-                errorTransformersUpToDate.Value <- true
-                foundErrorsEv.Trigger()
-
-
+            segments.ClearAllLines() // first clear. no don't! clear is done in DocChanged.fs
+            if 
+                General.traverse (insert id) errs.hiddens
+                |> General.ifTrueDo General.traverse (insert id) errs.infos
+                |> General.ifTrueDo General.traverse (insert id) errs.warnings
+                |> General.ifTrueDo General.traverse (insert id) errs.errors            
+                then                        
+                    async{
+                        do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context
+                        for fold in folds.AllFoldings do fold.DecorateRectangle <- null // first clear
+                        if 
+                            General.traverse (updateFolds id ErrorStyle.infoBackGr ErrorStyle.infoSquiggle)  errs.hiddens
+                            |> General.ifTrueDo General.traverse (updateFolds id ErrorStyle.infoBackGr ErrorStyle.infoSquiggle) errs.infos
+                            |> General.ifTrueDo General.traverse (updateFolds id ErrorStyle.warnBackGr ErrorStyle.warnSquiggle) errs.warnings
+                            |> General.ifTrueDo General.traverse (updateFolds id ErrorStyle.errBackGr  ErrorStyle.errSquiggle ) errs.errors
+                            then
+                                errorTransformersUpToDate.Value <- true
+                                foundErrorsEv.Trigger()
+                    } |> Async.Start //.RunSynchronously  
 
     member this.ToolTip = tip
 
