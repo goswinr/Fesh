@@ -204,7 +204,7 @@ type ErrorRenderer (state: InteractionState, segms:LineTransformers<SegmentToMar
                             // background color: 
                             let geoBuilder = new BackgroundGeometryBuilder (AlignToWholePixels = true, CornerRadius = 0.)
                             geoBuilder.AddSegment(textView, seg)
-                            let boundaryPolygon= geoBuilder.CreateGeometry() // creates one boundary round the text
+                            let boundaryPolygon = geoBuilder.CreateGeometry() // creates one boundary round the text
                             drawingContext.DrawGeometry(seg.BackgroundBrush, null, boundaryPolygon)
 
                         //foreground,  squiggles:
@@ -215,7 +215,7 @@ type ErrorRenderer (state: InteractionState, segms:LineTransformers<SegmentToMar
        
                         //let e = seg.Diagnostic in ISeffLog.log.PrintfnDebugMsg $"IBackgRe: DocLine {ln.LineNumber}: ErrLines{e.StartLine}.{e.StartColumn}-{e.EndLine}.{e.EndColumn}"   
 
-    member _.Layer = KnownLayer.Selection // for IBackgroundRenderer
+    member _.Layer = KnownLayer.Selection// for IBackgroundRenderer
 
     interface IBackgroundRenderer with
         member this.Draw(tv,dc) = this.Draw(tv,dc)

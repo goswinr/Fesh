@@ -296,7 +296,7 @@ type SelectionHighlighterLog (lg:TextEditor) =
         lg.Document.Changed.Add (fun _ -> 
             Threading.Interlocked.Increment logChangeID |> ignore
             linesNeedUpdate <- true)
-        lg.TextArea.TextView.LineTransformers.Add colorizer
+        lg.TextArea.TextView.LineTransformers.Insert(0, colorizer) // insert at index 0 so that it is drawn first, so that text color is overwritten the selection highlighting
     
     member _.Word    = lastWord 
     member _.Offsets = lastSels 

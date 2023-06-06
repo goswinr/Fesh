@@ -6,8 +6,6 @@ open AvalonEditB.Rendering
 open Seff.Model
 open Seff.Util.General
 
-
-
 type ChangeReason = Semantic | Selection | BadIndent | MatchingBrackets | CurrentBracketPair | CheckerError 
 
 /// Given Start Offset and End Offset from Document
@@ -108,7 +106,8 @@ type LineTransformers<'T>() =
 
 /// An efficient DocumentColorizingTransformer using line number indices into a line transformer list.
 type FastColorizer(transformers:LineTransformers<LinePartChange> [], ed:TextEditor) = 
-    inherit Rendering.DocumentColorizingTransformer()   
+    inherit Rendering.DocumentColorizingTransformer()  
+
 
     let ltss = transformers
     
@@ -124,12 +123,13 @@ type FastColorizer(transformers:LineTransformers<LinePartChange> [], ed:TextEdit
 
     member _.Transformers = ltss
 
+    
     /// This gets called for every visible line on every Redraw
     override _.ColorizeLine(line:Document.DocumentLine) =   
         let lineNo = line.LineNumber
         let offSt  = line.Offset    
-        let offEn  = line.EndOffset        
-        
+        let offEn  = line.EndOffset 
+
         for j = 0 to ltss.Length-1 do
             let lts = ltss.[j]
             if lineNo >= lts.LineCount then 
@@ -138,7 +138,7 @@ type FastColorizer(transformers:LineTransformers<LinePartChange> [], ed:TextEdit
             else
                 let lpcs = lts.Line(lineNo) 
                 for i=0 to lpcs.Count-1 do  
-                    if i < lpcs.Count then // becaus it might get reset while iterating ?
+                    if i < lpcs.Count then // because it might get reset while iterating ?
                         let lpc = lpcs[i]
                         if notNull lpc.act then // because for coloring brackets it may be null to keep xshd coloring
                             let shiftChecked = if lpc.from > shift.from then shift.amount else 0
@@ -154,5 +154,21 @@ type FastColorizer(transformers:LineTransformers<LinePartChange> [], ed:TextEdit
                             else
                                 //ISeffLog.log.PrintfnDebugMsg $"{from}-{till}; Docline {offSt}-{offEn} on line: {lineNo}; doc.Text.Length {ed.Document.TextLength} (shift:{shiftChecked})" 
                                 base.ChangeLinePart(from, till, lpc.act)
-                            
+                                                            
                     //else  ISeffLog.log.PrintfnAppErrorMsg $"Line Count {lpcs.Count} was reset while iterating index{i}"  // DELETE
+
+/// An efficient DocumentColorizingTransformer using line number indices into a line transformer list.
+type DebugColorizer() = 
+    inherit Rendering.DocumentColorizingTransformer()  
+    
+    /// This gets called for every visible line on every Redraw
+    override _.ColorizeLine(line:Document.DocumentLine) =   
+        let lineNo = line.LineNumber    
+        
+        if lineNo % 10 = 0 then
+            eprintfn "%d" lineNo
+        else 
+            printf "%d, " lineNo
+
+
+

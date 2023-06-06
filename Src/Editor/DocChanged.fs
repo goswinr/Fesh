@@ -144,7 +144,7 @@ module DocChangeMark =
     open DocChangeUtil
     open CodeLineTools
 
-    let mainWait = 300 // ms to wait before starting the first check after a change
+    let mainWait = 200 // ms to wait before starting the first check after a change
 
     let markTwoSteps(iEd:IEditor, code, serv:EditorServices, state:InteractionState, id) = 
             // first: Foldings, ColorBrackets and BadIndentation when full text available async.
