@@ -201,7 +201,7 @@ type FsiRunStatus (grid:TabsAndLog) as this =
             |Deleted fi|SetTo fi ->
                 match codeToEval.amount with
                 | All                 ->  this.Inlines.Add(new Run ("FSI is running ",           Foreground = grayText))
-                | ContinueFromChanges ->  this.Inlines.Add(new Run ("FSI continues to run ",  Foreground = grayText))
+                | ContinueFromChanges ->  this.Inlines.Add(new Run ("FSI continues to run "   ,  Foreground = grayText))
                 | FsiSegment _        ->  this.Inlines.Add(new Run ("FSI is running a part of ", Foreground = grayText))
                 this.Inlines.Add( new Run (fi.Name, FontFamily = StyleState.fontEditor) )
                 this.Inlines.Add( new Run (" . . ."                                           , Foreground = grayText))
@@ -255,14 +255,12 @@ type AsyncStatus (grid:TabsAndLog) as this =
 type SelectedEditorTextStatus (grid:TabsAndLog) as this = 
     inherit TextBlock() 
     let desc = "no selection in Editor" //Editor Selection Highlighting" 
-    let baseTxt = "Highlights and counts the occurrences of the currently selected Text in the current Editor.\r\nMinimum two characters and but line breaks.\r\nClick here to scroll through all occurrences."
-    let mutable scrollToIdx = 0  
-    
+    let tipText = "Highlights and counts the occurrences of the currently selected Text in the current Editor.\r\nMinimum two characters and no line breaks.\r\nClick here to scroll through all occurrences."
+    let mutable scrollToIdx = 0 
     do
         this.Padding <- textPadding
-        this.ToolTip <-  baseTxt
-        this.Inlines.Add( desc)
-
+        this.ToolTip <-  tipText
+        this.Inlines.Add(new Run (desc, Foreground = SelectionHighlighting.colorInactive))
         SelectionHighlighting.FoundSelectionsEditor.Add(fun triggerNext  -> 
             let sel = grid.Tabs.Current.Editor.Services.selection
             if triggerNext then
@@ -280,7 +278,6 @@ type SelectedEditorTextStatus (grid:TabsAndLog) as this =
                 this.Inlines.Add( new Run (sel.Word, FontFamily = StyleState.fontEditor, Background = SelectionHighlighting.colorEditor))
                 this.Inlines.Add( $" (%d{sel.Word.Length} Chars) " )
             )
-
        
         // on each click loop through all locations where text appears
         this.MouseDown.Add ( fun _ -> // press mouse to scroll to them
@@ -301,26 +298,22 @@ type SelectedEditorTextStatus (grid:TabsAndLog) as this =
 
 type SelectedLogTextStatus (grid:TabsAndLog) as this = 
     inherit TextBlock()
-    let log = grid.Log
-    
+    let log = grid.Log    
     let desc = "no selection in Log" //Log Selection Highlighting " 
-    let baseTxt = "Highlights and counts the occurrences of the currently selected Text in the Log output.\r\nMinimum two characters and but line breaks.\r\nClick here to scroll through all occurrences."
+    let tipText = "Highlights and counts the occurrences of the currently selected Text in the Log output.\r\nMinimum two characters and no line breaks.\r\nClick here to scroll through all occurrences."
     let mutable scrollToIdx = 0 
     do
         this.Padding <- textPadding
-        this.ToolTip <-  baseTxt
-        this.Inlines.Add( desc)
- 
-        SelectionHighlighting.FoundSelectionsLog.Add(fun (triggerNext) ->             
-            
+        this.ToolTip <- tipText
+        this.Inlines.Add( new Run (desc, Foreground = SelectionHighlighting.colorInactive)) 
+        SelectionHighlighting.FoundSelectionsLog.Add(fun (triggerNext) ->
             match log.SelectionHighlighter with 
             |None -> ()
             |Some hili ->
                 if triggerNext then 
                     grid.Tabs.Current.Editor.Services.selection.Mark(hili.Word)
 
-                if hili.Offsets.Count = 0 then  
-                    //this.Text <- desc  
+                if hili.Offsets.Count = 0 then
                     this.Inlines.Clear()
                     this.Inlines.Add( new Run (desc, Foreground = SelectionHighlighting.colorInactive))
                 else
@@ -328,8 +321,7 @@ type SelectedLogTextStatus (grid:TabsAndLog) as this =
                     this.Inlines.Add( sprintf $"%d{hili.Offsets.Count} of ")
                     this.Inlines.Add( new Run (hili.Word, FontFamily = StyleState.fontEditor, Background = SelectionHighlighting.colorLog))
                     this.Inlines.Add( sprintf " (%d Chars) " hili.Word.Length)
-            )
- 
+            ) 
        
         // on each click loop through all locations where text appears
         this.MouseDown.Add ( fun _ -> // press mouse to scroll to them

@@ -16,8 +16,8 @@ module SelectionHighlighting =
 
     let colorEditor  = Brushes.PaleTurquoise |> AvalonLog.Brush.freeze      
 
-    let colorLog     = Brushes.Blue          |> AvalonLog.Brush.brighter 210  |> AvalonLog.Brush.freeze
-    let colorInactive= Brushes.Gray       |> AvalonLog.Brush.freeze
+    let colorLog     = Brushes.Blue |> AvalonLog.Brush.brighter 210  |> AvalonLog.Brush.freeze
+    let colorInactive= Brushes.Gray                                  |> AvalonLog.Brush.freeze
         
     let foundSelectionLogEv    = new Event<bool>() 
     let foundSelectionEditorEv = new Event<bool>()
