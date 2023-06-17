@@ -178,13 +178,13 @@ type Foldings(manager:Folding.FoldingManager, state:InteractionState, getFilePat
             let ln = doc.GetLineByOffset f.StartOffset            
             collapseStatus.[doc.GetText(ln)] <- f.IsFolded 
     
-    let foundBadIndentsEv = new Event<unit>() 
+    let foundBadIndentsEv = new Event<int64>() 
 
     ///Get foldings at every line that is followed by an indent
     let foldEditor (id:int64) = 
         async{                
             if findFoldings (state.CodeLines, id) then
-                foundBadIndentsEv.Trigger()
+                foundBadIndentsEv.Trigger(id)
                 Folds|> Seff.Util.General.sortInPlaceBy ( fun f -> f.foldStartOff, f.linesInFold) 
                 
                 if isInitialLoad then                                

@@ -405,7 +405,7 @@ type BracketHighlighter (state:InteractionState) =
                         prevPairSeg <- Some seg  
         } |> Async.Start    
     
-    let foundBracketsEv = new Event<unit>()
+    let foundBracketsEv = new Event<int64>()
 
     let trans = state.TransformersAllBrackets
 
@@ -433,7 +433,7 @@ type BracketHighlighter (state:InteractionState) =
                         let p = ps[i]
                         let act = match p.other with |None -> actErr |Some _ -> nextAction p.nestingDepth
                         trans.Insert(lnNo, {from=p.from; till=p.till; act= act })
-            foundBracketsEv.Trigger()        
+                foundBracketsEv.Trigger(id)        
 
    
     

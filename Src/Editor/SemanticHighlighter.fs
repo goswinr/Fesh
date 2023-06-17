@@ -159,16 +159,22 @@ type SemanticHighlighter (state: InteractionState) =
     
     /// because some times the range of a property starts before the point
     let correctStart(st:int, en:int) =        
-        match codeLines.FullCode.LastIndexOf('.',en,en-st) with // search from back to find last dot, there may be more than one
-        | -1 -> st 
-        |  i -> i + 1
+        //try
+            // search from back to find last dot, there may be more than one
+            match codeLines.FullCode.LastIndexOf('.', en-1, en-st) with // at file end the end column in the reported range might be equal to FullCode.Length, so we do -1 to avoide a ArgumentOutOfRangeException.
+            | -1 -> st 
+            |  i -> i + 1
+        //with e -> 
+        //    eprintfn $"correctStart LastIndexOf from {en} for count {en-st} from code with {codeLines.FullCode.Length} chars."
+        //    st
+            
 
     //let action (el:VisualLineElement,brush:SolidColorBrush,r:Text.Range) = el.TextRunProperties.SetForegroundBrush(Brushes.Red)
   
     let trans = state.TransformersSemantic   
     let semActs = SemActions()
 
-    let foundSemanticsEv = new Event<unit>()
+    let foundSemanticsEv = new Event<int64>()
 
     [<CLIEvent>] 
     member _.FoundSemantics = foundSemanticsEv.Publish
@@ -254,7 +260,7 @@ type SemanticHighlighter (state: InteractionState) =
                                 trans.Insert(lineNo, {from=st; till=en; act=semActs.UnUsed})
                                 loopUn (i+1)
                     if loopUn 0 then
-                        foundSemanticsEv.Trigger()
+                        foundSemanticsEv.Trigger(id)
     
     member _.TransformerLineCount = trans.LineCount // used only for debugging ?
 

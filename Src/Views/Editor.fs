@@ -95,9 +95,10 @@ type Editor private (code:string, config:Config, initalFilePath:FilePath)  =
         evalTracker = evalTracker
         }
     
-    //these two wil trigger the redraw after all async events have arrived
-    let _ = Redrawing.FirstEventCombiner (services ,state)
-    let _ = Redrawing.SecondEventCombiner(services ,state)       
+    //these two will trigger the redraw after all async events have arrived
+    //let _ = Redrawing.FirstEventCombiner (services ,state)
+    //let _ = Redrawing.SecondEventCombiner(services ,state)       
+    let _ = Redrawing.EventCombiner(services ,state)       
 
     do  
         SyntaxHighlighting.setFSharp(avaEdit,false) 
@@ -161,21 +162,23 @@ type Editor private (code:string, config:Config, initalFilePath:FilePath)  =
         avaEdit.TextArea.PreviewTextInput.Add (fun e -> CursorBehavior.previewTextInput(     avaEdit, e))  // A TextCompositionEventArgs that has a string , handling typing in rectangular selection
         avaEdit.TextArea.AlternativeRectangularPaste <- Action<string,bool>( fun txt txtIsFromOtherRectSel -> RectangleSelection.paste(ed.AvaEdit, txt, txtIsFromOtherRectSel)) //TODO check txtIsFromOtherRectSel on pasting text with \r\n
 
-        avaEdit.TextArea.TextView.LineTransformers.Add(new DebugColorizer())  // for debugging the line transformers
-        avaEdit.TextArea.TextView.LineTransformers.Insert(0, ed.State.FastColorizer) // insert at index 0 so that it is drawn first, so that text color is overwritten the selection highlighting
         
         let rulers =  new ColumnRulers(avaEdit) // draw last , so on top? do foldings first
 
-        //----------------------------------
-        //--FS Checker and Code completion--
-        //----------------------------------    
-
-        //avaEdit.Document.Changed.Add(fun a -> DocChangeEvents.logPerformance( a.InsertedText.Text)) // AutoHotKey SendInput of ßabcdefghijklmnopqrstuvwxyz£
+        //----------------------------------------------------
+        //--React to doc changes and add Line transformers----
+        //----------------------------------------------------
         
+
         avaEdit.Document.Changing.Add(DocChangeEvents.changing ed.State)
+
         avaEdit.Document.Changed.Add (DocChangeEvents.changed  ed ed.Services ed.State)
         avaEdit.Document.Changed.Add(fun a -> match ed.Services.evalTracker with Some et -> et.SetLastChangeAt a.Offset | None -> ())
+        //avaEdit.Document.Changed.Add(fun a -> DocChangeEvents.logPerformance( a.InsertedText.Text)) // AutoHotKey SendInput of ßabcdefghijklmnopqrstuvwxyz£
                  
+        //avaEdit.TextArea.TextView.LineTransformers.Add(new DebugColorizer())  // for debugging the line transformers
+        avaEdit.TextArea.TextView.LineTransformers.Insert(0, ed.State.FastColorizer) // insert at index 0 so that it is drawn first, so that text color is overwritten the selection highlighting
+
         // check if closing and inserting from completion window is desired with currently typed character:
         avaEdit.TextArea.TextEntering.Add (compls.MaybeInsertOrClose)
         avaEdit.TextArea.TextEntering.Add (fun _ -> ed.TypeInfoTip.IsOpen <- false )// close type info on typing

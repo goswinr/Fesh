@@ -254,7 +254,7 @@ type AsyncStatus (grid:TabsAndLog) as this =
 
 type SelectedEditorTextStatus (grid:TabsAndLog) as this = 
     inherit TextBlock() 
-    let desc = " " //Editor Selection Highlighting" 
+    let desc = "no selection in Editor" //Editor Selection Highlighting" 
     let baseTxt = "Highlights and counts the occurrences of the currently selected Text in the current Editor.\r\nMinimum two characters and but line breaks.\r\nClick here to scroll through all occurrences."
     let mutable scrollToIdx = 0  
     
@@ -271,7 +271,9 @@ type SelectedEditorTextStatus (grid:TabsAndLog) as this =
                 |Some hili -> hili.Mark(sel.Word)            
             
             if sel.Offsets.Count = 0 then  
-                this.Text <- desc  
+                //this.Text <- desc  
+                this.Inlines.Clear()
+                this.Inlines.Add( new Run (desc, Foreground = SelectionHighlighting.colorInactive))
             else
                 this.Inlines.Clear()
                 this.Inlines.Add( $"%d{sel.Offsets.Count} of "  )
@@ -301,7 +303,7 @@ type SelectedLogTextStatus (grid:TabsAndLog) as this =
     inherit TextBlock()
     let log = grid.Log
     
-    let desc = " " //Log Selection Highlighting " 
+    let desc = "no selection in Log" //Log Selection Highlighting " 
     let baseTxt = "Highlights and counts the occurrences of the currently selected Text in the Log output.\r\nMinimum two characters and but line breaks.\r\nClick here to scroll through all occurrences."
     let mutable scrollToIdx = 0 
     do
@@ -318,7 +320,9 @@ type SelectedLogTextStatus (grid:TabsAndLog) as this =
                     grid.Tabs.Current.Editor.Services.selection.Mark(hili.Word)
 
                 if hili.Offsets.Count = 0 then  
-                    this.Text <- desc  
+                    //this.Text <- desc  
+                    this.Inlines.Clear()
+                    this.Inlines.Add( new Run (desc, Foreground = SelectionHighlighting.colorInactive))
                 else
                     this.Inlines.Clear()
                     this.Inlines.Add( sprintf $"%d{hili.Offsets.Count} of ")
@@ -367,7 +371,9 @@ type SeffStatusBar (grid:TabsAndLog)  =
         add    Dock.Left  <| errs // on very left
         addSep Dock.Left         
         add    Dock.Left  <| SelectedEditorTextStatus(grid)
+        addSep Dock.Left         
         add    Dock.Left  <| SelectedLogTextStatus(grid)
+        addSep Dock.Left         
         
         add    Dock.Right <| fsi // on very right
         addSep Dock.Right

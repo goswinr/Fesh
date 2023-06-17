@@ -5,7 +5,6 @@ open AvalonEditB
 open AvalonEditB.Rendering
 open Seff.Model
 open Seff.Util.General
-open Microsoft.VisualBasic.DateAndTime
 
 type ChangeReason = Semantic | Selection | BadIndent | MatchingBrackets | CurrentBracketPair | CheckerError 
 
@@ -24,7 +23,7 @@ type Shift = {
     }
 
 /// For accessing the highlighting of a line in constant time
-type LineTransformers<'T>() =    
+type LineTransformers<'T>() =    // generic so it can work for LinePartChange and Shift
 
     let lines = ResizeArray<ResizeArray<'T>>(256)// for approx 512 lines on screen
 
@@ -50,14 +49,17 @@ type LineTransformers<'T>() =
             lines.Add n            
        
         else
-            // add to existing line:            
-            let ln = lines.[lineNumber] 
-            if isNull ln then 
-                let n = ResizeArray(4)
-                lines.[lineNumber] <- n
-                n.Add x 
-            else                
-                ln.Add x
+            try
+                // add to existing line:            
+                let ln = lines.[lineNumber] 
+                if isNull ln then 
+                    let n = ResizeArray(4)
+                    lines.[lineNumber] <- n
+                    n.Add x 
+                else                
+                    ln.Add x
+            with e ->
+               ISeffLog.log.PrintfnAppErrorMsg $"LineTransformers.Insert on line {lineNumber} failed for { lines.Count } lines."
             
         
         // remember the first and last line that has content to then only redraw those 
@@ -78,6 +80,12 @@ type LineTransformers<'T>() =
             //lines.Clear() // don't do this too, so that allocated Lists stay alive and can be refilled faster.       
             lastLine  <- 0      
             firstLine <- Int32.MaxValue
+    
+    /// used to clear semantic highlighting from current line, so that it does not look odd while editing
+    member _.ClearLine(i) =        
+        if firstLine < Int32.MaxValue && i < lines.Count then 
+            lines.[i] <- null
+           
 
     /// Safely gets a Line returns empty if index is out of range
     member _.Line(lineNumber) =
@@ -165,12 +173,14 @@ type DebugColorizer() =
     /// This gets called for every visible line on every Redraw
     override _.ColorizeLine(line:Document.DocumentLine) =   
         let lineNo = line.LineNumber
-        if lineNo % 10 = 0 then
-            if t.ElapsedMilliseconds > 1000L then 
-                ISeffLog.log.PrintfnIOErrorMsg $"DebugColorizer.ColorizeLine %d{lineNo}"
-            else
-                ISeffLog.log.PrintfnDebugMsg $"DebugColorizer.ColorizeLine %d{lineNo}"
+        if t.ElapsedMilliseconds > 500L then 
+            ISeffLog.log.PrintfnIOErrorMsg $"DebugColorizer.ColorizeLine %d{lineNo}"
+        elif lineNo % 10 = 0  then            
+            ISeffLog.log.PrintfnDebugMsg $"DebugColorizer.ColorizeLine %d{lineNo}"
             t.Restart()
+        elif lineNo % 2= 0  then 
+            ISeffLog.log.PrintfFsiErrorMsg $", %d{lineNo}"
+            
         
 
 

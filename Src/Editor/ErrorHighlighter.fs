@@ -231,7 +231,7 @@ type ErrorHighlighter ( state:InteractionState, folds:Folding.FoldingManager) =
     let actionHidden  = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetBackgroundBrush(ErrorStyle.infoBackGr))
     
     let segments = LineTransformers<SegmentToMark>()
-    let foundErrorsEv = new Event<unit>()
+    let foundErrorsEv = new Event<int64>()
     let tip = new ToolTip(IsOpen=false) 
 
     let trans = state.TransformersSemantic
@@ -350,7 +350,7 @@ type ErrorHighlighter ( state:InteractionState, folds:Folding.FoldingManager) =
                             |> General.ifTrueDo General.traverse (updateFolds id ErrorStyle.errBackGr  ErrorStyle.errSquiggle ) errs.errors
                             then
                                 errorTransformersUpToDate.Value <- true
-                                foundErrorsEv.Trigger()
+                                foundErrorsEv.Trigger(id)
                     } |> Async.Start //.RunSynchronously  
 
     member this.ToolTip = tip

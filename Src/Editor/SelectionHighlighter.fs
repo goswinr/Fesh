@@ -17,6 +17,7 @@ module SelectionHighlighting =
     let colorEditor  = Brushes.PaleTurquoise |> AvalonLog.Brush.freeze      
 
     let colorLog     = Brushes.Blue          |> AvalonLog.Brush.brighter 210  |> AvalonLog.Brush.freeze
+    let colorInactive= Brushes.Gray       |> AvalonLog.Brush.freeze
         
     let foundSelectionLogEv    = new Event<bool>() 
     let foundSelectionEditorEv = new Event<bool>()
@@ -274,9 +275,7 @@ type SelectionHighlighterLog (lg:TextEditor) =
                             lg.TextArea.TextView.Redraw(min pf.from f.from, max pl.till l.till, priority)
                             foundSelectionLogEv.Trigger(triggerNext)
                     else
-                        () // don't redraw, there is already a new doc change happening that will be drawn
-           
-
+                        () // don't redraw, there is already a new doc change happening that will be drawn 
         }|> Async.Start
     
     
