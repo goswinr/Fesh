@@ -133,7 +133,8 @@ module ParseBrackets =
 
                 let inline pushExit      br = brs.Add {kind=br; from = i} ; RegCode
                 let inline pushOne  next br = brs.Add {kind=br; from = i} ; charLoop next      (i+1)
-                let inline pushTwo       br = brs.Add {kind=br; from = i} ; charLoop code[i+2] (i+2)
+                let inline pushTwo       br = brs.Add {kind=br; from = i} ; if i + 2 <= lastIdx then charLoop code[i+2] (i+2) else RegCode
+                
                 let flowOnOrOver (state:MuliLineState) ii = 
                     match ii with 
                     | Int32.MaxValue -> state
@@ -143,6 +144,7 @@ module ParseBrackets =
                 if i > lastIdx then 
                     //eprintfn $"i{i} > lastIdx{lastIdx} is unexpected: prevState{prevState}"
                     RegCode
+
                 elif i = lastIdx then // i is the last char on this line 
                     match chr with                 
                     | '[' -> pushExit OpRect

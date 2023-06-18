@@ -45,6 +45,7 @@ module General =
 
     let inline notNull x = match x with null -> false | _ -> true
 
+
     /// get folder location of Executing Assembly
     let assemblyLocation() = 
         IO.Path.GetDirectoryName(Reflection.Assembly.GetExecutingAssembly().Location)

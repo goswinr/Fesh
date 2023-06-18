@@ -161,7 +161,7 @@ type Editor private (code:string, config:Config, initalFilePath:FilePath)  =
         avaEdit.TextArea.PreviewTextInput.Add (fun e -> CursorBehavior.previewTextInput(     avaEdit, e))  // A TextCompositionEventArgs that has a string , handling typing in rectangular selection
         avaEdit.TextArea.AlternativeRectangularPaste <- Action<string,bool>( fun txt txtIsFromOtherRectSel -> RectangleSelection.paste(ed.AvaEdit, txt, txtIsFromOtherRectSel)) //TODO check txtIsFromOtherRectSel on pasting text with \r\n
 
-        //avaEdit.TextArea.TextView.LineTransformers.Add(new DebugColorizer())  // for debugging the line transformers
+        avaEdit.TextArea.TextView.LineTransformers.Add(new DebugColorizer())  // for debugging the line transformers
         avaEdit.TextArea.TextView.LineTransformers.Insert(0, ed.State.FastColorizer) // insert at index 0 so that it is drawn first, so that text color is overwritten the selection highlighting
         
         let rulers =  new ColumnRulers(avaEdit) // draw last , so on top? do foldings first

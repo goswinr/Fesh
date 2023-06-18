@@ -21,19 +21,23 @@ type FoldingStatus ( runContext:RunContext, recentlyUsedFiles:RecentlyUsedFiles)
 
     let foldingStatus = 
         let dict=Dictionary<string,bool []>()
-        async{
-            writer.CreateFileIfMissing("")  |> ignore
-            match writer.ReadAllLines() with
-            |None -> ()
-            |Some lns ->
-                for ln in lns do
-                    match ln.Split(sep) with
-                    | [|k;v|] ->
-                        //log.PrintfnDebugMsg "%s for %s" v k
-                        let vs = Seq.map ( fun c -> if c = '0' then false elif c = '1' then true else failwithf "bad char %c in FoldingStatus" c) v |> Array.ofSeq
-                        dict.[k] <- vs
-                    | _ -> ISeffLog.log.PrintfnAppErrorMsg "Bad line in FoldingStatus file : '%s'" ln
-            waitingForFileRead <- false
+        async{            
+            try
+                writer.CreateFileIfMissing("")  |> ignore
+                match writer.ReadAllLines() with
+                |None -> ()
+                |Some lns ->
+                    for ln in lns do
+                        match ln.Split(sep) with
+                        | [|k;v|] ->
+                            //log.PrintfnDebugMsg "%s for %s" v k
+                            let vs = Seq.map ( fun c -> if c = '0' then false elif c = '1' then true else failwithf "bad char %c in FoldingStatus" c) v |> Array.ofSeq
+                            dict.[k] <- vs
+                        | _ -> ISeffLog.log.PrintfnAppErrorMsg "Bad line in FoldingStatus file : '%s'" ln
+                waitingForFileRead <- false
+            with e -> 
+                waitingForFileRead <- false
+                ISeffLog.log.PrintfnIOErrorMsg $"reading folding sttis firl failed with\r\n {e}"
             } |> Async.Start
         dict
 

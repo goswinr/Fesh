@@ -164,6 +164,7 @@ type SelectionHighlighter (state:InteractionState) =
     
     member _.Mark(word) = if isTextToHighlight word then mark(word,-1, false)else justClear(false) // isTextToHighlight is needed , word might be empty string
 
+
 /// Highlight-all-occurrences-of-selected-text in Log 
 type SelectionHighlighterLog (lg:TextEditor) = 
     
@@ -201,26 +202,27 @@ type SelectionHighlighterLog (lg:TextEditor) =
           
     let lines = CodeLinesSimple()
     let mutable linesNeedUpdate = true
+    
+    /// tracks changes to the logg
     let logChangeID = ref 0L
 
-    let markCallID = ref 0L // because while getting the text below, the selection might have changed already
-
-    
+    /// track new highlighting requests 
+    let markCallID  = ref 0 // because while getting the text below, the selection might have changed already
+        
     let mark (word:string, selectionStartOff, triggerNext:bool) =
-        let mutable id = logChangeID.Value
-        let callId = Threading.Interlocked.Increment markCallID
+        let chnageId = logChangeID.Value
+        let markId   = Threading.Interlocked.Increment markCallID
         let doc = lg.Document
         async{
-            while linesNeedUpdate && logChangeID.Value = id do                 
+            while linesNeedUpdate && logChangeID.Value = chnageId do                 
                 do! Async.Sleep 50 // needed for getting correct text in snapshot
-                if logChangeID.Value = id then
+                if logChangeID.Value = chnageId then
                     let t = doc.CreateSnapshot().Text
                     lines.Update(t)
-                    if logChangeID.Value = id then // this forces waiting till there are no more updates
-                        linesNeedUpdate <- false 
-                    
+                    if logChangeID.Value = chnageId then // this forces waiting till there are no more updates
+                        linesNeedUpdate <- false                     
             
-            if callId = markCallID.Value && logChangeID.Value = id  then // because while getting the text above, the selection might have changed already
+            if markId = markCallID.Value && logChangeID.Value = chnageId  then // because while getting the text above, the selection might have changed already
                 let codeStr  = lines.FullCode
                 let lastLineNo = lines.LastLineIdx
                 let wordLen = word.Length
@@ -247,8 +249,8 @@ type SelectionHighlighterLog (lg:TextEditor) =
                             
                             loop (lineNo + 1)
                 
-                if callId = markCallID.Value then 
-                    let prev = trans.Range
+                if markId = markCallID.Value then 
+                    let prev = trans.Range // get previuos range before clearing
                     trans.ClearAllLines() // does nothing if already all cleared
                     lastSels <- offs 
                     lastWord <- word
@@ -262,13 +264,13 @@ type SelectionHighlighterLog (lg:TextEditor) =
                         | Some (f,l) , None          // some before, nothing now
                         | None       , Some (f,l) -> // nothing before, some now
                             do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context
-                            //markFoldingsSorted(offs)
+                            //markFoldingsSorted(offs) // there are no foldings in the log
                             lg.TextArea.TextView.Redraw(f.from, l.till, priority)
                             foundSelectionLogEv.Trigger(triggerNext)                   
                 
                         | Some (pf,pl),Some (f,l) ->   // both prev and current version have a selection                 
                             do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context 
-                            //markFoldingsSorted(offs)
+                            //markFoldingsSorted(offs)// there are no foldings in the log
                             lg.TextArea.TextView.Redraw(min pf.from f.from, max pl.till l.till, priority)
                             foundSelectionLogEv.Trigger(triggerNext)
                     else
@@ -292,11 +294,12 @@ type SelectionHighlighterLog (lg:TextEditor) =
     
     
     do         
-        lg.TextArea.SelectionChanged.Add ( fun _ -> update() )        
-        lg.Document.Changed.Add (fun _ -> 
-            Threading.Interlocked.Increment logChangeID |> ignore
-            linesNeedUpdate <- true)
         lg.TextArea.TextView.LineTransformers.Insert(0, colorizer) // insert at index 0 so that it is drawn first, so that text color is overwritten the selection highlighting
+        lg.TextArea.SelectionChanged.Add ( fun _ -> update() )        
+        lg.Document.Changing.Add (fun _ -> 
+            Threading.Interlocked.Increment logChangeID |> ignore
+            linesNeedUpdate <- true
+            )
     
     member _.Word    = lastWord 
     member _.Offsets = lastSels 

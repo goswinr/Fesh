@@ -162,36 +162,21 @@ type Foldings(manager:Folding.FoldingManager, state:InteractionState, getFilePat
         match clns.GetLine(1,id) with 
         |ValueNone -> false // did not reach end of code lines
         |ValueSome li -> loopLines 1 li 2
-        
-      
-
+    
     let textInFoldBox(count:int) = sprintf " ... %d folded lines " count
 
     // save folding id just as its characters length.
     // there is a risk for collision but it is small
-    let collapseStatus = Dictionary<int,bool>()
+    let collapseStatus = Dictionary<string,bool>()
 
     let ed = state.Editor
 
-    // get hash of first line of folding segment (iterating backwards)
-    let getHash(off) =
-        let d = ed.Document
-        let mutable hash = off 
-        let rec loop i =
-            if i < 0 then 
-                hash
-            else
-                let c = d.GetCharAt(i)
-                if c = '\r' then hash
-                else
-                    hash <- hash  + (97 * int c) 
-                    loop (i-1)
-        loop off
-
     let updateCollapseStatus()=
         collapseStatus.Clear()
+        let doc = ed.Document
         for f in  manager.AllFoldings do             
-            collapseStatus.[getHash f.StartOffset] <- f.IsFolded 
+            let ln = doc.GetLineByOffset f.StartOffset            
+            collapseStatus.[doc.GetText(ln)] <- f.IsFolded 
     
     let foundBadIndentsEv = new Event<unit>() 
 
@@ -200,7 +185,7 @@ type Foldings(manager:Folding.FoldingManager, state:InteractionState, getFilePat
         async{                
             if findFoldings (state.CodeLines, id) then
                 foundBadIndentsEv.Trigger()
-                Folds|> Seff.Util.General.sortInPlaceBy ( fun f -> f.foldStartOff,f.linesInFold) 
+                Folds|> Seff.Util.General.sortInPlaceBy ( fun f -> f.foldStartOff, f.linesInFold) 
                 
                 if isInitialLoad then                                
                     while foldStatus.WaitingForFileRead do
@@ -212,11 +197,15 @@ type Foldings(manager:Folding.FoldingManager, state:InteractionState, getFilePat
                     do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context
                     for i = 0 to Folds.Count-1 do
                         let f = Folds.[i]
-                        let folded = if  i < vs.Length then  vs.[i]  else false
-                        let fs = manager.CreateFolding(f.foldStartOff, f.foldEndOff)
-                        fs.Tag <- box f.nestingLevel
-                        fs.IsFolded <- folded
-                        fs.Title <- textInFoldBox f.linesInFold                        
+                        if f.foldStartOff < f.foldEndOff then // TODO this seems to not always be the case
+                            let folded = if  i < vs.Length then  vs.[i]  else false
+                            let fs = manager.CreateFolding(f.foldStartOff, f.foldEndOff)
+                            fs.Tag <- box f.nestingLevel
+                            fs.IsFolded <- folded
+                            fs.Title <- textInFoldBox f.linesInFold   
+                        else
+                            let lno = ed.Document.GetLineByOffset f.foldStartOff
+                            ISeffLog.log.PrintfnDebugMsg  $"Failed to creat a negative folding from offset {f.foldStartOff} to {f.foldEndOff} on line {lno.LineNumber}"
 
                     updateCollapseStatus()
                     isInitialLoad <- false
@@ -239,11 +228,13 @@ type Foldings(manager:Folding.FoldingManager, state:InteractionState, getFilePat
                     let firstErrorOffset = -1 //The first position of a parse error. 
                     manager.UpdateFoldings(folds, firstErrorOffset)
                                 
-                    // restore state after caret , because state gets lost after an auto complete insertion                             
+                    // restore state after caret , because state gets lost after an auto complete or multi cracter insertion                             
+                    let doc = ed.Document                    
                     let co = ed.CaretOffset
                     for f in manager.AllFoldings do 
                         if f.StartOffset > co then                                         
-                            match collapseStatus.TryGetValue (getHash f.StartOffset) with 
+                            let ln = doc.GetLineByOffset f.StartOffset    
+                            match collapseStatus.TryGetValue (doc.GetText(ln)) with 
                             |false , _ -> ()
                             |true , isCollapsed -> 
                                 f.IsFolded <- isCollapsed 

@@ -192,7 +192,7 @@ type ErrorRenderer (state: InteractionState, segms:LineTransformers<SegmentToMar
         if errorTransformersUpToDate.Value then         
             //eprintfn $"Drawing : {segms.TotalCount} errs"
             let vls = textView.VisualLines
-            let caret = state.Editor.CaretOffset
+            //let caret = state.Editor.CaretOffset // to skip flashing background change at caret?
             for vl in vls do 
                 let ln = vl.FirstDocumentLine                
                 let segs = segms.Line(ln.LineNumber)
@@ -200,12 +200,13 @@ type ErrorRenderer (state: InteractionState, segms:LineTransformers<SegmentToMar
                     if segs.Count > i then // safety check because collection might get reset while iterating
                         let seg = segs.[i]
                         
-                        if seg.EndOffset+5< caret || caret < seg.Offset-5 then // skip flashing background change at caret?
-                            // background color: 
-                            let geoBuilder = new BackgroundGeometryBuilder (AlignToWholePixels = true, CornerRadius = 0.)
-                            geoBuilder.AddSegment(textView, seg)
-                            let boundaryPolygon = geoBuilder.CreateGeometry() // creates one boundary round the text
-                            drawingContext.DrawGeometry(seg.BackgroundBrush, null, boundaryPolygon)
+                        //if seg.EndOffset+5< caret || caret < seg.Offset-5 then // skip flashing background change at caret?
+                            
+                        // background color: 
+                        let geoBuilder = new BackgroundGeometryBuilder (AlignToWholePixels = true, CornerRadius = 0.)
+                        geoBuilder.AddSegment(textView, seg)
+                        let boundaryPolygon = geoBuilder.CreateGeometry() // creates one boundary round the text
+                        drawingContext.DrawGeometry(seg.BackgroundBrush, null, boundaryPolygon)
 
                         //foreground,  squiggles:
                         for rect in BackgroundGeometryBuilder.GetRectsForSegment(textView, seg) do //seg.Shifted(state.FastColorizer.Shift)) do  // DELETE

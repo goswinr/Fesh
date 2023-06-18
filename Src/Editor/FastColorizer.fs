@@ -5,6 +5,7 @@ open AvalonEditB
 open AvalonEditB.Rendering
 open Seff.Model
 open Seff.Util.General
+open Microsoft.VisualBasic.DateAndTime
 
 type ChangeReason = Semantic | Selection | BadIndent | MatchingBrackets | CurrentBracketPair | CheckerError 
 
@@ -122,7 +123,6 @@ type FastColorizer(transformers:LineTransformers<LinePartChange> [], ed:TextEdit
     member _.Shift = shift
 
     member _.Transformers = ltss
-
     
     /// This gets called for every visible line on every Redraw
     override _.ColorizeLine(line:Document.DocumentLine) =   
@@ -160,15 +160,18 @@ type FastColorizer(transformers:LineTransformers<LinePartChange> [], ed:TextEdit
 /// An efficient DocumentColorizingTransformer using line number indices into a line transformer list.
 type DebugColorizer() = 
     inherit Rendering.DocumentColorizingTransformer()  
-    
+    let t = Diagnostics.Stopwatch()
+
     /// This gets called for every visible line on every Redraw
     override _.ColorizeLine(line:Document.DocumentLine) =   
-        let lineNo = line.LineNumber    
-        
+        let lineNo = line.LineNumber
         if lineNo % 10 = 0 then
-            eprintfn "%d" lineNo
-        else 
-            printf "%d, " lineNo
+            if t.ElapsedMilliseconds > 1000L then 
+                ISeffLog.log.PrintfnIOErrorMsg $"DebugColorizer.ColorizeLine %d{lineNo}"
+            else
+                ISeffLog.log.PrintfnDebugMsg $"DebugColorizer.ColorizeLine %d{lineNo}"
+            t.Restart()
+        
 
 
 
