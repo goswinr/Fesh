@@ -209,7 +209,13 @@ module ParseBrackets =
             else                
                 match lns.GetLine(lnNo,id) with
                 |ValueNone -> None // loop aborted
-                |ValueSome l -> 
+                |ValueSome l ->                     
+                    // (1) find bad indents:
+                    //if l.indent % defaultIndenting <> 0 then                         
+                        // printfn $"bad indent {this.indent} at line {lnNo}"
+                        //    trans.Insert(lnNo, {from=l.offStart; till=l.offStart+l.indent; act=badIndentAction} 
+                        
+                    //(2) find brackets
                     let brs = new ResizeArray<Bracket>()
                     let newLineState = readLine (brs, lineState ,l.offStart+l.indent, l.offStart + l.len-1)                    
                     brss.Add brs     

@@ -120,8 +120,7 @@ type Foldings(manager:Folding.FoldingManager, state:InteractionState, getFilePat
                         // printfn $"bad indent {this.indent} at line {lnNo}"
                         transformers.Insert(lnNo, {from=this.offStart; till=this.offStart+this.indent; act=badIndentAction} )
                                             
-                    // (2) find folds:                 
-                    
+                    // (2) find folds:
                     if this.indent=this.len then // skip all white lines
                         loopLines prevLnNo prev (lnNo+1)
                     
@@ -157,8 +156,7 @@ type Foldings(manager:Folding.FoldingManager, state:InteractionState, getFilePat
                             
                     else
                         loopLines lnNo this (lnNo+1)
-        
-        
+                
         match clns.GetLine(1,id) with 
         |ValueNone -> false // did not reach end of code lines
         |ValueSome li -> loopLines 1 li 2
@@ -180,10 +178,11 @@ type Foldings(manager:Folding.FoldingManager, state:InteractionState, getFilePat
     
     let foundBadIndentsEv = new Event<int64>() 
 
+
     ///Get foldings at every line that is followed by an indent
     let foldEditor (id:int64) = 
-        async{                
-            if findFoldings (state.CodeLines, id) then
+        async{              
+            if findFoldings (state.CodeLines, id) then                
                 foundBadIndentsEv.Trigger(id)
                 Folds|> Seff.Util.General.sortInPlaceBy ( fun f -> f.foldStartOff, f.linesInFold) 
                 
@@ -192,12 +191,11 @@ type Foldings(manager:Folding.FoldingManager, state:InteractionState, getFilePat
                         // check like this because reading of file data happens async
                         // ISeffLog.log.PrintfnDebugMsg "waiting to load last code folding status.. "
                         do! Async.Sleep 50
-                    let vs = foldStatus.Get(getFilePath())
-                    
-                    do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context
+                    let vs = foldStatus.Get(getFilePath())                    
+                    do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context                    
                     for i = 0 to Folds.Count-1 do
                         let f = Folds.[i]
-                        if f.foldStartOff < f.foldEndOff then // TODO this seems to not always be the case
+                        if f.foldStartOff < f.foldEndOff then // should never happen here
                             let folded = if  i < vs.Length then  vs.[i]  else false
                             let fs = manager.CreateFolding(f.foldStartOff, f.foldEndOff)
                             fs.Tag <- box f.nestingLevel
@@ -208,17 +206,17 @@ type Foldings(manager:Folding.FoldingManager, state:InteractionState, getFilePat
                             ISeffLog.log.PrintfnDebugMsg  $"Failed to manager.CreateFolding for a negative folding from offset {f.foldStartOff} to {f.foldEndOff} on line {lno.LineNumber}"
 
                     updateCollapseStatus()
-                    isInitialLoad <- false
+                    isInitialLoad <- false                
                 
-
-                elif state.DocChangedId.Value = id then                    
+                elif state.DocChangedId.Value = id then 
                     do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context  
-                    
+                    //let existingFolds = manager.AllFoldings|> Array.ofSeq
                     let folds=ResizeArray<NewFolding>()                                
                     for i=0 to Folds.Count - 1 do
                         if i < Folds.Count then // because folds might get changed on another thread
                             let f = Folds.[i]
-                            if f.foldStartOff < f.foldEndOff then // TODO this seems to not always be the case
+                            //if existingFolds.Length > i && existingFolds.[i].StartOffset <> f.foldStartOff then 
+                            if f.foldStartOff < f.foldEndOff then //  might happen while deleting fast
                                 //ISeffLog.log.PrintfnDebugMsg "Foldings from %d to %d  that is  %d lines" f.foldStartOff  f.foldEndOff f.linesInFold
                                 let fo = new NewFolding(f.foldStartOff, f.foldEndOff) 
                                 fo.Name <- textInFoldBox f.linesInFold
@@ -229,11 +227,12 @@ type Foldings(manager:Folding.FoldingManager, state:InteractionState, getFilePat
                                 ISeffLog.log.PrintfnDebugMsg  $"Failed to make NewFolding for a negative folding from offset {f.foldStartOff} to {f.foldEndOff} on line {lno.LineNumber}"
                             
                     
-                    // Existing foldings starting after this offset will be kept even if they don't appear in newFoldings. Use -1 for this parameter if there were no parse errors)
+                    // firstErrorOffset: Existing foldings starting after this offset will be kept even if they don't appear in newFoldings. 
+                    // Use -1 for this parameter if there were no parse errors)
                     let firstErrorOffset = -1 //The first position of a parse error. 
                     manager.UpdateFoldings(folds, firstErrorOffset)
                                 
-                    // restore state after caret , because state gets lost after an auto complete or multi cracter insertion                             
+                    // restore state after caret , because state gets lost after an auto complete or multi chracter insertion                             
                     let doc = ed.Document                    
                     let co = ed.CaretOffset
                     for f in manager.AllFoldings do 
@@ -249,8 +248,7 @@ type Foldings(manager:Folding.FoldingManager, state:InteractionState, getFilePat
                                 //    if isCollapsed then  ISeffLog.printnColor 200 0 0 $"try collapse {ln.LineNumber}: {d.GetText ln}"
                                 //    else                 ISeffLog.printnColor 0 200 0 $"try open {ln.LineNumber}:{d.GetText ln}"
                     //ISeffLog.printnColor 100 100 100 $"---------end of try collapse---------------------"
-                    //ISeffLog.log.PrintfnDebugMsg $"Updated {Folds.Count} Foldings "
-                    //state.Editor.TextArea.TextView.Redraw()
+                    //ISeffLog.log.PrintfnDebugMsg $"Updated {Folds.Count} Foldings "                        
                     saveFoldingStatus() // so that when new foldings appeared they are saved immediately
 
             } |>  Async.Start
