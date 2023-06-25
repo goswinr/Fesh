@@ -5,6 +5,7 @@
 open System.Windows // for FontStyles
 open System.Windows.Media // for FontFamily
 
+[<RequireQualifiedAccess>]
 module StyleState =  
 
     // used for startup only, will be set f in  Fonts.fs :
@@ -15,9 +16,9 @@ module StyleState =
     let mutable fontSize = 14.0 // will be updated via Fonts.fs
 
     // will be updated via Fonts.fs:
-    let mutable italicBoldEditorTf  =  new Typeface(fontEditor, FontStyles.Italic, FontWeights.Bold,  FontStretches.Normal) 
-    let mutable italicEditorTf      =  new Typeface(fontEditor, FontStyles.Italic, FontWeights.Bold,  FontStretches.Normal) 
-    let mutable boldEditorTf        =  new Typeface(fontEditor, FontStyles.Italic, FontWeights.Normal, FontStretches.Normal)
+    let mutable italicBoldEditorTf  =  new Typeface(fontEditor, FontStyles.Italic, FontWeights.Bold,    FontStretches.Normal) 
+    let mutable italicEditorTf      =  new Typeface(fontEditor, FontStyles.Italic, FontWeights.Normal,  FontStretches.Normal) 
+    let mutable boldEditorTf        =  new Typeface(fontEditor, FontStyles.Normal, FontWeights.Bold,    FontStretches.Normal)
 
 
 

@@ -91,9 +91,9 @@ type Fonts (grid:TabsAndLog) = // will be constructed as part of Commands class
         match tryGetFontOrAlt "FontEditor" with 
         |Some f -> 
             StyleState.fontEditor <- f            
-            StyleState.italicBoldEditorTf  <-  new Typeface(f, FontStyles.Italic, FontWeights.Bold,  FontStretches.Normal) 
-            StyleState.italicEditorTf      <-  new Typeface(f, FontStyles.Italic, FontWeights.Bold,  FontStretches.Normal) 
-            StyleState.boldEditorTf        <-  new Typeface(f, FontStyles.Italic, FontWeights.Normal, FontStretches.Normal)
+            StyleState.italicBoldEditorTf  <-  new Typeface(f, FontStyles.Italic, FontWeights.Bold,    FontStretches.Normal)
+            StyleState.italicEditorTf      <-  new Typeface(f, FontStyles.Italic, FontWeights.Normal,  FontStretches.Normal)
+            StyleState.boldEditorTf        <-  new Typeface(f, FontStyles.Normal, FontWeights.Bold,    FontStretches.Normal)
 
             for t in tabs.AllTabs do  t.Editor.AvaEdit.FontFamily  <- f
             sett.Set ("FontEditor", f.Source)
@@ -138,7 +138,7 @@ type Fonts (grid:TabsAndLog) = // will be constructed as part of Commands class
     /// affects Editor and Log
     member this.FontsBigger()= 
         let cs = tabs.Current.Editor.AvaEdit.FontSize
-        if cs < 250. then setSize(cs * 1.02) // 2% steps
+        if cs < 250. then setSize(cs * 1.04) // 4% steps
 
         //let step = 
         //    if   cs >= 36. then 4.
@@ -150,7 +150,7 @@ type Fonts (grid:TabsAndLog) = // will be constructed as part of Commands class
     /// affects Editor and Log
     member this.FontsSmaller()= 
         let cs = tabs.Current.Editor.AvaEdit.FontSize
-        if cs > 3. then setSize(cs / 1.02) // 2% steps
+        if cs > 3. then setSize(cs / 1.04) // 4% steps
 
         //let step = 
         //    if   cs >= 36. then 4.

@@ -63,9 +63,10 @@ type CompletionItem(state: InteractionState, getToolTip, it:DeclarationListItem,
 
     let style = 
         if it.IsOwnMember then FontStyles.Normal
-        else match it.Glyph with    //new Font(FontFamily.GenericSansSerif,12.0F, FontStyle.Bold | FontStyle.Italic) // needs system.drawing
-             | FSharpGlyph.Module | FSharpGlyph.NameSpace -> FontStyles.Normal
-             | _                                          -> FontStyles.Italic
+        else 
+            match it.Glyph with    //new Font(FontFamily.GenericSansSerif,12.0F, FontStyle.Bold | FontStyle.Italic) // needs system.drawing
+            | FSharpGlyph.Module | FSharpGlyph.NameSpace -> FontStyles.Normal
+            | _                                          -> FontStyles.Italic
 
     let priority = //if it.IsOwnMember then 1. else 1.
         if isDotCompletion then 1.0 // not on Dot completion

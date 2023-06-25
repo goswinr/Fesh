@@ -254,13 +254,13 @@ type AsyncStatus (grid:TabsAndLog) as this =
 
 type SelectedEditorTextStatus (grid:TabsAndLog) as this = 
     inherit TextBlock() 
-    let desc = "no selection in Editor" //Editor Selection Highlighting" 
+    let noSelTxt = new Run ("no selection in Editor", Foreground = SelectionHighlighting.colorInactive) //Editor Selection Highlighting" 
     let tipText = "Highlights and counts the occurrences of the currently selected Text in the current Editor.\r\nMinimum two characters and no line breaks.\r\nClick here to scroll through all occurrences."
     let mutable scrollToIdx = 0 
     do
         this.Padding <- textPadding
         this.ToolTip <-  tipText
-        this.Inlines.Add(new Run (desc, Foreground = SelectionHighlighting.colorInactive))
+        this.Inlines.Add noSelTxt
         SelectionHighlighting.FoundSelectionsEditor.Add(fun triggerNext  -> 
             let sel = grid.Tabs.Current.Editor.Services.selection
             if triggerNext then
@@ -268,10 +268,9 @@ type SelectedEditorTextStatus (grid:TabsAndLog) as this =
                 |None -> ()
                 |Some hili -> hili.Mark(sel.Word)            
             
-            if sel.Offsets.Count = 0 then  
-                //this.Text <- desc  
+            if sel.Offsets.Count = 0 then 
                 this.Inlines.Clear()
-                this.Inlines.Add( new Run (desc, Foreground = SelectionHighlighting.colorInactive))
+                this.Inlines.Add noSelTxt
             else
                 this.Inlines.Clear()
                 this.Inlines.Add( $"%d{sel.Offsets.Count} of "  )
@@ -293,19 +292,19 @@ type SelectedEditorTextStatus (grid:TabsAndLog) as this =
                     scrollToIdx <- 0
             )  
 
-        grid.Tabs.OnTabChanged.Add ( fun _ -> this.Text <- desc )
+        grid.Tabs.OnTabChanged.Add ( fun _ -> this.Inlines.Clear();  this.Inlines.Add noSelTxt )
  
 
 type SelectedLogTextStatus (grid:TabsAndLog) as this = 
     inherit TextBlock()
     let log = grid.Log    
-    let desc = "no selection in Log" //Log Selection Highlighting " 
+    let noSelTxt = new Run ("no selection in Log", Foreground = SelectionHighlighting.colorInactive) //Log Selection Highlighting " 
     let tipText = "Highlights and counts the occurrences of the currently selected Text in the Log output.\r\nMinimum two characters and no line breaks.\r\nClick here to scroll through all occurrences."
     let mutable scrollToIdx = 0 
     do
         this.Padding <- textPadding
         this.ToolTip <- tipText
-        this.Inlines.Add( new Run (desc, Foreground = SelectionHighlighting.colorInactive)) 
+        this.Inlines.Add noSelTxt 
         SelectionHighlighting.FoundSelectionsLog.Add(fun (triggerNext) ->
             match log.SelectionHighlighter with 
             |None -> ()
@@ -315,7 +314,7 @@ type SelectedLogTextStatus (grid:TabsAndLog) as this =
 
                 if hili.Offsets.Count = 0 then
                     this.Inlines.Clear()
-                    this.Inlines.Add( new Run (desc, Foreground = SelectionHighlighting.colorInactive))
+                    this.Inlines.Add noSelTxt
                 else
                     this.Inlines.Clear()
                     this.Inlines.Add( sprintf $"%d{hili.Offsets.Count} of ")

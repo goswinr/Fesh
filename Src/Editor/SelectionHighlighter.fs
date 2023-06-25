@@ -186,7 +186,7 @@ type SelectionHighlighterLog (lg:TextEditor) =
         if lastSels.Count > 0 then 
             lastWord <- ""
             lastSels.Clear()            
-            async{ 
+            async{                 
                 match trans.Range with 
                 | None   ->                     
                     // still trigger event to clear the selection in StatusBar if it is just one without any highlighting
@@ -223,7 +223,7 @@ type SelectionHighlighterLog (lg:TextEditor) =
                     if logChangeID.Value = chnageId then // this forces waiting till there are no more updates
                         linesNeedUpdate <- false                     
             
-            if markId = markCallID.Value && logChangeID.Value = chnageId  then // because while getting the text above, the selection might have changed already
+            if markId = markCallID.Value && logChangeID.Value = chnageId  then // because while getting the text above, the text or the selection might have changed already
                 let codeStr  = lines.FullCode
                 let lastLineNo = lines.LastLineIdx
                 let wordLen = word.Length
@@ -248,34 +248,35 @@ type SelectionHighlighterLog (lg:TextEditor) =
                                 let remainingLineLength = l.len - lenReduction
                                 off <- codeStr.IndexOf(word, start, remainingLineLength , StringComparison.Ordinal)
                             
-                            loop (lineNo + 1)
+                            loop (lineNo + 1)                
                 
-                if markId = markCallID.Value then 
+                if loop 1 && markId = markCallID.Value then // tests if there is a newer doc change                 
+                        
                     let prev = trans.Range // get previuos range before clearing
                     trans.ClearAllLines() // does nothing if already all cleared
                     lastSels <- offs 
                     lastWord <- word
-                    if loop 1 then // tests if there is a newer doc change                 
-                        match  prev, trans.Range with 
-                        | None       , None  ->    // nothing before, nothing now, but maybe just the current selection that doesn't need highlighting, but still needs to show in status bar
-                            if offs.Count = 1 then 
-                                do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context                    
-                                foundSelectionLogEv.Trigger(triggerNext) 
+                        
+                    match  prev, trans.Range with 
+                    | None       , None  ->    // nothing before, nothing now, but maybe just the current selection that doesn't need highlighting, but still needs to show in status bar
+                        if offs.Count = 1 then 
+                            do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context                    
+                            foundSelectionLogEv.Trigger(triggerNext) 
                 
-                        | Some (f,l) , None          // some before, nothing now
-                        | None       , Some (f,l) -> // nothing before, some now
-                            do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context
-                            //markFoldingsSorted(offs) // there are no foldings in the log
-                            lg.TextArea.TextView.Redraw(f.from, l.till, priority)
-                            foundSelectionLogEv.Trigger(triggerNext)                   
+                    | Some (f,l) , None          // some before, nothing now
+                    | None       , Some (f,l) -> // nothing before, some now
+                        do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context
+                        //markFoldingsSorted(offs) // there are no foldings in the log
+                        lg.TextArea.TextView.Redraw(f.from, l.till, priority)
+                        foundSelectionLogEv.Trigger(triggerNext)                   
                 
-                        | Some (pf,pl),Some (f,l) ->   // both prev and current version have a selection                 
-                            do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context 
-                            //markFoldingsSorted(offs)// there are no foldings in the log
-                            lg.TextArea.TextView.Redraw(min pf.from f.from, max pl.till l.till, priority)
-                            foundSelectionLogEv.Trigger(triggerNext)
-                    else
-                        () // don't redraw, there is already a new doc change happening that will be drawn 
+                    | Some (pf,pl),Some (f,l) ->   // both prev and current version have a selection                 
+                        do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context 
+                        //markFoldingsSorted(offs)// there are no foldings in the log
+                        lg.TextArea.TextView.Redraw(min pf.from f.from, max pl.till l.till, priority)
+                        foundSelectionLogEv.Trigger(triggerNext)
+                else
+                    () // don't redraw, there is already a new doc change happening that will be drawn 
         }|> Async.Start
     
     

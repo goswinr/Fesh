@@ -13,20 +13,23 @@ module Initialize =
     
     let saveBeforeFailing()= 
         async{
-            match Model.IEditor.current with
-            |None -> ()
-            |Some ed -> 
-                match ed.FilePath with 
-                |NotSet _ -> ()
-                |Deleted _ -> ()
-                |SetTo fi -> 
-                    do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context
-                    let doc = ed.AvaEdit.Document
-                    do! Async.SwitchToThreadPool()
-                    let txt = doc.CreateSnapshot().Text
-                    let desk = Environment.GetFolderPath(Environment.SpecialFolder.Desktop)
-                    let p = Path.Combine(desk, Path.GetFileNameWithoutExtension(fi.Name) + " " + DateTime.nowStr + fi.Extension  )
-                    File.WriteAllText(p,txt)                
+            try
+                match Model.IEditor.current with
+                |None -> ()
+                |Some ed -> 
+                    match ed.FilePath with 
+                    |NotSet _ -> ()
+                    |Deleted _ -> ()
+                    |SetTo fi -> 
+                        do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context
+                        let doc = ed.AvaEdit.Document
+                        do! Async.SwitchToThreadPool()
+                        let txt = doc.CreateSnapshot().Text
+                        let desk = Environment.GetFolderPath(Environment.SpecialFolder.Desktop)
+                        let p = Path.Combine(desk, Path.GetFileNameWithoutExtension(fi.Name) + " " + DateTime.nowStr + fi.Extension  )
+                        File.WriteAllText(p,txt) 
+            with _ -> //saving might fail because another error might be writting to the same file already
+                ()
         } |> Async.Start
 
     let everything(mode:HostedStartUpData option, startupArgs:string[]): Seff = 

@@ -205,7 +205,7 @@ type Foldings(manager:Folding.FoldingManager, state:InteractionState, getFilePat
                             fs.Title <- textInFoldBox f.linesInFold   
                         else
                             let lno = ed.Document.GetLineByOffset f.foldStartOff
-                            ISeffLog.log.PrintfnDebugMsg  $"Failed to creat a negative folding from offset {f.foldStartOff} to {f.foldEndOff} on line {lno.LineNumber}"
+                            ISeffLog.log.PrintfnDebugMsg  $"Failed to manager.CreateFolding for a negative folding from offset {f.foldStartOff} to {f.foldEndOff} on line {lno.LineNumber}"
 
                     updateCollapseStatus()
                     isInitialLoad <- false
@@ -218,11 +218,16 @@ type Foldings(manager:Folding.FoldingManager, state:InteractionState, getFilePat
                     for i=0 to Folds.Count - 1 do
                         if i < Folds.Count then // because folds might get changed on another thread
                             let f = Folds.[i]
-                            //ISeffLog.log.PrintfnDebugMsg "Foldings from %d to %d  that is  %d lines" f.foldStartOff  f.foldEndOff f.linesInFold
-                            let fo = new NewFolding(f.foldStartOff, f.foldEndOff) 
-                            fo.Name <- textInFoldBox f.linesInFold
-                            folds.Add(fo) //if NewFolding type is created async a waiting symbol appears on top of it
-                        
+                            if f.foldStartOff < f.foldEndOff then // TODO this seems to not always be the case
+                                //ISeffLog.log.PrintfnDebugMsg "Foldings from %d to %d  that is  %d lines" f.foldStartOff  f.foldEndOff f.linesInFold
+                                let fo = new NewFolding(f.foldStartOff, f.foldEndOff) 
+                                fo.Name <- textInFoldBox f.linesInFold
+                                folds.Add(fo) //if NewFolding type is created async a waiting symbol appears on top of it
+                          
+                            else
+                                let lno = ed.Document.GetLineByOffset f.foldStartOff
+                                ISeffLog.log.PrintfnDebugMsg  $"Failed to make NewFolding for a negative folding from offset {f.foldStartOff} to {f.foldEndOff} on line {lno.LineNumber}"
+                            
                     
                     // Existing foldings starting after this offset will be kept even if they don't appear in newFoldings. Use -1 for this parameter if there were no parse errors)
                     let firstErrorOffset = -1 //The first position of a parse error. 
