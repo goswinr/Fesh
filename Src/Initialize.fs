@@ -28,7 +28,7 @@ module Initialize =
                         let desk = Environment.GetFolderPath(Environment.SpecialFolder.Desktop)
                         let p = Path.Combine(desk, Path.GetFileNameWithoutExtension(fi.Name) + " " + DateTime.nowStr + fi.Extension  )
                         File.WriteAllText(p,txt) 
-            with _ -> //saving might fail because another error might be writting to the same file already
+            with _ -> //saving might fail because another error might be writing to the same file already
                 ()
         } |> Async.Start
 
@@ -69,7 +69,7 @@ module Initialize =
                 )
             errHandler.Setup()// do as soon as log exists 
         with e ->
-            log.PrintfnAppErrorMsg "Setting up Global Error Handling via FsEx.Wpf.ErrorHandeling failed. Or is done already? Is FsEx.Wpf already loaded by another plug-in?\r\n%A" e 
+            log.PrintfnAppErrorMsg "Setting up Global Error Handling via FsEx.Wpf.ErrorHandling failed. Or is done already? Is FsEx.Wpf already loaded by another plug-in?\r\n%A" e 
            
         let config = new Config(log, mode, startupArgs)
         log.FinishLogSetup(config)          

@@ -486,7 +486,6 @@
   </RuleSet> 
 
   
-  <RuleSet name="Numbers">
     <!-- a hex number | binary number | (number just starting with floating point | with optional inner floating point) and an optional exponent. https://regexr.com/52d6q -->
     <!-- <Rule color="NumberLiteral">((-\.|\.)[0-9_]+|(\b|-)[0-9_]+\.?[0-9_]*)([eE][+-]?[0-9]+)? </Rule> -->
     
@@ -498,16 +497,6 @@
     <Rule color="NumberLiteral">\b[0-9_]+\.?[0-9_]*</Rule>
     <Rule color="Punctuation">[0-9\w]\-</Rule> <!-- to exclude a 'x-1' to be highlighted below too: -->
     <Rule color="NegNumberLiteral">(?&lt;!\d)-[0-9_]+\.?[0-9_]*</Rule> <!-- (?&lt;!\d) is a negative lookbehind for digits -->   
-  </RuleSet>  
-  
-  <RuleSet name="CodeMain">
-    <Import ruleSet="CommentSet"/> 
-    <Import ruleSet="InlineCommentSet"/> 
-    <Import ruleSet="StringSet"/>
-    <Import ruleSet="KeywordSet"/>    
-    <Import ruleSet="PrintAndFailStatements"/>
-    <Import ruleSet="DoubleTicksSet"/>
-    <Import ruleSet="Numbers"/>     
     
     <Rule color="Semicolon">;</Rule>
 
@@ -522,7 +511,6 @@
       <RuleSet> 
         <Import ruleSet="StringSet"/>
         <Import ruleSet="PunctuationSet"/>  
-        <Import ruleSet="Numbers"/>         
       </RuleSet>
     </Span>
   </RuleSet>

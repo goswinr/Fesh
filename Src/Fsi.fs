@@ -168,7 +168,7 @@ type Fsi private (config:Config) =
     
     let createSession() =         
         let fsiArgs =
-            // see: Config/FsiArgumnets.fs
+            // see: Config/FsiArguments.fs
             let args = config.FsiArguments.Get            
             let beQuiet = config.Settings.GetBool ("fsiOutputQuiet", false)
              

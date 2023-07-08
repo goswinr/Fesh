@@ -37,7 +37,7 @@ type FoldingStatus ( runContext:RunContext, recentlyUsedFiles:RecentlyUsedFiles)
                 waitingForFileRead <- false
             with e -> 
                 waitingForFileRead <- false
-                ISeffLog.log.PrintfnIOErrorMsg $"reading folding sttis firl failed with\r\n {e}"
+                ISeffLog.log.PrintfnIOErrorMsg $"reading folding status failed with\r\n {e}"
             } |> Async.Start
         dict
 
@@ -69,7 +69,7 @@ type FoldingStatus ( runContext:RunContext, recentlyUsedFiles:RecentlyUsedFiles)
         | Deleted fi | SetTo fi ->
             let vs = [| for f in manager.AllFoldings do f.IsFolded |]
             let ok, curr = foldingStatus.TryGetValue fi.FullName
-            if not ok || curr <> vs then // only update if ther are changes or setting is missing.
+            if not ok || curr <> vs then // only update if there are changes or setting is missing.
                 foldingStatus.[fi.FullName] <- vs 
                 foldingStatus.[fi.Name]     <- vs // so that it still works in case the file moves folder
                 writer.WriteIfLast (foldingStatusAsString, 800)

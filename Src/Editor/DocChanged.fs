@@ -473,15 +473,15 @@ module DocChangeCompletion =
 module DocChangeEvents = 
     open DocChangeUtil   
 
-    // gets called before the document actually chnages
+    // gets called before the document actually changes
     let changing  (state:InteractionState) (a:DocumentChangeEventArgs) =             
         
-        // (1) increment chnage counter
+        // (1) increment change counter
         match state.DocChangedConsequence with 
         | WaitForCompletions -> ()
         | React -> state.Increment() |> ignore // incrementing this handler before the change actually happens, but  only increment when a reaction is required.
         
-        // (2)clear semantic highlighting immediatly so that no odd coloring apears on this line.
+        // (2)clear semantic highlighting immediately so that no odd coloring appears on this line.
         let lnNo = state.Editor.Document.GetLineByOffset(a.Offset)
         state.TransformersSemantic.ClearLine(lnNo.LineNumber)
 

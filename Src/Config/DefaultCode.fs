@@ -14,12 +14,15 @@ type DefaultCode  ( runContext:RunContext) =
 
     let defaultCodeOnFirstRun = 
         [
-        "// This is your default code for new files, you can change it by going to the menu: File -> Edit Template File"
+        "// This is your default code for new files,"
+        "// you can change it by going to the menu: File -> Edit Template File"
         "// Or at " + filePath0
+        ""
         //"tips: // https://panesofglass.github.io/scripting-workshop/#/"
         //"tips: // http://brandewinder.com/2016/02/06/10-fsharp-scripting-tips/"
         "open System"
         // "Environment.CurrentDirectory <- __SOURCE_DIRECTORY__" // TODO this fails !
+        ""
         ""
         ]
         |> String.concat Environment.NewLine
