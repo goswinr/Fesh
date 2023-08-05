@@ -60,11 +60,11 @@ module Initialize =
         //Directory.SetCurrentDirectory(Path.GetDirectoryName(Reflection.Assembly.GetAssembly([].GetType()).Location)) 
         //Model.ISeffLog.log.PrintfnDebugMsg $"Current directory set to: '{Environment.CurrentDirectory}'"
 
-        let appname = match mode with Some n -> "Seff." + n.hostName |None -> "Seff"
+        let appName = match mode with Some n -> "Seff." + n.hostName |None -> "Seff"
         try 
             // TODO attempt to save files before closing ?  or save anyway every 2 minutes to backup folder if less than 10k lines
             let errHandler = FsEx.Wpf.ErrorHandling (
-                appname, 
+                appName, 
                 fun () -> saveBeforeFailing();  "FSI Error Stream:\r\n" + log.FsiErrorsStringBuilder.ToString()
                 )
             errHandler.Setup()// do as soon as log exists 
@@ -79,7 +79,7 @@ module Initialize =
 
         // not needed?
         //try
-        //    // so that wpf textboxes that are bound to floats can have a dot input too. see https://stackoverflow.com/a/35942615/969070
+        //    // so that wpf textBoxes that are bound to floats can have a dot input too. see https://stackoverflow.com/a/35942615/969070
         //    // setting this might fails when a hosting WPF process is already up and running (eg loaded in another WPF thread)
         //    FrameworkCompatibilityPreferences.KeepTextBoxDisplaySynchronizedWithTextProperty <- false
         //with  _ ->

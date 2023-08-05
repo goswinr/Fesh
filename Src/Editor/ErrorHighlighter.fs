@@ -39,7 +39,7 @@ module ErrorStyle=
     let infoBackGr      =       Brushes.Green  |> brighter 220   |> freeze
 
 
-/// ISegment: This segment also contains back and foreground color and diagnostic display text
+/// an ISegment: This segment also contains back and foreground color and diagnostic display text
 type SegmentToMark (startOffset:int,  endOffset:int , e:FSharpDiagnostic)  = 
 
     let underlinePen = 
@@ -82,7 +82,7 @@ type SegmentToMark (startOffset:int,  endOffset:int , e:FSharpDiagnostic)  =
         {new ISegment with
             member _.Offset      = o
             member _.EndOffset   = e
-            member _.Length      = s.Length 
+            member _.Length      = e - o
             }
 
 module ErrorUtil =    
@@ -166,7 +166,7 @@ module ErrorUtil =
             scrollToIdx <- scrollToIdx + 1            
             scrollToIdx
 
-    let rec getNextSegment(ied:IEditor) =         
+    let rec getNextSegment(ied:IEditor) = 
         match ied.FileCheckState with
         | Checking  ->  None 
         | Done res ->

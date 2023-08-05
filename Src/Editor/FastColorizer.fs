@@ -32,7 +32,7 @@ type LineTransformers<'T>() =    // generic so it can work for LinePartChange an
 
     let mutable shift = {from=0; amount=0}    
 
-    member _.AdjustOneShift(s:Shift) = shift <- {from = s.from  ; amount = s.amount + shift.amount}
+    member _.AdjustOneShift(s:Shift) = shift <- {from = min shift.from s.from  ; amount = shift.amount + s.amount }
 
     member _.ResetOneShift() = shift <- {from=0; amount=0}
 
@@ -114,113 +114,19 @@ type LineTransformers<'T>() =    // generic so it can work for LinePartChange an
             Some (first,last) 
  
 
- (* //DELETE
-/// For accessing the highlighting of a line in constant time
-type LineTransformersOLD<'T>() =    // generic so it can work for LinePartChange and Shift
-
-    let lines = ResizeArray<ResizeArray<'T>>(256)// for approx 256 lines on screen
-
-    let mutable first = Unchecked.defaultof<'T>
-    let mutable last  = Unchecked.defaultof<'T>
-    let mutable lastLine   = 0
-    let mutable firstLine  = Int32.MaxValue
-
-    let empty = ResizeArray<'T>()
-
-    member _.LineCount = lines.Count
-       
-    member _.Insert(lineNumber:int, x:'T) =         
-        
-        // fill up missing lines
-        for _ = lines.Count to lineNumber-1 do            
-            lines.Add null
-
-        if lineNumber = lines.Count  then 
-            // add a new line        
-            let n = ResizeArray(4)
-            n.Add x
-            lines.Add n            
-       
-        else
-            //try
-                // add to existing line:            
-                let ln = lines.[lineNumber] 
-                if isNull ln then 
-                    let n = ResizeArray(4)
-                    lines.[lineNumber] <- n
-                    n.Add x 
-                else                
-                    ln.Add x
-            //with e ->  ISeffLog.log.PrintfnAppErrorMsg $"LineTransformers.Insert on line {lineNumber} failed for { lines.Count } lines."
-            
-        
-        // remember the first and last line that has content to then only redraw those 
-        if lineNumber < firstLine then 
-            firstLine <- lineNumber
-            first     <- x
-        if lineNumber > lastLine then 
-            lastLine <- lineNumber
-            last     <- x
-           
-    /// does nothing if clear already
-    member _.ClearAllLines() =        
-        if firstLine < Int32.MaxValue  then 
-            for i=0 to lines.Count-1 do
-                let ln = lines.[i] 
-                if not <| isNull ln then ln.Clear()
-                
-            //lines.Clear() // don't do this too, so that allocated Lists stay alive and can be refilled faster.       
-            lastLine  <- 0      
-            firstLine <- Int32.MaxValue
-    
-
-    /// Safely gets a Line returns empty if index is out of range
-    member _.Line(lineNumber) =
-        if lineNumber>=0 && lineNumber<lines.Count then 
-            let ln = lines.[lineNumber] 
-            if isNull ln then 
-                empty 
-            else 
-                ln            
-        else empty
-    
-    member _.Range = 
-        if firstLine = Int32.MaxValue  then 
-            None
-        else
-            Some (first,last) 
-   
-
-    /// used to clear semantic highlighting from current line, so that it does not look odd while editing
-    member _.ClearLine(i) =        
-        if firstLine < Int32.MaxValue && i < lines.Count then 
-            lines.[i] <- null
-           
-    member _.IsEmpty = firstLine = Int32.MaxValue 
-
-    member _.IsNotEmpty = firstLine  < Int32.MaxValue
-
-    member this.TotalCount = 
-        let mutable k =  0
-        for i=0 to lines.Count-1 do
-            k <- k + this.Line(i).Count
-        k  
-    *)
 
 /// An efficient DocumentColorizingTransformer using line number indices into a line transformer list.
 type FastColorizer(transformers:LineTransformers<LinePartChange> [], ed:TextEditor) = 
     inherit Rendering.DocumentColorizingTransformer()  
 
-    //member _.Transformers = ltss //DELETE
-    
     member _.AdjustShifts(s:Shift) = 
-        for j = 0 to transformers.Length-1 do
-            let lts = transformers.[j]
+        for i = 0 to transformers.Length-1 do
+            let lts = transformers.[i]
             lts.AdjustOneShift(s) 
     
     member _.ResetShifts() = 
-        for j = 0 to transformers.Length-1 do
-            let lts = transformers.[j]
+        for i = 0 to transformers.Length-1 do
+            let lts = transformers.[i]
             lts.ResetOneShift() 
 
     /// This gets called for every visible line on every Redraw
@@ -247,15 +153,15 @@ type FastColorizer(transformers:LineTransformers<LinePartChange> [], ed:TextEdit
                             if from >= till then () // negative length
                                 //let tx = ed.Document.GetText(line)
                                 //let seg = ed.Document.GetText(till, from-till)
-                                //ISeffLog.log.PrintfnAppErrorMsg $"*LineChangePart1 {from} >= {till}; Docline {offSt}-{offEn} on line: {lineNo}; (shift:{shiftChecked})"           
+                                //ISeffLog.log.PrintfnAppErrorMsg $"*LineChangePart1 {from} >= {till}; DocLine {offSt}-{offEn} on line: {lineNo}; (shift:{shiftChecked})"           
                                 //ISeffLog.log.PrintfnAppErrorMsg $"   '{seg}' in {lineNo}:'{tx}'"           
-                            elif till > offEn then () // ISeffLog.log.PrintfnAppErrorMsg $"**LineChangePart2 {from}-{till}; Docline {offSt}-{offEn} on line: {lineNo}; (shift:{shiftChecked})" 
-                            elif from < offSt then () // ISeffLog.log.PrintfnAppErrorMsg $"***LineChangePart3 {from}-{till}; Docline {offSt}-{offEn} on line: {lineNo}; (shift:{shiftChecked})"           
+                            elif till > offEn then () // ISeffLog.log.PrintfnAppErrorMsg $"**LineChangePart2 {from}-{till}; DocLine {offSt}-{offEn} on line: {lineNo}; (shift:{shiftChecked})" 
+                            elif from < offSt then () // ISeffLog.log.PrintfnAppErrorMsg $"***LineChangePart3 {from}-{till}; DocLine {offSt}-{offEn} on line: {lineNo}; (shift:{shiftChecked})"           
                             else
-                                //ISeffLog.log.PrintfnDebugMsg $"{from}-{till}; Docline {offSt}-{offEn} on line: {lineNo}; doc.Text.Length {ed.Document.TextLength} (shift:{shiftChecked})" 
+                                //ISeffLog.log.PrintfnDebugMsg $"{from}-{till}; DocLine {offSt}-{offEn} on line: {lineNo}; doc.Text.Length {ed.Document.TextLength} (shift:{shiftChecked})" 
                                 base.ChangeLinePart(from, till, lpc.act)
                                                             
-                    //else  ISeffLog.log.PrintfnAppErrorMsg $"Line Count {lpcs.Count} was reset while iterating index{i}"  // DELETE
+                  
 
 /// An efficient DocumentColorizingTransformer using line number indices into a line transformer list.
 type DebugColorizer() = 

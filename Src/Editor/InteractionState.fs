@@ -267,8 +267,8 @@ type InteractionState(ed:TextEditor, foldManager:FoldingManager, config:Seff.Con
     member _.FoldManager = foldManager 
 
 
-// Highlighting needs:  // DELETE
 (*
+// general Highlighting needs:  
 
 type AfterWait = 
     | DidNotEvenShow // prefilter found no items

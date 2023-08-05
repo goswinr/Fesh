@@ -97,12 +97,11 @@ module Redrawing =
         let mutable scan = ScanState.None 
        
         let tryDraw(id) =             
-            if false && scan = ScanState.All && state.IsLatest id then                 
+            if scan = ScanState.All && state.IsLatest id then                 
                 scan <- ScanState.None                 
                 ed.Dispatcher.Invoke (fun() -> ed.TextArea.TextView.Redraw()) //TODO only redraw parts of the view, or lower priority ?    
 
-
-        /// TODO !!!!!! refactor this to reset if state io not latest anymore
+        
         let doneBadIndents(id) = scan <- scan ||| ScanState.BadIndent;  tryDraw(id)
         let doneBrackets(id)   = scan <- scan ||| ScanState.Brackets ;  tryDraw(id)             
         let doneSemantics(id)  = scan <- scan ||| ScanState.Semantics;  tryDraw(id)
@@ -432,8 +431,7 @@ module DocChangeEvents =
             state.FastColorizer.ResetShifts() 
     
 
-    let changed (iEd:IEditor) (serv:EditorServices) (state:InteractionState) (eventArgs:DocumentChangeEventArgs) : unit  =       
-        //serv.errors.InvalidateErrorTransformers() //DELETE
+    let changed (iEd:IEditor) (serv:EditorServices) (state:InteractionState) (eventArgs:DocumentChangeEventArgs) : unit  =  
         match state.DocChangedConsequence with 
         | WaitForCompletions -> 
             // Do not increment DoChangeID counter, this would cancel the showing of the completion window.

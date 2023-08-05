@@ -33,7 +33,7 @@ type Counter private () =
 
 
  /// The tab that holds the tab header and the code editor
-type Editor private (code:string, config:Config, initalFilePath:FilePath)  = 
+type Editor private (code:string, config:Config, initialFilePath:FilePath)  = 
     let avaEdit = 
         let av = TextEditor()
         av.Options.IndentationSize <- config.Settings.GetIntSaveDefault("IndentationSize", 4) // do first because its used by tabs to spaces below.
@@ -71,7 +71,7 @@ type Editor private (code:string, config:Config, initalFilePath:FilePath)  =
         se
      
     let mutable checkState = FileCheckState.Checking
-    let mutable filePath   = initalFilePath
+    let mutable filePath   = initialFilePath
     let getFilePath() = filePath
         
     let foldMg      = Folding.FoldingManager.Install(avaEdit.TextArea) 
