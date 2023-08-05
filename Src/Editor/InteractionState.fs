@@ -33,7 +33,7 @@ module CodeLineTools =
     /// if indent equals len the line is only whitespace
     type CodeLines(docChangedIdHolder:int64 ref) =
         
-        let lns = ResizeArray<LineInfo>(256)
+        let mutable lines = ResizeArray<LineInfo>(256)
 
         let mutable isDone = true
 
@@ -44,32 +44,34 @@ module CodeLineTools =
         let update(code:string) =
             isDone <- false
             fullCode <- code
+            let newLns = ResizeArray<LineInfo>(lines.Count + 2)
 
             let codeLen = code.Length
 
             let rec loop stOff = 
                 if stOff >= codeLen then // last line 
                     let len = codeLen - stOff
-                    lns.Add {offStart=stOff; indent=len; len=len}   
+                    newLns.Add {offStart=stOff; indent=len; len=len}   
                 else
                     match code.IndexOf ('\r', stOff) with //TODO '\r' might fail if Seff is ever ported to AvaloniaEdit to work on MAC
                     | -1 -> 
                         let len = codeLen - stOff
                         let indent = spacesFrom stOff len code
-                        lns.Add {offStart=stOff; indent=indent; len=len}  // the last line      
+                        newLns.Add {offStart=stOff; indent=indent; len=len}  // the last line      
                     | r -> 
                         let len = r - stOff
                         let indent = spacesFrom stOff len code
-                        lns.Add {offStart=stOff; indent=indent; len=len}
+                        newLns.Add {offStart=stOff; indent=indent; len=len}
                         loop (r+2) // +2 to jump over \r and \n
 
-            lns.Add {offStart=0; indent=0; len=0}   // ad dummy line at index 0
+            newLns.Add {offStart=0; indent=0; len=0}   // ad dummy line at index 0
             loop (0)
-            isDone <- true            
+            isDone <- true 
+            newLns
 
-        member _.Lines = lns
+        member _.Lines = lines
 
-        member _.LastLineIdx = lns.Count - 1
+        member _.LastLineIdx = lines.Count - 1
 
         member _.IsDone = isDone
 
@@ -81,7 +83,7 @@ module CodeLineTools =
         /// checks if this codelines does not correspond to a given ID
         member _.IsNotFromId(id) = id <> correspondingId
 
-        /// ThreadSafe and in Sync: Only start sparsing when Done and also checks 
+        /// ThreadSafe and in Sync: Only starts parsing when Done and also checks 
         /// if docChangedIdHolder.Value = id before and after
         /// returns True 
         member _.Update(code, changeId): bool = 
@@ -92,10 +94,10 @@ module CodeLineTools =
                 return 
                     if docChangedIdHolder.Value <> changeId then 
                         false
-                    else
-                        lns.Clear()
-                        update code
+                    else                        
+                        let newLns = update code
                         if docChangedIdHolder.Value = changeId then 
+                            lines <- newLns
                             correspondingId <- changeId
                             true
                         else 
@@ -103,17 +105,14 @@ module CodeLineTools =
             } |> Async.RunSynchronously
 
 
-        // Safe: checks isDone && docChangedIdHolder.Value = id
-        //member this.Get(changeId): CodeLines option =  if isDone && docChangedIdHolder.Value = changeId then Some this else None
-
         /// Safe: checks isDone && docChangedIdHolder.Value = id
         /// returns also none for bad indices
         member _.GetLine(lineIdx, changeId): LineInfo voption =
             if isDone && docChangedIdHolder.Value = changeId then 
-                if lineIdx < 0 || lineIdx >= lns.Count then 
+                if lineIdx < 0 || lineIdx >= lines.Count then 
                     ValueNone
                 else
-                    ValueSome lns.[lineIdx]
+                    ValueSome lines.[lineIdx]
             else 
                 ValueNone
 
@@ -121,10 +120,10 @@ module CodeLineTools =
         /// returns also none for bad indices
         member _.GetLineText(lineIdx, changeId): string voption =
             if isDone && docChangedIdHolder.Value = changeId then 
-                if lineIdx < 0 || lineIdx >= lns.Count then 
+                if lineIdx < 0 || lineIdx >= lines.Count then 
                     ValueNone
                 else
-                    let l = lns.[lineIdx]
+                    let l = lines.[lineIdx]
                     ValueSome (fullCode.Substring(l.offStart,l.len))
                     
             else 
@@ -139,51 +138,50 @@ module CodeLineTools =
     /// if indent equals len the line is only whitespace
     type CodeLinesSimple() =
         
-        let lns = ResizeArray<LineInfo>(256)
+        let mutable lines = ResizeArray<LineInfo>(256)
 
         let mutable fullCode = ""
 
         let update(code:string) =            
             fullCode <- code
-
+            let newLns = ResizeArray<LineInfo>(lines.Count + 50) // TODO turn this into an append only , since the Log is append only, instead of reallocating:
             let codeLen = code.Length
 
             let rec loop stOff = 
                 if stOff >= codeLen then // last line 
                     let len = codeLen - stOff
-                    lns.Add {offStart=stOff; indent=len; len=len}   
+                    newLns.Add {offStart=stOff; indent=len; len=len}   
                 else
                     match code.IndexOf ('\r', stOff) with //TODO '\r' might fail if Seff is ever ported to AvaloniaEdit to work on MAC
                     | -1 -> 
                         let len = codeLen - stOff
                         let indent = spacesFrom stOff len code
-                        lns.Add {offStart=stOff; indent=indent; len=len}  // the last line      
+                        newLns.Add {offStart=stOff; indent=indent; len=len}  // the last line      
                     | r -> 
                         let len = r - stOff
                         let indent = spacesFrom stOff len code
-                        lns.Add {offStart=stOff; indent=indent; len=len}
+                        newLns.Add {offStart=stOff; indent=indent; len=len}
                         loop (r+2) // +2 to jump over \r and \n
 
-            lns.Add {offStart=0; indent=0; len=0}   // ad dummy line at index 0
-            loop (0)                      
+            newLns.Add {offStart=0; indent=0; len=0}   // ad dummy line at index 0
+            loop (0)
+            newLns
 
-        member _.Lines = lns
+        member _.Lines = lines
 
-        member _.LastLineIdx = lns.Count - 1
+        member _.LastLineIdx = lines.Count - 1
 
         member _.FullCode = fullCode
                  
-        member _.Update(code) =             
-            lns.Clear()
-            update code
+        member _.Update(code) = lines <- update code
 
         /// Safe: checks isDone && docChangedIdHolder.Value = id
         /// returns also none for bad indices
         member _.GetLine(lineIdx, changeId): LineInfo voption =
-            if lineIdx < 0 || lineIdx >= lns.Count then 
+            if lineIdx < 0 || lineIdx >= lines.Count then 
                 ValueNone
             else
-                ValueSome lns.[lineIdx]
+                ValueSome lines.[lineIdx]
            
 type DocChangedConsequence = 
     | React
@@ -213,9 +211,9 @@ type InteractionState(ed:TextEditor, foldManager:FoldingManager, config:Seff.Con
     let fastColorizer = new FastColorizer( 
                                     [|
                                     transformersAllBrackets
-                                    transformersSelection
-                                    transformersSemantic
                                     transformersMatchingBrackets            
+                                    transformersSelection
+                                    transformersSemantic // draw errors last so they are on top of matching brackets
                                     |]
                                     ,ed // for debugging only
                                     ) 
@@ -260,8 +258,7 @@ type InteractionState(ed:TextEditor, foldManager:FoldingManager, config:Seff.Con
     /// reacts to document changes
     member _.TransformersSelection         = transformersSelection
     
-    member _.FastColorizer                 = fastColorizer                
-
+    member _.FastColorizer                 = fastColorizer 
 
     member _.Config = config
     

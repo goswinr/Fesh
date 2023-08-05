@@ -11,7 +11,6 @@ open Seff.Util.Str
 open Seff
 open System.Windows.Threading
 
-
 type EditorServices = {
     folds       : Foldings
     brackets    : BracketHighlighter
@@ -80,8 +79,7 @@ module DocChangeUtil =
 
     let isCaretInComment ln =  
         NotInQuotes.contains "//" ln
-    
-
+ 
 module Redrawing =     
 
     [<Flags;RequireQualifiedAccess>]
@@ -93,20 +91,18 @@ module Redrawing =
         | Errors    = 0b0001000
         | All       = 0b0001111
 
-
     type EventCombiner(serv:EditorServices, state:InteractionState) = 
         let ed = state.Editor
         let fast = state.FastColorizer
-        let mutable scan = ScanState.None        
+        let mutable scan = ScanState.None 
        
         let tryDraw(id) =             
-            if scan = ScanState.All && state.IsLatest id then                 
-                scan <- ScanState.None
-                fast.ResetShift()                
-                //ed.Dispatcher.Invoke (fun() -> ed.TextArea.TextView.Redraw(DispatcherPriority.ContextIdle)) //TODO only redraw parts of the view, or lower priority ?    
-                //ed.Dispatcher.Invoke (fun() -> ed.TextArea.TextView.Redraw(DispatcherPriority.Render)) //TODO only redraw parts of the view, or lower priority ?    
+            if false && scan = ScanState.All && state.IsLatest id then                 
+                scan <- ScanState.None                 
                 ed.Dispatcher.Invoke (fun() -> ed.TextArea.TextView.Redraw()) //TODO only redraw parts of the view, or lower priority ?    
-       
+
+
+        /// TODO !!!!!! refactor this to reset if state io not latest anymore
         let doneBadIndents(id) = scan <- scan ||| ScanState.BadIndent;  tryDraw(id)
         let doneBrackets(id)   = scan <- scan ||| ScanState.Brackets ;  tryDraw(id)             
         let doneSemantics(id)  = scan <- scan ||| ScanState.Semantics;  tryDraw(id)
@@ -118,63 +114,6 @@ module Redrawing =
             serv.semantic.FoundSemantics.Add doneSemantics
             serv.errors.FoundErrors.Add      doneErrors
 
-    (*
-    [<Flags;RequireQualifiedAccess>]
-    type Scan1State =
-        | None      = 0b0000000
-        | BadIndent = 0b0000001
-        | Brackets  = 0b0000010
-        | All       = 0b0000011
-
-
-    type FirstEventCombinerOLD(serv:EditorServices, state:InteractionState) = 
-        let ed = state.Editor
-        let fast = state.FastColorizer
-        let mutable scan = Scan1State.None       
-    
-        let tryDraw(id) =             
-            if scan = Scan1State.All && state.IsLatest id then                  
-                scan <- Scan1State.None 
-                //fast.ResetShift()                //
-                //printfn $"Redraw BadInd+Brackets"
-                ed.Dispatcher.Invoke (fun() -> ed.TextArea.TextView.Redraw()) //TODO only redraw parts of the view, or lower priority ?    
-
-        let doneBadIndents(id) = scan <- scan ||| Scan1State.BadIndent;  tryDraw(id)
-        let doneBrackets(id)   = scan <- scan ||| Scan1State.Brackets ;  tryDraw(id)             
-
-        do
-            serv.folds.FoundBadIndents.Add doneBadIndents
-            serv.brackets.FoundBrackets.Add doneBrackets
-
-    [<Flags;RequireQualifiedAccess>]
-    type Scan2State =
-        | None      = 0b0000000
-        | Semantics = 0b0000001
-        | Errors    = 0b0000010
-        | All       = 0b0000011
-
-
-    type SecondEventCombinerOLD(serv:EditorServices, state:InteractionState) = 
-        let ed = state.Editor
-        let fast = state.FastColorizer
-        let mutable scan = Scan2State.None 
-        
-        let tryDraw(id) =             
-            if scan = Scan2State.All && state.IsLatest id then                
-                scan <- Scan2State.None
-                fast.ResetShift()
-                ed.Dispatcher.Invoke (fun() -> ed.TextArea.TextView.Redraw()) //TODO only redraw parts of the view, or lower priority ?    
-    
-        let doneSemantics(i)  = scan <- scan ||| Scan2State.Semantics;  tryDraw(i)
-        let doneErrors(i)     = scan <- scan ||| Scan2State.Errors   ;  tryDraw(i)
-        
-        do
-            serv.semantic.FoundSemantics.Add doneSemantics
-            serv.errors.FoundErrors.Add doneErrors
-
-    *)
-
-
 module DocChangeMark = 
     open DocChangeUtil
     open CodeLineTools
@@ -184,8 +123,7 @@ module DocChangeMark =
     let markTwoSteps(iEd:IEditor, code, serv:EditorServices, state:InteractionState, id) = 
             // first: Foldings, ColorBrackets and BadIndentation when full text available async.
             async{
-                if state.CodeLines.Update(code,id) then 
-                    state.TransformersAllBrackets.ClearAllLines()// do as late as possible , offset shifting should do its work   
+                if state.CodeLines.Update(code,id) then                     
                     serv.brackets.UpdateAllBrackets(id)
                     if state.IsLatest id then 
                         serv.folds.UpdateFoldsAndBadIndents(id)
@@ -468,7 +406,6 @@ module DocChangeCompletion =
                         DocChangeMark.markFoldCheckHighlight(iEd, doc, serv, state, id)
             
                 } |> Async.Start
-        
 
 module DocChangeEvents = 
     open DocChangeUtil   
@@ -481,22 +418,22 @@ module DocChangeEvents =
         | WaitForCompletions -> ()
         | React -> state.Increment() |> ignore // incrementing this handler before the change actually happens, but  only increment when a reaction is required.
         
-        // (2)clear semantic highlighting immediately so that no odd coloring appears on this line.
-        let lnNo = state.Editor.Document.GetLineByOffset(a.Offset)
-        state.TransformersSemantic.ClearLine(lnNo.LineNumber)
+        // (2) clear semantic highlighting immediately so that no odd coloring appears on this line.
+        //let lnNo = state.Editor.Document.GetLineByOffset(a.Offset)
+        //state.TransformersSemantic.ClearLine(lnNo.LineNumber)
 
-        // (3)adjust color shift foe all other lines
+        // (3) adjust color shift for all other lines
         match DocChangeUtil.isSingleCharChange a with 
         |ValueSome s -> 
-            state.FastColorizer.AdjustShift {from=a.Offset; amount=s}
+            state.FastColorizer.AdjustShifts {from=a.Offset; amount=s}
         |ValueNone   -> 
-            //a multi character change, just wait for type checker.., 
-            //because it might contain a line return and then just doing just a shift would not work anymore.
-            state.FastColorizer.ResetShift() 
+            // a multi character change, just wait for type checker.., 
+            // because it might contain a line return and then just doing just a shift would not work anymore.
+            state.FastColorizer.ResetShifts() 
     
 
     let changed (iEd:IEditor) (serv:EditorServices) (state:InteractionState) (eventArgs:DocumentChangeEventArgs) : unit  =       
-        serv.errors.InvalidateErrorTransformers()
+        //serv.errors.InvalidateErrorTransformers() //DELETE
         match state.DocChangedConsequence with 
         | WaitForCompletions -> 
             // Do not increment DoChangeID counter, this would cancel the showing of the completion window.
@@ -507,12 +444,13 @@ module DocChangeEvents =
             let id = state.DocChangedId.Value // the increment was done before this event in Doc.Changing (not Changed) 
             
             match isSingleCharChange eventArgs with 
-            |ValueSome _ -> DocChangeCompletion.singleCharChange (iEd, serv, state, id)
+            |ValueSome _ -> DocChangeCompletion.singleCharChange      (iEd, serv, state, id)
             |ValueNone   -> DocChangeMark.markFoldCheckHighlightAsync (iEd, serv, state, id)            
 
             
-
+    (*
     // used with a auto hotkey script that simulates 28 key presses starting with ß ending with £
     let logPerformance (t:string)=
         if   t = "ß" then Timer.InstanceRedraw.tic()
         elif t = "£" then  eprintfn $"{Timer.InstanceRedraw.tocEx}"
+    *)

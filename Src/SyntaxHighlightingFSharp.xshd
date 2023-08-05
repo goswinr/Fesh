@@ -136,7 +136,7 @@
       <Word>HACK</Word>
       <Word>UNDONE</Word>      
     </Keywords>
-  </RuleSet>
+  </RuleSet >
   
   <RuleSet name="CommentSet">  
 
@@ -152,14 +152,14 @@
       <Begin>//</Begin>      
     </Span>
 
-  </RuleSet>
+  </RuleSet >
 
   <RuleSet name="InlineCommentSet">
     <Span color="Comment" ruleSet="_CommentMarkerSet" multiline="true">
       <Begin>\(\*</Begin>
       <End>\*\)</End>      
     </Span> 
-  </RuleSet>
+  </RuleSet >
   
   <RuleSet name="KeywordSet">
     <Keywords color="TrueCol">    <Word>true</Word>    </Keywords>  
@@ -178,6 +178,7 @@
       <Word>return</Word>
       <Word>rec</Word> 
       <Word>and</Word>
+
     </Keywords>
 
     <Keywords color="Keywords">
@@ -292,11 +293,11 @@
     <Span color="StringEscaped"><Begin>\\U[0-9a-fA-F]{8}</Begin>  <End>(?=.)</End> </Span> 
     <Span color="StringEscaped"><Begin>\\u[0-9a-fA-F]{4}</Begin>  <End>(?=.)</End> </Span> 
     <Span color="StringEscaped"><Begin>\\x[0-9a-fA-F]{2}</Begin>  <End>(?=.)</End> </Span> 
-  </RuleSet>
+  </RuleSet >
   
   <RuleSet name="_StringFormatSet">    
     <Span color="StringEscaped"><Begin>%</Begin>  <End>[sfd%bciuxXoeEfFgGeEgGMOAAat]</End> </Span> 
-  </RuleSet>
+  </RuleSet >
   
   <RuleSet name="_StringDollarFormatSet"> 
     <Span>  <Begin color="StringEscaped">\{\{</Begin> <End >(?=.)</End>  </Span> 
@@ -306,7 +307,7 @@
       <Begin color="StringEscaped">\{</Begin>  
       <End color="StringEscaped">\}</End> 
     </Span> 
-  </RuleSet>
+  </RuleSet >
   
   <RuleSet name="LoadDllSet">
 
@@ -320,7 +321,7 @@
       <Begin color="CompilerDirectives">\#if\b </Begin> <!-- '#' needs to be escaped too, \#  it is a regex comment  -->      
       <RuleSet>
         <Import ruleSet="CommentSet"/>        
-      </RuleSet>  
+      </RuleSet >  
     </Span>
     <Rule color="CompilerDirectives">\#endif\b</Rule>
     <Rule color="CompilerDirectives">\#else\b</Rule>
@@ -339,7 +340,7 @@
           <Begin color="LoadDllPath">@?"[^\s\/][^"]+(\\|\/)|@?"(?=[^\s\/])</Begin>  <!--matches the directories part of a full file path-->
           <End color="LoadDllPath">"|(.dll")</End> 
         </Span>
-      </RuleSet>  
+      </RuleSet >  
     </Span>
     
     <Span color="LoadDirectives" multiline="false">
@@ -351,10 +352,10 @@
           <Begin color="LoadDllPath">@?"</Begin>  
           <End color="LoadDllPath">"</End> 
         </Span> 
-      </RuleSet>  
+      </RuleSet >  
     </Span>
 
-  </RuleSet>
+  </RuleSet >
   
   <RuleSet name="StringSet">
   
@@ -484,8 +485,14 @@
     <Span color="InDoubleTicks"  multiline="false" begin="``" end="``" /> 
   </RuleSet> 
 
-  
-  <RuleSet name="Numbers">
+  <RuleSet name="CodeMain">
+    <Import ruleSet="CommentSet"/> 
+    <Import ruleSet="InlineCommentSet"/> 
+    <Import ruleSet="StringSet"/>
+    <Import ruleSet="KeywordSet"/>    
+    <Import ruleSet="PrintAndFailStatements"/>
+    <Import ruleSet="DoubleTicksSet"/>
+
     <!-- a hex number | binary number | (number just starting with floating point | with optional inner floating point) and an optional exponent. https://regexr.com/52d6q -->
     <!-- <Rule color="NumberLiteral">((-\.|\.)[0-9_]+|(\b|-)[0-9_]+\.?[0-9_]*)([eE][+-]?[0-9]+)? </Rule> -->
     
@@ -496,17 +503,7 @@
     <Rule color="ExponentNumberLit">(?&lt;=\d)[eE][+-]?[0-9]+ </Rule><!-- (?&lt;=\d) is a positive lookbehind for digits -->
     <Rule color="NumberLiteral">\b[0-9_]+\.?[0-9_]*</Rule>
     <Rule color="Punctuation">[0-9\w]\-</Rule> <!-- to exclude a 'x-1' to be highlighted below too: -->
-    <Rule color="NegNumberLiteral">(?&lt;!\d)-[0-9_]+\.?[0-9_]*</Rule> <!-- (?&lt;!\d) is a negative lookbehind for digits -->   
-  </RuleSet>  
-  
-  <RuleSet name="CodeMain">
-    <Import ruleSet="CommentSet"/> 
-    <Import ruleSet="InlineCommentSet"/> 
-    <Import ruleSet="StringSet"/>
-    <Import ruleSet="KeywordSet"/>    
-    <Import ruleSet="PrintAndFailStatements"/>
-    <Import ruleSet="DoubleTicksSet"/>
-    <Import ruleSet="Numbers"/>     
+    <Rule color="NegNumberLiteral">(?&lt;!\d)-[0-9_]+\.?[0-9_]*</Rule> <!-- (?&lt;!\d) is a negative lookbehind for digits -->        
     
     <Rule color="Semicolon">;</Rule>
 
@@ -516,14 +513,14 @@
     </Span> 
 
     <Span color="Attributes">
-      <Begin color="Punctuation">\[&lt;</Begin>
-      <End color="Punctuation">&gt;\]</End>      
+      <Begin color="Keywords">\[&lt;</Begin>
+      <End color="Keywords">&gt;\]</End>      
       <RuleSet> 
         <Import ruleSet="StringSet"/>
-        <Import ruleSet="PunctuationSet"/>  
-        <Import ruleSet="Numbers"/>         
+        <Import ruleSet="PunctuationSet"/>         
       </RuleSet>
     </Span>
+
   </RuleSet>
   
   <!--the main set (it must not have a name attribute): -->  

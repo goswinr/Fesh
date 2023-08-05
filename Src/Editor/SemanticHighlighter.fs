@@ -21,7 +21,7 @@ type SemActions() =
     
     let c_ValueType                    = freeze <| Brushes.MediumOrchid  |> darker 40
     let c_ReferenceType                = freeze <| Brushes.MediumVioletRed  |> darker 60  
-    let c_Type                         = freeze <| Brushes.MediumVioletRed  |> darker 60
+    let c_Type                         = freeze <| Brushes.MediumVioletRed  |> darker 40
     let c_UnionCase                    = freeze <| Brushes.LightSkyBlue  |> darker 100 
     let c_UnionCaseField               = freeze <| Brushes.LightSkyBlue  |> darker 100
     let c_Function                     = freeze <| Brushes.DarkGoldenrod |> darker 40
@@ -30,11 +30,11 @@ type SemActions() =
     let c_MutableRecordField           = freeze <| Brushes.Goldenrod     |> darker 20
     let c_Module                       = freeze <| Brushes.Black
     let c_Namespace                    = freeze <| Brushes.Black  
-    let c_Printf                       = freeze <| Brushes.Plum      // covered by xshd
-    let c_ComputationExpression        = freeze <| Brushes.DarkGray
+    //let c_Printf                       = freeze <| Brushes.Plum      // covered by xshd highligthing
+    let c_ComputationExpression        = freeze <| Brushes.Indigo
     let c_IntrinsicFunction            = freeze <| Brushes.DarkBlue
     let c_Enumeration                  = freeze <| Brushes.Indigo
-    let c_Interface                    = freeze <| Brushes.DarkGray
+    let c_Interface                    = freeze <| Brushes.MediumVioletRed  |> darker 20
     let c_TypeArgument                 = freeze <| Brushes.SlateBlue
     let c_Operator                     = freeze <| Brushes.MediumSlateBlue
     let c_DisposableType               = freeze <| Brushes.DarkOrchid
@@ -58,6 +58,12 @@ type SemActions() =
     let c_Plaintext                    = freeze <| Brushes.OrangeRed     |> darker 60   
                                         
     let c_UnUsed                       = freeze <| Brushes.Gray |> brighter 40 
+
+    let badIndentBrush =        
+        //Color.FromArgb(30uy,255uy,140uy,0uy) // a very light transparent Orange, transparent to show column rulers behind
+        Color.FromArgb(40uy,255uy,255uy,0uy) // a very light transparent Yellow, transparent to show column rulers behind
+        |> SolidColorBrush
+        |> freeze
 
     /// this allows using the cursive version of Cascadia Mono
     let stylisticSet1 = 
@@ -115,6 +121,8 @@ type SemActions() =
                                                                                                                             
     member val UnUsed                      = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(c_UnUsed);el.TextRunProperties.SetTypeface(StyleState.boldEditorTf))
 
+    member val BadIndentAction             = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetBackgroundBrush(badIndentBrush))    
+
 
 // type alias
 type Sc = SemanticClassificationType
@@ -161,7 +169,7 @@ type SemanticHighlighter (state: InteractionState) =
     let correctStart(st:int, en:int) =        
         //try
             // search from back to find last dot, there may be more than one
-            match codeLines.FullCode.LastIndexOf('.', en-1, en-st) with // at file end the end column in the reported range might be equal to FullCode.Length, so we do -1 to avoide a ArgumentOutOfRangeException.
+            match codeLines.FullCode.LastIndexOf('.', en-1, en-st) with // at file end the end column in the reported range might be equal to FullCode.Length, so we do -1 to avoid a ArgumentOutOfRangeException.
             | -1 -> st 
             |  i -> i + 1
         //with e -> 
@@ -170,7 +178,8 @@ type SemanticHighlighter (state: InteractionState) =
             
 
     //let action (el:VisualLineElement,brush:SolidColorBrush,r:Text.Range) = el.TextRunProperties.SetForegroundBrush(Brushes.Red)
-  
+    let defaultIndenting = state.Editor.Options.IndentationSize
+
     let trans = state.TransformersSemantic   
     let semActs = SemActions()
 
@@ -183,7 +192,9 @@ type SemanticHighlighter (state: InteractionState) =
         if state.DocChangedId.Value = id then                   
             let allRanges = checkRes.GetSemanticClassification(None)
             
-            trans.ClearAllLines()// do as late as possible , offset shifting should do its work till then 
+            let newTrans = ResizeArray<ResizeArray<LinePartChange>>(trans.LineCount+4)
+
+            
 
             let rec loopTy i = 
                 if i = allRanges.Length then 
@@ -194,12 +205,17 @@ type SemanticHighlighter (state: InteractionState) =
                     let lineNo = max 1 r.StartLine
                     match codeLines.GetLine(lineNo,id) with 
                     | ValueNone -> false // exit early
-                    | ValueSome offLn ->                
-                        let st = offLn.offStart + r.StartColumn                 
-                        let en = offLn.offStart + r.EndColumn
+                    | ValueSome ln ->                       
+                        // (1) find bad indents:
+                        if ln.indent % defaultIndenting <> 0 then      
+                            trans.Insert(newTrans, lineNo , {from=ln.offStart; till=ln.offStart+ln.indent; act=semActs.BadIndentAction} )
+                                        
+                        // (2) find semantic highlight:  
+                        let st = ln .offStart + r.StartColumn                 
+                        let en = ln .offStart + r.EndColumn
                         //ISeffLog.log.PrintfnDebugMsg $"{lineNo}:{sem.Type} {r.StartColumn} to {r.EndColumn}"
 
-                        let inline push(f,t,a) =  trans.Insert(lineNo,{from=f; till=t; act=a})
+                        let inline push(f,t,a) =  trans.Insert(newTrans,lineNo,{from=f; till=t; act=a})
 
                         match sem.Type with 
                         | Sc.ReferenceType               -> push(st,en, semActs.ReferenceType              )
@@ -257,12 +273,12 @@ type SemanticHighlighter (state: InteractionState) =
                             | ValueSome offLn ->  
                                 let st = offLn.offStart + r.StartColumn                
                                 let en = offLn.offStart + r.EndColumn
-                                trans.Insert(lineNo, {from=st; till=en; act=semActs.UnUsed})
+                                trans.Insert(newTrans,lineNo, {from=st; till=en; act=semActs.UnUsed})
                                 loopUn (i+1)
                     if loopUn 0 then
-                        foundSemanticsEv.Trigger(id)
-    
-    member _.TransformerLineCount = trans.LineCount // used only for debugging ?
+                        trans.Update(newTrans)
+                        foundSemanticsEv.Trigger(id)   
+
 
 
 

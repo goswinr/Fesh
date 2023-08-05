@@ -11,21 +11,114 @@ type ChangeReason = Semantic | Selection | BadIndent | MatchingBrackets | Curren
 /// Given Start Offset and End Offset from Document
 [<Struct>]
 type LinePartChange =   {
-    from: int
-    till: int
+    from: int // Offset 
+    till: int // Offset 
     act: Action<VisualLineElement>
     }
 
 [<Struct>]
 type Shift = {
-    from:int
-    amount: int
+    from:int // Offset 
+    amount: int 
     }
 
-/// For accessing the highlighting of a line in constant time
-type LineTransformers<'T>() =    // generic so it can work for LinePartChange and Shift
 
-    let lines = ResizeArray<ResizeArray<'T>>(256)// for approx 512 lines on screen
+/// For accessing the highlighting of a line in constant time
+type LineTransformers<'T>() =    // generic so it can work for LinePartChange and Shift an SegmentToMark
+
+    let mutable lines = ResizeArray<ResizeArray<'T>>(256)// for approx 256 lines on screen
+
+    let empty = ResizeArray<'T>()
+
+    let mutable shift = {from=0; amount=0}    
+
+    member _.AdjustOneShift(s:Shift) = shift <- {from = s.from  ; amount = s.amount + shift.amount}
+
+    member _.ResetOneShift() = shift <- {from=0; amount=0}
+
+    member _.Shift = shift
+
+    member _.LineCount = lines.Count
+
+    /// provide the new list.
+    /// when done call update with this new list   
+    member _.Insert(lineList:ResizeArray<ResizeArray<'T>>,lineNumber:int, x:'T) =         
+        
+        // fill up missing lines
+        for _ = lineList.Count to lineNumber-1 do            
+            lineList.Add null
+
+        if lineNumber = lineList.Count  then 
+            // add a new line        
+            let n = ResizeArray<'T>(4)
+            n.Add x
+            lineList.Add n            
+       
+        else            
+            // add to existing line:            
+            let ln = lineList.[lineNumber] 
+            if isNull ln then 
+                let n = ResizeArray(4)
+                lineList.[lineNumber] <- n
+                n.Add x 
+            else                
+                ln.Add x           
+           
+    member _.Update(lineList:ResizeArray<ResizeArray<'T>>) =        
+        lines <- lineList
+        shift <- {from=0; amount=0}
+
+    /// Safely gets a Line returns empty if index is out of range
+    member _.GetLine(lineNumber) =
+        if lineNumber>=0 && lineNumber<lines.Count then 
+            let ln = lines.[lineNumber] 
+            if isNull ln then 
+                empty 
+            else 
+                ln            
+        else 
+            empty
+    
+    member _.Range =
+
+        let mutable first = Unchecked.defaultof<'T>
+        let mutable last  = Unchecked.defaultof<'T>
+        let mutable lastLine   = 0
+        let mutable firstLine  = Int32.MaxValue
+
+        let rec findFirst i = 
+            if i < lines.Count then 
+                let ln = lines.[i] 
+                if notNull ln then 
+                    firstLine <- i
+                    first     <- ln.[0]
+                else 
+                    findFirst (i+1)
+            else ()
+        
+        let rec findLast i = 
+            if i >= 0 then 
+                let ln = lines.[i] 
+                if notNull ln then 
+                    lastLine <- i
+                    last     <- ln.[ln.Count-1]
+                else 
+                    findLast (i-1)
+            else ()
+        
+        findFirst 0
+        if firstLine = Int32.MaxValue  then 
+            None
+        else
+            findLast (lines.Count-1)
+            Some (first,last) 
+ 
+
+ (* //DELETE
+/// For accessing the highlighting of a line in constant time
+type LineTransformersOLD<'T>() =    // generic so it can work for LinePartChange and Shift
+
+    let lines = ResizeArray<ResizeArray<'T>>(256)// for approx 256 lines on screen
 
     let mutable first = Unchecked.defaultof<'T>
     let mutable last  = Unchecked.defaultof<'T>
@@ -49,7 +142,7 @@ type LineTransformers<'T>() =    // generic so it can work for LinePartChange an
             lines.Add n            
        
         else
-            try
+            //try
                 // add to existing line:            
                 let ln = lines.[lineNumber] 
                 if isNull ln then 
@@ -58,8 +151,7 @@ type LineTransformers<'T>() =    // generic so it can work for LinePartChange an
                     n.Add x 
                 else                
                     ln.Add x
-            with e ->
-               ISeffLog.log.PrintfnAppErrorMsg $"LineTransformers.Insert on line {lineNumber} failed for { lines.Count } lines."
+            //with e ->  ISeffLog.log.PrintfnAppErrorMsg $"LineTransformers.Insert on line {lineNumber} failed for { lines.Count } lines."
             
         
         // remember the first and last line that has content to then only redraw those 
@@ -81,11 +173,6 @@ type LineTransformers<'T>() =    // generic so it can work for LinePartChange an
             lastLine  <- 0      
             firstLine <- Int32.MaxValue
     
-    /// used to clear semantic highlighting from current line, so that it does not look odd while editing
-    member _.ClearLine(i) =        
-        if firstLine < Int32.MaxValue && i < lines.Count then 
-            lines.[i] <- null
-           
 
     /// Safely gets a Line returns empty if index is out of range
     member _.Line(lineNumber) =
@@ -96,59 +183,64 @@ type LineTransformers<'T>() =    // generic so it can work for LinePartChange an
             else 
                 ln            
         else empty
-
-    member _.IsEmpty = firstLine = Int32.MaxValue 
-
-    member _.IsNotEmpty = firstLine  < Int32.MaxValue
-
+    
     member _.Range = 
         if firstLine = Int32.MaxValue  then 
             None
         else
             Some (first,last) 
+   
+
+    /// used to clear semantic highlighting from current line, so that it does not look odd while editing
+    member _.ClearLine(i) =        
+        if firstLine < Int32.MaxValue && i < lines.Count then 
+            lines.[i] <- null
+           
+    member _.IsEmpty = firstLine = Int32.MaxValue 
+
+    member _.IsNotEmpty = firstLine  < Int32.MaxValue
 
     member this.TotalCount = 
         let mutable k =  0
         for i=0 to lines.Count-1 do
             k <- k + this.Line(i).Count
         k  
+    *)
 
 /// An efficient DocumentColorizingTransformer using line number indices into a line transformer list.
 type FastColorizer(transformers:LineTransformers<LinePartChange> [], ed:TextEditor) = 
     inherit Rendering.DocumentColorizingTransformer()  
 
-
-    let ltss = transformers
+    //member _.Transformers = ltss //DELETE
     
-    let mutable shift = {from=0; amount=0}    
-
-    member _.AdjustShift(s:Shift) = shift <- {from = s.from  ; amount = s.amount + shift.amount}
-
-    member _.ResetShift() = 
-        //ISeffLog.printnColor 100 200 100 $"reset shift (from {shift.amount})"
-        shift <- {from=0; amount=0}
-
-    member _.Shift = shift
-
-    member _.Transformers = ltss
+    member _.AdjustShifts(s:Shift) = 
+        for j = 0 to transformers.Length-1 do
+            let lts = transformers.[j]
+            lts.AdjustOneShift(s) 
     
+    member _.ResetShifts() = 
+        for j = 0 to transformers.Length-1 do
+            let lts = transformers.[j]
+            lts.ResetOneShift() 
+
     /// This gets called for every visible line on every Redraw
     override _.ColorizeLine(line:Document.DocumentLine) =   
         let lineNo = line.LineNumber
         let offSt  = line.Offset    
         let offEn  = line.EndOffset 
 
-        for j = 0 to ltss.Length-1 do
-            let lts = ltss.[j]
+        for j = 0 to transformers.Length-1 do
+            let lts = transformers.[j]
             if lineNo >= lts.LineCount then 
                 //ISeffLog.log.PrintfnAppErrorMsg $"Cant get line index {lineNo} from {lts.LineCount} lines in LineTransformer"
                 ()
             else
-                let lpcs = lts.Line(lineNo) 
+                let lpcs = lts.GetLine(lineNo) 
                 for i=0 to lpcs.Count-1 do  
                     if i < lpcs.Count then // because it might get reset while iterating ?
                         let lpc = lpcs[i]
                         if notNull lpc.act then // because for coloring brackets it may be null to keep xshd coloring
+                            let shift = lts.Shift
                             let shiftChecked = if lpc.from > shift.from then shift.amount else 0
                             let from = lpc.from + shiftChecked
                             let till = lpc.till + shiftChecked
@@ -169,18 +261,19 @@ type FastColorizer(transformers:LineTransformers<LinePartChange> [], ed:TextEdit
 type DebugColorizer() = 
     inherit Rendering.DocumentColorizingTransformer()  
     let t = Diagnostics.Stopwatch()
-    do t.Start()
 
     /// This gets called for every visible line on every Redraw
     override _.ColorizeLine(line:Document.DocumentLine) =   
         let lineNo = line.LineNumber
         if t.ElapsedMilliseconds > 1000L then 
-            ISeffLog.log.PrintfnIOErrorMsg $"DebugColorizer.ColorizeLine %d{lineNo}"
             t.Restart()
-        elif lineNo % 20 = 0  then            
-            ISeffLog.log.PrintfnDebugMsg $", %d{lineNo}"            
-        elif lineNo % 2 = 0  then 
-            ISeffLog.log.PrintfFsiErrorMsg $", %d{lineNo}"
+            ISeffLog.log.PrintfnIOErrorMsg $"after 1s DebugColorizer on %d{lineNo}"
+        elif lineNo % 10 = 0  then            
+            ISeffLog.log.PrintfnDebugMsg $"%d{lineNo} from DebugColorizer"
+            t.Restart()
+        //elif lineNo % 2= 0  then 
+        else
+            ISeffLog.log.PrintfFsiErrorMsg $"%d{lineNo}, "
             
         
 

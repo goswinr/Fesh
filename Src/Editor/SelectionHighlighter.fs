@@ -73,11 +73,11 @@ type SelectionHighlighter (state:InteractionState) =
             async{ 
                 match trans.Range with 
                 | None   ->                     
-                    // still trigger event to clear the selection in StatusBar if it is just one without any highlighting
+                    // still trigger event to clear the selection in StatusBar if it is just  a selection without any highlighting(e.g. multiline)
                     do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context   
                     foundSelectionEditorEv.Trigger(triggerNext)                     
                 | Some (f,l) ->                
-                    trans.ClearAllLines()
+                    trans.Update(ResizeArray())// using empty array
                     do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context                
                     for f in state.FoldManager.AllFoldings do  f.BackgroundColor <- null  
                     ed.TextArea.TextView.Redraw(f.from, l.till, priority)                
@@ -95,6 +95,7 @@ type SelectionHighlighter (state:InteractionState) =
             let wordLen = word.Length
             let offs = ResizeArray<int>()
             
+            let newMarks = ResizeArray<ResizeArray<LinePartChange>>()
             /// returns false if aborted because of newer doc change
             let rec loop lineNo = 
                 if lineNo > lastLineNo then 
@@ -107,7 +108,7 @@ type SelectionHighlighter (state:InteractionState) =
                         while off >= 0 do
                             offs.Add off // also add for current selection
                             if off <> selectionStartOff then // skip the actual current selection                                
-                                trans.Insert(lineNo, {from=off; till=off+wordLen; act=action})                                 
+                                trans.Insert(newMarks, lineNo, {from=off; till=off+wordLen; act=action})                                 
                             let start = off + word.Length // search from this for next occurrence in this line 
                             let lenReduction = start - l.offStart
                             let remainingLineLength = l.len - lenReduction
@@ -115,25 +116,27 @@ type SelectionHighlighter (state:InteractionState) =
                             
                         loop (lineNo + 1)
             
-            let prev = trans.Range
-            trans.ClearAllLines() // does nothing if already all cleared
+            let prev = trans.Range            
             lastSels <- offs 
             lastWord <- word
             if loop 1 then // tests if there is a newer doc change 
                 match  prev, trans.Range with 
                 | None       , None  ->    // nothing before, nothing now, but maybe just the current selection that doesn't need highlighting, but still show in status bar
                     if offs.Count = 1 then 
+                        trans.Update(newMarks)
                         do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context                    
                         foundSelectionEditorEv.Trigger(triggerNext) 
 
                 | Some (f,l) , None          // some before, nothing now
                 | None       , Some (f,l) -> // nothing before, some now
+                    trans.Update(newMarks)
                     do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context
                     markFoldingsSorted(offs)
                     ed.TextArea.TextView.Redraw(f.from, l.till, priority)
                     foundSelectionEditorEv.Trigger(triggerNext)                   
                 
-                | Some (pf,pl),Some (f,l) ->   // both prev and current version have a selection                 
+                | Some (pf,pl),Some (f,l) ->   // both prev and current version have a selection
+                    trans.Update(newMarks)
                     do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context 
                     markFoldingsSorted(offs)
                     ed.TextArea.TextView.Redraw(min pf.from f.from, max pl.till l.till, priority)
@@ -193,7 +196,7 @@ type SelectionHighlighterLog (lg:TextEditor) =
                     do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context   
                     foundSelectionEditorEv.Trigger(triggerNext)                     
                 | Some (f,l) ->        
-                    trans.ClearAllLines()
+                    trans.Update(ResizeArray())// using empty array
                     do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context                
                     // there are no foldings in Log. yet.  //for f in state.FoldManager.AllFoldings do  f.BackgroundColor <- null  
                     lg.TextArea.TextView.Redraw(f.from, l.till, priority)
@@ -228,7 +231,8 @@ type SelectionHighlighterLog (lg:TextEditor) =
                 let lastLineNo = lines.LastLineIdx
                 let wordLen = word.Length
                 let offs = ResizeArray<int>()
-            
+                let newMarks = ResizeArray<ResizeArray<LinePartChange>>()
+
                 /// returns false if aborted because of newer doc change
                 let rec loop lineNo = 
                     if lineNo > lastLineNo then 
@@ -242,7 +246,7 @@ type SelectionHighlighterLog (lg:TextEditor) =
                                 offs.Add off // also add for current selection
                                 if off <> selectionStartOff then // skip the actual current selection
                                     //ISeffLog.log.PrintfnInfoMsg $"trans.Insert({lineNo}, from={off}; till={off+wordLen}; act=action word='{word}'"
-                                    trans.Insert(lineNo, {from=off; till=off+wordLen; act=action})                                 
+                                    trans.Insert(newMarks,lineNo, {from=off; till=off+wordLen; act=action})                                 
                                 let start = off + word.Length // search from this for next occurrence in this line 
                                 let lenReduction = start - l.offStart
                                 let remainingLineLength = l.len - lenReduction
@@ -252,25 +256,27 @@ type SelectionHighlighterLog (lg:TextEditor) =
                 
                 if loop 1 && markId = markCallID.Value then // tests if there is a newer doc change                 
                         
-                    let prev = trans.Range // get previuos range before clearing
-                    trans.ClearAllLines() // does nothing if already all cleared
+                    let prev = trans.Range // get previuos range before clearing                    
                     lastSels <- offs 
                     lastWord <- word
                         
                     match  prev, trans.Range with 
                     | None       , None  ->    // nothing before, nothing now, but maybe just the current selection that doesn't need highlighting, but still needs to show in status bar
-                        if offs.Count = 1 then 
+                        if offs.Count = 1 then // only one found that is the current selection. so  still needs to show in status bar
+                            //trans.Update(newMarks) // not needed since only status bar is affceted
                             do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context                    
                             foundSelectionLogEv.Trigger(triggerNext) 
                 
                     | Some (f,l) , None          // some before, nothing now
                     | None       , Some (f,l) -> // nothing before, some now
+                        trans.Update(newMarks)
                         do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context
                         //markFoldingsSorted(offs) // there are no foldings in the log
                         lg.TextArea.TextView.Redraw(f.from, l.till, priority)
                         foundSelectionLogEv.Trigger(triggerNext)                   
                 
                     | Some (pf,pl),Some (f,l) ->   // both prev and current version have a selection                 
+                        trans.Update(newMarks)
                         do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context 
                         //markFoldingsSorted(offs)// there are no foldings in the log
                         lg.TextArea.TextView.Redraw(min pf.from f.from, max pl.till l.till, priority)
@@ -305,4 +311,8 @@ type SelectionHighlighterLog (lg:TextEditor) =
     member _.Offsets = lastSels 
     
     /// Called from StatusBar to highlight the current selection of Editor in Log too
-    member _.Mark(word) = if isTextToHighlight word then mark(word,-1, false) else justClear(false) // isTextToHighlight is needed , word might be empty string
+    member _.Mark(word) = 
+        if isTextToHighlight word then // isTextToHighlight is needed , word might be empty string
+            mark(word,-1, false) 
+        else 
+            justClear(false)    

@@ -36,25 +36,6 @@ type Foldings(manager:Folding.FoldingManager, state:InteractionState, getFilePat
     let foldStatus = state.Config.FoldingStatus
 
     // ----------------------------------
-    // ------- bad indentation ----------
-    // ----------------------------------
-
-    /// for bad indentation
-    let transformers = state.TransformersAllBrackets
-
-    let defaultIndenting = state.Editor.Options.IndentationSize
-
-    let badIndentBrush =        
-        //Color.FromArgb(30uy,255uy,140uy,0uy) // a very light transparent Orange, transparent to show column rulers behind
-        Color.FromArgb(40uy,255uy,255uy,0uy) // a very light transparent Yellow, transparent to show column rulers behind
-        |> SolidColorBrush
-        |> freeze
-    
-    let badIndentAction  = Action<VisualLineElement>(fun el -> el.TextRunProperties.SetBackgroundBrush(badIndentBrush))       
-    
-    //let mutable lastBadIndentSize = 0
-
-    // ----------------------------------
     // ------- foldings ----------
     // ----------------------------------
 
@@ -91,8 +72,7 @@ type Foldings(manager:Folding.FoldingManager, state:InteractionState, getFilePat
         //    |ValueNone -> ()
         //    |ValueSome l -> 
         //        if l.len=l.indent then eprintfn $"line {i}: skip empty"
-        //        else printfn $"line {i}: indent {l.indent}"
-            
+        //        else printfn $"line {i}: indent {l.indent}"            
         
         let rec loopLines prevLnNo (prev:CodeLineTools.LineInfo) (lnNo:int) = 
             if lnNo > clns.LastLineIdx then //end of file
@@ -114,14 +94,7 @@ type Foldings(manager:Folding.FoldingManager, state:InteractionState, getFilePat
             else
                 match clns.GetLine(lnNo, id) with 
                 |ValueNone -> false // did not reach end of code lines
-                |ValueSome this -> 
-                    // (1) find bad indents:
-                    if this.indent % defaultIndenting <> 0 then                         
-                        // printfn $"bad indent {this.indent} at line {lnNo}"
-                        transformers.Insert(lnNo, {from=this.offStart; till=this.offStart+this.indent; act=badIndentAction} )
-                                            
-                    // (2) find folds:                 
-                    
+                |ValueSome this ->                     
                     if this.indent=this.len then // skip all white lines
                         loopLines prevLnNo prev (lnNo+1)
                     
@@ -210,7 +183,7 @@ type Foldings(manager:Folding.FoldingManager, state:InteractionState, getFilePat
                     isInitialLoad <- false
                 
 
-                elif state.DocChangedId.Value = id then                    
+                elif false && state.DocChangedId.Value = id then                    
                     do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context  
                     
                     let folds=ResizeArray<NewFolding>()                                
@@ -232,7 +205,7 @@ type Foldings(manager:Folding.FoldingManager, state:InteractionState, getFilePat
                     let firstErrorOffset = -1 //The first position of a parse error. 
                     manager.UpdateFoldings(folds, firstErrorOffset)
                                 
-                    // restore state after caret , because state gets lost after an auto complete or multi chracter insertion                             
+                    // restore state after caret , because state gets lost after an auto complete or multi cracter insertion                             
                     let doc = ed.Document                    
                     let co = ed.CaretOffset
                     for f in manager.AllFoldings do 

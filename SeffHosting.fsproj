@@ -49,7 +49,7 @@
     <PackageIcon>logo128.png</PackageIcon>
     <PackageReadmeFile>READMEnuget.md</PackageReadmeFile><!-- using  snupkg the readme does not pack https://github.com/NuGet/Home/issues/10791 -->
     <PackageDescription>A hostable fsharp scripting editor for Windows based on Avalonedit</PackageDescription>
-    <PackageTags>WPF TextEditor F# Scripting AvalonEdit</PackageTags>
+    <PackageTags>WPF TextEditor F# Scripting FSI AvalonEdit</PackageTags>
   </PropertyGroup>
 
   <ItemGroup>
@@ -57,7 +57,7 @@
 	<PackageReference Update="FSharp.Core" Version="7.0.300" />
 	<PackageReference Include="FSharp.Compiler.Service" Version="43.7.300"  />
 	<PackageReference Include="FsEx.Wpf" Version="0.5.0" />
-	<PackageReference Include="AvalonLog" Version="0.9.3" />
+	<PackageReference Include="AvalonLog" Version="0.10.0" />
 	    
 
     <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.1" PrivateAssets="All" IncludeAssets="runtime; build; native; contentfiles; analyzers; buildtransitive" />

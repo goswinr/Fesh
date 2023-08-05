@@ -34,8 +34,9 @@ module XmlParser =
         sb.Clear() |> ignore 
         s 
     
-    // to not reallocate this string all the time, 
-    // use Object.ReferenceEquals(x,XmlParser.summary) for fast equality
+    // TODO revise if this optimisation is actually usefull: 
+    // to not reallocate these strings all the time, 
+    // later use Object.ReferenceEquals(x,XmlParser.summary) for fast equality
     let see = "see"     
     let param = "param"     
     let membre = "member"   
@@ -56,7 +57,27 @@ module XmlParser =
     
     
     let inline isWhite c = c=' ' || c='\r' || c= '\n' 
-    
+
+    /// appends Text node from String builder. includs starting and ending whitespace.
+    /// skips appending if text is only whitespace,  but always clears the string builder
+    let inline appendText(sb:StringBuilder) (cs:Child list)  :Child list = 
+        if sb.Length=0 then  
+            cs
+        else
+            let mutable idx = 0
+            let mutable onlyWhitespace = true
+            while onlyWhitespace && idx < sb.Length do  
+                onlyWhitespace <- isWhite sb[idx] 
+                idx            <- idx+1
+            if onlyWhitespace then  
+                sb.Clear() |> ignore 
+                cs 
+            else 
+                let t = sb.ToString()
+                sb.Clear() |> ignore 
+                Text t :: cs  
+               
+    (*    
     /// appends start and end trimmed of whitespace Text node from String builder
     /// skips appending if text is only whitespace,  but always clears the string builder
     let inline trimAppendText(sb:StringBuilder) (cs:Child list)  :Child list = 
@@ -104,6 +125,10 @@ module XmlParser =
                 let t = sb.ToString(0, len)
                 sb.Clear() |> ignore 
                 Text t :: cs
+    *)
+    
+
+
     
     /// start index and last index
     let read(x:string, from:int, till:int) =  
@@ -123,22 +148,30 @@ module XmlParser =
                     i<-i+1  
                     skipSpace()
                 | _ -> ()  
-        
-         /// if current is \r or \n,  increment i to the next non \r nor \n character
+
+        (* unused becaus white skiping at start of text is disabeld
+        /// if current is \r or \n,  increment i to the next non \r nor \n character
         let rec skipRet () = 
             if i <= till then 
                 match x[i] with 
                 | '\r' | '\n' ->  
                     i<-i+1  
                     skipRet()
-                | _ -> ()  
-        
+                | _ -> ()          
         
         /// Set index to first non white char after text to match
         let skipTillAndWhite (txt:string)   = 
             match x.IndexOf(txt, i) with 
             | -1 ->  i <- Int32.MaxValue 
             |  j ->  i <- j + txt.Length ; skipSpace ()
+        *)
+
+        /// Set index to first after text to match
+        let skipTill (txt:string)   = 
+            match x.IndexOf(txt, i) with 
+            | -1 ->  i <- Int32.MaxValue 
+            |  j ->  i <- j + txt.Length 
+
         
         /// read till just before text to match
         /// i will be on char after text to match
@@ -199,13 +232,13 @@ module XmlParser =
                 i<-i+1 // advance reading name
                 readAttrs ps
         
-        /// as opposed to get children this allows any character except '<' 
+        /// as opposed to get children this allows any character except '&lt' 
         let rec readText (cs:Child list) :Child list =  
             if i > till then  
                 cs // exit recursion end of reading range,  or file
             else
                 match x[i] with 
-                | '<' -> trimAppendEndText sb cs   // end of text,  TODO  or us trimAppendText to trim leading space ??
+                | '<' -> appendText sb cs // trimAppendEndText sb cs   // end of text,  TODO  or us trimAppendText to trim leading space ??
                 | '&' -> 
                         match x[i+1 .. i+2] with 
                         | "lt" -> i<-i+4 ;  add '<'   // &lt;  
@@ -216,8 +249,8 @@ module XmlParser =
                         |  _   -> i<-i+1 ;  add '&' 
                         readText cs 
                 | c -> 
-                    add c 
                     i<-i+1 
+                    add c 
                     readText cs 
         
         
@@ -231,44 +264,50 @@ module XmlParser =
                 | '<' -> // end of node or start of sub children 
                     i<-i+1
                     match x[i] with 
-                    | '?' -> skipTillAndWhite  "?>" ;  readNodes cs // xml header
+                    | '?' -> skipTill  "?>" ;  readNodes cs // xml header
                     | '!' ->  
                         match x[i+1 .. i+2] with 
-                        | "--" -> skipTillAndWhite "-->" ;  readNodes cs // skip comments
+                        | "--" -> skipTill "-->" ;  readNodes cs // skip comments
                         | "[C" -> //  <![CDATA[   ]]>
                             i<-i+8 
                             readTill "]]>"
                             skipSpace()
-                            trimAppendText sb cs
+                            appendText sb cs //trimAppendText sb cs
                             |> readNodes
-                        | z -> failwithf $"untracked xml tag <!{z} in docstring"
+                        | z -> failwithf $"untracked xml tag '<!{z}' in xml docstring"
                             
                     | '/' -> // probably node closing ,  TODO read name to be sure its the right closing ?
                         if x[i+2] = '>' && x[i+1] = 'p' then // a </p> in netstandard.xml to skip
                             i<-i+3 
                             readNodes cs
                         else // normal exit from recursion from node without children
-                            skipTillAndWhite ">"
-                            trimAppendText sb cs 
+                            skipTill ">"
+                            appendText sb cs //trimAppendText sb cs 
                         
                     | _ ->  // grand child node starting 
                         readName()
                         let name = getConst sb 
                         // fix for https://github.com/dotnet/standard/issues/1527:
                         if name = "p"  then  // always skip a <p...> node without a closing (e.g. in netstandard.xml) 
-                            skipTillAndWhite ">" 
+                            skipTill ">" 
                             readNodes cs  
                         elif name = "br"  then  // a simple <br> without a closing (e.g. in netstandard.xml)
                             let node  = Node {name="br";  attrs=[];  children=[]} 
-                            skipTillAndWhite ">"
+                            skipTill ">"
                             readNodes (node :: cs)  
                         else 
                             let attrs = readAttrs [] 
                             let children =
                                 match x[i] with 
-                                | '>' -> i<-i+1; skipRet();  readNodes []
-                                | '/' -> skipTillAndWhite ">" ; []
-                                | x   -> failwithf "Attr end wrong on %c" x
+                                | '>' -> 
+                                    i<-i+1
+                                    //skipRet() // keep return and whitespace at start of next child( it might be a text node starting with a line return). see rs.AddText in Rhino.Scripting.xml
+                                    readNodes []
+                                | '/' -> 
+                                    skipTill ">" 
+                                    []
+                                | x   -> 
+                                    failwithf "XML docstring Attr end is wrong on '%c'" x
                             
                             let node     = Node {name=name;  attrs=attrs;  children=children} 
                             readNodes (node :: cs) 
@@ -283,19 +322,24 @@ module XmlParser =
                     | c -> 
                         add '/' 
                         readNodes cs 
-                
-                // covered by let children = match x[i] with | '>' -> i<-i+1; skipSpace();  readNodes []
-                //| '>' ->  // after this the children start 
-                //    skipSpace()
-                //    readNodes cs
+                (*
+                // after > the children start 
+                // covered by 
+                let children = 
+                    match x[i] with 
+                    | '>' -> i<-i+1; skipSpace();  readNodes []
+                    | '>' ->  
+                        skipSpace()
+                        readNodes cs
+                *)
                     
-                |  c  ->  
+                |  c  ->  // the most commen case
                     add c 
                     i<-i+1
                     readNodes cs 
         []
         |> readNodes
-        |> trimAppendText sb // for lose text that might be after last member
+        |> appendText sb  //trimAppendText sb // for lose text that might be after last member
     
     let readAll(x:string) = 
         read(x, 0, x.Length-1) 

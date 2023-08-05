@@ -101,10 +101,20 @@ module RecognizePath =
                                     name = sprintf "Open folder in Explorer  '%s' " dir // shortDir
                                     gesture = ""
                                     cmd = mkCmdSimple (fun _ ->
-                                        if IO.Directory.Exists dir then  Diagnostics.Process.Start("Explorer.exe", "\"" + dir+ "\"") |> ignore
-                                        else ISeffLog.log.PrintfnIOErrorMsg "Directory '%s' does not exist" dir
+                                        let rec find (path:string) = 
+                                            if path.EndsWith ":\\" || String.IsNullOrWhiteSpace path then // just the root path C:\
+                                                ISeffLog.log.PrintfnIOErrorMsg "The directory \r\n%s\r\n does not exist" dir
+                                            elif IO.Directory.Exists dir then  
+                                                Diagnostics.Process.Start("Explorer.exe", "\"" + dir+ "\"") |> ignore
+                                            else // if a path does not exis try the parent folder:
+                                                path.Split( [|'\\'|] ).[.. ^1]
+                                                |> String.concat "\\"
+                                                |> find  
+                                        find dir 
+                                        //if IO.Directory.Exists dir then  Diagnostics.Process.Start("Explorer.exe", "\"" + dir+ "\"") |> ignore
+                                        //else ISeffLog.log.PrintfnIOErrorMsg "Directory '%s' does not exist" dir
                                         )
-                                    tip = sprintf "Try to open folder  in Explorer at \r\n%s" dir
+                                    tip = sprintf "Try to open folder in Explorer at \r\n%s\r\n(Tries to open at parent folder if this folder is not found.)" dir
                                     }
                             menu.Items.Insert(0, sep()       )
                             incr tempItemsInMenu
@@ -143,7 +153,7 @@ module RecognizePath =
                                             p.StartInfo.WindowStyle <- Diagnostics.ProcessWindowStyle.Hidden
                                             p.Start() |> ignore
                                         else
-                                            ISeffLog.log.PrintfnIOErrorMsg "Directory or file '%s' does not exist" fullPath
+                                            ISeffLog.log.PrintfnIOErrorMsg "Directory or file \r\n%s\r\n does not exist" fullPath
                                     with e ->
                                         ISeffLog.log.PrintfnIOErrorMsg "Open with VS Code failed: %A" e
                                     )

@@ -73,15 +73,14 @@ module ParseBrackets =
         from:int 
         }
     
-    type MuliLineState = RegCode | MulitComment | SimpleString| RawAtString |RawTripleString
+    type MuliLineState = RegCode | MultiLineComment | SimpleString| RawAtString | RawTripleString
         
     let all(lns:CodeLineTools.CodeLines, id) : ResizeArray<ResizeArray<Bracket>> option=
         let code= lns.FullCode
 
         let brss = ResizeArray<ResizeArray<Bracket>>() 
                
-        //let mutable last = ClRound
-        
+               
         let readLine(brs:ResizeArray<Bracket>, prevState: MuliLineState, firstIdx, lastIdx) : MuliLineState =             
             
             /// for simple strings
@@ -159,7 +158,7 @@ module ParseBrackets =
                     let next = code[i+1] 
                     match chr,next with 
                     | '/','/' -> RegCode // a comment starts,  exit loop                    
-                    | '(','*' -> skipMultiLineComment next (i+1) |> flowOnOrOver MulitComment                                                  
+                    | '(','*' -> skipMultiLineComment next (i+1) |> flowOnOrOver MultiLineComment                                                  
                     
                     | '{','|' -> pushTwo OpAnRec
                     | '[','|' -> pushTwo OpArr
@@ -196,7 +195,7 @@ module ParseBrackets =
                 | RegCode          -> charLoop              code[firstIdx] firstIdx
                 | SimpleString     -> skipString            code[firstIdx] firstIdx |> flowOnOrOver SimpleString 
                 | RawAtString      -> skipRawAtString       code[firstIdx] firstIdx |> flowOnOrOver RawAtString
-                | MulitComment     -> skipMultiLineComment  code[firstIdx] firstIdx |> flowOnOrOver MulitComment
+                | MultiLineComment     -> skipMultiLineComment  code[firstIdx] firstIdx |> flowOnOrOver MultiLineComment
                 | RawTripleString  -> 
                     if firstIdx < lastIdx then skipRawTrippleString code[firstIdx] code[firstIdx+1] firstIdx |> flowOnOrOver RawTripleString
                     else RawTripleString           
@@ -209,13 +208,7 @@ module ParseBrackets =
             else                
                 match lns.GetLine(lnNo,id) with
                 |ValueNone -> None // loop aborted
-                |ValueSome l ->                     
-                    // (1) find bad indents:
-                    //if l.indent % defaultIndenting <> 0 then                         
-                        // printfn $"bad indent {this.indent} at line {lnNo}"
-                        //    trans.Insert(lnNo, {from=l.offStart; till=l.offStart+l.indent; act=badIndentAction} 
-                        
-                    //(2) find brackets
+                |ValueSome l -> 
                     let brs = new ResizeArray<Bracket>()
                     let newLineState = readLine (brs, lineState ,l.offStart+l.indent, l.offStart + l.len-1)                    
                     brss.Add brs     
@@ -368,8 +361,7 @@ type BracketHighlighter (state:InteractionState) =
     
     let mutable allPairs : option<BracketPair[][]> = None
         
-    let caretPositionChanged(e:EventArgs) = 
-        //transMatch.ClearAllLines()        
+    let caretPositionChanged(e:EventArgs) =               
         let id = state.DocChangedId.Value
         let caret = state.Editor.TextArea.Caret
         let caretOff = caret.Offset
@@ -383,7 +375,7 @@ type BracketHighlighter (state:InteractionState) =
                
                match ParseBrackets.getOnePair(allPairs.Value, caretLine, caretOff) with 
                |None -> 
-                    transMatch.ClearAllLines() // or keep showing the bracket highlighting ??
+                    //transMatch.ClearAllLines() // or keep showing the bracket highlighting when cursor moves away??
                     if state.DocChangedId.Value = id then 
                         //redrawSegment:
                         do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context
@@ -394,9 +386,10 @@ type BracketHighlighter (state:InteractionState) =
                         |None ->()
 
                |Some (f,t) -> 
-                    transMatch.ClearAllLines()
-                    transMatch.Insert(f.line, {from=f.from; till=f.till; act = actPair})
-                    transMatch.Insert(t.line, {from=t.from; till=t.till; act = actPair})
+                    let newTrans = ResizeArray<ResizeArray<LinePartChange>>(t.line+1) 
+                    transMatch.Insert(newTrans, f.line, {from=f.from; till=f.till; act = actPair})
+                    transMatch.Insert(newTrans, t.line, {from=t.from; till=t.till; act = actPair})
+                    transMatch.Update(newTrans)
                     if state.DocChangedId.Value = id then 
                         //redrawSegment:
                         do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context
@@ -413,18 +406,17 @@ type BracketHighlighter (state:InteractionState) =
     
     let foundBracketsEv = new Event<int64>()
 
-    let trans = state.TransformersAllBrackets
+    let transAll = state.TransformersAllBrackets
 
     let nextAction i = acts.[i % acts.Length]
 
     do
-        state.Editor.TextArea.Caret.PositionChanged.Add (caretPositionChanged)
-        //state.Editor.Document.Changing.Add(fun a -> transMatch.ClearAllLines())
+        state.Editor.TextArea.Caret.PositionChanged.Add (caretPositionChanged)        
     
     [<CLIEvent>] 
     member _.FoundBrackets = foundBracketsEv.Publish
     
-    /// This gets called for every visible line on any view change
+    
     member _.UpdateAllBrackets(id) =        
         allPairs <- None
         match ParseBrackets.all(state.CodeLines, id) with
@@ -432,13 +424,15 @@ type BracketHighlighter (state:InteractionState) =
         |Some bss ->            
             let pss =  ParseBrackets.findAllPairs(bss)
             if state.IsLatest id then 
+                let newTrans = ResizeArray<ResizeArray<LinePartChange>>(transAll.LineCount+4)
                 allPairs <-Some pss
                 for lnNo = 0 to pss.Length - 1 do 
                     let ps = pss[lnNo]
                     for i = 0 to ps.Length - 1 do   
                         let p = ps[i]
                         let act = match p.other with |None -> actErr |Some _ -> nextAction p.nestingDepth
-                        trans.Insert(lnNo, {from=p.from; till=p.till; act= act })
+                        transAll.Insert(newTrans, lnNo, {from=p.from; till=p.till; act= act })
+                transAll.Update(newTrans)
                 foundBracketsEv.Trigger(id)        
 
    

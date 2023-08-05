@@ -1,4 +1,4 @@
-﻿#r @"D:\Git\FsEx\bin\Release\netstandard2.0\FsEx.dll"
+﻿#r "nuget: FsEx"
 #r "System.Xml.Linq"
 
 open System
@@ -9,7 +9,7 @@ open FsEx
 
 /// The only reason to build my own XML parser is to make it error tolerant.
 /// To fix https://github.com/dotnet/fsharp/issues/12702 , this might have affected a few nuget packages.
-/// The performace is actually compareable to  Xml.Linq.XDocument.Parse()
+/// The performance is actually comparable to  Xml.Linq.XDocument.Parse()
 /// https://stackoverflow.com/questions/4081425/error-tolerant-xml-reader
 module XmlParser = 
     
@@ -28,7 +28,7 @@ module XmlParser =
         children:Child list
         } 
     
-    // get string and clear stringbuilder
+    // get string and clear string builder
     let inline private get (sb:StringBuilder) =  
         let s = sb.ToString() 
         sb.Clear() |> ignore 
@@ -58,7 +58,7 @@ module XmlParser =
     let inline isWhite c = c=' ' || c='\r' || c= '\n' 
     
     /// appends start and end trimmed of whitespace Text node from String builder
-    /// skips appending if text is only whiyespace,  but always clears the string builder
+    /// skips appending if text is only whitespace,  but always clears the string builder
     let inline trimAppendText(sb:StringBuilder) (cs:Child list)  :Child list = 
         if sb.Length=0 then  
             cs
@@ -72,18 +72,18 @@ module XmlParser =
                 sb.Clear() |> ignore 
                 cs 
             else 
-                // trim end whitepasce from string builder:
+                // trim end whitespace from string builder:
                 let mutable len = sb.Length 
                 while isWhite sb.[len-1] do  
                     len <-len-1
-                // trim start whitepasce from string builder:
+                // trim start whitespace from string builder:
                 whiteCount<-whiteCount-1
                 let t = sb.ToString(whiteCount, len-whiteCount)
                 sb.Clear() |> ignore 
                 Text t :: cs         
     
     /// appends End only trimmed Text node from String builder
-    /// skips appending if text is only whiyespace,  but always clears the string builder
+    /// skips appending if text is only whitespace,  but always clears the string builder
     let inline trimAppendEndText(sb:StringBuilder) (cs:Child list)  :Child list = 
         if sb.Length=0 then  
             cs
@@ -97,7 +97,7 @@ module XmlParser =
                 sb.Clear() |> ignore 
                 cs 
             else 
-                // trim end whitepasce from string builder:
+                // trim end whitespace from string builder:
                 let mutable len = sb.Length 
                 while isWhite sb.[len-1] do  
                     len <-len-1 
@@ -111,7 +111,7 @@ module XmlParser =
         /// the main global index
         let mutable i = from  
         
-        /// the global stringbuilder used for all strings
+        /// the global string builder used for all strings
         let sb = StringBuilder()
         let inline add (c:char) = sb.Append(c) |> ignore 
    
@@ -181,8 +181,8 @@ module XmlParser =
         /// on exit current char is '/' or '&gt;'
         let rec readAttrs (ps:Attr list) :Attr list = 
             match x[i] with 
-            | '>' -> ps //exit, but dont advance ,  leave this to caller 
-            | '/' -> ps //exit, but dont advance ,  leave this to caller 
+            | '>' -> ps //exit, but don't advance ,  leave this to caller 
+            | '/' -> ps //exit, but don't advance ,  leave this to caller 
             | ' ' -> i<-i+1 ; readAttrs ps // skip space
             | '=' ->  
                 let name = get sb
@@ -243,7 +243,7 @@ module XmlParser =
                             |> readNodes
                         | z -> failwithf $"untracket xml tag <!{z}"
                             
-                    | '/' -> // probaly node closing ,  TODO read name to be sure its the right closing ?
+                    | '/' -> // probably node closing ,  TODO read name to be sure its the right closing ?
                         if x[i+2] = '>' && x[i+1] = 'p' then // a </p> in netstandard.xml to skip
                             i<-i+3 
                             readNodes cs
@@ -255,7 +255,7 @@ module XmlParser =
                         readName()
                         let name = getConst sb 
                         // fix for https://github.com/dotnet/standard/issues/1527:
-                        if name = "p"  then  // allways skip a <p...> node a closing (e.g. in netstandard.xml) 
+                        if name = "p"  then  // always skip a <p...> node a closing (e.g. in netstandard.xml) 
                             skipTillAndWhite ">" 
                             readNodes cs  
                         elif name = "br"  then  // a simple <br> without a closing (e.g. in netstandard.xml)
@@ -268,7 +268,7 @@ module XmlParser =
                                 match x[i] with 
                                 | '>' -> i<-i+1; skipRet();  readNodes []
                                 | '/' -> skipTillAndWhite ">" ; []
-                                | x   -> failwithf "Attr end worng on %c" x
+                                | x   -> failwithf "Attr end wrong on %c" x
                             
                             let node     = Node {name=name;  attrs=attrs;  children=children} 
                             readNodes (node :: cs) 

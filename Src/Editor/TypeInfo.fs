@@ -47,6 +47,10 @@ type ToolTipExtraData ={
     declLocation  : Range option                      // only for mouse over type info tooltips
     dllLocation   : string option                     // only for mouse over type info tooltips
     }
+
+/// to indicate if trailing or leading whitespace shall be trimmed
+[<RequireQualifiedAccess>]
+type Trim = No | Start | End | Both
     
 
 ///a static class for creating tooltips
@@ -179,12 +183,31 @@ type TypeInfo private () =
             | -1 -> t
             | i  -> t.Substring(0,i) 
         | _ -> s    
+    
+    /// trim start whitespace if the line has no returns
+    static let trimStartIfOneLiner (s:string) =         
+        match s.IndexOf '\n' with 
+        | -1 -> s.TrimStart()  
+        | i  -> s
+    
 
-    static let trimIfOneLiner (s:string) = 
-        let t = s.TrimStart() 
-        match t.IndexOf '\n' with 
-        | -1 -> t
-        | i  -> s 
+    // removes the first line return if it is only preceeded by whitespace
+    static let trimStartIfHasRet (s:string) = 
+        let rec loop i = 
+            if i = s.Length then 
+                0
+            else                
+                match s[i] with 
+                | ' '  -> loop (i+1)
+                | '\r' -> loop (i+1)
+                | '\n' -> i+1
+                |  _   -> i
+        
+        match loop 0 with 
+        | 0 -> s
+        | j -> s.Substring(j)    
+
+    
     /// check if List has at least two items 
     static let twoOrMore = function [] | [_] -> false |_ -> true   
 
@@ -192,12 +215,13 @@ type TypeInfo private () =
     static let darkblue     = Brushes.DarkSlateBlue |> darker 20 |> freeze
     static let white        = Brushes.White      |> darker    5  |> freeze
 
-    static let codeRun (td:ToolTipData) t : seq<Run>= 
+    static let codeRun (td:ToolTipData) (code:string) : seq<Run>= 
+        let tx = code.TrimEnd()
         [
         new Run(" ") 
-        match td.optDefs |> Seq.tryFind ( fun oa -> oa = t ) with
-        | Some od ->  new Run("?"+t ,FontFamily = StyleState.fontEditor, FontSize = StyleState.fontSize*1.1,  Foreground = gray,   Background = white) 
-        | None    ->  new Run(t ,FontFamily = StyleState.fontEditor, FontSize = StyleState.fontSize*1.1,  Foreground = black,   Background = white)         
+        match td.optDefs |> Seq.tryFind ( fun oa -> oa = tx ) with
+        | Some od ->  new Run("?"+tx ,FontFamily = StyleState.fontEditor, FontSize = StyleState.fontSize*1.1,  Foreground = gray,    Background = white) 
+        | None    ->  new Run(tx     ,FontFamily = StyleState.fontEditor, FontSize = StyleState.fontSize*1.1,  Foreground = black,   Background = white)         
         new Run(" ") 
         ]
     
@@ -244,25 +268,46 @@ type TypeInfo private () =
         tb.TextWrapping <- TextWrapping.Wrap
         let mutable last = "" 
         
-        let rec loop (c:XmlParser.Child) parentName addTitle d =             
-            match c with
+        let rec loop (this:XmlParser.Child) parentName addTitle (trim:Trim) depth =             
+            match this with
             |Text t ->  
-                // the main xml text description
-                if parentName="para" then tb.Inlines.Add( new Run(t,  Foreground = darkblue)) // don't trim oneliners inside a para tag to keep ascii art from RhinoCommon.xml
-                else                      tb.Inlines.Add( new Run(trimIfOneLiner t,  Foreground = darkblue, FontStyle = FontStyles.Italic)) 
+                //printf $"{parentName} {depth} {trim}: '"
+                //eprintf $"{t}"
+                //printfn "'"
+                let txt = 
+                    if parentName="para" then // don't trim oneliners inside a para tag to keep ascii art from RhinoCommon.xml
+                        t
+                    else
+                        match trim with
+                        |Trim.Both   -> t.TrimEnd() |> trimStartIfHasRet|> trimStartIfOneLiner
+                        |Trim.End    -> t.TrimEnd() 
+                        |Trim.Start  -> t |> trimStartIfHasRet|> trimStartIfOneLiner
+                        |Trim.No     -> t |> trimStartIfHasRet
+                tb.Inlines.Add( new Run(txt,  Foreground = darkblue, FontStyle = FontStyles.Italic)) 
+                    
                 
             |Node n ->  
-                if d=0 then   // d for depth                  
-                    if last<>n.name && addTitle then // && n.name <> "?name?" then // to not repeat the parameter header every time
+                if depth=0 then                  
+                    if last <> n.name && addTitle then // && n.name <> "?name?" then // to not repeat the parameter header every time
                         last <- n.name
                         tb.Inlines.Add( new LineBreak()) 
                         tb.Inlines.Add( new Run(fixName n.name,  Foreground = darkgray)) //FontWeight = FontWeights.Bold,     // Summary header, Parameter header ....               
                         tb.Inlines.Add( new LineBreak())                     
                     for at in n.attrs do // there is normally just one ! like param:name, paramref:name typeparam:name                         
                         tb.Inlines.AddRange( at.value |> fixTypeName|> codeRun td )
-                        tb.Inlines.Add( new Run(": ",  Foreground = black))  
-                    for c in List.rev n.children do 
-                        loop c n.name false (d+1)
+                        tb.Inlines.Add( new Run(": ",  Foreground = black))
+                    
+                    let childs = n.children  |> Array.ofList
+                    let lasti = childs.Length - 1
+                    for i=lasti downto 0 do 
+                        let nextTrim = 
+                            if   i=lasti && i = 0 then Trim.Both
+                            elif i=lasti          then Trim.Start // lasti will be first Texr Run
+                            elif            i = 0 then Trim.End   // index 0 wil be last Text Run
+                            else                       Trim.No
+                        //printfn $"i:{i} , lasti:{lasti} {nextTrim}: {childs[i]}"
+                        loop childs[i] n.name false nextTrim (depth+1)
+
                     tb.Inlines.Add( new LineBreak())
                     
                     
@@ -278,24 +323,24 @@ type TypeInfo private () =
                     //for at in n.attrs do printfn $"ELSE:{n.name} {at.name}:{at.value } n.children.IsEmpty:{n.children.IsEmpty}={n.children.Length} n.attrs.IsEmpty:{n.attrs.IsEmpty}={n.attrs.Length}"
                     //if not n.children.IsEmpty then printfn $"ELSE:{n.name}:{n.children.Head}"
                     match n.name with 
-                    |"c"|"code" ->   for c in List.rev n.children do addCode c  (d+1)
-                    |"para"     ->   for c in List.rev n.children do tb.Inlines.Add( new LineBreak()) ;loop    c n.name false (d+1)
-                    |"br"       ->   for c in List.rev n.children do tb.Inlines.Add( new LineBreak()) ;loop    c n.name false (d+1) // only happens in netstandard.xml
-                    | _         ->   for c in List.rev n.children do                                   loop    c n.name false (d+1)
+                    |"c"|"code" ->   for c in List.rev n.children do addCode c  (depth+1)
+                    |"para"     ->   for c in List.rev n.children do tb.Inlines.Add( new LineBreak()) ;loop    c n.name false Trim.No (depth+1)
+                    |"br"       ->   for c in List.rev n.children do tb.Inlines.Add( new LineBreak()) ;loop    c n.name false Trim.No (depth+1) // only happens in netstandard.xml
+                    | _         ->   for c in List.rev n.children do                                   loop    c n.name false Trim.No (depth+1)
         
-        and addCode (c:XmlParser.Child) d = 
-            match c with
+        and addCode (this:XmlParser.Child) depth = 
+            match this with
             |Text t ->  tb.Inlines.AddRange(codeRun td t) // done in codeRun:  tb.Inlines.Add(" ")
-            |Node n ->  loop c n.name false d
+            |Node n ->  loop this n.name false Trim.No depth
         
 
         match node with 
         |Node n when n.name="member" ->  
             let two = twoOrMore n.children
-            for c in List.rev n.children do 
-                loop c n.name two 0 
+            for ch in List.rev n.children do 
+                loop ch n.name two Trim.No 0 
         | _ -> 
-            loop node "" false 0  
+            loop node "" false Trim.No 0  
         
         // remove last line break: 
         if tb.Inlines.LastInline  :? LineBreak then  tb.Inlines.Remove tb.Inlines.LastInline  |> ignore 

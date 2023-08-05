@@ -95,9 +95,7 @@ type Editor private (code:string, config:Config, initalFilePath:FilePath)  =
         evalTracker = evalTracker
         }
     
-    //these two will trigger the redraw after all async events have arrived
-    //let _ = Redrawing.FirstEventCombiner (services ,state)
-    //let _ = Redrawing.SecondEventCombiner(services ,state)       
+    //this will trigger the redraw after all async events have arrived
     let _ = Redrawing.EventCombiner(services ,state)       
 
     do  
@@ -177,7 +175,7 @@ type Editor private (code:string, config:Config, initalFilePath:FilePath)  =
         //avaEdit.Document.Changed.Add(fun a -> DocChangeEvents.logPerformance( a.InsertedText.Text)) // AutoHotKey SendInput of ßabcdefghijklmnopqrstuvwxyz£
                  
         //avaEdit.TextArea.TextView.LineTransformers.Add(new DebugColorizer())  // for debugging the line transformers
-        avaEdit.TextArea.TextView.LineTransformers.Insert(0, ed.State.FastColorizer) // insert at index 0 so that it is drawn first, so that text color is overwritten the selection highlighting
+        avaEdit.TextArea.TextView.LineTransformers.Insert(0, ed.State.FastColorizer) // insert at index 0 so that it is drawn first, so that text color is overwritten when selection highlighting happens
 
         // check if closing and inserting from completion window is desired with currently typed character:
         avaEdit.TextArea.TextEntering.Add (compls.MaybeInsertOrClose)
@@ -194,7 +192,7 @@ type Editor private (code:string, config:Config, initalFilePath:FilePath)  =
         avaEdit.TextArea.TextView.MouseHoverStopped.Add(fun _ -> ed.TypeInfoTip.IsOpen <- false )
 
         ed
-
+        
     ///additional constructor using default code
     static member New (config:Config) =  
         let dummyName = Counter.UnsavedFileName()
