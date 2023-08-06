@@ -77,7 +77,7 @@ type Editor private (code:string, config:Config, initialFilePath:FilePath)  =
     let foldMg      = Folding.FoldingManager.Install(avaEdit.TextArea) 
     let state       = new InteractionState(avaEdit, foldMg, config)
     let folds       = new Foldings(foldMg, state, getFilePath)
-    let brackets    = new BracketHighlighter( state)
+    let brackets    = new BracketHighlighter( state) 
     let compls      = new Completions(state)
     let semHiLi     = new SemanticHighlighter(state)
     let error       = new ErrorHighlighter(state,foldMg)
@@ -185,7 +185,7 @@ type Editor private (code:string, config:Config, initialFilePath:FilePath)  =
         compls.OnShowing.Add(fun _ -> ed.ErrorHighlighter.ToolTip.IsOpen <- false)
         compls.OnShowing.Add(fun _ -> ed.TypeInfoTip.IsOpen              <- false)
         ed.TypeInfoTip.SetValue(Controls.ToolTipService.InitialShowDelayProperty, 50) // this delay is also set in Initialize.fs
-        avaEdit.KeyDown.Add (fun k -> match k.Key with |Key.Escape -> ed.TypeInfoTip.IsOpen <- false |_ -> ()) // close tooltip on Esc key
+        avaEdit.KeyDown.Add (fun k -> match k.Key with |Key.Escape -> ed.TypeInfoTip.IsOpen <- false ; ed.ErrorHighlighter.ToolTip.IsOpen <- false |_ -> ()) // close tooltips on Escape key
         
         // Mouse Hover:
         avaEdit.TextArea.TextView.MouseHover.Add(fun e -> TypeInfo.mouseHover(e, ed, ed.TypeInfoTip))

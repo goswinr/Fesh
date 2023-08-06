@@ -169,7 +169,7 @@ type CheckerStatus (grid:TabsAndLog) as this =
     static member goToNextSegment(ed:Editor) =
         match ErrorUtil.getNextSegment(ed) with 
         |None -> ()
-        |Some seg ->  ed.Folds.GoToOffsetAndUnfold (seg.StartOffset, seg.Length, false)
+        |Some seg ->  ed.Folds.GoToOffsetAndUnfold (seg.Offset, seg.Length, false)
 
 type FsiRunStatus (grid:TabsAndLog) as this = 
     inherit TextBlock()

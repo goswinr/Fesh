@@ -23,7 +23,7 @@ type EditorServices = {
 
 module DocChangeUtil = 
    
-    
+    (* // DELETE
     /// returns the total character count change -1 or +1 depending if its a insert or remove
     let isSingleCharChange (a:DocumentChangeEventArgs) =
         match a.InsertionLength, a.RemovalLength with
@@ -31,6 +31,30 @@ module DocChangeUtil =
         | 1, 1 -> ValueSome  0
         | 0, 1 -> ValueSome -1
         | _    -> ValueNone
+    *)
+
+
+    /// one deleted or one inserted character
+    let isASingleCharChange (a:DocumentChangeEventArgs) =
+        match a.InsertionLength, a.RemovalLength with
+        | 1, 0 -> true
+        | 0, 1 -> true
+        | _    -> false
+
+
+    let getShift (doc:TextDocument, a:DocumentChangeEventArgs) : Shift = 
+        let off = a.Offset
+        let ins = a.InsertionLength
+        let rem = a.RemovalLength
+        // count line returns added and deleted:
+        let rec insCount from i = match a.InsertedText.IndexOf('\n', from, ins-from)  with | -1 -> i | found  -> insCount (i+1) found
+        let rec remCount from i = match a.RemovedText.IndexOf ('\n', from, rem-from)  with | -1 -> i | found  -> remCount (i+1) found
+        let addLns = if ins > 1 then insCount 0 0 else 0 // a line return is minimum 2 characters
+        let remLns = if rem > 1 then remCount 0 0 else 0 // a line return is minimum 2 characters 
+        { fromOff = off 
+          fromLine= doc.GetLocation(off).Line
+          amountOff = ins - rem
+          ammountLines = addLns-remLns} 
     
     /// returns the cLine of code that contains the given offset.
     /// from start of line till given offset 
@@ -43,7 +67,8 @@ module DocChangeUtil =
                 | _ -> loop (i-1)
         let st = loop off
         code.Substring(st,off-st)
-    
+
+    (* // DELETE
     let getPosInCode(caretOff, line, code:string): PositionInCode  =        
         let lineToCaret = getLine(code, caretOff)
         { 
@@ -52,6 +77,7 @@ module DocChangeUtil =
         column = lineToCaret.Length // equal to amount of characters in lineToCaret
         offset = caretOff 
         }
+    *)
 
     let getPosInCode2(avaEdit:TextEditor) : PositionInCode =         
         let doc = avaEdit.Document
@@ -93,7 +119,6 @@ module Redrawing =
 
     type EventCombiner(serv:EditorServices, state:InteractionState) = 
         let ed = state.Editor
-        let fast = state.FastColorizer
         let mutable scan = ScanState.None 
        
         let tryDraw(id) =             
@@ -417,10 +442,12 @@ module DocChangeEvents =
         | WaitForCompletions -> ()
         | React -> state.Increment() |> ignore // incrementing this handler before the change actually happens, but  only increment when a reaction is required.
         
-        // (2) clear semantic highlighting immediately so that no odd coloring appears on this line.
-        //let lnNo = state.Editor.Document.GetLineByOffset(a.Offset)
-        //state.TransformersSemantic.ClearLine(lnNo.LineNumber)
+        // (2) Adjust Shifts
+        let shift = getShift(state.Editor.Document, a)
+        state.FastColorizer.AdjustShifts shift
+        state.ErrSegments.AdjustOneShift shift
 
+        (* // DELETE
         // (3) adjust color shift for all other lines
         match DocChangeUtil.isSingleCharChange a with 
         |ValueSome s -> 
@@ -429,6 +456,7 @@ module DocChangeEvents =
             // a multi character change, just wait for type checker.., 
             // because it might contain a line return and then just doing just a shift would not work anymore.
             state.FastColorizer.ResetShifts() 
+        *)
     
 
     let changed (iEd:IEditor) (serv:EditorServices) (state:InteractionState) (eventArgs:DocumentChangeEventArgs) : unit  =  
@@ -441,9 +469,10 @@ module DocChangeEvents =
         | React -> 
             let id = state.DocChangedId.Value // the increment was done before this event in Doc.Changing (not Changed) 
             
-            match isSingleCharChange eventArgs with 
-            |ValueSome _ -> DocChangeCompletion.singleCharChange      (iEd, serv, state, id)
-            |ValueNone   -> DocChangeMark.markFoldCheckHighlightAsync (iEd, serv, state, id)            
+            if isASingleCharChange eventArgs then 
+                DocChangeCompletion.singleCharChange      (iEd, serv, state, id)
+            else
+                DocChangeMark.markFoldCheckHighlightAsync (iEd, serv, state, id)            
 
             
     (*

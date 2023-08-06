@@ -38,7 +38,7 @@ type Commands (grid:TabsAndLog, statusBar:SeffStatusBar)  =
     let evalSelectedText()     =  fsi.Evaluate {editor=curr(); amount = FsiSegment <|SelectionForEval.current (tabs.CurrAvaEdit)                   ; logger=None; scriptName=fName()}   // null or empty check is done in fsi.Evaluate
     let evalTillCursor()       =  fsi.Evaluate {editor=curr(); amount = FsiSegment <|SelectionForEval.linesTillCursor(tabs.CurrAvaEdit)            ; logger=None; scriptName=fName()}
 
-    let goToError()            = match ErrorUtil.getNextSegment(curr()) with Some s -> curr().Folds.GoToOffsetAndUnfold(s.StartOffset, s.Length, false)| None -> ()
+    let goToError()            = match ErrorUtil.getNextSegment(curr()) with Some s -> curr().Folds.GoToOffsetAndUnfold(s.Offset, s.Length, false)| None -> ()
     let reset()                = log.Clear(); Checker.Reset(); Fsi.GetOrCreate(config).Initialize() 
     //let evalFromCursor()       =  let ln,tx = Selection.linesFromCursor(tabs.CurrAvaEdit)             in  fsi.Evaluate {editor=curr(); code = tx ; file=curr().FilePath; allOfFile=false; fromLine = ln }
 

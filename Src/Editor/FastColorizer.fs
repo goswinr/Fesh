@@ -6,7 +6,25 @@ open AvalonEditB.Rendering
 open Seff.Model
 open Seff.Util.General
 
-type ChangeReason = Semantic | Selection | BadIndent | MatchingBrackets | CurrentBracketPair | CheckerError 
+open System.Windows
+open System.Windows.Controls
+open System.Windows.Media
+
+open AvalonLog.Brush
+
+open Seff
+open Seff.Util
+open Seff.Model
+
+open FSharp.Compiler
+open FSharp.Compiler.Diagnostics
+open FSharp.Compiler.EditorServices
+
+open AvalonEditB
+open AvalonEditB.Document
+open AvalonEditB.Rendering
+
+//type ChangeReason = Semantic | Selection | BadIndent | MatchingBrackets | CurrentBracketPair | CheckerError  //DELETE
 
 /// Given Start Offset and End Offset from Document
 [<Struct>]
@@ -16,11 +34,74 @@ type LinePartChange =   {
     act: Action<VisualLineElement>
     }
 
+    
+/// index change needed from document chnage
 [<Struct>]
 type Shift = {
-    from:int // Offset 
-    amount: int 
+    fromOff      :int // Offset 
+    fromLine     :int // Line
+    amountOff    : int 
+    ammountLines : int
     }
+    
+
+module ErrorStyle= 
+    let errSquiggle     = Pen(  Brushes.Red     |> darker 20      |> freeze, 1.0) |> Pen.freeze
+    let errBackGr       =       Brushes.Red     |> brighter 220   |> freeze
+
+    let warnSquiggle    = Pen(  Brushes.Yellow  |> darker 40      |> freeze, 1.0) |> Pen.freeze
+    let warnBackGr      =       Brushes.Yellow  |> brighter 200   |> freeze
+
+    let infoSquiggle    = Pen(  Brushes.Green  |> darker 5       |> freeze, 1.0) |> Pen.freeze
+    let infoBackGr      =       Brushes.Green  |> brighter 220   |> freeze
+
+
+/// an ISegment: This segment also contains back and foreground color and diagnostic display text
+type SegmentToMark (startOffset:int,  endOffset:int , e:FSharpDiagnostic)  = 
+
+    let underlinePen = 
+        match e.Severity with
+        | FSharpDiagnosticSeverity.Info    -> ErrorStyle.infoSquiggle
+        | FSharpDiagnosticSeverity.Hidden  -> ErrorStyle.infoSquiggle
+        | FSharpDiagnosticSeverity.Warning -> ErrorStyle.warnSquiggle
+        | FSharpDiagnosticSeverity.Error   -> ErrorStyle.errSquiggle 
+    let backgroundBrush =
+        match e.Severity with
+        | FSharpDiagnosticSeverity.Hidden  -> ErrorStyle.infoBackGr
+        | FSharpDiagnosticSeverity.Info    -> ErrorStyle.infoBackGr
+        | FSharpDiagnosticSeverity.Warning -> ErrorStyle.warnBackGr
+        | FSharpDiagnosticSeverity.Error   -> ErrorStyle.errBackGr 
+       
+    member _.Offset      = startOffset
+    member _.EndOffset   = endOffset
+    member _.Length      = endOffset - startOffset
+
+    member _.Message  =  
+        match e.Severity with
+        | FSharpDiagnosticSeverity.Hidden  -> sprintf "• Hidden Info: %s: %s"  e.ErrorNumberText e.Message 
+        | FSharpDiagnosticSeverity.Info    -> sprintf "• Info: %s: %s"         e.ErrorNumberText e.Message 
+        | FSharpDiagnosticSeverity.Warning -> sprintf "• Warning: %s: %s"      e.ErrorNumberText e.Message 
+        | FSharpDiagnosticSeverity.Error   -> sprintf "• Error: %s: %s"        e.ErrorNumberText e.Message   
+
+    member _.Diagnostic        =  e
+    member _.Severity          =  e.Severity 
+    member _.UnderlinePen      =  underlinePen
+    member _.BackgroundBrush   =  backgroundBrush
+
+    interface ISegment with 
+        member _.Offset      = startOffset
+        member _.EndOffset   = endOffset
+        member _.Length      = endOffset - startOffset 
+
+    member s.Shifted (x:Shift)= 
+        let o = if startOffset < x.fromOff  then startOffset else startOffset + x.amountOff  
+        let e = if endOffset   <  x.fromOff then endOffset   else endOffset   + x.amountOff
+        {new ISegment with
+            member _.Offset      = o
+            member _.EndOffset   = e
+            member _.Length      = e - o
+            }
+
 
 
 /// For accessing the highlighting of a line in constant time
@@ -30,11 +111,16 @@ type LineTransformers<'T>() =    // generic so it can work for LinePartChange an
 
     let empty = ResizeArray<'T>()
 
-    let mutable shift = {from=0; amount=0}    
+    let mutable shift = { fromOff=0; fromLine=0; amountOff=0;  ammountLines=0}   
 
-    member _.AdjustOneShift(s:Shift) = shift <- {from = min shift.from s.from  ; amount = shift.amount + s.amount }
+    member _.AdjustOneShift(s:Shift) = 
+        shift <- {  fromOff  = min shift.fromOff   s.fromOff  
+                    fromLine = min shift.fromLine  s.fromLine 
+                    amountOff    =  shift.amountOff     + s.amountOff
+                    ammountLines =  shift.ammountLines  + s.ammountLines
+                    }
 
-    member _.ResetOneShift() = shift <- {from=0; amount=0}
+   
 
     member _.Shift = shift
 
@@ -42,7 +128,7 @@ type LineTransformers<'T>() =    // generic so it can work for LinePartChange an
 
     /// provide the new list.
     /// when done call update with this new list   
-    member _.Insert(lineList:ResizeArray<ResizeArray<'T>>,lineNumber:int, x:'T) =         
+    static member Insert(lineList:ResizeArray<ResizeArray<'T>>, lineNumber:int, x:'T) =         
         
         // fill up missing lines
         for _ = lineList.Count to lineNumber-1 do            
@@ -63,15 +149,23 @@ type LineTransformers<'T>() =    // generic so it can work for LinePartChange an
                 n.Add x 
             else                
                 ln.Add x           
-           
+    
+    /// Replaces the Linetransformers or Segments with a new list and resets the shift       
     member _.Update(lineList:ResizeArray<ResizeArray<'T>>) =        
         lines <- lineList
-        shift <- {from=0; amount=0}
+        shift <- { fromOff=0; fromLine=0; amountOff=0;  ammountLines=0}   
 
-    /// Safely gets a Line returns empty if index is out of range
+    /// Safely gets a Line returns empty List  if index is out of range
+    /// also applies the shift for line numbers if present
     member _.GetLine(lineNumber) =
-        if lineNumber>=0 && lineNumber<lines.Count then 
-            let ln = lines.[lineNumber] 
+        let lNo = 
+            if lineNumber > shift.fromLine then 
+                lineNumber - shift.ammountLines // use minus to actually get the line that was there before the shift
+            else 
+                lineNumber 
+       
+        if lNo>=0 && lNo<lines.Count then 
+            let ln = lines[lNo] 
             if isNull ln then 
                 empty 
             else 
@@ -124,10 +218,10 @@ type FastColorizer(transformers:LineTransformers<LinePartChange> [], ed:TextEdit
             let lts = transformers.[i]
             lts.AdjustOneShift(s) 
     
-    member _.ResetShifts() = 
-        for i = 0 to transformers.Length-1 do
-            let lts = transformers.[i]
-            lts.ResetOneShift() 
+    //member _.ResetShifts() = // DELETE
+    //    for i = 0 to transformers.Length-1 do
+    //        let lts = transformers.[i]
+    //        lts.ResetOneShift() 
 
     /// This gets called for every visible line on every Redraw
     override _.ColorizeLine(line:Document.DocumentLine) =   
@@ -147,7 +241,7 @@ type FastColorizer(transformers:LineTransformers<LinePartChange> [], ed:TextEdit
                         let lpc = lpcs[i]
                         if notNull lpc.act then // because for coloring brackets it may be null to keep xshd coloring
                             let shift = lts.Shift
-                            let shiftChecked = if lpc.from > shift.from then shift.amount else 0
+                            let shiftChecked = if lpc.from > shift.fromOff then shift.amountOff else 0
                             let from = lpc.from + shiftChecked
                             let till = lpc.till + shiftChecked
                             if from >= till then () // negative length

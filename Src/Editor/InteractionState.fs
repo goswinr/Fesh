@@ -188,38 +188,42 @@ type DocChangedConsequence =
     | WaitForCompletions 
 
 /// Tracking the lastest change Ids to the document
-/// foldManager may be null
+/// FoldManager may be null for Log
 [<AllowNullLiteral>] // for log initially
 type InteractionState(ed:TextEditor, foldManager:FoldingManager, config:Seff.Config.Config)  =
     
     let changeId = ref 0L 
     
     /// reacts to doc changes
-    /// for Errors and semantics
+    /// for Semantics and bad indentations
     let transformersSemantic          = new LineTransformers<LinePartChange>() 
     
     /// reacts to doc changes
-    /// for Brackets, and bad indents
+    /// for colorizing all brackets
     let transformersAllBrackets       = new LineTransformers<LinePartChange>() 
 
     /// reacts to caret changes
-    let transformersMatchingBrackets  = new LineTransformers<LinePartChange>()   
+    /// for colorizing matching brackets
+    let transformersMatchingBrackets  = new LineTransformers<LinePartChange>()   // TODO reenable use when fixed   
 
-    /// reacts to document changes
+    /// reacts to selection changes
+    /// for colorizing text that matches the current selection
     let transformersSelection         = new LineTransformers<LinePartChange>() 
     
     let fastColorizer = new FastColorizer( 
                                     [|
                                     transformersAllBrackets
-                                    transformersMatchingBrackets            
+                                    //transformersMatchingBrackets   // TODO reenable when fixed          
                                     transformersSelection
                                     transformersSemantic // draw errors last so they are on top of matching brackets
                                     |]
                                     ,ed // for debugging only
                                     ) 
 
+    let errSegments = LineTransformers<SegmentToMark>()
 
-    
+    member _.ErrSegments = errSegments
+
     /// Does not increment while waiting for completion window to open 
     /// Or while waiting for an item in the completion window to be picked
     member _.DocChangedId  = changeId
@@ -245,17 +249,19 @@ type InteractionState(ed:TextEditor, foldManager:FoldingManager, config:Seff.Con
     member val JustCompleted = false with get, set
     
     /// reacts to doc changes
-    /// for Errors and semantics
+    /// for Semantics and bad indentations
     member _.TransformersSemantic          = transformersSemantic
     
     /// reacts to doc changes
-    /// for Brackets, and bad indents
+    /// for colorizing all brackets
     member _.TransformersAllBrackets       = transformersAllBrackets
 
     /// reacts to caret changes
+    /// for colorizing matching brackets
     member _.TransformersMatchingBrackets  = transformersMatchingBrackets
 
-    /// reacts to document changes
+    /// reacts to selection changes
+    /// for colorizing text that matches the current selection
     member _.TransformersSelection         = transformersSelection
     
     member _.FastColorizer                 = fastColorizer 

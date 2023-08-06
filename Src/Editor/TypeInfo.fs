@@ -25,6 +25,7 @@ open Seff.Util
 open Seff.Util.General
 open Seff.Model
 open Seff.XmlParser
+open AvalonEditB
 
 
 type OptDefArg  = string //{ name:string ; defVal:string} //  TODO actual default value from attribute  seems to be not available via FCS see below in: namesOfOptnlArgs(fsu:FSharpSymbolUse)
@@ -633,7 +634,16 @@ type TypeInfo private () =
 
                 |Some (word, colAtEndOfNames, isQuotedIdentifier) -> 
                     tip.Content <- loadingTxt
-                    tip.PlacementTarget <- iEditor.AvaEdit // required for property inheritance
+                    let tView = av.TextArea.TextView
+                    let pos = doc.GetLocation(off)
+                    let tvpos = new TextViewPosition(pos.Line,pos.Column)
+                    let pt = tView.GetVisualPosition(tvpos, Rendering.VisualYPosition.LineBottom)
+                    let ptInclScroll = pt - tView.ScrollOffset
+                    tip.PlacementTarget <- av.TextArea
+                    tip.PlacementRectangle <- new Rect(ptInclScroll.X, ptInclScroll.Y, 0., 0.)
+                    tip.Placement <- Primitives.PlacementMode.Bottom // Error Tooltip is on Top //https://docs.microsoft.com/en-us/dotnet/framework/wpf/controls/popup-placement-behavior
+                    tip.VerticalOffset <- -5.0
+
                     tip.StaysOpen <- true
                     tip.IsOpen <- true
                     async{ 
@@ -683,21 +693,20 @@ type TypeInfo private () =
                                     //ISeffLog.log.PrintfnDebugMsg $"s.Symbol.Assembly.FileName:{s.Symbol.Assembly.FileName}"
                                     //let sems = res.checkRes.GetSemanticClassification(Some s.Range)
                                     //for sem in sems do ISeffLog.log.PrintfnDebugMsg $"GetSemanticClassification:{sem.Type}"                                    
-                                    let l = s.Range
-                                    let lineNo = l.StartLine
-                                    let colSt  = l.StartColumn
-                                    let colEn  = l.EndColumn                                    
+                                    //let l = s.Range
+                                    //let lineNo = l.StartLine
+                                    //let colSt  = l.StartColumn
+                                    //let colEn  = l.EndColumn                                    
                                     //let sem = iEditor.SemanticRanges |> Array.tryFind (fun s -> let r = s.Range in r.StartLine=lineNo && r.EndLine=lineNo && r.StartColumn=colSt && r.EndColumn=colEn)                                        
                                     let sem = 
                                         res.checkRes.GetSemanticClassification(Some s.Range)
                                         |> Array.tryHead
                                         
-                                    sem, s.Symbol.DeclarationLocation ,s.Symbol.Assembly.FileName                            
+                                    sem , s.Symbol.DeclarationLocation , s.Symbol.Assembly.FileName                            
                             
                             let ed = {declListItem=None; semanticClass=sem; declLocation=declLoc; dllLocation=dllLoc }
                             let ttPanel = TypeInfo.getPanel (ttds, ed )
-                            if tip.IsOpen then
-                                // TODO hide tooltip and use use popup instead now, so it can be pinned?
+                            if tip.IsOpen then // showing the "loading" text till here.
                                 tip.Content <- ttPanel
                     } |> Async.Start
 

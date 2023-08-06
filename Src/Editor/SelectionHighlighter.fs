@@ -108,7 +108,7 @@ type SelectionHighlighter (state:InteractionState) =
                         while off >= 0 do
                             offs.Add off // also add for current selection
                             if off <> selectionStartOff then // skip the actual current selection                                
-                                trans.Insert(newMarks, lineNo, {from=off; till=off+wordLen; act=action})                                 
+                                LineTransformers.Insert(newMarks, lineNo, {from=off; till=off+wordLen; act=action})                                 
                             let start = off + word.Length // search from this for next occurrence in this line 
                             let lenReduction = start - l.offStart
                             let remainingLineLength = l.len - lenReduction
@@ -246,7 +246,7 @@ type SelectionHighlighterLog (lg:TextEditor) =
                                 offs.Add off // also add for current selection
                                 if off <> selectionStartOff then // skip the actual current selection
                                     //ISeffLog.log.PrintfnInfoMsg $"trans.Insert({lineNo}, from={off}; till={off+wordLen}; act=action word='{word}'"
-                                    trans.Insert(newMarks,lineNo, {from=off; till=off+wordLen; act=action})                                 
+                                    LineTransformers.Insert(newMarks,lineNo, {from=off; till=off+wordLen; act=action})                                 
                                 let start = off + word.Length // search from this for next occurrence in this line 
                                 let lenReduction = start - l.offStart
                                 let remainingLineLength = l.len - lenReduction

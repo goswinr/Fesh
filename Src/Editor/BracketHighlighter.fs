@@ -387,8 +387,8 @@ type BracketHighlighter (state:InteractionState) =
 
                |Some (f,t) -> 
                     let newTrans = ResizeArray<ResizeArray<LinePartChange>>(t.line+1) 
-                    transMatch.Insert(newTrans, f.line, {from=f.from; till=f.till; act = actPair})
-                    transMatch.Insert(newTrans, t.line, {from=t.from; till=t.till; act = actPair})
+                    LineTransformers.Insert(newTrans, f.line, {from=f.from; till=f.till; act = actPair})
+                    LineTransformers.Insert(newTrans, t.line, {from=t.from; till=t.till; act = actPair})
                     transMatch.Update(newTrans)
                     if state.DocChangedId.Value = id then 
                         //redrawSegment:
@@ -410,8 +410,7 @@ type BracketHighlighter (state:InteractionState) =
 
     let nextAction i = acts.[i % acts.Length]
 
-    do
-        state.Editor.TextArea.Caret.PositionChanged.Add (caretPositionChanged)        
+    // do state.Editor.TextArea.Caret.PositionChanged.Add (caretPositionChanged)        // TODO reenable when fixed, also in list of fast colorizers in InteractionState.fs
     
     [<CLIEvent>] 
     member _.FoundBrackets = foundBracketsEv.Publish
@@ -431,7 +430,7 @@ type BracketHighlighter (state:InteractionState) =
                     for i = 0 to ps.Length - 1 do   
                         let p = ps[i]
                         let act = match p.other with |None -> actErr |Some _ -> nextAction p.nestingDepth
-                        transAll.Insert(newTrans, lnNo, {from=p.from; till=p.till; act= act })
+                        LineTransformers.Insert(newTrans, lnNo, {from=p.from; till=p.till; act= act })
                 transAll.Update(newTrans)
                 foundBracketsEv.Trigger(id)        
 

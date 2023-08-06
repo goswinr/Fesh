@@ -194,8 +194,6 @@ type SemanticHighlighter (state: InteractionState) =
             
             let newTrans = ResizeArray<ResizeArray<LinePartChange>>(trans.LineCount+4)
 
-            
-
             let rec loopTy i = 
                 if i = allRanges.Length then 
                     true // reached end
@@ -208,14 +206,14 @@ type SemanticHighlighter (state: InteractionState) =
                     | ValueSome ln ->                       
                         // (1) find bad indents:
                         if ln.indent % defaultIndenting <> 0 then      
-                            trans.Insert(newTrans, lineNo , {from=ln.offStart; till=ln.offStart+ln.indent; act=semActs.BadIndentAction} )
+                            LineTransformers.Insert(newTrans, lineNo , {from=ln.offStart; till=ln.offStart+ln.indent; act=semActs.BadIndentAction} )
                                         
                         // (2) find semantic highlight:  
                         let st = ln .offStart + r.StartColumn                 
                         let en = ln .offStart + r.EndColumn
                         //ISeffLog.log.PrintfnDebugMsg $"{lineNo}:{sem.Type} {r.StartColumn} to {r.EndColumn}"
 
-                        let inline push(f,t,a) =  trans.Insert(newTrans,lineNo,{from=f; till=t; act=a})
+                        let inline push(f,t,a) =  LineTransformers.Insert(newTrans,lineNo,{from=f; till=t; act=a})
 
                         match sem.Type with 
                         | Sc.ReferenceType               -> push(st,en, semActs.ReferenceType              )
@@ -273,7 +271,7 @@ type SemanticHighlighter (state: InteractionState) =
                             | ValueSome offLn ->  
                                 let st = offLn.offStart + r.StartColumn                
                                 let en = offLn.offStart + r.EndColumn
-                                trans.Insert(newTrans,lineNo, {from=st; till=en; act=semActs.UnUsed})
+                                LineTransformers.Insert(newTrans,lineNo, {from=st; till=en; act=semActs.UnUsed})
                                 loopUn (i+1)
                     if loopUn 0 then
                         trans.Update(newTrans)
