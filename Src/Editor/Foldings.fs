@@ -79,7 +79,7 @@ type Foldings(manager:Folding.FoldingManager, state:InteractionState, getFilePat
                             
                     if (nestingLevel = 0 && lineCount >= minLinesOutside)
                     || (nestingLevel > 0 && lineCount >= minLinesNested ) then
-                        //printfn $"on END ({lnNo}) poped prevline {st.lineNo} to {prevLnNo}"
+                        //printfn $"on END ({lnNo}) popped prev line {st.lineNo} to {prevLnNo}"
                         Folds.Add{
                             foldStartOff = st.info.offStart + st.info.len
                             foldEndOff   = prev.offStart + prev.len
@@ -97,14 +97,14 @@ type Foldings(manager:Folding.FoldingManager, state:InteractionState, getFilePat
                     elif this.indent > prev.indent then 
                         if FoldingStack.Count <= maxDepth then 
                             FoldingStack.Push {lineNo=prevLnNo ; info=prev}
-                            //printfn $"pushed prevline {prevLnNo} because {this.indent} > {prev.indent} : this.indent > prev.indent"
+                            //printfn $"pushed prev line {prevLnNo} because {this.indent} > {prev.indent} : this.indent > prev.indent"
                             loopLines lnNo this (lnNo+1)
                         else
                             loopLines lnNo this (lnNo+1)
                     
                     elif this.indent < prev.indent && FoldingStack.Count > 0 then 
                         let mutable top = FoldingStack.Peek()
-                        //printfn $"on line {lnNo} TRY poped prevline because {this.indent} < {prev.indent}; {top.info.indent} : this.indent < prev.indent; top.info.indent"
+                        //printfn $"on line {lnNo} TRY popped prev line because {this.indent} < {prev.indent}; {top.info.indent} : this.indent < prev.indent; top.info.indent"
                         while this.indent <= top.info.indent  && FoldingStack.Count > 0 do 
                             let st = FoldingStack.Pop()
                             let lineCount = prevLnNo - st.lineNo
@@ -112,7 +112,7 @@ type Foldings(manager:Folding.FoldingManager, state:InteractionState, getFilePat
                             
                             if (nestingLevel = 0 && lineCount >= minLinesOutside)
                             || (nestingLevel > 0 && lineCount >= minLinesNested ) then
-                                //printfn $"on line {lnNo} poped prevline {st.lineNo} to {prevLnNo}"
+                                //printfn $"on line {lnNo} popped prev line {st.lineNo} to {prevLnNo}"
                                 Folds.Add{
                                     foldStartOff = st.info.offStart + st.info.len
                                     foldEndOff   = prev.offStart + prev.len
@@ -175,7 +175,7 @@ type Foldings(manager:Folding.FoldingManager, state:InteractionState, getFilePat
                             fs.Title <- textInFoldBox f.linesInFold   
                         else
                             let lno = ed.Document.GetLineByOffset f.foldStartOff
-                            ISeffLog.log.PrintfnDebugMsg  $"Failed to manager.CreateFolding for a negative folding from offset {f.foldStartOff} to {f.foldEndOff} on line {lno.LineNumber}"
+                            ISeffLog.log.PrintfnDebugMsg  $"manager.CreateFolding was given a negative folding from offset {f.foldStartOff} to {f.foldEndOff} on line {lno.LineNumber}"
 
                     updateCollapseStatus()
                     isInitialLoad <- false
@@ -183,62 +183,67 @@ type Foldings(manager:Folding.FoldingManager, state:InteractionState, getFilePat
                 elif state.DocChangedId.Value = id then                    
                     do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context  
                     let edFolds = manager.AllFoldings
-                    use enum = edFolds.GetEnumerator()
-                    let mutable i = 0
-                    let mutable noChange = true
-                    //for fnew in Folds do printfn $"n: {fnew.foldStartOff} till {fnew.foldEndOff}"
-                    //for fedi in edFolds do printfn $"e: {fedi.StartOffset} till {fedi.EndOffset} "
-                    while noChange  && i < folds.Count && enum.MoveNext() do 
-                        let fedi = enum.Current
-                        let fnew = folds[i]
-                        i <- i + 1
-                        if fedi.StartOffset <> fnew.foldStartOff || fedi.EndOffset <> fnew.foldEndOff then 
-                            noChange <- false
-                            //eprintfn $" {fedi.StartOffset} <> {fnew.foldStartOff} || {fedi.EndOffset} <> {fnew.foldEndOff}"
-                        //else
-                            //printfn $" {fedi.StartOffset} <> {fnew.foldStartOff} || {fedi.EndOffset} <> {fnew.foldEndOff}"
-
-
-                    if noChange then 
-                        ()
-                        //printfn $"folds are good."
-                    else
-                        //eprintfn $"folds updating..." 
-                        
-                        // find firstError offset for Update Foldings function
+                   
+                    // (1) fist find out if a folding update is needed at all                    
+                    use enum = edFolds.GetEnumerator()                    
+                    let rec zip i = // returns true if a folding update is  needed
+                        match enum.MoveNext(), i < folds.Count with
+                        |false, false -> false // reached end,  both collections have the same length
+                        |false, true  -> true // reached end, edFolds is shorter than folds
+                        |true,  false -> true // reached end, edFolds is longer than folds
+                        |true,  true  -> 
+                            let f = folds.[i]
+                            let fEdi = enum.Current
+                            if fEdi.StartOffset <> f.foldStartOff || fEdi.EndOffset <> f.foldEndOff then 
+                                true // existing, foldings are different
+                            else
+                                zip (i+1) // loop on
+                    
+                    if zip 0 then
+                        // (2) Update of foldings is needed:
+                        // (2.1) find firstError offset for Update Foldings function
                         let edFoldsArr = edFolds |> Array.ofSeq
                         let rec findBack i j = 
                             if i<0 || j<0 then 
                                 -1 // firstErrorOffset: Use -1 for this parameter if there were no parse errors)
                             else
-                                let fedi = edFoldsArr[i]
-                                let fnew = folds[j]                                
-                                if fedi.StartOffset <> fnew.foldStartOff || fedi.EndOffset <> fnew.foldEndOff then 
-                                    max  fedi.EndOffset  fnew.foldEndOff 
+                                let feDi = edFoldsArr[i]
+                                let fNew = folds[j]                                
+                                if feDi.StartOffset <> fNew.foldStartOff || feDi.EndOffset <> fNew.foldEndOff then 
+                                    max  feDi.EndOffset  fNew.foldEndOff 
                                 else
                                     findBack (i-1) (j-1)                        
                         let firstErrorOffset = findBack  (edFoldsArr.Length-1) (folds.Count-1)
 
-                        let nfolds=ResizeArray<NewFolding>()                                
-                        for i=0 to folds.Count - 1 do                            
-                            let f = folds.[i]
-                            if firstErrorOffset = -1 || f.foldEndOff <= firstErrorOffset then 
-                                //if f.foldStartOff < f.foldEndOff then // TODO this seems to not always be the case
-                                //ISeffLog.log.PrintfnDebugMsg "Foldings from %d to %d  that is  %d lines" f.foldStartOff  f.foldEndOff f.linesInFold
-                                let fo = new NewFolding(f.foldStartOff, f.foldEndOff) 
-                                fo.Name <- textInFoldBox f.linesInFold
-                                nfolds.Add(fo) //if NewFolding type is created async a waiting symbol appears on top of it
-
-
-                        // Existing foldings starting after this offset will be kept even if they don't appear in newFoldings. 
-                        // Use -1 for this parameter if there were no parse errors)                        
-                        manager.UpdateFoldings(nfolds, firstErrorOffset)//The first position of a parse error. 
+                        // (2.2) create new Foldings
+                        let docLen = ed.Document.TextLength
+                        //eprintfn $" firstErrorOffset: {firstErrorOffset}, docLen: {docLen}" 
+                        let nFolds=ResizeArray<NewFolding>() 
+                        let rec collect i =
+                            if i < folds.Count then 
+                                let f = folds.[i]
+                                if firstErrorOffset = -1 || f.foldEndOff <= firstErrorOffset then 
+                                    if f.foldEndOff < docLen then // in case of deleting at the end of file
+                                        //ISeffLog.log.PrintfnDebugMsg "Foldings from %d to %d  that is  %d lines" f.foldStartOff  f.foldEndOff f.linesInFold
+                                        let fo = new NewFolding(f.foldStartOff, f.foldEndOff) 
+                                        fo.Name <- textInFoldBox f.linesInFold
+                                        nFolds.Add(fo) //if NewFolding type is created async a waiting symbol appears on top of it
+                                        collect (i+1)
+                        collect 0
                         
-                        saveFoldingStatus() // so that when new foldings appeared they are saved immediately
+                        //eprintfn $"{nFolds.Count} new foldings created. firstErrorOffset: {firstErrorOffset}" 
+
+                        // (2.3) update foldings
+                        // Existing foldings starting after this firstErrorOffset will be kept even if they don't appear in newFoldings. 
+                        // Use -1 for this parameter if there were no parse errors.
+                        manager.UpdateFoldings(nFolds, firstErrorOffset)
+                        
+                        // (2.4) save collapsed status again
+                        // so that when new foldings appeared they are saved immediately
+                        saveFoldingStatus() 
 
 
-                        (*
-
+                        (* //DELETE
                         let folds=ResizeArray<NewFolding>()                                
                         for i=0 to Folds.Count - 1 do
                             if i < Folds.Count then // because folds might get changed on another thread
