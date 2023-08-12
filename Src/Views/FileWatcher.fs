@@ -18,6 +18,9 @@ type FileChangeTracker (editor:Editor, setCodeSavedStatus:bool->unit) =
 
     /// TODO in case of renaming MessageBox is shown and file gets set to unsaved. But doesn't switch to new filename automatically.
 
+    // to stop watching once the user clicks "no" to "load chnages?"  
+    let mutable doWatch = true
+
     let setCode(newCode,ed:Editor)=
         ed.AvaEdit.Dispatcher.Invoke ( fun () -> 
             let av = ed.AvaEdit
@@ -49,6 +52,7 @@ type FileChangeTracker (editor:Editor, setCodeSavedStatus:bool->unit) =
                             ()// don't !! editor.CodeAtLastSave might not be current code in Document :setCodeSavedStatus(true)
                         else
                             do! Async.SwitchToContext SyncWpf.context                                                  
+                            doWatch<-false // to not trigger new evemt from cloing this window
                             match MessageBox.Show(
                                 IEditor.mainWindow, 
                                 // $"{reason}: File{nl}{nl}{fi.Name}{nl}{nl}was changed.{nl}Do you want to reload it?", // Debug
@@ -62,8 +66,12 @@ type FileChangeTracker (editor:Editor, setCodeSavedStatus:bool->unit) =
                             | MessageBoxResult.Yes -> 
                                 setCode(fileCode, editor)
                                 setCodeSavedStatus(true)
+                                doWatch <- true
                             | _  ->
                                 setCodeSavedStatus(false)
+                                doWatch<- false
+                            
+
                     else
                         // do nothing, the file is still deleted
                         ()                
@@ -75,11 +83,12 @@ type FileChangeTracker (editor:Editor, setCodeSavedStatus:bool->unit) =
                         if fileCode = editor.CodeAtLastSave then // this means that the last file saving was not done by Seff
                             ()// don't !! editor.CodeAtLastSave might not be current code in Document :setCodeSavedStatus(true)    
                         else
-                            do! Async.SwitchToContext SyncWpf.context                                                  
+                            do! Async.SwitchToContext SyncWpf.context 
+                            doWatch<-false // to not trigger new evemt from cloing this window
                             match MessageBox.Show(
                                 IEditor.mainWindow, 
                                 // $"{reason}: File{nl}{nl}{fi.Name}{nl}{nl}was changed.{nl}Do you want to reload it?", // Debug
-                                $"File{nl}{nl}{fi.Name}{nl}{nl}was changed.{nl}Do you want to reload it?",
+                                $"File{nl}{nl}{fi.Name}{nl}{nl}was changed.{nl}Do you want to reload it?", //{nl}{nl}for {reason}",
                                 "Reload Changes?", 
                                 MessageBoxButton.YesNo, 
                                 MessageBoxImage.Exclamation, 
@@ -89,13 +98,18 @@ type FileChangeTracker (editor:Editor, setCodeSavedStatus:bool->unit) =
                             | MessageBoxResult.Yes -> 
                                 setCode(fileCode, editor)
                                 setCodeSavedStatus(true)
+                                doWatch<- true
                             | _  ->
-                                setCodeSavedStatus(false)                        
+                                setCodeSavedStatus(false) 
+                                doWatch<- false
+                            
+                           
                         
                     else
                         editor.FilePath <- Deleted fi                        
                         setCodeSavedStatus(false)
                         do! Async.SwitchToContext SyncWpf.context 
+                        doWatch<-false // to not trigger new evemt from cloing this window
                         MessageBox.Show(
                             IEditor.mainWindow, 
                             //$"{reason}: {fi.Name}{nl}{nl}was deleted or renamed.{nl}{nl}at {fi.DirectoryName}", // Debug
@@ -106,8 +120,8 @@ type FileChangeTracker (editor:Editor, setCodeSavedStatus:bool->unit) =
                             MessageBoxResult.OK,// default result 
                             MessageBoxOptions.None // previously MessageBoxOptions.DefaultDesktopOnly
                             )
-                            |> ignore                     
-                    
+                            |> ignore  
+                        doWatch<-false                    
                        
             } 
             |>Async.Start
@@ -145,17 +159,21 @@ type FileChangeTracker (editor:Editor, setCodeSavedStatus:bool->unit) =
     do
         // https://wpf.2000things.com/2012/07/30/613-window-event-sequence/
 
-        ta.GotFocus.Add (fun _ -> check("ta.GotFocus")) // this also get triggered when one of the above message boxes gets closed
+        ta.GotFocus.Add (fun _ -> // this also get triggered when one of the above message boxes gets closed ?
+            if doWatch then check("ta.GotFocus")) 
 
-        IEditor.mainWindow.Activated.Add (fun _ -> if IEditor.isCurrent editor.AvaEdit then check("mainWindow.Activated") )           
+        IEditor.mainWindow.Activated.Add (fun _ -> // this also get triggered when one of the above message boxes gets closed     
+            if doWatch && IEditor.isCurrent editor.AvaEdit then check("mainWindow.Activated") )      
 
         setWatcher()
     
     /// to update the location if file location changed
     member _.ResetPath() = 
+        doWatch <- true
         setWatcher()
     
     /// sets watcher.EnableRaisingEvents <- false 
-    member _.Stop()=
-       watcher.EnableRaisingEvents <- false 
+    member _.Stop()=    
+        doWatch <- false
+        watcher.EnableRaisingEvents <- false 
             

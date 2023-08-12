@@ -56,16 +56,12 @@ type Foldings(manager:Folding.FoldingManager, state:InteractionState, getFilePat
  
     // the color for folding box is set in SelectedTextHighlighter
 
-    let FoldingStack = Stack<FoldFrom>()
-    let Folds = ResizeArray<Fold>()  
-
     let mutable isInitialLoad = true
    
 
-    let findFoldings (clns:CodeLineTools.CodeLines, id) :bool = 
-        
-        FoldingStack.Clear() // Collections.Generic.Stack<FoldStart>
-        Folds.Clear() // ResizeArray<Fold>  
+    let findFoldings (clns:CodeLineTools.CodeLines, id) :ResizeArray<Fold> option = 
+        let FoldingStack = Stack<FoldFrom>()
+        let Folds = ResizeArray<Fold>()         
 
         //for i=0 to clns.LastLineIdx do 
         //    match clns.GetLine(i, id) with 
@@ -90,10 +86,10 @@ type Foldings(manager:Folding.FoldingManager, state:InteractionState, getFilePat
                             linesInFold  = lineCount
                             nestingLevel = nestingLevel
                             }               
-                true
+                Some Folds
             else
                 match clns.GetLine(lnNo, id) with 
-                |ValueNone -> false // did not reach end of code lines
+                |ValueNone -> None // did not reach end of code lines
                 |ValueSome this ->                     
                     if this.indent=this.len then // skip all white lines
                         loopLines prevLnNo prev (lnNo+1)
@@ -133,7 +129,7 @@ type Foldings(manager:Folding.FoldingManager, state:InteractionState, getFilePat
         
         
         match clns.GetLine(1,id) with 
-        |ValueNone -> false // did not reach end of code lines
+        |ValueNone -> None // did not reach end of code lines
         |ValueSome li -> loopLines 1 li 2
     
     let textInFoldBox(count:int) = sprintf " ... %d folded lines " count
@@ -155,9 +151,11 @@ type Foldings(manager:Folding.FoldingManager, state:InteractionState, getFilePat
     ///Get foldings at every line that is followed by an indent
     let foldEditor (id:int64) = 
         async{                
-            if findFoldings (state.CodeLines, id) then
+            match findFoldings (state.CodeLines, id) with
+            |None -> ()
+            |Some folds -> 
                 foundBadIndentsEv.Trigger(id)
-                Folds|> Seff.Util.General.sortInPlaceBy ( fun f -> f.foldStartOff, f.linesInFold) 
+                folds|> Seff.Util.General.sortInPlaceBy ( fun f -> f.foldStartOff, f.linesInFold) 
                 
                 if isInitialLoad then                                
                     while foldStatus.WaitingForFileRead do
@@ -167,8 +165,8 @@ type Foldings(manager:Folding.FoldingManager, state:InteractionState, getFilePat
                     let vs = foldStatus.Get(getFilePath())
                     
                     do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context
-                    for i = 0 to Folds.Count-1 do
-                        let f = Folds.[i]
+                    for i = 0 to folds.Count-1 do
+                        let f = folds.[i]
                         if f.foldStartOff < f.foldEndOff then // TODO this seems to not always be the case
                             let folded = if  i < vs.Length then  vs.[i]  else false
                             let fs = manager.CreateFolding(f.foldStartOff, f.foldEndOff)
@@ -182,48 +180,105 @@ type Foldings(manager:Folding.FoldingManager, state:InteractionState, getFilePat
                     updateCollapseStatus()
                     isInitialLoad <- false
                 
-
-                elif false && state.DocChangedId.Value = id then                    
+                elif state.DocChangedId.Value = id then                    
                     do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context  
-                    
-                    let folds=ResizeArray<NewFolding>()                                
-                    for i=0 to Folds.Count - 1 do
-                        if i < Folds.Count then // because folds might get changed on another thread
-                            let f = Folds.[i]
-                            if f.foldStartOff < f.foldEndOff then // TODO this seems to not always be the case
+                    let edFolds = manager.AllFoldings
+                    use enum = edFolds.GetEnumerator()
+                    let mutable i = 0
+                    let mutable noChange = true
+                    //for fnew in Folds do printfn $"n: {fnew.foldStartOff} till {fnew.foldEndOff}"
+                    //for fedi in edFolds do printfn $"e: {fedi.StartOffset} till {fedi.EndOffset} "
+                    while noChange  && i < folds.Count && enum.MoveNext() do 
+                        let fedi = enum.Current
+                        let fnew = folds[i]
+                        i <- i + 1
+                        if fedi.StartOffset <> fnew.foldStartOff || fedi.EndOffset <> fnew.foldEndOff then 
+                            noChange <- false
+                            //eprintfn $" {fedi.StartOffset} <> {fnew.foldStartOff} || {fedi.EndOffset} <> {fnew.foldEndOff}"
+                        //else
+                            //printfn $" {fedi.StartOffset} <> {fnew.foldStartOff} || {fedi.EndOffset} <> {fnew.foldEndOff}"
+
+
+                    if noChange then 
+                        ()
+                        //printfn $"folds are good."
+                    else
+                        //eprintfn $"folds updating..." 
+                        
+                        // find firstError offset for Update Foldings function
+                        let edFoldsArr = edFolds |> Array.ofSeq
+                        let rec findBack i j = 
+                            if i<0 || j<0 then 
+                                -1 // firstErrorOffset: Use -1 for this parameter if there were no parse errors)
+                            else
+                                let fedi = edFoldsArr[i]
+                                let fnew = folds[j]                                
+                                if fedi.StartOffset <> fnew.foldStartOff || fedi.EndOffset <> fnew.foldEndOff then 
+                                    max  fedi.EndOffset  fnew.foldEndOff 
+                                else
+                                    findBack (i-1) (j-1)                        
+                        let firstErrorOffset = findBack  (edFoldsArr.Length-1) (folds.Count-1)
+
+                        let nfolds=ResizeArray<NewFolding>()                                
+                        for i=0 to folds.Count - 1 do                            
+                            let f = folds.[i]
+                            if firstErrorOffset = -1 || f.foldEndOff <= firstErrorOffset then 
+                                //if f.foldStartOff < f.foldEndOff then // TODO this seems to not always be the case
                                 //ISeffLog.log.PrintfnDebugMsg "Foldings from %d to %d  that is  %d lines" f.foldStartOff  f.foldEndOff f.linesInFold
                                 let fo = new NewFolding(f.foldStartOff, f.foldEndOff) 
                                 fo.Name <- textInFoldBox f.linesInFold
-                                folds.Add(fo) //if NewFolding type is created async a waiting symbol appears on top of it
+                                nfolds.Add(fo) //if NewFolding type is created async a waiting symbol appears on top of it
+
+
+                        // Existing foldings starting after this offset will be kept even if they don't appear in newFoldings. 
+                        // Use -1 for this parameter if there were no parse errors)                        
+                        manager.UpdateFoldings(nfolds, firstErrorOffset)//The first position of a parse error. 
+                        
+                        saveFoldingStatus() // so that when new foldings appeared they are saved immediately
+
+
+                        (*
+
+                        let folds=ResizeArray<NewFolding>()                                
+                        for i=0 to Folds.Count - 1 do
+                            if i < Folds.Count then // because folds might get changed on another thread
+                                let f = Folds.[i]
+                                if f.foldStartOff < f.foldEndOff then // TODO this seems to not always be the case
+                                    //ISeffLog.log.PrintfnDebugMsg "Foldings from %d to %d  that is  %d lines" f.foldStartOff  f.foldEndOff f.linesInFold
+                                    let fo = new NewFolding(f.foldStartOff, f.foldEndOff) 
+                                    fo.Name <- textInFoldBox f.linesInFold
+                                    folds.Add(fo) //if NewFolding type is created async a waiting symbol appears on top of it
                           
-                            else
-                                let lno = ed.Document.GetLineByOffset f.foldStartOff
-                                ISeffLog.log.PrintfnDebugMsg  $"Failed to make NewFolding for a negative folding from offset {f.foldStartOff} to {f.foldEndOff} on line {lno.LineNumber}"
+                                else
+                                    let lno = ed.Document.GetLineByOffset f.foldStartOff
+                                    ISeffLog.log.PrintfnDebugMsg  $"Failed to make NewFolding for a negative folding from offset {f.foldStartOff} to {f.foldEndOff} on line {lno.LineNumber}"
                             
                     
-                    // Existing foldings starting after this offset will be kept even if they don't appear in newFoldings. Use -1 for this parameter if there were no parse errors)
-                    let firstErrorOffset = -1 //The first position of a parse error. 
-                    manager.UpdateFoldings(folds, firstErrorOffset)
+                        // Existing foldings starting after this offset will be kept even if they don't appear in newFoldings. 
+                        // Use -1 for this parameter if there were no parse errors)
+                        let firstErrorOffset = -1 //The first position of a parse error. 
+                        manager.UpdateFoldings(folds, firstErrorOffset)
                                 
-                    // restore state after caret , because state gets lost after an auto complete or multi cracter insertion                             
-                    let doc = ed.Document                    
-                    let co = ed.CaretOffset
-                    for f in manager.AllFoldings do 
-                        if f.StartOffset > co then                                         
-                            let ln = doc.GetLineByOffset f.StartOffset    
-                            match collapseStatus.TryGetValue (doc.GetText(ln)) with 
-                            |false , _ -> ()
-                            |true , isCollapsed -> 
-                                f.IsFolded <- isCollapsed 
-                                //let d = iEditor.AvaEdit.Document
-                                //let ln = d.GetLineByOffset f.StartOffset
-                                //if isCollapsed <> f.IsFolded then 
-                                //    if isCollapsed then  ISeffLog.printnColor 200 0 0 $"try collapse {ln.LineNumber}: {d.GetText ln}"
-                                //    else                 ISeffLog.printnColor 0 200 0 $"try open {ln.LineNumber}:{d.GetText ln}"
-                    //ISeffLog.printnColor 100 100 100 $"---------end of try collapse---------------------"
-                    //ISeffLog.log.PrintfnDebugMsg $"Updated {Folds.Count} Foldings "
-                    //state.Editor.TextArea.TextView.Redraw()
-                    saveFoldingStatus() // so that when new foldings appeared they are saved immediately
+                        // restore state after caret , because state gets lost after an auto complete or multi character insertion                             
+                        let doc = ed.Document                    
+                        let co = ed.CaretOffset
+                        for f in manager.AllFoldings do 
+                            if f.StartOffset > co then                                         
+                                let ln = doc.GetLineByOffset f.StartOffset    
+                                match collapseStatus.TryGetValue (doc.GetText(ln)) with 
+                                |false , _ -> ()
+                                |true , isCollapsed -> 
+                                    f.IsFolded <- isCollapsed 
+                                    //let d = iEditor.AvaEdit.Document
+                                    //let ln = d.GetLineByOffset f.StartOffset
+                                    //if isCollapsed <> f.IsFolded then 
+                                    //    if isCollapsed then  ISeffLog.printnColor 200 0 0 $"try collapse {ln.LineNumber}: {d.GetText ln}"
+                                    //    else                 ISeffLog.printnColor 0 200 0 $"try open {ln.LineNumber}:{d.GetText ln}"
+                        //ISeffLog.printnColor 100 100 100 $"---------end of try collapse---------------------"
+                        //ISeffLog.log.PrintfnDebugMsg $"Updated {Folds.Count} Foldings "
+                        //state.Editor.TextArea.TextView.Redraw()
+                        saveFoldingStatus() // so that when new foldings appeared they are saved immediately
+                        *)
 
             } |>  Async.Start
 
