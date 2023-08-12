@@ -38,8 +38,8 @@ type LinePartChange =   {
 /// index change needed from document chnage
 [<Struct>]
 type Shift = {
-    fromOff      :int // Offset 
-    fromLine     :int // Line
+    fromOff      : int // Offset 
+    fromLine     : int // Line
     amountOff    : int 
     ammountLines : int
     }
@@ -94,8 +94,8 @@ type SegmentToMark (startOffset:int,  endOffset:int , e:FSharpDiagnostic)  =
         member _.Length      = endOffset - startOffset 
 
     member s.Shifted (x:Shift)= 
-        let o = if startOffset < x.fromOff  then startOffset else startOffset + x.amountOff  
-        let e = if endOffset   <  x.fromOff then endOffset   else endOffset   + x.amountOff
+        let o = if startOffset < x.fromOff then startOffset else startOffset + x.amountOff  
+        let e = if endOffset   < x.fromOff then endOffset   else endOffset   + x.amountOff
         {new ISegment with
             member _.Offset      = o
             member _.EndOffset   = e
@@ -111,13 +111,13 @@ type LineTransformers<'T>() =    // generic so it can work for LinePartChange an
 
     let empty = ResizeArray<'T>()
 
-    let mutable shift = { fromOff=0; fromLine=0; amountOff=0;  ammountLines=0}   
+    let mutable shift = { fromOff=Int32.MaxValue; fromLine=Int32.MaxValue; amountOff=0;  ammountLines=0}   
 
     member _.AdjustOneShift(s:Shift) = 
-        shift <- {  fromOff  = min shift.fromOff   s.fromOff  
-                    fromLine = min shift.fromLine  s.fromLine 
-                    amountOff    =  shift.amountOff     + s.amountOff
-                    ammountLines =  shift.ammountLines  + s.ammountLines
+        shift <- {  fromOff      = min shift.fromOff   s.fromOff  
+                    fromLine     = min shift.fromLine  s.fromLine 
+                    amountOff    =     shift.amountOff     + s.amountOff
+                    ammountLines =     shift.ammountLines  + s.ammountLines
                     }
 
    
@@ -153,7 +153,7 @@ type LineTransformers<'T>() =    // generic so it can work for LinePartChange an
     /// Replaces the Linetransformers or Segments with a new list and resets the shift       
     member _.Update(lineList:ResizeArray<ResizeArray<'T>>) =        
         lines <- lineList
-        shift <- { fromOff=0; fromLine=0; amountOff=0;  ammountLines=0}   
+        shift <- { fromOff=Int32.MaxValue; fromLine=Int32.MaxValue; amountOff=0;  ammountLines=0}   
 
     /// Safely gets a Line returns empty List  if index is out of range
     /// also applies the shift for line numbers if present

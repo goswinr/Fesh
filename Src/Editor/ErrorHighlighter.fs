@@ -319,7 +319,7 @@ type ErrorHighlighter ( state:InteractionState, folds:Folding.FoldingManager) =
                 |> General.ifTrueDo General.traverse (insert nSegs id) errs.warnings
                 |> General.ifTrueDo General.traverse (insert nSegs id) errs.errors            
                 then                        
-                    state.ErrSegments.Update nSegs
+                    state.ErrSegments.Update nSegs                    
                     //errorTransformersUpToDate.Value <- true //DELETE
                     foundErrorsEv.Trigger(id)
                     // second mark folding boxes if an error is inside, even open ones, so that it shows when collapsed:
