@@ -24,7 +24,7 @@ open AvalonEditB
 open AvalonEditB.Document
 open AvalonEditB.Rendering
 
-//type ChangeReason = Semantic | Selection | BadIndent | MatchingBrackets | CurrentBracketPair | CheckerError  //DELETE
+
 
 /// Given Start Offset and End Offset from Document
 [<Struct>]
@@ -39,9 +39,9 @@ type LinePartChange =   {
 [<Struct>]
 type Shift = {
     fromOff      : int // Offset 
-    fromLine     : int // Line
+    fromLine     : int // Linenumber
     amountOff    : int 
-    ammountLines : int
+    ammountLines : int // change in line number
     }
     
 
@@ -105,7 +105,7 @@ type SegmentToMark (startOffset:int,  endOffset:int , e:FSharpDiagnostic)  =
 
 
 /// For accessing the highlighting of a line in constant time
-type LineTransformers<'T>() =    // generic so it can work for LinePartChange and Shift an SegmentToMark
+type LineTransformers<'T>() =    // generic so it can work for LinePartChange and SegmentToMark
 
     let mutable lines = ResizeArray<ResizeArray<'T>>(256)// for approx 256 lines on screen
 
@@ -119,7 +119,6 @@ type LineTransformers<'T>() =    // generic so it can work for LinePartChange an
                     amountOff    =     shift.amountOff     + s.amountOff
                     ammountLines =     shift.ammountLines  + s.ammountLines
                     }
-
    
 
     member _.Shift = shift

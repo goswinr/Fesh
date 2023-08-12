@@ -447,17 +447,6 @@ module DocChangeEvents =
         state.FastColorizer.AdjustShifts shift
         state.ErrSegments.AdjustOneShift shift
 
-        (* // DELETE
-        // (3) adjust color shift for all other lines
-        match DocChangeUtil.isSingleCharChange a with 
-        |ValueSome s -> 
-            state.FastColorizer.AdjustShifts {from=a.Offset; amount=s}
-        |ValueNone   -> 
-            // a multi character change, just wait for type checker.., 
-            // because it might contain a line return and then just doing just a shift would not work anymore.
-            state.FastColorizer.ResetShifts() 
-        *)
-    
 
     let changed (iEd:IEditor) (serv:EditorServices) (state:InteractionState) (eventArgs:DocumentChangeEventArgs) : unit  =  
         match state.DocChangedConsequence with 
@@ -481,3 +470,6 @@ module DocChangeEvents =
         if   t = "ß" then Timer.InstanceRedraw.tic()
         elif t = "£" then  eprintfn $"{Timer.InstanceRedraw.tocEx}"
     *)
+
+
+    //type ChangeReason = Semantic | Selection | BadIndent | MatchingBrackets | CurrentBracketPair | CheckerError  //DELETE

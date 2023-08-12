@@ -22,7 +22,6 @@ open Seff.Model
 
 // Error colors are defined in FastCololrizer.fs
 
-
 module ErrorUtil =    
         
     /// for clicking through the errors in the status bar 
@@ -129,42 +128,37 @@ module ErrorUtil =
    
  
 /// IBackgroundRenderer only needed because 
-type ErrorRenderer (state: InteractionState) = //, errorTransformersUpToDate: bool ref) = //DELETE
+type ErrorRenderer (state: InteractionState) = 
     
     // based on //https://stackoverflow.com/questions/11149907/showing-invalid-xml-syntax-with-avalonedit
     // better would be https://github.com/icsharpcode/SharpDevelop/blob/master/src/AddIns/DisplayBindings/AvalonEdit.AddIn/Src/Textsegmentservice.cs
 
-
     /// Draw the error squiggle  on the code
-    member _.Draw (textView:TextView , drawingContext:DrawingContext) = // for IBackgroundRenderer 
-        //if errorTransformersUpToDate.Value then       //DELETE              
-            //printfn $"Draw"
-            
-            let vls = textView.VisualLines    
-            
-            let fromLine = vls[0].FirstDocumentLine.LineNumber
-            let toLine   = vls[vls.Count-1].LastDocumentLine.LineNumber
-            let segms = state.ErrSegments
-            for lnNo = fromLine to toLine do
-                let segs = segms.GetLine(lnNo)
-                for i = 0 to segs.Count-1 do                    
-                    let seg = segs.[i]                        
-                    let segShift = seg.Shifted(segms.Shift) 
+    member _.Draw (textView:TextView , drawingContext:DrawingContext) = // for IBackgroundRenderer         
+        let vls = textView.VisualLines                
+        let fromLine = vls[0].FirstDocumentLine.LineNumber
+        let toLine   = vls[vls.Count-1].LastDocumentLine.LineNumber
+        let segms = state.ErrSegments
+        for lnNo = fromLine to toLine do
+            let segs = segms.GetLine(lnNo)
+            for i = 0 to segs.Count-1 do                    
+                let seg = segs.[i]                        
+                let segShift = seg.Shifted(segms.Shift) 
 
-                    // background color: 
-                    let geoBuilder = new BackgroundGeometryBuilder (AlignToWholePixels = true, CornerRadius = 0.)
-                    geoBuilder.AddSegment(textView, segShift )                       
-                    let boundaryPolygon = geoBuilder.CreateGeometry() // creates one boundary round the text
-                    drawingContext.DrawGeometry(seg.BackgroundBrush, null, boundaryPolygon)
+                // background color: 
+                let geoBuilder = new BackgroundGeometryBuilder (AlignToWholePixels = true, CornerRadius = 0.)
+                geoBuilder.AddSegment(textView, segShift )                       
+                let boundaryPolygon = geoBuilder.CreateGeometry() // creates one boundary round the text
+                drawingContext.DrawGeometry(seg.BackgroundBrush, null, boundaryPolygon)
 
-                    //foreground, squiggles:
-                    for rect in BackgroundGeometryBuilder.GetRectsForSegment(textView, segShift) do //seg.Shifted(state.FastColorizer.Shift)) do  // DELETE
-                        let geo = ErrorUtil.getSquiggleLine(rect)
-                        drawingContext.DrawGeometry(Brushes.Transparent, seg.UnderlinePen, geo)
+                //foreground, squiggles:
+                for rect in BackgroundGeometryBuilder.GetRectsForSegment(textView, segShift) do //seg.Shifted(state.FastColorizer.Shift)) do  // DELETE
+                    let geo = ErrorUtil.getSquiggleLine(rect)
+                    drawingContext.DrawGeometry(Brushes.Transparent, seg.UnderlinePen, geo)
                         
                        
        
-                    //let e = seg.Diagnostic in ISeffLog.log.PrintfnDebugMsg $"IBackgRe: DocLine {lnNo}: ErrLines{e.StartLine}.{e.StartColumn}-{e.EndLine}.{e.EndColumn}"   
+                //let e = seg.Diagnostic in ISeffLog.log.PrintfnDebugMsg $"IBackgRe: DocLine {lnNo}: ErrLines{e.StartLine}.{e.StartColumn}-{e.EndLine}.{e.EndColumn}"   
             
             (* // DELETE
             for vl in vls do 
@@ -205,8 +199,7 @@ type ErrorHighlighter ( state:InteractionState, folds:Folding.FoldingManager) =
     //  let actionWarning = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetBackgroundBrush(ErrorStyle.warnBackGr)) 
     //  let actionInfo    = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetBackgroundBrush(ErrorStyle.infoBackGr)) 
     //  let actionHidden  = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetBackgroundBrush(ErrorStyle.infoBackGr))
-    
-    
+        
     let foundErrorsEv = new Event<int64>()
     let tip = new ToolTip(IsOpen=false) 
 
@@ -214,8 +207,6 @@ type ErrorHighlighter ( state:InteractionState, folds:Folding.FoldingManager) =
     let ed = state.Editor
     let tView = ed.TextArea.TextView
     
-    //let errorTransformersUpToDate = ref true //DELETE
-
     /// returns true or false to indicate if CodeLines.GetLine was aborted because of a new state
     let insert (newSegments:ResizeArray<ResizeArray<SegmentToMark>>) id (e:FSharpDiagnostic) : bool =         
         let stLn = max 1 e.StartLine // because FSharpDiagnostic might have line number 0 form Parse-and-check-file-in-project errors, but Avalonedit starts at 1
@@ -293,7 +284,7 @@ type ErrorHighlighter ( state:InteractionState, folds:Folding.FoldingManager) =
                 )    
     
     do
-        tView.BackgroundRenderers.Add(new ErrorRenderer(state))//, errorTransformersUpToDate)) //DELETE
+        tView.BackgroundRenderers.Add(new ErrorRenderer(state))
 
         tView.MouseHover.Add        (showErrorToolTip)
         tView.MouseHoverStopped.Add ( fun e ->  tip.IsOpen <- false ) //; e.Handled <- true) )
@@ -304,13 +295,8 @@ type ErrorHighlighter ( state:InteractionState, folds:Folding.FoldingManager) =
 
     [<CLIEvent>] 
     member _.FoundErrors = foundErrorsEv.Publish
-
-    //member _.TransformerLineCount = trans.LineCount
-
-    //member _.InvalidateErrorTransformers() = errorTransformersUpToDate.Value <- false //DELETE
     
-    member _.UpdateErrs(errs:ErrorsBySeverity, id) = 
-        //errorTransformersUpToDate.Value <- false //DELETE
+    member _.UpdateErrs(errs:ErrorsBySeverity, id) =         
         if state.DocChangedId.Value = id then  
             let nSegs = ResizeArray<ResizeArray<SegmentToMark>>(state.ErrSegments.LineCount + 2 )
             if // first insert in to LineTransformer
@@ -319,9 +305,9 @@ type ErrorHighlighter ( state:InteractionState, folds:Folding.FoldingManager) =
                 |> General.ifTrueDo General.traverse (insert nSegs id) errs.warnings
                 |> General.ifTrueDo General.traverse (insert nSegs id) errs.errors            
                 then                        
-                    state.ErrSegments.Update nSegs                    
-                    //errorTransformersUpToDate.Value <- true //DELETE
+                    state.ErrSegments.Update nSegs 
                     foundErrorsEv.Trigger(id)
+                    
                     // second mark folding boxes if an error is inside, even open ones, so that it shows when collapsed:
                     async{
                         do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context
@@ -332,7 +318,7 @@ type ErrorHighlighter ( state:InteractionState, folds:Folding.FoldingManager) =
                         |> General.ifTrueDo General.traverse (updateFolds id ErrorStyle.warnBackGr ErrorStyle.warnSquiggle) errs.warnings
                         |> General.ifTrueDo General.traverse (updateFolds id ErrorStyle.errBackGr  ErrorStyle.errSquiggle ) errs.errors
                         |> ignore<bool>    
-                    } |> Async.Start //.RunSynchronously  
+                    } |> Async.Start 
 
     member this.ToolTip = tip
 
