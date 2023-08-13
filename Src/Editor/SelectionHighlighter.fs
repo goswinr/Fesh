@@ -75,17 +75,15 @@ type SelectionHighlighter (state:InteractionState) =
             let trans = state.TransformersSelection
             async{                 
                 let thisRange = trans.Range                 
+                do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context   
                 match thisRange with 
-                | None   ->                     
-                    // still trigger event to clear the selection in StatusBar if it is just a selection without any highlighting(e.g. multiline)
-                    do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context   
-                    foundSelectionEditorEv.Trigger(triggerNext)                     
+                | None   ->  ()                   
+                    // still trigger event to clear the selection in StatusBar if it is just a selection without any highlighting(e.g. multiline)                                     
                 | Some (f,l) ->                
-                    trans.Update(empty)// using empty array
-                    do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context                
+                    trans.Update(empty)// using empty array                               
                     for f in state.FoldManager.AllFoldings do f.BackgroundColor <- null  
                     ed.TextArea.TextView.Redraw(f.from, l.till, priority)                
-                    foundSelectionEditorEv.Trigger(triggerNext)
+                foundSelectionEditorEv.Trigger(triggerNext)
             }|> Async.Start
 
     // Called from StatusBar to highlight the current selection of Log in Editor too
@@ -144,6 +142,7 @@ type SelectionHighlighter (state:InteractionState) =
                         markFoldingsSorted(offs)
                         prevRange <- thisRange
                         ed.TextArea.TextView.Redraw(st,en, priority)
+                    //if not triggerNext then ed.TextArea.ClearSelection() //don't becaus this trigger a selection changed event
                     foundSelectionEditorEv.Trigger(triggerNext) 
             
             else
@@ -203,19 +202,18 @@ type SelectionHighlighterLog (lg:TextEditor) =
             lastWord <- ""
             lastSels.Clear()
             prevRange <- None
-            async{                 
+            async{ 
                 let thisRange = trans.Range                 
+                do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context   
                 match thisRange with 
-                | None   ->                     
-                    // still trigger event to clear the selection in StatusBar if it is just a selection without any highlighting(e.g. multiline)
-                    do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context   
-                    foundSelectionEditorEv.Trigger(triggerNext)                     
+                | None   -> ()                    
+                    // still trigger event to clear the selection in StatusBar if it is just a selection without any highlighting(e.g. multiline)                                       
                 | Some (f,l) ->                
-                    trans.Update(empty)// using empty array
-                    do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context                
+                    trans.Update(empty)// using empty array                                   
                     //for f in state.FoldManager.AllFoldings do f.BackgroundColor <- null  // no folds in Log !!
                     lg.TextArea.TextView.Redraw(f.from, l.till, priority)                
-                    foundSelectionEditorEv.Trigger(triggerNext)
+                foundSelectionEditorEv.Trigger(triggerNext)
+
             }|> Async.Start
 
     let lines = CodeLinesSimple()
@@ -293,6 +291,7 @@ type SelectionHighlighterLog (lg:TextEditor) =
                             //markFoldingsSorted(offs) // no foldings in Log
                             prevRange <- thisRange
                             lg.TextArea.TextView.Redraw(st,en, priority)
+                        //if not triggerNext then lg.TextArea.ClearSelection()//don't becaus this trigger a selection changed event
                         foundSelectionLogEv.Trigger(triggerNext) 
                 
                 else

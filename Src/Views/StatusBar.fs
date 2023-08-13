@@ -243,31 +243,35 @@ type SelectedEditorTextStatus (grid:TabsAndLog) as this =
     let noSelTxt = new Run ("no selection in Editor", Foreground = SelectionHighlighting.colorInactive) //Editor Selection Highlighting" 
     let tipText = "Highlights and counts the occurrences of the currently selected Text in the current Editor.\r\nMinimum two characters and no line breaks.\r\nClick here to scroll through all occurrences."
     let mutable scrollToIdx = 0 
+
+    let fillStatusMarkLog triggerNext  = 
+        let sel = grid.Tabs.Current.Editor.Services.selection
+        if triggerNext then
+            match grid.Log.SelectionHighlighter with 
+            |None -> ISeffLog.log.PrintfnAppErrorMsg "Log.SelectionHighlighter not set up"
+            |Some hili -> hili.Mark(sel.Word)            
+        
+        if sel.Offsets.Count = 0 then 
+            this.Inlines.Clear()
+            this.Inlines.Add noSelTxt
+        else
+            this.Inlines.Clear()
+            this.Inlines.Add( $"%d{sel.Offsets.Count} of "  )
+            this.Inlines.Add( new Run (sel.Word, FontFamily = StyleState.fontEditor, Background = SelectionHighlighting.colorEditor))
+            this.Inlines.Add( $" (%d{sel.Word.Length} Chars) " )
+
     do
         this.Padding <- textPadding
         this.ToolTip <-  tipText
         this.Inlines.Add noSelTxt
-        SelectionHighlighting.FoundSelectionsEditor.Add(fun triggerNext  -> 
-            let sel = grid.Tabs.Current.Editor.Services.selection
-            if triggerNext then
-                match grid.Log.SelectionHighlighter with 
-                |None -> ()
-                |Some hili -> hili.Mark(sel.Word)            
-            
-            if sel.Offsets.Count = 0 then 
-                this.Inlines.Clear()
-                this.Inlines.Add noSelTxt
-            else
-                this.Inlines.Clear()
-                this.Inlines.Add( $"%d{sel.Offsets.Count} of "  )
-                this.Inlines.Add( new Run (sel.Word, FontFamily = StyleState.fontEditor, Background = SelectionHighlighting.colorEditor))
-                this.Inlines.Add( $" (%d{sel.Word.Length} Chars) " )
-            )
+        SelectionHighlighting.FoundSelectionsEditor.Add(fillStatusMarkLog)
        
         // on each click loop through all locations where text appears
         this.MouseDown.Add ( fun _ -> // press mouse to scroll to them
-            let sel = grid.Tabs.Current.Editor.Services.selection
+            let ed = grid.Tabs.Current.Editor
+            let sel = ed.Services.selection
             if sel.Offsets.Count > 0 then
+                //ed.AvaEdit.Focus() |> ignore 
                 if scrollToIdx >= sel.Offsets.Count then scrollToIdx <- 0
                 let ed = grid.Tabs.Current.Editor
                 let off = sel.Offsets.[scrollToIdx]
@@ -278,7 +282,7 @@ type SelectedEditorTextStatus (grid:TabsAndLog) as this =
                     scrollToIdx <- 0
             )  
 
-        grid.Tabs.OnTabChanged.Add ( fun _ -> this.Inlines.Clear();  this.Inlines.Add noSelTxt )
+        //grid.Tabs.OnTabChanged.Add ( fun _ -> mark false ) //this.Inlines.Clear();  this.Inlines.Add noSelTxt )
  
 
 type SelectedLogTextStatus (grid:TabsAndLog) as this = 
@@ -287,26 +291,28 @@ type SelectedLogTextStatus (grid:TabsAndLog) as this =
     let noSelTxt = new Run ("no selection in Log", Foreground = SelectionHighlighting.colorInactive) //Log Selection Highlighting " 
     let tipText = "Highlights and counts the occurrences of the currently selected Text in the Log output.\r\nMinimum two characters and no line breaks.\r\nClick here to scroll through all occurrences."
     let mutable scrollToIdx = 0 
+
+    let setStatusMarkEd triggerNext =
+        match log.SelectionHighlighter with 
+        |None -> ISeffLog.log.PrintfnAppErrorMsg "Log.SelectionHighlighter not set up"
+        |Some hili ->
+            if triggerNext then 
+                grid.Tabs.Current.Editor.Services.selection.Mark(hili.Word)
+
+            if hili.Offsets.Count = 0 then
+                this.Inlines.Clear()
+                this.Inlines.Add noSelTxt
+            else
+                this.Inlines.Clear()
+                this.Inlines.Add( sprintf $"%d{hili.Offsets.Count} of ")
+                this.Inlines.Add( new Run (hili.Word, FontFamily = StyleState.fontEditor, Background = SelectionHighlighting.colorLog))
+                this.Inlines.Add( sprintf " (%d Chars) " hili.Word.Length)
+
     do
         this.Padding <- textPadding
         this.ToolTip <- tipText
         this.Inlines.Add noSelTxt 
-        SelectionHighlighting.FoundSelectionsLog.Add(fun (triggerNext) ->
-            match log.SelectionHighlighter with 
-            |None -> ()
-            |Some hili ->
-                if triggerNext then 
-                    grid.Tabs.Current.Editor.Services.selection.Mark(hili.Word)
-
-                if hili.Offsets.Count = 0 then
-                    this.Inlines.Clear()
-                    this.Inlines.Add noSelTxt
-                else
-                    this.Inlines.Clear()
-                    this.Inlines.Add( sprintf $"%d{hili.Offsets.Count} of ")
-                    this.Inlines.Add( new Run (hili.Word, FontFamily = StyleState.fontEditor, Background = SelectionHighlighting.colorLog))
-                    this.Inlines.Add( sprintf " (%d Chars) " hili.Word.Length)
-            ) 
+        SelectionHighlighting.FoundSelectionsLog.Add(setStatusMarkEd)
        
         // on each click loop through all locations where text appears
         this.MouseDown.Add ( fun _ -> // press mouse to scroll to them
@@ -318,6 +324,7 @@ type SelectedLogTextStatus (grid:TabsAndLog) as this =
                     let off = hili.Offsets.[scrollToIdx]
                     let doc = log.AvalonEditLog.Document
                     if off < doc.TextLength then
+                        //log.AvalonEditLog.Focus() |> ignore                         
                         //match log.Folds with Some f -> f.GoToOffsetAndUnfold(off, sel.Word.Length, true )  |None ->()                  
                         let ln = doc.GetLineByOffset(off)
                         log.AvalonEditLog.ScrollTo(ln.LineNumber,1)
@@ -326,6 +333,8 @@ type SelectedLogTextStatus (grid:TabsAndLog) as this =
                     else
                         scrollToIdx <- 0
             )    
+
+        grid.Tabs.OnTabChanged.Add ( fun _ -> setStatusMarkEd true ) 
 
 type SeffStatusBar (grid:TabsAndLog)  = 
     let bar = new Primitives.StatusBar()

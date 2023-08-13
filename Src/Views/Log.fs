@@ -97,6 +97,7 @@ type Log private () =
     //----------------------members:------------------------------------------
     //------------------------------------------------------------
 
+    /// should always be some
     member _.SelectionHighlighter = selHili
     
     member _.AvalonLog = log
