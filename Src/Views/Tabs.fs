@@ -215,7 +215,7 @@ type Tabs(config:Config, log:Log,seffWin:SeffWindow) =
             if  t.IsCodeSaved then
                 log.PrintfnInfoMsg "File already up to date:\r\n%s" fi.FullName
                 true
-            elif (fi.Refresh(); fi.Exists) then
+            elif (fi.Refresh(); fi.Exists) then // test again for file existence, it might have moved while dialog was open.
                 saveAt(t, fi, SaveInPlace)
             else
                 log.PrintfnIOErrorMsg "File does not exist on drive anymore. Re-saving it at:\r\n%s" fi.FullName
@@ -231,7 +231,7 @@ type Tabs(config:Config, log:Log,seffWin:SeffWindow) =
         |SetTo fi ->
             if  t.IsCodeSaved then                
                 true
-            elif (fi.Refresh(); fi.Exists) then
+            elif (fi.Refresh(); fi.Exists) then // test again for file existence, it might have moved while dialog was open.
                 saveAt(t, fi, SaveInPlace)
             else                
                 saveAsDialog(t, SaveNewLocationSync)
@@ -249,10 +249,17 @@ type Tabs(config:Config, log:Log,seffWin:SeffWindow) =
             |Deleted _ ->  true // don't ask for saving a file that is already deleted
             |SetTo _ 
             |NotSet _ -> 
+                
+                let nameLines = 
+                    match t.Editor.FilePath with
+                    |Deleted _ ->  " xx " // excluded above
+                    |SetTo p ->  $"\r\n{p.Name}\r\nat\r\n{p.DirectoryName}\r\n"
+                    |NotSet dummyName -> $"\r\n{dummyName}\r\n"                
+                
                 match MessageBox.Show(
                     win, 
-                    $"Do you want to save the changes to:\r\n{t.FormattedFileName}\r\nbefore closing this tab?" , 
-                    "Save Changes?", 
+                    $"Do you want to save the changes to:\r\n{nameLines}\r\nbefore closing this tab?" , 
+                    "Save Changes before closing Tab?", 
                     MessageBoxButton.YesNoCancel, 
                     MessageBoxImage.Question, 
                     MessageBoxResult.Yes,// default result 

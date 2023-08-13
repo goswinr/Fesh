@@ -37,14 +37,26 @@ module SelectionHighlighting =
 
 open SelectionHighlighting
 
+type SkipMarking = 
+    | SkipOffset of int
+    | MarkAll
+
+type SelRedraw =
+    | SelRange of int*int
+    | StatusbarOnly  
+    | NoSelRedraw
+
 /// Highlight-all-occurrences-of-selected-text in Editor
 type SelectionHighlighter (state:InteractionState) = 
     
     let action  = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetBackgroundBrush(colorEditor))
 
+    let mutable lastSkipOff = MarkAll
     let mutable lastWord = ""
-    let mutable lastSels = ResizeArray<int>()      
-
+    let mutable lastSels = ResizeArray<int>()  
+    let mutable reactToSelChange = true
+    let mutable prevRange: (LinePartChange*LinePartChange) option = None
+    
     let ed = state.Editor  
       
     let markFoldingsSorted(offs:ResizeArray<int>) =       
@@ -65,11 +77,11 @@ type SelectionHighlighter (state:InteractionState) =
                         loop (i+1)
             loop (offsSearchFromIdx)  
     
-    let mutable prevRange: (LinePartChange*LinePartChange) option = None
 
     let justClear(triggerNext) =
-        if lastSels.Count > 0 then 
+        if lastSels.Count > 0 then // to only clear once, then not again
             lastWord <- ""
+            lastSkipOff <- MarkAll
             lastSels.Clear()
             prevRange <- None
             let trans = state.TransformersSelection
@@ -78,7 +90,8 @@ type SelectionHighlighter (state:InteractionState) =
                 do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context   
                 match thisRange with 
                 | None   ->  ()                   
-                    // still trigger event to clear the selection in StatusBar if it is just a selection without any highlighting(e.g. multiline)                                     
+                    // TODO ? still trigger event to clear the selection in StatusBar if it is just a selection without any highlighting(e.g. multiline)   
+
                 | Some (f,l) ->                
                     trans.Update(empty)// using empty array                               
                     for f in state.FoldManager.AllFoldings do f.BackgroundColor <- null  
@@ -87,8 +100,13 @@ type SelectionHighlighter (state:InteractionState) =
             }|> Async.Start
 
     // Called from StatusBar to highlight the current selection of Log in Editor too
-    let mark (word:string, selectionStartOff, triggerNext:bool) =
+    let mark (word:string, skipOff: SkipMarking, triggerNext:bool) =
         let id = state.DocChangedId.Value
+        lastWord <- word
+        lastSkipOff <- skipOff
+        
+        //eprintfn $"search in '{state.CodeLines.FullCode}'" //TODO: text typed on the last line after a comment might be missing somehow!
+        
         async{
             let lines = state.CodeLines
             let trans = state.TransformersSelection
@@ -97,78 +115,115 @@ type SelectionHighlighter (state:InteractionState) =
             let wordLen = word.Length
             let offs = ResizeArray<int>()
             
-            let newMarks = ResizeArray<ResizeArray<LinePartChange>>()
+            let newMarks = ResizeArray<ResizeArray<LinePartChange>>()           
+            let selectionStartOff = 
+                match skipOff with
+                | SkipOffset skipOff -> skipOff
+                | MarkAll -> -1
+
             /// returns false if aborted because of newer doc change
-            let rec loop lineNo = 
+            let rec searchFromLine lineNo = 
                 if lineNo > lastLineNo then 
                     true // return true if loop completed
                 else
                     match lines.GetLine(lineNo, id) with 
                     |ValueNone -> false // could not get code line, newer change happened already 
                     |ValueSome l -> 
-                        let mutable off = codeStr.IndexOf(word, l.offStart, l.len, StringComparison.Ordinal)                        
+                        let line = codeStr.Substring(l.offStart, l.len)  
+                        let mutable off = codeStr.IndexOf(word, l.offStart, l.len, StringComparison.Ordinal)
                         while off >= 0 do
-                            offs.Add off // also add for current selection
+                            offs.Add off // also add for current selection                            
                             if off <> selectionStartOff then // skip the actual current selection from highlighting                               
                                 LineTransformers.Insert(newMarks, lineNo, {from=off; till=off+wordLen; act=action})                                 
                             let start = off + word.Length // search from this for next occurrence in this line 
                             let lenReduction = start - l.offStart
                             let remainingLineLength = l.len - lenReduction
-                            off <- codeStr.IndexOf(word, start, remainingLineLength , StringComparison.Ordinal)                            
-                        loop (lineNo + 1)
+                            off <- codeStr.IndexOf(word, start, remainingLineLength , StringComparison.Ordinal) 
+                                                    
+                        searchFromLine (lineNo + 1)
                      
             
-            if loop 1 then // tests if there is a newer doc change 
+            if searchFromLine 1 then // tests if there is a newer doc change                 
                 lastSels <- offs 
-                lastWord <- word
                 trans.Update(newMarks)
                 let thisRange = trans.Range              
-                let st,en = // get range to redraw
+                let redrawRange = // get range to redraw
                     match  prevRange, thisRange with 
                     | None       , None  ->    // nothing before, nothing now
-                        if offs.Count = 1 then -1,-1 // but maybe just the current selection that doesn't need highlighting, but still show in status bar
-                        else -2,-2
+                        if offs.Count = 1 then StatusbarOnly // but maybe just the current selection that doesn't need highlighting, but still show in status bar
+                        else NoSelRedraw                        
 
                     | Some (f,l) , None          // some before, nothing now
                     | None       , Some (f,l) -> // nothing before, some now                    
-                        f.from, l.till
+                        SelRange (f.from, l.till)
 
                     | Some (pf,pl),Some (f,l) ->   // both prev and current version have a selection                    
-                        min pf.from f.from, max pl.till l.till
+                        SelRange(  min pf.from f.from, max pl.till l.till)
+                
+                
 
-                if st > -2 then
-                    do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context
-                    if st > -1 then // if there is only one item in text it is akready selected, no need for redrawing, just update status bar
-                        markFoldingsSorted(offs)
-                        prevRange <- thisRange
-                        ed.TextArea.TextView.Redraw(st,en, priority)
-                    //if not triggerNext then ed.TextArea.ClearSelection() //don't becaus this trigger a selection changed event
+                // (2) if there is a selection but skipOff is set to MarkAll 
+                //( because the mark call is coming from the Log selection ) 
+                // then clear the selection, because it will not match the word to highlight. 
+                match skipOff with
+                | SkipOffset _-> ()
+                | MarkAll -> 
+                    match Selection.getSelType ed.TextArea with 
+                    |NoSel   -> ()
+                    |RectSel 
+                    |RegSel  ->
+                        do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context 
+                        reactToSelChange <- false // to not trigger a selection changed event 
+                        ed.TextArea.ClearSelection()                            
+                        reactToSelChange <- true                
+                                
+                //(3) redraw statusbar and editor
+                match redrawRange with               
+                | NoSelRedraw -> ()
+
+                | StatusbarOnly -> 
+                    do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context 
                     foundSelectionEditorEv.Trigger(triggerNext) 
-            
+                
+                | SelRange (st,en) ->                     
+                    do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context 
+                    markFoldingsSorted(offs)
+                    prevRange <- thisRange
+                    ed.TextArea.TextView.Redraw(st,en, priority)
+                    foundSelectionEditorEv.Trigger(triggerNext) 
+                    
+        
             else
                 () // don't redraw, there is already a new doc change happening that will be drawn
             
-
         }|> Async.Start
      
     let update() = 
         match Selection.getSelType ed.TextArea with 
+        |RectSel -> justClear(true) 
         |RegSel  -> 
             if ed.TextArea.Selection.IsMultiline then 
                 justClear(true)
             else
                 let word = ed.SelectedText
                 if isTextToHighlight word then  //is at least two chars and has no line breaks
-                    let startOff = ed.SelectionStart
-                    mark(word, startOff, true)
+                    let skip = SkipOffset ed.SelectionStart                    
+                    mark(word, skip, true)
                 else
                     justClear(true)
-        |NoSel   -> justClear(true)
-        |RectSel -> justClear(true) 
+        
+        // keep highlighting if the cursor is just moved ?
+        |NoSel   -> // justClear(true)
+            if lastWord <> "" && lastSkipOff <> MarkAll then  // if lastSelOffset = -1 then all words are highlighted there is no change to highlighting needed
+                mark(lastWord, MarkAll, true) // keep highlighting and add the word that was selected before
     
     
     do         
-        ed.TextArea.SelectionChanged.Add ( fun _ -> update() ) 
+        ed.TextArea.SelectionChanged.Add ( fun _ -> if reactToSelChange then update() ) 
+
+        // Not needed for Editor because any cursor changes or typing will always trigger the selection change event:
+        // ed.Document.Changed.Add (fun _ ->  ) 
+            
     
     member _.Word    = lastWord 
 
@@ -176,7 +231,7 @@ type SelectionHighlighter (state:InteractionState) =
     
     member _.Mark(word) = 
         if isTextToHighlight word then 
-            mark(word,-1, false)
+            mark(word, MarkAll, false)
         else 
             justClear(false) // isTextToHighlight is needed , word might be empty string
 
@@ -185,21 +240,29 @@ type SelectionHighlighter (state:InteractionState) =
 type SelectionHighlighterLog (lg:TextEditor) = 
     
     let action  = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetBackgroundBrush(colorLog))
-
+    
+    let mutable lastSkipOff = MarkAll
     let mutable lastWord = ""
     let mutable lastSels = ResizeArray<int>()      
-        
-    let isTextToHighlight(t:string) = 
-        t.Length > 1 && not (Str.isJustSpaceCharsOrEmpty t)  && not <| t.Contains("\n") 
+    let mutable reactToSelChange = true    
+    let mutable prevRange: (LinePartChange*LinePartChange) option = None
     
+    let mutable linesNeedUpdate = true
+        
+    /// tracks changes to the log
+    let logChangeID = ref 0L
+
+    /// track new highlighting requests 
+    let markCallID  = ref 0 // because while getting the text below, the Editor selection might have changed already
+        
     let trans = LineTransformers<LinePartChange>()    
     let colorizer = FastColorizer([|trans|], lg ) 
-    
-    let mutable prevRange: (LinePartChange*LinePartChange) option = None
+    let lines = CodeLinesSimple()
     
     let justClear(triggerNext) =
         if lastSels.Count > 0 then 
             lastWord <- ""
+            lastSkipOff <- MarkAll
             lastSels.Clear()
             prevRange <- None
             async{ 
@@ -207,128 +270,169 @@ type SelectionHighlighterLog (lg:TextEditor) =
                 do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context   
                 match thisRange with 
                 | None   -> ()                    
-                    // still trigger event to clear the selection in StatusBar if it is just a selection without any highlighting(e.g. multiline)                                       
+                    // TODO ? still trigger event to clear the selection in StatusBar if it is just a selection without any highlighting(e.g. multiline)                                       
                 | Some (f,l) ->                
                     trans.Update(empty)// using empty array                                   
                     //for f in state.FoldManager.AllFoldings do f.BackgroundColor <- null  // no folds in Log !!
                     lg.TextArea.TextView.Redraw(f.from, l.till, priority)                
-                foundSelectionEditorEv.Trigger(triggerNext)
+                foundSelectionLogEv.Trigger(triggerNext)
 
             }|> Async.Start
-
-    let lines = CodeLinesSimple()
-    let mutable linesNeedUpdate = true
     
-    /// tracks changes to the log
-    let logChangeID = ref 0L
-
-    /// track new highlighting requests 
-    let markCallID  = ref 0 // because while getting the text below, the Editor selection might have changed already
-    
-    // Called from StatusBar to highlight the current selection of Editor in Log too        
-    let mark (word:string, selectionStartOff, triggerNext:bool) =
-        let chnageId = logChangeID.Value
+    // Called from StatusBar to highlight the current selection of Editor in Log too   
+    // selectionStartOff is the offset of the current selection in the Editor, it is excluded from highlighting
+    // but included in the count of offsets in the StatusBar     
+    let mark (word:string, skipOff: SkipMarking, triggerNext:bool) =
+        let changeId = logChangeID.Value
         let markId   = Threading.Interlocked.Increment markCallID
-        let doc = lg.Document
+        let lgDoc = lg.Document
+        lastWord <- word // save last selection word even if it is not found, it might be found after a doc change
+        lastSkipOff <- skipOff
         async{
-            while linesNeedUpdate && logChangeID.Value = chnageId do                 
-                do! Async.Sleep 50 // needed for getting correct text in snapshot
-                if logChangeID.Value = chnageId then
-                    let t = doc.CreateSnapshot().Text
-                    lines.Update(t)
-                    if logChangeID.Value = chnageId then // this forces waiting till there are no more updates
-                        linesNeedUpdate <- false                     
             
-            if markId = markCallID.Value && logChangeID.Value = chnageId  then // because while getting the text above, the text or the selection might have changed already
+            // (1) make sure the lines for searching are up to date 
+            // TODO: could be optimized to append changes to the lines instead of recreating the whole text
+            while linesNeedUpdate && logChangeID.Value = changeId do                 
+                do! Async.Sleep 50 // needed for getting correct text in snapshot
+                if logChangeID.Value = changeId then
+                    let t = lgDoc.CreateSnapshot().Text
+                    lines.Update(t)
+                    if logChangeID.Value = changeId then // this forces waiting till there are no more updates
+                        linesNeedUpdate <- false                     
+           
+           // (2) search for the word in the lines:
+            if markId = markCallID.Value && logChangeID.Value = changeId  then // because while getting the text above, the text or the selection might have changed already
                 let codeStr  = lines.FullCode
                 let lastLineNo = lines.LastLineIdx
                 let wordLen = word.Length
                 let offs = ResizeArray<int>()
+                
                 let newMarks = ResizeArray<ResizeArray<LinePartChange>>()
-
+                let selectionStartOff = 
+                    match skipOff with
+                    | SkipOffset skipOff -> skipOff
+                    | MarkAll -> -1
+                
                 /// returns false if aborted because of newer doc change
-                let rec loop lineNo = 
+                let rec searchFromLine lineNo = 
                     if lineNo > lastLineNo then 
                         true // return true if loop completed
+                    elif linesNeedUpdate then 
+                        false // return false if there is a newer doc change
                     else
-                        match lines.GetLine(lineNo, id) with 
-                        |ValueNone -> false // could not get code line, newer change happened already 
-                        |ValueSome l -> 
-                            let mutable off = codeStr.IndexOf(word, l.offStart, l.len, StringComparison.Ordinal)                        
-                            while off >= 0 do
-                                offs.Add off // also add for current selection
-                                if off <> selectionStartOff then // skip the actual current selection
-                                    //ISeffLog.log.PrintfnInfoMsg $"trans.Insert({lineNo}, from={off}; till={off+wordLen}; act=action word='{word}'"
-                                    LineTransformers.Insert(newMarks,lineNo, {from=off; till=off+wordLen; act=action})                                 
-                                let start = off + word.Length // search from this for next occurrence in this line 
-                                let lenReduction = start - l.offStart
-                                let remainingLineLength = l.len - lenReduction
-                                off <- codeStr.IndexOf(word, start, remainingLineLength , StringComparison.Ordinal)
-                            
-                            loop (lineNo + 1)                
+                        let l = lines.GetLine(lineNo)
+                        let mutable off = codeStr.IndexOf(word, l.offStart, l.len, StringComparison.Ordinal)                        
+                        while off >= 0 do
+                            offs.Add off // also add for current selection
+                            if off <> selectionStartOff then // skip the actual current selection
+                                //ISeffLog.log.PrintfnInfoMsg $"trans.Insert({lineNo}, from={off}; till={off+wordLen}; act=action word='{word}'"
+                                LineTransformers.Insert(newMarks,lineNo, {from=off; till=off+wordLen; act=action})                                 
+                            let start = off + word.Length // search from this for next occurrence in this line 
+                            let lenReduction = start - l.offStart
+                            let remainingLineLength = l.len - lenReduction
+                            off <- codeStr.IndexOf(word, start, remainingLineLength , StringComparison.Ordinal)
+                        
+                        searchFromLine (lineNo + 1)                
                 
-                if loop 1 && markId = markCallID.Value then // tests if there is a newer doc change 
+                if searchFromLine 1 && markId = markCallID.Value then // tests if there is a newer doc change                     
                     lastSels <- offs 
-                    lastWord <- word
                     trans.Update(newMarks)
-                    let thisRange = trans.Range              
-                    let st,en = // get range to redraw
+                    let thisRange = trans.Range 
+                    let redrawRange = // get range to redraw
                         match  prevRange, thisRange with 
                         | None       , None  ->    // nothing before, nothing now
-                            if offs.Count = 1 then -1,-1 // but maybe just the current selection that doesn't need highlighting, but still show in status bar
-                            else -2,-2
+                            if offs.Count = 1 then StatusbarOnly // but maybe just the current selection that doesn't need highlighting, but still show in status bar
+                            else NoSelRedraw                        
 
                         | Some (f,l) , None          // some before, nothing now
                         | None       , Some (f,l) -> // nothing before, some now                    
-                            f.from, l.till
+                            SelRange (f.from, l.till)
 
                         | Some (pf,pl),Some (f,l) ->   // both prev and current version have a selection                    
-                            min pf.from f.from, max pl.till l.till
+                            SelRange(  min pf.from f.from, max pl.till l.till)
 
-                    if st > -2 then
-                        do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context
-                        if st > -1 then // if there is only one item in text it is akready selected, no need for redrawing, just update status bar
-                            //markFoldingsSorted(offs) // no foldings in Log
-                            prevRange <- thisRange
-                            lg.TextArea.TextView.Redraw(st,en, priority)
-                        //if not triggerNext then lg.TextArea.ClearSelection()//don't becaus this trigger a selection changed event
-                        foundSelectionLogEv.Trigger(triggerNext) 
+                    
+
+                    // (2) if there is a selection but skipOff is set to MarkAll 
+                    //( because the mark call is coming from the Editor selection ) 
+                    // then clear the selection, because it will not match the word to highlight.
+                    match skipOff with
+                    | SkipOffset _-> ()
+                    | MarkAll -> 
+                        match Selection.getSelType lg.TextArea with 
+                        |NoSel   -> ()
+                        |RectSel 
+                        |RegSel  ->
+                            do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context
+                            reactToSelChange <- false // to not trigger a selection changed event 
+                            lg.TextArea.ClearSelection()                            
+                            reactToSelChange <- true
+
                 
+                    // (3) redraw statusbar and editor
+                    match redrawRange with               
+                    | NoSelRedraw -> ()
+
+                    | StatusbarOnly ->
+                        do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context 
+                        foundSelectionLogEv.Trigger(triggerNext)
+                    
+                    | SelRange (st,en) ->                     
+                        do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context 
+                        //markFoldingsSorted(offs) // no foldings in Log
+                        prevRange <- thisRange
+                        lg.TextArea.TextView.Redraw(st,en, priority)
+                        foundSelectionLogEv.Trigger(triggerNext) 
+            
                 else
                     () // don't redraw, there is already a new doc change happening that will be drawn
                 
         }|> Async.Start
     
-    let update() = 
+    let update() =         
         match Selection.getSelType lg.TextArea with 
+        |RectSel ->  justClear(true) 
         |RegSel  -> 
-            if lg.TextArea.Selection.IsMultiline then 
+            if lg.TextArea.Selection.IsMultiline then
                 justClear(true)
             else
                 let word = lg.SelectedText
                 if isTextToHighlight word then  //is at least two chars and has no line breaks
-                    let startOff = lg.SelectionStart
-                    mark(word, startOff, true)
+                    let skip = SkipOffset lg.SelectionStart 
+                    mark(word, skip, true)
                 else
                     justClear(true)
-        |NoSel   -> justClear(true)
-        |RectSel -> justClear(true) 
+        
+        // keep highlighting if the cursor is just moved ?
+        |NoSel  -> // justClear(true)
+            if lastWord <> "" && lastSkipOff <> MarkAll then  // if lastSelOffset = -1 then all words are highlighted there is no change to highlighting needed
+                mark(lastWord, MarkAll, true) // keep highlighting and add the word that was selected before
 
    
     do         
         lg.TextArea.TextView.LineTransformers.Insert(0, colorizer) // insert at index 0 so that it is drawn first, so that text color is overwritten the selection highlighting
-        lg.TextArea.SelectionChanged.Add ( fun _ -> update() )        
+        
+        lg.TextArea.SelectionChanged.Add ( fun _ -> if reactToSelChange then update()  )        
+        
         lg.Document.Changing.Add (fun _ -> 
             Threading.Interlocked.Increment logChangeID |> ignore
             linesNeedUpdate <- true
             )
+
+        lg.Document.Changed.Add (fun _ -> // redraw highlighting because new text to highlight might get printed to log
+            if lastWord <> "" then  
+                mark(lastWord, lastSkipOff, false) // using lastSelOffset is OK for Log because if there is a selection in the Log the text in a selection can not move or be deleted
+            )
     
+
     member _.Word    = lastWord 
     member _.Offsets = lastSels 
     
+    member _.Update() = update() // used by grid.Tabs.OnTabChanged
+
     /// Called from StatusBar to highlight the current selection of Editor in Log too
     member _.Mark(word) = 
         if isTextToHighlight word then // isTextToHighlight is needed , word might be empty string
-            mark(word,-1, false) 
+            mark(word, MarkAll, false) 
         else 
             justClear(false)    

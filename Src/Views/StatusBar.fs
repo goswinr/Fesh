@@ -280,10 +280,7 @@ type SelectedEditorTextStatus (grid:TabsAndLog) as this =
                     scrollToIdx <- scrollToIdx + 1
                 else
                     scrollToIdx <- 0
-            )  
-
-        //grid.Tabs.OnTabChanged.Add ( fun _ -> mark false ) //this.Inlines.Clear();  this.Inlines.Add noSelTxt )
- 
+            ) 
 
 type SelectedLogTextStatus (grid:TabsAndLog) as this = 
     inherit TextBlock()
@@ -295,18 +292,18 @@ type SelectedLogTextStatus (grid:TabsAndLog) as this =
     let setStatusMarkEd triggerNext =
         match log.SelectionHighlighter with 
         |None -> ISeffLog.log.PrintfnAppErrorMsg "Log.SelectionHighlighter not set up"
-        |Some hili ->
+        |Some hiLi ->
             if triggerNext then 
-                grid.Tabs.Current.Editor.Services.selection.Mark(hili.Word)
+                grid.Tabs.Current.Editor.Services.selection.Mark(hiLi.Word)
 
-            if hili.Offsets.Count = 0 then
+            if hiLi.Offsets.Count = 0 then
                 this.Inlines.Clear()
                 this.Inlines.Add noSelTxt
             else
                 this.Inlines.Clear()
-                this.Inlines.Add( sprintf $"%d{hili.Offsets.Count} of ")
-                this.Inlines.Add( new Run (hili.Word, FontFamily = StyleState.fontEditor, Background = SelectionHighlighting.colorLog))
-                this.Inlines.Add( sprintf " (%d Chars) " hili.Word.Length)
+                this.Inlines.Add( sprintf $"%d{hiLi.Offsets.Count} of ")
+                this.Inlines.Add( new Run (hiLi.Word, FontFamily = StyleState.fontEditor, Background = SelectionHighlighting.colorLog))
+                this.Inlines.Add( sprintf " (%d Chars) " hiLi.Word.Length)
 
     do
         this.Padding <- textPadding
@@ -318,23 +315,23 @@ type SelectedLogTextStatus (grid:TabsAndLog) as this =
         this.MouseDown.Add ( fun _ -> // press mouse to scroll to them
             match log.SelectionHighlighter with 
             |None -> ()
-            |Some hili -> 
-                if hili.Offsets.Count > 0 then
-                    if scrollToIdx >= hili.Offsets.Count then scrollToIdx <- 0                
-                    let off = hili.Offsets.[scrollToIdx]
+            |Some hiLi -> 
+                if hiLi.Offsets.Count > 0 then
+                    if scrollToIdx >= hiLi.Offsets.Count then scrollToIdx <- 0                
+                    let off = hiLi.Offsets.[scrollToIdx]
                     let doc = log.AvalonEditLog.Document
                     if off < doc.TextLength then
                         //log.AvalonEditLog.Focus() |> ignore                         
                         //match log.Folds with Some f -> f.GoToOffsetAndUnfold(off, sel.Word.Length, true )  |None ->()                  
                         let ln = doc.GetLineByOffset(off)
                         log.AvalonEditLog.ScrollTo(ln.LineNumber,1)
-                        log.AvalonEditLog.Select(off, hili.Word.Length)                        
+                        log.AvalonEditLog.Select(off, hiLi.Word.Length)                        
                         scrollToIdx <- scrollToIdx + 1
                     else
                         scrollToIdx <- 0
             )    
 
-        grid.Tabs.OnTabChanged.Add ( fun _ -> setStatusMarkEd true ) 
+        grid.Tabs.OnTabChanged.Add ( fun _ -> match log.SelectionHighlighter with|None -> () |Some hiLi -> hiLi.Update()) 
 
 type SeffStatusBar (grid:TabsAndLog)  = 
     let bar = new Primitives.StatusBar()

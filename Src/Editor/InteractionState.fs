@@ -77,10 +77,10 @@ module CodeLineTools =
 
         member _.FullCode = fullCode
 
-        /// checks if this codelines correspond to a given ID
+        /// checks if this codeLines correspond to a given ID
         member _.IsFromID(id) = id = correspondingId
         
-        /// checks if this codelines does not correspond to a given ID
+        /// checks if this codeLines does not correspond to a given ID
         member _.IsNotFromId(id) = id <> correspondingId
 
         /// ThreadSafe and in Sync: Only starts parsing when Done and also checks 
@@ -177,11 +177,11 @@ module CodeLineTools =
 
         /// Safe: checks isDone && docChangedIdHolder.Value = id
         /// returns also none for bad indices
-        member _.GetLine(lineIdx, changeId): LineInfo voption =
+        member _.GetLine(lineIdx): LineInfo  =
             if lineIdx < 0 || lineIdx >= lines.Count then 
-                ValueNone
+                failwithf "bad lineIdx %i for %d items in CodeLinesSimple" lineIdx lines.Count
             else
-                ValueSome lines.[lineIdx]
+                lines.[lineIdx]
            
 type DocChangedConsequence = 
     | React

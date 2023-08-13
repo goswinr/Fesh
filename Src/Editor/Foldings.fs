@@ -59,19 +59,19 @@ type Foldings(manager:Folding.FoldingManager, state:InteractionState, getFilePat
     let mutable isInitialLoad = true
    
 
-    let findFoldings (clns:CodeLineTools.CodeLines, id) :ResizeArray<Fold> option = 
+    let findFoldings (cLns:CodeLineTools.CodeLines, id) :ResizeArray<Fold> option = 
         let FoldingStack = Stack<FoldFrom>()
         let Folds = ResizeArray<Fold>()         
 
-        //for i=0 to clns.LastLineIdx do 
-        //    match clns.GetLine(i, id) with 
+        //for i=0 to cLns.LastLineIdx do 
+        //    match cLns.GetLine(i, id) with 
         //    |ValueNone -> ()
         //    |ValueSome l -> 
         //        if l.len=l.indent then eprintfn $"line {i}: skip empty"
         //        else printfn $"line {i}: indent {l.indent}"            
         
         let rec loopLines prevLnNo (prev:CodeLineTools.LineInfo) (lnNo:int) = 
-            if lnNo > clns.LastLineIdx then //end of file
+            if lnNo > cLns.LastLineIdx then //end of file
                 while  FoldingStack.Count > 0 do // at file end close off items on stack
                     let st = FoldingStack.Pop()                    
                     let lineCount = prevLnNo - st.lineNo
@@ -88,7 +88,7 @@ type Foldings(manager:Folding.FoldingManager, state:InteractionState, getFilePat
                             }               
                 Some Folds
             else
-                match clns.GetLine(lnNo, id) with 
+                match cLns.GetLine(lnNo, id) with 
                 |ValueNone -> None // did not reach end of code lines
                 |ValueSome this ->                     
                     if this.indent=this.len then // skip all white lines
@@ -128,7 +128,7 @@ type Foldings(manager:Folding.FoldingManager, state:InteractionState, getFilePat
                         loopLines lnNo this (lnNo+1)
         
         
-        match clns.GetLine(1,id) with 
+        match cLns.GetLine(1,id) with 
         |ValueNone -> None // did not reach end of code lines
         |ValueSome li -> loopLines 1 li 2
     
@@ -157,6 +157,7 @@ type Foldings(manager:Folding.FoldingManager, state:InteractionState, getFilePat
                 foundBadIndentsEv.Trigger(id)
                 folds|> Seff.Util.General.sortInPlaceBy ( fun f -> f.foldStartOff, f.linesInFold) 
                 
+                // only applies when opening a new file
                 if isInitialLoad then                                
                     while foldStatus.WaitingForFileRead do
                         // check like this because reading of file data happens async
@@ -180,6 +181,7 @@ type Foldings(manager:Folding.FoldingManager, state:InteractionState, getFilePat
                     updateCollapseStatus()
                     isInitialLoad <- false
                 
+                // for any change after initial opening of the file
                 elif state.DocChangedId.Value = id then                    
                     do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context  
                     let edFolds = manager.AllFoldings
@@ -200,8 +202,12 @@ type Foldings(manager:Folding.FoldingManager, state:InteractionState, getFilePat
                                 zip (i+1) // loop on
                     
                     if zip 0 then
+                        enum.Dispose()
+                        //printfn $"{edFolds.Count} folds existing but {folds.Count} needed"
+                        
                         // (2) Update of foldings is needed:
                         // (2.1) find firstError offset for Update Foldings function
+                        // search backwards from end of file to find the last folding that needs a change
                         let edFoldsArr = edFolds |> Array.ofSeq
                         let rec findBack i j = 
                             if i<0 || j<0 then 
@@ -222,13 +228,16 @@ type Foldings(manager:Folding.FoldingManager, state:InteractionState, getFilePat
                         let rec collect i =
                             if i < folds.Count then 
                                 let f = folds.[i]
-                                if firstErrorOffset = -1 || f.foldEndOff <= firstErrorOffset then 
-                                    if f.foldEndOff < docLen then // in case of deleting at the end of file
+                                if firstErrorOffset = -1 || f.foldStartOff <= firstErrorOffset then 
+                                    if f.foldEndOff <= docLen then // in case of deleting at the end of file
                                         //ISeffLog.log.PrintfnDebugMsg "Foldings from %d to %d  that is  %d lines" f.foldStartOff  f.foldEndOff f.linesInFold
                                         let fo = new NewFolding(f.foldStartOff, f.foldEndOff) 
                                         fo.Name <- textInFoldBox f.linesInFold
                                         nFolds.Add(fo) //if NewFolding type is created async a waiting symbol appears on top of it
                                         collect (i+1)
+                                    //else eprintfn $"too long: f.foldEndOff: {f.foldEndOff} > docLen: {docLen}"
+                                //else eprintfn $"not added: f.foldStartOff: {f.foldStartOff} to {f.foldEndOff}"
+                                
                         collect 0
                         
                         //eprintfn $"{nFolds.Count} new foldings created. firstErrorOffset: {firstErrorOffset}" 
@@ -241,6 +250,10 @@ type Foldings(manager:Folding.FoldingManager, state:InteractionState, getFilePat
                         // (2.4) save collapsed status again
                         // so that when new foldings appeared they are saved immediately
                         saveFoldingStatus() 
+                    
+                    else
+                        //printfn $"{folds.Count} folds. no folding update needed"
+                        enum.Dispose()
 
 
                         (* //DELETE

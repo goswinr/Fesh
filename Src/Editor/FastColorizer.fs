@@ -149,7 +149,7 @@ type LineTransformers<'T>() =    // generic so it can work for LinePartChange an
             else                
                 ln.Add x           
     
-    /// Replaces the Linetransformers or Segments with a new list and resets the shift       
+    /// Replaces the LineTransformers or Segments with a new list and resets the shift       
     member _.Update(lineList:ResizeArray<ResizeArray<'T>>) =        
         lines <- lineList
         shift <- { fromOff=Int32.MaxValue; fromLine=Int32.MaxValue; amountOff=0;  amountLines=0}   
@@ -215,12 +215,8 @@ type FastColorizer(transformers:LineTransformers<LinePartChange> [], ed:TextEdit
     member _.AdjustShifts(s:Shift) = 
         for i = 0 to transformers.Length-1 do
             let lts = transformers.[i]
-            lts.AdjustOneShift(s) 
-    
-    //member _.ResetShifts() = // DELETE
-    //    for i = 0 to transformers.Length-1 do
-    //        let lts = transformers.[i]
-    //        lts.ResetOneShift() 
+            lts.AdjustOneShift(s)     
+ 
 
     /// This gets called for every visible line on every Redraw
     override _.ColorizeLine(line:Document.DocumentLine) =   
@@ -256,7 +252,7 @@ type FastColorizer(transformers:LineTransformers<LinePartChange> [], ed:TextEdit
                                                             
                   
 
-/// An efficient DocumentColorizingTransformer using line number indices into a line transformer list.
+
 type DebugColorizer() = 
     inherit Rendering.DocumentColorizingTransformer()  
     let t = Diagnostics.Stopwatch()
