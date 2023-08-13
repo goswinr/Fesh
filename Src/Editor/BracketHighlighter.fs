@@ -76,7 +76,7 @@ module ParseBrackets =
     type MuliLineState = RegCode | MultiLineComment | SimpleString| RawAtString | RawTripleString
         
     let finAll(lns:CodeLineTools.CodeLines, id) : ResizeArray<ResizeArray<Bracket>> option=
-        let code= lns.FullCode
+        let code = lns.FullCode
 
         let brss = ResizeArray<ResizeArray<Bracket>>() 
                
@@ -215,7 +215,7 @@ module ParseBrackets =
                 |ValueNone -> None // loop aborted
                 |ValueSome l -> 
                     let brs = new ResizeArray<Bracket>()
-                    let newLineState = readLine (brs, lineState ,l.offStart+l.indent, l.offStart + l.len-1)                    
+                    let newLineState = readLine (brs, lineState , l.offStart + l.indent, l.offStart + l.len - 1 )                    
                     brss.Add brs     
                     lineLoop newLineState (lnNo + 1)
                     

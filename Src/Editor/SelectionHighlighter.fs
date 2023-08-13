@@ -198,28 +198,29 @@ type SelectionHighlighter (state:InteractionState) =
             
         }|> Async.Start
      
-    let update() = 
-        match Selection.getSelType ed.TextArea with 
-        |RectSel -> justClear(true) 
-        |RegSel  -> 
-            if ed.TextArea.Selection.IsMultiline then 
-                justClear(true)
-            else
-                let word = ed.SelectedText
-                if isTextToHighlight word then  //is at least two chars and has no line breaks
-                    let skip = SkipOffset ed.SelectionStart                    
-                    mark(word, skip, true)
-                else
+    let updateToCurrentSelection() = 
+        if reactToSelChange then 
+            match Selection.getSelType ed.TextArea with 
+            |RectSel -> justClear(true) 
+            |RegSel  -> 
+                if ed.TextArea.Selection.IsMultiline then 
                     justClear(true)
+                else
+                    let word = ed.SelectedText
+                    if isTextToHighlight word then  //is at least two chars and has no line breaks
+                        let skip = SkipOffset ed.SelectionStart                    
+                        mark(word, skip, true)
+                    else
+                        justClear(true)
+            
+            // keep highlighting if the cursor is just moved ?
+            |NoSel   -> // justClear(true)
+                if lastWord <> "" && lastSkipOff <> MarkAll then  // if lastSelOffset = -1 then all words are highlighted there is no change to highlighting needed
+                    mark(lastWord, MarkAll, true) // keep highlighting and add the word that was selected before
         
-        // keep highlighting if the cursor is just moved ?
-        |NoSel   -> // justClear(true)
-            if lastWord <> "" && lastSkipOff <> MarkAll then  // if lastSelOffset = -1 then all words are highlighted there is no change to highlighting needed
-                mark(lastWord, MarkAll, true) // keep highlighting and add the word that was selected before
-    
-    
+        
     do         
-        ed.TextArea.SelectionChanged.Add ( fun _ -> if reactToSelChange then update() ) 
+        ed.TextArea.SelectionChanged.Add ( fun _ -> updateToCurrentSelection() ) 
 
         // Not needed for Editor because any cursor changes or typing will always trigger the selection change event:
         // ed.Document.Changed.Add (fun _ ->  ) 
@@ -229,11 +230,12 @@ type SelectionHighlighter (state:InteractionState) =
 
     member _.Offsets = lastSels  
     
-    member _.Mark(word) = 
-        if isTextToHighlight word then 
+        /// Called from StatusBar to highlight the current selection of Log in Editor too   
+    member _.MarkInEditor(word) = 
+        if isTextToHighlight word then // isTextToHighlight is needed , word might be empty string
             mark(word, MarkAll, false)
         else 
-            justClear(false) // isTextToHighlight is needed , word might be empty string
+            justClear(false) 
 
 
 /// Highlight-all-occurrences-of-selected-text in Log 
@@ -277,7 +279,7 @@ type SelectionHighlighterLog (lg:TextEditor) =
                     lg.TextArea.TextView.Redraw(f.from, l.till, priority)                
                 foundSelectionLogEv.Trigger(triggerNext)
 
-            }|> Async.Start
+            } |> Async.Start
     
     // Called from StatusBar to highlight the current selection of Editor in Log too   
     // selectionStartOff is the offset of the current selection in the Editor, it is excluded from highlighting
@@ -296,7 +298,7 @@ type SelectionHighlighterLog (lg:TextEditor) =
                 do! Async.Sleep 50 // needed for getting correct text in snapshot
                 if logChangeID.Value = changeId then
                     let t = lgDoc.CreateSnapshot().Text
-                    lines.Update(t)
+                    lines.UpdateLogLines(t)
                     if logChangeID.Value = changeId then // this forces waiting till there are no more updates
                         linesNeedUpdate <- false                     
            
@@ -430,8 +432,8 @@ type SelectionHighlighterLog (lg:TextEditor) =
     
     member _.Update() = update() // used by grid.Tabs.OnTabChanged
 
-    /// Called from StatusBar to highlight the current selection of Editor in Log too
-    member _.Mark(word) = 
+    /// Called from StatusBar to highlight the current selection of Editor in Log too    
+    member _.MarkInLog(word) = 
         if isTextToHighlight word then // isTextToHighlight is needed , word might be empty string
             mark(word, MarkAll, false) 
         else 

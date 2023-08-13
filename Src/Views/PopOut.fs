@@ -69,10 +69,10 @@ module PopOut =
                 | _ -> () // if ToolTip is just a string?? don't pop out
 
         if ed.TypeInfoTip.IsOpen then
-            showWindow ("Seff PopOut| Type Info ", (fun () -> Some<|  TypeInfo.getPanelCached ()), parent)
+            showWindow ("Seff PopOut | Type Info ", (fun () -> Some<|  TypeInfo.getPanelCached ()), parent)
 
         if ed.Completions.IsOpen  then  //&& Completions.HasStackPanelTypeInfo then
-            showWindow ("Seff PopOut| Autocomplete Type Info ", (fun () -> Some<|  TypeInfo.getPanelCached ()), parent)
+            showWindow ("Seff PopOut | Autocomplete Type Info ", (fun () -> Some<|  TypeInfo.getPanelCached ()), parent)
 
 
 

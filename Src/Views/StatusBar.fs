@@ -135,7 +135,7 @@ type CheckerStatus (grid:TabsAndLog) as this =
               
         | Checking ->            
             async{
-                do! Async.Sleep 300 // delay  to only show check in progress massage if it takes long, otherwise just show results via on checked event                
+                do! Async.Sleep 250 // delay  to only show check in progress massage if it takes long, otherwise just show results via on checked event                
                 match IEditor.current with 
                 |None -> ()
                 |Some e -> 
@@ -249,7 +249,7 @@ type SelectedEditorTextStatus (grid:TabsAndLog) as this =
         if triggerNext then
             match grid.Log.SelectionHighlighter with 
             |None -> ISeffLog.log.PrintfnAppErrorMsg "Log.SelectionHighlighter not set up"
-            |Some hili -> hili.Mark(sel.Word)            
+            |Some hili -> hili.MarkInLog(sel.Word)            
         
         if sel.Offsets.Count = 0 then 
             this.Inlines.Clear()
@@ -294,7 +294,7 @@ type SelectedLogTextStatus (grid:TabsAndLog) as this =
         |None -> ISeffLog.log.PrintfnAppErrorMsg "Log.SelectionHighlighter not set up"
         |Some hiLi ->
             if triggerNext then 
-                grid.Tabs.Current.Editor.Services.selection.Mark(hiLi.Word)
+                grid.Tabs.Current.Editor.Services.selection.MarkInEditor(hiLi.Word)
 
             if hiLi.Offsets.Count = 0 then
                 this.Inlines.Clear()

@@ -31,19 +31,16 @@ module CodeLineTools =
     /// indent:  the count of spaces at the start of this line 
     /// len: the amount of characters in this line excluding the trailing \r\n
     /// if indent equals len the line is only whitespace
-    type CodeLines(docChangedIdHolder:int64 ref) =
+    type CodeLines() =
         
-        let mutable lines = ResizeArray<LineInfo>(256)
-
-        let mutable isDone = true
+        let mutable lines = ResizeArray<LineInfo>()
 
         let mutable fullCode = ""
 
         let mutable correspondingId = 0L
 
-        let update(code:string) =
-            isDone <- false
-            fullCode <- code
+        let getNewLines(code:string) =            
+            
             let newLns = ResizeArray<LineInfo>(lines.Count + 2)
 
             let codeLen = code.Length
@@ -65,20 +62,12 @@ module CodeLineTools =
                         loop (r+2) // +2 to jump over \r and \n
 
             newLns.Add {offStart=0; indent=0; len=0}   // ad dummy line at index 0
-            loop (0)
-            isDone <- true 
+            loop (0)            
             newLns
-
-        member _.Lines = lines
 
         member _.LastLineIdx = lines.Count - 1
 
-        member _.IsDone = isDone
-
         member _.FullCode = fullCode
-
-        /// checks if this codeLines correspond to a given ID
-        member _.IsFromID(id) = id = correspondingId
         
         /// checks if this codeLines does not correspond to a given ID
         member _.IsNotFromId(id) = id <> correspondingId
@@ -86,29 +75,18 @@ module CodeLineTools =
         /// ThreadSafe and in Sync: Only starts parsing when Done and also checks 
         /// if docChangedIdHolder.Value = id before and after
         /// returns True 
-        member _.Update(code, changeId): bool = 
-            async{
-                //Wait til done
-                while not isDone && docChangedIdHolder.Value = changeId do // because the id might expire while waiting
-                    do! Async.Sleep 10
-                return 
-                    if docChangedIdHolder.Value <> changeId then 
-                        false
-                    else                        
-                        let newLns = update code
-                        if docChangedIdHolder.Value = changeId then 
-                            lines <- newLns
-                            correspondingId <- changeId
-                            true
-                        else 
-                            false
-            } |> Async.RunSynchronously
+        member _.UpdateLines(code, changeId): unit = 
+            correspondingId <- 0L // reset to 0 to indicate that we are parsing
+            let newLns = getNewLines code        
+            lines <- newLns
+            fullCode <- code
+            correspondingId <- changeId
 
 
-        /// Safe: checks isDone && docChangedIdHolder.Value = id
+        /// Safe: checks correspondingId = changeId
         /// returns also none for bad indices
         member _.GetLine(lineIdx, changeId): LineInfo voption =
-            if isDone && docChangedIdHolder.Value = changeId then 
+            if correspondingId = changeId then 
                 if lineIdx < 0 || lineIdx >= lines.Count then 
                     ValueNone
                 else
@@ -116,10 +94,10 @@ module CodeLineTools =
             else 
                 ValueNone
 
-        /// Safe: checks isDone && docChangedIdHolder.Value = id
+        /// Safe: checks correspondingId = changeId
         /// returns also none for bad indices
         member _.GetLineText(lineIdx, changeId): string voption =
-            if isDone && docChangedIdHolder.Value = changeId then 
+            if correspondingId = changeId then 
                 if lineIdx < 0 || lineIdx >= lines.Count then 
                     ValueNone
                 else
@@ -138,15 +116,13 @@ module CodeLineTools =
     /// if indent equals len the line is only whitespace
     type CodeLinesSimple() =
         
-        let mutable lines = ResizeArray<LineInfo>(256)
+        let mutable lines = ResizeArray<LineInfo>()
 
         let mutable fullCode = ""
 
-        let update(code:string) =            
-            fullCode <- code
+        let getNewLines(code:string) =   
             let newLns = ResizeArray<LineInfo>(lines.Count + 50) // TODO turn this into an append only , since the Log is append only, instead of reallocating:
             let codeLen = code.Length
-
             let rec loop stOff = 
                 if stOff >= codeLen then // last line 
                     let len = codeLen - stOff
@@ -167,13 +143,14 @@ module CodeLineTools =
             loop (0)
             newLns
 
-        member _.Lines = lines
 
         member _.LastLineIdx = lines.Count - 1
 
         member _.FullCode = fullCode
                  
-        member _.Update(code) = lines <- update code
+        member _.UpdateLogLines(code) = 
+            lines <- getNewLines code
+            fullCode <- code
 
         /// Safe: checks isDone && docChangedIdHolder.Value = id
         /// returns also none for bad indices
@@ -241,7 +218,7 @@ type InteractionState(ed:TextEditor, foldManager:FoldingManager, config:Seff.Con
    
     member val DocChangedConsequence = React with get, set
 
-    member val CodeLines = CodeLineTools.CodeLines(changeId) with get
+    member val CodeLines = CodeLineTools.CodeLines() with get
 
     /// To avoid re-trigger of completion window on single char completions
     /// the window may just have closed, but for pressing esc, not for completion insertion

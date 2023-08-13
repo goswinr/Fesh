@@ -78,7 +78,7 @@ type TabsAndLog (config:Config, tabs:Tabs, log:Log, win:Views.SeffWindow) as thi
         win.Window.StateChanged.Add (fun e ->
             match win.Window.WindowState with
             | WindowState.Normal ->
-                if isLogMaxed then this.ToggleMaxLog() // to also switch back from maximised when the window size gets restored
+                if isLogMaxed then this.ToggleMaxLog() // to also switch back from maximized when the window size gets restored
             | _ -> ()
             //| WindowState.Maximized -> // normally the state change event comes after the location change event but before size changed. async sleep in LocationChanged prevents this                ()
             //| WindowState.Minimized -> 
@@ -102,7 +102,7 @@ type TabsAndLog (config:Config, tabs:Tabs, log:Log, win:Views.SeffWindow) as thi
             logColumnWidth.Width     <- makeGridLength <|config.Settings.GetFloat ("LogWidth"    , 99. )
             if not win.WasMax then win.Window.WindowState <- WindowState.Normal // do last because of  win.Window.StateChanged.Add handler above
         else
-            // maximise log view
+            // maximize log view
             isLogMaxed <- true
             win.WasMax <- win.IsMinOrMax
             if not win.IsMinOrMax  then win.Window.WindowState <- WindowState.Maximized

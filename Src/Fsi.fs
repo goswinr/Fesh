@@ -537,8 +537,8 @@ type Fsi private (config:Config) =
                     | Ready | Initializing | NotLoaded -> NotEvaluating
                     | Evaluating -> UserDoesntWantTo
         
-    // without this back and forth switch the UI freezes 
-    // after showing the MessageBox.Show( "Do you want to Cancel currently running code?",
+    // without this back and forth switch the UI freezes. 
+    // Use after showing the MessageBox.Show( "Do you want to Cancel currently running code?",
     member this.EvalDelayed(code)=
         async{  
             do! Async.Sleep 20
