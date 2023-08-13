@@ -75,7 +75,7 @@ module ParseBrackets =
     
     type MuliLineState = RegCode | MultiLineComment | SimpleString| RawAtString | RawTripleString
         
-    let all(lns:CodeLineTools.CodeLines, id) : ResizeArray<ResizeArray<Bracket>> option=
+    let finAll(lns:CodeLineTools.CodeLines, id) : ResizeArray<ResizeArray<Bracket>> option=
         let code= lns.FullCode
 
         let brss = ResizeArray<ResizeArray<Bracket>>() 
@@ -84,7 +84,7 @@ module ParseBrackets =
         let readLine(brs:ResizeArray<Bracket>, prevState: MuliLineState, firstIdx, lastIdx) : MuliLineState =             
             
             /// for simple strings
-            let rec skipString chr i :int  =                
+            let rec skipString chr i :int  =        // give the character and it's index
                 if i=lastIdx then
                     match chr  with 
                     | '"'  -> i+1                   
@@ -97,7 +97,7 @@ module ParseBrackets =
                     | _         -> skipString next (i+1)
 
             /// for strings starting with @"
-            let rec skipRawAtString chr i :int =
+            let rec skipRawAtString chr i :int =  // give the character and it's index
                 if i=lastIdx then
                     match chr  with 
                     | '"'  -> i+1 //                   
@@ -108,12 +108,12 @@ module ParseBrackets =
                     | _    -> skipRawAtString code[i+1] (i+1) 
 
             /// for strings starting with """
-            let rec skipRawTrippleString chr next i :int =
+            let rec skipRawTrippleString chr next i :int =  // give this character and the next character and this index
                 if i+2 <= lastIdx then
-                    let nnext = code[i+2]
-                    match chr , next, nnext with 
-                    | '"' ,'"' ,'"'   -> i+3 // first char after  multiline string                    
-                    | _               -> skipRawTrippleString next nnext (i+1) 
+                    let next2 = code[i+2]
+                    match chr , next, next2 with 
+                    | '"' , '"' , '"'   -> i+3 // first char after  multiline string                    
+                    | _                 -> skipRawTrippleString next next2 (i+1) 
                 else 
                     Int32.MaxValue
 
@@ -171,10 +171,15 @@ module ParseBrackets =
                     | ')', _  -> pushOne next ClRound
                     | '}', _  -> pushOne next ClCurly
                     | '"','"' -> if i + 2 <= lastIdx then 
-                                    if code[i+2] = '"' then // a multiline string starts,
-                                        skipRawTrippleString next code[i+2] (i+2)  |> flowOnOrOver RawTripleString
-                                    else 
-                                        charLoop next (i+2) // just an empty string, line continue
+                                    let next2 = code[i+2]
+                                    if next2 = '"' then // a multiline string starts,
+                                        //skipRawTrippleString next next2 (i+2)  |> flowOnOrOver RawTripleString // TODO does this fail on four quotes ?
+                                        if i + 4 <= lastIdx then // check if multiline string can be closed on same line
+                                            skipRawTrippleString code[i+3] code[i+4] (i+3)  |> flowOnOrOver RawTripleString // TODO does this fail on four quotes ?
+                                        else
+                                            RawTripleString 
+                                    else                                         
+                                        charLoop next2 (i+2) // just an empty string, line continue
                                  else  
                                     RegCode // just an empty string, line ends
 
@@ -296,7 +301,7 @@ module ParseBrackets =
                     )
     
       
-    let debugPrint(bss:ResizeArray<ResizeArray<Bracket>>, lns:CodeLineTools.CodeLines, id) :unit =
+    let debugPrintBrackets(bss:ResizeArray<ResizeArray<Bracket>>, lns:CodeLineTools.CodeLines, id) :unit =
         
         let getBr = function
             // Opening Brackets:
@@ -328,17 +333,18 @@ module ParseBrackets =
                         let gap = String(' ', gapLen)
                         from <- from + gapLen + getBLen b.kind
                         printf $"{gap}{getBr b.kind}"
-                printfn ""
+                //printfn ""
         printfn $"Total {k} Brackets."
 
 open ParseBrackets
 
 type BracketHighlighter (state:InteractionState) =     
 
-    let colPair  = Brushes.Gray |> brighter 90  |> freeze  
+    let colPair  = Brushes.Gray |> brighter 80  |> freeze  
     let colErr   = Brushes.Red                  |> freeze
     //let colErrBg = Brushes.Pink |> brighter 25  |> freeze
-    let colErrBg = SolidColorBrush(Color.FromArgb(15uy,255uy,0uy,0uy))|> freeze // a=0 : fully transparent A=255 opaque
+    //let colErrBg = SolidColorBrush(Color.FromArgb(15uy,255uy,0uy,0uy))|> freeze // a=0 : fully transparent, a=255 opaque
+    let colErrBg = SolidColorBrush(Color.FromArgb(90uy,255uy,150uy,0uy))|> freeze // a=0 : fully transparent, a=255 opaque
     
     let colors = [|
         null // the first one is null ( to keep the coloring from xshd file)        
@@ -414,13 +420,13 @@ type BracketHighlighter (state:InteractionState) =
     
     [<CLIEvent>] 
     member _.FoundBrackets = foundBracketsEv.Publish
-    
-    
+        
     member _.UpdateAllBrackets(id) =        
         allPairs <- None
-        match ParseBrackets.all(state.CodeLines, id) with
+        match ParseBrackets.finAll(state.CodeLines, id) with
         |None -> ()
         |Some bss ->            
+            //ParseBrackets.debugPrintBrackets(bss, state.CodeLines, id)
             let pss =  ParseBrackets.findAllPairs(bss)
             if state.IsLatest id then 
                 let newTrans = ResizeArray<ResizeArray<LinePartChange>>(transAll.LineCount+4)

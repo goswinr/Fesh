@@ -35,13 +35,13 @@ type LinePartChange =   {
     }
 
     
-/// index change needed from document chnage
+/// index change needed from document change
 [<Struct>]
 type Shift = {
     fromOff      : int // Offset 
-    fromLine     : int // Linenumber
+    fromLine     : int // Line number
     amountOff    : int 
-    ammountLines : int // change in line number
+    amountLines : int // change in line number
     }
     
 
@@ -111,13 +111,13 @@ type LineTransformers<'T>() =    // generic so it can work for LinePartChange an
 
     let empty = ResizeArray<'T>()
 
-    let mutable shift = { fromOff=Int32.MaxValue; fromLine=Int32.MaxValue; amountOff=0;  ammountLines=0}   
+    let mutable shift = { fromOff=Int32.MaxValue; fromLine=Int32.MaxValue; amountOff=0;  amountLines=0}   
 
     member _.AdjustOneShift(s:Shift) = 
         shift <- {  fromOff      = min shift.fromOff   s.fromOff  
                     fromLine     = min shift.fromLine  s.fromLine 
                     amountOff    =     shift.amountOff     + s.amountOff
-                    ammountLines =     shift.ammountLines  + s.ammountLines
+                    amountLines =     shift.amountLines  + s.amountLines
                     }
    
 
@@ -152,14 +152,14 @@ type LineTransformers<'T>() =    // generic so it can work for LinePartChange an
     /// Replaces the Linetransformers or Segments with a new list and resets the shift       
     member _.Update(lineList:ResizeArray<ResizeArray<'T>>) =        
         lines <- lineList
-        shift <- { fromOff=Int32.MaxValue; fromLine=Int32.MaxValue; amountOff=0;  ammountLines=0}   
+        shift <- { fromOff=Int32.MaxValue; fromLine=Int32.MaxValue; amountOff=0;  amountLines=0}   
 
     /// Safely gets a Line returns empty List  if index is out of range
     /// also applies the shift for line numbers if present
     member _.GetLine(lineNumber) =
         let lNo = 
             if lineNumber > shift.fromLine then 
-                lineNumber - shift.ammountLines // use minus to actually get the line that was there before the shift
+                lineNumber - shift.amountLines // use minus to actually get the line that was there before the shift
             else 
                 lineNumber 
        
@@ -240,7 +240,7 @@ type FastColorizer(transformers:LineTransformers<LinePartChange> [], ed:TextEdit
                         let lpc = lpcs[i]
                         if notNull lpc.act then // because for coloring brackets it may be null to keep xshd coloring
                             let shift = lts.Shift
-                            let shiftChecked = if lpc.from > shift.fromOff then shift.amountOff else 0
+                            let shiftChecked = if lpc.from >= shift.fromOff then shift.amountOff else 0
                             let from = lpc.from + shiftChecked
                             let till = lpc.till + shiftChecked
                             if from >= till then () // negative length

@@ -54,7 +54,7 @@ module DocChangeUtil =
         { fromOff = off 
           fromLine= doc.GetLocation(off).Line
           amountOff = ins - rem
-          ammountLines = addLns-remLns} 
+          amountLines = addLns-remLns} 
     
     /// returns the cLine of code that contains the given offset.
     /// from start of line till given offset 
