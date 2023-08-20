@@ -61,12 +61,12 @@ type CompletionItemForKeyWord(state: InteractionState, text:string, toolTip:stri
 
 type CompletionItem(state: InteractionState, getToolTip, it:DeclarationListItem, isDotCompletion:bool) = 
 
-    let style = 
-        if it.IsOwnMember then FontStyles.Normal
-        else 
-            match it.Glyph with    //new Font(FontFamily.GenericSansSerif,12.0F, FontStyle.Bold | FontStyle.Italic) // needs system.drawing
-            | FSharpGlyph.Module | FSharpGlyph.NameSpace -> FontStyles.Normal
-            | _                                          -> FontStyles.Italic
+    //let style = 
+    //    if it.IsOwnMember then FontStyles.Normal
+    //    else 
+    //        match it.Glyph with    //new Font(FontFamily.GenericSansSerif,12.0F, FontStyle.Bold | FontStyle.Italic) // needs system.drawing
+    //        | FSharpGlyph.Module | FSharpGlyph.NameSpace -> FontStyles.Normal
+    //        | _                                          -> FontStyles.Italic
 
     let priority = //if it.IsOwnMember then 1. else 1.
         if isDotCompletion then 1.0 // not on Dot completion
@@ -125,7 +125,7 @@ type Completions(state: InteractionState) =
 
     let mutable win : CompletionWindow option = None   
     
-    let mutable willInsert = false // to track if window closed without insertin ( e.g presing esc)
+    let mutable willInsert = false // to track if window closed without inserting ( e.g pressing esc)
              
     let selectedCompletionText ()= 
         match win with
@@ -146,7 +146,7 @@ type Completions(state: InteractionState) =
 
     member _.IsOpen = win.IsSome
 
-    member _.IsNotOpen = win.IsNone
+    //member _.IsNotOpen = win.IsNone
 
     /// Returns  win.CompletionList.ListBox.HasItems
     //member this.HasItems = win.IsSome && win.Value.CompletionList.ListBox.HasItems
@@ -280,7 +280,7 @@ type Completions(state: InteractionState) =
                         && not AutoFixErrors.isMessageBoxOpen  // because msg box would appear behind completion window and type info
                         && IEditor.isCurrent avEd // switched to other editor
                         && caret.Line = pos.row // moved cursor to other line
-                        && caret.Offset >= pos.offset then // moved cursor back befor completion ( e.g. via deleting)      
+                        && caret.Offset >= pos.offset then // moved cursor back before completion ( e.g. via deleting)      
         
                             //ISeffLog.log.PrintfnDebugMsg "*5.4 Show Completion Window with %d items prefilter: '%s' " w.CompletionList.ListBox.Items.Count prefilter                     
                             showingEv.Trigger() // to close error and type info tooltip                           
@@ -294,7 +294,7 @@ type Completions(state: InteractionState) =
     /// For closing and inserting from completion window
     member this.MaybeInsertOrClose  (ev:Input.TextCompositionEventArgs) = 
         if this.IsOpen then
-            //c hecking for Tab or Enter key is not needed  here for  insertion,  
+            // checking for Tab or Enter key is not needed  here for  insertion,  
             // insertion with Tab or Enter key is built into Avalonedit!!
             
             match ev.Text with              

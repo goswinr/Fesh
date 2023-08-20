@@ -6,6 +6,7 @@ open System.Windows.Media // for color brushes
 open System.Text
 open System.Windows.Controls
 open System.Windows
+open System.Windows.Input
 
 open AvalonEditB
 open AvalonEditB.Utils
@@ -47,8 +48,8 @@ type Log private () =
     let mutable addLogger : option<TextWriter> = None
 
     do
-        log.SelectedTextHighLighter.IsEnabled <- false // because there is a custom highlighter here that covers both log and editor 
-        
+        log.SelectedTextHighLighter.IsEnabled <- false // because there is a custom highlighter in Seff that covers both log and editor mutual highlighting
+       
         //styling:
         log.BorderThickness <- new Thickness( 0.5)
         log.Padding         <- new Thickness( 0.7)
@@ -77,7 +78,7 @@ type Log private () =
     let textWriterFsiErrorOut   =  log.GetConditionalTextWriter ( (fun s -> fsiErrorsStringBuilder.Append(s)|> ignore; true) ,  LogColors.fsiErrorOut) // use filter for side effect
 
     
-    /// for an additional textwriter to also write Info, AppError, IOError,Debug and FsiError messages to.
+    /// for an additional textWriter to also write Info, AppError, IOError,Debug and FsiError messages to.
     /// But not any other text printed with any custom color. 
     let appendAndLogLn (b:SolidColorBrush) (tx:string) =
         log.AppendLineWithBrush (b, tx)
@@ -91,14 +92,14 @@ type Log private () =
         | Some tw -> tw.Write tx
         | None ->()    
     
-    let mutable selHili: SelectionHighlighterLog option = None 
+    let mutable selectionHighlighter: SelectionHighlighterLog option = None 
 
     //-----------------------------------------------------------
     //----------------------members:------------------------------------------
     //------------------------------------------------------------
 
     /// should always be some
-    member _.SelectionHighlighter = selHili
+    member _.SelectionHighlighter = selectionHighlighter
     
     member _.AvalonLog = log
 
@@ -109,7 +110,11 @@ type Log private () =
     member internal _.FinishLogSetup(config:Config)=         
         setLineWrap( config.Settings.GetBool ("logHasLineWrap", true) )
         log.FontSize  <- config.Settings.GetFloat ("SizeOfFont" , Seff.StyleState.fontSize )
-        selHili <- Some (new SelectionHighlighterLog(log.AvalonEdit))
+        let hiLi = new SelectionHighlighterLog(log.AvalonEdit)
+        // to clear selection highlighter marks first , before opening the search window. if they would be the same as the search word.
+        // creating a new command binding for 'ApplicationCommands.Find' would remove the existing one. so we add to the delegate instead
+        for binding in log.AvalonEdit.TextArea.CommandBindings do if  binding.Command = ApplicationCommands.Find then binding.Executed.Add(fun _ -> hiLi.ClearMarksIfOneSelected())
+        selectionHighlighter <- Some hiLi
 
 
     member _.ToggleLineWrap(config:Config)= 
@@ -154,7 +159,7 @@ type Log private () =
     /// Adds a new line at the end
     member _.PrintnColor red green blue s = log.AppendLineWithColor (red, green, blue, s)
 
-    /// An additional textwriter to also write Info, AppError, IOError,Debug and FsiError messages to.
+    /// An additional TextWriter to also write Info, AppError, IOError,Debug and FsiError messages to.
     /// But not any other text printed with any custom color. 
     member _.AdditionalLogger with get() = addLogger and set l = addLogger <- l
 
@@ -180,7 +185,7 @@ type Log private () =
 
         member this.Clear() = this.Clear()
 
-        /// An additional textwriter to also write Info, AppError, IOError,Debug and FsiError messages to.
+        /// An additional TextWriter to also write Info, AppError, IOError,Debug and FsiError messages to.
         /// But not any other text printed with any custom color. 
         member this.AdditionalLogger with get() = addLogger and set l = addLogger <- l
 

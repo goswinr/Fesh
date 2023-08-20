@@ -46,13 +46,17 @@ type Shift = {
     
 
 module ErrorStyle= 
-    let errSquiggle     = Pen(  Brushes.Red     |> darker 20      |> freeze, 1.0) |> Pen.freeze
+
+    let penSize = 1.2
+
+    let errSquiggle     = Pen(  Brushes.Red     |> darker 10      |> freeze, penSize) |> Pen.freeze
     let errBackGr       =       Brushes.Red     |> brighter 220   |> freeze
 
-    let warnSquiggle    = Pen(  Brushes.Yellow  |> darker 40      |> freeze, 1.0) |> Pen.freeze
+    //let warnSquiggle    = Pen(  Brushes.Yellow  |> darker 40      |> freeze, penSize) |> Pen.freeze
+    let warnSquiggle    = Pen(  Brushes.Gold                      |> freeze, penSize) |> Pen.freeze
     let warnBackGr      =       Brushes.Yellow  |> brighter 200   |> freeze
 
-    let infoSquiggle    = Pen(  Brushes.Green  |> darker 5       |> freeze, 1.0) |> Pen.freeze
+    let infoSquiggle    = Pen(  Brushes.Green  |> darker 5       |> freeze, penSize) |> Pen.freeze
     let infoBackGr      =       Brushes.Green  |> brighter 220   |> freeze
 
 
@@ -101,8 +105,6 @@ type SegmentToMark (startOffset:int,  endOffset:int , e:FSharpDiagnostic)  =
             member _.EndOffset   = e
             member _.Length      = e - o
             }
-
-
 
 /// For accessing the highlighting of a line in constant time
 type LineTransformers<'T>() =    // generic so it can work for LinePartChange and SegmentToMark
@@ -206,8 +208,6 @@ type LineTransformers<'T>() =    // generic so it can work for LinePartChange an
             findLast (lines.Count-1)
             Some (first,last) 
  
-
-
 /// An efficient DocumentColorizingTransformer using line number indices into a line transformer list.
 type FastColorizer(transformers:LineTransformers<LinePartChange> [], ed:TextEditor) = 
     inherit Rendering.DocumentColorizingTransformer()  
@@ -234,7 +234,7 @@ type FastColorizer(transformers:LineTransformers<LinePartChange> [], ed:TextEdit
                 for i=0 to lpcs.Count-1 do  
                     if i < lpcs.Count then // because it might get reset while iterating ?
                         let lpc = lpcs[i]
-                        if notNull lpc.act then // because for coloring brackets it may be null to keep xshd coloring
+                        if notNull lpc.act then // because for coloring brackets the action may be null to keep xshd coloring
                             let shift = lts.Shift
                             let shiftChecked = if lpc.from >= shift.fromOff then shift.amountOff else 0
                             let from = lpc.from + shiftChecked
@@ -249,9 +249,7 @@ type FastColorizer(transformers:LineTransformers<LinePartChange> [], ed:TextEdit
                             else
                                 //ISeffLog.log.PrintfnDebugMsg $"{from}-{till}; DocLine {offSt}-{offEn} on line: {lineNo}; doc.Text.Length {ed.Document.TextLength} (shift:{shiftChecked})" 
                                 base.ChangeLinePart(from, till, lpc.act)
-                                                            
-                  
-
+ 
 
 type DebugColorizer() = 
     inherit Rendering.DocumentColorizingTransformer()  

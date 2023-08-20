@@ -245,7 +245,7 @@ type SelectedEditorTextStatus (grid:TabsAndLog) as this =
     let mutable scrollToIdx = 0 
 
     let fillStatusMarkLog triggerNext  = 
-        let sel = grid.Tabs.Current.Editor.Services.selection
+        let sel = grid.Tabs.Current.Editor.DrawingServices.selection
         if triggerNext then
             match grid.Log.SelectionHighlighter with 
             |None -> ISeffLog.log.PrintfnAppErrorMsg "Log.SelectionHighlighter not set up"
@@ -264,12 +264,12 @@ type SelectedEditorTextStatus (grid:TabsAndLog) as this =
         this.Padding <- textPadding
         this.ToolTip <-  tipText
         this.Inlines.Add noSelTxt
-        SelectionHighlighting.FoundSelectionsEditor.Add(fillStatusMarkLog)
+        SelectionHighlighting.GlobalFoundSelectionsEditor.Add(fillStatusMarkLog)
        
         // on each click loop through all locations where text appears
         this.MouseDown.Add ( fun _ -> // press mouse to scroll to them
             let ed = grid.Tabs.Current.Editor
-            let sel = ed.Services.selection
+            let sel = ed.DrawingServices.selection
             if sel.Offsets.Count > 0 then
                 //ed.AvaEdit.Focus() |> ignore 
                 if scrollToIdx >= sel.Offsets.Count then scrollToIdx <- 0
@@ -294,7 +294,7 @@ type SelectedLogTextStatus (grid:TabsAndLog) as this =
         |None -> ISeffLog.log.PrintfnAppErrorMsg "Log.SelectionHighlighter not set up"
         |Some hiLi ->
             if triggerNext then 
-                grid.Tabs.Current.Editor.Services.selection.MarkInEditor(hiLi.Word)
+                grid.Tabs.Current.Editor.DrawingServices.selection.RedrawMarksInEditor(hiLi.Word)
 
             if hiLi.Offsets.Count = 0 then
                 this.Inlines.Clear()

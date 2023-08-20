@@ -11,7 +11,7 @@ open Seff.Config
 
 /// A class holding the main grid of Tabs and the log Window
 /// Includes logic for toggling the view split and saving and restoring size and position
-type TabsAndLog (config:Config, tabs:Tabs, log:Log, win:Views.SeffWindow) as this = 
+type TabsAndLog (config:Config, tabs:Tabs, log:Log, seffWin:Views.SeffWindow) as this = 
 
     let gridSplitterSize = 4.0
 
@@ -75,8 +75,8 @@ type TabsAndLog (config:Config, tabs:Tabs, log:Log, win:Views.SeffWindow) as thi
                 config.Settings.Save ()
                 )
 
-        win.Window.StateChanged.Add (fun e ->
-            match win.Window.WindowState with
+        seffWin.Window.StateChanged.Add (fun e ->
+            match seffWin.Window.WindowState with
             | WindowState.Normal ->
                 if isLogMaxed then this.ToggleMaxLog() // to also switch back from maximized when the window size gets restored
             | _ -> ()
@@ -100,12 +100,12 @@ type TabsAndLog (config:Config, tabs:Tabs, log:Log, win:Views.SeffWindow) as thi
             logRowHeight.Height      <- makeGridLength <|config.Settings.GetFloat ("LogHeight"   , 99.)
             editorColumnWidth.Width  <- makeGridLength <|config.Settings.GetFloat ("EditorWidth" , 99. )
             logColumnWidth.Width     <- makeGridLength <|config.Settings.GetFloat ("LogWidth"    , 99. )
-            if not win.WasMax then win.Window.WindowState <- WindowState.Normal // do last because of  win.Window.StateChanged.Add handler above
+            if not seffWin.WasMax then seffWin.Window.WindowState <- WindowState.Normal // do last because of  win.Window.StateChanged.Add handler above
         else
             // maximize log view
             isLogMaxed <- true
-            win.WasMax <- win.IsMinOrMax
-            if not win.IsMinOrMax  then win.Window.WindowState <- WindowState.Maximized
+            seffWin.WasMax <- seffWin.IsMinOrMax
+            if not seffWin.IsMinOrMax  then seffWin.Window.WindowState <- WindowState.Maximized
             editorRowHeight.Height   <- makeGridLength 0.
             logRowHeight.Height      <- makeGridLength 999.
             editorColumnWidth.Width  <- makeGridLength 0.
@@ -119,6 +119,6 @@ type TabsAndLog (config:Config, tabs:Tabs, log:Log, win:Views.SeffWindow) as thi
 
     member this.Log = log
 
-    member this.Window = win
+    member this.SeffWindow = seffWin
 
     member this.GridSplitterSize = gridSplitterSize

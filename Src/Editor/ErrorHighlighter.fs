@@ -20,7 +20,7 @@ open Seff
 open Seff.Util
 open Seff.Model
 
-// Error colors are defined in FastCololrizer.fs
+// Error colors are defined in FastColorizer.fs
 
 module ErrorUtil =    
         
@@ -79,8 +79,8 @@ module ErrorUtil =
     let getSquiggleLine(r:Rect):StreamGeometry = 
         let startPoint = r.BottomLeft
         let endPoint = r.BottomRight
-        let offset = 2.5
-        let count = max 4 (int((endPoint.X - startPoint.X)/offset) + 1)
+        let offset = 3.0 // originally 2.5
+        let count = max 4 (int((endPoint.X - startPoint.X)/offset) + 1) // at least 4 squiggles visible
         let geometry = new StreamGeometry()
         use ctx = geometry.Open()
         ctx.BeginFigure(startPoint, false, false)
@@ -135,30 +135,38 @@ type ErrorRenderer (state: InteractionState) =
 
     /// Draw the error squiggle  on the code
     member _.Draw (textView:TextView , drawingContext:DrawingContext) = // for IBackgroundRenderer         
-        let vls = textView.VisualLines                
-        let fromLine = vls[0].FirstDocumentLine.LineNumber
-        let toLine   = vls[vls.Count-1].LastDocumentLine.LineNumber
-        let segms = state.ErrSegments
-        for lnNo = fromLine to toLine do
-            let segs = segms.GetLine(lnNo)
-            for i = 0 to segs.Count-1 do                    
-                let seg = segs.[i]                        
-                let segShift = seg.Shifted(segms.Shift) 
+        //AvalonEditB.Rendering.VisualLinesInvalidException: Exception of type 'AvalonEditB.Rendering.VisualLinesInvalidException' was thrown.
+        //    at AvalonEditB.Rendering.TextView.get_VisualLines()
+        //    at Seff.Editor.ErrorRenderer.Draw(TextView textView, DrawingContext drawingContext) in D:\Git\Seff\Src\Editor\ErrorHighlighter.fs:line 138
+        //    at AvalonEditB.Rendering.TextView.RenderBackground(DrawingContext drawingContext, KnownLayer layer)
+        //    at AvalonEditB.Editing.CaretLayer.OnRender(DrawingContext drawingContext)
+        //    at System.Windows.UIElement.Arrange(Rect finalRect)
+        //    at System.Windows.ContextLayoutManager.UpdateLayout()
+        if textView.VisualLinesValid then //to avoid above error.
+            let vls = textView.VisualLines                
+            let fromLine = vls[0].FirstDocumentLine.LineNumber
+            let toLine   = vls[vls.Count-1].LastDocumentLine.LineNumber
+            let segms = state.ErrSegments
+            for lnNo = fromLine to toLine do
+                let segs = segms.GetLine(lnNo)
+                for i = 0 to segs.Count-1 do                    
+                    let seg = segs.[i]                        
+                    let segShift = seg.Shifted(segms.Shift) 
 
-                // background color: 
-                let geoBuilder = new BackgroundGeometryBuilder (AlignToWholePixels = true, CornerRadius = 0.)
-                geoBuilder.AddSegment(textView, segShift )                       
-                let boundaryPolygon = geoBuilder.CreateGeometry() // creates one boundary round the text
-                drawingContext.DrawGeometry(seg.BackgroundBrush, null, boundaryPolygon)
+                    // background color: // when drawing on Caret layer background must be disabled.
+                    // let geoBuilder = new BackgroundGeometryBuilder (AlignToWholePixels = true, CornerRadius = 0.)
+                    // geoBuilder.AddSegment(textView, segShift )                       
+                    // let boundaryPolygon = geoBuilder.CreateGeometry() // creates one boundary round the text
+                    // drawingContext.DrawGeometry(seg.BackgroundBrush, null, boundaryPolygon)
 
-                //foreground, squiggles:
-                for rect in BackgroundGeometryBuilder.GetRectsForSegment(textView, segShift) do //seg.Shifted(state.FastColorizer.Shift)) do  // DELETE
-                    let geo = ErrorUtil.getSquiggleLine(rect)
-                    drawingContext.DrawGeometry(Brushes.Transparent, seg.UnderlinePen, geo)
-                        
-                       
-       
-                //let e = seg.Diagnostic in ISeffLog.log.PrintfnDebugMsg $"IBackgRe: DocLine {lnNo}: ErrLines{e.StartLine}.{e.StartColumn}-{e.EndLine}.{e.EndColumn}"   
+                    //foreground, squiggles:
+                    for rect in BackgroundGeometryBuilder.GetRectsForSegment(textView, segShift) do //seg.Shifted(state.FastColorizer.Shift)) do  // DELETE
+                        let geo = ErrorUtil.getSquiggleLine(rect)
+                        drawingContext.DrawGeometry(Brushes.Transparent, seg.UnderlinePen, geo)
+                            
+                    
+    
+                //let e = seg.Diagnostic in ISeffLog.log.PrintfnDebugMsg $"IBackgroundRenderer: DocLine {lnNo}: ErrLines{e.StartLine}.{e.StartColumn}-{e.EndLine}.{e.EndColumn}"   
             
             (* // DELETE
             for vl in vls do 
@@ -182,11 +190,13 @@ type ErrorRenderer (state: InteractionState) =
                                 let geo = ErrorUtil.getSquiggleLine(rect)
                                 drawingContext.DrawGeometry(Brushes.Transparent, seg.UnderlinePen, geo)
                                 //based on //https://stackoverflow.com/questions/11149907/showing-invalid-xml-syntax-with-avalonedit
-       
-                            //let e = seg.Diagnostic in ISeffLog.log.PrintfnDebugMsg $"IBackgRe: DocLine {lnNo}: ErrLines{e.StartLine}.{e.StartColumn}-{e.EndLine}.{e.EndColumn}"   
+    
+                            //let e = seg.Diagnostic in ISeffLog.log.PrintfnDebugMsg $"IBackgroundRenderer: DocLine {lnNo}: ErrLines{e.StartLine}.{e.StartColumn}-{e.EndLine}.{e.EndColumn}"   
             *)
 
-    member _.Layer = KnownLayer.Selection// for IBackgroundRenderer
+    member _.Layer = 
+        // when drawing on Caret layer background must be disabled
+        KnownLayer.Caret// .Selection// for IBackgroundRenderer
 
     interface IBackgroundRenderer with
         member this.Draw(tv,dc) = this.Draw(tv,dc)
@@ -217,7 +227,7 @@ type ErrorHighlighter ( state:InteractionState, folds:Folding.FoldingManager) =
             ISeffLog.log.PrintfnAppErrorMsg $"FSharp Checker reported an invalid error position: e.StartColumn <= e.EndColumn:\r\n {e}"
         
         let mutable any = false
-        for lnNo = stLn to enLn do // mark all lines as a sparate segment
+        for lnNo = stLn to enLn do // mark all lines as a spararte segment
             match state.CodeLines.GetLine(lnNo,id) with 
             | ValueNone -> any <- false
             | ValueSome cln ->                

@@ -11,15 +11,6 @@ open Seff.Util.Str
 open Seff
 open System.Windows.Threading
 
-type EditorServices = {
-    folds       : Foldings
-    brackets    : BracketHighlighter
-    errors      : ErrorHighlighter
-    semantic    : SemanticHighlighter
-    compls      : Completions  
-    selection   : SelectionHighlighter
-    evalTracker : option<EvaluationTracker>
-    }
 
 module DocChangeUtil = 
    
@@ -108,6 +99,17 @@ module DocChangeUtil =
  
 module Redrawing =     
 
+    type DrawingServices = {
+        folds       : Foldings
+        compls      : Completions
+        brackets    : BracketHighlighter
+        errors      : ErrorHighlighter
+        semantic    : SemanticHighlighter
+        selection   : SelectionHighlighter
+        evalTracker : option<EvaluationTracker>
+        }
+
+
     [<Flags;RequireQualifiedAccess>]
     type ScanState =
         | None      = 0b0000000
@@ -115,67 +117,74 @@ module Redrawing =
         | Brackets  = 0b0000010
         | Semantics = 0b0000100
         | Errors    = 0b0001000
-        | All       = 0b0001111
+        | Selects   = 0b0010000
+        | All       = 0b0011111
 
-    type EventCombiner(serv:EditorServices, state:InteractionState) = 
+    type EventCombiner(services:DrawingServices, state:InteractionState) = 
         let ed = state.Editor
         let mutable scan = ScanState.None 
+
+        let priority = Windows.Threading.DispatcherPriority.Input //.Render
        
         let tryDraw(id) =             
             if scan = ScanState.All && state.IsLatest id then                 
-                scan <- ScanState.None                 
-                ed.Dispatcher.Invoke (fun() -> ed.TextArea.TextView.Redraw()) //TODO only redraw parts of the view, or lower priority ?    
-
+                scan <- ScanState.None  // this reset also happens on Editor.SetUp.Document.Changing.Add(fun _ -> ....)          
+                //eprintfn "full Transformers TextView.Redraw()"
+                ed.Dispatcher.Invoke (fun() -> ed.TextArea.TextView.Redraw(priority)) //TODO review priority. Render is default ?    
         
         let doneBadIndents(id) = scan <- scan ||| ScanState.BadIndent;  tryDraw(id)
         let doneBrackets(id)   = scan <- scan ||| ScanState.Brackets ;  tryDraw(id)             
         let doneSemantics(id)  = scan <- scan ||| ScanState.Semantics;  tryDraw(id)
         let doneErrors(id)     = scan <- scan ||| ScanState.Errors   ;  tryDraw(id)
+        let doneSels(id)       = scan <- scan ||| ScanState.Selects  ;  tryDraw(id)
 
         do            
-            serv.folds.FoundBadIndents.Add   doneBadIndents
-            serv.brackets.FoundBrackets.Add  doneBrackets 
-            serv.semantic.FoundSemantics.Add doneSemantics
-            serv.errors.FoundErrors.Add      doneErrors
-
+            services.folds.FoundBadIndents.Add   doneBadIndents
+            services.brackets.FoundBrackets.Add  doneBrackets 
+            services.semantic.FoundSemantics.Add doneSemantics
+            services.errors.FoundErrors.Add      doneErrors
+            services.selection.FoundSels.Add     doneSels
+        
+        member _.Reset() = // will be called in Editor.SetUp.Document.Changing.Add(fun _ -> ....)
+            scan <- ScanState.None 
 module DocChangeMark =     
+    open Redrawing
     
     /// milliseconds to wait before starting the first check after a change
     /// only for Single char changes
-    let mainWait = 0 
+    let mainWait = 50 
 
-    let updateAllTransformersConcurrently(iEd:IEditor, code:string, serv:EditorServices, state:InteractionState, id) = 
+    let updateAllTransformersConcurrently(iEd:IEditor, code:string, drawServ:DrawingServices, state:InteractionState, id) = 
             // first: Foldings, ColorBrackets and BadIndentation when full text available async.
             async{
                 state.CodeLines.UpdateLines(code, id)
-                if state.IsLatest id then                     
-                    serv.brackets.UpdateAllBrackets(id)
-                    if state.IsLatest id then 
-                        serv.folds.UpdateFoldsAndBadIndents(id)
+                if state.IsLatest id then   
+                    drawServ.selection.DocChangedResetTransformers(id)   |> ignore                 
+                    drawServ.brackets.UpdateAllBrackets(id)
+                    drawServ.folds.UpdateFoldsAndBadIndents(id)
              } |> Async.Start 
         
-            // second: Errors and Semantic Highlighting on check result .  
+            // second: Errors and Semantic Highlighting on FCS check result .  
             async{ 
                 match Checker.CheckCode(iEd, state, code, id, true) with // code checking does not need to wait for CodeLines.Update
                 |None -> ()
                 |Some res ->
                     if state.IsLatest id then 
-                        serv.errors.UpdateErrs(res.errors, id)
-                        if state.IsLatest id then 
-                            serv.semantic.UpdateSemHiLiTransformers( res.checkRes, id)
+                        drawServ.errors.UpdateErrs(res.errors, id)
+                        drawServ.semantic.UpdateSemHiLiTransformers( res.checkRes, id)
             
             } |> Async.Start   
     
     //To be called from any thread
-    let updateAllTransformersSync(iEd:IEditor, doc:TextDocument, serv:EditorServices, state:InteractionState, id ) =        
+    let updateAllTransformersSync(iEd:IEditor, doc:TextDocument, drawServ:DrawingServices, state:InteractionState, id ) =        
         // NOTE just checking only Partial Code till caret with (doc.CreateSnapshot(0, tillOffset).Text) 
         // would make the GetDeclarationsList method miss some declarations !!
         let code = doc.CreateSnapshot().Text // the only threadsafe way to access the code string
         if state.DocChangedId.Value = id then 
-            updateAllTransformersConcurrently (iEd, code, serv, state, id)
+            updateAllTransformersConcurrently (iEd, code, drawServ, state, id)
       
     // To be called from UI thread
-    let updateAllTransformersAsync (iEd:IEditor, serv:EditorServices, state:InteractionState, id ) =
+    let updateAllTransformersAsync (iEd:IEditor, drawServ:DrawingServices, state:InteractionState, id ) =
         let doc = iEd.AvaEdit.Document // get Doc in Sync
         async { 
             if mainWait <> 0 then do! Async.Sleep mainWait
@@ -184,11 +193,12 @@ module DocChangeMark =
                 // would make the GetDeclarationsList method miss some declarations !!
                 let code = doc.CreateSnapshot().Text // the only threadsafe way to access the code string
                 if state.IsLatest id then 
-                    updateAllTransformersConcurrently (iEd, code, serv, state, id)
+                    updateAllTransformersConcurrently (iEd, code, drawServ, state, id)
         } |> Async.Start
     
 module DocChangeCompletion = 
     open DocChangeUtil
+    open Redrawing
 
     type ShowAutocomplete = DoNothing | JustMark| ShowOnlyDU | ShowAll | ShowKeyWords 
 
@@ -367,18 +377,18 @@ module DocChangeCompletion =
         |ShowOnlyDU  -> JustDU
 
     /// for single character edits
-    let singleCharChange (iEd:IEditor, serv:EditorServices, state:InteractionState, id:int64)  =        
+    let singleCharChange (iEd:IEditor, drawServ:DrawingServices, state:InteractionState, id:int64)  =        
         let pos = getPosInCode2(iEd.AvaEdit)
         //ISeffLog.log.PrintfnDebugMsg $"singleCharChange:\r\n{pos}"
         let tx = pos.lineToCaret        
         if tx.Length = 0 then // empty line after deleting
-            DocChangeMark.updateAllTransformersAsync (iEd, serv, state, id)    
+            DocChangeMark.updateAllTransformersAsync (iEd, drawServ, state, id)    
         else
             let lastChar = tx[tx.Length-1]
             if lastChar <> '.' && state.JustCompleted then 
                 // if it is not a dot avoid re-trigger of completion window on single character completions, just check
                 state.JustCompleted <- false // reset it
-                DocChangeMark.updateAllTransformersAsync (iEd, serv, state, id)
+                DocChangeMark.updateAllTransformersAsync (iEd, drawServ, state, id)
             
             else 
                 let doc = iEd.AvaEdit.Document // get in sync
@@ -389,7 +399,7 @@ module DocChangeCompletion =
                         //ISeffLog.log.PrintfnDebugMsg $"MaybeShow.completionWindow for {lastChar} is {show}"
                         match show with 
                         |DoNothing                          -> ()
-                        |JustMark                           -> DocChangeMark.updateAllTransformersSync(iEd, doc, serv, state, id)                        
+                        |JustMark                           -> DocChangeMark.updateAllTransformersSync(iEd, doc, drawServ, state, id)                        
                         |ShowKeyWords  |ShowAll |ShowOnlyDU -> 
                             state.DocChangedConsequence <- WaitForCompletions
                             let mutable fullCode = ""
@@ -410,25 +420,25 @@ module DocChangeCompletion =
                                 // Switch to Sync and try showing completion window:
                                 do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context                            
                                 let showRestrictions = getShowRestriction show                                    
-                                let checkAndMark() = DocChangeMark.updateAllTransformersAsync (iEd, serv, state, state.DocChangedId.Value) // will be called if window closes without an insertion
-                                match serv.compls.TryShow(decls, posX, showRestrictions, checkAndMark ) with 
+                                let checkAndMark() = DocChangeMark.updateAllTransformersAsync (iEd, drawServ, state, state.DocChangedId.Value) // will be called if window closes without an insertion
+                                match drawServ.compls.TryShow(decls, posX, showRestrictions, checkAndMark ) with 
                                 |DidShow ->                                     
                                     () // no need to do anything, DocChangedConsequence will be updated to 'React' when completion window closes
                                 |NoShow -> 
                                     state.DocChangedConsequence <- React
                                     do! Async.SwitchToThreadPool()
-                                    DocChangeMark.updateAllTransformersConcurrently(iEd, fullCode, serv, state, id)
+                                    DocChangeMark.updateAllTransformersConcurrently(iEd, fullCode, drawServ, state, id)
                             |None -> 
                                 state.DocChangedConsequence <- React
                                 do! Async.SwitchToThreadPool()
                                 if fullCode="" then 
                                     fullCode <- doc.CreateSnapshot().Text
                                 if state.DocChangedId.Value = id then 
-                                    DocChangeMark.updateAllTransformersConcurrently (iEd, fullCode, serv, state, id)                            
+                                    DocChangeMark.updateAllTransformersConcurrently (iEd, fullCode, drawServ, state, id)                            
                     else   
                         // the typed character should not trigger completion.                 
                         // DocChangedConsequence is still  'React', no need to reset.
-                        DocChangeMark.updateAllTransformersSync(iEd, doc, serv, state, id)
+                        DocChangeMark.updateAllTransformersSync(iEd, doc, drawServ, state, id)
             
                 } |> Async.Start
 
@@ -436,7 +446,7 @@ module DocChangeEvents =
     open DocChangeUtil   
 
     // gets called before the document actually changes
-    let changing  (state:InteractionState) (a:DocumentChangeEventArgs) =             
+    let changing  (state:InteractionState, a:DocumentChangeEventArgs) =             
         
         // (1) increment change counter
         match state.DocChangedConsequence with 
@@ -448,8 +458,9 @@ module DocChangeEvents =
         state.FastColorizer.AdjustShifts shift
         state.ErrSegments.AdjustOneShift shift
 
+        /// (3) ed.EventCombiner.Reset() //is called in Editor.SetUp.Document.Changing.Add(fun _ -> ....) because it is not accessible from here
 
-    let changed (iEd:IEditor) (serv:EditorServices) (state:InteractionState) (eventArgs:DocumentChangeEventArgs) : unit  =  
+    let changed (iEd:IEditor) (drawServ:Redrawing.DrawingServices) (state:InteractionState) (eventArgs:DocumentChangeEventArgs) : unit  =  
         match state.DocChangedConsequence with 
         | WaitForCompletions -> 
             // Do not increment DoChangeID counter, this would cancel the showing of the completion window.
@@ -457,12 +468,13 @@ module DocChangeEvents =
             // the typed characters wil become a prefilter for the  in completion window
             ()
         | React -> 
-            let id = state.DocChangedId.Value // the increment was done before this event in Doc.Changing (not Changed) 
-            
+            let id = state.DocChangedId.Value // the increment was done before this event in Doc.Changing (not Doc.Changed) 
+                       
+
             if isASingleCharChange eventArgs then 
-                DocChangeCompletion.singleCharChange      (iEd, serv, state, id)
+                DocChangeCompletion.singleCharChange     (iEd, drawServ, state, id)
             else
-                DocChangeMark.updateAllTransformersAsync (iEd, serv, state, id)            
+                DocChangeMark.updateAllTransformersAsync (iEd, drawServ, state, id)            
 
             
     (*

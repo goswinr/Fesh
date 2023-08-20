@@ -12,6 +12,7 @@ open AvalonEditB
 open AvalonEditB.Utils
 open AvalonEditB.Document
 open AvalonLog
+open FsEx.Wpf
 
 open Seff
 open Seff.Model
@@ -85,26 +86,27 @@ type Editor private (code:string, config:Config, initialFilePath:FilePath)  =
     let evalTracker =
         if config.Settings.GetBool("TrackEvaluatedCode", false) then Some <| EvaluationTracker(avaEdit,config) else None       
 
-    let services :EditorServices = {
+    let drawServices :Redrawing.DrawingServices = {
         folds       = folds
+        compls      = compls
         brackets    = brackets
         errors      = error
         semantic    = semHiLi
-        compls      = compls 
         selection   = selHiLi
         evalTracker = evalTracker
         }
     
     //this will trigger the redraw after all async events have arrived
-    let _ = Redrawing.EventCombiner(services ,state)       
+    let eventCombiner = Redrawing.EventCombiner(drawServices ,state)       
 
     do  
         SyntaxHighlighting.setFSharp(avaEdit,false) 
-      
-    
+
+    member _.EventCombiner = eventCombiner  
+        
     member _.State = state    
     
-    member _.Services = services 
+    member _.DrawingServices = drawServices 
  
     member val TypeInfoTip = new Controls.ToolTip(IsOpen=false)  
 
@@ -120,10 +122,7 @@ type Editor private (code:string, config:Config, initialFilePath:FilePath)  =
 
     member _.Search = search    
     
-    /// This function will be set below in SetUp static member of Editor.
-    /// It is used to highlight text in the editor , for example to match the current selection in Log.
-    member val HighlightText = fun (t:string) -> () with get, set 
-
+    
     // IEditor members:       
     member _.AvaEdit = avaEdit
     
@@ -165,15 +164,27 @@ type Editor private (code:string, config:Config, initialFilePath:FilePath)  =
         
         let rulers =  new ColumnRulers(avaEdit) // draw last , so on top? do foldings first
 
+        let closeToolTips() = 
+            ed.TypeInfoTip.IsOpen <- false
+            ed.DrawingServices.errors.ToolTip.IsOpen <- false
+
+        ed.Completions.OnShowing.Add(fun _ ->                         closeToolTips() )
+        avaEdit.TextArea.TextEntering.Add (fun _ ->                   closeToolTips() )// close type info on typing
+        avaEdit.KeyDown.Add ( fun k -> match k.Key with Key.Escape -> closeToolTips() |_ -> ()) // close tooltips on Escape key
+        avaEdit.TextArea.TextView.MouseHoverStopped.Add(fun _ ->      closeToolTips() )
+
         //----------------------------------------------------
         //--React to doc changes and add Line transformers----
         //----------------------------------------------------
         
 
-        avaEdit.Document.Changing.Add(DocChangeEvents.changing ed.State)
+        avaEdit.Document.Changing.Add(fun args -> 
+            ed.EventCombiner.Reset()
+            DocChangeEvents.changing (ed.State, args)
+            )
 
-        avaEdit.Document.Changed.Add (DocChangeEvents.changed  ed ed.Services ed.State)
-        avaEdit.Document.Changed.Add(fun a -> match ed.Services.evalTracker with Some et -> et.SetLastChangeAt a.Offset | None -> ())
+        avaEdit.Document.Changed.Add (DocChangeEvents.changed  ed ed.DrawingServices ed.State)
+        avaEdit.Document.Changed.Add(fun a -> match ed.DrawingServices.evalTracker with Some et -> et.SetLastChangeAt a.Offset | None -> ())
         //avaEdit.Document.Changed.Add(fun a -> DocChangeEvents.logPerformance( a.InsertedText.Text)) // AutoHotKey SendInput of ßabcdefghijklmnopqrstuvwxyz£
                  
         //avaEdit.TextArea.TextView.LineTransformers.Add(new DebugColorizer())  // for debugging the line transformers
@@ -181,17 +192,20 @@ type Editor private (code:string, config:Config, initialFilePath:FilePath)  =
 
         // check if closing and inserting from completion window is desired with currently typed character:
         avaEdit.TextArea.TextEntering.Add (compls.MaybeInsertOrClose)
-        avaEdit.TextArea.TextEntering.Add (fun _ -> ed.TypeInfoTip.IsOpen <- false )// close type info on typing
-           
-
-        compls.OnShowing.Add(fun _ -> ed.ErrorHighlighter.ToolTip.IsOpen <- false)
-        compls.OnShowing.Add(fun _ -> ed.TypeInfoTip.IsOpen              <- false)
+        
         ed.TypeInfoTip.SetValue(Controls.ToolTipService.InitialShowDelayProperty, 50) // this delay is also set in Initialize.fs
-        avaEdit.KeyDown.Add (fun k -> match k.Key with |Key.Escape -> ed.TypeInfoTip.IsOpen <- false ; ed.ErrorHighlighter.ToolTip.IsOpen <- false |_ -> ()) // close tooltips on Escape key
+        
         
         // Mouse Hover:
         avaEdit.TextArea.TextView.MouseHover.Add(fun e -> TypeInfo.mouseHover(e, ed, ed.TypeInfoTip))
-        avaEdit.TextArea.TextView.MouseHoverStopped.Add(fun _ -> ed.TypeInfoTip.IsOpen <- false )
+        
+
+        // to clear selection highlighter marks first , before opening the search window. if they would be the same as the search word.
+        // creating a new command binding for 'ApplicationCommands.Find' would remove the existing one. so we add to the delegate instead
+        for binding in avaEdit.TextArea.CommandBindings do
+            if  binding.Command = ApplicationCommands.Find    then   binding.Executed.Add(fun _ -> closeToolTips();ed.SelectionHighlighter.ClearMarksIfOneSelected())
+            if  binding.Command = ApplicationCommands.Replace then   binding.Executed.Add(fun _ -> closeToolTips();ed.SelectionHighlighter.ClearMarksIfOneSelected())
+            
 
         ed
         

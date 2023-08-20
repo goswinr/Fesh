@@ -30,7 +30,7 @@ type SemActions() =
     let c_MutableRecordField           = freeze <| Brushes.Goldenrod     |> darker 20
     let c_Module                       = freeze <| Brushes.Black
     let c_Namespace                    = freeze <| Brushes.Black  
-    //let c_Printf                       = freeze <| Brushes.Plum      // covered by xshd highligthing
+    //let c_Printf                       = freeze <| Brushes.Plum      // covered by xshd highlighting
     let c_ComputationExpression        = freeze <| Brushes.Indigo
     let c_IntrinsicFunction            = freeze <| Brushes.DarkBlue
     let c_Enumeration                  = freeze <| Brushes.Indigo
@@ -54,7 +54,7 @@ type SemActions() =
     let c_NamedArgument                = freeze <| Brushes.PaleVioletRed |> darker 80
     let c_Value                        = freeze <| Brushes.DarkRed       |> darker 20
     let c_LocalValue                   = freeze <| Brushes.DarkRed       |> darker 40
-    let c_TypeDef                      = freeze <| Brushes.Thistle       |> darker 50
+    let c_TypeDef                      = freeze <| Brushes.Purple       
     let c_Plaintext                    = freeze <| Brushes.OrangeRed     |> darker 60   
                                         
     let c_UnUsed                       = freeze <| Brushes.Gray |> brighter 40 

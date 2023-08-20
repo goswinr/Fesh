@@ -57,9 +57,9 @@ module PopOut =
             lastLocation <- Some(w.Left,w.Top)        
 
     let create(grid:TabsAndLog, statusBar:SeffStatusBar) = 
-        let parent = grid.Window.Window        
+        let parent = grid.SeffWindow.Window        
         let ed = grid.Tabs.Current.Editor
-        if statusBar.CheckerStatus.IsMouseOver || ed.ErrorHighlighter.ToolTip.IsOpen then
+        if statusBar.CheckerStatus.IsMouseOver || ed.DrawingServices.errors.ToolTip.IsOpen then
             match statusBar.CheckerStatus.ToolTip with
                 | :? ToolTip as tt -> 
                     match tt.Content with 

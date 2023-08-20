@@ -32,7 +32,7 @@ type Commands (grid:TabsAndLog, statusBar:SeffStatusBar)  =
     let evalAllTextSave()      =               tabs.SaveAsync(tabs.Current); fsi.Evaluate {editor=curr(); amount=All; logger=None; scriptName=fName()}
     let evalAllTextSaveClear() =  log.Clear(); tabs.SaveAsync(tabs.Current); fsi.Evaluate {editor=curr(); amount=All; logger=None; scriptName=fName()}
     let evalContinue()         =  (if curr().FilePath.ExistsAsFile then tabs.SaveAsync(tabs.Current)); fsi.Evaluate {editor=curr(); amount=ContinueFromChanges; logger=None; scriptName=fName()}
-    let markEvaluated()        =  match curr().Services.evalTracker with |Some et -> et.MarkEvaluatedTillOffset(Selection.currentLineEnd tabs.CurrAvaEdit + 2 ) |None -> ()
+    let markEvaluated()        =  match curr().DrawingServices.evalTracker with |Some et -> et.MarkEvaluatedTillOffset(Selection.currentLineEnd tabs.CurrAvaEdit + 2 ) |None -> ()
 
     let evalSelectedLines()    =  fsi.Evaluate {editor=curr(); amount = FsiSegment <|SelectionForEval.expandSelectionToFullLines(tabs.CurrAvaEdit) ; logger=None; scriptName=fName()}
     let evalSelectedText()     =  fsi.Evaluate {editor=curr(); amount = FsiSegment <|SelectionForEval.current (tabs.CurrAvaEdit)                   ; logger=None; scriptName=fName()}   // null or empty check is done in fsi.Evaluate
@@ -261,14 +261,12 @@ type Commands (grid:TabsAndLog, statusBar:SeffStatusBar)  =
                                         // TODO check for memory leaks: https://github.com/icsharpcode/AvalonEdit/blame/master/ICSharpCode.AvalonEdit/Editing/TextAreaDefaultInputHandlers.cs#L71-L79
 
                     |]
-                grid.Window.Window.InputBindings.AddRange (bindings)
+                grid.SeffWindow.Window.InputBindings.AddRange (bindings)
 
                 // to no redirect alt to the menu bar :
                 grid.Tabs.Control.InputBindings.Add (InputBinding(this.RunSelectedText.cmd, KeyGesture(Key.Return , ModifierKeys.Alt))) |> ignore
                 grid.Tabs.Control.InputBindings.Add (InputBinding(this.RunSelectedText.cmd, KeyGesture(Key.Enter  , ModifierKeys.Alt))) |> ignore
             with e ->
                 log.PrintfnAppErrorMsg "*AllInputBindings: failed to create keyboard shortcuts: %A"e
-
-
 
 

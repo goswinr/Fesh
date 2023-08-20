@@ -276,7 +276,7 @@ type TypeInfo private () =
                 //eprintf $"{t}"
                 //printfn "'"
                 let txt = 
-                    if parentName="para" then // don't trim oneliners inside a para tag to keep ascii art from RhinoCommon.xml
+                    if parentName="para" then // don't trim one-liner inside a para tag to keep ASCII art from RhinoCommon.xml
                         t
                     else
                         match trim with
@@ -303,7 +303,7 @@ type TypeInfo private () =
                     for i=lasti downto 0 do 
                         let nextTrim = 
                             if   i=lasti && i = 0 then Trim.Both
-                            elif i=lasti          then Trim.Start // lasti will be first Texr Run
+                            elif i=lasti          then Trim.Start // lasti will be first Text Run
                             elif            i = 0 then Trim.End   // index 0 wil be last Text Run
                             else                       Trim.No
                         //printfn $"i:{i} , lasti:{lasti} {nextTrim}: {childs[i]}"
