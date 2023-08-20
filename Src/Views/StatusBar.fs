@@ -56,37 +56,38 @@ type CheckerStatus (grid:TabsAndLog) as this =
         let wak = es.warnings.Count
         let ink = es.infos.Count
         let hik = es.hiddens.Count
+        let maxShowCount = 5 // for each typ of error, the maximum number of errors to show
         makePanelVert [
             if erk>0 then
                 if addPersistInfo then TextBlock(Text = "Click on text in statusbar or press Ctrl + E keys to scroll to first error.", FontSize = StyleState.fontSize * 0.75, FontStyle = FontStyles.Italic, Margin=Thickness 3.0)
                 if addPersistInfo then TextBlock(Text = "Press Ctrl + P to persist this tooltip window.", FontSize = StyleState.fontSize * 0.75, FontStyle = FontStyles.Italic, Margin=Thickness 3.0)                
                 TextBlockSelectable(Text = "File: " + tabs.Current.FormattedFileName, FontSize = StyleState.fontSize * 0.8, Margin=Thickness 3.0 , TextWrapping = TextWrapping.Wrap)
                 TextBlock(Text = "Errors:", FontSize = StyleState.fontSize , FontWeight = FontWeights.Bold )
-            for e in Seq.truncate 10 es.errors do
+            for e in Seq.truncate maxShowCount es.errors do
                 TextBlockSelectable(Text = sprintf "• line %d: %s: %s" e.StartLine e.ErrorNumberText e.Message, FontSize = StyleState.fontSize * 0.9, Margin=Thickness 3.0 , TextWrapping = TextWrapping.Wrap)
-            if erk > 10 then
-                TextBlock(Text = sprintf "• and %d more ..." (erk-10), FontSize = StyleState.fontSize * 0.9)
+            if erk > maxShowCount then
+                TextBlock(Text = sprintf "• and %d more ..." (erk-maxShowCount), FontSize = StyleState.fontSize * 0.9)
 
             if wak>0 then
                 TextBlock(Text="Warnings:", FontSize = StyleState.fontSize , FontWeight = FontWeights.Bold )
-            for w in Seq.truncate 10 es.warnings do
+            for w in Seq.truncate maxShowCount es.warnings do
                 TextBlockSelectable(Text = sprintf "• line %d: %s: %s" w.StartLine w.ErrorNumberText w.Message, FontSize = StyleState.fontSize * 0.9, Margin=Thickness 3.0 , TextWrapping = TextWrapping.Wrap)
-            if wak > 10 then
-                TextBlock(Text = sprintf "• and %d more ..." (wak-10), FontSize = StyleState.fontSize * 0.9)  
+            if wak > maxShowCount then
+                TextBlock(Text = sprintf "• and %d more ..." (wak-maxShowCount), FontSize = StyleState.fontSize * 0.9)  
                 
             if ink>0 then
                 TextBlock(Text="Infos:", FontSize = StyleState.fontSize , FontWeight = FontWeights.Bold )
-            for i in Seq.truncate 10 es.infos do
+            for i in Seq.truncate maxShowCount es.infos do
                 TextBlockSelectable(Text = sprintf "• line %d: %s: %s" i.StartLine i.ErrorNumberText i.Message, FontSize = StyleState.fontSize * 0.9, Margin=Thickness 3.0, TextWrapping = TextWrapping.Wrap )
-            if ink > 10 then
-                TextBlock(Text = sprintf "• and %d more ..." (ink-10), FontSize = StyleState.fontSize * 0.9)  
+            if ink > maxShowCount then
+                TextBlock(Text = sprintf "• and %d more ..." (ink-maxShowCount), FontSize = StyleState.fontSize * 0.9)  
             
             if hik>0 then
                 TextBlock(Text="Hidden Infos:", FontSize = StyleState.fontSize , FontWeight = FontWeights.Bold )
-            for h in Seq.truncate 10 es.hiddens do
+            for h in Seq.truncate maxShowCount es.hiddens do
                 TextBlockSelectable(Text = sprintf "• line %d: %s: %s" h.StartLine h.ErrorNumberText h.Message, FontSize = StyleState.fontSize * 0.9, Margin=Thickness 3.0, TextWrapping = TextWrapping.Wrap )
-            if hik > 10 then
-                TextBlock(Text = sprintf "• and %d more ..." (ink-10), FontSize = StyleState.fontSize * 0.9)  
+            if hik > maxShowCount then
+                TextBlock(Text = sprintf "• and %d more ..." (ink-maxShowCount), FontSize = StyleState.fontSize * 0.9)  
             ]
 
 

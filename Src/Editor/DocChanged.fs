@@ -349,9 +349,10 @@ module DocChangeCompletion =
                 if isCaretInComment ln then 
                     if last = '/' then 
                         JustMark // to make sure comment was not just typed (then still check)
-                    else 
+                    else
                         // ISeffLog.log.PrintfnDebugMsg " DoNothing because isCaretInComment: %s" ln
                         // DoNothing, we are typing somewhere in a comment
+                        // TODO! because of this changing a text in a comment is not immediately picked up by selection highlighter (if present). only after another change in the code.
                         DoNothing 
                 else
                     let inStr = not <| NotInQuotes.isLastCharOutsideQuotes ln                     
@@ -470,7 +471,6 @@ module DocChangeEvents =
         | React -> 
             let id = state.DocChangedId.Value // the increment was done before this event in Doc.Changing (not Doc.Changed) 
                        
-
             if isASingleCharChange eventArgs then 
                 DocChangeCompletion.singleCharChange     (iEd, drawServ, state, id)
             else

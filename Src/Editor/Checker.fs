@@ -241,7 +241,7 @@ type Checker private ()  =
     /// for a given method name returns a list of optional argument names
     static member OptArgsDict = optArgsDict
 
-    /// Returns None if check failed or was superseeded by a newer Document chanage ID
+    /// Returns None if check failed or was superseded by a newer Document change ID
     static member CheckCode(iEd:IEditor, state:InteractionState, code, changeId, raiseEvent) : option<FullCheckResults>=        
         raiseStateChangedEvent <- raiseEvent
         updateCheckingState iEd Checking            

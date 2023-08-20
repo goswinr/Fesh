@@ -35,20 +35,18 @@ module ErrorUtil =
         let ins  = ResizeArray()  // Infos        
         let his  = ResizeArray()  // Hidden
         let erWs = ResizeArray()  // Errors and Warnings
-        for e in checkRes.Diagnostics do
-            match e.Severity with
-            | FSharpDiagnosticSeverity.Error   -> ers.Add e ; erWs.Add e
-            | FSharpDiagnosticSeverity.Warning -> was.Add e ; erWs.Add e
-            | FSharpDiagnosticSeverity.Hidden  -> his.Add e
-            | FSharpDiagnosticSeverity.Info    -> if e.ErrorNumber <> 3370 then ins.Add e   //  exclude infos about ref cell incrementing ??
-
-        // make sure they are sorted , the tools below will then truncate this list to only mark the first 9 or so errors in the UI (for performance)
-        was.Sort( fun x y -> Operators.compare x.StartLine y.StartLine)
-        ers.Sort( fun x y -> Operators.compare x.StartLine y.StartLine)
-        ins.Sort( fun x y -> Operators.compare x.StartLine y.StartLine)
-        his.Sort( fun x y -> Operators.compare x.StartLine y.StartLine)
-        erWs.Sort(fun x y -> Operators.compare x.StartLine y.StartLine)
-        //printfn $"Errors: {ers.Count} Warnings: {was.Count} Infos: {ins.Count} Hidden: {his.Count} "
+        let all = checkRes.Diagnostics |> Array.sortBy( fun e -> e.StartLine) // sort before filtering out duplicates
+        for i = 0 to all.Length - 1 do
+            let  e = all.[i]
+            if i=0 // to filter out duplicate errors, a bug in FCS !
+            ||( let p = all.[i-1] in p.StartLine <> e.StartLine || p.StartColumn <> e.StartColumn || p.EndLine <> e.EndLine || p.EndColumn <> e.EndColumn) then                             
+                match e.Severity with
+                | FSharpDiagnosticSeverity.Error   -> ers.Add e ; erWs.Add e
+                | FSharpDiagnosticSeverity.Warning -> was.Add e ; erWs.Add e
+                | FSharpDiagnosticSeverity.Hidden  -> his.Add e
+                | FSharpDiagnosticSeverity.Info    -> if e.ErrorNumber <> 3370 then ins.Add e   //  exclude infos about ref cell incrementing ??
+        
+        //printfn $"Errors: {ers.Count} Warnings: {was.Count} Infos: {insCount} Hidden: {his.Count} "
         { errors = ers; warnings = was; infos = ins; hiddens = his; errorsAndWarnings = erWs }
 
     let linesStartAtOne i = if i<1 then 1 else i 

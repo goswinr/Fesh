@@ -253,7 +253,7 @@ type Tabs(config:Config, log:Log,seffWin:SeffWindow) =
                 let nameLines = 
                     match t.Editor.FilePath with
                     |Deleted _ ->  " xx " // excluded above
-                    |SetTo p ->  $"\r\n{p.Name}\r\nat\r\n{p.DirectoryName}\r\n"
+                    |SetTo p ->  $"\r\n{p.Name}\r\n\r\n({p.DirectoryName})\r\n"
                     |NotSet dummyName -> $"\r\n{dummyName}\r\n"                
                 
                 match MessageBox.Show(

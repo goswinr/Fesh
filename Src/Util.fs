@@ -313,7 +313,7 @@ module Str  =
             if ende = -1 then s,"",""
             else
                 s.Substring(0, start ),
-                s.Substring(start + startChar.Length, ende - start - startChar.Length),// finds text betwween two chars
+                s.Substring(start + startChar.Length, ende - start - startChar.Length),// finds text between two chars
                 s.Substring(ende + endChar.Length)
 
     /// finds text between two strings
@@ -422,7 +422,7 @@ module NotInQuotes =
     /// for starting to search from outside quotes. 
     /// test if a string contains a string from the end 
     /// but ignore everything that is between double quotes(skipping escaped quotes).
-    /// before caling this make sure isLastCharOutsideQuotes is true
+    /// before calling this make sure isLastCharOutsideQuotes is true
     let lastIndexOfFromOutside (find:string) (txt:string)= 
         //printf $"find '{find}' in '{txt}'"
         let rec loop fromIdx =         
