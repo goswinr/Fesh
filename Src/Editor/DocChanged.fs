@@ -159,7 +159,7 @@ module DocChangeMark =
             async{
                 state.CodeLines.UpdateLines(code, id)
                 if state.IsLatest id then   
-                    drawServ.selection.DocChangedResetTransformers(id)   |> ignore                 
+                    drawServ.selection.DocChangedResetTransformers(id)             
                     drawServ.brackets.UpdateAllBrackets(id)
                     drawServ.folds.UpdateFoldsAndBadIndents(id)
              } |> Async.Start 

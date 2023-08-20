@@ -142,7 +142,7 @@ type ErrorRenderer (state: InteractionState) =
         //    at AvalonEditB.Editing.CaretLayer.OnRender(DrawingContext drawingContext)
         //    at System.Windows.UIElement.Arrange(Rect finalRect)
         //    at System.Windows.ContextLayoutManager.UpdateLayout()
-        if textView.VisualLinesValid then //to avoid above error.
+        //if textView.VisualLinesValid then //to avoid above error.
             let vls = textView.VisualLines                
             let fromLine = vls[0].FirstDocumentLine.LineNumber
             let toLine   = vls[vls.Count-1].LastDocumentLine.LineNumber

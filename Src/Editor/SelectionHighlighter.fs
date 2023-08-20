@@ -57,6 +57,8 @@ type SelectionHighlighter (state:InteractionState) =
     let mutable lastSels = ResizeArray<int>()  
     let mutable reactToSelChange = true
     let mutable prevRange: (LinePartChange*LinePartChange) option = None
+
+    let selChangeId = ref 0L
     
     let ed = state.Editor  
 
@@ -83,20 +85,19 @@ type SelectionHighlighter (state:InteractionState) =
     
 
     let justClear(triggerNext) =
-        if lastSels.Count > 0 then // to only clear once, then not again
+        if lastSels.Count > 0  then // to only clear once, then not again
             //eprintfn $"justClear"
             lastWord <- ""
             lastSkipOff <- MarkAll
             lastSels.Clear()
             prevRange <- None
-            let trans = state.TransformersSelection
+            let trans = state.TransformersSelection            
             async{                 
                 let thisRange = trans.Range                 
                 do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context   
                 match thisRange with 
                 | None   ->  ()                   
-                    // TODO ? still trigger event to clear the selection in StatusBar if it is just a selection without any highlighting(e.g. multiline)   
-
+                    // TODO ? still trigger event to clear the selection in StatusBar if it is just a selection without any highlighting(e.g. multiline) 
                 | Some (f,l) ->                
                     trans.Update(empty)// using empty array                               
                     for f in state.FoldManager.AllFoldings do f.BackgroundColor <- null  
@@ -161,16 +162,30 @@ type SelectionHighlighter (state:InteractionState) =
 
 
     // Called from StatusBar to highlight the current selection of Log in Editor too    
-    let redrawMarking (word:string, skipOff: SkipMarking, triggerNext:bool) =
+    let redrawMarking (word:string, skipOff: SkipMarking, triggerNext:bool, selId) =
         let id = state.DocChangedId.Value
         lastWord <- word
         lastSkipOff <- skipOff
         // lastSels <- offs is set in setTransformers
 
-        //eprintfn $"search in '{state.CodeLines.FullCode}'" //TODO: text typed on the last line after a comment might be missing somehow!
-        
         async{
-            if setTransformers(!state.DocChangedId) then                 
+            if setTransformers(!state.DocChangedId) && selId = !selChangeId  then                 
+                // (1) If there is a Editor selection but skipOff is set to MarkAll 
+                // , because the mark call is coming from the Log selection, 
+                // then clear the this editor selection, because it will not match the word to highlight from Log. 
+                match skipOff with
+                | SkipOffset _-> ()
+                | MarkAll -> 
+                    match Selection.getSelType ed.TextArea with 
+                    |NoSel   -> ()
+                    |RectSel 
+                    |RegSel  ->
+                        do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context 
+                        reactToSelChange <- false // to not trigger a selection changed event 
+                        ed.TextArea.ClearSelection()                            
+                        reactToSelChange <- true 
+                
+                // (2) get ranges to redraw
                 let thisRange = state.TransformersSelection.Range              
                 let redrawRange = // get range to redraw
                     match  prevRange, thisRange with 
@@ -185,23 +200,8 @@ type SelectionHighlighter (state:InteractionState) =
                     | Some (pf,pl),Some (f,l) ->   // both prev and current version have a selection                    
                         SelRange(  min pf.from f.from, max pl.till l.till)                
                 
-
-                // (2) If there is a Editor selection but skipOff is set to MarkAll 
-                // , because the mark call is coming from the Log selection, 
-                // then clear the this editor selection, because it will not match the word to highlight from Log. 
-                match skipOff with
-                | SkipOffset _-> ()
-                | MarkAll -> 
-                    match Selection.getSelType ed.TextArea with 
-                    |NoSel   -> ()
-                    |RectSel 
-                    |RegSel  ->
-                        do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context 
-                        reactToSelChange <- false // to not trigger a selection changed event 
-                        ed.TextArea.ClearSelection()                            
-                        reactToSelChange <- true                
                                 
-                //(3) redraw statusbar and editor
+                //(3) redraw statusbar and editor in range
                 match redrawRange with               
                 | NoSelRedraw -> ()
 
@@ -222,10 +222,11 @@ type SelectionHighlighter (state:InteractionState) =
             
         }|> Async.Start
      
-    let updateToCurrentSelection() = 
+    let updateToCurrentSelection() =         
         if reactToSelChange // in case the log request the clearing of a current selection
         && ed.TextArea.IsFocused then  // check IsFocused to not react to selections via the search bar!! // TextView.IsFocused  does not work
-            //eprintfn $"updateToCurrentSelection()"
+            let newSelId = Threading.Interlocked.Increment selChangeId
+            
             match Selection.getSelType ed.TextArea with 
             |RectSel -> justClear(true) 
             |RegSel  -> 
@@ -235,26 +236,31 @@ type SelectionHighlighter (state:InteractionState) =
                     let word = ed.SelectedText
                     if isTextToHighlight word then  //is at least two chars and has no line breaks
                         let skip = SkipOffset ed.SelectionStart                    
-                        redrawMarking(word, skip, true)
+                        redrawMarking(word, skip, true,newSelId)
                     else
                         justClear(true)
             
             // keep highlighting if the cursor is just moved ?
             |NoSel   -> // justClear(true)
-                if lastWord <> "" && lastSkipOff <> MarkAll then  // if lastSelOffset = -1 then all words are highlighted there is no change to highlighting needed
-                    redrawMarking(lastWord, MarkAll, true) // keep highlighting and add the word that was selected before
+                if lastWord <> "" && lastSkipOff <> MarkAll then  // if lastSkipOff = MarkAll then all words are highlighted there is no change to highlighting needed
+                    redrawMarking(lastWord, MarkAll, true,newSelId) // keep highlighting and add the word that was selected before
         
         
     do         
-        ed.TextArea.SelectionChanged.Add ( fun _ -> updateToCurrentSelection() ) 
-        
-        // Not needed for Editor because any cursor changes or typing will always trigger the selection change event:
-        // ed.Document.Changed.Add (fun _ ->  ) 
+        ed.TextArea.SelectionChanged.Add ( fun _ -> updateToCurrentSelection() )  
+        // ed.Document.Changed.Add (fun _ ->  ) will call DocChangedResetTransformers from DocChanged.fs
 
-    
+    [<CLIEvent>] 
     member _.FoundSels = selTransformersSetEv.Publish // used in EventCombiner
 
-    member _.DocChangedResetTransformers(id) = setTransformers(id)
+    member _.DocChangedResetTransformers(id) = 
+        let k = lastSels.Count
+        if setTransformers(id) && lastSels.Count <> k then // do only if the selection count changed
+            async{ 
+                do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context   
+                globalFoundSelectionEditorEv.Trigger(false) // redraw statusbar
+            } |> Async.Start
+
 
     member _.ClearMarksIfOneSelected() = // to be used when the search panel opens        
         match lastSkipOff with
@@ -270,7 +276,7 @@ type SelectionHighlighter (state:InteractionState) =
     /// Called from StatusBar to highlight the current selection of Log in Editor too   
     member _.RedrawMarksInEditor(word) = 
         if isTextToHighlight word then // isTextToHighlight is needed , word might be empty string
-            redrawMarking(word, MarkAll, false)
+            redrawMarking(word, MarkAll, false, !selChangeId)
         else 
             justClear(false) 
 
@@ -315,7 +321,6 @@ type SelectionHighlighterLog (lg:TextEditor) =
                     //for f in state.FoldManager.AllFoldings do f.BackgroundColor <- null  // no folds in Log !!
                     lg.TextArea.TextView.Redraw(f.from, l.till, priority)                
                 foundSelectionLogEv.Trigger(triggerNext)
-
             } |> Async.Start
     
     // Called from StatusBar to highlight the current selection of Editor in Log too   
@@ -444,16 +449,15 @@ type SelectionHighlighterLog (lg:TextEditor) =
                     else
                         justClear(true)
             
-            // keep highlighting if the cursor is just moved ?
+            // keep highlighting if the cursor is just repositioned, but nothing selected:
             |NoSel  -> // justClear(true)
                 if lastWord <> "" && lastSkipOff <> MarkAll then  // if lastSkipOff = MarkAll then all words are highlighted. there is no change to highlighting needed
                     mark(lastWord, MarkAll, true) // keep highlighting and add the word that was selected before
-
    
     do         
         lg.TextArea.TextView.LineTransformers.Insert(0, colorizer) // insert at index 0 so that it is drawn first, so that text color is overwritten the selection highlighting
         
-        lg.TextArea.SelectionChanged.Add ( fun _ -> updateToCurrentSelection()  )        
+        lg.TextArea.SelectionChanged.Add ( fun _ -> updateToCurrentSelection() )        
         
         lg.Document.Changing.Add (fun _ -> 
             Threading.Interlocked.Increment logChangeID |> ignore
@@ -463,10 +467,10 @@ type SelectionHighlighterLog (lg:TextEditor) =
         lg.Document.Changed.Add (fun _ -> // redraw highlighting because new text to highlight might get printed to log
             if lastWord <> "" then  
                 mark(lastWord, lastSkipOff, false) // using lastSkipOff is OK for Log because if there is a selection in the Log the text in a selection can not move or be deleted
-            )
-    
+            )    
 
     member _.Word    = lastWord 
+
     member _.Offsets = lastSels 
     
     member _.Clear() = justClear(true) // used when search panel gets opened

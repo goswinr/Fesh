@@ -118,7 +118,7 @@ module ParseBrackets =
                     Int32.MaxValue
 
             let rec skipMultiLineComment chr  i :int =
-                if i+1 < lastIdx then                    
+                if i+1 <= lastIdx then                    
                     let next = code[i+1]
                     match chr , next with 
                     | '*' ,')'    -> i+2 // first char after multiline comment                    
@@ -140,7 +140,7 @@ module ParseBrackets =
                     | jj             -> if jj <= lastIdx then charLoop code[jj] jj else  RegCode
                 
                 
-                if i > lastIdx then 
+                if i > lastIdx then // exit loop, end of line reached
                     //eprintfn $"i{i} > lastIdx{lastIdx} is unexpected: prevState{prevState}"
                     RegCode
 
@@ -154,10 +154,10 @@ module ParseBrackets =
                     | '}' -> pushExit ClCurly
                     |  _  -> RegCode // just exit loop
                 
-                else 
+                else // i < lastIdx
                     let next = code[i+1] 
                     match chr,next with 
-                    | '/','/' -> RegCode // a comment starts,  exit loop                    
+                    | '/','/' -> RegCode // a comment starts, don't parse rest of line,  exit loop                    
                     | '(','*' -> skipMultiLineComment next (i+1) |> flowOnOrOver MultiLineComment                                                  
                     
                     | '{','|' -> pushTwo OpAnRec
@@ -200,7 +200,7 @@ module ParseBrackets =
                 | RegCode          -> charLoop              code[firstIdx] firstIdx
                 | SimpleString     -> skipString            code[firstIdx] firstIdx |> flowOnOrOver SimpleString 
                 | RawAtString      -> skipRawAtString       code[firstIdx] firstIdx |> flowOnOrOver RawAtString
-                | MultiLineComment     -> skipMultiLineComment  code[firstIdx] firstIdx |> flowOnOrOver MultiLineComment
+                | MultiLineComment -> skipMultiLineComment  code[firstIdx] firstIdx |> flowOnOrOver MultiLineComment
                 | RawTripleString  -> 
                     if firstIdx < lastIdx then skipRawTrippleString code[firstIdx] code[firstIdx+1] firstIdx |> flowOnOrOver RawTripleString
                     else RawTripleString           
@@ -211,7 +211,7 @@ module ParseBrackets =
             if lnNo > lns.LastLineIdx then 
                 Some brss // looped till end
             else                
-                match lns.GetLine(lnNo,id) with
+                match lns.GetLine(lnNo, id) with
                 |ValueNone -> None // loop aborted
                 |ValueSome l -> 
                     let brs = new ResizeArray<Bracket>()

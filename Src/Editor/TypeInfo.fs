@@ -77,12 +77,13 @@ type TypeInfo private () =
     static let coloredSignature(td:ToolTipData): TextBlockSelectable = 
         let tb = TextBlockSelectable()
         tb.Foreground <- black
-        tb.FontSize   <- StyleState.fontSize * 1.2
+        tb.FontSize   <- StyleState.fontSize * 1.0 // prev 1.2
         tb.FontFamily <- StyleState.fontToolTip
+        tb.TextWrapping <- TextWrapping.Wrap
         let ts = td.signature
         let mutable len = 0        
         
-        let inline lengthCeck() =
+        let inline lengthCheck() =
             if len > maxCharInSignLine then
                 tb.Inlines.Add( new Run("\r\n    "))
                 len <- 0              
@@ -93,7 +94,7 @@ type TypeInfo private () =
 
             match t.Tag with
             | TextTag.Parameter ->
-                lengthCeck()              
+                lengthCheck()              
                 // if a parameter is optional add a question mark to the signature
                 match ts.[i-1].Text with
                 |"?" ->  tb.Inlines.Add( new Run(t.Text , Foreground = gray)) // sometimes optional arguments have already a question mark but not always
@@ -103,7 +104,7 @@ type TypeInfo private () =
                     | None    ->  tb.Inlines.Add( new Run(t.Text     , Foreground = black ))
 
             | TextTag.Keyword ->                
-                lengthCeck() 
+                lengthCheck() 
                 tb.Inlines.Add( new Run(t.Text, Foreground = blue))
 
             | TextTag.Punctuation->
@@ -192,7 +193,7 @@ type TypeInfo private () =
         | i  -> s
     
 
-    // removes the first line return if it is only preceeded by whitespace
+    // removes the first line return if it is only preceded by whitespace
     static let trimStartIfHasRet (s:string) = 
         let rec loop i = 
             if i = s.Length then 
@@ -413,7 +414,7 @@ type TypeInfo private () =
                     //else                    assemblies.Add(ass) |> ignore
                     subAdd <| mainXmlBlock (node, td)
                 |Error errTxt  ->
-                    subAdd<|  TextBlockSelectable(Text = errTxt, FontSize = StyleState.fontSize  * 0.75 , FontFamily = StyleState.fontToolTip, Foreground = gray )                   
+                    subAdd<|  TextBlockSelectable(Text = errTxt, TextWrapping = TextWrapping.Wrap, FontSize = StyleState.fontSize  * 0.75 , FontFamily = StyleState.fontToolTip, Foreground = gray )                   
                 
                 let border = Border()
                 border.Child <- subPanel
@@ -425,8 +426,7 @@ type TypeInfo private () =
             
             // add full name:
             if td.fullName<>"" then 
-                let tb = new TextBlockSelectable()     
-                //tb.Inlines.Add( new Run("Full name: ",  Foreground = darkgray))
+                let tb = new TextBlockSelectable()
                 tb.Inlines.Add( new Run(td.fullName  ,  Foreground = darkblue))
                 tb.Foreground <- darkblue
                 tb.FontSize <- StyleState.fontSize  * 1.0
@@ -450,6 +450,7 @@ type TypeInfo private () =
                     let tb = TextBlockSelectable(Text= "assembly path: " + f)
                     tb.FontSize <- StyleState.fontSize  * 0.85
                     tb.Foreground <-black
+                    tb.TextWrapping <- TextWrapping.Wrap
                     //tb.FontFamily <- new FontFamily ("Arial") // or use default of device
                     add tb 
         
@@ -461,6 +462,7 @@ type TypeInfo private () =
                     let tb = TextBlockSelectable(Text = sprintf "defined at: %s  Line:%d" f r.StartLine)
                     tb.FontSize <- StyleState.fontSize  * 0.85
                     tb.Foreground <-black
+                    tb.TextWrapping <- TextWrapping.Wrap
                     //tb.FontFamily <- new FontFamily ("Arial") // or use default of device
                     add tb 
                 
