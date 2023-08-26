@@ -131,13 +131,13 @@ type Sc = SemanticClassificationType
 /// Used to do semantic highlighting
 type SemanticHighlighter (state: InteractionState) = 
 
-    let unusedDecl = ResizeArray<Text.range>()
+    let mutable unusedDeclarations = ResizeArray<Text.range>()
 
     let codeLines = state.CodeLines
 
-    let setUnusedDecl(checkRes:FSharpCheckFileResults,id)=
-        unusedDecl.Clear()
+    let setUnusedDecl(checkRes:FSharpCheckFileResults,id) =         
         async{            
+            let unusedDecl = ResizeArray<Text.range>()
             let! uds = UnusedDeclarations.getUnusedDeclarations(checkRes,true)
             for ud in uds do 
                 unusedDecl.Add ud
@@ -150,6 +150,7 @@ type SemanticHighlighter (state: InteractionState) =
             let! uos = UnusedOpens.getUnusedOpens(checkRes,getLine)
             for uo in uos do
                 unusedDecl.Add uo
+            unusedDeclarations <- unusedDecl
             }  
         |> Async.RunSynchronously
     
@@ -166,16 +167,12 @@ type SemanticHighlighter (state: InteractionState) =
         w.StartsWith "Printf"
     
     /// because some times the range of a property starts before the point
-    let correctStart(st:int, en:int) =        
-        //try
-            // search from back to find last dot, there may be more than one
-            match codeLines.FullCode.LastIndexOf('.', en-1, en-st) with // at file end the end column in the reported range might be equal to FullCode.Length, so we do -1 to avoid a ArgumentOutOfRangeException.
-            | -1 -> st 
-            |  i -> i + 1
-        //with e -> 
-        //    eprintfn $"correctStart LastIndexOf from {en} for count {en-st} from code with {codeLines.FullCode.Length} chars."
-        //    st
-            
+    let correctStart(st:int, en:int) = 
+        // search from back to find last dot, there may be more than one
+        match codeLines.FullCode.LastIndexOf('.', en-1, en-st) with // at file end the end column in the reported range might be equal to FullCode.Length, so we do -1 to avoid a ArgumentOutOfRangeException.
+        | -1 -> st 
+        |  i -> i + 1
+       
 
     //let action (el:VisualLineElement,brush:SolidColorBrush,r:Text.Range) = el.TextRunProperties.SetForegroundBrush(Brushes.Red)
     let defaultIndenting = state.Editor.Options.IndentationSize
@@ -194,7 +191,7 @@ type SemanticHighlighter (state: InteractionState) =
             
             let newTrans = ResizeArray<ResizeArray<LinePartChange>>(trans.LineCount+4)
 
-            let rec loopTy i = 
+            let rec loopSemantic i = 
                 if i = allRanges.Length then 
                     true // reached end
                 else
@@ -255,16 +252,19 @@ type SemanticHighlighter (state: InteractionState) =
                         | Sc.Printf                      -> () //push(st,en, semActs.Printf                ) // covered in xshd file 
                         | _ -> () // the above actually covers all SemanticClassificationTypes
                     
-                        loopTy (i+1)
+                        loopSemantic (i+1)
 
-            if loopTy 0 then 
+            if loopSemantic 0 then 
                 setUnusedDecl(checkRes,  id)
                 if state.IsLatest id then    
-                    let rec loopUn i = 
-                        if i = unusedDecl.Count then 
+                    let rec loopUnused i = 
+                        let count = unusedDeclarations.Count 
+                        if i = count then 
                             true // reached end
+                        elif i > count then
+                            false // something went wrong, probably unusedDeclarations was replaced with another list 
                         else
-                            let r = unusedDecl.[i]
+                            let r = unusedDeclarations.[i]
                             let lineNo = max 1 r.StartLine
                             match codeLines.GetLine(lineNo,id) with 
                             | ValueNone -> false
@@ -272,9 +272,9 @@ type SemanticHighlighter (state: InteractionState) =
                                 let st = offLn.offStart + r.StartColumn                
                                 let en = offLn.offStart + r.EndColumn
                                 LineTransformers.Insert(newTrans,lineNo, {from=st; till=en; act=semActs.UnUsed})
-                                loopUn (i+1)
+                                loopUnused (i+1)
                     
-                    if loopUn 0 then
+                    if loopUnused 0 then
                         trans.Update(newTrans)
                         foundSemanticsEv.Trigger(id)   
 
