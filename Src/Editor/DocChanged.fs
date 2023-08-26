@@ -147,6 +147,7 @@ module Redrawing =
         
         member _.Reset() = // will be called in Editor.SetUp.Document.Changing.Add(fun _ -> ....)
             scan <- ScanState.None 
+
 module DocChangeMark =     
     open Redrawing
     
@@ -180,7 +181,7 @@ module DocChangeMark =
         // NOTE just checking only Partial Code till caret with (doc.CreateSnapshot(0, tillOffset).Text) 
         // would make the GetDeclarationsList method miss some declarations !!
         let code = doc.CreateSnapshot().Text // the only threadsafe way to access the code string
-        if state.DocChangedId.Value = id then 
+        if state.IsLatest id then 
             updateAllTransformersConcurrently (iEd, code, drawServ, state, id)
       
     // To be called from UI thread
@@ -196,6 +197,7 @@ module DocChangeMark =
                     updateAllTransformersConcurrently (iEd, code, drawServ, state, id)
         } |> Async.Start
     
+               
 module DocChangeCompletion = 
     open DocChangeUtil
     open Redrawing
@@ -394,52 +396,59 @@ module DocChangeCompletion =
             else 
                 let doc = iEd.AvaEdit.Document // get in sync
                 async{                
-                    if DocChangeMark.mainWait <> 0 then do! Async.Sleep DocChangeMark.mainWait                    
-                    if state.IsLatest id && showOnLastChar (lastChar,pos) then
-                        let show = MaybeShow.completionWindow(pos)
-                        //ISeffLog.log.PrintfnDebugMsg $"MaybeShow.completionWindow for {lastChar} is {show}"
-                        match show with 
-                        |DoNothing                          -> ()
-                        |JustMark                           -> DocChangeMark.updateAllTransformersSync(iEd, doc, drawServ, state, id)                        
-                        |ShowKeyWords  |ShowAll |ShowOnlyDU -> 
-                            state.DocChangedConsequence <- WaitForCompletions
-                            let mutable fullCode = ""
-                            let declsPosX  = 
-                                Monads.maybe{
-                                    let! _          = state.IsLatestOpt id
-                                    let code        = doc.CreateSnapshot().Text // the only threadsafe way to access the code string
-                                    fullCode <- code
-                                    let! _          = state.IsLatestOpt id
-                                    let! res        = Checker.CheckCode(iEd, state, code, id, false)
-                                    let! decls, pos = Checker.GetCompletions(pos,res) 
-                                    let! _          = state.IsLatestOpt id
-                                    return decls, pos
-                                }
-                        
-                            match declsPosX with         
-                            |Some (decls, posX) ->
-                                // Switch to Sync and try showing completion window:
-                                do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context                            
-                                let showRestrictions = getShowRestriction show                                    
-                                let checkAndMark() = DocChangeMark.updateAllTransformersAsync (iEd, drawServ, state, state.DocChangedId.Value) // will be called if window closes without an insertion
-                                match drawServ.compls.TryShow(decls, posX, showRestrictions, checkAndMark ) with 
-                                |DidShow ->                                     
-                                    () // no need to do anything, DocChangedConsequence will be updated to 'React' when completion window closes
-                                |NoShow -> 
+                    if DocChangeMark.mainWait <> 0 then 
+                        do! Async.Sleep DocChangeMark.mainWait                    
+                    if state.IsLatest id then 
+                        if showOnLastChar (lastChar,pos) then
+                            let show = MaybeShow.completionWindow(pos)
+                            //ISeffLog.log.PrintfnDebugMsg $"MaybeShow.completionWindow for {lastChar} is {show}"
+                            match show with 
+                            |DoNothing  -> 
+                                do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context  
+                                drawServ.selection.UpdateToCurrentSelection() // TODO Or Just Do nothing ??
+
+                            |JustMark -> 
+                                DocChangeMark.updateAllTransformersSync(iEd, doc, drawServ, state, id)                        
+
+                            |ShowKeyWords  |ShowAll |ShowOnlyDU -> 
+                                state.DocChangedConsequence <- WaitForCompletions
+                                let mutable fullCode = ""
+                                let declsPosX  = 
+                                    Monads.maybe{
+                                        let! _          = state.IsLatestOpt id
+                                        let code        = doc.CreateSnapshot().Text // the only threadsafe way to access the code string
+                                        fullCode <- code
+                                        let! _          = state.IsLatestOpt id
+                                        let! res        = Checker.CheckCode(iEd, state, code, id, false)
+                                        let! decls, pos = Checker.GetCompletions(pos,res) 
+                                        let! _          = state.IsLatestOpt id
+                                        return decls, pos
+                                    }
+                            
+                                match declsPosX with         
+                                |Some (decls, posX) ->
+                                    // Switch to Sync and try showing completion window:
+                                    do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context                            
+                                    let showRestrictions = getShowRestriction show                                    
+                                    let checkAndMark() = DocChangeMark.updateAllTransformersAsync (iEd, drawServ, state, state.DocChangedId.Value) // will be called if window closes without an insertion
+                                    match drawServ.compls.TryShow(decls, posX, showRestrictions, checkAndMark ) with 
+                                    |DidShow ->                                     
+                                        () // no need to do anything, DocChangedConsequence will be updated to 'React' when completion window closes
+                                    |NoShow -> 
+                                        state.DocChangedConsequence <- React
+                                        do! Async.SwitchToThreadPool()
+                                        DocChangeMark.updateAllTransformersConcurrently(iEd, fullCode, drawServ, state, id)
+                                |None -> 
                                     state.DocChangedConsequence <- React
                                     do! Async.SwitchToThreadPool()
-                                    DocChangeMark.updateAllTransformersConcurrently(iEd, fullCode, drawServ, state, id)
-                            |None -> 
-                                state.DocChangedConsequence <- React
-                                do! Async.SwitchToThreadPool()
-                                if fullCode="" then 
-                                    fullCode <- doc.CreateSnapshot().Text
-                                if state.DocChangedId.Value = id then 
-                                    DocChangeMark.updateAllTransformersConcurrently (iEd, fullCode, drawServ, state, id)                            
-                    else   
-                        // the typed character should not trigger completion.                 
-                        // DocChangedConsequence is still  'React', no need to reset.
-                        DocChangeMark.updateAllTransformersSync(iEd, doc, drawServ, state, id)
+                                    if fullCode="" then 
+                                        fullCode <- doc.CreateSnapshot().Text
+                                    if state.IsLatest id then 
+                                        DocChangeMark.updateAllTransformersConcurrently (iEd, fullCode, drawServ, state, id)                            
+                        else   
+                            // the typed character should not trigger completion.                 
+                            // DocChangedConsequence is still  'React', no need to reset.
+                            DocChangeMark.updateAllTransformersSync(iEd, doc, drawServ, state, id)
             
                 } |> Async.Start
 
@@ -459,7 +468,7 @@ module DocChangeEvents =
         state.FastColorizer.AdjustShifts shift
         state.ErrSegments.AdjustOneShift shift
 
-        /// (3) ed.EventCombiner.Reset() //is called in Editor.SetUp.Document.Changing.Add(fun _ -> ....) because it is not accessible from here
+        // (3) ed.EventCombiner.Reset() //is called in Editor.SetUp.Document.Changing.Add(fun _ -> ....) because it is not accessible from here
 
     let changed (iEd:IEditor) (drawServ:Redrawing.DrawingServices) (state:InteractionState) (eventArgs:DocumentChangeEventArgs) : unit  =  
         match state.DocChangedConsequence with 

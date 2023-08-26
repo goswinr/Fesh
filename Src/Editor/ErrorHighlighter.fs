@@ -304,7 +304,7 @@ type ErrorHighlighter ( state:InteractionState, folds:Folding.FoldingManager) =
     member _.FoundErrors = foundErrorsEv.Publish
     
     member _.UpdateErrs(errs:ErrorsBySeverity, id) =         
-        if state.DocChangedId.Value = id then  
+        if state.IsLatest id then  
             let nSegs = ResizeArray<ResizeArray<SegmentToMark>>(state.ErrSegments.LineCount + 2 )
             if // first insert in to LineTransformer
                 General.traverse (insert nSegs id) errs.hiddens

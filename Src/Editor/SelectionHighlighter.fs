@@ -37,6 +37,7 @@ module SelectionHighlighting =
 
 open SelectionHighlighting
 open Seff.XmlParser
+open AvalonEditB.Document
 
 type SkipMarking = 
     | SkipOffset of int
@@ -105,71 +106,83 @@ type SelectionHighlighter (state:InteractionState) =
                 globalFoundSelectionEditorEv.Trigger(triggerNext)
             }|> Async.Start
 
-    /// state.CodeLines must be up to date before calling this
+    /// this checks also if state.CodeLines are up to date before calling this
     /// returns true if not cancelled by newer change Id
     /// sets lastSels <- offs
-    let setTransformers (changeId:int64) =       
-        // must be set:
-        // lastWord <- word
-        // lastSkipOff <- skipOff
-        if lastWord = "" then 
-            selTransformersSetEv.Trigger(changeId) // can by async, still call this so the full redrawing is triggered
-            true
-        else  
-            //eprintfn $"search in '{state.CodeLines.FullCode}'" //TODO: text typed on the last line after a comment might be missing somehow!
-            
-            let lines = state.CodeLines
-            let codeStr  = lines.FullCode
-            let lastLineNo = lines.LastLineIdx
-            let wordLen = lastWord.Length
-            let offs = ResizeArray<int>()
-            
-            let newMarks = ResizeArray<ResizeArray<LinePartChange>>()           
-            let selectionStartOff = 
-                match lastSkipOff with
-                | SkipOffset skipOff -> skipOff
-                | MarkAll -> -1
+    let setTransformers (changeId:int64, doc:TextDocument) =       
+        // the variables 'lastWord' and 'lastSkipOff' must be set already when calling this function. 
+        // this happens in 'let redrawMarking' below.
+        // The variable 'lastSels' is set in this function.
 
-            /// returns false if aborted because of newer doc change
-            let rec searchFromLine lineNo = 
-                if lineNo > lastLineNo then 
-                    true // return true if loop completed
-                else
-                    match lines.GetLine(lineNo, changeId) with 
-                    |ValueNone -> false // could not get code line, newer change happened already 
-                    |ValueSome l -> 
-                        let line = codeStr.Substring(l.offStart, l.len)  
-                        let mutable off = codeStr.IndexOf(lastWord, l.offStart, l.len, StringComparison.Ordinal)
-                        while off >= 0 do
-                            offs.Add off // also add for current selection                            
-                            if off <> selectionStartOff then // skip the actual current selection from highlighting                               
-                                LineTransformers.Insert(newMarks, lineNo, {from=off; till=off+wordLen; act=action})                                 
-                            let start = off + lastWord.Length // search from this for next occurrence in this line 
-                            let lenReduction = start - l.offStart
-                            let remainingLineLength = l.len - lenReduction
-                            off <- codeStr.IndexOf(lastWord, start, remainingLineLength , StringComparison.Ordinal) 
-                                                    
-                        searchFromLine (lineNo + 1)
-                        
-            
-            if searchFromLine 1 then // tests if there is a newer doc change                 
-                lastSels <- offs 
-                state.TransformersSelection.Update(newMarks)
-                selTransformersSetEv.Trigger(changeId) // can by async
+        //(1) update codeLines if needed because of some typing in comments
+        let lines = state.CodeLines
+        if notNull doc // when called immediately after a doc change, this update should never be needed, called from updateAllTransformersConcurrently via DocChangedResetTransformers
+        && lines.IsNotFromId(changeId) then  // some text might have been typed in comments, this would increment the doc change ID but not update the CodeLines.        
+            let code = doc.CreateSnapshot().Text // the only threadsafe way to access the code string
+            state.CodeLines.UpdateLines(code, changeId)
+
+        if not <| state.IsLatest changeId then 
+            false
+        else
+            // (2) search for the word in the lines:
+            if lastWord = "" then 
+                selTransformersSetEv.Trigger(changeId) // can by async, this still needs to be called this ! so the  EventCombiner can  the full redrawing of the other highlighters.
                 true
             else
-                false
+                let codeStr  = lines.FullCode
+                let lastLineNo = lines.LastLineIdx
+                let wordLen = lastWord.Length
+                let offs = ResizeArray<int>()
+                
+                let newMarks = ResizeArray<ResizeArray<LinePartChange>>()           
+                let selectionStartOff = 
+                    match lastSkipOff with
+                    | SkipOffset skipOff -> skipOff
+                    | MarkAll -> -1
+
+                /// returns false if aborted because of newer doc change
+                let rec searchFromLine lineNo = 
+                    if lineNo > lastLineNo then 
+                        true // return true if loop completed
+                    else
+                        match lines.GetLine(lineNo, changeId) with 
+                        |ValueNone -> false // could not get code line, newer change happened already 
+                        |ValueSome l -> 
+                            let line = codeStr.Substring(l.offStart, l.len)  
+                            let mutable off = codeStr.IndexOf(lastWord, l.offStart, l.len, StringComparison.Ordinal)
+                            while off >= 0 do
+                                offs.Add off // also add for current selection                            
+                                if off <> selectionStartOff then // skip the actual current selection from highlighting                               
+                                    LineTransformers.Insert(newMarks, lineNo, {from=off; till=off+wordLen; act=action})                                 
+                                let start = off + lastWord.Length // search from this for next occurrence in this line 
+                                let lenReduction = start - l.offStart
+                                let remainingLineLength = l.len - lenReduction
+                                off <- codeStr.IndexOf(lastWord, start, remainingLineLength , StringComparison.Ordinal) 
+                                                        
+                            searchFromLine (lineNo + 1)
+                            
+                
+                if searchFromLine 1 then // tests if there is a newer doc change                 
+                    lastSels <- offs 
+                    state.TransformersSelection.Update(newMarks)
+                    selTransformersSetEv.Trigger(changeId) // can by async
+                    true
+                else
+                    false
 
 
-    // Called from StatusBar to highlight the current selection of Log in Editor too    
+    // Also called from StatusBar to highlight the current selection of Log in Editor too   
+    // sets lastWords and lastSkipOff 
     let redrawMarking (word:string, skipOff: SkipMarking, triggerNext:bool, selId) =
         let id = state.DocChangedId.Value
         lastWord <- word
         lastSkipOff <- skipOff
         // lastSels <- offs is set in setTransformers
-
+        
+        let doc = state.Editor.Document // get in sync
         async{
-            if setTransformers(!state.DocChangedId) && selId = !selChangeId  then                 
+            let transFormersDone = setTransformers( state.DocChangedId.Value , doc)
+            if transFormersDone && selId = selChangeId.Value  then                 
                 // (1) If there is a Editor selection but skipOff is set to MarkAll 
                 // , because the mark call is coming from the Log selection, 
                 // then clear the this editor selection, because it will not match the word to highlight from Log. 
@@ -200,7 +213,7 @@ type SelectionHighlighter (state:InteractionState) =
                     | Some (pf,pl),Some (f,l) ->   // both prev and current version have a selection                    
                         SelRange(  min pf.from f.from, max pl.till l.till)                
                 
-                                
+                //printfn $"+++redrawRange={redrawRange} skipOff={skipOff}+++" // prevRange={prevRange} thisRange={thisRange}"                
                 //(3) redraw statusbar and editor in range
                 match redrawRange with               
                 | NoSelRedraw -> ()
@@ -215,47 +228,55 @@ type SelectionHighlighter (state:InteractionState) =
                     prevRange <- thisRange
                     ed.TextArea.TextView.Redraw(st,en, priority)
                     globalFoundSelectionEditorEv.Trigger(triggerNext) 
-                    
-        
             else
+                //eprintfn $"---redrawMarking cancelled because of newer doc change: transFormersDone{transFormersDone}---"
                 () // don't redraw, there is already a new doc change happening that will be drawn
             
         }|> Async.Start
      
-    let updateToCurrentSelection() =         
+    let updateToCurrentSelection() = 
         if reactToSelChange // in case the log request the clearing of a current selection
-        && ed.TextArea.IsFocused then  // check IsFocused to not react to selections via the search bar!! // TextView.IsFocused  does not work
+        && ed.TextArea.IsFocused then  // check IsFocused to not react to selections via the search bar!! 
             let newSelId = Threading.Interlocked.Increment selChangeId
             
             match Selection.getSelType ed.TextArea with 
-            |RectSel -> justClear(true) 
+            |RectSel -> 
+                justClear(true) 
+                
             |RegSel  -> 
                 if ed.TextArea.Selection.IsMultiline then 
                     justClear(true)
                 else
                     let word = ed.SelectedText
                     if isTextToHighlight word then  //is at least two chars and has no line breaks
-                        let skip = SkipOffset ed.SelectionStart                    
-                        redrawMarking(word, skip, true,newSelId)
+                        let skip = SkipOffset ed.SelectionStart                        
+                        redrawMarking(word, skip, true, newSelId)
                     else
                         justClear(true)
             
-            // keep highlighting if the cursor is just moved ?
+            // keep highlighting if the cursor is just moved ? even while typing in commets?:
             |NoSel   -> // justClear(true)
-                if lastWord <> "" && lastSkipOff <> MarkAll then  // if lastSkipOff = MarkAll then all words are highlighted there is no change to highlighting needed
-                    redrawMarking(lastWord, MarkAll, true,newSelId) // keep highlighting and add the word that was selected before
-        
+                if lastWord <> "" then 
+                    if state.CodeLines.IsNotFromId(state.DocChangedId.Value) // if the doc has changed only in a comment the IDs don't match and we redrawMarking. this redrawMarking will update the code lines
+                    || lastSkipOff <> MarkAll then  // if lastSkipOff = MarkAll then all words are highlighted there is no change to highlighting needed                        
+                        redrawMarking(lastWord, MarkAll, true,newSelId) // keep highlighting and add the word that was selected before        
         
     do         
         ed.TextArea.SelectionChanged.Add ( fun _ -> updateToCurrentSelection() )  
         // ed.Document.Changed.Add (fun _ ->  ) will call DocChangedResetTransformers from DocChanged.fs
 
     [<CLIEvent>] 
-    member _.FoundSels = selTransformersSetEv.Publish // used in EventCombiner
+    member _.FoundSels = selTransformersSetEv.Publish // used only in EventCombiner
+    
+    /// this gets called on doc changes, to comments ony that do not trigger any other highlighting
+    /// See let singleCharChange in DocChanged.fs DoNothing case
+    member _.UpdateToCurrentSelection() = updateToCurrentSelection() 
 
+    /// This is called from DocChanged.fs when the document changes, to reset the selection highlighting
+    /// It does not get called when only text in Comments changes, because the CodeLines are not updated then.
     member _.DocChangedResetTransformers(id) = 
         let k = lastSels.Count
-        if setTransformers(id) && lastSels.Count <> k then // do only if the selection count changed
+        if setTransformers(id,null) && lastSels.Count <> k then // do only if the selection count changed
             async{ 
                 do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context   
                 globalFoundSelectionEditorEv.Trigger(false) // redraw statusbar

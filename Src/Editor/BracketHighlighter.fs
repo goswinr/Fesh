@@ -377,12 +377,12 @@ type BracketHighlighter (state:InteractionState) =
             do! Async.Sleep 50 // wait for update the offset list Offs lists            
             while allPairs.IsNone || state.CodeLines.IsNotFromId id do
                 do! Async.Sleep 50 // wait for update the offset list Offs lists
-            if state.DocChangedId.Value = id then 
-               
+            
+            if state.IsLatest id then                 
                match ParseBrackets.getOnePair(allPairs.Value, caretLine, caretOff) with 
                |None -> 
                     //transMatch.ClearAllLines() // or keep showing the bracket highlighting when cursor moves away??
-                    if state.DocChangedId.Value = id then 
+                    if state.IsLatest id then 
                         //redrawSegment:
                         do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context
                         match prevPairSeg with 
@@ -396,7 +396,7 @@ type BracketHighlighter (state:InteractionState) =
                     LineTransformers.Insert(newTrans, f.line, {from=f.from; till=f.till; act = actPair})
                     LineTransformers.Insert(newTrans, t.line, {from=t.from; till=t.till; act = actPair})
                     transMatch.Update(newTrans)
-                    if state.DocChangedId.Value = id then 
+                    if state.IsLatest id then 
                         //redrawSegment:
                         do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context
                         //ISeffLog.log.PrintfnDebugMsg $"redraw for caretPositionChanged , id:{id}"

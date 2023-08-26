@@ -182,7 +182,7 @@ type Foldings(manager:Folding.FoldingManager, state:InteractionState, getFilePat
                     isInitialLoad <- false
                 
                 // for any change after initial opening of the file
-                elif state.DocChangedId.Value = id then                    
+                elif state.IsLatest id then                     
                     do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context  
                     let edFolds = manager.AllFoldings
                    

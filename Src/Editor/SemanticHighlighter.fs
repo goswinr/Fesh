@@ -189,7 +189,7 @@ type SemanticHighlighter (state: InteractionState) =
     member _.FoundSemantics = foundSemanticsEv.Publish
     
     member _.UpdateSemHiLiTransformers(checkRes:FSharpCheckFileResults, id) =
-        if state.DocChangedId.Value = id then                   
+        if state.IsLatest id then                   
             let allRanges = checkRes.GetSemanticClassification(None)
             
             let newTrans = ResizeArray<ResizeArray<LinePartChange>>(trans.LineCount+4)
@@ -259,7 +259,7 @@ type SemanticHighlighter (state: InteractionState) =
 
             if loopTy 0 then 
                 setUnusedDecl(checkRes,  id)
-                if state.DocChangedId.Value = id then    
+                if state.IsLatest id then    
                     let rec loopUn i = 
                         if i = unusedDecl.Count then 
                             true // reached end
@@ -273,6 +273,7 @@ type SemanticHighlighter (state: InteractionState) =
                                 let en = offLn.offStart + r.EndColumn
                                 LineTransformers.Insert(newTrans,lineNo, {from=st; till=en; act=semActs.UnUsed})
                                 loopUn (i+1)
+                    
                     if loopUn 0 then
                         trans.Update(newTrans)
                         foundSemanticsEv.Trigger(id)   
