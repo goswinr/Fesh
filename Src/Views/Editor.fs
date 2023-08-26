@@ -21,6 +21,7 @@ open Seff.Util.Str
 open FSharp.Compiler.EditorServices
 open AvalonEditB.Rendering
 open System.Threading
+open System.Windows.Media
 
 /// returns a bigger integer on each access for naming unsaved files
 type Counter private () = 
@@ -44,7 +45,6 @@ type Editor private (code:string, config:Config, initialFilePath:FilePath)  =
         av.ShowLineNumbers <- true // background color is set in ColumnRulers.cs
         av.VerticalScrollBarVisibility <- Controls.ScrollBarVisibility.Auto
         av.HorizontalScrollBarVisibility <- Controls.ScrollBarVisibility.Auto
-        av.Options.HighlightCurrentLine <- true // http://stackoverflow.com/questions/5072761/avalonedit-highlight-current-line-even-when-not-focused
         av.Options.EnableHyperlinks <- true
         av.Options.EnableEmailHyperlinks <- false
         av.TextArea.TextView.LinkTextForegroundBrush <- Brushes.DarkGreen |> AvalonLog.Brush.freeze
@@ -58,10 +58,14 @@ type Editor private (code:string, config:Config, initialFilePath:FilePath)  =
         av.FontFamily <- StyleState.fontEditor
         av.FontSize <- config.Settings.GetFloat("SizeOfFont", StyleState.fontSize) // TODO odd sizes like  17.0252982466288  makes block selection delete fail on the last line
         av.AllowDrop <- true
-        //avaEdit.TextArea.TextView.CurrentLineBackground <- Brushes.Ivory |> Brush.brighter 10 |> Brush.freeze
-        //avaEdit.TextArea.TextView.CurrentLineBorder <- new Pen(Brushes.Gainsboro|> Brush.freeze, 2.0) |> Util.Pen.freeze
-        //avaEdit.TextArea.AllowCaretOutsideSelection <- true
-        //avaEdit.Options.EnableVirtualSpace <- true // to postion caret anywhere in editor
+        av.Options.HighlightCurrentLine <- true // http://stackoverflow.com/questions/5072761/avalonedit-highlight-current-line-even-when-not-focused
+        
+        
+        // av.TextArea.TextView.CurrentLineBackground <- Brushes.Transparent |> Brush.freeze //Brushes.Ivory |> Brush.brighter 10 |> Brush.freeze
+        // av.TextArea.TextView.CurrentLineBorder     <- new Pen(Brushes.LightSlateGray|> Brush.freeze, 1.0) |> Util.Pen.freeze
+        
+        //av.TextArea.AllowCaretOutsideSelection <- true
+        //av.Options.EnableVirtualSpace <- true // to postion caret anywhere in editor
         av
 
     let search =            
@@ -81,7 +85,7 @@ type Editor private (code:string, config:Config, initialFilePath:FilePath)  =
     let brackets    = new BracketHighlighter( state) 
     let compls      = new Completions(state)
     let semHiLi     = new SemanticHighlighter(state)
-    let error       = new ErrorHighlighter(state,foldMg)
+    let error       = new ErrorHighlighter(state, foldMg, fun () -> compls.IsOpen )
     let selHiLi     = new SelectionHighlighter(state)
     let evalTracker =
         if config.Settings.GetBool("TrackEvaluatedCode", false) then Some <| EvaluationTracker(avaEdit,config) else None       
@@ -196,8 +200,8 @@ type Editor private (code:string, config:Config, initialFilePath:FilePath)  =
         ed.TypeInfoTip.SetValue(Controls.ToolTipService.InitialShowDelayProperty, 50) // this delay is also set in Initialize.fs
         
         
-        // Mouse Hover:
-        avaEdit.TextArea.TextView.MouseHover.Add(fun e -> TypeInfo.mouseHover(e, ed, ed.TypeInfoTip))
+        // Mouse Hover Type info:
+        avaEdit.TextArea.TextView.MouseHover.Add(fun e -> if not ed.IsComplWinOpen then TypeInfo.mouseHover(e, ed, ed.TypeInfoTip))
         
 
         // to clear selection highlighter marks first , before opening the search window. if they would be the same as the search word.

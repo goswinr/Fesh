@@ -26,9 +26,14 @@ module TabStyle =
 type Tab (editor:Editor) = //, config:Seff.Config.Config, allFileInfos:seq<IO.FileInfo>) = 
     inherit TabItem()
 
-    // thes two are used to avoid redrawing header on very keystroke:
+    // these two are used to avoid redrawing header on very keystroke:
     let mutable isCodeSaved        = true
     let mutable headerShowsSaved   = true
+
+    /// this can be set to false so that the dialog about saving only pops up once. 
+    /// In a hosted context like Rhino the dialog would pop on closing seff window and on closing the Rhino window
+    let mutable savingWanted = true
+
 
     let textBlock = new TextBlock(VerticalAlignment = VerticalAlignment.Center) //, Padding = Thickness(2.) ) , FontFamily = StyleState.fontEditor)
 
@@ -98,6 +103,7 @@ type Tab (editor:Editor) = //, config:Seff.Config.Config, allFileInfos:seq<IO.Fi
     /// this gets called on every character typed.
     // can be called async too.
     let setCodeSavedStatus(isSaved)= 
+        savingWanted <-true //to always ask gain after a doc change
         isCodeSaved <- isSaved
         if not isSaved && headerShowsSaved then // to only update header if actually required
             setHeader()
@@ -110,7 +116,7 @@ type Tab (editor:Editor) = //, config:Seff.Config.Config, allFileInfos:seq<IO.Fi
     do
         base.Content <- editor.AvaEdit
         base.Header <- header
-        // TODO wrap tabitem in border element and the style the border instead ??
+        // TODO wrap tabItem in border element and the style the border instead ??
         //base.Padding <- Thickness(2.)   // don't messes it all up
         //base.Margin <- Thickness(2.)   // don't messes it all up
         //base.BorderThickness <- Thickness(4.)       // don't messes it all up
@@ -124,6 +130,12 @@ type Tab (editor:Editor) = //, config:Seff.Config.Config, allFileInfos:seq<IO.Fi
     member _.IsCodeSaved
         with get()       = isCodeSaved
         and set(isSaved) = setCodeSavedStatus(isSaved)
+
+    /// this can be set to false so that the dialog about saving only pops up once. 
+    /// In a hosted context like Rhino the dialog would pop on closing seff window and on closing the Rhino window
+    member _.SavingWanted  
+        with get() = savingWanted
+        and set(v) = savingWanted<-v
 
     member _.UpdateTabHeader() = setHeader()
 

@@ -201,7 +201,7 @@ type ErrorRenderer (state: InteractionState) =
         member this.Layer = this.Layer
 
 
-type ErrorHighlighter ( state:InteractionState, folds:Folding.FoldingManager) = 
+type ErrorHighlighter ( state:InteractionState, folds:Folding.FoldingManager, isComplWinOpen: unit-> bool) = 
     
     //  let actionError   = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetBackgroundBrush(ErrorStyle.errBackGr))
     //  let actionWarning = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetBackgroundBrush(ErrorStyle.warnBackGr)) 
@@ -262,38 +262,39 @@ type ErrorHighlighter ( state:InteractionState, folds:Folding.FoldingManager) =
             true     
     
     
-    let showErrorToolTip(mouse:Input.MouseEventArgs) = 
-        let pos = tView.GetPositionFloor(mouse.GetPosition(tView) + tView.ScrollOffset)
-        if pos.HasValue then
-            let loc = pos.Value.Location
-            let offset = ed.Document.GetOffset(loc)
-            state.ErrSegments.GetLine(loc.Line)
-            |> Seq.tryFind( fun s ->  offset >= s.Offset && offset <= s.EndOffset )
-            |> Option.iter(fun segm ->    
-                let tb = new TextBlock()
-                tb.Text <- segm.Message       //TODO move styling out of event handler ?
-                tb.FontSize <- StyleState.fontSize * 0.9
-                tb.FontFamily <- StyleState.fontToolTip //TODO use another monospace font ?
-                tb.TextWrapping <- TextWrapping.Wrap
-                //tb.Foreground <- Media.SolidColorBrush(if seg.IsWarning then Colors.DarkRed else Colors.DarkGreen)
-                tip.Content <- tb
+    let showErrorToolTip(mouse:Input.MouseEventArgs) =         
+        if not <| isComplWinOpen() then // don't show tooltip when completion window is open            
+            let pos = tView.GetPositionFloor(mouse.GetPosition(tView) + tView.ScrollOffset)
+            if pos.HasValue then
+                let loc = pos.Value.Location
+                let offset = ed.Document.GetOffset(loc)
+                state.ErrSegments.GetLine(loc.Line)
+                |> Seq.tryFind( fun s ->  offset >= s.Offset && offset <= s.EndOffset )
+                |> Option.iter(fun segm ->    
+                    let tb = new TextBlock()
+                    tb.Text <- segm.Message       //TODO move styling out of event handler ?
+                    tb.FontSize <- StyleState.fontSize * 0.9
+                    tb.FontFamily <- StyleState.fontToolTip //TODO use another monospace font ?
+                    tb.TextWrapping <- TextWrapping.Wrap
+                    //tb.Foreground <- Media.SolidColorBrush(if seg.IsWarning then Colors.DarkRed else Colors.DarkGreen)
+                    tip.Content <- tb
 
-                let pos = ed.Document.GetLocation(segm.Offset)
-                let tvpos = new TextViewPosition(pos.Line,pos.Column)
-                let pt = tView.GetVisualPosition(tvpos, Rendering.VisualYPosition.LineTop)
-                let ptInclScroll = pt - tView.ScrollOffset
-                tip.PlacementTarget <- ed.TextArea
-                tip.PlacementRectangle <- new Rect(ptInclScroll.X, ptInclScroll.Y, 0., 0.)
-                tip.Placement <- Primitives.PlacementMode.Top // Type info Tooltip is on Bottom //https://docs.microsoft.com/en-us/dotnet/framework/wpf/controls/popup-placement-behavior
-                tip.VerticalOffset <- -5.0
+                    let pos = ed.Document.GetLocation(segm.Offset)
+                    let tvpos = new TextViewPosition(pos.Line,pos.Column)
+                    let pt = tView.GetVisualPosition(tvpos, Rendering.VisualYPosition.LineTop)
+                    let ptInclScroll = pt - tView.ScrollOffset
+                    tip.PlacementTarget <- ed.TextArea
+                    tip.PlacementRectangle <- new Rect(ptInclScroll.X, ptInclScroll.Y, 0., 0.)
+                    tip.Placement <- Primitives.PlacementMode.Top // Type info Tooltip is on Bottom //https://docs.microsoft.com/en-us/dotnet/framework/wpf/controls/popup-placement-behavior
+                    tip.VerticalOffset <- -5.0
 
-                tip.IsOpen <- true                
-                )    
+                    tip.IsOpen <- true                
+                    )    
     
     do
         tView.BackgroundRenderers.Add(new ErrorRenderer(state))
 
-        tView.MouseHover.Add        (showErrorToolTip)
+        tView.MouseHover.Add        ( showErrorToolTip)
         tView.MouseHoverStopped.Add ( fun e ->  tip.IsOpen <- false ) //; e.Handled <- true) )
         //tView.VisualLinesChanged.Add( fun e ->  tip.IsOpen <- false ) // on scroll and resize ?
 

@@ -52,7 +52,7 @@ type ScriptCompilerFsproj ( runContext:RunContext) =
   </ItemGroup>
   
   <!--
-  <Target Name="DeleteObjFolder" BeforeTargets="AfterBuild"> <RemoveDir Directories="obj" ContinueOnError="true" /> </Target>
+  <Target Name="DeleteObjFolder" BeforeTargets="AfterBuild"> <RemoveDir Directories="obj" ContinueOnError="false" /> </Target>
   -->
 
 </Project>

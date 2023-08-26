@@ -60,8 +60,9 @@ type SemActions() =
     let c_UnUsed                       = freeze <| Brushes.Gray |> brighter 40 
 
     let badIndentBrush =        
-        //Color.FromArgb(30uy,255uy,140uy,0uy) // a very light transparent Orange, transparent to show column rulers behind
-        Color.FromArgb(40uy,255uy,255uy,0uy) // a very light transparent Yellow, transparent to show column rulers behind
+        let opacity = 40uy // 0uy is transparent, 255uy is opaque, transparent to show column rulers behind
+        let r,g,b = 255uy, 180uy, 0uy // orange
+        Color.FromArgb(opacity,r,g,b) 
         |> SolidColorBrush
         |> freeze
 
@@ -201,16 +202,18 @@ type SemanticHighlighter (state: InteractionState) =
                     match codeLines.GetLine(lineNo,id) with 
                     | ValueNone -> false // exit early
                     | ValueSome ln ->                       
+                        let inline push(f,t,a) =  LineTransformers.Insert(newTrans, lineNo,{from=f; till=t; act=a})
+                        
                         // (1) find bad indents:
                         if ln.indent % defaultIndenting <> 0 then      
-                            LineTransformers.Insert(newTrans, lineNo , {from=ln.offStart; till=ln.offStart+ln.indent; act=semActs.BadIndentAction} )
+                            let stb = ln.offStart + r.StartColumn                 
+                            let enb = ln.offStart + r.EndColumn
+                            push(stb, enb, semActs.BadIndentAction)  
                                         
                         // (2) find semantic highlight:  
-                        let st = ln .offStart + r.StartColumn                 
-                        let en = ln .offStart + r.EndColumn
+                        let st = ln.offStart + r.StartColumn                 
+                        let en = ln.offStart + r.EndColumn
                         //ISeffLog.log.PrintfnDebugMsg $"{lineNo}:{sem.Type} {r.StartColumn} to {r.EndColumn}"
-
-                        let inline push(f,t,a) =  LineTransformers.Insert(newTrans,lineNo,{from=f; till=t; act=a})
 
                         match sem.Type with 
                         | Sc.ReferenceType               -> push(st,en, semActs.ReferenceType              )

@@ -39,13 +39,12 @@
     <OutputPath>binStandalone</OutputPath>
   </PropertyGroup>
   <ItemGroup>
-    <!--
-    <Reference Include="AvalonEditB"> <HintPath>..\AvalonLog\bin\Release\net472\AvalonEditB.dll</HintPath>	  </Reference>
-    <Reference Include="AvalonLog"> <HintPath>..\AvalonLog\bin\Release\net472\AvalonLog.dll</HintPath>	  </Reference>
-    -->
-    <PackageReference Include="AvalonLog" Version="0.10.0" GeneratePathProperty="true" />
+    
     <PackageReference Update="FSharp.Core" Version="7.0.300" GeneratePathProperty="true" />
     <PackageReference Include="FSharp.Compiler.Service" Version="43.7.300" GeneratePathProperty="true" />
+
+    <!-- These packages are just added  explicitly again to pull in XML too below. -->
+    <PackageReference Include="AvalonLog" Version="0.10.0" GeneratePathProperty="true" />
     <PackageReference Include="FsEx.Wpf" Version="0.5.0" GeneratePathProperty="true" />
     <PackageReference Include="AvalonEditB" Version="2.0.0" GeneratePathProperty="true" />    <!-- just to pull in XML too below-->
 	  
@@ -132,15 +131,18 @@
   </ItemGroup>
 	
   <Target Name="CopyFilesOverAfterBuild" BeforeTargets="AfterBuild">
+    
     <!--netstandard dll is needed for editor tooling only, it might not be installed on host PC . see also  https://github.com/fsprojects/IfSharp/issues/213 -->
-    <Copy SourceFiles="$(PkgNETStandard_Library)/build/netstandard2.0/ref/netstandard.dll" DestinationFiles="$(TargetDir)netstandard.dll" ContinueOnError="false" />
-    <!-- netstandard.xml needed for editor tooling autocomplete ? -->
+    <Copy SourceFiles="$(PkgNETStandard_Library)/build/netstandard2.0/ref/netstandard.dll" DestinationFiles="$(TargetDir)netstandard.dll" ContinueOnError="false" /> 
     <Copy SourceFiles="$(PkgNETStandard_Library)/build/netstandard2.0/ref/netstandard.xml" DestinationFiles="$(TargetDir)netstandard.xml" ContinueOnError="false" />
+
     <!--FSharp.Core.xml because <FSharpCoreIncludeDocFileInOutput>true</FSharpCoreIncludeDocFileInOutput>  does not work in visual studio: -->
-    <Copy SourceFiles="$(PkgFSharp_Core)/lib/netstandard2.0/FSharp.Core.xml" DestinationFiles="$(TargetDir)FSharp.Core.xml" ContinueOnError="false" />
+    <Copy SourceFiles="$(PkgFSharp_Core)/lib/netstandard2.0/FSharp.Core.xml"                         DestinationFiles="$(TargetDir)FSharp.Core.xml"             ContinueOnError="false" />
     <Copy SourceFiles="$(PkgFSharp_Compiler_Service)/lib/netstandard2.0/FSharp.Compiler.Service.xml" DestinationFiles="$(TargetDir)FSharp.Compiler.Service.xml" ContinueOnError="false" />
-    <Copy SourceFiles="$(PkgAvalonLog)/lib/net472/AvalonLog.xml" DestinationFiles="$(TargetDir)AvalonLog.xml" ContinueOnError="false" />
+    
+    <Copy SourceFiles="$(PkgAvalonLog)/lib/net472/AvalonLog.xml"     DestinationFiles="$(TargetDir)AvalonLog.xml"   ContinueOnError="false" />
     <Copy SourceFiles="$(PkgAvalonEditB)/lib/net472/AvalonEditB.xml" DestinationFiles="$(TargetDir)AvalonEditB.xml" ContinueOnError="false" />
-    <Copy SourceFiles="$(PkgFsEx_Wpf)/lib/net472/FsEx.Wpf.xml" DestinationFiles="$(TargetDir)FsEx.Wpf.xml" ContinueOnError="false" />
+    <Copy SourceFiles="$(PkgFsEx_Wpf)/lib/net472/FsEx.Wpf.xml"       DestinationFiles="$(TargetDir)FsEx.Wpf.xml"    ContinueOnError="false" />
+
   </Target>
 </Project>

@@ -48,8 +48,7 @@ type Seff (config:Config,log:Log) =
             | YesAsync472     -> tabs.Fsi.CancelIfAsync()
             | YesAsync70      -> tabs.Fsi.CancelIfAsync()
             | UserDoesntWantTo-> e.Cancel <- true // don't close window
-            | NotPossibleSync -> () // cant show a dialog when in sync mode. show dialog from new thread ? TODO
-            
+            | NotPossibleSync -> () // cant show a dialog when in sync mode. show dialog from new thread ? TODO            
 
             //second check for unsaved files if not already canceled
             if not e.Cancel then

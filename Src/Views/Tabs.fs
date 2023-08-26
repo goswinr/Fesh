@@ -509,9 +509,10 @@ type Tabs(config:Config, log:Log,seffWin:SeffWindow) =
 
     /// Will display a dialog if there are unsaved files.
     /// if user clicks yes it will attempt to save files.
-    /// Returns true if all files are saved or unsaved changes are ignored (closing not canceled by user).
+    /// Returns true if all files are saved or unsaved changes shall be ignored. 
+    /// So true mean the closing process was not canceled by user.
     member this.AskForFileSavingToKnowIfClosingWindowIsOk()= 
-        let openFs = allTabs |> Seq.filter (fun t -> not t.IsCodeSaved)
+        let openFs = allTabs |> Seq.filter (fun t -> not t.IsCodeSaved && t.SavingWanted)
         //log.PrintfnDebugMsg "Unsaved files %d" (Seq.length openFs)
         if  Seq.isEmpty openFs then
             true
@@ -527,15 +528,22 @@ type Tabs(config:Config, log:Log,seffWin:SeffWindow) =
                 "Save Changes?", 
                 MessageBoxButton.YesNoCancel, 
                 MessageBoxImage.Question, 
-                MessageBoxResult.Yes,// default result 
+                MessageBoxResult.Yes, // default result 
                 MessageBoxOptions.None) with
+            
             | MessageBoxResult.Yes ->
                 seq { for t in allTabs do if not t.IsCodeSaved then yield trySaveBeforeClosing t } // if saving was canceled ( eg, no filename picked) then cancel closing
-                |> Seq.forall id // checks if all are true, if one file-saving was canceled return false,  so the closing of the main window can be aborted
+                |> Seq.forall id // checks if all are true, if one file-saving was canceled return false, so the closing of the main window can be aborted
                 //if Seq.exists ( fun ok -> ok = false) oks then false else true 
-            | MessageBoxResult.No  -> true
-            | MessageBoxResult.Cancel  -> false
-            | _  -> false // never happening
+            | MessageBoxResult.No  ->                 
+                // In a hosted context like Rhino the dialog would pop on closing seff window and on closing the Rhino window
+                // so that the dialog about saving only pops up once set t.SavingWanted <- false for all tabs
+                for t in allTabs do t.SavingWanted <- false 
+                true
+            | MessageBoxResult.Cancel  -> 
+                false
+            | _  -> // never happening
+                false 
 
 
 
