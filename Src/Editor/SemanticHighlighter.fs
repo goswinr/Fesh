@@ -132,11 +132,9 @@ type Sc = SemanticClassificationType
 /// Used to do semantic highlighting
 type SemanticHighlighter (state: InteractionState) = 
 
-    let mutable unusedDeclarations = ResizeArray<Text.range>()
-
     let codeLines = state.CodeLines
 
-    let setUnusedDecl(checkRes:FSharpCheckFileResults,id) =         
+    let getUnusedDecl(checkRes:FSharpCheckFileResults, id): ResizeArray<Text.range> =         
         async{            
             let unusedDecl = ResizeArray<Text.range>()
             let! uds = UnusedDeclarations.getUnusedDeclarations(checkRes,true)
@@ -151,7 +149,7 @@ type SemanticHighlighter (state: InteractionState) =
             let! uos = UnusedOpens.getUnusedOpens(checkRes,getLine)
             for uo in uos do
                 unusedDecl.Add uo
-            unusedDeclarations <- unusedDecl
+            return unusedDecl
             }  
         |> Async.RunSynchronously
     
@@ -191,7 +189,8 @@ type SemanticHighlighter (state: InteractionState) =
             let allRanges = checkRes.GetSemanticClassification(None)
             
             let newTrans = ResizeArray<ResizeArray<LinePartChange>>(trans.LineCount+4)
-
+            
+            // (1) find semantic highlight:  
             let rec loopSemantic i = 
                 if i = allRanges.Length then 
                     true // reached end
@@ -204,13 +203,6 @@ type SemanticHighlighter (state: InteractionState) =
                     | ValueSome ln ->                       
                         let inline push(f,t,a) =  LineTransformers.Insert(newTrans, lineNo,{from=f; till=t; act=a})
                         
-                        // (1) find bad indents:
-                        if ln.indent % defaultIndenting <> 0 then      
-                            let stb = ln.offStart + r.StartColumn                 
-                            let enb = ln.offStart + r.EndColumn
-                            push(stb, enb, semActs.BadIndentAction)  
-                                        
-                        // (2) find semantic highlight:  
                         let st = ln.offStart + r.StartColumn                 
                         let en = ln.offStart + r.EndColumn
                         //ISeffLog.log.PrintfnDebugMsg $"{lineNo}:{sem.Type} {r.StartColumn} to {r.EndColumn}"
@@ -256,30 +248,44 @@ type SemanticHighlighter (state: InteractionState) =
                         | _ -> () // the above actually covers all SemanticClassificationTypes
                     
                         loopSemantic (i+1)
+            
+            // (2) find bad indents:
+            let rec loopIndent i = 
+                if i > codeLines.LastLineIdx then 
+                    true // reached end
+                else
+                    match codeLines.GetLine(i,id) with 
+                    | ValueNone -> false // exit early
+                    | ValueSome ln -> 
+                        if ln.indent % defaultIndenting <> 0 then      
+                            LineTransformers.Insert(newTrans, i , {from=ln.offStart; till=ln.offStart+ln.indent; act=semActs.BadIndentAction} )
+                        loopIndent (i+1)
 
-            if loopSemantic 0 then 
-                setUnusedDecl(checkRes,  id)
-                if state.IsLatest id then    
-                    let rec loopUnused i = 
-                        let count = unusedDeclarations.Count 
-                        if i = count then 
-                            true // reached end
-                        elif i > count then
-                            false // something went wrong, probably unusedDeclarations was replaced with another list 
-                        else
-                            let r = unusedDeclarations.[i]
-                            let lineNo = max 1 r.StartLine
-                            match codeLines.GetLine(lineNo,id) with 
-                            | ValueNone -> false
-                            | ValueSome offLn ->  
-                                let st = offLn.offStart + r.StartColumn                
-                                let en = offLn.offStart + r.EndColumn
-                                LineTransformers.Insert(newTrans,lineNo, {from=st; till=en; act=semActs.UnUsed})
-                                loopUnused (i+1)
-                    
-                    if loopUnused 0 then
-                        trans.Update(newTrans)
-                        foundSemanticsEv.Trigger(id)   
+            
+            // (3) find unused declarations:
+            let getUnused () = 
+                let unusedDeclarations = getUnusedDecl(checkRes, id)
+                let rec loopUnused i =
+                    let count = unusedDeclarations.Count 
+                    if i = count then 
+                        true // reached end
+                    elif i > count then
+                        false // something went wrong, probably unusedDeclarations was replaced with another list 
+                    else
+                        let r = unusedDeclarations.[i]
+                        let lineNo = max 1 r.StartLine
+                        match codeLines.GetLine(lineNo,id) with 
+                        | ValueNone -> false
+                        | ValueSome offLn ->  
+                            let st = offLn.offStart + r.StartColumn                
+                            let en = offLn.offStart + r.EndColumn
+                            LineTransformers.Insert(newTrans,lineNo, {from=st; till=en; act=semActs.UnUsed})
+                            loopUnused (i+1)
+                loopUnused 1 
+            
+            if loopSemantic 1 && loopIndent 1 && getUnused() then                
+                trans.Update(newTrans)
+                foundSemanticsEv.Trigger(id)   
 
 
 
