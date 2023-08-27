@@ -118,8 +118,8 @@ type LineTransformers<'T>() =    // generic so it can work for LinePartChange an
     member _.AdjustOneShift(s:Shift) = 
         shift <- {  fromOff      = min shift.fromOff   s.fromOff  
                     fromLine     = min shift.fromLine  s.fromLine 
-                    amountOff    =     shift.amountOff     + s.amountOff
-                    amountLines =     shift.amountLines  + s.amountLines
+                    amountOff    =     shift.amountOff    + s.amountOff
+                    amountLines  =     shift.amountLines  + s.amountLines
                     }
    
 

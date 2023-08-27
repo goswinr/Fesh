@@ -131,7 +131,7 @@ type ErrorRenderer (state: InteractionState) =
     // based on //https://stackoverflow.com/questions/11149907/showing-invalid-xml-syntax-with-avalonedit
     // better would be https://github.com/icsharpcode/SharpDevelop/blob/master/src/AddIns/DisplayBindings/AvalonEdit.AddIn/Src/Textsegmentservice.cs
 
-    /// Draw the error squiggle  on the code
+    /// Draw the error squiggle on the code
     member _.Draw (textView:TextView , drawingContext:DrawingContext) = // for IBackgroundRenderer         
         //AvalonEditB.Rendering.VisualLinesInvalidException: Exception of type 'AvalonEditB.Rendering.VisualLinesInvalidException' was thrown.
         //    at AvalonEditB.Rendering.TextView.get_VisualLines()
@@ -140,7 +140,7 @@ type ErrorRenderer (state: InteractionState) =
         //    at AvalonEditB.Editing.CaretLayer.OnRender(DrawingContext drawingContext)
         //    at System.Windows.UIElement.Arrange(Rect finalRect)
         //    at System.Windows.ContextLayoutManager.UpdateLayout()
-        //if textView.VisualLinesValid then //to avoid above error.
+        if textView.VisualLinesValid then //to avoid above error.
             let vls = textView.VisualLines                
             let fromLine = vls[0].FirstDocumentLine.LineNumber
             let toLine   = vls[vls.Count-1].LastDocumentLine.LineNumber
@@ -193,7 +193,7 @@ type ErrorRenderer (state: InteractionState) =
             *)
 
     member _.Layer = 
-        // when drawing on Caret layer background must be disabled
+        // when drawing on Caret layer the  background change must be disabled
         KnownLayer.Caret// .Selection// for IBackgroundRenderer
 
     interface IBackgroundRenderer with
@@ -211,11 +211,10 @@ type ErrorHighlighter ( state:InteractionState, folds:Folding.FoldingManager) =
     let foundErrorsEv = new Event<int64>()
     let tip = new ToolTip(IsOpen=false) 
 
-    let trans = state.TransformersSemantic
     let ed = state.Editor
     let tView = ed.TextArea.TextView
     
-    /// returns true or false to indicate if CodeLines.GetLine was aborted because of a new state
+    /// returns true or false to indicate if CodeLines.GetLine was aborted because of a new state.
     let insert (newSegments:ResizeArray<ResizeArray<SegmentToMark>>) id (e:FSharpDiagnostic) : bool =         
         let stLn = max 1 e.StartLine // because FSharpDiagnostic might have line number 0 form Parse-and-check-file-in-project errors, but Avalonedit starts at 1
         let enLn = max 1 e.EndLine  
@@ -224,25 +223,25 @@ type ErrorHighlighter ( state:InteractionState, folds:Folding.FoldingManager) =
         if e.EndLine = e.StartLine && e.StartColumn > e.EndColumn then 
             ISeffLog.log.PrintfnAppErrorMsg $"FSharp Checker reported an invalid error position: e.StartColumn <= e.EndColumn:\r\n {e}"
         
-        let mutable any = false
-        for lnNo = stLn to enLn do // mark all lines as a spararte segment
-            match state.CodeLines.GetLine(lnNo,id) with 
-            | ValueNone -> any <- false
-            | ValueSome cln ->                
-                let st  = if lnNo = stLn then cln.offStart + e.StartColumn else cln.offStart
-                let en  = if lnNo = enLn then cln.offStart + e.EndColumn   else cln.offStart + cln.len
+        let rec insert lnNo = 
+            if lnNo > enLn then 
+                true
+            else 
+                match state.CodeLines.GetLine(lnNo,id) with 
+                | ValueNone -> false
+                | ValueSome cln ->                    
+                    let st  = if lnNo = stLn then cln.offStart + e.StartColumn else cln.offStart
+                    let en  = if lnNo = enLn then cln.offStart + e.EndColumn   else cln.offStart + cln.len
+                    if cln.len > cln.indent then // skip just whitespace lines
+                        
+                        let fixedEn = // e.StartColumn = e.EndColumn // this actually happens as a result from fs checker
+                            if st = en then cln.offStart + max cln.len 1 else en
+                            
+                        LineTransformers.Insert(newSegments, lnNo, SegmentToMark(st ,fixedEn , e)) 
+                    insert (lnNo+1) 
+        
+        insert stLn
 
-                if cln.len > cln.indent then // skip white lines
-                    
-                    let fixedEn = // e.StartColumn = e.EndColumn // this actually happens as a result from fs checker
-                        if st = en then cln.offStart + max cln.len 1 else en
-                         
-                    LineTransformers.Insert(newSegments, lnNo, SegmentToMark(st ,fixedEn , e))  
-                    any <- true
-                    //trans.Insert(lnNo, {from=st; till=en; act=action}) // skip trans.Insert, rather draw via IBackground renderer, 
-                    //so the line transformers that als have the semantic info can be rest as late as possible. 
-                    //in Semantic highlighter after call to this class
-        any
 
     let updateFolds id brush pen (e:FSharpDiagnostic): bool = // TODO in theory this could run async, can it ??
         let lnNo =  max 1 e.StartLine // because FSharpDiagnostic might have line number 0 
@@ -252,7 +251,7 @@ type ErrorHighlighter ( state:InteractionState, folds:Folding.FoldingManager) =
             let offset = cln.offStart + e.StartColumn     
             for fold in folds.GetFoldingsContaining(offset) do
                 //if fold.IsFolded then // do on all folds, even open ones, so they show correctly when collapsing !
-                //fold.BackbgroundColor  <- ErrorStyle.errBackGr // done via ctx.DrawRectangle(ErrorStyle.errBackGr
+                //fold.BackgroundColor  <- ErrorStyle.errBackGr // done via ctx.DrawRectangle(ErrorStyle.errBackGr
                 fold.DecorateRectangle <- 
                     Action<Rect,DrawingContext>( fun rect ctx ->
                         let geo = ErrorUtil.getSquiggleLine(rect)
