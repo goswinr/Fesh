@@ -18,6 +18,7 @@ open Seff.Config
 open System.Windows.Controls
 open System.Windows.Media
 open Seff.XmlParser
+open System
 
 
 type TryShow = DidShow | NoShow
@@ -221,11 +222,12 @@ type Completions(state: InteractionState) =
             else                    
                 let ta = avEd.TextArea
                 let w =  new CodeCompletion.CompletionWindow(ta)
+                let complList = w.CompletionList
                 this.ComplWin <- Some w 
 
                 w.MaxHeight <- 500 // default 300
                 w.Width <- 250 // default 175
-                //w.CompletionList.Height <- 400.  // has  UI bug  
+                //complList.Height <- 400.  // has  UI bug  
                 //w.Height <- 400. // does not work               
                 w.BorderThickness <- Thickness(0.0) //https://stackoverflow.com/questions/33149105/how-to-change-the-style-on-avalonedit-codecompletion-window
                 w.ResizeMode      <- ResizeMode.NoResize // needed to have no border!
@@ -233,32 +235,51 @@ type Completions(state: InteractionState) =
                 w.SizeToContent   <- SizeToContent.WidthAndHeight // https://github.com/icsharpcode/AvalonEdit/blob/master/ICSharpCode.AvalonEdit/CodeCompletion/CompletionWindow.cs#L47
                 w.MinHeight       <- StyleState.fontSize
                 w.MinWidth        <- StyleState.fontSize * 8.0
-                w.CompletionList.InsertionRequested.Add(fun _ -> willInsert <- true)
+                complList.InsertionRequested.Add(fun _ -> willInsert <- true)
+                
+                let taCaretChanged  = new EventHandler(fun _ _ -> 
+                    match complList.ListBox.Items.Count with 
+                    | 0 -> w.Close()  //  close when list is empty. then triggers CheckThenHighlightAndFold?
+                    | 1 -> match complList.SelectedItem with // insert and close if there is an exact match an no other match available
+                           | null -> ()
+                           | it -> 
+                                let textInWin = it.Text
+                                let len = textInWin.Length
+                                if avEd.Document.TextLength >= w.StartOffset + len then
+                                    let textInDoc = avEd.Document.GetText(w.StartOffset, textInWin.Length)  
+                                    if textInWin = textInDoc then 
+                                        complList.RequestInsertion(new EventArgs()) 
+                    | _ -> () // else keep window open
+                    )
+                
                 w.Closed.Add (fun _  -> 
+                        ta.Caret.PositionChanged.RemoveHandler taCaretChanged
+
                         // Event sequence on pressing enter in completion window:
                         // (1)raise InsertionRequested event
                         // (2)in one of the event handlers first Closes window
                         // (3)then on the item line this.Complete (TextArea, ISegment, EventArgs) is called
                         // https://github.com/goswinr/AvalonEditB/blob/main/AvalonEditB/CodeCompletion/CompletionWindow.cs#L110                        
                         this.Close()
-                        //ISeffLog.log.PrintfnDebugMsg "Completion window just closed with selected item: %A " w.CompletionList.SelectedItem               
+                        //ISeffLog.log.PrintfnDebugMsg "Completion window just closed with selected item: %A " complList.SelectedItem               
 
                         if not willInsert then 
                             willInsert <- false
                             checkAndMark()
                         )
+                
+                ta.Caret.PositionChanged.AddHandler taCaretChanged
+                
 
-                w.CompletionList.SelectionChanged.Add(fun _ -> 
-                    if w.CompletionList.ListBox.Items.Count = 0 then w.Close() ) // Close() then triggers CheckThenHighlightAndFold
                            
                 w.CloseAutomatically <- true
-                w.CloseWhenCaretAtBeginning <- false
+                w.CloseWhenCaretAtBeginning <- not pos.dotBefore 
                                         
                 //ISeffLog.log.PrintfnDebugMsg "*5.1: pos.offset: %d , w.StartOffset %d , setback %d" pos.offset w.StartOffset setback                    
                 let stOff = pos.offset - pos.setback // just using w.StartOffset - setback would sometimes be one too big.( race condition of typing speed)
                 w.StartOffset <- stOff // to replace some previous characters too
 
-                let complData =  w.CompletionList.CompletionData              
+                let complData =  complList.CompletionData              
                 for cln in completionLines do
                     complData.Add (cln)                    
                 
@@ -273,16 +294,16 @@ type Completions(state: InteractionState) =
                     //ISeffLog.log.PrintfnDebugMsg "*5.2: prefilter '%s'" prefilter 
                     
                     if prefilter.Length > 0 then 
-                        w.CompletionList.SelectItem(prefilter) //to pre-filter the list by al typed characters
-                        //ISeffLog.log.PrintfnDebugMsg "*5.3: count after SelectItem(prefilter): %d" w.CompletionList.ListBox.Items.Count                            
+                        complList.SelectItem(prefilter) //to pre-filter the list by al typed characters
+                        //ISeffLog.log.PrintfnDebugMsg "*5.3: count after SelectItem(prefilter): %d" complList.ListBox.Items.Count                            
                 
-                    if w.CompletionList.ListBox.Items.Count > 0 
+                    if complList.ListBox.Items.Count > 0 
                         && not AutoFixErrors.isMessageBoxOpen  // because msg box would appear behind completion window and type info
                         && IEditor.isCurrent avEd // switched to other editor
                         && caret.Line = pos.row // moved cursor to other line
                         && caret.Offset >= pos.offset then // moved cursor back before completion ( e.g. via deleting)      
         
-                            //ISeffLog.log.PrintfnDebugMsg "*5.4 Show Completion Window with %d items prefilter: '%s' " w.CompletionList.ListBox.Items.Count prefilter                     
+                            //ISeffLog.log.PrintfnDebugMsg "*5.4 Show Completion Window with %d items prefilter: '%s' " complList.ListBox.Items.Count prefilter                     
                             showingEv.Trigger() // to close error and type info tooltip                           
                             w.Show()
                             DidShow                   
@@ -303,7 +324,7 @@ type Completions(state: InteractionState) =
             // insert on dot too? //TODO only when more than one char is typed in completion window??
             |"." -> win.Value.CompletionList.RequestInsertion(ev) 
             
-            | _  -> () // other triggers https://github.com/icsharpcode/AvalonEdit/blob/28b887f78c821c7fede1d4fc461bde64f5f21bd1/AvalonEditB/CodeCompletion/CompletionList.cs#L171
+            | _  -> () // other triggers like tab, enter and return are covered in   https://github.com/goswinr/AvalonEditB/blob/main/AvalonEditB/CodeCompletion/CompletionList.cs#L170
 
             // insert on open Bracket too?
             //|"(" -> compls.RequestInsertion(ev) 

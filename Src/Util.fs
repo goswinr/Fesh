@@ -262,10 +262,11 @@ module Str  =
     
     /// returns the index of the first non white char from start index
     /// if not found returns fromIdx-1
-    let inline indexOfFirstNonWhiteAfter idx (s:string) = 
+    let inline indexOfFirstNonWhiteAfter fromIdx (s:string) = 
         let mutable loop = true
-        let mutable i = idx-1
-        while loop && i < s.Length - 1 do
+        let mutable i = fromIdx-1
+        let lasti = s.Length-1
+        while loop && i < lasti do
             i <- i + 1
             loop <- s.[i] = ' '
         i
