@@ -34,7 +34,7 @@ module XmlParser =
         sb.Clear() |> ignore 
         s 
     
-    // TODO revise if this optimisation is actually usefull: 
+    // TODO revise if this optimization is actually usefull: 
     // to not reallocate these strings all the time, 
     // later use Object.ReferenceEquals(x,XmlParser.summary) for fast equality
     let see = "see"     
@@ -58,7 +58,7 @@ module XmlParser =
     
     let inline isWhite c = c=' ' || c='\r' || c= '\n' 
 
-    /// appends Text node from String builder. includs starting and ending whitespace.
+    /// appends Text node from String builder. includes starting and ending whitespace.
     /// skips appending if text is only whitespace,  but always clears the string builder
     let inline appendText(sb:StringBuilder) (cs:Child list)  :Child list = 
         if sb.Length=0 then  
@@ -149,7 +149,7 @@ module XmlParser =
                     skipSpace()
                 | _ -> ()  
 
-        (* unused becaus white skiping at start of text is disabeld
+        (* unused because white skipping at start of text is disabled
         /// if current is \r or \n,  increment i to the next non \r nor \n character
         let rec skipRet () = 
             if i <= till then 
@@ -184,7 +184,7 @@ module XmlParser =
             while isWhite x[e] do e<-e-1 
             //read
             for j=i to e do add x[j]
-            // set to end skiping whitespace
+            // set to end skipping whitespace
             i <- e0 + tillTxt.Length + 1
                     
                 
@@ -333,7 +333,7 @@ module XmlParser =
                         readNodes cs
                 *)
                     
-                |  c  ->  // the most commen case
+                |  c  ->  // the most common case
                     add c 
                     i<-i+1
                     readNodes cs 

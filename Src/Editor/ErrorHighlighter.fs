@@ -158,40 +158,13 @@ type ErrorRenderer (state: InteractionState) =
                     // drawingContext.DrawGeometry(seg.BackgroundBrush, null, boundaryPolygon)
 
                     //foreground, squiggles:
-                    for rect in BackgroundGeometryBuilder.GetRectsForSegment(textView, segShift) do //seg.Shifted(state.FastColorizer.Shift)) do  // DELETE
+                    for rect in BackgroundGeometryBuilder.GetRectsForSegment(textView, segShift) do 
                         let geo = ErrorUtil.getSquiggleLine(rect)
                         drawingContext.DrawGeometry(Brushes.Transparent, seg.UnderlinePen, geo)
-                            
-                    
-    
+                                
                 //let e = seg.Diagnostic in ISeffLog.log.PrintfnDebugMsg $"IBackgroundRenderer: DocLine {lnNo}: ErrLines{e.StartLine}.{e.StartColumn}-{e.EndLine}.{e.EndColumn}"   
             
-            (* // DELETE
-            for vl in vls do 
-                let ln = vl.FirstDocumentLine 
-                let lineNo = ln.LineNumber
-                let segs = segms.GetLine(lineNo)
-                for i = 0 to segs.Count-1 do
-                    if segs.Count > i then // safety check because collection might get reset while iterating
-                        let seg = segs.[i]                        
-                        let segShift = seg.Shifted(segms.Shift) 
-                        if ln.Offset <= segShift.Offset && ln.EndOffset >= segShift.EndOffset then // because the shifting might have moved it out of bound
-                        
-                            // background color: 
-                            let geoBuilder = new BackgroundGeometryBuilder (AlignToWholePixels = true, CornerRadius = 0.)
-                            geoBuilder.AddSegment(textView, segShift )                       
-                            let boundaryPolygon = geoBuilder.CreateGeometry() // creates one boundary round the text
-                            drawingContext.DrawGeometry(seg.BackgroundBrush, null, boundaryPolygon)
-
-                            //foreground,  squiggles:
-                            for rect in BackgroundGeometryBuilder.GetRectsForSegment(textView, seg) do //seg.Shifted(state.FastColorizer.Shift)) do  // DELETE
-                                let geo = ErrorUtil.getSquiggleLine(rect)
-                                drawingContext.DrawGeometry(Brushes.Transparent, seg.UnderlinePen, geo)
-                                //based on //https://stackoverflow.com/questions/11149907/showing-invalid-xml-syntax-with-avalonedit
-    
-                            //let e = seg.Diagnostic in ISeffLog.log.PrintfnDebugMsg $"IBackgroundRenderer: DocLine {lnNo}: ErrLines{e.StartLine}.{e.StartColumn}-{e.EndLine}.{e.EndColumn}"   
-            *)
-
+         
     member _.Layer = 
         // when drawing on Caret layer the  background change must be disabled
         KnownLayer.Caret// .Selection// for IBackgroundRenderer

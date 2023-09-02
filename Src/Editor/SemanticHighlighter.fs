@@ -184,6 +184,7 @@ type SemanticHighlighter (state: InteractionState) =
     [<CLIEvent>] 
     member _.FoundSemantics = foundSemanticsEv.Publish
     
+    /// also includes bad indenting
     member _.UpdateSemHiLiTransformers(checkRes:FSharpCheckFileResults, id) =
         if state.IsLatest id then                   
             let allRanges = checkRes.GetSemanticClassification(None)
@@ -257,8 +258,9 @@ type SemanticHighlighter (state: InteractionState) =
                     match codeLines.GetLine(i,id) with 
                     | ValueNone -> false // exit early
                     | ValueSome ln -> 
-                        if ln.indent % defaultIndenting <> 0 then      
-                            LineTransformers.Insert(newTrans, i , {from=ln.offStart; till=ln.offStart+ln.indent; act=semActs.BadIndentAction} )
+                        if ln.indent % defaultIndenting <> 0 then // indent is not a multiple of defaultIndenting
+                            if ln.indent <> ln.len then // exclude all white lines
+                                LineTransformers.Insert(newTrans, i , {from=ln.offStart; till=ln.offStart+ln.indent; act=semActs.BadIndentAction} )
                         loopIndent (i+1)
 
             

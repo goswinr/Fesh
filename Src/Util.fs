@@ -37,10 +37,6 @@ module General =
 
     let rand = new Random() // to give each error checking call a unique id
 
-    let inline isOdd  x = x % 2 = 1
-
-    let inline isEven x = x % 2 = 0
-
     let inline isTrue (nb:Nullable<bool>) = nb.HasValue && nb.Value
 
     let inline notNull x = match x with null -> false | _ -> true
@@ -590,7 +586,7 @@ module Monads =
         let inline returnMM x = returnM maybe x
 
         /// Sequentially compose two actions, passing any value produced by the first as an argument to the second.
-        let inline (>>=) m f = bindM maybe m f
+        let inline ( >>= ) m f = bindM maybe m f
 
         /// Flipped >>=
         let inline (=<<) f m = bindM maybe m f
@@ -608,10 +604,10 @@ module Monads =
         let inline lift2 f a b = returnMM f <*> a <*> b
 
         /// Sequence actions, discarding the value of the first argument.
-        let inline ( *>) x y = lift2 (fun _ z -> z) x y
+        let inline ( *> ) x y = lift2 (fun _ z -> z) x y
 
         /// Sequence actions, discarding the value of the second argument.
-        let inline ( <*) x y = lift2 (fun z _ -> z) x y
+        let inline ( <* ) x y = lift2 (fun z _ -> z) x y
 
         /// Sequentially compose two maybe actions, discarding any value produced by the first
         let inline (>>.) m f = bindM maybe m (fun _ -> f)

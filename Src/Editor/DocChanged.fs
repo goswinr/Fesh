@@ -14,17 +14,6 @@ open System.Windows.Threading
 
 module DocChangeUtil = 
    
-    (* // DELETE
-    /// returns the total character count change -1 or +1 depending if its a insert or remove
-    let isSingleCharChange (a:DocumentChangeEventArgs) =
-        match a.InsertionLength, a.RemovalLength with
-        | 1, 0 -> ValueSome  1
-        | 1, 1 -> ValueSome  0
-        | 0, 1 -> ValueSome -1
-        | _    -> ValueNone
-    *)
-
-
     /// one deleted or one inserted character
     let isASingleCharChange (a:DocumentChangeEventArgs) =
         match a.InsertionLength, a.RemovalLength with
@@ -57,18 +46,7 @@ module DocChangeUtil =
                 | '\n' -> i-1
                 | _ -> loop (i-1)
         let st = loop off
-        code.Substring(st,off-st)
-
-    (* // DELETE
-    let getPosInCode(caretOff, line, code:string): PositionInCode  =        
-        let lineToCaret = getLine(code, caretOff)
-        { 
-        lineToCaret = lineToCaret// this line will include the character that trigger auto completion(dot or first letter)
-        row =    line
-        column = lineToCaret.Length // equal to amount of characters in lineToCaret
-        offset = caretOff 
-        }
-    *)
+        code.Substring(st,off-st)    
 
     let getPosInCode2(avaEdit:TextEditor) : PositionInCode =         
         let doc = avaEdit.Document
@@ -112,8 +90,7 @@ module Redrawing =
 
     [<Flags;RequireQualifiedAccess>]
     type ScanState =
-        | None      = 0b0000000
-        | BadIndent = 0b0000001
+        | None      = 0b0000001
         | Brackets  = 0b0000010
         | Semantics = 0b0000100
         | Errors    = 0b0001000
@@ -124,7 +101,7 @@ module Redrawing =
         let ed = state.Editor
         let mutable scan = ScanState.None 
 
-        let priority = Windows.Threading.DispatcherPriority.Input //.Render
+        let priority = DispatcherPriority.Input //.Render
        
         let tryDraw(id) =             
             if scan = ScanState.All && state.IsLatest id then                 
@@ -132,14 +109,13 @@ module Redrawing =
                 //eprintfn "full Transformers TextView.Redraw()"
                 ed.Dispatcher.Invoke (fun() -> ed.TextArea.TextView.Redraw(priority)) //TODO review priority. Render is default ?    
         
-        let doneBadIndents(id) = scan <- scan ||| ScanState.BadIndent;  tryDraw(id)
+  
         let doneBrackets(id)   = scan <- scan ||| ScanState.Brackets ;  tryDraw(id)             
         let doneSemantics(id)  = scan <- scan ||| ScanState.Semantics;  tryDraw(id)
         let doneErrors(id)     = scan <- scan ||| ScanState.Errors   ;  tryDraw(id)
         let doneSels(id)       = scan <- scan ||| ScanState.Selects  ;  tryDraw(id)
 
-        do            
-            services.folds.FoundBadIndents.Add   doneBadIndents
+        do  
             services.brackets.FoundBrackets.Add  doneBrackets 
             services.semantic.FoundSemantics.Add doneSemantics
             services.errors.FoundErrors.Add      doneErrors
@@ -156,16 +132,16 @@ module DocChangeMark =
     let mainWait = 50 
 
     let updateAllTransformersConcurrently(iEd:IEditor, code:string, drawServ:DrawingServices, state:InteractionState, id) = 
-            // first: Foldings, ColorBrackets and BadIndentation when full text available async.
+            // first: Foldings, ColorBrackets when full text available async.
             async{
                 state.CodeLines.UpdateLines(code, id)
                 if state.IsLatest id then   
                     drawServ.selection.DocChangedResetTransformers(id)             
                     drawServ.brackets.UpdateAllBrackets(id)
-                    drawServ.folds.UpdateFoldsAndBadIndents(id)
+                    drawServ.folds.UpdateFolds(id)
              } |> Async.Start 
         
-            // second: Errors and Semantic Highlighting on FCS check result .  
+            // second: Errors and Semantic Highlighting and BadIndentation on FCS check result .  
             async{ 
                 match Checker.CheckCode(iEd, state, code, id, true) with // code checking does not need to wait for CodeLines.Update
                 |None -> ()
