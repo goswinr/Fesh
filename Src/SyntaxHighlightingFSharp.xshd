@@ -38,7 +38,7 @@
   <Color name="LoadNuget"           foreground="#CD10A0" fontWeight="bold" /> <!-- #r the nuget name -->
   <Color name="LoadPath"            foreground="#0000B0" /> <!-- for #I path -->
   
-  <Color name="Punctuation"         foreground="#7755FF" />
+  <Color name="Punctuation"         foreground="#8855FF" />
   <Color name="Attributes"          foreground="#AA88AA" />  
   <Color name="Keywords"            foreground="#0000DD"  fontWeight="normal" fontStyle="italic"  stylisticSet1="true"/>
   <Color name="KeywordsBang"        foreground="#2200DD"  fontWeight="bold"   fontStyle="italic"  stylisticSet1="true"/>
@@ -513,8 +513,8 @@
     </Span> 
 
     <Span color="Attributes">
-      <Begin color="Keywords">\[&lt;</Begin>
-      <End color="Keywords">&gt;\]</End>      
+      <Begin color="Punctuation">\[&lt;</Begin>
+      <End color="Punctuation">&gt;\]</End>      
       <RuleSet> 
         <Import ruleSet="StringSet"/>
         <Import ruleSet="PunctuationSet"/>         
