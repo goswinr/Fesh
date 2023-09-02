@@ -91,9 +91,11 @@ module RecognizePath =
                         raw.Split(badChars).[0].Split([|':'|])
                         |> Seq.take 2 // the first colon is allowed the later ones not
                         |> String.concat ":"
+                        |> Str.replace "\\\\" "\\"
+                        |> Str.replace "/"  "\\"
 
                     try
-                        let dir =  IO.Path.GetDirectoryName(fullPath.Replace("\\\\", "\\").Replace("/", "\\"))
+                        let dir =  IO.Path.GetDirectoryName(fullPath)
                         if not <| deDup.Contains dir then
                             deDup.Add dir  |> ignore
                             //let shortDir = Str.shrink 30 " ... " dir
@@ -106,7 +108,7 @@ module RecognizePath =
                                                 ISeffLog.log.PrintfnIOErrorMsg "The directory \r\n%s\r\n does not exist" dir
                                             elif IO.Directory.Exists dir then  
                                                 Diagnostics.Process.Start("Explorer.exe", "\"" + dir+ "\"") |> ignore
-                                            else // if a path does not exis try the parent folder:
+                                            else // if a path does not exist try the parent folder:
                                                 path.Split( [|'\\'|] ).[.. ^1]
                                                 |> String.concat "\\"
                                                 |> find  

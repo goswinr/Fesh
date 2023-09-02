@@ -42,6 +42,7 @@ type Editor private (code:string, config:Config, initialFilePath:FilePath)  =
         av.Text <- code
 
         av.BorderThickness <- new Thickness( 0.0)
+        av.ShowLineNumbersWithDottedMargin <- false
         av.ShowLineNumbers <- true // background color is set in ColumnRulers.cs
         av.VerticalScrollBarVisibility <- Controls.ScrollBarVisibility.Auto
         av.HorizontalScrollBarVisibility <- Controls.ScrollBarVisibility.Auto
