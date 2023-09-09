@@ -109,6 +109,7 @@ type SelectionHighlighter (state:InteractionState) =
     /// this checks also if state.CodeLines are up to date before calling this
     /// returns true if not cancelled by newer change Id
     /// sets lastSels <- offs
+    /// also triggers selTransformersSetEv
     let setTransformers (changeId:int64, doc:TextDocument) =       
         // the variables 'lastWord' and 'lastSkipOff' must be set already when calling this function. 
         // this happens in 'let redrawMarking' below.
@@ -116,7 +117,7 @@ type SelectionHighlighter (state:InteractionState) =
 
         //(1) update codeLines if needed because of some typing in comments
         let lines = state.CodeLines
-        if notNull doc // when called immediately after a doc change, this update should never be needed, called from updateAllTransformersConcurrently via DocChangedResetTransformers
+        if notNull doc // when called immediately after a doc change, this update should never be needed, called from updateAllTransformersConcurrently via UpdateTransformers
         && lines.IsNotFromId(changeId) then  // some text might have been typed in comments, this would increment the doc change ID but not update the CodeLines.        
             let code = doc.CreateSnapshot().Text // the only threadsafe way to access the code string
             state.CodeLines.UpdateLines(code, changeId)
@@ -268,7 +269,7 @@ type SelectionHighlighter (state:InteractionState) =
         
     do         
         ed.TextArea.SelectionChanged.Add ( fun _ -> updateToCurrentSelection() )  
-        // ed.Document.Changed.Add (fun _ ->  ) will call DocChangedResetTransformers from DocChanged.fs
+        // ed.Document.Changed.Add (fun _ ->  ) will call UpdateTransformers from DocChanged.fs
 
     [<CLIEvent>] 
     member _.FoundSels = selTransformersSetEv.Publish // used only in EventCombiner
@@ -279,7 +280,7 @@ type SelectionHighlighter (state:InteractionState) =
 
     /// This is called from DocChanged.fs when the document changes, to reset the selection highlighting
     /// It does not get called when only text in Comments changes, because the CodeLines are not updated then.
-    member _.DocChangedResetTransformers(id) = 
+    member _.UpdateTransformers(id) = 
         let k = lastSels.Count
         if setTransformers(id,null) && lastSels.Count <> k then // do only if the selection count changed
             async{ 

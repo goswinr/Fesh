@@ -277,6 +277,7 @@ type ErrorHighlighter ( state:InteractionState, folds:Folding.FoldingManager, is
     [<CLIEvent>] 
     member _.FoundErrors = foundErrorsEv.Publish
     
+    /// triggers foundErrorsEv
     member _.UpdateErrs(errs:ErrorsBySeverity, id) =         
         if state.IsLatest id then  
             let nSegs = ResizeArray<ResizeArray<SegmentToMark>>(state.ErrSegments.LineCount + 2 )

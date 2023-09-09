@@ -87,42 +87,34 @@ module Redrawing =
         evalTracker : option<EvaluationTracker>
         }
 
-
-    [<Flags;RequireQualifiedAccess>]
-    type ScanState =
-        | None      = 0b0000001
-        | Brackets  = 0b0000010
-        | Semantics = 0b0000100
-        | Errors    = 0b0001000
-        | Selects   = 0b0010000
-        | All       = 0b0011111
-
     type EventCombiner(services:DrawingServices, state:InteractionState) = 
         let ed = state.Editor
-        let mutable scan = ScanState.None 
+        // let mutable scan = ScanState.None 
 
         let priority = DispatcherPriority.Input //.Render
-       
+
+        let mutable idBrackets   = 0L 
+        let mutable idSemantics  = 0L
+        let mutable idErrors     = 0L
+        let mutable idSels       = 0L
+
+
         let tryDraw(id) =             
-            if scan = ScanState.All && state.IsLatest id then                 
-                scan <- ScanState.None  // this reset also happens on Editor.SetUp.Document.Changing.Add(fun _ -> ....)          
-                //eprintfn "full Transformers TextView.Redraw()"
-                ed.Dispatcher.Invoke (fun() -> ed.TextArea.TextView.Redraw(priority)) //TODO review priority. Render is default ?    
-        
+            if state.IsLatest id && idSemantics=id && idBrackets=id  && idErrors=id && idSels=id then  
+                eprintfn "full Transformers TextView.Redraw()"
+                ed.Dispatcher.Invoke (fun() -> ed.TextArea.TextView.Redraw(priority))
+       
   
-        let doneBrackets(id)   = scan <- scan ||| ScanState.Brackets ;  tryDraw(id)             
-        let doneSemantics(id)  = scan <- scan ||| ScanState.Semantics;  tryDraw(id)
-        let doneErrors(id)     = scan <- scan ||| ScanState.Errors   ;  tryDraw(id)
-        let doneSels(id)       = scan <- scan ||| ScanState.Selects  ;  tryDraw(id)
+        let doneBrackets(id)   = idBrackets   <- id ;  tryDraw(id)             
+        let doneSemantics(id)  = idSemantics  <- id ;  tryDraw(id)
+        let doneErrors(id)     = idErrors     <- id ;  tryDraw(id)
+        let doneSels(id)       = idSels       <- id ;  tryDraw(id)
 
         do  
             services.brackets.FoundBrackets.Add  doneBrackets 
-            services.semantic.FoundSemantics.Add doneSemantics
+            services.semantic.FoundSemantics.Add doneSemantics // includes Bad Indentation and Unused declarations
             services.errors.FoundErrors.Add      doneErrors
-            services.selection.FoundSels.Add     doneSels
-        
-        member _.Reset() = // will be called in Editor.SetUp.Document.Changing.Add(fun _ -> ....)
-            scan <- ScanState.None 
+            services.selection.FoundSels.Add     doneSels     
 
 module DocChangeMark =     
     open Redrawing
@@ -135,9 +127,8 @@ module DocChangeMark =
             // first: Foldings, ColorBrackets when full text available async.
             async{
                 state.CodeLines.UpdateLines(code, id)
-                if state.IsLatest id then   
-                    //ISeffLog.log.PrintfnDebugMsg "updateAllTransformersConcurrently: for id %d" id
-                    drawServ.selection.DocChangedResetTransformers(id)             
+                if state.IsLatest id then
+                    drawServ.selection.UpdateTransformers(id)             
                     drawServ.brackets.UpdateAllBrackets(id)
                     drawServ.folds.UpdateFolds(id)
              } |> Async.Start 
@@ -432,7 +423,7 @@ module DocChangeEvents =
     open DocChangeUtil   
 
     // gets called before the document actually changes
-    let changing  (state:InteractionState, a:DocumentChangeEventArgs) =             
+    let changing  (state:InteractionState) (a:DocumentChangeEventArgs) =             
         
         // (1) increment change counter
         match state.DocChangedConsequence with 

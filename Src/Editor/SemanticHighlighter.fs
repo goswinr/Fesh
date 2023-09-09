@@ -130,6 +130,7 @@ type Sc = SemanticClassificationType
 
 /// A DocumentColorizingTransformer.
 /// Used to do semantic highlighting
+/// includes Bad Indentation and Unused declarations
 type SemanticHighlighter (state: InteractionState) = 
 
     let codeLines = state.CodeLines

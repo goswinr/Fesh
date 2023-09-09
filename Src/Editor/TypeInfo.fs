@@ -61,6 +61,7 @@ type TypeInfo private () =
 
     static let black        = Brushes.Black                      |> freeze
     static let gray         = Brushes.Gray                       |> freeze
+    static let errMsgGray    = Brushes.LightGray                  |> freeze
     static let purple       = Brushes.Purple     |> brighter  40 |> freeze
     
     static let blue         = Brushes.Blue       |> darker    90 |> freeze    
@@ -414,7 +415,7 @@ type TypeInfo private () =
                     //else                    assemblies.Add(ass) |> ignore
                     subAdd <| mainXmlBlock (node, td)
                 |Error errTxt  ->
-                    subAdd<|  TextBlockSelectable(Text = errTxt, TextWrapping = TextWrapping.Wrap, FontSize = StyleState.fontSize  * 0.75 , FontFamily = StyleState.fontToolTip, Foreground = gray )                   
+                    subAdd<|  TextBlockSelectable(Text = errTxt, TextWrapping = TextWrapping.Wrap, FontSize = StyleState.fontSize  * 0.70 , Foreground = errMsgGray)//,FontFamily = StyleState.fontToolTip )                   
                 
                 let border = Border()
                 border.Child <- subPanel
@@ -495,7 +496,7 @@ type TypeInfo private () =
                 //printfn $"reading xml:{xmlFi.FullName}"
                 match nodeDict.TryGetValue memberName with 
                 |true , node ->  Ok (node  , dllFile)
-                |false, _    ->  Error $"no xml doc found for member '{memberName}' in \r\n'{xmlFi.FullName}'\r\n"
+                |false, _    ->  Error "no xml" //$"no xml doc found for member '{memberName}' in \r\n'{xmlFi.FullName}'\r\n"
             | Error e ->
                 Error e 
 

@@ -183,16 +183,13 @@ type Editor private (code:string, config:Config, initialFilePath:FilePath)  =
         //----------------------------------------------------
         
 
-        avaEdit.Document.Changing.Add(fun args -> 
-            ed.EventCombiner.Reset()
-            DocChangeEvents.changing (ed.State, args)
-            )
+        avaEdit.Document.Changing.Add(DocChangeEvents.changing ed.State )
 
-        avaEdit.Document.Changed.Add (DocChangeEvents.changed  ed ed.DrawingServices ed.State)
+        avaEdit.Document.Changed.Add (DocChangeEvents.changed ed ed.DrawingServices ed.State)
         avaEdit.Document.Changed.Add(fun a -> match ed.DrawingServices.evalTracker with Some et -> et.SetLastChangeAt a.Offset | None -> ())
         //avaEdit.Document.Changed.Add(fun a -> DocChangeEvents.logPerformance( a.InsertedText.Text)) // AutoHotKey SendInput of ßabcdefghijklmnopqrstuvwxyz£
                  
-        avaEdit.TextArea.TextView.LineTransformers.Add(new DebugColorizer(ed.State.FastColorizer, ed.AvaEdit))  // for debugging the line transformers
+        //avaEdit.TextArea.TextView.LineTransformers.Add(new DebugColorizer([| ed.State.TransformersSemantic |], ed.AvaEdit))  // for debugging the line transformers
         avaEdit.TextArea.TextView.LineTransformers.Insert(0, ed.State.FastColorizer) // insert at index 0 so that it is drawn first, so that text color is overwritten when selection highlighting happens
 
         // check if closing and inserting from completion window is desired with currently typed character:
