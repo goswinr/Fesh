@@ -186,14 +186,16 @@ type Foldings(manager:Folding.FoldingManager, state:InteractionState, getFilePat
                         |true,  true  -> 
                             let f = folds.[i]
                             let fEdi = enum.Current
-                            if fEdi.StartOffset <> f.foldStartOff || fEdi.EndOffset <> f.foldEndOff then 
+                            let diffStart = fEdi.StartOffset - f.foldStartOff
+                            let diffEnd   = fEdi.EndOffset   - f.foldEndOff
+                            // if diffStart-diffEnd <> 0  then 
+                            if diffStart <> 0  || diffEnd <> 0 then 
                                 ISeffLog.log.PrintfnDebugMsg $"changeId: {id} foldings differ: {fEdi.StartOffset-f.foldStartOff} and {fEdi.EndOffset-f.foldEndOff}"
                                 true // existing, foldings are different
                             else
                                 zip (i+1) // loop on
                     
-                    let updateNeeded = zip 0
-                    enum.Dispose()
+                    let updateNeeded = zip 0                    
                     if updateNeeded then
                         // if edFolds.Count <> folds.Count then    ISeffLog.log.PrintfnDebugMsg $"****changeId: {id} foldings differ: {edFolds.Count} and {folds.Count}"
                         // else                                    ISeffLog.log.PrintfnDebugMsg $"but count same"

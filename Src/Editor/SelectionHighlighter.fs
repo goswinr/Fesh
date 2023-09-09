@@ -11,8 +11,10 @@ open Seff.Editor.Selection
 open Seff.Editor
 open Seff.Editor.CodeLineTools
 
+open AvalonEditB.Document
 
 module SelectionHighlighting =
+    open System.Linq
 
     let colorEditor  = Brushes.PaleTurquoise |> AvalonLog.Brush.freeze      
 
@@ -35,9 +37,62 @@ module SelectionHighlighting =
     
     let empty = ResizeArray()
 
+    /// makes sure that there are no concurrent calls to doc.CreateSnapshot().Text 
+    /// It waits if there is a concurrent call, but does not cancel the concurrent call.
+    /// returns NONE if the doc has changed in the meantime
+    let makeEditorSnapShot =         
+        let mutable isActive = false
+        fun (doc:TextDocument, state:InteractionState, id) -> 
+            let rec loop () =
+                if state.IsLatest id then 
+                    Threading.Thread.Sleep 250
+                    if state.IsLatest id then 
+                        if isActive then 
+                            Threading.Thread.Sleep 50 //make sure no createSnapShot call is running concurrently !
+                            loop()
+                        else
+                            isActive <- true
+                            // NOTE just checking only Partial Code till caret with (doc.CreateSnapshot(0, tillOffset).Text) 
+                            // would make the GetDeclarationsList method miss some declarations !!
+                            let code = doc.CreateSnapshot().Text // the only threadsafe way to access the code string
+                            isActive <- false
+                            if state.IsLatest id then 
+                                Some code
+                            else
+                                None
+                    else
+                        None
+                else
+                    None
+            loop()
+    
+    /// makes sure that there are no concurrent calls to doc.CreateSnapshot().Text 
+    /// It waits if there is a concurrent call, but does not cancel the concurrent call.
+    /// returns NONE if the doc has changed in the meantime
+    let makeLogSnapShot  =         
+        let mutable isActive = false
+        fun (doc:TextDocument, stateRef:int64 ref, id:int64) -> 
+            let rec loop () =
+                if !stateRef = id then 
+                    if isActive then 
+                        Threading.Thread.Sleep 50 //make sure no createSnapShot call is running concurrently !
+                        loop()
+                    else
+                        isActive <- true
+                        let code = doc.CreateSnapshot().Text // the only threadsafe way to access the code string
+                        isActive <- false
+                        if !stateRef = id then 
+                            Some code
+                        else
+                            None
+                else
+                    None
+            loop()
+            
+
+
 open SelectionHighlighting
-open Seff.XmlParser
-open AvalonEditB.Document
+open System.Threading
 
 type SkipMarking = 
     | SkipOffset of int
@@ -115,17 +170,19 @@ type SelectionHighlighter (state:InteractionState) =
         // this happens in 'let redrawMarking' below.
         // The variable 'lastSels' is set in this function.
 
+        
         //(1) update codeLines if needed because of some typing in comments
+        // if notNull doc // when called immediately after a doc change, this update should never be needed, called from updateAllTransformersConcurrently via UpdateTransformers
         let lines = state.CodeLines
-        if notNull doc // when called immediately after a doc change, this update should never be needed, called from updateAllTransformersConcurrently via UpdateTransformers
-        && lines.IsNotFromId(changeId) then  // some text might have been typed in comments, this would increment the doc change ID but not update the CodeLines.        
-            let code = doc.CreateSnapshot().Text // the only threadsafe way to access the code string
-            state.CodeLines.UpdateLines(code, changeId)
-
+        if lines.IsNotFromId(changeId) then  // some text might have been typed in comments, this would increment the doc change ID but not update the CodeLines.        
+            match SelectionHighlighting.makeEditorSnapShot(doc,state,changeId) with 
+            | None      -> ()
+            | Some code -> state.CodeLines.UpdateLines(code, changeId)
+        
+        // (2) search for the word in the lines:    
         if not <| state.IsLatest changeId then 
             false
-        else
-            // (2) search for the word in the lines:
+        else            
             if lastWord = "" then 
                 selTransformersSetEv.Trigger(changeId) // can by async, this still needs to be called this ! so the  EventCombiner can  the full redrawing of the other highlighters.
                 true
@@ -324,7 +381,7 @@ type SelectionHighlighterLog (lg:TextEditor) =
     let mutable linesNeedUpdate = true
         
     /// tracks changes to the log
-    let logChangeID = ref 0L
+    let logStateRef = ref 0L
 
     /// track new highlighting requests 
     let markCallID  = ref 0 // because while getting the text below, the Editor selection might have changed already
@@ -355,7 +412,7 @@ type SelectionHighlighterLog (lg:TextEditor) =
     // selectionStartOff is the offset of the current selection in the Editor, it is excluded from highlighting
     // but included in the count of offsets in the StatusBar     
     let mark (word:string, skipOff: SkipMarking, triggerNext:bool) =
-        let changeId = logChangeID.Value
+        let changeId = logStateRef.Value
         let markId   = Threading.Interlocked.Increment markCallID
         let lgDoc = lg.Document
         lastWord <- word // save last selection word even if it is not found, it might be found after a doc change
@@ -364,16 +421,16 @@ type SelectionHighlighterLog (lg:TextEditor) =
             
             // (1) make sure the lines for searching are up to date 
             // TODO: could be optimized to append changes to the lines instead of recreating the whole text
-            while linesNeedUpdate && logChangeID.Value = changeId do                 
+            if linesNeedUpdate then             
                 do! Async.Sleep 50 // needed for getting correct text in snapshot
-                if logChangeID.Value = changeId then
-                    let t = lgDoc.CreateSnapshot().Text
-                    lines.UpdateLogLines(t)
-                    if logChangeID.Value = changeId then // this forces waiting till there are no more updates
-                        linesNeedUpdate <- false                     
+                match SelectionHighlighting.makeLogSnapShot(lgDoc,logStateRef,changeId) with 
+                | None     -> ()   // there are some newer doc changes ! keep linesNeedUpdate = true
+                | Some txt -> 
+                    lines.UpdateLogLines(txt)
+                    linesNeedUpdate <- false                     
            
-           // (2) search for the word in the lines:
-            if markId = markCallID.Value && logChangeID.Value = changeId  then // because while getting the text above, the text or the selection might have changed already
+            // (2) search for the word in the lines:
+            if not linesNeedUpdate && markId = markCallID.Value && logStateRef.Value = changeId  then // because while getting the text above, the text or the selection might have changed already
                 let codeStr  = lines.FullCode
                 let lastLineNo = lines.LastLineIdx
                 let wordLen = word.Length
@@ -494,7 +551,7 @@ type SelectionHighlighterLog (lg:TextEditor) =
         lg.TextArea.SelectionChanged.Add ( fun _ -> updateToCurrentSelection() )        
         
         lg.Document.Changing.Add (fun _ -> 
-            Threading.Interlocked.Increment logChangeID |> ignore
+            Threading.Interlocked.Increment logStateRef |> ignore
             linesNeedUpdate <- true
             )
 

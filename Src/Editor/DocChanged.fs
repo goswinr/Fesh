@@ -101,8 +101,11 @@ module Redrawing =
 
         let tryDraw(id) =             
             if state.IsLatest id && idSemantics=id && idBrackets=id  && idErrors=id && idSels=id then  
-                eprintfn "full Transformers TextView.Redraw()"
-                ed.Dispatcher.Invoke (fun() -> ed.TextArea.TextView.Redraw(priority))
+                ed.Dispatcher.Invoke (fun() -> 
+                    let diff = ed.Document.TextLength-  state.CodeLines.FullCode.Length
+                    if diff <> 0 then  ISeffLog.log.PrintfnAppErrorMsg $"CodeLines too short by {diff} chars"
+                    ed.TextArea.TextView.Redraw(priority)
+                    )
        
   
         let doneBrackets(id)   = idBrackets   <- id ;  tryDraw(id)             
@@ -117,8 +120,13 @@ module Redrawing =
             services.selection.FoundSels.Add     doneSels     
 
 module DocChangeMark =     
-    open Redrawing
-    
+    open Redrawing    
+    open System.Threading.Tasks
+    open System.Threading
+    open AvalonEditB.Document
+
+
+
     /// milliseconds to wait before starting the first check after a change
     /// only for Single char changes
     let mainWait = 50 
@@ -144,26 +152,24 @@ module DocChangeMark =
             } |> Async.Start   
     
     //To be called from any thread
-    let updateAllTransformersSync(iEd:IEditor, doc:TextDocument, drawServ:DrawingServices, state:InteractionState, id ) =        
-        // NOTE just checking only Partial Code till caret with (doc.CreateSnapshot(0, tillOffset).Text) 
-        // would make the GetDeclarationsList method miss some declarations !!
-        let code = doc.CreateSnapshot().Text // the only threadsafe way to access the code string
-        if state.IsLatest id then 
-            updateAllTransformersConcurrently (iEd, code, drawServ, state, id)
+    let updateAllTransformersSync(iEd:IEditor, doc:TextDocument, drawServ:DrawingServices, state:InteractionState, id ) =   
+        match SelectionHighlighting.makeEditorSnapShot(doc,state,id) with 
+        | None      -> ()   
+        | Some code -> updateAllTransformersConcurrently (iEd, code, drawServ, state, id)
+        
       
     // To be called from UI thread
     let updateAllTransformersAsync (iEd:IEditor, drawServ:DrawingServices, state:InteractionState, id ) =
         let doc = iEd.AvaEdit.Document // get Doc in Sync
         async { 
             if mainWait <> 0 then do! Async.Sleep mainWait
-            if state.IsLatest id then 
-                // NOTE just checking only Partial Code till caret with (doc.CreateSnapshot(0, tillOffset).Text) 
-                // would make the GetDeclarationsList method miss some declarations !!
-                let code = doc.CreateSnapshot().Text // the only threadsafe way to access the code string
-                if state.IsLatest id then 
-                    updateAllTransformersConcurrently (iEd, code, drawServ, state, id)
-        } |> Async.Start
-    
+            match SelectionHighlighting.makeEditorSnapShot(doc,state,id) with 
+            | None      -> ()   
+            | Some code -> updateAllTransformersConcurrently (iEd, code, drawServ, state, id)
+        } 
+        |> Async.Start
+
+          
                
 module DocChangeCompletion = 
     open DocChangeUtil
@@ -371,23 +377,21 @@ module DocChangeCompletion =
                             let show = MaybeShow.completionWindow(pos)
                             //ISeffLog.log.PrintfnDebugMsg $"MaybeShow.completionWindow for {lastChar} is {show}"
                             match show with 
-                            |DoNothing  -> 
+                            |DoNothing  -> // typing in a comment do nothing?
                                 do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context  
                                 drawServ.selection.UpdateToCurrentSelection() // TODO Or Just Do nothing ??
 
                             |JustMark -> 
                                 DocChangeMark.updateAllTransformersSync(iEd, doc, drawServ, state, id)                        
 
-                            |ShowKeyWords  |ShowAll |ShowOnlyDU -> 
+                            |ShowAll |ShowOnlyDU |ShowKeyWords -> 
                                 state.DocChangedConsequence <- WaitForCompletions
                                 let mutable fullCode = ""
                                 let declsPosX  = 
-                                    Monads.maybe{
-                                        let! _          = state.IsLatestOpt id
-                                        let code        = doc.CreateSnapshot().Text // the only threadsafe way to access the code string
-                                        fullCode <- code
-                                        let! _          = state.IsLatestOpt id
-                                        let! res        = Checker.CheckCode(iEd, state, code, id, false)
+                                    Monads.maybe{                                        
+                                        let! code      = SelectionHighlighting.makeEditorSnapShot(doc,state,id)
+                                        fullCode       <- code
+                                        let! res        = Checker.CheckCode(iEd, state, fullCode, id, false)
                                         let! decls, pos = Checker.GetCompletions(pos,res) 
                                         let! _          = state.IsLatestOpt id
                                         return decls, pos
@@ -407,10 +411,8 @@ module DocChangeCompletion =
                                         do! Async.SwitchToThreadPool()
                                         DocChangeMark.updateAllTransformersConcurrently(iEd, fullCode, drawServ, state, id)
                                 |None -> 
-                                    state.DocChangedConsequence <- React                                    
-                                    if fullCode = "" then 
-                                        fullCode <- doc.CreateSnapshot().Text
-                                    if state.IsLatest id then 
+                                    state.DocChangedConsequence <- React 
+                                    if fullCode <> "" && state.IsLatest id then 
                                         DocChangeMark.updateAllTransformersConcurrently (iEd, fullCode, drawServ, state, id)                            
                         else   
                             // the typed character should not trigger completion.                 

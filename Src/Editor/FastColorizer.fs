@@ -160,7 +160,7 @@ type LineTransformers<'T>() =    // generic so it can work for LinePartChange an
         lines <- lineList
         shift <- { fromOff=Int32.MaxValue; fromLine=Int32.MaxValue; amountOff=0;  amountLines=0}   
 
-    /// Safely gets a Line returns empty List  if index is out of range
+    /// Safely gets a Line returns empty List if index is out of range
     /// also applies the shift for line numbers if present
     member _.GetLine(lineNumber) =
         let lNo = 
@@ -169,7 +169,7 @@ type LineTransformers<'T>() =    // generic so it can work for LinePartChange an
             else 
                 lineNumber 
        
-        if lNo>=0 && lNo<lines.Count then 
+        if lNo<lines.Count then 
             let ln = lines[lNo] 
             if isNull ln then 
                 empty 
@@ -194,18 +194,18 @@ type FastColorizer(transformers:LineTransformers<LinePartChange> [], ed:TextEdit
         let offSt  = line.Offset    
         let offEn  = line.EndOffset 
 
-        for j = 0 to transformers.Length-1 do
+        for j = 0 to transformers.Length-1 do // there are four
             let lts = transformers.[j]
+            let shift = lts.Shift
             if lineNo >= lts.LineCount then 
                 //ISeffLog.log.PrintfnAppErrorMsg $"Cant get line index {lineNo} from {lts.LineCount} lines in LineTransformer"
                 ()
             else
-                let lpcs = lts.GetLine(lineNo) 
-                for i=0 to lpcs.Count-1 do  
-                    if i < lpcs.Count then // because it might get reset while iterating ?
-                        let lpc = lpcs[i]
-                        if notNull lpc.act then // because for coloring brackets the action may be null to keep xshd coloring
-                            let shift = lts.Shift
+                let linePartChanges = lts.GetLine(lineNo) 
+                for i=0 to linePartChanges.Count-1 do  
+                    if i < linePartChanges.Count then // because it might get reset while iterating ?
+                        let lpc = linePartChanges[i]
+                        if notNull lpc.act then // because for coloring brackets the action may be null to keep xshd coloring                            
                             let shiftChecked = if lpc.from >= shift.fromOff then shift.amountOff else 0
                             let from = lpc.from + shiftChecked
                             let till = lpc.till + shiftChecked
@@ -237,3 +237,22 @@ type DebugColorizer(transformers:LineTransformers<LinePartChange> [], ed:TextEdi
         //elif lineNo % 2= 0  then 
         else
             ISeffLog.log.PrintfFsiErrorMsg $"%d{lineNo}, "   
+
+type DebugColorizer2(transformers:LineTransformers<LinePartChange> [], ed:TextEditor) = 
+    inherit Rendering.DocumentColorizingTransformer()  
+
+    /// This gets called for every visible line on every Redraw
+    override _.ColorizeLine(line:Document.DocumentLine) =   
+        let lineNo = line.LineNumber
+        if lineNo = 24 then 
+            let offSt  = line.Offset    
+            let offEn  = line.EndOffset 
+
+            for j = 0 to transformers.Length-1 do
+                let lts = transformers.[j]
+                let shift = lts.Shift
+                if shift.fromOff = Int32.MaxValue then 
+                    eprintfn $"%d{lineNo} no shift"
+                else
+                    eprintfn $"%d{lineNo} shift: {shift.fromOff} {shift.fromLine} {shift.amountOff} {shift.amountLines} line from {offSt} to {offEn}"
+                
