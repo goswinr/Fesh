@@ -40,8 +40,8 @@
   </PropertyGroup>
   <ItemGroup>
     
-    <PackageReference Update="FSharp.Core" Version="7.0.300" GeneratePathProperty="true" />
-    <PackageReference Include="FSharp.Compiler.Service" Version="43.7.300" GeneratePathProperty="true" />
+    <PackageReference Update="FSharp.Core" Version="7.0.400" GeneratePathProperty="true" />
+    <PackageReference Include="FSharp.Compiler.Service" Version="43.7.400" GeneratePathProperty="true" />
 
     <!-- These packages are just added  explicitly again to pull in XML too below. -->
     <PackageReference Include="AvalonLog" Version="0.11.0" GeneratePathProperty="true" />

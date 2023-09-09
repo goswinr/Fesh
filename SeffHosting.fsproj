@@ -54,8 +54,8 @@
 
   <ItemGroup>
     <!-- normally don't include FSharp.Core in a library, but Update to latest version is needed for latest FSharp.Compiler.Service-->
-	  <PackageReference Update="FSharp.Core" Version="7.0.300" />
-	  <PackageReference Include="FSharp.Compiler.Service" Version="43.7.300"  />
+	  <PackageReference Update="FSharp.Core" Version="7.0.400" />
+	  <PackageReference Include="FSharp.Compiler.Service" Version="43.7.400"  />
 	  <PackageReference Include="FsEx.Wpf" Version="0.5.0" />
 	  <PackageReference Include="AvalonLog" Version="0.11.0" />	    
 

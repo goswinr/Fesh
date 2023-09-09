@@ -32,8 +32,8 @@ module StatusbarStyle =
     let textPadding = Thickness(4. , 1. , 4., 1. ) //left ,top, right, bottom)
     let okColor =   Brushes.Green    |> brighter 140   |> freeze
     let activeCol = Brushes.Orange   |> brighter 20    |> freeze
-    let failedCol = Brushes.Magenta                    |> freeze
-    let grayText =  Brushes.Gray     |> darker 20      |> freeze
+    let compileCol = Brushes.Magenta                    |> freeze
+    let grayText =  Brushes.Gray     |> darker 60      |> freeze
     let waitCol  =  Brushes.HotPink  |> brighter 80    |> freeze
 
 open StatusbarStyle
@@ -181,8 +181,24 @@ type FsiRunStatus (grid:TabsAndLog) as this =
         //this.ContextMenu <- makeContextMenu [ menuItem cmds.CancelFSI ]
         this.ToolTip <- "Shows the status of the fsi evaluation core. This is the same for all tabs. Only one script can run at the time."
 
-        grid.Tabs.Fsi.OnStarted.Add(fun codeToEval ->
+        
+        grid.Tabs.Fsi.OnCompiling.Add(fun codeToEval ->
             this.Background <- activeCol
+            this.Inlines.Clear()
+            match codeToEval.editor.FilePath with
+            |Deleted fi|SetTo fi ->
+                match codeToEval.amount with
+                | All                 ->  this.Inlines.Add(new Run ("FSI is compiling "          , Foreground = grayText))
+                | ContinueFromChanges ->  this.Inlines.Add(new Run ("FSI continues to compiling ", Foreground = grayText))
+                | FsiSegment _        ->  this.Inlines.Add(new Run ("FSI is compiling a part of ", Foreground = grayText))
+                this.Inlines.Add( new Run (fi.Name, FontFamily = StyleState.fontEditor) )
+                this.Inlines.Add( new Run (" . . ."                                              , Foreground = grayText))
+            |NotSet dummyName ->
+                this.Inlines.Add( "FSI is compiling "+dummyName + " . . ." )
+            )        
+        
+        grid.Tabs.Fsi.OnEmitting.Add(fun codeToEval ->
+            this.Background <- compileCol
             this.Inlines.Clear()
             match codeToEval.editor.FilePath with
             |Deleted fi|SetTo fi ->

@@ -70,8 +70,8 @@ module ISeffLog =
 
 // ---- Editor types -----------
 
-/// To give each doc chnage a unique ID
-/// Only chanages while not waiting for completion window
+/// To give each doc change a unique ID
+/// Only changes while not waiting for completion window
 /// So that at we can check if a CheckResult still corresponds to the latest changes
 type ChangeId = int64
 
@@ -125,7 +125,6 @@ type IEditor =
     abstract member EvaluateFrom   : int option // the line number to start evaluating from if EvaluationTracker is active
 
 [<RequireQualifiedAccess>]
-[<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module IEditor = 
     /// A global reference to the current Editor
     let mutable current :option<IEditor> = None
