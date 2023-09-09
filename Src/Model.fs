@@ -161,9 +161,14 @@ type CodeToEval = {
 
 
 type PositionInCode = { 
+    /// this line will include the character that trigger auto completion(dot or first letter)
     lineToCaret:string  
+    
     row:int
+    
+    /// equal to amount of characters in lineToCaret
     column:int 
+    
     offset:int 
     }
 

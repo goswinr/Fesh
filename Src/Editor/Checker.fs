@@ -2,19 +2,14 @@ namespace Seff.Editor
 
 open System
 open System.Collections.Generic
-open System.Threading
 
-open Seff.Util.General
+open Seff.Model
 open Seff.Util
-open Seff.Util.Monads.Operators
+open Seff.Util.General
 
 open FSharp.Compiler
 open FSharp.Compiler.CodeAnalysis
 open FSharp.Compiler.EditorServices
-
-open Seff
-open Seff.Model
-open Seff.Config
 
 
 type ParseCheckRes = {
@@ -28,7 +23,8 @@ type PositionInCodeEx =
     row          : int
     column       : int 
     offset       : int     
-    setback      : int  // to maybe replace some previous characters too                  
+    setback      : int  
+    /// to maybe replace some previous characters too upon inserting                 
     query        : string
     dotBefore    : bool      
     partLoName   : PartialLongName    
@@ -211,22 +207,25 @@ type Checker private ()  =
         if raiseStateChangedEvent then 
             FsEx.Wpf.SyncWpf.doSync (fun () -> checkingStateEv.Trigger state )
 
-    /// At the end either a event is raised or continuation called if present.
+    
+   
     static let parseAndCheck( state:InteractionState, code:string, filePath:FilePath, changeId): option<ParseCheckRes> = 
         match fsChecker with
         | Some _ -> ()
-        | None   ->  fsChecker <- Some (FsCheckerUtil.getNew())
+        | None   ->  fsChecker <- Some (FsCheckerUtil.getNew())        
         
+        let ok() = state.IsLatestOpt changeId 
+
         Monads.maybe{
-            let! _ = state.IsLatestOpt changeId
-            let fileFsx    = FsCheckerUtil.getFsxFileNameForChecker filePath
-            let! _ = state.IsLatestOpt changeId
-            let sourceText = Text.SourceText.ofString code
-            return!
-                FsCheckerUtil.getOptions fsChecker.Value fileFsx sourceText
-                <* state.IsLatestOpt changeId
-                >>= FsCheckerUtil.parseAndCheckImpl fsChecker.Value fileFsx sourceText
-                <*  state.IsLatestOpt changeId
+            let! _ = ok()
+            let  fileFsx    = FsCheckerUtil.getFsxFileNameForChecker filePath
+            let! _ = ok()
+            let  sourceText = Text.SourceText.ofString code
+            let! opts = FsCheckerUtil.getOptions fsChecker.Value fileFsx sourceText
+            let! _ = ok()
+            let! checkRes = FsCheckerUtil.parseAndCheckImpl fsChecker.Value fileFsx sourceText opts
+            let! _ = ok()
+            return checkRes               
             }
     
     //-----------------------------------------------------------------
@@ -241,11 +240,11 @@ type Checker private ()  =
     /// for a given method name returns a list of optional argument names
     static member OptArgsDict = optArgsDict
 
-    /// Returns None if check failed or was superseded by a newer Document change ID
-    static member CheckCode(iEd:IEditor, state:InteractionState, code, changeId, raiseEvent) : option<FullCheckResults>=        
+    /// Returns None if check failed or was superseded by a newer Document change ID    
+    static member CheckCode(ed:IEditor, state:InteractionState, code, changeId, raiseEvent) : option<FullCheckResults>=        
         raiseStateChangedEvent <- raiseEvent
-        updateCheckingState iEd Checking            
-        match parseAndCheck( state, code, iEd.FilePath, changeId) with 
+        updateCheckingState ed Checking            
+        match parseAndCheck( state, code, ed.FilePath, changeId) with 
         |None ->
             //ISeffLog.log.PrintfnDebugMsg $"*parseAndCheck: aborted early, waiting for newer checke state event."
             None                
@@ -257,9 +256,9 @@ type Checker private ()  =
                 checkRes = parseCheckRes.checkRes 
                 errors   = errs
                 changeId = changeId
-                editor   = iEd.AvaEdit
+                editor   = ed.AvaEdit
                 }
-            updateCheckingState iEd (Done res)
+            updateCheckingState ed (Done res)
             Some res
      
     /// Currently unused optional argument to GetDeclarationListSymbols

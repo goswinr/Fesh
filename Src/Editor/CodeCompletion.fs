@@ -279,8 +279,8 @@ type Completions(state: InteractionState) =
                 let stOff = pos.offset - pos.setback // just using w.StartOffset - setback would sometimes be one too big.( race condition of typing speed)
                 // prefilter needs to be calculated here, a few characters might have been added after getCompletions started async.
                 let prefilterLength = caret.Offset-stOff
-                if prefilterLength < 0 then 
-                    this.CloseAndEnableReacting() // needed, otherwise it will not show again
+                if prefilterLength < 0 then // caret moved back before start of completion window
+                    this.CloseAndEnableReacting() 
                     NoShow
                 else
                     let prefilter = avEd.Document.GetText(stOff, prefilterLength )
@@ -290,7 +290,7 @@ type Completions(state: InteractionState) =
                         complList.SelectItem(prefilter) //to pre-filter the list by al typed characters
                         //ISeffLog.log.PrintfnDebugMsg "*5.3: count after SelectItem(prefilter): %d" complList.ListBox.Items.Count                            
                 
-                    if complList.ListBox.Items.Count > 0 
+                    if complList.ListBox.Items.Count > 0 // list is empty if prefilter does not match any item
                         && not AutoFixErrors.isMessageBoxOpen  // because msg box would appear behind completion window and type info
                         && IEditor.isCurrent avEd // switched to other editor
                         && caret.Line = pos.row // moved cursor to other line
@@ -314,8 +314,8 @@ type Completions(state: InteractionState) =
 
                             let taCaretChanged  = new EventHandler(fun _ _ -> 
                                 match complList.ListBox.Items.Count with 
-                                | 0 -> w.Close()  //  close when list is empty. then triggers CheckThenHighlightAndFold?
-                                | 1 -> match complList.SelectedItem with // insert and close if there is an exact match an no other match available
+                                | 0 -> w.Close()  //  close when list is empty. willInsert is still false so checkAndMark will be called in closing event handler
+                                | 1 -> match complList.SelectedItem with // insert and close if there is an exact match and no other possible match available
                                         | null -> ()
                                         | it -> 
                                                 let textInWin = it.Text
@@ -323,7 +323,7 @@ type Completions(state: InteractionState) =
                                                 if avEd.Document.TextLength >= w.StartOffset + len then
                                                     let textInDoc = avEd.Document.GetText(w.StartOffset, textInWin.Length)  
                                                     if textInWin = textInDoc then 
-                                                        complList.RequestInsertion(new EventArgs()) 
+                                                        complList.RequestInsertion(new EventArgs()) // this triggers a doc-changed event
                                 | _ -> () // else keep window open
                                 )
                             
@@ -333,13 +333,12 @@ type Completions(state: InteractionState) =
                                     // Event sequence on pressing enter in completion window:
                                     // (1)raise InsertionRequested event
                                     // (2)in one of the event handlers first Closes window
-                                    // (3)then on the item line this.Complete (TextArea, ISegment, EventArgs) is called
+                                    // (3)then on the item line this.Complete (TextArea, ISegment, EventArgs) is called and change the Document
                                     // https://github.com/goswinr/AvalonEditB/blob/main/AvalonEditB/CodeCompletion/CompletionWindow.cs#L110                        
                                     this.CloseAndEnableReacting()
                                     //ISeffLog.log.PrintfnDebugMsg "Completion window just closed with selected item: %A " complList.SelectedItem               
 
-                                    if not willInsert then 
-                                        state.Increment() |> ignore<int64>
+                                    if not willInsert then // else -on inserting- a DocChanged event is triggered anyway that will do the checkAndMark
                                         checkAndMark()
                                     )
                             ta.Caret.PositionChanged.AddHandler taCaretChanged

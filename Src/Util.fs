@@ -35,7 +35,6 @@ module Pen =
 module General = 
     open System
 
-    let rand = new Random() // to give each error checking call a unique id
 
     let inline isTrue (nb:Nullable<bool>) = nb.HasValue && nb.Value
 
@@ -56,7 +55,7 @@ module General =
         getParent f.Directory [f.Name]
         |> List.toArray
 
-    /// Post to this agent for writing a debug string to a desktop file. Only used for bugs that cant be logged to the UI.
+    /// Post to this agent for writing a debug string to a desktop file. Only used for bugs that can't be logged to the UI.
     let LogFile = // for async debug logging to a file (if the Log window fails to show)
         let file = IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "Seff-Log.txt")
         MailboxProcessor.Start(
@@ -109,6 +108,27 @@ module General =
 module Str  = 
     open System.Text.RegularExpressions
 
+    /// poor man's name parsing: returns the offset from end of string to last non alphanumeric or '_' character, or # for compiler directives
+    /// this is used to do code completion even if a few characters are typed already. to track back to the start of the item to complete.
+    let lastNonFSharpNameCharPosition (s:string) = 
+        let mutable p = s.Length-1
+        if p = -1 then 0 // empty string
+        //elif p = 0 then 0 // single char string //TODO this is wrong? why was it there?
+        else
+            let mutable i = 0
+            let mutable ch = s.[p]
+            while p >= 0 && (Char.IsLetterOrDigit ch || ch = '_' || ch = '#' ) do // valid chars in F# names, # for compiler directives
+                i <- i+1
+                p <- p-1
+                if p >=0 then ch <- s.[p]
+            i
+
+    /// test if char is FSharp operator, includes '~'
+    let isOperator (c:Char)= 
+        // https://docs.microsoft.com/en-us/dotnet/fsharp/language-reference/operator-overloading
+        '!'=c || '%'=c || '&'=c || '*'=c || '+'=c || '-'=c || '.'=c || '|'=c ||
+        '/'=c || '<'=c || '='=c || '>'=c || '?'=c || '@'=c || '^'=c || '~'=c
+        
     /// first letter uppercase 
     let up1 (s:String)  = 
         if s="" then s else Char.ToUpper(s.[0]).ToString() + s.Substring(1)
@@ -118,45 +138,7 @@ module Str  =
         if s="" then s else Char.ToLower(s.[0]).ToString() + s.Substring(1)
 
     
-    /// Trims strings to 80 chars for showing in one line.
-    /// It returns the input string trimmed to 80 chars, a count of skipped characters and the last 5 characters
-    /// Replace line breaks with '\r\n' or '\n' literal
-    /// Does not include surrounding quotes
-    /// If string is null returns "-null string-"
-    let truncateFormattedInOneLine (stringToTrim:string) :string = 
-        if isNull stringToTrim then "-null string-"
-        else
-            let s = 
-                let maxChars = 80
-                if stringToTrim.Length <= maxChars + 20 then  stringToTrim
-                else
-                    let len   = stringToTrim.Length
-                    let st    = stringToTrim.Substring(0,maxChars)
-                    let last5 = stringToTrim.Substring(len-6)
-                    sprintf "%s[..%d more Chars..]%s" st (len - maxChars - 5) last5
-            s.Replace("\r","\\r").Replace("\n","\\n")
-
-    /// Trims strings ot maximum line count.
-    /// Adds note about trimmed line count if there are more [ ... and %d more lines.]
-    /// Does not include surrounding quotes
-    /// If string is null returns "-null string-"
-    let truncateToMaxLines (lineCount:int) (stringToTrim:string) :string = 
-        if isNull stringToTrim then "-null string-"
-        else
-            let lns = stringToTrim.Split([|'\n'|],StringSplitOptions.None)
-            let t = 
-                lns
-                |> Seq.truncate lineCount
-                |> Seq.map ( fun l -> l.TrimEnd() )
-                |> String.concat Environment.NewLine
-
-            if lns.Length > lineCount then 
-                sprintf "%s\%s[ ... and %d more lines.]" t Environment.NewLine (lns.Length - lineCount)
-            else
-                t
-
-
-    // ensures all lines end on Environment.NewLine
+    /// ensures all lines end on Environment.NewLine
     let unifyLineEndings (s:string) = 
         //Text.StringBuilder(s).Replace("\r\n", "\n").Replace("\r", "\n").Replace("\n", Environment.NewLine).ToString()
         //Regex.Replace(s, @"\r\n|\n\r|\n|\r", Environment.NewLine) //https://stackoverflow.com/questions/140926/normalize-newlines-in-c-sharp
@@ -266,28 +248,6 @@ module Str  =
             i <- i + 1
             loop <- s.[i] = ' '
         i
-
-
-    /// poor man's name parsing: returns the offset from end of string to last non alphanumeric or '_' character, or # for compiler directives
-    /// this is used to do code completion even if a few characters are typed already. to track back to the start of the item to complete.
-    let lastNonFSharpNameCharPosition (s:string) = 
-        let mutable p = s.Length-1
-        if p = -1 then 0 // empty string
-        //elif p = 0 then 0 // single char string //TODO this is wrong? why was it there?
-        else
-            let mutable i = 0
-            let mutable ch = s.[p]
-            while p >= 0 && (Char.IsLetterOrDigit ch || ch = '_' || ch = '#' ) do // valid chars in F# names, # for compiler directives
-                i <- i+1
-                p <- p-1
-                if p >=0 then ch <- s.[p]
-            i
-
-    /// test if char is FSharp operator, includes '~'
-    let isOperator (c:Char)= 
-        // https://docs.microsoft.com/en-us/dotnet/fsharp/language-reference/operator-overloading
-        '!'=c || '%'=c || '&'=c || '*'=c || '+'=c || '-'=c || '.'=c || '|'=c ||
-        '/'=c || '<'=c || '='=c || '>'=c || '?'=c || '@'=c || '^'=c || '~'=c
 
     /// split string into two elements,
     /// splitter is not included in the two return strings.
@@ -564,7 +524,9 @@ module Monads =
     /// A maybe monad for option types.
     let maybe = MaybeBuilder()
 
+    (*
     /// Generic monadic operators    
+        
     module Operators =
         //https://github.com/fsprojects/FSharpx.Extras/blob/master/src/FSharpx.Extras/ComputationExpressions/Operators.fs
 
@@ -623,8 +585,9 @@ module Monads =
 
         /// Sequentially compose monadic and non monadic actions, 
         /// passing any value produced by the first as an argument to the second.
-        /// Similar to >>= but for functions that alays return a result (not a result option)
+        /// Similar to >>= but for functions that always return a result (not a result option)
         let inline (|>>) m f = liftM maybe f m //match m with Some x -> Some (f x)  |None -> None
+    *)
 
 
 

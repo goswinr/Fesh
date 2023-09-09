@@ -2,16 +2,16 @@
 
 open System
 open System.Windows.Media
+
 open AvalonEditB
 open AvalonEditB.Rendering
-open Seff.Util.General
+open AvalonEditB.Document
+
 open Seff.Util
-open Seff.Model
-open Seff.Editor.Selection
 open Seff.Editor
+open Seff.Editor.Selection
 open Seff.Editor.CodeLineTools
 
-open AvalonEditB.Document
 
 module SelectionHighlighting =
     open System.Linq

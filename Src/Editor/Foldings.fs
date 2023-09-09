@@ -4,9 +4,8 @@ open System
 open System.Collections.Generic
 
 open AvalonEditB
-open AvalonEditB.Rendering
 open AvalonEditB.Folding
-open AvalonLog.Brush
+
 open Seff.Model
 
 [<Struct>]
@@ -190,7 +189,7 @@ type Foldings(manager:Folding.FoldingManager, state:InteractionState, getFilePat
                             let diffEnd   = fEdi.EndOffset   - f.foldEndOff
                             // if diffStart-diffEnd <> 0  then 
                             if diffStart <> 0  || diffEnd <> 0 then 
-                                //ISeffLog.log.PrintfnDebugMsg $"changeId: {id} foldings differ: {fEdi.StartOffset-f.foldStartOff} and {fEdi.EndOffset-f.foldEndOff}" //DELETE
+                                ISeffLog.log.PrintfnDebugMsg $"changeId: {id} foldings differ: {fEdi.StartOffset-f.foldStartOff} and {fEdi.EndOffset-f.foldEndOff}" //DELETE
                                 true // existing, foldings are different
                             else
                                 zip (i+1) // loop on
@@ -259,8 +258,8 @@ type Foldings(manager:Folding.FoldingManager, state:InteractionState, getFilePat
         |> Option.defaultWith (fun () -> failwithf "Failed to find Folding.FoldingMargin")
         :?> Folding.FoldingMargin
 
-    // When the full text gets replaced ( eg via git branch change).
-    // manager.UpdateFoldings(..) cannot remember old locations and keep state
+    // When the full text gets replaced ( eg via git branch change)
+    // the manager.UpdateFoldings(..) cannot remember old locations and keep state.
     do 
         // set up initial state:
         let vs = state.Config.FoldingStatus.Get(getFilePath())

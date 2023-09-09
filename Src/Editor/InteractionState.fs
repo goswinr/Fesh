@@ -1,8 +1,7 @@
 namespace Seff.Editor
 
-open AvalonEditB.Folding
-open AvalonEditB.Document
 open AvalonEditB
+open AvalonEditB.Folding
 
 module CodeLineTools = 
     
@@ -211,8 +210,9 @@ type InteractionState(ed:TextEditor, foldManager:FoldingManager, config:Seff.Con
     /// Returns the incremented value.
     member _.Increment() = System.Threading.Interlocked.Increment changeId
  
-    /// Checks if passed in int64 is same as current DocChangedId.
-    member _.IsLatestOpt id  =  if changeId.Value = id then Some true else None
+    /// Checks if passed in int64 is same as current DocChangedId 
+    /// returns option type for monadic composition
+    member _.IsLatestOpt id  = if changeId.Value = id then Some true else None
 
     /// Checks if passed in int64 is same as current DocChangedId.
     member _.IsLatest id  =  changeId.Value = id 
