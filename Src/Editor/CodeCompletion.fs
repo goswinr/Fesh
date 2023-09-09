@@ -142,17 +142,14 @@ type Completions(state: InteractionState) =
     [<CLIEvent>] 
     member _.OnShowing = showingEv.Publish // to close other tooltips that might be open from type info    
     
-    /// To indicate that the stack panel is not showing the loading text but the actual type info 
-    //member val HasStackPanelTypeInfo = false with get, set
+
 
     member _.IsOpen = win.IsSome
 
-    //member _.IsNotOpen = win.IsNone
-
-    /// Returns  win.CompletionList.ListBox.HasItems
-    //member this.HasItems = win.IsSome && win.Value.CompletionList.ListBox.HasItems
-
-    member _.Close() = 
+    /// to set state.DocChangedConsequence <- React,
+    /// close the completion window if present,
+    /// and set win <- None
+    member _.CloseAndEnableReacting() = 
         state.DocChangedConsequence <- React
         if win.IsSome then
             win.Value.Close()
@@ -181,41 +178,57 @@ type Completions(state: InteractionState) =
         and set(w  : Option<CompletionWindow>) = win <- w
     
     
+    member val justKeyWords  = 
+        let lines = ResizeArray<ICompletionData>()
+        for kw,desc in FSharpKeywords.KeywordsWithDescription  do // add keywords to list
+            if kw.StartsWith "pri" || kw.StartsWith "mut" || kw.StartsWith "inl" || kw.StartsWith "int" then 
+                lines.Add( CompletionItemForKeyWord(state,kw,desc) :> ICompletionData) |>ignore
+        lines
+
+    member val justAll = 
+        let lines = ResizeArray<ICompletionData>()
+        lines.Add( CompletionItemForKeyWord(state,"#if INTERACTIVE",     "Compiler directive to exclude code in compiled format, close with #endif or #else" ) :> ICompletionData)    |>ignore
+        lines.Add( CompletionItemForKeyWord(state,"#if COMPILED",        "Compiler directive to exclude code in interactive format, close with #endif or #else" ) :> ICompletionData)    |>ignore
+        lines.Add( CompletionItemForKeyWord(state,"#else",               "else of compiler directives " ) :> ICompletionData)    |>ignore
+        lines.Add( CompletionItemForKeyWord(state,"#endif",              "End of compiler directive " ) :> ICompletionData)    |>ignore
+                                
+        lines.Add( CompletionItemForKeyWord(state,"__SOURCE_DIRECTORY__","Evaluates to the current full path of the source directory" ) :> ICompletionData)    |>ignore
+        lines.Add( CompletionItemForKeyWord(state,"__SOURCE_FILE__"     ,"Evaluates to the current source file name, without its path") :> ICompletionData)    |>ignore
+        lines.Add( CompletionItemForKeyWord(state,"__LINE__",            "Evaluates to the current line number") :> ICompletionData)    |>ignore
+        for kw,desc in FSharpKeywords.KeywordsWithDescription  do // add keywords to list
+            lines.Add( CompletionItemForKeyWord(state,kw,desc) :> ICompletionData) |>ignore  
+        lines 
+
+    member this.CompletionLines ( decls: DeclarationListInfo, pos:PositionInCodeEx, showRestrictions:ShowRestrictions )= 
+        match showRestrictions with 
+        |JustKeyWords -> 
+            this.justKeyWords
+        |JustDU -> 
+            let lines = ResizeArray<ICompletionData>(decls.Items.Length)
+            for it in decls.Items do                
+                match it.Glyph with
+                |FSharpGlyph.Union |FSharpGlyph.Module |FSharpGlyph.EnumMember -> 
+                    lines.Add (new CompletionItem(state, this.GetToolTip, it, pos.dotBefore)) // for DU completion add just some.
+                |_ -> ()
+            lines
+        |JustAll ->
+            let kws = this.justAll
+            let lines = ResizeArray<ICompletionData>(decls.Items.Length + kws.Count)
+            if not pos.dotBefore then 
+                lines.AddRange kws                        
+            for it in decls.Items do
+                lines.Add (new CompletionItem(state, this.GetToolTip, it, pos.dotBefore)) // for normal completion add all others too.
+            lines 
+
     /// must be called from UI thread
-    member this.TryShow( decls: DeclarationListInfo, pos:PositionInCodeEx, restr:ShowRestrictions, checkAndMark:unit->unit) : TryShow = 
+    member this.TryShow( decls: DeclarationListInfo, pos:PositionInCodeEx, showRestrictions:ShowRestrictions, checkAndMark:unit->unit) : TryShow = 
         willInsert <- false
         
-        //ISeffLog.log.PrintfnDebugMsg $"*3.0 TryShow Completion Window , {decls.Items.Length} items, onlyDU:{restr}:\r\n{pos}"
+        //ISeffLog.log.PrintfnDebugMsg $"*3.0 TryShow Completion Window , {decls.Items.Length} items, onlyDU:{showRestrictions}:\r\n{pos}"
         if AutoFixErrors.isMessageBoxOpen then // because msg box would appear behind completion window and type info
             NoShow 
         else    
-            let completionLines = ResizeArray<ICompletionData>()
-            match restr with 
-            |JustKeyWords -> 
-                for kw,desc in FSharpKeywords.KeywordsWithDescription  do // add keywords to list
-                    if kw.StartsWith "pri" || kw.StartsWith "mut" || kw.StartsWith "inl" || kw.StartsWith "int" then 
-                        completionLines.Add( CompletionItemForKeyWord(state,kw,desc) :> ICompletionData) |>ignore
-            |JustDU -> 
-                for it in decls.Items do                
-                    match it.Glyph with
-                    |FSharpGlyph.Union |FSharpGlyph.Module |FSharpGlyph.EnumMember -> 
-                        completionLines.Add (new CompletionItem(state, this.GetToolTip, it, pos.dotBefore)) // for DU completion add just some.
-                    |_ -> ()
-            |JustAll ->
-                if not pos.dotBefore  then
-                    completionLines.Add( CompletionItemForKeyWord(state,"#if INTERACTIVE",     "Compiler directive to exclude code in compiled format, close with #endif or #else" ) :> ICompletionData)    |>ignore
-                    completionLines.Add( CompletionItemForKeyWord(state,"#if COMPILED",        "Compiler directive to exclude code in interactive format, close with #endif or #else" ) :> ICompletionData)    |>ignore
-                    completionLines.Add( CompletionItemForKeyWord(state,"#else",               "else of compiler directives " ) :> ICompletionData)    |>ignore
-                    completionLines.Add( CompletionItemForKeyWord(state,"#endif",              "End of compiler directive " ) :> ICompletionData)    |>ignore
-                                                              
-                    completionLines.Add( CompletionItemForKeyWord(state,"__SOURCE_DIRECTORY__","Evaluates to the current full path of the source directory" ) :> ICompletionData)    |>ignore
-                    completionLines.Add( CompletionItemForKeyWord(state,"__SOURCE_FILE__"     ,"Evaluates to the current source file name, without its path") :> ICompletionData)    |>ignore
-                    completionLines.Add( CompletionItemForKeyWord(state,"__LINE__",            "Evaluates to the current line number") :> ICompletionData)    |>ignore
-                    for kw,desc in FSharpKeywords.KeywordsWithDescription  do // add keywords to list
-                        completionLines.Add( CompletionItemForKeyWord(state,kw,desc) :> ICompletionData) |>ignore            
-           
-                for it in decls.Items do
-                    completionLines.Add (new CompletionItem(state, this.GetToolTip, it, pos.dotBefore)) // for normal completion add all others too.
+            let completionLines = this.CompletionLines(decls, pos, showRestrictions)
 
             if completionLines.Count = 0 then                
                 NoShow
@@ -223,71 +236,16 @@ type Completions(state: InteractionState) =
                 let ta = avEd.TextArea
                 let w =  new CodeCompletion.CompletionWindow(ta)
                 let complList = w.CompletionList
-                this.ComplWin <- Some w 
-
-                w.MaxHeight <- 500 // default 300
-                w.Width <- 250 // default 175
-                //complList.Height <- 400.  // has  UI bug  
-                //w.Height <- 400. // does not work               
-                w.BorderThickness <- Thickness(0.0) //https://stackoverflow.com/questions/33149105/how-to-change-the-style-on-avalonedit-codecompletion-window
-                w.ResizeMode      <- ResizeMode.NoResize // needed to have no border!
-                w.WindowStyle     <- WindowStyle.None // = no border                
-                w.SizeToContent   <- SizeToContent.WidthAndHeight // https://github.com/icsharpcode/AvalonEdit/blob/master/ICSharpCode.AvalonEdit/CodeCompletion/CompletionWindow.cs#L47
-                w.MinHeight       <- StyleState.fontSize
-                w.MinWidth        <- StyleState.fontSize * 8.0
-                complList.InsertionRequested.Add(fun _ -> willInsert <- true)
-                
-                let taCaretChanged  = new EventHandler(fun _ _ -> 
-                    match complList.ListBox.Items.Count with 
-                    | 0 -> w.Close()  //  close when list is empty. then triggers CheckThenHighlightAndFold?
-                    | 1 -> match complList.SelectedItem with // insert and close if there is an exact match an no other match available
-                           | null -> ()
-                           | it -> 
-                                let textInWin = it.Text
-                                let len = textInWin.Length
-                                if avEd.Document.TextLength >= w.StartOffset + len then
-                                    let textInDoc = avEd.Document.GetText(w.StartOffset, textInWin.Length)  
-                                    if textInWin = textInDoc then 
-                                        complList.RequestInsertion(new EventArgs()) 
-                    | _ -> () // else keep window open
-                    )
-                
-                w.Closed.Add (fun _  -> 
-                        ta.Caret.PositionChanged.RemoveHandler taCaretChanged
-
-                        // Event sequence on pressing enter in completion window:
-                        // (1)raise InsertionRequested event
-                        // (2)in one of the event handlers first Closes window
-                        // (3)then on the item line this.Complete (TextArea, ISegment, EventArgs) is called
-                        // https://github.com/goswinr/AvalonEditB/blob/main/AvalonEditB/CodeCompletion/CompletionWindow.cs#L110                        
-                        this.Close()
-                        //ISeffLog.log.PrintfnDebugMsg "Completion window just closed with selected item: %A " complList.SelectedItem               
-
-                        if not willInsert then 
-                            willInsert <- false
-                            checkAndMark()
-                        )
-                
-                ta.Caret.PositionChanged.AddHandler taCaretChanged
-                
-
-                           
-                w.CloseAutomatically <- true
-                w.CloseWhenCaretAtBeginning <- not pos.dotBefore 
-                                        
-                //ISeffLog.log.PrintfnDebugMsg "*5.1: pos.offset: %d , w.StartOffset %d , setback %d" pos.offset w.StartOffset setback                    
-                let stOff = pos.offset - pos.setback // just using w.StartOffset - setback would sometimes be one too big.( race condition of typing speed)
-                w.StartOffset <- stOff // to replace some previous characters too
-
                 let complData =  complList.CompletionData              
                 for cln in completionLines do
                     complData.Add (cln)                    
                 
-                let caret = ta.Caret 
+                let caret = avEd.TextArea.Caret
+                let stOff = pos.offset - pos.setback // just using w.StartOffset - setback would sometimes be one too big.( race condition of typing speed)
                 // prefilter needs to be calculated here, a few characters might have been added after getCompletions started async.
                 let prefilterLength = caret.Offset-stOff
                 if prefilterLength < 0 then 
-                    this.Close() // needed, otherwise it will not show again
+                    this.CloseAndEnableReacting() // needed, otherwise it will not show again
                     NoShow
                 else
                     let prefilter = avEd.Document.GetText(stOff, prefilterLength )
@@ -302,7 +260,59 @@ type Completions(state: InteractionState) =
                         && IEditor.isCurrent avEd // switched to other editor
                         && caret.Line = pos.row // moved cursor to other line
                         && caret.Offset >= pos.offset then // moved cursor back before completion ( e.g. via deleting)      
-        
+                            
+                            // Only now actually show the window:
+                            this.ComplWin <- Some w 
+
+                            w.MaxHeight <- 500 // default 300
+                            w.Width <- 250 // default 175
+                            //complList.Height <- 400.  // has  UI bug  
+                            //w.Height <- 400. // does not work               
+                            w.BorderThickness <- Thickness(0.0) //https://stackoverflow.com/questions/33149105/how-to-change-the-style-on-avalonedit-codecompletion-window
+                            w.ResizeMode      <- ResizeMode.NoResize // needed to have no border!
+                            w.WindowStyle     <- WindowStyle.None // = no border                
+                            w.SizeToContent   <- SizeToContent.WidthAndHeight // https://github.com/icsharpcode/AvalonEdit/blob/master/ICSharpCode.AvalonEdit/CodeCompletion/CompletionWindow.cs#L47
+                            w.MinHeight       <- StyleState.fontSize
+                            w.MinWidth        <- StyleState.fontSize * 8.0
+                            complList.InsertionRequested.Add(fun _ -> willInsert <- true)
+                            
+                            let taCaretChanged  = new EventHandler(fun _ _ -> 
+                                match complList.ListBox.Items.Count with 
+                                | 0 -> w.Close()  //  close when list is empty. then triggers CheckThenHighlightAndFold?
+                                | 1 -> match complList.SelectedItem with // insert and close if there is an exact match an no other match available
+                                        | null -> ()
+                                        | it -> 
+                                                let textInWin = it.Text
+                                                let len = textInWin.Length
+                                                if avEd.Document.TextLength >= w.StartOffset + len then
+                                                    let textInDoc = avEd.Document.GetText(w.StartOffset, textInWin.Length)  
+                                                    if textInWin = textInDoc then 
+                                                        complList.RequestInsertion(new EventArgs()) 
+                                | _ -> () // else keep window open
+                                )
+                            
+                            w.Closed.Add (fun _  -> // this gets called even if the window never shows up
+                                    ta.Caret.PositionChanged.RemoveHandler taCaretChanged
+
+                                    // Event sequence on pressing enter in completion window:
+                                    // (1)raise InsertionRequested event
+                                    // (2)in one of the event handlers first Closes window
+                                    // (3)then on the item line this.Complete (TextArea, ISegment, EventArgs) is called
+                                    // https://github.com/goswinr/AvalonEditB/blob/main/AvalonEditB/CodeCompletion/CompletionWindow.cs#L110                        
+                                    this.CloseAndEnableReacting()
+                                    //ISeffLog.log.PrintfnDebugMsg "Completion window just closed with selected item: %A " complList.SelectedItem               
+
+                                    if not willInsert then 
+                                        willInsert <- false
+                                        checkAndMark()
+                                    )
+                            
+                            ta.Caret.PositionChanged.AddHandler taCaretChanged
+                            w.CloseAutomatically <- true
+                            w.CloseWhenCaretAtBeginning <- not pos.dotBefore 
+                                                    
+                            
+                            w.StartOffset <- stOff // to replace some previous characters too
                             //ISeffLog.log.PrintfnDebugMsg "*5.4 Show Completion Window with %d items prefilter: '%s' " complList.ListBox.Items.Count prefilter                     
                             showingEv.Trigger() // to close error and type info tooltip                           
                             w.Show()
@@ -310,7 +320,7 @@ type Completions(state: InteractionState) =
                             DidShow                   
                     else
                         //ISeffLog.log.PrintfnDebugMsg "*5.5 Skipped showing empty Completion Window"
-                        this.Close() // needed, otherwise it will not show again                        
+                        this.CloseAndEnableReacting() // needed, otherwise it will not show again                        
                         NoShow
 
     /// For closing and inserting from completion window
@@ -320,7 +330,7 @@ type Completions(state: InteractionState) =
             // insertion with Tab or Enter key is built into Avalonedit!!
             
             match ev.Text with              
-            |" " -> this.Close()
+            |" " -> this.CloseAndEnableReacting()
             
             // insert on dot too? //TODO only when more than one char is typed in completion window??
             |"." -> win.Value.CompletionList.RequestInsertion(ev) 
