@@ -190,7 +190,7 @@ type Foldings(manager:Folding.FoldingManager, state:InteractionState, getFilePat
                             let diffEnd   = fEdi.EndOffset   - f.foldEndOff
                             // if diffStart-diffEnd <> 0  then 
                             if diffStart <> 0  || diffEnd <> 0 then 
-                                ISeffLog.log.PrintfnDebugMsg $"changeId: {id} foldings differ: {fEdi.StartOffset-f.foldStartOff} and {fEdi.EndOffset-f.foldEndOff}"
+                                //ISeffLog.log.PrintfnDebugMsg $"changeId: {id} foldings differ: {fEdi.StartOffset-f.foldStartOff} and {fEdi.EndOffset-f.foldEndOff}" //DELETE
                                 true // existing, foldings are different
                             else
                                 zip (i+1) // loop on

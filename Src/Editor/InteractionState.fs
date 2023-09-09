@@ -107,7 +107,9 @@ module CodeLineTools =
             else 
                 ValueNone
 
-    
+        member _.CorrespondingId = correspondingId
+
+
     /// used for Log
     /// Holds a List who's indices correspond to each line with info about:
     /// offStart: the offset of the first character off this line 
@@ -210,7 +212,6 @@ type InteractionState(ed:TextEditor, foldManager:FoldingManager, config:Seff.Con
     member _.Increment() = System.Threading.Interlocked.Increment changeId
  
     /// Checks if passed in int64 is same as current DocChangedId.
-    // if yes returns second input ( useful for monadic chaining)
     member _.IsLatestOpt id  =  if changeId.Value = id then Some true else None
 
     /// Checks if passed in int64 is same as current DocChangedId.

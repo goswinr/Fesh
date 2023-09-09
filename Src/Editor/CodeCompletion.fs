@@ -265,7 +265,6 @@ type Completions(state: InteractionState) =
             NoShow 
         else    
             let completionLines = this.CompletionLines(decls, pos, showRestrictions)
-
             if completionLines.Count = 0 then                
                 NoShow
             else                    
@@ -328,7 +327,7 @@ type Completions(state: InteractionState) =
                                 | _ -> () // else keep window open
                                 )
                             
-                            w.Closed.Add (fun _  -> // this gets called even if the window never shows up
+                            w.Closed.Add (fun _  -> // this gets called even if the window never shows up                                    
                                     ta.Caret.PositionChanged.RemoveHandler taCaretChanged
 
                                     // Event sequence on pressing enter in completion window:
@@ -340,7 +339,7 @@ type Completions(state: InteractionState) =
                                     //ISeffLog.log.PrintfnDebugMsg "Completion window just closed with selected item: %A " complList.SelectedItem               
 
                                     if not willInsert then 
-                                        willInsert <- false
+                                        state.Increment() |> ignore<int64>
                                         checkAndMark()
                                     )
                             ta.Caret.PositionChanged.AddHandler taCaretChanged

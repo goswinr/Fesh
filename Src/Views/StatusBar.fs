@@ -49,7 +49,7 @@ type CheckerStatus (grid:TabsAndLog) as this =
     let mutable lastFile : TextEditor = null
     let mutable scrollToSegm = None
     
-    let k = ref 0L
+    let callCounter = ref 0L
 
     let getErrPanel(es:ErrorsBySeverity, addPersistInfo:bool) = 
         let erk = es.errors.Count
@@ -92,58 +92,56 @@ type CheckerStatus (grid:TabsAndLog) as this =
 
 
     let updateCheckState(checkState:FileCheckState)= 
-        let k0 = Interlocked.Increment k
-        //ISeffLog.log.PrintfnDebugMsg $"updateCheckState: {checkState}"
+        let k0 = Interlocked.Increment callCounter        
         match checkState with
-        | Done res ->
-            if k.Value = k0 then 
-                //ISeffLog.log.PrintfnDebugMsg $"checking  Done. Arrived in status bar with {res.checkRes.Diagnostics.Length} msgs"
-                let es = res.errors
-                let erWas = es.errorsAndWarnings  
+        | Done res ->        
+            //ISeffLog.log.PrintfnDebugMsg $"checking  Done. Arrived in status bar with {res.checkRes.Diagnostics.Length} msgs"
+            let es = res.errors
+            let erWas = es.errorsAndWarnings  
 
-                if erWas.Count = 0 then
-                    if lastErrCount <> 0  || lastFile <> tabs.Current.Editor.AvaEdit then // no UI update needed in this case
-                        this.Text <- "No compiler errors"
-                        this.Background <- okColor
-                        this.ToolTip <- "FSharp Compiler Service found no Errors in"+ Environment.NewLine + tabs.Current.FormattedFileName
-                        lastFile <- tabs.Current.Editor.AvaEdit
-                        lastErrCount <- 0
-                        scrollToSegm <- None
-                else
+            if erWas.Count = 0 then
+                if lastErrCount <> 0  || lastFile <> tabs.Current.Editor.AvaEdit then // no UI update needed in this case
+                    this.Text <- "No compiler errors"
+                    this.Background <- okColor
+                    this.ToolTip <- "FSharp Compiler Service found no Errors in"+ Environment.NewLine + tabs.Current.FormattedFileName
                     lastFile <- tabs.Current.Editor.AvaEdit
-                    lastErrCount <- erWas.Count
-                    erWas.Sort(fun x y -> Operators.compare x.StartLine y.StartLine)// sort because we are not sure if they are already sorted                
-                    
-                    let erk = es.errors.Count
-                    let wak = es.warnings.Count
-                    if wak > 0 && erk > 0 then
-                        this.Text <- sprintf " %d compiler errors, %d warnings, first one on line: %d" erk wak erWas.[0].StartLine
-                        this.Background <- errColor
-                    elif wak > 0 then
-                        this.Text <- sprintf " %d compiler warnings, first one on line %d" wak erWas.[0].StartLine
-                        this.Background <- warnColor
-                    elif erk > 0 then
-                        this.Text <- sprintf " %d compiler errors, first one on line: %d" erk erWas.[0].StartLine
-                        this.Background <- errColor
-                    else
-                        this.Text <- $"No compiler errors, {es.hiddens.Count + es.infos.Count} Infos" 
-                        this.Background <- okColor                       
-                    
-                    let tip = new ToolTip(Content = getErrPanel(es, true) )
-                    tip.Placement <- Primitives.PlacementMode.Top //https://docs.microsoft.com/en-us/dotnet/framework/wpf/controls/popup-placement-behavior
-                    tip.VerticalOffset <- -6.0
-                    this.ToolTip <- tip
+                    lastErrCount <- 0
+                    scrollToSegm <- None
+            else
+                lastFile <- tabs.Current.Editor.AvaEdit
+                lastErrCount <- erWas.Count
+                erWas.Sort(fun x y -> Operators.compare x.StartLine y.StartLine)// sort because we are not sure if they are already sorted                
+                
+                let erk = es.errors.Count
+                let wak = es.warnings.Count
+                if wak > 0 && erk > 0 then
+                    this.Text <- sprintf " %d compiler errors, %d warnings, first one on line: %d" erk wak erWas.[0].StartLine
+                    this.Background <- errColor
+                elif wak > 0 then
+                    this.Text <- sprintf " %d compiler warnings, first one on line %d" wak erWas.[0].StartLine
+                    this.Background <- warnColor
+                elif erk > 0 then
+                    this.Text <- sprintf " %d compiler errors, first one on line: %d" erk erWas.[0].StartLine
+                    this.Background <- errColor
+                else
+                    this.Text <- $"No compiler errors, {es.hiddens.Count + es.infos.Count} Infos" 
+                    this.Background <- okColor                       
+                
+                let tip = new ToolTip(Content = getErrPanel(es, true) )
+                tip.Placement <- Primitives.PlacementMode.Top //https://docs.microsoft.com/en-us/dotnet/framework/wpf/controls/popup-placement-behavior
+                tip.VerticalOffset <- -6.0
+                this.ToolTip <- tip
               
         | Checking ->            
             async{
-                do! Async.Sleep 250 // delay  to only show check in progress massage if it takes long, otherwise just show results via on checked event                
+                do! Async.Sleep 200 // delay to only show check in progress massage if it takes long, otherwise just show results via on checked event                
                 match IEditor.current with 
                 |None -> ()
                 |Some e -> 
                     match e.FileCheckState with
                     | Done _ -> () //now need to update
                     | Checking -> 
-                        if k.Value = k0 then 
+                        if callCounter.Value = k0 then 
                             lastErrCount <- -1
                             this.Text <- checkingTxt
                             this.Background <- waitCol //originalBackGround
@@ -180,7 +178,6 @@ type FsiRunStatus (grid:TabsAndLog) as this =
         this.Background <- waitCol //originalBackGround
         //this.ContextMenu <- makeContextMenu [ menuItem cmds.CancelFSI ]
         this.ToolTip <- "Shows the status of the fsi evaluation core. This is the same for all tabs. Only one script can run at the time."
-
         
         grid.Tabs.Fsi.OnCompiling.Add(fun codeToEval ->
             this.Background <- activeCol
@@ -197,7 +194,7 @@ type FsiRunStatus (grid:TabsAndLog) as this =
                 this.Inlines.Add( "FSI is compiling "+dummyName + " . . ." )
             )        
         
-        grid.Tabs.Fsi.OnEmitting.Add(fun codeToEval ->
+        grid.Tabs.Fsi.OnEmitting.Add(fun codeToEval -> // TODO unused ??
             this.Background <- compileCol
             this.Inlines.Clear()
             match codeToEval.editor.FilePath with

@@ -194,7 +194,7 @@ module FsCheckerUtil =
 /// Only a single checker exist that is referenced on all editors
 type Checker private ()  = 
     
-    /// when the checker is running just before completion window we actually don't want to update the status bar while the comletion window is open
+    /// when the checker is running just before completion window we actually don't want to update the status bar while the completion window is open
     static let mutable raiseStateChangedEvent = true
 
     static let mutable fsChecker: FSharpChecker Option = None // "you should generally use one global, shared FSharpChecker for everything in an IDE application." from http://fsharp.github.io/FSharp.Compiler.Service/caches.html

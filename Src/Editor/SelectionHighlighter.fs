@@ -37,6 +37,7 @@ module SelectionHighlighting =
     
     let empty = ResizeArray()
 
+    (* DELETE
     /// makes sure that there are no concurrent calls to doc.CreateSnapshot().Text 
     /// It waits if there is a concurrent call, but does not cancel the concurrent call.
     /// returns NONE if the doc has changed in the meantime
@@ -55,6 +56,12 @@ module SelectionHighlighting =
                             // NOTE just checking only Partial Code till caret with (doc.CreateSnapshot(0, tillOffset).Text) 
                             // would make the GetDeclarationsList method miss some declarations !!
                             let code = doc.CreateSnapshot().Text // the only threadsafe way to access the code string
+                            async{
+                                do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context
+                                if doc.TextLength <> code.Length then // if the doc has changed in the meantime
+                                    eprintfn $"makeEditorSnapShot: doc.TextLength <> code.Length by {doc.TextLength-code.Length}"
+                            } |> Async.RunSynchronously
+                            
                             isActive <- false
                             if state.IsLatest id then 
                                 Some code
@@ -88,7 +95,39 @@ module SelectionHighlighting =
                 else
                     None
             loop()
-            
+
+    *)    
+    
+    /// returns NONE if the doc has changed in the meantime
+    let makeEditorSnapShot (doc:TextDocument, state:InteractionState, id) =          
+        if state.IsLatest id then                 
+            // NOTE just checking only Partial Code till caret with (doc.CreateSnapshot(0, tillOffset).Text) 
+            // would make the GetDeclarationsList method miss some declarations !!
+            let code = doc.CreateSnapshot().Text // the only threadsafe way to access the code string                
+            if state.IsLatest id then 
+                // async{ //DELETE
+                //     do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context // for doc Textlength
+                //     ISeffLog.log.PrintfnAppErrorMsg $"id:{id} makeEditorSnapShot: doc.TextLength={doc.TextLength} code.Length={code.Length}"                    
+                //     } |> Async.RunSynchronously
+                Some code
+            else
+                None
+        else
+            None    
+           
+    
+    /// makes sure that there are no concurrent calls to doc.CreateSnapshot().Text 
+    /// It waits if there is a concurrent call, but does not cancel the concurrent call.
+    /// returns NONE if the doc has changed in the meantime
+    let makeLogSnapShot  (doc:TextDocument, stateRef:int64 ref, id:int64) =           
+        if stateRef.Value = id then                                         
+            let code = doc.CreateSnapshot().Text                         
+            if stateRef.Value = id then 
+                Some code
+            else
+                None
+        else
+            None
 
 
 open SelectionHighlighting

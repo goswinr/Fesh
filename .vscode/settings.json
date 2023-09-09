@@ -1,3 +1,6 @@
 {
-    "dotnet.defaultSolution": "SeffStandalone.sln"
+    "dotnet.defaultSolution": "SeffStandalone.sln",
+    "cSpell.words": [
+        "icrementing"
+    ]
 }
