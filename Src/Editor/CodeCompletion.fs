@@ -306,6 +306,7 @@ type Completions(state: InteractionState) =
                             //ISeffLog.log.PrintfnDebugMsg "*5.4 Show Completion Window with %d items prefilter: '%s' " complList.ListBox.Items.Count prefilter                     
                             showingEv.Trigger() // to close error and type info tooltip                           
                             w.Show()
+                            eprintfn "Completion window shown with %d items, prefilter: '%s' " complList.ListBox.Items.Count prefilter
                             DidShow                   
                     else
                         //ISeffLog.log.PrintfnDebugMsg "*5.5 Skipped showing empty Completion Window"

@@ -176,7 +176,7 @@ type Foldings(manager:Folding.FoldingManager, state:InteractionState, getFilePat
                     do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context  
                     let edFolds = manager.AllFoldings
                    
-                    // (1) fist find out if a folding update is needed at all                    
+                    // (1) first find out if a folding update is needed at all                    
                     use enum = edFolds.GetEnumerator()                    
                     let rec zip i = // returns true if a folding update is  needed
                         match enum.MoveNext(), i < folds.Count with
@@ -187,13 +187,17 @@ type Foldings(manager:Folding.FoldingManager, state:InteractionState, getFilePat
                             let f = folds.[i]
                             let fEdi = enum.Current
                             if fEdi.StartOffset <> f.foldStartOff || fEdi.EndOffset <> f.foldEndOff then 
+                                ISeffLog.log.PrintfnDebugMsg $"changeId: {id} foldings differ: {fEdi.StartOffset-f.foldStartOff} and {fEdi.EndOffset-f.foldEndOff}"
                                 true // existing, foldings are different
                             else
                                 zip (i+1) // loop on
                     
-                    if zip 0 then
-                        enum.Dispose()
-                        //printfn $"{edFolds.Count} folds existing but {folds.Count} needed"
+                    let updateNeeded = zip 0
+                    enum.Dispose()
+                    if updateNeeded then
+                        // if edFolds.Count <> folds.Count then    ISeffLog.log.PrintfnDebugMsg $"****changeId: {id} foldings differ: {edFolds.Count} and {folds.Count}"
+                        // else                                    ISeffLog.log.PrintfnDebugMsg $"but count same"
+                        
                         
                         // (2) Update of foldings is needed:
                         // (2.1) find firstError offset for Update Foldings function
