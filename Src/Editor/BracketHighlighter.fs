@@ -84,7 +84,7 @@ module ParseBrackets =
         let readLine(brs:ResizeArray<Bracket>, prevState: MuliLineState, firstIdx, lastIdx) : MuliLineState =             
             
             /// for simple strings
-            let rec skipString chr i :int  =        // give the character and it's index
+            let rec skipString chr i :int  =  // give the character and it's index
                 if i=lastIdx then
                     match chr  with 
                     | '"'  -> i+1                   
@@ -157,8 +157,12 @@ module ParseBrackets =
                 else // i < lastIdx
                     let next = code[i+1] 
                     match chr,next with 
-                    | '/','/' -> RegCode // a comment starts, don't parse rest of line,  exit loop                    
-                    | '(','*' -> skipMultiLineComment next (i+1) |> flowOnOrOver MultiLineComment                                                  
+                    | '/','/' -> RegCode // a comment starts, don't parse rest of line                   
+                    | '(','*' -> if i + 2 <= lastIdx then // a multi line comment starts
+                                    let next2 = code[i+2]
+                                    skipMultiLineComment next2 (i+2) |> flowOnOrOver MultiLineComment  
+                                 else
+                                    MultiLineComment //the line ends immediately after (*                                                              
                     
                     | '{','|' -> pushTwo OpAnRec
                     | '[','|' -> pushTwo OpArr
@@ -183,8 +187,13 @@ module ParseBrackets =
                                  else  
                                     RegCode // just an empty string, line ends
 
-                    | '@','"' -> skipRawAtString next (i+1)  |> flowOnOrOver RawAtString  //a @string starts, 
-                    | '"', _  -> skipString      next (i+1)  |> flowOnOrOver SimpleString //a  regular string starts,                                      
+                    | '@','"' -> if i + 2 <= lastIdx then 
+                                    let next2 = code[i+2]
+                                    skipRawAtString next2 (i+2) |> flowOnOrOver RawAtString  //a @string starts, 
+                                 else  
+                                    RawAtString // the line ends immediately after @"
+                    
+                    | '"', _  -> skipString next (i+1)  |> flowOnOrOver SimpleString //a  regular string starts,                                      
 
                     | _       -> charLoop next (i+1)
 

@@ -125,8 +125,7 @@ type LineTransformers<'T>() =    // generic so it can work for LinePartChange an
                     fromLine     = min shift.fromLine  s.fromLine 
                     amountOff    =     shift.amountOff    + s.amountOff
                     amountLines  =     shift.amountLines  + s.amountLines
-                    }
-   
+                    }   
 
     member _.Shift = shift
 
@@ -177,44 +176,7 @@ type LineTransformers<'T>() =    // generic so it can work for LinePartChange an
             else 
                 ln            
         else 
-            empty
-    
-    (*
-    NOT thread safe ! this.Update(new) might be called in between
-    member _.Range =
-
-        let mutable first = Unchecked.defaultof<'T>
-        let mutable last  = Unchecked.defaultof<'T>
-        let mutable lastLine   = 0
-        let mutable firstLine  = Int32.MaxValue
-
-        let rec findFirst i = 
-            if i < lines.Count then 
-                let ln = lines.[i] 
-                if notNull ln then 
-                    firstLine <- i
-                    first     <- ln.[0]
-                else 
-                    findFirst (i+1)
-            else ()
-        
-        let rec findLast i = 
-            if i >= 0 then 
-                let ln = lines.[i] 
-                if notNull ln then 
-                    lastLine <- i
-                    last     <- ln.[ln.Count-1]
-                else 
-                    findLast (i-1)
-            else ()
-        
-        findFirst 0
-        if firstLine = Int32.MaxValue  then 
-            None
-        else
-            findLast (lines.Count-1)
-            Some (first,last) 
-    *)
+            empty    
  
 /// An efficient DocumentColorizingTransformer using line number indices into a line transformer list.
 type FastColorizer(transformers:LineTransformers<LinePartChange> [], ed:TextEditor) = 
