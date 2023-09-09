@@ -204,8 +204,7 @@ type Fsi private (config:Config) =
             // https://github.com/dotnet/fsharp/blob/4978145c8516351b1338262b6b9bdf2d0372e757/src/fsharp/fsi/fsi.fs#L2839
             FsiEvaluationSession.GetDefaultConfiguration(fsiObj, useFsiAuxLib = false) // useFsiAuxLib = FSharp.Compiler.Interactive.Settings.dll . But it is missing in FCS !! 
 
-        fsiConfig.OnEvaluation.Add(fun e-> log.PrintfnDebugMsg "fsiConfig.OnEvaluation") // TODO remove this, it is just for debugging
-
+        
         let inStream = new StringReader("")
         //for i,ar in Seq.indexed fsiArgs  do ISeffLog.log.PrintfnDebugMsg $"{i} arg: {ar} "
         if config.RunContext.IsStandalone then  

@@ -113,7 +113,12 @@ type LineTransformers<'T>() =    // generic so it can work for LinePartChange an
 
     let empty = ResizeArray<'T>()
 
-    let mutable shift = { fromOff=Int32.MaxValue; fromLine=Int32.MaxValue; amountOff=0;  amountLines=0}   
+    let mutable shift = { 
+        fromOff    = Int32.MaxValue
+        fromLine   = Int32.MaxValue
+        amountOff  = 0  
+        amountLines= 0
+        }   
 
     member _.AdjustOneShift(s:Shift) = 
         shift <- {  fromOff      = min shift.fromOff   s.fromOff  
@@ -174,6 +179,8 @@ type LineTransformers<'T>() =    // generic so it can work for LinePartChange an
         else 
             empty
     
+    (*
+    NOT thread safe ! this.Update(new) might be called in between
     member _.Range =
 
         let mutable first = Unchecked.defaultof<'T>
@@ -207,6 +214,7 @@ type LineTransformers<'T>() =    // generic so it can work for LinePartChange an
         else
             findLast (lines.Count-1)
             Some (first,last) 
+    *)
  
 /// An efficient DocumentColorizingTransformer using line number indices into a line transformer list.
 type FastColorizer(transformers:LineTransformers<LinePartChange> [], ed:TextEditor) = 

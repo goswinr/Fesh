@@ -362,7 +362,7 @@ type Tabs(config:Config, log:Log,seffWin:SeffWindow) =
 
     /// Shows a file opening dialog
     let openFile() : bool = 
-        let dlg = new Microsoft.Win32.OpenFileDialog()
+        let dlg = new Microsoft.Win32.OpenFileDialog() 
         dlg.Multiselect <- true
         match workingDirectory()  with
         | Some t -> t.Refresh(); if  t.Exists then  dlg.InitialDirectory <- t.FullName

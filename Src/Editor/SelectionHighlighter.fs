@@ -57,7 +57,8 @@ type SelectionHighlighter (state:InteractionState) =
     let mutable lastWord = ""
     let mutable lastSels = ResizeArray<int>()  
     let mutable reactToSelChange = true
-    let mutable prevRange: (LinePartChange*LinePartChange) option = None
+    let mutable thisRange: (int*int) option = None
+    let mutable prevRange: (int*int) option = None
 
     let selChangeId = ref 0L
     
@@ -93,8 +94,7 @@ type SelectionHighlighter (state:InteractionState) =
             lastSels.Clear()
             prevRange <- None
             let trans = state.TransformersSelection            
-            async{                 
-                let thisRange = trans.Range                 
+            async{              
                 do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context   
                 match thisRange with 
                 | None   ->  ()                   
@@ -102,7 +102,7 @@ type SelectionHighlighter (state:InteractionState) =
                 | Some (f,l) ->                
                     trans.Update(empty)// using empty array                               
                     for f in state.FoldManager.AllFoldings do f.BackgroundColor <- null  
-                    ed.TextArea.TextView.Redraw(f.from, l.till, priority)                
+                    ed.TextArea.TextView.Redraw(f, l, priority)                
                 globalFoundSelectionEditorEv.Trigger(triggerNext)
             }|> Async.Start
 
@@ -140,6 +140,8 @@ type SelectionHighlighter (state:InteractionState) =
                     | SkipOffset skipOff -> skipOff
                     | MarkAll -> -1
 
+                let mutable rangeStart = -1
+                let mutable rangeEnd = -1
                 /// returns false if aborted because of newer doc change
                 let rec searchFromLine lineNo = 
                     if lineNo > lastLineNo then 
@@ -152,8 +154,11 @@ type SelectionHighlighter (state:InteractionState) =
                             let mutable off = codeStr.IndexOf(lastWord, l.offStart, l.len, StringComparison.Ordinal)
                             while off >= 0 do
                                 offs.Add off // also add for current selection                            
-                                if off <> selectionStartOff then // skip the actual current selection from highlighting                               
-                                    LineTransformers.Insert(newMarks, lineNo, {from=off; till=off+wordLen; act=action})                                 
+                                if off <> selectionStartOff then // skip the actual current selection from highlighting
+                                    LineTransformers.Insert(newMarks, lineNo,  {from=off; till=off+wordLen; act=action}) 
+                                    rangeEnd <- off + wordLen
+                                    if rangeStart < 0 then // set range start if not set yet        
+                                        rangeStart <- off                         
                                 let start = off + lastWord.Length // search from this for next occurrence in this line 
                                 let lenReduction = start - l.offStart
                                 let remainingLineLength = l.len - lenReduction
@@ -163,6 +168,7 @@ type SelectionHighlighter (state:InteractionState) =
                             
                 
                 if searchFromLine 1 then // tests if there is a newer doc change                 
+                    thisRange <- if rangeStart < 0 then None else Some(rangeStart, rangeEnd)
                     lastSels <- offs 
                     state.TransformersSelection.Update(newMarks)
                     selTransformersSetEv.Trigger(changeId) // can by async
@@ -198,8 +204,7 @@ type SelectionHighlighter (state:InteractionState) =
                         ed.TextArea.ClearSelection()                            
                         reactToSelChange <- true 
                 
-                // (2) get ranges to redraw
-                let thisRange = state.TransformersSelection.Range              
+                // (2) get ranges to redraw                         
                 let redrawRange = // get range to redraw
                     match  prevRange, thisRange with 
                     | None       , None  ->    // nothing before, nothing now
@@ -208,10 +213,10 @@ type SelectionHighlighter (state:InteractionState) =
 
                     | Some (f,l) , None          // some before, nothing now
                     | None       , Some (f,l) -> // nothing before, some now                    
-                        SelRange (f.from, l.till)
+                        SelRange (f, l)
 
                     | Some (pf,pl),Some (f,l) ->   // both prev and current version have a selection                    
-                        SelRange(  min pf.from f.from, max pl.till l.till)                
+                        SelRange(  min pf f, max pl l)                
                 
                 //printfn $"+++redrawRange={redrawRange} skipOff={skipOff}+++" // prevRange={prevRange} thisRange={thisRange}"                
                 //(3) redraw statusbar and editor in range
@@ -311,7 +316,9 @@ type SelectionHighlighterLog (lg:TextEditor) =
     let mutable lastWord = ""
     let mutable lastSels = ResizeArray<int>()      
     let mutable reactToSelChange = true    
-    let mutable prevRange: (LinePartChange*LinePartChange) option = None
+    
+    let mutable thisRange: (int*int) option = None
+    let mutable prevRange: (int*int) option = None
     
     let mutable linesNeedUpdate = true
         
@@ -331,8 +338,7 @@ type SelectionHighlighterLog (lg:TextEditor) =
             lastSkipOff <- MarkAll
             lastSels.Clear()
             prevRange <- None
-            async{ 
-                let thisRange = trans.Range                 
+            async{              
                 do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context   
                 match thisRange with 
                 | None   -> ()                    
@@ -340,7 +346,7 @@ type SelectionHighlighterLog (lg:TextEditor) =
                 | Some (f,l) ->                
                     trans.Update(empty)// using empty array                                   
                     //for f in state.FoldManager.AllFoldings do f.BackgroundColor <- null  // no folds in Log !!
-                    lg.TextArea.TextView.Redraw(f.from, l.till, priority)                
+                    lg.TextArea.TextView.Redraw(f, l, priority)                
                 foundSelectionLogEv.Trigger(triggerNext)
             } |> Async.Start
     
@@ -378,6 +384,9 @@ type SelectionHighlighterLog (lg:TextEditor) =
                     | SkipOffset skipOff -> skipOff
                     | MarkAll -> -1
                 
+                let mutable rangeStart = -1
+                let mutable rangeEnd = -1
+
                 /// returns false if aborted because of newer doc change
                 let rec searchFromLine lineNo = 
                     if lineNo > lastLineNo then 
@@ -391,7 +400,10 @@ type SelectionHighlighterLog (lg:TextEditor) =
                             offs.Add off // also add for current selection
                             if off <> selectionStartOff then // skip the actual current selection
                                 //ISeffLog.log.PrintfnInfoMsg $"trans.Insert({lineNo}, from={off}; till={off+wordLen}; act=action word='{word}'"
-                                LineTransformers.Insert(newMarks,lineNo, {from=off; till=off+wordLen; act=action})                                 
+                                LineTransformers.Insert(newMarks,lineNo, {from=off; till=off+wordLen; act=action})  
+                                rangeEnd <- off + wordLen
+                                if rangeStart < 0 then // set range start if not set yet        
+                                    rangeStart <- off                               
                             let start = off + word.Length // search from this for next occurrence in this line 
                             let lenReduction = start - l.offStart
                             let remainingLineLength = l.len - lenReduction
@@ -400,9 +412,9 @@ type SelectionHighlighterLog (lg:TextEditor) =
                         searchFromLine (lineNo + 1)                
                 
                 if searchFromLine 1 && markId = markCallID.Value then // tests if there is a newer doc change                     
+                    thisRange <- if rangeStart < 0 then None else Some(rangeStart, rangeEnd)
                     lastSels <- offs 
                     trans.Update(newMarks)
-                    let thisRange = trans.Range 
                     let redrawRange = // get range to redraw
                         match  prevRange, thisRange with 
                         | None       , None  ->    // nothing before, nothing now
@@ -411,10 +423,10 @@ type SelectionHighlighterLog (lg:TextEditor) =
 
                         | Some (f,l) , None          // some before, nothing now
                         | None       , Some (f,l) -> // nothing before, some now                    
-                            SelRange (f.from, l.till)
+                            SelRange (f, l)
 
                         | Some (pf,pl),Some (f,l) ->   // both prev and current version have a selection                    
-                            SelRange(  min pf.from f.from, max pl.till l.till)
+                            SelRange(  min pf f, max pl l)
 
                     
 
