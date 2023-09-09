@@ -261,8 +261,7 @@ type Completions(state: InteractionState) =
                         && caret.Line = pos.row // moved cursor to other line
                         && caret.Offset >= pos.offset then // moved cursor back before completion ( e.g. via deleting)      
                             
-                            // Only now actually show the window:
-                            this.ComplWin <- Some w 
+                            // Only now actually show the window:                            
 
                             w.MaxHeight <- 500 // default 300
                             w.Width <- 250 // default 175
@@ -274,8 +273,10 @@ type Completions(state: InteractionState) =
                             w.SizeToContent   <- SizeToContent.WidthAndHeight // https://github.com/icsharpcode/AvalonEdit/blob/master/ICSharpCode.AvalonEdit/CodeCompletion/CompletionWindow.cs#L47
                             w.MinHeight       <- StyleState.fontSize
                             w.MinWidth        <- StyleState.fontSize * 8.0
-                            complList.InsertionRequested.Add(fun _ -> willInsert <- true)
-                            
+                            w.CloseAutomatically <- true
+                            w.CloseWhenCaretAtBeginning <- not pos.dotBefore 
+                            w.StartOffset <- stOff // to replace some previous characters too
+
                             let taCaretChanged  = new EventHandler(fun _ _ -> 
                                 match complList.ListBox.Items.Count with 
                                 | 0 -> w.Close()  //  close when list is empty. then triggers CheckThenHighlightAndFold?
@@ -306,17 +307,13 @@ type Completions(state: InteractionState) =
                                         willInsert <- false
                                         checkAndMark()
                                     )
-                            
                             ta.Caret.PositionChanged.AddHandler taCaretChanged
-                            w.CloseAutomatically <- true
-                            w.CloseWhenCaretAtBeginning <- not pos.dotBefore 
-                                                    
+                            complList.InsertionRequested.Add(fun _ -> willInsert <- true)
                             
-                            w.StartOffset <- stOff // to replace some previous characters too
                             //ISeffLog.log.PrintfnDebugMsg "*5.4 Show Completion Window with %d items prefilter: '%s' " complList.ListBox.Items.Count prefilter                     
                             showingEv.Trigger() // to close error and type info tooltip                           
-                            w.Show()
-                            eprintfn "Completion window shown with %d items, prefilter: '%s' " complList.ListBox.Items.Count prefilter
+                            this.ComplWin <- Some w 
+                            w.Show()                            
                             DidShow                   
                     else
                         //ISeffLog.log.PrintfnDebugMsg "*5.5 Skipped showing empty Completion Window"

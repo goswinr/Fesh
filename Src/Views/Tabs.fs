@@ -463,11 +463,11 @@ type Tabs(config:Config, log:Log,seffWin:SeffWindow) =
         match t.Editor.FilePath with
         |Deleted fi
         |SetTo fi ->  
-            let ne = fi.Name
-            let ex = fi.Extension
-            let n  = ne.Substring(0,ne.Length-ex.Length)
+            let nex = fi.Name
+            let ext = fi.Extension
+            let rn  = nex.Substring(0,nex.Length-ext.Length)
             let save (nn:string) :bool =                 
-                let ni = FileInfo(Path.Combine(fi.DirectoryName, nn + ex ))
+                let ni = FileInfo(Path.Combine(fi.DirectoryName, nn + ext ))
                 if ni.Directory.Exists then                 
                     if ni.Exists then
                         this.SaveAs(t)
@@ -476,16 +476,16 @@ type Tabs(config:Config, log:Log,seffWin:SeffWindow) =
                 else // directory was deleted too save a new path:
                     saveAsDialog(t, SaveNewLocation)
             
-            let l = n[n.Length-1]
-            let nn = // the new suffix
+            let l = rn[rn.Length-1]
+            let nn = // the new numeric suffix
                 if isNum l then 
-                    if n.Length = 1 then 
+                    if rn.Length = 1 then 
                         match l with 
                         | '9' -> "10"
                         |  i  -> incrC i
                     else                    
-                        let ll = n[n.Length-2]
-                        let abc = n.Substring(0,n.Length-2)
+                        let ll = rn[rn.Length-2]
+                        let abc = rn.Substring(0,rn.Length-2)
                         if isNum ll then
                             match ll,l with 
                             | '9','9' -> "" // null sentinel
@@ -496,7 +496,7 @@ type Tabs(config:Config, log:Log,seffWin:SeffWindow) =
                             | '9' -> abc + "10"
                             |  i   -> abc + incrC i
                 else
-                    ne + "_01"
+                    rn + "_01"
                 
             if nn<>"" then 
                 save nn

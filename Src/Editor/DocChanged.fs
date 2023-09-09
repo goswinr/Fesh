@@ -136,7 +136,7 @@ module DocChangeMark =
             async{
                 state.CodeLines.UpdateLines(code, id)
                 if state.IsLatest id then   
-                    ISeffLog.log.PrintfnDebugMsg "updateAllTransformersConcurrently: for id %d" id
+                    //ISeffLog.log.PrintfnDebugMsg "updateAllTransformersConcurrently: for id %d" id
                     drawServ.selection.DocChangedResetTransformers(id)             
                     drawServ.brackets.UpdateAllBrackets(id)
                     drawServ.folds.UpdateFolds(id)
@@ -408,9 +408,7 @@ module DocChangeCompletion =
                                     // Switch to Sync and try showing completion window:
                                     do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context                            
                                     let showRestrictions = getShowRestriction show                                    
-                                    let checkAndMark = fun () ->  
-                                        eprintfn "checkAndMark window closed"
-                                        DocChangeMark.updateAllTransformersAsync (iEd, drawServ, state, state.DocChangedId.Value) // will be called if window closes without an insertion
+                                    let checkAndMark = fun () -> DocChangeMark.updateAllTransformersAsync (iEd, drawServ, state, state.DocChangedId.Value) // will be called if window closes without an insertion
                                     match drawServ.compls.TryShow(decls, posX, showRestrictions, checkAndMark) with 
                                     |DidShow ->                                     
                                         () // no need to do anything, DocChangedConsequence will be updated to 'React' when completion window closes
@@ -420,7 +418,7 @@ module DocChangeCompletion =
                                         DocChangeMark.updateAllTransformersConcurrently(iEd, fullCode, drawServ, state, id)
                                 |None -> 
                                     state.DocChangedConsequence <- React                                    
-                                    if fullCode="" then 
+                                    if fullCode = "" then 
                                         fullCode <- doc.CreateSnapshot().Text
                                     if state.IsLatest id then 
                                         DocChangeMark.updateAllTransformersConcurrently (iEd, fullCode, drawServ, state, id)                            

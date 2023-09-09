@@ -52,7 +52,7 @@ type FileChangeTracker (editor:Editor, setCodeSavedStatus:bool->unit) =
                             ()// don't !! editor.CodeAtLastSave might not be current code in Document :setCodeSavedStatus(true)
                         else
                             do! Async.SwitchToContext SyncWpf.context                                                  
-                            doWatch<-false // to not trigger new evemt from cloing this window
+                            doWatch<-false // to not trigger new event from closing this window
                             match MessageBox.Show(
                                 IEditor.mainWindow, 
                                 // $"{reason}: File{nl}{nl}{fi.Name}{nl}{nl}was changed.{nl}Do you want to reload it?", // Debug
@@ -84,7 +84,7 @@ type FileChangeTracker (editor:Editor, setCodeSavedStatus:bool->unit) =
                             ()// don't !! editor.CodeAtLastSave might not be current code in Document :setCodeSavedStatus(true)    
                         else
                             do! Async.SwitchToContext SyncWpf.context 
-                            doWatch<-false // to not trigger new evemt from cloing this window
+                            doWatch<-false // to not trigger new event from closing this window
                             match MessageBox.Show(
                                 IEditor.mainWindow, 
                                 // $"{reason}: File{nl}{nl}{fi.Name}{nl}{nl}was changed.{nl}Do you want to reload it?", // Debug
@@ -109,7 +109,7 @@ type FileChangeTracker (editor:Editor, setCodeSavedStatus:bool->unit) =
                         editor.FilePath <- Deleted fi                        
                         setCodeSavedStatus(false)
                         do! Async.SwitchToContext SyncWpf.context 
-                        doWatch<-false // to not trigger new evemt from cloing this window
+                        doWatch<-false // to not trigger new event from closing this window
                         MessageBox.Show(
                             IEditor.mainWindow, 
                             //$"{reason}: {fi.Name}{nl}{nl}was deleted or renamed.{nl}{nl}at {fi.DirectoryName}", // Debug

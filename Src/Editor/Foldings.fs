@@ -166,7 +166,7 @@ type Foldings(manager:Folding.FoldingManager, state:InteractionState, getFilePat
                             fs.Title <- textInFoldBox f.linesInFold   
                         else
                             let lno = ed.Document.GetLineByOffset f.foldStartOff
-                            ISeffLog.log.PrintfnDebugMsg  $"manager.CreateFolding was given a negative folding from offset {f.foldStartOff} to {f.foldEndOff} on line {lno.LineNumber}"
+                            ISeffLog.log.PrintfnAppErrorMsg $"manager.CreateFolding was given a negative folding from offset {f.foldStartOff} to {f.foldEndOff} on line {lno.LineNumber}"
 
                     updateCollapseStatus()
                     isInitialLoad <- false
