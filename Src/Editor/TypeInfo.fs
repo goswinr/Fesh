@@ -355,9 +355,10 @@ type TypeInfo private () =
         tb        
 
 
-    // make a fancy tooltip panel:
-    static let makeToolTipPanel  ( tds:ToolTipData list, ted:ToolTipExtraData,  addPersistInfo:bool) = 
+    // make a fancy tooltip panel in a ScrollViewer:
+    static let makeToolTipPanel  ( tds:ToolTipData list, ted:ToolTipExtraData,  addPersistInfo:bool) :ScrollViewer =        
         let panel = new StackPanel(Orientation = Orientation.Vertical)
+        let scrollViewer = new ScrollViewer(Content=panel , VerticalScrollBarVisibility = ScrollBarVisibility.Auto ) //TODO cant be scrolled, never gets focus? because completion window keeps focus on editor?        
         let inline add(e:UIElement) =  panel.Children.Add e |> ignore            
 
         if addPersistInfo then 
@@ -467,7 +468,7 @@ type TypeInfo private () =
                     //tb.FontFamily <- new FontFamily ("Arial") // or use default of device
                     add tb 
                 
-        ScrollViewer(Content=panel , VerticalScrollBarVisibility = ScrollBarVisibility.Auto ) //TODO cant be scrolled, never gets focus? because completion window keeps focus on editor?
+        scrollViewer
             
 
     /// Returns docstring und dll path

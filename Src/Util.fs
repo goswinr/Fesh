@@ -107,6 +107,7 @@ module General =
 /// operations on Strings
 module Str  = 
     open System.Text.RegularExpressions
+    open AvalonEditB.Document
 
     /// poor man's name parsing: returns the offset from end of string to last non alphanumeric or '_' character, or # for compiler directives
     /// this is used to do code completion even if a few characters are typed already. to track back to the start of the item to complete.
@@ -283,6 +284,16 @@ module Str  =
             if ende = -1 then None
             else Some <| s.Substring(start + startChar.Length, ende - start - startChar.Length)
 
+    //
+    let inline countCharI (c:char) (s:ITextSource) = 
+        let len = s.TextLength
+        let mutable k =  0
+        let mutable i = s.IndexOf(c,0,len)
+        while i >= 0 do
+            k <- k + 1
+            let searchFrom = i + 1
+            i <- s.IndexOf(c, searchFrom, len-searchFrom)
+        k
 
     /// finds text after a given string
     /// delimiters is excluded

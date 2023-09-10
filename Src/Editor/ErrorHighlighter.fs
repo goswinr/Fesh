@@ -29,6 +29,7 @@ module ErrorUtil =
 
     /// split errors by severity and sort by line number 
     let getBySeverity(checkRes:CodeAnalysis.FSharpCheckFileResults) :ErrorsBySeverity =
+        AutoFixErrors.references checkRes // check for missing references
         scrollToIdx <- -1 // reset first scroll to error when clicking in status bar
         let was  = ResizeArray()  // Warnings
         let ers  = ResizeArray()  // Errors
@@ -269,7 +270,7 @@ type ErrorHighlighter ( state:InteractionState, folds:Folding.FoldingManager, is
 
         tView.MouseHover.Add        ( showErrorToolTip)
         tView.MouseHoverStopped.Add ( fun e ->  tip.IsOpen <- false ) //; e.Handled <- true) )
-        //tView.VisualLinesChanged.Add( fun e ->  tip.IsOpen <- false ) // on scroll and resize ?
+        //tView.VisualLinesChanged.Add( fun e ->  tip.IsOpen <- false ) // done in Editor.setup: avaEdit.TextArea.TextView.VisualLinesChanged.Add (fun _ ->    closeToolTips() )// close type info on typing
 
     
    

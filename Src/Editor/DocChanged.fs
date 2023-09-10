@@ -27,16 +27,16 @@ module DocChangeUtil =
         let ins = a.InsertionLength
         let rem = a.RemovalLength
         // count line returns added and deleted:
-        let rec insCount from i = match a.InsertedText.IndexOf('\n', from, ins-from)  with | -1 -> i | found  -> insCount (i+1) found
-        let rec remCount from i = match a.RemovedText.IndexOf ('\n', from, rem-from)  with | -1 -> i | found  -> remCount (i+1) found
-        let addLns = if ins > 1 then insCount 0 0 else 0 // a line return is minimum 2 characters
-        let remLns = if rem > 1 then remCount 0 0 else 0 // a line return is minimum 2 characters 
+        let addLns = if ins > 1 then countCharI '\n' a.InsertedText else 0 // a line return is minimum 2 characters
+        let remLns = if rem > 1 then countCharI '\n' a.RemovedText  else 0 // a line return is minimum 2 characters 
+        // printfn $"getShift: off={off} ins={ins} rem={rem} addLns={addLns} remLns={remLns}"
+        // printfn $" insText='{a.InsertedText}' remText='{a.RemovedText}'"
         { fromOff = off 
           fromLine= doc.GetLocation(off).Line
           amountOff = ins - rem
           amountLines = addLns-remLns} 
     
-    /// returns the cLine of code that contains the given offset.
+    /// returns the Line of code that contains the given offset.
     /// from start of line till given offset 
     let getLine(code:string, off) =  
         let rec loop (i) =         
@@ -101,18 +101,17 @@ module Redrawing =
         let tryDraw(id) =             
             if state.IsLatest id && idSemantics=id && idBrackets=id  && idErrors=id && idSels=id then  
                 ed.Dispatcher.Invoke (fun() -> 
-                    let diff = ed.Document.TextLength - state.CodeLines.FullCode.Length //DELETE
-                    if diff <> 0 then ISeffLog.log.PrintfnAppErrorMsg $"CodeLines too short by {diff}"
-                    // ISeffLog.log.PrintfnDebugMsg $"id:{state.DocChangedId.Value}            tryDraw: doc.TextLength={ed.Document.TextLength} code.Length={state.CodeLines.FullCode.Length}"          
+                    // let diff = ed.Document.TextLength - state.CodeLines.FullCode.Length //DELETE
+                    // if diff <> 0 then ISeffLog.log.PrintfnAppErrorMsg $"CodeLines too short by {diff}"                        
                     ed.TextArea.TextView.Redraw(priority)
                     
-                    //to avoid another full redraw on found selection event only that might be triggered again and again without a doc change
+                    //increment to avoid another full redraw on found selection event, that might be triggered again and again without a doc change
                     //because the id of the others has not changed without a change in the document. the found selection has its own range redraw anyway
-                    state.Increment()  |> ignore<int64> 
+                    state.Increment() |> ignore<int64> 
                     )
        
   
-        let doneBrackets(id)   = idBrackets   <- id ;  tryDraw(id)             
+        let doneBrackets(id)   = idBrackets   <- id ;  tryDraw(id)
         let doneSemantics(id)  = idSemantics  <- id ;  tryDraw(id)
         let doneErrors(id)     = idErrors     <- id ;  tryDraw(id)
         let doneSels(id)       = idSels       <- id ;  tryDraw(id)

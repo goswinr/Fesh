@@ -174,7 +174,7 @@ type Editor private (code:string, config:Config, initialFilePath:FilePath)  =
             ed.DrawingServices.errors.ToolTip.IsOpen <- false
 
         ed.Completions.OnShowing.Add(fun _ ->                         closeToolTips() )
-        avaEdit.TextArea.TextEntering.Add (fun _ ->                   closeToolTips() )// close type info on typing
+        avaEdit.TextArea.TextView.VisualLinesChanged.Add (fun _ ->    closeToolTips() )// close type info on typing
         avaEdit.KeyDown.Add ( fun k -> match k.Key with Key.Escape -> closeToolTips() |_ -> ()) // close tooltips on Escape key
         avaEdit.TextArea.TextView.MouseHoverStopped.Add(fun _ ->      closeToolTips() )
 

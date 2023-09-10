@@ -23,6 +23,7 @@ open FSharp.Compiler.EditorServices
 open AvalonEditB
 open AvalonEditB.Document
 open AvalonEditB.Rendering
+open System
 
 
 
@@ -169,8 +170,15 @@ type LineTransformers<'T>() =    // generic so it can work for LinePartChange an
             else 
                 lineNumber 
        
-        if lNo<lines.Count then 
+        if lNo < lines.Count then            
             let ln = lines[lNo] 
+        // if lNo>0 && lNo<lines.Count then            
+            // let ln = 
+            //     try
+            //         lines[lNo] 
+            //     with e ->                     
+            //         ISeffLog.log.PrintfnAppErrorMsg $"Cant get line index {lNo} from {lines.Count} lines in LineTransformer, shift.amountLines: {shift.amountLines} from {shift.fromLine}"
+            //         null
             if isNull ln then 
                 empty 
             else 

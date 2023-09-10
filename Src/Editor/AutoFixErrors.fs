@@ -38,13 +38,17 @@ module AutoFixErrors =
         }|> Async.Start
 
     let check(msg) =
-        match Util.Str.between "must add a reference to assembly '" ","  msg with 
+        match Util.Str.between "must add a reference to assembly '" ","  msg with //assembly name with version number
         |Some ass -> 
             if asked.Add msg then ask(msg,ass)            
-        |None -> ()
+        |None -> 
+            match Util.Str.between "must add a reference to assembly '" "'"  msg with //assembly name without version number
+            |Some ass -> 
+                if asked.Add msg then ask(msg,ass)            
+            |None -> ()
 
 
     let references(checkRes:FSharpCheckFileResults) =
         for e in checkRes.Diagnostics do 
-            if e.ErrorNumber = 1108 then 
+            if e.Message.Contains "must add a reference to assembly" then 
                 check(e.Message) 
