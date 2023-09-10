@@ -378,8 +378,8 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, statusBar:SeffStatusBar, log:
         // TODO or attach to each new editor window ?
         tabs.Control.ContextMenu <-
             makeContextMenu [
-                menuItem cmds.CollapsePrim
                 menuItem cmds.CollapseCode
+                menuItem cmds.CollapsePrim
                 menuItem cmds.ExpandCode
                 sep()
                 menuItem cmds.AlignCode
