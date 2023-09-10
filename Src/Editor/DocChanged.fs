@@ -353,7 +353,10 @@ module MaybeShow =
 module DocChangeCompletion = 
     open DocChangeUtil
     open Redrawing    
+    open FSharp.Compiler.EditorServices
 
+    let containsQuery (posX:PositionInCodeEx, decls:DeclarationListInfo)=
+        decls.Items |> Array.tryFind (fun d -> d.NameInList.Contains posX.query)
 
     /// for single character edits
     let singleCharChange (iEd:IEditor, drawServ:DrawingServices, state:InteractionState, chId:int64)  =        
@@ -397,31 +400,22 @@ module DocChangeCompletion =
                                 // WaitForCompletions: from now on any typed character will NOT increment the doc change 
                                 // AND never trigger a checking or or new completion window
                                 // the characters go to the doc and will be taken from there as a prefilter for the completion list 
-                                state.DocChangedConsequence <- WaitForCompletions // incrementing is disabled                                
+                                state.DocChangedConsequence <- WaitForCompletions // incrementing is disabled now                           
                                 
-                                ISeffLog.log.PrintfnAppErrorMsg $"get Compl for '{pos.lineToCaret}'"
                                 let declsPosX  = 
                                     Monads.maybe{
-                                        let fullCode = doc.CreateSnapshot().Text
-                                        //let! _          = state.IsLatestOpt id2    // incrementing is disabled   ( WaitForCompletions   )                                  
+                                        let fullCode    = doc.CreateSnapshot().Text
+                                        //let! _          = state.IsLatestOpt id2    // incrementing is disabled so no point in checking  ( WaitForCompletions   )                                  
                                         let! res        = Checker.CheckCode(iEd, state, fullCode, chId, false) // false for not aborting on a new check id
                                         let! decls, pos = Checker.GetCompletions(pos,res)                             
-                                        //let! _          = state.IsLatestOpt id2 
+                                        let! _          = containsQuery(pos, decls) //pre check (still async) if the posX.query is contained in any name in the completion list
                                         return decls, pos
                                     }
                             
                                 match declsPosX with         
                                 |None ->                                    
                                     state.DocChangedConsequence <- React                                    
-                                    DocChangeMark.updateAllTransformersSync (iEd, doc, drawServ, state, state.Increment())  
-                                    
-                                    // if state.IsLatest id2 then // use existing full code,and this id because it is still the latest
-                                    //     DocChangeMark.updateAllTransformersConcurrently (iEd, fullCode, drawServ, state, id2)
-                                    // else 
-                                    //     // there are changes in the doc, 
-                                    //     // these changes have not yet been reacted to because DocChangedConsequence was WaitForCompletions
-                                    //     // so do a full check and mark now.
-                                    //     DocChangeMark.updateAllTransformersSync (iEd, doc, drawServ, state, state.Increment())  
+                                    DocChangeMark.updateAllTransformersSync (iEd, doc, drawServ, state, state.Increment())                                     
 
                                 |Some (decls, posX) ->
                                                                         
@@ -430,12 +424,10 @@ module DocChangeCompletion =
                                     let showRestrictions = MaybeShow.getShowRestriction show  
                                     do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context                            
                                     match drawServ.compls.TryShow(decls, posX, showRestrictions, checkAndMark) with 
-                                    |NoShow -> 
-                                        ISeffLog.log.PrintfnFsiErrorMsg $"NoShow for {decls.Items.Length} Compls for '{pos.lineToCaret}' '{posX.query}'"
+                                    |NoShow ->                                         
                                         state.DocChangedConsequence <- React
                                         DocChangeMark.updateAllTransformersAsync(iEd, drawServ, state, state.Increment())// incrementing because it was disabled from  state.DocChangedConsequence <- WaitForCompletions
-                                    |DidShow ->                                     
-                                        ISeffLog.log.PrintfnDebugMsg $"Showed for {decls.Items.Length} Compls for '{pos.lineToCaret}' '{posX.query}'"
+                                    |DidShow -> 
                                         // no need to do anything, 
                                         // DocChangedConsequence will be updated to 'React' when completion window closes
                                         // and checkAndMark will be called.
@@ -451,10 +443,10 @@ module DocChangeEvents =
         // (1) increment change counter
         match state.DocChangedConsequence with 
         | WaitForCompletions -> 
-            ISeffLog.log.PrintfnAppErrorMsg $"wait for '{a.InsertedText.Text}'"
+            //ISeffLog.log.PrintfnAppErrorMsg $"wait for '{a.InsertedText.Text}'"
             ()
         | React -> 
-            ISeffLog.log.PrintfnDebugMsg $"react for '{a.InsertedText.Text}'"
+            //ISeffLog.log.PrintfnDebugMsg $"react for '{a.InsertedText.Text}'"
             state.Increment() |> ignore // incrementing this handler before the change actually happens, but  only increment when a reaction is required.        
         
         // (2) Adjust Shifts
