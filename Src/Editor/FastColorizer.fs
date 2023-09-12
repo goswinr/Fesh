@@ -221,7 +221,7 @@ type FastColorizer(transformers:LineTransformers<LinePartChange> [], ed:TextEdit
                                 base.ChangeLinePart(from, till, lpc.act)
  
 
-type DebugColorizer() = 
+type DebugColorizer(transformers:LineTransformers<LinePartChange> [], ed:TextEditor) = 
     inherit Rendering.DocumentColorizingTransformer()  
     let t = Diagnostics.Stopwatch()
 
@@ -239,6 +239,21 @@ type DebugColorizer() =
             ISeffLog.log.PrintfFsiErrorMsg $"%d{lineNo}, "
             
         
+type DebugColorizer2(transformers:LineTransformers<LinePartChange> [], ed:TextEditor) = 
+    inherit Rendering.DocumentColorizingTransformer()  
+    let t = Diagnostics.Stopwatch()
 
+    /// This gets called for every visible line on every Redraw
+    override _.ColorizeLine(line:Document.DocumentLine) =   
+        let lineNo = line.LineNumber
+        if t.ElapsedMilliseconds > 1000L then 
+            t.Restart()
+            ISeffLog.log.PrintfnIOErrorMsg $"after 1s DebugColorizer on %d{lineNo}"
+        elif lineNo % 10 = 0  then            
+            ISeffLog.log.PrintfnDebugMsg $"%d{lineNo} from DebugColorizer"
+            t.Restart()
+        //elif lineNo % 2= 0  then 
+        else
+            ISeffLog.log.PrintfFsiErrorMsg $"%d{lineNo}, "
 
 

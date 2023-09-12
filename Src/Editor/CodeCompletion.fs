@@ -20,7 +20,6 @@ open System.Windows.Media
 open Seff.XmlParser
 open System
 
-
 type TryShow = DidShow | NoShow
 
 type ShowRestrictions =  JustAll |JustDU | JustKeyWords
@@ -49,8 +48,12 @@ type CompletionItemForKeyWord(state: InteractionState, text:string, toolTip:stri
     member this.Text = text
     member this.Complete (textArea:TextArea, completionSegment:ISegment, e:EventArgs ) =         
         state.JustCompleted <- true
-        if Selection.getSelType textArea = Selection.RectSel then       RectangleSelection.complete (textArea, completionSegment, text)
-        else                                                            textArea.Document.Replace(completionSegment, text)
+        if Selection.getSelType textArea = Selection.RectSel then       
+            RectangleSelection.complete (textArea, completionSegment, text)
+        else                                                            
+            textArea.Document.Replace(completionSegment, text)
+            if text[text.Length-1] = '"' then // to insert cursor between quotes
+                textArea.Caret.Offset <- textArea.Caret.Offset - 1
 
     interface ICompletionData with // needed in F#: implementing the interface members as properties too: https://github.com/icsharpcode/AvalonEdit/issues/28
         member this.Complete(t,s,e) = this.Complete(t,s,e)
@@ -83,7 +86,7 @@ type CompletionItem(state: InteractionState, getToolTip, it:DeclarationListItem,
     member this.Complete (textArea:TextArea, completionSegment:ISegment, e:EventArgs) = 
         //log.PrintfnDebugMsg "%s is %A and %A" it.Name it.Glyph it.Kind        
         state.JustCompleted <- true
-        let compl = 
+        let mutable complText = 
             //TODO move this logic out here
             if it.Glyph = FSharpGlyph.Class && it.NameInList.EndsWith "Attribute" then
                 "[<" + it.NameInList.Replace("Attribute",">]")
@@ -95,11 +98,39 @@ type CompletionItem(state: InteractionState, getToolTip, it:DeclarationListItem,
             else
                 it.NameInCode // may include backticks
 
+        do // add '()' at end of word if this is a function taking unit:
+            let taggedTextSig = 
+                match it.Description with
+                | ToolTipText.ToolTipText (els) ->
+                    match els with
+                    |[]  -> None
+                    |[el] ->                        
+                            match el with
+                            | ToolTipElement.None -> None
+                            | ToolTipElement.CompositionError(text) -> None
+                            | ToolTipElement.Group(tooTipElemDataList) ->
+                                match tooTipElemDataList with
+                                |[]  -> None
+                                |[eld] -> Some eld.MainDescription
+                                | _ -> None // there are multiple signatures                               
+                    | _ -> None // there are multiple signatures  
+            
+            match taggedTextSig with
+            |None -> ()
+            |Some ts -> 
+                ts
+                |> Array.tryFindIndex (fun t -> t.Text = "unit" ) 
+                |> Option.iter (fun i -> 
+                    if ts.Length > i+2 && ts.[i+2].Text = "->" then
+                        complText <- complText + "()" // add () for unit type                
+                    )
+                     
+
         //config.Log.PrintfDebugMsg "completionSegment: '%s' : %A" (textArea.Document.GetText(completionSegment)) completionSegment
         if Selection.getSelType textArea = Selection.RectSel then
-            RectangleSelection.complete (textArea, completionSegment, compl)
+            RectangleSelection.complete (textArea, completionSegment, complText)
         else
-            textArea.Document.Replace(completionSegment, compl)
+            textArea.Document.Replace(completionSegment, complText)
 
         if not isDotCompletion then
             state.Config.AutoCompleteStatistic.Incr(it.NameInList)
@@ -127,7 +158,8 @@ type Completions(state: InteractionState) =
     let mutable win : CompletionWindow option = None   
     
     let mutable willInsert = false // to track if window closed without inserting ( e.g pressing esc)
-             
+
+    let empty = ResizeArray<string>()         
     let selectedCompletionText ()= 
         match win with
         |None -> ""
@@ -142,7 +174,6 @@ type Completions(state: InteractionState) =
     [<CLIEvent>] 
     member _.OnShowing = showingEv.Publish // to close other tooltips that might be open from type info    
     
-
 
     member _.IsOpen = win.IsSome
 
@@ -159,10 +190,11 @@ type Completions(state: InteractionState) =
     /// Initially returns "loading.." text and triggers async computation to get and update with actual text
     member this.GetToolTip(it:DeclarationListItem)=         
         async{
-            let ttText = it.Description            
+            let ttText = it.Description   
+
             let structured = 
                 if Checker.OptArgsDict.ContainsKey it.FullName then  TypeInfo.makeSeffToolTipDataList (ttText, it.FullName, Checker.OptArgsDict.[it.FullName])
-                else                                                 TypeInfo.makeSeffToolTipDataList (ttText, it.FullName, ResizeArray(0))
+                else                                                 TypeInfo.makeSeffToolTipDataList (ttText, it.FullName, empty)
             if this.IsOpen then
                 do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context
                 if this.IsOpen then // might get closed during context switch
@@ -170,7 +202,7 @@ type Completions(state: InteractionState) =
                         win.Value.ToolTipContent <- TypeInfo.getPanel (structured, {declListItem=Some it; semanticClass=None; declLocation=None; dllLocation=None })                        
                         //TODO add structure to a Dict so it does not need to be recomputed if browsing up and down items in the completion list?
         } |> Async.Start
-        TypeInfo.loadingText :> obj
+        TypeInfo.loadingText // :> obj
         
 
     member _.ComplWin  
@@ -191,6 +223,10 @@ type Completions(state: InteractionState) =
         lines.Add( CompletionItemForKeyWord(state,"#if COMPILED",        "Compiler directive to exclude code in interactive format, close with #endif or #else" ) :> ICompletionData)    |>ignore
         lines.Add( CompletionItemForKeyWord(state,"#else",               "else of compiler directives " ) :> ICompletionData)    |>ignore
         lines.Add( CompletionItemForKeyWord(state,"#endif",              "End of compiler directive " ) :> ICompletionData)    |>ignore
+        lines.Add( CompletionItemForKeyWord(state,"#r \"nuget: \"",      "Nuget package reference " ) :> ICompletionData)    |>ignore
+        lines.Add( CompletionItemForKeyWord(state,"#r \"\"",              "Dll file reference " ) :> ICompletionData)    |>ignore
+        lines.Add( CompletionItemForKeyWord(state,"#I \"\"",              "Dll folder reference " ) :> ICompletionData)    |>ignore
+        lines.Add( CompletionItemForKeyWord(state,"#load \"\"",           "fsx file reference " ) :> ICompletionData)    |>ignore
                                 
         lines.Add( CompletionItemForKeyWord(state,"__SOURCE_DIRECTORY__","Evaluates to the current full path of the source directory" ) :> ICompletionData)    |>ignore
         lines.Add( CompletionItemForKeyWord(state,"__SOURCE_FILE__"     ,"Evaluates to the current source file name, without its path") :> ICompletionData)    |>ignore
@@ -309,6 +345,7 @@ type Completions(state: InteractionState) =
                                     )
                             ta.Caret.PositionChanged.AddHandler taCaretChanged
                             complList.InsertionRequested.Add(fun _ -> willInsert <- true)
+                            
                             
                             //ISeffLog.log.PrintfnDebugMsg "*5.4 Show Completion Window with %d items prefilter: '%s' " complList.ListBox.Items.Count prefilter                     
                             showingEv.Trigger() // to close error and type info tooltip                           

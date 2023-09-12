@@ -90,7 +90,7 @@ type Fsi private (config:Config) =
     
     let mutable pendingEval :option<CodeToEval> = None // for storing evaluations that are triggered before fsi is ready
     
-    let mutable codeInEval : option<CodeToEval> = None  
+    //let mutable codeInEval : option<CodeToEval> = None  
     // let _ = // just for OnEmitting Event !!
     //     // ActivityStopped: Reflection.Emit // second last event
     //     // ActivityStarted: Run Bindings // last event
@@ -375,7 +375,7 @@ type Fsi private (config:Config) =
 
                 |Some session ->
                     state <- Compiling
-                    codeInEval <- Some codeToEv
+                    //codeInEval <- Some codeToEv
                     compilingEv.Trigger(codeToEv) // do always sync, to show "FSI is running" immediately
 
                     let asyncEval = async{

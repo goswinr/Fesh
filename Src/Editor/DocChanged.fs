@@ -149,8 +149,7 @@ module DocChangeMark =
                 |Some res ->
                     if state.IsLatest id then 
                         drawServ.errors.UpdateErrs(res.errors, id)
-                        drawServ.semantic.UpdateSemHiLiTransformers( res.checkRes, id)
-            
+                        drawServ.semantic.UpdateSemHiLiTransformers( res.checkRes, id)            
             } |> Async.Start   
     
     //To be called from any thread
