@@ -47,7 +47,7 @@ type CheckerStatus (grid:TabsAndLog) as this =
 
     let mutable lastErrCount = -1
     let mutable lastFile : TextEditor = null
-    let mutable scrollToSegm = None
+    
     
     let callCounter = ref 0L
 
@@ -92,7 +92,7 @@ type CheckerStatus (grid:TabsAndLog) as this =
 
 
     let updateCheckState(checkState:FileCheckState)= 
-        let k0 = Interlocked.Increment callCounter        
+        let callID = Interlocked.Increment callCounter        
         match checkState with
         | Done res ->        
             //ISeffLog.log.PrintfnDebugMsg $"checking  Done. Arrived in status bar with {res.checkRes.Diagnostics.Length} msgs"
@@ -106,7 +106,7 @@ type CheckerStatus (grid:TabsAndLog) as this =
                     this.ToolTip <- "FSharp Compiler Service found no Errors in"+ Environment.NewLine + tabs.Current.FormattedFileName
                     lastFile <- tabs.Current.Editor.AvaEdit
                     lastErrCount <- 0
-                    scrollToSegm <- None
+                    
             else
                 lastFile <- tabs.Current.Editor.AvaEdit
                 lastErrCount <- erWas.Count
@@ -139,9 +139,9 @@ type CheckerStatus (grid:TabsAndLog) as this =
                 |None -> ()
                 |Some e -> 
                     match e.FileCheckState with
-                    | Done _ -> () //now need to update
+                    | Done _ -> () //now need to update, the newer call takes care of this.
                     | Checking -> 
-                        if callCounter.Value = k0 then 
+                        if callCounter.Value = callID then 
                             lastErrCount <- -1
                             this.Text <- checkingTxt
                             this.Background <- waitCol //originalBackGround

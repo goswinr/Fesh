@@ -169,7 +169,8 @@ type SemanticHighlighter (state: InteractionState) =
     /// because some times the range of a property starts before the point
     let correctStart(st:int, en:int) = 
         // search from back to find last dot, there may be more than one
-        match codeLines.FullCode.LastIndexOf('.', en-1, en-st) with // at file end the end column in the reported range might be equal to FullCode.Length, so we do -1 to avoid a ArgumentOutOfRangeException.
+        // at file end the end column in the reported range might be equal to FullCode.Length, so we do -1 to avoid a ArgumentOutOfRangeException.
+        match codeLines.FullCode.LastIndexOf('.', en-1, en-st) with 
         | -1 -> st 
         |  i -> i + 1
        

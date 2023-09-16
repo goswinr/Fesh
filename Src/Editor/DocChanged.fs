@@ -321,26 +321,27 @@ module MaybeShow =
 
         /// checks if it is a letter or a digit preceded by a letter 
         let inline isAlpha c = 
-            (c >= 'a' && c <= 'z')|| (c >= 'A' && c <= 'Z')   
+            //(c >= 'a' && c <= 'z')|| (c >= 'A' && c <= 'Z')   
+            Char.IsLetter c
 
         let inline isNum c = 
             c >= '0'  && c <= '9' 
+
+        /// checks if the second or third last character  is a letter 
+        let inline isAlphaBefore (pos:PositionInCode) =
+            (pos.column > 1 &&  isAlpha pos.lineToCaret[pos.column-1])
+            ||
+            (pos.column > 2 &&  isNum pos.lineToCaret[pos.column-1] && isAlpha pos.lineToCaret[pos.column-2])
             
         let inline lastCharTriggersCompletion (lastChar, pos) = 
             match lastChar with
             | c when isAlpha c -> true // a ASCII letter
-            | c when isNum c && pos.column>1 && isAlpha pos.lineToCaret[pos.column-1] -> true// an number preceded by a letter
-            | '.' 
-            | ')' 
-            | '}' 
-            | ']' 
-            | '"' 
-            | ''' 
+            | c when isNum c && isAlphaBefore pos  -> true// an number preceded by a letter
+            | '.'  // dot completion            
             | '_'  // for __SOURCE_DIRECTORY__ or in names
             | '`'  // for complex F# names in `` ``
             | '#'  -> true// for #if directives
             | _    -> false
-
 
         let getShowRestriction s = 
             match s with 
