@@ -163,26 +163,26 @@ type LineTransformers<'T>() =    // generic so it can work for LinePartChange an
 
     /// Safely gets a Line returns empty List if index is out of range
     /// also applies the shift for line numbers if present
-    member _.GetLine(lineNumber) =
+    member _.GetLine(lineNumber) : ResizeArray<'T> =
         let lNo = 
             if lineNumber > shift.fromLine then 
                 lineNumber - shift.amountLines // use minus to actually get the line that was there before the shift
             else 
                 lineNumber 
        
-        if lNo < lines.Count then            
-            let ln = lines[lNo] 
-        // if lNo>0 && lNo<lines.Count then            
+        if lNo>0 && lNo<lines.Count then // lNo>0  because if pasting several lines at the beginning of a file the lNo can actually go negative ! 
+            let oneLineItems = lines[lNo] 
             // let ln = 
             //     try
             //         lines[lNo] 
             //     with e ->                     
-            //         ISeffLog.log.PrintfnAppErrorMsg $"Cant get line index {lNo} from {lines.Count} lines in LineTransformer, shift.amountLines: {shift.amountLines} from {shift.fromLine}"
+            //         ISeffLog.log.PrintfnAppErrorMsg $"draw line {lineNumber} trying to get color info from line {lNo} , shift.amountLines: {shift.amountLines} starting from line {shift.fromLine}"
             //         null
-            if isNull ln then 
+            
+            if isNull oneLineItems then 
                 empty 
             else 
-                ln            
+                oneLineItems            
         else 
             empty    
  
