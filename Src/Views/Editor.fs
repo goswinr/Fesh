@@ -182,28 +182,27 @@ type Editor private (code:string, config:Config, initialFilePath:FilePath)  =
         //--React to doc changes and add Line transformers----
         //----------------------------------------------------
         
+        // avaEdit.Document.Changed.Add(fun a -> DocChangeEvents.logPerformance( a.InsertedText.Text)) // AutoHotKey SendInput of ßabcdefghijklmnopqrstuvwxyz£
+        // avaEdit.TextArea.TextView.LineTransformers.Add(new DebugColorizer(  [| ed.State.TransformersSemantic |], ed.AvaEdit))  // for debugging the line transformers
+        // avaEdit.TextArea.TextView.LineTransformers.Add(new DebugColorizer2( [| ed.State.TransformersSemantic |], ed.AvaEdit))  // for debugging the line transformers
 
         avaEdit.Document.Changing.Add(DocChangeEvents.changing ed.State )
-
         avaEdit.Document.Changed.Add (DocChangeEvents.changed ed ed.DrawingServices ed.State)
-        avaEdit.Document.Changed.Add(fun a -> match ed.DrawingServices.evalTracker with Some et -> et.SetLastChangeAt a.Offset | None -> ())
-        //avaEdit.Document.Changed.Add(fun a -> DocChangeEvents.logPerformance( a.InsertedText.Text)) // AutoHotKey SendInput of ßabcdefghijklmnopqrstuvwxyz£
-                 
-        //avaEdit.TextArea.TextView.LineTransformers.Add(new DebugColorizer([| ed.State.TransformersSemantic |], ed.AvaEdit))  // for debugging the line transformers
-        // avaEdit.TextArea.TextView.LineTransformers.Add(new DebugColorizer2([| ed.State.TransformersSemantic |], ed.AvaEdit))  // for debugging the line transformers
-        avaEdit.TextArea.TextView.LineTransformers.Insert(0, ed.State.FastColorizer) // insert at index 0 so that it is drawn first, so that text color is overwritten when selection highlighting happens
+        avaEdit.Document.Changed.Add(fun a -> match ed.DrawingServices.evalTracker with Some et -> et.SetLastChangeAt a.Offset | None -> ())                 
 
-        // check if closing and inserting from completion window is desired with currently typed character:
+        // Check if closing and inserting from completion window is desired with currently typed character:
         avaEdit.TextArea.TextEntering.Add (compls.MaybeInsertOrClose)
         
-        ed.TypeInfoTip.SetValue(Controls.ToolTipService.InitialShowDelayProperty, 50) // this delay is also set in Initialize.fs
+        avaEdit.TextArea.TextView.LineTransformers.Insert(0, ed.State.FastColorizer) // insert at index 0 so that it is drawn first, so that text color is overwritten when selection highlighting happens.
+
         
         
         // Mouse Hover Type info:
         avaEdit.TextArea.TextView.MouseHover.Add(fun e -> if not ed.IsComplWinOpen then TypeInfo.mouseHover(e, ed, ed.TypeInfoTip))
+        ed.TypeInfoTip.SetValue(Controls.ToolTipService.InitialShowDelayProperty, 50) // this delay is also set in Initialize.fs
         
 
-        // to clear selection highlighter marks first , before opening the search window. if they would be the same as the search word.
+        // To clear selection highlighter marks first , before opening the search window. if they would be the same as the search word.
         // creating a new command binding for 'ApplicationCommands.Find' would remove the existing one. so we add to the delegate instead
         for binding in avaEdit.TextArea.CommandBindings do
             if  binding.Command = ApplicationCommands.Find    then   binding.Executed.Add(fun _ -> closeToolTips();ed.SelectionHighlighter.ClearMarksIfOneSelected())

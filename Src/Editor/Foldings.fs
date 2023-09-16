@@ -45,11 +45,14 @@ type Foldings(manager:Folding.FoldingManager, state:InteractionState, getFilePat
 
     let saveFoldingStatus() = foldStatus.Set(getFilePath(),manager)
  
-    // the color for folding box is set in SelectedTextHighlighter
 
     let mutable isInitialLoad = true
-   
+    
+    // the color for folding box is set in SelectedTextHighlighter
+    let textInFoldBox(count:int) = sprintf " ... %d folded lines " count
 
+    let ed = state.Editor
+    
     let findFoldings (cLns:CodeLineTools.CodeLines, id) :ResizeArray<Fold> option = 
         let FoldingStack = Stack<FoldFrom>()
         let Folds = ResizeArray<Fold>()         
@@ -123,20 +126,6 @@ type Foldings(manager:Folding.FoldingManager, state:InteractionState, getFilePat
         |ValueNone -> None // did not reach end of code lines
         |ValueSome li -> loopLines 1 li 2
     
-    let textInFoldBox(count:int) = sprintf " ... %d folded lines " count
-
-    // save folding the first line, there is a risk for collision but it is small
-    let collapseStatus = Dictionary<string,bool>()
-
-    let ed = state.Editor
-
-    let updateCollapseStatus()=
-        collapseStatus.Clear()
-        let doc = ed.Document
-        for f in  manager.AllFoldings do             
-            let ln = doc.GetLineByOffset f.StartOffset            
-            collapseStatus.[doc.GetText(ln)] <- f.IsFolded 
-    
 
     ///Get foldings at every line that is followed by an indent
     let foldEditor (id:int64) = 
@@ -165,9 +154,7 @@ type Foldings(manager:Folding.FoldingManager, state:InteractionState, getFilePat
                             fs.Title <- textInFoldBox f.linesInFold   
                         else
                             let lno = ed.Document.GetLineByOffset f.foldStartOff
-                            ISeffLog.log.PrintfnAppErrorMsg $"manager.CreateFolding was given a negative folding from offset {f.foldStartOff} to {f.foldEndOff} on line {lno.LineNumber}"
-
-                    updateCollapseStatus()
+                            ISeffLog.log.PrintfnAppErrorMsg $"manager.CreateFolding was given a negative folding from offset {f.foldStartOff} to {f.foldEndOff} on line {lno.LineNumber}"                    
                     isInitialLoad <- false
                 
                 // for any change after initial opening of the file
@@ -196,8 +183,8 @@ type Foldings(manager:Folding.FoldingManager, state:InteractionState, getFilePat
                     
                     let updateNeeded = zip 0                    
                     if updateNeeded then
-                        // if edFolds.Count <> folds.Count then    ISeffLog.log.PrintfnDebugMsg $"****changeId: {id} foldings differ: {edFolds.Count} and {folds.Count}"
-                        // else                                    ISeffLog.log.PrintfnDebugMsg $"but count same"
+                        // if edFolds.Count <> folds.Count then    ISeffLog.log.PrintfnDebugMsg $"updateNeeded: count ed {edFolds.Count} and calculated {folds.Count}"
+                        // else                                    ISeffLog.log.PrintfnDebugMsg $"updateNeeded: but count same"
                         
                         
                         // (2) Update of foldings is needed:
@@ -246,9 +233,8 @@ type Foldings(manager:Folding.FoldingManager, state:InteractionState, getFilePat
                         // so that when new foldings appeared they are saved immediately
                         saveFoldingStatus() 
                     
-                    else
-                        //printfn $"{folds.Count} folds. no folding update needed"
-                        enum.Dispose()
+               
+                        
 
             } |>  Async.Start
 
@@ -260,16 +246,11 @@ type Foldings(manager:Folding.FoldingManager, state:InteractionState, getFilePat
 
     // When the full text gets replaced ( eg via git branch change)
     // the manager.UpdateFoldings(..) cannot remember old locations and keep state.
+    
     do 
-        // set up initial state:
-        let vs = state.Config.FoldingStatus.Get(getFilePath())
-        for f,s in Seq.zip manager.AllFoldings vs do 
-            f.IsFolded <- s
-        
-        margin.MouseUp.Add (fun e -> 
-            updateCollapseStatus()
-            state.Config.FoldingStatus.Set(getFilePath(), manager)
-            )
+        // set up initial state is done in foldEditor function
+        margin.MouseUp.Add (fun _ -> saveFoldingStatus() )// so that they are saved immediately
+            
 
     /// runs first part async
     member _.UpdateFolds( id) = foldEditor(id)
@@ -288,13 +269,11 @@ type Foldings(manager:Folding.FoldingManager, state:InteractionState, getFilePat
     member _.ExpandAll() = 
         for f in manager.AllFoldings do
             f.IsFolded <- false
-        updateCollapseStatus()
         saveFoldingStatus() // so that they are saved immediately
 
     member _.CollapseAll() = 
         for f in manager.AllFoldings do
             f.IsFolded <- true
-        updateCollapseStatus()
         saveFoldingStatus() // so that they are saved immediately
 
     member _.CollapsePrimary() = 
@@ -308,7 +287,6 @@ type Foldings(manager:Folding.FoldingManager, state:InteractionState, getFilePat
                 let st = ed.Document.GetCharAt(ln.Offset)
                 if st<> ' ' then 
                     f.IsFolded <- true             
-        updateCollapseStatus()
         saveFoldingStatus() // so that they are saved immediately
     
     /// Open any foldings if required and optionally select at location
@@ -327,6 +305,5 @@ type Foldings(manager:Folding.FoldingManager, state:InteractionState, getFilePat
             ed.CaretOffset<-offset 
 
         if unfoldedOneOrMore then
-            updateCollapseStatus()
             saveFoldingStatus() // so that they are saved immediately
 
