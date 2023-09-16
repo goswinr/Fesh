@@ -262,8 +262,8 @@ type SelectedEditorTextStatus (grid:TabsAndLog) as this =
         let sel = grid.Tabs.Current.Editor.DrawingServices.selection
         if triggerNext then
             match grid.Log.SelectionHighlighter with 
-            |None -> ISeffLog.log.PrintfnAppErrorMsg "Log.SelectionHighlighter not set up"
             |Some hili -> hili.MarkInLog(sel.Word)            
+            |None      -> ISeffLog.log.PrintfnAppErrorMsg "Log.SelectionHighlighter not set up"
         
         if sel.Offsets.Count = 0 then 
             this.Inlines.Clear()
@@ -276,7 +276,7 @@ type SelectedEditorTextStatus (grid:TabsAndLog) as this =
 
     do
         this.Padding <- textPadding
-        this.ToolTip <-  tipText
+        this.ToolTip <- tipText
         this.Inlines.Add noSelTxt
         SelectionHighlighting.GlobalFoundSelectionsEditor.Add(fillStatusMarkLog)
        
@@ -328,7 +328,7 @@ type SelectedLogTextStatus (grid:TabsAndLog) as this =
         // on each click loop through all locations where text appears
         this.MouseDown.Add ( fun _ -> // press mouse to scroll to them
             match log.SelectionHighlighter with 
-            |None -> ()
+            |None      -> ()
             |Some hiLi -> 
                 if hiLi.Offsets.Count > 0 then
                     if scrollToIdx >= hiLi.Offsets.Count then scrollToIdx <- 0                
@@ -345,8 +345,9 @@ type SelectedLogTextStatus (grid:TabsAndLog) as this =
                         scrollToIdx <- 0
             )    
 
-        grid.Tabs.OnTabChanged.Add ( fun _ -> match log.SelectionHighlighter with|None -> () |Some hiLi -> hiLi.Update()) 
-
+        // this event is added in Log highLighter constructor, so that this happens only once !
+        grid.Tabs.OnTabChanged.Add ( fun _ -> grid.Tabs.Current.Editor.DrawingServices.selection.TriggerGlobalFoundSelectionEditorEv()) 
+        
 type SeffStatusBar (grid:TabsAndLog)  = 
     let bar = new Primitives.StatusBar()
 

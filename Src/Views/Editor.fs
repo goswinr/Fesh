@@ -173,10 +173,20 @@ type Editor private (code:string, config:Config, initialFilePath:FilePath)  =
             ed.TypeInfoTip.IsOpen <- false
             ed.DrawingServices.errors.ToolTip.IsOpen <- false
 
+        let escapePressed(k:KeyEventArgs) = 
+            match k.Key with 
+            |Key.Escape -> // close ToolTips or if all are closed already  ClearSelectionHighlight
+                if ed.TypeInfoTip.IsOpen  || ed.DrawingServices.errors.ToolTip.IsOpen then 
+                    closeToolTips()
+                else
+                    ed.SelectionHighlighter.ClearAll()
+            | _ -> ()
+
+
         ed.Completions.OnShowing.Add(fun _ ->                         closeToolTips() )
         avaEdit.TextArea.TextView.VisualLinesChanged.Add (fun _ ->    closeToolTips() )// close type info on typing
-        avaEdit.KeyDown.Add ( fun k -> match k.Key with Key.Escape -> closeToolTips() |_ -> ()) // close tooltips on Escape key
         avaEdit.TextArea.TextView.MouseHoverStopped.Add(fun _ ->      closeToolTips() )
+        avaEdit.KeyDown.Add escapePressed // close tooltips or clear selection on Escape key
 
         //----------------------------------------------------
         //--React to doc changes and add Line transformers----

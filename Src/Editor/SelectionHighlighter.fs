@@ -157,7 +157,6 @@ type SelectionHighlighter (state:InteractionState) =
     let selChangeId = ref 0L
     
     let ed = state.Editor  
-
    
     let selTransformersSetEv = new Event<int64>() // used in EventCombiner for redrawing on doc changes
 
@@ -179,7 +178,6 @@ type SelectionHighlighter (state:InteractionState) =
                         loop (i+1)
             loop (offsSearchFromIdx)  
     
-
     let justClear(triggerNext) =
         if lastSels.Count > 0  then // to only clear once, then not again
             //eprintfn $"justClear"
@@ -356,8 +354,8 @@ type SelectionHighlighter (state:InteractionState) =
                     else
                         justClear(true)
             
-            // keep highlighting if the cursor is just moved ? even while typing in commets?:
-            |NoSel   -> // justClear(true)
+            // keep highlighting if the cursor is just moved ? even while typing in comments?:
+            |NoSel   -> 
                 if lastWord <> "" then 
                     if state.CodeLines.IsNotFromId(state.DocChangedId.Value) // if the doc has changed only in a comment the IDs don't match and we redrawMarking. this redrawMarking will update the code lines
                     || lastSkipOff <> MarkAll then  // if lastSkipOff = MarkAll then all words are highlighted there is no change to highlighting needed                        
@@ -370,8 +368,9 @@ type SelectionHighlighter (state:InteractionState) =
     [<CLIEvent>] 
     member _.FoundSels = selTransformersSetEv.Publish // used only in EventCombiner
     
-    /// this gets called on doc changes, to comments ony that do not trigger any other highlighting
+    /// This gets called on doc changes, to comments only, that do not trigger any other highlighting
     /// See let singleCharChange in DocChanged.fs DoNothing case
+    /// It is also used by grid.Tabs.OnTabChanged
     member _.UpdateToCurrentSelection() = updateToCurrentSelection() 
 
     /// This is called from DocChanged.fs when the document changes, to reset the selection highlighting
@@ -381,7 +380,7 @@ type SelectionHighlighter (state:InteractionState) =
         if setTransformers(id,null) && lastSels.Count <> k then // do only if the selection count changed
             async{ 
                 do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context   
-                globalFoundSelectionEditorEv.Trigger(false) // redraw statusbar
+                globalFoundSelectionEditorEv.Trigger(false) // to redraw statusbar
             } |> Async.Start
 
 
@@ -391,15 +390,18 @@ type SelectionHighlighter (state:InteractionState) =
         | MarkAll      -> () // keep the marks, the do not match the search window probably        
         
 
+    member _.ClearAll() = justClear(true) // used when escape is pressed and not type info is open
+
     member _.Word = lastWord 
 
     member _.Offsets = lastSels  
     
+    member _.TriggerGlobalFoundSelectionEditorEv() = globalFoundSelectionEditorEv.Trigger(true) // to redraw statusbar and Log on Tab change
 
     /// Called from StatusBar to highlight the current selection of Log in Editor too   
     member _.RedrawMarksInEditor(word) = 
         if isTextToHighlight word then // isTextToHighlight is needed , word might be empty string
-            redrawMarking(word, MarkAll, false, !selChangeId)
+            redrawMarking(word, MarkAll, false, selChangeId.Value)
         else 
             justClear(false) 
 
@@ -603,9 +605,9 @@ type SelectionHighlighterLog (lg:TextEditor) =
 
     member _.Offsets = lastSels 
     
-    member _.Clear() = justClear(true) // used when search panel gets opened
+    //member _.Clear() = justClear(true) // used when search panel gets opened
 
-    member _.Update() = updateToCurrentSelection() // used by grid.Tabs.OnTabChanged
+    //member _.UpdateToCurrentSelection() = updateToCurrentSelection() // used by grid.Tabs.OnTabChanged
 
     member _.ClearMarksIfOneSelected() = // to be used when the search panel opens
         match lastSkipOff with
