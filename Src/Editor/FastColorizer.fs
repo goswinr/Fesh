@@ -166,7 +166,11 @@ type LineTransformers<'T>() =    // generic so it can work for LinePartChange an
     member _.GetLine(lineNumber) : ResizeArray<'T> =
         let lNo = 
             if lineNumber > shift.fromLine then 
-                lineNumber - shift.amountLines // use minus to actually get the line that was there before the shift
+                let shifted = lineNumber - shift.amountLines // use minus to actually get the line that was there before the shift
+                if shifted < shift.fromLine then // this line has just been inserted. the shift is moving the line number before shift.fromLine
+                    -1 // this line has just been inserted. if there are a few lines inserted. then they don't highlighting yet so make sure empty gets returned because of lNo>0 check below
+                else 
+                    shifted
             else 
                 lineNumber 
        
