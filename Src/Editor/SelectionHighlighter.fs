@@ -37,67 +37,7 @@ module SelectionHighlighting =
     
     let empty = ResizeArray()
 
-    (* DELETE
-    /// makes sure that there are no concurrent calls to doc.CreateSnapshot().Text 
-    /// It waits if there is a concurrent call, but does not cancel the concurrent call.
-    /// returns NONE if the doc has changed in the meantime
-    let makeEditorSnapShot =         
-        let mutable isActive = false
-        fun (doc:TextDocument, state:InteractionState, id) -> 
-            let rec loop () =
-                if state.IsLatest id then 
-                    Threading.Thread.Sleep 250
-                    if state.IsLatest id then 
-                        if isActive then 
-                            Threading.Thread.Sleep 50 //make sure no createSnapShot call is running concurrently !
-                            loop()
-                        else
-                            isActive <- true
-                            // NOTE just checking only Partial Code till caret with (doc.CreateSnapshot(0, tillOffset).Text) 
-                            // would make the GetDeclarationsList method miss some declarations !!
-                            let code = doc.CreateSnapshot().Text // the only threadsafe way to access the code string
-                            async{
-                                do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context
-                                if doc.TextLength <> code.Length then // if the doc has changed in the meantime
-                                    eprintfn $"makeEditorSnapShot: doc.TextLength <> code.Length by {doc.TextLength-code.Length}"
-                            } |> Async.RunSynchronously
-                            
-                            isActive <- false
-                            if state.IsLatest id then 
-                                Some code
-                            else
-                                None
-                    else
-                        None
-                else
-                    None
-            loop()
-    
-    /// makes sure that there are no concurrent calls to doc.CreateSnapshot().Text 
-    /// It waits if there is a concurrent call, but does not cancel the concurrent call.
-    /// returns NONE if the doc has changed in the meantime
-    let makeLogSnapShot  =         
-        let mutable isActive = false
-        fun (doc:TextDocument, stateRef:int64 ref, id:int64) -> 
-            let rec loop () =
-                if !stateRef = id then 
-                    if isActive then 
-                        Threading.Thread.Sleep 50 //make sure no createSnapShot call is running concurrently !
-                        loop()
-                    else
-                        isActive <- true
-                        let code = doc.CreateSnapshot().Text // the only threadsafe way to access the code string
-                        isActive <- false
-                        if !stateRef = id then 
-                            Some code
-                        else
-                            None
-                else
-                    None
-            loop()
-
-    *)    
-    
+      
     /// returns NONE if the doc has changed in the meantime
     let makeEditorSnapShot (doc:TextDocument, state:InteractionState, id) =          
         if state.IsLatest id then                 
@@ -106,7 +46,7 @@ module SelectionHighlighting =
             let code = doc.CreateSnapshot().Text // the only threadsafe way to access the code string                
             if state.IsLatest id then 
                 // async{ //DELETE
-                //     do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context // for doc Textlength
+                //     do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context // for doc TextLength
                 //     ISeffLog.log.PrintfnAppErrorMsg $"id:{id} makeEditorSnapShot: doc.TextLength={doc.TextLength} code.Length={code.Length}"                    
                 //     } |> Async.RunSynchronously
                 Some code
@@ -179,8 +119,7 @@ type SelectionHighlighter (state:InteractionState) =
             loop (offsSearchFromIdx)  
     
     let justClear(triggerNext) =
-        if lastSels.Count > 0  then // to only clear once, then not again
-            //eprintfn $"justClear"
+        if lastSels.Count > 0  then // to only clear once, then not again            
             lastWord <- ""
             lastSkipOff <- MarkAll
             lastSels.Clear()
@@ -208,7 +147,7 @@ type SelectionHighlighter (state:InteractionState) =
         // The variable 'lastSels' is set in this function.
 
         
-        //(1) update codeLines if needed because of some typing in comments
+        // (1) update codeLines if needed because of some typing in comments
         // if notNull doc // when called immediately after a doc change, this update should never be needed, called from updateAllTransformersConcurrently via UpdateTransformers
         let lines = state.CodeLines
         if lines.IsNotFromId(changeId) then  // some text might have been typed in comments, this would increment the doc change ID but not update the CodeLines.        
@@ -276,9 +215,10 @@ type SelectionHighlighter (state:InteractionState) =
     // sets lastWords and lastSkipOff 
     let redrawMarking (word:string, skipOff: SkipMarking, triggerNext:bool, selId) =
         let id = state.DocChangedId.Value
+        let prevFoundCount = lastSels.Count
         lastWord <- word
         lastSkipOff <- skipOff
-        // lastSels <- offs is set in setTransformers
+        // lastSels <- offs is set in setTransformers 3 line below
         
         let doc = state.Editor.Document // get in sync
         async{
@@ -303,7 +243,7 @@ type SelectionHighlighter (state:InteractionState) =
                 let redrawRange = // get range to redraw
                     match  prevRange, thisRange with 
                     | None       , None  ->    // nothing before, nothing now
-                        if lastSels.Count = 1 then StatusbarOnly // but maybe just the current selection that doesn't need highlighting, but still show in status bar
+                        if lastSels.Count = 1 || prevFoundCount =1 then StatusbarOnly // but maybe just the current selection that doesn't need highlighting, but still show in status bar
                         else NoSelRedraw                        
 
                     | Some (f,l) , None          // some before, nothing now
@@ -319,7 +259,7 @@ type SelectionHighlighter (state:InteractionState) =
                 | NoSelRedraw -> ()
 
                 | StatusbarOnly -> 
-                    do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context 
+                    do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context                     
                     globalFoundSelectionEditorEv.Trigger(triggerNext) 
                 
                 | SelRange (st,en) ->                     
@@ -327,10 +267,7 @@ type SelectionHighlighter (state:InteractionState) =
                     markFoldingsSorted(lastSels)
                     prevRange <- thisRange
                     ed.TextArea.TextView.Redraw(st,en, priority)
-                    globalFoundSelectionEditorEv.Trigger(triggerNext) 
-            else
-                //eprintfn $"---redrawMarking cancelled because of newer doc change: transFormersDone{transFormersDone}---"
-                () // don't redraw, there is already a new doc change happening that will be drawn
+                    globalFoundSelectionEditorEv.Trigger(triggerNext)            
             
         }|> Async.Start
      
@@ -431,7 +368,7 @@ type SelectionHighlighterLog (lg:TextEditor) =
     let colorizer = FastColorizer([|trans|], lg ) 
     let lines = CodeLinesSimple()
     
-    let justClear(triggerNext) =
+    let justClearLog(triggerNext) =
         if lastSels.Count > 0 then 
             lastWord <- ""
             lastSkipOff <- MarkAll
@@ -456,8 +393,9 @@ type SelectionHighlighterLog (lg:TextEditor) =
         let changeId = logStateRef.Value
         let markId   = Threading.Interlocked.Increment markCallID
         let lgDoc = lg.Document
+        let prevFoundCount = lastSels.Count
         lastWord <- word // save last selection word even if it is not found, it might be found after a doc change
-        lastSkipOff <- skipOff
+        lastSkipOff <- skipOff        
         async{
             
             // (1) make sure the lines for searching are up to date 
@@ -511,13 +449,12 @@ type SelectionHighlighterLog (lg:TextEditor) =
                         searchFromLine (lineNo + 1)                
                 
                 if searchFromLine 1 && markId = markCallID.Value then // tests if there is a newer doc change                     
-                    thisRange <- if rangeStart < 0 then None else Some(rangeStart, rangeEnd)
-                    lastSels <- offs 
+                    thisRange <- if rangeStart < 0 then None else Some(rangeStart, rangeEnd)                    
                     trans.Update(newMarks)
                     let redrawRange = // get range to redraw
                         match  prevRange, thisRange with 
                         | None       , None  ->    // nothing before, nothing now
-                            if offs.Count = 1 then StatusbarOnly // but maybe just the current selection that doesn't need highlighting, but still show in status bar
+                            if offs.Count = 1 || lastSels.Count = 1 then StatusbarOnly // but maybe just the current selection that doesn't need highlighting, but still show in status bar
                             else NoSelRedraw                        
 
                         | Some (f,l) , None          // some before, nothing now
@@ -527,10 +464,10 @@ type SelectionHighlighterLog (lg:TextEditor) =
                         | Some (pf,pl),Some (f,l) ->   // both prev and current version have a selection                    
                             SelRange(  min pf f, max pl l)
 
-                    
+                    lastSels <- offs 
 
                     // (2) if there is a selection but skipOff is set to MarkAll 
-                    //( because the mark call is coming from the Editor selection ) 
+                    // ( because the mark call is coming from the Editor selection ) 
                     // then clear the selection, because it will not match the word to highlight.
                     match skipOff with
                     | SkipOffset _-> ()
@@ -543,8 +480,7 @@ type SelectionHighlighterLog (lg:TextEditor) =
                             reactToSelChange <- false // to not trigger a selection changed event 
                             lg.TextArea.ClearSelection()                            
                             reactToSelChange <- true
-
-                
+                    
                     // (3) redraw statusbar and editor
                     match redrawRange with               
                     | NoSelRedraw -> ()
@@ -569,17 +505,17 @@ type SelectionHighlighterLog (lg:TextEditor) =
         if reactToSelChange // in case the editor request the clearing of a current selection
         && lg.TextArea.IsFocused then  // check IsFocused to not react to selections via the search bar!! // TextView.IsFocused  does not work
             match Selection.getSelType lg.TextArea with 
-            |RectSel ->  justClear(true) 
+            |RectSel ->  justClearLog(true) 
             |RegSel  -> 
                 if lg.TextArea.Selection.IsMultiline then
-                    justClear(true)
+                    justClearLog(true)
                 else
                     let word = lg.SelectedText
                     if isTextToHighlight word then  //is at least two chars and has no line breaks
                         let skip = SkipOffset lg.SelectionStart 
                         mark(word, skip, true)
                     else
-                        justClear(true)
+                        justClearLog(true)
             
             // keep highlighting if the cursor is just repositioned, but nothing selected:
             |NoSel  -> // justClear(true)
@@ -611,7 +547,7 @@ type SelectionHighlighterLog (lg:TextEditor) =
 
     member _.ClearMarksIfOneSelected() = // to be used when the search panel opens
         match lastSkipOff with
-        | SkipOffset _ -> justClear(true) // there is a selection to clear, then clear all its marks too
+        | SkipOffset _ -> justClearLog(true) // there is a selection to clear, then clear all its marks too
         | MarkAll      -> () // keep the marks, the do not match the search window probably    
 
     /// Called from StatusBar to highlight the current selection of Editor in Log too    
@@ -619,4 +555,4 @@ type SelectionHighlighterLog (lg:TextEditor) =
         if isTextToHighlight word then // isTextToHighlight is needed , word might be empty string
             mark(word, MarkAll, false) 
         else 
-            justClear(false)    
+            justClearLog(false)    

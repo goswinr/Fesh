@@ -262,8 +262,8 @@ type SelectedEditorTextStatus (grid:TabsAndLog) as this =
         let sel = grid.Tabs.Current.Editor.DrawingServices.selection
         if triggerNext then
             match grid.Log.SelectionHighlighter with 
-            |Some hili -> hili.MarkInLog(sel.Word)            
-            |None      -> ISeffLog.log.PrintfnAppErrorMsg "Log.SelectionHighlighter not set up"
+            |Some logHiLi -> logHiLi.MarkInLog(sel.Word)            
+            |None         -> ISeffLog.log.PrintfnAppErrorMsg "Log.SelectionHighlighter not set up"
         
         if sel.Offsets.Count = 0 then 
             this.Inlines.Clear()
