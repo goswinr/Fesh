@@ -179,10 +179,10 @@ type TypeInfo private () =
 
     // for F:System.IO.Path.InvalidPathChars -> System.IO.Path.InvalidPathChars
     static let fixTypeName (s:string) =  
-        match s.IndexOf ":" with 
+        match s.IndexOf ':' with 
         | 1 -> 
             let t = s.Substring(2) 
-            match t.IndexOf "`" with 
+            match t.IndexOf '`' with 
             | -1 -> t
             | i  -> t.Substring(0,i) 
         | _ -> s    

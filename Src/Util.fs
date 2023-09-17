@@ -96,11 +96,31 @@ module General =
                 loop (i+1)
             else
                 false // exited early                
-        loop 0   
+        loop 0  
 
-    /// for pipelining several functions like traverse
-    let ifTrueDo func predicate resizeArray condition : bool =
-        if condition then func predicate resizeArray else false
+    /// test for structural equality
+    let inline areSameBy (f: 'T -> 'U) (a:ResizeArray<'T>) (b:ResizeArray<'T>) =
+        if Object.ReferenceEquals(a,b) then 
+            true
+        else
+            let len = a.Count
+            if len <> b.Count then false
+            else
+                let rec loop i =
+                    if i=len then 
+                        true
+                    elif f a.[i] = f b.[i] then
+                        loop (i+1)
+                    else
+                        false // exited early                
+                loop 0
+
+       
+        
+         
+
+    // for pipelining several functions like traverse
+    //let ifTrueDo func predicate resizeArray condition : bool =        if condition then func predicate resizeArray else false
 
 
 

@@ -161,14 +161,14 @@ module XmlParser =
         
         /// Set index to first non white char after text to match
         let skipTillAndWhite (txt:string)   = 
-            match x.IndexOf(txt, i) with 
+            match x.IndexOf(txt, i, StringComparison.Ordinal) with 
             | -1 ->  i <- Int32.MaxValue 
             |  j ->  i <- j + txt.Length ; skipSpace ()
         *)
 
         /// Set index to first after text to match
         let skipTill (txt:string)   = 
-            match x.IndexOf(txt, i) with 
+            match x.IndexOf(txt, i, StringComparison.Ordinal) with 
             | -1 ->  i <- Int32.MaxValue 
             |  j ->  i <- j + txt.Length 
 
@@ -178,7 +178,7 @@ module XmlParser =
         let readTill (tillTxt:string)   =  
             // this actually reads each char twice,  so it is not as efficient
             // get char before tillTxt:
-            let e0 = match x.IndexOf(tillTxt, i) with | -1 ->  till |  j ->  j-1
+            let e0 = match x.IndexOf(tillTxt, i, StringComparison.Ordinal) with | -1 ->  till |  j ->  j-1
             let mutable e = e0
             // trim white space at end
             while isWhite x[e] do e<-e-1 

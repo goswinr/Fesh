@@ -51,15 +51,18 @@ module ErrorStyle=
 
     let penSize = 1.2
 
-    let errSquiggle     = Pen(  Brushes.Red     |> darker 10      |> freeze, penSize) |> Pen.freeze
-    let errBackGr       =       Brushes.Red     |> brighter 220   |> freeze
+    let errBackGr       = Brushes.Red     |> brighter 220   |> freeze
+    let errSquiggle     = Brushes.Red     |> darker 10      |> freeze
+    let errSquigglePen     = Pen(errSquiggle, penSize) |> Pen.freeze
 
     //let warnSquiggle    = Pen(  Brushes.Yellow  |> darker 40      |> freeze, penSize) |> Pen.freeze
-    let warnSquiggle    = Pen(  Brushes.Gold                      |> freeze, penSize) |> Pen.freeze
-    let warnBackGr      =       Brushes.Yellow  |> brighter 200   |> freeze
+    let warnBackGr      =  Brushes.Yellow  |> brighter 200   |> freeze
+    let warnSquiggle    =  Brushes.Gold                      |> freeze
+    let warnSquigglePen = Pen(warnSquiggle, penSize) |> Pen.freeze
 
-    let infoSquiggle    = Pen(  Brushes.Green  |> darker 5       |> freeze, penSize) |> Pen.freeze
-    let infoBackGr      =       Brushes.Green  |> brighter 220   |> freeze
+    let infoBackGr      =  Brushes.Green  |> brighter 220   |> freeze
+    let infoSquiggle    =  Brushes.Green  |> darker 5       |> freeze
+    let infoSquigglePen = Pen( infoSquiggle, penSize) |> Pen.freeze
 
 
 /// an ISegment: This segment also contains back and foreground color and diagnostic display text
@@ -67,10 +70,18 @@ type SegmentToMark (startOffset:int,  endOffset:int , e:FSharpDiagnostic)  =
 
     let underlinePen = 
         match e.Severity with
+        | FSharpDiagnosticSeverity.Info    -> ErrorStyle.infoSquigglePen
+        | FSharpDiagnosticSeverity.Hidden  -> ErrorStyle.infoSquigglePen
+        | FSharpDiagnosticSeverity.Warning -> ErrorStyle.warnSquigglePen
+        | FSharpDiagnosticSeverity.Error   -> ErrorStyle.errSquigglePen
+
+    let underline = 
+        match e.Severity with
         | FSharpDiagnosticSeverity.Info    -> ErrorStyle.infoSquiggle
         | FSharpDiagnosticSeverity.Hidden  -> ErrorStyle.infoSquiggle
         | FSharpDiagnosticSeverity.Warning -> ErrorStyle.warnSquiggle
         | FSharpDiagnosticSeverity.Error   -> ErrorStyle.errSquiggle 
+    
     let backgroundBrush =
         match e.Severity with
         | FSharpDiagnosticSeverity.Hidden  -> ErrorStyle.infoBackGr
@@ -92,6 +103,9 @@ type SegmentToMark (startOffset:int,  endOffset:int , e:FSharpDiagnostic)  =
     member _.Diagnostic        =  e
     member _.Severity          =  e.Severity 
     member _.UnderlinePen      =  underlinePen
+    
+    member _.Underline         =  underline
+
     member _.BackgroundBrush   =  backgroundBrush
 
     interface ISegment with 
@@ -207,7 +221,7 @@ type FastColorizer(transformers:LineTransformers<LinePartChange> [], ed:TextEdit
         let lineNo = line.LineNumber
         let offSt  = line.Offset    
         let offEn  = line.EndOffset 
-
+        
         for j = 0 to transformers.Length-1 do // there are four
             let lts = transformers.[j]
             let shift = lts.Shift
@@ -264,7 +278,9 @@ type DebugColorizer2(transformers:LineTransformers<LinePartChange> [], ed:TextEd
     /// This gets called for every visible line on every Redraw
     override _.ColorizeLine(line:Document.DocumentLine) =   
         let lineNo = line.LineNumber
-        if lineNo = 24 then 
+        if lineNo = 1 then  eprintfn "draw line 1"
+        
+        if lineNo = -1 then 
             let offSt  = line.Offset    
             let offEn  = line.EndOffset 
 

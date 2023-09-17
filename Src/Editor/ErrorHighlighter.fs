@@ -243,7 +243,7 @@ type ErrorHighlighter ( state:InteractionState, folds:Folding.FoldingManager, is
     let tView = ed.TextArea.TextView
     
     /// returns true or false to indicate if CodeLines.GetLine was aborted because of a new state.
-    let insert (newSegments:ResizeArray<ResizeArray<SegmentToMark>>) id (e:FSharpDiagnostic) : bool =         
+    let insert (marginMarks:ResizeArray<int*SolidColorBrush>) (newSegments:ResizeArray<ResizeArray<SegmentToMark>>) id (e:FSharpDiagnostic) : bool =         
         let stLn = max 1 e.StartLine // because FSharpDiagnostic might have line number 0 form Parse-and-check-file-in-project errors, but Avalonedit starts at 1
         let enLn = max 1 e.EndLine  
         if stLn > enLn then 
@@ -265,9 +265,10 @@ type ErrorHighlighter ( state:InteractionState, folds:Folding.FoldingManager, is
                         let fixedEn = // e.StartColumn = e.EndColumn // this actually happens as a result from fs checker
                             if st = en then cln.offStart + max cln.len 1 else en
                             
-                        LineTransformers.Insert(newSegments, lnNo, SegmentToMark(st ,fixedEn , e)) 
-                    insert (lnNo+1) 
-        
+                        let seg = SegmentToMark(st ,fixedEn , e)
+                        LineTransformers.Insert(newSegments, lnNo, seg) 
+                        marginMarks.Add(lnNo, seg.Underline) // for status bar
+                    insert (lnNo+1)         
         insert stLn
 
 
@@ -325,37 +326,39 @@ type ErrorHighlighter ( state:InteractionState, folds:Folding.FoldingManager, is
         tView.MouseHover.Add        ( showErrorToolTip)
         tView.MouseHoverStopped.Add ( fun e ->  tip.IsOpen <- false ) //; e.Handled <- true) )
         //tView.VisualLinesChanged.Add( fun e ->  tip.IsOpen <- false ) // done in Editor.setup: avaEdit.TextArea.TextView.VisualLinesChanged.Add (fun _ ->    closeToolTips() )// close type info on typing
-
-    
-   
+       
 
     [<CLIEvent>] 
     member _.FoundErrors = foundErrorsEv.Publish
     
+    member val ErrorsLines = ref (ResizeArray<int*SolidColorBrush>()) // line numbers of errors, for status bar
+
     /// triggers foundErrorsEv
-    member _.UpdateErrs(errs:ErrorsBySeverity, id) =         
+    member this.UpdateErrs(errs:ErrorsBySeverity, id) =         
         if state.IsLatest id then  
             let nSegs = ResizeArray<ResizeArray<SegmentToMark>>(state.ErrSegments.LineCount + 2 )
-            if // first insert in to LineTransformer
-                General.traverse (insert nSegs id) errs.hiddens
-                |> General.ifTrueDo General.traverse (insert nSegs id) errs.infos
-                |> General.ifTrueDo General.traverse (insert nSegs id) errs.warnings
-                |> General.ifTrueDo General.traverse (insert nSegs id) errs.errors            
-                then                        
-                    state.ErrSegments.Update nSegs 
-                    foundErrorsEv.Trigger(id)
-                    
-                    // second mark folding boxes if an error is inside, even open ones, so that it shows when collapsed:
-                    async{
-                        do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context
-                        for fold in folds.AllFoldings do // first clear   
-                            fold.DecorateRectangle <- null                      
-                        General.traverse (updateFolds id ErrorStyle.infoBackGr ErrorStyle.infoSquiggle)  errs.hiddens
-                        |> General.ifTrueDo General.traverse (updateFolds id ErrorStyle.infoBackGr ErrorStyle.infoSquiggle) errs.infos
-                        |> General.ifTrueDo General.traverse (updateFolds id ErrorStyle.warnBackGr ErrorStyle.warnSquiggle) errs.warnings
-                        |> General.ifTrueDo General.traverse (updateFolds id ErrorStyle.errBackGr  ErrorStyle.errSquiggle ) errs.errors
-                        |> ignore<bool>    
-                    } |> Async.Start 
+            let marginMarks = ResizeArray<int*SolidColorBrush>(errs.errors.Count + errs.warnings.Count)
+            // first insert in to LineTransformer
+            for e in errs.hiddens  do insert marginMarks nSegs id e |> ignore<bool> 
+            for e in errs.infos    do insert marginMarks nSegs id e |> ignore<bool> 
+            for e in errs.warnings do insert marginMarks nSegs id e |> ignore<bool> 
+            for e in errs.errors   do insert marginMarks nSegs id e |> ignore<bool>         
+            if state.IsLatest id then                        
+                state.ErrSegments.Update nSegs 
+                this.ErrorsLines.Value <- marginMarks
+                eprintfn $"ErrorHighlighter.UpdateErrs err count1: {marginMarks.Count}"
+                eprintfn $"ErrorHighlighter.UpdateErrs err count2: {this.ErrorsLines.Value.Count}"
+                foundErrorsEv.Trigger(id)
+
+                // second mark folding boxes if an error is inside, even open ones, so that it shows when collapsed:
+                async{
+                    do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context
+                    for fold in folds.AllFoldings do  fold.DecorateRectangle <- null   // first clear
+                    for e in errs.hiddens  do updateFolds id ErrorStyle.infoBackGr ErrorStyle.infoSquigglePen e  |> ignore<bool>
+                    for e in errs.infos    do updateFolds id ErrorStyle.infoBackGr ErrorStyle.infoSquigglePen e  |> ignore<bool>
+                    for e in errs.warnings do updateFolds id ErrorStyle.warnBackGr ErrorStyle.warnSquigglePen e  |> ignore<bool>
+                    for e in errs.errors   do updateFolds id ErrorStyle.errBackGr  ErrorStyle.errSquigglePen  e  |> ignore<bool>
+                } |> Async.Start 
 
     member this.ToolTip = tip
 

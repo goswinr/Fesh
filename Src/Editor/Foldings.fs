@@ -40,8 +40,7 @@ type Foldings(manager:Folding.FoldingManager, state:InteractionState, getFilePat
     let minLinesNested = 3 
 
     // if inner folding is just 9 line shorter than outer folding don't do it    
-    // let minLineCountDiffToOuter = 9    
-   
+    // let minLineCountDiffToOuter = 9       
 
     let saveFoldingStatus() = foldStatus.Set(getFilePath(),manager)
  
@@ -184,8 +183,7 @@ type Foldings(manager:Folding.FoldingManager, state:InteractionState, getFilePat
                     let updateNeeded = zip 0                    
                     if updateNeeded then
                         // if edFolds.Count <> folds.Count then    ISeffLog.log.PrintfnDebugMsg $"updateNeeded: count ed {edFolds.Count} and calculated {folds.Count}"
-                        // else                                    ISeffLog.log.PrintfnDebugMsg $"updateNeeded: but count same"
-                        
+                        // else                                    ISeffLog.log.PrintfnDebugMsg $"updateNeeded: but count same"                        
                         
                         // (2) Update of foldings is needed:
                         // (2.1) find firstError offset for Update Foldings function
@@ -232,9 +230,6 @@ type Foldings(manager:Folding.FoldingManager, state:InteractionState, getFilePat
                         // (2.4) save collapsed status again
                         // so that when new foldings appeared they are saved immediately
                         saveFoldingStatus() 
-                    
-               
-                        
 
             } |>  Async.Start
 
@@ -249,23 +244,16 @@ type Foldings(manager:Folding.FoldingManager, state:InteractionState, getFilePat
     
     do 
         // set up initial state is done in foldEditor function
-        margin.MouseUp.Add (fun _ -> saveFoldingStatus() )// so that they are saved immediately
-            
+        margin.MouseUp.Add (fun _ ->  saveFoldingStatus() )// so that they are saved immediately
+           
 
     /// runs first part async
     member _.UpdateFolds( id) = foldEditor(id)
     
     member _.Manager = manager
-
-
-    (*
-    member _.Margin = 
-        ed.TextArea.LeftMargins
-        |> Seq.tryFind ( fun m -> m :? Folding.FoldingMargin )
-        |> Option.defaultWith (fun () -> failwithf "Failed to find Folding.FoldingMargin")
-        :?> Folding.FoldingMargin
-    *)
-
+    
+    member _.Margin = margin
+       
     member _.ExpandAll() = 
         for f in manager.AllFoldings do
             f.IsFolded <- false

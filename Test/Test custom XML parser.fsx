@@ -1,11 +1,12 @@
 ﻿#r "nuget: FsEx"
+#r "nuget: FsEx.IO"
 #r "System.Xml.Linq"
 
 open System
 open System.IO
 open System.Text
 open System.Collections.Generic
-open FsEx 
+open FsEx
 
 /// The only reason to build my own XML parser is to make it error tolerant.
 /// To fix https://github.com/dotnet/fsharp/issues/12702 , this might have affected a few nuget packages.
@@ -136,7 +137,7 @@ module XmlParser =
         
         /// Set index to first non white char after text to match
         let skipTillAndWhite (txt:string)   = 
-            match x.IndexOf(txt, i) with 
+            match x.IndexOf(txt, i, StringComparison.Ordinal) with 
             | -1 ->  i <- Int32.MaxValue 
             |  j ->  i <- j + txt.Length ; skipSpace ()
         
@@ -145,7 +146,7 @@ module XmlParser =
         let readTill (tillTxt:string)   =  
             // this actually reads each char twice,  so it is not as efficient
             // get char before tillTxt:
-            let e0 = match x.IndexOf(tillTxt, i) with | -1 ->  till |  j ->  j-1
+            let e0 = match x.IndexOf(tillTxt, i, StringComparison.Ordinal) with | -1 ->  till |  j ->  j-1
             let mutable e = e0
             // trim white space at end
             while isWhite x[e] do e<-e-1 
@@ -330,11 +331,11 @@ module Test =
     // this is actually not faster
     let countMembers(rawXml:string) =   
         let mutable k = 0
-        let mutable i = rawXml.IndexOf("<member name=")
+        let mutable i = rawXml.IndexOf("<member name=", StringComparison.Ordinal)
         while i>0 do  
             if rawXml[i+14]<>'"' then  // to skip <member name="">
                 k <- k+1
-            i <- rawXml.IndexOf("<member name=", i+13)
+            i <- rawXml.IndexOf("<member name=", i+13, StringComparison.Ordinal)
         k
     
     let rec printNodes ind (chs:Child list) =  

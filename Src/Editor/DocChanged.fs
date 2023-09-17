@@ -186,7 +186,7 @@ module MaybeShow =
             | _  -> true 
     
         /// Is a discriminated union that wants autocomplete
-        let private isDUorKeyword checkForKeyW fromIdx ln =            
+        let private isDUorKeyword checkForKeyW fromIdx (ln:string) =            
             let fi = indexOfFirstNonWhiteAfter fromIdx ln
             if fi < fromIdx then 
                 ShowAll // fromIdx-1 returned, non white letter was not found

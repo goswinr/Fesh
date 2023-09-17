@@ -61,7 +61,8 @@ type Editor private (code:string, config:Config, initialFilePath:FilePath)  =
         av.AllowDrop <- true
         av.Options.HighlightCurrentLine <- true // http://stackoverflow.com/questions/5072761/avalonedit-highlight-current-line-even-when-not-focused
         
-        
+        SyntaxHighlighting.setFSharp(av,false) 
+
         // av.TextArea.TextView.CurrentLineBackground <- Brushes.Transparent |> Brush.freeze //Brushes.Ivory |> Brush.brighter 10 |> Brush.freeze
         // av.TextArea.TextView.CurrentLineBorder     <- new Pen(Brushes.LightSlateGray|> Brush.freeze, 1.0) |> Util.Pen.freeze
         
@@ -82,9 +83,9 @@ type Editor private (code:string, config:Config, initialFilePath:FilePath)  =
         
     let foldMg      = Folding.FoldingManager.Install(avaEdit.TextArea) 
     let state       = new InteractionState(avaEdit, foldMg, config)
+    let compls      = new Completions(state)
     let folds       = new Foldings(foldMg, state, getFilePath)
     let brackets    = new BracketHighlighter( state) 
-    let compls      = new Completions(state)
     let semHiLi     = new SemanticHighlighter(state)
     let error       = new ErrorHighlighter(state, foldMg, fun () -> compls.IsOpen )
     let selHiLi     = new SelectionHighlighter(state)
@@ -103,9 +104,6 @@ type Editor private (code:string, config:Config, initialFilePath:FilePath)  =
     
     //this will trigger the redraw after all async events have arrived
     let eventCombiner = Redrawing.EventCombiner(drawServices ,state)       
-
-    do  
-        SyntaxHighlighting.setFSharp(avaEdit,false) 
 
     member _.EventCombiner = eventCombiner  
         
@@ -188,6 +186,8 @@ type Editor private (code:string, config:Config, initialFilePath:FilePath)  =
         avaEdit.TextArea.TextView.MouseHoverStopped.Add(fun _ ->      closeToolTips() )
         avaEdit.KeyDown.Add escapePressed // close tooltips or clear selection on Escape key
 
+        ed.Folds.Margin.MouseDown.Add(fun _ -> closeToolTips(); ed.Completions.CloseAndEnableReacting() ) // close tooltips on clicking in the margin
+
         //----------------------------------------------------
         //--React to doc changes and add Line transformers----
         //----------------------------------------------------
@@ -204,8 +204,7 @@ type Editor private (code:string, config:Config, initialFilePath:FilePath)  =
         avaEdit.TextArea.TextEntering.Add (compls.MaybeInsertOrClose)
         
         avaEdit.TextArea.TextView.LineTransformers.Insert(0, ed.State.FastColorizer) // insert at index 0 so that it is drawn first, so that text color is overwritten when selection highlighting happens.
-
-        
+                
         
         // Mouse Hover Type info:
         avaEdit.TextArea.TextView.MouseHover.Add(fun e -> if not ed.IsComplWinOpen then TypeInfo.mouseHover(e, ed, ed.TypeInfoTip))
@@ -218,7 +217,7 @@ type Editor private (code:string, config:Config, initialFilePath:FilePath)  =
             if  binding.Command = ApplicationCommands.Find    then   binding.Executed.Add(fun _ -> closeToolTips();ed.SelectionHighlighter.ClearMarksIfOneSelected())
             if  binding.Command = ApplicationCommands.Replace then   binding.Executed.Add(fun _ -> closeToolTips();ed.SelectionHighlighter.ClearMarksIfOneSelected())
             
-
+        avaEdit.Loaded.Add (fun _ -> MagicScrollbar.enhance(avaEdit, ed.ErrorHighlighter) )
         ed
         
     ///additional constructor using default code

@@ -110,7 +110,7 @@
     <Compile Include="Src/Editor/ErrorHighlighter.fs" />
     <Compile Include="Src/Editor/TypeInfo.fs" />
     <Compile Include="Src/Editor/Checker.fs" />
-    <Compile Include="Src/Editor/CodeCompletion.fs" />
+    <Compile Include="Src/Editor/Completions.fs" />
     <Compile Include="Src/Editor/Foldings.fs" />
     <Compile Include="Src/Editor/EvaluationTracker.fs" />
     <Compile Include="Src/Editor/SelectionHighlighter.fs" />
