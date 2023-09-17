@@ -24,6 +24,7 @@ open AvalonEditB
 open AvalonEditB.Document
 open AvalonEditB.Rendering
 open System
+open System
 
 
 
@@ -98,7 +99,8 @@ type SegmentToMark (startOffset:int,  endOffset:int , e:FSharpDiagnostic)  =
         member _.EndOffset   = endOffset
         member _.Length      = endOffset - startOffset 
 
-    member s.Shifted (x:Shift)= 
+    
+    member s.Shifted (x:Shift)=  // DELETE
         let o = if startOffset < x.fromOff then startOffset else startOffset + x.amountOff  
         let e = if endOffset   < x.fromOff then endOffset   else endOffset   + x.amountOff
         {new ISegment with
@@ -168,7 +170,7 @@ type LineTransformers<'T>() =    // generic so it can work for LinePartChange an
             if lineNumber > shift.fromLine then 
                 let shifted = lineNumber - shift.amountLines // use minus to actually get the line that was there before the shift
                 if shifted < shift.fromLine then // this line has just been inserted. the shift is moving the line number before shift.fromLine
-                    -1 // this line has just been inserted. if there are a few lines inserted. then they don't highlighting yet so make sure empty gets returned because of lNo>0 check below
+                    Int32.MaxValue // this line has just been inserted. if there are a few lines inserted. then they don't highlighting yet so make sure empty gets returned because of check below
                 else 
                     shifted
             else 
@@ -209,30 +211,35 @@ type FastColorizer(transformers:LineTransformers<LinePartChange> [], ed:TextEdit
         for j = 0 to transformers.Length-1 do // there are four
             let lts = transformers.[j]
             let shift = lts.Shift
-            if lineNo >= lts.LineCount then 
-                //ISeffLog.log.PrintfnAppErrorMsg $"Cant get line index {lineNo} from {lts.LineCount} lines in LineTransformer"
-                ()
-            else
+            if lineNo < lts.LineCount then              
                 let linePartChanges = lts.GetLine(lineNo) 
-                for i=0 to linePartChanges.Count-1 do  
-                    //if i < linePartChanges.Count then // because it might get reset while iterating ?
-                        let lpc = linePartChanges[i]
-                        if notNull lpc.act then // because for coloring brackets the action may be null to keep xshd coloring                            
-                            let shiftChecked = if lpc.from >= shift.fromOff then shift.amountOff else 0
-                            if shiftChecked > lpc.from then // to not move markings backwards while deleting
-                                let from = lpc.from + shiftChecked
-                                let till = lpc.till + shiftChecked
-                                if from >= till then () // negative length
-                                    //let tx = ed.Document.GetText(line)
-                                    //let seg = ed.Document.GetText(till, from-till)
-                                    //ISeffLog.log.PrintfnAppErrorMsg $"*LineChangePart1 {from} >= {till}; DocLine {offSt}-{offEn} on line: {lineNo}; (shift:{shiftChecked})"           
-                                    //ISeffLog.log.PrintfnAppErrorMsg $"   '{seg}' in {lineNo}:'{tx}'"           
-                                elif till > offEn then () // ISeffLog.log.PrintfnAppErrorMsg $"**LineChangePart2 {from}-{till}; DocLine {offSt}-{offEn} on line: {lineNo}; (shift:{shiftChecked})" 
-                                elif from < offSt then () // ISeffLog.log.PrintfnAppErrorMsg $"***LineChangePart3 {from}-{till}; DocLine {offSt}-{offEn} on line: {lineNo}; (shift:{shiftChecked})"           
-                                else
-                                    //ISeffLog.log.PrintfnDebugMsg $"{from}-{till}; DocLine {offSt}-{offEn} on line: {lineNo}; doc.Text.Length {ed.Document.TextLength} (shift:{shiftChecked})" 
-                                    base.ChangeLinePart(from, till, lpc.act)
-    
+                for i=0 to linePartChanges.Count-1 do                  
+                    let lpc = linePartChanges[i]     
+
+                    // adjust offset to shifts:    
+                    let mutable till = lpc.till
+                    let from = 
+                        if lpc.from >= shift.fromOff  then 
+                            let shifted = lpc.from + shift.amountOff 
+                            if shifted < shift.fromOff then 
+                                Int32.MaxValue // to skip this segment
+                            else 
+                                till <- till + shift.amountOff
+                                shifted
+                        else 
+                            lpc.from
+                
+                    if from >= till then () // negative length or skipped because of shift offset
+                        //let tx = ed.Document.GetText(line)
+                        //let seg = ed.Document.GetText(till, from-till)
+                        //ISeffLog.log.PrintfnAppErrorMsg $"*LineChangePart1 {from} >= {till}; DocLine {offSt}-{offEn} on line: {lineNo}; (shift:{shiftChecked})"           
+                        //ISeffLog.log.PrintfnAppErrorMsg $"   '{seg}' in {lineNo}:'{tx}'"           
+                    elif till > offEn then () // ISeffLog.log.PrintfnAppErrorMsg $"**LineChangePart2 {from}-{till}; DocLine {offSt}-{offEn} on line: {lineNo}; (shift:{shiftChecked})" 
+                    elif from < offSt then () // ISeffLog.log.PrintfnAppErrorMsg $"***LineChangePart3 {from}-{till}; DocLine {offSt}-{offEn} on line: {lineNo}; (shift:{shiftChecked})"                                           
+                    elif notNull lpc.act then // because for coloring brackets the action may be null to keep xshd coloring  
+                        //ISeffLog.log.PrintfnDebugMsg $"{from}-{till}; DocLine {offSt}-{offEn} on line: {lineNo}; doc.Text.Length {ed.Document.TextLength} (shift:{shiftChecked})" 
+                        base.ChangeLinePart(from, till, lpc.act)
+
 
 type DebugColorizer(transformers:LineTransformers<LinePartChange> [], ed:TextEditor) = 
     inherit Rendering.DocumentColorizingTransformer()  

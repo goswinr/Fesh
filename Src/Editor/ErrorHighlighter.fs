@@ -19,6 +19,7 @@ open AvalonLog.Brush
 open Seff
 open Seff.Util
 open Seff.Model
+open System.Windows.Media
 
 // Error colors are defined in FastColorizer.fs
 
@@ -26,6 +27,9 @@ module ErrorUtil =
         
     /// for clicking through the errors in the status bar 
     let mutable private scrollToIdx = -1
+    
+
+    let maxErrorCountToTrack = 9
 
     /// split errors by severity and sort by line number 
     let getBySeverity(checkRes:CodeAnalysis.FSharpCheckFileResults) :ErrorsBySeverity =
@@ -37,15 +41,17 @@ module ErrorUtil =
         let his  = ResizeArray()  // Hidden
         let erWs = ResizeArray()  // Errors and Warnings
         let all = checkRes.Diagnostics |> Array.sortBy( fun e -> e.StartLine) // sort before filtering out duplicates
+        let m = maxErrorCountToTrack      
+        let m2 = maxErrorCountToTrack * 2        
         for i = 0 to all.Length - 1 do
             let  e = all.[i]
             if i=0 // to filter out duplicate errors, a bug in FCS !
             ||( let p = all.[i-1] in p.StartLine <> e.StartLine || p.StartColumn <> e.StartColumn || p.EndLine <> e.EndLine || p.EndColumn <> e.EndColumn) then                             
                 match e.Severity with
-                | FSharpDiagnosticSeverity.Error   -> ers.Add e ; erWs.Add e
-                | FSharpDiagnosticSeverity.Warning -> was.Add e ; erWs.Add e
-                | FSharpDiagnosticSeverity.Hidden  -> his.Add e
-                | FSharpDiagnosticSeverity.Info    -> if e.ErrorNumber <> 3370 then ins.Add e   //  exclude infos about ref cell incrementing ??
+                | FSharpDiagnosticSeverity.Error   -> if ers.Count < m then (ers.Add e ;  erWs.Add e)
+                | FSharpDiagnosticSeverity.Warning -> if was.Count < m then (was.Add e ;  erWs.Add e)
+                | FSharpDiagnosticSeverity.Hidden  -> if his.Count < m then his.Add e
+                | FSharpDiagnosticSeverity.Info    -> if ins.Count < m && e.ErrorNumber <> 3370 then ins.Add e   //  exclude infos about ref cell incrementing ??
         
         //printfn $"Errors: {ers.Count} Warnings: {was.Count} Infos: {insCount} Hidden: {his.Count} "
         { errors = ers; warnings = was; infos = ins; hiddens = his; errorsAndWarnings = erWs }
@@ -75,7 +81,7 @@ module ErrorUtil =
             | e -> 
                 raise e 
     
-    let getSquiggleLine(r:Rect):StreamGeometry = 
+    let getSquiggleLine(r:Rect, yOffset):StreamGeometry = 
         let startPoint = r.BottomLeft
         let endPoint = r.BottomRight
         let offset = 3.0 // originally 2.5
@@ -86,7 +92,7 @@ module ErrorUtil =
         ctx.PolyLineTo(
             [| for i=0 to count - 1 do 
                 let x = startPoint.X + (float i * offset)
-                let y = startPoint.Y - if (i + 1) % 2 = 0 then offset else 0.
+                let y = startPoint.Y - if (i + 1) % 2 = 0 then offset + yOffset else yOffset
                 Point(x,y) |] , // for Squiggly line
             true, 
             false)
@@ -150,59 +156,68 @@ type ErrorRenderer (state: InteractionState) =
             let shift = allSegments.Shift
             let id = state.DocChangedId.Value
             for lineNo = fromLine to toLine do
-                let segments = allSegments.GetLine(lineNo) 
-                match codeLines.GetLine(lineNo,id) with 
-                |ValueNone -> ()
-                |ValueSome line ->
-                    let offSt  = line.offStart + line.indent
-                    let offEn  = line.offStart + line.len
-                    for i=0 to segments.Count-1 do  
-                        let seg = segments[i]                                            
-                        let shiftChecked = if seg.Offset >= shift.fromOff then shift.amountOff else 0
-                        if shiftChecked > seg.Offset then // to not move markings backwards while deleting
-                            let from = seg.Offset    + shiftChecked
-                            let till = seg.EndOffset + shiftChecked
-                            if from >= till then () // negative length
-                            elif till > offEn then () // avoid jumping to next line
-                            elif from < offSt then () // avoid jumping to previous line     
-                            else  
-                                
-                                // background color: // when drawing on Caret layer background must be disabled.
-                                // let geoBuilder = new BackgroundGeometryBuilder (AlignToWholePixels = true, CornerRadius = 0.)
-                                // geoBuilder.AddSegment(textView, segShift )                       
-                                // let boundaryPolygon = geoBuilder.CreateGeometry() // creates one boundary round the text
-                                // drawingContext.DrawGeometry(seg.BackgroundBrush, null, boundaryPolygon)
+                let segments = allSegments.GetLine(lineNo)                 
+                for i=0 to segments.Count-1 do  
+                    let seg = segments[i]    
 
-                                //foreground, squiggles:
-                                let iSeg = {new ISegment with
-                                                member _.Offset      = from
-                                                member _.EndOffset   = till
-                                                member _.Length      = till - from   }
-                                for rect in BackgroundGeometryBuilder.GetRectsForSegment(textView, iSeg) do 
-                                    let geo = ErrorUtil.getSquiggleLine(rect)
-                                    drawingContext.DrawGeometry(Brushes.Transparent, seg.UnderlinePen, geo)
-
-
-
-                    (* // DELETE
-
-                    for i = 0 to segments.Count-1 do                    
-                        let seg = segments.[i]                        
-                        let segShift = seg.Shifted(shift) 
-
-                        // background color: // when drawing on Caret layer background must be disabled.
+                    // adjust offset to shifts:    
+                    let mutable till = seg.EndOffset 
+                    let from = 
+                        if seg.Offset >= shift.fromOff  then 
+                            let shifted = seg.Offset + shift.amountOff 
+                            if shifted < shift.fromOff then // after shifting the offset moved before the changed area
+                                Int32.MaxValue // to skip this segment
+                            else 
+                                till <- till + shift.amountOff
+                                shifted
+                        else 
+                            seg.Offset
+                    
+                    if from >= till then   () // eprintfn "from >= till" // negative length or Int32.MaxValue in from value
+                    //elif till > offEn then () // eprintfn "till > offEn " // avoid jumping to next line
+                    //elif from < offSt then () // eprintfn "from < offSt" // avoid jumping to previous line     
+                    else  
+                        
+                        // background color: 
+                        // when drawing on Caret layer background must be disabled.
                         // let geoBuilder = new BackgroundGeometryBuilder (AlignToWholePixels = true, CornerRadius = 0.)
                         // geoBuilder.AddSegment(textView, segShift )                       
                         // let boundaryPolygon = geoBuilder.CreateGeometry() // creates one boundary round the text
                         // drawingContext.DrawGeometry(seg.BackgroundBrush, null, boundaryPolygon)
 
                         //foreground, squiggles:
-                        for rect in BackgroundGeometryBuilder.GetRectsForSegment(textView, segShift) do 
-                            let geo = ErrorUtil.getSquiggleLine(rect)
+                        let iSeg = {new ISegment with
+                                        member _.Offset      = from
+                                        member _.EndOffset   = till
+                                        member _.Length      = till - from   }
+                        let rects = BackgroundGeometryBuilder.GetRectsForSegment(textView, iSeg) |> ResizeArray
+                        if rects.Count = 1 then // skip if line overflows and there is more than one rect
+                            let geo = ErrorUtil.getSquiggleLine(rects[0], -1.0) // neg offset to move down
                             drawingContext.DrawGeometry(Brushes.Transparent, seg.UnderlinePen, geo)
-                                    
-                    //let e = seg.Diagnostic in ISeffLog.log.PrintfnDebugMsg $"IBackgroundRenderer: DocLine {lnNo}: ErrLines{e.StartLine}.{e.StartColumn}-{e.EndLine}.{e.EndColumn}"   
-                    *)
+
+
+                (*
+
+                // DELETE
+
+                for i = 0 to segments.Count-1 do                    
+                    let seg = segments.[i]                        
+                    let segShift = seg.Shifted(shift) 
+
+                    // background color: // when drawing on Caret layer background must be disabled.
+                    // let geoBuilder = new BackgroundGeometryBuilder (AlignToWholePixels = true, CornerRadius = 0.)
+                    // geoBuilder.AddSegment(textView, segShift )                       
+                    // let boundaryPolygon = geoBuilder.CreateGeometry() // creates one boundary round the text
+                    // drawingContext.DrawGeometry(seg.BackgroundBrush, null, boundaryPolygon)
+
+                    //foreground, squiggles:
+                    for rect in BackgroundGeometryBuilder.GetRectsForSegment(textView, segShift) do 
+                        let geo = ErrorUtil.getSquiggleLine(rect, -4.0)
+                        drawingContext.DrawGeometry(Brushes.Transparent, Pen(Brushes.Green,1.), geo)
+                                
+                //let e = seg.Diagnostic in ISeffLog.log.PrintfnDebugMsg $"IBackgroundRenderer: DocLine {lnNo}: ErrLines{e.StartLine}.{e.StartColumn}-{e.EndLine}.{e.EndColumn}"   
+                *)
+                
                 
             
     member _.Layer = 
@@ -267,7 +282,7 @@ type ErrorHighlighter ( state:InteractionState, folds:Folding.FoldingManager, is
                 //fold.BackgroundColor  <- ErrorStyle.errBackGr // done via ctx.DrawRectangle(ErrorStyle.errBackGr
                 fold.DecorateRectangle <- 
                     Action<Rect,DrawingContext>( fun rect ctx ->
-                        let geo = ErrorUtil.getSquiggleLine(rect)
+                        let geo = ErrorUtil.getSquiggleLine(rect, 0.0)
                         if isNull fold.BackgroundColor then // in case of selection highlighting skip brush, only use Pen  
                             ctx.DrawRectangle(brush, null, rect)                       
                         ctx.DrawGeometry(Brushes.Transparent, pen, geo)

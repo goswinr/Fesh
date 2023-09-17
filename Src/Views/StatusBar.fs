@@ -56,7 +56,7 @@ type CheckerStatus (grid:TabsAndLog) as this =
         let wak = es.warnings.Count
         let ink = es.infos.Count
         let hik = es.hiddens.Count
-        let maxShowCount = 5 // for each typ of error, the maximum number of errors to show
+        let maxShowCount = 4 // for each typ of error, the maximum number of errors to show
         makePanelVert [
             if erk>0 then
                 if addPersistInfo then TextBlock(Text = "Click on text in statusbar or press Ctrl + E keys to scroll to first error.", FontSize = StyleState.fontSize * 0.75, FontStyle = FontStyles.Italic, Margin=Thickness 3.0)
