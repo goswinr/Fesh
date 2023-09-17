@@ -11,6 +11,7 @@ open AvalonEditB.Document
 
 open FSharp.Compiler.EditorServices
 open FSharp.Compiler.Tokenization // for keywords
+open FSharp.Compiler
 
 open Seff
 open Seff.Model
@@ -18,6 +19,7 @@ open Seff.Config
 open System.Windows.Controls
 open System.Windows.Media
 open Seff.XmlParser
+open System
 open System
 
 type TryShow = DidShow | NoShow
@@ -98,30 +100,31 @@ type CompletionItem(state: InteractionState, getToolTip, it:DeclarationListItem,
             else
                 it.NameInCode // may include backticks
 
-        do // add '()' at end of word if this is a function taking unit:
-            let taggedTextSig = 
-                match it.Description with
-                | ToolTipText.ToolTipText (els) ->
-                    match els with
-                    |[]  -> None
-                    |[el] ->                        
-                            match el with
-                            | ToolTipElement.None -> None
-                            | ToolTipElement.CompositionError(text) -> None
-                            | ToolTipElement.Group(tooTipElemDataList) ->
-                                match tooTipElemDataList with
-                                |[]  -> None
-                                |[eld] -> Some eld.MainDescription
-                                | _ -> None // there are multiple signatures                               
-                    | _ -> None // there are multiple signatures  
-            
-            match taggedTextSig with
-            |None -> ()
-            |Some ts -> 
+        // add '()' at end of word if this is a function taking unit:
+        let taggedTextSig = 
+            match it.Description with
+            | ToolTipText.ToolTipText (els) ->
+                match els with
+                |[]  -> None
+                |[el] ->                        
+                        match el with
+                        | ToolTipElement.None -> None
+                        | ToolTipElement.CompositionError(text) -> None
+                        | ToolTipElement.Group(tooTipElemDataList) ->
+                            match tooTipElemDataList with
+                            |[]  -> None
+                            |[eld] -> Some eld.MainDescription
+                            | _ -> None // there are multiple signatures                               
+                | _ -> None // there are multiple signatures  
+        
+        match taggedTextSig with
+        |None -> ()
+        |Some ts -> 
+            if ts |> Seq.truncate 1 |> Seq.exists (fun t -> t.Tag = Text.TextTag.Keyword) |> not then // only one keyword in signature, so functions, not types with all its members                     
                 ts
-                |> Array.tryFindIndex (fun t -> t.Text = "unit" ) 
+                |> Array.tryFindIndex (fun t -> t.Text = "->" ) 
                 |> Option.iter (fun i -> 
-                    if ts.Length > i+2 && ts.[i+2].Text = "->" then
+                    if i>2 && ts.[i-2].Text = "unit" then
                         complText <- complText + "()" // add () for unit type                
                     )
                      

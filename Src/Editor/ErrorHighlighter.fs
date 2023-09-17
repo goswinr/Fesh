@@ -145,27 +145,66 @@ type ErrorRenderer (state: InteractionState) =
             let vls = textView.VisualLines                
             let fromLine = vls[0].FirstDocumentLine.LineNumber
             let toLine   = vls[vls.Count-1].LastDocumentLine.LineNumber
-            let segms = state.ErrSegments
-            for lnNo = fromLine to toLine do
-                let segs = segms.GetLine(lnNo)
-                for i = 0 to segs.Count-1 do                    
-                    let seg = segs.[i]                        
-                    let segShift = seg.Shifted(segms.Shift) 
-
-                    // background color: // when drawing on Caret layer background must be disabled.
-                    // let geoBuilder = new BackgroundGeometryBuilder (AlignToWholePixels = true, CornerRadius = 0.)
-                    // geoBuilder.AddSegment(textView, segShift )                       
-                    // let boundaryPolygon = geoBuilder.CreateGeometry() // creates one boundary round the text
-                    // drawingContext.DrawGeometry(seg.BackgroundBrush, null, boundaryPolygon)
-
-                    //foreground, squiggles:
-                    for rect in BackgroundGeometryBuilder.GetRectsForSegment(textView, segShift) do 
-                        let geo = ErrorUtil.getSquiggleLine(rect)
-                        drawingContext.DrawGeometry(Brushes.Transparent, seg.UnderlinePen, geo)
+            let allSegments = state.ErrSegments
+            let codeLines = state.CodeLines
+            let shift = allSegments.Shift
+            let id = state.DocChangedId.Value
+            for lineNo = fromLine to toLine do
+                let segments = allSegments.GetLine(lineNo) 
+                match codeLines.GetLine(lineNo,id) with 
+                |ValueNone -> ()
+                |ValueSome line ->
+                    let offSt  = line.offStart + line.indent
+                    let offEn  = line.offStart + line.len
+                    for i=0 to segments.Count-1 do  
+                        let seg = segments[i]                                            
+                        let shiftChecked = if seg.Offset >= shift.fromOff then shift.amountOff else 0
+                        if shiftChecked > seg.Offset then // to not move markings backwards while deleting
+                            let from = seg.Offset    + shiftChecked
+                            let till = seg.EndOffset + shiftChecked
+                            if from >= till then () // negative length
+                            elif till > offEn then () // avoid jumping to next line
+                            elif from < offSt then () // avoid jumping to previous line     
+                            else  
                                 
-                //let e = seg.Diagnostic in ISeffLog.log.PrintfnDebugMsg $"IBackgroundRenderer: DocLine {lnNo}: ErrLines{e.StartLine}.{e.StartColumn}-{e.EndLine}.{e.EndColumn}"   
+                                // background color: // when drawing on Caret layer background must be disabled.
+                                // let geoBuilder = new BackgroundGeometryBuilder (AlignToWholePixels = true, CornerRadius = 0.)
+                                // geoBuilder.AddSegment(textView, segShift )                       
+                                // let boundaryPolygon = geoBuilder.CreateGeometry() // creates one boundary round the text
+                                // drawingContext.DrawGeometry(seg.BackgroundBrush, null, boundaryPolygon)
+
+                                //foreground, squiggles:
+                                let iSeg = {new ISegment with
+                                                member _.Offset      = from
+                                                member _.EndOffset   = till
+                                                member _.Length      = till - from   }
+                                for rect in BackgroundGeometryBuilder.GetRectsForSegment(textView, iSeg) do 
+                                    let geo = ErrorUtil.getSquiggleLine(rect)
+                                    drawingContext.DrawGeometry(Brushes.Transparent, seg.UnderlinePen, geo)
+
+
+
+                    (* // DELETE
+
+                    for i = 0 to segments.Count-1 do                    
+                        let seg = segments.[i]                        
+                        let segShift = seg.Shifted(shift) 
+
+                        // background color: // when drawing on Caret layer background must be disabled.
+                        // let geoBuilder = new BackgroundGeometryBuilder (AlignToWholePixels = true, CornerRadius = 0.)
+                        // geoBuilder.AddSegment(textView, segShift )                       
+                        // let boundaryPolygon = geoBuilder.CreateGeometry() // creates one boundary round the text
+                        // drawingContext.DrawGeometry(seg.BackgroundBrush, null, boundaryPolygon)
+
+                        //foreground, squiggles:
+                        for rect in BackgroundGeometryBuilder.GetRectsForSegment(textView, segShift) do 
+                            let geo = ErrorUtil.getSquiggleLine(rect)
+                            drawingContext.DrawGeometry(Brushes.Transparent, seg.UnderlinePen, geo)
+                                    
+                    //let e = seg.Diagnostic in ISeffLog.log.PrintfnDebugMsg $"IBackgroundRenderer: DocLine {lnNo}: ErrLines{e.StartLine}.{e.StartColumn}-{e.EndLine}.{e.EndColumn}"   
+                    *)
+                
             
-         
     member _.Layer = 
         // when drawing on Caret layer the  background change must be disabled
         KnownLayer.Caret// .Selection// for IBackgroundRenderer

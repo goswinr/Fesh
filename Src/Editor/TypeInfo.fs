@@ -66,7 +66,7 @@ type TypeInfo private () =
     
     static let blue         = Brushes.Blue       |> darker    90 |> freeze    
     static let red          = Brushes.DarkSalmon |> darker   120 |> freeze
-    static let fullred      = Brushes.Red        |> darker    60 |> freeze
+    static let fullRed      = Brushes.Red        |> darker    60 |> freeze
     static let cyan         = Brushes.DarkCyan   |> darker    60 |> freeze    
 
 
@@ -111,7 +111,7 @@ type TypeInfo private () =
             | TextTag.Punctuation->
                 match t.Text with
                 | "?"        ->   tb.Inlines.Add( new Run(t.Text, Foreground = gray))
-                | "*" | "->" ->  tb.Inlines.Add( new Run(t.Text, Foreground = fullred))                    
+                | "*" | "->" ->  tb.Inlines.Add( new Run(t.Text, Foreground = fullRed))                    
                 |  _         ->  tb.Inlines.Add( new Run(t.Text, Foreground = purple ))                
 
             | TextTag.Operator //  also used for  DU names in `` ``  !?

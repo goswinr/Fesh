@@ -215,23 +215,24 @@ type FastColorizer(transformers:LineTransformers<LinePartChange> [], ed:TextEdit
             else
                 let linePartChanges = lts.GetLine(lineNo) 
                 for i=0 to linePartChanges.Count-1 do  
-                    if i < linePartChanges.Count then // because it might get reset while iterating ?
+                    //if i < linePartChanges.Count then // because it might get reset while iterating ?
                         let lpc = linePartChanges[i]
                         if notNull lpc.act then // because for coloring brackets the action may be null to keep xshd coloring                            
                             let shiftChecked = if lpc.from >= shift.fromOff then shift.amountOff else 0
-                            let from = lpc.from + shiftChecked
-                            let till = lpc.till + shiftChecked
-                            if from >= till then () // negative length
-                                //let tx = ed.Document.GetText(line)
-                                //let seg = ed.Document.GetText(till, from-till)
-                                //ISeffLog.log.PrintfnAppErrorMsg $"*LineChangePart1 {from} >= {till}; DocLine {offSt}-{offEn} on line: {lineNo}; (shift:{shiftChecked})"           
-                                //ISeffLog.log.PrintfnAppErrorMsg $"   '{seg}' in {lineNo}:'{tx}'"           
-                            elif till > offEn then () // ISeffLog.log.PrintfnAppErrorMsg $"**LineChangePart2 {from}-{till}; DocLine {offSt}-{offEn} on line: {lineNo}; (shift:{shiftChecked})" 
-                            elif from < offSt then () // ISeffLog.log.PrintfnAppErrorMsg $"***LineChangePart3 {from}-{till}; DocLine {offSt}-{offEn} on line: {lineNo}; (shift:{shiftChecked})"           
-                            else
-                                //ISeffLog.log.PrintfnDebugMsg $"{from}-{till}; DocLine {offSt}-{offEn} on line: {lineNo}; doc.Text.Length {ed.Document.TextLength} (shift:{shiftChecked})" 
-                                base.ChangeLinePart(from, till, lpc.act)
- 
+                            if shiftChecked > lpc.from then // to not move markings backwards while deleting
+                                let from = lpc.from + shiftChecked
+                                let till = lpc.till + shiftChecked
+                                if from >= till then () // negative length
+                                    //let tx = ed.Document.GetText(line)
+                                    //let seg = ed.Document.GetText(till, from-till)
+                                    //ISeffLog.log.PrintfnAppErrorMsg $"*LineChangePart1 {from} >= {till}; DocLine {offSt}-{offEn} on line: {lineNo}; (shift:{shiftChecked})"           
+                                    //ISeffLog.log.PrintfnAppErrorMsg $"   '{seg}' in {lineNo}:'{tx}'"           
+                                elif till > offEn then () // ISeffLog.log.PrintfnAppErrorMsg $"**LineChangePart2 {from}-{till}; DocLine {offSt}-{offEn} on line: {lineNo}; (shift:{shiftChecked})" 
+                                elif from < offSt then () // ISeffLog.log.PrintfnAppErrorMsg $"***LineChangePart3 {from}-{till}; DocLine {offSt}-{offEn} on line: {lineNo}; (shift:{shiftChecked})"           
+                                else
+                                    //ISeffLog.log.PrintfnDebugMsg $"{from}-{till}; DocLine {offSt}-{offEn} on line: {lineNo}; doc.Text.Length {ed.Document.TextLength} (shift:{shiftChecked})" 
+                                    base.ChangeLinePart(from, till, lpc.act)
+    
 
 type DebugColorizer(transformers:LineTransformers<LinePartChange> [], ed:TextEditor) = 
     inherit Rendering.DocumentColorizingTransformer()  
