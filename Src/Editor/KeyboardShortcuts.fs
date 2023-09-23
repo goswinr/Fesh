@@ -263,19 +263,7 @@ module KeyboardShortcuts =
                     CursorBehavior.addFSharpIndentation(ed,ke)  // add indent after do, for , ->, =             
             
             (* 
-            //moved to ScrollBarEnhancer in let vertScrollBar
-
-            | Key.Up -> // on Ctrl + Up. normally does scrolling in scroll-viewer so override here   
-                if isDown Ctrl && isUp Alt && isUp Shift then 
-                    //ke.Handled <- true // this event in scrollViewer is already disabled in ScrollBarEnhancer in let vertScrollBar : ScrollBar =
-                    Foldings.CollapseAtCaret()                 
-            
-            | Key.Down -> // on Ctrl + Down. normally does scrolling in scroll-viewer so override here
-                if isDown Ctrl && isUp Alt && isUp Shift then 
-                    //ke.Handled <- true // this event in scrollViewer is already disabled in ScrollBarEnhancer in let vertScrollBar : ScrollBar =
-                    Foldings.ExpandAtCaret()
-
-
+                
             These are handled in: let altKeyCombo(aKey:AltKeyCombo)
             Just because Rhino3D does not allow Alt + Up and Alt + Down to be used as shortcuts like this:
 

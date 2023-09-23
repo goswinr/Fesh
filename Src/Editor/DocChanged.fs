@@ -87,8 +87,7 @@ module Redrawing =
         let mutable idFolds      = 0L
 
         let tryDraw(id) =             
-            if state.IsLatest id && idSemantics=id && idBrackets=id  && idErrors=id && idSels=id && idFolds=id then 
-                //ed.Dispatcher.Invoke (fun() -> 
+            if state.IsLatest id && idSemantics=id && idBrackets=id  && idErrors=id && idSels=id && idFolds=id then                 
                 async{
                     do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context                    
                     //increment to avoid another full redraw on found selection event, that might be triggered again and again without a doc change
@@ -97,9 +96,12 @@ module Redrawing =
 
                     // let diff = ed.Document.TextLength - state.CodeLines.FullCode.Length //DELETE
                     // if diff <> 0 then ISeffLog.log.PrintfnAppErrorMsg $"CodeLines too short by {diff}" 
-                    services.folds.RedrawFoldings()                       
-                    ed.TextArea.TextView.Redraw(priority)
-                    // )
+
+                    services.folds.RedrawFoldings()  
+                    do! Async.Sleep 50 // to try to avoid: InvalidOperationException: Line 117 was skipped by a VisualLineElementGenerator, but it is not collapsed. at AvalonEditB.Rendering.TextView.BuildVisualLine(..)
+                    if state.IsLatest id then                                    
+                        ed.TextArea.TextView.Redraw(priority)
+                    
                 } |> Async.Start
        
   

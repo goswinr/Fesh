@@ -415,7 +415,7 @@ module CursorBehavior  =
             | "'"  -> if nextSpace()&&prevNonAlpha()  then addPair 1 "''"
             | "\"" -> if nextSpace()&&evenQuoteCount() then addPair 1 "\"\""
             | "$"  -> if nextSpace()  then addPair 2 "$\"\"" // for formatting string
-            | "`"  -> if nextSpace()  then addPair 2 "````"  // for formatting string
+            | "`"  -> if nextSpace()  then addPair 2 "````"  // for quoted identifiers
             
             | "|" -> 
                 // first check previous character:

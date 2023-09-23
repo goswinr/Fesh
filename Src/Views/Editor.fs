@@ -195,9 +195,8 @@ type Editor private (code:string, config:Config, initialFilePath:FilePath)  =
 
         avaEdit.TextArea.PreviewTextInput.Add (       fun e -> CursorBehavior.previewTextInput(     avaEdit, e))  // A TextCompositionEventArgs that has a string , handling typing in rectangular selection
         avaEdit.TextArea.AlternativeRectangularPaste <- Action<string,bool>( fun txt txtIsFromOtherRectSel -> RectangleSelection.paste(ed.AvaEdit, txt, txtIsFromOtherRectSel)) //TODO check txtIsFromOtherRectSel on pasting text with \r\n
-
-        avaEdit.TextArea.TextView.PreviewKeyDown.Add (fun e -> KeyboardShortcuts.previewKeyDown(    ed     , e))  // A single Key event arg, indent and dedent, and change block selection delete behavior        
-        //avaEdit.PreviewKeyDown.Add (fun e -> KeyboardShortcuts.previewKeyDown(    ed     , e))  // A single Key event arg, indent and dedent, and change block selection delete behavior        
+        
+        avaEdit.PreviewKeyDown.Add (fun e -> KeyboardShortcuts.previewKeyDown(    ed     , e))  // A single Key event arg, indent and dedent, and change block selection delete behavior        
         
 
         
@@ -224,6 +223,9 @@ type Editor private (code:string, config:Config, initialFilePath:FilePath)  =
                     ed.SelectionHighlighter.ClearAll()
             | _ -> ()
         )
+
+
+        //avaEdit.KeyDown.Add (fun k -> printfn $"key:{k.Key} + {k.SystemKey}")
 
         ed
         

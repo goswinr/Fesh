@@ -110,8 +110,8 @@ type Commands (grid:TabsAndLog, statusBar:SeffStatusBar)  =
     member val ToggleLogLineWrap = {name= "Toggle Line Wrapping in Log"   ;gesture= "Alt + Z"     ;cmd= mkCmdSimple (fun _ -> log.ToggleLineWrap(config)) ;tip= "Toggle Line Wrapping in Log window" }
     member val FontBigger        = {name= "Make Font Bigger"              ;gesture= "Ctrl + '+'"  ;cmd= mkCmdSimple (fun _ -> fonts.FontsBigger())        ;tip= "Increase Text Size for both Editor and Log" }
     member val FontSmaller       = {name= "Make Font Smaller"             ;gesture= "Ctrl + '-'"  ;cmd= mkCmdSimple (fun _ -> fonts.FontsSmaller())       ;tip= "Decrease Text Size for both Editor and Log" }
-    member val CollapseFolding   = {name= "Collapse this folding"     ;gesture= "Ctrl + Up"      ;cmd = mkCmdSimple (fun _ -> (*Foldings.CollapseAtCaret()*) ()  )  ;tip= "Collapses the current folding at  the caret." }
-    member val ExpandFolding     = {name= "Expands this folding"      ;gesture= "Ctrl + Down"     ;cmd = mkCmdSimple (fun _ -> (*Foldings.ExpandAtCaret()*) ())   ;tip= "Expands the current folding at  the caret." }
+    member val CollapseFolding   = {name= "Collapse this folding"         ;gesture= "Ctrl + ["      ;cmd = mkCmdSimple (fun _ -> Foldings.CollapseAtCaret())  ;tip= "Folding the innermost un collapsed region at the cursor." }
+    member val ExpandFolding     = {name= "Expands this folding"          ;gesture= "Ctrl + ]"     ;cmd = mkCmdSimple (fun _ -> Foldings.ExpandAtCaret())   ;tip= "Unfolding the collapsed region at the cursor." }
     
     member val CollapseCode      = {name= "Collapse all Code Foldings"    ;gesture= ""            ;cmd= mkCmdSimple (fun _ -> curr().Folds.CollapseAll()) ;tip= "Collapse all Code Foldings in this file" }
     member val CollapsePrim      = {name= "Collapse all first Code Foldings";gesture= ""            ;cmd= mkCmdSimple (fun _ -> curr().Folds.CollapsePrimary()) ;tip= "Collapse primary Code Foldings, doesn't change secondary or tertiary foldings." }
@@ -232,16 +232,17 @@ type Commands (grid:TabsAndLog, statusBar:SeffStatusBar)  =
                 |"Up"    -> Key.Up
                 |"Down"  -> Key.Down
                 |"/"     -> Key.OemQuestion // the '/' key next to right shift
+                |"["     -> Key.OemOpenBrackets // the '[' key on Uk keyboard
+                |"]"     -> Key.Oem6 // the ']' key on Uk keyboard
                 | x -> match Key.TryParse(x,true) with
                        |true, k -> k
                        | _ -> log.PrintfnAppErrorMsg "*AllInputBindings: failed to parse cmd Key '%A'" x; Key.NoName
 
             let getModKey = function
-                |"Ctrl"     -> ModifierKeys.Control
+                |"Ctrl" -> ModifierKeys.Control
                 | x -> match ModifierKeys.TryParse(x,true) with
-                       |true, k -> k
+                       |true, mk -> mk
                        | _ -> log.PrintfnAppErrorMsg "*AllInputBindings: failed to parse ModifierKey '%A'" x; ModifierKeys.None
-
 
             try
                 let bindings = 
