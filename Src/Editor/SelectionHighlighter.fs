@@ -14,8 +14,7 @@ open Seff.Editor.CodeLineTools
 
 
 module SelectionHighlighting =
-    open System.Linq
-
+    
     let colorEditor  = Brushes.PaleTurquoise |> AvalonLog.Brush.freeze      
 
     let colorLog     = Brushes.Blue |> AvalonLog.Brush.brighter 210  |> AvalonLog.Brush.freeze
@@ -38,7 +37,8 @@ module SelectionHighlighting =
     let empty = ResizeArray()
 
       
-    /// returns NONE if the doc has changed in the meantime
+    /// Pass in the doc too because its called async.
+    /// Returns NONE if the doc has changed in the meantime
     let makeEditorSnapShot (doc:TextDocument, state:InteractionState, id) =          
         if state.IsLatest id then                 
             // NOTE just checking only Partial Code till caret with (doc.CreateSnapshot(0, tillOffset).Text) 
@@ -141,19 +141,21 @@ type SelectionHighlighter (state:InteractionState) =
     /// returns true if not cancelled by newer change Id
     /// sets lastSels <- offs
     /// also triggers selTransformersSetEv
-    let setTransformers (changeId:int64, doc:TextDocument) =       
+    let setTransformers (changeId:int64) = 
         // the variables 'lastWord' and 'lastSkipOff' must be set already when calling this function. 
         // this happens in 'let redrawMarking' below.
         // The variable 'lastSels' is set in this function.
 
-        
-        // (1) update codeLines if needed because of some typing in comments
-        // if notNull doc // when called immediately after a doc change, this update should never be needed, called from updateAllTransformersConcurrently via UpdateTransformers
         let lines = state.CodeLines
+        (* // DELETE, even when typing in comments a full check is run see DocChangeCompletion.singleCharChange(..) case DoNothing
+
+        // (1) update codeLines if needed because of some typing in comments 
+        // if notNull doc // when called immediately after a doc change, this update should never be needed, called from updateAllTransformersConcurrently via UpdateTransformers
         if lines.IsNotFromId(changeId) then  // some text might have been typed in comments, this would increment the doc change ID but not update the CodeLines.        
-            match SelectionHighlighting.makeEditorSnapShot(doc,state,changeId) with 
+            match SelectionHighlighting.makeEditorSnapShot(doc, state, changeId) with 
             | None      -> ()
             | Some code -> state.CodeLines.UpdateLines(code, changeId)
+        *)
         
         // (2) search for the word in the lines:    
         if not <| state.IsLatest changeId then 
@@ -218,11 +220,10 @@ type SelectionHighlighter (state:InteractionState) =
         let prevFoundCount = lastSels.Count
         lastWord <- word
         lastSkipOff <- skipOff
-        // lastSels <- offs is set in setTransformers 3 line below
+        // lastSels <- offs is set in setTransformers 3 line below  
         
-        let doc = state.Editor.Document // get in sync
         async{
-            let transFormersDone = setTransformers( state.DocChangedId.Value , doc)
+            let transFormersDone = setTransformers( state.DocChangedId.Value )
             if transFormersDone && selId = selChangeId.Value  then                 
                 // (1) If there is a Editor selection but skipOff is set to MarkAll 
                 // , because the mark call is coming from the Log selection, 
@@ -314,7 +315,7 @@ type SelectionHighlighter (state:InteractionState) =
     /// It does not get called when only text in Comments changes, because the CodeLines are not updated then.
     member _.UpdateTransformers(id) = 
         let k = lastSels.Count
-        if setTransformers(id,null) && lastSels.Count <> k then // do only if the selection count changed
+        if setTransformers(id) && lastSels.Count <> k then // do only if the selection count changed
             async{ 
                 do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context   
                 globalFoundSelectionEditorEv.Trigger(false) // to redraw statusbar

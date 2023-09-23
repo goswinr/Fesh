@@ -79,7 +79,7 @@
     <Compile Include="Src/Timer.fs" />
     <Compile Include="Src/StyleState.fs" />
     <Compile Include="Src/Model.fs" />
-	  
+
     <Compile Include="Src/Config/RunContext.fs" />
     <Compile Include="Src/Config/DefaultCode.fs" />
     <Compile Include="Src/Config/ScriptCompilerTemplate.fs" />
@@ -89,11 +89,11 @@
     <Compile Include="Src/Config/AutoCompleteStatistic.fs" />
     <Compile Include="Src/Config/FoldingStatus.fs" />
     <Compile Include="Src/Config/Config.fs" />
-	  
+
     <Compile Include="Src/Fsi.fs" />
     <Compile Include="Src/CompileScript.fs" />
     <Compile Include="Src/XmlParser.fs" />
-	  
+
     <Compile Include="Src/Editor/AutoFixErrors.fs" />
     <Compile Include="Src/Editor/Selection.fs" />
     <Compile Include="Src/Editor/RectangleSelection.fs" />
@@ -102,7 +102,6 @@
     <Compile Include="Src/Editor/ColumnRulers.fs" />
     <Compile Include="Src/Editor/SwapLines.fs" />
     <Compile Include="Src/Editor/CursorBehavior.fs" />
-    <Compile Include="Src/Editor/KeyboardShortcuts.fs" />
     <Compile Include="Src/Editor/AlignText.fs" />
     <Compile Include="Src/Editor/XshdHighlighting.fs" />
     <Compile Include="Src/Editor/FastColorizer.fs" />
@@ -117,7 +116,9 @@
     <Compile Include="Src/Editor/SemanticHighlighter.fs" />
     <Compile Include="Src/Editor/BracketHighlighter.fs" />
     <Compile Include="Src/Editor/DocChanged.fs" />
-	  
+    <Compile Include="Src/Editor/KeyboardShortcuts.fs" />
+
+    <Compile Include="Src/Views/Scrollbar.fs" />
     <Compile Include="Src/Views/Log.fs" />
     <Compile Include="Src/Views/Editor.fs" />
     <Compile Include="Src/Views/SeffWindow.fs" />
@@ -131,6 +132,7 @@
     <Compile Include="Src/Views/Commands.fs" />
     <Compile Include="Src/Views/Menu.fs" />
     <Compile Include="Src/Views/Seff.fs" />
+
     <Compile Include="Src/Initialize.fs" />
     <Compile Include="Src/App.fs" />
 

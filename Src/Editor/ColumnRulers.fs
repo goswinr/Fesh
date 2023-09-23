@@ -22,12 +22,12 @@ type ColumnRulers (editor:TextEditor)  as this =
         [0 .. 10] |> List.map ( fun i -> i * editor.Options.IndentationSize)
         //[ 0; 4; 8; 12 ; 16 ; 20 ; 24 ; 28 ; 32 ; 36]
 
-    let mutable color = Brushes.White |> darker 24
+    let mutable color = Brushes.White |> darker 20 //24
 
     let pens = 
         [
             for _ in columnsInit do
-                let p = new Pen(color, 1.2 )  //1.2)
+                let p = new Pen(color, 1.2 )  
                 p.Freeze()
                 color <- brighter 2 color   // fade out next ruler
                 p

@@ -394,8 +394,8 @@ module DocChangeCompletion =
                             //ISeffLog.log.PrintfnDebugMsg $"MaybeShow.completionWindow for {lastChar} is {show}"
                             match show with 
                             |DoNothing  -> 
-                                // typing in a comment:                                                              
-                                // Don't just do nothing!!
+                                // DoNothing mean we are typing in a comment:                                                              
+                                // BUT ! Don't just do nothing!!
                                 // Even when typing in a comment, the checker should run because it makes a new change ID and that new change ID would 
                                 // abort any still  running checker and not trigger a new one. unless we do it here.
                                 do! Async.Sleep (300)   
