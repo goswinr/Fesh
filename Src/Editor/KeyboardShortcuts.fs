@@ -55,7 +55,7 @@ module KeyboardNative  =
     let private  WH_KEYBOARD_LL = 13
     let private  WM_KEYDOWN     = 0x100
     let private  WM_KEYUP       = 0x101
-    let private  WM_SYSKEYDOWN  = 0x104
+    let private  WM_SYSKEYDOWN  = 0x104 // Alt key is a system key
     let private  WM_SYSKEYUP    = 0x105
 
     [<Struct>]
@@ -72,7 +72,7 @@ module KeyboardNative  =
     /// <summary>Defines the callback type for the hook
     /// param "code" The hook code, if it isn't >= 0, the function shouldn't do anything
     /// param "wParam" The event type
-    /// param "lParam" The keyhook event information</summary>
+    /// param "lParam" The keyHook event information</summary>
     type KeyboardHookProc = 
         delegate of int*int*byref<KeyboardHookStruct> -> int //delegate int keyboardHookProc(int code, int wParam, ref keyboardHookStruct lParam);
 
@@ -144,12 +144,16 @@ module KeyboardNative  =
         // https://github.com/topstarai/WindowsHook/blob/master/WindowsHook/WinApi/HookProcedure.cs
         KeyboardHookProc( fun (nCode:int) (wParam:int) (lParam: byref<KeyboardHookStruct> ) ->
             //let key = lParam.vkCode // same ints as in System.Windows.Forms.Keys
+            
+            // for finding codes and flags use:
             //ISeffLog.log.PrintfnColor 0 99 0  " window.IsFocused %b, window.IsEnabled %b, window.IsActive %b," window.IsFocused window.IsEnabled window.IsActive
-            //if    wParam = WM_KEYDOWN      then ISeffLog.log.PrintfnColor 255 0 0   "down key    : %d , flags %d, dwExtraInfo %d, code %d,"  lParam.vkCode lParam.flags lParam.dwExtraInfo code //lParam.time
-            //elif  wParam = WM_SYSKEYDOWN   then ISeffLog.log.PrintfnColor 155 40 40 "down sys key: %d , flags %d, dwExtraInfo %d, code %d,"  lParam.vkCode lParam.flags lParam.dwExtraInfo code //lParam.time
-            //elif  wParam = WM_KEYUP        then ISeffLog.log.PrintfnColor 0 0 255   "up key      : %d , flags %d, dwExtraInfo %d, code %d,"  lParam.vkCode lParam.flags lParam.dwExtraInfo code //lParam.time
-            //elif  wParam = WM_SYSKEYUP     then ISeffLog.log.PrintfnColor 40 40 150 "up sys key  : %d , flags %d, dwExtraInfo %d, code %d,"  lParam.vkCode lParam.flags lParam.dwExtraInfo code //lParam.time
-            //else ISeffLog.log.PrintfnColor 190 40 190 "not up nor down  key  : %d , flags %d, dwExtraInfo %d, code %d,"  lParam.vkCode lParam.flags lParam.dwExtraInfo code //lParam.time
+            // if    wParam = WM_KEYDOWN      then ISeffLog.log.PrintfnColor 255 0 0   "down key    : %d , flags %d, dwExtraInfo %d, code %d,"  lParam.vkCode lParam.flags lParam.dwExtraInfo nCode //lParam.time
+            // elif  wParam = WM_SYSKEYDOWN   then ISeffLog.log.PrintfnColor 155 40 40 "down sys key: %d , flags %d, dwExtraInfo %d, code %d,"  lParam.vkCode lParam.flags lParam.dwExtraInfo nCode //lParam.time
+            // elif  wParam = WM_KEYUP        then ISeffLog.log.PrintfnColor 0 0 255   "up key      : %d , flags %d, dwExtraInfo %d, code %d,"  lParam.vkCode lParam.flags lParam.dwExtraInfo nCode //lParam.time
+            // elif  wParam = WM_SYSKEYUP     then ISeffLog.log.PrintfnColor 40 40 150 "up sys key  : %d , flags %d, dwExtraInfo %d, code %d,"  lParam.vkCode lParam.flags lParam.dwExtraInfo nCode //lParam.time
+            // else                                ISeffLog.log.PrintfnColor 190 40 190 "not up nor down  key  : %d , flags %d, dwExtraInfo %d, code %d,"  lParam.vkCode lParam.flags lParam.dwExtraInfo nCode //lParam.time
+            
+            
             if  nCode >= 0
                 && wParam = WM_SYSKEYDOWN
                 && lParam.vkCode > 36
@@ -199,10 +203,10 @@ module KeyboardNative  =
         ISeffLog.log.PrintfnDebugMsg  "User32 at :%d" hInstance
         ISeffLog.log.PrintfnDebugMsg  "hookId at:%d" hookId
 
-    /// Create a global low level keyboard hook DOESNT WORK
+    /// Create a global low level keyboard hook DOES NOT WORK
     let hookUpWin(win:Window) = 
         //https://stackoverflow.com/questions/1811383/setwindowshookex-in-c-sharp
-        let modu  = win.GetType().Module
+        let modul  = win.GetType().Module
         let handle = Runtime.InteropServices.Marshal.GetHINSTANCE(modu)
         hookId <- SetWindowsHookEx(WH_KEYBOARD_LL, hookProc, handle, 0u)
         ISeffLog.log.PrintfnDebugMsg  "GetHINSTANCE at :%d" handle
@@ -234,48 +238,47 @@ module KeyboardShortcuts =
 
     /// gets attached to each editor instance. via avaEdit.PreviewKeyDown.Add
     /// except for Alt and arrow keys that are handled via KeyboardNative
-    let previewKeyDown (ied:IEditor, ke:Input.KeyEventArgs) =  
+    let previewKeyDown (ied:IEditor, ke:KeyEventArgs) =  
         let ed = ied.AvaEdit
         let ta = ed.TextArea
         let sel = getSelType(ta)
         if ta.IsFocused then // to skip if search panel is focused 
             match realKey ke  with
-            |Input.Key.Back -> // also do if completion window is open
+            |Key.Back -> // also do if completion window is open
                 // TODO check for modifier keys like Alt or Ctrl ?
                 match sel with
                 | NoSel   ->   CursorBehavior.backspace4Chars(ed,ke)
                 | RectSel ->   RectangleSelection.backspaceKey(ed) ; ke.Handled <- true
                 | RegSel  ->   ()
 
-            |Input.Key.Delete -> // also do if completion window is open
+            |Key.Delete -> // also do if completion window is open
                 // TODO check for modifier keys like Alt or Ctrl ?
                 match sel with
                 | NoSel   ->  CursorBehavior.deleteTillNonWhite(ed,ke)
                 | RectSel ->  RectangleSelection.deleteKey(ed) ; ke.Handled <- true
                 | RegSel  ->  ()
 
-            | Input.Key.Enter | Input.Key.Return -> // if alt or ctrl is down this means sending to fsi ...
+            | Key.Enter | Key.Return -> // if alt or ctrl is down this means sending to fsi ...
                 if isUp Ctrl && isUp Alt  && isUp Shift  && not ied.IsComplWinOpen then                     
                     CursorBehavior.addFSharpIndentation(ed,ke)  // add indent after do, for , ->, =             
-
-            | Input.Key.Up -> // on Ctrl + Up. normally does scrolling so override here                
-                //printfn $"previewKeyDown: Up"
-                if isDown Ctrl && isUp Alt && isUp Shift then 
-                    ke.Handled <- true
-                    //eprintfn $"previewKeyDown: Up+Ctrl"
-                    Foldings.CollapseAtCaret()  
-               
             
-            | Input.Key.Down -> // on Ctrl + Down. normally does scrolling so override here
-                //printfn $"previewKeyDown: Down"
+            (* 
+            //moved to ScrollBarEnhancer in let vertScrollBar
+
+            | Key.Up -> // on Ctrl + Up. normally does scrolling in scroll-viewer so override here   
                 if isDown Ctrl && isUp Alt && isUp Shift then 
-                    ke.Handled <- true
-                    //eprintfn $"previewKeyDown: Down+Ctrl"
+                    //ke.Handled <- true // this event in scrollViewer is already disabled in ScrollBarEnhancer in let vertScrollBar : ScrollBar =
+                    Foldings.CollapseAtCaret()                 
+            
+            | Key.Down -> // on Ctrl + Down. normally does scrolling in scroll-viewer so override here
+                if isDown Ctrl && isUp Alt && isUp Shift then 
+                    //ke.Handled <- true // this event in scrollViewer is already disabled in ScrollBarEnhancer in let vertScrollBar : ScrollBar =
                     Foldings.ExpandAtCaret()
 
-            (*
 
             These are handled in: let altKeyCombo(aKey:AltKeyCombo)
+            Just because Rhino3D does not allow Alt + Up and Alt + Down to be used as shortcuts like this:
+
             | Input.Key.Down ->
                 if isDown Ctrl && isUp Shift then
                     if isDown Alt then

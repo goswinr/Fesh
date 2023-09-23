@@ -160,13 +160,14 @@ type Editor private (code:string, config:Config, initialFilePath:FilePath)  =
         // for logging Debug and Error Messages in AvalonEditB
         Logging.LogAction <- new Action<string>( fun (s:string) -> ISeffLog.log.PrintfnDebugMsg "AvalonEditB Logging.Log: %s" s)
 
-        avaEdit.Drop.Add                      (fun e -> DragAndDrop.onTextArea(  avaEdit, e))
-        avaEdit.TextArea.TextView.PreviewKeyDown.Add (fun e -> KeyboardShortcuts.previewKeyDown(    ed     , e))  // A single Key event arg, indent and dedent, and change block selection delete behavior        
-        avaEdit.TextArea.PreviewTextInput.Add (fun e -> CursorBehavior.previewTextInput(     avaEdit, e))  // A TextCompositionEventArgs that has a string , handling typing in rectangular selection
+        avaEdit.Drop.Add                      (       fun e -> DragAndDrop.onTextArea(  avaEdit, e))
+        //avaEdit.TextArea.TextView.PreviewKeyDown.Add (fun e -> KeyboardShortcuts.previewKeyDown(    ed     , e))  // A single Key event arg, indent and dedent, and change block selection delete behavior        
+        avaEdit.PreviewKeyDown.Add (fun e -> KeyboardShortcuts.previewKeyDown(    ed     , e))  // A single Key event arg, indent and dedent, and change block selection delete behavior        
+        avaEdit.TextArea.PreviewTextInput.Add (       fun e -> CursorBehavior.previewTextInput(     avaEdit, e))  // A TextCompositionEventArgs that has a string , handling typing in rectangular selection
         avaEdit.TextArea.AlternativeRectangularPaste <- Action<string,bool>( fun txt txtIsFromOtherRectSel -> RectangleSelection.paste(ed.AvaEdit, txt, txtIsFromOtherRectSel)) //TODO check txtIsFromOtherRectSel on pasting text with \r\n
 
         
-        let rulers =  new ColumnRulers(avaEdit) // draw last , so on top? do foldings first
+        let _rulers =  new ColumnRulers(avaEdit) // draw last , so on top? do foldings first
 
         let closeToolTips() = 
             ed.TypeInfoTip.IsOpen <- false

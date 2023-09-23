@@ -7,13 +7,17 @@ open System.Windows.Media
 open System.Windows.Controls
 open System.Windows.Controls.Primitives
 open System.Windows.Documents
+open System.Windows.Input
 
 open AvalonEditB
+open AvalonEditB.Utils
 
 open Seff
 open Seff.Util.General    
 
 module MagicScrollbar =      
+    
+    
       
     // see // https://github.com/icsharpcode/SharpDevelop/blob/master/src/AddIns/DisplayBindings/AvalonEdit.AddIn/Src/EnhancedScrollBar.cs
 
@@ -35,7 +39,9 @@ module MagicScrollbar =
                 ed.Dispatcher.Invoke (fun _ -> this.InvalidateVisual())      
 
         let visualTopCache = Array.create (ErrorUtil.maxErrorCountToTrack * 4 ) 0.0
-                
+        
+        let pixelSize = PixelSnapHelpers.GetPixelSize(textView)  
+
         do             
             //base.Cursor <- Cursors.Hand // https://github.com/icsharpcode/SharpDevelop/blob/master/src/AddIns/DisplayBindings/AvalonEdit.AddIn/Src/EnhancedScrollBar.cs
             //base.ToolTip <- "empty"
@@ -52,7 +58,7 @@ module MagicScrollbar =
                 //textView.EnsureVisualLines()
                 let renderSize = base.RenderSize
                 let lineHeight = textView.DefaultLineHeight
-                let documentHeight = textView.DocumentHeight               
+                let documentHeight = textView.DocumentHeight                                      
                 let lnNos = markLineNos.Value // this iteration never fails, even if the value in the ref gets replaced while looping                            
                 //eprintfn $"ScrollbarAdorner.OnRender: {lnNos.Count} lines to draw"
                 for i = 0 to lnNos.Count - 1 do 
@@ -74,14 +80,14 @@ module MagicScrollbar =
                         let visualMiddle = visualTop + lineHeight * 0.5      // *0.5 to get text middle              
                         let trackHeight = renderSize.Height 
                         //eprintfn $"error {i} on line {lnNo}: visualMiddle:{visualMiddle} documentHeight:{documentHeight} trackHeight:{trackHeight}"                        
-                        let renderPos = ((visualMiddle / documentHeight) * trackHeight) 
-
+                        let renderPos0 = ((visualMiddle / documentHeight) * trackHeight) 
+                        let renderPos = PixelSnapHelpers.PixelAlign(renderPos0, pixelSize.Height)   
                         //let boxHeight = max 2. ((lineHeight / documentHeight) * trackHeight) // to have the line sickness relative to the document height, but min 2.0
-                        let boxHeight = 2.0 
+                        let boxHeight = pixelSize.Height * 2.0 
                         
                         let y = renderPos - boxHeight * 0.5 
-                        let x = 1. //3.
-                        let width = renderSize.Width - 2.                    
+                        let x = pixelSize.Width  
+                        let width = renderSize.Width - 2.0 * x                   
                         let rect = new Rect(x, y, width, boxHeight)
                         drawingContext.DrawRectangle (brush, null, rect) 
             
@@ -93,9 +99,22 @@ module MagicScrollbar =
         let vertScrollBar : ScrollBar =
             ed.ApplyTemplate ()  |> ignore                 
             let scrollViewer = ed.Template.FindName ("PART_ScrollViewer", ed) :?> ScrollViewer
-            scrollViewer.ApplyTemplate ()|> ignore
+            scrollViewer.ApplyTemplate ()|> ignore  
             let vScrollBar = scrollViewer.Template.FindName ("PART_VerticalScrollBar", scrollViewer) :?> ScrollBar        
             if isNull vScrollBar then failwithf $"scrollViewer.Template.FindName (\"PART_VerticalScrollBar\")  is null" // never happens
+            
+            scrollViewer.PreviewKeyDown.Add (fun e -> // make ScrollViewer ignore keyboard events so that Ctrl+Up/Down can be used for foldings
+                if Keys.isDown Keys.ModKey.Ctrl then 
+                    if e.Key = Key.Up then 
+                        e.Handled <- true
+                        Foldings.CollapseAtCaret()   
+                    elif e.Key = Key.Down then
+                        e.Handled <- true
+                        Foldings.ExpandAtCaret() 
+                    
+                    //(scrollViewer.Parent :?> FrameworkElement).RaiseEvent(e) // pass the event to the parent, that is the editor , to be handled in KeyboardShortcuts.previewKeyDown for folding shortcuts
+                    )       
+            
             vScrollBar
         
         let mutable adorner: ScrollbarAdorner = null

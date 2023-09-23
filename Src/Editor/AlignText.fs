@@ -81,16 +81,14 @@ module AlignText =
             for alignChr in alignChars do
                 let offs = stringBuilders |> Array.map ( findCharExcludeInStringLiterals alignChr searchFrom)
                 let maxOff = Array.max offs
-                //ed.Log.PrintfnDebugMsg "Char: '%c' at maxOff: %d" sc maxOff
-                for sb in stringBuilders do
-                    //ed.Log.PrintfIOErrorMsg "Ln:%d" (i+s.stPos.Line)
+                //ISeffLog.log.PrintfnDebugMsg "Char: '%c' at maxOff: %d" alignChr maxOff
+                for sb in stringBuilders do                    
                     let foundPos = findCharExcludeInStringLiterals alignChr searchFrom sb
                     let diff = maxOff - foundPos
-                    if diff > 0 && foundPos > 0 then
-                        //ed.Log.PrintfnAppErrorMsg " insert:%d spaces at max (from %d ,  pos %d)" diff from p
-                        sb.Insert(max searchFrom foundPos,String(' ', diff)) |> ignore
-
-                    //else ed.Log.PrintfnFsiErrorMsg " NO insert:%d spaces at max (from %d ,  pos %d)" diff from p
+                    if diff > 0 && foundPos > 0 then                        
+                        sb.Insert(max searchFrom foundPos , String(' ', diff)) |> ignore
+                    //else 
+                        //ISeffLog.log.PrintfnFsiErrorMsg " NO insert:%d spaces at max pos %d" diff  foundPos
 
                 searchFrom <- maxOff
 

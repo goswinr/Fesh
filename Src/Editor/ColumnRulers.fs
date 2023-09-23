@@ -34,7 +34,8 @@ type ColumnRulers (editor:TextEditor)  as this =
         ]
 
     let columns = ResizeArray(columnsInit)
-
+    
+    let pixelSize = PixelSnapHelpers.GetPixelSize(editor.TextArea.TextView)
 
     do
         editor.TextArea.TextView.BackgroundRenderers.Add(this)
@@ -42,7 +43,7 @@ type ColumnRulers (editor:TextEditor)  as this =
         // set color in Margins:
         editor.ShowLineNumbers <- true //needs to be done before iterating margins
         for uiElm in editor.TextArea.LeftMargins do
-            let marginColor =  Brushes.White |> darker 7 // set color
+            let marginColor =  Brushes.White |> darker 8 // set color
             match uiElm with
             | :? LineNumberMargin as lnm ->  lnm.BackgroundColor <- marginColor
             | :? FoldingMargin    as fm  ->  fm.BackgroundColor  <- marginColor
@@ -52,9 +53,9 @@ type ColumnRulers (editor:TextEditor)  as this =
     member this.Layer = KnownLayer.Background
 
     member this.Draw(textView:TextView, drawingContext:DrawingContext) = 
+        
         for column,pen in Seq.zip columns pens do
             let offset = textView.WideSpaceWidth * float column
-            let pixelSize = PixelSnapHelpers.GetPixelSize(textView)
             let markerXPos = PixelSnapHelpers.PixelAlign(offset, pixelSize.Width) - textView.ScrollOffset.X
             let start = new Point(markerXPos, 0.0);
             let ende =  new Point(markerXPos, Math.Max(textView.DocumentHeight, textView.ActualHeight))
