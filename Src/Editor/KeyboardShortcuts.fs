@@ -100,8 +100,8 @@ module KeyboardNative  =
     /// need to prevent the notification from being seen by other applications.</summary>
     /// <param name="idHook">The hook id</param>
     /// <param name="nCode">The hook code</param>
-    /// <param name="wParam">The wparam.</param>
-    /// <param name="lParam">The lparam.</param>
+    /// <param name="wParam">The wParam.</param>
+    /// <param name="lParam">The lParam.</param>
     [<DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)>]
     extern int CallNextHookEx(IntPtr idHook, int nCode, int wParam, KeyboardHookStruct& lParam);  //'ref keyboardHookStruct' turns into 'keyboardHookStruct&'
 
@@ -114,7 +114,7 @@ module KeyboardNative  =
     [<DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true)>]
     extern IntPtr GetModuleHandle(string lpModuleName);
 
-    let mutable private hhook = IntPtr.Zero
+    let mutable private hookId = IntPtr.Zero
     let mutable private window :Window = null    // so we can check if hook event happens while window is active
 
 
@@ -156,7 +156,7 @@ module KeyboardNative  =
                 && lParam.vkCode < 41
                 && window.IsActive   // because hook is global in the OS
                 && isUp Ctrl
-                && isUp Shift     // to keep avalon edit built in RectangleSelection.BoxSelectUpByLine working Alt + Shift + Up
+                && isUp Shift     // to keep Avalon edit built in RectangleSelection.BoxSelectUpByLine working Alt + Shift + Up
                     then
                         match lParam.vkCode with
                         | 37  -> altKeyComboEv.Trigger(AltLeft   )
@@ -166,15 +166,16 @@ module KeyboardNative  =
                         | _ -> () // never happens
                         // we are explicitly not calling CallNextHookEx here to not do a nudge in Rhino as well.
                         // see bug https://discourse.mcneel.com/t/using-alt-up-key-in-plugin-does-not-work/105740/3
-                        // this will also disable any potential other global shortcut using Alt and arrow keys while Seff window is active. not nice but probably ok.
+                        // this will also disable any potential other global shortcut using Alt and arrow keys while Seff window is active. 
+                        // not nice but probably ok.
                         0 // Since the hook procedure does not call CallNextHookEx, the return value should be zero.
             else
-                CallNextHookEx(hhook, nCode, wParam, &lParam)
+                CallNextHookEx(hookId, nCode, wParam, &lParam)
             )
 
     /// To uninstalls the global hook on shutdown of window
     let unHookForAltKeys() = 
-        UnhookWindowsHookEx(hhook)
+        UnhookWindowsHookEx(hookId)
 
     /// Create a global low level keyboard hook
     let hookUpForAltKeys(win:Window) = 
@@ -186,26 +187,26 @@ module KeyboardNative  =
         //https://stackoverflow.com/questions/1811383/setwindowshookex-in-c-sharp
         // a hook with WH_KEYBOARD_LL is always global!
         // a hook with just WH_KEYBOARD does not work from .NET ?!
-        hhook <- SetWindowsHookEx(WH_KEYBOARD_LL, callBackForAltKeyCombos, moduleHandle, 0u)
+        hookId <- SetWindowsHookEx(WH_KEYBOARD_LL, callBackForAltKeyCombos, moduleHandle, 0u)
         //ISeffLog.log.PrintfnDebugMsg  "moduleHandle at :%d" moduleHandle
-        //ISeffLog.log.PrintfnDebugMsg  "hhook at:%d" hhook
+        //ISeffLog.log.PrintfnDebugMsg  "hookId at:%d" hookId
 
     (*
     /// Create a global low level keyboard hook
     let hookUpUser32() = 
         let hInstance = LoadLibrary("User32") // this makes the hook global
-        hhook <- SetWindowsHookEx(WH_KEYBOARD_LL, hookProc, hInstance, 0u)
+        hookId <- SetWindowsHookEx(WH_KEYBOARD_LL, hookProc, hInstance, 0u)
         ISeffLog.log.PrintfnDebugMsg  "User32 at :%d" hInstance
-        ISeffLog.log.PrintfnDebugMsg  "hhook at:%d" hhook
+        ISeffLog.log.PrintfnDebugMsg  "hookId at:%d" hookId
 
     /// Create a global low level keyboard hook DOESNT WORK
     let hookUpWin(win:Window) = 
         //https://stackoverflow.com/questions/1811383/setwindowshookex-in-c-sharp
         let modu  = win.GetType().Module
         let handle = Runtime.InteropServices.Marshal.GetHINSTANCE(modu)
-        hhook <- SetWindowsHookEx(WH_KEYBOARD_LL, hookProc, handle, 0u)
+        hookId <- SetWindowsHookEx(WH_KEYBOARD_LL, hookProc, handle, 0u)
         ISeffLog.log.PrintfnDebugMsg  "GetHINSTANCE at :%d" handle
-        ISeffLog.log.PrintfnDebugMsg  "hhook at:%d" hhook
+        ISeffLog.log.PrintfnDebugMsg  "hookId at:%d" hookId
     *)
 
     /// This event occurs when the Alt key and any of the four arrows are pressed down
@@ -220,12 +221,12 @@ module KeyboardShortcuts =
     open KeyboardNative
 
     // For alt and arrow keys only since they need a special keyboard hook to not get hijacked in Rhino
-    let altKeyCombo(akey:AltKeyCombo) = 
+    let altKeyCombo(aKey:AltKeyCombo) = 
         // see bug https://discourse.mcneel.com/t/using-alt-up-key-in-plugin-does-not-work/105740/3
         match IEditor.current with
         | None -> () //never happens ?
         | Some ed ->
-            match akey with
+            match aKey with
             | AltUp    -> SwapLines.swapLinesUp(ed)
             | AltDown  -> SwapLines.swapLinesDown(ed)
             | AltRight -> SwapWords.right(ed.AvaEdit)  |> ignore
@@ -253,25 +254,28 @@ module KeyboardShortcuts =
                 | RectSel ->  RectangleSelection.deleteKey(ed) ; ke.Handled <- true
                 | RegSel  ->  ()
 
-            | Input.Key.Enter | Input.Key.Return ->
-                if isUp Ctrl // if alt or ctrl is down this means sending to fsi ...
-                && isUp Alt
-                && isUp Shift 
-                && not ied.IsComplWinOpen then CursorBehavior.addFSharpIndentation(ed,ke)  // add indent after do, for , ->, = 
-            
+            | Input.Key.Enter | Input.Key.Return -> // if alt or ctrl is down this means sending to fsi ...
+                if isUp Ctrl && isUp Alt  && isUp Shift  && not ied.IsComplWinOpen then                     
+                    CursorBehavior.addFSharpIndentation(ed,ke)  // add indent after do, for , ->, =             
 
-            | Input.Key.Up -> // on Ctrl + Up. normally does scrolling so override here
-                if isDown Ctrl
-                && isUp Alt
-                && isUp Shift then Foldings.CollapseAtCaret() ; ke.Handled <- true
+            | Input.Key.Up -> // on Ctrl + Up. normally does scrolling so override here                
+                //printfn $"previewKeyDown: Up"
+                if isDown Ctrl && isUp Alt && isUp Shift then 
+                    ke.Handled <- true
+                    //eprintfn $"previewKeyDown: Up+Ctrl"
+                    Foldings.CollapseAtCaret()  
+               
             
             | Input.Key.Down -> // on Ctrl + Down. normally does scrolling so override here
-                if isDown Ctrl
-                && isUp Alt
-                && isUp Shift then Foldings.ExpandAtCaret(); ke.Handled <- true
+                //printfn $"previewKeyDown: Down"
+                if isDown Ctrl && isUp Alt && isUp Shift then 
+                    ke.Handled <- true
+                    //eprintfn $"previewKeyDown: Down+Ctrl"
+                    Foldings.ExpandAtCaret()
 
             (*
-            handled in: let altKeyCombo(akey:AltKeyCombo)
+
+            These are handled in: let altKeyCombo(aKey:AltKeyCombo)
             | Input.Key.Down ->
                 if isDown Ctrl && isUp Shift then
                     if isDown Alt then

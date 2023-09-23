@@ -116,11 +116,12 @@ module Doc =
     let countNextSpaces offset (doc:TextDocument) = // removed inline to have function name in error stack trace
         let last = doc.TextLength - 1
         let rec find off  k = 
-            if off > last then k
+            if off > last then 
+                k
             else
                 match doc.GetCharAt(off) with
                 | ' '  -> find (off+1) (k+1)
-                | _ -> k
+                |  _   -> k // also exits for '\n' and '\r'
         find offset 0
 
     /// State of the caret
@@ -200,7 +201,7 @@ module CursorBehavior  =
 
     /// When pressing enter add indentation on next line if appropriate for FSharp.
     /// for avaEdit.PreviewKeyDown
-    let internal addFSharpIndentation(ed:TextEditor,e:Input.KeyEventArgs) = 
+    let internal addFSharpIndentation(ed:TextEditor,ke:Input.KeyEventArgs) = 
         if hasNoSelection ed.TextArea  then // TODO what happens if there is a selection ?? or also use to replace selected text ??
             let caret = ed.CaretOffset
             let doc = ed.Document            
@@ -218,6 +219,7 @@ module CursorBehavior  =
                 || trimmed.EndsWith "["    
                 || trimmed.EndsWith "[|"
                 || trimmed.EndsWith "->" then
+                    ke.Handled <- true // to not actually add another new line too // TODO raise TextArea.TextEntered Event ?
                     let st = Doc.spacesAtStartOfLineAndBeforeOffset caret doc
                     let indent = ed.Options.IndentationSize
                     let rem = st % indent
@@ -233,20 +235,19 @@ module CursorBehavior  =
                         doc.Replace(caret,spaces,insertText)
                     ed.CaretOffset <- caret + insertText.Length //+ spaces
                     //ISeffLog.log.PrintfnDebugMsg "trimmed='%s' (%d chars)" trimmed trimmed.Length
-                    e.Handled <- true // to not actually add another new line too // TODO raise TextArea.TextEntered Event ?
             else
                 // start the next line with comment if the return was pressed inside a comment
                 let slashes = Doc.isCaretInComment caret doc
                 if slashes > 1 then 
-                        let st = Doc.spacesAtStartOfLineAndBeforeOffset caret doc                
-                        let insertText = Environment.NewLine + String(' ',st) + String('/',slashes)
-                        let spaces = Doc.countNextSpaces caret doc
-                        if spaces = 0 then
-                            doc.Insert(caret,insertText) // add space before too for nice position of folding block
-                        else
-                            doc.Replace(caret,spaces,insertText)
-                        ed.CaretOffset <- caret + insertText.Length //+ spaces                
-                        e.Handled <- true // to not actually add another new line too // TODO raise TextArea.TextEntered Event ?
+                    ke.Handled <- true // to not actually add another new line too // TODO raise TextArea.TextEntered Event ?
+                    let spacesBefore = Doc.spacesAtStartOfLineAndBeforeOffset caret doc                
+                    let insertText = Environment.NewLine + String(' ',spacesBefore) + String('/',slashes)
+                    let spacesAfter = Doc.countNextSpaces caret doc
+                    if spacesAfter = 0 then
+                        doc.Insert(caret,insertText) // add space before too for nice position of folding block
+                    else
+                        doc.Replace(caret,spacesAfter,insertText)
+                    ed.CaretOffset <- caret + insertText.Length //+ spacesBefore + slashes               
                 else 
                     // also indent on any regular 'return'
                     // this would actually also be done by the DefaultIndentationStrategy of Avalonedit but the DefaultIndentationStrategy 
@@ -255,15 +256,15 @@ module CursorBehavior  =
                     // the below code does the same as the DefaultIndentationStrategy but avoids raising to events.
                     // DefaultIndentationStrategy does not get triggered because of the e.Handled <- true
                     
-                    let st = Doc.spacesAtStartOfLineAndBeforeOffset caret doc                
-                    let insertText = Environment.NewLine + String(' ',st)
-                    let spaces = Doc.countNextSpaces caret doc
-                    if spaces = 0 then
+                    ke.Handled <- true // to not actually add another new line too // TODO raise TextArea.TextEntered Event ?
+                    let spacesBefore = Doc.spacesAtStartOfLineAndBeforeOffset caret doc                
+                    let insertText = Environment.NewLine + String(' ',spacesBefore)
+                    let spacesAfter = Doc.countNextSpaces caret doc
+                    if spacesAfter = 0 then
                         doc.Insert(caret,insertText) // add space before too for nice position of folding block
                     else
-                        doc.Replace(caret,spaces,insertText)
-                    ed.CaretOffset <- caret + insertText.Length //+ spaces                
-                    e.Handled <- true // to not actually add another new line too // TODO raise TextArea.TextEntered Event ?
+                        doc.Replace(caret, spacesAfter, insertText)
+                    ed.CaretOffset <- caret + insertText.Length //+ spacesBefore                
 
 
 

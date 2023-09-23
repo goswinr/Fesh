@@ -59,13 +59,16 @@ module MagicScrollbar =
                     let lnNo, brush = lnNos.[i]
                     let visualTop =
                         try
-                            // GetVisualTopByDocumentLine fails with null ref exception if lnNo is bigger than document.
+                            // GetVisualTopByDocumentLine fails with null ref exception if lnNo is bigger than document last line.
                             // Lines where deleted but Marks still has the bigger count because checker has not updated yet.
                             let vt = textView.GetVisualTopByDocumentLine (lnNo) 
                             visualTopCache.[i] <- vt
                             vt
                         with _ ->
-                            visualTopCache.[i]
+                            if i < visualTopCache.Length then  // if the line is not visible anymore, use the last known visual top
+                                visualTopCache.[i]
+                            else
+                                9e9 // just skip it
 
                     if visualTop < documentHeight then   // so that markers are not drawn below the bottom of the scroll track
                         let visualMiddle = visualTop + lineHeight * 0.5      // *0.5 to get text middle              
@@ -78,7 +81,7 @@ module MagicScrollbar =
                         
                         let y = renderPos - boxHeight * 0.5 
                         let x = 1. //3.
-                        let width = renderSize.Width - 1.                    
+                        let width = renderSize.Width - 2.                    
                         let rect = new Rect(x, y, width, boxHeight)
                         drawingContext.DrawRectangle (brush, null, rect) 
             
