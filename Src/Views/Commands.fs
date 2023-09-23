@@ -110,8 +110,11 @@ type Commands (grid:TabsAndLog, statusBar:SeffStatusBar)  =
     member val ToggleLogLineWrap = {name= "Toggle Line Wrapping in Log"   ;gesture= "Alt + Z"     ;cmd= mkCmdSimple (fun _ -> log.ToggleLineWrap(config)) ;tip= "Toggle Line Wrapping in Log window" }
     member val FontBigger        = {name= "Make Font Bigger"              ;gesture= "Ctrl + '+'"  ;cmd= mkCmdSimple (fun _ -> fonts.FontsBigger())        ;tip= "Increase Text Size for both Editor and Log" }
     member val FontSmaller       = {name= "Make Font Smaller"             ;gesture= "Ctrl + '-'"  ;cmd= mkCmdSimple (fun _ -> fonts.FontsSmaller())       ;tip= "Decrease Text Size for both Editor and Log" }
+    member val CollapseFolding   = {name= "Collapse this folding"     ;gesture= "Ctrl + Up"      ;cmd = mkCmdSimple (fun _ -> (*Foldings.CollapseAtCaret()*) ()  )  ;tip= "Collapses the current folding at  the caret." }
+    member val ExpandFolding     = {name= "Expands this folding"      ;gesture= "Ctrl + Down"     ;cmd = mkCmdSimple (fun _ -> (*Foldings.ExpandAtCaret()*) ())   ;tip= "Expands the current folding at  the caret." }
+    
     member val CollapseCode      = {name= "Collapse all Code Foldings"    ;gesture= ""            ;cmd= mkCmdSimple (fun _ -> curr().Folds.CollapseAll()) ;tip= "Collapse all Code Foldings in this file" }
-    member val CollapsePrim      = {name= "Collapse primary Code Foldings";gesture= ""            ;cmd= mkCmdSimple (fun _ -> curr().Folds.CollapsePrimary()) ;tip= "Collapse primary Code Foldings, doesn't change secondary or tertiary foldings." }
+    member val CollapsePrim      = {name= "Collapse all first Code Foldings";gesture= ""            ;cmd= mkCmdSimple (fun _ -> curr().Folds.CollapsePrimary()) ;tip= "Collapse primary Code Foldings, doesn't change secondary or tertiary foldings." }
     member val ExpandCode        = {name= "Expand all Code Foldings"      ;gesture= ""            ;cmd= mkCmdSimple (fun _ -> curr().Folds.ExpandAll      ()) ;tip= "Expand or unfold all Code Foldings in this file."  }
     member val PopOutToolTip     = {name= "Make Tooltip persistent"       ;gesture= "Ctrl + P"    ;cmd= mkCmdSimple (fun _ -> PopOut.create(grid,statusBar))  ;tip= "Makes all currently showing ToolTip, TypeInfo or ErrorInfo windows persistent as pop up window." }
 
@@ -134,7 +137,7 @@ type Commands (grid:TabsAndLog, statusBar:SeffStatusBar)  =
     member val Replace   = {name= "Replace"  ;gesture=  "Ctrl + H"   ;cmd= ApplicationCommands.Replace; tip= "Find and replace text of current selection."  }
 
     member val ToUppercase       = {name= "To UPPERCASE"  ;gesture= ""               ;cmd=AvalonEditCommands.ConvertToUppercase                                   ;tip= "Converts the selected text to UPPERCASE."  }
-    member val Tolowercase       = {name= "To lowercase"  ;gesture= ""               ;cmd=AvalonEditCommands.ConvertToLowercase                                   ;tip= "Converts the selected text to lowercase."  }
+    member val ToLowercase       = {name= "To lowercase"  ;gesture= ""               ;cmd=AvalonEditCommands.ConvertToLowercase                                   ;tip= "Converts the selected text to lowercase."  }
     member val ToTitleCase       = {name= "To Titlecase " ;gesture= ""               ;cmd=AvalonEditCommands.ConvertToTitleCase                                   ;tip= "Converts the selected text to Titlecase."  }
 
     member val DeleteLine     = {name= "Delete Line"          ;gesture= "Ctrl + D"          ;cmd = AvalonEditCommands.DeleteLine         ; tip= "Deletes the current line."  }
@@ -184,6 +187,8 @@ type Commands (grid:TabsAndLog, statusBar:SeffStatusBar)  =
                //this.TrailWhite
                this.ToggleBoolean
                this.AlignCode
+               this.CollapseFolding
+               this.ExpandFolding
                //this.SwapLineDown     // handled via native keyboard hook see module KeyboardNative
                //this.SwapLineUp       // handled via native keyboard hook see module KeyboardNative
                this.SelectLine

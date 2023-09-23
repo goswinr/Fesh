@@ -155,59 +155,29 @@ type Editor private (code:string, config:Config, initialFilePath:FilePath)  =
     static member SetUp  (code:string, config:Config, filePath:FilePath) = 
         let ed = Editor(code, config, filePath )
         let avaEdit = ed.AvaEdit
-        let compls = ed.Completions          
-        
+        let compls = ed.Completions       
+
         // for logging Debug and Error Messages in AvalonEditB
         Logging.LogAction <- new Action<string>( fun (s:string) -> ISeffLog.log.PrintfnDebugMsg "AvalonEditB Logging.Log: %s" s)
-
-        avaEdit.Drop.Add                      (       fun e -> DragAndDrop.onTextArea(  avaEdit, e))
-        //avaEdit.TextArea.TextView.PreviewKeyDown.Add (fun e -> KeyboardShortcuts.previewKeyDown(    ed     , e))  // A single Key event arg, indent and dedent, and change block selection delete behavior        
-        avaEdit.PreviewKeyDown.Add (fun e -> KeyboardShortcuts.previewKeyDown(    ed     , e))  // A single Key event arg, indent and dedent, and change block selection delete behavior        
-        avaEdit.TextArea.PreviewTextInput.Add (       fun e -> CursorBehavior.previewTextInput(     avaEdit, e))  // A TextCompositionEventArgs that has a string , handling typing in rectangular selection
-        avaEdit.TextArea.AlternativeRectangularPaste <- Action<string,bool>( fun txt txtIsFromOtherRectSel -> RectangleSelection.paste(ed.AvaEdit, txt, txtIsFromOtherRectSel)) //TODO check txtIsFromOtherRectSel on pasting text with \r\n
-
         
+        // ----------------------------------------------------------
+        // -------------------------View events ---------------------
+        // ----------------------------------------------------------
+
         let _rulers =  new ColumnRulers(avaEdit) // draw last , so on top? do foldings first
+        avaEdit.Loaded.Add (fun _ -> new MagicScrollbar.ScrollBarEnhancer(avaEdit, ed.State, ed.ErrorHighlighter)  |> ignore )
+        avaEdit.Drop.Add                      (       fun e -> DragAndDrop.onTextArea(  avaEdit, e))
 
         let closeToolTips() = 
             ed.TypeInfoTip.IsOpen <- false
             ed.DrawingServices.errors.ToolTip.IsOpen <- false
 
-        let escapePressed(k:KeyEventArgs) = 
-            match k.Key with 
-            |Key.Escape -> // close ToolTips or if all are closed already  ClearSelectionHighlight
-                if ed.TypeInfoTip.IsOpen  || ed.DrawingServices.errors.ToolTip.IsOpen then 
-                    closeToolTips()
-                else
-                    ed.SelectionHighlighter.ClearAll()
-            | _ -> ()
-
-
         ed.Completions.OnShowing.Add(fun _ ->                         closeToolTips() )
         avaEdit.TextArea.TextView.VisualLinesChanged.Add (fun _ ->    closeToolTips() )// close type info on typing
         avaEdit.TextArea.TextView.MouseHoverStopped.Add(fun _ ->      closeToolTips() )
-        avaEdit.KeyDown.Add escapePressed // close tooltips or clear selection on Escape key
 
         ed.Folds.Margin.MouseDown.Add(fun _ -> closeToolTips(); ed.Completions.CloseAndEnableReacting() ) // close tooltips on clicking in the margin
 
-        //----------------------------------------------------
-        //--React to doc changes and add Line transformers----
-        //----------------------------------------------------
-        
-        // avaEdit.Document.Changed.Add(fun a -> DocChangeEvents.logPerformance( a.InsertedText.Text)) // AutoHotKey SendInput of ßabcdefghijklmnopqrstuvwxyz£
-        // avaEdit.TextArea.TextView.LineTransformers.Add(new DebugColorizer(  [| ed.State.TransformersSemantic |], ed.AvaEdit))  // for debugging the line transformers
-        // avaEdit.TextArea.TextView.LineTransformers.Add(new DebugColorizer2( [| ed.State.TransformersSemantic |], ed.AvaEdit))  // for debugging the line transformers
-
-        avaEdit.Document.Changing.Add(DocChangeEvents.changing ed.State )
-        avaEdit.Document.Changed.Add (DocChangeEvents.changed ed ed.DrawingServices ed.State)
-        avaEdit.Document.Changed.Add(fun a -> match ed.DrawingServices.evalTracker with Some et -> et.SetLastChangeAt a.Offset | None -> ())                 
-
-        // Check if closing and inserting from completion window is desired with currently typed character:
-        avaEdit.TextArea.TextEntering.Add (compls.MaybeInsertOrClose)
-        
-        avaEdit.TextArea.TextView.LineTransformers.Insert(0, ed.State.FastColorizer) // insert at index 0 so that it is drawn first, so that text color is overwritten when selection highlighting happens.
-                
-        
         // Mouse Hover Type info:
         avaEdit.TextArea.TextView.MouseHover.Add(fun e -> if not ed.IsComplWinOpen then TypeInfo.mouseHover(e, ed, ed.TypeInfoTip))
         ed.TypeInfoTip.SetValue(Controls.ToolTipService.InitialShowDelayProperty, 50) // this delay is also set in Initialize.fs
@@ -218,8 +188,43 @@ type Editor private (code:string, config:Config, initialFilePath:FilePath)  =
         for binding in avaEdit.TextArea.CommandBindings do
             if  binding.Command = ApplicationCommands.Find    then   binding.Executed.Add(fun _ -> closeToolTips();ed.SelectionHighlighter.ClearMarksIfOneSelected())
             if  binding.Command = ApplicationCommands.Replace then   binding.Executed.Add(fun _ -> closeToolTips();ed.SelectionHighlighter.ClearMarksIfOneSelected())
-            
-        avaEdit.Loaded.Add (fun _ -> new MagicScrollbar.ScrollBarEnhancer(avaEdit, ed.State, ed.ErrorHighlighter)  |> ignore )
+
+        // ----------------------------------------------------------
+        // -------------------------keyboard events -----------------
+        // ----------------------------------------------------------
+
+        avaEdit.TextArea.PreviewTextInput.Add (       fun e -> CursorBehavior.previewTextInput(     avaEdit, e))  // A TextCompositionEventArgs that has a string , handling typing in rectangular selection
+        avaEdit.TextArea.AlternativeRectangularPaste <- Action<string,bool>( fun txt txtIsFromOtherRectSel -> RectangleSelection.paste(ed.AvaEdit, txt, txtIsFromOtherRectSel)) //TODO check txtIsFromOtherRectSel on pasting text with \r\n
+
+        avaEdit.TextArea.TextView.PreviewKeyDown.Add (fun e -> KeyboardShortcuts.previewKeyDown(    ed     , e))  // A single Key event arg, indent and dedent, and change block selection delete behavior        
+        //avaEdit.PreviewKeyDown.Add (fun e -> KeyboardShortcuts.previewKeyDown(    ed     , e))  // A single Key event arg, indent and dedent, and change block selection delete behavior        
+        
+
+        
+        // -------------React to doc changes and add Line transformers---------------- 
+        avaEdit.Document.Changing.Add(DocChangeEvents.changing ed.State )
+        avaEdit.Document.Changed.Add (DocChangeEvents.changed ed ed.DrawingServices ed.State)
+        avaEdit.Document.Changed.Add(fun a -> match ed.DrawingServices.evalTracker with Some et -> et.SetLastChangeAt a.Offset | None -> ())                 
+
+        // Check if closing and inserting from completion window is desired with currently typed character:
+        avaEdit.TextArea.TextEntering.Add (compls.MaybeInsertOrClose)
+        
+        avaEdit.TextArea.TextView.LineTransformers.Insert(0, ed.State.FastColorizer) // insert at index 0 so that it is drawn first, so that text color is overwritten when selection highlighting happens.
+        // avaEdit.TextArea.TextView.LineTransformers.Add(new DebugColorizer(  [| ed.State.TransformersSemantic |], ed.AvaEdit))  // for debugging the line transformers
+        // avaEdit.TextArea.TextView.LineTransformers.Add(new DebugColorizer2( [| ed.State.TransformersSemantic |], ed.AvaEdit))  // for debugging the line transformers
+        // avaEdit.Document.Changed.Add(fun a -> DocChangeEvents.logPerformance( a.InsertedText.Text)) // AutoHotKey SendInput of ßabcdefghijklmnopqrstuvwxyz£
+       
+
+        avaEdit.KeyDown.Add (fun k ->  // close tooltips or clear selection on Escape key
+            match k.Key with 
+            |Key.Escape -> // close ToolTips or if all are closed already  ClearSelectionHighlight
+                if ed.TypeInfoTip.IsOpen  || ed.DrawingServices.errors.ToolTip.IsOpen then 
+                    closeToolTips()
+                else
+                    ed.SelectionHighlighter.ClearAll()
+            | _ -> ()
+        )
+
         ed
         
     ///additional constructor using default code

@@ -133,6 +133,7 @@ type Foldings(manager:Folding.FoldingManager, state:InteractionState, getFilePat
 
     let foldsRef = ref (ResizeArray<Fold>())
     
+    ///must be called from UI thread
     let redrawFoldings() = 
         // (2) Update of foldings is needed:
         let folds = foldsRef.Value        
@@ -145,6 +146,8 @@ type Foldings(manager:Folding.FoldingManager, state:InteractionState, getFilePat
             // (2) Update of foldings is needed:
             // (2.1) find firstError offset for Update Foldings function
             // search backwards from end of file to find the last folding that needs a change
+            let mutable unfolded = false
+            let caret = ed.CaretOffset
             let edFoldsArr = edFolds |> Array.ofSeq
             let rec findBack i j = 
                 if i<0 || j<0 then 
@@ -153,8 +156,10 @@ type Foldings(manager:Folding.FoldingManager, state:InteractionState, getFilePat
                     let feDi = edFoldsArr[i]
                     let fNew = folds[j]                                
                     if feDi.StartOffset <> fNew.foldStartOff || feDi.EndOffset <> fNew.foldEndOff then                         
-                        feDi.IsFolded <- false // fails other wise. needed because of manager.AutoRedrawFoldingSections is false by default.                        
-                        ed.ScrollToLine(ed.TextArea.Caret.Position.Line)
+                        if feDi.IsFolded && caret > fNew.foldStartOff && caret < fNew.foldEndOff + 3 then // test if caret is in this Offset
+                            feDi.IsFolded <- false // fails other wise. needed because of manager.AutoRedrawFoldingSections is false by default.         
+                            unfolded <- true               
+                        
                         // eprintf  $"firstErrorOffset on from line: {ed.Document.GetLineByOffset(max 1 feDi.StartOffset).LineNumber}"
                         // eprintfn $" to {ed.Document.GetLineByOffset(max 1 feDi.EndOffset).LineNumber}"
                         2 + max  feDi.EndOffset  fNew.foldEndOff 
@@ -182,8 +187,17 @@ type Foldings(manager:Folding.FoldingManager, state:InteractionState, getFilePat
             // Existing foldings starting after this firstErrorOffset will be kept even if they don't appear in newFoldings. 
             // Use -1 for this parameter if there were no parse errors.
             manager.UpdateFoldings(nFolds, firstErrorOffset)
+
+            // (2.4) scroll to caret if unfolded
+            if unfolded then 
+                let lnNo = ed.Document.GetLineByOffset(caret).LineNumber
+                eprintfn $"unfolded: caret is at line {lnNo}"
+                async{  
+                    do! Async.Sleep 10  // ed.ScrollToLine does not work without this delay
+                    ed.ScrollToLine(lnNo)  } |> Async.StartImmediate
             
-            // (2.4) save collapsed status again
+                
+            // (2.5) save collapsed status again
             // so that when new foldings appeared they are saved immediately
             saveFoldingStatus() 
        

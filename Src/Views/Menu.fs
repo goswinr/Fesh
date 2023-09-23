@@ -168,6 +168,7 @@ module RecognizePath =
 
                     with e ->
                         ISeffLog.log.PrintfnIOErrorMsg "Failed to make menu item for fullPath %s:\r\n%A" fullPath e
+                        
 
  #nowarn "44" //to use log.AvalonLog.AvalonEdit in addPathIfPresentToMenu
 
@@ -184,9 +185,9 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, statusBar:SeffStatusBar, log:
 
     let sep() = Separator():> Control
 
-    let item (ngc: string * string * #ICommand * string) = 
-        let n,g,c,tt = ngc
-        MenuItem(Header = n, InputGestureText = g, ToolTip = tt, Command = c):> Control
+    // let item (ngc: string * string * #ICommand * string) = 
+    //     let n,g,c,tt = ngc
+    //     MenuItem(Header = n, InputGestureText = g, ToolTip = tt, Command = c):> Control
 
 
 
@@ -291,13 +292,13 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, statusBar:SeffStatusBar, log:
                 menuItem cmds.DeleteNextWord
                 sep()
                 menuItem cmds.ToUppercase
-                menuItem cmds.Tolowercase
+                menuItem cmds.ToLowercase
                 menuItem cmds.ToTitleCase
                 menuItem cmds.TrailWhite
                 sep()
                 menuItem cmds.ToggleBoolean
                 sep()
-                menuItem cmds.AlignCode
+                menuItem cmds.AlignCode               
                 ]
             MenuItem(Header = "_Select"),[
                 menuItem cmds.SelectLine
@@ -355,9 +356,11 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, statusBar:SeffStatusBar, log:
                 sep()
                 menuItem cmds.FontBigger
                 menuItem cmds.FontSmaller
-                sep()
-                menuItem cmds.CollapsePrim
+                sep()                 
+                menuItem cmds.CollapseFolding
+                menuItem cmds.ExpandFolding
                 menuItem cmds.CollapseCode
+                menuItem cmds.CollapsePrim
                 menuItem cmds.ExpandCode
                 sep()
                 menuItem cmds.PopOutToolTip

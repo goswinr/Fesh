@@ -103,16 +103,19 @@ module MagicScrollbar =
             let vScrollBar = scrollViewer.Template.FindName ("PART_VerticalScrollBar", scrollViewer) :?> ScrollBar        
             if isNull vScrollBar then failwithf $"scrollViewer.Template.FindName (\"PART_VerticalScrollBar\")  is null" // never happens
             
+            //let parent = vScrollBar.Parent :?> FrameworkElement
             scrollViewer.PreviewKeyDown.Add (fun e -> // make ScrollViewer ignore keyboard events so that Ctrl+Up/Down can be used for foldings
-                if Keys.isDown Keys.ModKey.Ctrl then 
-                    if e.Key = Key.Up then 
-                        e.Handled <- true
+                if e.Key = Key.Up then 
+                    if Keys.isDown Keys.ModKey.Ctrl then 
                         Foldings.CollapseAtCaret()   
-                    elif e.Key = Key.Down then
                         e.Handled <- true
+                        //parent.RaiseEvent(e) // pass the event to the parent, that is the editor , to be handled in KeyboardShortcuts.previewKeyDown for folding shortcuts
+                        
+                elif e.Key = Key.Down then
+                    if Keys.isDown Keys.ModKey.Ctrl then 
                         Foldings.ExpandAtCaret() 
-                    
-                    //(scrollViewer.Parent :?> FrameworkElement).RaiseEvent(e) // pass the event to the parent, that is the editor , to be handled in KeyboardShortcuts.previewKeyDown for folding shortcuts
+                        e.Handled <- true                    
+                        //parent.RaiseEvent(e)  // pass the event to the parent, that is the editor , to be handled in KeyboardShortcuts.previewKeyDown for folding shortcuts
                     )       
             
             vScrollBar
