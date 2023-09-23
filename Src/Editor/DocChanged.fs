@@ -123,7 +123,7 @@ module DocChangeMark =
                 if state.IsLatest id then
                     drawServ.selection.UpdateTransformers(id)             
                     drawServ.brackets.UpdateAllBrackets(id)
-                    drawServ.folds.UpdateFolds(id)
+                    drawServ.folds.CheckFolds(id)
              } |> Async.Start 
         
             // second: Errors and Semantic Highlighting and BadIndentation on FCS check result .  

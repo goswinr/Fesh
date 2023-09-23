@@ -125,9 +125,62 @@ type Foldings(manager:Folding.FoldingManager, state:InteractionState, getFilePat
         |ValueNone -> None // did not reach end of code lines
         |ValueSome li -> loopLines 1 li 2
     
+    let foundFoldsEv = new Event<ResizeArray<Fold>>()
+
+    let redoFoldings(folds,id) = 
+        let edFolds = manager.AllFoldings
+        
+        // if edFolds.Count <> folds.Count then    ISeffLog.log.PrintfnDebugMsg $"updateNeeded: count ed {edFolds.Count} and calculated {folds.Count}"
+        // else                                    ISeffLog.log.PrintfnDebugMsg $"updateNeeded: but count same"                        
+        
+        // (2) Update of foldings is needed:
+        // (2.1) find firstError offset for Update Foldings function
+        // search backwards from end of file to find the last folding that needs a change
+        let edFoldsArr = edFolds |> Array.ofSeq
+        let rec findBack i j = 
+            if i<0 || j<0 then 
+                -1 // firstErrorOffset: Use -1 for this parameter if there were no parse errors)
+            else
+                let feDi = edFoldsArr[i]
+                let fNew = folds[j]                                
+                if feDi.StartOffset <> fNew.foldStartOff || feDi.EndOffset <> fNew.foldEndOff then 
+                    max  feDi.EndOffset  fNew.foldEndOff 
+                else
+                    findBack (i-1) (j-1)                        
+        let firstErrorOffset = findBack  (edFoldsArr.Length-1) (folds.Count-1)
+
+        // (2.2) create new Foldings
+        let docLen = ed.Document.TextLength
+        //eprintfn $" firstErrorOffset: {firstErrorOffset}, docLen: {docLen}" 
+        let nFolds=ResizeArray<NewFolding>() 
+        let rec collect i =
+            if i < folds.Count then 
+                let f = folds.[i]
+                if firstErrorOffset = -1 || f.foldStartOff <= firstErrorOffset then 
+                    if f.foldEndOff <= docLen then // in case of deleting at the end of file
+                        //ISeffLog.log.PrintfnDebugMsg "Foldings from %d to %d  that is  %d lines" f.foldStartOff  f.foldEndOff f.linesInFold
+                        let fo = new NewFolding(f.foldStartOff, f.foldEndOff) 
+                        fo.Name <- textInFoldBox f.linesInFold
+                        nFolds.Add(fo) //if NewFolding type is created async a waiting symbol appears on top of it
+                        collect (i+1)
+                    //else eprintfn $"too long: f.foldEndOff: {f.foldEndOff} > docLen: {docLen}"
+                //else eprintfn $"not added: f.foldStartOff: {f.foldStartOff} to {f.foldEndOff}"
+                
+        collect 0
+        
+        //eprintfn $"{nFolds.Count} new foldings created. firstErrorOffset: {firstErrorOffset}" 
+
+        // (2.3) update foldings
+        // Existing foldings starting after this firstErrorOffset will be kept even if they don't appear in newFoldings. 
+        // Use -1 for this parameter if there were no parse errors.
+        manager.UpdateFoldings(nFolds, firstErrorOffset)
+        
+        // (2.4) save collapsed status again
+        // so that when new foldings appeared they are saved immediately
+        saveFoldingStatus() 
 
     ///Get foldings at every line that is followed by an indent
-    let foldEditor (id:int64) = 
+    let checkForFoldings (id:int64) = 
         async{                
             match findFoldings (state.CodeLines, id) with
             |None -> ()
@@ -182,6 +235,11 @@ type Foldings(manager:Folding.FoldingManager, state:InteractionState, getFilePat
                     
                     let updateNeeded = zip 0                    
                     if updateNeeded then
+                        foundFoldsEv.Trigger(folds)
+                    else
+                        foundFoldsEv.Trigger(null)
+                        
+                        (*
                         // if edFolds.Count <> folds.Count then    ISeffLog.log.PrintfnDebugMsg $"updateNeeded: count ed {edFolds.Count} and calculated {folds.Count}"
                         // else                                    ISeffLog.log.PrintfnDebugMsg $"updateNeeded: but count same"                        
                         
@@ -226,10 +284,12 @@ type Foldings(manager:Folding.FoldingManager, state:InteractionState, getFilePat
                         // Existing foldings starting after this firstErrorOffset will be kept even if they don't appear in newFoldings. 
                         // Use -1 for this parameter if there were no parse errors.
                         manager.UpdateFoldings(nFolds, firstErrorOffset)
+                            
                         
                         // (2.4) save collapsed status again
                         // so that when new foldings appeared they are saved immediately
                         saveFoldingStatus() 
+                        *)
 
             } |>  Async.Start
 
@@ -248,7 +308,7 @@ type Foldings(manager:Folding.FoldingManager, state:InteractionState, getFilePat
            
 
     /// runs first part async
-    member _.UpdateFolds( id) = foldEditor(id)
+    member _.CheckFolds( id) = checkForFoldings(id)
     
     member _.Manager = manager
     
