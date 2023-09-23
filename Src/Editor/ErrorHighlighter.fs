@@ -345,9 +345,7 @@ type ErrorHighlighter ( state:InteractionState, folds:Folding.FoldingManager, is
             for e in errs.errors   do insert marginMarks nSegs id e |> ignore<bool>         
             if state.IsLatest id then                        
                 state.ErrSegments.Update nSegs 
-                this.ErrorsLines.Value <- marginMarks
-                eprintfn $"ErrorHighlighter.UpdateErrs err count1: {marginMarks.Count}"
-                eprintfn $"ErrorHighlighter.UpdateErrs err count2: {this.ErrorsLines.Value.Count}"
+                this.ErrorsLines.Value <- marginMarks                
                 foundErrorsEv.Trigger(id)
 
                 // second mark folding boxes if an error is inside, even open ones, so that it shows when collapsed:

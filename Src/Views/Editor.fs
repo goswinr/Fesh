@@ -217,7 +217,7 @@ type Editor private (code:string, config:Config, initialFilePath:FilePath)  =
             if  binding.Command = ApplicationCommands.Find    then   binding.Executed.Add(fun _ -> closeToolTips();ed.SelectionHighlighter.ClearMarksIfOneSelected())
             if  binding.Command = ApplicationCommands.Replace then   binding.Executed.Add(fun _ -> closeToolTips();ed.SelectionHighlighter.ClearMarksIfOneSelected())
             
-        avaEdit.Loaded.Add (fun _ -> MagicScrollbar.enhance(avaEdit, ed.ErrorHighlighter) )
+        avaEdit.Loaded.Add (fun _ -> new MagicScrollbar.ScrollBarEnhancer(avaEdit, ed.ErrorHighlighter)  |> ignore )
         ed
         
     ///additional constructor using default code
