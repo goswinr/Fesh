@@ -231,7 +231,7 @@ module KeyboardShortcuts =
             | AltRight -> SwapWords.right(ed.AvaEdit)  |> ignore
             | AltLeft  -> SwapWords.left(ed.AvaEdit)   |> ignore
 
-    /// gets attached to ech editor instance. via avaEdit.PreviewKeyDown.Add
+    /// gets attached to each editor instance. via avaEdit.PreviewKeyDown.Add
     /// except for Alt and arrow keys that are handled via KeyboardNative
     let previewKeyDown (ied:IEditor, ke:Input.KeyEventArgs) =  
         let ed = ied.AvaEdit
@@ -259,6 +259,17 @@ module KeyboardShortcuts =
                 && isUp Shift 
                 && not ied.IsComplWinOpen then CursorBehavior.addFSharpIndentation(ed,ke)  // add indent after do, for , ->, = 
             
+
+            | Input.Key.Up -> // on Ctrl + Up. normally does scrolling so override here
+                if isDown Ctrl
+                && isUp Alt
+                && isUp Shift then Foldings.CollapseAtCaret() ; ke.Handled <- true
+            
+            | Input.Key.Down -> // on Ctrl + Down. normally does scrolling so override here
+                if isDown Ctrl
+                && isUp Alt
+                && isUp Shift then Foldings.ExpandAtCaret(); ke.Handled <- true
+
             (*
             handled in: let altKeyCombo(akey:AltKeyCombo)
             | Input.Key.Down ->

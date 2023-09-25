@@ -8,6 +8,8 @@ open AvalonEditB.Folding
 
 open Seff.Model
 open Seff.Util.General
+open Seff.XmlParser
+open AvalonEditB
 
 
 [<Struct>]
@@ -131,10 +133,11 @@ type Foldings(manager:Folding.FoldingManager, state:InteractionState, getFilePat
 
     let foldsRef = ref (ResizeArray<Fold>())
     
-    let redoFoldings call this in redrawing event handletr() = 
-        if notNull foldsRef.Value then 
+    let redrawFoldings() = 
+        // (2) Update of foldings is needed:
+        let folds = foldsRef.Value        
+        if notNull folds then             
             let edFolds = manager.AllFoldings
-            let folds = foldsRef.Value
             
             // if edFolds.Count <> folds.Count then    ISeffLog.log.PrintfnDebugMsg $"updateNeeded: count ed {edFolds.Count} and calculated {folds.Count}"
             // else                                    ISeffLog.log.PrintfnDebugMsg $"updateNeeded: but count same"                        
@@ -145,19 +148,22 @@ type Foldings(manager:Folding.FoldingManager, state:InteractionState, getFilePat
             let edFoldsArr = edFolds |> Array.ofSeq
             let rec findBack i j = 
                 if i<0 || j<0 then 
-                    -1 // firstErrorOffset: Use -1 for this parameter if there were no parse errors)
+                    -1 // firstErrorOffset: Use -1 for this parameter see manager.UpdateFoldings(..)
                 else
                     let feDi = edFoldsArr[i]
                     let fNew = folds[j]                                
-                    if feDi.StartOffset <> fNew.foldStartOff || feDi.EndOffset <> fNew.foldEndOff then 
-                        max  feDi.EndOffset  fNew.foldEndOff 
+                    if feDi.StartOffset <> fNew.foldStartOff || feDi.EndOffset <> fNew.foldEndOff then                         
+                        feDi.IsFolded <- false // fails other wise. needed because of manager.AutoRedrawFoldingSections is false by default.                        
+                        ed.ScrollToLine(ed.TextArea.Caret.Position.Line)
+                        // eprintf  $"firstErrorOffset on from line: {ed.Document.GetLineByOffset(max 1 feDi.StartOffset).LineNumber}"
+                        // eprintfn $" to {ed.Document.GetLineByOffset(max 1 feDi.EndOffset).LineNumber}"
+                        2 + max  feDi.EndOffset  fNew.foldEndOff 
                     else
                         findBack (i-1) (j-1)                        
             let firstErrorOffset = findBack  (edFoldsArr.Length-1) (folds.Count-1)
-
+            
             // (2.2) create new Foldings
-            let docLen = ed.Document.TextLength
-            //eprintfn $" firstErrorOffset: {firstErrorOffset}, docLen: {docLen}" 
+            let docLen = ed.Document.TextLength            
             let nFolds=ResizeArray<NewFolding>() 
             let rec collect i =
                 if i < folds.Count then 
@@ -165,16 +171,12 @@ type Foldings(manager:Folding.FoldingManager, state:InteractionState, getFilePat
                     if firstErrorOffset = -1 || f.foldStartOff <= firstErrorOffset then 
                         if f.foldEndOff <= docLen then // in case of deleting at the end of file
                             //ISeffLog.log.PrintfnDebugMsg "Foldings from %d to %d  that is  %d lines" f.foldStartOff  f.foldEndOff f.linesInFold
-                            let fo = new NewFolding(f.foldStartOff, f.foldEndOff) 
-                            fo.Name <- textInFoldBox f.linesInFold
-                            nFolds.Add(fo) //if NewFolding type is created async a waiting symbol appears on top of it
-                            collect (i+1)
-                        //else eprintfn $"too long: f.foldEndOff: {f.foldEndOff} > docLen: {docLen}"
-                    //else eprintfn $"not added: f.foldStartOff: {f.foldStartOff} to {f.foldEndOff}"
-                    
-            collect 0
-            
-            //eprintfn $"{nFolds.Count} new foldings created. firstErrorOffset: {firstErrorOffset}" 
+                            let fo = new NewFolding(f.foldStartOff, f.foldEndOff) //if NewFolding type is created async a waiting symbol appears on top of it
+                            fo.Name <- textInFoldBox f.linesInFold                            
+                            nFolds.Add(fo) 
+                            collect (i+1)                 
+            collect 0            
+           
 
             // (2.3) update foldings
             // Existing foldings starting after this firstErrorOffset will be kept even if they don't appear in newFoldings. 
@@ -184,6 +186,7 @@ type Foldings(manager:Folding.FoldingManager, state:InteractionState, getFilePat
             // (2.4) save collapsed status again
             // so that when new foldings appeared they are saved immediately
             saveFoldingStatus() 
+       
 
     ///Get foldings at every line that is followed by an indent
     let checkForFoldings (id:int64) = 
@@ -241,7 +244,8 @@ type Foldings(manager:Folding.FoldingManager, state:InteractionState, getFilePat
                     
                     let updateNeeded = zip 0                    
                     if updateNeeded then
-                        foldsRef.Value <- folds // update the ref
+                        // (2) Update of foldings is needed:
+                        foldsRef.Value <- folds 
                     else
                         foldsRef.Value <- null
                     foundFoldsEv.Trigger(id)
@@ -262,9 +266,13 @@ type Foldings(manager:Folding.FoldingManager, state:InteractionState, getFilePat
         margin.MouseUp.Add (fun _ ->  saveFoldingStatus() )// so that they are saved immediately
            
 
+    member _.RedrawFoldings() = redrawFoldings()
+
     /// runs first part async
     member _.CheckFolds( id) = checkForFoldings(id)
     
+    member _.FoundFolds = foundFoldsEv.Publish
+
     member _.Manager = manager
     
     member _.Margin = margin
@@ -309,4 +317,32 @@ type Foldings(manager:Folding.FoldingManager, state:InteractionState, getFilePat
 
         if unfoldedOneOrMore then
             saveFoldingStatus() // so that they are saved immediately
+
+    static member CollapseAtCaret()=
+        match IEditor.current with 
+        |None -> ()
+        |Some ed ->
+            let manager = ed.FoldingManager
+            let line = ed.AvaEdit.Document.GetLineByOffset(ed.AvaEdit.CaretOffset)            
+            let foldings =  manager.GetFoldingsContaining(line.EndOffset) |> Seq.filter (fun f -> f.IsFolded = false)
+            if not <| Seq.isEmpty foldings then 
+                foldings
+                |> Seq.minBy (fun f -> f.Length) 
+                |> fun f -> 
+                    f.IsFolded <- true
+                    ed.AvaEdit.ScrollToLine(line.LineNumber)
+    
+    static member ExpandAtCaret()=
+        match IEditor.current with 
+        |None -> ()
+        |Some ed ->
+            let manager = ed.FoldingManager
+            let line = ed.AvaEdit.Document.GetLineByOffset(ed.AvaEdit.CaretOffset)            
+            let foldings =  manager.GetFoldingsContaining(line.EndOffset) |> Seq.filter (fun f -> f.IsFolded = true)
+            if not <| Seq.isEmpty foldings then 
+                foldings
+                |> Seq.minBy (fun f -> f.Length) 
+                |> fun f -> 
+                    f.IsFolded <- false
+                    //ed.AvaEdit.ScrollToLine(line.LineNumber)
 

@@ -78,36 +78,43 @@ module Redrawing =
         let ed = state.Editor
         // let mutable scan = ScanState.None 
 
-        let priority = DispatcherPriority.Input //.Render
+        let priority = DispatcherPriority.Render
 
         let mutable idBrackets   = 0L 
         let mutable idSemantics  = 0L
         let mutable idErrors     = 0L
         let mutable idSels       = 0L
+        let mutable idFolds      = 0L
 
         let tryDraw(id) =             
-            if state.IsLatest id && idSemantics=id && idBrackets=id  && idErrors=id && idSels=id then  
-                ed.Dispatcher.Invoke (fun() -> 
-                    let diff = ed.Document.TextLength - state.CodeLines.FullCode.Length //DELETE
-                    if diff <> 0 then ISeffLog.log.PrintfnAppErrorMsg $"CodeLines too short by {diff}"                        
-                    ed.TextArea.TextView.Redraw(priority)
-                    
+            if state.IsLatest id && idSemantics=id && idBrackets=id  && idErrors=id && idSels=id && idFolds=id then 
+                //ed.Dispatcher.Invoke (fun() -> 
+                async{
+                    do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context                    
                     //increment to avoid another full redraw on found selection event, that might be triggered again and again without a doc change
                     //because the id of the others has not changed without a change in the document. the found selection has its own range redraw anyway
                     state.Increment() |> ignore<int64> 
-                    )
+
+                    // let diff = ed.Document.TextLength - state.CodeLines.FullCode.Length //DELETE
+                    // if diff <> 0 then ISeffLog.log.PrintfnAppErrorMsg $"CodeLines too short by {diff}" 
+                    services.folds.RedrawFoldings()                       
+                    ed.TextArea.TextView.Redraw(priority)
+                    // )
+                } |> Async.Start
        
   
         let doneBrackets(id)   = idBrackets   <- id ;  tryDraw(id)
         let doneSemantics(id)  = idSemantics  <- id ;  tryDraw(id)
         let doneErrors(id)     = idErrors     <- id ;  tryDraw(id)
         let doneSels(id)       = idSels       <- id ;  tryDraw(id)
+        let doneFolds(id)      = idFolds      <- id ;  tryDraw(id)
 
         do  
             services.brackets.FoundBrackets.Add  doneBrackets 
             services.semantic.FoundSemantics.Add doneSemantics // includes Bad Indentation and Unused declarations
             services.errors.FoundErrors.Add      doneErrors
             services.selection.FoundSels.Add     doneSels     
+            services.folds.FoundFolds.Add        doneFolds
 
 module DocChangeMark =     
     open Redrawing    

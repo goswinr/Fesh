@@ -82,6 +82,7 @@ type Editor private (code:string, config:Config, initialFilePath:FilePath)  =
     let getFilePath() = filePath
         
     let foldMg      = Folding.FoldingManager.Install(avaEdit.TextArea) 
+
     let state       = new InteractionState(avaEdit, foldMg, config)
     let compls      = new Completions(state)
     let folds       = new Foldings(foldMg, state, getFilePath)
@@ -217,7 +218,7 @@ type Editor private (code:string, config:Config, initialFilePath:FilePath)  =
             if  binding.Command = ApplicationCommands.Find    then   binding.Executed.Add(fun _ -> closeToolTips();ed.SelectionHighlighter.ClearMarksIfOneSelected())
             if  binding.Command = ApplicationCommands.Replace then   binding.Executed.Add(fun _ -> closeToolTips();ed.SelectionHighlighter.ClearMarksIfOneSelected())
             
-        //avaEdit.Loaded.Add (fun _ -> new MagicScrollbar.ScrollBarEnhancer(avaEdit, ed.State, ed.ErrorHighlighter)  |> ignore )
+        avaEdit.Loaded.Add (fun _ -> new MagicScrollbar.ScrollBarEnhancer(avaEdit, ed.State, ed.ErrorHighlighter)  |> ignore )
         ed
         
     ///additional constructor using default code

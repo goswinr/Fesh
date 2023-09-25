@@ -87,17 +87,6 @@ module General =
         loop 0 (rarr.Count - 1)
 
 
-    /// iterates a resize array and returns true if all items pass the test
-    let inline traverse (f: 'T->bool) (rarr : ResizeArray<'T>) =
-        let rec loop i =
-            if i=rarr.Count then 
-                true // all items passed
-            elif f rarr.[i] then
-                loop (i+1)
-            else
-                false // exited early                
-        loop 0  
-
     /// test for structural equality
     let inline areSameBy (f: 'T -> 'U) (a:ResizeArray<'T>) (b:ResizeArray<'T>) =
         if Object.ReferenceEquals(a,b) then 
@@ -116,8 +105,6 @@ module General =
                 loop 0
 
        
-        
-         
 
     // for pipelining several functions like traverse
     //let ifTrueDo func predicate resizeArray condition : bool =        if condition then func predicate resizeArray else false

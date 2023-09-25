@@ -39,25 +39,22 @@ module MagicScrollbar =
 
         let textView = ed.TextArea.TextView
 
-        let mutable idOfMarks = 0L
-
         let mutable isTrackShowing = false
 
         let markLineNos = ref (Marks())
 
         let setLineNos (v: Marks) = 
             if not <| Util.General.areSameBy fst v markLineNos.Value then // compare by fst, that is only the line number
-                markLineNos.Value <- v
-                idOfMarks <- state.DocChangedId.Value
+                markLineNos.Value <- v                
                 ed.Dispatcher.Invoke (fun _ -> this.InvalidateVisual())      
 
-        let visualTopCache = Array.create (ErrorUtil.maxErrorCountToTrack*4) 0.0
+        let visualTopCache = Array.create (ErrorUtil.maxErrorCountToTrack * 4 ) 0.0
                 
         do             
             //base.Cursor <- Cursors.Hand // https://github.com/icsharpcode/SharpDevelop/blob/master/src/AddIns/DisplayBindings/AvalonEdit.AddIn/Src/EnhancedScrollBar.cs
             //base.ToolTip <- "empty"
             
-            ed.TextArea.TextView.VisualLinesChanged.Add (fun _ -> if isTrackShowing then this.InvalidateVisual() )   
+            ed.TextArea.TextView.VisualLinesChanged.Add (fun _ -> if isTrackShowing then this.InvalidateVisual() )               
             errs.FoundErrors.Add (fun _                        -> if isTrackShowing then setLineNos errs.ErrorsLines.Value )
         
         member this.IsTrackShowing 
@@ -65,35 +62,38 @@ module MagicScrollbar =
             and set(v) = isTrackShowing <- v
 
         override this.OnRender(drawingContext : DrawingContext) =   
-            if isTrackShowing  then
-                //textView.EnsureVisualLines() // this is needed to get the correct visual line count
+            if isTrackShowing  then                
+                //textView.EnsureVisualLines()
                 let renderSize = base.RenderSize
                 let lineHeight = textView.DefaultLineHeight
-                let documentHeight = textView.DocumentHeight
+                let documentHeight = textView.DocumentHeight               
                 let lnNos = markLineNos.Value // this iteration never fails, even if the value in the ref gets replaced while looping                            
                 for i = 0 to lnNos.Count - 1 do 
                     let lnNo, brush = lnNos.[i]
                     let visualTop =
-                        if state.IsLatest idOfMarks then 
-                            // GetVisualTopByDocumentLine fails with null ref exception if lnNo is bigger than document 
+                        try
+                            // GetVisualTopByDocumentLine fails with null ref exception if lnNo is bigger than document.
                             // (lines where deleted but Marks still has the bigger count because checker has not updated yet)
                             let vt = textView.GetVisualTopByDocumentLine (lnNo) 
                             visualTopCache.[i] <- vt
                             vt
-                        else
+                        with _ ->
                             visualTopCache.[i]
 
-                    if visualTop  < documentHeight then   // so that markers are not drawn below the bottom of the scroll track
+                    if visualTop < documentHeight then   // so that markers are not drawn below the bottom of the scroll track
                         let visualMiddle = visualTop + lineHeight * 0.5      // *0.5 to get text middle              
                         let trackHeight = renderSize.Height 
+                        //eprintfn $"visualMiddle:{visualMiddle} documentHeight:{documentHeight} trackHeight:{trackHeight}"                        
                         let renderPos = ((visualMiddle / documentHeight) * trackHeight) 
-                        let boxHeight = max 1. ((lineHeight / documentHeight) * trackHeight) 
+
+                        //let boxHeight = max 2. ((lineHeight / documentHeight) * trackHeight) // to have the line sickness relative to the document height, but min 2.0
+                        let boxHeight = 2.0 
                         
-                        let x = 0. //3.
                         let y = renderPos - boxHeight * 0.5 
-                        let width = renderSize.Width //- 6.                    
+                        let x = 1. //3.
+                        let width = renderSize.Width - 1.                    
                         let rect = new Rect(x, y, width, boxHeight)
-                        drawingContext.DrawRectangle (brush, null, rect)       
+                        drawingContext.DrawRectangle (brush, null, rect)      
                   
 
     type ScrollBarEnhancer(ed:TextEditor, state:InteractionState, errs:ErrorHighlighter) = 
