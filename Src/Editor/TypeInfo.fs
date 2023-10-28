@@ -640,8 +640,8 @@ type TypeInfo private () =
                     tip.Content <- loadingTxt
                     let tView = av.TextArea.TextView
                     let pos = doc.GetLocation(off)
-                    let tvpos = new TextViewPosition(pos.Line,pos.Column)
-                    let pt = tView.GetVisualPosition(tvpos, Rendering.VisualYPosition.LineBottom)
+                    let tvPos = new TextViewPosition(pos.Line,pos.Column)
+                    let pt = tView.GetVisualPosition(tvPos, Rendering.VisualYPosition.LineBottom)
                     let ptInclScroll = pt - tView.ScrollOffset
                     tip.PlacementTarget <- av.TextArea
                     tip.PlacementRectangle <- new Rect(ptInclScroll.X, ptInclScroll.Y, 0., 0.)

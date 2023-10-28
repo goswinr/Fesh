@@ -145,8 +145,6 @@ type ErrorRenderer (state: InteractionState) =
         //    at Seff.Editor.ErrorRenderer.Draw(TextView textView, DrawingContext drawingContext) in D:\Git\Seff\Src\Editor\ErrorHighlighter.fs:line 138
         //    at AvalonEditB.Rendering.TextView.RenderBackground(DrawingContext drawingContext, KnownLayer layer)
         //    at AvalonEditB.Editing.CaretLayer.OnRender(DrawingContext drawingContext)
-        //    at System.Windows.UIElement.Arrange(Rect finalRect)
-        //    at System.Windows.ContextLayoutManager.UpdateLayout()
         if textView.VisualLinesValid then //to avoid above error.
             let vls = textView.VisualLines                
             let fromLine = vls[0].FirstDocumentLine.LineNumber
@@ -194,31 +192,6 @@ type ErrorRenderer (state: InteractionState) =
                         if rects.Count = 1 then // skip if line overflows and there is more than one rect
                             let geo = ErrorUtil.getSquiggleLine(rects[0], -1.0) // neg offset to move down
                             drawingContext.DrawGeometry(Brushes.Transparent, seg.UnderlinePen, geo)
-
-
-                (*
-
-                // DELETE
-
-                for i = 0 to segments.Count-1 do                    
-                    let seg = segments.[i]                        
-                    let segShift = seg.Shifted(shift) 
-
-                    // background color: // when drawing on Caret layer background must be disabled.
-                    // let geoBuilder = new BackgroundGeometryBuilder (AlignToWholePixels = true, CornerRadius = 0.)
-                    // geoBuilder.AddSegment(textView, segShift )                       
-                    // let boundaryPolygon = geoBuilder.CreateGeometry() // creates one boundary round the text
-                    // drawingContext.DrawGeometry(seg.BackgroundBrush, null, boundaryPolygon)
-
-                    //foreground, squiggles:
-                    for rect in BackgroundGeometryBuilder.GetRectsForSegment(textView, segShift) do 
-                        let geo = ErrorUtil.getSquiggleLine(rect, -4.0)
-                        drawingContext.DrawGeometry(Brushes.Transparent, Pen(Brushes.Green,1.), geo)
-                                
-                //let e = seg.Diagnostic in ISeffLog.log.PrintfnDebugMsg $"IBackgroundRenderer: DocLine {lnNo}: ErrLines{e.StartLine}.{e.StartColumn}-{e.EndLine}.{e.EndColumn}"   
-                *)
-                
-                
             
     member _.Layer = 
         // when drawing on Caret layer the  background change must be disabled
@@ -258,16 +231,14 @@ type ErrorHighlighter ( state:InteractionState, folds:Folding.FoldingManager, is
                 match state.CodeLines.GetLine(lnNo,id) with 
                 | ValueNone -> false
                 | ValueSome cln ->                    
+                    //if cln.len > cln.indent then // Don't skip just whitespace lines, they might also have errors when code is expected but missing.
                     let st  = if lnNo = stLn then cln.offStart + e.StartColumn else cln.offStart
-                    let en  = if lnNo = enLn then cln.offStart + e.EndColumn   else cln.offStart + cln.len
-                    if cln.len > cln.indent then // skip just whitespace lines
-                        
-                        let fixedEn = // e.StartColumn = e.EndColumn // this actually happens as a result from fs checker
-                            if st = en then cln.offStart + max cln.len 1 else en
-                            
-                        let seg = SegmentToMark(st ,fixedEn , e)
-                        LineTransformers.Insert(newSegments, lnNo, seg) 
-                        marginMarks.Add(lnNo, seg.Underline) // for status bar
+                    let en  = if lnNo = enLn then cln.offStart + e.EndColumn   else cln.offStart + cln.len                        
+                    // e.StartColumn = e.EndColumn // this actually happens as a result from fs checker:
+                    let fixedEn =  if st = en then cln.offStart + max cln.len 1 else en                        
+                    let seg = SegmentToMark(st ,fixedEn , e)
+                    LineTransformers.Insert(newSegments, lnNo, seg) 
+                    marginMarks.Add(lnNo, seg.Underline) // for status bar
                     insert (lnNo+1)         
         insert stLn
 

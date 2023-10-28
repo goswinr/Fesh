@@ -38,7 +38,7 @@ type Counter private () =
 type Editor private (code:string, config:Config, initialFilePath:FilePath)  = 
     let avaEdit = 
         let av = TextEditor()
-        av.Options.IndentationSize <- config.Settings.GetIntSaveDefault("IndentationSize", 4) // do first because its used by tabs to spaces below.
+        av.Options.IndentationSize <- config.Settings.GetIntSaveDefault("IndentationSize", 4) // do first because its used by tabs to spaces below.        
         av.Text <- code
 
         av.BorderThickness <- new Thickness( 0.0)
@@ -155,7 +155,9 @@ type Editor private (code:string, config:Config, initialFilePath:FilePath)  =
     static member SetUp  (code:string, config:Config, filePath:FilePath) = 
         let ed = Editor(code, config, filePath )
         let avaEdit = ed.AvaEdit
-        let compls = ed.Completions       
+        let compls = ed.Completions  
+
+        ed.Folds.Manager.AutoRedrawFoldingSections <- false  // to just redraw the changed line but not the full folding section on changes   
 
         // for logging Debug and Error Messages in AvalonEditB
         Logging.LogAction <- new Action<string>( fun (s:string) -> ISeffLog.log.PrintfnDebugMsg "AvalonEditB Logging.Log: %s" s)
@@ -166,7 +168,7 @@ type Editor private (code:string, config:Config, initialFilePath:FilePath)  =
 
         let _rulers =  new ColumnRulers(avaEdit) // draw last , so on top? do foldings first
         avaEdit.Loaded.Add (fun _ -> new MagicScrollbar.ScrollBarEnhancer(avaEdit, ed.State, ed.ErrorHighlighter)  |> ignore )
-        avaEdit.Drop.Add                      (       fun e -> DragAndDrop.onTextArea(  avaEdit, e))
+        avaEdit.Drop.Add   (fun e -> DragAndDrop.onTextArea(  avaEdit, e))
 
         let closeToolTips() = 
             ed.TypeInfoTip.IsOpen <- false

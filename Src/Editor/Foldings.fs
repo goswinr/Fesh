@@ -157,7 +157,7 @@ type Foldings(manager:Folding.FoldingManager, state:InteractionState, getFilePat
                     let fNew = folds[j]                                
                     if feDi.StartOffset <> fNew.foldStartOff || feDi.EndOffset <> fNew.foldEndOff then                         
                         if feDi.IsFolded && caret > fNew.foldStartOff && caret < fNew.foldEndOff + 3 then // test if caret is in this Offset
-                            feDi.IsFolded <- false // fails other wise. needed because of manager.AutoRedrawFoldingSections is false by default.         
+                            feDi.IsFolded <- false // fails otherwise. needed because of manager.AutoRedrawFoldingSections is set false .         
                             unfolded <- true               
                         
                         // eprintf  $"firstErrorOffset on from line: {ed.Document.GetLineByOffset(max 1 feDi.StartOffset).LineNumber}"
