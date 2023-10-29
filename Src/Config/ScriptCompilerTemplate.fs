@@ -1,7 +1,7 @@
 ﻿namespace Seff.Config
 
 open System.IO
-open FsEx.Wpf
+open Fittings
 open Seff.Model
 
 

@@ -199,7 +199,7 @@ type Completions(state: InteractionState) =
                 if Checker.OptArgsDict.ContainsKey it.FullName then  TypeInfo.makeSeffToolTipDataList (ttText, it.FullName, Checker.OptArgsDict.[it.FullName])
                 else                                                 TypeInfo.makeSeffToolTipDataList (ttText, it.FullName, empty)
             if this.IsOpen then
-                do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context
+                do! Async.SwitchToContext Fittings.SyncWpf.context
                 if this.IsOpen then // might get closed during context switch
                     if selectedCompletionText() = it.NameInList then
                         win.Value.ToolTipContent <- TypeInfo.getPanel (structured, {declListItem=Some it; semanticClass=None; declLocation=None; dllLocation=None })                        

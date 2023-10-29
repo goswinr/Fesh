@@ -8,8 +8,8 @@ open System.Collections.Generic
 
 open AvalonEditB
 
-open FsEx.Wpf.Command
-open FsEx.Wpf.DependencyProps
+open Fittings.Command
+open Fittings.DependencyProps
 
 open Seff.Model
 open Seff.Util
@@ -199,7 +199,7 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, statusBar:SeffStatusBar, log:
                 |> Seq.toArray
 
 
-            do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context
+            do! Async.SwitchToContext Fittings.SyncWpf.context
 
             //first clear
             while fileMenu.Items.Count > recentFilesInsertPosition do

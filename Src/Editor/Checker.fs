@@ -205,7 +205,7 @@ type Checker private ()  =
     static let updateCheckingState (ied:IEditor) state = 
         ied.FileCheckState <- state
         if raiseStateChangedEvent then 
-            FsEx.Wpf.SyncWpf.doSync (fun () -> checkingStateEv.Trigger state )
+            Fittings.SyncWpf.doSync (fun () -> checkingStateEv.Trigger state )
 
     
    

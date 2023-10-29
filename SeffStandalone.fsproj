@@ -53,9 +53,9 @@
 
     <!-- These 4 packages are just added  explicitly again to pull in XML too below. -->
     <PackageReference Include="FSharp.Compiler.Service" Version="43.7.400" GeneratePathProperty="true" />    
-    <PackageReference Include="AvalonLog" Version="0.11.0" GeneratePathProperty="true" />
-    <PackageReference Include="FsEx.Wpf" Version="0.5.0" GeneratePathProperty="true" />
-    <PackageReference Include="AvalonEditB" Version="2.1.0" GeneratePathProperty="true" />   
+    <PackageReference Include="AvalonLog" Version="0.12.0" GeneratePathProperty="true"  />
+    <PackageReference Include="Fittings" Version="0.6.0" GeneratePathProperty="true" />
+    <PackageReference Include="AvalonEditB" Version="2.2.0" GeneratePathProperty="true" />   
 
     <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.1" PrivateAssets="All" IncludeAssets="runtime; build; native; contentfiles; analyzers; buildtransitive" />    
     <!-- https://docs.microsoft.com/en-us/nuget/consume-packages/package-references-in-project-files#controlling-dependency-assets -->
@@ -150,7 +150,7 @@
     <Copy SourceFiles="$(PkgFSharp_Compiler_Service)/lib/netstandard2.0/FSharp.Compiler.Service.xml" DestinationFiles="$(TargetDir)FSharp.Compiler.Service.xml" ContinueOnError="false" />
     <Copy SourceFiles="$(PkgAvalonLog)/lib/net472/AvalonLog.xml" DestinationFiles="$(TargetDir)AvalonLog.xml" ContinueOnError="false" />
     <Copy SourceFiles="$(PkgAvalonEditB)/lib/net472/AvalonEditB.xml" DestinationFiles="$(TargetDir)AvalonEditB.xml" ContinueOnError="false" />
-    <Copy SourceFiles="$(PkgFsEx_Wpf)/lib/net472/FsEx.Wpf.xml" DestinationFiles="$(TargetDir)FsEx.Wpf.xml" ContinueOnError="false" />
+    <Copy SourceFiles="$(PkgFittings)/lib/net472/Fittings.xml" DestinationFiles="$(TargetDir)Fittings.xml" ContinueOnError="false" />
   </Target>
   
 </Project>

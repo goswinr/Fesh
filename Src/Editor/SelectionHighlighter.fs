@@ -46,7 +46,7 @@ module SelectionHighlighting =
             let code = doc.CreateSnapshot().Text // the only threadsafe way to access the code string                
             if state.IsLatest id then 
                 // async{ //DELETE
-                //     do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context // for doc TextLength
+                //     do! Async.SwitchToContext Fittings.SyncWpf.context // for doc TextLength
                 //     ISeffLog.log.PrintfnAppErrorMsg $"id:{id} makeEditorSnapShot: doc.TextLength={doc.TextLength} code.Length={code.Length}"                    
                 //     } |> Async.RunSynchronously
                 Some code
@@ -126,7 +126,7 @@ type SelectionHighlighter (state:InteractionState) =
             prevRange <- None
             let trans = state.TransformersSelection            
             async{              
-                do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context   
+                do! Async.SwitchToContext Fittings.SyncWpf.context   
                 match thisRange with 
                 | None   ->  ()                   
                     // TODO ? still trigger event to clear the selection in StatusBar if it is just a selection without any highlighting(e.g. multiline) 
@@ -235,7 +235,7 @@ type SelectionHighlighter (state:InteractionState) =
                     |NoSel   -> ()
                     |RectSel 
                     |RegSel  ->
-                        do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context 
+                        do! Async.SwitchToContext Fittings.SyncWpf.context 
                         reactToSelChange <- false // to not trigger a selection changed event 
                         ed.TextArea.ClearSelection()                            
                         reactToSelChange <- true 
@@ -260,11 +260,11 @@ type SelectionHighlighter (state:InteractionState) =
                 | NoSelRedraw -> ()
 
                 | StatusbarOnly -> 
-                    do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context                     
+                    do! Async.SwitchToContext Fittings.SyncWpf.context                     
                     globalFoundSelectionEditorEv.Trigger(triggerNext) 
                 
                 | SelRange (st,en) ->                     
-                    do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context 
+                    do! Async.SwitchToContext Fittings.SyncWpf.context 
                     markFoldingsSorted(lastSels)
                     prevRange <- thisRange
                     ed.TextArea.TextView.Redraw(st,en, priority)
@@ -317,7 +317,7 @@ type SelectionHighlighter (state:InteractionState) =
         let k = lastSels.Count
         if setTransformers(id) && lastSels.Count <> k then // do only if the selection count changed
             async{ 
-                do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context   
+                do! Async.SwitchToContext Fittings.SyncWpf.context   
                 globalFoundSelectionEditorEv.Trigger(false) // to redraw statusbar
             } |> Async.Start
 
@@ -376,7 +376,7 @@ type SelectionHighlighterLog (lg:TextEditor) =
             lastSels.Clear()
             prevRange <- None
             async{              
-                do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context   
+                do! Async.SwitchToContext Fittings.SyncWpf.context   
                 match thisRange with 
                 | None   -> ()                    
                     // TODO ? still trigger event to clear the selection in StatusBar if it is just a selection without any highlighting(e.g. multiline)                                       
@@ -477,7 +477,7 @@ type SelectionHighlighterLog (lg:TextEditor) =
                         |NoSel   -> ()
                         |RectSel 
                         |RegSel  ->
-                            do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context
+                            do! Async.SwitchToContext Fittings.SyncWpf.context
                             reactToSelChange <- false // to not trigger a selection changed event 
                             lg.TextArea.ClearSelection()                            
                             reactToSelChange <- true
@@ -487,11 +487,11 @@ type SelectionHighlighterLog (lg:TextEditor) =
                     | NoSelRedraw -> ()
 
                     | StatusbarOnly ->
-                        do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context 
+                        do! Async.SwitchToContext Fittings.SyncWpf.context 
                         foundSelectionLogEv.Trigger(triggerNext)
                     
                     | SelRange (st,en) ->                     
-                        do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context 
+                        do! Async.SwitchToContext Fittings.SyncWpf.context 
                         //markFoldingsSorted(offs) // no foldings in Log
                         prevRange <- thisRange
                         lg.TextArea.TextView.Redraw(st,en, priority)

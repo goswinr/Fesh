@@ -6,7 +6,7 @@ open System.Windows
 
 open Seff.Editor
 open Seff.Model
-open FsEx.Wpf
+open Fittings
 
 
 type FileChangeTracker (editor:Editor, setCodeSavedStatus:bool->unit) =

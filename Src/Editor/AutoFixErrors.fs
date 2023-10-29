@@ -2,7 +2,7 @@
 
 open System.Windows
 open System.Collections.Generic
-open FsEx.Wpf
+open Fittings
 open Seff
 open Seff.Model
 open FSharp.Compiler.CodeAnalysis

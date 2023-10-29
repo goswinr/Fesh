@@ -2,7 +2,7 @@
 
 open System.Windows
 open System
-open FsEx.Wpf.DependencyProps
+open Fittings.DependencyProps
 
 open Seff.Views
 open Seff.Config

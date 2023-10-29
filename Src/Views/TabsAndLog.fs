@@ -4,7 +4,7 @@ open System
 open System.Windows.Controls
 open System.Windows
 
-open FsEx.Wpf.DependencyProps
+open Fittings.DependencyProps
 
 open Seff
 open Seff.Config

@@ -11,7 +11,7 @@ open Seff.Config
 type SeffWindow (config:Config)= 
 
     let win =         
-        let w = new FsEx.Wpf.PositionedWindow(config.RunContext.PositionedWindowSettingsFileInfo, ISeffLog.printError)
+        let w = new Fittings.PositionedWindow(config.RunContext.PositionedWindowSettingsFileInfo, ISeffLog.printError)
         IEditor.mainWindow <- w
         w
     
@@ -56,7 +56,7 @@ type SeffWindow (config:Config)=
             config.Log.PrintfnAppErrorMsg  "Failed to load Media/logo.ico from Application.ResourceStream : %A" ex
 
     /// The main WPF Window
-    member this.Window : FsEx.Wpf.PositionedWindow = win //:> System.Windows.Window // cast to a FsEx.Wpf.PositionedWindow
+    member this.Window : Fittings.PositionedWindow = win //:> System.Windows.Window // cast to a Fittings.PositionedWindow
 
     /// Indicating if the Window is in Full-screen mode or minimized mode (not normal mode)
     member this.IsMinOrMax = win.IsMinOrMax

@@ -21,7 +21,7 @@ module Initialize =
                     |NotSet _ -> ()
                     |Deleted _ -> ()
                     |SetTo fi -> 
-                        do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context
+                        do! Async.SwitchToContext Fittings.SyncWpf.context
                         let doc = ed.AvaEdit.Document
                         do! Async.SwitchToThreadPool()
                         let txt = doc.CreateSnapshot().Text
@@ -36,7 +36,7 @@ module Initialize =
 
         //match mode with None ->  Timer.InstanceStartup.tic()   | _ -> ()  // optional timer for full init process
 
-        FsEx.Wpf.SyncWpf.installSynchronizationContext(true)    // do first
+        Fittings.SyncWpf.installSynchronizationContext(true)    // do first
 
         let en_US = Globalization.CultureInfo.CreateSpecificCulture("en-US")
         Threading.Thread.CurrentThread.CurrentCulture <- en_US
@@ -63,13 +63,13 @@ module Initialize =
         let appName = match mode with Some n -> "Seff." + n.hostName |None -> "Seff"
         try 
             // TODO attempt to save files before closing ?  or save anyway every 2 minutes to backup folder if less than 10k lines
-            let errHandler = FsEx.Wpf.ErrorHandling (
+            let errHandler = Fittings.ErrorHandling (
                 appName, 
                 fun () -> saveBeforeFailing();  "FSI Error Stream:\r\n" + log.FsiErrorsStringBuilder.ToString()
                 )
             errHandler.Setup()// do as soon as log exists 
         with e ->
-            log.PrintfnAppErrorMsg "Setting up Global Error Handling via FsEx.Wpf.ErrorHandling failed. Or is done already? Is FsEx.Wpf already loaded by another plug-in?\r\n%A" e 
+            log.PrintfnAppErrorMsg "Setting up Global Error Handling via Fittings.ErrorHandling failed. Or is done already? Is Fittings already loaded by another plug-in?\r\n%A" e 
            
         let config = new Config(log, mode, startupArgs)
         log.FinishLogSetup(config)          

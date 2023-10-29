@@ -75,7 +75,7 @@ module CompileScript =
     //if last write is more than 1h ago ask for overwrite permissions
     let overWriteExisting fsProj :bool= 
         async{  
-            do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context 
+            do! Async.SwitchToContext Fittings.SyncWpf.context 
             let maxAgeHours = 0.5
             let fi = FileInfo(fsProj)
             return
@@ -256,7 +256,7 @@ module CompileScript =
                                         ISeffLog.log.PrintfColor  190 0 50 "#r @\""
                                         ISeffLog.log.PrintfColor  0 0 0 "%s" resultDll
                                         ISeffLog.log.PrintfnColor 190 0 50 "\""
-                                        FsEx.Wpf.SyncWpf.doSync ( fun () -> Clipboard.SetText("#r @\"" + resultDll + "\"\r\n") )
+                                        Fittings.SyncWpf.doSync ( fun () -> Clipboard.SetText("#r @\"" + resultDll + "\"\r\n") )
                                     else
                                         gray  "*build process ended!"
                                     gray "--------------------------------------------------------------------------------"

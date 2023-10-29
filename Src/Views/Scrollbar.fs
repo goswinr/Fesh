@@ -42,10 +42,7 @@ module MagicScrollbar =
         
         let pixelSize = PixelSnapHelpers.GetPixelSize(textView)  
 
-        do             
-            //base.Cursor <- Cursors.Hand // https://github.com/icsharpcode/SharpDevelop/blob/master/src/AddIns/DisplayBindings/AvalonEdit.AddIn/Src/EnhancedScrollBar.cs
-            //base.ToolTip <- "empty"
-            
+        do  
             ed.TextArea.TextView.VisualLinesChanged.Add (fun _ -> if isTrackShowing then this.InvalidateVisual() )               
             errs.FoundErrors.Add (fun _                        -> setLineNos errs.ErrorsLines.Value )
         
@@ -82,7 +79,7 @@ module MagicScrollbar =
                         //eprintfn $"error {i} on line {lnNo}: visualMiddle:{visualMiddle} documentHeight:{documentHeight} trackHeight:{trackHeight}"                        
                         let renderPos0 = ((visualMiddle / documentHeight) * trackHeight) 
                         let renderPos = PixelSnapHelpers.PixelAlign(renderPos0, pixelSize.Height)   
-                        //let boxHeight = max 2. ((lineHeight / documentHeight) * trackHeight) // to have the line sickness relative to the document height, but min 2.0
+                        //let boxHeight = max 2. ((lineHeight / documentHeight) * trackHeight) // to have the line thickness relative to the document height, but min 2.0
                         let boxHeight = pixelSize.Height * 2.0 
                         
                         let y = renderPos - boxHeight * 0.5 
@@ -102,25 +99,6 @@ module MagicScrollbar =
             scrollViewer.ApplyTemplate ()|> ignore  
             let vScrollBar = scrollViewer.Template.FindName ("PART_VerticalScrollBar", scrollViewer) :?> ScrollBar        
             if isNull vScrollBar then failwithf $"scrollViewer.Template.FindName (\"PART_VerticalScrollBar\")  is null" // never happens
-            
-            (* DELETE
-
-            //let parent = vScrollBar.Parent :?> FrameworkElement
-            scrollViewer.PreviewKeyDown.Add (fun e -> // make ScrollViewer ignore keyboard events so that Ctrl+Up/Down can be used for foldings
-                if e.Key = Key.Up then 
-                    if Keys.isDown Keys.ModKey.Ctrl then 
-                        Foldings.CollapseAtCaret()   
-                        e.Handled <- true
-                        //parent.RaiseEvent(e) // pass the event to the parent, that is the editor , to be handled in KeyboardShortcuts.previewKeyDown for folding shortcuts
-                        
-                elif e.Key = Key.Down then
-                    if Keys.isDown Keys.ModKey.Ctrl then 
-                        Foldings.ExpandAtCaret() 
-                        e.Handled <- true                    
-                        //parent.RaiseEvent(e)  // pass the event to the parent, that is the editor , to be handled in KeyboardShortcuts.previewKeyDown for folding shortcuts
-                    )       
-            *)
-            
             vScrollBar
         
         let mutable adorner: ScrollbarAdorner = null

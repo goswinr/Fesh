@@ -7,7 +7,7 @@ open System.Windows.Input
 open AvalonEditB
 open AvalonEditB.Editing
 
-open FsEx.Wpf.Command
+open Fittings.Command
 
 open Seff
 open Seff.Model

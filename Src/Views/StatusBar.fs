@@ -14,8 +14,8 @@ open AvalonLog.Brush
 open Seff
 open Seff.Editor
 open Seff.Model
-open FsEx.Wpf // for TextBlockSelectable
-open FsEx.Wpf.DependencyProps
+open Fittings // for TextBlockSelectable
+open Fittings.DependencyProps
 
 
 module MenuUtil = 

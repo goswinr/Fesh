@@ -12,7 +12,7 @@ open AvalonEditB
 open AvalonEditB.Utils
 open AvalonEditB.Document
 open AvalonLog
-open FsEx.Wpf
+open Fittings
 
 open Seff
 open Seff.Model
@@ -48,7 +48,7 @@ type Editor private (code:string, config:Config, initialFilePath:FilePath)  =
         av.HorizontalScrollBarVisibility <- Controls.ScrollBarVisibility.Auto
         av.Options.EnableHyperlinks <- true
         av.Options.EnableEmailHyperlinks <- false
-        av.TextArea.TextView.LinkTextForegroundBrush <- Brushes.DarkGreen |> AvalonLog.Brush.freeze
+        av.TextArea.TextView.LinkTextForegroundBrush <- Brushes.DarkGreen |> AvalonLog.Brush.freeze 
         av.Options.EnableTextDragDrop <- true
         av.Options.ShowSpaces <- false
         av.Options.ShowTabs <- false // they are always converted to spaces, see above
@@ -57,7 +57,7 @@ type Editor private (code:string, config:Config, initialFilePath:FilePath)  =
         av.TextArea.SelectionCornerRadius <- 0.0
         av.TextArea.SelectionBorder <- null
         av.FontFamily <- StyleState.fontEditor
-        av.FontSize <- config.Settings.GetFloat("SizeOfFont", StyleState.fontSize) // TODO odd sizes like  17.0252982466288  makes block selection delete fail on the last line
+        av.FontSize <- config.Settings.GetFloat("SizeOfFont", StyleState.fontSize) 
         av.AllowDrop <- true
         av.Options.HighlightCurrentLine <- true // http://stackoverflow.com/questions/5072761/avalonedit-highlight-current-line-even-when-not-focused
         
@@ -196,11 +196,9 @@ type Editor private (code:string, config:Config, initialFilePath:FilePath)  =
         // ----------------------------------------------------------
 
         avaEdit.TextArea.PreviewTextInput.Add (       fun e -> CursorBehavior.previewTextInput(     avaEdit, e))  // A TextCompositionEventArgs that has a string , handling typing in rectangular selection
-        avaEdit.TextArea.AlternativeRectangularPaste <- Action<string,bool>( fun txt txtIsFromOtherRectSel -> RectangleSelection.paste(ed.AvaEdit, txt, txtIsFromOtherRectSel)) //TODO check txtIsFromOtherRectSel on pasting text with \r\n
+        avaEdit.TextArea.AlternativeRectangularPaste <- Action<string,bool>( fun txt txtIsFromOtherRectSel -> RectangleSelection.paste(ed.AvaEdit, txt, txtIsFromOtherRectSel)) //TODO check txtIsFromOtherRectSel on pasting text with \r\n        
+        avaEdit.PreviewKeyDown.Add (fun e -> KeyboardShortcuts.previewKeyDown(    ed     , e))  // A single Key event arg, indent and dedent, and change block selection delete behavior 
         
-        avaEdit.PreviewKeyDown.Add (fun e -> KeyboardShortcuts.previewKeyDown(    ed     , e))  // A single Key event arg, indent and dedent, and change block selection delete behavior        
-        
-
         
         // -------------React to doc changes and add Line transformers---------------- 
         avaEdit.Document.Changing.Add(DocChangeEvents.changing ed.State )
@@ -219,7 +217,7 @@ type Editor private (code:string, config:Config, initialFilePath:FilePath)  =
         avaEdit.KeyDown.Add (fun k ->  // close tooltips or clear selection on Escape key
             match k.Key with 
             |Key.Escape -> // close ToolTips or if all are closed already  ClearSelectionHighlight
-                if ed.TypeInfoTip.IsOpen  || ed.DrawingServices.errors.ToolTip.IsOpen then 
+                if ed.TypeInfoTip.IsOpen || ed.DrawingServices.errors.ToolTip.IsOpen then 
                     closeToolTips()
                 else
                     ed.SelectionHighlighter.ClearAll()
@@ -227,8 +225,8 @@ type Editor private (code:string, config:Config, initialFilePath:FilePath)  =
         )
 
 
+        //avaEdit.KeyUp.Add (fun e -> if e.Key = Input.Key.Up then  eprintfn "key up")       
         //avaEdit.KeyDown.Add (fun k -> printfn $"key:{k.Key} + {k.SystemKey}")
-
         ed
         
     ///additional constructor using default code

@@ -9,7 +9,7 @@ open Seff.Model
 open Seff.Config
 open Seff.Util
 
-open FsEx.Wpf
+open Fittings
 open FSharp.Compiler
 open FSharp.Compiler.Interactive.Shell
 open FSharp.Compiler.Diagnostics
@@ -571,7 +571,7 @@ type Fsi private (config:Config) =
     member this.EvalDelayed(code)=
         async{  
             do! Async.Sleep 20
-            do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context 
+            do! Async.SwitchToContext Fittings.SyncWpf.context 
             eval(code)
         } |> Async.StartImmediate
 

@@ -38,7 +38,7 @@ module Keys =
         | k                      -> k
 
 module KeyboardNative  = 
-    // TODO this global key hook might cause the app to be flagged as spyware/ keylogger ??
+    // TODO this global key hook might cause the app to be flagged as spyware/ key-logger ??
 
     // all of this module only exists to be able to use Alt and Up in Rhino too , not just standalone.
     // see bug https://discourse.mcneel.com/t/using-alt-up-key-in-plugin-does-not-work/105740/3
@@ -103,7 +103,7 @@ module KeyboardNative  =
     /// <param name="wParam">The wParam.</param>
     /// <param name="lParam">The lParam.</param>
     [<DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)>]
-    extern int CallNextHookEx(IntPtr idHook, int nCode, int wParam, KeyboardHookStruct& lParam);  //'ref keyboardHookStruct' turns into 'keyboardHookStruct&'
+    extern int CallNextHookEx(IntPtr idHook, int nCode, int wParam, KeyboardHookStruct& lParam);  //'ref keyboardHookStruct' turns into 'keyboardHookStruct&' a manged pointer
 
     // <summary>Loads the library.</summary>
     // <param name="lpFileName">Name of the library</param>
@@ -115,7 +115,7 @@ module KeyboardNative  =
     extern IntPtr GetModuleHandle(string lpModuleName);
 
     let mutable private hookId = IntPtr.Zero
-    let mutable private window :Window = null    // so we can check if hook event happens while window is active
+    let mutable private window:Window = null  // so we can check if hook event happens while window is active
 
 
     /// The CallWndProc hook procedure is an application-defined or library-defined callback
@@ -188,7 +188,7 @@ module KeyboardNative  =
         use curModule = curProcess.MainModule
         let moduleHandle = GetModuleHandle(curModule.ModuleName)
         // https://docs.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-setwindowshookexa
-        //https://stackoverflow.com/questions/1811383/setwindowshookex-in-c-sharp
+        // https://stackoverflow.com/questions/1811383/setwindowshookex-in-c-sharp
         // a hook with WH_KEYBOARD_LL is always global!
         // a hook with just WH_KEYBOARD does not work from .NET ?!
         hookId <- SetWindowsHookEx(WH_KEYBOARD_LL, callBackForAltKeyCombos, moduleHandle, 0u)
@@ -221,8 +221,7 @@ module KeyboardNative  =
 
 module KeyboardShortcuts = 
     open Keys
-    open Selection
-    open KeyboardNative
+    open Selection    
 
     // For alt and arrow keys only since they need a special keyboard hook to not get hijacked in Rhino
     let altKeyCombo(aKey:AltKeyCombo) = 
@@ -230,11 +229,12 @@ module KeyboardShortcuts =
         match IEditor.current with
         | None -> () //never happens ?
         | Some ed ->
-            match aKey with
-            | AltUp    -> SwapLines.swapLinesUp(ed)
-            | AltDown  -> SwapLines.swapLinesDown(ed)
-            | AltRight -> SwapWords.right(ed.AvaEdit)  |> ignore
-            | AltLeft  -> SwapWords.left(ed.AvaEdit)   |> ignore
+            if ed.AvaEdit.TextArea.IsFocused then // to skip if search panel or Log is focused
+                match aKey with
+                | AltUp    -> SwapLines.swapLinesUp(ed)
+                | AltDown  -> SwapLines.swapLinesDown(ed)
+                | AltRight -> SwapWords.right(ed.AvaEdit)  |> ignore
+                | AltLeft  -> SwapWords.left(ed.AvaEdit)   |> ignore
 
     /// gets attached to each editor instance. via avaEdit.PreviewKeyDown.Add
     /// except for Alt and arrow keys that are handled via KeyboardNative
@@ -261,9 +261,8 @@ module KeyboardShortcuts =
             | Key.Enter | Key.Return -> // if alt or ctrl is down this means sending to fsi ...
                 if isUp Ctrl && isUp Alt  && isUp Shift  && not ied.IsComplWinOpen then                     
                     CursorBehavior.addFSharpIndentation(ed,ke)  // add indent after do, for , ->, =             
-            
-            (* 
-                
+                        
+            (*                 
             These are handled in: let altKeyCombo(aKey:AltKeyCombo)
             Just because Rhino3D does not allow Alt + Up and Alt + Down to be used as shortcuts like this:
 

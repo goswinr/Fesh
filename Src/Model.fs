@@ -130,7 +130,7 @@ module IEditor =
     let mutable current :option<IEditor> = None
 
     /// A global reference to the current main window
-    let mutable mainWindow = Unchecked.defaultof<FsEx.Wpf.PositionedWindow>
+    let mutable mainWindow = Unchecked.defaultof<Fittings.PositionedWindow>
 
     let isCurrent(e:TextEditor)= 
         match current with

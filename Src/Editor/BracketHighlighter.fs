@@ -393,7 +393,7 @@ type BracketHighlighter (state:InteractionState) =
                     //transMatch.ClearAllLines() // or keep showing the bracket highlighting when cursor moves away??
                     if state.IsLatest id then 
                         //redrawSegment:
-                        do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context
+                        do! Async.SwitchToContext Fittings.SyncWpf.context
                         match prevPairSeg with 
                         |Some prev -> 
                             state.Editor.TextArea.TextView.Redraw(prev)            
@@ -407,7 +407,7 @@ type BracketHighlighter (state:InteractionState) =
                     transMatch.Update(newTrans)
                     if state.IsLatest id then 
                         //redrawSegment:
-                        do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context
+                        do! Async.SwitchToContext Fittings.SyncWpf.context
                         //ISeffLog.log.PrintfnDebugMsg $"redraw for caretPositionChanged , id:{id}"
                         let seg = RedrawSegment(f.from,t.till)            
                         match prevPairSeg with 

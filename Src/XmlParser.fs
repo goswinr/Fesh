@@ -39,7 +39,7 @@ module XmlParser =
     // later use Object.ReferenceEquals(x,XmlParser.summary) for fast equality
     let see = "see"     
     let param = "param"     
-    let membre = "member"   
+    let membre = "member"   // yes, spelled wrong because its an F# keyword
     let summary = "summary" 
     let returns = "returns" 
     let inline private getConst (sb:StringBuilder) =  

@@ -3,7 +3,7 @@
 
 open System.Text
 open System.Collections.Generic
-open FsEx.Wpf
+open Fittings
 open Seff.Model
 open AvalonEditB
 

@@ -124,6 +124,8 @@ module Doc =
                 |  _   -> k // also exits for '\n' and '\r'
         find offset 0
 
+    (* better use the highlighting engines state because it also works for multiline strings: 
+    
     /// State of the caret
     /// used in isCaretInStringOrChar
     type internal State = 
@@ -132,7 +134,6 @@ module Doc =
         |Chr   // in  character
         |ChrSt // at character start, needed because ''' and '\'' are both valid
     
-    (* better use the highlighting engines state because it also works for multiline strings: 
 
     /// Checks if Caret is in String or Character quotes: " or '
     /// only checks current line
@@ -446,7 +447,6 @@ module CursorBehavior  =
 
 [<RequireQualifiedAccess>]
 module DragAndDrop = 
-    
     let onTextArea (ed:TextEditor,  e:DragEventArgs) = 
         let doc = ed.Document
         if e.Data.GetDataPresent DataFormats.FileDrop then

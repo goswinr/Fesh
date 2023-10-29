@@ -24,7 +24,7 @@ module SyntaxHighlighting =
                     use reader = new Xml.XmlTextReader(stream)
                     let fsh = Xshd.HighlightingLoader.Load(reader, HighlightingManager.Instance)
                     fsHighlighting <- Some fsh
-                    do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context
+                    do! Async.SwitchToContext Fittings.SyncWpf.context
                     ed.SyntaxHighlighting <- fsh
                     //HighlightingManager.Instance.RegisterHighlighting("F#", [| ".fsx"; ".fs";".fsi" |], fsh)
                     if forceReLoad then 

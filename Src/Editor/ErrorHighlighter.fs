@@ -321,7 +321,7 @@ type ErrorHighlighter ( state:InteractionState, folds:Folding.FoldingManager, is
 
                 // second mark folding boxes if an error is inside, even open ones, so that it shows when collapsed:
                 async{
-                    do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context
+                    do! Async.SwitchToContext Fittings.SyncWpf.context
                     for fold in folds.AllFoldings do  fold.DecorateRectangle <- null   // first clear
                     for e in errs.hiddens  do updateFolds id ErrorStyle.infoBackGr ErrorStyle.infoSquigglePen e  |> ignore<bool>
                     for e in errs.infos    do updateFolds id ErrorStyle.infoBackGr ErrorStyle.infoSquigglePen e  |> ignore<bool>

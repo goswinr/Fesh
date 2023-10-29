@@ -89,7 +89,7 @@ module Redrawing =
         let tryDraw(id) =             
             if state.IsLatest id && idSemantics=id && idBrackets=id && idErrors=id && idSels=id && idFolds=id then                 
                 async{
-                    do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context                    
+                    do! Async.SwitchToContext Fittings.SyncWpf.context                    
                     //increment to avoid another full redraw on found selection event, that might be triggered again and again without a doc change
                     //because the id of the others has not changed without a change in the document. the found selection has its own range redraw anyway
                     let id' = state.Increment() 
@@ -429,7 +429,7 @@ module DocChangeCompletion =
                                     // Switch to Sync and try showing completion window:
                                     let checkAndMark = fun () -> DocChangeMark.updateAllTransformersAsync (iEd, drawServ, state, state.Increment()) // will be called if window closes without an insertion
                                     let showRestrictions = MaybeShow.getShowRestriction show  
-                                    do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context                            
+                                    do! Async.SwitchToContext Fittings.SyncWpf.context                            
                                     match drawServ.compls.TryShow(decls, posX, showRestrictions, checkAndMark) with 
                                     |NoShow ->                                         
                                         state.DocChangedConsequence <- React

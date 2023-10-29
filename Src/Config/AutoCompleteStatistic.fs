@@ -2,7 +2,7 @@
 
 open System
 open System.Text
-open FsEx.Wpf
+open Fittings
 open Seff.Model
 
 /// A class to hold the statistic of most used toplevel auto completions

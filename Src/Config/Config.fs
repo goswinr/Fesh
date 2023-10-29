@@ -6,7 +6,7 @@ open Seff.Model
 type Config (log:ISeffLog, startUpData:HostedStartUpData option, startupArgs:string[]) = 
 
     let  runContext                 = new RunContext                  (startUpData)
-    let  settings                   = new FsEx.Wpf.PersistentSettings (runContext.SettingsFileInfo,ISeffLog.printError)
+    let  settings                   = new Fittings.PersistentSettings (runContext.SettingsFileInfo,ISeffLog.printError)
     let  recentlyUsedFiles          = new RecentlyUsedFiles           (runContext)
     let  openTabs                   = new OpenTabs                    (runContext, startupArgs)
     let  defaultCode                = new DefaultCode                 (runContext)

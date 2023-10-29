@@ -11,7 +11,7 @@ open System.Windows.Documents
 
 open AvalonLog.Brush
 
-open FsEx.Wpf // for TextBlockSelectable
+open Fittings // for TextBlockSelectable
 
 open FSharp.Compiler.CodeAnalysis
 open FSharp.Compiler.EditorServices    // Misc functionality for editors, e.g. interface stub generation
@@ -681,7 +681,7 @@ type TypeInfo private () =
                         let optArgs = if symbol.IsSome then namesOfOptnlArgs(symbol.Value) else ResizeArray(0)
                         let ttds = makeToolTipDataList (ttt, fullName ,optArgs) //TODO can this still be async ?
                         
-                        do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context
+                        do! Async.SwitchToContext Fittings.SyncWpf.context
                         
                         if List.isEmpty ttds then                                                     
                             tip.Content <- new TextBlock(Text = "No type info found for:\r\n'" + word + "'", FontSize = StyleState.fontSize  * 0.65 ,FontFamily = StyleState.fontToolTip, Foreground = gray )                            

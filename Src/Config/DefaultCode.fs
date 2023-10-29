@@ -2,7 +2,7 @@
 
 open System
 open System.IO
-open FsEx.Wpf
+open Fittings
 open Seff.Model
 
 

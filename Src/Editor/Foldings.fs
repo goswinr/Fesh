@@ -218,7 +218,7 @@ type Foldings(manager:Folding.FoldingManager, state:InteractionState, getFilePat
                         do! Async.Sleep 50
                     let vs = foldStatus.Get(getFilePath())
                     
-                    do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context
+                    do! Async.SwitchToContext Fittings.SyncWpf.context
                     for i = 0 to folds.Count-1 do
                         let f = folds.[i]
                         if f.foldStartOff < f.foldEndOff then // TODO this seems to not always be the case
@@ -234,7 +234,7 @@ type Foldings(manager:Folding.FoldingManager, state:InteractionState, getFilePat
                 
                 // for any change after initial opening of the file
                 elif state.IsLatest id then                     
-                    do! Async.SwitchToContext FsEx.Wpf.SyncWpf.context  
+                    do! Async.SwitchToContext Fittings.SyncWpf.context  
                     let edFolds = manager.AllFoldings
                    
                     // (1) first find out if a folding update is needed at all                    
