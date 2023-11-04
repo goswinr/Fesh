@@ -91,10 +91,13 @@ module ParseBrackets =
                     |  _   -> Int32.MaxValue // string flows over to the next line 
                 else 
                     let next = code[i+1]
-                    match chr ,next with 
+                    match chr, next with 
                     | '"' ,  _  -> i+1 // first char after string
-                    | '\\', '"' -> skipString next (i+1) // jump over escaped quote \"
-                    | _         -> skipString next (i+1)
+                    | '\\', '"' -> 
+                        let i2 = i+2
+                        if i2 = lastIdx then Int32.MaxValue // string flows over to the next line 
+                        else skipString code[i2] (i2) // jump over escaped quote \"                        
+                    |  _  -> skipString next (i+1)
 
             /// for strings starting with @"
             let rec skipRawAtString chr i :int =  // give the character and it's index
@@ -111,7 +114,7 @@ module ParseBrackets =
             let rec skipRawTrippleString chr next i :int =  // give this character and the next character and this index
                 if i+2 <= lastIdx then
                     let next2 = code[i+2]
-                    match chr , next, next2 with 
+                    match chr, next, next2 with 
                     | '"' , '"' , '"'   -> i+3 // first char after  multiline string                    
                     | _                 -> skipRawTrippleString next next2 (i+1) 
                 else 
@@ -120,8 +123,8 @@ module ParseBrackets =
             let rec skipMultiLineComment chr  i :int =
                 if i+1 <= lastIdx then                    
                     let next = code[i+1]
-                    match chr , next with 
-                    | '*' ,')'    -> i+2 // first char after multiline comment                    
+                    match chr, next with 
+                    | '*', ')'    -> i+2 // first char after multiline comment                    
                     | _           -> skipMultiLineComment next (i+1) 
                 else 
                     Int32.MaxValue
