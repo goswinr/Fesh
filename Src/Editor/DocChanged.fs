@@ -87,26 +87,26 @@ module Redrawing =
         let mutable idFolds      = 0L
 
         let tryDraw(id) =             
+            printfn $"id={id}, idSemantics={idSemantics}, idBrackets={idBrackets}, idErrors={idErrors}, idSels={idSels}, idFolds={idFolds}"
             if state.IsLatest id && idSemantics=id && idBrackets=id && idErrors=id && idSels=id && idFolds=id then                 
                 async{
-                    do! Async.SwitchToContext Fittings.SyncWpf.context                    
-                    //increment to avoid another full redraw on found selection event, that might be triggered again and again without a doc change
-                    //because the id of the others has not changed without a change in the document. the found selection has its own range redraw anyway
-                    let id' = state.Increment() 
-
+                    do! Async.SwitchToContext Fittings.SyncWpf.context       
                     services.folds.RedrawFoldings()  
-                    do! Async.Sleep 50 // to try to avoid: InvalidOperationException: Line 117 was skipped by a VisualLineElementGenerator, but it is not collapsed. at AvalonEditB.Rendering.TextView.BuildVisualLine(..)
-                    if state.IsLatest id' then
-                        ed.TextArea.TextView.Redraw(priority)
-                    
+                    do! Async.Sleep 50 // to try to avoid: InvalidOperationException: Line 117 was skipped by a VisualLineElementGenerator, but it is not collapsed. at AvalonEditB.Rendering.TextView.BuildVisualLine(..)                    
+                    if state.IsLatest id then
+                        eprintfn $"Redrawing full: id={id}, idSemantics={idSemantics}, idBrackets={idBrackets}, idErrors={idErrors}, idSels={idSels}, idFolds={idFolds}"
+                        ed.TextArea.TextView.Redraw(priority)  
                 } |> Async.Start
        
   
         let doneBrackets(id)   = idBrackets   <- id ;  tryDraw(id)
         let doneSemantics(id)  = idSemantics  <- id ;  tryDraw(id)
         let doneErrors(id)     = idErrors     <- id ;  tryDraw(id)
-        let doneSels(id)       = idSels       <- id ;  tryDraw(id)
         let doneFolds(id)      = idFolds      <- id ;  tryDraw(id)
+        let doneSels(id)  = 
+            if idSels <> id then    // Only tryDraw if the id changed, to avoid another full redraw on found selection event, from changing selection, 
+                idSels <- id        // that might be triggered again and again without a doc change.
+                tryDraw(id)         // The found selection does a its own range redraw anyway too.
 
         do  
             services.brackets.FoundBrackets.Add  doneBrackets 

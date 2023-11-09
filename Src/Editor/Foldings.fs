@@ -231,6 +231,7 @@ type Foldings(manager:Folding.FoldingManager, state:InteractionState, getFilePat
                             let lno = ed.Document.GetLineByOffset f.foldStartOff
                             ISeffLog.log.PrintfnAppErrorMsg $"manager.CreateFolding was given a negative folding from offset {f.foldStartOff} to {f.foldEndOff} on line {lno.LineNumber}"                    
                     isInitialLoad <- false
+                    foundFoldsEv.Trigger(id)
                 
                 // for any change after initial opening of the file
                 elif state.IsLatest id then                     
@@ -239,7 +240,7 @@ type Foldings(manager:Folding.FoldingManager, state:InteractionState, getFilePat
                    
                     // (1) first find out if a folding update is needed at all                    
                     use enum = edFolds.GetEnumerator()                    
-                    let rec zip i = // returns true if a folding update is  needed
+                    let rec zip i = // returns true if a folding update is needed
                         match enum.MoveNext(), i < folds.Count with
                         |false, false -> false // reached end,  both collections have the same length
                         |false, true  -> true // reached end, edFolds is shorter than folds
@@ -283,7 +284,7 @@ type Foldings(manager:Folding.FoldingManager, state:InteractionState, getFilePat
     member _.RedrawFoldings() = redrawFoldings()
 
     /// runs first part async
-    member _.CheckFolds( id) = checkForFoldings(id)
+    member _.CheckFolds(id) = checkForFoldings(id)
     
     member _.FoundFolds = foundFoldsEv.Publish
 

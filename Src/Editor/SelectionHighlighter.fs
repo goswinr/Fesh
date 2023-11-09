@@ -215,8 +215,7 @@ type SelectionHighlighter (state:InteractionState) =
 
     // Also called from StatusBar to highlight the current selection of Log in Editor too   
     // sets lastWords and lastSkipOff 
-    let redrawMarking (word:string, skipOff: SkipMarking, triggerNext:bool, selId) =
-        let id = state.DocChangedId.Value
+    let redrawMarking (word:string, skipOff: SkipMarking, triggerNext:bool, selId) =        
         let prevFoundCount = lastSels.Count
         lastWord <- word
         lastSkipOff <- skipOff
