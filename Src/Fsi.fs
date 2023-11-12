@@ -577,13 +577,13 @@ type Fsi private (config:Config) =
 
 
     member this.Evaluate(code:CodeToEval) = 
-        if DateTime.Today > DateTime(2023, 12, 31) then 
+        if DateTime.Today > DateTime(2024, 12, 31) then 
             log.PrintfnFsiErrorMsg "*** Your Seff Editor has expired, please download a new version. ***"        
             log.PrintfnFsiErrorMsg "*** https://github.com/goswinr/Seff ***"        
             log.PrintfnFsiErrorMsg "*** or contact goswin@rothenthal.com ***"        
         else
-            if DateTime.Today > DateTime(2023, 10, 30) then 
-                    log.PrintfnFsiErrorMsg "*** Your Seff Editor will expire on 2023-12-31, please download a new version soon.***"  
+            if DateTime.Today > DateTime(2024, 9, 30) then 
+                    log.PrintfnFsiErrorMsg "*** Your Seff Editor will expire on 2024-12-31, please download a new version soon.***"  
                     log.PrintfnFsiErrorMsg "*** https://github.com/goswinr/Seff ***"        
                     log.PrintfnFsiErrorMsg "*** or contact goswin@rothenthal.com ***" 
             match this.AskIfCancellingIsOk () with
