@@ -88,15 +88,19 @@ module Redrawing =
 
         let tryDraw(id) =             
             //printfn $"id={id}, idSemantics={idSemantics}, idBrackets={idBrackets}, idErrors={idErrors}, idSels={idSels}, idFolds={idFolds}"
-            if state.IsLatest id && idSemantics=id && idBrackets=id && idErrors=id && idSels=id && idFolds=id then                 
-                async{
-                    do! Async.SwitchToContext Fittings.SyncWpf.context       
-                    services.folds.RedrawFoldings()  
-                    do! Async.Sleep 50 // to try to avoid: InvalidOperationException: Line 117 was skipped by a VisualLineElementGenerator, but it is not collapsed. at AvalonEditB.Rendering.TextView.BuildVisualLine(..)                    
-                    if state.IsLatest id then
-                        //eprintfn $"Redrawing full: id={id}, idSemantics={idSemantics}, idBrackets={idBrackets}, idErrors={idErrors}, idSels={idSels}, idFolds={idFolds}"
-                        ed.TextArea.TextView.Redraw(priority)  
-                } |> Async.Start
+            if state.IsLatest id && idSemantics=id then 
+                if idBrackets=id && idErrors=id && idSels=id && idFolds=id then                 
+                    async{
+                        do! Async.SwitchToContext Fittings.SyncWpf.context       
+                        services.folds.RedrawFoldings()  
+                        do! Async.Sleep 50 // to try to avoid: InvalidOperationException: Line 117 was skipped by a VisualLineElementGenerator, but it is not collapsed. at AvalonEditB.Rendering.TextView.BuildVisualLine(..)                    
+                        if state.IsLatest id then
+                            //eprintfn $"Redrawing full: id={id}, idSemantics={idSemantics}, idBrackets={idBrackets}, idErrors={idErrors}, idSels={idSels}, idFolds={idFolds}"
+                            ed.TextArea.TextView.Redraw(priority)  
+                    } |> Async.Start
+                else
+                    ISeffLog.log.PrintfnAppErrorMsg $"Can redraw, check id that is wrong: id={id}" 
+                    ISeffLog.log.PrintfnAppErrorMsg $"idSemantics={idSemantics}, idBrackets={idBrackets}, idErrors={idErrors}, idSels={idSels}, idFolds={idFolds}"
        
   
         let doneBrackets(id)   = idBrackets   <- id ;  tryDraw(id)

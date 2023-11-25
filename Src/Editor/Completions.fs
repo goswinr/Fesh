@@ -120,14 +120,12 @@ type CompletionItem(state: InteractionState, getToolTip, it:DeclarationListItem,
         match taggedTextSig with
         |None -> ()
         |Some ts -> 
-            if ts |> Seq.truncate 1 |> Seq.exists (fun t -> t.Tag = Text.TextTag.Keyword) |> not then // only one keyword in signature, so functions, not types with all its members                     
-                ts
-                |> Array.tryFindIndex (fun t -> t.Text = "->" ) 
-                |> Option.iter (fun i -> 
-                    if i>2 && ts.[i-2].Text = "unit" then
-                        complText <- complText + "()" // add () for unit type                
-                    )
-                     
+            if ts.Length >= 7 && ts.Length < 25 then // < 25 to skip long list of class definitions
+                if ts.[ts.Length-5].Text = "unit" 
+                && ts.[ts.Length-3].Text = "->" 
+                && ts.[ts.Length-1].Text = "unit"
+                && ts.[ts.Length-7].Text = ":" then
+                    complText <- complText + "()"
 
         //config.Log.PrintfDebugMsg "completionSegment: '%s' : %A" (textArea.Document.GetText(completionSegment)) completionSegment
         if Selection.getSelType textArea = Selection.RectSel then

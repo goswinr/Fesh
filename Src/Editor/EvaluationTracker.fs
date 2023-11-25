@@ -186,7 +186,7 @@ type EvaluationTrackerRenderer (ed:TextEditor) =
                 drawingContext.DrawGeometry(backGround, null, boundaryPolygon) // pen could be null too
                 //drawingContext.DrawGeometry(backGround, border, boundaryPolygon) // pen could be null too
 
-                // TODO draw a dragable separator instead:
+                // TODO draw a draggable separator instead:
                 // http://www.fssnip.net/9N/title/Drag-move-for-GUI-controls
             with ex ->
                 ISeffLog.log.PrintfnAppErrorMsg "ERROR in EvaluationTrackerRenderer.Draw(): %A" ex

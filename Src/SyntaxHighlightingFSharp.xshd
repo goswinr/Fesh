@@ -18,10 +18,10 @@
   use this extension to show colors in vs code:
   https://marketplace.visualstudio.com/items?itemName=kamikillerto.vscode-colorize  
   -->
-  <Color name="Comment"             foreground="#887788" fontWeight="300" fontStyle="italic" stylisticSet1="true"/> 
-  <Color name="DocComment"          foreground="#009900" fontWeight="300" fontStyle="italic" />
+  <Color name="Comment"             foreground="#777777" fontWeight="300" fontStyle="italic" stylisticSet1="true"/> 
+  <Color name="DocComment"          foreground="#005500" fontWeight="300" fontStyle="italic" />
   <Color name="TODO"                foreground="#EE0000" fontWeight="800"/>
-  <Color name="HACK"                foreground="#FF8800" fontWeight="800"/>
+  <Color name="HACK"                foreground="#A0A000" fontWeight="800"/>
   
   <Color name="String"              foreground="#BB1111" />
   <Color name="StringVerbatim"      foreground="#CC0000" />  
@@ -41,8 +41,6 @@
   <Color name="Punctuation"         foreground="#8855FF" />
   <Color name="Attributes"          foreground="#AA88AA" />  
   <Color name="Keywords"            foreground="#0000DD"  fontWeight="normal" fontStyle="italic"  stylisticSet1="true"/>
-  <Color name="KeywordsBranch"      foreground="#AA00DD"  fontWeight="normal" fontStyle="italic"  stylisticSet1="true"/>
-  <Color name="KeywordsMut"         foreground="#D08030"  fontWeight="normal" fontStyle="italic"  stylisticSet1="true"/>
   <Color name="KeywordsBang"        foreground="#2200DD"  fontWeight="bold"   fontStyle="italic"  stylisticSet1="true"/>
   <Color name="Keywords2"           foreground="#BB0044"  fontWeight="bold"   fontStyle="italic"  stylisticSet1="true"/>
   <Color name="Keywords2Bang"       foreground="#BB0044"  fontWeight="bold"   fontStyle="italic"  stylisticSet1="true"/> 
@@ -173,26 +171,18 @@
     <Rule color="Keywords2Bang">yield!</Rule>
     <Rule color="Keywords2Bang">return!</Rule>
     <Rule color="Keywords2Bang">use!</Rule>   
+
      
     <Keywords color="Keywords2">
       <Word>yield</Word> 
       <Word>return</Word>
       <Word>rec</Word> 
       <Word>and</Word>
-    </Keywords>
 
-    <Keywords color="KeywordsBranch">
-      <Word>elif</Word>
-      <Word>else</Word>
-      <Word>for</Word>
-      <Word>do</Word>      
-      <Word>if</Word>
-      <Word>in</Word>
-      <Word>to</Word>
-      <Word>then</Word>
     </Keywords>
 
     <Keywords color="Keywords">
+
       <Word>__SOURCE_DIRECTORY__</Word>
       <Word>__SOURCE_FILE__</Word>
       <Word>__LINE__</Word>
@@ -205,18 +195,24 @@
       <Word>class</Word>
       <Word>default</Word>
       <Word>delegate</Word>
+      <Word>do</Word>      
       <Word>done</Word>
       <Word>downcast</Word>
       <Word>downto</Word>
+      <Word>elif</Word>
+      <Word>else</Word>
       <Word>end</Word>
       <Word>exception</Word>
       <Word>extern</Word>
       <!-- <Word>FALSE</Word> -->
       <Word>finally</Word>
       <Word>fixed</Word>    
+      <Word>for</Word>
       <Word>fun</Word>
       <Word>function</Word>
       <Word>global</Word>
+      <Word>if</Word>
+      <Word>in</Word>
       <Word>inherit</Word>
       <Word>inline</Word>
       <Word>interface</Word>
@@ -240,6 +236,8 @@
       <Word>select</Word>
       <Word>static</Word>
       <Word>struct</Word>
+      <Word>then</Word>
+      <Word>to</Word>
       <!-- <Word>TRUE</Word> -->
       <Word>try</Word>      
       <Word>typeof</Word>
@@ -336,7 +334,7 @@
         
         <Span color="LoadNuget" multiline="false">
           <Begin color="LoadDllPath">"nuget:</Begin>  
-          <End color="LoadDllPath">"|(,\s\d+.\d+.\d+")</End> 
+          <End color="LoadDllPath">"|(,.+")</End> 
         </Span> 
         <Span color="LoadDll" multiline="false">
           <Begin color="LoadDllPath">@?"[^\s\/][^"]+(\\|\/)|@?"(?=[^\s\/])</Begin>  <!--matches the directories part of a full file path-->

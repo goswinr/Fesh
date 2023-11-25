@@ -208,7 +208,7 @@ type LineTransformers<'T>() =    // generic so it can work for LinePartChange an
  
 /// An efficient DocumentColorizingTransformer using line number indices into a line transformer list.
 type FastColorizer(transformers:LineTransformers<LinePartChange> [], ed:TextEditor) = 
-    inherit Rendering.DocumentColorizingTransformer()  
+    inherit DocumentColorizingTransformer()  
 
     member _.AdjustShifts(s:Shift) = 
         for i = 0 to transformers.Length-1 do
@@ -254,9 +254,10 @@ type FastColorizer(transformers:LineTransformers<LinePartChange> [], ed:TextEdit
                         //ISeffLog.log.PrintfnDebugMsg $"{from}-{till}; DocLine {offSt}-{offEn} on line: {lineNo}; doc.Text.Length {ed.Document.TextLength} (shift:{shiftChecked})" 
                         base.ChangeLinePart(from, till, lpc.act)
 
+(*
 
 type DebugColorizer(transformers:LineTransformers<LinePartChange> [], ed:TextEditor) = 
-    inherit Rendering.DocumentColorizingTransformer()  
+    inherit DocumentColorizingTransformer()  
     let t = Diagnostics.Stopwatch()
 
     /// This gets called for every visible line on every Redraw
@@ -273,7 +274,7 @@ type DebugColorizer(transformers:LineTransformers<LinePartChange> [], ed:TextEdi
             ISeffLog.log.PrintfFsiErrorMsg $"%d{lineNo}, "   
 
 type DebugColorizer2(transformers:LineTransformers<LinePartChange> [], ed:TextEditor) = 
-    inherit Rendering.DocumentColorizingTransformer()  
+    inherit DocumentColorizingTransformer()  
 
     /// This gets called for every visible line on every Redraw
     override _.ColorizeLine(line:Document.DocumentLine) =   
@@ -291,4 +292,5 @@ type DebugColorizer2(transformers:LineTransformers<LinePartChange> [], ed:TextEd
                     eprintfn $"%d{lineNo} no shift"
                 else
                     eprintfn $"%d{lineNo} shift: {shift.fromOff} {shift.fromLine} {shift.amountOff} {shift.amountLines} line from {offSt} to {offEn}"
+*)
                 

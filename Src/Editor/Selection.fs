@@ -148,9 +148,6 @@ module Selection =
         | :? SimpleSelection  -> false
         | x -> failwithf "Unknown selection class in hasNoSelection: %A" x
 
-    let selectAll(avaEdit:TextEditor) = 
-        let doc = avaEdit.Document
-        avaEdit.Select(0,doc.TextLength)
 
     /// text of line at current Caret
     /// Returns start line umber and line  text
@@ -194,8 +191,8 @@ module SelectionForEval =
         let doc = avaEdit.Document
         let st = doc.GetLineByOffset(avaEdit.SelectionStart)
         let en = doc.GetLineByOffset(avaEdit.SelectionStart + avaEdit.SelectionLength)
-        let stoff = st.Offset
-        avaEdit.Select(stoff,en.EndOffset-stoff)
+        let stOff = st.Offset
+        avaEdit.Select(stOff,en.EndOffset-stOff)
         let s = avaEdit.TextArea.Selection
         let t = avaEdit.SelectedText
         {
@@ -220,7 +217,7 @@ module SelectionForEval =
         }
 
     (*
-    /// returns start line umber and selected text, end offset
+    /// returns start line number and selected text, end offset
     let linesFromCursor(avaEdit:TextEditor) = 
         let doc = avaEdit.Document
         let st = doc.GetLineByOffset(avaEdit.SelectionStart)
