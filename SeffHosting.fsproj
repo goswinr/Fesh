@@ -54,12 +54,12 @@
 
   <ItemGroup>
     <!-- normally don't include FSharp.Core in a library, but Update to latest version is needed for latest FSharp.Compiler.Service-->
-	  <PackageReference Update="FSharp.Core" Version="7.0.400" />
-	  <PackageReference Include="FSharp.Compiler.Service" Version="43.7.400"  />
+	  <PackageReference Update="FSharp.Core" Version="8.0.100" />
+	  <PackageReference Include="FSharp.Compiler.Service" Version="43.8.100" />
 	  <PackageReference Include="Fittings" Version="0.6.0" />
 	  <PackageReference Include="AvalonLog" Version="0.12.0" />	    
 
-    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.1" PrivateAssets="All" IncludeAssets="runtime; build; native; contentfiles; analyzers; buildtransitive" />
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="all" IncludeAssets="runtime; build; native; contentfiles; analyzers; buildtransitive" />
     <!-- https://docs.microsoft.com/en-us/nuget/consume-packages/package-references-in-project-files#controlling-dependency-assets -->
   </ItemGroup>
 

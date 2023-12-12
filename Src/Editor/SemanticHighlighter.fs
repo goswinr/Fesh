@@ -253,17 +253,17 @@ type SemanticHighlighter (state: InteractionState) =
                         loopSemantic (i+1)
             
             // (2) find bad indents:
-            let rec loopIndent i = 
-                if i > codeLines.LastLineIdx then 
+            let rec loopIndent lnNo = 
+                if lnNo > codeLines.LastLineIdx then 
                     true // reached end
                 else
-                    match codeLines.GetLine(i,id) with 
+                    match codeLines.GetLine(lnNo,id) with 
                     | ValueNone -> false // exit early
                     | ValueSome ln -> 
                         if ln.indent % defaultIndenting <> 0 then // indent is not a multiple of defaultIndenting
                             if ln.indent <> ln.len then // exclude all white lines
-                                LineTransformers.Insert(newTrans, i , {from=ln.offStart; till=ln.offStart+ln.indent; act=semActs.BadIndentAction} )
-                        loopIndent (i+1)
+                                LineTransformers.Insert(newTrans, lnNo , {from=ln.offStart; till=ln.offStart+ln.indent; act=semActs.BadIndentAction} )
+                        loopIndent (lnNo+1)
 
             
             // (3) find unused declarations:
@@ -285,12 +285,15 @@ type SemanticHighlighter (state: InteractionState) =
                             let en = offLn.offStart + r.EndColumn
                             LineTransformers.Insert(newTrans,lineNo, {from=st; till=en; act=semActs.UnUsed})
                             loopUnused (i+1)
-                loopUnused 1 
+                loopUnused 0 
+           
             
-            if loopSemantic 1 && loopIndent 1 && getUnused() then                
+            if loopSemantic 0 
+            && loopIndent 1 // lines start at 1
+            && getUnused() then                
                 trans.Update(newTrans)
-                foundSemanticsEv.Trigger(id)   
-
+                foundSemanticsEv.Trigger(id) 
+            
 
 
 

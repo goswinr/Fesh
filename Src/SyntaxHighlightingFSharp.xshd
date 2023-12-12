@@ -308,6 +308,15 @@
       <End color="StringEscaped">\}</End> 
     </Span> 
   </RuleSet >
+
+  <RuleSet name="_StringDollarDollarFormatSet">     
+    <Import ruleSet="_StringFormatSet"/> 
+    <Span color="DollarInlines">
+      <Begin color="StringEscaped">\{\{</Begin>  
+      <End color="StringEscaped">\}\}</End> 
+    </Span> 
+  </RuleSet >
+  
   
   <RuleSet name="LoadDllSet">
 
@@ -362,36 +371,38 @@
     <Span color="Char" > 
       <Begin>'(?=\\)|'.(?=')</Begin>  <!-- a ' followed by one or zero \ then any char and then another ' in look ahead-->
       <End>'</End>     
-      <RuleSet>
-        <Import ruleSet="_StringEscapeSet"/>
-      </RuleSet>
+      <RuleSet> <Import ruleSet="_StringEscapeSet"/> </RuleSet>
     </Span>
     
     <Span color="StringVerbatim" multiline="true">
-      <Begin>@"</Begin>
-      <End>"</End>      
+      <Begin>@"</Begin> <End>"</End>      
     </Span>
 
     <Span color="StringVerbatim" multiline="true">
-      <Begin>"""</Begin>
-      <End>"""</End>
+      <Begin>"""</Begin> <End>"""</End>
     </Span>
     
     <Span color="String" multiline="true"> 
-      <Begin>\$"</Begin>  
-      <End>"</End>    
+      <Begin>\$\$"""</Begin> <End>"""</End>    
+      <RuleSet> <Import ruleSet="_StringDollarDollarFormatSet"/></RuleSet>
+    </Span>
+    
+    <Span color="String" multiline="true"> 
+      <Begin>\$"""</Begin><End>"""</End>    
+      <RuleSet> <Import ruleSet="_StringDollarFormatSet"/></RuleSet>
+    </Span>  
+    
+    <Span color="String" multiline="true"> 
+      <Begin>\$"</Begin> <End>"</End>    
       <RuleSet>        
         <Import ruleSet="_StringDollarFormatSet"/>
         <Import ruleSet="_StringEscapeSet"/>
       </RuleSet>
-    </Span>
+    </Span>    
 
     <Span color="String" multiline="true"> 
-      <Begin>"</Begin>  
-      <End>"</End>    
-      <RuleSet>
-        <Import ruleSet="_StringEscapeSet"/>
-      </RuleSet>
+      <Begin>"</Begin>  <End>"</End>    
+      <RuleSet> <Import ruleSet="_StringEscapeSet"/> </RuleSet>
     </Span>
   </RuleSet>
   

@@ -98,9 +98,9 @@ module Redrawing =
                             //eprintfn $"Redrawing full: id={id}, idSemantics={idSemantics}, idBrackets={idBrackets}, idErrors={idErrors}, idSels={idSels}, idFolds={idFolds}"
                             ed.TextArea.TextView.Redraw(priority)  
                     } |> Async.Start
-                else
-                    ISeffLog.log.PrintfnAppErrorMsg $"Can redraw, check id that is wrong: id={id}" 
-                    ISeffLog.log.PrintfnAppErrorMsg $"idSemantics={idSemantics}, idBrackets={idBrackets}, idErrors={idErrors}, idSels={idSels}, idFolds={idFolds}"
+                // else
+                //     ISeffLog.log.PrintfnAppErrorMsg $"Can't redraw, check id that is wrong: id={id}" 
+                //     ISeffLog.log.PrintfnAppErrorMsg $"idSemantics={idSemantics}, idBrackets={idBrackets}, idErrors={idErrors}, idSels={idSels}, idFolds={idFolds}"
        
   
         let doneBrackets(id)   = idBrackets   <- id ;  tryDraw(id)

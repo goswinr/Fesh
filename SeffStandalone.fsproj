@@ -49,15 +49,15 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Update="FSharp.Core" Version="7.0.400" GeneratePathProperty="true" />
+    <PackageReference Update="FSharp.Core" Version="8.0.100" GeneratePathProperty="true" />
 
     <!-- These 4 packages are just added  explicitly again to pull in XML too below. -->
-    <PackageReference Include="FSharp.Compiler.Service" Version="43.7.400" GeneratePathProperty="true" />    
-    <PackageReference Include="AvalonLog" Version="0.12.0" GeneratePathProperty="true"  />
+    <PackageReference Include="FSharp.Compiler.Service" Version="43.8.100" GeneratePathProperty="true" />    
+    <PackageReference Include="AvalonLog" Version="0.12.0" GeneratePathProperty="true" />
     <PackageReference Include="Fittings" Version="0.6.0" GeneratePathProperty="true" />
     <PackageReference Include="AvalonEditB" Version="2.2.0" GeneratePathProperty="true" />   
 
-    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.1" PrivateAssets="All" IncludeAssets="runtime; build; native; contentfiles; analyzers; buildtransitive" />    
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="all" IncludeAssets="runtime; build; native; contentfiles; analyzers; buildtransitive" />    
     <!-- https://docs.microsoft.com/en-us/nuget/consume-packages/package-references-in-project-files#controlling-dependency-assets -->
 
     <!--this reference is needed for tooling only, it might not be installed on host PC. see also https://github.com/fsprojects/IfSharp/issues/213 -->
