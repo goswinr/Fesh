@@ -153,27 +153,7 @@ type SemanticHighlighter (state: InteractionState) =
             return unusedDecl
             }  
         |> Async.RunSynchronously
-    
-    // skip semantic highlighting for these, covered in xshd:
-    let skipFunc(st:int, en:int)=        
-        let w = codeLines.FullCode.[st..en]
-        w.StartsWith    "failwith"
-        || w.StartsWith "failIfFalse" // from FsEx
-        || w.StartsWith "print"
-        || w.StartsWith "eprint"
-
-    let skipModul(st:int, en:int)=        
-        let w = codeLines.FullCode.[st..en]
-        w.StartsWith "Printf"
-    
-    /// because some times the range of a property starts before the point
-    let correctStart(st:int, en:int) = 
-        // search from back to find last dot, there may be more than one
-        // at file end the end column in the reported range might be equal to FullCode.Length, so we do -1 to avoid a ArgumentOutOfRangeException.
-        match codeLines.FullCode.LastIndexOf('.', en-1, en-st) with 
-        | -1 -> st 
-        |  i -> i + 1
-       
+      
 
     //let action (el:VisualLineElement,brush:SolidColorBrush,r:Text.Range) = el.TextRunProperties.SetForegroundBrush(Brushes.Red)
     let defaultIndenting = state.Editor.Options.IndentationSize
@@ -204,7 +184,36 @@ type SemanticHighlighter (state: InteractionState) =
                     match codeLines.GetLine(lineNo,id) with 
                     | ValueNone -> false // exit early
                     | ValueSome ln ->                       
-                        let inline push(f,t,a) =  LineTransformers.Insert(newTrans, lineNo,{from=f; till=t; act=a})
+                        let inline push(f,t,a)     =  LineTransformers.Insert(newTrans, lineNo,{from=f; till=t; act=a})
+                        let inline pushCorr(f,t,a) =  
+                            if codeLines.CorrespondingId = id then // to avoid out of range exception on codeLines.FullCode                             
+                                // because some times the range of a property starts before the point                        
+                                // search from back to find last dot, there may be more than one
+                                // at file end the end column in the reported range might be equal to FullCode.Length, so we do -1 to avoid a ArgumentOutOfRangeException.
+                                let st = 
+                                    try
+                                        match codeLines.FullCode.LastIndexOf('.', t-1, t-f) with 
+                                        | -1 -> f 
+                                        |  i -> i + 1
+                                    with
+                                        | _ -> eprintfn $"SemanticHighlighter: pushCorr: ArgumentOutOfRangeException: {sem.Type} {f} to {t} for {codeLines.FullCode.Length} chars"; f
+                                push(st,t,a)
+
+                        // skip semantic highlighting for these, covered in xshd:
+                        let inline skipFunc(st:int, en:int)=        
+                            if codeLines.CorrespondingId <> id then true // to avoid out of range exception
+                            else 
+                                let w = codeLines.FullCode.[st..en]
+                                w.StartsWith    "failwith"
+                                || w.StartsWith "failIfFalse" // from FsEx
+                                || w.StartsWith "print"
+                                || w.StartsWith "eprint"                                
+
+                        let inline skipModul(st:int, en:int)=  
+                            if codeLines.CorrespondingId <> id then true // to avoid out of range exception
+                            else       
+                                let w = codeLines.FullCode.[st..en]
+                                w.StartsWith "Printf"
                         
                         let st = ln.offStart + r.StartColumn                 
                         let en = ln.offStart + r.EndColumn
@@ -215,8 +224,8 @@ type SemanticHighlighter (state: InteractionState) =
                         | Sc.ValueType                   -> push(st,en, semActs.ValueType                  )
                         | Sc.UnionCase                   -> push(st,en, semActs.UnionCase                  )
                         | Sc.UnionCaseField              -> push(st,en, semActs.UnionCaseField             )
-                        | Sc.Function                    -> if not(skipFunc(st,en)) then push(correctStart(st,en),en, semActs.Function)
-                        | Sc.Property                    -> push(correctStart(st,en),en, semActs.Property  )// correct so that a string or number literal before the dot does not get colored
+                        | Sc.Function                    -> if not(skipFunc(st,en)) then pushCorr(st,en, semActs.Function)
+                        | Sc.Property                    -> pushCorr(st,en, semActs.Property)// correct so that a string or number literal before the dot does not get colored
                         | Sc.MutableVar                  -> push(st,en, semActs.MutableVar                 )
                         | Sc.Module                      -> if not(skipModul(st,en)) then push(st,en, semActs.Module)
                         | Sc.Namespace                   -> push(st,en, semActs.Namespace                  )
@@ -229,8 +238,8 @@ type SemanticHighlighter (state: InteractionState) =
                         | Sc.DisposableType              -> push(st,en, semActs.DisposableType             )
                         | Sc.DisposableTopLevelValue     -> push(st,en, semActs.DisposableTopLevelValue    )
                         | Sc.DisposableLocalValue        -> push(st,en, semActs.DisposableLocalValue       )
-                        | Sc.Method                      -> push(correctStart(st,en),en, semActs.Method    )// correct so that a string or number literal before the dot does not get colored
-                        | Sc.ExtensionMethod             -> push(correctStart(st,en),en, semActs.ExtensionMethod)
+                        | Sc.Method                      -> pushCorr(st,en, semActs.Method)// correct so that a string or number literal before the dot does not get colored
+                        | Sc.ExtensionMethod             -> pushCorr(st,en, semActs.ExtensionMethod)
                         | Sc.ConstructorForReferenceType -> push(st,en, semActs.ConstructorForReferenceType)
                         | Sc.ConstructorForValueType     -> push(st,en, semActs.ConstructorForValueType    )
                         | Sc.Literal                     -> push(st,en, semActs.Literal                    )

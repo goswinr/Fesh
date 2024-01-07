@@ -191,7 +191,7 @@ type Tabs(config:Config, log:Log,seffWin:SeffWindow) =
                     if not <| fi.Directory.Exists then
                         log.PrintfnIOErrorMsg "saveAsync: Directory does not exist, file not saved :\r\n%s" fi.Directory.FullName
                     else
-                        IO.File.WriteAllText(fi.FullName, txt,Text.Encoding.UTF8)
+                        IO.File.WriteAllText(fi.FullName, txt, Text.Encoding.UTF8)
                         t.Editor.CodeAtLastSave <- txt
                         t.AvaEdit.Dispatcher.Invoke(fun ()->
                             t.IsCodeSaved <- true
@@ -324,13 +324,14 @@ type Tabs(config:Config, log:Log,seffWin:SeffWindow) =
                 true
             | None -> // regular case, actually open file
                 try
-                    let code =  
-                        IO.File.ReadAllText (fi.FullName, Text.Encoding.UTF8) 
+                    let codeRaw = IO.File.ReadAllText (fi.FullName, Text.Encoding.UTF8) 
+                    let codeClean =  
+                        codeRaw
                         |> Util.Str.unifyLineEndings 
                         |> Util.Str.tabsToSpaces (config.Settings.GetInt("IndentationSize",4))
-                    let ed = Editor.SetUp(code, config, SetTo fi)
+                    let ed = Editor.SetUp(codeClean, config, SetTo fi)
                     let t = new Tab(ed)
-                    t.Editor.CodeAtLastSave <- code
+                    t.Editor.CodeAtLastSave <- codeRaw
                     //log.PrintfnDebugMsg "adding Tab %A in %A " t.Editor.FilePath t.Editor.FileCheckState
                     addTab(t,makeCurrent, moreTabsToCome)
                     true
