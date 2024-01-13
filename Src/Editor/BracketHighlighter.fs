@@ -78,10 +78,17 @@ module ParseBrackets =
     let finAll(lns:CodeLineTools.CodeLines, id) : ResizeArray<ResizeArray<Bracket>> option=
         let code = lns.FullCode
 
-        let brss = ResizeArray<ResizeArray<Bracket>>() 
-               
+        let brss = ResizeArray<ResizeArray<Bracket>>()                
                
         let readLine(brs:ResizeArray<Bracket>, prevState: MuliLineState, firstIdx, lastIdx) : MuliLineState =             
+            
+            let rec skipChar chr i :int = 
+                if i=lastIdx then
+                    Int32.MaxValue // char flows over to the next line (invalid F# char literal)
+                else
+                    match chr with 
+                    | ''' ->  i+1 // first char after char literal                                 
+                    |  _  -> skipChar code[i+1] (i+1)
             
             /// for simple strings
             let rec skipString chr i :int  =  // give the character and it's index
@@ -92,12 +99,23 @@ module ParseBrackets =
                 else 
                     let next = code[i+1]
                     match chr, next with 
-                    | '"' ,  _  -> i+1 // first char after string
+                    | '"' ,  _  -> 
+                        i+1 // first char after string
                     | '\\', '"' -> 
-                        let i2 = i+2
-                        if i2 = lastIdx then Int32.MaxValue // string flows over to the next line 
-                        else skipString code[i2] (i2) // jump over escaped quote \"                        
-                    |  _  -> skipString next (i+1)
+                        if i+1 = lastIdx then 
+                            Int32.MaxValue // string flows over to the next line 
+                        else 
+                            skipString code[i+2] (i+2) // jump over escaped quote \"
+                        
+                        
+                        
+                        // let i2 = i+2
+                        // if i2 >= lastIdx then 
+                        //     Int32.MaxValue // string flows over to the next line 
+                        // else 
+                        //     skipString code[i2] (i2) // jump over escaped quote \"                        
+                    |  _  -> 
+                        skipString next (i+1)
 
             /// for strings starting with @"
             let rec skipRawAtString chr i :int =  // give the character and it's index
@@ -130,7 +148,6 @@ module ParseBrackets =
                     Int32.MaxValue
             
             
-            
             let rec charLoop chr i : MuliLineState =                
 
                 let inline pushExit      br = brs.Add {kind=br; from = i} ; RegCode
@@ -140,7 +157,7 @@ module ParseBrackets =
                 let flowOnOrOver (state:MuliLineState) ii = 
                     match ii with 
                     | Int32.MaxValue -> state
-                    | jj             -> if jj <= lastIdx then charLoop code[jj] jj else  RegCode
+                    | jj             -> if jj <= lastIdx then charLoop code[jj] jj else RegCode
                 
                 
                 if i > lastIdx then // exit loop, end of line reached
@@ -197,6 +214,18 @@ module ParseBrackets =
                                     RawAtString // the line ends immediately after @"
                     
                     | '"', _  -> skipString next (i+1)  |> flowOnOrOver SimpleString //a  regular string starts,                                      
+                    
+                    | ''', '\\' ->  if i + 3 <= lastIdx then 
+                                        let next3 = code[i+3] //skip the first char after '\ it might be a ' or a " .
+                                        skipChar next3 (i+3) |> flowOnOrOver RegCode                                        
+                                    else  
+                                        RegCode // the line ends immediately after '\"' or '\''
+                    | ''', '''
+                    | ''', '"' ->   if i + 3 <= lastIdx then  
+                                        let next3 = code[i+3] // the char after '"' or after '''
+                                        charLoop next3 (i+3)
+                                    else  
+                                        RegCode // the line ends immediately after '"' or '''
 
                     | _       -> charLoop next (i+1)
 
