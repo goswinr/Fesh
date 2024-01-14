@@ -105,15 +105,7 @@ module ParseBrackets =
                         if i+1 = lastIdx then 
                             Int32.MaxValue // string flows over to the next line 
                         else 
-                            skipString code[i+2] (i+2) // jump over escaped quote \"
-                        
-                        
-                        
-                        // let i2 = i+2
-                        // if i2 >= lastIdx then 
-                        //     Int32.MaxValue // string flows over to the next line 
-                        // else 
-                        //     skipString code[i2] (i2) // jump over escaped quote \"                        
+                            skipString code[i+2] (i+2) // jump over escaped quote \"                                    
                     |  _  -> 
                         skipString next (i+1)
 

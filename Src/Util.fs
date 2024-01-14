@@ -367,7 +367,7 @@ module NotInQuotes =
     let contains (find:string) (txt:string)= 
         indexOf find txt > -1 
         
-    /// check if the last character is in a string literal (= inside quotes)
+    /// check if the last character is not in a string literal (= inside quotes)
     let isLastCharOutsideQuotes (txt:string)  =  
         let rec loop fromIdx =
             if fromIdx = txt.Length then true 

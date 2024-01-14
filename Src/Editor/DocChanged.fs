@@ -437,11 +437,13 @@ module DocChangeCompletion =
                                     match drawServ.compls.TryShow(decls, posX, showRestrictions, checkAndMark) with 
                                     |NoShow ->                                         
                                         state.DocChangedConsequence <- React
-                                        DocChangeMark.updateAllTransformersAsync(iEd, drawServ, state, state.Increment())// incrementing because it was disabled from  state.DocChangedConsequence <- WaitForCompletions
+                                        DocChangeMark.updateAllTransformersAsync(iEd, drawServ, state, state.Increment())// incrementing because it was disabled from state.DocChangedConsequence <- WaitForCompletions
                                     |DidShow -> 
+                                        // completion window is showing now,
                                         // no need to do anything, 
                                         // DocChangedConsequence will be updated to 'React' when completion window closes
                                         // and checkAndMark will be called.
+                                        
                                         () 
                                
                 } |> Async.Start
@@ -458,7 +460,7 @@ module DocChangeEvents =
             ()
         | React -> 
             //ISeffLog.log.PrintfnDebugMsg $"react for '{a.InsertedText.Text}'"
-            state.Increment() |> ignore // incrementing this handler before the change actually happens, but  only increment when a reaction is required.        
+            state.Increment() |> ignore // incrementing this handler before the change actually happens, but only increment when a reaction is required.        
         
         // (2) Adjust Shifts
         let shift = getShift(state.Editor.Document, a)
