@@ -52,7 +52,7 @@
   <Color name="HexNumberLiteral"    foreground="#FF8800" />
   <Color name="BinNumberLiteral"    foreground="#FF8800" /> 
   <Color name="NumberType"          foreground="#888888" />
-  <Color name="FailPath"            foreground="#888888" />
+  <Color name="FailStatement"       foreground="#888888" />
   <Color name="FailString"          foreground="#D0A040" fontWeight="normal" fontStyle="italic" />  
   <Color name="Exception"           foreground="#C06030" />
   <Color name="PrintStatement"      foreground="#206060" />
@@ -296,12 +296,12 @@
   </RuleSet >
   
   <RuleSet name="_StringFormatSet">    
-    <Span color="StringEscaped"><Begin>%</Begin>  <End>[sfd%bciuxXoeEfFgGeEgGMOAAat]</End> </Span> 
+    <Span color="StringEscaped"><Begin>%</Begin> <End>[sfd%bciuxXoeEfFgGeEgGMOAAat]</End> </Span> 
   </RuleSet >
   
   <RuleSet name="_StringDollarFormatSet"> 
-    <Span>  <Begin color="StringEscaped">\{\{</Begin> <End >(?=.)</End>  </Span> 
-    <Span>  <Begin color="StringEscaped">\}\}</Begin> <End >(?=.)</End>  </Span> 
+    <Span> <Begin color="StringEscaped">\{\{</Begin> <End >(?=.)</End>  </Span> 
+    <Span> <Begin color="StringEscaped">\}\}</Begin> <End >(?=.)</End>  </Span> 
     <Import ruleSet="_StringFormatSet"/> 
     <Span color="DollarInlines">
       <Begin color="StringEscaped">\{</Begin>  
@@ -309,14 +309,13 @@
     </Span> 
   </RuleSet >
 
-  <RuleSet name="_StringDollarDollarFormatSet">     
+  <RuleSet name="_StringDoubleDollarFormatSet">     
     <Import ruleSet="_StringFormatSet"/> 
     <Span color="DollarInlines">
       <Begin color="StringEscaped">\{\{</Begin>  
       <End color="StringEscaped">\}\}</End> 
     </Span> 
-  </RuleSet >
-  
+  </RuleSet >  
   
   <RuleSet name="LoadDllSet">
 
@@ -364,10 +363,9 @@
       </RuleSet >  
     </Span>
 
-  </RuleSet >
-  
-  <RuleSet name="StringSet">
-  
+  </RuleSet >  
+
+  <RuleSet name="StringSet">  
     <Span color="Char" > 
       <Begin>'(?=\\)|'.(?=')</Begin>  <!-- a ' followed by one or zero \ then any char and then another ' in look ahead-->
       <End>'</End>     
@@ -375,25 +373,30 @@
     </Span>
     
     <Span color="StringVerbatim" multiline="true">
-      <Begin>@"</Begin> <End>"</End>      
+      <Begin>@"</Begin> 
+      <End>"</End>      
     </Span>
 
     <Span color="StringVerbatim" multiline="true">
-      <Begin>"""</Begin> <End>"""</End>
+      <Begin>"""</Begin> 
+      <End>"""</End>
     </Span>
     
     <Span color="String" multiline="true"> 
-      <Begin>\$\$"""</Begin> <End>"""</End>    
-      <RuleSet> <Import ruleSet="_StringDollarDollarFormatSet"/></RuleSet>
+      <Begin>\$\$"""</Begin> 
+      <End>"""</End>    
+      <RuleSet><Import ruleSet="_StringDoubleDollarFormatSet"/></RuleSet>
     </Span>
     
     <Span color="String" multiline="true"> 
-      <Begin>\$"""</Begin><End>"""</End>    
-      <RuleSet> <Import ruleSet="_StringDollarFormatSet"/></RuleSet>
+      <Begin>\$"""</Begin>
+      <End>"""</End>    
+      <RuleSet><Import ruleSet="_StringDollarFormatSet"/></RuleSet>
     </Span>  
     
     <Span color="String" multiline="true"> 
-      <Begin>\$"</Begin> <End>"</End>    
+      <Begin>\$"</Begin>
+      <End>"</End>    
       <RuleSet>        
         <Import ruleSet="_StringDollarFormatSet"/>
         <Import ruleSet="_StringEscapeSet"/>
@@ -401,10 +404,50 @@
     </Span>    
 
     <Span color="String" multiline="true"> 
-      <Begin>"</Begin>  <End>"</End>    
-      <RuleSet> <Import ruleSet="_StringEscapeSet"/> </RuleSet>
+      <Begin>"</Begin>
+      <End>"</End>    
+      <RuleSet><Import ruleSet="_StringEscapeSet"/> </RuleSet>
     </Span>
   </RuleSet>
+  
+  
+  <RuleSet name="__PrintStr">          
+    <Span color="PrintString" multiline="true"><Begin color="PrintStatement">@"</Begin>     <End color="PrintStatement">"</End></Span>
+    <Span color="PrintString" multiline="true"><Begin color="PrintStatement">"""</Begin>    <End color="PrintStatement">"""</End></Span>      
+    <Span color="PrintString" multiline="true"><Begin color="PrintStatement">\$\$"""</Begin><End color="PrintStatement">"""</End> <RuleSet><Import ruleSet="_StringDoubleDollarFormatSet"/></RuleSet></Span>      
+    <Span color="PrintString" multiline="true"><Begin color="PrintStatement">\$"""</Begin>  <End color="PrintStatement">"""</End> <RuleSet><Import ruleSet="_StringFormatSet"/><Import ruleSet="_StringDollarFormatSet"/></RuleSet></Span>        
+    <Span color="PrintString" multiline="true"><Begin color="PrintStatement">\$"</Begin>    <End color="PrintStatement">"</End>   <RuleSet><Import ruleSet="_StringFormatSet"/><Import ruleSet="_StringDollarFormatSet"/><Import ruleSet="_StringEscapeSet"/></RuleSet></Span>    
+    <Span color="PrintString" multiline="true"><Begin color="PrintStatement">"</Begin>      <End color="PrintStatement">"</End>   <RuleSet><Import ruleSet="_StringFormatSet"/><Import ruleSet="_StringEscapeSet"/></RuleSet></Span>
+  </RuleSet>
+  <RuleSet name="PrintingStringsSet" >
+    <Span color="PrintStatement">      
+      <Begin>\bPrintfn?\.\w+\s+</Begin><End>(?&lt;=")</End> <!-- for Printfn.red and similar functions.--> <!-- (?<=") or  (?&lt;=") is a positive lookbehind for "  -->
+      <RuleSet><Import ruleSet="__PrintStr"/></RuleSet>
+    </Span>    
+    <Span color="PrintStatement">      
+      <Begin>\be?printfn?\s+</Begin><End>(?&lt;=")</End> <!-- for Printfn.red and similar functions.-->
+      <RuleSet><Import ruleSet="__PrintStr"/></RuleSet>
+    </Span>  
+  </RuleSet>
+
+  <RuleSet name="__FailStr">          
+    <Span color="FailString" multiline="true"><Begin color="FailStatement">@"</Begin>     <End color="FailStatement">"</End></Span>
+    <Span color="FailString" multiline="true"><Begin color="FailStatement">"""</Begin>    <End color="FailStatement">"""</End></Span>      
+    <Span color="FailString" multiline="true"><Begin color="FailStatement">\$\$"""</Begin><End color="FailStatement">"""</End> <RuleSet><Import ruleSet="_StringDoubleDollarFormatSet"/></RuleSet></Span>      
+    <Span color="FailString" multiline="true"><Begin color="FailStatement">\$"""</Begin>  <End color="FailStatement">"""</End> <RuleSet><Import ruleSet="_StringFormatSet"/><Import ruleSet="_StringDollarFormatSet"/></RuleSet></Span>        
+    <Span color="FailString" multiline="true"><Begin color="FailStatement">\$"</Begin>    <End color="FailStatement">"</End>   <RuleSet><Import ruleSet="_StringFormatSet"/><Import ruleSet="_StringDollarFormatSet"/><Import ruleSet="_StringEscapeSet"/></RuleSet></Span>    
+    <Span color="FailString" multiline="true"><Begin color="FailStatement">"</Begin>      <End color="FailStatement">"</End>   <RuleSet><Import ruleSet="_StringFormatSet"/><Import ruleSet="_StringEscapeSet"/></RuleSet></Span>
+  </RuleSet>
+  <RuleSet name="FailingStringsSet" >
+    <Span color="FailStatement">      
+      <Begin>failwithf?\s+</Begin><End>(?&lt;=")</End>  <!-- (?<=") or  (?&lt;=") is a positive lookbehind for "  -->
+      <RuleSet><Import ruleSet="__FailStr"/></RuleSet>
+    </Span>
+  </RuleSet>
+  
+  <RuleSet name="DoubleTicksSet">
+    <Span color="InDoubleTicks"  multiline="false" begin="``" end="``" /> 
+  </RuleSet> 
   
   <RuleSet name="PunctuationSet">   
     <!-- the back and forward arrows : -->     
@@ -416,92 +459,13 @@
     <Rule color="Punctuation">[ \. \$ \^ \{ \[ \( \| \)   \? \\ &lt; &gt; &amp;  , : \] \}  ~ !  % = ]</Rule> 
   </RuleSet>
 
-  
-  <RuleSet name="PrintAndFailStatements">
-    <!-- in the semantic highlighting code there is an exclusion for these function names so that this here gets applied-->
-    <Span color="FailString">  
-      <Begin color= "FailPath" >failwithf?\s*\"</Begin>  
-      <End   color= "FailPath" >\"</End>      
-      <RuleSet>
-        <Import ruleSet="_StringEscapeSet"/>
-        <Import ruleSet="_StringFormatSet"/>
-      </RuleSet>
-    </Span>
-    <Span color="FailString">  
-      <Begin color= "FailPath" >failwithf?\s*\$\"</Begin>  <!-- With $"{}" formatting  -->      
-      <End   color= "FailPath" >\"</End>      
-      <RuleSet>
-        <Import ruleSet="_StringEscapeSet"/>
-        <Import ruleSet="_StringFormatSet"/>
-        <Import ruleSet="_StringDollarFormatSet"/>
-      </RuleSet>
-    </Span>
-
-    <Span color="FailString">  <!-- for failIfFalse and failIfNull. part of FsEx.dll-->
-      <Begin color= "FailPath" >failIf\w+\s*\$?\"</Begin>  
-      <End   color= "FailPath" >\"</End>      
-      <RuleSet>
-        <Import ruleSet="_StringEscapeSet"/>
-        <!-- <Import ruleSet="_StringFormatSet"/> formatting not possible in failIfFalse and similar functions -->
-      </RuleSet>
-    </Span>
-
-    <!-- in case they are followed by a name and not a literal string starting with "-->
-    <Keywords color = "PrintStatement">
-      <Word>print</Word> <!-- part of FsEx.dll-->      
-      <Word>printFull</Word>
-    </Keywords>
-  
-    <Span color="PrintString" >      
-      <Begin color= "PrintStatement" >\bPrintfn?\.\w+\s+\"</Begin> <!-- for Printfn.red and similar functions. With $"{}" formatting -->
-      <End   color= "PrintStatement" >\"</End>     
-      <RuleSet>
-        <Import ruleSet="_StringEscapeSet"/>
-        <Import ruleSet="_StringFormatSet"/>             
-      </RuleSet>
-    </Span>
-
-    <Span color="PrintString" >      
-      <Begin color= "PrintStatement" >\bPrintfn?\.\w+\s+\$\"</Begin> <!-- for Printfn.red and similar functions. With $"{}" formatting -->
-      <End   color= "PrintStatement" >\"</End>     
-      <RuleSet>
-        <Import ruleSet="_StringEscapeSet"/>
-        <Import ruleSet="_StringFormatSet"/> 
-        <Import ruleSet="_StringDollarFormatSet"/>       
-      </RuleSet>
-    </Span>
-
-    <Span color="PrintString" >      
-      <Begin color= "PrintStatement" >\be?printf?n?\s*\$\"</Begin> <!-- With $"{}" formatting  -->
-      <End   color= "PrintStatement" >\"</End>     
-      <RuleSet>
-        <Import ruleSet="_StringEscapeSet"/>
-        <Import ruleSet="_StringFormatSet"/>
-        <Import ruleSet="_StringDollarFormatSet"/>
-      </RuleSet>
-    </Span>
-
-    <Span color="PrintString" >      
-      <Begin color= "PrintStatement" >\be?printf?n?.\s*\"</Begin> 
-      <End   color= "PrintStatement" >\"</End>     
-      <RuleSet>
-        <Import ruleSet="_StringEscapeSet"/>
-        <Import ruleSet="_StringFormatSet"/>        
-      </RuleSet>
-    </Span>
-
-  </RuleSet>
-
-  <RuleSet name="DoubleTicksSet">
-    <Span color="InDoubleTicks"  multiline="false" begin="``" end="``" /> 
-  </RuleSet> 
-
   <RuleSet name="CodeMain">
     <Import ruleSet="CommentSet"/> 
     <Import ruleSet="InlineCommentSet"/> 
     <Import ruleSet="StringSet"/>
     <Import ruleSet="KeywordSet"/>    
-    <Import ruleSet="PrintAndFailStatements"/>
+    <Import ruleSet="PrintingStringsSet"/>
+    <Import ruleSet="FailingStringsSet"/>
     <Import ruleSet="DoubleTicksSet"/>
 
     <!-- a hex number | binary number | (number just starting with floating point | with optional inner floating point) and an optional exponent. https://regexr.com/52d6q -->
@@ -520,7 +484,7 @@
 
     <Span color="NonEval" multiline="true" > <!--anything after a double semicolon is ignored in FSI-->
       <Begin>;;</Begin> 
-      <End>justAnyStringThatNeverHappens</End>
+      <End>@@justAnyStringThatNeverHappens</End>
     </Span> 
 
     <Span color="Attributes">
