@@ -200,6 +200,7 @@ type Foldings(manager:Folding.FoldingManager, state:InteractionState, getFilePat
             // (2.5) save collapsed status again
             // so that when new foldings appeared they are saved immediately
             saveFoldingStatus() 
+            
        
 
     ///Get foldings at every line that is followed by an indent
@@ -231,7 +232,8 @@ type Foldings(manager:Folding.FoldingManager, state:InteractionState, getFilePat
                             let lno = ed.Document.GetLineByOffset f.foldStartOff
                             ISeffLog.log.PrintfnAppErrorMsg $"manager.CreateFolding was given a negative folding from offset {f.foldStartOff} to {f.foldEndOff} on line {lno.LineNumber}"                    
                     isInitialLoad <- false
-                    foundFoldsEv.Trigger(id)
+                    foldsRef.Value <- null // otherwise redrawFoldings() would clear the initial foldings when first type check is complete
+                    foundFoldsEv.Trigger(id)                    
                 
                 // for any change after initial opening of the file
                 elif state.IsLatest id then                     
@@ -264,6 +266,7 @@ type Foldings(manager:Folding.FoldingManager, state:InteractionState, getFilePat
                     else
                         foldsRef.Value <- null
                     foundFoldsEv.Trigger(id)
+                    
             
             } |>  Async.Start
 
