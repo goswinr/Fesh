@@ -15,26 +15,26 @@ open AvalonLog.Brush
 
 
 
-type ColumnRulers (editor:TextEditor)  as this = 
+type ColumnRulers (editor:TextEditor)  as this =
     //https://github.com/icsharpcode/AvalonEdit/blob/master/ICSharpCode.AvalonEdit/Rendering/ColumnRulerRenderer.cs
 
-    let columnsInit = 
+    let columnsInit =
         [0 .. 10] |> List.map ( fun i -> i * editor.Options.IndentationSize)
         //[ 0; 4; 8; 12 ; 16 ; 20 ; 24 ; 28 ; 32 ; 36]
 
     let mutable color = Brushes.White |> darker 20 //24
 
-    let pens = 
+    let pens =
         [
             for _ in columnsInit do
-                let p = new Pen(color, 1.2 )  
+                let p = new Pen(color, 1.2 )
                 p.Freeze()
                 color <- brighter 2 color   // fade out next ruler
                 p
         ]
 
     let columns = ResizeArray(columnsInit)
-    
+
     let pixelSize = PixelSnapHelpers.GetPixelSize(editor.TextArea.TextView)
 
     do
@@ -52,8 +52,8 @@ type ColumnRulers (editor:TextEditor)  as this =
 
     member this.Layer = KnownLayer.Background
 
-    member this.Draw(textView:TextView, drawingContext:DrawingContext) = 
-        
+    member this.Draw(textView:TextView, drawingContext:DrawingContext) =
+
         for column,pen in Seq.zip columns pens do
             let offset = textView.WideSpaceWidth * float column
             let markerXPos = PixelSnapHelpers.PixelAlign(offset, pixelSize.Width) - textView.ScrollOffset.X

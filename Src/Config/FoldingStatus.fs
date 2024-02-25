@@ -9,7 +9,7 @@ open AvalonEditB
 
 
 /// A class to hold the folding status for all recently used files
-type FoldingStatus ( runContext:RunContext, recentlyUsedFiles:RecentlyUsedFiles) = 
+type FoldingStatus ( runContext:RunContext, recentlyUsedFiles:RecentlyUsedFiles) =
 
     let  sep = '|' // separator
 
@@ -19,9 +19,9 @@ type FoldingStatus ( runContext:RunContext, recentlyUsedFiles:RecentlyUsedFiles)
 
     let mutable waitingForFileRead =  true
 
-    let foldingStatus = 
+    let foldingStatus =
         let dict=Dictionary<string,bool []>()
-        async{            
+        async{
             try
                 writer.CreateFileIfMissing("")  |> ignore
                 match writer.ReadAllLines() with
@@ -35,13 +35,13 @@ type FoldingStatus ( runContext:RunContext, recentlyUsedFiles:RecentlyUsedFiles)
                             dict.[k] <- vs
                         | _ -> ISeffLog.log.PrintfnAppErrorMsg "Bad line in FoldingStatus file : '%s'" ln
                 waitingForFileRead <- false
-            with e -> 
+            with e ->
                 waitingForFileRead <- false
                 ISeffLog.log.PrintfnIOErrorMsg $"reading folding status failed with\r\n {e}"
             } |> Async.Start
         dict
 
-    let foldingStatusAsString () = 
+    let foldingStatusAsString () =
         let sb = StringBuilder()
         for KeyValue(k,v) in foldingStatus do
             if recentlyUsedFiles.Contains(k)then // to limit number of files and remove files that don't exist anymore ?
@@ -52,13 +52,13 @@ type FoldingStatus ( runContext:RunContext, recentlyUsedFiles:RecentlyUsedFiles)
     /// to indicate end of async reading
     member this.WaitingForFileRead = waitingForFileRead
 
-    member this.Get(path:FilePath) = 
+    member this.Get(path:FilePath) =
         match path with
         | NotSet _ -> [| |]
         | Deleted fi | SetTo fi ->
             match foldingStatus.TryGetValue fi.FullName with
             |true,vs -> vs
-            |_      -> 
+            |_      ->
                 match foldingStatus.TryGetValue fi.Name with // just in case the file moved folder
                 |true,vs -> vs
                 |_      -> [| |]
@@ -70,9 +70,9 @@ type FoldingStatus ( runContext:RunContext, recentlyUsedFiles:RecentlyUsedFiles)
             let vs = [| for f in manager.AllFoldings do f.IsFolded |]
             let ok, curr = foldingStatus.TryGetValue fi.FullName
             if not ok || curr <> vs then // only update if there are changes or setting is missing.
-                foldingStatus.[fi.FullName] <- vs 
+                foldingStatus.[fi.FullName] <- vs
                 foldingStatus.[fi.Name]     <- vs // so that it still works in case the file moves folder
                 writer.WriteIfLast (foldingStatusAsString, 800)
 
-    member this.Save() = 
+    member this.Save() =
         writer.WriteIfLast ( foldingStatusAsString, 800)

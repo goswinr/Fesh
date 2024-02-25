@@ -13,7 +13,7 @@ open Seff.Model
 type FileToOpen = {file:FileInfo; makeCurrent:bool}
 
 /// Files that are open when closing the editor window, for next restart
-type OpenTabs  (runContext:RunContext, startupArgs:string[]) = 
+type OpenTabs  (runContext:RunContext, startupArgs:string[]) =
 
     let filePath0 = runContext.GetPathToSaveAppData("CurrentlyOpenFiles.txt")
     let writer = SaveReadWriter(filePath0,ISeffLog.printError)
@@ -26,7 +26,7 @@ type OpenTabs  (runContext:RunContext, startupArgs:string[]) =
 
     let filesInArgs = startupArgs |> Array.filter File.Exists
 
-    let files = 
+    let files =
         let files = ResizeArray()
         let dup =  HashSet()
         let mutable curr =""
@@ -35,11 +35,11 @@ type OpenTabs  (runContext:RunContext, startupArgs:string[]) =
         // If ther are file in the startup args only open those, not the previously open files.
         // This is to avoid openinh the same files twice.
         // One instance of Seff might be open with some files.
-        // If the user then double clicks another fsx file it would open a new instance of Seff with this fsx file, 
+        // If the user then double clicks another fsx file it would open a new instance of Seff with this fsx file,
         // but also all the others that are already in the first instance of Seff open.
-        if filesInArgs.Length > 0 then 
+        if filesInArgs.Length > 0 then
             // parse startup args
-            for path in filesInArgs do                
+            for path in filesInArgs do
                 let lc = path.ToLowerInvariant()
                 curr <- lc
                 if not <| dup.Contains (lc) then
@@ -62,24 +62,24 @@ type OpenTabs  (runContext:RunContext, startupArgs:string[]) =
             {file= fi; makeCurrent = lowerc.Equals(curr, StringComparison.Ordinal)}
         |]
 
-    let getText() = 
+    let getText() =
         let curr = match currentFile with NotSet dummyTXT -> dummyTXT |Deleted fi |SetTo fi -> currentTabPreFix + fi.FullName
         let sb = StringBuilder()
         sb.AppendLine(curr) |> ignore // first line is filepath and name for current tab (repeats below)
         for f in allFiles do
             sb.AppendLine(f.FullName) |> ignore
         sb.ToString()
-    
+
     /// saves async with delay
-    member this.Save (currentFileO:FilePath , allFilesO: seq<FileInfo>) = 
+    member this.Save (currentFileO:FilePath , allFilesO: seq<FileInfo>) =
         currentFile<-currentFileO
-        allFiles<-allFilesO        
+        allFiles<-allFilesO
         writer.WriteIfLast (getText ,500)
-    
+
     //saves immediately in sync
-    member this.SaveSync (currentFileO:FilePath , allFilesO: seq<FileInfo>) = 
+    member this.SaveSync (currentFileO:FilePath , allFilesO: seq<FileInfo>) =
         currentFile<-currentFileO
-        allFiles<-allFilesO        
+        allFiles<-allFilesO
         IO.File.WriteAllText(filePath0, getText(),Text.Encoding.UTF8)
 
 

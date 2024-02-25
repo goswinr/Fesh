@@ -17,7 +17,7 @@ type UsedFile = {
     lastOpenedUTC:DateTime
     }
 
-type RecentlyUsedFiles  ( runContext:RunContext) = 
+type RecentlyUsedFiles  ( runContext:RunContext) =
 
     let filePath0 = runContext.GetPathToSaveAppData("RecentlyUsedFiles.txt")
 
@@ -25,7 +25,7 @@ type RecentlyUsedFiles  ( runContext:RunContext) =
 
     let recentFilesChangedEv = new Event<unit>()
 
-    let recentFilesStack = 
+    let recentFilesStack =
         let stack = Collections.Generic.Stack<UsedFile>()
         async{
             writer.CreateFileIfMissing("")  |> ignore  //ISeffLog.log.PrintfnInfoMsg "No recently used files found. (This is expected on first use of the App)"
@@ -52,7 +52,7 @@ type RecentlyUsedFiles  ( runContext:RunContext) =
     /// the amount of files in the recently used menu can be controlled separately in menu.fs
     let maxCount = 100
 
-    let getStringRaiseEvent() = 
+    let getStringRaiseEvent() =
         let sb = StringBuilder()
         let Dup = Collections.Generic.HashSet()
         let k = ref 0
@@ -69,7 +69,7 @@ type RecentlyUsedFiles  ( runContext:RunContext) =
         sb.ToString()
 
     /// does not save
-    member this.Add(fi:FileInfo) = 
+    member this.Add(fi:FileInfo) =
         if recentFilesStack.Count = 0  then
             recentFilesStack.Push {fileInfo=fi ; lastOpenedUTC=DateTime.UtcNow }
         else
@@ -77,21 +77,21 @@ type RecentlyUsedFiles  ( runContext:RunContext) =
                 recentFilesStack.Pop()  |> ignore// pop old date add new date
             recentFilesStack.Push {fileInfo=fi ; lastOpenedUTC=DateTime.UtcNow }
     /// saves async with 2 sec delay
-    member this.Save() = 
+    member this.Save() =
         writer.WriteIfLast( getStringRaiseEvent, 2000)
 
     /// saves async with 2 sec delay
-    member this.AddAndSave(fi:FileInfo) = 
+    member this.AddAndSave(fi:FileInfo) =
         this.Add(fi)
         this.Save()
-    
+
     /// saves immediately in sync without delay
-    member this.AddAndSaveSync(fi:FileInfo) = 
+    member this.AddAndSaveSync(fi:FileInfo) =
         this.Add(fi)
         IO.File.WriteAllText(filePath0,getStringRaiseEvent(),Text.Encoding.UTF8)
 
     /// the first element in this array the top of stack
-    member this.GetUniqueExistingSorted() = 
+    member this.GetUniqueExistingSorted() =
         let xs = ResizeArray()
         let Dup = Collections.Generic.HashSet()
         for uf in recentFilesStack do
@@ -104,13 +104,13 @@ type RecentlyUsedFiles  ( runContext:RunContext) =
         xs.Reverse()
         xs
 
-    member this.MostRecentPath : option<DirectoryInfo> = 
+    member this.MostRecentPath : option<DirectoryInfo> =
         if recentFilesStack.Count = 0 then None
         else Some <| recentFilesStack.Peek().fileInfo.Directory
-        
 
 
-    member this.Contains(s:string) = 
+
+    member this.Contains(s:string) =
         recentFilesStack
         |> Seq.exists ( fun p ->
             let a = p.fileInfo.FullName.ToLowerInvariant()

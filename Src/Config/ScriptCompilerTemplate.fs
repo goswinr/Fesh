@@ -5,12 +5,12 @@ open Fittings
 open Seff.Model
 
 
-type ScriptCompilerFsproj ( runContext:RunContext) = 
+type ScriptCompilerFsproj ( runContext:RunContext) =
 
     let filePath0 = runContext.GetPathToSaveAppData("ScriptCompiler.fsproj")
 
     let writer = SaveReadWriter(filePath0,ISeffLog.printError)
-        
+
 
     // TODO really only <PlatformTarget>x64</PlatformTarget><!--  x64 is required e.g by Rhino, don't us just 'Platform' tag-->   ??
 
@@ -42,15 +42,15 @@ type ScriptCompilerFsproj ( runContext:RunContext) =
   <PackageReference Update="FSharp.Core" Version="5.0.2" /> <!--included so that the current SDK doesn't force a maybe to high version-->
     {nuget-packages} <!-- set by Seff ScriptCompiler-->
   </ItemGroup>
-  
+
   <ItemGroup>
     {dll-file-references} <!-- set by Seff ScriptCompiler-->
   </ItemGroup>
-  
+
   <ItemGroup>
     {code-files} <!-- set by Seff ScriptCompiler-->
   </ItemGroup>
-  
+
   <!--
   <Target Name="DeleteObjFolder" BeforeTargets="AfterBuild"> <RemoveDir Directories="obj" ContinueOnError="false" /> </Target>
   -->
@@ -58,21 +58,21 @@ type ScriptCompilerFsproj ( runContext:RunContext) =
 </Project>
 """
 
-    
+
     member this.FileInfo = FileInfo(filePath0)
 
     ///loads sync
-    member this.Get() = 
+    member this.Get() =
         writer.CreateFileIfMissing(defaultFsproj)  |> ignore // create file so it can be found and edited manually
         match writer.ReadAllText() with
         |None -> defaultFsproj
         |Some code -> code
 
 
-    /// The name of the subfolder for precompiled libraries 
+    /// The name of the subfolder for precompiled libraries
     /// By default 'lib'
-    static member val LibFolderName = "lib" with get, set    
-    
+    static member val LibFolderName = "lib" with get, set
+
     /// The assembly version written.
     /// by default 1.0.0
     static member val AssemblyVersionToWrite = "1.0.0" with get, set

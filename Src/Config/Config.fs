@@ -3,7 +3,7 @@
 open Seff.Model
 
 
-type Config (log:ISeffLog, startUpData:HostedStartUpData option, startupArgs:string[]) = 
+type Config (log:ISeffLog, startUpData:HostedStartUpData option, startupArgs:string[]) =
 
     let  runContext                 = new RunContext                  (startUpData)
     let  settings                   = new Fittings.PersistentSettings (runContext.SettingsFileInfo,ISeffLog.printError)
@@ -21,8 +21,8 @@ type Config (log:ISeffLog, startUpData:HostedStartUpData option, startupArgs:str
     member this.OpenTabs                   = openTabs
     member this.DefaultCode                = defaultCode
     member this.ScriptCompilerFsproj       = scriptCompilerFsproj
-    member this.AutoCompleteStatistic      = autoCompleteStatistic    
-    member this.FsiArguments               = fsiArguments 
+    member this.AutoCompleteStatistic      = autoCompleteStatistic
+    member this.FsiArguments               = fsiArguments
     member this.FoldingStatus              = foldingStatus
 
     member this.Log                        = log

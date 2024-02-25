@@ -15,40 +15,40 @@ type HostedStartUpData = {
     }
 
 /// A class to hold the current App Run context (Standalone or Hosted)
-type RunContext (startUpData:HostedStartUpData option) = 
+type RunContext (startUpData:HostedStartUpData option) =
 
-    let isRunningOnDotNetCore = 
+    let isRunningOnDotNetCore =
         Runtime.InteropServices.RuntimeInformation.FrameworkDescription.StartsWith(".NET Framework", StringComparison.OrdinalIgnoreCase) |> not
         //Type.GetType("System.Runtime.Loader.AssemblyLoadContext") <> null // https://github.com/dotnet/runtime/issues/22779#issuecomment-315527735
 
-    let settingsFolder = 
+    let settingsFolder =
         let appData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData)
-        let path = 
+        let path =
             match startUpData with
-            |None ->  
+            |None ->
                 IO.Path.Combine(appData,"Seff") // Standalone
             |Some sd ->
                 let mutable host = sd.hostName
                 for c in IO.Path.GetInvalidFileNameChars() do host <- host.Replace(c, '_') // make sure host name is a valid file name
-                IO.Path.Combine(appData,"Seff",host) 
-        
+                IO.Path.Combine(appData,"Seff",host)
+
         IO.Directory.CreateDirectory(path) |> ignore
         path
 
-    let settingsFileInfo = 
+    let settingsFileInfo =
         IO.Path.Combine(settingsFolder, "Settings.txt")
         |> IO.FileInfo
 
-    let positionedWindowSettingsFileInfo = 
+    let positionedWindowSettingsFileInfo =
         IO.Path.Combine(settingsFolder, "PositionedWindow.txt")
         |> IO.FileInfo
 
     /// To get a path where to save the setting files, give file name including extension
-    member this.GetPathToSaveAppData (fileNameInclExt:string) = 
+    member this.GetPathToSaveAppData (fileNameInclExt:string) =
         IO.Path.Combine(settingsFolder, fileNameInclExt )
 
     member this.SettingsFolder = settingsFolder
-    
+
     member this.SettingsFileInfo = settingsFileInfo
 
     member this.PositionedWindowSettingsFileInfo = positionedWindowSettingsFileInfo
@@ -66,11 +66,11 @@ type RunContext (startUpData:HostedStartUpData option) =
     member this.IsRunningOnDotNetCore = isRunningOnDotNetCore
 
     /// opens up Explorer.exe
-    member this.OpenSettingsFolder()= 
+    member this.OpenSettingsFolder()=
         Diagnostics.Process.Start("explorer.exe", "\"" + settingsFolder+ "\"")        |> ignore
 
     /// opens up Explorer.exe with folder of Seff.exe
-    member this.OpenAppFolder()= 
+    member this.OpenAppFolder()=
         let ass = Reflection.Assembly.GetExecutingAssembly()
         if isNull ass then
             ISeffLog.log.PrintfnIOErrorMsg "OpenAppFolder: GetExecutingAssembly() is null"

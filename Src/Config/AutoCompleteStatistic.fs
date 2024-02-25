@@ -6,7 +6,7 @@ open Fittings
 open Seff.Model
 
 /// A class to hold the statistic of most used toplevel auto completions
-type AutoCompleteStatistic  ( runContext:RunContext) = 
+type AutoCompleteStatistic  ( runContext:RunContext) =
 
     let customPriorities = [
         // first item wil have highest priority
@@ -24,7 +24,7 @@ type AutoCompleteStatistic  ( runContext:RunContext) =
 
     let writer = SaveReadWriter(filePath0,ISeffLog.printError)
 
-    let completionStats = 
+    let completionStats =
         let dict=Collections.Concurrent.ConcurrentDictionary<string,float>()
         async{
             writer.CreateFileIfMissing("")  |> ignore
@@ -42,22 +42,22 @@ type AutoCompleteStatistic  ( runContext:RunContext) =
             } |> Async.Start
         dict
 
-    let completionStatsAsString () = 
+    let completionStatsAsString () =
         let sb = StringBuilder()
         for KeyValue(k,v) in completionStats |> Seq.sortByDescending (fun (KeyValue(k,v)) -> v) |> Seq.truncate 500  do // biggest number first, max 500 words
             sb.Append(k).Append(sep).AppendLine(v.ToString()) |> ignore
         sb.ToString()
 
-    member this.Get(key) = 
+    member this.Get(key) =
         match completionStats.TryGetValue key with
         |true,i -> i
         |_      -> 0.0
 
     /// increase by 1.0
-    member this.Incr(key) = 
+    member this.Incr(key) =
         match completionStats.TryGetValue key with
         |true,i -> completionStats.[key] <- i +  1.0
         |_      -> completionStats.[key] <- 1.0
 
-    member this.Save() = 
+    member this.Save() =
         writer.WriteIfLast ( completionStatsAsString, 500)

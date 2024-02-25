@@ -5,7 +5,7 @@ open System.Windows
 open Seff.Config
 
 
-module App = 
+module App =
 
     /// To statically access the currently running instance. For debugging only
     let mutable current = Unchecked.defaultof<Seff>
@@ -15,8 +15,8 @@ module App =
     /// fsiCanRun: a function to check if evaluation of fsi is currently allowed
     /// Call seff.Window.Show() on the returned Seff object.
     /// Use seff.Fsi.OnStarted and seff.Fsi.OnIsReady Events to implement undo and redo in host App.
-    let createEditorForHosting (host:HostedStartUpData) : Seff =         
-        let seff = Initialize.everything (Some host , [| |])        
+    let createEditorForHosting (host:HostedStartUpData) : Seff =
+        let seff = Initialize.everything (Some host , [| |])
         current <- seff
         if host.mainWindowHandel <> IntPtr.Zero then
             // so that the editor window opens and closes at the same time as the main host window:
@@ -28,7 +28,7 @@ module App =
 
     [< EntryPoint >]
     [< STAThread >]
-    let runEditorStandalone (args: string []) : int = 
+    let runEditorStandalone (args: string []) : int =
         let app  = Application() // do first so that pack Uris work
         let seff = Initialize.everything (None, args)
         current <- seff

@@ -6,13 +6,13 @@ open Fittings
 open Seff.Model
 
 
-type DefaultCode  ( runContext:RunContext) = 
+type DefaultCode  ( runContext:RunContext) =
 
     let filePath0 = runContext.GetPathToSaveAppData("DefaultCode.fsx")
 
     let writer = SaveReadWriter(filePath0,ISeffLog.printError)
 
-    let defaultCodeOnFirstRun = 
+    let defaultCodeOnFirstRun =
         [
         "// This is your default code for new files,"
         "// you can change it by going to the menu: File -> Edit Template File"
@@ -34,7 +34,7 @@ type DefaultCode  ( runContext:RunContext) =
     member this.FileInfo = FileInfo(filePath0)
 
     ///loads sync
-    member this.Get() = 
+    member this.Get() =
         writer.CreateFileIfMissing(defaultCodeOnFirstRun)  |> ignore // create file so it can be found and edited manually
         match writer.ReadAllText() with
         |None -> defaultCodeOnFirstRun

@@ -5,17 +5,17 @@ open Fittings
 open Seff.Model
 
 
-type FsiArguments   ( runContext:RunContext) = 
+type FsiArguments   ( runContext:RunContext) =
 
     let filePath0 = runContext.GetPathToSaveAppData("FsiArguments .txt")
     let writer = SaveReadWriter(filePath0,ISeffLog.printError)
 
-    let defaultArgs = 
-        if runContext.IsHosted then 
+    let defaultArgs =
+        if runContext.IsHosted then
             [| "first arg must be there but is ignored" ; "--langversion:preview"  ; "--exec"; "--debug+"; "--debug:full" ;"--optimize+" ; "--gui+" ; "--nologo"; "--multiemit-"|]
         else // Standalone for net48 too --multiemit is always there on netCore
-            [| "first arg must be there but is ignored" ; "--langversion:preview"  ; "--exec"; "--debug+"; "--debug:full" ;"--optimize+" ; "--gui+" ; "--nologo"; "--multiemit+" |] 
-    
+            [| "first arg must be there but is ignored" ; "--langversion:preview"  ; "--exec"; "--debug+"; "--debug:full" ;"--optimize+" ; "--gui+" ; "--nologo"; "--multiemit+" |]
+
     // Standalone with "--multiemit" to have line numbers in error messages see https://github.com/dotnet/fsharp/discussions/13293
     // Hosted without "--multiemit", error line numbers don't work there anyway, and in addition accessing previously emited assemblies might fail with a TypeLoadException.
     // see: https://fsharp.github.io/fsharp-compiler-docs/fsi-emit.html and https://github.com/dotnet/fsharp/blob/main/src/Compiler/Interactive/fsi.fs#L1171
@@ -31,7 +31,7 @@ type FsiArguments   ( runContext:RunContext) =
     let defaultArgsText = defaultArgs|> String.concat Environment.NewLine
 
 
-    let get() = 
+    let get() =
         writer.CreateFileIfMissing(defaultArgsText)  |> ignore
         match writer.ReadAllLines() with
         |None -> defaultArgs
@@ -45,20 +45,20 @@ type FsiArguments   ( runContext:RunContext) =
     let mutable args = [||]
 
     ///loads sync
-    member this.Get = 
+    member this.Get =
         if Array.isEmpty args then
             args <- get()
             args
         else
             args
 
-    member this.Reload() = 
+    member this.Reload() =
         args <- get()
         args
 
 
 
-(*  
+(*
     note on docs:
     --multiemit  see: https://fsharp.github.io/fsharp-compiler-docs/fsi-emit.html
 
