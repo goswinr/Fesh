@@ -91,10 +91,18 @@ module Redrawing =
             if state.IsLatest id && idSemantics=id then 
                 if idBrackets=id && idErrors=id && idSels=id && idFolds=id then                 
                     async{
-                        do! Async.SwitchToContext Fittings.SyncWpf.context       
-                        services.folds.RedrawFoldings()  
-                        do! Async.Sleep 50 // to try to avoid: InvalidOperationException: Line 117 was skipped by a VisualLineElementGenerator, but it is not collapsed. at AvalonEditB.Rendering.TextView.BuildVisualLine(..)                    
-                        if state.IsLatest id then
+                        do! Async.SwitchToContext Fittings.SyncWpf.context
+                        // first render then fold do avoid  this ?
+                        //System.ArgumentException: Cannot dispose visual line because it is in construction!
+                        //at AvalonEditB.Rendering.TextView.DisposeVisualLine(VisualLine visualLine)
+                        //at AvalonEditB.Rendering.TextView.ClearVisualLines()
+                        //at AvalonEditB.Rendering.TextView.Redraw(DispatcherPriority redrawPriority)
+                        //at Seff.Editor.Redrawing.cloQQ?—153.Invoke(Unit _arg2) in D:\Git\Seff\Src\Editor\DocChanged.fs:line 99
+                        ed.TextArea.TextView.Redraw(priority)
+                        // do! Async.Sleep 50 // to try to avoid: InvalidOperationException: Line 117 was skipped by a VisualLineElementGenerator, but it is not collapsed. at AvalonEditB.Rendering.TextView.BuildVisualLine(..)
+                        // if state.IsLatest id then
+                        services.folds.RedrawFoldings()
+
                             //eprintfn $"Redrawing full: id={id}, idSemantics={idSemantics}, idBrackets={idBrackets}, idErrors={idErrors}, idSels={idSels}, idFolds={idFolds}"
                             ed.TextArea.TextView.Redraw(priority)  
                     } |> Async.Start
