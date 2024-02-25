@@ -17,56 +17,56 @@ type Fonts (grid:TabsAndLog) = // will be constructed as part of Commands class
     //let fontsUri =  new Uri("pack://application:,,,/Seff;component/Media/#")
     //let resFontsLazy = lazy (Fonts.GetFontFamilies(fontsUri))
 
-    let defaultFontNames = [| 
+    let defaultFontNames = [|
         "Cascadia Mono" // Cascadia Mono is without ligatures
-        "Consolas" // only consolas renders fast
-        |]  
+        "Consolas" // only Consolas renders fast
+        |]
 
-    
+
 
     /// test if font is installed
-    let isInstalled (f:FontFamily) = 
+    let isInstalled (f:FontFamily) =
         let n = f.FamilyNames.Values |> Seq.head
         if f.Source.Contains(n) then  // source might stat with ./#
             true
-        else            
-            false 
-    
-    // try get sztem font and rescource font
+        else
+            false
+
+    // try get system font and resource font
     let getFontThatIsInstalled (name) =
         try
             let f0 = FontFamily(name)
-            if isInstalled f0 then                 
+            if isInstalled f0 then
                 Some f0
-            else            
+            else
                 let f1 = new FontFamily(mediaUri,"./#"+name)
-                if isInstalled f1 then 
+                if isInstalled f1 then
                     Some f1
-                else                    
+                else
                     None
-        with e ->                
-            None     
+        with e ->
+            None
 
     let tryGetFontOrAlt(key) =
-        match sett.Get key with 
-        |Some na -> 
-            match getFontThatIsInstalled(na) with 
+        match sett.Get key with
+        |Some na ->
+            match getFontThatIsInstalled(na) with
             |Some f -> Some f
-            |None -> 
+            |None ->
                 defaultFontNames
-                |> Array.filter ( fun n -> n.ToLower() <> na.ToLower()) // becaus the desired font might be already in default font names
+                |> Array.filter ( fun n -> n.ToLower() <> na.ToLower()) // because the desired font might be already in default font names
                 |> Array.tryPick getFontThatIsInstalled
                 |> Option.orElseWith ( fun () ->
-                    ISeffLog.log.PrintfnIOErrorMsg $"Fonts.{key}: faild to load font '{na}' or any of [{defaultFontNames |> String.concat comma}]"
+                    ISeffLog.log.PrintfnIOErrorMsg $"Fonts.{key}: failed to load font '{na}' or any of [{defaultFontNames |> String.concat comma}]"
                     None)
-        |None -> 
+        |None ->
             defaultFontNames
             |> Array.tryPick getFontThatIsInstalled
             |> Option.orElseWith ( fun () ->
-                    ISeffLog.log.PrintfnIOErrorMsg $"Fonts.{key}: faild to load any font of [{defaultFontNames |> String.concat comma}]"
+                    ISeffLog.log.PrintfnIOErrorMsg $"Fonts.{key}: failed to load any font of [{defaultFontNames |> String.concat comma}]"
                     None)
 
-    //let fontExists(f:FontFamily) = 
+    //let fontExists(f:FontFamily) =
     //    let n = f.FamilyNames.Values |> Seq.head
     //    if f.Source.Contains(n) then  // source might stat with ./#
     //        true
@@ -78,41 +78,41 @@ type Fonts (grid:TabsAndLog) = // will be constructed as part of Commands class
     //            log.PrintfnAppErrorMsg "'%s'" fo.Source
     //        false
 
-    let setLog() =                 
-        match tryGetFontOrAlt "FontLog" with 
-        |Some f -> 
+    let setLog() =
+        match tryGetFontOrAlt "FontLog" with
+        |Some f ->
             StyleState.fontLog <- f
             log.AvalonLog.FontFamily <- f
             sett.Set ("FontLog", f.Source)
             sett.Save()
-        |None ->  ()              
-        
+        |None ->  ()
+
     let setEditor() = // on log and all tabs
-        match tryGetFontOrAlt "FontEditor" with 
-        |Some f -> 
-            StyleState.fontEditor <- f            
+        match tryGetFontOrAlt "FontEditor" with
+        |Some f ->
+            StyleState.fontEditor <- f
             StyleState.italicBoldEditorTf  <-  new Typeface(f, FontStyles.Italic, FontWeights.Bold,    FontStretches.Normal)
             StyleState.italicEditorTf      <-  new Typeface(f, FontStyles.Italic, FontWeights.Normal,  FontStretches.Normal)
             StyleState.boldEditorTf        <-  new Typeface(f, FontStyles.Normal, FontWeights.Bold,    FontStretches.Normal)
 
             for t in tabs.AllTabs do  t.Editor.AvaEdit.FontFamily  <- f
             sett.Set ("FontEditor", f.Source)
-            sett.Save() 
+            sett.Save()
 
-            //match  f.FamilyTypefaces |> Seq.tryFind ( fun tf ->  tf.Style = Windows.FontStyles.Oblique && tf.Weight.ToString() = "Normal" ) with 
-            //|Some ft -> 
+            //match  f.FamilyTypefaces |> Seq.tryFind ( fun tf ->  tf.Style = Windows.FontStyles.Oblique && tf.Weight.ToString() = "Normal" ) with
+            //|Some ft ->
             //    let obl = Typeface(ft.)
             //    Editor.SemAction.makeCursive <- fun (el:VisualLineElement) -> el.TextRunProperties.SetTypeface ft.
             //|None -> ()
             //
             //for tf in f.FamilyTypefaces do printfn $"{f.Source} FamilyTypefaces Style Weight: {tf.Style},{tf.Weight}"
 
-        |None -> () 
-        
+        |None -> ()
+
 
     let setToolTip() = // on log and all tabs
-        match tryGetFontOrAlt "FontToolTip" with 
-        |Some f -> 
+        match tryGetFontOrAlt "FontToolTip" with
+        |Some f ->
             StyleState.fontToolTip <- f
             sett.Set ("FontToolTip", f.Source)
             sett.Save()
@@ -129,18 +129,18 @@ type Fonts (grid:TabsAndLog) = // will be constructed as part of Commands class
 
     //----- init ---------
     do
-        setEditor()  
+        setEditor()
         setLog()
-        setToolTip() 
+        setToolTip()
 
     // this font size makes block selection delete fail on the last line: 17.0252982466288 happens at 17.5 too
 
     /// affects Editor and Log
-    member this.FontsBigger()= 
+    member this.FontsBigger()=
         let cs = tabs.Current.Editor.AvaEdit.FontSize
         if cs < 250. then setSize(cs * 1.04) // 4% steps
 
-        //let step = 
+        //let step =
         //    if   cs >= 36. then 4.
         //    elif cs >= 20. then 2.
         //    else                1.
@@ -148,24 +148,24 @@ type Fonts (grid:TabsAndLog) = // will be constructed as part of Commands class
 
 
     /// affects Editor and Log
-    member this.FontsSmaller()= 
+    member this.FontsSmaller()=
         let cs = tabs.Current.Editor.AvaEdit.FontSize
         if cs > 3. then setSize(cs / 1.04) // 4% steps
 
-        //let step = 
+        //let step =
         //    if   cs >= 36. then 4.
         //    elif cs >= 20. then 2.
         //    else                1.
         //if cs > 5. then setSize(cs-step)
 
 (*
-module Typography = 
+module Typography =
 
     open System.Windows
     open System.Windows.Media.TextFormatting
 
     // from https://github.com/icsharpcode/AvalonEdit/blob/master/ICSharpCode.AvalonEdit/Rendering/DefaultTextRunTypographyProperties.cs
-    // avalonedit commet on RunTransformers: For some strange reason, WPF requires that either all or none of the typography properties are set.
+    // avalonedit comment on RunTransformers: For some strange reason, WPF requires that either all or none of the typography properties are set.
 
     type DefaultTextRunTypographyProperties() =
         inherit TextRunTypographyProperties()

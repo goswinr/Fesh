@@ -11,7 +11,7 @@ open Seff.Config
 
 /// A class holding the main grid of Tabs and the log Window
 /// Includes logic for toggling the view split and saving and restoring size and position
-type TabsAndLog (config:Config, tabs:Tabs, log:Log, seffWin:Views.SeffWindow) as this = 
+type TabsAndLog (config:Config, tabs:Tabs, log:Log, seffWin:Views.SeffWindow) as this =
 
     let gridSplitterSize = 4.0
 
@@ -24,7 +24,7 @@ type TabsAndLog (config:Config, tabs:Tabs, log:Log, seffWin:Views.SeffWindow) as
     let splitterVert        = new GridSplitter()
     let mutable isLogMaxed = false
 
-    let setGridHor() = 
+    let setGridHor() =
         config.Settings.SetBool ("IsViewSplitVertical", false) |> ignore
         setGridHorizontal grid [
             tabs.Control        :> UIElement, editorRowHeight
@@ -32,7 +32,7 @@ type TabsAndLog (config:Config, tabs:Tabs, log:Log, seffWin:Views.SeffWindow) as
             log.AvalonLog       :> UIElement, logRowHeight
             ]
 
-    let setGridVert() = 
+    let setGridVert() =
         config.Settings.SetBool ("IsViewSplitVertical", true) |> ignore
         setGridVertical grid [
             tabs.Control        :> UIElement, editorColumnWidth
@@ -81,19 +81,33 @@ type TabsAndLog (config:Config, tabs:Tabs, log:Log, seffWin:Views.SeffWindow) as
                 if isLogMaxed then this.ToggleMaxLog() // to also switch back from maximized when the window size gets restored
             | _ -> ()
             //| WindowState.Maximized -> // normally the state change event comes after the location change event but before size changed. async sleep in LocationChanged prevents this                ()
-            //| WindowState.Minimized -> 
+            //| WindowState.Minimized ->
             )
+
+        // react to Escape key globally
+        seffWin.Window.KeyDown.Add (fun k ->  //clear selection on Escape key
+            match k.Key with
+            |Input.Key.Escape -> // ClearSelectionHighlight
+                let ed = tabs.Current.Editor
+                if ed.AvaEdit.IsEnabled then // just in case ?
+                    if ed.TypeInfoTip.IsOpen || ed.DrawingServices.errors.ToolTip.IsOpen then
+                        ed.CloseToolTips()
+                    else
+                        ed.SelectionHighlighter.ClearAll()
+                        match log.SelectionHighlighter with Some h -> h.ClearAll() | None    -> ()
+            | _ -> ()
+        )
 
     static member Instance
         with get() = instance
         and set v = instance <- v
 
-    member this.ToggleSplit() = 
+    member this.ToggleSplit() =
         if config.Settings.GetBool ("IsViewSplitVertical", true) then setGridHor()
         else                                                          setGridVert()
         config.Settings.Save ()
 
-    member this.ToggleMaxLog() = 
+    member this.ToggleMaxLog() =
         if isLogMaxed then // if it is already maxed then size down again
             isLogMaxed <- false// do first
             editorRowHeight.Height   <- makeGridLength <|config.Settings.GetFloat ("EditorHeight", 99.)
