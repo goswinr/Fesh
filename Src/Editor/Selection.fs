@@ -8,22 +8,22 @@ open AvalonEditB.Document
 open Seff.Model
 
 [<RequireQualifiedAccess>]
-module Mouse = 
-    
+module Mouse =
+
     /// Get Document Offset from mouse position event
-    let getOffset(e: MouseEventArgs, ed:TextEditor) = 
+    let getOffset(e: MouseEventArgs, ed:TextEditor) =
         let textView = ed.TextArea.TextView
         let mutable pt = e.GetPosition(textView);
-        if pt.Y < 0 && pt.Y > textView.ActualHeight then  
+        if pt.Y < 0 && pt.Y > textView.ActualHeight then
             None
         else
             let pt = pt +  textView.ScrollOffset
-            let vLine = textView.GetVisualLineFromVisualTop(pt.Y)    
-            if isNull vLine then 
+            let vLine = textView.GetVisualLineFromVisualTop(pt.Y)
+            if isNull vLine then
                 None
             else
                 let visualColumn     = vLine.GetVisualColumn(pt, allowVirtualSpace = false)
-                let visualColumnVirt = vLine.GetVisualColumn(pt, allowVirtualSpace = true) 
+                let visualColumnVirt = vLine.GetVisualColumn(pt, allowVirtualSpace = true)
                 if visualColumnVirt > visualColumn then // mouse beyond end of line
                     None
                 else
@@ -31,17 +31,17 @@ module Mouse =
                     let docOff = vLine.GetRelativeOffset(visualColumn) + relOffset
                     Some docOff
 
-module Selection = 
+module Selection =
 
     /// a segment defined by start and end offset
     [<Struct>]
-    type Seg = 
+    type Seg =
         {st:int; en:int}
         member s.len = s.en - s.st
-    
-    /// In this Selection Position stPos is always smaller than enPo. 
+
+    /// In this Selection Position stPos is always smaller than enPo.
     /// Which is not always the case in TextArea.Selection
-    type SelectionPos = 
+    type SelectionPos =
         {stPos:TextViewPosition ; enPos:TextViewPosition; caret:TextViewPosition}
 
         member this.LineCount = this.enPos.Line - this.stPos.Line + 1
@@ -54,12 +54,12 @@ module Selection =
 
 
     /// a DU representing all possible kinds of the current selection
-    type Sel = 
+    type Sel =
         |NoSel
         |RegSel
         |RectSel
 
-    let getSelType (ta:TextArea) = 
+    let getSelType (ta:TextArea) =
         match ta.Selection with
         | null -> failwithf "Unknown selection class in getSelection: null"
         | :? EmptySelection     -> NoSel
@@ -68,7 +68,7 @@ module Selection =
         | x -> failwithf "Unknown selection class in getSelection: %A" x
 
     /// Returns SelectionPos, order top to left bottom right
-    let getSelectionOrdered(ta:TextArea) : SelectionPos= 
+    let getSelectionOrdered(ta:TextArea) : SelectionPos=
         match ta.Selection with
         | null -> failwithf "Unknown selection class in makeTopDown: null"
         | :? EmptySelection  ->
@@ -104,22 +104,22 @@ module Selection =
     /// any letter, digit, underscore or dot
     let inline internal isFsLetter (c:char) = Char.IsLetterOrDigit c || c='_' || c='.'
 
-    let inline internal areLetters (doc:TextDocument) fromIdx toIdx = 
-        let rec loop i = 
+    let inline internal areLetters (doc:TextDocument) fromIdx toIdx =
+        let rec loop i =
             if  i>toIdx then true
             elif i |> doc.GetCharAt |>  isFsLetter then loop (i+1)
             else false
         loop fromIdx
 
     /// treats start and end of file also as non letter
-    let inline internal isNonLetter (doc:TextDocument) i = 
+    let inline internal isNonLetter (doc:TextDocument) i =
         i = -1 // file start
         || i = doc.TextLength //file end
         || i |> doc.GetCharAt |>  isFsLetter |> not
 
 
     /// checks if the current selection is exactly one word
-    let isOneWord (ed:TextEditor) : option<SelectionSegment> = 
+    let isOneWord (ed:TextEditor) : option<SelectionSegment> =
         match ed.TextArea.Selection with
         | :? EmptySelection   | :? RectangleSelection -> None
         | :? SimpleSelection as sel  ->
@@ -140,7 +140,7 @@ module Selection =
 
 
     /// Returns true if nothing is selected in textarea
-    let hasNoSelection (ta:TextArea) = 
+    let hasNoSelection (ta:TextArea) =
         match ta.Selection with
         | null -> true  // does this actually happen?
         | :? EmptySelection -> true
@@ -152,21 +152,21 @@ module Selection =
     /// text of line at current Caret
     /// Returns start line umber and line  text
     /// Does not select anything
-    let currentLine (avaEdit:TextEditor) : int*string= 
+    let currentLine (avaEdit:TextEditor) : int*string=
         let offset = avaEdit.CaretOffset
         let  line = avaEdit.Document.GetLineByOffset(offset)
         line.LineNumber, avaEdit.Document.GetText(line.Offset, line.Length)
 
     /// Offset at line End ( excluding \r and \n that probably follow
-    let currentLineEnd (avaEdit:TextEditor) : int= 
+    let currentLineEnd (avaEdit:TextEditor) : int=
         let offset = avaEdit.CaretOffset
         let  line = avaEdit.Document.GetLineByOffset(offset)
         line.Offset + line.Length
 
-module SelectionForEval = 
+module SelectionForEval =
 
     /// Returns start line umber and selected text, or "" if none
-    let current (avaEdit:TextEditor) : CodeSegment = 
+    let current (avaEdit:TextEditor) : CodeSegment =
         let tx = avaEdit.SelectedText
         if isNull tx then
             {
@@ -187,7 +187,7 @@ module SelectionForEval =
 
 
     /// Returns start line umber and selected text
-    let expandSelectionToFullLines(avaEdit:TextEditor) : CodeSegment = 
+    let expandSelectionToFullLines(avaEdit:TextEditor) : CodeSegment =
         let doc = avaEdit.Document
         let st = doc.GetLineByOffset(avaEdit.SelectionStart)
         let en = doc.GetLineByOffset(avaEdit.SelectionStart + avaEdit.SelectionLength)
@@ -204,7 +204,7 @@ module SelectionForEval =
 
 
     /// Returns start line umber and selected text
-    let linesTillCursor(avaEdit:TextEditor) : CodeSegment = 
+    let linesTillCursor(avaEdit:TextEditor) : CodeSegment =
         let doc = avaEdit.Document
         let en = doc.GetLineByOffset(avaEdit.SelectionStart + avaEdit.SelectionLength)
         avaEdit.Select(0,en.EndOffset)
@@ -218,7 +218,7 @@ module SelectionForEval =
 
     (*
     /// returns start line number and selected text, end offset
-    let linesFromCursor(avaEdit:TextEditor) = 
+    let linesFromCursor(avaEdit:TextEditor) =
         let doc = avaEdit.Document
         let st = doc.GetLineByOffset(avaEdit.SelectionStart)
         avaEdit.Select(st.Offset,avaEdit.Document.TextLength-st.Offset)

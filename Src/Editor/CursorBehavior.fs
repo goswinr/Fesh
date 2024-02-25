@@ -10,7 +10,7 @@ open Seff.Model
 open Seff.Util.Str
 
 
-module Doc = 
+module Doc =
 
     /// Offset is at Line end.
     /// Or only has spaces before line end
@@ -38,39 +38,39 @@ module Doc =
                 | '\n' -> k
                 | _ -> find (off-1) 0
         find (offset-1) 0
-    
+
     /// If caret is in comment ( not at end of comment line) returns amount of slashes, otherwise 0
     let isCaretInComment (caret:int) (doc:TextDocument):int =
         let ln = doc.GetLineByOffset(caret)
-        let rec isInside pos = 
+        let rec isInside pos =
             pos = ln.EndOffset
-            ||            
+            ||
             match doc.GetCharAt(pos) with
-            | ' ' | '\n' | '\r' -> isInside (pos+1)    
+            | ' ' | '\n' | '\r' -> isInside (pos+1)
             |  _ -> false
 
-        if isInside caret then 
-            let rec find off k = 
+        if isInside caret then
+            let rec find off k =
                 if off = caret then k
                 else
                     match doc.GetCharAt(off) with
-                    | ' ' when k=0-> find (off+1) k               
-                    | '/' -> find (off+1) (k+1)   
+                    | ' ' when k=0-> find (off+1) k
+                    | '/' -> find (off+1) (k+1)
                     |  _ -> k
             find ln.Offset 0
-        else 
+        else
             0
-    
+
     (* unused:
 
     let commentSlashesTillCaret caret (doc:TextDocument) = // removed inline to have function name in error stack trace
         let ln = doc.GetLineByOffset(caret)
-        let rec find off k = 
+        let rec find off k =
             if off = caret then k
             else
                 match doc.GetCharAt(off) with
-                | ' ' when k=0-> find (off+1) k               
-                | '/' -> find (off+1) (k+1)   
+                | ' ' when k=0-> find (off+1) k
+                | '/' -> find (off+1) (k+1)
                 |  _ -> k
         find ln.Offset 0
     *)
@@ -79,16 +79,16 @@ module Doc =
     /// Will do a bound check and return less chars if needed
     let getTextBeforeOffsetSkipSpaces desiredCharsCount offset  (doc:TextDocument) = // removed inline to have function name in error stack trace
         if desiredCharsCount < 0 then failwithf "getTextBeforeOffsetSkipSpaces desiredCharsCount=%d must be positive" desiredCharsCount
-        elif desiredCharsCount = 0 then ""                   
+        elif desiredCharsCount = 0 then ""
         elif offset-desiredCharsCount < 0 then ""
         //elif offset < desiredCharsCount then // covered by bound check below
-        elif offset=doc.TextLength then // special case for end of document            
+        elif offset=doc.TextLength then // special case for end of document
             doc.GetText(offset-desiredCharsCount,desiredCharsCount)
-        else            
-            let rec find off  = 
+        else
+            let rec find off  =
                 if off > 0 && doc.GetCharAt(off-1) = ' ' then
                     find (off-1)
-                else 
+                else
                     off
             let offNonWhite = find offset
 
@@ -98,12 +98,12 @@ module Doc =
             if len < 1 then
                 "" //doc.GetText(st,0) fails !!
             else
-                doc.GetText(st,len)    
+                doc.GetText(st,len)
 
     /// Returns offset of next non white char, passing max one line break
     let nextNonWhiteCharOneLine offset (doc:TextDocument) = // removed inline to have function name in error stack trace
         let len = doc.TextLength
-        let rec find off rs = 
+        let rec find off rs =
             if off >= len then len
             else
                 match doc.GetCharAt(off) with
@@ -115,8 +115,8 @@ module Doc =
     /// Returns spaces till next non white char on same line, or 0 if the rest of the line is just whitespace
     let countNextSpaces offset (doc:TextDocument) = // removed inline to have function name in error stack trace
         let last = doc.TextLength - 1
-        let rec find off  k = 
-            if off > last then 
+        let rec find off  k =
+            if off > last then
                 k
             else
                 match doc.GetCharAt(off) with
@@ -124,32 +124,32 @@ module Doc =
                 |  _   -> k // also exits for '\n' and '\r'
         find offset 0
 
-    (* better use the highlighting engines state because it also works for multiline strings: 
-    
+    (* better use the highlighting engines state because it also works for multiline strings:
+
     /// State of the caret
     /// used in isCaretInStringOrChar
-    type internal State = 
+    type internal State =
         |Code  // in code
         |Str   // in string
         |Chr   // in  character
         |ChrSt // at character start, needed because ''' and '\'' are both valid
-    
+
 
     /// Checks if Caret is in String or Character quotes: " or '
     /// only checks current line
     /// does not check for being in comment
     /// handles escaped quotes too
-    let isCaretInStringOrChar(ed:TextEditor)= 
+    let isCaretInStringOrChar(ed:TextEditor)=
         let caret = ed.TextArea.Caret.Offset
         let doc = ed.Document
-        let rec getStart i = 
+        let rec getStart i =
             if i<0 then 0
             else
                 match doc.GetCharAt(i) with
                 | '\n' -> i+1
                 | _    -> getStart (i-1)
         let startOffLine =  getStart (caret-1)
-        let rec getState i state= 
+        let rec getState i state=
             if i >= caret then state
             else
                 match doc.GetCharAt(i) with
@@ -181,11 +181,11 @@ module Doc =
     *)
 
 
-module CursorBehavior  = 
+module CursorBehavior  =
     open Selection
 
     ///replace 'true' with 'false' and vice versa
-    let toggleBoolean(avaEdit:TextEditor) = 
+    let toggleBoolean(avaEdit:TextEditor) =
         let doc = avaEdit.Document
         doc.BeginUpdate()//avaEdit.Document.RunUpdate
         for seg in avaEdit.TextArea.Selection.Segments do
@@ -202,14 +202,14 @@ module CursorBehavior  =
 
     /// When pressing enter add indentation on next line if appropriate for FSharp.
     /// for avaEdit.PreviewKeyDown
-    let internal addFSharpIndentation(ed:TextEditor,ke:Input.KeyEventArgs) = 
+    let internal addFSharpIndentation(ed:TextEditor,ke:Input.KeyEventArgs) =
         if hasNoSelection ed.TextArea  then // TODO what happens if there is a selection ?? or also use to replace selected text ??
             let caret = ed.CaretOffset
-            let doc = ed.Document            
+            let doc = ed.Document
             let trimmed = Doc.getTextBeforeOffsetSkipSpaces 6 caret doc
             //ISeffLog.log.PrintfnDebugMsg "current line ='%s'" (doc.GetText(doc.GetLineByOffset(caret)))
             //ISeffLog.log.PrintfnDebugMsg "trimmed='%s' (%d chars)" trimmed trimmed.Length
-            
+
             // special enter that increases the indent :
             if     trimmed.EndsWith " do"
                 || trimmed.EndsWith " then"
@@ -217,14 +217,14 @@ module CursorBehavior  =
                 || trimmed.EndsWith "="
                 || trimmed.EndsWith "("
                 || trimmed.EndsWith "{"
-                || trimmed.EndsWith "["    
+                || trimmed.EndsWith "["
                 || trimmed.EndsWith "[|"
                 || trimmed.EndsWith "->" then
                     ke.Handled <- true // to not actually add another new line too // TODO raise TextArea.TextEntered Event ?
                     let st = Doc.spacesAtStartOfLineAndBeforeOffset caret doc
                     let indent = ed.Options.IndentationSize
                     let rem = st % indent
-                    let ind = 
+                    let ind =
                         if rem  = 0 then  st + indent // ensure new indent is a multiple of avaEdit.Options.IndentationSize
                         elif rem = 1 then st + indent + indent - 1 // to indent always at least 2 chars
                         else              st + indent - rem
@@ -239,39 +239,39 @@ module CursorBehavior  =
             else
                 // start the next line with comment if the return was pressed inside a comment
                 let slashes = Doc.isCaretInComment caret doc
-                if slashes > 1 then 
+                if slashes > 1 then
                     ke.Handled <- true // to not actually add another new line too // TODO raise TextArea.TextEntered Event ?
-                    let spacesBefore = Doc.spacesAtStartOfLineAndBeforeOffset caret doc                
+                    let spacesBefore = Doc.spacesAtStartOfLineAndBeforeOffset caret doc
                     let insertText = Environment.NewLine + String(' ',spacesBefore) + String('/',slashes)
                     let spacesAfter = Doc.countNextSpaces caret doc
                     if spacesAfter = 0 then
                         doc.Insert(caret,insertText) // add space before too for nice position of folding block
                     else
                         doc.Replace(caret,spacesAfter,insertText)
-                    ed.CaretOffset <- caret + insertText.Length //+ spacesBefore + slashes               
-                else 
+                    ed.CaretOffset <- caret + insertText.Length //+ spacesBefore + slashes
+                else
                     // also indent on any regular 'return'
-                    // this would actually also be done by the DefaultIndentationStrategy of Avalonedit but the DefaultIndentationStrategy 
+                    // this would actually also be done by the DefaultIndentationStrategy of Avalonedit but the DefaultIndentationStrategy
                     // would raise the document text change event twice, once after 'return' and once after indenting.
                     // this does not work well with the current implementation of the Evaluation tracker.
                     // the below code does the same as the DefaultIndentationStrategy but avoids raising to events.
                     // DefaultIndentationStrategy does not get triggered because of the e.Handled <- true
-                    
+
                     ke.Handled <- true // to not actually add another new line too // TODO raise TextArea.TextEntered Event ?
-                    let spacesBefore = Doc.spacesAtStartOfLineAndBeforeOffset caret doc                
+                    let spacesBefore = Doc.spacesAtStartOfLineAndBeforeOffset caret doc
                     let insertText = Environment.NewLine + String(' ',spacesBefore)
                     let spacesAfter = Doc.countNextSpaces caret doc
                     if spacesAfter = 0 then
                         doc.Insert(caret,insertText) // add space before too for nice position of folding block
                     else
                         doc.Replace(caret, spacesAfter, insertText)
-                    ed.CaretOffset <- caret + insertText.Length //+ spacesBefore                
+                    ed.CaretOffset <- caret + insertText.Length //+ spacesBefore
 
 
 
     /// Removes 4 characters (Options.IndentationSize)
     /// On pressing backspace key instead of one
-    let internal backspace4Chars(ed:TextEditor,e:Input.KeyEventArgs) = 
+    let internal backspace4Chars(ed:TextEditor,e:Input.KeyEventArgs) =
         let doc = ed.Document
         let ta = ed.TextArea
         let line = doc.GetText(doc.GetLineByOffset(ta.Caret.Offset)) // = get current line
@@ -288,7 +288,7 @@ module CursorBehavior  =
 
     /// Removes rest of line too if only whitespace
     /// also remove whitespace at start of next line
-    let internal deleteTillNonWhite(ed:TextEditor,e:Input.KeyEventArgs)= 
+    let internal deleteTillNonWhite(ed:TextEditor,e:Input.KeyEventArgs)=
         let doc = ed.Document
         let caret = ed.CaretOffset
         if Doc.offsetIsAtLineEnd caret doc then
@@ -306,7 +306,7 @@ module CursorBehavior  =
                 e.Handled <- true // TODO raise TextArea.TextEntered Event ?
 
     /// for no and regular selection
-    let addWhitespaceAfterChar(ed:TextEditor, e:Input.TextCompositionEventArgs) = 
+    let addWhitespaceAfterChar(ed:TextEditor, e:Input.TextCompositionEventArgs) =
         match e.Text with
         // space before and after:
         //| "=" //TODO check previous char is not punctuation for <= // space is added in previewKeyDown before return
@@ -329,59 +329,59 @@ module CursorBehavior  =
                 ed.Document.Insert(ed.TextArea.Caret.Offset, c + " ") // add trailing space
                 e.Handled <- true // TODO raise TextArea.TextEntered Event ?
         | _ -> ()
-    
-    let addClosingBracket(ed:TextEditor, e:Input.TextCompositionEventArgs) = 
-        let inline addPair caretForward (s:string)  = 
-            let caret = ed.TextArea.Caret.Offset 
-            ed.Document.Insert(caret, s ); 
+
+    let addClosingBracket(ed:TextEditor, e:Input.TextCompositionEventArgs) =
+        let inline addPair caretForward (s:string)  =
+            let caret = ed.TextArea.Caret.Offset
+            ed.Document.Insert(caret, s );
             ed.TextArea.Caret.Offset <- caret+caretForward // it was moved 2, now set it to one ahead, in the middle
             e.Handled <- true
-        
-        let inline prevChar() = ed.Document.GetCharAt(max 0 (ed.TextArea.Caret.Offset-1))  
-        
+
+        let inline prevChar() = ed.Document.GetCharAt(max 0 (ed.TextArea.Caret.Offset-1))
+
         /// test if next character is whitespace or end of file
         let inline nextSpace() =
             let i = ed.TextArea.Caret.Offset
-            if ed.Document.TextLength <= i then 
+            if ed.Document.TextLength <= i then
                 true
             else
-                let c = ed.Document.GetCharAt(i)                 
+                let c = ed.Document.GetCharAt(i)
                 c=' '|| c='\r'
-        
+
         /// test if next character is whitespace, double quote or end of file
         let inline nextSpaceQ() =
             let i = ed.TextArea.Caret.Offset
-            if ed.Document.TextLength <= i then 
+            if ed.Document.TextLength <= i then
                 true
             else
-                let c = ed.Document.GetCharAt(i) 
+                let c = ed.Document.GetCharAt(i)
                 c=' '|| c='\r'|| c='"' // " for being in a string
 
         /// test if previous character is not from the alphanumeric( so a space, a bracket or similar)
         let inline prevNonAlpha() =
             let i = ed.TextArea.Caret.Offset
-            if i = 0  then 
+            if i = 0  then
                 true
             else
                 let c = ed.Document.GetCharAt(i) // TODO:only testsing for ascii here, good enough!?
-                c < '0' 
+                c < '0'
                 ||
                 (c > '9' && c < 'A')
                 ||
                 (c > 'Z' && c < '_') // _ then ` then a
                 ||
                 c > 'z'
-                
+
 
         /// test if the current line has an even count of quotes ?
         let inline evenQuoteCount() =
             let mutable i = ed.TextArea.Caret.Offset - 1 // do minus one first, caret might be at end of document. that would not be a valid index
-            let rec count(k) = 
+            let rec count(k) =
                 if i = -1 then k
                 else
                     let c = ed.Document.GetCharAt(i)
                     i<-i-1 // do minus one first, caret might be at end of document. that would not be a valid index
-                    match c with 
+                    match c with
                     | '"'  -> count(k+1)
                     | '\n' -> k
                     | _    -> count(k)
@@ -390,13 +390,13 @@ module CursorBehavior  =
 
         match Selection.getSelType(ed.TextArea) with
         |RectSel -> ()
-        
+
         // if there is a simple selection on one line surround it in Brackets
-        |RegSel -> 
+        |RegSel ->
             match e.Text with
             | "("  ->
                 let s = Selection.getSelectionOrdered(ed.TextArea)
-                if s.LineCount = 1 then 
+                if s.LineCount = 1 then
                     ed.Document.BeginUpdate()
                     ed.Document.Insert(s.enOffset(ed.Document),")")
                     ed.Document.Insert(s.stOffset(ed.Document),"(")
@@ -407,53 +407,53 @@ module CursorBehavior  =
             | _ -> ()
 
         // if no selection for an opening bracket add a closing bracket
-        |NoSel -> 
-            
+        |NoSel ->
+
             match e.Text with
-            | "("  -> if nextSpace()  then addPair 1 "()" 
+            | "("  -> if nextSpace()  then addPair 1 "()"
             | "{"  -> if nextSpaceQ() then addPair 1 "{}"
             | "["  -> if nextSpace()  then addPair 1 "[]"
             | "'"  -> if nextSpace()&&prevNonAlpha()  then addPair 1 "''"
             | "\"" -> if nextSpace()&&evenQuoteCount() then addPair 1 "\"\""
             | "$"  -> if nextSpace()  then addPair 2 "$\"\"" // for formatting string
             | "`"  -> if nextSpace()  then addPair 2 "````"  // for quoted identifiers
-            
-            | "|" -> 
+
+            | "|" ->
                 // first check previous character:
-                match prevChar() with 
-                | '{' | '[' | '(' -> addPair 2 "|  |" // it was moved 2, now set it to one ahead, in the middle              
+                match prevChar() with
+                | '{' | '[' | '(' -> addPair 2 "|  |" // it was moved 2, now set it to one ahead, in the middle
                 | _ -> ()
-            
+
             | "*" -> // for comments with  (* *)
                 // first check previous character:
-                match prevChar() with 
+                match prevChar() with
                 | '(' -> addPair 2 "*  *"
                 | _ -> ()
-            
+
             | _ -> ()
 
-    
-    let previewTextInput(ed:TextEditor, e:Input.TextCompositionEventArgs) = 
+
+    let previewTextInput(ed:TextEditor, e:Input.TextCompositionEventArgs) =
         // not needed: if not ed.IsComplWinOpen then
         match getSelType(ed.TextArea) with
-        | RectSel ->  
+        | RectSel ->
             RectangleSelection.insertText(ed, e.Text) ; e.Handled <- true // all input in rectangular selection is handled here.
-        | NoSel | RegSel ->     
+        | NoSel | RegSel ->
             addWhitespaceAfterChar(ed,e)
-            if not e.Handled then 
+            if not e.Handled then
                 addClosingBracket(ed,e)
-    
+
 
 
 [<RequireQualifiedAccess>]
-module DragAndDrop = 
-    let onTextArea (ed:TextEditor,  e:DragEventArgs) = 
+module DragAndDrop =
+    let onTextArea (ed:TextEditor,  e:DragEventArgs) =
         let doc = ed.Document
         if e.Data.GetDataPresent DataFormats.FileDrop then
             let isDll (p:string) = p.EndsWith(".dll", StringComparison.OrdinalIgnoreCase) ||  p.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)
             let isFsx (p:string) = p.EndsWith(".fsx", StringComparison.OrdinalIgnoreCase) ||  p.EndsWith(".fs", StringComparison.OrdinalIgnoreCase)
 
-            //let findInsertion (code:string) = 
+            //let findInsertion (code:string) =
             //    match ParseFs.findWordAhead "[<Literal>]" 0 code with
             //    | Some p  ->
             //        ParseFs.findWordAhead "@\"" p.offset code
@@ -482,7 +482,7 @@ module DragAndDrop =
                     // TODO add drag and drop preview cursor
                     // calculate this before looping through all drops
                     let pos = ed.GetPositionFromPoint(e.GetPosition(ed))
-                    let lnNo,off = 
+                    let lnNo,off =
                         if pos.HasValue then
                             let dropLine = ed.Document.GetLineByNumber(pos.Value.Line)
                             let carLine = doc.GetLineByOffset(ed.CaretOffset)
@@ -539,13 +539,13 @@ module DragAndDrop =
                     e.Handled <- true
 
             with er -> ISeffLog.log.PrintfnIOErrorMsg "Drag & Drop in TextArea failed: %A" er
-    
+
 
     /// A Event handler that will open a new tab per file.
     /// If event comes from a AvalonEditB.TextEditor that is not read only ( like the Log) the event is ignored.
-    let onTabHeaders (openFiles: string[] -> bool, e:DragEventArgs) = 
+    let onTabHeaders (openFiles: string[] -> bool, e:DragEventArgs) =
         //ISeffLog.log.PrintfnDebugMsg "Drop onto e.Source :%A ; e.OriginalSource:%A" e.Source e.OriginalSource
-        let addTabsForFiles() = 
+        let addTabsForFiles() =
             if e.Data.GetDataPresent DataFormats.FileDrop then
                 let isFsx (p:string) = p.EndsWith(".fsx", StringComparison.OrdinalIgnoreCase) ||  p.EndsWith(".fs", StringComparison.OrdinalIgnoreCase)
                 try
@@ -560,15 +560,15 @@ module DragAndDrop =
                     |> Seq.iter (ISeffLog.log.PrintfnIOErrorMsg " Only *.fsx and *.fs files can be opened to tabs. Ignoring darg-and-drop of  %A " )
 
                     e.Handled <- true
-                    
-                with er -> 
+
+                with er ->
                     ISeffLog.log.PrintfnIOErrorMsg "Other Drag & Drop failed: %A" er
-        
-        match e.Source with 
-        | :? AvalonEditB.TextEditor  as te ->  
-                // do only when on AvalonLog, not if drop happens on code editor, for code editor the file is not opened 
-                // but a link to it inserted into the code, see separate TextAreaDragAndDrop event above.        
-                if te.IsReadOnly then addTabsForFiles() 
+
+        match e.Source with
+        | :? AvalonEditB.TextEditor  as te ->
+                // do only when on AvalonLog, not if drop happens on code editor, for code editor the file is not opened
+                // but a link to it inserted into the code, see separate TextAreaDragAndDrop event above.
+                if te.IsReadOnly then addTabsForFiles()
                 else () // do nothing
         | _ -> addTabsForFiles()
-           
+

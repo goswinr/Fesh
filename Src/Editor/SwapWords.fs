@@ -3,18 +3,18 @@
 open System
 open AvalonEditB
 
-module SwapWords = 
+module SwapWords =
 
     /// swap currently selected word with word before on same line
     /// a word may contain letter, digit, underscore and dot
     /// does nothing  on box selection
-    let left(ed:TextEditor) = 
+    let left(ed:TextEditor) =
         match Selection.isOneWord ed with
         |None -> false
         |Some seg ->
             let doc = ed.Document
             //ISeffLog.log.PrintfnDebugMsg "seg Word: %s" (doc.GetText(seg))
-            let rec getPrevEnd i = 
+            let rec getPrevEnd i =
                 if i<0 then -98 // start of file
                 else
                     let c = doc.GetCharAt i
@@ -24,7 +24,7 @@ module SwapWords =
             let prevEnd = getPrevEnd (seg.StartOffset - 1)
             if prevEnd < 0 then false // line end found or start of file found
             else
-                let rec getPrevStart i = 
+                let rec getPrevStart i =
                     if   i<0 then 0 // start of file
                     elif not(Selection.isFsLetter(doc.GetCharAt i)) then i+1
                     else getPrevStart (i-1)
@@ -44,13 +44,13 @@ module SwapWords =
     /// swap currently selected word with word after word on same line
     /// a word may contain letter, digit, underscore and dot
     /// does nothing  on box selection
-    let right (ed:TextEditor) = 
+    let right (ed:TextEditor) =
         match Selection.isOneWord ed with
         |None -> false
         |Some seg ->
             let doc = ed.Document
             //ISeffLog.log.PrintfnDebugMsg "seg Word: %s" (doc.GetText(seg))
-            let rec getNextStart i = 
+            let rec getNextStart i =
                 if i=doc.TextLength then -79 // end of file
                 else
                     let c = doc.GetCharAt i
@@ -60,7 +60,7 @@ module SwapWords =
             let nextStart = getNextStart (seg.EndOffset + 1)
             if nextStart < 0 then false // line or file end found
             else
-                let rec getNextEnd i = 
+                let rec getNextEnd i =
                     if  i=doc.TextLength then i-1
                     elif not(Selection.isFsLetter(doc.GetCharAt i)) then i-1
                     else getNextEnd (i+1)

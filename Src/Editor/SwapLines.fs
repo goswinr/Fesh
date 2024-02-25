@@ -3,16 +3,16 @@
 open Seff.Model
 open AvalonEditB.Editing
 
-module SwapLines = 
+module SwapLines =
     open Selection
 
-    type SwapPair = 
+    type SwapPair =
         |ThisAndOther of Seg * Seg
         |EndOrStartOfDoc
 
     /// TODO jump over folded block too !
 
-    let swapLinesUp(ed:IEditor) = 
+    let swapLinesUp(ed:IEditor) =
         let avaEdit = ed.AvaEdit
         let doc=avaEdit.Document
         let ta = avaEdit.TextArea
@@ -20,7 +20,7 @@ module SwapLines =
         let sel = getSelType (ta)
         let sp = Selection.getSelectionOrdered ta
 
-        let pair = 
+        let pair =
             match sel with
             | NoSel ->
                 let thisLn = doc.GetLineByOffset(caret)
@@ -29,7 +29,7 @@ module SwapLines =
                     EndOrStartOfDoc
                 else
                     // TODO finish up swapping over folded lines
-                    //let foldLine = 
+                    //let foldLine =
                     //    let fs = ed.Folds.Manager.GetFoldingsContaining(prevLn.Offset) |> Seq.filter ( fun f -> f.IsFolded)
                     //    if Seq.isEmpty fs then
                     //        None
@@ -48,7 +48,7 @@ module SwapLines =
             | RectSel
             | RegSel  ->
                 let firstLn = doc.GetLineByNumber(sp.stPos.Line)
-                let lastLn =  doc.GetLineByNumber(sp.enPos.Line) 
+                let lastLn =  doc.GetLineByNumber(sp.enPos.Line)
                 let prevLn = firstLn.PreviousLine
                 if isNull prevLn then
                     EndOrStartOfDoc
@@ -88,7 +88,7 @@ module SwapLines =
                 ta.Selection <- new RectangleSelection(ta,startPos,endPos)
             doc.EndUpdate()
 
-    let swapLinesDown(ed:IEditor) = 
+    let swapLinesDown(ed:IEditor) =
         let avaEdit = ed.AvaEdit
         let doc=avaEdit.Document
         let ta = avaEdit.TextArea
@@ -96,7 +96,7 @@ module SwapLines =
         let sel = getSelType (ta)
         let sp = Selection.getSelectionOrdered ta
 
-        let pair = 
+        let pair =
             match sel with
             | NoSel ->
                 let thisLn = doc.GetLineByOffset(caret)

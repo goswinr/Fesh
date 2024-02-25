@@ -15,21 +15,21 @@ open Seff
 open Seff.Model
 
 // see  https://github.com/dotnet/fsharp/blob/main/src/Compiler/Service/SemanticClassification.fs
- 
+
 
 type SemActions() =
-    
+
     let c_ValueType                    = freeze <| Brushes.MediumOrchid  |> darker 40
-    let c_ReferenceType                = freeze <| Brushes.MediumVioletRed  |> darker 60  
+    let c_ReferenceType                = freeze <| Brushes.MediumVioletRed  |> darker 60
     let c_Type                         = freeze <| Brushes.MediumVioletRed  |> darker 40
-    let c_UnionCase                    = freeze <| Brushes.LightSkyBlue  |> darker 100 
+    let c_UnionCase                    = freeze <| Brushes.LightSkyBlue  |> darker 100
     let c_UnionCaseField               = freeze <| Brushes.LightSkyBlue  |> darker 100
     let c_Function                     = freeze <| Brushes.DarkGoldenrod |> darker 40
     let c_Property                     = freeze <| Brushes.DarkTurquoise |> darker 110
     let c_MutableVar                   = freeze <| Brushes.Goldenrod     |> darker 20
     let c_MutableRecordField           = freeze <| Brushes.Goldenrod     |> darker 20
     let c_Module                       = freeze <| Brushes.Black
-    let c_Namespace                    = freeze <| Brushes.Black  
+    let c_Namespace                    = freeze <| Brushes.Black
     //let c_Printf                       = freeze <| Brushes.Plum      // covered by xshd highlighting
     let c_ComputationExpression        = freeze <| Brushes.Indigo
     let c_IntrinsicFunction            = freeze <| Brushes.DarkBlue
@@ -47,32 +47,32 @@ type SemActions() =
     let c_Literal                      = freeze <| Brushes.SeaGreen
     let c_RecordField                  = freeze <| Brushes.DarkSlateGray |> darker 10
     let c_RecordFieldAsFunction        = freeze <| Brushes.Plum
-    let c_Exception                    = freeze <| Brushes.HotPink |> darker 40  
+    let c_Exception                    = freeze <| Brushes.HotPink |> darker 40
     let c_Field                        = freeze <| Brushes.MediumPurple
     let c_Event                        = freeze <| Brushes.Olive
     let c_Delegate                     = freeze <| Brushes.DarkOliveGreen
     let c_NamedArgument                = freeze <| Brushes.PaleVioletRed |> darker 80
     let c_Value                        = freeze <| Brushes.DarkRed       |> darker 20
     let c_LocalValue                   = freeze <| Brushes.DarkRed       |> darker 40
-    let c_TypeDef                      = freeze <| Brushes.Purple       
-    let c_Plaintext                    = freeze <| Brushes.OrangeRed     |> darker 60   
-                                        
-    let c_UnUsed                       = freeze <| Brushes.Gray |> brighter 40 
+    let c_TypeDef                      = freeze <| Brushes.Purple
+    let c_Plaintext                    = freeze <| Brushes.OrangeRed     |> darker 60
 
-    let badIndentBrush =        
+    let c_UnUsed                       = freeze <| Brushes.Gray |> brighter 40
+
+    let badIndentBrush =
         let opacity = 40uy // 0uy is transparent, 255uy is opaque, transparent to show column rulers behind
         let r,g,b = 255uy, 180uy, 0uy // orange
-        Color.FromArgb(opacity,r,g,b) 
+        Color.FromArgb(opacity,r,g,b)
         |> SolidColorBrush
         |> freeze
 
     /// this allows using the cursive version of Cascadia Mono
-    let stylisticSet1 = 
-        {new DefaultTextRunTypographyProperties() with 
+    let stylisticSet1 =
+        {new DefaultTextRunTypographyProperties() with
             override this.StylisticSet1 with get() = true
         }
 
-    let makeCursive (el:VisualLineElement) =              
+    let makeCursive (el:VisualLineElement) =
         // let f = el.TextRunProperties.Typeface.FontFamily
         // let tf = new Typeface(f, FontStyles.Italic, FontWeights.Bold, FontStretches.Normal)
         // eprintfn $"makeCursive {f}"
@@ -119,10 +119,10 @@ type SemActions() =
     member val Type                        = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(c_Type                       ))
     member val TypeDef                     = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(c_TypeDef                    ))
     member val Plaintext                   = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(c_Plaintext                  ))
-                                                                                                                            
+
     member val UnUsed                      = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(c_UnUsed);el.TextRunProperties.SetTypeface(StyleState.boldEditorTf))
 
-    member val BadIndentAction             = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetBackgroundBrush(badIndentBrush))    
+    member val BadIndentAction             = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetBackgroundBrush(badIndentBrush))
 
 
 // type alias
@@ -131,95 +131,95 @@ type Sc = SemanticClassificationType
 /// A DocumentColorizingTransformer.
 /// Used to do semantic highlighting
 /// includes Bad Indentation and Unused declarations
-type SemanticHighlighter (state: InteractionState) = 
+type SemanticHighlighter (state: InteractionState) =
 
     let codeLines = state.CodeLines
 
-    let getUnusedDecl(checkRes:FSharpCheckFileResults, id): ResizeArray<Text.range> =         
-        async{            
+    let getUnusedDecl(checkRes:FSharpCheckFileResults, id): ResizeArray<Text.range> =
+        async{
             let unusedDecl = ResizeArray<Text.range>()
             let! uds = UnusedDeclarations.getUnusedDeclarations(checkRes,true)
-            for ud in uds do 
+            for ud in uds do
                 unusedDecl.Add ud
-            
-            let getLine lineNo = 
-                match codeLines.GetLineText(lineNo,id) with 
+
+            let getLine lineNo =
+                match codeLines.GetLineText(lineNo,id) with
                 | ValueNone -> "open"
-                | ValueSome lnTxt ->  lnTxt 
-            
+                | ValueSome lnTxt ->  lnTxt
+
             let! uos = UnusedOpens.getUnusedOpens(checkRes,getLine)
             for uo in uos do
                 unusedDecl.Add uo
             return unusedDecl
-            }  
+            }
         |> Async.RunSynchronously
-      
+
 
     //let action (el:VisualLineElement,brush:SolidColorBrush,r:Text.Range) = el.TextRunProperties.SetForegroundBrush(Brushes.Red)
     let defaultIndenting = state.Editor.Options.IndentationSize
 
-    let trans = state.TransformersSemantic   
+    let trans = state.TransformersSemantic
     let semActs = SemActions()
 
     let foundSemanticsEv = new Event<int64>()
 
-    [<CLIEvent>] 
+    [<CLIEvent>]
     member _.FoundSemantics = foundSemanticsEv.Publish
-    
+
     /// also includes bad indenting
     member _.UpdateSemHiLiTransformers(checkRes:FSharpCheckFileResults, id) =
-        if state.IsLatest id then                   
+        if state.IsLatest id then
             let allRanges = checkRes.GetSemanticClassification(None)
-            
+
             let newTrans = ResizeArray<ResizeArray<LinePartChange>>(trans.LineCount+4)
-            
-            // (1) find semantic highlight:  
-            let rec loopSemantic i = 
-                if i = allRanges.Length then 
+
+            // (1) find semantic highlight:
+            let rec loopSemantic i =
+                if i = allRanges.Length then
                     true // reached end
                 else
                     let sem = allRanges.[i]
-                    let r = sem.Range            
+                    let r = sem.Range
                     let lineNo = max 1 r.StartLine
-                    match codeLines.GetLine(lineNo,id) with 
+                    match codeLines.GetLine(lineNo,id) with
                     | ValueNone -> false // exit early
-                    | ValueSome ln ->                       
+                    | ValueSome ln ->
                         let inline push(f,t,a)     =  LineTransformers.Insert(newTrans, lineNo,{from=f; till=t; act=a})
-                        let inline pushCorr(f,t,a) =  
-                            if codeLines.CorrespondingId = id then // to avoid out of range exception on codeLines.FullCode                             
-                                // because some times the range of a property starts before the point                        
+                        let inline pushCorr(f,t,a) =
+                            if codeLines.CorrespondingId = id then // to avoid out of range exception on codeLines.FullCode
+                                // because some times the range of a property starts before the point
                                 // search from back to find last dot, there may be more than one
                                 // at file end the end column in the reported range might be equal to FullCode.Length, so we do -1 to avoid a ArgumentOutOfRangeException.
-                                let st = 
+                                let st =
                                     try
-                                        match codeLines.FullCode.LastIndexOf('.', t-1, t-f) with 
-                                        | -1 -> f 
+                                        match codeLines.FullCode.LastIndexOf('.', t-1, t-f) with
+                                        | -1 -> f
                                         |  i -> i + 1
                                     with
                                         | _ -> eprintfn $"SemanticHighlighter: pushCorr: ArgumentOutOfRangeException: {sem.Type} {f} to {t} for {codeLines.FullCode.Length} chars"; f
                                 push(st,t,a)
 
                         // skip semantic highlighting for these, covered in xshd:
-                        let inline skipFunc(st:int, en:int)=        
+                        let inline skipFunc(st:int, en:int)=
                             if codeLines.CorrespondingId <> id then true // to avoid out of range exception
-                            else 
+                            else
                                 let w = codeLines.FullCode.[st..en]
                                 w.StartsWith    "failwith"
                                 || w.StartsWith "failIfFalse" // from FsEx
                                 || w.StartsWith "print"
-                                || w.StartsWith "eprint"                                
+                                || w.StartsWith "eprint"
 
-                        let inline skipModul(st:int, en:int)=  
+                        let inline skipModul(st:int, en:int)=
                             if codeLines.CorrespondingId <> id then true // to avoid out of range exception
-                            else       
+                            else
                                 let w = codeLines.FullCode.[st..en]
                                 w.StartsWith "Printf"
-                        
-                        let st = ln.offStart + r.StartColumn                 
+
+                        let st = ln.offStart + r.StartColumn
                         let en = ln.offStart + r.EndColumn
                         //ISeffLog.log.PrintfnDebugMsg $"{lineNo}:{sem.Type} {r.StartColumn} to {r.EndColumn}"
 
-                        match sem.Type with 
+                        match sem.Type with
                         | Sc.ReferenceType               -> push(st,en, semActs.ReferenceType              )
                         | Sc.ValueType                   -> push(st,en, semActs.ValueType                  )
                         | Sc.UnionCase                   -> push(st,en, semActs.UnionCase                  )
@@ -255,54 +255,54 @@ type SemanticHighlighter (state: InteractionState) =
                         | Sc.LocalValue                  -> push(st,en, semActs.LocalValue                 )
                         | Sc.Type                        -> push(st,en, semActs.Type                       )
                         | Sc.TypeDef                     -> push(st,en, semActs.TypeDef                    )
-                        | Sc.Plaintext                   -> push(st,en, semActs.Plaintext                  )  
-                        | Sc.Printf                      -> () //push(st,en, semActs.Printf                ) // covered in xshd file 
+                        | Sc.Plaintext                   -> push(st,en, semActs.Plaintext                  )
+                        | Sc.Printf                      -> () //push(st,en, semActs.Printf                ) // covered in xshd file
                         | _ -> () // the above actually covers all SemanticClassificationTypes
-                    
+
                         loopSemantic (i+1)
-            
+
             // (2) find bad indents:
-            let rec loopIndent lnNo = 
-                if lnNo > codeLines.LastLineIdx then 
+            let rec loopIndent lnNo =
+                if lnNo > codeLines.LastLineIdx then
                     true // reached end
                 else
-                    match codeLines.GetLine(lnNo,id) with 
+                    match codeLines.GetLine(lnNo,id) with
                     | ValueNone -> false // exit early
-                    | ValueSome ln -> 
+                    | ValueSome ln ->
                         if ln.indent % defaultIndenting <> 0 then // indent is not a multiple of defaultIndenting
                             if ln.indent <> ln.len then // exclude all white lines
                                 LineTransformers.Insert(newTrans, lnNo , {from=ln.offStart; till=ln.offStart+ln.indent; act=semActs.BadIndentAction} )
                         loopIndent (lnNo+1)
 
-            
+
             // (3) find unused declarations:
-            let getUnused () = 
+            let getUnused () =
                 let unusedDeclarations = getUnusedDecl(checkRes, id)
                 let rec loopUnused i =
-                    let count = unusedDeclarations.Count 
-                    if i = count then 
+                    let count = unusedDeclarations.Count
+                    if i = count then
                         true // reached end
                     elif i > count then
-                        false // something went wrong, probably unusedDeclarations was replaced with another list 
+                        false // something went wrong, probably unusedDeclarations was replaced with another list
                     else
                         let r = unusedDeclarations.[i]
                         let lineNo = max 1 r.StartLine
-                        match codeLines.GetLine(lineNo,id) with 
+                        match codeLines.GetLine(lineNo,id) with
                         | ValueNone -> false
-                        | ValueSome offLn ->  
-                            let st = offLn.offStart + r.StartColumn                
+                        | ValueSome offLn ->
+                            let st = offLn.offStart + r.StartColumn
                             let en = offLn.offStart + r.EndColumn
                             LineTransformers.Insert(newTrans,lineNo, {from=st; till=en; act=semActs.UnUsed})
                             loopUnused (i+1)
-                loopUnused 0 
-           
-            
-            if loopSemantic 0 
+                loopUnused 0
+
+
+            if loopSemantic 0
             && loopIndent 1 // lines start at 1
-            && getUnused() then                
+            && getUnused() then
                 trans.Update(newTrans)
-                foundSemanticsEv.Trigger(id) 
-            
+                foundSemanticsEv.Trigger(id)
+
 
 
 
