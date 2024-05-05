@@ -147,51 +147,52 @@ type ErrorRenderer (state: InteractionState) =
         //    at AvalonEditB.Editing.CaretLayer.OnRender(DrawingContext drawingContext)
         if textView.VisualLinesValid then //to avoid above error.
             let vls = textView.VisualLines
-            let fromLine = vls[0].FirstDocumentLine.LineNumber
-            let toLine   = vls[vls.Count-1].LastDocumentLine.LineNumber
-            let allSegments = state.ErrSegments
-            let codeLines = state.CodeLines
-            let shift = allSegments.Shift
-            let id = state.DocChangedId.Value
-            for lineNo = fromLine to toLine do
-                let segments = allSegments.GetLine(lineNo)
-                for i=0 to segments.Count-1 do
-                    let seg = segments[i]
+            if vls.Count > 0 then // check needed !
+                let fromLine = vls[0].FirstDocumentLine.LineNumber
+                let toLine   = vls[vls.Count-1].LastDocumentLine.LineNumber
+                let allSegments = state.ErrSegments
+                // let codeLines = state.CodeLines
+                let shift = allSegments.Shift
+                // let id = state.DocChangedId.Value
+                for lineNo = fromLine to toLine do
+                    let segments = allSegments.GetLine(lineNo)
+                    for i=0 to segments.Count-1 do
+                        let seg = segments[i]
 
-                    // adjust offset to shifts:
-                    let mutable till = seg.EndOffset
-                    let from =
-                        if seg.Offset >= shift.fromOff  then
-                            let shifted = seg.Offset + shift.amountOff
-                            if shifted < shift.fromOff then // after shifting the offset moved before the changed area
-                                Int32.MaxValue // to skip this segment
+                        // adjust offset to shifts:
+                        let mutable till = seg.EndOffset
+                        let from =
+                            if seg.Offset >= shift.fromOff  then
+                                let shifted = seg.Offset + shift.amountOff
+                                if shifted < shift.fromOff then // after shifting the offset moved before the changed area
+                                    Int32.MaxValue // to skip this segment
+                                else
+                                    till <- till + shift.amountOff
+                                    shifted
                             else
-                                till <- till + shift.amountOff
-                                shifted
+                                seg.Offset
+
+                        if from >= till then   () // eprintfn "from >= till" // negative length or Int32.MaxValue in from value
+                        //elif till > offEn then () // eprintfn "till > offEn " // avoid jumping to next line
+                        //elif from < offSt then () // eprintfn "from < offSt" // avoid jumping to previous line
                         else
-                            seg.Offset
 
-                    if from >= till then   () // eprintfn "from >= till" // negative length or Int32.MaxValue in from value
-                    //elif till > offEn then () // eprintfn "till > offEn " // avoid jumping to next line
-                    //elif from < offSt then () // eprintfn "from < offSt" // avoid jumping to previous line
-                    else
+                            // background color:
+                            // when drawing on Caret layer background must be disabled.
+                            // let geoBuilder = new BackgroundGeometryBuilder (AlignToWholePixels = true, CornerRadius = 0.)
+                            // geoBuilder.AddSegment(textView, segShift )
+                            // let boundaryPolygon = geoBuilder.CreateGeometry() // creates one boundary round the text
+                            // drawingContext.DrawGeometry(seg.BackgroundBrush, null, boundaryPolygon)
 
-                        // background color:
-                        // when drawing on Caret layer background must be disabled.
-                        // let geoBuilder = new BackgroundGeometryBuilder (AlignToWholePixels = true, CornerRadius = 0.)
-                        // geoBuilder.AddSegment(textView, segShift )
-                        // let boundaryPolygon = geoBuilder.CreateGeometry() // creates one boundary round the text
-                        // drawingContext.DrawGeometry(seg.BackgroundBrush, null, boundaryPolygon)
-
-                        //foreground, squiggles:
-                        let iSeg = {new ISegment with
-                                        member _.Offset      = from
-                                        member _.EndOffset   = till
-                                        member _.Length      = till - from   }
-                        let rects = BackgroundGeometryBuilder.GetRectsForSegment(textView, iSeg) |> ResizeArray
-                        if rects.Count = 1 then // skip if line overflows and there is more than one rect
-                            let geo = ErrorUtil.getSquiggleLine(rects[0], -1.0) // neg offset to move down
-                            drawingContext.DrawGeometry(Brushes.Transparent, seg.UnderlinePen, geo)
+                            //foreground, squiggles:
+                            let iSeg = {new ISegment with
+                                            member _.Offset      = from
+                                            member _.EndOffset   = till
+                                            member _.Length      = till - from   }
+                            let rects = BackgroundGeometryBuilder.GetRectsForSegment(textView, iSeg) |> ResizeArray
+                            if rects.Count = 1 then // skip if line overflows and there is more than one rect
+                                let geo = ErrorUtil.getSquiggleLine(rects[0], -1.0) // neg offset to move down
+                                drawingContext.DrawGeometry(Brushes.Transparent, seg.UnderlinePen, geo)
 
     member _.Layer =
         // when drawing on Caret layer the  background change must be disabled

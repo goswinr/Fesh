@@ -35,10 +35,10 @@ type ErrMsg = string
 type PathWithNameSpace =string
 
 type ToolTipData = {
-    name          : string; 
+    name          : string;
     signature     : TaggedText[]
     fullName      : PathWithNameSpace
-    optDefs       : ResizeArray<string> 
+    optDefs       : ResizeArray<string>
     xmlDoc        : Result<XmlParser.Child*DllPath,ErrMsg>
     }
 
@@ -52,10 +52,10 @@ type ToolTipExtraData ={
 /// to indicate if trailing or leading whitespace shall be trimmed
 [<RequireQualifiedAccess>]
 type Trim = No | Start | End | Both
-    
+
 
 ///a static class for creating tooltips
-type TypeInfo private () = 
+type TypeInfo private () =
 
     static let loadingTxt =  "Loading type info ..."
 
@@ -63,56 +63,77 @@ type TypeInfo private () =
     static let gray         = Brushes.Gray                       |> freeze
     static let errMsgGray    = Brushes.LightGray                  |> freeze
     static let purple       = Brushes.Purple     |> brighter  40 |> freeze
-    
-    static let blue         = Brushes.Blue       |> darker    90 |> freeze    
+
+    static let blue         = Brushes.Blue       |> darker    90 |> freeze
     static let red          = Brushes.DarkSalmon |> darker   120 |> freeze
     static let fullRed      = Brushes.Red        |> darker    60 |> freeze
-    static let cyan         = Brushes.DarkCyan   |> darker    60 |> freeze    
+    static let cyan         = Brushes.DarkCyan   |> darker    60 |> freeze
 
 
-    static let maxCharInSignLine = 100
+    static let maxCharInSignLine = 150
 
     static let loggedErrors = HashSet<string>()
 
 
-    static let coloredSignature(td:ToolTipData): TextBlockSelectable = 
+    static let coloredSignature(td:ToolTipData): TextBlockSelectable =
         let tb = TextBlockSelectable()
         tb.Foreground <- black
         tb.FontSize   <- StyleState.fontSize * 1.0 // prev 1.2
         tb.FontFamily <- StyleState.fontToolTip
         tb.TextWrapping <- TextWrapping.Wrap
         let ts = td.signature
-        let mutable len = 0        
-        
+        let mutable len = 0
+        let mutable skip = false
+        let mutable literal = ""
+        let mutable prev = ""
+
         let inline lengthCheck() =
             if len > maxCharInSignLine then
                 tb.Inlines.Add( new Run("\r\n    "))
-                len <- 0              
-        
+                len <- 0
+
+        let append col (txt:string) =
+            if not skip then
+                len <- len + txt.Length
+                prev <- txt
+                if notNull col then
+                    tb.Inlines.Add( new Run(txt, Foreground = col))
+                else
+                    tb.Inlines.Add( new Run(txt))
+
         for i=0 to ts.Length-1 do
             let t = ts.[i]
-            len <- len + t.Text.Length
+            //ISeffLog.log.PrintfnDebugMsg $"{i}: {skip}'{t.Text}' Tag:{t.Tag} "
 
             match t.Tag with
             | TextTag.Parameter ->
-                lengthCheck()              
+                lengthCheck()
                 // if a parameter is optional add a question mark to the signature
                 match ts.[i-1].Text with
-                |"?" ->  tb.Inlines.Add( new Run(t.Text , Foreground = gray)) // sometimes optional arguments have already a question mark but not always
+                |"?" -> append gray t.Text // sometimes optional arguments have already a question mark but not always
                 | _ ->
                     match td.optDefs |> Seq.tryFind ( fun oa -> oa = t.Text ) with
-                    | Some od ->  tb.Inlines.Add( new Run("?"+t.Text , Foreground = gray ))
-                    | None    ->  tb.Inlines.Add( new Run(t.Text     , Foreground = black ))
+                    | Some od -> append gray ("?"+t.Text)
+                    | None    -> append black t.Text
 
-            | TextTag.Keyword ->                
-                lengthCheck() 
-                tb.Inlines.Add( new Run(t.Text, Foreground = blue))
+            | TextTag.Keyword ->
+                lengthCheck()
+                append blue t.Text
 
             | TextTag.Punctuation->
                 match t.Text with
-                | "?"        ->   tb.Inlines.Add( new Run(t.Text, Foreground = gray))
-                | "*" | "->" ->  tb.Inlines.Add( new Run(t.Text, Foreground = fullRed))                    
-                |  _         ->  tb.Inlines.Add( new Run(t.Text, Foreground = purple ))                
+                | "?"        -> append gray t.Text
+                | "*" | "->" -> append fullRed t.Text
+                | ">]"       ->
+                    append purple t.Text
+                    skip <- false // skip might be set to true fom a System.Runtime.InteropServices.Optional attribute
+                | ":" ->
+                    if literal <> "" then
+                        append gray ("="+literal)
+                        literal <- ""
+                    append purple t.Text
+                |  _ ->
+                    append purple t.Text
 
             | TextTag.Operator //  also used for  DU names in `` ``  !?
             | TextTag.RecordField
@@ -121,27 +142,47 @@ type TypeInfo private () =
             | TextTag.Field
             | TextTag.ModuleBinding
             | TextTag.UnionCase
-            | TextTag.Member ->   tb.Inlines.Add( new Run(t.Text, Foreground = red))
+            | TextTag.Member -> append red t.Text
+
+            | TextTag.Class ->
+                if t.Text = "Optional" && i>0 && ts.[i-1].Text ="System.Runtime.InteropServices." then
+                    tb.Inlines.Remove tb.Inlines.LastInline |> ignore // remove System.Runtime.InteropServices.
+                    tb.Inlines.Remove tb.Inlines.LastInline |> ignore // remove [<]
+                    skip <- true
+                else
+                    append cyan t.Text
+
+            | TextTag.NumericLiteral
+            | TextTag.StringLiteral -> // ist a DefaultParameterValue ??
+                if skip then
+                    literal <- t.Text
+                else
+                    append null t.Text
 
             | TextTag.Struct
-            | TextTag.Class
             | TextTag.Interface
             | TextTag.Function
-            | TextTag.Alias ->   tb.Inlines.Add( new Run(t.Text, Foreground = cyan))
+            | TextTag.Alias -> append cyan t.Text
 
-            | TextTag.TypeParameter ->   tb.Inlines.Add( new Run(t.Text, Foreground = cyan))   // generative argument like 'T or 'a
+            | TextTag.TypeParameter -> append cyan t.Text   // generative argument like 'T or 'a
 
-            | TextTag.UnknownType
-            | TextTag.UnknownEntity ->   tb.Inlines.Add( new Run(t.Text, Foreground = gray))
+            | TextTag.UnknownType   -> append gray t.Text
+            | TextTag.UnknownEntity -> append gray t.Text
+
 
             | TextTag.LineBreak ->
                 len <- t.Text.Length // reset after line break
-                tb.Inlines.Add( new Run(t.Text))
+                append null t.Text
 
-            | TextTag.Space -> 
+            | TextTag.Space ->
+                let s = t.Text
                 // skip one space after colon before type tag
-                if t.Text.Length=1 && ts.[max 0 (i-1)].Text=":" && ts.[max 0 (i-2)].Tag=TextTag.Parameter then ()                 
-                else tb.Inlines.Add( new Run(t.Text))
+                if i>1 && s.Length=1 && prev=":" && ts.[i-2].Tag=TextTag.Parameter then
+                    ()
+                elif prev = " " then // skip space after space
+                    ()
+                else
+                    append null s
 
             | TextTag.Namespace
             | TextTag.ActivePatternCase
@@ -153,14 +194,12 @@ type TypeInfo private () =
             | TextTag.Local
             | TextTag.Record
             | TextTag.Module
-            | TextTag.NumericLiteral
-            | TextTag.StringLiteral
             | TextTag.Text
             | TextTag.UnknownType
-            | TextTag.UnknownEntity ->    tb.Inlines.Add( new Run(t.Text))
+            | TextTag.UnknownEntity ->  append null t.Text
 
         (*
-        let debugHelp = 
+        let debugHelp =
             td.signature
             |> Seq.filter (fun t -> t.Tag <> TextTag.Punctuation && t.Tag <> TextTag.Space && t.Tag <> TextTag.Operator && t.Tag <> TextTag.LineBreak)
             |> Seq.map(fun t -> sprintf "%A" t.Tag)
@@ -168,91 +207,91 @@ type TypeInfo private () =
         tb.Inlines.Add( new Run("\r\n"+debugHelp,Foreground = lightgray))
         *)
         tb
-    
 
-    static let fixName s =  
-        match s with 
+
+    static let fixName s =
+        match s with
         | "param"     -> "Parameters: "
         | "exception" -> "Exceptions: "
         | "typeparam" -> "Type Parameters: "
         | t           -> Str.up1 t + ": "
 
     // for F:System.IO.Path.InvalidPathChars -> System.IO.Path.InvalidPathChars
-    static let fixTypeName (s:string) =  
-        match s.IndexOf ':' with 
-        | 1 -> 
-            let t = s.Substring(2) 
-            match t.IndexOf '`' with 
+    static let fixTypeName (s:string) =
+        match s.IndexOf ':' with
+        | 1 ->
+            let t = s.Substring(2)
+            match t.IndexOf '`' with
             | -1 -> t
-            | i  -> t.Substring(0,i) 
-        | _ -> s    
-    
+            | i  -> t.Substring(0,i)
+        | _ -> s
+
     /// trim start whitespace if the line has no returns
-    static let trimStartIfOneLiner (s:string) =         
-        match s.IndexOf '\n' with 
-        | -1 -> s.TrimStart()  
+    static let trimStartIfOneLiner (s:string) =
+        match s.IndexOf '\n' with
+        | -1 -> s.TrimStart()
         | i  -> s
-    
+
 
     // removes the first line return if it is only preceded by whitespace
-    static let trimStartIfHasRet (s:string) = 
-        let rec loop i = 
-            if i = s.Length then 
+    static let trimStartIfHasRet (s:string) =
+        let rec loop i =
+            if i = s.Length then
                 0
-            else                
-                match s[i] with 
+            else
+                match s[i] with
                 | ' '  -> loop (i+1)
                 | '\r' -> loop (i+1)
                 | '\n' -> i+1
                 |  _   -> i
-        
-        match loop 0 with 
-        | 0 -> s
-        | j -> s.Substring(j)    
 
-    
-    /// check if List has at least two items 
-    static let twoOrMore = function [] | [_] -> false |_ -> true   
+        match loop 0 with
+        | 0 -> s
+        | j -> s.Substring(j)
+
+
+    /// check if List has at least two items
+    static let twoOrMore = function [] | [_] -> false |_ -> true
 
     static let darkgray     = Brushes.Gray       |> darker    40 |> freeze
     static let darkblue     = Brushes.DarkSlateBlue |> darker 20 |> freeze
     static let white        = Brushes.White      |> darker    5  |> freeze
 
-    static let codeRun (td:ToolTipData) (code:string) : seq<Run>= 
+    static let codeRun (td:ToolTipData) (code:string) : seq<Run>=
         let tx = code.TrimEnd()
         [
-        new Run(" ") 
+        new Run(" ")
         match td.optDefs |> Seq.tryFind ( fun oa -> oa = tx ) with
-        | Some od ->  new Run("?"+tx ,FontFamily = StyleState.fontEditor, FontSize = StyleState.fontSize*1.1,  Foreground = gray,    Background = white) 
-        | None    ->  new Run(tx     ,FontFamily = StyleState.fontEditor, FontSize = StyleState.fontSize*1.1,  Foreground = black,   Background = white)         
-        new Run(" ") 
+        | Some od ->  new Run("?"+tx ,FontFamily = StyleState.fontEditor, FontSize = StyleState.fontSize*1.1,  Foreground = gray,    Background = white)
+        | None    ->  new Run(tx     ,FontFamily = StyleState.fontEditor, FontSize = StyleState.fontSize*1.1,  Foreground = black,   Background = white)
+        new Run(" ")
         ]
-    
 
-    static let debugPrint (c:Child) =    
-        let rec printx  i (c:Child) = 
+
+    static let debugPrint (c:Child) =
+        let rec printx  i (c:Child) =
             let ind = String(' ',  i*4)
-            match c with 
-            | Text t ->  
+            match c with
+            | Text t ->
                 ISeffLog.printColor 150 150 150 $"{ind}Text:"
                 ISeffLog.printnColor 150 150 0 $"{t}"
-            | Node n ->  
+            | Node n ->
                 ISeffLog.printColor 150 0 150 $"{ind}Node"
                 ISeffLog.printColor 150 150 150 ":"
                 ISeffLog.printColor 150 150 0 $"{n.name}"
-                for at in n.attrs do  
+                for at in n.attrs do
                     ISeffLog.printColor 0 150 150 $"; attr"
                     ISeffLog.printColor 150 150 150 ":"
                     ISeffLog.printColor 0 150 150 $"{at.name}"
                     ISeffLog.printColor 150 150 150 "="
                     ISeffLog.printColor 150 0 150 $"{at.value}"
-                ISeffLog.printnColor 150 150 150 ""    
-                for c in n.children do  
-                    printx (i+1) c 
+                ISeffLog.printnColor 150 150 150 ""
+                for c in n.children do
+                    printx (i+1) c
         printx 0 c
-    
 
-    static let nodesHasAttrsOnly(n:XmlParser.Node) = 
+
+    static let nodesHasAttrsOnly(n:XmlParser.Node) =
         (n.children.IsEmpty && not n.attrs.IsEmpty)
         ||
         (
@@ -269,41 +308,41 @@ type TypeInfo private () =
         tb.FontSize   <- StyleState.fontSize  * 1.0
         tb.FontFamily <- StyleState.fontToolTip
         tb.TextWrapping <- TextWrapping.Wrap
-        let mutable last = "" 
-        
-        let rec loop (this:XmlParser.Child) parentName addTitle (trim:Trim) depth =             
+        let mutable last = ""
+
+        let rec loop (this:XmlParser.Child) parentName addTitle (trim:Trim) depth =
             match this with
-            |Text t ->  
+            |Text t ->
                 //printf $"{parentName} {depth} {trim}: '"
                 //eprintf $"{t}"
                 //printfn "'"
-                let txt = 
+                let txt =
                     if parentName="para" then // don't trim one-liner inside a para tag to keep ASCII art from RhinoCommon.xml
                         t
                     else
                         match trim with
                         |Trim.Both   -> t.TrimEnd() |> trimStartIfHasRet|> trimStartIfOneLiner
-                        |Trim.End    -> t.TrimEnd() 
+                        |Trim.End    -> t.TrimEnd()
                         |Trim.Start  -> t |> trimStartIfHasRet|> trimStartIfOneLiner
                         |Trim.No     -> t |> trimStartIfHasRet
-                tb.Inlines.Add( new Run(txt,  Foreground = darkblue, FontStyle = FontStyles.Italic)) 
-                    
-                
-            |Node n ->  
-                if depth=0 then                  
+                tb.Inlines.Add( new Run(txt,  Foreground = darkblue, FontStyle = FontStyles.Italic))
+
+
+            |Node n ->
+                if depth=0 then
                     if last <> n.name && addTitle then // && n.name <> "?name?" then // to not repeat the parameter header every time
                         last <- n.name
-                        tb.Inlines.Add( new LineBreak()) 
-                        tb.Inlines.Add( new Run(fixName n.name,  Foreground = darkgray)) //FontWeight = FontWeights.Bold,     // Summary header, Parameter header ....               
-                        tb.Inlines.Add( new LineBreak())                     
-                    for at in n.attrs do // there is normally just one ! like param:name, paramref:name typeparam:name                         
+                        tb.Inlines.Add( new LineBreak())
+                        tb.Inlines.Add( new Run(fixName n.name,  Foreground = darkgray)) //FontWeight = FontWeights.Bold,     // Summary header, Parameter header ....
+                        tb.Inlines.Add( new LineBreak())
+                    for at in n.attrs do // there is normally just one ! like param:name, paramref:name typeparam:name
                         tb.Inlines.AddRange( at.value |> fixTypeName|> codeRun td )
                         tb.Inlines.Add( new Run(": ",  Foreground = black))
-                    
+
                     let childs = n.children  |> Array.ofList
                     let lasti = childs.Length - 1
-                    for i=lasti downto 0 do 
-                        let nextTrim = 
+                    for i=lasti downto 0 do
+                        let nextTrim =
                             if   i=lasti && i = 0 then Trim.Both
                             elif i=lasti          then Trim.Start // lasti will be first Text Run
                             elif            i = 0 then Trim.End   // index 0 wil be last Text Run
@@ -312,72 +351,72 @@ type TypeInfo private () =
                         loop childs[i] n.name false nextTrim (depth+1)
 
                     tb.Inlines.Add( new LineBreak())
-                    
-                    
-                elif nodesHasAttrsOnly n then 
+
+
+                elif nodesHasAttrsOnly n then
                     // e.g. for: <returns> <see langword="true" /> if <paramref name="objA" /> is the same instance as <paramref name="objB" /> or if both are null; otherwise, <see langword="false" />.</returns>
-                    for at in n.attrs do 
+                    for at in n.attrs do
                         //printfn $"{n.name} {at.name}:{at.value }"
-                        if   at.name="cref"  then  tb.Inlines.AddRange(  at.value |> fixTypeName |>  codeRun td)                        
+                        if   at.name="cref"  then  tb.Inlines.AddRange(  at.value |> fixTypeName |>  codeRun td)
                         else                       tb.Inlines.AddRange(  at.value                |>  codeRun td)
-                        //tb.Inlines.Add( new Run(" ")) 
+                        //tb.Inlines.Add( new Run(" "))
 
                 else
                     //for at in n.attrs do printfn $"ELSE:{n.name} {at.name}:{at.value } n.children.IsEmpty:{n.children.IsEmpty}={n.children.Length} n.attrs.IsEmpty:{n.attrs.IsEmpty}={n.attrs.Length}"
                     //if not n.children.IsEmpty then printfn $"ELSE:{n.name}:{n.children.Head}"
-                    match n.name with 
+                    match n.name with
                     |"c"|"code" ->   for c in List.rev n.children do addCode c  (depth+1)
                     |"para"     ->   for c in List.rev n.children do tb.Inlines.Add( new LineBreak()) ;loop    c n.name false Trim.No (depth+1)
                     |"br"       ->   for c in List.rev n.children do tb.Inlines.Add( new LineBreak()) ;loop    c n.name false Trim.No (depth+1) // only happens in netstandard.xml
                     | _         ->   for c in List.rev n.children do                                   loop    c n.name false Trim.No (depth+1)
-        
-        and addCode (this:XmlParser.Child) depth = 
+
+        and addCode (this:XmlParser.Child) depth =
             match this with
             |Text t ->  tb.Inlines.AddRange(codeRun td t) // done in codeRun:  tb.Inlines.Add(" ")
             |Node n ->  loop this n.name false Trim.No depth
-        
 
-        match node with 
-        |Node n when n.name="member" ->  
+
+        match node with
+        |Node n when n.name="member" ->
             let two = twoOrMore n.children
-            for ch in List.rev n.children do 
-                loop ch n.name two Trim.No 0 
-        | _ -> 
-            loop node "" false Trim.No 0  
-        
-        // remove last line break: 
-        if tb.Inlines.LastInline  :? LineBreak then  tb.Inlines.Remove tb.Inlines.LastInline  |> ignore 
-        
-        // match node with 
-        // |Node n -> for c in n.children do debugPrint c 
-        // | c ->  debugPrint c 
-        
-        tb        
+            for ch in List.rev n.children do
+                loop ch n.name two Trim.No 0
+        | _ ->
+            loop node "" false Trim.No 0
+
+        // remove last line break:
+        if tb.Inlines.LastInline  :? LineBreak then  tb.Inlines.Remove tb.Inlines.LastInline  |> ignore
+
+        // match node with
+        // |Node n -> for c in n.children do debugPrint c
+        // | c ->  debugPrint c
+
+        tb
 
 
     // make a fancy tooltip panel in a ScrollViewer:
-    static let makeToolTipPanel  ( tds:ToolTipData list, ted:ToolTipExtraData,  addPersistInfo:bool) :ScrollViewer =        
+    static let makeToolTipPanel  ( tds:ToolTipData list, ted:ToolTipExtraData,  addPersistInfo:bool) :ScrollViewer =
         let panel = new StackPanel(Orientation = Orientation.Vertical)
-        let scrollViewer = new ScrollViewer(Content=panel , VerticalScrollBarVisibility = ScrollBarVisibility.Auto ) //TODO cant be scrolled, never gets focus? because completion window keeps focus on editor?        
-        let inline add(e:UIElement) =  panel.Children.Add e |> ignore            
+        let scrollViewer = new ScrollViewer(Content=panel , VerticalScrollBarVisibility = ScrollBarVisibility.Auto ) //TODO cant be scrolled, never gets focus? because completion window keeps focus on editor?
+        let inline add(e:UIElement) =  panel.Children.Add e |> ignore
 
-        if addPersistInfo then 
-            add <|  TextBlock(Text = "Press Ctrl + P to persist this window.", FontSize = StyleState.fontSize * 0.75) 
-        
+        if addPersistInfo then
+            add <|  TextBlock(Text = "Press Ctrl + P to persist this window.", FontSize = StyleState.fontSize * 0.75)
+
         match ted.declListItem with
         |None -> ()
-        |Some dItem -> 
+        |Some dItem ->
             let tb = new TextBlockSelectable(Text = dItem.Glyph.ToString() )
             tb.Foreground <- Brushes.DarkOrange |> darker 10
             tb.FontSize <- StyleState.fontSize  * 0.95
             tb.FontFamily <- StyleState.fontToolTip
             tb.TextWrapping <- TextWrapping.Wrap
             //tb.FontWeight <- FontWeights.Bold
-            add tb  
-            
+            add tb
+
         match ted.semanticClass with
         |None -> ()
-        |Some sem -> 
+        |Some sem ->
             let tb = new TextBlockSelectable(Text = sem.Type.ToString() )
             //let tb = new TextBlockSelectable(Text = $"{sem.Type}, {sem.Range.EndColumn-sem.Range.StartColumn} chars") //from {sem.Range.StartColumn}")
             tb.Foreground <- Brushes.DarkOrange |> darker 10
@@ -385,18 +424,18 @@ type TypeInfo private () =
             tb.FontFamily <- StyleState.fontToolTip
             tb.TextWrapping <- TextWrapping.Wrap
             //tb.FontWeight <- FontWeights.Bold
-            add tb  
+            add tb
 
-        
+
         let mutable assemblies = new HashSet<string>()
         let deDup = HashSet() // just because some typ provider signatures appears multiple times, filter them out with hashset
         for td in tds do
             let sign = td.signature |> Seq.map (fun tt -> tt.Text)  |> String.Concat
             if not <| deDup.Contains(sign) then // just because some type provider signatures appears multiple times, filter them out with hashset
                 deDup.Add sign  |> ignore
-                
+
                 let subPanel = new StackPanel(Orientation = Orientation.Vertical)
-                let inline subAdd(e:UIElement) =  subPanel.Children.Add e |> ignore 
+                let inline subAdd(e:UIElement) =  subPanel.Children.Add e |> ignore
 
                 if td.name <> "" then
                     let tb = new TextBlockSelectable(Text= "Name: " + td.name)
@@ -410,98 +449,98 @@ type TypeInfo private () =
 
                 // the main xml body
                 match td.xmlDoc with
-                |Ok (node, ass)     ->                    
+                |Ok (node, ass)     ->
                     if ass <> "" then assemblies.Add(ass) |> ignore
                     //if ass.Length > 10 then assemblies.Add("\r\n" + ass) |> ignore // it may be from more than one assembly? because of type extensions?
                     //else                    assemblies.Add(ass) |> ignore
                     subAdd <| mainXmlBlock (node, td)
                 |Error errTxt  ->
-                    subAdd<|  TextBlockSelectable(Text = errTxt, TextWrapping = TextWrapping.Wrap, FontSize = StyleState.fontSize  * 0.70 , Foreground = errMsgGray)//,FontFamily = StyleState.fontToolTip )                   
-                
+                    subAdd<|  TextBlockSelectable(Text = errTxt, TextWrapping = TextWrapping.Wrap, FontSize = StyleState.fontSize  * 0.70 , Foreground = errMsgGray)//,FontFamily = StyleState.fontToolTip )
+
                 let border = Border()
                 border.Child <- subPanel
                 border.BorderThickness <- Thickness(1.0)
                 border.BorderBrush <- Brushes.LightGray
                 border.Padding <- Thickness(4.0)
                 border.Margin <- Thickness(2.0)
-                add border 
-            
+                add border
+
             // add full name:
-            if td.fullName<>"" then 
+            if td.fullName<>"" then
                 let tb = new TextBlockSelectable()
                 tb.Inlines.Add( new Run(td.fullName  ,  Foreground = darkblue))
                 tb.Foreground <- darkblue
                 tb.FontSize <- StyleState.fontSize  * 1.0
                 tb.FontFamily <- StyleState.fontToolTip
                 tb.TextWrapping <- TextWrapping.Wrap
-                add tb 
+                add tb
 
         if assemblies.Count > 0 then
-            let tb = 
+            let tb =
                 if assemblies.Count = 1 then new TextBlockSelectable(Text= "assembly: "   + Seq.head assemblies)
                 else                         new TextBlockSelectable(Text= "assemblies: " + String.concat "\r\n" assemblies)
             tb.FontSize <- StyleState.fontSize  * 0.85
             tb.Foreground <-black
             tb.TextWrapping <- TextWrapping.Wrap
             //tb.FontFamily <- new FontFamily ("Arial") // or use default of device
-            add tb   
+            add tb
         else
             match ted.dllLocation with
             |None -> ()
-            |Some f -> 
+            |Some f ->
                     let tb = TextBlockSelectable(Text= "assembly path: " + f)
                     tb.FontSize <- StyleState.fontSize  * 0.85
                     tb.Foreground <-black
                     tb.TextWrapping <- TextWrapping.Wrap
                     //tb.FontFamily <- new FontFamily ("Arial") // or use default of device
-                    add tb 
-        
+                    add tb
+
         match ted.declLocation with
         |None -> ()
-        |Some r ->                 
+        |Some r ->
                 let f = r.FileName.Replace('\\','/')
-                if f <> "unknown" then 
+                if f <> "unknown" then
                     let tb = TextBlockSelectable(Text = sprintf "defined at: %s  Line:%d" f r.StartLine)
                     tb.FontSize <- StyleState.fontSize  * 0.85
                     tb.Foreground <-black
                     tb.TextWrapping <- TextWrapping.Wrap
                     //tb.FontFamily <- new FontFamily ("Arial") // or use default of device
-                    add tb 
-                
+                    add tb
+
         scrollViewer
-            
+
 
     /// Returns docstring und dll path
-    static let findXmlDoc (cmt:FSharpXmlDoc) : Result<XmlParser.Child*DllPath, ErrMsg> = 
+    static let findXmlDoc (cmt:FSharpXmlDoc) : Result<XmlParser.Child*DllPath, ErrMsg> =
         //mostly copied from same named function in Docstring.fs
         match cmt with
-        | FSharpXmlDoc.None -> 
+        | FSharpXmlDoc.None ->
             Error "*FSharpXmlDoc.None*"
-        
+
         | FSharpXmlDoc.FromXmlText fsXmlDoc ->
             // this might be a xml Doc string that is not from an xml file but from the current .fsx document
-            try                 
-                let cs = 
+            try
+                let cs =
                     fsXmlDoc.UnprocessedLines
                     |> String.concat Environment.NewLine
                     |> XmlParser.readAll
-                match cs with 
+                match cs with
                 | []  -> Error ( "FSharpXmlDoc.FromXmlText empty")
                 | cs  -> Ok (XmlParser.Node {name="member";  attrs=[];  children=cs}, "") // must be empty
             with e ->
-                Error $"FSharpXmlDoc.FromXmlText: {e}"           
-        
+                Error $"FSharpXmlDoc.FromXmlText: {e}"
+
         | FSharpXmlDoc.FromXmlFile(dllFile, memberName) ->
             match DocString.getXmlDoc dllFile with
-            |Ok (xmlFi, nodeDict) -> 
+            |Ok (xmlFi, nodeDict) ->
                 //printfn $"reading xml:{xmlFi.FullName}"
-                match nodeDict.TryGetValue memberName with 
+                match nodeDict.TryGetValue memberName with
                 |true , node ->  Ok (node  , dllFile)
                 |false, _    ->  Error "no xml" //$"no xml doc found for member '{memberName}' in \r\n'{xmlFi.FullName}'\r\n"
             | Error e ->
-                Error e 
+                Error e
 
-    static let makeToolTipDataList (sdtt: ToolTipText, fullName:string, optDefs:ResizeArray<OptDefArg>) : ToolTipData list= 
+    static let makeToolTipDataList (sdtt: ToolTipText, fullName:string, optDefs:ResizeArray<OptDefArg>) : ToolTipData list=
         match sdtt with
         | ToolTipText.ToolTipText (els) ->
             match els with
@@ -518,9 +557,9 @@ type TypeInfo private () =
                         yield {name = ""; signature = [||]; fullName=""; optDefs=optDefs; xmlDoc = Error ("*FSharpStructuredToolTipElement.CompositionError:\r\n"+ text)}
 
                     | ToolTipElement.Group(tooTipElemDataList) ->
-                        for tooTipElemData in tooTipElemDataList do                            
+                        for tooTipElemData in tooTipElemDataList do
                             yield { name      = Option.defaultValue "" tooTipElemData.ParamName
-                                    signature = tooTipElemData.MainDescription 
+                                    signature = tooTipElemData.MainDescription
                                     fullName  = fullName
                                     optDefs   = optDefs
                                     xmlDoc    = findXmlDoc tooTipElemData.XmlDoc}
@@ -528,8 +567,8 @@ type TypeInfo private () =
 
 
     /// Returns the names of optional Arguments in a given method call.
-    static let namesOfOptnlArgs(fsu:FSharpSymbolUse)  :ResizeArray<OptDefArg>= 
-        let optDefs = ResizeArray<OptDefArg>(0)        
+    static let namesOfOptnlArgs(fsu:FSharpSymbolUse)  :ResizeArray<OptDefArg>=
+        let optDefs = ResizeArray<OptDefArg>(0)
         try
             match fsu.Symbol with
             | :? FSharpMemberOrFunctionOrValue as x ->
@@ -552,20 +591,20 @@ type TypeInfo private () =
                             //log.PrintfnDebugMsg "optional full name: %s" c.FullName
             | _ -> ()
         with e ->
-            //| :? FSharp.Compiler.DiagnosticsLogger.StopProcessingExn  -> //not public !!  
-            if e.Message.Contains "must add a reference to assembly '" then 
+            //| :? FSharp.Compiler.DiagnosticsLogger.StopProcessingExn  -> //not public !!
+            if e.Message.Contains "must add a reference to assembly '" then
                 AutoFixErrors.check(e.Message)
             else
-                ISeffLog.log.PrintfnAppErrorMsg "GetOptTypeInfo Error: %s:\r\n%s" (e.GetType().FullName) e.Message            
-                if notNull e.InnerException then 
+                ISeffLog.log.PrintfnAppErrorMsg "GetOptTypeInfo Error: %s:\r\n%s" (e.GetType().FullName) e.Message
+                if notNull e.InnerException then
                     ISeffLog.log.PrintfnAppErrorMsg "InnerException: %s:\r\n %s" (e.GetType().FullName) e.Message
-            
-        optDefs    
-    
+
+        optDefs
+
     static let mutable cachedToolTipData: list<ToolTipData> = []
     static let mutable cachedExtraData = {declListItem=None;semanticClass=None;declLocation=None;dllLocation=None }
-    
-    static let fsKeywords = 
+
+    static let fsKeywords =
         FSharpKeywords.KeywordsWithDescription
         |> Seq.map fst
         |> HashSet
@@ -578,40 +617,40 @@ type TypeInfo private () =
 
     static member makeSeffToolTipDataList (sdtt: ToolTipText, fullName:string, optArgs:ResizeArray<string>) = makeToolTipDataList (sdtt, fullName, optArgs)
 
-    static member getPanel  (tds:ToolTipData list, ed:ToolTipExtraData) = 
+    static member getPanel  (tds:ToolTipData list, ed:ToolTipExtraData) =
         cachedToolTipData  <- tds
         cachedExtraData    <- ed
         makeToolTipPanel (tds, ed, true)
 
     /// regenerates a view of the last created panel so it can be used again in the popout window
-    static member getPanelCached () = 
+    static member getPanelCached () =
         makeToolTipPanel (cachedToolTipData, cachedExtraData, false)
 
 
-    static member mouseHover(e: MouseEventArgs, iEditor:IEditor, tip:ToolTip) = 
+    static member mouseHover(e: MouseEventArgs, iEditor:IEditor, tip:ToolTip) =
         // see https://github.com/icsharpcode/AvalonEdit/blob/master/ICSharpCode.AvalonEdit/Editing/SelectionMouseHandler.cs#L477
-        
+
         match iEditor.FileCheckState with
-        | Checking -> ()  
+        | Checking -> ()
         | Done res when res.checkRes.HasFullTypeCheckInfo ->
-            let av = iEditor.AvaEdit 
+            let av = iEditor.AvaEdit
             match Mouse.getOffset (e,av) with
             | None -> ()
-            | Some off -> 
+            | Some off ->
                 let doc = av.Document
-                let ln = doc.GetLineByOffset(off)  
+                let ln = doc.GetLineByOffset(off)
                 let lineTxt = doc.GetText ln
                 let lineNo = ln.LineNumber
                 let offLn = off-ln.Offset
-                let island = 
-                    match QuickParse.GetCompleteIdentifierIsland false lineTxt offLn with 
-                    |Some (word, colAtEndOfNames, isQuotedIdentifier)-> Some (word, colAtEndOfNames, isQuotedIdentifier)                    
-                    |None -> // find operators because QuickParse.GetCompleteIdentifierIsland does not find them:                       
-                        if offLn >= lineTxt.Length then 
+                let island =
+                    match QuickParse.GetCompleteIdentifierIsland false lineTxt offLn with
+                    |Some (word, colAtEndOfNames, isQuotedIdentifier)-> Some (word, colAtEndOfNames, isQuotedIdentifier)
+                    |None -> // find operators because QuickParse.GetCompleteIdentifierIsland does not find them:
+                        if offLn >= lineTxt.Length then
                             None
                         else
                             let nextW =
-                                let rec find i = 
+                                let rec find i =
                                     if i=lineTxt.Length then i//-1
                                     else
                                         let c = lineTxt[i]
@@ -619,24 +658,24 @@ type TypeInfo private () =
                                         else find (i+1)
                                 find offLn
                             let prevW =
-                                let rec find i = 
+                                let rec find i =
                                     if i = -1 then 0
                                     else
                                         let c = lineTxt[i]
                                         if c=' ' || c= '\r' || c='\n' then i+1
                                         else find (i-1)
                                 find offLn
-                            if prevW<nextW then 
+                            if prevW<nextW then
                                 let word = lineTxt.Substring(prevW,nextW-prevW)
                                 Some (word, nextW, false) //word, colAtEndOfNames, isQuotedIdentifier
                             else
                                 None
 
-                match island with 
+                match island with
                 |None -> ()
                     //ISeffLog.log.PrintfnDebugMsg "QuickParse.GetCompleteIdentifierIsland failed : lineTxt:%A, txt: '%s'"  lineTxt (lineTxt.Substring(offLn-1,3))
 
-                |Some (word, colAtEndOfNames, isQuotedIdentifier) -> 
+                |Some (word, colAtEndOfNames, isQuotedIdentifier) ->
                     tip.Content <- loadingTxt
                     let tView = av.TextArea.TextView
                     let pos = doc.GetLocation(off)
@@ -650,8 +689,8 @@ type TypeInfo private () =
 
                     tip.StaysOpen <- true
                     tip.IsOpen <- true
-                    async{ 
-                        let qualId  = PrettyNaming.GetLongNameFromString word   
+                    async{
+                        let qualId  = PrettyNaming.GetLongNameFromString word
                         //ISeffLog.log.PrintfnDebugMsg "GetToolTip:colAtEndOfNames:%A, lineTxt:%A, qualId:%A" colAtEndOfNames lineTxt qualId
 
                         // Compute a formatted tooltip for the given location
@@ -663,51 +702,51 @@ type TypeInfo private () =
                         // an attempt is made to give a tooltip for a #r "..." location.
                         // Use a value from FSharpTokenInfo.Tag, or FSharpTokenTag.Identifier, unless you have other information available.</param>
                         // userOpName:  An optional string used for tracing compiler operations associated with this request.</param>
-                        let ttt  =  
-                            let r = res.checkRes.GetToolTip (lineNo, colAtEndOfNames, lineTxt, qualId, FSharpTokenTag.Identifier) 
+                        let ttt  =
+                            let r = res.checkRes.GetToolTip (lineNo, colAtEndOfNames, lineTxt, qualId, FSharpTokenTag.Identifier)
                             match r with
-                            | ToolTipText.ToolTipText (els) ->                                
+                            | ToolTipText.ToolTipText (els) ->
                                 match els with
-                                |[]  -> 
-                                    match qualId with 
+                                |[]  ->
+                                    match qualId with
                                     |[fsKeyword] when fsKeywords.Contains(fsKeyword) -> res.checkRes.GetKeywordTooltip qualId
-                                    | _ ->                                 
-                                        res.checkRes.GetToolTip (lineNo, colAtEndOfNames, lineTxt, qualId, FSharpTokenTag.String) // this gives info about referenced assemblies that the first try does not give                                       
+                                    | _ ->
+                                        res.checkRes.GetToolTip (lineNo, colAtEndOfNames, lineTxt, qualId, FSharpTokenTag.String) // this gives info about referenced assemblies that the first try does not give
                                 |els -> r
-                        
+
                         let symbol = res.checkRes.GetSymbolUseAtLocation(lineNo, colAtEndOfNames, lineTxt, qualId )  //only to get to info about optional parameters
                         let fullName = if symbol.IsSome then symbol.Value.Symbol.FullName else ""
 
                         let optArgs = if symbol.IsSome then namesOfOptnlArgs(symbol.Value) else ResizeArray(0)
                         let ttds = makeToolTipDataList (ttt, fullName ,optArgs) //TODO can this still be async ?
-                        
+
                         do! Async.SwitchToContext Fittings.SyncWpf.context
-                        
-                        if List.isEmpty ttds then                                                     
-                            tip.Content <- new TextBlock(Text = "No type info found for:\r\n'" + word + "'", FontSize = StyleState.fontSize  * 0.65 ,FontFamily = StyleState.fontToolTip, Foreground = gray )                            
+
+                        if List.isEmpty ttds then
+                            tip.Content <- new TextBlock(Text = "No type info found for:\r\n'" + word + "'", FontSize = StyleState.fontSize  * 0.65 ,FontFamily = StyleState.fontToolTip, Foreground = gray )
                             //ed.TypeInfoToolTip.IsOpen <- false
-                        else                            
-                            let sem, declLoc, dllLoc = 
-                                match symbol with 
+                        else
+                            let sem, declLoc, dllLoc =
+                                match symbol with
                                 |None -> None,None,None
-                                |Some s ->                                    
+                                |Some s ->
                                     //ISeffLog.log.PrintfnAppErrorMsg $"s.Symbol.FullName: {s.Symbol.FullName}"
                                     //ISeffLog.log.PrintfnAppErrorMsg $"s.FileName:{s.FileName}"
                                     //ISeffLog.log.PrintfnDebugMsg $"s.Symbol.DeclarationLocation:{s.Symbol.DeclarationLocation}"
                                     //ISeffLog.log.PrintfnDebugMsg $"s.Symbol.Assembly.FileName:{s.Symbol.Assembly.FileName}"
                                     //let sems = res.checkRes.GetSemanticClassification(Some s.Range)
-                                    //for sem in sems do ISeffLog.log.PrintfnDebugMsg $"GetSemanticClassification:{sem.Type}"                                    
+                                    //for sem in sems do ISeffLog.log.PrintfnDebugMsg $"GetSemanticClassification:{sem.Type}"
                                     //let l = s.Range
                                     //let lineNo = l.StartLine
                                     //let colSt  = l.StartColumn
-                                    //let colEn  = l.EndColumn                                    
-                                    //let sem = iEditor.SemanticRanges |> Array.tryFind (fun s -> let r = s.Range in r.StartLine=lineNo && r.EndLine=lineNo && r.StartColumn=colSt && r.EndColumn=colEn)                                        
-                                    let sem = 
+                                    //let colEn  = l.EndColumn
+                                    //let sem = iEditor.SemanticRanges |> Array.tryFind (fun s -> let r = s.Range in r.StartLine=lineNo && r.EndLine=lineNo && r.StartColumn=colSt && r.EndColumn=colEn)
+                                    let sem =
                                         res.checkRes.GetSemanticClassification(Some s.Range)
                                         |> Array.tryHead
-                                        
-                                    sem , s.Symbol.DeclarationLocation , s.Symbol.Assembly.FileName                            
-                            
+
+                                    sem , s.Symbol.DeclarationLocation , s.Symbol.Assembly.FileName
+
                             let ed = {declListItem=None; semanticClass=sem; declLocation=declLoc; dllLocation=dllLoc }
                             let ttPanel = TypeInfo.getPanel (ttds, ed )
                             if tip.IsOpen then // showing the "loading" text till here.
