@@ -1,32 +1,34 @@
-<?xml version="1.0" ?> <!--encoding="UTF-8" --> 
+<?xml version="1.0" ?> <!--encoding="UTF-8" -->
 <SyntaxDefinition name = "F#" extensions = ".fs;.fsi;.fsx" xmlns="http://icsharpcode.net/sharpdevelop/syntaxdefinition/2008">
-  
-  <!-- 
+
+  <!--
   http://avalonedit.net/documentation/html/4d4ceb51-154d-43f0-b876-ad9640c5d2d8.htm
 
-  copied and adapted from 
-  https://github.com/icsharpcode/AvalonEdit/tree/master/ICSharpCode.AvalonEdit/Highlighting/Resources 
+  copied and adapted from
+  https://github.com/icsharpcode/AvalonEdit/tree/master/ICSharpCode.AvalonEdit/Highlighting/Resources
   https://github.com/icsharpcode/SharpDevelop/wiki/XSHD-Tags
-  https://github.com/icsharpcode/SharpDevelop/wiki/Syntax-highlighting    
-  The named colors 'Comment' and 'String' are also used in SharpDevelop to detect if a line is inside a multiline string/comment 
-  
+  https://github.com/icsharpcode/SharpDevelop/wiki/Syntax-highlighting
+  The named colors 'Comment' and 'String' are also used in SharpDevelop to detect if a line is inside a multiline string/comment
+
   AvalonEditB supports all named System.Windows.FontWeights, (while the original SharpDevelop.AvalonEdit only supports normal and bold.)
   see schema https://github.com/goswinr/AvalonEditB/blob/main/AvalonEditB/Highlighting/Resources/ModeV2.xsd
   -->
-  
-  <!-- 
+
+  <!--
   use this extension to show colors in vs code:
-  https://marketplace.visualstudio.com/items?itemName=kamikillerto.vscode-colorize  
+  https://marketplace.visualstudio.com/items?itemName=kamikillerto.vscode-colorize
   -->
-  <Color name="Comment"             foreground="#777777" fontWeight="300" fontStyle="italic" stylisticSet1="true"/> 
+  <Color name="Comment"             foreground="#777777" fontWeight="300" fontStyle="italic" stylisticSet1="true"/>
   <Color name="DocComment"          foreground="#005500" fontWeight="300" fontStyle="italic" />
   <Color name="TODO"                foreground="#EE0000" fontWeight="800"/>
   <Color name="HACK"                foreground="#A0A000" fontWeight="800"/>
-  
+
   <Color name="String"              foreground="#BB1111" />
-  <Color name="StringVerbatim"      foreground="#CC0000" />  
+  <Color name="StringQuote"         foreground="#E08070" />
+  <Color name="StringVerbatim"      foreground="#CC0000" />
   <Color name="StringFormatting"    foreground="#990099" />
-  <Color name="StringEscaped"       foreground="#A050CC" />  
+  <Color name="StringEscaped"       foreground="#A050CC" />
+  <Color name="CodeInString"        foreground="#50C030" />
   <Color name="DollarInlines"       foreground="#000088" />
   <Color name="Char"                foreground="#FF0040" />
 
@@ -37,44 +39,45 @@
   <Color name="LoadDll"             foreground="#DD20B0" /> <!-- #r the dll name -->
   <Color name="LoadNuget"           foreground="#CD10A0" fontWeight="bold" /> <!-- #r the nuget name -->
   <Color name="LoadPath"            foreground="#0000B0" /> <!-- for #I path -->
-  
+
   <Color name="Punctuation"         foreground="#8855FF" />
-  <Color name="Attributes"          foreground="#AA88AA" />  
+  <Color name="Attributes"          foreground="#AA88AA" />
   <Color name="Keywords"            foreground="#0000DD"  fontWeight="normal" fontStyle="italic"  stylisticSet1="true"/>
   <Color name="KeywordsBang"        foreground="#2200DD"  fontWeight="bold"   fontStyle="italic"  stylisticSet1="true"/>
   <Color name="Keywords2"           foreground="#BB0044"  fontWeight="bold"   fontStyle="italic"  stylisticSet1="true"/>
-  <Color name="Keywords2Bang"       foreground="#BB0044"  fontWeight="bold"   fontStyle="italic"  stylisticSet1="true"/> 
+  <Color name="Keywords2Bang"       foreground="#BB0044"  fontWeight="bold"   fontStyle="italic"  stylisticSet1="true"/>
   <Color name="ReservedKeywords"    foreground="#7777FF" /> <!-- fontWeight="bold" -->
   <Color name="MethodCall"          foreground="#0000AA" /> <!-- fontWeight="bold" fontStyle="italic"-->
   <Color name="NumberLiteral"       foreground="#CD10A0" />
   <Color name="NegNumberLiteral"    foreground="#FF0077" /> <!--fontWeight="bold" -->
   <Color name="ExponentNumberLit"   foreground="#1199DD" />
   <Color name="HexNumberLiteral"    foreground="#FF8800" />
-  <Color name="BinNumberLiteral"    foreground="#FF8800" /> 
+  <Color name="BinNumberLiteral"    foreground="#FF8800" />
   <Color name="NumberType"          foreground="#888888" />
   <Color name="FailStatement"       foreground="#888888" />
-  <Color name="FailString"          foreground="#D0A040" fontWeight="normal" fontStyle="italic" />  
+  <Color name="FailString"          foreground="#D0A040" fontWeight="normal" fontStyle="italic" />
   <Color name="Exception"           foreground="#C06030" />
   <Color name="PrintStatement"      foreground="#206060" />
   <Color name="PrintString"         foreground="#E08070" />
-  <Color name="TrueCol"             foreground="#008090" fontWeight="800" fontStyle="italic" /> 
-  <Color name="FalseCol"            foreground="#A70090" fontWeight="800" fontStyle="italic" /> 
+  <Color name="TrueCol"             foreground="#008090" fontWeight="800" fontStyle="italic" />
+  <Color name="FalseCol"            foreground="#A70090" fontWeight="800" fontStyle="italic" />
   <Color name="Semicolon"           foreground="#A0A0A0" />
-  <!-- 
-  <Color name="TypeAnnotation"      foreground="#2080B0" /> 
-  <Color name="RecordNames"         foreground="#B06000" />   
+  <Color name="EscapeSlash"         foreground="#CCCCCC" />
+  <!--
+  <Color name="TypeAnnotation"      foreground="#2080B0" />
+  <Color name="RecordNames"         foreground="#B06000" />
   <Color name="LetBinding"          foreground="#7030A0" />
   <Color name="LetPrivate"          foreground="#6070A0" />
   <Color name="LetRec"              foreground="#B03080" />
-  <Color name="LetMutable"          foreground="#D08030" />   
+  <Color name="LetMutable"          foreground="#D08030" />
   -->
   <Color name="InDoubleTicks"       foreground="#000000" /><!-- just black like the rest, don't highlight symbols-->
-  
+
   <Color name="DocCommentStart"     foreground="#CCCCCC" /> <!-- taken from https://github.com/icsharpcode/AvalonEdit/blob/master/ICSharpCode.AvalonEdit/Highlighting/Resources/XmlDoc.xshd-->
   <Color name="XmlString"           foreground="#EE3333" />
   <Color name="XmlPunctuation"      foreground="#888888" />
   <Color name="KnownDocTags"        foreground="#8888EE" />
-  
+
   <Color name="NonEval"             foreground="#CCCCCC" />
 
 
@@ -110,7 +113,7 @@
           <Word>see</Word>
           <Word>seealso</Word>
           <Word>summary</Word>
-          <Word>value</Word>          
+          <Word>value</Word>
           <Word>type</Word>
           <Word>name</Word>
           <Word>cref</Word>
@@ -124,21 +127,21 @@
       </RuleSet>
     </Span>
   </RuleSet>
-  
+
   <RuleSet name="_CommentMarkerSet">
     <Keywords color="TODO">
       <Word>TODO</Word>
       <Word>FIXME</Word>
-      <Word>??</Word>  
-      <Word>!!</Word>    
+      <Word>??</Word>
+      <Word>!!</Word>
     </Keywords>
     <Keywords color="HACK">
       <Word>HACK</Word>
-      <Word>UNDONE</Word>      
+      <Word>UNDONE</Word>
     </Keywords>
   </RuleSet >
-  
-  <RuleSet name="CommentSet">  
+
+  <RuleSet name="CommentSet">
 
     <Span color="DocComment">
       <Begin color="DocCommentStart">///(?!/)</Begin>
@@ -149,7 +152,7 @@
     </Span>
 
     <Span color="Comment" ruleSet="_CommentMarkerSet">
-      <Begin>//</Begin>      
+      <Begin>//</Begin>
     </Span>
 
   </RuleSet >
@@ -157,12 +160,12 @@
   <RuleSet name="InlineCommentSet">
     <Span color="Comment" ruleSet="_CommentMarkerSet" multiline="true">
       <Begin>\(\*</Begin>
-      <End>\*\)</End>      
-    </Span> 
+      <End>\*\)</End>
+    </Span>
   </RuleSet >
-  
+
   <RuleSet name="KeywordSet">
-    <Keywords color="TrueCol">    <Word>true</Word>    </Keywords>  
+    <Keywords color="TrueCol">    <Word>true</Word>    </Keywords>
     <Keywords color="FalseCol">   <Word>false</Word>   </Keywords>
 
     <Rule color="KeywordsBang">match!</Rule> <!-- because exclamation mark does not work in <Word> tag -->
@@ -170,13 +173,13 @@
     <Rule color="KeywordsBang">do!</Rule>
     <Rule color="Keywords2Bang">yield!</Rule>
     <Rule color="Keywords2Bang">return!</Rule>
-    <Rule color="Keywords2Bang">use!</Rule>   
+    <Rule color="Keywords2Bang">use!</Rule>
 
-     
+
     <Keywords color="Keywords2">
-      <Word>yield</Word> 
+      <Word>yield</Word>
       <Word>return</Word>
-      <Word>rec</Word> 
+      <Word>rec</Word>
       <Word>and</Word>
 
     </Keywords>
@@ -187,7 +190,7 @@
       <Word>__SOURCE_FILE__</Word>
       <Word>__LINE__</Word>
       <!-- take from https://github.com/Microsoft/visualfsharp/blob/f214dcc38f6d34db8902eb40bd5b037ade59a67c/src/fsharp/lexhelp.fs#L362 -->
-      <Word>abstract</Word>      
+      <Word>abstract</Word>
       <Word>as</Word>
       <Word>assert</Word>
       <Word>base</Word>
@@ -195,7 +198,7 @@
       <Word>class</Word>
       <Word>default</Word>
       <Word>delegate</Word>
-      <Word>do</Word>      
+      <Word>do</Word>
       <Word>done</Word>
       <Word>downcast</Word>
       <Word>downto</Word>
@@ -206,7 +209,7 @@
       <Word>extern</Word>
       <!-- <Word>FALSE</Word> -->
       <Word>finally</Word>
-      <Word>fixed</Word>    
+      <Word>fixed</Word>
       <Word>for</Word>
       <Word>fun</Word>
       <Word>function</Word>
@@ -218,8 +221,8 @@
       <Word>interface</Word>
       <Word>internal</Word>
       <Word>lazy</Word>
-      <Word>let</Word> 
-      <Word>match</Word>      
+      <Word>let</Word>
+      <Word>match</Word>
       <Word>member</Word>
       <Word>module</Word>
       <Word>mutable</Word>
@@ -232,23 +235,23 @@
       <Word>or</Word>
       <Word>override</Word>
       <Word>private</Word>
-      <Word>public</Word>           
+      <Word>public</Word>
       <Word>select</Word>
       <Word>static</Word>
       <Word>struct</Word>
       <Word>then</Word>
       <Word>to</Word>
       <!-- <Word>TRUE</Word> -->
-      <Word>try</Word>      
+      <Word>try</Word>
       <Word>typeof</Word>
       <Word>type</Word>
       <Word>upcast</Word>
-      <Word>use</Word>      
+      <Word>use</Word>
       <Word>val</Word>
       <Word>void</Word>
       <Word>when</Word>
       <Word>while</Word>
-      <Word>with</Word>        
+      <Word>with</Word>
     </Keywords>
 
     <!-- exclude for now to keep highlighting rules faster
@@ -281,224 +284,230 @@
       <Word>volatile</Word>
     </Keywords>
     -->
-    
+
   </RuleSet>
-  
-  <RuleSet name="_StringEscapeSet"> 
+
+  <RuleSet name="_StringEscapeSet">
+    <!-- (?=") is a positive lookahead for "   -->
+    <Span> <Begin color="EscapeSlash">\\(?=")</Begin> <End color="String">"</End> </Span>
+    <Span> <Begin color="EscapeSlash">\\(?=')</Begin> <End color="String">'</End> </Span>
+    <Span> <Begin color="EscapeSlash">\\(?=\\)</Begin> <End color="String">\\</End> </Span>
+
     <!-- using just a Rule does not work !-->
-    <!-- https://docs.microsoft.com/en-us/dotnet/fsharp/language-reference/strings -->    
-    <Span color="StringEscaped"><Begin>\\[abfnrtv\\"']  </Begin>  <End>(?=.)</End> </Span>
-    <!-- unicode characters  --> 
-    <Span color="StringEscaped"><Begin>\\[\d]{3}        </Begin>  <End>(?=.)</End> </Span> 
-    <Span color="StringEscaped"><Begin>\\U[0-9a-fA-F]{8}</Begin>  <End>(?=.)</End> </Span> 
-    <Span color="StringEscaped"><Begin>\\u[0-9a-fA-F]{4}</Begin>  <End>(?=.)</End> </Span> 
-    <Span color="StringEscaped"><Begin>\\x[0-9a-fA-F]{2}</Begin>  <End>(?=.)</End> </Span> 
-  </RuleSet >
-  
-  <RuleSet name="_StringFormatSet">    
-    <Span color="StringEscaped"><Begin>%</Begin> <End>[sfd%bciuxXoeEfFgGeEgGMOAAat]</End> </Span> 
-  </RuleSet >
-  
-  <RuleSet name="_StringDollarFormatSet"> 
-    <Span> <Begin color="StringEscaped">\{\{</Begin> <End >(?=.)</End>  </Span> 
-    <Span> <Begin color="StringEscaped">\}\}</Begin> <End >(?=.)</End>  </Span> 
-    <Import ruleSet="_StringFormatSet"/> 
-    <Span color="DollarInlines">
-      <Begin color="StringEscaped">\{</Begin>  
-      <End color="StringEscaped">\}</End> 
-    </Span> 
+    <!-- https://docs.microsoft.com/en-us/dotnet/fsharp/language-reference/strings -->
+    <Span color="StringEscaped"><Begin>\\[abfnrtv]  </Begin>  <End>(?=.)</End> </Span>
+    <!-- unicode characters  -->
+    <Span color="StringEscaped"><Begin>\\[\d]{3}        </Begin>  <End>(?=.)</End> </Span>
+    <Span color="StringEscaped"><Begin>\\U[0-9a-fA-F]{8}</Begin>  <End>(?=.)</End> </Span>
+    <Span color="StringEscaped"><Begin>\\u[0-9a-fA-F]{4}</Begin>  <End>(?=.)</End> </Span>
+    <Span color="StringEscaped"><Begin>\\x[0-9a-fA-F]{2}</Begin>  <End>(?=.)</End> </Span>
   </RuleSet >
 
-  <RuleSet name="_StringDoubleDollarFormatSet">     
-    <Import ruleSet="_StringFormatSet"/> 
+  <RuleSet name="_StringFormatSet">
+    <Span color="StringEscaped"><Begin>%</Begin> <End>[sfd%bciuxXoeEfFgGeEgGMOAAat]</End> </Span>
+  </RuleSet >
+
+  <RuleSet name="_StringDollarFormatSet">
+    <Span> <Begin color="CodeInString">\{\{</Begin> <End >(?=.)</End>  </Span>
+    <Span> <Begin color="CodeInString">\}\}</Begin> <End >(?=.)</End>  </Span>
+    <Import ruleSet="_StringFormatSet"/>
     <Span color="DollarInlines">
-      <Begin color="StringEscaped">\{\{</Begin>  
-      <End color="StringEscaped">\}\}</End> 
-    </Span> 
-  </RuleSet >  
-  
+      <Begin color="CodeInString">\{</Begin>
+      <End color="CodeInString">\}</End>
+    </Span>
+  </RuleSet >
+
+  <RuleSet name="_StringDoubleDollarFormatSet">
+    <Import ruleSet="_StringFormatSet"/>
+    <Span color="DollarInlines">
+      <Begin color="CodeInString">\{\{</Begin>
+      <End color="CodeInString">\}\}</End>
+    </Span>
+  </RuleSet >
+
   <RuleSet name="LoadDllSet">
 
     <!-- compiler directives: -->
     <Span color="NonEval" multiline="true">
-      <Begin color="CompilerDirectives">\#if\s*COMPILED </Begin> <!-- '#' needs to be escaped too, \#  it is a regex comment  --> 
-      <End color="CompilerDirectives">\#endif\b|\#else\b</End> 
-    </Span>   
+      <Begin color="CompilerDirectives">\#if\s*COMPILED </Begin> <!-- '#' needs to be escaped too, \#  it is a regex comment  -->
+      <End color="CompilerDirectives">\#endif\b|\#else\b</End>
+    </Span>
 
     <Span color="CompilerDirectives" multiline="false">
-      <Begin color="CompilerDirectives">\#if\b </Begin> <!-- '#' needs to be escaped too, \#  it is a regex comment  -->      
+      <Begin color="CompilerDirectives">\#if\b </Begin> <!-- '#' needs to be escaped too, \#  it is a regex comment  -->
       <RuleSet>
-        <Import ruleSet="CommentSet"/>        
-      </RuleSet >  
+        <Import ruleSet="CommentSet"/>
+      </RuleSet >
     </Span>
     <Rule color="CompilerDirectives">\#endif\b</Rule>
     <Rule color="CompilerDirectives">\#else\b</Rule>
-    
+
     <Span color="LoadDirectives" multiline="false">
-      <Begin >\#r\b|\#load\b|\#nowarn\b </Begin> <!-- '#' needs to be escaped too, \#  it is a regex comment  -->   
+      <Begin >\#r\b|\#load\b|\#nowarn\b </Begin> <!-- '#' needs to be escaped too, \#  it is a regex comment  -->
       <End>(?=(;;))</End> <!-- so that NonEval works -->
       <RuleSet>
         <Import ruleSet="CommentSet"/>
-        
+
         <Span color="LoadNuget" multiline="false">
-          <Begin color="LoadDllPath">"nuget:</Begin>  
-          <End color="LoadDllPath">"|(,.+")</End> 
-        </Span> 
+          <Begin color="LoadDllPath">"nuget:</Begin>
+          <End color="LoadDllPath">"|(,.+")</End>
+        </Span>
         <Span color="LoadDll" multiline="false">
           <Begin color="LoadDllPath">@?"[^\s\/][^"]+(\\|\/)|@?"(?=[^\s\/])</Begin>  <!--matches the directories part of a full file path-->
-          <End color="LoadDllPath">"|(.dll")</End> 
+          <End color="LoadDllPath">"|(.dll")</End>
         </Span>
-      </RuleSet >  
+      </RuleSet >
     </Span>
-    
+
     <Span color="LoadDirectives" multiline="false">
       <Begin>\#I\b</Begin>    <!-- In case of #I highlight the folder path with color="LoadDll" -->
       <End>(?=(;;))</End> <!-- so that NonEval works -->
       <RuleSet>
         <Import ruleSet="CommentSet"/>
         <Span color="LoadPath" multiline="false">
-          <Begin color="LoadDllPath">@?"</Begin>  
-          <End color="LoadDllPath">"</End> 
-        </Span> 
-      </RuleSet >  
+          <Begin color="LoadDllPath">@?"</Begin>
+          <End color="LoadDllPath">"</End>
+        </Span>
+      </RuleSet >
     </Span>
 
-  </RuleSet >  
+  </RuleSet >
 
-  <RuleSet name="StringSet">  
-    <Span color="Char" > 
+  <RuleSet name="StringSet">
+    <Span color="Char" >
       <Begin>'(?=\\)|'.(?=')</Begin>  <!-- a ' followed by one or zero \ then any char and then another ' in look ahead-->
-      <End>'</End>     
+      <End>'</End>
       <RuleSet> <Import ruleSet="_StringEscapeSet"/> </RuleSet>
     </Span>
-    
-    <Span color="StringVerbatim" multiline="true">
-      <Begin>@"</Begin> 
-      <End>"</End>      
-    </Span>
 
     <Span color="StringVerbatim" multiline="true">
-      <Begin>"""</Begin> 
-      <End>"""</End>
+      <Begin color="StringQuote">@"</Begin>
+      <End color="StringQuote">"</End>
     </Span>
-    
-    <Span color="String" multiline="true"> 
-      <Begin>\$\$"""</Begin> 
-      <End>"""</End>    
+
+    <Span color="String" multiline="true">
+      <Begin color="StringQuote">\$\$"""</Begin>
+      <End color="StringQuote">"""</End>
       <RuleSet><Import ruleSet="_StringDoubleDollarFormatSet"/></RuleSet>
     </Span>
-    
-    <Span color="String" multiline="true"> 
-      <Begin>\$"""</Begin>
-      <End>"""</End>    
+
+    <Span color="String" multiline="true">
+      <Begin color="StringQuote">\$"""</Begin>
+      <End color="StringQuote">"""</End>
       <RuleSet><Import ruleSet="_StringDollarFormatSet"/></RuleSet>
-    </Span>  
-    
-    <Span color="String" multiline="true"> 
-      <Begin>\$"</Begin>
-      <End>"</End>    
-      <RuleSet>        
+    </Span>
+
+    <Span color="String" multiline="true">
+      <Begin color="StringQuote">\$"</Begin>
+      <End color="StringQuote">"</End>
+      <RuleSet>
         <Import ruleSet="_StringDollarFormatSet"/>
         <Import ruleSet="_StringEscapeSet"/>
       </RuleSet>
-    </Span>    
+    </Span>
 
-    <Span color="String" multiline="true"> 
-      <Begin>"</Begin>
-      <End>"</End>    
+    <Span color="StringVerbatim" multiline="true">
+      <Begin color="StringQuote">"""</Begin>
+      <End color="StringQuote">"""</End>
+    </Span>
+
+    <Span  color="String" multiline="true">
+      <Begin color="StringQuote">"</Begin>
+      <End color="StringQuote">"</End>
       <RuleSet><Import ruleSet="_StringEscapeSet"/> </RuleSet>
     </Span>
   </RuleSet>
-  
-  
-  <RuleSet name="__PrintStr">          
+
+
+  <RuleSet name="__PrintStr">
     <Span color="PrintString" multiline="true"><Begin color="PrintStatement">@"</Begin>     <End color="PrintStatement">"</End></Span>
-    <Span color="PrintString" multiline="true"><Begin color="PrintStatement">"""</Begin>    <End color="PrintStatement">"""</End></Span>      
-    <Span color="PrintString" multiline="true"><Begin color="PrintStatement">\$\$"""</Begin><End color="PrintStatement">"""</End> <RuleSet><Import ruleSet="_StringDoubleDollarFormatSet"/></RuleSet></Span>      
-    <Span color="PrintString" multiline="true"><Begin color="PrintStatement">\$"""</Begin>  <End color="PrintStatement">"""</End> <RuleSet><Import ruleSet="_StringFormatSet"/><Import ruleSet="_StringDollarFormatSet"/></RuleSet></Span>        
-    <Span color="PrintString" multiline="true"><Begin color="PrintStatement">\$"</Begin>    <End color="PrintStatement">"</End>   <RuleSet><Import ruleSet="_StringFormatSet"/><Import ruleSet="_StringDollarFormatSet"/><Import ruleSet="_StringEscapeSet"/></RuleSet></Span>    
+    <Span color="PrintString" multiline="true"><Begin color="PrintStatement">"""</Begin>    <End color="PrintStatement">"""</End></Span>
+    <Span color="PrintString" multiline="true"><Begin color="PrintStatement">\$\$"""</Begin><End color="PrintStatement">"""</End> <RuleSet><Import ruleSet="_StringDoubleDollarFormatSet"/></RuleSet></Span>
+    <Span color="PrintString" multiline="true"><Begin color="PrintStatement">\$"""</Begin>  <End color="PrintStatement">"""</End> <RuleSet><Import ruleSet="_StringFormatSet"/><Import ruleSet="_StringDollarFormatSet"/></RuleSet></Span>
+    <Span color="PrintString" multiline="true"><Begin color="PrintStatement">\$"</Begin>    <End color="PrintStatement">"</End>   <RuleSet><Import ruleSet="_StringFormatSet"/><Import ruleSet="_StringDollarFormatSet"/><Import ruleSet="_StringEscapeSet"/></RuleSet></Span>
     <Span color="PrintString" multiline="true"><Begin color="PrintStatement">"</Begin>      <End color="PrintStatement">"</End>   <RuleSet><Import ruleSet="_StringFormatSet"/><Import ruleSet="_StringEscapeSet"/></RuleSet></Span>
   </RuleSet>
   <RuleSet name="PrintingStringsSet" >
-    <Span color="PrintStatement">      
+    <Span color="PrintStatement">
       <Begin>\bPrintfn?\.\w+\s+</Begin><End>(?&lt;=")</End> <!-- for Printfn.red and similar functions.--> <!-- (?<=") or  (?&lt;=") is a positive lookbehind for "  -->
       <RuleSet><Import ruleSet="__PrintStr"/></RuleSet>
-    </Span>    
-    <Span color="PrintStatement">      
+    </Span>
+    <Span color="PrintStatement">
       <Begin>\be?printfn?\s+</Begin><End>(?&lt;=")</End> <!-- for Printfn.red and similar functions.-->
       <RuleSet><Import ruleSet="__PrintStr"/></RuleSet>
-    </Span>  
+    </Span>
   </RuleSet>
 
-  <RuleSet name="__FailStr">          
+  <RuleSet name="__FailStr">
     <Span color="FailString" multiline="true"><Begin color="FailStatement">@"</Begin>     <End color="FailStatement">"</End></Span>
-    <Span color="FailString" multiline="true"><Begin color="FailStatement">"""</Begin>    <End color="FailStatement">"""</End></Span>      
-    <Span color="FailString" multiline="true"><Begin color="FailStatement">\$\$"""</Begin><End color="FailStatement">"""</End> <RuleSet><Import ruleSet="_StringDoubleDollarFormatSet"/></RuleSet></Span>      
-    <Span color="FailString" multiline="true"><Begin color="FailStatement">\$"""</Begin>  <End color="FailStatement">"""</End> <RuleSet><Import ruleSet="_StringFormatSet"/><Import ruleSet="_StringDollarFormatSet"/></RuleSet></Span>        
-    <Span color="FailString" multiline="true"><Begin color="FailStatement">\$"</Begin>    <End color="FailStatement">"</End>   <RuleSet><Import ruleSet="_StringFormatSet"/><Import ruleSet="_StringDollarFormatSet"/><Import ruleSet="_StringEscapeSet"/></RuleSet></Span>    
+    <Span color="FailString" multiline="true"><Begin color="FailStatement">"""</Begin>    <End color="FailStatement">"""</End></Span>
+    <Span color="FailString" multiline="true"><Begin color="FailStatement">\$\$"""</Begin><End color="FailStatement">"""</End> <RuleSet><Import ruleSet="_StringDoubleDollarFormatSet"/></RuleSet></Span>
+    <Span color="FailString" multiline="true"><Begin color="FailStatement">\$"""</Begin>  <End color="FailStatement">"""</End> <RuleSet><Import ruleSet="_StringFormatSet"/><Import ruleSet="_StringDollarFormatSet"/></RuleSet></Span>
+    <Span color="FailString" multiline="true"><Begin color="FailStatement">\$"</Begin>    <End color="FailStatement">"</End>   <RuleSet><Import ruleSet="_StringFormatSet"/><Import ruleSet="_StringDollarFormatSet"/><Import ruleSet="_StringEscapeSet"/></RuleSet></Span>
     <Span color="FailString" multiline="true"><Begin color="FailStatement">"</Begin>      <End color="FailStatement">"</End>   <RuleSet><Import ruleSet="_StringFormatSet"/><Import ruleSet="_StringEscapeSet"/></RuleSet></Span>
   </RuleSet>
   <RuleSet name="FailingStringsSet" >
-    <Span color="FailStatement">      
+    <Span color="FailStatement">
       <Begin>\bfailwithf?\s+</Begin><End>(?&lt;=")</End>  <!-- (?<=") or  (?&lt;=") is a positive lookbehind for "  -->
       <RuleSet><Import ruleSet="__FailStr"/></RuleSet>
     </Span>
-  </RuleSet> 
-  
-  <RuleSet name="PunctuationSet">   
-    <!-- the back and forward arrows : -->     
-    <Rule color="Punctuation">-&gt;</Rule>  
+  </RuleSet>
+
+  <RuleSet name="PunctuationSet">
+    <!-- the back and forward arrows : -->
+    <Rule color="Punctuation">-&gt;</Rule>
     <Rule color="Punctuation">&lt;-</Rule>
 
     <!-- any single character punctuation
-     . $ ^ { [ ( | ) * + ? \ need escape 
-      but excluding math operators: -->    
-    <Rule color="Punctuation">[ \. \$ \^ \{ \[ \( \| \)  \? \\ &lt; &gt; &amp; , : \] \}  ~ !  % = ]</Rule> 
-    
+     . $ ^ { [ ( | ) * + ? \ need escape
+      but excluding math operators: -->
+    <Rule color="Punctuation">[ \. \$ \^ \{ \[ \( \| \)  \? \\ &lt; &gt; &amp; , : \] \}  ~ !  % = ]</Rule>
+
     <Rule color="Semicolon">;</Rule>
 
     <!-- a hex number | binary number | (number just starting with floating point | with optional inner floating point) and an optional exponent. https://regexr.com/52d6q -->
-    <!-- <Rule color="NumberLiteral">((-\.|\.)[0-9_]+|(\b|-)[0-9_]+\.?[0-9_]*)([eE][+-]?[0-9]+)? </Rule> -->    
+    <!-- <Rule color="NumberLiteral">((-\.|\.)[0-9_]+|(\b|-)[0-9_]+\.?[0-9_]*)([eE][+-]?[0-9]+)? </Rule> -->
     <Rule color="ExponentNumberLit">\b0[xX]</Rule>
     <Rule color="ExponentNumberLit">\b0[bB]</Rule>
     <Rule color="HexNumberLiteral">(?&lt;=0[xX])[0-9a-fA-F_]+</Rule>
     <Rule color="BinNumberLiteral">(?&lt;=0[bB])[01_]+</Rule>
     <Rule color="ExponentNumberLit">(?&lt;=\d)[eE][+-]?[0-9]+ </Rule><!-- (?&lt;=\d) is a positive lookbehind for digits -->
     <Rule color="NumberLiteral">\b[0-9_]+\.?[0-9_]*</Rule>
-    <Rule color="Punctuation">[0-9\w]\-</Rule> <!-- to exclude a 'x-1' to be highlighted below too: -->
-    <Rule color="NegNumberLiteral">(?&lt;!\d)-[0-9_]+\.?[0-9_]*</Rule> <!-- (?&lt;!\d) is a negative lookbehind for digits -->        
-     
+    <!-- to exclude a 'x-1' to be highlighted as NegNumberLiteral below too: -->
+    <Rule color="Punctuation">\b\-</Rule>
+    <Rule color="NegNumberLiteral">(?&lt;!\d)-[0-9_]+\.?[0-9_]*</Rule> <!-- (?&lt;!\d) is a negative lookbehind for digits -->
+
 
     <Span color="NonEval" multiline="true" > <!--anything after a double semicolon is ignored in FSI-->
-      <Begin>;;</Begin> 
+      <Begin>;;</Begin>
       <End>@@justAnyStringThatNeverHappens</End>
-    </Span> 
+    </Span>
 
-    <Span color="InDoubleTicks"  multiline="false" begin="``" end="``" /> 
+    <Span color="InDoubleTicks"  multiline="false" begin="``" end="``" />
 
   </RuleSet>
 
-  <!--the main set (it must not have a name attribute): -->  
+  <!--the main set (it must not have a name attribute): -->
   <RuleSet>
 
     <Span color="Attributes">
       <Begin color="Punctuation">\[&lt;</Begin>
-      <End color="Punctuation">&gt;\]</End>      
-      <RuleSet> 
+      <End color="Punctuation">&gt;\]</End>
+      <RuleSet>
         <Import ruleSet="StringSet"/>
-        <Import ruleSet="PunctuationSet"/>         
+        <Import ruleSet="PunctuationSet"/>
       </RuleSet>
-    </Span> 
+    </Span>
 
-    <Import ruleSet="LoadDllSet"/> 
-    <Import ruleSet="CommentSet"/> 
-    <Import ruleSet="InlineCommentSet"/> 
+    <Import ruleSet="LoadDllSet"/>
+    <Import ruleSet="CommentSet"/>
+    <Import ruleSet="InlineCommentSet"/>
     <Import ruleSet="StringSet"/>
-    <Import ruleSet="KeywordSet"/>    
+    <Import ruleSet="KeywordSet"/>
     <Import ruleSet="PrintingStringsSet"/>
     <Import ruleSet="FailingStringsSet"/>
-    <!-- import last: -->  
-    <Import ruleSet="PunctuationSet"/>  
+    <!-- import last: -->
+    <Import ruleSet="PunctuationSet"/>
   </RuleSet>
 
 </SyntaxDefinition>

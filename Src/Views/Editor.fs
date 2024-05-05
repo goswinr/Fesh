@@ -63,7 +63,7 @@ type Editor private (code:string, config:Config, initialFilePath:FilePath)  =
 
         SyntaxHighlighting.setFSharp(av,false)
 
-        // av.TextArea.TextView.CurrentLineBackground <- Brushes.Transparent |> Brush.freeze //Brushes.Ivory |> Brush.brighter 10 |> Brush.freeze
+        av.TextArea.TextView.CurrentLineBackground <- Brushes.LightSteelBlue |> Brush.brighter 70 |> Brush.freeze
         // av.TextArea.TextView.CurrentLineBorder     <- new Pen(Brushes.LightSlateGray|> Brush.freeze, 1.0) |> Util.Pen.freeze
 
         //av.TextArea.AllowCaretOutsideSelection <- true
