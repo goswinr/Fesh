@@ -1,4 +1,4 @@
-﻿namespace Seff.Editor
+﻿namespace Fesh.Editor
 
 
 open System
@@ -14,10 +14,10 @@ open AvalonEditB.Document
 open AvalonLog
 open Fittings
 
-open Seff
-open Seff.Model
-open Seff.Config
-open Seff.Util.Str
+open Fesh
+open Fesh.Model
+open Fesh.Config
+open Fesh.Util.Str
 open FSharp.Compiler.EditorServices
 open AvalonEditB.Rendering
 open System.Threading
@@ -164,7 +164,7 @@ type Editor private (code:string, config:Config, initialFilePath:FilePath)  =
         ed.Folds.Manager.AutoRedrawFoldingSections <- false  // to just redraw the changed line but not the full folding section on changes
 
         // for logging Debug and Error Messages in AvalonEditB
-        Logging.LogAction <- new Action<string>( fun (s:string) -> ISeffLog.log.PrintfnDebugMsg "AvalonEditB Logging.Log: %s" s)
+        Logging.LogAction <- new Action<string>( fun (s:string) -> IFeshLog.log.PrintfnDebugMsg "AvalonEditB Logging.Log: %s" s)
 
         // ----------------------------------------------------------
         // -------------------------View events ---------------------

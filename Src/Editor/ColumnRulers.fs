@@ -1,4 +1,4 @@
-﻿namespace Seff.Editor
+﻿namespace Fesh.Editor
 
 open System
 open System.Windows

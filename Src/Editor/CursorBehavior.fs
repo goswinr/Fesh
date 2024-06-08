@@ -1,4 +1,4 @@
-﻿namespace Seff.Editor
+﻿namespace Fesh.Editor
 
 open System
 open System.Windows
@@ -6,8 +6,8 @@ open System.Windows
 open AvalonEditB
 open AvalonEditB.Document
 
-open Seff.Model
-open Seff.Util.Str
+open Fesh.Model
+open Fesh.Util.Str
 
 
 module Doc =
@@ -207,8 +207,8 @@ module CursorBehavior  =
             let caret = ed.CaretOffset
             let doc = ed.Document
             let trimmed = Doc.getTextBeforeOffsetSkipSpaces 6 caret doc
-            //ISeffLog.log.PrintfnDebugMsg "current line ='%s'" (doc.GetText(doc.GetLineByOffset(caret)))
-            //ISeffLog.log.PrintfnDebugMsg "trimmed='%s' (%d chars)" trimmed trimmed.Length
+            //IFeshLog.log.PrintfnDebugMsg "current line ='%s'" (doc.GetText(doc.GetLineByOffset(caret)))
+            //IFeshLog.log.PrintfnDebugMsg "trimmed='%s' (%d chars)" trimmed trimmed.Length
 
             // special enter that increases the indent :
             if     trimmed.EndsWith " do"
@@ -235,7 +235,7 @@ module CursorBehavior  =
                     else
                         doc.Replace(caret,spaces,insertText)
                     ed.CaretOffset <- caret + insertText.Length //+ spaces
-                    //ISeffLog.log.PrintfnDebugMsg "trimmed='%s' (%d chars)" trimmed trimmed.Length
+                    //IFeshLog.log.PrintfnDebugMsg "trimmed='%s' (%d chars)" trimmed trimmed.Length
             else
                 // start the next line with comment if the return was pressed inside a comment
                 let slashes = Doc.isCaretInComment caret doc
@@ -465,17 +465,17 @@ module DragAndDrop =
             //        ParseFs.findWordAhead "@\"" (allRefs 0) code
 
             try
-                let printGreen = ISeffLog.log.PrintfnColor 0 150 0
+                let printGreen = IFeshLog.log.PrintfnColor 0 150 0
 
                 let fs = (e.Data.GetData DataFormats.FileDrop :?> string []) |> Array.sort |> Array.rev // to get file path
                 if fs.Length > 2 && Array.forall isDll fs then      // TODO make path relative to script location
                     for f in fs  do
                         let file = IO.Path.GetFileName(f)
                         doc.Insert (0, sprintf "#r \"%s\"\r\n" file)
-                        ISeffLog.log.PrintfnInfoMsg "Drag & Drop inserted at Line 0: %s"  file
+                        IFeshLog.log.PrintfnInfoMsg "Drag & Drop inserted at Line 0: %s"  file
                     let folder = IO.Path.GetDirectoryName(fs.[0]).Replace("\\","/")
                     doc.Insert (0, sprintf "#I \"%s\"\r\n" folder)
-                    ISeffLog.log.PrintfnInfoMsg "Drag & Drop inserted at Line 0: %s"  folder
+                    IFeshLog.log.PrintfnInfoMsg "Drag & Drop inserted at Line 0: %s"  folder
                 else
 
                     // Find insert location: try to insert at drop location
@@ -501,12 +501,12 @@ module DragAndDrop =
                         if isDll f then
                             let txt = sprintf "#r \"%s\"\r\n" f
                             doc.Insert (0, txt )
-                            ISeffLog.log.PrintfnInfoMsg "Drag & Drop inserted at Line 0:"
+                            IFeshLog.log.PrintfnInfoMsg "Drag & Drop inserted at Line 0:"
                             printGreen "  %s" txt
                         elif isFsx f  then
                             let txt = sprintf "#load \"%s\"\r\n" f
                             doc.Insert (0, txt)     // TODO find end or #r statements
-                            ISeffLog.log.PrintfnInfoMsg "Drag & Drop inserted at Line 0:"
+                            IFeshLog.log.PrintfnInfoMsg "Drag & Drop inserted at Line 0:"
                             printGreen "  %s" txt
                         else
 
@@ -531,20 +531,20 @@ module DragAndDrop =
                             //        ed.Log.PrintfnColor 120 120 120  "  %s" prev
                             //| None ->
 
-                            ISeffLog.log.PrintfnInfoMsg "Drag & Drop inserted at Line %d:" lnNo
+                            IFeshLog.log.PrintfnInfoMsg "Drag & Drop inserted at Line %d:" lnNo
                             printGreen "  %s" f
                             doc.Insert (off , sprintf "\"%s\"%s" f Environment.NewLine)
                             ed.CaretOffset <- off
 
                     e.Handled <- true
 
-            with er -> ISeffLog.log.PrintfnIOErrorMsg "Drag & Drop in TextArea failed: %A" er
+            with er -> IFeshLog.log.PrintfnIOErrorMsg "Drag & Drop in TextArea failed: %A" er
 
 
     /// A Event handler that will open a new tab per file.
     /// If event comes from a AvalonEditB.TextEditor that is not read only ( like the Log) the event is ignored.
     let onTabHeaders (openFiles: string[] -> bool, e:DragEventArgs) =
-        //ISeffLog.log.PrintfnDebugMsg "Drop onto e.Source :%A ; e.OriginalSource:%A" e.Source e.OriginalSource
+        //IFeshLog.log.PrintfnDebugMsg "Drop onto e.Source :%A ; e.OriginalSource:%A" e.Source e.OriginalSource
         let addTabsForFiles() =
             if e.Data.GetDataPresent DataFormats.FileDrop then
                 let isFsx (p:string) = p.EndsWith(".fsx", StringComparison.OrdinalIgnoreCase) ||  p.EndsWith(".fs", StringComparison.OrdinalIgnoreCase)
@@ -557,12 +557,12 @@ module DragAndDrop =
 
                     fs
                     |> Seq.filter (not << isFsx)
-                    |> Seq.iter (ISeffLog.log.PrintfnIOErrorMsg " Only *.fsx and *.fs files can be opened to tabs. Ignoring darg-and-drop of  %A " )
+                    |> Seq.iter (IFeshLog.log.PrintfnIOErrorMsg " Only *.fsx and *.fs files can be opened to tabs. Ignoring darg-and-drop of  %A " )
 
                     e.Handled <- true
 
                 with er ->
-                    ISeffLog.log.PrintfnIOErrorMsg "Other Drag & Drop failed: %A" er
+                    IFeshLog.log.PrintfnIOErrorMsg "Other Drag & Drop failed: %A" er
 
         match e.Source with
         | :? AvalonEditB.TextEditor  as te ->

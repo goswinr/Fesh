@@ -1,2 +1,2 @@
-# Seff
+# Fesh
  Scripting Editor for FSharp

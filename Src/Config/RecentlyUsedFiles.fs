@@ -1,4 +1,4 @@
-﻿namespace Seff.Config
+﻿namespace Fesh.Config
 
 open System
 open System.Text
@@ -7,9 +7,9 @@ open System.Globalization
 
 open Fittings
 
-open Seff
-open Seff.Util
-open Seff.Model
+open Fesh
+open Fesh.Util
+open Fesh.Model
 
 
 type UsedFile = {
@@ -21,14 +21,14 @@ type RecentlyUsedFiles  ( runContext:RunContext) =
 
     let filePath0 = runContext.GetPathToSaveAppData("RecentlyUsedFiles.txt")
 
-    let writer = SaveReadWriter(filePath0,ISeffLog.printError)
+    let writer = SaveReadWriter(filePath0,IFeshLog.printError)
 
     let recentFilesChangedEv = new Event<unit>()
 
     let recentFilesStack =
         let stack = Collections.Generic.Stack<UsedFile>()
         async{
-            writer.CreateFileIfMissing("")  |> ignore  //ISeffLog.log.PrintfnInfoMsg "No recently used files found. (This is expected on first use of the App)"
+            writer.CreateFileIfMissing("")  |> ignore  //IFeshLog.log.PrintfnInfoMsg "No recently used files found. (This is expected on first use of the App)"
             match writer.ReadAllLines() with
             |None -> ()
             |Some files ->
@@ -41,7 +41,7 @@ type RecentlyUsedFiles  ( runContext:RunContext) =
                         elif DateTime.UtcNow - date < TimeSpan.FromDays(2.) then // if a file is missing only add it to the recent file stack if it was used in the last 2 days( might be on a network drive that is temporarily disconnected)
                             stack.Push {fileInfo = FileInfo(path) ; lastOpenedUTC = date}
                     | _ ->
-                        ISeffLog.log.PrintfnAppErrorMsg "Failed to parse date from recent file text: %s" ln
+                        IFeshLog.log.PrintfnAppErrorMsg "Failed to parse date from recent file text: %s" ln
                         stack.Push {fileInfo = FileInfo(path) ; lastOpenedUTC = DateTime.MinValue}
             recentFilesChangedEv.Trigger()// to update menu if delegate is already set up in menu.fs
             } |> Async.Start

@@ -1,16 +1,16 @@
-﻿namespace Seff.Config
+﻿namespace Fesh.Config
 
 open System
 open System.IO
 open Fittings
-open Seff.Model
+open Fesh.Model
 
 
 type DefaultCode  ( runContext:RunContext) =
 
     let filePath0 = runContext.GetPathToSaveAppData("DefaultCode.fsx")
 
-    let writer = SaveReadWriter(filePath0,ISeffLog.printError)
+    let writer = SaveReadWriter(filePath0,IFeshLog.printError)
 
     let defaultCodeOnFirstRun =
         [

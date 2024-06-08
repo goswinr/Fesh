@@ -1,4 +1,4 @@
-﻿namespace Seff.Views
+﻿namespace Fesh.Views
 
 open System.Windows.Documents
 open System.Diagnostics
@@ -9,14 +9,14 @@ open AvalonEditB.Editing
 
 open Fittings.Command
 
-open Seff
-open Seff.Model
-open Seff.Editor
-open Seff.Editor.SelectionForEval
+open Fesh
+open Fesh.Model
+open Fesh.Editor
+open Fesh.Editor.SelectionForEval
 
 
 
-type Commands (grid:TabsAndLog, statusBar:SeffStatusBar)  = 
+type Commands (grid:TabsAndLog, statusBar:FeshStatusBar)  =
 
     let fonts  = Fonts(grid)
     let tabs   = grid.Tabs
@@ -25,7 +25,7 @@ type Commands (grid:TabsAndLog, statusBar:SeffStatusBar)  =
     let fsi    = tabs.Fsi
 
     let curr()   = tabs.Current.Editor
-    
+
     let fName()  = tabs.Current.Editor.FilePath.FileName
 
     let evalAllText()          =                                             fsi.Evaluate {editor=curr(); amount=All; logger=None; scriptName=fName()}
@@ -39,7 +39,7 @@ type Commands (grid:TabsAndLog, statusBar:SeffStatusBar)  =
     let evalTillCursor()       =  fsi.Evaluate {editor=curr(); amount = FsiSegment <|SelectionForEval.linesTillCursor(tabs.CurrAvaEdit)            ; logger=None; scriptName=fName()}
 
     let goToError()            = match ErrorUtil.getNextSegment(curr()) with Some s -> curr().Folds.GoToOffsetAndUnfold(s.Offset, s.Length, false)| None -> ()
-    let reset()                = log.Clear(); Checker.Reset(); Fsi.GetOrCreate(config).Initialize() 
+    let reset()                = log.Clear(); Checker.Reset(); Fsi.GetOrCreate(config).Initialize()
     //let evalFromCursor()       =  let ln,tx = Selection.linesFromCursor(tabs.CurrAvaEdit)             in  fsi.Evaluate {editor=curr(); code = tx ; file=curr().FilePath; allOfFile=false; fromLine = ln }
 
     let compileScr(useMsBuild) = CompileScript.compileScript(tabs.CurrAvaEdit.Text, curr().FilePath,  useMsBuild, grid.Config)
@@ -76,7 +76,7 @@ type Commands (grid:TabsAndLog, statusBar:SeffStatusBar)  =
     member val UnComment         = {name= "Uncomment"                 ;gesture= "Ctrl + U"       ;cmd = mkCmdSimple (fun _ -> Commenting.unComment tabs.CurrAvaEdit)           ;tip= "Puts '//' at the beginning of current line, \r\nor all line touched by current selection" }
     member val ToggleComment     = {name= "Toggle Comment"            ;gesture= "Ctrl + /"       ;cmd = mkCmdSimple (fun _ -> Commenting.toggleComment tabs.CurrAvaEdit)       ;tip= "Toggles the commented lines in current selection." }
     member val SwapLineUp        = {name= "Swap Lines Up"             ;gesture= "Alt + Up"       ;cmd = mkCmdSimple (fun _ -> SwapLines.swapLinesUp  (curr()))     ;tip= "Swap the current line(s) with the previous line."  }
-    member val SwapLineDown      = {name= "Swap Lines Down"           ;gesture= "Alt + Down"     ;cmd = mkCmdSimple (fun _ -> SwapLines.swapLinesDown(curr()))     ;tip= "Swap the current line(s) with the next line."  }    
+    member val SwapLineDown      = {name= "Swap Lines Down"           ;gesture= "Alt + Down"     ;cmd = mkCmdSimple (fun _ -> SwapLines.swapLinesDown(curr()))     ;tip= "Swap the current line(s) with the next line."  }
     member val ToggleBoolean     = {name= "Toggle bool literal"       ;gesture= "Ctrl + T"       ;cmd = mkCmdSimple (fun _ -> CursorBehavior.toggleBoolean(tabs.CurrAvaEdit) );tip= "Converts a 'true' literal to 'false' and a 'false' literal to 'true' if they are currently selected exclusively." }
     member val AlignCode         = {name= "Align Code Vertically"     ;gesture= "Ctrl + I"       ;cmd = mkCmdSimple (fun _ -> AlignText.alignByNonLetters(curr()))  ;tip= "Experimental Feature, Tries to inserts spaces where required so that non letter symbols align vertically." }
 
@@ -93,9 +93,9 @@ type Commands (grid:TabsAndLog, statusBar:SeffStatusBar)  =
     member val RunAllTxSaveClear = {name= "Clear Log, Save, Evaluate All"       ;gesture= "F7"             ;cmd= mkCmdSimple (fun _ -> evalAllTextSaveClear()) ;tip= "First clear Log, then save current file, then  then send all text to FSharp Interactive,." }
     member val RunCurrentLines   = {name= "Evaluate CurrentLines"               ;gesture= "Ctrl + Enter"   ;cmd= mkCmdSimple (fun _ -> evalSelectedLines())    ;tip= "Sends the currently selected lines in the editor to FSharp Interactive.\r\nIncludes partially selected lines in full."}
     member val RunSelectedText   = {name= "Evaluate Selected Text"              ;gesture= "Alt + Enter"    ;cmd= mkCmd isEse (fun _ -> evalSelectedText())     ;tip= "Sends the currently selected text in the editor to FSharp Interactive." }// TODO mark evaluated code with gray background
-    member val RunTextTillCursor = {name= "Evaluate till Cursor"                ;gesture= "F3"             ;cmd= mkCmdSimple (fun _ -> evalTillCursor())       ;tip= "Sends all lines till and including the current line to FSharp Interactive." }   
+    member val RunTextTillCursor = {name= "Evaluate till Cursor"                ;gesture= "F3"             ;cmd= mkCmdSimple (fun _ -> evalTillCursor())       ;tip= "Sends all lines till and including the current line to FSharp Interactive." }
 
-    
+
     member val GoToError         = {name= "Scroll to Errors"              ;gesture= "Ctrl + E"        ;cmd= mkCmdSimple (fun _ -> goToError())             ;tip= "Scroll step by step through error segments. Unfold if needed." }
     member val ClearLog          = {name= "Clear Log"                     ;gesture= "Ctrl + Alt + C"  ;cmd= mkCmdSimple (fun _ -> log.Clear())             ;tip= "Clear all text from FSI Log window."  }
     member val CancelFSI         = {name= "Cancel FSI"                    ;gesture= "Ctrl + Break"    ;cmd= mkCmd isAsy472 (fun _ -> fsi.CancelIfAsync())  ;tip= "Cancel running FSI evaluation. Via Thread.Abort()" }
@@ -112,16 +112,16 @@ type Commands (grid:TabsAndLog, statusBar:SeffStatusBar)  =
     member val FontSmaller       = {name= "Make Font Smaller"             ;gesture= "Ctrl + '-'"  ;cmd= mkCmdSimple (fun _ -> fonts.FontsSmaller())       ;tip= "Decrease Text Size for both Editor and Log" }
     member val CollapseFolding   = {name= "Collapse this folding"         ;gesture= "Ctrl + ["      ;cmd = mkCmdSimple (fun _ -> Foldings.CollapseAtCaret())  ;tip= "Folding the innermost un collapsed region at the cursor." }
     member val ExpandFolding     = {name= "Expands this folding"          ;gesture= "Ctrl + ]"     ;cmd = mkCmdSimple (fun _ -> Foldings.ExpandAtCaret())   ;tip= "Unfolding the collapsed region at the cursor." }
-    
+
     member val CollapseCode      = {name= "Collapse all Code Foldings"    ;gesture= ""            ;cmd= mkCmdSimple (fun _ -> curr().Folds.CollapseAll()) ;tip= "Collapse all Code Foldings in this file" }
     member val CollapsePrim      = {name= "Collapse all first Code Foldings";gesture= ""            ;cmd= mkCmdSimple (fun _ -> curr().Folds.CollapsePrimary()) ;tip= "Collapse primary Code Foldings, doesn't change secondary or tertiary foldings." }
     member val ExpandCode        = {name= "Expand all Code Foldings"      ;gesture= ""            ;cmd= mkCmdSimple (fun _ -> curr().Folds.ExpandAll      ()) ;tip= "Expand or unfold all Code Foldings in this file."  }
     member val PopOutToolTip     = {name= "Make Tooltip persistent"       ;gesture= "Ctrl + P"    ;cmd= mkCmdSimple (fun _ -> PopOut.create(grid,statusBar))  ;tip= "Makes all currently showing ToolTip, TypeInfo or ErrorInfo windows persistent as pop up window." }
 
     // About Menu
-    member val Help              = {name= "Homepage / Help"        ;gesture= ""              ;cmd= mkCmdSimple (fun _ -> Process.Start("https://github.com/goswinr/Seff") |> ignore ) ;tip= "Opens a browser window showing https://github.com/goswinr/Seff/"  }
+    member val Help              = {name= "Homepage / Help"        ;gesture= ""              ;cmd= mkCmdSimple (fun _ -> Process.Start("https://github.com/goswinr/Fesh") |> ignore ) ;tip= "Opens a browser window showing https://github.com/goswinr/Fesh/"  }
     member val SettingsFolder    = {name= "Open Settings Folder"  ;gesture= ""               ;cmd= mkCmdSimple (fun _ -> config.RunContext.OpenSettingsFolder())                         ;tip= "Opens the Folder where user settings such as default file content is saved." }
-    member val AppFolder         = {name= "Open App Folder"       ;gesture= ""               ;cmd= mkCmdSimple (fun _ -> config.RunContext.OpenAppFolder())                              ;tip= "Opens the Folder where this App (Seff.exe) is loaded from." }
+    member val AppFolder         = {name= "Open App Folder"       ;gesture= ""               ;cmd= mkCmdSimple (fun _ -> config.RunContext.OpenAppFolder())                              ;tip= "Opens the Folder where this App (Fesh.exe) is loaded from." }
     member val OpenXshdFile      = {name= "Open and watch SyntaxHighlighting in VS Code" ;gesture= ""  ;cmd= mkCmdSimple (fun _ -> SyntaxHighlighting.openVSCode(tabs.CurrAvaEdit))       ;tip= "Opens the SyntaxHighlightingFSharp.xshd, file in VS Code.\r\nWatches the file for changes and reloads automatically." }
     //member val ReloadXshdFile  = {name= "Reload SyntaxHighlighting" ;gesture= "F10"            ;cmd= mkCmdSimple (fun _ -> SyntaxHighlighting.setFSharp(tabs.CurrAvaEdit,true))         ;tip= "Reloads SyntaxHighlightingFSharp.xshd, this is useful for testing new highlighting files without a restart." }
 
@@ -163,7 +163,7 @@ type Commands (grid:TabsAndLog, statusBar:SeffStatusBar)  =
     member this.Fonts = fonts
 
     /// excluding the ones already provided by avalonedit
-    member this.SetUpGestureInputBindings () = 
+    member this.SetUpGestureInputBindings () =
 
             // NOTE :--------------------------------------------------------------------
             // some more gestures and selection depending  overwrites are defined in CursorBehavior.previewKeyDown
@@ -245,8 +245,8 @@ type Commands (grid:TabsAndLog, statusBar:SeffStatusBar)  =
                        | _ -> log.PrintfnAppErrorMsg "*AllInputBindings: failed to parse ModifierKey '%A'" x; ModifierKeys.None
 
             try
-                let bindings = 
-                    [|  for cmd in allCustomCommands do                            
+                let bindings =
+                    [|  for cmd in allCustomCommands do
                             match cmd.gesture.Trim() with
                             | "" -> log.PrintfnAppErrorMsg "*SetUpGestureInputBindings: Input gesture is empty for '%s'" cmd.name
                             | "Ctrl + '+'" | "Ctrl + +" | "Ctrl +" -> // because  gg.Split('+') would fail
@@ -267,7 +267,7 @@ type Commands (grid:TabsAndLog, statusBar:SeffStatusBar)  =
                                         // TODO check for memory leaks: https://github.com/icsharpcode/AvalonEdit/blame/master/ICSharpCode.AvalonEdit/Editing/TextAreaDefaultInputHandlers.cs#L71-L79
 
                     |]
-                grid.SeffWindow.Window.InputBindings.AddRange (bindings)
+                grid.FeshWindow.Window.InputBindings.AddRange (bindings)
 
                 // to no redirect alt to the menu bar :
                 grid.Tabs.Control.InputBindings.Add (InputBinding(this.RunSelectedText.cmd, KeyGesture(Key.Return , ModifierKeys.Alt))) |> ignore

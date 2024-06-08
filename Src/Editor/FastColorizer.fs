@@ -1,10 +1,10 @@
-﻿namespace Seff.Editor
+﻿namespace Fesh.Editor
 
 open System
 open AvalonEditB
 open AvalonEditB.Rendering
-open Seff.Model
-open Seff.Util.General
+open Fesh.Model
+open Fesh.Util.General
 
 open System.Windows
 open System.Windows.Controls
@@ -12,9 +12,9 @@ open System.Windows.Media
 
 open AvalonLog.Brush
 
-open Seff
-open Seff.Util
-open Seff.Model
+open Fesh
+open Fesh.Util
+open Fesh.Model
 
 open FSharp.Compiler
 open FSharp.Compiler.Diagnostics
@@ -196,7 +196,7 @@ type LineTransformers<'T>() =    // generic so it can work for LinePartChange an
             //     try
             //         lines[lNo]
             //     with e ->
-            //         ISeffLog.log.PrintfnAppErrorMsg $"draw line {lineNumber} trying to get color info from line {lNo} , shift.amountLines: {shift.amountLines} starting from line {shift.fromLine}"
+            //         IFeshLog.log.PrintfnAppErrorMsg $"draw line {lineNumber} trying to get color info from line {lNo} , shift.amountLines: {shift.amountLines} starting from line {shift.fromLine}"
             //         null
 
             if isNull oneLineItems then
@@ -246,12 +246,12 @@ type FastColorizer(transformers:LineTransformers<LinePartChange> [], ed:TextEdit
                     if from >= till then () // negative length or skipped because of shift offset
                         //let tx = ed.Document.GetText(line)
                         //let seg = ed.Document.GetText(till, from-till)
-                        //ISeffLog.log.PrintfnAppErrorMsg $"*LineChangePart1 {from} >= {till}; DocLine {offSt}-{offEn} on line: {lineNo}; (shift:{shiftChecked})"
-                        //ISeffLog.log.PrintfnAppErrorMsg $"   '{seg}' in {lineNo}:'{tx}'"
-                    elif till > offEn then () // ISeffLog.log.PrintfnAppErrorMsg $"**LineChangePart2 {from}-{till}; DocLine {offSt}-{offEn} on line: {lineNo}; (shift:{shiftChecked})"
-                    elif from < offSt then () // ISeffLog.log.PrintfnAppErrorMsg $"***LineChangePart3 {from}-{till}; DocLine {offSt}-{offEn} on line: {lineNo}; (shift:{shiftChecked})"
+                        //IFeshLog.log.PrintfnAppErrorMsg $"*LineChangePart1 {from} >= {till}; DocLine {offSt}-{offEn} on line: {lineNo}; (shift:{shiftChecked})"
+                        //IFeshLog.log.PrintfnAppErrorMsg $"   '{seg}' in {lineNo}:'{tx}'"
+                    elif till > offEn then () // IFeshLog.log.PrintfnAppErrorMsg $"**LineChangePart2 {from}-{till}; DocLine {offSt}-{offEn} on line: {lineNo}; (shift:{shiftChecked})"
+                    elif from < offSt then () // IFeshLog.log.PrintfnAppErrorMsg $"***LineChangePart3 {from}-{till}; DocLine {offSt}-{offEn} on line: {lineNo}; (shift:{shiftChecked})"
                     elif notNull lpc.act then // because for coloring brackets the action may be null to keep xshd coloring
-                        //ISeffLog.log.PrintfnDebugMsg $"{from}-{till}; DocLine {offSt}-{offEn} on line: {lineNo}; doc.Text.Length {ed.Document.TextLength} (shift:{shiftChecked})"
+                        //IFeshLog.log.PrintfnDebugMsg $"{from}-{till}; DocLine {offSt}-{offEn} on line: {lineNo}; doc.Text.Length {ed.Document.TextLength} (shift:{shiftChecked})"
                         base.ChangeLinePart(from, till, lpc.act)
 
 (*
@@ -265,13 +265,13 @@ type DebugColorizer(transformers:LineTransformers<LinePartChange> [], ed:TextEdi
         let lineNo = line.LineNumber
         if t.ElapsedMilliseconds > 1000L then
             t.Restart()
-            ISeffLog.log.PrintfnIOErrorMsg $"after 1s DebugColorizer on %d{lineNo}"
+            IFeshLog.log.PrintfnIOErrorMsg $"after 1s DebugColorizer on %d{lineNo}"
         elif lineNo % 10 = 0  then
-            ISeffLog.log.PrintfnDebugMsg $"%d{lineNo} from DebugColorizer"
+            IFeshLog.log.PrintfnDebugMsg $"%d{lineNo} from DebugColorizer"
             t.Restart()
         //elif lineNo % 2= 0  then
         else
-            ISeffLog.log.PrintfFsiErrorMsg $"%d{lineNo}, "
+            IFeshLog.log.PrintfFsiErrorMsg $"%d{lineNo}, "
 
 type DebugColorizer2(transformers:LineTransformers<LinePartChange> [], ed:TextEditor) =
     inherit DocumentColorizingTransformer()

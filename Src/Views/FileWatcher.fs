@@ -1,11 +1,11 @@
-namespace Seff.Views
+namespace Fesh.Views
 
 open System
 open System.IO
 open System.Windows
 
-open Seff.Editor
-open Seff.Model
+open Fesh.Editor
+open Fesh.Model
 open Fittings
 
 
@@ -65,7 +65,7 @@ type FileChangeTracker (editor:Editor, setCodeSavedStatus:bool->unit) =
                     if fi.Exists then //file was deleted and now exist again ??
                         editor.FilePath <- SetTo fi
                         match tryReadFile fi with
-                        |None -> ISeffLog.log.PrintfnIOErrorMsg "FileWatcher.fs: check: tryReadFile failed"
+                        |None -> IFeshLog.log.PrintfnIOErrorMsg "FileWatcher.fs: check: tryReadFile failed"
                         |Some fileCode ->
                             if fileCode = editor.CodeAtLastSave then
                                 ()// don't !! editor.CodeAtLastSave might not be current code in Document :setCodeSavedStatus(true)
@@ -99,9 +99,9 @@ type FileChangeTracker (editor:Editor, setCodeSavedStatus:bool->unit) =
                     fi.Refresh() // with out this it would raise missing in case of save incrementing
                     if fi.Exists then
                         match tryReadFile fi with
-                        |None -> ISeffLog.log.PrintfnIOErrorMsg "FileWatcher.fs: check: tryReadFile failed"
+                        |None -> IFeshLog.log.PrintfnIOErrorMsg "FileWatcher.fs: check: tryReadFile failed"
                         |Some fileCode ->
-                            if fileCode = editor.CodeAtLastSave then // this means that the last file saving was not done by Seff
+                            if fileCode = editor.CodeAtLastSave then // this means that the last file saving was not done by Fesh
                                 () // don't !! editor.CodeAtLastSave might not be current code in Document :setCodeSavedStatus(true)
                             else
                                 // eprintfn "file changed: %d vs %d" fileCode.Length editor.CodeAtLastSave.Length

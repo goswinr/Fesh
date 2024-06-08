@@ -1,4 +1,4 @@
-﻿namespace Seff.Views
+﻿namespace Fesh.Views
 
 open System
 open System.Windows
@@ -11,10 +11,10 @@ open AvalonEditB
 open Fittings.Command
 open Fittings.DependencyProps
 
-open Seff.Model
-open Seff.Util
-open Seff.Config
-open Seff.Views.MenuUtil
+open Fesh.Model
+open Fesh.Util
+open Fesh.Config
+open Fesh.Views.MenuUtil
 
 
 type HeaderGestureTooltip = {
@@ -24,10 +24,10 @@ type HeaderGestureTooltip = {
     }
 
 
-module RecognizePath = 
-    open Seff.Editor.Selection
+module RecognizePath =
+    open Fesh.Editor.Selection
 
-    let filePathStartRegex = Text.RegularExpressions.Regex("""[A-Z]:[\\/]""") // C:\    
+    let filePathStartRegex = Text.RegularExpressions.Regex("""[A-Z]:[\\/]""") // C:\
     let filePathEndRegex = Text.RegularExpressions.Regex("""[\"<>:|?*]""") // invalid characters in file path
     // let filePathEndRegex = Text.RegularExpressions.Regex("""["()\[\]']""") //   [ or ] or ( or ) or " or '
     // Or disallow spaces too : let filePathEndRegex = Text.RegularExpressions.Regex("""["()\[\] ']""") //  a space or [ or ] or ( or ) or " or '
@@ -36,7 +36,7 @@ module RecognizePath =
 
     let deDup = HashSet(2)
 
-    let badChars = 
+    let badChars =
         //IO.Path.GetInvalidPathChars()
         [|
         '"'
@@ -46,7 +46,7 @@ module RecognizePath =
         '*'
         |]
 
-    let addPathIfPresentToMenu (m:MouseButtonEventArgs, tempItemsInMenu:ref<int>, menu:ContextMenu, ava:TextEditor, openFile:IO.FileInfo*bool->bool)= 
+    let addPathIfPresentToMenu (m:MouseButtonEventArgs, tempItemsInMenu:ref<int>, menu:ContextMenu, ava:TextEditor, openFile:IO.FileInfo*bool->bool)=
         for i = 1 to !tempItemsInMenu do // the menu entry, maybe another entry and  the separator
             menu.Items.RemoveAt(0)
         tempItemsInMenu := 0
@@ -58,14 +58,14 @@ module RecognizePath =
             match getSelType(ava.TextArea) with
             |NoSel
             |RectSel -> ()
-            |RegSel -> 
+            |RegSel ->
                 let pos = ava.GetPositionFromPoint(m.GetPosition(ava))
                 if pos.HasValue then
                     let p = pos.Value
                     let selPos = getSelectionOrdered(ava.TextArea)
                     if selPos.stPos.Line = p.Line && selPos.enPos.Line = selPos.stPos.Line then // only if curser is at selection. And selection is just one line.
                         let txt = ava.TextArea.Selection.GetText()
-                        if txt.Length > 2 then 
+                        if txt.Length > 2 then
                             let cmd = {
                                 name = sprintf "Do a Google search for '%s'" txt
                                 gesture = ""
@@ -76,7 +76,7 @@ module RecognizePath =
                             incr tempItemsInMenu
                             menu.Items.Insert(0, menuItem cmd)
                             incr tempItemsInMenu
-            
+
             //(2) recognize a file path
             let line = ava.Document.GetLineByNumber(pos.Value.Line)
             let lineTxt  = ava.Document.GetText(line)
@@ -84,8 +84,8 @@ module RecognizePath =
             for s in ss do
                 if s.Success then
                     let e = filePathEndRegex.Match(lineTxt,s.Index+s.Length) // add length to jump over first colon ':'
-                    let fullPath = 
-                        let raw = 
+                    let fullPath =
+                        let raw =
                             if e.Success then   lineTxt.Substring(s.Index, e.Index - s.Index)
                             else                lineTxt.Substring(s.Index)
                         raw.Split(badChars).[0].Split([|':'|])
@@ -103,18 +103,18 @@ module RecognizePath =
                                     name = sprintf "Open folder in Explorer  '%s' " dir // shortDir
                                     gesture = ""
                                     cmd = mkCmdSimple (fun _ ->
-                                        let rec find (path:string) = 
+                                        let rec find (path:string) =
                                             if path.EndsWith ":\\" || String.IsNullOrWhiteSpace path then // just the root path C:\
-                                                ISeffLog.log.PrintfnIOErrorMsg "The directory \r\n%s\r\n does not exist" dir
-                                            elif IO.Directory.Exists dir then  
+                                                IFeshLog.log.PrintfnIOErrorMsg "The directory \r\n%s\r\n does not exist" dir
+                                            elif IO.Directory.Exists dir then
                                                 Diagnostics.Process.Start("Explorer.exe", "\"" + dir+ "\"") |> ignore
                                             else // if a path does not exist try the parent folder:
                                                 path.Split( [|'\\'|] ).[.. ^1]
                                                 |> String.concat "\\"
-                                                |> find  
-                                        find dir 
+                                                |> find
+                                        find dir
                                         //if IO.Directory.Exists dir then  Diagnostics.Process.Start("Explorer.exe", "\"" + dir+ "\"") |> ignore
-                                        //else ISeffLog.log.PrintfnIOErrorMsg "Directory '%s' does not exist" dir
+                                        //else IFeshLog.log.PrintfnIOErrorMsg "Directory '%s' does not exist" dir
                                         )
                                     tip = sprintf "Try to open folder in Explorer at \r\n%s\r\n(Tries to open at parent folder if this folder is not found.)" dir
                                     }
@@ -129,7 +129,7 @@ module RecognizePath =
                                 let name  =  IO.Path.GetFileName(fullPath)
                                 let fi = IO.FileInfo(fullPath)
                                 let cmd = {
-                                        name = sprintf "Open file in Seff  '%s'" fullPath //name
+                                        name = sprintf "Open file in Fesh  '%s'" fullPath //name
                                         gesture = ""
                                         cmd = mkCmdSimple (fun _ -> openFile(fi,true)  |> ignore ) // does not need check if file exists !
                                         tip = sprintf "Try to open file %s from  at \r\n%s" name fullPath
@@ -155,9 +155,9 @@ module RecognizePath =
                                             p.StartInfo.WindowStyle <- Diagnostics.ProcessWindowStyle.Hidden
                                             p.Start() |> ignore
                                         else
-                                            ISeffLog.log.PrintfnIOErrorMsg "Directory or file \r\n%s\r\n does not exist" fullPath
+                                            IFeshLog.log.PrintfnIOErrorMsg "Directory or file \r\n%s\r\n does not exist" fullPath
                                     with e ->
-                                        ISeffLog.log.PrintfnIOErrorMsg "Open with VS Code failed: %A" e
+                                        IFeshLog.log.PrintfnIOErrorMsg "Open with VS Code failed: %A" e
                                     )
                                 tip = sprintf "Try to open file in VS Code:\r\n%s" fullPath
                                 }
@@ -167,12 +167,12 @@ module RecognizePath =
 
 
                     with e ->
-                        ISeffLog.log.PrintfnIOErrorMsg "Failed to make menu item for fullPath %s:\r\n%A" fullPath e
-                        
+                        IFeshLog.log.PrintfnIOErrorMsg "Failed to make menu item for fullPath %s:\r\n%A" fullPath e
+
 
  #nowarn "44" //to use log.AvalonLog.AvalonEdit in addPathIfPresentToMenu
 
-type Menu (config:Config,cmds:Commands, tabs:Tabs, statusBar:SeffStatusBar, log:Log) = 
+type Menu (config:Config,cmds:Commands, tabs:Tabs, statusBar:FeshStatusBar, log:Log) =
     let bar = new Windows.Controls.Menu()
 
     // File menu:
@@ -185,15 +185,15 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, statusBar:SeffStatusBar, log:
 
     let sep() = Separator():> Control
 
-    // let item (ngc: string * string * #ICommand * string) = 
+    // let item (ngc: string * string * #ICommand * string) =
     //     let n,g,c,tt = ngc
     //     MenuItem(Header = n, InputGestureText = g, ToolTip = tt, Command = c):> Control
 
 
 
-    let setRecentFiles()= 
+    let setRecentFiles()=
         async{
-            let usedFiles = 
+            let usedFiles =
                 config.RecentlyUsedFiles.GetUniqueExistingSorted()     //youngest file is first
                 |> Seq.truncate maxFilesInRecentMenu
                 |> Seq.toArray
@@ -208,7 +208,7 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, statusBar:SeffStatusBar, log:
             let HeaderIsIn=HashSet()
 
             //create time separator if not existing yet
-            let tb(s) = 
+            let tb(s) =
                 if not<| HeaderIsIn.Contains s then // so that header appears only once
                     HeaderIsIn.Add s  |> ignore
                     let tb = TextBlock (Text= "          - " + s + " -", FontWeight = FontWeights.Bold)
@@ -239,7 +239,7 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, statusBar:SeffStatusBar, log:
                     let ps = General.pathParts uf.fileInfo
                     if ps.Length < 4 then             ps |> String.concat " \\ " // full path in this case
                     else "...\\ " + (ps |> Array.rev |> Seq.truncate 3 |> Seq.rev |> String.concat " \\ " ) // partial path
-                let tt = 
+                let tt =
                     uf.fileInfo.FullName
                     + "\r\nlast opened: " + uf.lastOpenedUTC.ToString("yyyy-MM-dd HH:mm") + " (used for sorting in this menu)"
                     + "\r\nlast saved: " + uf.fileInfo.LastWriteTime.ToString("yyyy-MM-dd HH:mm")
@@ -298,7 +298,7 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, statusBar:SeffStatusBar, log:
                 sep()
                 menuItem cmds.ToggleBoolean
                 sep()
-                menuItem cmds.AlignCode               
+                menuItem cmds.AlignCode
                 ]
             MenuItem(Header = "_Select"),[
                 menuItem cmds.SelectLine
@@ -356,7 +356,7 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, statusBar:SeffStatusBar, log:
                 sep()
                 menuItem cmds.FontBigger
                 menuItem cmds.FontSmaller
-                sep()                 
+                sep()
                 menuItem cmds.CollapseFolding
                 menuItem cmds.ExpandFolding
                 menuItem cmds.CollapseCode
@@ -365,7 +365,7 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, statusBar:SeffStatusBar, log:
                 sep()
                 menuItem cmds.PopOutToolTip
                 ]
-            MenuItem(Header = "_About"),[                
+            MenuItem(Header = "_About"),[
                 menuItem cmds.Help
                 sep()
                 menuItem cmds.SettingsFolder

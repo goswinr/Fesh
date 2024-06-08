@@ -1,10 +1,10 @@
-﻿namespace Seff.Views
+﻿namespace Fesh.Views
 
 open System
 open System.Windows //for FontStyles
 open System.Windows.Media // for Fontfamilly
-open Seff.Model
-open Seff
+open Fesh.Model
+open Fesh
 open AvalonEditB.Rendering
 
 type Fonts (grid:TabsAndLog) = // will be constructed as part of Commands class
@@ -13,8 +13,8 @@ type Fonts (grid:TabsAndLog) = // will be constructed as part of Commands class
     let sett = grid.Config.Settings
     let comma = "; "
 
-    let mediaUri =  new Uri("pack://application:,,,/Seff;component/Media/")
-    //let fontsUri =  new Uri("pack://application:,,,/Seff;component/Media/#")
+    let mediaUri =  new Uri("pack://application:,,,/Fesh;component/Media/")
+    //let fontsUri =  new Uri("pack://application:,,,/Fesh;component/Media/#")
     //let resFontsLazy = lazy (Fonts.GetFontFamilies(fontsUri))
 
     let defaultFontNames = [|
@@ -57,13 +57,13 @@ type Fonts (grid:TabsAndLog) = // will be constructed as part of Commands class
                 |> Array.filter ( fun n -> n.ToLower() <> na.ToLower()) // because the desired font might be already in default font names
                 |> Array.tryPick getFontThatIsInstalled
                 |> Option.orElseWith ( fun () ->
-                    ISeffLog.log.PrintfnIOErrorMsg $"Fonts.{key}: failed to load font '{na}' or any of [{defaultFontNames |> String.concat comma}]"
+                    IFeshLog.log.PrintfnIOErrorMsg $"Fonts.{key}: failed to load font '{na}' or any of [{defaultFontNames |> String.concat comma}]"
                     None)
         |None ->
             defaultFontNames
             |> Array.tryPick getFontThatIsInstalled
             |> Option.orElseWith ( fun () ->
-                    ISeffLog.log.PrintfnIOErrorMsg $"Fonts.{key}: failed to load any font of [{defaultFontNames |> String.concat comma}]"
+                    IFeshLog.log.PrintfnIOErrorMsg $"Fonts.{key}: failed to load any font of [{defaultFontNames |> String.concat comma}]"
                     None)
 
     //let fontExists(f:FontFamily) =

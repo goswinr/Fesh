@@ -1,10 +1,10 @@
-﻿namespace Seff.Config
+﻿namespace Fesh.Config
 
 
 open System.Text
 open System.Collections.Generic
 open Fittings
-open Seff.Model
+open Fesh.Model
 open AvalonEditB
 
 
@@ -15,7 +15,7 @@ type FoldingStatus ( runContext:RunContext, recentlyUsedFiles:RecentlyUsedFiles)
 
     let filePath0 = runContext.GetPathToSaveAppData("FoldingStatus.txt")
 
-    let writer = SaveReadWriter(filePath0,ISeffLog.printError)
+    let writer = SaveReadWriter(filePath0,IFeshLog.printError)
 
     let mutable waitingForFileRead =  true
 
@@ -33,11 +33,11 @@ type FoldingStatus ( runContext:RunContext, recentlyUsedFiles:RecentlyUsedFiles)
                             //log.PrintfnDebugMsg "%s for %s" v k
                             let vs = Seq.map ( fun c -> if c = '0' then false elif c = '1' then true else failwithf "bad char %c in FoldingStatus" c) v |> Array.ofSeq
                             dict.[k] <- vs
-                        | _ -> ISeffLog.log.PrintfnAppErrorMsg "Bad line in FoldingStatus file : '%s'" ln
+                        | _ -> IFeshLog.log.PrintfnAppErrorMsg "Bad line in FoldingStatus file : '%s'" ln
                 waitingForFileRead <- false
             with e ->
                 waitingForFileRead <- false
-                ISeffLog.log.PrintfnIOErrorMsg $"reading folding status failed with\r\n {e}"
+                IFeshLog.log.PrintfnIOErrorMsg $"reading folding status failed with\r\n {e}"
             } |> Async.Start
         dict
 

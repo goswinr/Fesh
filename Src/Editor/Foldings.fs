@@ -1,4 +1,4 @@
-namespace Seff.Editor
+namespace Fesh.Editor
 
 open System
 open System.Collections.Generic
@@ -6,9 +6,9 @@ open System.Collections.Generic
 open AvalonEditB
 open AvalonEditB.Folding
 
-open Seff.Model
-open Seff.Util.General
-open Seff.XmlParser
+open Fesh.Model
+open Fesh.Util.General
+open Fesh.XmlParser
 open AvalonEditB
 
 
@@ -140,8 +140,8 @@ type Foldings(manager:Folding.FoldingManager, state:InteractionState, getFilePat
         if notNull folds then
             let edFolds = manager.AllFoldings
 
-            // if edFolds.Count <> folds.Count then    ISeffLog.log.PrintfnDebugMsg $"updateNeeded: count ed {edFolds.Count} and calculated {folds.Count}"
-            // else                                    ISeffLog.log.PrintfnDebugMsg $"updateNeeded: but count same"
+            // if edFolds.Count <> folds.Count then    IFeshLog.log.PrintfnDebugMsg $"updateNeeded: count ed {edFolds.Count} and calculated {folds.Count}"
+            // else                                    IFeshLog.log.PrintfnDebugMsg $"updateNeeded: but count same"
 
             // (2) Update of foldings is needed:
             // (2.1) find firstError offset for Update Foldings function
@@ -175,7 +175,7 @@ type Foldings(manager:Folding.FoldingManager, state:InteractionState, getFilePat
                     let f = folds.[i]
                     if firstErrorOffset = -1 || f.foldStartOff <= firstErrorOffset then
                         if f.foldEndOff <= docLen then // in case of deleting at the end of file
-                            //ISeffLog.log.PrintfnDebugMsg "Foldings from %d to %d  that is  %d lines" f.foldStartOff  f.foldEndOff f.linesInFold
+                            //IFeshLog.log.PrintfnDebugMsg "Foldings from %d to %d  that is  %d lines" f.foldStartOff  f.foldEndOff f.linesInFold
                             let fo = new NewFolding(f.foldStartOff, f.foldEndOff) //if NewFolding type is created async a waiting symbol appears on top of it
                             fo.Name <- textInFoldBox f.linesInFold
                             nFolds.Add(fo)
@@ -209,13 +209,13 @@ type Foldings(manager:Folding.FoldingManager, state:InteractionState, getFilePat
             match findFoldings (state.CodeLines, id) with
             |None -> ()
             |Some folds ->
-                folds|> Seff.Util.General.sortInPlaceBy ( fun f -> f.foldStartOff, f.linesInFold)
+                folds|> Fesh.Util.General.sortInPlaceBy ( fun f -> f.foldStartOff, f.linesInFold)
 
                 // only applies when opening a new file
                 if isInitialLoad then
                     while foldStatus.WaitingForFileRead do
                         // check like this because reading of file data happens async
-                        // ISeffLog.log.PrintfnDebugMsg "waiting to load last code folding status.. "
+                        // IFeshLog.log.PrintfnDebugMsg "waiting to load last code folding status.. "
                         do! Async.Sleep 50
                     let vs = foldStatus.Get(getFilePath())
 
@@ -230,7 +230,7 @@ type Foldings(manager:Folding.FoldingManager, state:InteractionState, getFilePat
                             fs.Title <- textInFoldBox f.linesInFold
                         else
                             let lno = ed.Document.GetLineByOffset f.foldStartOff
-                            ISeffLog.log.PrintfnAppErrorMsg $"manager.CreateFolding was given a negative folding from offset {f.foldStartOff} to {f.foldEndOff} on line {lno.LineNumber}"
+                            IFeshLog.log.PrintfnAppErrorMsg $"manager.CreateFolding was given a negative folding from offset {f.foldStartOff} to {f.foldEndOff} on line {lno.LineNumber}"
                     isInitialLoad <- false
                     foldsRef.Value <- null // otherwise redrawFoldings() would clear the initial foldings when first type check is complete
                     foundFoldsEv.Trigger(id)
@@ -254,7 +254,7 @@ type Foldings(manager:Folding.FoldingManager, state:InteractionState, getFilePat
                             let diffEnd   = fEdi.EndOffset   - f.foldEndOff
                             // if diffStart-diffEnd <> 0  then
                             if diffStart <> 0  || diffEnd <> 0 then
-                                //ISeffLog.log.PrintfnDebugMsg $"changeId: {id} foldings differ: {fEdi.StartOffset-f.foldStartOff} and {fEdi.EndOffset-f.foldEndOff}" //DELETE
+                                //IFeshLog.log.PrintfnDebugMsg $"changeId: {id} foldings differ: {fEdi.StartOffset-f.foldStartOff} and {fEdi.EndOffset-f.foldEndOff}" //DELETE
                                 true // existing, foldings are different
                             else
                                 zip (i+1) // loop on

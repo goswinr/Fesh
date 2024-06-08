@@ -1,14 +1,14 @@
-namespace Seff.Editor
+namespace Fesh.Editor
 
 open System
 
 open AvalonEditB
 open AvalonEditB.Document
 
-open Seff.Model
-open Seff.Util
-open Seff.Util.Str
-open Seff
+open Fesh.Model
+open Fesh.Util
+open Fesh.Util.Str
+open Fesh
 open System.Windows.Threading
 
 
@@ -96,7 +96,7 @@ module Redrawing =
                         //at AvalonEditB.Rendering.TextView.DisposeVisualLine(VisualLine visualLine)
                         //at AvalonEditB.Rendering.TextView.ClearVisualLines()
                         //at AvalonEditB.Rendering.TextView.Redraw(DispatcherPriority redrawPriority)
-                        //at Seff.Editor.Redrawing.cloQQ?—153.Invoke(Unit _arg2) in D:\Git\Seff\Src\Editor\DocChanged.fs:line 99
+                        //at Fesh.Editor.Redrawing.cloQQ?—153.Invoke(Unit _arg2) in D:\Git\Fesh\Src\Editor\DocChanged.fs:line 99
                         ed.TextArea.TextView.Redraw(priority)
                         // do! Async.Sleep 50 // to try to avoid: InvalidOperationException: Line 117 was skipped by a VisualLineElementGenerator, but it is not collapsed. at AvalonEditB.Rendering.TextView.BuildVisualLine(..)
                         // if state.IsLatest id then
@@ -105,8 +105,8 @@ module Redrawing =
                             //eprintfn $"Redrawing full: id={id}, idSemantics={idSemantics}, idBrackets={idBrackets}, idErrors={idErrors}, idSels={idSels}, idFolds={idFolds}"
                     } |> Async.Start
                 // else
-                //     ISeffLog.log.PrintfnAppErrorMsg $"Can't redraw, check id that is wrong: id={id}"
-                //     ISeffLog.log.PrintfnAppErrorMsg $"idSemantics={idSemantics}, idBrackets={idBrackets}, idErrors={idErrors}, idSels={idSels}, idFolds={idFolds}"
+                //     IFeshLog.log.PrintfnAppErrorMsg $"Can't redraw, check id that is wrong: id={id}"
+                //     IFeshLog.log.PrintfnAppErrorMsg $"idSemantics={idSemantics}, idBrackets={idBrackets}, idErrors={idErrors}, idSels={idSels}, idFolds={idFolds}"
 
 
         let doneBrackets(id)   = idBrackets   <- id ;  tryDraw(id)
@@ -314,7 +314,7 @@ module MaybeShow =
         let completionWindow ( pos:PositionInCode) : ShowAutocomplete =
             let ln = pos.lineToCaret // this line will include the character that trigger auto completion(dot or first letter)
             let len = ln.Length
-            //ISeffLog.log.PrintfnDebugMsg "*2.1 maybeShowCompletionWindow for lineToCaret: \r\n    '%s'" ln
+            //IFeshLog.log.PrintfnDebugMsg "*2.1 maybeShowCompletionWindow for lineToCaret: \r\n    '%s'" ln
             if len=0 then // line is empty, still check because deleting might have removed errors.
                 JustMark
             else
@@ -323,7 +323,7 @@ module MaybeShow =
                     if last = '/' then
                         JustMark // to make sure comment was not just typed (then still check)
                     else
-                        // ISeffLog.log.PrintfnDebugMsg " DoNothing because isCaretInComment: %s" ln
+                        // IFeshLog.log.PrintfnDebugMsg " DoNothing because isCaretInComment: %s" ln
                         // DoNothing, we are typing somewhere in a comment
                         // TODO! because of this changing a text in a comment is not immediately picked up by selection highlighter (if present). only after another change in the code.
                         DoNothing
@@ -400,7 +400,7 @@ module DocChangeCompletion =
                             DocChangeMark.updateAllTransformersSync(iEd, doc, drawServ, state, chId)
                         else
                             let show = MaybeShow.completionWindow(pos)
-                            //ISeffLog.log.PrintfnDebugMsg $"MaybeShow.completionWindow for {lastChar} is {show}"
+                            //IFeshLog.log.PrintfnDebugMsg $"MaybeShow.completionWindow for {lastChar} is {show}"
                             match show with
                             |DoNothing  ->
                                 // DoNothing mean we are typing in a comment:
@@ -462,10 +462,10 @@ module DocChangeEvents =
         // (1) increment change counter
         match state.DocChangedConsequence with
         | WaitForCompletions ->
-            //ISeffLog.log.PrintfnAppErrorMsg $"wait for '{a.InsertedText.Text}'"
+            //IFeshLog.log.PrintfnAppErrorMsg $"wait for '{a.InsertedText.Text}'"
             ()
         | React ->
-            //ISeffLog.log.PrintfnDebugMsg $"react for '{a.InsertedText.Text}'"
+            //IFeshLog.log.PrintfnDebugMsg $"react for '{a.InsertedText.Text}'"
             state.Increment() |> ignore // incrementing this handler before the change actually happens, but only increment when a reaction is required.
 
         // (2) Adjust Shifts

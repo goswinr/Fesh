@@ -1,4 +1,4 @@
-﻿namespace Seff.Editor
+﻿namespace Fesh.Editor
 
 open System
 open System.Windows
@@ -16,9 +16,9 @@ open AvalonEditB.Rendering
 
 open AvalonLog.Brush
 
-open Seff
-open Seff.Util
-open Seff.Model
+open Fesh
+open Fesh.Util
+open Fesh.Model
 open System.Windows.Media
 
 // Error colors are defined in FastColorizer.fs
@@ -142,7 +142,7 @@ type ErrorRenderer (state: InteractionState) =
     member _.Draw (textView:TextView , drawingContext:DrawingContext) = // for IBackgroundRenderer
         //AvalonEditB.Rendering.VisualLinesInvalidException: Exception of type 'AvalonEditB.Rendering.VisualLinesInvalidException' was thrown.
         //    at AvalonEditB.Rendering.TextView.get_VisualLines()
-        //    at Seff.Editor.ErrorRenderer.Draw(TextView textView, DrawingContext drawingContext) in D:\Git\Seff\Src\Editor\ErrorHighlighter.fs:line 138
+        //    at Fesh.Editor.ErrorRenderer.Draw(TextView textView, DrawingContext drawingContext) in D:\Git\Fesh\Src\Editor\ErrorHighlighter.fs:line 138
         //    at AvalonEditB.Rendering.TextView.RenderBackground(DrawingContext drawingContext, KnownLayer layer)
         //    at AvalonEditB.Editing.CaretLayer.OnRender(DrawingContext drawingContext)
         if textView.VisualLinesValid then //to avoid above error.
@@ -221,9 +221,9 @@ type ErrorHighlighter ( state:InteractionState, folds:Folding.FoldingManager, is
         let stLn = max 1 e.StartLine // because FSharpDiagnostic might have line number 0 form Parse-and-check-file-in-project errors, but Avalonedit starts at 1
         let enLn = max 1 e.EndLine
         if stLn > enLn then
-            ISeffLog.log.PrintfnAppErrorMsg $"FSharp Checker reported an invalid error position: e.EndLine < e.StartLine:\r\n {e}"
+            IFeshLog.log.PrintfnAppErrorMsg $"FSharp Checker reported an invalid error position: e.EndLine < e.StartLine:\r\n {e}"
         if e.EndLine = e.StartLine && e.StartColumn > e.EndColumn then
-            ISeffLog.log.PrintfnAppErrorMsg $"FSharp Checker reported an invalid error position: e.StartColumn <= e.EndColumn:\r\n {e}"
+            IFeshLog.log.PrintfnAppErrorMsg $"FSharp Checker reported an invalid error position: e.StartColumn <= e.EndColumn:\r\n {e}"
 
         let rec insert lnNo =
             if lnNo > enLn then

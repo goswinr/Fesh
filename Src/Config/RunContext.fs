@@ -1,12 +1,12 @@
-﻿namespace Seff.Config
+﻿namespace Fesh.Config
 
 open System
-open Seff.Model
+open Fesh.Model
 
 /// mainWindowHandle: Pointer to main window(nativeInt),
 /// hostName: a string for the name of the hosting App (will be used for settings file name an displayed in the Title Bar.
 /// fsiCanRun: a function to check if evaluation of fsi is currently allowed
-/// logo: optional a URI to an alternative logo for hosted mode default is Uri("pack://application:,,,/Seff;component/Media/logo.ico")
+/// logo: optional a URI to an alternative logo for hosted mode default is Uri("pack://application:,,,/Fesh;component/Media/logo.ico")
 type HostedStartUpData = {
     hostName:string
     mainWindowHandel: nativeint
@@ -26,11 +26,11 @@ type RunContext (startUpData:HostedStartUpData option) =
         let path =
             match startUpData with
             |None ->
-                IO.Path.Combine(appData,"Seff") // Standalone
+                IO.Path.Combine(appData,"Fesh") // Standalone
             |Some sd ->
                 let mutable host = sd.hostName
                 for c in IO.Path.GetInvalidFileNameChars() do host <- host.Replace(c, '_') // make sure host name is a valid file name
-                IO.Path.Combine(appData,"Seff",host)
+                IO.Path.Combine(appData,"Fesh",host)
 
         IO.Directory.CreateDirectory(path) |> ignore
         path
@@ -69,14 +69,14 @@ type RunContext (startUpData:HostedStartUpData option) =
     member this.OpenSettingsFolder()=
         Diagnostics.Process.Start("explorer.exe", "\"" + settingsFolder+ "\"")        |> ignore
 
-    /// opens up Explorer.exe with folder of Seff.exe
+    /// opens up Explorer.exe with folder of Fesh.exe
     member this.OpenAppFolder()=
         let ass = Reflection.Assembly.GetExecutingAssembly()
         if isNull ass then
-            ISeffLog.log.PrintfnIOErrorMsg "OpenAppFolder: GetExecutingAssembly() is null"
+            IFeshLog.log.PrintfnIOErrorMsg "OpenAppFolder: GetExecutingAssembly() is null"
         else
             if ass.IsDynamic then
-                ISeffLog.log.PrintfnIOErrorMsg "Can get path of %A" ass.FullName
+                IFeshLog.log.PrintfnIOErrorMsg "Can get path of %A" ass.FullName
             else
                 let folder = IO.Path.GetDirectoryName( ass.Location)
                 Diagnostics.Process.Start("explorer.exe", "\"" + folder+ "\"")        |> ignore

@@ -1,4 +1,4 @@
-﻿namespace Seff.Editor
+﻿namespace Fesh.Editor
 
 open System
 open AvalonEditB
@@ -13,7 +13,7 @@ module SwapWords =
         |None -> false
         |Some seg ->
             let doc = ed.Document
-            //ISeffLog.log.PrintfnDebugMsg "seg Word: %s" (doc.GetText(seg))
+            //IFeshLog.log.PrintfnDebugMsg "seg Word: %s" (doc.GetText(seg))
             let rec getPrevEnd i =
                 if i<0 then -98 // start of file
                 else
@@ -37,7 +37,7 @@ module SwapWords =
                 doc.Replace(prevStart, len,thisWord)
                 ed.Select(prevStart,thisWord.Length)
                 doc.EndUpdate()
-                //ISeffLog.log.PrintfnDebugMsg "swap '%s' with '%s'" prevWord thisWord
+                //IFeshLog.log.PrintfnDebugMsg "swap '%s' with '%s'" prevWord thisWord
                 true
 
 
@@ -49,7 +49,7 @@ module SwapWords =
         |None -> false
         |Some seg ->
             let doc = ed.Document
-            //ISeffLog.log.PrintfnDebugMsg "seg Word: %s" (doc.GetText(seg))
+            //IFeshLog.log.PrintfnDebugMsg "seg Word: %s" (doc.GetText(seg))
             let rec getNextStart i =
                 if i=doc.TextLength then -79 // end of file
                 else
@@ -73,5 +73,5 @@ module SwapWords =
                 doc.Replace(seg,nextWord)
                 ed.Select(nextStart + nextWord.Length - thisWord.Length,thisWord.Length)
                 doc.EndUpdate()
-                //ISeffLog.log.PrintfnDebugMsg "swap '%s' with '%s'" prevWord thisWord
+                //IFeshLog.log.PrintfnDebugMsg "swap '%s' with '%s'" prevWord thisWord
                 true

@@ -1,4 +1,4 @@
-﻿namespace Seff.Editor
+﻿namespace Fesh.Editor
 
 open System
 
@@ -20,11 +20,11 @@ open FSharp.Compiler.Text              // ISourceFile, Range, TaggedText and oth
 open FSharp.Compiler.Tokenization      // FSharpLineTokenizer , and keywords etc.
 open FSharp.Compiler.Syntax
 
-open Seff
-open Seff.Util
-open Seff.Util.General
-open Seff.Model
-open Seff.XmlParser
+open Fesh
+open Fesh.Util
+open Fesh.Util.General
+open Fesh.Model
+open Fesh.XmlParser
 open AvalonEditB
 
 
@@ -103,7 +103,7 @@ type TypeInfo private () =
 
         for i=0 to ts.Length-1 do
             let t = ts.[i]
-            //ISeffLog.log.PrintfnDebugMsg $"{i}: {skip}'{t.Text}' Tag:{t.Tag} "
+            //IFeshLog.log.PrintfnDebugMsg $"{i}: {skip}'{t.Text}' Tag:{t.Tag} "
 
             match t.Tag with
             | TextTag.Parameter ->
@@ -273,19 +273,19 @@ type TypeInfo private () =
             let ind = String(' ',  i*4)
             match c with
             | Text t ->
-                ISeffLog.printColor 150 150 150 $"{ind}Text:"
-                ISeffLog.printnColor 150 150 0 $"{t}"
+                IFeshLog.printColor 150 150 150 $"{ind}Text:"
+                IFeshLog.printnColor 150 150 0 $"{t}"
             | Node n ->
-                ISeffLog.printColor 150 0 150 $"{ind}Node"
-                ISeffLog.printColor 150 150 150 ":"
-                ISeffLog.printColor 150 150 0 $"{n.name}"
+                IFeshLog.printColor 150 0 150 $"{ind}Node"
+                IFeshLog.printColor 150 150 150 ":"
+                IFeshLog.printColor 150 150 0 $"{n.name}"
                 for at in n.attrs do
-                    ISeffLog.printColor 0 150 150 $"; attr"
-                    ISeffLog.printColor 150 150 150 ":"
-                    ISeffLog.printColor 0 150 150 $"{at.name}"
-                    ISeffLog.printColor 150 150 150 "="
-                    ISeffLog.printColor 150 0 150 $"{at.value}"
-                ISeffLog.printnColor 150 150 150 ""
+                    IFeshLog.printColor 0 150 150 $"; attr"
+                    IFeshLog.printColor 150 150 150 ":"
+                    IFeshLog.printColor 0 150 150 $"{at.name}"
+                    IFeshLog.printColor 150 150 150 "="
+                    IFeshLog.printColor 150 0 150 $"{at.value}"
+                IFeshLog.printnColor 150 150 150 ""
                 for c in n.children do
                     printx (i+1) c
         printx 0 c
@@ -553,7 +553,7 @@ type TypeInfo private () =
 
                     | ToolTipElement.CompositionError(text) ->
                         if loggedErrors.Add(text) then // print only once
-                            ISeffLog.log.PrintfnIOErrorMsg "Trying to get a Tooltip for 'fullName' failed with:\r\n%s" text
+                            IFeshLog.log.PrintfnIOErrorMsg "Trying to get a Tooltip for 'fullName' failed with:\r\n%s" text
                         yield {name = ""; signature = [||]; fullName=""; optDefs=optDefs; xmlDoc = Error ("*FSharpStructuredToolTipElement.CompositionError:\r\n"+ text)}
 
                     | ToolTipElement.Group(tooTipElemDataList) ->
@@ -586,7 +586,7 @@ type TypeInfo private () =
                             //        let (ty,value) = fa.ConstructorArguments.[0]
                             //        optDefs.Add  {name = p.FullName; defVal = value.ToString() }
                             //    else
-                            //        ISeffLog.log.PrintfnDebugMsg "fa.ConstructorArguments: %A" fa.ConstructorArguments
+                            //        IFeshLog.log.PrintfnDebugMsg "fa.ConstructorArguments: %A" fa.ConstructorArguments
 
                             //log.PrintfnDebugMsg "optional full name: %s" c.FullName
             | _ -> ()
@@ -595,9 +595,9 @@ type TypeInfo private () =
             if e.Message.Contains "must add a reference to assembly '" then
                 AutoFixErrors.check(e.Message)
             else
-                ISeffLog.log.PrintfnAppErrorMsg "GetOptTypeInfo Error: %s:\r\n%s" (e.GetType().FullName) e.Message
+                IFeshLog.log.PrintfnAppErrorMsg "GetOptTypeInfo Error: %s:\r\n%s" (e.GetType().FullName) e.Message
                 if notNull e.InnerException then
-                    ISeffLog.log.PrintfnAppErrorMsg "InnerException: %s:\r\n %s" (e.GetType().FullName) e.Message
+                    IFeshLog.log.PrintfnAppErrorMsg "InnerException: %s:\r\n %s" (e.GetType().FullName) e.Message
 
         optDefs
 
@@ -615,7 +615,7 @@ type TypeInfo private () =
 
     static member namesOfOptionalArgs(fsu:FSharpSymbolUse) = namesOfOptnlArgs(fsu)
 
-    static member makeSeffToolTipDataList (sdtt: ToolTipText, fullName:string, optArgs:ResizeArray<string>) = makeToolTipDataList (sdtt, fullName, optArgs)
+    static member makeFeshToolTipDataList (sdtt: ToolTipText, fullName:string, optArgs:ResizeArray<string>) = makeToolTipDataList (sdtt, fullName, optArgs)
 
     static member getPanel  (tds:ToolTipData list, ed:ToolTipExtraData) =
         cachedToolTipData  <- tds
@@ -673,7 +673,7 @@ type TypeInfo private () =
 
                 match island with
                 |None -> ()
-                    //ISeffLog.log.PrintfnDebugMsg "QuickParse.GetCompleteIdentifierIsland failed : lineTxt:%A, txt: '%s'"  lineTxt (lineTxt.Substring(offLn-1,3))
+                    //IFeshLog.log.PrintfnDebugMsg "QuickParse.GetCompleteIdentifierIsland failed : lineTxt:%A, txt: '%s'"  lineTxt (lineTxt.Substring(offLn-1,3))
 
                 |Some (word, colAtEndOfNames, isQuotedIdentifier) ->
                     tip.Content <- loadingTxt
@@ -691,7 +691,7 @@ type TypeInfo private () =
                     tip.IsOpen <- true
                     async{
                         let qualId  = PrettyNaming.GetLongNameFromString word
-                        //ISeffLog.log.PrintfnDebugMsg "GetToolTip:colAtEndOfNames:%A, lineTxt:%A, qualId:%A" colAtEndOfNames lineTxt qualId
+                        //IFeshLog.log.PrintfnDebugMsg "GetToolTip:colAtEndOfNames:%A, lineTxt:%A, qualId:%A" colAtEndOfNames lineTxt qualId
 
                         // Compute a formatted tooltip for the given location
                         // line:  The line number where the information is being requested.</param>
@@ -730,12 +730,12 @@ type TypeInfo private () =
                                 match symbol with
                                 |None -> None,None,None
                                 |Some s ->
-                                    //ISeffLog.log.PrintfnAppErrorMsg $"s.Symbol.FullName: {s.Symbol.FullName}"
-                                    //ISeffLog.log.PrintfnAppErrorMsg $"s.FileName:{s.FileName}"
-                                    //ISeffLog.log.PrintfnDebugMsg $"s.Symbol.DeclarationLocation:{s.Symbol.DeclarationLocation}"
-                                    //ISeffLog.log.PrintfnDebugMsg $"s.Symbol.Assembly.FileName:{s.Symbol.Assembly.FileName}"
+                                    //IFeshLog.log.PrintfnAppErrorMsg $"s.Symbol.FullName: {s.Symbol.FullName}"
+                                    //IFeshLog.log.PrintfnAppErrorMsg $"s.FileName:{s.FileName}"
+                                    //IFeshLog.log.PrintfnDebugMsg $"s.Symbol.DeclarationLocation:{s.Symbol.DeclarationLocation}"
+                                    //IFeshLog.log.PrintfnDebugMsg $"s.Symbol.Assembly.FileName:{s.Symbol.Assembly.FileName}"
                                     //let sems = res.checkRes.GetSemanticClassification(Some s.Range)
-                                    //for sem in sems do ISeffLog.log.PrintfnDebugMsg $"GetSemanticClassification:{sem.Type}"
+                                    //for sem in sems do IFeshLog.log.PrintfnDebugMsg $"GetSemanticClassification:{sem.Type}"
                                     //let l = s.Range
                                     //let lineNo = l.StartLine
                                     //let colSt  = l.StartColumn

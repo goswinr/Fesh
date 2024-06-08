@@ -1,9 +1,9 @@
-﻿namespace Seff.Config
+﻿namespace Fesh.Config
 
 open System
 open System.Text
 open Fittings
-open Seff.Model
+open Fesh.Model
 
 /// A class to hold the statistic of most used toplevel auto completions
 type AutoCompleteStatistic  ( runContext:RunContext) =
@@ -22,7 +22,7 @@ type AutoCompleteStatistic  ( runContext:RunContext) =
 
     let filePath0 = runContext.GetPathToSaveAppData("AutoCompleteStatistic.txt")
 
-    let writer = SaveReadWriter(filePath0,ISeffLog.printError)
+    let writer = SaveReadWriter(filePath0,IFeshLog.printError)
 
     let completionStats =
         let dict=Collections.Concurrent.ConcurrentDictionary<string,float>()
@@ -34,7 +34,7 @@ type AutoCompleteStatistic  ( runContext:RunContext) =
                 for ln in lns do
                     match ln.Split(sep) with
                     | [|k;v|] -> dict.[k] <- float v // TODO allow for comments? use ini format ??
-                    | _       -> ISeffLog.log.PrintfnAppErrorMsg "Bad line in CompletionStats file : '%s'" ln
+                    | _       -> IFeshLog.log.PrintfnAppErrorMsg "Bad line in CompletionStats file : '%s'" ln
 
             // add custom priorities
             customPriorities |> List.iteri ( fun i s -> dict.[s] <- 999. - float i  )// decrement priority while iterating

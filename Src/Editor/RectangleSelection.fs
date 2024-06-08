@@ -1,4 +1,4 @@
-﻿namespace Seff.Editor
+﻿namespace Fesh.Editor
 
 open System
 open System.Text
@@ -14,7 +14,7 @@ module RectangleSelection =
     //all this functions is needed because ReplaceSelectionWithText of rectangular selection does not work well on all font sizes e.g. consolas 17.5
 
     let private setNewEmpty (ta:TextArea, s:SelectionPos, vcol, checkWithColInSelpos) =
-        //ISeffLog.log.PrintfnDebugMsg "caret2: %A "ta.Caret.Position
+        //IFeshLog.log.PrintfnDebugMsg "caret2: %A "ta.Caret.Position
         let st , en =
             if checkWithColInSelpos then
                 TextViewPosition( s.stPos.Line,  min (vcol + 1) s.stPos.Column , vcol) , // use min function in case the  Visual column is in virtual whitespace
@@ -27,7 +27,7 @@ module RectangleSelection =
             ta.Caret.Position <- st
         else
             ta.Caret.Position <- en
-        //ISeffLog.log.PrintfnDebugMsg "caret3: %A "ta.Caret.Position
+        //IFeshLog.log.PrintfnDebugMsg "caret3: %A "ta.Caret.Position
 
 
     let private insert (ed:TextEditor, s:SelectionPos,text:string) =

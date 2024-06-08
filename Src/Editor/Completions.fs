@@ -1,4 +1,4 @@
-﻿namespace Seff.Editor
+﻿namespace Fesh.Editor
 
 open System
 open System.Windows
@@ -12,12 +12,12 @@ open FSharp.Compiler.EditorServices
 open FSharp.Compiler.Tokenization // for keywords
 open FSharp.Compiler
 
-open Seff
-open Seff.Model
-open Seff.Config
+open Fesh
+open Fesh.Model
+open Fesh.Config
 open System.Windows.Controls
 open System.Windows.Media
-open Seff.XmlParser
+open Fesh.XmlParser
 open System
 open System
 
@@ -193,8 +193,8 @@ type Completions(state: InteractionState) =
             let ttText = it.Description
 
             let structured =
-                if Checker.OptArgsDict.ContainsKey it.FullName then  TypeInfo.makeSeffToolTipDataList (ttText, it.FullName, Checker.OptArgsDict.[it.FullName])
-                else                                                 TypeInfo.makeSeffToolTipDataList (ttText, it.FullName, empty)
+                if Checker.OptArgsDict.ContainsKey it.FullName then  TypeInfo.makeFeshToolTipDataList (ttText, it.FullName, Checker.OptArgsDict.[it.FullName])
+                else                                                 TypeInfo.makeFeshToolTipDataList (ttText, it.FullName, empty)
             if this.IsOpen then
                 do! Async.SwitchToContext Fittings.SyncWpf.context
                 if this.IsOpen then // might get closed during context switch
@@ -260,7 +260,7 @@ type Completions(state: InteractionState) =
     member this.TryShow( decls: DeclarationListInfo, pos:PositionInCodeEx, showRestrictions:ShowRestrictions, checkAndMark:unit->unit) : TryShow =
         willInsert <- false
 
-        //ISeffLog.log.PrintfnDebugMsg $"*3.0 TryShow Completion Window , {decls.Items.Length} items, onlyDU:{showRestrictions}:\r\n{pos}"
+        //IFeshLog.log.PrintfnDebugMsg $"*3.0 TryShow Completion Window , {decls.Items.Length} items, onlyDU:{showRestrictions}:\r\n{pos}"
         if AutoFixErrors.isMessageBoxOpen then // because msg box would appear behind completion window and type info
             NoShow
         else
@@ -284,11 +284,11 @@ type Completions(state: InteractionState) =
                     NoShow
                 else
                     let prefilter = avEd.Document.GetText(stOff, prefilterLength )
-                    //ISeffLog.log.PrintfnDebugMsg "*5.2: prefilter '%s'" prefilter
+                    //IFeshLog.log.PrintfnDebugMsg "*5.2: prefilter '%s'" prefilter
 
                     if prefilter.Length > 0 then
                         complList.SelectItem(prefilter) //to pre-filter the list by al typed characters
-                        //ISeffLog.log.PrintfnDebugMsg "*5.3: count after SelectItem(prefilter): %d" complList.ListBox.Items.Count
+                        //IFeshLog.log.PrintfnDebugMsg "*5.3: count after SelectItem(prefilter): %d" complList.ListBox.Items.Count
 
                     if complList.ListBox.Items.Count > 0 // list is empty if prefilter does not match any item
                         && not AutoFixErrors.isMessageBoxOpen  // because msg box would appear behind completion window and type info
@@ -336,7 +336,7 @@ type Completions(state: InteractionState) =
                                     // (3)then on the item line this.Complete (TextArea, ISegment, EventArgs) is called and change the Document
                                     // https://github.com/goswinr/AvalonEditB/blob/main/AvalonEditB/CodeCompletion/CompletionWindow.cs#L110
                                     this.CloseAndEnableReacting()
-                                    //ISeffLog.log.PrintfnDebugMsg "Completion window just closed with selected item: %A " complList.SelectedItem
+                                    //IFeshLog.log.PrintfnDebugMsg "Completion window just closed with selected item: %A " complList.SelectedItem
 
                                     if not willInsert then // else -on inserting- a DocChanged event is triggered anyway that will do the checkAndMark
                                         checkAndMark()
@@ -345,13 +345,13 @@ type Completions(state: InteractionState) =
                             complList.InsertionRequested.Add(fun _ -> willInsert <- true)
 
 
-                            //ISeffLog.log.PrintfnDebugMsg "*5.4 Show Completion Window with %d items prefilter: '%s' " complList.ListBox.Items.Count prefilter
+                            //IFeshLog.log.PrintfnDebugMsg "*5.4 Show Completion Window with %d items prefilter: '%s' " complList.ListBox.Items.Count prefilter
                             showingEv.Trigger() // to close error and type info tooltip
                             this.ComplWin <- Some w
                             w.Show()
                             DidShow
                     else
-                        //ISeffLog.log.PrintfnDebugMsg "*5.5 Skipped showing empty Completion Window"
+                        //IFeshLog.log.PrintfnDebugMsg "*5.5 Skipped showing empty Completion Window"
                         this.CloseAndEnableReacting() // needed, otherwise it will not show again
                         NoShow
 

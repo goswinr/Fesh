@@ -12,12 +12,12 @@
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>  <!--to only have the English resources-->
     <GenerateDocumentationFile>true</GenerateDocumentationFile>	 <!-- does not work when used in visual studio? only dotnet sdk ?-->
 
-    <RootNamespace>Seff</RootNamespace>
-    <AssemblyName>Seff</AssemblyName>
-    <AssemblyTitle>Seff</AssemblyTitle>
-    <Title>Seff</Title>
-    <Product>Seff</Product>
-    <PackageId>Seff</PackageId>
+    <RootNamespace>Fesh</RootNamespace>
+    <AssemblyName>Fesh</AssemblyName>
+    <AssemblyTitle>Fesh</AssemblyTitle>
+    <Title>Fesh</Title>
+    <Product>Fesh</Product>
+    <PackageId>Fesh</PackageId>
 
     <Version>0.9.0</Version>
     <AssemblyVersion>0.9.0</AssemblyVersion>
@@ -43,8 +43,8 @@
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <PackageProjectUrl>https://github.com/goswinr/Seff</PackageProjectUrl>
-    <RepositoryUrl>https://github.com/goswinr/Seff</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/goswinr/Fesh</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/goswinr/Fesh</RepositoryUrl>
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
     <PackageIcon>logo128.png</PackageIcon>
     <PackageReadmeFile>READMEnuget.md</PackageReadmeFile><!-- using  snupkg the readme does not pack https://github.com/NuGet/Home/issues/10791 -->
@@ -121,7 +121,7 @@
     <Compile Include="Src/Views/Scrollbar.fs" />
     <Compile Include="Src/Views/Log.fs" />
     <Compile Include="Src/Views/Editor.fs" />
-    <Compile Include="Src/Views/SeffWindow.fs" />
+    <Compile Include="Src/Views/FeshWindow.fs" />
     <Compile Include="Src/Views/FileWatcher.fs" />
     <Compile Include="Src/Views/Tab.fs" />
     <Compile Include="Src/Views/Tabs.fs" />
@@ -131,7 +131,7 @@
     <Compile Include="Src/Views/PopOut.fs" />
     <Compile Include="Src/Views/Commands.fs" />
     <Compile Include="Src/Views/Menu.fs" />
-    <Compile Include="Src/Views/Seff.fs" />
+    <Compile Include="Src/Views/Fesh.fs" />
 
     <Compile Include="Src/Initialize.fs" />
     <Compile Include="Src/App.fs" />

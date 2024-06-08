@@ -1,11 +1,11 @@
-namespace Seff.Editor
+namespace Fesh.Editor
 
 open System
 open System.Collections.Generic
 
-open Seff.Model
-open Seff.Util
-open Seff.Util.General
+open Fesh.Model
+open Fesh.Util
+open Fesh.Util.General
 
 open FSharp.Compiler
 open FSharp.Compiler.CodeAnalysis
@@ -155,35 +155,35 @@ module FsCheckerUtil =
                 //Not needed because these errors are reported by ParseAndCheckFileInProject too
                 //for oe in optionsErr do
                 //    let msg = sprintf "%A" oe |> Util.Str.truncateToMaxLines 3
-                //    ISeffLog.log.PrintfnFsiErrorMsg "Error in GetProjectOptionsFromScript:\r\n%A" msg
+                //    IFeshLog.log.PrintfnFsiErrorMsg "Error in GetProjectOptionsFromScript:\r\n%A" msg
                 return Some options
              with e ->
-                ISeffLog.log.PrintfnAppErrorMsg "Error in GetProjectOptionsFromScript Block.\r\nMaybe you are using another version of FSharpCompilerService.dll than at compile time?:"
-                ISeffLog.log.PrintfnAppErrorMsg "%A" e
-                ISeffLog.log.PrintfnAppErrorMsg "%s" e.Message
+                IFeshLog.log.PrintfnAppErrorMsg "Error in GetProjectOptionsFromScript Block.\r\nMaybe you are using another version of FSharpCompilerService.dll than at compile time?:"
+                IFeshLog.log.PrintfnAppErrorMsg "%A" e
+                IFeshLog.log.PrintfnAppErrorMsg "%s" e.Message
                 return None
         } |> Async.RunSynchronously
 
     let parseAndCheckImpl (fsChecker:FSharpChecker) fileFsx sourceText options: option<ParseCheckRes> =
         async {
             try
-                // ISeffLog.log.PrintfnColor 100 100 200 $"C4-checkCode id {thisId}: ParseAndCheckFileInProject"
+                // IFeshLog.log.PrintfnColor 100 100 200 $"C4-checkCode id {thisId}: ParseAndCheckFileInProject"
                 let! parseRes , checkAnswer = fsChecker.ParseAndCheckFileInProject(fileFsx, 0, sourceText, options) // can also be done in two  calls   //TODO really use check file in project for scripts??
                 match checkAnswer with
                 | FSharpCheckFileAnswer.Succeeded checkRes ->
-                    // ISeffLog.log.PrintfnColor 100 100 200 $"C5-checkCode id {thisId} = !checkId {!checkId}: FSharpCheckFileAnswer.Succeeded"
+                    // IFeshLog.log.PrintfnColor 100 100 200 $"C5-checkCode id {thisId} = !checkId {!checkId}: FSharpCheckFileAnswer.Succeeded"
                     return Some { parseRes=parseRes; checkRes=checkRes}
 
                 | FSharpCheckFileAnswer.Aborted  ->
-                    ISeffLog.log.PrintfnAppErrorMsg "FSharpChecker.ParseAndCheckFileInProject(filepath, 0, sourceText , options) returned: FSharpCheckFileAnswer.Aborted\r\nFSharpParseFileResults is: %A" parseRes
+                    IFeshLog.log.PrintfnAppErrorMsg "FSharpChecker.ParseAndCheckFileInProject(filepath, 0, sourceText , options) returned: FSharpCheckFileAnswer.Aborted\r\nFSharpParseFileResults is: %A" parseRes
                     return None
 
             with e ->
-                ISeffLog.log.PrintfnAppErrorMsg "Error in ParseAndCheckFileInProject Block.\r\n This may be from a Type Provider or you are using another version of FSharpCompilerService.dll than at compile time?"
-                ISeffLog.log.PrintfnAppErrorMsg "%A" e
-                ISeffLog.log.PrintfnAppErrorMsg "%s" e.Message
-                ISeffLog.log.PrintfnAppErrorMsg "InnerException:\r\n%A" e.InnerException
-                if notNull e.InnerException then ISeffLog.log.PrintfnAppErrorMsg "%s" e.InnerException.Message
+                IFeshLog.log.PrintfnAppErrorMsg "Error in ParseAndCheckFileInProject Block.\r\n This may be from a Type Provider or you are using another version of FSharpCompilerService.dll than at compile time?"
+                IFeshLog.log.PrintfnAppErrorMsg "%A" e
+                IFeshLog.log.PrintfnAppErrorMsg "%s" e.Message
+                IFeshLog.log.PrintfnAppErrorMsg "InnerException:\r\n%A" e.InnerException
+                if notNull e.InnerException then IFeshLog.log.PrintfnAppErrorMsg "%s" e.InnerException.Message
                 return None
         }|> Async.RunSynchronously
 
@@ -246,7 +246,7 @@ type Checker private ()  =
         updateCheckingState ed Checking
         match parseAndCheck( state, code, ed.FilePath, changeId) with
         |None ->
-            //ISeffLog.log.PrintfnDebugMsg $"*parseAndCheck: aborted early, waiting for newer checke state event."
+            //IFeshLog.log.PrintfnDebugMsg $"*parseAndCheck: aborted early, waiting for newer checke state event."
             None
         |Some parseCheckRes ->
             let errs = ErrorUtil.getBySeverity parseCheckRes.checkRes
@@ -267,7 +267,7 @@ type Checker private ()  =
         // from https://github.com/fsharp/FsAutoComplete/blob/fdeca2f5ffc329fad4a3f0a8b75af5aeed192799/src/FsAutoComplete.Core/ParseAndCheckResults.fs#L659
         try
             [
-                //ISeffLog.log.PrintfnDebugMsg "getAllEntities .."
+                //IFeshLog.log.PrintfnDebugMsg "getAllEntities .."
                 yield! AssemblyContent.GetAssemblySignatureContent AssemblyContentType.Full res.PartialAssemblySignature
                 let ctx = res.ProjectContext
 
@@ -290,12 +290,12 @@ type Checker private ()  =
             ]
 
         with e ->
-            ISeffLog.log.PrintfnAppErrorMsg "getAllEntities failed with %A" e
+            IFeshLog.log.PrintfnAppErrorMsg "getAllEntities failed with %A" e
             []
 
     /// Checks for items available for completion
     static member GetCompletions (pos:PositionInCode, res:FullCheckResults ) =
-        //ISeffLog.log.PrintfnDebugMsg "*2.0 GetCompletions for:\r\n%A" pos
+        //IFeshLog.log.PrintfnDebugMsg "*2.0 GetCompletions for:\r\n%A" pos
         let pCtx = PositionInCodeEx.get(pos)
 
         // Symbols are only for finding out if an argument is optional
@@ -318,7 +318,7 @@ type Checker private ()  =
                         )
 
         if decls.IsError then
-            ISeffLog.log.PrintfnAppErrorMsg "*ERROR in GetDeclarationListInfo: %A" decls //TODO use log
+            IFeshLog.log.PrintfnAppErrorMsg "*ERROR in GetDeclarationListInfo: %A" decls //TODO use log
             None
         else
             // Find which parameters are optional and set the value on the passed in dictionary.
@@ -340,4 +340,4 @@ type Checker private ()  =
         |None -> ()
         |Some ch -> ch.ClearCache([])
         fsChecker <- Some (FsCheckerUtil.getNew()) // TODO this is  blocking  in Sync ?
-        ISeffLog.log.PrintfnInfoMsg "New F# type checker created."
+        IFeshLog.log.PrintfnInfoMsg "New F# type checker created."

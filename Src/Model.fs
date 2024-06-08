@@ -1,4 +1,4 @@
-﻿namespace Seff.Model
+﻿namespace Fesh.Model
 
 open System
 open System.IO
@@ -11,10 +11,10 @@ open FSharp.Compiler.CodeAnalysis
 open FSharp.Compiler
 
 
-type ISeffLog = 
+type IFeshLog =
 
     // this interface allows the Config to be declared before the Log
-    // the Log is created first with this interface and then Config gets it in the constructor   
+    // the Log is created first with this interface and then Config gets it in the constructor
     abstract member PrintfnRuntimeErr  : Printf.StringFormat<'T,unit> -> 'T
     abstract member PrintfnInfoMsg     : Printf.StringFormat<'T,unit> -> 'T
     abstract member PrintfnFsiErrorMsg : Printf.StringFormat<'T,unit> -> 'T
@@ -39,22 +39,22 @@ type ISeffLog =
     abstract member TextWriterConsoleError : TextWriter
 
     /// An additional textwriter to also write Info, AppError, IOError, Debug and FsiError messages to.
-    /// But not any other text printed with any custom color. 
+    /// But not any other text printed with any custom color.
     abstract member AdditionalLogger : option<TextWriter> with get,set
 
     abstract member Clear : unit -> unit
 
 [<RequireQualifiedAccess>]
-[<CompiledName("ISeffLogModule")>] // DON'T RENAME !! It is used via reflection in https://github.com/goswinr/FsEx 
-module ISeffLog = 
+[<CompiledName("IFeshLogModule")>] // DON'T RENAME !! It is used via reflection in https://github.com/goswinr/FsEx
+module IFeshLog =
 
     /// A reference to the global single instance of the Log view, will be set immediately after construction
     /// declared here in Utils so it can be used in other modules that are declared before Log view.
-    let mutable log = 
-        Unchecked.defaultof<ISeffLog> //set immediately when Log instance is created in function Initialize.everything()
+    let mutable log =
+        Unchecked.defaultof<IFeshLog> //set immediately when Log instance is created in function Initialize.everything()
 
     /// A simple error logging function using PrintfnAppErrorMsg.
-    let printError s = 
+    let printError s =
         if Object.ReferenceEquals(log,null) then printfn "%s" s
         else log.PrintfnAppErrorMsg "%s" s
 
@@ -79,15 +79,15 @@ type ChangeId = int64
 type CodeAsString = string
 
 /// for offsets into the fullCode
-[<Measure>] type off 
+[<Measure>] type off
 
 /// The errors sorted into groups
 type ErrorsBySeverity = {
     errors             : ResizeArray<Diagnostics.FSharpDiagnostic>
     warnings           : ResizeArray<Diagnostics.FSharpDiagnostic>
     infos              : ResizeArray<Diagnostics.FSharpDiagnostic>
-    hiddens            : ResizeArray<Diagnostics.FSharpDiagnostic> 
-    errorsAndWarnings  : ResizeArray<Diagnostics.FSharpDiagnostic> 
+    hiddens            : ResizeArray<Diagnostics.FSharpDiagnostic>
+    errorsAndWarnings  : ResizeArray<Diagnostics.FSharpDiagnostic>
     }
 
 /// The Results from FSharp.Compiler.Service
@@ -95,16 +95,16 @@ type FullCheckResults = {
     parseRes    :FSharpParseFileResults
     checkRes    :FSharpCheckFileResults
     errors      :ErrorsBySeverity
-    changeId    :ChangeId 
+    changeId    :ChangeId
     editor      :TextEditor
     }
 
-type FileCheckState =     
-    | Checking 
+type FileCheckState =
+    | Checking
     | Done     of FullCheckResults
 
 
-type FilePath = 
+type FilePath =
     | SetTo   of FileInfo
     | Deleted of FileInfo
     | NotSet  of string // the dummy name to display in the tab header
@@ -113,11 +113,11 @@ type FilePath =
     member this.ExistsAsFile        = match this with  SetTo _ ->  true  | Deleted _ |NotSet _ -> false
     member this.FileName            = match this with  SetTo f | Deleted f ->  f.Name |NotSet f -> f
 
-  
+
 
 // so that the Editor can be used before declared
-type IEditor = 
-    abstract member AvaEdit        : TextEditor    
+type IEditor =
+    abstract member AvaEdit        : TextEditor
     abstract member FileCheckState : FileCheckState with get , set
     abstract member FilePath       : FilePath // saving settings in config , like fold status
     abstract member IsComplWinOpen : bool   // for  checking when modifying keyboard events
@@ -125,17 +125,17 @@ type IEditor =
     abstract member EvaluateFrom   : int option // the line number to start evaluating from if EvaluationTracker is active
 
 [<RequireQualifiedAccess>]
-module IEditor = 
+module IEditor =
     /// A global reference to the current Editor
     let mutable current :option<IEditor> = None
 
     /// A global reference to the current main window
     let mutable mainWindow = Unchecked.defaultof<Fittings.PositionedWindow>
 
-    let isCurrent(e:TextEditor)= 
+    let isCurrent(e:TextEditor)=
         match current with
         |None   -> false
-        |Some o -> o.AvaEdit = e 
+        |Some o -> o.AvaEdit = e
 
 
 
@@ -147,9 +147,9 @@ type CodeSegment = {
     length:int
     }
 
-type FsiCodeAmount = 
+type FsiCodeAmount =
     | All
-    | ContinueFromChanges 
+    | ContinueFromChanges
     | FsiSegment of  CodeSegment
 
 type CodeToEval = {
@@ -160,23 +160,23 @@ type CodeToEval = {
     }
 
 
-type PositionInCode = { 
+type PositionInCode = {
     /// this line will include the character that trigger auto completion(dot or first letter)
-    lineToCaret:string  
-    
+    lineToCaret:string
+
     row:int
-    
+
     /// equal to amount of characters in lineToCaret
-    column:int 
-    
-    offset:int 
+    column:int
+
+    offset:int
     }
 
 /// UI Menu and commands:
 type CommandInfo = {
     name:string
-    gesture:string 
-    cmd:ICommand 
-    tip:string 
+    gesture:string
+    cmd:ICommand
+    tip:string
     }
 

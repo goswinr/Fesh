@@ -1,4 +1,4 @@
-﻿namespace Seff.Editor
+﻿namespace Fesh.Editor
 
 open System
 open System.Windows.Media
@@ -7,9 +7,9 @@ open System.Collections.Generic
 open AvalonEditB
 open AvalonLog.Brush
 
-open Seff.Model
-open Seff.Util
-open Seff.Util.General
+open Fesh.Model
+open Fesh.Util
+open Fesh.Util.General
 open AvalonEditB.Document
 open AvalonEditB.Rendering
 
@@ -432,7 +432,7 @@ type BracketHighlighter (state:InteractionState) =
                     if state.IsLatest id then
                         //redrawSegment:
                         do! Async.SwitchToContext Fittings.SyncWpf.context
-                        //ISeffLog.log.PrintfnDebugMsg $"redraw for caretPositionChanged , id:{id}"
+                        //IFeshLog.log.PrintfnDebugMsg $"redraw for caretPositionChanged , id:{id}"
                         let seg = RedrawSegment(f.from,t.till)
                         match prevPairSeg with
                         |Some prev ->

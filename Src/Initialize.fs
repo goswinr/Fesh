@@ -1,38 +1,38 @@
-﻿namespace Seff
+﻿namespace Fesh
 
 open System
 open System.IO
 open System.Windows
 
-open Seff.Model
-open Seff.Views
-open Seff.Config
-open Seff.Util
+open Fesh.Model
+open Fesh.Views
+open Fesh.Config
+open Fesh.Util
 
-module Initialize = 
-    
-    let saveBeforeFailing()= 
+module Initialize =
+
+    let saveBeforeFailing()=
         async{
             try
                 match Model.IEditor.current with
                 |None -> ()
-                |Some ed -> 
-                    match ed.FilePath with 
+                |Some ed ->
+                    match ed.FilePath with
                     |NotSet _ -> ()
                     |Deleted _ -> ()
-                    |SetTo fi -> 
+                    |SetTo fi ->
                         do! Async.SwitchToContext Fittings.SyncWpf.context
                         let doc = ed.AvaEdit.Document
                         do! Async.SwitchToThreadPool()
                         let txt = doc.CreateSnapshot().Text
                         let desk = Environment.GetFolderPath(Environment.SpecialFolder.Desktop)
                         let p = Path.Combine(desk, Path.GetFileNameWithoutExtension(fi.Name) + " " + DateTime.nowStr + fi.Extension  )
-                        File.WriteAllText(p,txt) 
+                        File.WriteAllText(p,txt)
             with _ -> //saving might fail because another error might be writing to the same file already
                 ()
         } |> Async.Start
 
-    let everything(mode:HostedStartUpData option, startupArgs:string[]): Seff = 
+    let everything(mode:HostedStartUpData option, startupArgs:string[]): Fesh =
 
         //match mode with None ->  Timer.InstanceStartup.tic()   | _ -> ()  // optional timer for full init process
 
@@ -57,24 +57,24 @@ module Initialize =
         let log  = Log.Create() // this should be done as early as possible so that logging works
 
         //try to fix missing line numbers in hosted context:but does not help, https://github.com/dotnet/fsharp/discussions/13293#discussioncomment-2949022
-        //Directory.SetCurrentDirectory(Path.GetDirectoryName(Reflection.Assembly.GetAssembly([].GetType()).Location)) 
-        //Model.ISeffLog.log.PrintfnDebugMsg $"Current directory set to: '{Environment.CurrentDirectory}'"
+        //Directory.SetCurrentDirectory(Path.GetDirectoryName(Reflection.Assembly.GetAssembly([].GetType()).Location))
+        //Model.IFeshLog.log.PrintfnDebugMsg $"Current directory set to: '{Environment.CurrentDirectory}'"
 
-        let appName = match mode with Some n -> "Seff." + n.hostName |None -> "Seff"
-        try 
+        let appName = match mode with Some n -> "Fesh." + n.hostName |None -> "Fesh"
+        try
             // TODO attempt to save files before closing ?  or save anyway every 2 minutes to backup folder if less than 10k lines
             let errHandler = Fittings.ErrorHandling (
-                appName, 
+                appName,
                 fun () -> saveBeforeFailing();  "FSI Error Stream:\r\n" + log.FsiErrorsStringBuilder.ToString()
                 )
-            errHandler.Setup()// do as soon as log exists 
+            errHandler.Setup()// do as soon as log exists
         with e ->
-            log.PrintfnAppErrorMsg "Setting up Global Error Handling via Fittings.ErrorHandling failed. Or is done already? Is Fittings already loaded by another plug-in?\r\n%A" e 
-           
-        let config = new Config(log, mode, startupArgs)
-        log.FinishLogSetup(config)          
+            log.PrintfnAppErrorMsg "Setting up Global Error Handling via Fittings.ErrorHandling failed. Or is done already? Is Fittings already loaded by another plug-in?\r\n%A" e
 
-        Seff(config, log)
+        let config = new Config(log, mode, startupArgs)
+        log.FinishLogSetup(config)
+
+        Fesh(config, log)
 
 
         // not needed?

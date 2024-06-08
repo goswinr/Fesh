@@ -1,12 +1,12 @@
-﻿namespace Seff.Config
+﻿namespace Fesh.Config
 
-open Seff.Model
+open Fesh.Model
 
 
-type Config (log:ISeffLog, startUpData:HostedStartUpData option, startupArgs:string[]) =
+type Config (log:IFeshLog, startUpData:HostedStartUpData option, startupArgs:string[]) =
 
     let  runContext                 = new RunContext                  (startUpData)
-    let  settings                   = new Fittings.PersistentSettings (runContext.SettingsFileInfo,ISeffLog.printError)
+    let  settings                   = new Fittings.PersistentSettings (runContext.SettingsFileInfo,IFeshLog.printError)
     let  recentlyUsedFiles          = new RecentlyUsedFiles           (runContext)
     let  openTabs                   = new OpenTabs                    (runContext, startupArgs)
     let  defaultCode                = new DefaultCode                 (runContext)

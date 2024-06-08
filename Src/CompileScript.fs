@@ -1,21 +1,21 @@
-﻿namespace Seff
+﻿namespace Fesh
 
 open System
 open System.Windows
 open System.IO
 open System.Drawing
 
-open Seff.Model
-open Seff.Util
-open Seff.Config
+open Fesh.Model
+open Fesh.Util
+open Fesh.Config
 open System.Text
 
 
-module CompileScript = 
-  
-    /// also removes "_" ;  "-" ; "+"; "|"; " " from string 
+module CompileScript =
+
+    /// also removes "_" ;  "-" ; "+"; "|"; " " from string
     /// first letter will be capital
-    let toCamelCase (s:string) = 
+    let toCamelCase (s:string) =
         // TODo check for non valid file path characters
         s.Split([|"_" ;  "-" ; "+"; "|"; " "|], StringSplitOptions.RemoveEmptyEntries) // keep dot?!
         |> Array.map Str.up1
@@ -28,7 +28,7 @@ module CompileScript =
     type FsxRef = {fullPath:string; fileName:string}
     type NugetRef = {name:string; version:string}
 
-    let getRefs(code:string) : ResizeArray<DllRef>*ResizeArray<FsxRef>*ResizeArray<NugetRef>*string= 
+    let getRefs(code:string) : ResizeArray<DllRef>*ResizeArray<FsxRef>*ResizeArray<NugetRef>*string=
         let refs = ResizeArray()
         let nugs = ResizeArray()
         let fsxs = ResizeArray()
@@ -36,17 +36,17 @@ module CompileScript =
         for ln in code.Split('\n') do
             let tln = ln.Trim()
             if tln.StartsWith "#r \"nuget" then
-                codeWithoutNugetRefs.Append "// "  |> ignore 
+                codeWithoutNugetRefs.Append "// "  |> ignore
                 match Str.between "nuget:" "\"" tln with
                 |None -> ()
                 |Some pkgV ->
-                    let pkg,version = 
+                    let pkg,version =
                         if pkgV.Contains(",")then       pkgV |> Str.splitOnce ","
                         else                            pkgV, "*"
                     nugs.Add {name=pkg.Trim(); version=version.Trim()}
 
             elif tln.StartsWith "#r " then
-                codeWithoutNugetRefs.Append "// "  |> ignore 
+                codeWithoutNugetRefs.Append "// "  |> ignore
                 let _,path,_ = Str.splitTwice "\""  "\"" tln // get part in quotes
                 let stPath = path.Replace ('\\','/')
                 if stPath.Contains "/RhinoCommon.dll" then
@@ -61,21 +61,21 @@ module CompileScript =
                     refs.Add{ fullPath=None; fileName=path ;nameNoExt=nameNoExt; copyLocal=false} // for BCL dlls of the .Net framework
 
             elif tln.StartsWith "#load " then
-                codeWithoutNugetRefs.Append "// "  |> ignore 
+                codeWithoutNugetRefs.Append "// "  |> ignore
                 let _,path,_ = Str.splitTwice "\""  "\"" tln
                 if path <> "" then
                     let fullPath = path.Replace ('\\','/')
                     let nameFsx = fullPath.Split('/') |> Seq.last
                     fsxs.Add{fullPath=fullPath; fileName=nameFsx }
 
-            codeWithoutNugetRefs.AppendLine (ln.TrimEnd()) |> ignore 
+            codeWithoutNugetRefs.AppendLine (ln.TrimEnd()) |> ignore
 
         refs, fsxs, nugs, (codeWithoutNugetRefs.ToString())
 
     //if last write is more than 1h ago ask for overwrite permissions
-    let overWriteExisting fsProj :bool= 
-        async{  
-            do! Async.SwitchToContext Fittings.SyncWpf.context 
+    let overWriteExisting fsProj :bool=
+        async{
+            do! Async.SwitchToContext Fittings.SyncWpf.context
             let maxAgeHours = 0.5
             let fi = FileInfo(fsProj)
             return
@@ -83,14 +83,14 @@ module CompileScript =
                     let age = DateTime.UtcNow - fi.LastWriteTimeUtc
                     if age > (TimeSpan.FromHours maxAgeHours) then
                         let msg = sprintf "Do you want to recompile and overwrite the existing files?\r\n \r\n%s\r\n \r\nthat are %.2f days old at\r\n \r\n(This dialog only shows if the last compilation was more than %.1f hours ago.)"fi.FullName age.TotalDays  maxAgeHours
-                        //match MessageBox.Show(msg, StyleState.dialogCaption, MessageBoxButtons.YesNo, MessageBoxIcon.Exclamation, MessageBoxDefaultButton.Button2) with  // uses Windows.Forms  
+                        //match MessageBox.Show(msg, StyleState.dialogCaption, MessageBoxButtons.YesNo, MessageBoxIcon.Exclamation, MessageBoxDefaultButton.Button2) with  // uses Windows.Forms
                         match MessageBox.Show(
-                            IEditor.mainWindow, 
-                            msg, 
-                            "Recompile and overwrite?", 
-                            MessageBoxButton.YesNo, 
-                            MessageBoxImage.Exclamation, 
-                            MessageBoxResult.No,// default result 
+                            IEditor.mainWindow,
+                            msg,
+                            "Recompile and overwrite?",
+                            MessageBoxButton.YesNo,
+                            MessageBoxImage.Exclamation,
+                            MessageBoxResult.No,// default result
                             MessageBoxOptions.None) with
                         | MessageBoxResult.Yes-> true
                         | MessageBoxResult.No-> false
@@ -101,11 +101,11 @@ module CompileScript =
                     true
         }|>  Async.RunSynchronously
 
-    let getNugsXml (nugs:ResizeArray<NugetRef>) : string = 
+    let getNugsXml (nugs:ResizeArray<NugetRef>) : string =
            seq{ for nug in nugs  do  "<PackageReference Include=\"" + nug.name + "\" Version=\"" + nug.version + "\" />" }
            |> String.concat (Environment.NewLine  + String(' ',4) )
 
-    let getRefsXml (libFolderFull:string,  refs:ResizeArray<DllRef>) : string= 
+    let getRefsXml (libFolderFull:string,  refs:ResizeArray<DllRef>) : string=
         seq{
             for ref in refs |> Seq.sortBy (fun r -> if r.fullPath.IsNone then 0 else 1) do
                 match ref.fullPath with
@@ -133,7 +133,7 @@ module CompileScript =
         }
         |> String.concat (Environment.NewLine  + String(' ',4) )
 
-    let getFsxXml (projFolder:string, nameSpace, code, fsxloads:ResizeArray<FsxRef>) : string= 
+    let getFsxXml (projFolder:string, nameSpace, code, fsxloads:ResizeArray<FsxRef>) : string=
         seq{
             for load in fsxloads do
                 let niceName = (load.fileName.Replace(".fsx", "") |> toCamelCase  ) + ".fs" /// TODO make case insensitive
@@ -152,14 +152,14 @@ module CompileScript =
 
     //TODO  use https://github.com/Tyrrrz/CliWrap ??
 
-    let green  msg = ISeffLog.log.PrintfnColor 0   140 0 msg
-    let black  msg = ISeffLog.log.PrintfnColor 0   0   0 msg
-    let gray   msg = ISeffLog.log.PrintfnColor 190 190 190 msg
-    //let grayil msg = ISeffLog.log.PrintfColor  190 190 190 msg
+    let green  msg = IFeshLog.log.PrintfnColor 0   140 0 msg
+    let black  msg = IFeshLog.log.PrintfnColor 0   0   0 msg
+    let gray   msg = IFeshLog.log.PrintfnColor 190 190 190 msg
+    //let grayil msg = IFeshLog.log.PrintfColor  190 190 190 msg
 
-    let msBuild(p:Diagnostics.Process, fsProj,config:Config.Config) = 
+    let msBuild(p:Diagnostics.Process, fsProj,config:Config.Config) =
         gray "starting MSBuild.exe ..."
-        let msBuildFolders = 
+        let msBuildFolders =
             [
             config.Settings.Get "MSBuild.exe" |> Option.defaultValue ""
             @"C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Current\Bin\MSBuild.exe"
@@ -171,39 +171,39 @@ module CompileScript =
             ]
 
         match msBuildFolders |> Seq.tryFind File.Exists with
-        | None -> 
+        | None ->
             // TODO use https://github.com/microsoft/MSBuildLocator
-            ISeffLog.log.PrintfnIOErrorMsg  "MSBuild.exe not found at:\r\n%s " (msBuildFolders |> String.concat Environment.NewLine)
-            ISeffLog.log.PrintfnIOErrorMsg  "If you have MSBuild.exe on your PC please add the path to the settings file like this:"
-            ISeffLog.log.PrintfnAppErrorMsg "MSBuild.exe=C:\Folder\Where\it\is\MSBuild.exe"
-            ISeffLog.log.PrintfnIOErrorMsg  "the settings file is at %s" config.RunContext.SettingsFileInfo.FullName
+            IFeshLog.log.PrintfnIOErrorMsg  "MSBuild.exe not found at:\r\n%s " (msBuildFolders |> String.concat Environment.NewLine)
+            IFeshLog.log.PrintfnIOErrorMsg  "If you have MSBuild.exe on your PC please add the path to the settings file like this:"
+            IFeshLog.log.PrintfnAppErrorMsg "MSBuild.exe=C:\Folder\Where\it\is\MSBuild.exe"
+            IFeshLog.log.PrintfnIOErrorMsg  "the settings file is at %s" config.RunContext.SettingsFileInfo.FullName
             false
         | Some msBuildexe ->
             p.StartInfo.FileName <- "\"" + msBuildexe + "\""
             p.StartInfo.Arguments <- String.concat " " ["\"" + fsProj + "\"" ;  "-restore" ] //; "/property:Configuration=Release"] configuration should be specified in the fsproj file
             true
 
-    let dotnetBuild(p:Diagnostics.Process, fsProj)= 
+    let dotnetBuild(p:Diagnostics.Process, fsProj)=
         // TODO check if dotnet sdk is installed
         gray "starting dotnet build ..."
         p.StartInfo.FileName <- "dotnet"
         p.StartInfo.Arguments <- String.concat " " ["build"; "\"" + fsProj + "\""  ] //;  "--configuration Release"] configuration is part of fsproj file
         true
 
-    let compileScript(code, fp:FilePath, useMSBuild, config:Config) = 
+    let compileScript(code, fp:FilePath, useMSBuild, config:Config) =
         match fp with
-        |Deleted _ | NotSet _ -> ISeffLog.log.PrintfnAppErrorMsg "Cannot compile an unsaved or deleted script. Save it first"
+        |Deleted _ | NotSet _ -> IFeshLog.log.PrintfnAppErrorMsg "Cannot compile an unsaved or deleted script. Save it first"
         | SetTo fi ->
             async{
                 try
                     gray "compiling %s ..." fi.Name
                     let name = fi.Name.Replace(".fsx","")
-                    let nameSpace = name |> toCamelCase 
+                    let nameSpace = name |> toCamelCase
                     let outLiteral = "  " + nameSpace + " -> "
                     let mutable resultDll = "" // found via matching on outLiteral below
                     let folderName = "fsxDll_" + nameSpace
                     let projFolder = IO.Path.Combine(fi.DirectoryName,folderName)
-                    let libFolderFull = IO.Path.Combine(projFolder, ScriptCompilerFsproj.LibFolderName) 
+                    let libFolderFull = IO.Path.Combine(projFolder, ScriptCompilerFsproj.LibFolderName)
                     IO.Directory.CreateDirectory(libFolderFull)  |> ignore
                     IO.Directory.CreateDirectory(projFolder)  |> ignore
                     let fsProj = IO.Path.Combine(projFolder,nameSpace + ".fsproj")
@@ -212,7 +212,7 @@ module CompileScript =
                         let fsxXml = getFsxXml(projFolder, nameSpace ,codeWithoutNugetRefs, fsxs)
                         let refXml = getRefsXml(libFolderFull,refs)
                         let nugXml = getNugsXml(nugs)
-                        config.ScriptCompilerFsproj.Get()                        
+                        config.ScriptCompilerFsproj.Get()
                         |> replace "{rootNamespace}" nameSpace
                         |> replace "{assemblyName}" nameSpace
                         |> replace "{version}" ScriptCompilerFsproj.AssemblyVersionToWrite
@@ -225,11 +225,11 @@ module CompileScript =
                             //https://stackoverflow.com/questions/1145969/processinfo-and-redirectstandardoutput
                             let p = new System.Diagnostics.Process()
                             p.EnableRaisingEvents <- true
-                            let compilerExists = 
+                            let compilerExists =
                                 if useMSBuild then msBuild     ( p, fsProj, config)
                                 else               dotnetBuild ( p, fsProj)
                             if compilerExists then
-                                ISeffLog.log.PrintfnColor 0 0 200 "%s %s" p.StartInfo.FileName p.StartInfo.Arguments
+                                IFeshLog.log.PrintfnColor 0 0 200 "%s %s" p.StartInfo.FileName p.StartInfo.Arguments
                                 p.StartInfo.UseShellExecute <- false
                                 p.StartInfo.CreateNoWindow <- true //true if the process should be started without creating a new window to contain it
                                 p.StartInfo.RedirectStandardError <-true
@@ -240,22 +240,22 @@ module CompileScript =
                                 p.OutputDataReceived.Add ( fun d ->
                                     let txt = d.Data
                                     if not <| isNull txt then // happens often actually
-                                        if   txt.Contains "Build FAILED." then      ISeffLog.log.PrintfnColor 220 0 150  "%s" txt
-                                        elif txt.Contains "error FS"   then         ISeffLog.log.PrintfnColor 220 0 0  "%s" txt
+                                        if   txt.Contains "Build FAILED." then      IFeshLog.log.PrintfnColor 220 0 150  "%s" txt
+                                        elif txt.Contains "error FS"   then         IFeshLog.log.PrintfnColor 220 0 0  "%s" txt
                                         elif txt.Contains "Build succeeded." then   green  "%s" txt
-                                        elif txt.Contains outLiteral  then                                        
-                                            resultDll <- txt.Replace(outLiteral,"").Trim()                                        
+                                        elif txt.Contains outLiteral  then
+                                            resultDll <- txt.Replace(outLiteral,"").Trim()
                                             gray "%s" txt
                                         else
                                             gray "%s" txt
                                         )
-                                p.ErrorDataReceived.Add (  fun d -> ISeffLog.log.PrintfnAppErrorMsg "%s" d.Data)
+                                p.ErrorDataReceived.Add (  fun d -> IFeshLog.log.PrintfnAppErrorMsg "%s" d.Data)
                                 p.Exited.Add( fun _ ->
                                     if resultDll <> "" then
                                         gray  "*build done! This line is copied to your clipboard, paste via Ctrl + V :"
-                                        ISeffLog.log.PrintfColor  190 0 50 "#r @\""
-                                        ISeffLog.log.PrintfColor  0 0 0 "%s" resultDll
-                                        ISeffLog.log.PrintfnColor 190 0 50 "\""
+                                        IFeshLog.log.PrintfColor  190 0 50 "#r @\""
+                                        IFeshLog.log.PrintfColor  0 0 0 "%s" resultDll
+                                        IFeshLog.log.PrintfnColor 190 0 50 "\""
                                         Fittings.SyncWpf.doSync ( fun () -> Clipboard.SetText("#r @\"" + resultDll + "\"\r\n") )
                                     else
                                         gray  "*build process ended!"
@@ -267,7 +267,7 @@ module CompileScript =
                                 //log.PrintfnInfoMsg "compiling to %s" (IO.Path.Combine(projFolder,"bin","Release","netstandard2.0",nameSpace+".dll"))
                                 p.WaitForExit()
                 with
-                    e -> ISeffLog.log.PrintfnAppErrorMsg "%A" e
+                    e -> IFeshLog.log.PrintfnAppErrorMsg "%A" e
             } |> Async.Start
 
 

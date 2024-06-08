@@ -1,38 +1,38 @@
-﻿namespace Seff.Config
+﻿namespace Fesh.Config
 
 open System.IO
 open Fittings
-open Seff.Model
+open Fesh.Model
 
 
 type ScriptCompilerFsproj ( runContext:RunContext) =
 
     let filePath0 = runContext.GetPathToSaveAppData("ScriptCompiler.fsproj")
 
-    let writer = SaveReadWriter(filePath0,ISeffLog.printError)
+    let writer = SaveReadWriter(filePath0,IFeshLog.printError)
 
 
     // TODO really only <PlatformTarget>x64</PlatformTarget><!--  x64 is required e.g by Rhino, don't us just 'Platform' tag-->   ??
 
     let defaultFsproj = """<?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
-  <!-- all values that are enclose in curly brackets {} will be replaced by Seff ScriptCompiler -->
+  <!-- all values that are enclose in curly brackets {} will be replaced by Fesh ScriptCompiler -->
   <PropertyGroup>
     <OutputType>Library</OutputType>
     <TargetFramework>net48</TargetFramework>
     <LangVersion>preview</LangVersion>
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages> <!--to only have the English resources of Fsharp.Core-->
 
-    <RootNamespace>{rootNamespace}</RootNamespace> <!-- set by Seff ScriptCompiler-->
-    <AssemblyName>{assemblyName}</AssemblyName>    <!-- set by Seff ScriptCompiler-->
+    <RootNamespace>{rootNamespace}</RootNamespace> <!-- set by Fesh ScriptCompiler-->
+    <AssemblyName>{assemblyName}</AssemblyName>    <!-- set by Fesh ScriptCompiler-->
 
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <NeutralLanguage>en</NeutralLanguage>
     <Configuration>Release</Configuration>
 
-    <Version>{version}</Version><!-- set by Seff ScriptCompiler-->
-    <AssemblyVersion>{version}</AssemblyVersion><!-- set by Seff ScriptCompiler-->
-    <FileVersion>{version}</FileVersion><!-- set by Seff ScriptCompiler-->
+    <Version>{version}</Version><!-- set by Fesh ScriptCompiler-->
+    <AssemblyVersion>{version}</AssemblyVersion><!-- set by Fesh ScriptCompiler-->
+    <FileVersion>{version}</FileVersion><!-- set by Fesh ScriptCompiler-->
 
     <!--<PlatformTarget>x64</PlatformTarget> -->
 
@@ -40,15 +40,15 @@ type ScriptCompilerFsproj ( runContext:RunContext) =
 
   <ItemGroup>
   <PackageReference Update="FSharp.Core" Version="5.0.2" /> <!--included so that the current SDK doesn't force a maybe to high version-->
-    {nuget-packages} <!-- set by Seff ScriptCompiler-->
+    {nuget-packages} <!-- set by Fesh ScriptCompiler-->
   </ItemGroup>
 
   <ItemGroup>
-    {dll-file-references} <!-- set by Seff ScriptCompiler-->
+    {dll-file-references} <!-- set by Fesh ScriptCompiler-->
   </ItemGroup>
 
   <ItemGroup>
-    {code-files} <!-- set by Seff ScriptCompiler-->
+    {code-files} <!-- set by Fesh ScriptCompiler-->
   </ItemGroup>
 
   <!--

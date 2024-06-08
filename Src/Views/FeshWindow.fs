@@ -1,51 +1,51 @@
-﻿namespace Seff.Views
+﻿namespace Fesh.Views
 
 open System
 open System.Windows.Media.Imaging
 open System.Runtime.InteropServices
-open Seff.Model
-open Seff.Config
+open Fesh.Model
+open Fesh.Config
 
 /// A class holding the main WPF Window
 /// Includes loading icon
-type SeffWindow (config:Config)= 
+type FeshWindow (config:Config)=
 
-    let win =         
-        let w = new Fittings.PositionedWindow(config.RunContext.PositionedWindowSettingsFileInfo, ISeffLog.printError)
+    let win =
+        let w = new Fittings.PositionedWindow(config.RunContext.PositionedWindowSettingsFileInfo, IFeshLog.printError)
         IEditor.mainWindow <- w
         w
-    
+
     let mutable wasMax = win.Settings.GetBool ("WindowIsMax", false) //indicating if the Window was in Full-screen mode before switching to temporary Log only full-screen
 
-    // for Title Bar:  
-    let appName =         
+    // for Title Bar:
+    let appName =
         match config.RunContext.HostName with
-        |None     -> "Seff"          //, a Scripting editor for fsharp"        
-        |Some n   -> "Seff for " + n //, a Scripting editor for fsharp in " + n
+        |None     -> "Fesh"          //, a Scripting editor for fsharp"
+        |Some n   -> "Fesh for " + n //, a Scripting editor for fsharp in " + n
 
-    let plat = 
+    let plat =
         if Environment.Is64BitProcess then "64bit" else "32bit"
-               
-    let version = 
-        let v = Reflection.Assembly.GetAssembly(typeof<ISeffLog>).GetName().Version
+
+    let version =
+        let v = Reflection.Assembly.GetAssembly(typeof<IFeshLog>).GetName().Version
         $"v{v.Major}.{v.Minor}.{v.Revision}"  + if  v.MinorRevision <> 0s then $".{v.MinorRevision}" else ""
 
-    let fscore  = 
-        let v = [].GetType().Assembly.GetName().Version 
+    let fscore  =
+        let v = [].GetType().Assembly.GetName().Version
         $"Fsharp.Core {v.Major}.{v.Minor}.{v.Revision}"  + if  v.MinorRevision <> 0s then $".{v.MinorRevision}" else ""
 
     let frameW =
         let d = RuntimeInformation.FrameworkDescription
         let t = if d.EndsWith ".0" then d[..^2] else d
-        $"{t}"  
-    
-    do   
+        $"{t}"
+
+    do
         //Add Icon:
         try
             // Add the Icon at the top left of the window and in the status bar, musst be called  after loading window.
             // Media/logo.ico with Build action : "Resource"
             // (for the exe file icon in explorer use <Win32Resource>Media\logo.res</Win32Resource>  in fsproj, where the .res file contains the .ico file )
-            let defaultUri = Uri("pack://application:,,,/Seff;component/Media/logo.ico")
+            let defaultUri = Uri("pack://application:,,,/Fesh;component/Media/logo.ico")
             match config.RunContext.Logo with
             |Some uri ->
                 try             win.Icon <- BitmapFrame.Create(uri)
@@ -67,34 +67,34 @@ type SeffWindow (config:Config)=
         and set(v) = wasMax <- v
 
     member this.SetFileNameInTitle (fp:FilePath) =
-        match fp with 
-        |NotSet dummyName -> 
-            let txt =  
+        match fp with
+        |NotSet dummyName ->
+            let txt =
                 [
                 dummyName
-                appName 
+                appName
                 version
-                plat 
-                frameW 
-                fscore                
+                plat
+                frameW
+                fscore
                 ] |> String.concat "  -  "
-            win.Title <- txt         
-        
-        |Deleted fi |SetTo fi -> 
-            let txt =  
+            win.Title <- txt
+
+        |Deleted fi |SetTo fi ->
+            let txt =
                 [
                 fi.Name
-                appName 
+                appName
                 version
-                plat 
-                frameW 
+                plat
+                frameW
                 fscore
                 fi.DirectoryName
                 ] |> String.concat "  -  "
-            win.Title <- txt 
-    
-    
-   
+            win.Title <- txt
+
+
+
 
 
 

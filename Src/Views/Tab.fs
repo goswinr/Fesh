@@ -1,43 +1,43 @@
-namespace Seff.Views
+namespace Fesh.Views
 
 open System
 open System.Windows.Controls
 open System.Windows
 open System.Windows.Media
 
-open Seff.Editor
-open Seff.Model
+open Fesh.Editor
+open Fesh.Model
 
 open AvalonLog.Brush
 
 
-module TabStyle = 
+module TabStyle =
     let savedHeader   =  Brushes.Black  |> freeze
     let changedHeader =  Brushes.Red    |> darker 90   |> freeze
     let deletedHeader =  Brushes.Red    |> darker 20   |> freeze
     let unsavedHeader =  Brushes.Gray   |> brighter 40 |> freeze
     // button in header
-    let redButton     =  ofRGB 232 17 35 // same red color as default for the main window    
+    let redButton     =  ofRGB 232 17 35 // same red color as default for the main window
     let grayButton    =  ofRGB 150 150 150 // for gray cross inside red button
     let transpButton  =  ofARGB 0 255 255 255 // fully transparent
 
 
  /// The tab that holds the tab header logic and the code editor
-type Tab (editor:Editor) = //, config:Seff.Config.Config, allFileInfos:seq<IO.FileInfo>) = 
+type Tab (editor:Editor) = //, config:Fesh.Config.Config, allFileInfos:seq<IO.FileInfo>) =
     inherit TabItem()
 
     // these two are used to avoid redrawing header on very keystroke:
     let mutable isCodeSaved        = true
     let mutable headerShowsSaved   = true
 
-    /// this can be set to false so that the dialog about saving only pops up once. 
-    /// In a hosted context like Rhino the dialog would pop on closing seff window and on closing the Rhino window
+    /// this can be set to false so that the dialog about saving only pops up once.
+    /// In a hosted context like Rhino the dialog would pop on closing fesh window and on closing the Rhino window
     let mutable savingWanted = true
 
 
     let textBlock = new TextBlock(VerticalAlignment = VerticalAlignment.Center) //, Padding = Thickness(2.) ) , FontFamily = StyleState.fontEditor)
 
-    let closeButton = 
+    let closeButton =
         let b =  new Button()
         //let cross = new Shapes.Path( Data = Geometry.Parse("M0,7 L7,0 M0,0 L7,7"),   StrokeThickness = 0.8 )  //"M1,8 L8,1 M1,1 L8,8"
         let cross = new Shapes.Path( Data = Geometry.Parse("M0,10 L10,0 M0,0 L10,10"))
@@ -54,7 +54,7 @@ type Tab (editor:Editor) = //, config:Seff.Config.Config, allFileInfos:seq<IO.Fi
         b.MouseLeave.Add (fun a -> cross.StrokeThickness <- 1.0   ; cross.Stroke <- TabStyle.grayButton; b.BorderBrush <- TabStyle.transpButton)
         b
 
-    let header = 
+    let header =
         let p = new StackPanel(
                         Margin = Thickness(4. , 2. , 2. , 2.),//left ,top, right, bottom)
                         Orientation = Orientation.Horizontal,
@@ -62,37 +62,37 @@ type Tab (editor:Editor) = //, config:Seff.Config.Config, allFileInfos:seq<IO.Fi
         p.Children.Add textBlock  |> ignore
         p.Children.Add closeButton |> ignore
         p
-        
+
     /// tread safe (for file watcher)
-    let setHeader() = 
-        editor.AvaEdit.Dispatcher.Invoke(fun () -> 
+    let setHeader() =
+        editor.AvaEdit.Dispatcher.Invoke(fun () ->
             match editor.FilePath, isCodeSaved with
-            |SetTo fi , true ->                
+            |SetTo fi , true ->
                 textBlock.ToolTip         <- "File saved at:\r\n" + fi.FullName
                 textBlock.Text            <- fi.Name
                 textBlock.TextDecorations <- null
                 textBlock.Foreground      <- TabStyle.savedHeader
                 headerShowsSaved          <- true
-            |SetTo fi , false ->          
+            |SetTo fi , false ->
                 textBlock.ToolTip         <- "File with unsaved changes from :\r\n" + fi.FullName
                 textBlock.Text            <- fi.Name + "*"
                 textBlock.TextDecorations <- null
                 textBlock.Foreground      <- TabStyle.changedHeader
                 headerShowsSaved          <- false
-            |NotSet dummyName,true ->     
+            |NotSet dummyName,true ->
                 textBlock.ToolTip         <- "This file just shows the default code for every new file."
                 textBlock.Text            <- dummyName
                 textBlock.TextDecorations <- null
                 textBlock.Foreground      <- TabStyle.unsavedHeader
                 headerShowsSaved          <- true
-            |NotSet dummyName,false ->     
+            |NotSet dummyName,false ->
                 textBlock.ToolTip         <- "This file has not yet been saved to disk."
                 textBlock.Text            <- dummyName
                 textBlock.TextDecorations <- null
                 //if not ( textBlock.Text.EndsWith "*") then textBlock.Text <- textBlock.Text + "*"
                 textBlock.Foreground      <- TabStyle.changedHeader
                 headerShowsSaved          <- false
-            |Deleted dfi, _ -> 
+            |Deleted dfi, _ ->
                 textBlock.ToolTip         <- "This file has been deleted (or renamed) from:\r\n" + dfi.FullName
                 textBlock.Text            <- dfi.Name
                 textBlock.TextDecorations <- TextDecorations.Strikethrough
@@ -102,15 +102,15 @@ type Tab (editor:Editor) = //, config:Seff.Config.Config, allFileInfos:seq<IO.Fi
 
     /// this gets called on every character typed.
     // can be called async too.
-    let setCodeSavedStatus(isSaved)= 
+    let setCodeSavedStatus(isSaved)=
         savingWanted <-true //to always ask gain after a doc change
         isCodeSaved <- isSaved
         if not isSaved && headerShowsSaved then // to only update header if actually required
             setHeader()
         elif isSaved && not headerShowsSaved  then // to only update header if actually required
-            setHeader() 
-    
-    let fileTracker = 
+            setHeader()
+
+    let fileTracker =
         new FileChangeTracker (editor, setCodeSavedStatus)
 
     do
@@ -126,14 +126,14 @@ type Tab (editor:Editor) = //, config:Seff.Config.Config, allFileInfos:seq<IO.Fi
         editor.AvaEdit.TextChanged.Add(fun _ -> setCodeSavedStatus(false))
 
     member _.FileTracker = fileTracker
-    
+
     member _.IsCodeSaved
         with get()       = isCodeSaved
         and set(isSaved) = setCodeSavedStatus(isSaved)
 
-    /// this can be set to false so that the dialog about saving only pops up once. 
-    /// In a hosted context like Rhino the dialog would pop on closing seff window and on closing the Rhino window
-    member _.SavingWanted  
+    /// this can be set to false so that the dialog about saving only pops up once.
+    /// In a hosted context like Rhino the dialog would pop on closing fesh window and on closing the Rhino window
+    member _.SavingWanted
         with get() = savingWanted
         and set(v) = savingWanted<-v
 
@@ -142,7 +142,7 @@ type Tab (editor:Editor) = //, config:Seff.Config.Config, allFileInfos:seq<IO.Fi
     member _.CloseButton = closeButton // public so click event can be attached later in Tabs.fs AddTab
 
     /// used in compiler error messages
-    member this.FormattedFileName = 
+    member this.FormattedFileName =
         match editor.FilePath with
         |SetTo fi          -> sprintf "%s" fi.FullName //sprintf "%s\r\nat\r\n%s" fi.Name fi.DirectoryName
         |Deleted fi        -> sprintf "(deleted): %s" fi.FullName //sprintf "%s\r\nat\r\n%s" fi.Name fi.DirectoryName

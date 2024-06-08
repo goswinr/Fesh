@@ -1,4 +1,4 @@
-﻿namespace Seff.Editor
+﻿namespace Fesh.Editor
 
 open System
 open System.Windows.Media
@@ -9,9 +9,9 @@ open AvalonEditB.Rendering
 
 open AvalonLog.Brush
 
-open Seff.Util.General
-open Seff.Model
-open Seff
+open Fesh.Util.General
+open Fesh.Model
+open Fesh
 
 module private EvaluationTrackerRendererUtil =
 
@@ -74,7 +74,7 @@ type EvaluationTrackerRenderer (ed:TextEditor) =
 
             elif isNull evaluatedCodeSeg || topMostUnEvaluated-1 <> evaluatedCodeSeg.EndOffset then
                 let lastInEval = doc.GetCharAt(topMostUnEvaluated-1)
-                //ISeffLog.log.PrintfnColor 144 222 100 "computeParagraphAndDraw:\r\n'%s'" ed.Text
+                //IFeshLog.log.PrintfnColor 144 222 100 "computeParagraphAndDraw:\r\n'%s'" ed.Text
 
                 // first try to look ahead if there is only white space till a paragraph starts.
                 // in that case keep the current evaluated marking
@@ -83,7 +83,7 @@ type EvaluationTrackerRenderer (ed:TextEditor) =
                         true
                     else
                         let ch = doc.GetCharAt(i)
-                        //ISeffLog.log.PrintfnColor 200 0 100 "prev: '%s' ch: '%s'" (formatChar prev)(formatChar ch)
+                        //IFeshLog.log.PrintfnColor 200 0 100 "prev: '%s' ch: '%s'" (formatChar prev)(formatChar ch)
                         if isNonWhite ch then // non whitespace
                             if prev = '\n' then // find a line that does not start with white space
                                 true //i-1 // there is only white space till 'i' where a paragraph starts
@@ -92,7 +92,7 @@ type EvaluationTrackerRenderer (ed:TextEditor) =
                         else
                             keepMark ch (i+1)
                 let keep = keepMark lastInEval topMostUnEvaluated
-                //ISeffLog.log.PrintfnColor 55 99 100 "keep is: '%b'" keep
+                //IFeshLog.log.PrintfnColor 55 99 100 "keep is: '%b'" keep
 
                 //now search back needed since the next non white is at position 0 in line
                 if keep then
@@ -115,7 +115,7 @@ type EvaluationTrackerRenderer (ed:TextEditor) =
                             else
                                 searchBack this (i-1)
 
-                    //ISeffLog.log.PrintfnColor 0 200 100 "topMostUnEvaluated-1: %d" (topMostUnEvaluated-1)
+                    //IFeshLog.log.PrintfnColor 0 200 100 "topMostUnEvaluated-1: %d" (topMostUnEvaluated-1)
                     let segmentEnd =
                         let segEnd = searchBack lastInEval topMostUnEvaluated   // GetCharAt     cant be -1 because there is a check at the top
 
@@ -150,7 +150,7 @@ type EvaluationTrackerRenderer (ed:TextEditor) =
     /// Triggered on each document changed
     member _.SetLastChangeAt(offset) =
         if offset < topMostUnEvaluated then
-            //ISeffLog.log.PrintfnColor 0 200 0 "Doc change topMostUnEvaluated offset : %d '%s' " offset (formatChar<| doc.GetCharAt(offset))
+            //IFeshLog.log.PrintfnColor 0 200 0 "Doc change topMostUnEvaluated offset : %d '%s' " offset (formatChar<| doc.GetCharAt(offset))
             topMostUnEvaluated <-  offset
             computeParagraphAndDraw()
 
@@ -189,7 +189,7 @@ type EvaluationTrackerRenderer (ed:TextEditor) =
                 // TODO draw a draggable separator instead:
                 // http://www.fssnip.net/9N/title/Drag-move-for-GUI-controls
             with ex ->
-                ISeffLog.log.PrintfnAppErrorMsg "ERROR in EvaluationTrackerRenderer.Draw(): %A" ex
+                IFeshLog.log.PrintfnAppErrorMsg "ERROR in EvaluationTrackerRenderer.Draw(): %A" ex
 
     // for IBackgroundRenderer
     member _.Layer = KnownLayer.Caret// KnownLayer.Background
@@ -200,7 +200,7 @@ type EvaluationTrackerRenderer (ed:TextEditor) =
 
 
 
-type EvaluationTracker (ed:TextEditor, config:Seff.Config.Config) =
+type EvaluationTracker (ed:TextEditor, config:Fesh.Config.Config) =
 
     let renderer = EvaluationTrackerRenderer(ed)
 
@@ -213,8 +213,8 @@ type EvaluationTracker (ed:TextEditor, config:Seff.Config.Config) =
         fsi.OnCanceled.Add    (fun evc -> if IEditor.isCurrent ed then renderer.MarkNoneEvaluated())
         fsi.OnCompletedOk.Add (fun evc ->
             if IEditor.isCurrent ed then  //this event will be hooked up for each tab so check id too
-                //ISeffLog.log.PrintfnColor 150 150 150  "Fsi.OnCompletedOk:%A" evc
-                //ISeffLog.log.PrintfnFsiErrorMsg "Fsi.OnCompletedOk:renderer.EvaluateFrom:%d" renderer.EvaluateFrom
+                //IFeshLog.log.PrintfnColor 150 150 150  "Fsi.OnCompletedOk:%A" evc
+                //IFeshLog.log.PrintfnFsiErrorMsg "Fsi.OnCompletedOk:renderer.EvaluateFrom:%d" renderer.EvaluateFrom
                 match evc.amount with
                 |All |ContinueFromChanges -> renderer.MarkAllEvaluated()
                 |FsiSegment s ->
@@ -222,7 +222,7 @@ type EvaluationTracker (ed:TextEditor, config:Seff.Config.Config) =
                     if s.startOffset <= renderer.EvaluateFrom  // check start is in already evaluated region
                     && endOffset > renderer.EvaluateFrom then
                         renderer.MarkEvaluatedTillOffset(endOffset)
-                        //ISeffLog.log.PrintfnFsiErrorMsg "Fsi.OnCompletedOk,FsiSegment:renderer.EvaluateFrom:%d" renderer.EvaluateFrom
+                        //IFeshLog.log.PrintfnFsiErrorMsg "Fsi.OnCompletedOk,FsiSegment:renderer.EvaluateFrom:%d" renderer.EvaluateFrom
                 )
 
     member _.SetLastChangeAt(off) =  renderer.SetLastChangeAt(off)

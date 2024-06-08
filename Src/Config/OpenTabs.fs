@@ -1,4 +1,4 @@
-﻿namespace Seff.Config
+﻿namespace Fesh.Config
 
 open System
 open System.IO
@@ -7,8 +7,8 @@ open System.Collections.Generic
 
 open Fittings
 
-open Seff
-open Seff.Model
+open Fesh
+open Fesh.Model
 
 type FileToOpen = {file:FileInfo; makeCurrent:bool}
 
@@ -16,7 +16,7 @@ type FileToOpen = {file:FileInfo; makeCurrent:bool}
 type OpenTabs  (runContext:RunContext, startupArgs:string[]) =
 
     let filePath0 = runContext.GetPathToSaveAppData("CurrentlyOpenFiles.txt")
-    let writer = SaveReadWriter(filePath0,ISeffLog.printError)
+    let writer = SaveReadWriter(filePath0,IFeshLog.printError)
 
     let currentTabPreFix = "*Current tab:* " //a string that can never be part of a filename
 
@@ -34,9 +34,9 @@ type OpenTabs  (runContext:RunContext, startupArgs:string[]) =
 
         // If ther are file in the startup args only open those, not the previously open files.
         // This is to avoid openinh the same files twice.
-        // One instance of Seff might be open with some files.
-        // If the user then double clicks another fsx file it would open a new instance of Seff with this fsx file,
-        // but also all the others that are already in the first instance of Seff open.
+        // One instance of Fesh might be open with some files.
+        // If the user then double clicks another fsx file it would open a new instance of Fesh with this fsx file,
+        // but also all the others that are already in the first instance of Fesh open.
         if filesInArgs.Length > 0 then
             // parse startup args
             for path in filesInArgs do

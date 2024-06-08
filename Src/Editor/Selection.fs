@@ -1,11 +1,11 @@
-﻿namespace Seff.Editor
+﻿namespace Fesh.Editor
 
 open System
 open System.Windows.Input
 open AvalonEditB
 open AvalonEditB.Editing
 open AvalonEditB.Document
-open Seff.Model
+open Fesh.Model
 
 [<RequireQualifiedAccess>]
 module Mouse =
@@ -87,7 +87,7 @@ module Selection =
             let s = rs.StartPosition
             let e = rs.EndPosition
             let car = ta.Caret.Position
-            //ISeffLog.log.PrintfnDebugMsg "caret0: %A "car
+            //IFeshLog.log.PrintfnDebugMsg "caret0: %A "car
             let v1,v2 = sorted s.VisualColumn e.VisualColumn
             if s.Line <= e.Line then
                {stPos = TextViewPosition(s.Line, s.Column, v1)
@@ -130,7 +130,7 @@ module Selection =
                 && isNonLetter doc <| seg.EndOffset then
                     Some seg
             else
-                    //ISeffLog.log.PrintfnDebugMsg "not Word: %s" (sel.GetText())
+                    //IFeshLog.log.PrintfnDebugMsg "not Word: %s" (sel.GetText())
                     None
 
             //let startOffset = TextUtilities.GetNextCaretPosition(doc,offset, LogicalDirection.Backward, CaretPositioningMode.WordBorderOrSymbol)// TODO fails on ´´ backtick names

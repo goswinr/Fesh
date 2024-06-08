@@ -1,11 +1,11 @@
-﻿namespace Seff.Editor
+﻿namespace Fesh.Editor
 
 open System
 open System.Windows
 open System.Windows.Input
 open AvalonEditB
 
-open Seff.Model
+open Fesh.Model
 
 module Keys =
 
@@ -146,12 +146,12 @@ module KeyboardNative  =
             //let key = lParam.vkCode // same ints as in System.Windows.Forms.Keys
 
             // for finding codes and flags use:
-            //ISeffLog.log.PrintfnColor 0 99 0  " window.IsFocused %b, window.IsEnabled %b, window.IsActive %b," window.IsFocused window.IsEnabled window.IsActive
-            // if    wParam = WM_KEYDOWN      then ISeffLog.log.PrintfnColor 255 0 0   "down key    : %d , flags %d, dwExtraInfo %d, code %d,"  lParam.vkCode lParam.flags lParam.dwExtraInfo nCode //lParam.time
-            // elif  wParam = WM_SYSKEYDOWN   then ISeffLog.log.PrintfnColor 155 40 40 "down sys key: %d , flags %d, dwExtraInfo %d, code %d,"  lParam.vkCode lParam.flags lParam.dwExtraInfo nCode //lParam.time
-            // elif  wParam = WM_KEYUP        then ISeffLog.log.PrintfnColor 0 0 255   "up key      : %d , flags %d, dwExtraInfo %d, code %d,"  lParam.vkCode lParam.flags lParam.dwExtraInfo nCode //lParam.time
-            // elif  wParam = WM_SYSKEYUP     then ISeffLog.log.PrintfnColor 40 40 150 "up sys key  : %d , flags %d, dwExtraInfo %d, code %d,"  lParam.vkCode lParam.flags lParam.dwExtraInfo nCode //lParam.time
-            // else                                ISeffLog.log.PrintfnColor 190 40 190 "not up nor down  key  : %d , flags %d, dwExtraInfo %d, code %d,"  lParam.vkCode lParam.flags lParam.dwExtraInfo nCode //lParam.time
+            //IFeshLog.log.PrintfnColor 0 99 0  " window.IsFocused %b, window.IsEnabled %b, window.IsActive %b," window.IsFocused window.IsEnabled window.IsActive
+            // if    wParam = WM_KEYDOWN      then IFeshLog.log.PrintfnColor 255 0 0   "down key    : %d , flags %d, dwExtraInfo %d, code %d,"  lParam.vkCode lParam.flags lParam.dwExtraInfo nCode //lParam.time
+            // elif  wParam = WM_SYSKEYDOWN   then IFeshLog.log.PrintfnColor 155 40 40 "down sys key: %d , flags %d, dwExtraInfo %d, code %d,"  lParam.vkCode lParam.flags lParam.dwExtraInfo nCode //lParam.time
+            // elif  wParam = WM_KEYUP        then IFeshLog.log.PrintfnColor 0 0 255   "up key      : %d , flags %d, dwExtraInfo %d, code %d,"  lParam.vkCode lParam.flags lParam.dwExtraInfo nCode //lParam.time
+            // elif  wParam = WM_SYSKEYUP     then IFeshLog.log.PrintfnColor 40 40 150 "up sys key  : %d , flags %d, dwExtraInfo %d, code %d,"  lParam.vkCode lParam.flags lParam.dwExtraInfo nCode //lParam.time
+            // else                                IFeshLog.log.PrintfnColor 190 40 190 "not up nor down  key  : %d , flags %d, dwExtraInfo %d, code %d,"  lParam.vkCode lParam.flags lParam.dwExtraInfo nCode //lParam.time
 
 
             if  nCode >= 0
@@ -170,7 +170,7 @@ module KeyboardNative  =
                         | _ -> () // never happens
                         // we are explicitly not calling CallNextHookEx here to not do a nudge in Rhino as well.
                         // see bug https://discourse.mcneel.com/t/using-alt-up-key-in-plugin-does-not-work/105740/3
-                        // this will also disable any potential other global shortcut using Alt and arrow keys while Seff window is active.
+                        // this will also disable any potential other global shortcut using Alt and arrow keys while Fesh window is active.
                         // not nice but probably ok.
                         0 // Since the hook procedure does not call CallNextHookEx, the return value should be zero.
             else
@@ -192,16 +192,16 @@ module KeyboardNative  =
         // a hook with WH_KEYBOARD_LL is always global!
         // a hook with just WH_KEYBOARD does not work from .NET ?!
         hookId <- SetWindowsHookEx(WH_KEYBOARD_LL, callBackForAltKeyCombos, moduleHandle, 0u)
-        //ISeffLog.log.PrintfnDebugMsg  "moduleHandle at :%d" moduleHandle
-        //ISeffLog.log.PrintfnDebugMsg  "hookId at:%d" hookId
+        //IFeshLog.log.PrintfnDebugMsg  "moduleHandle at :%d" moduleHandle
+        //IFeshLog.log.PrintfnDebugMsg  "hookId at:%d" hookId
 
     (*
     /// Create a global low level keyboard hook
     let hookUpUser32() =
         let hInstance = LoadLibrary("User32") // this makes the hook global
         hookId <- SetWindowsHookEx(WH_KEYBOARD_LL, hookProc, hInstance, 0u)
-        ISeffLog.log.PrintfnDebugMsg  "User32 at :%d" hInstance
-        ISeffLog.log.PrintfnDebugMsg  "hookId at:%d" hookId
+        IFeshLog.log.PrintfnDebugMsg  "User32 at :%d" hInstance
+        IFeshLog.log.PrintfnDebugMsg  "hookId at:%d" hookId
 
     /// Create a global low level keyboard hook DOES NOT WORK
     let hookUpWin(win:Window) =
@@ -209,8 +209,8 @@ module KeyboardNative  =
         let modul  = win.GetType().Module
         let handle = Runtime.InteropServices.Marshal.GetHINSTANCE(modu)
         hookId <- SetWindowsHookEx(WH_KEYBOARD_LL, hookProc, handle, 0u)
-        ISeffLog.log.PrintfnDebugMsg  "GetHINSTANCE at :%d" handle
-        ISeffLog.log.PrintfnDebugMsg  "hookId at:%d" hookId
+        IFeshLog.log.PrintfnDebugMsg  "GetHINSTANCE at :%d" handle
+        IFeshLog.log.PrintfnDebugMsg  "hookId at:%d" hookId
     *)
 
     /// This event occurs when the Alt key and any of the four arrows are pressed down

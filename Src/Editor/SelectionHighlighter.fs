@@ -1,4 +1,4 @@
-﻿namespace Seff.Editor
+﻿namespace Fesh.Editor
 
 open System
 open System.Windows.Media
@@ -7,10 +7,10 @@ open AvalonEditB
 open AvalonEditB.Rendering
 open AvalonEditB.Document
 
-open Seff.Util
-open Seff.Editor
-open Seff.Editor.Selection
-open Seff.Editor.CodeLineTools
+open Fesh.Util
+open Fesh.Editor
+open Fesh.Editor.Selection
+open Fesh.Editor.CodeLineTools
 
 
 module SelectionHighlighting =
@@ -47,7 +47,7 @@ module SelectionHighlighting =
             if state.IsLatest id then
                 // async{ //DELETE
                 //     do! Async.SwitchToContext Fittings.SyncWpf.context // for doc TextLength
-                //     ISeffLog.log.PrintfnAppErrorMsg $"id:{id} makeEditorSnapShot: doc.TextLength={doc.TextLength} code.Length={code.Length}"
+                //     IFeshLog.log.PrintfnAppErrorMsg $"id:{id} makeEditorSnapShot: doc.TextLength={doc.TextLength} code.Length={code.Length}"
                 //     } |> Async.RunSynchronously
                 Some code
             else
@@ -436,7 +436,7 @@ type SelectionHighlighterLog (lg:TextEditor) =
                         while off >= 0 do
                             offs.Add off // also add for current selection
                             if off <> selectionStartOff then // skip the actual current selection
-                                //ISeffLog.log.PrintfnInfoMsg $"trans.Insert({lineNo}, from={off}; till={off+wordLen}; act=action word='{word}'"
+                                //IFeshLog.log.PrintfnInfoMsg $"trans.Insert({lineNo}, from={off}; till={off+wordLen}; act=action word='{word}'"
                                 LineTransformers.Insert(newMarks,lineNo, {from=off; till=off+wordLen; act=action})
                                 rangeEnd <- off + wordLen
                                 if rangeStart < 0 then // set range start if not set yet

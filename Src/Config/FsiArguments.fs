@@ -1,14 +1,14 @@
-﻿namespace Seff.Config
+﻿namespace Fesh.Config
 
 open System
 open Fittings
-open Seff.Model
+open Fesh.Model
 
 
 type FsiArguments   ( runContext:RunContext) =
 
     let filePath0 = runContext.GetPathToSaveAppData("FsiArguments .txt")
-    let writer = SaveReadWriter(filePath0,ISeffLog.printError)
+    let writer = SaveReadWriter(filePath0,IFeshLog.printError)
 
     let defaultArgs =
         if runContext.IsHosted then

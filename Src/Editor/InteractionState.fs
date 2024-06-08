@@ -1,4 +1,4 @@
-namespace Seff.Editor
+namespace Fesh.Editor
 
 open AvalonEditB
 open AvalonEditB.Folding
@@ -49,7 +49,7 @@ module CodeLineTools =
                     let len = codeLen - stOff
                     newLns.Add {offStart=stOff; indent=len; len=len}
                 else
-                    match code.IndexOf ('\r', stOff) with //TODO '\r' might fail if Seff is ever ported to AvaloniaEdit to work on MAC
+                    match code.IndexOf ('\r', stOff) with //TODO '\r' might fail if Fesh is ever ported to AvaloniaEdit to work on MAC
                     | -1 ->
                         let len = codeLen - stOff
                         let indent = spacesFrom stOff len code
@@ -129,7 +129,7 @@ module CodeLineTools =
                     let len = codeLen - stOff
                     newLns.Add {offStart=stOff; indent=len; len=len}
                 else
-                    match code.IndexOf ('\r', stOff) with //TODO '\r' might fail if Seff is ever ported to AvaloniaEdit to work on MAC
+                    match code.IndexOf ('\r', stOff) with //TODO '\r' might fail if Fesh is ever ported to AvaloniaEdit to work on MAC
                     | -1 ->
                         let len = codeLen - stOff
                         let indent = spacesFrom stOff len code
@@ -168,7 +168,7 @@ type DocChangedConsequence =
 /// Tracking the lastest change Ids to the document
 /// FoldManager may be null for Log
 [<AllowNullLiteral>] // for log initially
-type InteractionState(ed:TextEditor, foldManager:FoldingManager, config:Seff.Config.Config)  =
+type InteractionState(ed:TextEditor, foldManager:FoldingManager, config:Fesh.Config.Config)  =
 
     let changeId = ref 0L
 

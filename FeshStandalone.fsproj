@@ -20,19 +20,19 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>    <!-- <GenerateDocumentationFile> just in case the editor itself gets refrenced from a script , normaly -->
     <FSharpCoreIncludeDocFileInOutput>true</FSharpCoreIncludeDocFileInOutput>    <!-- <FSharpCoreIncludeDocFileInOutput> does not work when used in visual studio? only dotnet sdk ?-->
 
-    <RootNamespace>Seff</RootNamespace>
-    <AssemblyName>Seff</AssemblyName>
-    <AssemblyTitle>Seff</AssemblyTitle>
-    <Title>Seff</Title>
-    <Product>Seff</Product>
-    <PackageId>Seff</PackageId>
+    <RootNamespace>Fesh</RootNamespace>
+    <AssemblyName>Fesh</AssemblyName>
+    <AssemblyTitle>Fesh</AssemblyTitle>
+    <Title>Fesh</Title>
+    <Product>Fesh</Product>
+    <PackageId>Fesh</PackageId>
 
     <Version>0.9.0</Version>
     <AssemblyVersion>0.9.0</AssemblyVersion>
     <FileVersion>0.9.0</FileVersion>
 
     <PackageReleaseNotes>First public release</PackageReleaseNotes>
-    <Company>Goswin Rothenthal</Company>    <!-- <Company> shows up on file preview on seff.exe in windows file explorer-->
+    <Company>Goswin Rothenthal</Company>    <!-- <Company> shows up on file preview on fesh.exe in windows file explorer-->
     <Authors>GoswinR</Authors>
     <Copyright>Goswin Rothenthal 2019</Copyright>
     <Description>A hostable fsharp scripting editor for Windows based on Avalonedit</Description>
@@ -121,7 +121,7 @@
     <Compile Include="Src/Views/Scrollbar.fs" />
     <Compile Include="Src/Views/Log.fs" />
     <Compile Include="Src/Views/Editor.fs" />
-    <Compile Include="Src/Views/SeffWindow.fs" />
+    <Compile Include="Src/Views/FeshWindow.fs" />
     <Compile Include="Src/Views/FileWatcher.fs" />
     <Compile Include="Src/Views/Tab.fs" />
     <Compile Include="Src/Views/Tabs.fs" />
@@ -131,12 +131,12 @@
     <Compile Include="Src/Views/PopOut.fs" />
     <Compile Include="Src/Views/Commands.fs" />
     <Compile Include="Src/Views/Menu.fs" />
-    <Compile Include="Src/Views/Seff.fs" />
+    <Compile Include="Src/Views/Fesh.fs" />
 
     <Compile Include="Src/Initialize.fs" />
     <Compile Include="Src/App.fs" />
 
-    <None Include="SeffHosting.fsproj" />
+    <None Include="FeshHosting.fsproj" />
   </ItemGroup>
 
   <Target Name="CopyFilesOverAfterBuild" BeforeTargets="AfterBuild">

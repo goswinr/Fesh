@@ -1,7 +1,7 @@
-﻿namespace Seff.Editor
+﻿namespace Fesh.Editor
 
 open AvalonEditB
-open Seff.Util
+open Fesh.Util
 
 /// Commenting:  turning code into Comments and back
 module Commenting =

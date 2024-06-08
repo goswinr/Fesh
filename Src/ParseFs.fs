@@ -1,4 +1,4 @@
-﻿namespace Seff.Util
+﻿namespace Fesh.Util
 
 ()
 
@@ -12,9 +12,9 @@ open System
 
 
 /// Simple parsing of Fsharp code
-module ParseFs = 
+module ParseFs =
 
-    type State = 
+    type State =
         |Code
         |InComment
         |InBlockComment
@@ -28,17 +28,17 @@ module ParseFs =
     /// a find function that will automatically exclude string , character literals and  comments from search
     /// the search function shall return true on find success
     /// even if fromIdx is a high value the search always starts from zero to have correct state
-    let findInFsCode search fromIdx (tx:string) = 
+    let findInFsCode search fromIdx (tx:string) =
 
         let lasti = tx.Length-1
         if fromIdx > lasti then eprintfn  "findInCode: Search from index %d  is bigger than search string last index %d" fromIdx lasti
         let mutable i = 0
         let mutable line = 1
 
-        let inline isCh (c:Char) off i = 
+        let inline isCh (c:Char) off i =
             i+off <= lasti && tx.[i+off] = c
 
-        let checklast state = 
+        let checklast state =
            if i > lasti then ValueNone
            else
                let t = tx.[i]
@@ -47,7 +47,7 @@ module ParseFs =
                | InComment  | InBlockComment  | InString  | InAtString  | InRawString -> ValueNone
 
 
-        let rec find advance state  = 
+        let rec find advance state  =
             i <- i + advance
             if i >= lasti then checklast state
             else
@@ -102,18 +102,18 @@ module ParseFs =
                     | _                          -> find 1 state
 
         find 0 Code     // 0 since initial 'i' value is 0
-    
-    
+
+
     // a find function that will search full text from index
     // the search function shall return true on find success
-    let findInText search fromIdx (tx:string) = 
+    let findInText search fromIdx (tx:string) =
 
         let len = tx.Length
         if fromIdx > len-1 then eprintf "findInText:Search from index %d  is bigger than search string %d" fromIdx len
 
         let mutable line = 1
 
-        let rec find i  = 
+        let rec find i  =
             if i = len then ValueNone
             else
                 if search(i) then ValueSome {offset=i; line=line}
@@ -121,16 +121,16 @@ module ParseFs =
                     if tx.[i] = '\n' then line <-line + 1
                     find (i+1)
         find fromIdx
-   
+
 
     /// Only starts search when not in comment or string literal
     /// Will search one char backward backwards from current position.
     /// Last character of search can be a quote or other non search delimiter.
     /// Since it searches backward this allows to find ending blocks of strings and comments too,
-    let findWordBackward (word:string) fromIdx (inText:string) = 
+    let findWordBackward (word:string) fromIdx (inText:string) =
         let last = word.Length-1
 
-        let search (i:int) = 
+        let search (i:int) =
             if i-1 < last then false // word longer than index value
             else
                 let mutable iw = last
@@ -159,10 +159,10 @@ module ParseFs =
 
     /// Only starts search when not in comment or string literal
     /// Since it searches forward this allows to find starting blocks of strings and comments too
-    let findWordAhead (word:string) fromIdx (inText:string) = 
+    let findWordAhead (word:string) fromIdx (inText:string) =
         let len = word.Length
 
-        let search (i:int) = 
+        let search (i:int) =
             if i+len >= inText.Length then false // search would go over the end of text
             else
                 let mutable iw = 0

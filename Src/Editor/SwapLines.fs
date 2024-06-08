@@ -1,6 +1,6 @@
-﻿namespace Seff.Editor
+﻿namespace Fesh.Editor
 
-open Seff.Model
+open Fesh.Model
 open AvalonEditB.Editing
 
 module SwapLines =

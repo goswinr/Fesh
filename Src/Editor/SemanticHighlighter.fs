@@ -1,4 +1,4 @@
-﻿namespace Seff.Editor
+﻿namespace Fesh.Editor
 
 open System
 open System.Windows.Media
@@ -11,8 +11,8 @@ open AvalonEditB
 open AvalonEditB.Rendering
 open AvalonLog.Brush
 
-open Seff
-open Seff.Model
+open Fesh
+open Fesh.Model
 
 // see  https://github.com/dotnet/fsharp/blob/main/src/Compiler/Service/SemanticClassification.fs
 
@@ -217,7 +217,7 @@ type SemanticHighlighter (state: InteractionState) =
 
                         let st = ln.offStart + r.StartColumn
                         let en = ln.offStart + r.EndColumn
-                        //ISeffLog.log.PrintfnDebugMsg $"{lineNo}:{sem.Type} {r.StartColumn} to {r.EndColumn}"
+                        //IFeshLog.log.PrintfnDebugMsg $"{lineNo}:{sem.Type} {r.StartColumn} to {r.EndColumn}"
 
                         match sem.Type with
                         | Sc.ReferenceType               -> push(st,en, semActs.ReferenceType              )

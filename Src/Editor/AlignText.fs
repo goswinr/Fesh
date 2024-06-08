@@ -1,8 +1,8 @@
-﻿namespace Seff.Editor
+﻿namespace Fesh.Editor
 
 open System
 open System.Text
-open Seff.Model
+open Fesh.Model
 
 
 module AlignText =
@@ -81,14 +81,14 @@ module AlignText =
             for alignChr in alignChars do
                 let offs = stringBuilders |> Array.map ( findCharExcludeInStringLiterals alignChr searchFrom)
                 let maxOff = Array.max offs
-                //ISeffLog.log.PrintfnDebugMsg "Char: '%c' at maxOff: %d" alignChr maxOff
+                //IFeshLog.log.PrintfnDebugMsg "Char: '%c' at maxOff: %d" alignChr maxOff
                 for sb in stringBuilders do
                     let foundPos = findCharExcludeInStringLiterals alignChr searchFrom sb
                     let diff = maxOff - foundPos
                     if diff > 0 && foundPos > 0 then
                         sb.Insert(max searchFrom foundPos , String(' ', diff)) |> ignore
                     //else
-                        //ISeffLog.log.PrintfnFsiErrorMsg " NO insert:%d spaces at max pos %d" diff  foundPos
+                        //IFeshLog.log.PrintfnFsiErrorMsg " NO insert:%d spaces at max pos %d" diff  foundPos
 
                 searchFrom <- maxOff
 

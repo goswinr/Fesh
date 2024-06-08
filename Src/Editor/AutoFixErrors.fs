@@ -1,10 +1,10 @@
-﻿namespace Seff.Editor
+﻿namespace Fesh.Editor
 
 open System.Windows
 open System.Collections.Generic
 open Fittings
-open Seff
-open Seff.Model
+open Fesh
+open Fesh.Model
 open FSharp.Compiler.CodeAnalysis
 
 module AutoFixErrors =

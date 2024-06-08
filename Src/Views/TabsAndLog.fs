@@ -1,4 +1,4 @@
-﻿namespace Seff.Views
+﻿namespace Fesh.Views
 
 open System
 open System.Windows.Controls
@@ -6,12 +6,12 @@ open System.Windows
 
 open Fittings.DependencyProps
 
-open Seff
-open Seff.Config
+open Fesh
+open Fesh.Config
 
 /// A class holding the main grid of Tabs and the log Window
 /// Includes logic for toggling the view split and saving and restoring size and position
-type TabsAndLog (config:Config, tabs:Tabs, log:Log, seffWin:Views.SeffWindow) as this =
+type TabsAndLog (config:Config, tabs:Tabs, log:Log, feshWin:Views.FeshWindow) as this =
 
     let gridSplitterSize = 4.0
 
@@ -75,8 +75,8 @@ type TabsAndLog (config:Config, tabs:Tabs, log:Log, seffWin:Views.SeffWindow) as
                 config.Settings.Save ()
                 )
 
-        seffWin.Window.StateChanged.Add (fun e ->
-            match seffWin.Window.WindowState with
+        feshWin.Window.StateChanged.Add (fun e ->
+            match feshWin.Window.WindowState with
             | WindowState.Normal ->
                 if isLogMaxed then this.ToggleMaxLog() // to also switch back from maximized when the window size gets restored
             | _ -> ()
@@ -85,7 +85,7 @@ type TabsAndLog (config:Config, tabs:Tabs, log:Log, seffWin:Views.SeffWindow) as
             )
 
         // react to Escape key globally
-        seffWin.Window.KeyDown.Add (fun k ->  //clear selection on Escape key
+        feshWin.Window.KeyDown.Add (fun k ->  //clear selection on Escape key
             match k.Key with
             |Input.Key.Escape -> // ClearSelectionHighlight
                 let ed = tabs.Current.Editor
@@ -114,12 +114,12 @@ type TabsAndLog (config:Config, tabs:Tabs, log:Log, seffWin:Views.SeffWindow) as
             logRowHeight.Height      <- makeGridLength <|config.Settings.GetFloat ("LogHeight"   , 99.)
             editorColumnWidth.Width  <- makeGridLength <|config.Settings.GetFloat ("EditorWidth" , 99. )
             logColumnWidth.Width     <- makeGridLength <|config.Settings.GetFloat ("LogWidth"    , 99. )
-            if not seffWin.WasMax then seffWin.Window.WindowState <- WindowState.Normal // do last because of  win.Window.StateChanged.Add handler above
+            if not feshWin.WasMax then feshWin.Window.WindowState <- WindowState.Normal // do last because of  win.Window.StateChanged.Add handler above
         else
             // maximize log view
             isLogMaxed <- true
-            seffWin.WasMax <- seffWin.IsMinOrMax
-            if not seffWin.IsMinOrMax  then seffWin.Window.WindowState <- WindowState.Maximized
+            feshWin.WasMax <- feshWin.IsMinOrMax
+            if not feshWin.IsMinOrMax  then feshWin.Window.WindowState <- WindowState.Maximized
             editorRowHeight.Height   <- makeGridLength 0.
             logRowHeight.Height      <- makeGridLength 999.
             editorColumnWidth.Width  <- makeGridLength 0.
@@ -133,6 +133,6 @@ type TabsAndLog (config:Config, tabs:Tabs, log:Log, seffWin:Views.SeffWindow) as
 
     member this.Log = log
 
-    member this.SeffWindow = seffWin
+    member this.FeshWindow = feshWin
 
     member this.GridSplitterSize = gridSplitterSize
