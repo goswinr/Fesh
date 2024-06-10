@@ -160,6 +160,7 @@ type Completions(state: InteractionState) =
     let mutable willInsert = false // to track if window closed without inserting ( e.g pressing esc)
 
     let empty = ResizeArray<string>()
+
     let selectedCompletionText ()=
         match win with
         |None -> ""
@@ -314,19 +315,20 @@ type Completions(state: InteractionState) =
 
                             let taCaretChanged  = new EventHandler(fun _ _ ->
                                 match complList.ListBox.Items.Count with
-                                | 0 -> w.Close()  //  close when list is empty. willInsert is still false so checkAndMark will be called in closing event handler
-                                | 1 -> match complList.SelectedItem with // insert and close if there is an exact match and no other possible match available
+                                | 0 ->  w.Close()  //  close when list is empty. willInsert is still false so checkAndMark will be called in closing event handler
+                                | 1 ->  match complList.SelectedItem with // insert and close if there is an exact match and no other possible match available
                                         | null -> ()
                                         | it ->
-                                                let textInWin = it.Text
-                                                let len = textInWin.Length
-                                                if avEd.Document.TextLength >= w.StartOffset + len then
-                                                    let textInDoc = avEd.Document.GetText(w.StartOffset, textInWin.Length)
-                                                    if textInWin = textInDoc then
-                                                        complList.RequestInsertion(new EventArgs()) // this triggers a doc-changed event
+                                            let textInWin = it.Text
+                                            let len = textInWin.Length
+                                            if avEd.Document.TextLength >= w.StartOffset + len then
+                                                let textInDoc = avEd.Document.GetText(w.StartOffset, textInWin.Length)
+                                                if textInWin = textInDoc then
+                                                    complList.RequestInsertion(new EventArgs()) // this triggers a doc-changed event
                                 | _ -> () // else keep window open
                                 )
 
+                            ta.Caret.PositionChanged.AddHandler taCaretChanged
                             w.Closed.Add (fun _  -> // this gets called even if the window never shows up
                                     ta.Caret.PositionChanged.RemoveHandler taCaretChanged
 
@@ -341,8 +343,12 @@ type Completions(state: InteractionState) =
                                     if not willInsert then // else -on inserting- a DocChanged event is triggered anyway that will do the checkAndMark
                                         checkAndMark()
                                     )
-                            ta.Caret.PositionChanged.AddHandler taCaretChanged
+
                             complList.InsertionRequested.Add(fun _ -> willInsert <- true)
+
+                            if complList.ListBox.Items.Count = 1 then
+                                complList.SelectedItem <- unbox complList.ListBox.Items.[0] //complData.[0] // select the only item if there is just one
+
 
 
                             //IFeshLog.log.PrintfnDebugMsg "*5.4 Show Completion Window with %d items prefilter: '%s' " complList.ListBox.Items.Count prefilter

@@ -93,8 +93,8 @@ type TabsAndLog (config:Config, tabs:Tabs, log:Log, feshWin:Views.FeshWindow) as
                     if ed.TypeInfoTip.IsOpen || ed.DrawingServices.errors.ToolTip.IsOpen then
                         ed.CloseToolTips()
                     else
-                        ed.SelectionHighlighter.ClearAll()
-                        match log.SelectionHighlighter with Some h -> h.ClearAll() | None    -> ()
+                        ed.SelectionHighlighter.ForceClear()
+                        match log.SelectionHighlighter with Some h -> h.ForceClear() | None    -> ()
             | _ -> ()
         )
 

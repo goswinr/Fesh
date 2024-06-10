@@ -69,7 +69,7 @@ module RecognizePath =
                             let cmd = {
                                 name = sprintf "Do a Google search for '%s'" txt
                                 gesture = ""
-                                cmd = mkCmdSimple (fun _ -> Diagnostics.Process.Start(sprintf "https://www.google.com/search?q=%s" txt) |> ignore )
+                                cmd = mkCmdSimple (fun _ -> General.browseTo(sprintf "https://www.google.com/search?q=%s" txt)  )
                                 tip = sprintf "This Command will open your default browser and do a google search for\r\n'%s'" txt
                                 }
                             menu.Items.Insert(0, Separator():> Control)

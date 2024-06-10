@@ -14,12 +14,14 @@ type ScriptCompilerFsproj ( runContext:RunContext) =
 
     // TODO really only <PlatformTarget>x64</PlatformTarget><!--  x64 is required e.g by Rhino, don't us just 'Platform' tag-->   ??
 
-    let defaultFsproj = """<?xml version="1.0" encoding="utf-8"?>
+    let target = if runContext.IsRunningOnDotNetCore then "net8.0-windows" else "net48"
+
+    let defaultFsproj = $$"""<?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
   <!-- all values that are enclose in curly brackets {} will be replaced by Fesh ScriptCompiler -->
   <PropertyGroup>
     <OutputType>Library</OutputType>
-    <TargetFramework>net48</TargetFramework>
+    <TargetFramework>{{target}}</TargetFramework>
     <LangVersion>preview</LangVersion>
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages> <!--to only have the English resources of Fsharp.Core-->
 
@@ -39,7 +41,7 @@ type ScriptCompilerFsproj ( runContext:RunContext) =
   </PropertyGroup>
 
   <ItemGroup>
-  <PackageReference Update="FSharp.Core" Version="5.0.2" /> <!--included so that the current SDK doesn't force a maybe to high version-->
+  <!-- <PackageReference Update="FSharp.Core" Version="5.0.2" /> included only if the current SDK forces a to high version-->
     {nuget-packages} <!-- set by Fesh ScriptCompiler-->
   </ItemGroup>
 

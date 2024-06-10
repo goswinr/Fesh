@@ -53,7 +53,7 @@ type PositionInCodeEx =
 [<RequireQualifiedAccess>]
 module FsCheckerUtil =
 
-    let getFsxFileNameForChecker (filePath:FilePath) =
+    let getFsxFileNameForChecker (filePath:Fesh.Model.FilePath) =
         match filePath with
         |Deleted fi |SetTo fi ->
             let n = fi.FullName
@@ -209,7 +209,9 @@ type Checker private ()  =
 
 
 
-    static let parseAndCheck( state:InteractionState, code:string, filePath:FilePath, changeId): option<ParseCheckRes> =
+    static let mutable projectOptions = None: FSharpProjectOptions option
+
+    static let parseAndCheck( state:InteractionState, code:string, filePath:Fesh.Model.FilePath, changeId): option<ParseCheckRes> =
         match fsChecker with
         | Some _ -> ()
         | None   ->  fsChecker <- Some (FsCheckerUtil.getNew())
@@ -222,6 +224,7 @@ type Checker private ()  =
             let! _ = ok()
             let  sourceText = Text.SourceText.ofString code
             let! opts = FsCheckerUtil.getOptions fsChecker.Value fileFsx sourceText
+            projectOptions <- Some opts
             let! _ = ok()
             let! checkRes = FsCheckerUtil.parseAndCheckImpl fsChecker.Value fileFsx sourceText opts
             let! _ = ok()
@@ -338,6 +341,9 @@ type Checker private ()  =
         //DisposeForResetting:
         match fsChecker with
         |None -> ()
-        |Some ch -> ch.ClearCache([])
-        fsChecker <- Some (FsCheckerUtil.getNew()) // TODO this is  blocking  in Sync ?
+        |Some ch ->
+            match projectOptions with
+            |None -> ()
+            |Some po -> ch.ClearCache([po])
+        fsChecker <- Some (FsCheckerUtil.getNew()) // TODO this is blocking in Sync ?
         IFeshLog.log.PrintfnInfoMsg "New F# type checker created."

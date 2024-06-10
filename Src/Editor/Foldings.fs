@@ -331,7 +331,8 @@ type Foldings(manager:Folding.FoldingManager, state:InteractionState, getFilePat
         if selectText then
             ed.Select(offset, length)
         else
-            ed.CaretOffset<-offset
+            ed.CaretOffset <- offset
+
 
         if unfoldedOneOrMore then
             saveFoldingStatus() // so that they are saved immediately

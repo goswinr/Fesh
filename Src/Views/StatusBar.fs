@@ -290,7 +290,7 @@ type SelectedEditorTextStatus (grid:TabsAndLog) as this =
                 let ed = grid.Tabs.Current.Editor
                 let off = sel.Offsets.[scrollToIdx]
                 if off < ed.AvaEdit.Document.TextLength then
-                    ed.Folds.GoToOffsetAndUnfold(off, sel.Word.Length, true )
+                    ed.Folds.GoToOffsetAndUnfold(off, sel.Word.Length,  true )
                     scrollToIdx <- scrollToIdx + 1
                 else
                     scrollToIdx <- 0

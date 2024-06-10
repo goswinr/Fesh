@@ -15,9 +15,9 @@ open Fesh.Editor.CodeLineTools
 
 module SelectionHighlighting =
 
-    let colorEditor  = Brushes.PaleTurquoise |> AvalonLog.Brush.freeze
+    let colorEditor  = Brushes.PaleTurquoise |> AvalonLog.Brush.brighter 30  |> AvalonLog.Brush.freeze
 
-    let colorLog     = Brushes.Blue |> AvalonLog.Brush.brighter 210  |> AvalonLog.Brush.freeze
+    let colorLog     = Brushes.Blue |> AvalonLog.Brush.brighter 220  |> AvalonLog.Brush.freeze
     let colorInactive= Brushes.Gray                                  |> AvalonLog.Brush.freeze
 
     let foundSelectionLogEv    = new Event<bool>()
@@ -118,8 +118,8 @@ type SelectionHighlighter (state:InteractionState) =
                         loop (i+1)
             loop (offsSearchFromIdx)
 
-    let justClear(triggerNext) =
-        if lastSels.Count > 0  then // to only clear once, then not again
+
+    let forceClear(triggerNext) =
             lastWord <- ""
             lastSkipOff <- MarkAll
             lastSels.Clear()
@@ -136,6 +136,12 @@ type SelectionHighlighter (state:InteractionState) =
                     ed.TextArea.TextView.Redraw(f, l, priority)
                 globalFoundSelectionEditorEv.Trigger(triggerNext)
             }|> Async.Start
+
+
+
+    let clearIfNeeded(triggerNext) =
+        if lastSels.Count > 0  then // to only clear once, then not again
+            forceClear(triggerNext)
 
     /// this checks also if state.CodeLines are up to date before calling this
     /// returns true if not cancelled by newer change Id
@@ -278,18 +284,18 @@ type SelectionHighlighter (state:InteractionState) =
 
             match Selection.getSelType ed.TextArea with
             |RectSel ->
-                justClear(true)
+                clearIfNeeded(true)
 
             |RegSel  ->
                 if ed.TextArea.Selection.IsMultiline then
-                    justClear(true)
+                    clearIfNeeded(true)
                 else
                     let word = ed.SelectedText
                     if isTextToHighlight word then  //is at least two chars and has no line breaks
                         let skip = SkipOffset ed.SelectionStart
                         redrawMarking(word, skip, true, newSelId)
                     else
-                        justClear(true)
+                        clearIfNeeded(true)
 
             // keep highlighting if the cursor is just moved ? even while typing in comments?:
             |NoSel   ->
@@ -323,11 +329,12 @@ type SelectionHighlighter (state:InteractionState) =
 
     member _.ClearMarksIfOneSelected() = // to be used when the search panel opens
         match lastSkipOff with
-        | SkipOffset _ -> justClear(true) // there is a selection to clear, then clear all its marks too
+        | SkipOffset _ -> clearIfNeeded(true) // there is a selection to clear, then clear all its marks too
         | MarkAll      -> () // keep the marks, the do not match the search window probably
 
 
-    member _.ClearAll() = justClear(false) // used when escape is pressed and not type info is open
+    // used when escape is pressed and not type info is open
+    member _.ForceClear() = forceClear(false)
 
     member _.Word = lastWord
 
@@ -340,7 +347,7 @@ type SelectionHighlighter (state:InteractionState) =
         if isTextToHighlight word then // isTextToHighlight is needed , word might be empty string
             redrawMarking(word, MarkAll, false, selChangeId.Value)
         else
-            justClear(false)
+            clearIfNeeded(false)
 
 
 /// Highlight-all-occurrences-of-selected-text in Log
@@ -368,23 +375,26 @@ type SelectionHighlighterLog (lg:TextEditor) =
     let colorizer = FastColorizer([|trans|], lg )
     let lines = CodeLinesSimple()
 
-    let justClearLog(triggerNext) =
+    let forceClear(triggerNext) =
+        lastWord <- ""
+        lastSkipOff <- MarkAll
+        lastSels.Clear()
+        prevRange <- None
+        async{
+            do! Async.SwitchToContext Fittings.SyncWpf.context
+            match thisRange with
+            | None   -> ()
+                // TODO ? still trigger event to clear the selection in StatusBar if it is just a selection without any highlighting(e.g. multiline)
+            | Some (f,l) ->
+                trans.Update(empty)// using empty array
+                //for f in state.FoldManager.AllFoldings do f.BackgroundColor <- null  // no folds in Log !!
+                lg.TextArea.TextView.Redraw(f, l, priority)
+            foundSelectionLogEv.Trigger(triggerNext)
+        } |> Async.Start
+
+    let clearLogIfNeeded(triggerNext) =
         if lastSels.Count > 0 then
-            lastWord <- ""
-            lastSkipOff <- MarkAll
-            lastSels.Clear()
-            prevRange <- None
-            async{
-                do! Async.SwitchToContext Fittings.SyncWpf.context
-                match thisRange with
-                | None   -> ()
-                    // TODO ? still trigger event to clear the selection in StatusBar if it is just a selection without any highlighting(e.g. multiline)
-                | Some (f,l) ->
-                    trans.Update(empty)// using empty array
-                    //for f in state.FoldManager.AllFoldings do f.BackgroundColor <- null  // no folds in Log !!
-                    lg.TextArea.TextView.Redraw(f, l, priority)
-                foundSelectionLogEv.Trigger(triggerNext)
-            } |> Async.Start
+            forceClear(triggerNext)
 
     // Called from StatusBar to highlight the current selection of Editor in Log too
     // selectionStartOff is the offset of the current selection in the Editor, it is excluded from highlighting
@@ -505,17 +515,17 @@ type SelectionHighlighterLog (lg:TextEditor) =
         if reactToSelChange // in case the editor request the clearing of a current selection
         && lg.TextArea.IsFocused then  // check IsFocused to not react to selections via the search bar!! // TextView.IsFocused  does not work
             match Selection.getSelType lg.TextArea with
-            |RectSel ->  justClearLog(true)
+            |RectSel ->  clearLogIfNeeded(true)
             |RegSel  ->
                 if lg.TextArea.Selection.IsMultiline then
-                    justClearLog(true)
+                    clearLogIfNeeded(true)
                 else
                     let word = lg.SelectedText
                     if isTextToHighlight word then  //is at least two chars and has no line breaks
                         let skip = SkipOffset lg.SelectionStart
                         mark(word, skip, true)
                     else
-                        justClearLog(true)
+                        clearLogIfNeeded(true)
 
             // keep highlighting if the cursor is just repositioned, but nothing selected:
             |NoSel  -> // justClear(true)
@@ -537,8 +547,8 @@ type SelectionHighlighterLog (lg:TextEditor) =
                 mark(lastWord, lastSkipOff, false) // using lastSkipOff is OK for Log because if there is a selection in the Log the text in a selection can not move or be deleted
             )
 
-
-    member _.ClearAll() = justClearLog(false) // used when escape is pressed and not type info is open
+    /// used when escape is pressed and not type info is open
+    member _.ForceClear() = forceClear(false) // used when escape is pressed and not type info is open
 
     member _.Word    = lastWord
 
@@ -550,7 +560,7 @@ type SelectionHighlighterLog (lg:TextEditor) =
 
     member _.ClearMarksIfOneSelected() = // to be used when the search panel opens
         match lastSkipOff with
-        | SkipOffset _ -> justClearLog(true) // there is a selection to clear, then clear all its marks too
+        | SkipOffset _ -> clearLogIfNeeded(true) // there is a selection to clear, then clear all its marks too
         | MarkAll      -> () // keep the marks, the do not match the search window probably
 
     /// Called from StatusBar to highlight the current selection of Editor in Log too
@@ -558,4 +568,4 @@ type SelectionHighlighterLog (lg:TextEditor) =
         if isTextToHighlight word then // isTextToHighlight is needed , word might be empty string
             mark(word, MarkAll, false)
         else
-            justClearLog(false)
+            clearLogIfNeeded(false)

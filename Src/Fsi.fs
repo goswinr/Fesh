@@ -37,19 +37,20 @@ type FsiIsCancelingIsOk =
 
 module GoTo =
 
-    /// open any foldings if required and select at location
-    let line (lineNumber :int, ied:IEditor) =
-        /// similar to Foldings.GoToLineAndUnfold
+    /// open any foldings if required and don't select at location
+    let errorLine (lineNumber :int, ied:IEditor) =
+        //this implementation is similar to Foldings.GoToLineAndUnfold
         let ava = ied.AvaEdit
         let ln = ava.Document.GetLineByNumber(lineNumber)
-        let mutable unfoldedOneOrMore = false
+        //let mutable unfoldedOneOrMore = false
         for fold in ied.FoldingManager.GetFoldingsContaining(ln.Offset) do
             if fold.IsFolded then
                 fold.IsFolded <- false
-                unfoldedOneOrMore <- true
+                //unfoldedOneOrMore <- true
         ava.ScrollTo(ln.LineNumber,1)
+        ied.AvaEdit.CaretOffset<- ln.Offset // done by ied.AvaEdit.Select too
         //ied.AvaEdit.CaretOffset<- loc.EndOffset // done by ied.AvaEdit.Select too
-        ava.Select(ln.Offset, ln.Length)
+        // ava.Select(ln.Offset, ln.Length)
 
 //for: HandleProcessCorruptedStateExceptionsAttribute: This construct is deprecated. Recovery from corrupted process state exceptions is not supported; HandleProcessCorruptedStateExceptionsAttribute is ignored.
 //and for : Runtime.ControlledExecution.Run
@@ -321,7 +322,7 @@ type Fsi private (config:Config) =
                             // go to first error line in an fsx file
                             let _,lr = Str.splitOnce ".fsx:" ln
                             match Int32.TryParse (lr.Replace("line","").Trim()) with
-                            |true , i ->GoTo.line(i,codeToEv.editor)
+                            |true , i -> GoTo.errorLine(i,codeToEv.editor)
                             |_ -> ()
                         else
                             log.PrintfnRuntimeErr "%s" (ln.TrimEnd())

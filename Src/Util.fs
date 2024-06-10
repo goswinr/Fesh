@@ -105,6 +105,16 @@ module General =
                 loop 0
 
 
+    /// open a URL in a browser
+    let browseTo(url:string) =
+        try
+            let pi = new Diagnostics.ProcessStartInfo()
+            pi.UseShellExecute <- true
+            pi.FileName <- url
+            printfn "Opening browser url: %s" url
+            System.Diagnostics.Process.Start(pi) |> ignore
+        with e ->
+            eprintfn "Error opening browser url: %s\r\n %A" url e
 
     // for pipelining several functions like traverse
     //let ifTrueDo func predicate resizeArray condition : bool =        if condition then func predicate resizeArray else false
@@ -541,6 +551,8 @@ module Monads =
 
     /// A maybe monad for option types.
     let maybe = MaybeBuilder()
+
+
 
     (*
     /// Generic monadic operators
