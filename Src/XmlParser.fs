@@ -193,23 +193,42 @@ module XmlParser =
         let rec readName () =
             match x[i] with
             | ' ' -> ()
-            | '>' -> ()
             | '/' -> ()
+            | '>' -> ()
             |  c  ->
                 add c
                 i<-i+1
                 readName()
 
-        /// reading attributes such as <member name="T:Microsoft.FSharp.Collections.ResizeArray`1">
-        /// on exit current char is '"'
-        let rec readAttrValue () =
+
+        /// reading attributes such as: member name='T:Microsoft.FSharp.Collections.ResizeArray`1'
+        /// on exit current char is '
+        let rec readSingleQuotedAttrValue () =
             match x[i] with
-            | '"' -> ()
             | ''' -> ()
             |  c  ->
                 add c
                 i<-i+1
-                readAttrValue()
+                readSingleQuotedAttrValue()
+
+        /// reading attributes such as: member name="T:Microsoft.FSharp.Collections.ResizeArray`1"
+        /// on exit current char is "
+        let rec readDoubleQuotedAttrValue () =
+            match x[i] with
+            | '"' -> ()
+            |  c  ->
+                add c
+                i<-i+1
+                readDoubleQuotedAttrValue()
+
+        /// reading attributes such as 'member name="T:Microsoft.FSharp.Collections.ResizeArray`1" '
+        /// on exit current char is " or '
+        let readAttrValue () =
+            match x[i] with
+            | '"' -> i<-i+1 ; readDoubleQuotedAttrValue() // i<-i+1 to jump after the " or '
+            | ''' -> i<-i+1 ; readSingleQuotedAttrValue()
+            |  _  -> () // should not happen after the = and some whitespace there should be a " or ' to start the value
+
 
         /// on exit current char is '/' or '&gt;'
         let rec readAttrs (ps:Attr list) :Attr list =
@@ -221,9 +240,8 @@ module XmlParser =
                 let name = get sb
                 i<-i+1 // jump after '='
                 skipSpace()
-                i<-i+1 // jump after '"'
                 readAttrValue()
-                i<-i+1 // jump after '"'
+                i<-i+1 // jump after the " or '
                 let value = get sb
                 let attr = {name=name; value=value}
                 readAttrs (attr::ps)
@@ -240,12 +258,12 @@ module XmlParser =
                 match x[i] with
                 | '<' -> appendText sb cs // trimAppendEndText sb cs   // end of text,  TODO  or us trimAppendText to trim leading space ??
                 | '&' ->
-                        match x[i+1 .. i+2] with
-                        | "lt" -> i<-i+4 ;  add '<'   // &lt;
-                        | "gt" -> i<-i+4 ;  add '>'   // &gt;
-                        | "am" -> i<-i+5 ;  add '&'   // &amp;
-                        | "qu" -> i<-i+6 ;  add '"'   // &quot;
-                        | "ap" -> i<-i+6 ;  add '\''  // &apos;
+                        match x[i+1 .. i+2] with // TODO actually verify that this is a valid escape terminated by ';'
+                        | "lt" -> i<-i+4 ;  add '<'   //  <  &lt;
+                        | "gt" -> i<-i+4 ;  add '>'   //  >  &gt;
+                        | "am" -> i<-i+5 ;  add '&'   //  &  &amp;
+                        | "qu" -> i<-i+6 ;  add '"'   //  "  &quot;
+                        | "ap" -> i<-i+6 ;  add '\''  //  '  &apos;
                         |  _   -> i<-i+1 ;  add '&'
                         readText cs
                 | c ->
