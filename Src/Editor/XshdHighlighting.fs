@@ -68,13 +68,12 @@ module SyntaxHighlighting =
     let openVSCode(ed:TextEditor) =
         try
             if IO.File.Exists filePath then
-                //Diagnostics.Process.Start("code", "\"" + filePath+ "\" --reuse-window") |> ignore
-                let p = new System.Diagnostics.Process()
-                p.StartInfo.FileName <- "code"
+                let psi = new Diagnostics.ProcessStartInfo()
+                psi.FileName <- "code"
                 let inQuotes = "\"" + filePath + "\""
-                p.StartInfo.Arguments <- String.concat " " [inQuotes;  "--reuse-window"]
-                p.StartInfo.WindowStyle <- Diagnostics.ProcessWindowStyle.Hidden
-                p.Start() |> ignore
+                psi.Arguments <- String.concat " " [inQuotes;  "--reuse-window"]
+                psi.WindowStyle <- Diagnostics.ProcessWindowStyle.Hidden
+                Diagnostics.Process.Start(psi) |> ignore
                 watch(FileInfo filePath, ed)
             else
                 IFeshLog.log.PrintfnIOErrorMsg "File not found: %s" filePath

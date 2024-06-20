@@ -148,12 +148,13 @@ module RecognizePath =
                                 cmd = mkCmdSimple (fun _ ->
                                     try
                                         if IO.Directory.Exists fullPath || IO.File.Exists fullPath then
-                                            let p = new System.Diagnostics.Process()
-                                            p.StartInfo.FileName <- "code"
+                                            let psi = new Diagnostics.ProcessStartInfo()
+                                            psi.FileName <- "code"
                                             let inQuotes = "\"" + fullPath + "\""
-                                            p.StartInfo.Arguments <- String.concat " " [inQuotes;  "--reuse-window"]
-                                            p.StartInfo.WindowStyle <- Diagnostics.ProcessWindowStyle.Hidden
-                                            p.Start() |> ignore
+                                            psi.Arguments <- String.concat " " [inQuotes;  "--reuse-window"]
+                                            psi.WindowStyle <- Diagnostics.ProcessWindowStyle.Hidden
+                                            psi.UseShellExecute <- true
+                                            Diagnostics.Process.Start(psi) |> ignore
                                         else
                                             IFeshLog.log.PrintfnIOErrorMsg "Directory or file \r\n%s\r\n does not exist" fullPath
                                     with e ->

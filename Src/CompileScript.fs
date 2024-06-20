@@ -160,7 +160,7 @@ module CompileScript =
     let gray   msg = IFeshLog.log.PrintfnColor 190 190 190 msg
     //let gray msg = IFeshLog.log.PrintfColor  190 190 190 msg
 
-    let msBuild(p:Diagnostics.Process, fsProj,config:Config.Config) =
+    let msBuild(psi:Diagnostics.ProcessStartInfo, fsProj, config:Config.Config) =
         gray "starting MSBuild.exe ..."
         let msBuildFolders =
             [
@@ -182,15 +182,16 @@ module CompileScript =
             IFeshLog.log.PrintfnIOErrorMsg  "the settings file is at %s" config.RunContext.SettingsFileInfo.FullName
             false
         | Some msBuildexe ->
-            p.StartInfo.FileName <- "\"" + msBuildexe + "\""
-            p.StartInfo.Arguments <- String.concat " " ["\"" + fsProj + "\"" ;  "-restore" ] //; "/property:Configuration=Release"] configuration should be specified in the fsproj file
+            psi.FileName <- "\"" + msBuildexe + "\""
+            psi.Arguments <- String.concat " " ["\"" + fsProj + "\"" ;  "-restore" ] //; "/property:Configuration=Release"] configuration should be specified in the fsproj file
             true
 
-    let dotnetBuild(p:Diagnostics.Process, fsProj)=
+
+    let dotnetBuild(psi:Diagnostics.ProcessStartInfo, fsProj)=
         // TODO check if dotnet sdk is installed
         gray "starting dotnet build ..."
-        p.StartInfo.FileName <- "dotnet"
-        p.StartInfo.Arguments <- String.concat " " ["build"; "\"" + fsProj + "\""  ] //;  "--configuration Release"] configuration is part of fsproj file
+        psi.FileName <- "dotnet"
+        psi.Arguments <- String.concat " " ["build"; "\"" + fsProj + "\""  ] //;  "--configuration Release"] configuration is part of fsproj file
         true
 
     let compileScript(code, fp:FilePath, useMSBuild, config:Config) =
@@ -226,17 +227,16 @@ module CompileScript =
                             IO.File.WriteAllText(fsProj,s,Text.Encoding.UTF8)
                             gray "project files created at %s" fsProj
                             //https://stackoverflow.com/questions/1145969/processinfo-and-redirectstandardoutput
-                            let p = new System.Diagnostics.Process()
-                            p.EnableRaisingEvents <- true
+                            let psi = new System.Diagnostics.ProcessStartInfo()
                             let compilerExists =
-                                if useMSBuild then msBuild     ( p, fsProj, config)
-                                else               dotnetBuild ( p, fsProj)
+                                if useMSBuild then msBuild     ( psi, fsProj, config)
+                                else               dotnetBuild ( psi, fsProj)
                             if compilerExists then
-                                IFeshLog.log.PrintfnColor 0 0 200 "%s %s" p.StartInfo.FileName p.StartInfo.Arguments
-                                p.StartInfo.UseShellExecute <- false
-                                p.StartInfo.CreateNoWindow <- true //true if the process should be started without creating a new window to contain it
-                                p.StartInfo.RedirectStandardError <-true
-                                p.StartInfo.RedirectStandardOutput <-true
+                                IFeshLog.log.PrintfnColor 0 0 200 "%s %s" psi.FileName psi.Arguments
+                                psi.UseShellExecute <- false
+                                psi.CreateNoWindow <- true //true if the process should be started without creating a new window to contain it
+                                psi.RedirectStandardError <-true
+                                psi.RedirectStandardOutput <-true
 
                                 let enc =
                                     // Text.Encoding.GetEncoding(Globalization.CultureInfo.CurrentCulture.TextInfo.OEMCodePage) // original version
@@ -246,8 +246,12 @@ module CompileScript =
                                 // <PackageReference Include="System.Text.Encoding.CodePages" Version="8.0.0" />
                                 // for console also see https://stackoverflow.com/a/1427817/969070
                                 // https://stackoverflow.com/a/48436394/969070
-                                p.StartInfo.StandardOutputEncoding <- enc
-                                p.StartInfo.StandardErrorEncoding  <- enc
+                                psi.StandardOutputEncoding <- enc
+                                psi.StandardErrorEncoding  <- enc
+
+                                let p = new Diagnostics.Process()
+                                p.StartInfo <- psi
+                                p.EnableRaisingEvents <- true
                                 p.OutputDataReceived.Add ( fun d ->
                                     let txt = d.Data
                                     if not <| isNull txt then // happens often actually
@@ -277,6 +281,7 @@ module CompileScript =
                                 p.BeginErrorReadLine()
                                 //log.PrintfnInfoMsg "compiling to %s" (IO.Path.Combine(projFolder,"bin","Release","netstandard2.0",nameSpace+".dll"))
                                 p.WaitForExit()
+
                 with
                     e -> IFeshLog.log.PrintfnAppErrorMsg "%A" e
             } |> Async.Start
