@@ -10,10 +10,10 @@
 Fesh is a Scripting Editor for F# on Windows.
 ![Screenshot](https://raw.githubusercontent.com/goswinr/Fesh/main/Doc/screenshot1.png)
 
-The Editor supports morden IDE features like semantic syntax highlighting, typ info and autocomplete.
-Unlike the typical F# REPL this editor has the input and the output in two separate windows.
+The Editor supports modern IDE features like semantic syntax highlighting, typ info and autocomplete.
+Unlike a typical F# REPL this editor has the input and the output in two separate windows.
 Just [like Don Syme always wanted it to be](https://github.com/dotnet/fsharp/issues/2161#issuecomment-270465310).
-The Editor can easily be hosted in other apps to create an Application scripting tool.
+The Editor can easily be hosted in other apps to create an application scripting tool.
 This was in fact the primary motivation for creating this editor.
 see the nuget package [![Fesh on nuget.org](https://img.shields.io/nuget/v/Fesh.svg)](https://www.nuget.org/packages/Fesh/)
 and [Fesh.Rhino](https://github.com/goswinr/Fesh.Rhino) as an example.

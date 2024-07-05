@@ -157,7 +157,7 @@ type Fsi private (config:Config) =
                 System.Windows.Threading.Dispatcher.Run()
                 ))
         #if NETFRAMEWORK
-        thread.SetApartmentState(ApartmentState.STA) // works only on net48?
+        thread.SetApartmentState(ApartmentState.STA) // works only on net48? so that the thread can create WPF windows.
         #endif
         thread.IsBackground <- true
         thread.Start()
@@ -539,7 +539,7 @@ type Fsi private (config:Config) =
                     "Cancel Current Evaluation?",
                     MessageBoxButton.YesNo,
                     MessageBoxImage.Exclamation,
-                    MessageBoxResult.No,// default result
+                    MessageBoxResult.No, // default result
                     MessageBoxOptions.None) with
                 | MessageBoxResult.Yes ->
                     match state with // might have changed in the meantime of Message box show
@@ -556,7 +556,7 @@ type Fsi private (config:Config) =
                     "Cancel Current Evaluation?",
                     MessageBoxButton.YesNo,
                     MessageBoxImage.Exclamation,
-                    MessageBoxResult.No,// default result
+                    MessageBoxResult.No, // default result
                     MessageBoxOptions.None) with
                 | MessageBoxResult.Yes ->
                     match state with // might have changed in the meantime of Message box show
