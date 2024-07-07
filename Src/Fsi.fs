@@ -75,10 +75,11 @@ type Fsi private (config:Config) =
     let mutable state = NotLoaded
 
     /// either Async60 or Async472
+    let asyncMode =
     #if NETFRAMEWORK
-    let asyncMode = Async472
+        Async472
     #else
-    let asyncMode = Async70
+        Async70
     #endif
 
     let mutable mode = asyncMode
@@ -128,16 +129,16 @@ type Fsi private (config:Config) =
 
         match asyncThread with
         |Some thr ->
-            asyncContext <- None
-            asyncThread <- None
+                asyncContext <- None
+                asyncThread <- None
             #if NETFRAMEWORK
-            // Thread.Abort method is not supported in .NET 6 https://github.com/dotnet/runtime/issues/41291  but in there is a new way in net7 !
-            // Don Syme: Thread.Abort - it is needed in interruptible interactive execution scenarios: https://github.com/dotnet/fsharp/issues/9397#issuecomment-648376476
-            // TODO in the standalone version using the cancellation token should work too
-            thr.Abort() // raises OperationCanceledException on NetFramework and would raise Platform-not-supported-Exception on net60
+                // Thread.Abort method is not supported in .NET 6 https://github.com/dotnet/runtime/issues/41291  but in there is a new way in net7 !
+                // Don Syme: Thread.Abort - it is needed in interruptible interactive execution scenarios: https://github.com/dotnet/fsharp/issues/9397#issuecomment-648376476
+                // TODO in the standalone version using the cancellation token should work too
+                thr.Abort() // raises OperationCanceledException on NetFramework and would raise Platform-not-supported-Exception on net60
             #else
-            net7cancellationToken.Cancel()
-            net7cancellationToken <- new CancellationTokenSource()
+                net7cancellationToken.Cancel()
+                net7cancellationToken <- new CancellationTokenSource()
             #endif
         |None -> ()
 
@@ -156,8 +157,9 @@ type Fsi private (config:Config) =
                 // Start the Dispatcher Processing
                 System.Windows.Threading.Dispatcher.Run()
                 ))
+        do
         #if NETFRAMEWORK
-        thread.SetApartmentState(ApartmentState.STA) // works only on net48? so that the thread can create WPF windows.
+            thread.SetApartmentState(ApartmentState.STA) // works only on net48? so that the thread can create WPF windows.
         #endif
         thread.IsBackground <- true
         thread.Start()
@@ -333,21 +335,21 @@ type Fsi private (config:Config) =
     [< Runtime.ExceptionServices.HandleProcessCorruptedStateExceptions >] //to handle AccessViolationExceptions too //https://stackoverflow.com/questions/3469368/how-to-handle-accessviolationexception/4759831
     //This construct is deprecated in net6.0 . Recovery from corrupted process state exceptions is not supported; HandleProcessCorruptedStateExceptionsAttribute is ignored.
     let evalSave (sess:FsiEvaluationSession, code:string, codeToEv:CodeToEval) =
-        #if NETFRAMEWORK
-        // Cancellation happens via Thread Abort
-        // TODO actually using the token would work too but only if session.Run() has been called before,but that fails when hosted. see https://github.com/dotnet/fsharp/issues/14486
-        let evaluatedTo, errs =
-            try sess.EvalInteractionNonThrowing(code, codeToEv.scriptName) // cancellation token here fails to cancel in sync, might still throw OperationCanceledException if async
-            with e -> Choice2Of2 e , [| |]
-        #else
-        let evaluatedTo, errs =
-            //don't do System.Runtime.ControlledExecution.Run(action, net7cancellationToken.Token) // this is actually already done by FSI
-            //when using: Run method: Compiler Error:input.fsx (1,1)-(1,1) interactive error internal error: The thread is already executing the ControlledExecution.Run method.
-            //try sess.EvalInteractionNonThrowing(code, codeToEv.scriptName, net7cancellationToken.Token)
-            try sess.EvalInteractionNonThrowing(code, codeToEv.scriptName)
-            with e -> Choice2Of2 e , [| |]
+        #if NETFRAMEWORK // net472
+            // Cancellation happens via Thread Abort
+            // TODO actually using the token would work too but only if session.Run() has been called before,but that fails when hosted. see https://github.com/dotnet/fsharp/issues/14486
+            let evaluatedTo, errs =
+                try sess.EvalInteractionNonThrowing(code, codeToEv.scriptName) // cancellation token here fails to cancel in sync, might still throw OperationCanceledException if async
+                with e -> Choice2Of2 e , [| |]
+        #else // net6+
+            let evaluatedTo, errs =
+                //don't do System.Runtime.ControlledExecution.Run(action, net7cancellationToken.Token) // this is actually already done by FSI
+                //when using: Run method: Compiler Error:input.fsx (1,1)-(1,1) interactive error internal error: The thread is already executing the ControlledExecution.Run method.
+                //try sess.EvalInteractionNonThrowing(code, codeToEv.scriptName, net7cancellationToken.Token)
+                try sess.EvalInteractionNonThrowing(code, codeToEv.scriptName)
+                with e -> Choice2Of2 e , [| |]
         #endif
-        handeleEvaluationResult(evaluatedTo, errs, codeToEv)
+            handeleEvaluationResult(evaluatedTo, errs, codeToEv)
 
     let eval(codeToEv:CodeToEval) :unit =
         let avaEd = codeToEv.editor.AvaEdit
@@ -504,7 +506,6 @@ type Fsi private (config:Config) =
 
     //------------------------------------------
     //-------------- public interface: ---------
-    //------------------------------------------
     //------------------------------------------
 
     member this.State = state
