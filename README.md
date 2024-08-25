@@ -20,12 +20,23 @@ For hosting there is the nuget package [Fesh](https://www.nuget.org/packages/Fes
 
 
 ## How to install
-Just download the from [Releases](https://github.com/goswinr/Fesh/releases) to any location,
-unblock and run.
 
-Or build from source.
+### Standalone
+Just download the from [Releases](https://github.com/goswinr/Fesh/releases)
+to any location, unblock and run.
 
-`dotnet build FeshStandalone.fsproj --configuration Release --runtime win-x64`
+Or build from source (Release is the default configuration):
+
+```bash
+dotnet build FeshStandalone.fsproj
+```
+
+### for Hosting in another App
+To build the Fesh nuget package run:
+```bash
+dotnet build FeshHosting.fsproj
+```
+
 
 ## Features
 
@@ -47,7 +58,14 @@ The statusbar at the bottom shows compiler error count, click on it to scroll to
 Selected text is highlighted in both code and output window. The count is shown in the status bar.
 
 
+## How to build
+For the standalone version just build the FeshStandalone.fsproj project:
+
+
 ## Release notes
+
+`0.10.0`
+- enable DefaultCode in host settings
 
 `0.9.0`
 - first public release

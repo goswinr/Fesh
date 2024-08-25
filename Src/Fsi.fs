@@ -60,8 +60,8 @@ type Fsi private (config:Config) =
     let log = config.Log
 
     ///FSI events
-    let compilingEv       = new Event<CodeToEval>()
-    let emittingEv        = new Event<CodeToEval>()
+    let compilingEv      = new Event<CodeToEval>()
+    let emittingEv       = new Event<CodeToEval>()
     let canceledEv       = new Event<CodeToEval>()
     let completedOkEv    = new Event<CodeToEval>()
     let runtimeErrorEv   = new Event<Exception>()

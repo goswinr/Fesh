@@ -3,8 +3,8 @@
 open System
 open Fesh.Model
 
-/// mainWindowHandle: Pointer to main window(nativeInt),
 /// hostName: a string for the name of the hosting App (will be used for settings file name an displayed in the Title Bar.
+/// mainWindowHandle: Pointer to main window(nativeInt),
 /// fsiCanRun: a function to check if evaluation of fsi is currently allowed
 /// logo: optional a URI to an alternative logo for hosted mode default is Uri("pack://application:,,,/Fesh;component/Media/logo.ico")
 type HostedStartUpData = {
@@ -12,6 +12,7 @@ type HostedStartUpData = {
     mainWindowHandel: nativeint
     fsiCanRun: unit-> bool
     logo:option<Uri>
+    defaultCode:option<string>
     }
 
 /// A class to hold the current App Run context (Standalone or Hosted)
@@ -62,6 +63,8 @@ type RunContext (startUpData:HostedStartUpData option) =
     member this.IsStandalone = match startUpData with None ->  true | Some _ -> false
 
     member this.Logo         = match startUpData with None ->  None | Some d -> d.logo
+
+    member this.DefaultCode  = match startUpData with None -> None | Some sd -> sd.defaultCode
 
     member this.IsRunningOnDotNetCore = isRunningOnDotNetCore
 
