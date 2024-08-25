@@ -19,14 +19,6 @@ For hosting there is the nuget package [Fesh](https://www.nuget.org/packages/Fes
 [Fesh.Rhino](https://github.com/goswinr/Fesh.Rhino) and [Fesh.Revit](https://github.com/goswinr/Fesh.Revit).
 
 
-## How to install
-Just download the from [Releases](https://github.com/goswinr/Fesh/releases) to any location,
-unblock and run.
-
-Or build from source.
-
-`dotnet build FeshStandalone.fsproj --configuration Release --runtime win-x64`
-
 ## Features
 
 ### Syntax Highlighting
@@ -47,10 +39,15 @@ The statusbar at the bottom shows compiler error count, click on it to scroll to
 Selected text is highlighted in both code and output window. The count is shown in the status bar.
 
 
+## How to build
+For the standalone version just build the FeshStandalone.fsproj project:
+
+
 ## Release notes
+
+`0.10.0`
+- enable DefaultCode in host settings
 
 `0.9.0`
 - first public release
-
-
 
