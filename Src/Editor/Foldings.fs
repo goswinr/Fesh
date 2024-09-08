@@ -162,10 +162,15 @@ type Foldings(manager:Folding.FoldingManager, state:InteractionState, getFilePat
 
                         // eprintf  $"firstErrorOffset on from line: {ed.Document.GetLineByOffset(max 1 feDi.StartOffset).LineNumber}"
                         // eprintfn $" to {ed.Document.GetLineByOffset(max 1 feDi.EndOffset).LineNumber}"
-                        2 + max  feDi.EndOffset  fNew.foldEndOff
+                        2 + max feDi.EndOffset fNew.foldEndOff
                     else
                         findBack (i-1) (j-1)
-            let firstErrorOffset = findBack  (edFoldsArr.Length-1) (folds.Count-1)
+
+            let  firstErrorOffset = findBack (edFoldsArr.Length-1) (folds.Count-1)
+
+            // firstErrorOffset <-  -1 // TODO DEBUG ONLY reset for next time
+            // let errLn = ed.Document.GetLineByOffset(firstErrorOffset)
+            // IFeshLog.log.PrintfnDebugMsg $"manager.UpdateFoldings done, firstErrorOffset in line: {errLn.LineNumber}"
 
             // (2.2) create new Foldings
             let docLen = ed.Document.TextLength
@@ -182,11 +187,32 @@ type Foldings(manager:Folding.FoldingManager, state:InteractionState, getFilePat
                             collect (i+1)
             collect 0
 
+            // IFeshLog.log.PrintfnDebugMsg $"found {nFolds.Count} foldings:"
+            // for i,nf in nFolds |> Seq.indexed do // Debug logging:
+            //     let from = ed.Document.GetLineByOffset(nf.StartOffset)
+            //     let too = ed.Document.GetLineByOffset(nf.EndOffset)
+            //     IFeshLog.log.PrintfnDebugMsg $"{i+1}. fold from line {from.LineNumber} to {too.LineNumber}"
 
-            // (2.3) update foldings
-            // Existing foldings starting after this firstErrorOffset will be kept even if they don't appear in newFoldings.
-            // Use -1 for this parameter if there were no parse errors.
-            manager.UpdateFoldings(nFolds, firstErrorOffset)
+
+            // (2.3) update foldings, or restore if something went wrong and CollapsedLinesAreInconsistent:
+            if ed.TextArea.TextView.CollapsedLinesAreInconsistent then
+                // IFeshLog.log.PrintfnDebugMsg "CollapsedLinesAreInconsistent: restore foldings"
+                manager.Clear()
+                let vs = foldStatus.Get(getFilePath())
+                for i = 0 to folds.Count-1 do
+                    let f = folds.[i]
+                    if f.foldStartOff < f.foldEndOff then // TODO this seems to not always be the case
+                        let folded = if i < vs.Length then vs.[i] else false
+                        let fs = manager.CreateFolding(f.foldStartOff, f.foldEndOff)
+                        fs.Tag      <- box f.nestingLevel
+                        fs.IsFolded <- folded
+                        fs.Title    <- textInFoldBox f.linesInFold
+            else
+                // the expected regular case:
+                // Existing foldings starting after this firstErrorOffset will be kept even if they don't appear in newFoldings.
+                // Use -1 for this parameter if there were no parse errors.
+                manager.UpdateFoldings(nFolds, firstErrorOffset)
+
 
             // (2.4) scroll to caret if unfolded
             if unfolded then
@@ -216,18 +242,19 @@ type Foldings(manager:Folding.FoldingManager, state:InteractionState, getFilePat
                     while foldStatus.WaitingForFileRead do
                         // check like this because reading of file data happens async
                         // IFeshLog.log.PrintfnDebugMsg "waiting to load last code folding status.. "
-                        do! Async.Sleep 50
-                    let vs = foldStatus.Get(getFilePath())
+                        do! Async.Sleep 40
 
+                    let vs = foldStatus.Get(getFilePath())
                     do! Async.SwitchToContext Fittings.SyncWpf.context
+
                     for i = 0 to folds.Count-1 do
                         let f = folds.[i]
                         if f.foldStartOff < f.foldEndOff then // TODO this seems to not always be the case
-                            let folded = if  i < vs.Length then  vs.[i]  else false
+                            let folded = if i < vs.Length then vs.[i] else false
                             let fs = manager.CreateFolding(f.foldStartOff, f.foldEndOff)
-                            fs.Tag <- box f.nestingLevel
+                            fs.Tag      <- box f.nestingLevel
                             fs.IsFolded <- folded
-                            fs.Title <- textInFoldBox f.linesInFold
+                            fs.Title    <- textInFoldBox f.linesInFold
                         else
                             let lno = ed.Document.GetLineByOffset f.foldStartOff
                             IFeshLog.log.PrintfnAppErrorMsg $"manager.CreateFolding was given a negative folding from offset {f.foldStartOff} to {f.foldEndOff} on line {lno.LineNumber}"
@@ -266,7 +293,6 @@ type Foldings(manager:Folding.FoldingManager, state:InteractionState, getFilePat
                     else
                         foldsRef.Value <- null
                     foundFoldsEv.Trigger(id)
-
 
             } |>  Async.Start
 

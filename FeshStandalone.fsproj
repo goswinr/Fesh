@@ -30,9 +30,9 @@
     <Product>Fesh</Product>
     <PackageId>Fesh</PackageId>
 
-    <Version>0.10.0</Version>
-    <AssemblyVersion>0.10.0</AssemblyVersion>
-    <FileVersion>0.10.0</FileVersion>
+    <Version>0.11.0</Version>
+    <AssemblyVersion>0.11.0</AssemblyVersion>
+    <FileVersion>0.11.0</FileVersion>
 
     <PackageReleaseNotes>
       - enable DefaultCode in host settings
@@ -49,16 +49,17 @@
     <DefineConstants Condition="'$(TargetFramework)' == 'net472'">NETFRAMEWORK</DefineConstants>
 
     <OutputPath>binStandalone</OutputPath>
+    <!-- <RestoreAdditionalProjectSources>../AvalonEditB/AvalonEditB/bin/Release/</RestoreAdditionalProjectSources>
+    <RestoreAdditionalProjectSources>../AvalonLog/bin/Release/</RestoreAdditionalProjectSources> -->
   </PropertyGroup>
 
   <ItemGroup>
+
     <PackageReference Update="FSharp.Core" Version="8.0.300" />
     <PackageReference Include="FSharp.Compiler.Service" Version="43.8.300" />
 
-    <!-- AvalonEditB is just added explicitly again to pull in XML too below via  GeneratePathProperty and SourceFiles="$(PkgAvalonEditB)-->
-    <!-- <PackageReference Include="AvalonEditB" Version="2.3.0" GeneratePathProperty="true" /> -->
     <PackageReference Include="Fittings" Version="0.6.0" />
-    <PackageReference Include="AvalonLog" Version="0.13.0" />
+    <PackageReference Include="AvalonLog" Version="0.14.0" />
     <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="all" IncludeAssets="runtime; build; native; contentfiles; analyzers; buildtransitive" />
     <!-- https://docs.microsoft.com/en-us/nuget/consume-packages/package-references-in-project-files#controlling-dependency-assets -->
 

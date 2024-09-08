@@ -7,7 +7,8 @@ open Fesh.Config
 
 module App =
 
-    /// To statically access the currently running instance. For debugging only
+    /// To statically access the currently running instance.
+    /// For debugging only
     let mutable current = Unchecked.defaultof<Fesh>
 
     /// mainWindowHandle: Pointer to main window(nativeInt),
@@ -32,5 +33,12 @@ module App =
         let app  = Application() // do first so that pack Uris work
         let fesh = Initialize.everything (None, args)
         current <- fesh
-        app.Run(fesh.Window)
+        // app.Run(fesh.Window)
+
+        try
+            app.Run(fesh.Window)
+        with e ->
+            eprintfn "Application.Run Error:\r\n{e}"
+            1
+
 
