@@ -128,7 +128,7 @@ module FsCheckerUtil =
         // userOpName: An optional string used for tracing compiler operations associated with this request.
         async {
              try
-                let! options, optionsErr =
+                let! options, _ = // _ = optionsErr
                     fsChecker.GetProjectOptionsFromScript(
                                  fileName          = fileFsx
                                 ,source            = sourceText

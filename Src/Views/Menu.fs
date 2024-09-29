@@ -235,7 +235,7 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, statusBar:FeshStatusBar, log:
                     else                                     tb "older"
 
                 // create menu item:
-                let openCom  = mkCmdSimple ( fun a -> tabs.AddFile(uf.fileInfo, true)  |> ignore )
+                let openCom  = mkCmdSimple ( fun _ -> tabs.AddFile(uf.fileInfo, true)  |> ignore )
                 let header = // include last two parent directories
                     let ps = General.pathParts uf.fileInfo
                     if ps.Length < 4 then             ps |> String.concat " \\ " // full path in this case

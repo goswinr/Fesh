@@ -337,7 +337,7 @@ module XmlParser =
                         i<-i+1
                         cs // exit from recursion
 
-                    | c ->
+                    | _ ->
                         add '/'
                         readNodes cs
                 (*
@@ -373,7 +373,7 @@ module XmlParser =
                     if Object.ReferenceEquals(n.name, membre)  then
                         match n.attrs with
                         | [] -> ()
-                        | na :: r when na.name = "name"  ->
+                        | na :: _ when na.name = "name"  ->
                             //if na.value<>"" && d.ContainsKey na.value then Printfn.red $"duplicate: {na.value}"
                             d.[na.value] <- Node n
 

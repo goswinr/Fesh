@@ -50,7 +50,7 @@ module SyntaxHighlighting =
             xlsWatcher.Filter <- file
             xlsWatcher.NotifyFilter  <-  NotifyFilters.LastWrite
             xlsWatcher.EnableRaisingEvents <- true // must be after setting path
-            xlsWatcher.Changed.Add (fun a ->
+            xlsWatcher.Changed.Add (fun _ ->
                 xlsWatcher.EnableRaisingEvents <- false // to not raise events twice
                 try
                     async{

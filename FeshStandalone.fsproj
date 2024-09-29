@@ -51,6 +51,7 @@
     <OutputPath>binStandalone</OutputPath>
     <!-- <RestoreAdditionalProjectSources>../AvalonEditB/AvalonEditB/bin/Release/</RestoreAdditionalProjectSources>
     <RestoreAdditionalProjectSources>../AvalonLog/bin/Release/</RestoreAdditionalProjectSources> -->
+    <OtherFlags>$(OtherFlags) --warnon:1182</OtherFlags>     <!-- 1182: warn on unused variables -->
   </PropertyGroup>
 
   <ItemGroup>

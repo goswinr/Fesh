@@ -207,7 +207,7 @@ type LineTransformers<'T>() =    // generic so it can work for LinePartChange an
             empty
 
 /// An efficient DocumentColorizingTransformer using line number indices into a line transformer list.
-type FastColorizer(transformers:LineTransformers<LinePartChange> [], ed:TextEditor) =
+type FastColorizer(transformers:LineTransformers<LinePartChange> []) = //, ed:TextEditor) =
     inherit DocumentColorizingTransformer()
 
     member _.AdjustShifts(s:Shift) =
@@ -243,16 +243,20 @@ type FastColorizer(transformers:LineTransformers<LinePartChange> [], ed:TextEdit
                         else
                             lpc.from
 
-                    if from >= till then () // negative length or skipped because of shift offset
-                        //let tx = ed.Document.GetText(line)
-                        //let seg = ed.Document.GetText(till, from-till)
-                        //IFeshLog.log.PrintfnAppErrorMsg $"*LineChangePart1 {from} >= {till}; DocLine {offSt}-{offEn} on line: {lineNo}; (shift:{shiftChecked})"
-                        //IFeshLog.log.PrintfnAppErrorMsg $"   '{seg}' in {lineNo}:'{tx}'"
-                    elif till > offEn then () // IFeshLog.log.PrintfnAppErrorMsg $"**LineChangePart2 {from}-{till}; DocLine {offSt}-{offEn} on line: {lineNo}; (shift:{shiftChecked})"
-                    elif from < offSt then () // IFeshLog.log.PrintfnAppErrorMsg $"***LineChangePart3 {from}-{till}; DocLine {offSt}-{offEn} on line: {lineNo}; (shift:{shiftChecked})"
-                    elif notNull lpc.act then // because for coloring brackets the action may be null to keep xshd coloring
-                        //IFeshLog.log.PrintfnDebugMsg $"{from}-{till}; DocLine {offSt}-{offEn} on line: {lineNo}; doc.Text.Length {ed.Document.TextLength} (shift:{shiftChecked})"
+                    if from >= offSt && till <= offEn && from < till && notNull lpc.act then
                         base.ChangeLinePart(from, till, lpc.act)
+
+
+                    // if from >= till then () // negative length or skipped because of shift offset
+                    //     //let tx = ed.Document.GetText(line)
+                    //     //let seg = ed.Document.GetText(till, from-till)
+                    //     //IFeshLog.log.PrintfnAppErrorMsg $"*LineChangePart1 {from} >= {till}; DocLine {offSt}-{offEn} on line: {lineNo}; (shift:{shiftChecked})"
+                    //     //IFeshLog.log.PrintfnAppErrorMsg $"   '{seg}' in {lineNo}:'{tx}'"
+                    // elif till > offEn then () // IFeshLog.log.PrintfnAppErrorMsg $"**LineChangePart2 {from}-{till}; DocLine {offSt}-{offEn} on line: {lineNo}; (shift:{shiftChecked})"
+                    // elif from < offSt then () // IFeshLog.log.PrintfnAppErrorMsg $"***LineChangePart3 {from}-{till}; DocLine {offSt}-{offEn} on line: {lineNo}; (shift:{shiftChecked})"
+                    // elif notNull lpc.act then // because for coloring brackets the action may be null to keep xshd coloring
+                    //     //IFeshLog.log.PrintfnDebugMsg $"{from}-{till}; DocLine {offSt}-{offEn} on line: {lineNo}; doc.Text.Length {ed.Document.TextLength} (shift:{shiftChecked})"
+                    //     base.ChangeLinePart(from, till, lpc.act)
 
 (*
 

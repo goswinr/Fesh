@@ -50,8 +50,8 @@ type Tab (editor:Editor) = //, config:Fesh.Config.Config, allFileInfos:seq<IO.Fi
         b.Background <- TabStyle.transpButton
         cross.Stroke <- TabStyle.grayButton
         cross.StrokeThickness <- 1.0
-        b.MouseEnter.Add (fun a -> cross.StrokeThickness <- 1.0   ; cross.Stroke <- TabStyle.redButton ; b.BorderBrush <- TabStyle.grayButton)
-        b.MouseLeave.Add (fun a -> cross.StrokeThickness <- 1.0   ; cross.Stroke <- TabStyle.grayButton; b.BorderBrush <- TabStyle.transpButton)
+        b.MouseEnter.Add (fun _ -> cross.StrokeThickness <- 1.0   ; cross.Stroke <- TabStyle.redButton ; b.BorderBrush <- TabStyle.grayButton)
+        b.MouseLeave.Add (fun _ -> cross.StrokeThickness <- 1.0   ; cross.Stroke <- TabStyle.grayButton; b.BorderBrush <- TabStyle.transpButton)
         b
 
     let header =

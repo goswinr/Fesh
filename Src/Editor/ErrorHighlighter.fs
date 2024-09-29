@@ -42,7 +42,7 @@ module ErrorUtil =
         let erWs = ResizeArray()  // Errors and Warnings
         let all = checkRes.Diagnostics |> Array.sortBy( fun e -> e.StartLine) // sort before filtering out duplicates
         let m = maxErrorCountToTrack
-        let m2 = maxErrorCountToTrack * 2
+        // let m2 = maxErrorCountToTrack * 2
         for i = 0 to all.Length - 1 do
             let  e = all.[i]
             if i=0 // to filter out duplicate errors, a bug in FCS !
@@ -296,7 +296,7 @@ type ErrorHighlighter ( state:InteractionState, folds:Folding.FoldingManager, is
         tView.BackgroundRenderers.Add(new ErrorRenderer(state))
 
         tView.MouseHover.Add        ( showErrorToolTip)
-        tView.MouseHoverStopped.Add ( fun e ->  tip.IsOpen <- false ) //; e.Handled <- true) )
+        tView.MouseHoverStopped.Add ( fun _->  tip.IsOpen <- false ) //; e.Handled <- true) )
         //tView.VisualLinesChanged.Add( fun e ->  tip.IsOpen <- false ) // done in Editor.setup: avaEdit.TextArea.TextView.VisualLinesChanged.Add (fun _ ->    closeToolTips() )// close type info on typing
 
 

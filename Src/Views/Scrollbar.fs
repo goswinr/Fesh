@@ -24,7 +24,7 @@ module MagicScrollbar =
     type Marks = ResizeArray<int*SolidColorBrush>
 
     [<AllowNullLiteral>]
-    type ScrollbarAdorner(ed:TextEditor, state:InteractionState, errs:ErrorHighlighter, track: Track)  as this =
+    type ScrollbarAdorner(ed:TextEditor,  errs:ErrorHighlighter, track: Track)  as this = //state:InteractionState,
         inherit Adorner(track)
 
         let textView = ed.TextArea.TextView
@@ -91,7 +91,7 @@ module MagicScrollbar =
             //else printfn $"ScrollbarAdorner.OnRender: not showing"
 
 
-    type ScrollBarEnhancer(ed:TextEditor, state:InteractionState, errs:ErrorHighlighter) =
+    type ScrollBarEnhancer(ed:TextEditor,  errs:ErrorHighlighter) = // state:InteractionState,
 
         let vertScrollBar : ScrollBar =
             ed.ApplyTemplate ()  |> ignore
@@ -109,7 +109,7 @@ module MagicScrollbar =
                 if notNull track then
                     //let trackGrid = VisualTreeHelper.GetParent (track) :?> Grid // sharp develop uses this for the adorner layer
                     let layer = AdornerLayer.GetAdornerLayer (track)
-                    adorner <- new ScrollbarAdorner(ed,state, errs, track)
+                    adorner <- new ScrollbarAdorner(ed, errs, track)
                     layer.Add (adorner)
 
 

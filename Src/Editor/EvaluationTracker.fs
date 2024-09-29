@@ -209,8 +209,8 @@ type EvaluationTracker (ed:TextEditor, config:Fesh.Config.Config) =
     do
         ed.TextArea.TextView.BackgroundRenderers.Add(renderer)
         let fsi =Fsi.GetOrCreate(config)
-        fsi.OnReset.Add       (fun evc -> renderer.MarkNoneEvaluated()) // reset for all editors
-        fsi.OnCanceled.Add    (fun evc -> if IEditor.isCurrent ed then renderer.MarkNoneEvaluated())
+        fsi.OnReset.Add       (fun _ -> renderer.MarkNoneEvaluated()) // reset for all editors
+        fsi.OnCanceled.Add    (fun _ -> if IEditor.isCurrent ed then renderer.MarkNoneEvaluated())
         fsi.OnCompletedOk.Add (fun evc ->
             if IEditor.isCurrent ed then  //this event will be hooked up for each tab so check id too
                 //IFeshLog.log.PrintfnColor 150 150 150  "Fsi.OnCompletedOk:%A" evc

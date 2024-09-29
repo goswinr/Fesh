@@ -195,7 +195,7 @@ type InteractionState(ed:TextEditor, foldManager:FoldingManager, config:Fesh.Con
                                     transformersSelection
                                     transformersSemantic // draw errors last so they are on top of matching brackets
                                     |]
-                                    ,ed // for debugging only
+                                    //,ed // for debugging only
                                     )
 
     let errSegments = LineTransformers<SegmentToMark>()

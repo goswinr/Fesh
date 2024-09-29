@@ -48,12 +48,13 @@ type CompletionItemForKeyWord(state: InteractionState, text:string, toolTip:stri
     member this.Priority = priority
     member this.Text = text
     member this.Complete (textArea:TextArea, completionSegment:ISegment, e:EventArgs ) =
+        ignore e // because of warn on unused variables and , needed in F#: implementing the interface members as properties too: https://github.com/icsharpcode/AvalonEdit/issues/28
         state.JustCompleted <- true
         if Selection.getSelType textArea = Selection.RectSel then
             RectangleSelection.complete (textArea, completionSegment, text)
         else
             textArea.Document.Replace(completionSegment, text)
-            if text[text.Length-1] = '"' then // to insert cursor between quotes
+            if text[ text.Length - 1 ] = '"' then // to insert cursor between quotes
                 textArea.Caret.Offset <- textArea.Caret.Offset - 1
 
     interface ICompletionData with // needed in F#: implementing the interface members as properties too: https://github.com/icsharpcode/AvalonEdit/issues/28
@@ -85,6 +86,7 @@ type CompletionItem(state: InteractionState, getToolTip, it:DeclarationListItem,
     member this.Priority = priority
     member this.Text = it.NameInList // not used for display, but for priority sorting ?
     member this.Complete (textArea:TextArea, completionSegment:ISegment, e:EventArgs) =
+        ignore e // because of warn on unused variables and , needed in F#: implementing the interface members as properties too: https://github.com/icsharpcode/AvalonEdit/issues/28
         //log.PrintfnDebugMsg "%s is %A and %A" it.Name it.Glyph it.Kind
         state.JustCompleted <- true
         let mutable complText =
@@ -108,7 +110,7 @@ type CompletionItem(state: InteractionState, getToolTip, it:DeclarationListItem,
                 |[el] ->
                         match el with
                         | ToolTipElement.None -> None
-                        | ToolTipElement.CompositionError(text) -> None
+                        | ToolTipElement.CompositionError _  -> None
                         | ToolTipElement.Group(tooTipElemDataList) ->
                             match tooTipElemDataList with
                             |[]  -> None

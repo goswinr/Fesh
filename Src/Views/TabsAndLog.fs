@@ -75,7 +75,7 @@ type TabsAndLog (config:Config, tabs:Tabs, log:Log, feshWin:Views.FeshWindow) as
                 config.Settings.Save ()
                 )
 
-        feshWin.Window.StateChanged.Add (fun e ->
+        feshWin.Window.StateChanged.Add (fun _ ->
             match feshWin.Window.WindowState with
             | WindowState.Normal ->
                 if isLogMaxed then this.ToggleMaxLog() // to also switch back from maximized when the window size gets restored

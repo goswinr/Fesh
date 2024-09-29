@@ -118,29 +118,35 @@ type Fsi private (config:Config) =
     //         )
     //     )
 
-
-
+    #if NETFRAMEWORK
+    #else
     let mutable net7cancellationToken = new CancellationTokenSource()
+    #endif
+
 
     let abortThenMakeAndStartAsyncThread() =
-        //shutDownThreadEv.Trigger() // don't do this ! this shuts down all of Fesh !!
-
+        // shutDownThreadEv.Trigger() // don't do this ! this shuts down all of Fesh !!
         // Use Interrupt instead of Abort  ? see https://github.com/dotnet/fsharp/pull/14546#pullrequestreview-1240043309
 
         match asyncThread with
+        #if NETFRAMEWORK
         |Some thr ->
-                asyncContext <- None
-                asyncThread <- None
-            #if NETFRAMEWORK
-                // Thread.Abort method is not supported in .NET 6 https://github.com/dotnet/runtime/issues/41291  but in there is a new way in net7 !
-                // Don Syme: Thread.Abort - it is needed in interruptible interactive execution scenarios: https://github.com/dotnet/fsharp/issues/9397#issuecomment-648376476
-                // TODO in the standalone version using the cancellation token should work too
-                thr.Abort() // raises OperationCanceledException on NetFramework and would raise Platform-not-supported-Exception on net60
-            #else
-                net7cancellationToken.Cancel()
-                net7cancellationToken <- new CancellationTokenSource()
-            #endif
+            asyncContext <- None
+            asyncThread  <- None
+            thr.Abort() // raises OperationCanceledException on NetFramework and would raise Platform-not-supported-Exception on net60
+        #else
+        |Some _ ->
+            asyncContext <- None
+            asyncThread  <- None
+            // Thread.Abort method is not supported in .NET 6 https://github.com/dotnet/runtime/issues/41291  but in there is a new way in net7 !
+            // Don Syme: Thread.Abort - it is needed in interruptible interactive execution scenarios: https://github.com/dotnet/fsharp/issues/9397#issuecomment-648376476
+            // TODO in the standalone version using the cancellation token should work too
+            net7cancellationToken.Cancel()
+            net7cancellationToken <- new CancellationTokenSource()
+        #endif
         |None -> ()
+
+
 
         let thread =
             new Thread(new ThreadStart( fun () ->
@@ -263,7 +269,7 @@ type Fsi private (config:Config) =
             state <- Ready //TODO reached when canceled ? or wrap in try..finally.. ?
 
             match evaluatedTo with //TODO move out of this thread?
-            |Choice1Of2 evaluatedToValue ->
+            |Choice1Of2 _ -> // _ = evaluatedToValue
                 completedOkEv.Trigger(codeToEv)
                 isReadyEv.Trigger()
                 for e in errs do
@@ -274,7 +280,7 @@ type Fsi private (config:Config) =
                     | FSharpDiagnosticSeverity.Info    -> () //log.PrintfnInfoMsg "EvalInteractionNonThrowing returned Info: %s" e.Message
 
                 //match evaluatedToValue with   //|Some v -> log.PrintfnDebugMsg "Interaction evaluated to %A <%A>" v.ReflectionValue v.ReflectionType //|None-> ()
-                if config.Settings.GetBoolSaveDefault("printDoneAfterEval",true) then  log.PrintfnInfoMsg "*Done!"
+                if config.Settings.GetBoolSaveDefault("printDoneAfterEval",false) then log.PrintfnInfoMsg "*Done!"
 
             |Choice2Of2 exn ->
                 match exn with

@@ -39,6 +39,7 @@
 
     <PlatformTarget>AnyCPU</PlatformTarget> <!-- the host will decide, Rhino on Mac needs that too-->
     <OutputPath>binHosting</OutputPath>
+    <OtherFlags>$(OtherFlags) --warnon:1182</OtherFlags>     <!-- 1182: warn on unused variables -->
 
   </PropertyGroup>
 

@@ -29,7 +29,7 @@ module Commenting =
                 match Seq.tryFindIndex (fun c -> c <>' ')  dl with
                 | None ->
                     comm ln.NextLine // do not comment empty lines
-                | Some i ->
+                | Some _ ->
                     doc.Insert(ln.Offset + indent, "//")
                     comm ln.NextLine
         doc.BeginUpdate()

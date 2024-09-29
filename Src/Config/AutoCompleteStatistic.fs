@@ -44,7 +44,7 @@ type AutoCompleteStatistic  ( runContext:RunContext) =
 
     let completionStatsAsString () =
         let sb = StringBuilder()
-        for KeyValue(k,v) in completionStats |> Seq.sortByDescending (fun (KeyValue(k,v)) -> v) |> Seq.truncate 500  do // biggest number first, max 500 words
+        for KeyValue(k,v) in completionStats |> Seq.sortByDescending (fun (KeyValue(_,v)) -> v) |> Seq.truncate 500  do // biggest number first, max 500 words
             sb.Append(k).Append(sep).AppendLine(v.ToString()) |> ignore
         sb.ToString()
 

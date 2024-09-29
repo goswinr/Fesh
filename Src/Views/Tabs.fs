@@ -180,9 +180,8 @@ type Tabs(config:Config, log:Log,feshWin:FeshWindow) =
     let saveAsync (t:Tab) =  // gets called from evalAllText(),  evalAllTextSave()  and  evalAllTextSaveClear() only
         match t.Editor.FilePath with
         | NotSet _ ->
-            let saved = saveAsDialog(t,SaveNewLocation)
-            //if not saved  then log.PrintfnIOErrorMsg "saveAsync and saveAsDialog: did not save previously unsaved file."
-            ()
+            saveAsDialog(t,SaveNewLocation) |> ignore<bool>
+
         | SetTo fi ->
             let txt = t.AvaEdit.Text
             async{
@@ -203,7 +202,7 @@ type Tabs(config:Config, log:Log,feshWin:FeshWindow) =
                     } |> Async.Start
          |Deleted _ ->
             saveAsDialog(t, SaveNewLocation)
-            |> ignore
+            |> ignore<bool>
 
     let export(t:Tab):bool=
         saveAsDialog (t, SaveExport)
@@ -317,7 +316,7 @@ type Tabs(config:Config, log:Log,feshWin:FeshWindow) =
         fi.Refresh()
         if fi.Exists then
             match allTabs |> Seq.indexed |> Seq.tryFind (fun (_,t) -> areFilePathsSame fi t.Editor.FilePath) with // check if file is already open
-            | Some (i,t) ->
+            | Some (i,_) ->
                 if makeCurrent then // && not t.IsCurrent then
                     setCurrentTab(i)
                     config.RecentlyUsedFiles.AddAndSave(fi) // to move it up to top of stack

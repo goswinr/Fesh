@@ -400,7 +400,7 @@ type BracketHighlighter (state:InteractionState) =
 
     let mutable allPairs : option<BracketPair[][]> = None
 
-    let caretPositionChanged(e:EventArgs) =
+    let caretPositionChanged(_:EventArgs) =
         let id = state.DocChangedId.Value
         let caret = state.Editor.TextArea.Caret
         let caretOff = caret.Offset

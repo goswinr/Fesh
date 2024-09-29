@@ -113,7 +113,7 @@ type TypeInfo private () =
                 |"?" -> append gray t.Text // sometimes optional arguments have already a question mark but not always
                 | _ ->
                     match td.optDefs |> Seq.tryFind ( fun oa -> oa = t.Text ) with
-                    | Some od -> append gray ("?"+t.Text)
+                    | Some _  -> append gray ("?"+t.Text)
                     | None    -> append black t.Text
 
             | TextTag.Keyword ->
@@ -230,7 +230,7 @@ type TypeInfo private () =
     static let trimStartIfOneLiner (s:string) =
         match s.IndexOf '\n' with
         | -1 -> s.TrimStart()
-        | i  -> s
+        | _  -> s
 
 
     // removes the first line return if it is only preceded by whitespace
@@ -251,7 +251,7 @@ type TypeInfo private () =
 
 
     /// check if List has at least two items
-    static let twoOrMore = function [] | [_] -> false |_ -> true
+    static let twoOrMore = function [] | [ _ ] -> false | _ -> true
 
     static let darkgray     = Brushes.Gray       |> darker    40 |> freeze
     static let darkblue     = Brushes.DarkSlateBlue |> darker 20 |> freeze
@@ -262,7 +262,7 @@ type TypeInfo private () =
         [
         new Run(" ")
         match td.optDefs |> Seq.tryFind ( fun oa -> oa = tx ) with
-        | Some od ->  new Run("?"+tx ,FontFamily = StyleState.fontEditor, FontSize = StyleState.fontSize*1.1,  Foreground = gray,    Background = white)
+        | Some _  ->  new Run("?"+tx ,FontFamily = StyleState.fontEditor, FontSize = StyleState.fontSize*1.1,  Foreground = gray,    Background = white)
         | None    ->  new Run(tx     ,FontFamily = StyleState.fontEditor, FontSize = StyleState.fontSize*1.1,  Foreground = black,   Background = white)
         new Run(" ")
         ]
@@ -532,8 +532,8 @@ type TypeInfo private () =
 
         | FSharpXmlDoc.FromXmlFile(dllFile, memberName) ->
             match DocString.getXmlDoc dllFile with
-            |Ok (xmlFi, nodeDict) ->
-                //printfn $"reading xml:{xmlFi.FullName}"
+            |Ok (_, nodeDict) -> // _ = xmlFileInfo
+                //printfn $"reading xml:{xmlFileInfo.FullName}"
                 match nodeDict.TryGetValue memberName with
                 |true , node ->  Ok (node  , dllFile)
                 |false, _    ->  Error "no xml" //$"no xml doc found for member '{memberName}' in \r\n'{xmlFi.FullName}'\r\n"
@@ -675,7 +675,7 @@ type TypeInfo private () =
                 |None -> ()
                     //IFeshLog.log.PrintfnDebugMsg "QuickParse.GetCompleteIdentifierIsland failed : lineTxt:%A, txt: '%s'"  lineTxt (lineTxt.Substring(offLn-1,3))
 
-                |Some (word, colAtEndOfNames, isQuotedIdentifier) ->
+                |Some (word, colAtEndOfNames, _ ) -> // _ = isQuotedIdentifier
                     tip.Content <- loadingTxt
                     let tView = av.TextArea.TextView
                     let pos = doc.GetLocation(off)
@@ -712,7 +712,7 @@ type TypeInfo private () =
                                     |[fsKeyword] when fsKeywords.Contains(fsKeyword) -> res.checkRes.GetKeywordTooltip qualId
                                     | _ ->
                                         res.checkRes.GetToolTip (lineNo, colAtEndOfNames, lineTxt, qualId, FSharpTokenTag.String) // this gives info about referenced assemblies that the first try does not give
-                                |els -> r
+                                | _ -> r
 
                         let symbol = res.checkRes.GetSymbolUseAtLocation(lineNo, colAtEndOfNames, lineTxt, qualId )  //only to get to info about optional parameters
                         let fullName = if symbol.IsSome then symbol.Value.Symbol.FullName else ""
@@ -756,4 +756,4 @@ type TypeInfo private () =
                 //e.Handled <- true //  don't set handled! so that on type errors the  Error tooltip still gets shown after this tooltip
 
 
-        | Done res -> () // but checkRes.HasFullTypeCheckInfo is false
+        | Done _ -> () // should never happen because here res.checkRes.HasFullTypeCheckInfo is false

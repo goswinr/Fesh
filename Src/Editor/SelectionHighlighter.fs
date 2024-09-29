@@ -192,7 +192,7 @@ type SelectionHighlighter (state:InteractionState) =
                         match lines.GetLine(lineNo, changeId) with
                         |ValueNone -> false // could not get code line, newer change happened already
                         |ValueSome l ->
-                            let line = codeStr.Substring(l.offStart, l.len)
+                            // let line = codeStr.Substring(l.offStart, l.len)
                             let mutable off = codeStr.IndexOf(lastWord, l.offStart, l.len, StringComparison.Ordinal)
                             while off >= 0 do
                                 offs.Add off // also add for current selection
@@ -372,7 +372,7 @@ type SelectionHighlighterLog (lg:TextEditor) =
     let markCallID  = ref 0 // because while getting the text below, the Editor selection might have changed already
 
     let trans = LineTransformers<LinePartChange>()
-    let colorizer = FastColorizer([|trans|], lg )
+    let colorizer = FastColorizer([|trans|]) //, lg )
     let lines = CodeLinesSimple()
 
     let forceClear(triggerNext) =
@@ -403,7 +403,7 @@ type SelectionHighlighterLog (lg:TextEditor) =
         let changeId = logStateRef.Value
         let markId   = Threading.Interlocked.Increment markCallID
         let lgDoc = lg.Document
-        let prevFoundCount = lastSels.Count
+        // let prevFoundCount = lastSels.Count
         lastWord <- word // save last selection word even if it is not found, it might be found after a doc change
         lastSkipOff <- skipOff
         async{

@@ -38,33 +38,33 @@ type IFeshLog =
     abstract member TextWriterConsoleOut   : TextWriter
     abstract member TextWriterConsoleError : TextWriter
 
-    /// An additional textwriter to also write Info, AppError, IOError, Debug and FsiError messages to.
+    /// An additional TextWriter to also write Info, AppError, IOError, Debug and FsiError messages to.
     /// But not any other text printed with any custom color.
     abstract member AdditionalLogger : option<TextWriter> with get,set
 
     abstract member Clear : unit -> unit
 
 [<RequireQualifiedAccess>]
-[<CompiledName("IFeshLogModule")>] // DON'T RENAME !! It is used via reflection in https://github.com/goswinr/FsEx
+[<CompiledName("IFeshLogModule")>] // DON'T RENAME !! It is used via reflection in https://github.com/goswinr/FsEx and https://github.com/goswinr/Fesher
 module IFeshLog =
 
     /// A reference to the global single instance of the Log view, will be set immediately after construction
     /// declared here in Utils so it can be used in other modules that are declared before Log view.
     let mutable log =
-        Unchecked.defaultof<IFeshLog> //set immediately when Log instance is created in function Initialize.everything()
+        Unchecked.defaultof<IFeshLog> //this is set immediately when Log instance is created in function Initialize.everything()
 
     /// A simple error logging function using PrintfnAppErrorMsg.
     let printError s =
         if Object.ReferenceEquals(log,null) then printfn "%s" s
         else log.PrintfnAppErrorMsg "%s" s
 
-    let mutable printColor : int-> int -> int -> string -> unit = //don't rename!! It's used via reflection in FsEx.
-        fun r g b s -> printf "%s" s  //this implementation is changed  when Log instance is created.
+    let mutable printColor : int-> int -> int -> string -> unit = // DON'T RENAME !! It's used via reflection in FsEx.
+        fun _ _ _ s -> printf "%s" s  //this implementation is changed when Log instance is created.
 
-    let mutable printnColor : int-> int -> int -> string -> unit = //don't rename!! It's used via reflection in FsEx.
-        fun r g b s -> printfn "%s" s //this implementation is changed  when Log instance is created.
+    let mutable printnColor : int-> int -> int -> string -> unit = // DON'T RENAME !! It's used via reflection in FsEx.
+        fun _ _ _ s -> printfn "%s" s //this implementation is changed when Log instance is created.
 
-    let mutable clear : unit -> unit =  //don't rename!! It's used via reflection in FsEx
+    let mutable clear : unit -> unit = // DON'T RENAME !! It's used via reflection in FsEx
         fun () -> () //implementation is changed  when Log instance is created
 
 
@@ -126,6 +126,7 @@ type IEditor =
 
 [<RequireQualifiedAccess>]
 module IEditor =
+
     /// A global reference to the current Editor
     let mutable current :option<IEditor> = None
 

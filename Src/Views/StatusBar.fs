@@ -157,7 +157,7 @@ type CheckerStatus (grid:TabsAndLog) as this =
 
         tabs.OnTabChanged.Add (fun t -> updateCheckState(t.Editor.FileCheckState))
         Checker.CheckingStateChanged.Add updateCheckState
-        this.MouseLeftButtonDown.Add ( fun a -> CheckerStatus.goToNextSegment(grid.Tabs.Current.Editor))
+        this.MouseLeftButtonDown.Add ( fun _ -> CheckerStatus.goToNextSegment(grid.Tabs.Current.Editor))
 
 
     member this.GetErrorPanelCached(ed:IEditor) =
@@ -223,7 +223,7 @@ type FsiOutputStatus (grid:TabsAndLog) as this =
         this.Padding <- textPadding
         this.Text <- if isOff() then offTxt else onTxt
         this.ToolTip <- "Click here to enable or disable the default output from fsi in the log window\r\n(This will also reset FSI.)"
-        this.MouseLeftButtonDown.Add ( fun a ->
+        this.MouseLeftButtonDown.Add ( fun _ ->
             if isOff() then
                 this.Text <- onTxt
                 grid.Config.Settings.SetBool ("fsiOutputQuiet", false)
