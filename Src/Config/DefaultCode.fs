@@ -19,12 +19,11 @@ type DefaultCode  (runContext:RunContext) =
             "// The default code is saved at at " + filePath0
             //"tips: // https://panesofglass.github.io/scripting-workshop/#/"
             //"tips: // http://brandewinder.com/2016/02/06/10-fsharp-scripting-tips/"
-            ""
             match runContext.DefaultCode with
             | Some dc -> dc
             | None ->
+                ""
                 "open System"
-            // "Environment.CurrentDirectory <- __SOURCE_DIRECTORY__" // TODO this fails !
             ""
             ""
             ]

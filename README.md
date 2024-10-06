@@ -63,6 +63,8 @@ Selected text is highlighted in both code and output window. The count is shown 
 
 
 ## Release notes
+`0.11.1`
+- fix expiry date
 
 `0.11.0`
 - fix VisualLine not collapsed crash
