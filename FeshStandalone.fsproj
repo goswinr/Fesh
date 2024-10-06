@@ -28,15 +28,10 @@
     <AssemblyTitle>Fesh</AssemblyTitle>
     <Title>Fesh</Title>
     <Product>Fesh</Product>
-    <PackageId>Fesh</PackageId>
 
     <Version>0.11.0</Version>
     <AssemblyVersion>0.11.0</AssemblyVersion>
     <FileVersion>0.11.0</FileVersion>
-
-    <PackageReleaseNotes>
-      - enable DefaultCode in host settings
-    </PackageReleaseNotes>
 
     <Company>Goswin Rothenthal</Company>    <!-- <Company> shows up on file preview on fesh.exe in windows file explorer-->
     <Authors>GoswinR</Authors>
@@ -48,7 +43,7 @@
 
     <DefineConstants Condition="'$(TargetFramework)' == 'net472'">NETFRAMEWORK</DefineConstants>
 
-    <OutputPath>binStandalone</OutputPath>
+    <OutputPath>bin/standalone</OutputPath>
     <!-- <RestoreAdditionalProjectSources>../AvalonEditB/AvalonEditB/bin/Release/</RestoreAdditionalProjectSources>
     <RestoreAdditionalProjectSources>../AvalonLog/bin/Release/</RestoreAdditionalProjectSources> -->
     <OtherFlags>$(OtherFlags) --warnon:1182</OtherFlags>     <!-- 1182: warn on unused variables -->
@@ -56,8 +51,8 @@
 
   <ItemGroup>
 
-    <PackageReference Update="FSharp.Core" Version="8.0.300" />
-    <PackageReference Include="FSharp.Compiler.Service" Version="43.8.300" />
+    <PackageReference Update="FSharp.Core" Version="8.0.400" />
+    <PackageReference Include="FSharp.Compiler.Service" Version="43.8.400" />
 
     <PackageReference Include="Fittings" Version="0.6.0" />
     <PackageReference Include="AvalonLog" Version="0.14.0" />

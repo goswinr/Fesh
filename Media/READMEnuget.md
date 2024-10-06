@@ -26,7 +26,7 @@ Initial static syntax highlighting is done via AvalonEdit's regex based highligh
 The F# Compiler Service. Provides additional semantic highlighting.
 
 ### Auto complete
- Auto complete works on enter and dot, also in middle of a word.
+Auto complete works on enter and dot, also in middle of a word.
 
 ### Type info
 The type info includes the inferred signature.
@@ -39,11 +39,10 @@ The statusbar at the bottom shows compiler error count, click on it to scroll to
 Selected text is highlighted in both code and output window. The count is shown in the status bar.
 
 
-## How to build
-For the standalone version just build the FeshStandalone.fsproj project:
-
-
 ## Release notes
+
+`0.11.0`
+- fix VisualLine not collapsed crash
 
 `0.10.0`
 - enable DefaultCode in host settings

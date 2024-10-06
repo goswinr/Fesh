@@ -23,20 +23,21 @@ For hosting there is the nuget package [Fesh](https://www.nuget.org/packages/Fes
 
 ### Standalone
 Just download the from [Releases](https://github.com/goswinr/Fesh/releases)
-to any location, unblock and run.
+to any location, **unblock** and run the Fesh.exe.
 
-Or build from source (Release is the default configuration):
+Or build from source with:
 
 ```bash
 dotnet build FeshStandalone.fsproj
 ```
 
 ### for Hosting in another App
-To build the Fesh nuget package run:
+use the nuget package [Fesh](https://www.nuget.org/packages/Fesh/).
+[![Fesh on nuget.org](https://img.shields.io/nuget/v/Fesh.svg)](https://nuget.org/packages/Fesh)
+or, to build the Fesh nuget package run:
 ```bash
 dotnet build FeshHosting.fsproj
 ```
-
 
 ## Features
 
@@ -45,7 +46,7 @@ Initial static syntax highlighting is done via AvalonEdit's regex based highligh
 The F# Compiler Service. Provides additional semantic highlighting.
 
 ### Auto complete
- Auto complete works on enter and dot, also in middle of a word.
+Auto complete works on enter and dot, also in middle of a word.
 
 ### Type info
 The type info includes the inferred signature.
@@ -58,11 +59,10 @@ The statusbar at the bottom shows compiler error count, click on it to scroll to
 Selected text is highlighted in both code and output window. The count is shown in the status bar.
 
 
-## How to build
-For the standalone version just build the FeshStandalone.fsproj project:
-
-
 ## Release notes
+
+`0.11.0`
+- fix VisualLine not collapsed crash
 
 `0.10.0`
 - enable DefaultCode in host settings
