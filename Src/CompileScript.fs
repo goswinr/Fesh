@@ -90,7 +90,7 @@ module CompileScript =
                         match MessageBox.Show(
                             IEditor.mainWindow,
                             msg,
-                            "Recompile and overwrite?",
+                            "Fesh | Recompile and overwrite?",
                             MessageBoxButton.YesNo,
                             MessageBoxImage.Exclamation,
                             MessageBoxResult.No,// default result

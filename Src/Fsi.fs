@@ -543,7 +543,7 @@ type Fsi private (config:Config) =
                 match MessageBox.Show(
                     IEditor.mainWindow,
                     "Do you want to Cancel currently running code?",
-                    "Cancel Current Evaluation?",
+                    "Fesh | Cancel Current Evaluation?",
                     MessageBoxButton.YesNo,
                     MessageBoxImage.Exclamation,
                     MessageBoxResult.No, // default result
@@ -560,7 +560,7 @@ type Fsi private (config:Config) =
                 match MessageBox.Show(
                     IEditor.mainWindow,
                     "Do you want to Cancel currently running code?",
-                    "Cancel Current Evaluation?",
+                    "Fesh | Cancel Current Evaluation?",
                     MessageBoxButton.YesNo,
                     MessageBoxImage.Exclamation,
                     MessageBoxResult.No, // default result

@@ -21,7 +21,7 @@ module AutoFixErrors =
             match MessageBox.Show(
                 IEditor.mainWindow,
                 $"Do you want to add a reference to\r\n\r\n{ass}.dll\r\n\r\non the first line of the script? \r\n\r\nTo fix this Error:\r\n{msg}" ,
-                $"Add a reference to {ass} ?",
+                $"Fesh | Add a reference to {ass} ?",
                 MessageBoxButton.YesNo,
                 MessageBoxImage.Question,
                 MessageBoxResult.Yes,// default result

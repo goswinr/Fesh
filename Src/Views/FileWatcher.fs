@@ -77,7 +77,7 @@ type FileChangeTracker (editor:Editor, setCodeSavedStatus:bool->unit) =
                                         IEditor.mainWindow,
                                         // $"{reason}: File{nl}{nl}{fi.Name}{nl}{nl}was changed.{nl}Do you want to reload it?", // Debug
                                         $"The File{nl}{nl}{fi.Name}{nl}{nl}was changed.{nl}Do you want to reload it?",
-                                        "Reload Changes?",
+                                        "Fesh | Reload Changes?",
                                         MessageBoxButton.YesNo,
                                         MessageBoxImage.Exclamation,
                                         MessageBoxResult.Yes, // default result
@@ -114,7 +114,7 @@ type FileChangeTracker (editor:Editor, setCodeSavedStatus:bool->unit) =
                                         IEditor.mainWindow,
                                         // $"{reason}: File{nl}{nl}{fi.Name}{nl}{nl}was changed.{nl}Do you want to reload it?", // Debug
                                         $"File{nl}{nl}{fi.Name}{nl}{nl}was changed.{nl}Do you want to reload it?{nl}{nl}for {reason}",
-                                        "Reload Changes?",
+                                        "Fesh | Reload Changes?",
                                         MessageBoxButton.YesNo,
                                         MessageBoxImage.Exclamation,
                                         MessageBoxResult.Yes, // default result
@@ -137,7 +137,7 @@ type FileChangeTracker (editor:Editor, setCodeSavedStatus:bool->unit) =
                             IEditor.mainWindow,
                             //$"{reason}: {fi.Name}{nl}{nl}was deleted or renamed.{nl}{nl}at {fi.DirectoryName}", // Debug
                             $"{fi.Name}{nl}{nl}was deleted or renamed.{nl}{nl}at {fi.DirectoryName}",
-                            "File deleted or renamed!",
+                            "Fesh | File deleted or renamed!",
                             MessageBoxButton.OK,
                             MessageBoxImage.Exclamation,
                             MessageBoxResult.OK, // default result

@@ -258,7 +258,7 @@ type Tabs(config:Config, log:Log,feshWin:FeshWindow) =
                 match MessageBox.Show(
                     win,
                     $"Do you want to save the changes to:\r\n{nameLines}\r\nbefore closing this tab?" ,
-                    "Save Changes before closing Tab?",
+                    "Fesh | Save Changes before closing Tab?",
                     MessageBoxButton.YesNoCancel,
                     MessageBoxImage.Question,
                     MessageBoxResult.Yes,// default result
@@ -342,7 +342,7 @@ type Tabs(config:Config, log:Log,feshWin:FeshWindow) =
             MessageBox.Show(
                 win,
                 $"File not found:\r\n\r\n{fi.FullName}" ,
-                "File not found !",
+                "Fesh | File not found !",
                 MessageBoxButton.OK,
                 MessageBoxImage.Error,
                 MessageBoxResult.OK ,// default result
@@ -525,7 +525,7 @@ type Tabs(config:Config, log:Log,feshWin:FeshWindow) =
             match MessageBox.Show(
                 win,
                 msg,
-                "Save Changes?",
+                "Fesh | Save Changes?",
                 MessageBoxButton.YesNoCancel,
                 MessageBoxImage.Question,
                 MessageBoxResult.Yes, // default result
