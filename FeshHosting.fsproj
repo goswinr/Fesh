@@ -57,7 +57,7 @@
     <PackageIcon>logo128.png</PackageIcon>
     <PackageReadmeFile>READMEnuget.md</PackageReadmeFile><!-- using  snupkg the readme does not pack https://github.com/NuGet/Home/issues/10791 -->
     <PackageDescription>A hostable fsharp scripting editor for Windows based on Avalonedit</PackageDescription>
-    <PackageTags>WPF TextEditor F# Scripting FSI AvalonEdit</PackageTags>
+    <PackageTags>WPF TextEditor fsharp scripting FSI AvalonEdit fesh</PackageTags>
   </PropertyGroup>
 
   <ItemGroup>
