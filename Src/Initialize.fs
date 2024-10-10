@@ -10,7 +10,7 @@ open Fesh.Config
 open Fesh.Util
 
 module Initialize =
-
+    let mutable feshInstanceForDebug :Fesh = Unchecked.defaultof<Fesh>
     let saveBeforeFailing()=
         async{
             try
@@ -74,7 +74,9 @@ module Initialize =
         let config = new Config(log, mode, startupArgs)
         log.FinishLogSetup(config)
 
-        Fesh(config, log)
+        let f = Fesh(config, log)
+        feshInstanceForDebug <- f
+        f
 
 
         // not needed?

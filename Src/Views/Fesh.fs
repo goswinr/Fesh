@@ -14,7 +14,7 @@ open Fesh.Editor
 /// this is passed on to hosting apps
 type Fesh (config:Config,log:Log) =
 
-    let feshWin = new Views.FeshWindow(config)
+    let feshWin = new FeshWindow(config)
     let win = feshWin.Window
     let tabs = new Tabs(config, log, feshWin)
     let tabsAndLog = new TabsAndLog(config, tabs, log, feshWin)
@@ -45,8 +45,7 @@ type Fesh (config:Config,log:Log) =
             // first check for running FSI
             match tabs.Fsi.AskIfCancellingIsOk () with
             | NotEvaluating   -> ()
-            | YesAsync472     -> tabs.Fsi.CancelIfAsync()
-            | YesAsync70      -> tabs.Fsi.CancelIfAsync()
+            | YesAsync        -> tabs.Fsi.CancelIfAsync()
             | UserDoesntWantTo-> e.Cancel <- true // don't close window
             | NotPossibleSync -> () // cant show a dialog when in sync mode. show dialog from new thread ? TODO
 

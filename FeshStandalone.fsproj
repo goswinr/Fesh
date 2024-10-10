@@ -4,13 +4,14 @@
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
 	  <TargetFrameworks>net472;net8.0-windows</TargetFrameworks>
+    <!-- <DefineConstants Condition="'$(TargetFramework)' == 'net472'">NETFRAMEWORK</DefineConstants> -->
     <RuntimeIdentifiers>win-x64;win-x86</RuntimeIdentifiers>
     <Configurations>Release</Configurations>
 
     <UseWPF>true</UseWPF>
     <UseWindowsForms>true</UseWindowsForms>    <!--inherited from Avalonedit ?-->
 
-    <LangVersion>preview</LangVersion><!-- to enable indexing from end via ^ -->
+    <LangVersion>preview</LangVersion> <!-- to enable indexing from end via ^ -->
 
     <!--<PublishSingleFile>true</PublishSingleFile>
     <SelfContained>true</SelfContained>
@@ -41,7 +42,6 @@
     <ApplicationIcon>Media/logo.ico</ApplicationIcon>
     <Win32Resource>Media/logo.res</Win32Resource>    <!-- Win32Resource for Application Icon in explorer-->
 
-    <DefineConstants Condition="'$(TargetFramework)' == 'net472'">NETFRAMEWORK</DefineConstants>
 
     <OutputPath>bin/standalone</OutputPath>
     <!-- <RestoreAdditionalProjectSources>../AvalonEditB/AvalonEditB/bin/Release/</RestoreAdditionalProjectSources>

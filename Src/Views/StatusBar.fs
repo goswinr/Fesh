@@ -194,7 +194,7 @@ type FsiRunStatus (grid:TabsAndLog) as this =
                 this.Inlines.Add( "FSI is compiling "+dummyName + " . . ." )
             )
 
-        grid.Tabs.Fsi.OnEmitting.Add(fun codeToEval -> // TODO unused ??
+        grid.Tabs.Fsi.OnEmitting.Add(fun codeToEval -> // TODO unused  till https://github.com/dotnet/fsharp/pull/15957
             this.Background <- compileCol
             this.Inlines.Clear()
             match codeToEval.editor.FilePath with
@@ -248,7 +248,7 @@ type AsyncStatus (grid:TabsAndLog) as this =
         this.MouseDown.Add(fun _ -> fsi.ToggleSync()) //done in fsi module      // TODO better make it dependent on commands , not fsi
         fsi.OnModeChanged.Add(function
             | InSync             -> this.Text <- sync
-            | Async472 | Async70 -> this.Text <- asyn  )
+            | AsyncMode          -> this.Text <- asyn  )
 
 #nowarn "44" //for obsolete grid.Log.AvalonLog.AvalonEdit
 

@@ -29,7 +29,6 @@ type PositionInCodeEx =
     dotBefore    : bool
     partLoName   : PartialLongName
     }
-
     static member get(pos:PositionInCode) =
         let ln = pos.lineToCaret
         let setback  = Str.lastNonFSharpNameCharPosition ln // to maybe replace some previous characters too
@@ -49,9 +48,9 @@ type PositionInCodeEx =
         partLoName   = QuickParse.GetPartialLongNameEx(ln, colSetBack - 1) //TODO is minus one correct ? https://github.com/fsharp/FSharp.Compiler.Service/issues/837
         }
 
-
 [<RequireQualifiedAccess>]
 module FsCheckerUtil =
+    open Fesh.Config
 
     let getFsxFileNameForChecker (filePath:Fesh.Model.FilePath) =
         match filePath with
@@ -107,7 +106,7 @@ module FsCheckerUtil =
         // "you should generally use one global, shared FSharpChecker for everything in an IDE application." from http://fsharp.github.io/FSharp.Compiler.Service/caches.html
         FSharpChecker.Create(suggestNamesForErrors=true) //TODO default options OK?
 
-    let getOptions (fsChecker:FSharpChecker) fileFsx sourceText : option<FSharpProjectOptions>=
+    let getOptions (fsChecker:FSharpChecker, config:Config, fileFsx ,sourceText ): option<FSharpProjectOptions>=
         // see https://github.com/dotnet/fsharp/issues/7669 for performance problems
 
         // For a given script file, get the FSharpProjectOptions implied by the #load closure.
@@ -128,30 +127,21 @@ module FsCheckerUtil =
         // userOpName: An optional string used for tracing compiler operations associated with this request.
         async {
              try
+                let isNet8 = config.RunContext.IsRunningOnDotNetCore
                 let! options, _ = // _ = optionsErr
                     fsChecker.GetProjectOptionsFromScript(
-                                 fileName          = fileFsx
-                                ,source            = sourceText
-                                ,previewEnabled    = true // // Bug in FCS! if otherFlags argument is given the value here is ignored !
-                                //,loadedTimeStamp: DateTime *
-
-                                #if NETFRAMEWORK
-                                //https://github.com/fsharp/FsAutoComplete/blob/f176825521215725e5b7ba888d4bb11d1e408e56/src/FsAutoComplete.Core/CompilerServiceInterface.fs#L178
-                                ,otherFlags            = [| "--targetprofile:mscorlib"; "--langversion:preview" |]
-                                ,useSdkRefs            = false
-                                ,assumeDotNetFramework = true
-
-                                #else
-                                ,otherFlags            = [| "--targetprofile:netstandard"; "--langversion:preview" |]
-                                ,useSdkRefs            = true
-                                ,assumeDotNetFramework = false
-                                #endif
-
-                                //,useFsiAuxLib = true // so that fsi object is available // doesn't work
-                                //,sdkDirOverride: string *
-                                //,optionsStamp: int64 *
-                                //,userOpName: string
-                                )
+                        fileName          = fileFsx
+                        ,source            = sourceText
+                        ,previewEnabled    = true // // Bug in FCS! if otherFlags argument is given the value here is ignored !
+                        //,loadedTimeStamp: DateTime *
+                        ,otherFlags            = [| "--targetprofile:" + (if isNet8 then "netstandard" else "mscorlib") ; "--langversion:preview" |]//https://github.com/fsharp/FsAutoComplete/blob/f176825521215725e5b7ba888d4bb11d1e408e56/src/FsAutoComplete.Core/CompilerServiceInterface.fs#L178
+                        ,useSdkRefs            = isNet8
+                        ,assumeDotNetFramework = not isNet8
+                        //,useFsiAuxLib = true // so that fsi object is available // doesn't work
+                        //,sdkDirOverride: string *
+                        //,optionsStamp: int64 *
+                        //,userOpName: string
+                        )
                 //Not needed because these errors are reported by ParseAndCheckFileInProject too
                 //for oe in optionsErr do
                 //    let msg = sprintf "%A" oe |> Util.Str.truncateToMaxLines 3
@@ -208,7 +198,6 @@ type Checker private ()  =
             Fittings.SyncWpf.doSync (fun () -> checkingStateEv.Trigger state )
 
 
-
     static let mutable projectOptions = None: FSharpProjectOptions option
 
     static let parseAndCheck( state:InteractionState, code:string, filePath:Fesh.Model.FilePath, changeId): option<ParseCheckRes> =
@@ -218,12 +207,12 @@ type Checker private ()  =
 
         let ok() = state.IsLatestOpt changeId
 
-        Monads.maybe{
+        Monads.maybe {
             let! _ = ok()
             let  fileFsx    = FsCheckerUtil.getFsxFileNameForChecker filePath
             let! _ = ok()
             let  sourceText = Text.SourceText.ofString code
-            let! opts = FsCheckerUtil.getOptions fsChecker.Value fileFsx sourceText
+            let! opts = FsCheckerUtil.getOptions(fsChecker.Value, state.Config, fileFsx, sourceText)
             projectOptions <- Some opts
             let! _ = ok()
             let! checkRes = FsCheckerUtil.parseAndCheckImpl fsChecker.Value fileFsx sourceText opts
