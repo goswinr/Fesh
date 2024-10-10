@@ -5,7 +5,7 @@
     <OutputType>Library</OutputType>
     <!-- <TargetFramework>net472</TargetFramework> -->
     <TargetFrameworks>net472;net7.0-windows</TargetFrameworks>
-    <!-- <DefineConstants Condition="'$(TargetFramework)' == 'net472'">NETFRAMEWORK</DefineConstants> -->
+    <DefineConstants Condition="'$(TargetFramework)' == 'net472'">NETFRAMEWORK</DefineConstants>
     <!-- <RuntimeIdentifier>win-x64</RuntimeIdentifier> -->
     <Configurations>Release</Configurations>
 

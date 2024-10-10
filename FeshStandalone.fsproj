@@ -4,7 +4,7 @@
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
 	  <TargetFrameworks>net472;net8.0-windows</TargetFrameworks>
-    <!-- <DefineConstants Condition="'$(TargetFramework)' == 'net472'">NETFRAMEWORK</DefineConstants> -->
+    <DefineConstants Condition="'$(TargetFramework)' == 'net472'">NETFRAMEWORK</DefineConstants>
     <RuntimeIdentifiers>win-x64;win-x86</RuntimeIdentifiers>
     <Configurations>Release</Configurations>
 

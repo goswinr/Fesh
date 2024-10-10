@@ -52,7 +52,7 @@ module GoTo =
 
 //for: HandleProcessCorruptedStateExceptionsAttribute: This construct is deprecated. Recovery from corrupted process state exceptions is not supported; HandleProcessCorruptedStateExceptionsAttribute is ignored.
 //and for : Runtime.ControlledExecution.Run
-#nowarn "44"
+//#nowarn "44"
 open System.Reflection
 
 type Fsi private (config:Config) =
@@ -110,26 +110,61 @@ type Fsi private (config:Config) =
     //     )
 
 
-    // let  net7cancellationToken = new CancellationTokenSource()
+    // will point to the token in https://github.com/dotnet/fsharp/blob/main/src/Compiler/Interactive/ControlledExecution.fs
+    let mutable fscCancellationToken : CancellationTokenSource voption = ValueNone
 
-    let getControlledExecutionAborter() : unit -> bool =
-        match sessionOpt with
-        |None ->
-            IFeshLog.log.PrintfnFsiErrorMsg "Getting FSI aborter failed, no session to abort"
-            fun () -> false
-        |Some session ->
-            try
-                let flags = BindingFlags.NonPublic ||| BindingFlags.Instance
-                let fsiInterruptController = session.GetType().GetField( "fsiInterruptController" ,flags).GetValue(session)
-                let controlledExecution = fsiInterruptController.GetType().GetField( "controlledExecution" ,flags).GetValue(fsiInterruptController)
-                let tryAbortInfo = controlledExecution.GetType().GetMethod("TryAbort",BindingFlags.Public||| BindingFlags.Instance)
-                fun ()  ->
-                    tryAbortInfo.Invoke(controlledExecution, null) |> ignore
-                    IFeshLog.log.PrintfnFsiErrorMsg "Cancelled ??"
-                    true
-            with e ->
-                IFeshLog.log.PrintfnFsiErrorMsg "Getting FSI aborter via reflection form Fsharp.Compiler.Service failed"
+
+    let setAControlledExecutionCancellationToken()=
+        if config.RunContext.IsRunningOnDotNetCore then
+            match sessionOpt with
+            |None ->
+                IFeshLog.log.PrintfnFsiErrorMsg "Getting FSI token setter failed, no session to abort"
+            |Some session ->
+                fscCancellationToken <- ValueSome (new CancellationTokenSource())
+                try
+                    let flags = BindingFlags.NonPublic ||| BindingFlags.Instance
+                    let fsiInterruptController = session.GetType().GetField( "fsiInterruptController" ,flags).GetValue(session)
+                    let controlledExecution = fsiInterruptController.GetType().GetField( "controlledExecution" ,flags).GetValue(fsiInterruptController)
+                    controlledExecution.GetType().GetField("cts",flags).SetValue(controlledExecution, fscCancellationToken)
+                    //so that this triggers: https://github.com/dotnet/fsharp/blob/9db7f5b109f17746467531779ce6c9226b6d60b9/src/Compiler/Interactive/ControlledExecution.fs#L48
+                    controlledExecution.GetType().GetField("isInteractive",flags).SetValue(controlledExecution, true)
+                with e ->
+                    IFeshLog.log.PrintfnFsiErrorMsg "Getting FSI token via reflection form Fsharp.Compiler.Service failed"
+
+
+    let getControlledExecutionAborter(thread:Thread) : unit -> bool =
+        if config.RunContext.IsRunningOnDotNetCore then
+            match sessionOpt with
+            |None ->
+                IFeshLog.log.PrintfnFsiErrorMsg "Getting FSI aborter failed, no session to abort"
                 fun () -> false
+            |Some session ->
+                try
+                    let flags = BindingFlags.NonPublic ||| BindingFlags.Instance
+                    let fsiInterruptController = session.GetType().GetField( "fsiInterruptController" ,flags).GetValue(session)
+                    let controlledExecution = fsiInterruptController.GetType().GetField( "controlledExecution" ,flags).GetValue(fsiInterruptController)
+                    let cts = controlledExecution.GetType().GetField("cts",flags).GetValue(controlledExecution)
+                    fun ()  ->
+                        // tryAbortInfo.Invoke(controlledExecution, null) |> ignore
+                        match (cts:?> ValueOption<Threading.CancellationTokenSource>) with
+                        | ValueNone ->
+                            IFeshLog.log.PrintfnFsiErrorMsg "no cancellation token??"
+                            false
+                        | ValueSome ctk ->
+                            ctk.Cancel()
+                            true
+                with e ->
+                    IFeshLog.log.PrintfnFsiErrorMsg "Getting FSI aborter via reflection form Fsharp.Compiler.Service failed"
+                    fun () -> false
+        else
+            fun () ->
+                #if NETFRAMEWORK
+                    thread.Abort()
+                    true
+                #else
+                    ignore thread // to avoid warning
+                    false
+                #endif
 
     let abortThenMakeAndStartAsyncThread() =
         // shutDownThreadEv.Trigger() // don't do this ! this shuts down all of Fesh !!
@@ -137,15 +172,15 @@ type Fsi private (config:Config) =
 
         match asyncThread with
         |None -> ()
-        |Some _ -> // _ = thread
+        |Some thread -> // _ = thread
             asyncContext <- None
             asyncThread  <- None
-            let aborter = getControlledExecutionAborter ()
+            let aborter = getControlledExecutionAborter(thread)
             if aborter() then
                 asyncThread <- None
                 SyncWpf.doSync( fun () ->
                     canceledEv.Trigger()
-                    log.PrintfnInfoMsg "FSI evaluation was canceled by user!"
+                    log.PrintfnInfoMsg "\r\nFSI evaluation was canceled by user!"
                     )
 
             // if not config.RunContext.IsRunningOnDotNetCore then
@@ -306,15 +341,14 @@ type Fsi private (config:Config) =
 
             |Choice2Of2 exn ->
                 match exn with
-                | :? OperationCanceledException ->
+                | :? OperationCanceledException -> // only happens on net net 7+ when cancelling via Fesh ui
                     // thread.Abort raises a Threading.ThreadAbortException but it gets converted to a OperationCanceledException in FCS: fsi.fs line 3027
                     // FCS also handles the required ResetAbort:
                     // https://learn.microsoft.com/en-us/dotnet/api/system.threading.thread.abort?view=netframework-4.7.2#system-threading-thread-abort
-                    canceledEv.Trigger()
+                    // canceledEv.Trigger() // don in abortThenMakeAndStartAsyncThread()
                     if config.RunContext.IsHosted && mode = AsyncMode && isNull exn.StackTrace  then
                         log.PrintfnFsiErrorMsg "FSI evaluation was canceled,\r\nif you did not trigger this cancellation try running FSI in Synchronous evaluation mode (instead of Async)."
-                    else
-                        log.PrintfnInfoMsg "FSI evaluation was canceled by the user!"
+
 
                 | :? FsiCompilationException ->
                     runtimeErrorEv.Trigger(exn)
@@ -358,8 +392,9 @@ type Fsi private (config:Config) =
         } |> Async.StartImmediate
 
     [< Security.SecurityCritical >]
+    #if NETFRAMEWORK //This construct is deprecated in net6.0 . Recovery from corrupted process state exceptions is not supported; HandleProcessCorruptedStateExceptionsAttribute is ignored.
     [< Runtime.ExceptionServices.HandleProcessCorruptedStateExceptions >] //to handle AccessViolationExceptions too //https://stackoverflow.com/questions/3469368/how-to-handle-accessviolationexception/4759831
-    //This construct is deprecated in net6.0 . Recovery from corrupted process state exceptions is not supported; HandleProcessCorruptedStateExceptionsAttribute is ignored.
+     #endif
     let evalSave (session:FsiEvaluationSession, code:string, codeToEv:CodeToEval) =
         // net472
         // Cancellation happens via Thread Abort
@@ -458,7 +493,7 @@ type Fsi private (config:Config) =
                     Async.StartImmediate(asyncEval)
 
 
-
+    /// for init and reset!
     let initFsi(config:Config) :unit =
         match state with
         | Initializing                               -> log.PrintfnInfoMsg "FSI initialization can't be started because it is already in process.."
@@ -503,7 +538,9 @@ type Fsi private (config:Config) =
                 // TODO what happens in Abort if current state is NotLoaded
                 match mode with
                 |InSync ->   ()
-                |AsyncMode ->  abortThenMakeAndStartAsyncThread()
+                |AsyncMode ->
+                    abortThenMakeAndStartAsyncThread()
+                    setAControlledExecutionCancellationToken()
 
                 do! Async.SwitchToContext SyncWpf.context
 
