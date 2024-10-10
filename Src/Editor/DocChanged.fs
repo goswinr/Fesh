@@ -140,7 +140,7 @@ module DocChangeMark =
                     drawServ.selection.UpdateTransformers(id)
                     drawServ.brackets.UpdateAllBrackets(id)
                     drawServ.folds.CheckFolds(id)
-             } |> Async.Start
+            } |> Async.Start
 
             // second: Errors and Semantic Highlighting and BadIndentation on FCS check result .
             async{
@@ -149,7 +149,12 @@ module DocChangeMark =
                 |Some res ->
                     if state.IsLatest id then
                         drawServ.errors.UpdateErrs(res.errors, id)
-                        drawServ.semantic.UpdateSemHiLiTransformers( res.checkRes, id)
+                        try
+                            drawServ.semantic.UpdateSemHiLiTransformers( res.checkRes, id)
+                        with e ->
+                            AutoFixErrors.check e.Message // check for add a reference to assembly
+                            IFeshLog.log.PrintfnAppErrorMsg "Exception in drawServ.semantic.UpdateSemHiLiTransformers: \r\n%s "e.Message
+
             } |> Async.Start
 
     //should be called from any thread pool thread

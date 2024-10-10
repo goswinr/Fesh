@@ -10,6 +10,7 @@ open FSharp.Compiler.CodeAnalysis
 module AutoFixErrors =
 
     let asked  = HashSet<string>()
+    let askedAgain  = HashSet<string>()
 
     let mutable isMessageBoxOpen = false // because msg box would appear behind completion window and type info
 
@@ -30,7 +31,7 @@ module AutoFixErrors =
                 do! Async.SwitchToContext SyncWpf.context
                 match IEditor.current with
                 |Some ied ->
-                    ied.AvaEdit.Document.Insert(0, $"#r \"{ass}\"\r\n")
+                    ied.AvaEdit.Document.Insert(0, $"#r \"{ass}\" // auto added\r\n")
                 |None -> ()
             | _ -> ()
 
@@ -38,17 +39,17 @@ module AutoFixErrors =
         }|> Async.Start
 
     let check(msg) =
-        match Util.Str.between "must add a reference to assembly '" ","  msg with //assembly name with version number
+        match Util.Str.between "add a reference to assembly '" ","  msg with //assembly name with version number
         |Some ass ->
-            if asked.Add msg then ask(msg,ass)
+            if asked.Add msg || askedAgain.Add msg then ask(msg,ass)
         |None ->
-            match Util.Str.between "must add a reference to assembly '" "'"  msg with //assembly name without version number
+            match Util.Str.between "add a reference to assembly '" "'"  msg with //assembly name without version number
             |Some ass ->
-                if asked.Add msg then ask(msg,ass)
+                if asked.Add msg || askedAgain.Add msg then ask(msg,ass)
             |None -> ()
 
 
     let references(checkRes:FSharpCheckFileResults) =
         for e in checkRes.Diagnostics do
-            if e.Message.Contains "must add a reference to assembly" then
+            if e.Message.Contains "add a reference to assembly" then
                 check(e.Message)
