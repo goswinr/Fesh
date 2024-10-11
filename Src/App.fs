@@ -12,7 +12,7 @@ module App =
     let mutable current = Unchecked.defaultof<Fesh>
 
     /// mainWindowHandle: Pointer to main window(nativeInt),
-    /// hostName: a string for the name of the hosting App (will be used for settings file name an displayed in the Title Bar.
+    /// hostName: a string for the name of the hosting App (will be used for settings file name an displayed in the Title Bar.)
     /// fsiCanRun: a function to check if evaluation of fsi is currently allowed
     /// Call fesh.Window.Show() on the returned Fesh object.
     /// Use fesh.Fsi.OnStarted and fesh.Fsi.OnIsReady Events to implement undo and redo in host App.

@@ -26,18 +26,29 @@ type FeshWindow (config:Config)=
     let plat =
         if Environment.Is64BitProcess then "64bit" else "32bit"
 
+
+    let removeTrailingZerosOrPoints (s:string) =
+        let rec loop (s:string) =
+            if s.EndsWith "0" then loop (s.Substring(0,s.Length-1))
+            elif s.EndsWith "." then s.Substring(0,s.Length-1)
+            else s
+        loop s
+
     let version =
-        let v = Reflection.Assembly.GetAssembly(typeof<IFeshLog>).GetName().Version
-        $"v{v.Major}.{v.Minor}.{v.Revision}"  + if  v.MinorRevision <> 0s then $".{v.MinorRevision}" else ""
+        let v = Reflection.Assembly.GetAssembly(typeof<FeshWindow>).GetName().Version
+        "v" + (v.ToString()|> removeTrailingZerosOrPoints)
+        // $"v{v.Major}.{v.Minor}.{v.Revision}"  + if  v.MinorRevision <> 0s then $".{v.MinorRevision}" else ""
 
     let fscore  =
         let v = [].GetType().Assembly.GetName().Version
-        $"Fsharp.Core {v.Major}.{v.Minor}.{v.Revision}"  + if  v.MinorRevision <> 0s then $".{v.MinorRevision}" else ""
+        "Fsharp.Core." + (v.ToString()|> removeTrailingZerosOrPoints)
+        // $"Fsharp.Core {v.Major}.{v.Minor}.{v.Revision}"  + if  v.MinorRevision <> 0s then $".{v.MinorRevision}" else ""
 
     let frameW =
-        let d = RuntimeInformation.FrameworkDescription
-        let t = if d.EndsWith ".0" then d[..^2] else d
-        $"{t}"
+        RuntimeInformation.FrameworkDescription |> removeTrailingZerosOrPoints
+        // let d = RuntimeInformation.FrameworkDescription
+        // let t = if d.EndsWith ".0" then d[..^2] else d
+        // $"{t}"
 
     do
         //Add Icon:
