@@ -46,7 +46,7 @@ dotnet build FeshHosting.fsproj
 ### Syntax Highlighting
 Initial static syntax highlighting is done via AvalonEdit's regex based highlighting.
 See [SyntaxHighlightingFSharp.xshd](https://github.com/goswinr/Fesh/blob/main/Src/SyntaxHighlightingFSharp.xshd).
-The F# Compiler Service. Provides additional semantic highlighting.
+The F# Compiler Service provides additional semantic highlighting.
 
 ### Auto complete
 Auto complete works on enter and dot, also in middle of a word.
