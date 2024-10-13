@@ -14,6 +14,7 @@ open Fittings.DependencyProps
 open Fesh.Model
 open Fesh.Util
 open Fesh.Config
+open Fesh.Editor
 open Fesh.Views.MenuUtil
 
 
@@ -330,11 +331,11 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, statusBar:FeshStatusBar, log:
                 sep()
                 menuItem cmds.RunCurrentLines
                 menuItem cmds.RunSelectedText
-                sep()
-                //menuItem cmds.RunTextFromCursor
-                if config.Settings.GetBool("TrackEvaluatedCode", false) then menuItem cmds.RunTextTillCursor
-                if config.Settings.GetBool("TrackEvaluatedCode", false) then menuItem cmds.EvalContinue
-                if config.Settings.GetBool("TrackEvaluatedCode", false) then menuItem cmds.MarkEval
+                if config.Settings.GetBool(EvaluationTracker.SettingsStr, EvaluationTracker.onByDefault) then
+                    sep()
+                    menuItem cmds.RunTextTillCursor
+                    menuItem cmds.EvalContinue
+                    menuItem cmds.MarkEval
                 sep()
                 menuItem cmds.GoToError
                 sep()

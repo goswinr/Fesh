@@ -17,11 +17,15 @@ module private EvaluationTrackerRendererUtil =
 
     //let backGround = Brushes.Teal |> brighter 230 |> freeze
     //let backGround = Brushes.Ivory |> brighter 5   |> freeze
-    //let backGround = Brushes.LightGray |> brighter 30 |> freeze
-    let backGround = SolidColorBrush(Color.FromArgb(120uy,239uy,239uy,239uy))|> freeze // a=0 : fully transparent A=255 opaque
+    let backGround = Brushes.Gray |> brighter 80 |> freeze
+    // let backGround = SolidColorBrush(Color.FromArgb(120uy,239uy,239uy,239uy))|> freeze // a=0 : fully transparent A=255 opaque
 
 
-    //let pen = new Pen(Brushes.Black |> freeze , 0.5)  |> Pen.freeze
+    let border =
+        let p = new Pen(Brushes.Gray |> darker 50 |> freeze , 1.0)
+        p.Freeze()
+        p
+
     //let border = new Pen( Brushes.Teal |> freeze , 0.7)  |> Pen.freeze
 
     let inline newSegmentTill(endOff) =
@@ -183,8 +187,8 @@ type EvaluationTrackerRenderer (ed:TextEditor) =
                 let geoBuilder = new BackgroundGeometryBuilder (AlignToWholePixels = true, CornerRadius = 0.)
                 geoBuilder.AddSegment(textView, evaluatedCodeSeg) // TODO: what happens if the code became shorter and this segment is now bigger than the document ?
                 let boundaryPolygon = geoBuilder.CreateGeometry() // creates one boundary round the text
-                drawingContext.DrawGeometry(backGround, null, boundaryPolygon) // pen could be null too
-                //drawingContext.DrawGeometry(backGround, border, boundaryPolygon) // pen could be null too
+                //drawingContext.DrawGeometry(backGround, null, boundaryPolygon) // pen could be null too
+                drawingContext.DrawGeometry(backGround, border, boundaryPolygon) // pen could be null too
 
                 // TODO draw a draggable separator instead:
                 // http://www.fssnip.net/9N/title/Drag-move-for-GUI-controls
@@ -192,12 +196,14 @@ type EvaluationTrackerRenderer (ed:TextEditor) =
                 IFeshLog.log.PrintfnAppErrorMsg "ERROR in EvaluationTrackerRenderer.Draw(): %A" ex
 
     // for IBackgroundRenderer
-    member _.Layer = KnownLayer.Caret// KnownLayer.Background
+    member _.Layer =
+        // KnownLayer.Caret // to draw over all text a transparent layer
+        KnownLayer.Selection
+        // KnownLayer.Background
 
     interface IBackgroundRenderer with
         member this.Draw(tv,dc) = this.Draw(tv,dc)
         member this.Layer = this.Layer
-
 
 
 type EvaluationTracker (ed:TextEditor, config:Fesh.Config.Config) =
@@ -226,13 +232,18 @@ type EvaluationTracker (ed:TextEditor, config:Fesh.Config.Config) =
                         //IFeshLog.log.PrintfnFsiErrorMsg "Fsi.OnCompletedOk,FsiSegment:renderer.EvaluateFrom:%d" renderer.EvaluateFrom
                 )
 
-    member _.SetLastChangeAt(off) =  renderer.SetLastChangeAt(off)
+    member _.SetLastChangeAt(off) = renderer.SetLastChangeAt(off)
 
     /// Offset of where evaluation should continue from
-    member _.EvaluateFrom =    renderer.EvaluateFrom
+    member _.EvaluateFrom = renderer.EvaluateFrom
 
     /// provide the index of the first unevaluated offset, this might be out of bound too if all doc is evaluated and will be checked
     member _.MarkEvaluatedTillOffset(off) =  renderer.MarkEvaluatedTillOffset(off)
+
+    /// just the string literal used for settings file: "TrackEvaluatedCode"
+    static member SettingsStr = "TrackEvaluatedCode"
+
+    static member onByDefault = true
 
 
 

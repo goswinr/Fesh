@@ -62,6 +62,9 @@ The statusbar at the bottom shows compiler error count, click on it to scroll to
 ### Selection highlighting
 Selected text is highlighted in both code and output window. The count is shown in the status bar.
 
+### Font
+The default font is [Cascadia Mono](https://github.com/microsoft/cascadia-code). You can change it in the 'Settings.txt' file at `%APPDATA%\Local\Fesh\Settings.txt`.
+Or via the menu: About -> Open Settings Folder.
 
 ## Release notes
 

@@ -91,7 +91,8 @@ type Editor private (code:string, config:Config, initialFilePath:FilePath)  =
     let error       = new ErrorHighlighter(state, foldMg, fun () -> compls.IsOpen )
     let selHiLi     = new SelectionHighlighter(state)
     let evalTracker =
-        if config.Settings.GetBool("TrackEvaluatedCode", false) then Some <| EvaluationTracker(avaEdit,config) else None
+        if config.Settings.GetBool(EvaluationTracker.SettingsStr, EvaluationTracker.onByDefault) then Some <| EvaluationTracker(avaEdit,config)
+        else None
 
     let drawServices :Redrawing.DrawingServices = {
         folds       = folds
@@ -131,15 +132,14 @@ type Editor private (code:string, config:Config, initialFilePath:FilePath)  =
     member _.AvaEdit = avaEdit
 
     /// This CheckState is local to the current editor
-    member _.FileCheckState  with get() = checkState  and  set(v) = checkState <- v
+    member _.FileCheckState with get() = checkState and  set(v) = checkState <- v
 
     /// setting this alone does not change the tab header !!
-    member _.FilePath        with get() = filePath    and set (v)= filePath <- v
+    member _.FilePath with get() = filePath and set (v)= filePath <- v
 
     //member this.Log = config.Log
     member this.IsComplWinOpen  = compls.IsOpen
 
-    //member _.EvaluateFrom  = evalTracker.EvaluateFrom
 
     interface IEditor with
         member _.AvaEdit         = avaEdit
@@ -148,7 +148,6 @@ type Editor private (code:string, config:Config, initialFilePath:FilePath)  =
         member _.IsComplWinOpen  = compls.IsOpen
         member _.FoldingManager  = foldMg
         member _.EvaluateFrom    = match evalTracker with Some et -> Some et.EvaluateFrom | None -> None
-
 
     member this.CloseToolTips() =
         this.TypeInfoTip.IsOpen <- false
