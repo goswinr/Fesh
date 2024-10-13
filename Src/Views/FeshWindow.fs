@@ -36,7 +36,7 @@ type FeshWindow (config:Config)=
 
     let version =
         let v = Reflection.Assembly.GetAssembly(typeof<FeshWindow>).GetName().Version
-        "v" + (v.ToString()|> removeTrailingZerosOrPoints)
+        "v" + (v.ToString())//|> removeTrailingZerosOrPoints)
         // $"v{v.Major}.{v.Minor}.{v.Revision}"  + if  v.MinorRevision <> 0s then $".{v.MinorRevision}" else ""
 
     let fscore  =

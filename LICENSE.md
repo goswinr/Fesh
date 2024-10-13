@@ -1,6 +1,5 @@
-MIT License
 
-Fesh, Scripting Editor for F#
+The MIT License (MIT)
 
 Copyright (c) 2019 Goswin Rothenthal
 

@@ -3,6 +3,7 @@
 open Fesh.Model
 
 
+
 type Config (log:IFeshLog, startUpData:HostedStartUpData option, startupArgs:string[]) =
 
     let  runContext                 = new RunContext                  (startUpData)
@@ -26,4 +27,5 @@ type Config (log:IFeshLog, startUpData:HostedStartUpData option, startupArgs:str
     member this.FoldingStatus              = foldingStatus
 
     member this.Log                        = log
+
 

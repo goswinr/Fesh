@@ -301,7 +301,6 @@ module Str  =
             if ende = -1 then None
             else Some <| s.Substring(start + startChar.Length, ende - start - startChar.Length)
 
-    //
     let inline countCharI (c:char) (s:ITextSource) =
         let len = s.TextLength
         let mutable k =  0
