@@ -6,6 +6,7 @@
 [![license](https://img.shields.io/github/license/goswinr/Fesh)](LICENSE)
 
 Fesh is a Scripting Editor for F# on Windows.
+Designed for embedding F# as application scripting tool.
 
 ![Screenshot](https://raw.githubusercontent.com/goswinr/Fesh/main/Media/screenshot1.png)
 
@@ -14,11 +15,13 @@ The editor supports F# 8.0 and has modern IDE features like semantic syntax high
 Unlike a typical F# REPL this editor has the input and the output in two separate windows.
 Just [like Don Syme always wanted it](https://github.com/dotnet/fsharp/issues/2161#issuecomment-270465310). You can even color the output with [Fescher](https://www.nuget.org/packages/Fesher)!
 
-By using [FSharp.Compiler.Service](https://www.nuget.org/packages/FSharp.Compiler.Service/43.8.400) in the same process the Editor can easily be hosted in other apps to create an embedded application scripting tool.
-This was in fact the primary motivation for creating this editor.
-It is public since 2024. But I started prototyping it in 2017. I used it for scripting in Rhino3D professionally since 2019.
-Initially I used the Tsunami F# editor, [see my talk on Louvre Abu Dhabi](https://www.youtube.com/watch?v=ZY-bvZZZZnE).
-But it is no longer available.
+Contrary to most F# editors, it uses [FSharp.Compiler.Service](https://www.nuget.org/packages/FSharp.Compiler.Service/43.8.400) in the same process as the UI. 
+There is no separate language server or FSI process.  
+Therefore,  Fesh can easily be hosted in other apps to create an embedded application scripting tool.   
+This was in fact the primary motivation for creating Fesh.  
+It is public since 2024. But I started prototyping it in 2017. I used it for scripting in Rhino3D professionally since 2019.  
+Initially I used the Tsunami F# editor, [see my talk on Louvre Abu Dhabi](https://www.youtube.com/watch?v=ZY-bvZZZZnE).  
+But it is no longer available.   
 
 For hosting there is the nuget package [Fesh](https://www.nuget.org/packages/Fesh/). See hosting examples
 [Fesh.Rhino](https://github.com/goswinr/Fesh.Rhino) and [Fesh.Revit](https://github.com/goswinr/Fesh.Revit).
