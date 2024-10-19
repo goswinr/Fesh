@@ -22,14 +22,20 @@ type ColumnRulers (editor:TextEditor)  as this =
         [0 .. 10] |> List.map ( fun i -> i * editor.Options.IndentationSize)
         //[ 0; 4; 8; 12 ; 16 ; 20 ; 24 ; 28 ; 32 ; 36]
 
-    let mutable color = Brushes.White |> darker 20 //24
+    let mutable color = Brushes.White |> darker 24
+
+    // make it more transparent
+    let addTransparency (amount:int) (br:SolidColorBrush)  =
+        SolidColorBrush(Color.FromArgb(clampToByte (int br.Color.A - amount), br.Color.R, br.Color.G, br.Color.B))
+
 
     let pens =
         [
             for _ in columnsInit do
-                let p = new Pen(color, 1.2 )
+                let p = new Pen(color, 1.1 )
+                // color <- brighter 2 color   // fade out next ruler
+                color <- addTransparency 20 color   // fade out next ruler
                 p.Freeze()
-                color <- brighter 2 color   // fade out next ruler
                 p
         ]
 
@@ -50,12 +56,14 @@ type ColumnRulers (editor:TextEditor)  as this =
             | _-> ()//log.PrintfnAppErrorMsg "other left margin: %A" uiElm // TODO other left margin: System.Windows.Shapes.Line
 
 
-    member this.Layer = KnownLayer.Background
+    member this.Layer =
+        // KnownLayer.Background
+        KnownLayer.Selection
 
     member this.Draw(textView:TextView, drawingContext:DrawingContext) =
-
+        let width = textView.WideSpaceWidth
         for column,pen in Seq.zip columns pens do
-            let offset = textView.WideSpaceWidth * float column
+            let offset = width * float column
             let markerXPos = PixelSnapHelpers.PixelAlign(offset, pixelSize.Width) - textView.ScrollOffset.X
             let start = new Point(markerXPos, 0.0);
             let ende =  new Point(markerXPos, Math.Max(textView.DocumentHeight, textView.ActualHeight))

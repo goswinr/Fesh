@@ -3,26 +3,25 @@
   <!-- Project Sdk= WinDesktop for WPF, it is also needed so that resources work with dotnet build, 'WindowsDesktop' must be included when building for net472 and net6.0-->
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-	  <TargetFrameworks>net472;net8.0-windows</TargetFrameworks>
-    <DefineConstants Condition="'$(TargetFramework)' == 'net472'">NETFRAMEWORK</DefineConstants>
-    <RuntimeIdentifiers>win-x64;win-x86</RuntimeIdentifiers>
-    <Configurations>Release</Configurations>
-
     <UseWPF>true</UseWPF>
     <UseWindowsForms>true</UseWindowsForms>    <!--inherited from Avalonedit ?-->
+	  <TargetFrameworks>net472;net8.0-windows</TargetFrameworks>
+    <!-- <RuntimeIdentifiers>win-x64;win-x86</RuntimeIdentifiers> -->
+    <DefineConstants Condition="'$(TargetFramework)' == 'net472'">NETFRAMEWORK</DefineConstants>
 
     <LangVersion>preview</LangVersion> <!-- to enable indexing from end via ^ -->
 
-    <!--<PublishSingleFile>true</PublishSingleFile>
-    <SelfContained>true</SelfContained>
+	  <!-- the resulting 200 MB exe fails to load FSharp.Core correctly -->
+    <!-- <PublishSingleFile>true</PublishSingleFile>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <SelfContained>true</SelfContained>
     <PublishReadyToRun>true</PublishReadyToRun>
-	   doesn't work ?, long build times  ? -->
+    <DebugType>embedded</DebugType> -->
 
     <NeutralLanguage>en</NeutralLanguage>
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>    <!-- <SatelliteResourceLanguages> to only have the English resources-->
     <GenerateDocumentationFile>true</GenerateDocumentationFile>    <!-- <GenerateDocumentationFile> just in case the editor itself gets referenced from a script-->
-    <FSharpCoreIncludeDocFileInOutput>true</FSharpCoreIncludeDocFileInOutput>    <!-- <FSharpCoreIncludeDocFileInOutput> does not work when used in visual studio? only dotnet sdk ?-->
+    <FSharpCoreIncludeDocFileInOutput>true</FSharpCoreIncludeDocFileInOutput> <!-- doesn't seem to work -->
 
     <RootNamespace>Fesh</RootNamespace>
     <AssemblyName>Fesh</AssemblyName>
@@ -30,9 +29,9 @@
     <Title>Fesh</Title>
     <Product>Fesh</Product>
 
-    <Version>0.12.0</Version>
-    <AssemblyVersion>0.12.0</AssemblyVersion>
-    <FileVersion>0.12.0</FileVersion>
+    <Version>0.13.0</Version>
+    <AssemblyVersion>0.13.0</AssemblyVersion>
+    <FileVersion>0.13.0</FileVersion>
 
     <Company>Goswin Rothenthal</Company>    <!-- <Company> shows up on file preview on fesh.exe in windows file explorer-->
     <Authors>GoswinR</Authors>
@@ -42,26 +41,26 @@
     <ApplicationIcon>Media/logo.ico</ApplicationIcon>
     <Win32Resource>Media/logo.res</Win32Resource>    <!-- Win32Resource for Application Icon in explorer-->
 
+    <Configurations>Release</Configurations>
 
     <OutputPath>bin/standalone</OutputPath>
-    <!-- <RestoreAdditionalProjectSources>../AvalonEditB/AvalonEditB/bin/Release/</RestoreAdditionalProjectSources>
-    <RestoreAdditionalProjectSources>../AvalonLog/bin/Release/</RestoreAdditionalProjectSources> -->
+
     <OtherFlags>$(OtherFlags) --warnon:1182</OtherFlags>     <!-- 1182: warn on unused variables -->
   </PropertyGroup>
 
   <ItemGroup>
 
-    <PackageReference Update="FSharp.Core" Version="8.0.400" />
+    <PackageReference Update="FSharp.Core" Version="8.0.400"  GeneratePathProperty="true"/>
     <PackageReference Include="FSharp.Compiler.Service" Version="43.8.400" />
     <PackageReference Include="System.Net.Http" Version="4.3.4" />
 
     <PackageReference Include="Fittings" Version="0.6.0" />
     <PackageReference Include="AvalonLog" Version="0.14.0" />
     <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="all" IncludeAssets="runtime; build; native; contentfiles; analyzers; buildtransitive" />
-    <!-- https://docs.microsoft.com/en-us/nuget/consume-packages/package-references-in-project-files#controlling-dependency-assets -->
 
-    <!--this reference is needed for tooling only, it might not be installed on host PC. (running the netFramework version) see also https://github.com/fsprojects/IfSharp/issues/213 -->
-    <PackageReference Include="NETStandard.Library" Version="2.0.3" GeneratePathProperty="true" />
+
+    <!--this reference is needed for tooling only, it might not be installed on host PC. (running the .NET Framework version) see also https://github.com/fsprojects/IfSharp/issues/213 -->
+    <PackageReference Include="NETStandard.Library" Version="2.0.3" Condition="'$(TargetFramework)' == 'net472'" GeneratePathProperty="true" /> <!-- Generated PathProperty will be 'PkgNETStandard_Library' -->
   </ItemGroup>
 
   <ItemGroup>
@@ -141,11 +140,12 @@
   <Target Name="CopyFilesOverAfterBuild" BeforeTargets="AfterBuild">
 
     <!--netstandard dll is needed for editor tooling only, copy it because it might not be installed on host PC . see also  https://github.com/fsprojects/IfSharp/issues/213 -->
-    <Copy SourceFiles="$(PkgNETStandard_Library)/build/netstandard2.0/ref/netstandard.dll" DestinationFiles="$(TargetDir)netstandard.dll" ContinueOnError="false" />
-    <Copy SourceFiles="$(PkgNETStandard_Library)/build/netstandard2.0/ref/netstandard.xml" DestinationFiles="$(TargetDir)netstandard.xml" ContinueOnError="false" />
+    <Copy SourceFiles="$(PkgNETStandard_Library)/build/netstandard2.0/ref/netstandard.dll" DestinationFiles="$(TargetDir)netstandard.dll" ContinueOnError="false" Condition="'$(TargetFramework)' == 'net472'"/>
+    <Copy SourceFiles="$(PkgNETStandard_Library)/build/netstandard2.0/ref/netstandard.xml" DestinationFiles="$(TargetDir)netstandard.xml" ContinueOnError="false" Condition="'$(TargetFramework)' == 'net472'"/>
 
-    <!--FSharp.Core.xml because <FSharpCoreIncludeDocFileInOutput>true</FSharpCoreIncludeDocFileInOutput>  does not work in visual studio: -->
-    <!-- <Copy SourceFiles="$(PkgFSharp_Core)/lib/netstandard2.0/FSharp.Core.xml" DestinationFiles="$(TargetDir)FSharp.Core.xml" ContinueOnError="false" /> -->
+    <!--FSharp.Core.xml because <FSharpCoreIncludeDocFileInOutput> does not seem to work add it explicitly: -->
+    <Copy SourceFiles="$(PkgFSharp_Core)/lib/netstandard2.0/FSharp.Core.xml" DestinationFiles="$(TargetDir)FSharp.Core.xml" ContinueOnError="false" />
+
     <!-- <Copy SourceFiles="$(PkgFSharp_Compiler_Service)/lib/netstandard2.0/FSharp.Compiler.Service.xml" DestinationFiles="$(TargetDir)FSharp.Compiler.Service.xml" ContinueOnError="false" /> -->
     <!-- <Copy SourceFiles="$(PkgAvalonLog)/lib/net472/AvalonLog.xml" DestinationFiles="$(TargetDir)AvalonLog.xml" ContinueOnError="false" /> -->
     <!-- <Copy SourceFiles="$(PkgAvalonEditB)/lib/net472/AvalonEditB.xml" DestinationFiles="$(TargetDir)AvalonEditB.xml" ContinueOnError="false" /> -->

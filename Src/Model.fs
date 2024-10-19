@@ -9,6 +9,7 @@ open AvalonEditB.Folding
 
 open FSharp.Compiler.CodeAnalysis
 open FSharp.Compiler
+open AvalonEditB.Document
 
 
 type IFeshLog =
@@ -100,8 +101,10 @@ type FullCheckResults = {
     }
 
 type FileCheckState =
-    | Checking
-    | Done     of FullCheckResults
+    | NotChecked
+    | WaitForCompl of prevRes:FullCheckResults
+    | WaitForErr   of prevRes:FullCheckResults
+    | Done         of res:FullCheckResults
 
 
 type FilePath =
@@ -122,7 +125,7 @@ type IEditor =
     abstract member FilePath       : FilePath // saving settings in config , like fold status
     abstract member IsComplWinOpen : bool   // for  checking when modifying keyboard events
     abstract member FoldingManager : FoldingManager // so that fsi can go to error location and unfold    /
-    abstract member EvaluateFrom   : int option // the line number to start evaluating from if EvaluationTracker is active
+    abstract member EvaluateFromLine   : int  // the line number to start evaluating from if EvaluationTracker is active
 
 [<RequireQualifiedAccess>]
 module IEditor =
@@ -165,7 +168,7 @@ type PositionInCode = {
     /// this line will include the character that trigger auto completion(dot or first letter)
     lineToCaret:string
 
-    row:int
+    lineIdx:int
 
     /// equal to amount of characters in lineToCaret
     column:int
@@ -181,3 +184,14 @@ type CommandInfo = {
     tip:string
     }
 
+[<AutoOpen>]
+module AvalonEditTypeExtensions =
+
+    type ISegment with
+        /// gives the offset at start and end
+        /// Length = till - from
+        static member inline FormTill(from, till) =
+                {new ISegment with
+                    member _.Offset      = from
+                    member _.EndOffset   = till
+                    member _.Length      = till - from }

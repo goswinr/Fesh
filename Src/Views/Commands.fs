@@ -29,15 +29,15 @@ type Commands (grid:TabsAndLog, statusBar:FeshStatusBar)  =
 
     let fName()  = tabs.Current.Editor.FilePath.FileName
 
-    let evalAllText()          =                                             fsi.Evaluate {editor=curr(); amount=All; logger=None; scriptName=fName()}
-    let evalAllTextSave()      =               tabs.SaveAsync(tabs.Current); fsi.Evaluate {editor=curr(); amount=All; logger=None; scriptName=fName()}
-    let evalAllTextSaveClear() =  log.Clear(); tabs.SaveAsync(tabs.Current); fsi.Evaluate {editor=curr(); amount=All; logger=None; scriptName=fName()}
-    let evalContinue()         =  (if curr().FilePath.ExistsAsFile then tabs.SaveAsync(tabs.Current)); fsi.Evaluate {editor=curr(); amount=ContinueFromChanges; logger=None; scriptName=fName()}
-    let markEvaluated()        =  match curr().DrawingServices.evalTracker with |Some et -> et.MarkEvaluatedTillOffset(Selection.currentLineEnd tabs.CurrAvaEdit + 2 ) |None -> ()
+    let markEvaluated()        =  curr().DrawingServices.evalTracker.MarkEvaluatedTillLineRedraw(Selection.currentLineIdx tabs.CurrAvaEdit  ) // F2
+    let evalTillCurLine()      =  fsi.Evaluate {editor=curr(); amount = FsiSegment <|Selection.linesTillCursor(tabs.CurrAvaEdit)   ; logger=None; scriptName=fName()} //F3
+    let evalContinue()         =  fsi.Evaluate {editor=curr(); amount=ContinueFromChanges; logger=None; scriptName=fName()} // F4 //(if curr().FilePath.ExistsAsFile then tabs.SaveAsync(tabs.Current));
+    let evalAllText()          =                                             fsi.Evaluate {editor=curr(); amount=All; logger=None; scriptName=fName()} //F5
+    let evalAllTextSave()      =               tabs.SaveAsync(tabs.Current); fsi.Evaluate {editor=curr(); amount=All; logger=None; scriptName=fName()} // F6
+    let evalAllTextSaveClear() =  log.Clear(); tabs.SaveAsync(tabs.Current); fsi.Evaluate {editor=curr(); amount=All; logger=None; scriptName=fName()} // F7
 
     let evalSelectedLines()    =  fsi.Evaluate {editor=curr(); amount = FsiSegment <|SelectionForEval.expandSelectionToFullLines(tabs.CurrAvaEdit) ; logger=None; scriptName=fName()}
     let evalSelectedText()     =  fsi.Evaluate {editor=curr(); amount = FsiSegment <|SelectionForEval.current (tabs.CurrAvaEdit)                   ; logger=None; scriptName=fName()}   // null or empty check is done in fsi.Evaluate
-    let evalTillCursor()       =  fsi.Evaluate {editor=curr(); amount = FsiSegment <|SelectionForEval.linesTillCursor(tabs.CurrAvaEdit)            ; logger=None; scriptName=fName()}
 
     let goToError()            = match ErrorUtil.getNextSegment(curr()) with Some s -> curr().Folds.GoToOffsetAndUnfold(s.Offset, s.Length, false)| None -> ()
     let reset()                = log.Clear(); Checker.Reset(); Fsi.GetOrCreate(config).Initialize()
@@ -87,14 +87,14 @@ type Commands (grid:TabsAndLog, statusBar:FeshStatusBar)  =
     member val SwapWordRight     = {name= "Swap selected word right"  ;gesture= "Alt + Right"   ;cmd= mkCmdSimple (fun _ -> SwapWords.right tabs.CurrAvaEdit|> ignore )  ;tip="Swaps the currently selected word with the word on the right. A word may include any letter, digit, underscore or dot."}
 
     // FSI menu:
-    member val MarkEval          = {name= "Mark as Evaluated till Current Line" ;gesture= ""               ;cmd= mkCmdSimple (fun _ -> markEvaluated())        ;tip="Mark text till current line inclusive as evaluated." }
-    member val EvalContinue      = {name= "Save, Continue Evaluation"           ;gesture= "F4"             ;cmd= mkCmdSimple (fun _ -> evalContinue())         ;tip="Saves the current file only if ist has a file path, then sends all changed or new lines after end of gray background text to FSharp Interactive." }
+    member val MarkEval          = {name= "Mark as Evaluated till Current Line" ;gesture= "F2"             ;cmd= mkCmdSimple (fun _ -> markEvaluated())        ;tip="Mark text till current line inclusive as evaluated." }
+    member val RunTextTillCursor = {name= "Evaluate till Current Line"          ;gesture= "F3"             ;cmd= mkCmdSimple (fun _ -> evalTillCurLine())       ;tip="Sends all lines till and including the current line to FSharp Interactive." }
+    member val EvalContinue      = {name= "Continue Evaluation"                 ;gesture= "F4"             ;cmd= mkCmdSimple (fun _ -> evalContinue())         ;tip="Sends all changed or new lines after the end of the gray background text to FSharp Interactive." }
     member val RunAllText        = {name= "Evaluate All"                        ;gesture= "F5"             ;cmd= mkCmdSimple (fun _ -> evalAllText() )         ;tip="Send all text in the current file to FSharp Interactive." }
     member val RunAllTextSave    = {name= "Save, Evaluate All"                  ;gesture= "F6"             ;cmd= mkCmdSimple (fun _ -> evalAllTextSave())      ;tip="First save current file, then send all it's text to FSharp Interactive." }
     member val RunAllTxSaveClear = {name= "Clear Log, Save, Evaluate All"       ;gesture= "F7"             ;cmd= mkCmdSimple (fun _ -> evalAllTextSaveClear()) ;tip="First clear Log, then save current file, then  then send all text to FSharp Interactive,." }
     member val RunCurrentLines   = {name= "Evaluate CurrentLines"               ;gesture= "Ctrl + Enter"   ;cmd= mkCmdSimple (fun _ -> evalSelectedLines())    ;tip="Sends the currently selected lines in the editor to FSharp Interactive.\r\nIncludes partially selected lines in full."}
     member val RunSelectedText   = {name= "Evaluate Selected Text"              ;gesture= "Alt + Enter"    ;cmd= mkCmd isEse (fun _ -> evalSelectedText())     ;tip="Sends the currently selected text in the editor to FSharp Interactive." }// TODO mark evaluated code with gray background
-    member val RunTextTillCursor = {name= "Evaluate till Cursor"                ;gesture= "F3"             ;cmd= mkCmdSimple (fun _ -> evalTillCursor())       ;tip="Sends all lines till and including the current line to FSharp Interactive." }
 
 
     member val GoToError         = {name= "Scroll to Errors"              ;gesture= "Ctrl + E"        ;cmd= mkCmdSimple (fun _ -> goToError())             ;tip="Scroll step by step through error segments. Unfold if needed." }
@@ -102,8 +102,8 @@ type Commands (grid:TabsAndLog, statusBar:FeshStatusBar)  =
     member val CancelFSI         = {name= "Cancel FSI"                    ;gesture= "Ctrl + Break"    ;cmd= mkCmd isAsy (fun _ -> fsi.CancelIfAsync())     ;tip="Cancel running FSI evaluation. Via " + if config.RunContext.IsRunningOnDotNetCore then "System.Runtime.ControlledExecution." else "Thread.Abort()" }
     member val ResetFSI          = {name= "Reset FSI"                     ;gesture= "Ctrl + Alt + R"  ;cmd= mkCmdSimple (fun _ -> reset())                 ;tip="Clear all text from FSI Log window and reset FSharp Interactive and FSharp type checker." }
     member val ToggleSync        = {name= "Toggle Sync / Async"           ;gesture= ""                ;cmd= mkCmdSimple (fun _ -> fsi.ToggleSync())        ;tip="Switch between synchronous and asynchronous evaluation in FSI, see status in StatusBar."}
-    member val CompileScriptSDK  = {name= "Compile Script via dotnet SDK" ;gesture= "Ctrl + Alt + B"  ;cmd= mkCmdSimple (fun _ -> compileScr(false))       ;tip="Creates an fsproj from template file in settings folder with current code (including unsaved changes) and build it via 'dotnet build'. dotnet SDK needs to be installed."}
-    member val CompileScriptMSB  = {name= "Compile Script via MSBuild"    ;gesture= "Ctrl + Shift + B";cmd= mkCmdSimple (fun _ -> compileScr(true))        ;tip="Creates an fsproj from template file in settings folder with current code (including unsaved changes) and build it via  MSBuild. MSBuild or VisualStudio needs to be installed."}
+    member val CompileScriptSDK  = {name= "Compile Script via dotnet SDK" ;gesture= "Ctrl + Alt + B"  ;cmd= mkCmdSimple (fun _ -> compileScr(false))       ;tip="Creates an fsproj from template file in settings folder with current code (including unsaved changes) and tries to build it via 'dotnet build'.\r\nAll code must be in modules or behind an `#if INTERACTIVE directive`.\r\nThe dotnet SDK needs to be installed.\r\n See log window for output."}
+    member val CompileScriptMSB  = {name= "Compile Script via MSBuild"    ;gesture= "Ctrl + Shift + B";cmd= mkCmdSimple (fun _ -> compileScr(true))        ;tip="Creates an fsproj from template file in settings folder with current code (including unsaved changes) and tries to build it via MSBuild.\r\nAll code must be in modules or behind an `#if INTERACTIVE directive`.\r\n MSBuild or VisualStudio needs to be installed.\r\n See log window for output."}
 
     // View menu:
     member val ToggleSplit       = {name= "Toggle Window Split"           ;gesture= ""            ;cmd= mkCmdSimple (fun _ -> grid.ToggleSplit())         ;tip="Toggle between vertical and horizontal window arrangement of Editor and Log View." }
@@ -171,57 +171,60 @@ type Commands (grid:TabsAndLog, statusBar:FeshStatusBar)  =
             // NOTE :--------------------------------------------------------------------
 
             let allCustomCommands = [|  //for setting up Key gestures below, excluding the ones already provided by avalonedit
-               this.NewTab
-               this.OpenFile
-               //this.OpenTemplateFile
-               this.Save
-               //this.Export
-               this.SaveAs
-               //this.SaveIncrementing
-               this.SaveAll
-               this.Close
-               //this.SaveLog
-               //this.SaveLogSel
-               this.Comment
-               this.UnComment
-               this.ToggleComment
-               //this.TrailWhite
-               this.ToggleBoolean
-               this.AlignCode
-               this.CollapseFolding
-               this.ExpandFolding
-               //this.SwapLineDown     // handled via native keyboard hook see module KeyboardNative
-               //this.SwapLineUp       // handled via native keyboard hook see module KeyboardNative
-               this.SelectLine
-               //this.SwapWordLeft    // key gesture handled via previewKeyDown event in CursorBehavior module
-               //this.SwapWordRight   // key gesture handled via previewKeyDown event in CursorBehavior module
-               //this.SelectLinesUp   // implemented in AvalonEditB
-               //this.SelectLinesDown // implemented in AvalonEditB
-               this.RunAllText
-               this.RunAllTextSave
-               this.RunAllTxSaveClear
-               this.RunCurrentLines
-               this.RunSelectedText
-               //this.RunTextFromCursor
-               if config.Settings.GetBool("TrackEvaluatedCode", false) then this.RunTextTillCursor
-               if config.Settings.GetBool("TrackEvaluatedCode", false) then this.EvalContinue
-               this.GoToError
-               this.ClearLog
-               this.CancelFSI
-               this.ResetFSI
-               //if config.RunContext.IsHosted then this.ToggleSync
-               this.CompileScriptSDK
-               this.CompileScriptMSB
-               //this.ToggleSplit
-               this.ToggleLogSize
-               this.ToggleLogLineWrap
-               this.FontBigger
-               this.FontSmaller
-               this.PopOutToolTip
-               //this.SettingsFolder
-               //this.AppFolder
-               //this.ReloadXshdFile
-               |]
+                this.NewTab
+                this.OpenFile
+                //this.OpenTemplateFile
+                this.Save
+                //this.Export
+                this.SaveAs
+                //this.SaveIncrementing
+                this.SaveAll
+                this.Close
+                //this.SaveLog
+                //this.SaveLogSel
+                this.Comment
+                this.UnComment
+                this.ToggleComment
+                //this.TrailWhite
+                this.ToggleBoolean
+                this.AlignCode
+                this.CollapseFolding
+                this.ExpandFolding
+                //this.SwapLineDown     // handled via native keyboard hook see module KeyboardNative
+                //this.SwapLineUp       // handled via native keyboard hook see module KeyboardNative
+                this.SelectLine
+                //this.SwapWordLeft    // key gesture handled via previewKeyDown event in CursorBehavior module
+                //this.SwapWordRight   // key gesture handled via previewKeyDown event in CursorBehavior module
+                //this.SelectLinesUp   // implemented in AvalonEditB
+                //this.SelectLinesDown // implemented in AvalonEditB
+                this.RunAllText
+                this.RunAllTextSave
+                this.RunAllTxSaveClear
+                this.RunCurrentLines
+                this.RunSelectedText
+                //this.RunTextFromCursor
+                if config.Settings.GetBool(EvaluationTracker.SettingsStr,EvaluationTracker.onByDefault) then
+                    this.MarkEval
+                    this.RunTextTillCursor
+                    this.EvalContinue
+
+                this.GoToError
+                this.ClearLog
+                this.CancelFSI
+                this.ResetFSI
+                //if config.RunContext.IsHosted then this.ToggleSync
+                this.CompileScriptSDK
+                this.CompileScriptMSB
+                //this.ToggleSplit
+                this.ToggleLogSize
+                this.ToggleLogLineWrap
+                this.FontBigger
+                this.FontSmaller
+                this.PopOutToolTip
+                //this.SettingsFolder
+                //this.AppFolder
+                //this.ReloadXshdFile
+                |]
 
 
             // these functions parse the KeyGesture from a string defined above.

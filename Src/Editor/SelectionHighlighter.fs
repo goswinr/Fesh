@@ -15,9 +15,9 @@ open Fesh.Editor.CodeLineTools
 
 module SelectionHighlighting =
 
-    let colorEditor  = Brushes.PaleTurquoise |> AvalonLog.Brush.brighter 30  |> AvalonLog.Brush.freeze
+    let selColorEditor  = Brushes.PaleTurquoise |> AvalonLog.Brush.brighter 30  |> AvalonLog.Brush.freeze
 
-    let colorLog     = Brushes.Blue |> AvalonLog.Brush.brighter 220  |> AvalonLog.Brush.freeze
+    let selColorLog     = Brushes.Blue |> AvalonLog.Brush.brighter 220  |> AvalonLog.Brush.freeze
     let colorInactive= Brushes.Gray                                  |> AvalonLog.Brush.freeze
 
     let foundSelectionLogEv    = new Event<bool>()
@@ -85,7 +85,7 @@ type SelRedraw =
 /// Highlight-all-occurrences-of-selected-text in Editor
 type SelectionHighlighter (state:InteractionState) =
 
-    let action  = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetBackgroundBrush(colorEditor))
+    let action  = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetBackgroundBrush(selColorEditor))
 
     let mutable lastSkipOff = MarkAll
     let mutable lastWord = ""
@@ -112,7 +112,7 @@ type SelectionHighlighter (state:InteractionState) =
                     if f.EndOffset < off then // all following offset are bigger than this fold stop searching
                         offsSearchFromIdx <- i // to search from this index on in next fold
                     elif f.StartOffset < off && off < f.EndOffset then // this offset is the first within the range of the current fold
-                        f.BackgroundColor <- colorEditor
+                        f.BackgroundColor <- selColorEditor
                         offsSearchFromIdx <- i // to search from this index on in next fold
                     else
                         loop (i+1)
@@ -353,7 +353,7 @@ type SelectionHighlighter (state:InteractionState) =
 /// Highlight-all-occurrences-of-selected-text in Log
 type SelectionHighlighterLog (lg:TextEditor) =
 
-    let action  = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetBackgroundBrush(colorLog))
+    let action  = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetBackgroundBrush(selColorLog))
 
     let mutable lastSkipOff = MarkAll
     let mutable lastWord = ""

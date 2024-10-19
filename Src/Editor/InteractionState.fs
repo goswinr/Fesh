@@ -60,7 +60,7 @@ module CodeLineTools =
                         newLns.Add {offStart=stOff; indent=indent; len=len}
                         loop (r+2) // +2 to jump over \r and \n
 
-            newLns.Add {offStart=0; indent=0; len=0}   // ad dummy line at index 0
+            newLns.Add {offStart=0; indent=0; len=0}   // ad dummy line at index 0 , line 0 is always empty, line start at 1 in AvalonEdit
             loop (0)
             newLns
 
@@ -93,6 +93,7 @@ module CodeLineTools =
             else
                 ValueNone
 
+
         /// Safe: checks correspondingId = changeId
         /// returns also none for bad indices
         member _.GetLineText(lineIdx, changeId): string voption =
@@ -102,7 +103,6 @@ module CodeLineTools =
                 else
                     let l = lines.[lineIdx]
                     ValueSome (fullCode.Substring(l.offStart,l.len))
-
             else
                 ValueNone
 

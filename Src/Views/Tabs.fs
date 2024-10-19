@@ -78,7 +78,7 @@ type Tabs(config:Config, log:Log,feshWin:FeshWindow) =
         Environment.CurrentDirectory <- dir // to be able to use __SOURCE_DIRECTORY__
 
         let ed = t.Editor
-        DocChangeMark.updateAllTransformersAsync(ed, ed.DrawingServices, ed.State, ed.State.Increment())
+        DocChangeMark.updateAllTransformersAsync(ed, ed.DrawingServices, ed.State, ed.State.Increment(), 0)
 
         // TODO make sure to reset checker if it is currently still running from another file ??
         // even though the error highlighter is only called if changeId is still the same

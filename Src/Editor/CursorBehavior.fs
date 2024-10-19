@@ -437,7 +437,8 @@ module CursorBehavior  =
         // not needed: if not ed.IsComplWinOpen then
         match getSelType(ed.TextArea) with
         | RectSel ->
-            RectangleSelection.insertText(ed, e.Text) ; e.Handled <- true // all input in rectangular selection is handled here.
+            RectangleSelection.insertText(ed, e.Text)  // all input in rectangular selection is handled here.
+            e.Handled <- true // so typing can be canceled
         | NoSel | RegSel ->
             addWhitespaceAfterChar(ed,e)
             if not e.Handled then

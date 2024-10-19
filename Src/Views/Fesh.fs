@@ -63,7 +63,11 @@ type Fesh (config:Config,log:Log) =
 
         tabs.Fsi.OnRuntimeError.Add(fun _ ->
             let w = win // because it might be hidden manually, or not visible from the start ( e.g. current script is evaluated in Fesh.Rhino)
-            if w.Visibility <> Visibility.Visible || w.WindowState=WindowState.Minimized then  win.Show() )
+            if w.Visibility <> Visibility.Visible || w.WindowState=WindowState.Minimized then win.Show() )
+        tabs.Fsi.OnFsiEvalError.Add(fun _ ->
+            let w = win // because it might be hidden manually, or not visible from the start ( e.g. current script is evaluated in Fesh.Rhino)
+            if w.Visibility <> Visibility.Visible || w.WindowState=WindowState.Minimized then win.Show() )
+
 
     member this.Config = config
 

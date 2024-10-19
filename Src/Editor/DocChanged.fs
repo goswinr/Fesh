@@ -1,6 +1,8 @@
 namespace Fesh.Editor
 
 open System
+open System.Windows.Threading
+open System.Windows.Input
 
 open AvalonEditB
 open AvalonEditB.Document
@@ -9,7 +11,6 @@ open Fesh.Model
 open Fesh.Util
 open Fesh.Util.Str
 open Fesh
-open System.Windows.Threading
 
 
 module DocChangeUtil =
@@ -48,7 +49,7 @@ module DocChangeUtil =
         let st = loop off
         code.Substring(st,off-st)
 
-    let getPosInCode2(avaEdit:TextEditor) : PositionInCode =
+    let getPosInCode(avaEdit:TextEditor) : PositionInCode =
         let doc = avaEdit.Document
         let car = avaEdit.TextArea.Caret
         let caretOffset = car.Offset
@@ -56,7 +57,7 @@ module DocChangeUtil =
         let caretOffsetInThisLine = caretOffset - ln.Offset
         {
         lineToCaret = doc.GetText(ln.Offset, caretOffsetInThisLine)// this line will include the character that trigger auto completion(dot or first letter)
-        row =    car.Line
+        lineIdx = car.Line
         column = caretOffsetInThisLine // equal to amount of characters in lineToCaret
         offset = caretOffset
         }
@@ -71,7 +72,7 @@ module Redrawing =
         errors      : ErrorHighlighter
         semantic    : SemanticHighlighter
         selection   : SelectionHighlighter
-        evalTracker : option<EvaluationTracker>
+        evalTracker : EvaluationTracker // not tracked by tryDraw !! TODO, runs in sync
         }
 
     type EventCombiner(services:DrawingServices, state:InteractionState) =
@@ -91,6 +92,7 @@ module Redrawing =
             if state.IsLatest id && idSemantics=id && idBrackets=id && idErrors=id && idSels=id && idFolds=id then
                     async{
                         do! Async.SwitchToContext Fittings.SyncWpf.context
+                        //eprintfn $"Redrawing full: id={id}, idSemantics={idSemantics}, idBrackets={idBrackets}, idErrors={idErrors}, idSels={idSels}, idFolds={idFolds}"
                         // first render then fold do avoid  this ?
                         //System.ArgumentException: Cannot dispose visual line because it is in construction!
                         //at AvalonEditB.Rendering.TextView.DisposeVisualLine(VisualLine visualLine)
@@ -101,9 +103,8 @@ module Redrawing =
                         // do! Async.Sleep 50 // to try to avoid: InvalidOperationException: Line 117 was skipped by a VisualLineElementGenerator, but it is not collapsed. at AvalonEditB.Rendering.TextView.BuildVisualLine(..)
                         // if state.IsLatest id then
                         services.folds.RedrawFoldings()
-
-                            //eprintfn $"Redrawing full: id={id}, idSemantics={idSemantics}, idBrackets={idBrackets}, idErrors={idErrors}, idSels={idSels}, idFolds={idFolds}"
-                    } |> Async.Start
+                    }
+                    |> Async.Start
                 // else
                 //     IFeshLog.log.PrintfnAppErrorMsg $"Can't redraw, check id that is wrong: id={id}"
                 //     IFeshLog.log.PrintfnAppErrorMsg $"idSemantics={idSemantics}, idBrackets={idBrackets}, idErrors={idErrors}, idSels={idSels}, idFolds={idFolds}"
@@ -121,8 +122,8 @@ module Redrawing =
         do
             services.brackets.FoundBrackets.Add  doneBrackets
             services.semantic.FoundSemantics.Add doneSemantics // includes Bad Indentation and Unused declarations
-            services.errors.FoundErrors.Add      doneErrors
             services.selection.FoundSels.Add     doneSels
+            services.errors.FoundErrors.Add      doneErrors
             services.folds.FoundFolds.Add        doneFolds
 
 module DocChangeMark =
@@ -132,7 +133,7 @@ module DocChangeMark =
     /// only for Single char changes
     let mainWait = 50
 
-    let updateAllTransformersConcurrently(iEd:IEditor, code:string, drawServ:DrawingServices, state:InteractionState, id) =
+    let updateAllTransformersConcurrently(iEd:IEditor, code:string, drawServ:DrawingServices, state:InteractionState, id, lineIdx) =
             // first: Foldings, ColorBrackets when full text available async.
             async{
                 state.CodeLines.UpdateLines(code, id)
@@ -140,11 +141,12 @@ module DocChangeMark =
                     drawServ.selection.UpdateTransformers(id)
                     drawServ.brackets.UpdateAllBrackets(id)
                     drawServ.folds.CheckFolds(id)
+                    drawServ.evalTracker.SetLastChangeAt(lineIdx)
             } |> Async.Start
 
             // second: Errors and Semantic Highlighting and BadIndentation on FCS check result .
             async{
-                match Checker.CheckCode(iEd, state, code, id,  true) with // code checking does not need to wait for CodeLines.Update
+                match Checker.CheckCode(iEd, state, code, id, false) with // code checking does not need to wait for CodeLines.Update
                 |None -> ()
                 |Some res ->
                     if state.IsLatest id then
@@ -158,24 +160,24 @@ module DocChangeMark =
             } |> Async.Start
 
     //should be called from any thread pool thread
-    let updateAllTransformersSync(iEd:IEditor, doc:TextDocument, drawServ:DrawingServices, state:InteractionState, id ) =
+    let updateAllTransformersSync(iEd:IEditor, doc:TextDocument, drawServ:DrawingServices, state:InteractionState, id , lineIdx) =
         match SelectionHighlighting.makeEditorSnapShot(doc,state,id) with
         | None      -> ()
-        | Some code -> updateAllTransformersConcurrently (iEd, code, drawServ, state, id)
+        | Some code -> updateAllTransformersConcurrently (iEd, code, drawServ, state, id, lineIdx)
 
 
     // Must be called from UI thread only
-    let updateAllTransformersAsync (iEd:IEditor, drawServ:DrawingServices, state:InteractionState, id ) =
+    let updateAllTransformersAsync (iEd:IEditor, drawServ:DrawingServices, state:InteractionState, id, lineIdx) =
         let doc = iEd.AvaEdit.Document // get Doc in Sync
         async {
             if mainWait <> 0 then do! Async.Sleep mainWait
             match SelectionHighlighting.makeEditorSnapShot(doc,state,id) with
             | None      -> ()
-            | Some code -> updateAllTransformersConcurrently (iEd, code, drawServ, state, id)
+            | Some code -> updateAllTransformersConcurrently (iEd, code, drawServ, state, id, lineIdx)
         }
         |> Async.Start
 
-type ShowAutocomplete = DoNothing | JustMark| ShowOnlyDU | ShowAll | ShowKeyWords
+type ShowAutocomplete = DoNothing | JustMark| ShowOnlyDU | ShowAll | DeclModifiers | ShowDirectives
 
 
 [<RequireQualifiedAccess>]
@@ -225,10 +227,10 @@ module MaybeShow =
                 elif 'a' <= first && first <= 'z' then    // a lower case identifier or a keyword
                     if checkForKeyW && ln.Length - fi > 2 then
                         match ln.Substring(fi,3) with
-                        | "pri" ->  ShowKeyWords // private
-                        | "mut" ->  ShowKeyWords // mutable
-                        | "int" ->  ShowKeyWords // internal
-                        | "inl" ->  ShowKeyWords // inline
+                        | "pri" ->  DeclModifiers // private
+                        | "mut" ->  DeclModifiers // mutable
+                        | "int" ->  DeclModifiers // internal
+                        | "inl" ->  DeclModifiers // inline
                         | _     ->  JustMark
                     else
                         JustMark // writing a lowercase name binding
@@ -256,6 +258,10 @@ module MaybeShow =
                 else
                     false // writing not a DU but an operator like |> or |]
 
+        let isHashDirective inStr (ln:string) =
+            let hashIdx = lastIdxAtStartOrWithSpace inStr "#" ln // test if its the first char or preceded by a space
+            if hashIdx = -1 then ShowAll
+            else ShowDirectives
 
         let isLetDeclaration inStr (ln:string)  =
             //test if we are after a 'let' but before a '=' or ':'
@@ -266,7 +272,6 @@ module MaybeShow =
                 let colonIdx = lastIdx inStr ":" ln
                 // a : or = is after the let, so show all completions
                 if max eqIdx colonIdx < letIdx then isDUorKeyword true (letIdx+3) ln  else ShowAll
-
 
         let isFunDeclaration inStr (ln:string) =
             //test if we are after a 'fun' but before a '->' or ':'
@@ -304,7 +309,7 @@ module MaybeShow =
                 ShowAll
             else
                 if   containsFrom memIdx "."  ln then ShowAll
-                elif isKeyword memIdx ln then ShowKeyWords
+                elif isKeyword memIdx ln then DeclModifiers
                 else JustMark
 
 
@@ -314,14 +319,15 @@ module MaybeShow =
             |ShowOnlyDU   -> ShowOnlyDU
             |JustMark     -> JustMark
             |DoNothing    -> DoNothing
-            |ShowKeyWords -> ShowKeyWords
+            |DeclModifiers -> DeclModifiers
+            |ShowDirectives -> ShowDirectives
 
         let completionWindow ( pos:PositionInCode) : ShowAutocomplete =
             let ln = pos.lineToCaret // this line will include the character that trigger auto completion(dot or first letter)
             let len = ln.Length
             //IFeshLog.log.PrintfnDebugMsg "*2.1 maybeShowCompletionWindow for lineToCaret: \r\n    '%s'" ln
-            if len=0 then // line is empty, still check because deleting might have removed errors.
-                JustMark
+            if len=0 then // line is empty,
+                ShowAll // ctrl+space was triggered at start of line empty line, // not JustMark, an empty line after deleting is caught in singleCharChange() already
             else
                 let last = ln.[len-1]
                 if isCaretInComment ln then
@@ -339,6 +345,8 @@ module MaybeShow =
                     |> bind isForDeclaration        inStr ln
                     |> bind isBarDeclaration        inStr ln
                     |> bind isThisMemberDeclaration inStr ln
+                    |> bind isHashDirective         inStr ln
+            //|> (fun x -> printfn $"*2.2 maybeShowCompletionWindow for lineToCaret: \r\n    '{ln}'\r\n    is {x}"; x)
 
         /// checks if it is a letter or a digit preceded by a letter
         let inline isAlpha c =
@@ -354,116 +362,167 @@ module MaybeShow =
             ||
             (pos.column > 2 &&  isNum pos.lineToCaret[pos.column-1] && isAlpha pos.lineToCaret[pos.column-2])
 
+        let inline getCtrlDown() = Keyboard.IsKeyDown Key.LeftCtrl || Keyboard.IsKeyDown Key.RightCtrl // can't be async
+        let inline getSpaceDown() = Keyboard.IsKeyDown Key.Space // can't be async
+
         let inline lastCharTriggersCompletion (lastChar, pos) =
             match lastChar with
             | c when isAlpha c -> true // a ASCII letter
             | c when isNum c && isAlphaBefore pos  -> true// an number preceded by a letter
             | '.'  // dot completion
             | '_'  // for __SOURCE_DIRECTORY__ or in names
-            | '`'  // for complex F# names in `` ``
-            | '#'  -> true// for #if directives
+            //| '`'  // for complex F# names in `` `` // not needed
+            | '#'  -> true // for #if directives
             | _    -> false
 
-        let getShowRestriction s =
-            match s with
-            |DoNothing   // never happens
-            |JustMark    // never happens
-            |ShowAll     -> JustAll
-            |ShowKeyWords-> JustKeyWords
-            |ShowOnlyDU  -> JustDU
 
 module DocChangeCompletion =
     open DocChangeUtil
     open Redrawing
     open FSharp.Compiler.EditorServices
+    open FSharp.Compiler.Tokenization
 
-    let containsQuery (posX:PositionInCodeEx, decls:DeclarationListInfo)=
-        decls.Items |> Array.tryFind (fun d -> d.NameInList.Contains posX.query)
+    let keywords = [| for kw, _desc in FSharpKeywords.KeywordsWithDescription  do kw |]
+
+    //pre check (still async) if the posX.query is contained in any name in the completion list
+    // let containsQuery (name:string, decls:DeclarationListInfo)=
+    //     decls.Items  |> Array.exists (fun d -> d.NameInList.IndexOf( name, StringComparison.OrdinalIgnoreCase) >= 0)
+    //     ||
+    //     keywords |> Array.exists (fun kw -> kw.IndexOf( name, StringComparison.OrdinalIgnoreCase) >= 0)
+
+
+
+    let handelShow(pos:PositionInCode, doc:TextDocument, iEd:IEditor, drawServ:DrawingServices, state:InteractionState, chId:int64) =
+
+        let inline check() = Checker.CheckCode(iEd, state, doc.CreateSnapshot().Text , chId, true)
+
+        let inline getDecls(posX:PositionInCodeEx) : DeclarationListInfo option =
+            let res =
+                // re-check every time?
+                // Timer.InstanceRedraw.tic()
+                // let r = check() // can take up to 500ms on file with 1k lines
+                // let t = Timer.InstanceRedraw.tocEx
+                // IFeshLog.log.PrintfnDebugMsg $"check time for compl: {t}"
+                // r
+
+                // Or reuse old result? TODO: refresh the completion window when the new result is available?
+                // if posX.lineToCaret.EndsWith "." then // not even that seems to be necessary
+                //     check()
+                // else
+                    match iEd.FileCheckState with
+                    | Done r     ->
+                        if r.changeId <> chId then async{check()|> ignore} |> Async.Start // the change id is not the same as the current one, so the check is outdated, start a new check in the background
+                        Some r // but return the old result
+                    | WaitForCompl r | WaitForErr r -> Some r
+                    | NotChecked -> check()
+
+            match res with // false for not aborting on a new check id
+            | None -> None
+            | Some res -> Checker.GetDeclarations(posX,res)
+            // if containsQuery(posX.query, decls) then
+
+
+        async{
+            let show = MaybeShow.completionWindow(pos)
+
+            match show with
+            |DoNothing  ->
+                // DoNothing means the cursor is typing in a comment:
+                // BUT ! Don't just do nothing!!
+                // Even when typing in a comment, the checker should run because it makes a new change ID and that new change ID would
+                // abort any still  running checker and not trigger a new one. unless we do it here.
+                do! Async.Sleep (300)
+                DocChangeMark.updateAllTransformersSync(iEd, doc, drawServ, state, chId, pos.lineIdx )
+
+            |JustMark ->
+                DocChangeMark.updateAllTransformersSync(iEd, doc, drawServ, state, chId, pos.lineIdx  )
+
+            | ShowAll | ShowOnlyDU | DeclModifiers | ShowDirectives ->
+                // WaitForCompletions: from now on any typed character will NOT increment the doc change
+                // AND never trigger a checking or or new completion window
+                // the characters go to the doc and will be taken from there as a prefilter for the completion list
+                state.DocChangedConsequence <- WaitForCompletions // incrementing  IDs is disabled now
+
+                let posX = PositionInCodeEx.get(pos)
+
+                let showListOpt : option<RestrictedShowList> =
+                    match show with
+                    | ShowAll        -> getDecls(posX)|> Option.map JustAllFrom //|> Option.orElse  ( if posX.dotBefore then None else Some JustDeclModifiers) // if nod declarations where found, and there was no dot before, try show keywords
+                    | ShowOnlyDU     -> getDecls(posX)|> Option.map JustDuFrom
+                    | DeclModifiers  -> Some JustDeclModifiers
+                    | ShowDirectives -> Some JustDirectives
+                    | DoNothing      -> None // never reached
+                    | JustMark       -> None // never reached
+
+                match showListOpt with
+                | Some showList ->
+                    // Switch to Sync and try showing completion window:
+                    let checkAndMark = fun () -> DocChangeMark.updateAllTransformersAsync (iEd, drawServ, state, state.Increment(), pos.lineIdx ) // will be called if window closes without an insertion
+
+                    do! Async.SwitchToContext Fittings.SyncWpf.context
+                    match drawServ.compls.TryShow( posX, showList, checkAndMark) with
+                    |NoShow ->
+                        state.DocChangedConsequence <- React
+                        DocChangeMark.updateAllTransformersAsync(iEd, drawServ, state, state.Increment(), pos.lineIdx )// incrementing because it was disabled from state.DocChangedConsequence <- WaitForCompletions
+                    |DidShow ->
+                        // completion window is showing now,
+                        // no need to do anything,
+                        // DocChangedConsequence will be updated to 'React' when completion window closes
+                        // and checkAndMark will be called.
+                        ()
+                | None ->
+                    state.DocChangedConsequence <- React
+                    DocChangeMark.updateAllTransformersSync (iEd, doc, drawServ, state, state.Increment(), pos.lineIdx )
+
+        } |> Async.Start
+
+
 
     /// for single character edits
-    let singleCharChange (iEd:IEditor, drawServ:DrawingServices, state:InteractionState, chId:int64)  =
-        let pos = getPosInCode2(iEd.AvaEdit)
+    let singleCharChange (iEd:IEditor, drawServ:DrawingServices, state:InteractionState, chId:int64, lineIdx )  =
+        let pos = getPosInCode(iEd.AvaEdit)
         let tx = pos.lineToCaret
         if tx.Length = 0 then // empty line after deleting
-            DocChangeMark.updateAllTransformersAsync (iEd, drawServ, state, chId)
+            DocChangeMark.updateAllTransformersAsync (iEd, drawServ, state, chId, lineIdx )
         else
             let lastChar = tx[tx.Length-1]
             if lastChar <> '.' && state.JustCompleted then
                 // if it is not a dot avoid re-trigger of completion window on single character completions, just do check and mark
                 state.JustCompleted <- false // reset it
-                DocChangeMark.updateAllTransformersAsync (iEd, drawServ, state, chId)
+                DocChangeMark.updateAllTransformersAsync (iEd, drawServ, state, chId, lineIdx )
             else
                 let doc = iEd.AvaEdit.Document // get in sync
                 async{
                     if DocChangeMark.mainWait <> 0 then
-                        do! Async.Sleep DocChangeMark.mainWait  // to not trigger completion if tying is fast
+                        do! Async.Sleep DocChangeMark.mainWait  // to not trigger completion if typing is fast
 
                     if state.IsLatest chId then
                         if not <| MaybeShow.lastCharTriggersCompletion (lastChar,pos) then
                             // The typed character should not trigger completion.
                             // DocChangedConsequence is still  'React', no need to reset.
-                            DocChangeMark.updateAllTransformersSync(iEd, doc, drawServ, state, chId)
+                            DocChangeMark.updateAllTransformersSync(iEd, doc, drawServ, state, chId, lineIdx )
                         else
-                            let show = MaybeShow.completionWindow(pos)
-                            //IFeshLog.log.PrintfnDebugMsg $"MaybeShow.completionWindow for {lastChar} is {show}"
-                            match show with
-                            |DoNothing  ->
-                                // DoNothing mean we are typing in a comment:
-                                // BUT ! Don't just do nothing!!
-                                // Even when typing in a comment, the checker should run because it makes a new change ID and that new change ID would
-                                // abort any still  running checker and not trigger a new one. unless we do it here.
-                                do! Async.Sleep (300)
-                                DocChangeMark.updateAllTransformersSync(iEd, doc, drawServ, state, chId)
-
-                            |JustMark ->
-                                DocChangeMark.updateAllTransformersSync(iEd, doc, drawServ, state, chId)
-
-                            |ShowAll |ShowOnlyDU |ShowKeyWords ->
-                                // WaitForCompletions: from now on any typed character will NOT increment the doc change
-                                // AND never trigger a checking or or new completion window
-                                // the characters go to the doc and will be taken from there as a prefilter for the completion list
-                                state.DocChangedConsequence <- WaitForCompletions // incrementing is disabled now
-
-                                let declsPosX  =
-                                    Monads.maybe{
-                                        let fullCode    = doc.CreateSnapshot().Text
-                                        //let! _          = state.IsLatestOpt id2    // incrementing is disabled so no point in checking  ( WaitForCompletions   )
-                                        let! res        = Checker.CheckCode(iEd, state, fullCode, chId, false) // false for not aborting on a new check id
-                                        let! decls, pos = Checker.GetCompletions(pos,res)
-                                        let! _          = containsQuery(pos, decls) //pre check (still async) if the posX.query is contained in any name in the completion list
-                                        return decls, pos
-                                    }
-
-                                match declsPosX with
-                                |None ->
-                                    state.DocChangedConsequence <- React
-                                    DocChangeMark.updateAllTransformersSync (iEd, doc, drawServ, state, state.Increment())
-
-                                |Some (decls, posX) ->
-
-                                    // Switch to Sync and try showing completion window:
-                                    let checkAndMark = fun () -> DocChangeMark.updateAllTransformersAsync (iEd, drawServ, state, state.Increment()) // will be called if window closes without an insertion
-                                    let showRestrictions = MaybeShow.getShowRestriction show
-                                    do! Async.SwitchToContext Fittings.SyncWpf.context
-                                    match drawServ.compls.TryShow(decls, posX, showRestrictions, checkAndMark) with
-                                    |NoShow ->
-                                        state.DocChangedConsequence <- React
-                                        DocChangeMark.updateAllTransformersAsync(iEd, drawServ, state, state.Increment())// incrementing because it was disabled from state.DocChangedConsequence <- WaitForCompletions
-                                    |DidShow ->
-                                        // completion window is showing now,
-                                        // no need to do anything,
-                                        // DocChangedConsequence will be updated to 'React' when completion window closes
-                                        // and checkAndMark will be called.
-
-                                        ()
-
+                            handelShow(pos, doc,iEd, drawServ, state, chId)
                 } |> Async.Start
+
+
 
 module DocChangeEvents =
     open DocChangeUtil
 
+    let ctrlSpace(iEd:IEditor, drawServ:Redrawing.DrawingServices, state:InteractionState, eventArgs:KeyEventArgs) =
+        match state.DocChangedConsequence with
+        | WaitForCompletions -> ()
+        | React ->
+            if eventArgs.Key = Key.Space && MaybeShow.getCtrlDown() then
+                eventArgs.Handled <- true // to not actually insert a space
+                let pos = getPosInCode(iEd.AvaEdit)
+                let doc = iEd.AvaEdit.Document // get in sync
+                DocChangeCompletion.handelShow (pos, doc, iEd, drawServ, state, state.DocChangedId.Value)
+
+
     // gets called before the document actually changes
-    let changing  (state:InteractionState) (a:DocumentChangeEventArgs) =
+    let changing(state:InteractionState, a:DocumentChangeEventArgs) =
         // (1) increment change counter
         match state.DocChangedConsequence with
         | WaitForCompletions ->
@@ -478,7 +537,7 @@ module DocChangeEvents =
         state.FastColorizer.AdjustShifts shift
         state.ErrSegments.AdjustOneShift shift
 
-    let changed (iEd:IEditor) (drawServ:Redrawing.DrawingServices) (state:InteractionState) (eventArgs:DocumentChangeEventArgs) : unit  =
+    let changed (iEd:IEditor, drawServ:Redrawing.DrawingServices, state:InteractionState, eventArgs:DocumentChangeEventArgs) : unit  =
         match state.DocChangedConsequence with
         | WaitForCompletions ->
             // no type checking ! just keep on tying,
@@ -486,8 +545,9 @@ module DocChangeEvents =
             ()
         | React ->
             let id = state.DocChangedId.Value // the increment was done before this event in Doc.Changing (not Doc.Changed)
-            if isASingleCharChange eventArgs then DocChangeCompletion.singleCharChange     (iEd, drawServ, state, id)// maybe shows completion window
-            else                                  DocChangeMark.updateAllTransformersAsync (iEd, drawServ, state, id)
+            let lineIdx = iEd.AvaEdit.Document.GetLineByOffset( eventArgs.Offset).LineNumber
+            if isASingleCharChange eventArgs then DocChangeCompletion.singleCharChange     (iEd, drawServ, state, id, lineIdx)// maybe shows completion window
+            else                                  DocChangeMark.updateAllTransformersAsync (iEd, drawServ, state, id, lineIdx)
 
 
     (*

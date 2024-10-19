@@ -135,7 +135,7 @@ module Str  =
         else
             let mutable i = 0
             let mutable ch = s.[p]
-            while p >= 0 && (Char.IsLetterOrDigit ch || ch = '_' || ch = '#' ) do // valid chars in F# names, # for compiler directives
+            while p >= 0 && (Char.IsLetterOrDigit ch || ch = '_'|| ch = ''' || ch = '`' || ch = '#' ) do // valid chars in F# names, # for compiler directives in completions
                 i <- i+1
                 p <- p-1
                 if p >=0 then ch <- s.[p]

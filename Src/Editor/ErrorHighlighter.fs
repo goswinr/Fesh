@@ -28,8 +28,7 @@ module ErrorUtil =
     /// for clicking through the errors in the status bar
     let mutable private scrollToIdx = -1
 
-
-    let maxErrorCountToTrack = 9
+    let maxErrorCountToTrack = 5
 
     /// split errors by severity and sort by line number
     let getBySeverity(checkRes:CodeAnalysis.FSharpCheckFileResults) :ErrorsBySeverity =
@@ -45,15 +44,15 @@ module ErrorUtil =
         // let m2 = maxErrorCountToTrack * 2
         for i = 0 to all.Length - 1 do
             let  e = all.[i]
-            if i=0 // to filter out duplicate errors, a bug in FCS !
-            ||( let p = all.[i-1] in p.StartLine <> e.StartLine || p.StartColumn <> e.StartColumn || p.EndLine <> e.EndLine || p.EndColumn <> e.EndColumn) then
+            // to filter out duplicate errors, a bug in FCS !
+            if i=0 || ( let p = all.[i-1] in p.StartLine <> e.StartLine || p.StartColumn <> e.StartColumn || p.EndLine <> e.EndLine || p.EndColumn <> e.EndColumn) then
                 match e.Severity with
                 | FSharpDiagnosticSeverity.Error   -> if ers.Count < m then (ers.Add e ;  erWs.Add e)
                 | FSharpDiagnosticSeverity.Warning -> if was.Count < m then (was.Add e ;  erWs.Add e)
                 | FSharpDiagnosticSeverity.Hidden  -> if his.Count < m then his.Add e
                 | FSharpDiagnosticSeverity.Info    -> if ins.Count < m && e.ErrorNumber <> 3370 then ins.Add e   //  exclude infos about ref cell incrementing ??
 
-        //printfn $"Errors: {ers.Count} Warnings: {was.Count} Infos: {insCount} Hidden: {his.Count} "
+        //printfn $"Errors: {ers.Count} Warnings: {was.Count} Infos: {ins.Count} Hidden: {his.Count} "
         { errors = ers; warnings = was; infos = ins; hiddens = his; errorsAndWarnings = erWs }
 
     let linesStartAtOne i = if i<1 then 1 else i
@@ -112,7 +111,8 @@ module ErrorUtil =
 
     let rec getNextSegment(ied:IEditor) =
         match ied.FileCheckState with
-        | Checking  ->  None
+        | NotChecked | WaitForCompl _ | WaitForErr _->
+            None
         | Done res ->
             let ews = res.errors.errorsAndWarnings
             if ews.Count=0 then
@@ -139,12 +139,14 @@ type ErrorRenderer (state: InteractionState) =
     // better would be https://github.com/icsharpcode/SharpDevelop/blob/master/src/AddIns/DisplayBindings/AvalonEdit.AddIn/Src/Textsegmentservice.cs
 
     /// Draw the error squiggle on the code
-    member _.Draw (textView:TextView , drawingContext:DrawingContext) = // for IBackgroundRenderer
+
+    member _.Draw(textView:TextView , drawingContext:DrawingContext) = // for IBackgroundRenderer
         //AvalonEditB.Rendering.VisualLinesInvalidException: Exception of type 'AvalonEditB.Rendering.VisualLinesInvalidException' was thrown.
         //    at AvalonEditB.Rendering.TextView.get_VisualLines()
         //    at Fesh.Editor.ErrorRenderer.Draw(TextView textView, DrawingContext drawingContext) in D:\Git\Fesh\Src\Editor\ErrorHighlighter.fs:line 138
         //    at AvalonEditB.Rendering.TextView.RenderBackground(DrawingContext drawingContext, KnownLayer layer)
         //    at AvalonEditB.Editing.CaretLayer.OnRender(DrawingContext drawingContext)
+
         if textView.VisualLinesValid then //to avoid above error.
             let vls = textView.VisualLines
             if vls.Count > 0 then // check needed !
@@ -176,7 +178,6 @@ type ErrorRenderer (state: InteractionState) =
                         //elif till > offEn then () // eprintfn "till > offEn " // avoid jumping to next line
                         //elif from < offSt then () // eprintfn "from < offSt" // avoid jumping to previous line
                         else
-
                             // background color:
                             // when drawing on Caret layer background must be disabled.
                             // let geoBuilder = new BackgroundGeometryBuilder (AlignToWholePixels = true, CornerRadius = 0.)
@@ -185,18 +186,18 @@ type ErrorRenderer (state: InteractionState) =
                             // drawingContext.DrawGeometry(seg.BackgroundBrush, null, boundaryPolygon)
 
                             //foreground, squiggles:
-                            let iSeg = {new ISegment with
-                                            member _.Offset      = from
-                                            member _.EndOffset   = till
-                                            member _.Length      = till - from   }
+                            let iSeg = ISegment.FormTill(from,till)
                             let rects = BackgroundGeometryBuilder.GetRectsForSegment(textView, iSeg) |> ResizeArray
                             if rects.Count = 1 then // skip if line overflows and there is more than one rect
                                 let geo = ErrorUtil.getSquiggleLine(rects[0], -1.0) // neg offset to move down
                                 drawingContext.DrawGeometry(Brushes.Transparent, seg.UnderlinePen, geo)
 
     member _.Layer =
-        // when drawing on Caret layer the  background change must be disabled
-        KnownLayer.Caret// .Selection// for IBackgroundRenderer
+
+        // when drawing on Caret layer  This method is called on every blink of the CaretLayer
+        // KnownLayer.Caret// .Selection// for IBackgroundRenderer
+        KnownLayer.Caret
+
 
     interface IBackgroundRenderer with
         member this.Draw(tv,dc) = this.Draw(tv,dc)
@@ -227,6 +228,8 @@ type ErrorHighlighter ( state:InteractionState, folds:Folding.FoldingManager, is
 
         let rec insert lnNo =
             if lnNo > enLn then
+                true
+            elif lnNo-stLn > 2 then // don't insert more than 2 lines of errors, because the are costly to draw
                 true
             else
                 match state.CodeLines.GetLine(lnNo,id) with

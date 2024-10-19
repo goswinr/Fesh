@@ -158,10 +158,28 @@ module Selection =
         line.LineNumber, avaEdit.Document.GetText(line.Offset, line.Length)
 
     /// Offset at line End ( excluding \r and \n that probably follow
-    let currentLineEnd (avaEdit:TextEditor) : int=
+    let currentLineEndOffset (avaEdit:TextEditor) : int=
         let offset = avaEdit.CaretOffset
         let  line = avaEdit.Document.GetLineByOffset(offset)
         line.Offset + line.Length
+
+    /// Offset at line End ( excluding \r and \n that probably follow
+    let currentLineIdx (avaEdit:TextEditor) : int=
+        let offset = avaEdit.CaretOffset
+        let  line = avaEdit.Document.GetLineByOffset(offset)
+        line.LineNumber
+
+
+    let linesTillCursor(avaEdit:TextEditor) : CodeSegment =
+        let doc = avaEdit.Document
+        let en = doc.GetLineByOffset(avaEdit.SelectionStart + avaEdit.SelectionLength)
+        let t = doc.GetText(0,en.EndOffset)
+        {
+        text = t //+ Environment.NewLine // add line return so that EvaluationTracker.fs knows it is the full line and can jump to next line.
+        startLine = 1
+        startOffset = 0
+        length = t.Length //+ Environment.NewLine.Length
+        }
 
 module SelectionForEval =
 
@@ -196,10 +214,10 @@ module SelectionForEval =
         let s = avaEdit.TextArea.Selection
         let t = avaEdit.SelectedText
         {
-        text = t + Environment.NewLine // add line return so that EvaluationTracker.fs knows it is the full line and can jump to next line.
+        text = t //+ Environment.NewLine // add line return so that EvaluationTracker.fs knows it is the full line and can jump to next line. TODO, not needed anymore ?
         startLine = s.StartPosition.Line // not st.LineNumber because this may just as wel be the last line
         startOffset = avaEdit.SelectionStart
-        length = t.Length + Environment.NewLine.Length
+        length = t.Length //+ Environment.NewLine.Length
         }
 
 
@@ -210,10 +228,10 @@ module SelectionForEval =
         avaEdit.Select(0,en.EndOffset)
         let t = avaEdit.SelectedText
         {
-        text = t + Environment.NewLine // add line return so that EvaluationTracker.fs knows it is the full line and can jump to next line.
+        text = t //+ Environment.NewLine // add line return so that EvaluationTracker.fs knows it is the full line and can jump to next line.
         startLine = 1
         startOffset = 0
-        length = t.Length + Environment.NewLine.Length
+        length = t.Length //+ Environment.NewLine.Length
         }
 
     (*

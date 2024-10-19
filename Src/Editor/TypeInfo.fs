@@ -631,7 +631,7 @@ type TypeInfo private () =
         // see https://github.com/icsharpcode/AvalonEdit/blob/master/ICSharpCode.AvalonEdit/Editing/SelectionMouseHandler.cs#L477
 
         match iEditor.FileCheckState with
-        | Checking -> ()
+        | NotChecked | WaitForCompl _ | WaitForErr _ -> ()
         | Done res when res.checkRes.HasFullTypeCheckInfo ->
             let av = iEditor.AvaEdit
             match Mouse.getOffset (e,av) with
@@ -718,12 +718,12 @@ type TypeInfo private () =
                         let fullName = if symbol.IsSome then symbol.Value.Symbol.FullName else ""
 
                         let optArgs = if symbol.IsSome then namesOfOptnlArgs(symbol.Value) else ResizeArray(0)
-                        let ttds = makeToolTipDataList (ttt, fullName ,optArgs) //TODO can this still be async ?
+                        let tooltipDataList = makeToolTipDataList (ttt, fullName ,optArgs) //TODO can this still be async ?
 
                         do! Async.SwitchToContext Fittings.SyncWpf.context
 
-                        if List.isEmpty ttds then
-                            tip.Content <- new TextBlock(Text = "No type info found for:\r\n'" + word + "'", FontSize = StyleState.fontSize  * 0.65 ,FontFamily = StyleState.fontToolTip, Foreground = gray )
+                        if List.isEmpty tooltipDataList then
+                            tip.Content <- new TextBlock(Text = "No type info found for:\r\n'" + word + "'", FontSize = StyleState.fontSize  * 0.65 , FontFamily = StyleState.fontToolTip , Foreground = gray )
                             //ed.TypeInfoToolTip.IsOpen <- false
                         else
                             let sem, declLoc, dllLoc =
@@ -748,7 +748,7 @@ type TypeInfo private () =
                                     sem , s.Symbol.DeclarationLocation , s.Symbol.Assembly.FileName
 
                             let ed = {declListItem=None; semanticClass=sem; declLocation=declLoc; dllLocation=dllLoc }
-                            let ttPanel = TypeInfo.getPanel (ttds, ed )
+                            let ttPanel = TypeInfo.getPanel (tooltipDataList, ed )
                             if tip.IsOpen then // showing the "loading" text till here.
                                 tip.Content <- ttPanel
                     } |> Async.Start

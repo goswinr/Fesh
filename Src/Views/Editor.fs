@@ -77,7 +77,7 @@ type Editor private (code:string, config:Config, initialFilePath:FilePath)  =
         se.WholeWords <- false // config.Settings.GetBool("SearchWholeWords", false)
         se
 
-    let mutable checkState = FileCheckState.Checking
+    let mutable checkState = FileCheckState.NotChecked
     let mutable filePath   = initialFilePath
     let getFilePath() = filePath
 
@@ -88,10 +88,11 @@ type Editor private (code:string, config:Config, initialFilePath:FilePath)  =
     let folds       = new Foldings(foldMg, state, getFilePath)
     let brackets    = new BracketHighlighter( state)
     let semHiLi     = new SemanticHighlighter(state)
-    let error       = new ErrorHighlighter(state, foldMg, fun () -> compls.IsOpen )
     let selHiLi     = new SelectionHighlighter(state)
-    let evalTracker =
-        if config.Settings.GetBool("TrackEvaluatedCode", false) then Some <| EvaluationTracker(avaEdit,config) else None
+    let evalTracker = new EvaluationTracker(avaEdit,state, config)
+    let error       = new ErrorHighlighter(state, foldMg, fun () -> compls.IsOpen )
+        // if config.Settings.GetBool(EvaluationTracker.SettingsStr, EvaluationTracker.onByDefault) then Some <| EvaluationTracker(avaEdit,state, config)
+        // else None
 
     let drawServices :Redrawing.DrawingServices = {
         folds       = folds
@@ -131,15 +132,14 @@ type Editor private (code:string, config:Config, initialFilePath:FilePath)  =
     member _.AvaEdit = avaEdit
 
     /// This CheckState is local to the current editor
-    member _.FileCheckState  with get() = checkState  and  set(v) = checkState <- v
+    member _.FileCheckState with get() = checkState and  set(v) = checkState <- v
 
     /// setting this alone does not change the tab header !!
-    member _.FilePath        with get() = filePath    and set (v)= filePath <- v
+    member _.FilePath with get() = filePath and set (v)= filePath <- v
 
     //member this.Log = config.Log
     member this.IsComplWinOpen  = compls.IsOpen
 
-    //member _.EvaluateFrom  = evalTracker.EvaluateFrom
 
     interface IEditor with
         member _.AvaEdit         = avaEdit
@@ -147,8 +147,7 @@ type Editor private (code:string, config:Config, initialFilePath:FilePath)  =
         member _.FilePath        = filePath // the interface is get only, it does not need a setter
         member _.IsComplWinOpen  = compls.IsOpen
         member _.FoldingManager  = foldMg
-        member _.EvaluateFrom    = match evalTracker with Some et -> Some et.EvaluateFrom | None -> None
-
+        member _.EvaluateFromLine    = evalTracker.EvaluateFromLine
 
     member this.CloseToolTips() =
         this.TypeInfoTip.IsOpen <- false
@@ -172,8 +171,7 @@ type Editor private (code:string, config:Config, initialFilePath:FilePath)  =
 
         let _rulers =  new ColumnRulers(avaEdit) // draw last , so on top? do foldings first
         avaEdit.Loaded.Add (fun _ -> new MagicScrollbar.ScrollBarEnhancer(avaEdit, ed.ErrorHighlighter)  |> ignore )
-        avaEdit.Drop.Add   (fun e -> DragAndDrop.onTextArea(  avaEdit, e))
-
+        avaEdit.Drop.Add   (fun e -> DragAndDrop.onTextArea(avaEdit, e))
 
 
         ed.Completions.OnShowing.Add(fun _ ->                         ed.CloseToolTips() )
@@ -197,15 +195,19 @@ type Editor private (code:string, config:Config, initialFilePath:FilePath)  =
         // -------------------------keyboard events -----------------
         // ----------------------------------------------------------
 
-        avaEdit.TextArea.PreviewTextInput.Add (       fun e -> CursorBehavior.previewTextInput(     avaEdit, e))  // A TextCompositionEventArgs that has a string , handling typing in rectangular selection
-        avaEdit.TextArea.AlternativeRectangularPaste <- Action<string,bool>( fun txt txtIsFromOtherRectSel -> RectangleSelection.paste(ed.AvaEdit, txt, txtIsFromOtherRectSel)) //TODO check txtIsFromOtherRectSel on pasting text with \r\n
-        avaEdit.PreviewKeyDown.Add (fun e -> KeyboardShortcuts.previewKeyDown(    ed     , e))  // A single Key event arg, indent and dedent, and change block selection delete behavior
-
+        avaEdit.TextArea.AlternativeRectangularPaste <- Action<string,bool>(fun txt txtIsFromOtherRectSel -> RectangleSelection.paste(ed.AvaEdit, txt, txtIsFromOtherRectSel)) //TODO check txtIsFromOtherRectSel on pasting text with \r\n
+        avaEdit.TextArea.PreviewTextInput.Add ( fun e -> CursorBehavior.previewTextInput( avaEdit, e))  // A TextCompositionEventArgs that has a string , handling typing in rectangular selection
+        avaEdit.PreviewKeyDown.Add (fun e -> KeyboardShortcuts.previewKeyDown( ed , e))  // A single Key event arg, indent and dedent, and change block selection delete behavior
 
         // -------------React to doc changes and add Line transformers----------------
-        avaEdit.Document.Changing.Add(DocChangeEvents.changing ed.State )
-        avaEdit.Document.Changed.Add (DocChangeEvents.changed ed ed.DrawingServices ed.State)
-        avaEdit.Document.Changed.Add(fun a -> match ed.DrawingServices.evalTracker with Some et -> et.SetLastChangeAt a.Offset | None -> ())
+        let drawServ = ed.DrawingServices
+        // match drawServ.evalTracker with
+        // |None -> ()
+        // |Some evalTracker -> avaEdit.Document.Changed.Add(  fun a -> evalTracker.SetLastChangeAt (a.Offset-a.RemovalLength))
+        avaEdit.PreviewKeyDown.Add ( fun e -> DocChangeEvents.ctrlSpace (ed, drawServ, ed.State, e)) // to trigger completion window on ctrl+space without entering any character
+        avaEdit.Document.Changing.Add( fun a -> DocChangeEvents.changing (ed.State, a) )
+        avaEdit.Document.Changed.Add ( fun a -> DocChangeEvents.changed  (ed,  drawServ, ed.State, a))
+
 
         // Check if closing and inserting from completion window is desired with currently typed character:
         avaEdit.TextArea.TextEntering.Add (compls.MaybeInsertOrClose)
@@ -216,22 +218,13 @@ type Editor private (code:string, config:Config, initialFilePath:FilePath)  =
         // avaEdit.Document.Changed.Add(fun a -> DocChangeEvents.logPerformance( a.InsertedText.Text)) // AutoHotKey SendInput of ßabcdefghijklmnopqrstuvwxyz£
 
 
-
-
         // avaEdit.KeyDown.Add (fun k ->  // close tooltips or clear selection on Escape key
         //     match k.Key with
         //     |Key.Escape -> // close ToolTips or if all are closed already  ClearSelectionHighlight
-        //         if ed.TypeInfoTip.IsOpen || ed.DrawingServices.errors.ToolTip.IsOpen then
-        //             ed.CloseToolTips()
-        //         else
-        //             //
-        //             ed.SelectionHighlighter.ClearAll()
-        //     | _ -> ()
-        // )
+        //         if ed.TypeInfoTip.IsOpen || ed.DrawingServices.errors.ToolTip.IsOpen then ed.CloseToolTips()        //
+        //         else ed.SelectionHighlighter.ClearAll()
+        //     | _ -> ()  )
 
-
-        //avaEdit.KeyUp.Add (fun e -> if e.Key = Input.Key.Up then  eprintfn "key up")
-        //avaEdit.KeyDown.Add (fun k -> printfn $"key:{k.Key} + {k.SystemKey}")
         ed
 
     ///additional constructor using default code

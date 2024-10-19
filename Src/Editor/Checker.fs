@@ -20,7 +20,7 @@ type ParseCheckRes = {
 type PositionInCodeEx =
     {
     lineToCaret  :string
-    row          : int
+    lineIdx      : int
     column       : int
     offset       : int
     setback      : int
@@ -34,12 +34,12 @@ type PositionInCodeEx =
         let setback  = Str.lastNonFSharpNameCharPosition ln // to maybe replace some previous characters too
         let dotBefore =
             let i = pos.column - setback - 1
-            if i >= 0 && i < ln.Length then ln.[i] = '.' else false
+            i >= 0 && i < ln.Length && ln.[i] = '.'
         let ifDotSetback = if dotBefore then setback else 0
         let colSetBack   = pos.column - ifDotSetback
         {
         lineToCaret  = ln
-        row          = pos.row
+        lineIdx      = pos.lineIdx
         column       = pos.column
         offset       = pos.offset
         setback      = setback     // to maybe replace some previous characters too
@@ -180,8 +180,6 @@ module FsCheckerUtil =
 /// Only a single checker exist that is referenced on all editors
 type Checker private ()  =
 
-    /// when the checker is running just before completion window we actually don't want to update the status bar while the completion window is open
-    static let mutable raiseStateChangedEvent = true
 
     static let mutable fsChecker: FSharpChecker Option = None // "you should generally use one global, shared FSharpChecker for everything in an IDE application." from http://fsharp.github.io/FSharp.Compiler.Service/caches.html
 
@@ -191,11 +189,6 @@ type Checker private ()  =
     static let optArgsDict = Dictionary<string,ResizeArray<OptDefArg>>()
 
     static let checkingStateEv = new Event<FileCheckState> ()
-
-    static let updateCheckingState (ied:IEditor) state =
-        ied.FileCheckState <- state
-        if raiseStateChangedEvent then
-            Fittings.SyncWpf.doSync (fun () -> checkingStateEv.Trigger state )
 
 
     static let mutable projectOptions = None: FSharpProjectOptions option
@@ -220,6 +213,8 @@ type Checker private ()  =
             return checkRes
             }
 
+
+
     //-----------------------------------------------------------------
     //---------------static members------------------------------------
     //-----------------------------------------------------------------
@@ -233,25 +228,47 @@ type Checker private ()  =
     static member OptArgsDict = optArgsDict
 
     /// Returns None if check failed or was superseded by a newer Document change ID
-    static member CheckCode(ed:IEditor, state:InteractionState, code, changeId, raiseEvent) : option<FullCheckResults>=
-        raiseStateChangedEvent <- raiseEvent
-        updateCheckingState ed Checking
-        match parseAndCheck( state, code, ed.FilePath, changeId) with
-        |None ->
-            //IFeshLog.log.PrintfnDebugMsg $"*parseAndCheck: aborted early, waiting for newer checke state event."
-            None
-        |Some parseCheckRes ->
-            let errs = ErrorUtil.getBySeverity parseCheckRes.checkRes
-            let res =
-                {
-                parseRes = parseCheckRes.parseRes
-                checkRes = parseCheckRes.checkRes
-                errors   = errs
-                changeId = changeId
-                editor   = ed.AvaEdit
-                }
-            updateCheckingState ed (Done res)
-            Some res
+    static member CheckCode(ed:IEditor, state:InteractionState, code, changeId, forCompl) : option<FullCheckResults> =
+        try
+            let aCheckingState =
+                match ed.FileCheckState with
+                | Done res | WaitForCompl res | WaitForErr res -> if forCompl then WaitForCompl res else WaitForErr res
+                | NotChecked                                    -> NotChecked
+
+            Fittings.SyncWpf.doSync (fun () -> checkingStateEv.Trigger aCheckingState )
+            ed.FileCheckState <- aCheckingState
+
+            match parseAndCheck( state, code, ed.FilePath, changeId) with
+            |None ->
+                //IFeshLog.log.PrintfnDebugMsg $"*parseAndCheck: aborted early, waiting for newer checke state event."
+                None
+            |Some parseCheckRes ->
+                let errs = ErrorUtil.getBySeverity parseCheckRes.checkRes
+                let res =
+                    {
+                    parseRes = parseCheckRes.parseRes
+                    checkRes = parseCheckRes.checkRes
+                    errors   = errs
+                    changeId = changeId
+                    editor   = ed.AvaEdit
+                    }
+
+                Fittings.SyncWpf.doSync (fun () -> checkingStateEv.Trigger (Done res) )
+                ed.FileCheckState <- Done res
+                Some res
+        with
+            | :? TypeLoadException as e ->
+                IFeshLog.log.PrintfnAppErrorMsg "TypeLoadException in CheckCode: \r\n%A" e
+                IFeshLog.log.PrintfnFsiErrorMsg "This may indicate an assembly version conflict"
+                if state.Config.RunContext.IsHosted then
+                    let host = state.Config.RunContext.HostName |> Option.defaultValue ""
+                    IFeshLog.log.PrintfnFsiErrorMsg $"Please restart the host app {host}. And try again."
+
+                None
+            | e ->
+                IFeshLog.log.PrintfnAppErrorMsg "Fesh.Editor.Error in CheckCode: \r\n%A" e
+                None
+
 
     /// Currently unused optional argument to GetDeclarationListSymbols
     /// Completion list would get huge !!!
@@ -286,25 +303,23 @@ type Checker private ()  =
             []
 
     /// Checks for items available for completion
-    static member GetCompletions (pos:PositionInCode, res:FullCheckResults ) =
-        //IFeshLog.log.PrintfnDebugMsg "*2.0 GetCompletions for:\r\n%A" pos
-        let pCtx = PositionInCodeEx.get(pos)
-
+    static member GetDeclarations (posX:PositionInCodeEx, res:FullCheckResults ) =
+        // IFeshLog.log.PrintfnDebugMsg "*2.0 GetCompletions for:\r\n%A" posX
         // Symbols are only for finding out if an argument is optional
         let symUse =  res.checkRes.GetDeclarationListSymbols(
                          Some res.parseRes  // ParsedFileResultsOpt
-                         , pos.row          // line
-                         , pos.lineToCaret  // lineText
-                         , pCtx.partLoName  // PartialLongName
+                         , posX.lineIdx          // line
+                         , posX.lineToCaret  // lineText
+                         , posX.partLoName  // PartialLongName
                          //, (fun () -> Checker.GetAllEntities(res, true)) // getAllEntities: (unit -> AssemblySymbol list) // TODO use that too like FsAutocomplete does ???
                          )
 
         // for auto completion
         let decls = res.checkRes.GetDeclarationListInfo(
                           Some res.parseRes  // ParsedFileResultsOpt
-                        , pos.row            // line
-                        , pos.lineToCaret    // lineText
-                        , pCtx.partLoName    // PartialLongName
+                        , posX.lineIdx            // line
+                        , posX.lineToCaret    // lineText
+                        , posX.partLoName    // PartialLongName
                         //, (fun () -> Checker.GetAllEntities(res, true)) // getAllEntities: (unit -> AssemblySymbol list) // TODO use that too like FsAutocomplete does ???
                         //, completionContextAtPos //  TODO use it ?   Completion context for a particular position computed in advance.
                         )
@@ -313,6 +328,7 @@ type Checker private ()  =
             IFeshLog.log.PrintfnAppErrorMsg "*ERROR in GetDeclarationListInfo: %A" decls //TODO use log
             None
         else
+            // IFeshLog.log.PrintfnDebugMsg $"*2.1 GetCompletions for {posX} found {decls.Items.Length}"
             // Find which parameters are optional and set the value on the passed in dictionary.
             // For adding question marks to optional arguments.
             // This is still done in Async mode
@@ -323,7 +339,7 @@ type Checker private ()  =
                     if opts.Count>0 then
                         optArgsDict.[symb.Symbol.FullName] <- opts
 
-            Some (decls,pCtx)
+            Some (decls)
 
     /// Create a new Checker
     static member Reset() =
