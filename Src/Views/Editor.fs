@@ -38,7 +38,7 @@ type Counter private () =
 type Editor private (code:string, config:Config, initialFilePath:FilePath)  =
     let avaEdit =
         let av = TextEditor()
-        av.Options.IndentationSize <- config.Settings.GetIntSaveDefault("IndentationSize", 4) // do first because its used by tabs to spaces below.
+        av.Options.IndentationSize <- config.Settings.GetInt("IndentationSize", 4) // do first because its used by tabs to spaces below.
         av.Text <- code
 
         av.BorderThickness <- new Thickness( 0.0)

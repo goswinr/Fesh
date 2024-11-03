@@ -164,7 +164,7 @@ module CompileScript =
         gray "starting MSBuild.exe ..."
         let msBuildFolders =
             [
-            config.Settings.Get "MSBuild.exe" |> Option.defaultValue ""
+            config.Settings.TryGetString "MSBuild.exe" |> Option.defaultValue ""
             @"C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Current\Bin\MSBuild.exe"
             @"C:\Program Files\Microsoft Visual Studio\2022\Professional\MSBuild\Current\Bin\MSBuild.exe"
             @"C:\Program Files\Microsoft Visual Studio\2022\Enterprise\MSBuild\Current\Bin\MSBuild.exe"
@@ -178,7 +178,7 @@ module CompileScript =
             // TODO use https://github.com/microsoft/MSBuildLocator
             IFeshLog.log.PrintfnIOErrorMsg  "MSBuild.exe not found at:\r\n%s " (msBuildFolders |> String.concat Environment.NewLine)
             IFeshLog.log.PrintfnIOErrorMsg  "If you have MSBuild.exe on your PC please add the path to the settings file like this:"
-            IFeshLog.log.PrintfnAppErrorMsg "MSBuild.exe=C:\Folder\Where\it\is\MSBuild.exe"
+            IFeshLog.log.PrintfnAppErrorMsg "MSBuild.exe=C:/Folder/Where/it/is/MSBuild.exe"
             IFeshLog.log.PrintfnIOErrorMsg  "the settings file is at %s" config.RunContext.SettingsFileInfo.FullName
             false
         | Some msBuildexe ->

@@ -36,7 +36,7 @@ module Initialize =
                     else
                         IFeshLog.log.PrintfnInfoMsg $"You are using the latest version of Fesh: {cv}"
             with _ ->
-                IFeshLog.log.PrintfnInfoMsg "Could not check for updates on https://github.com/goswinr/Fesh/releases. Are you offline?"
+                IFeshLog.log.PrintfnInfoMsg "Could not check for updates on https://github.com/goswinr/Fesh/releases.\r\nAre you offline?"
         }
         |> Async.Start
 

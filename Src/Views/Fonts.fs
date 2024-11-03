@@ -48,7 +48,7 @@ type Fonts (grid:TabsAndLog) = // will be constructed as part of Commands class
             None
 
     let tryGetFontOrAlt(key) =
-        match sett.Get key with
+        match sett.TryGetString key with
         |Some na ->
             match getFontThatIsInstalled(na) with
             |Some f -> Some f
@@ -84,7 +84,6 @@ type Fonts (grid:TabsAndLog) = // will be constructed as part of Commands class
             StyleState.fontLog <- f
             log.AvalonLog.FontFamily <- f
             sett.Set ("FontLog", f.Source)
-            sett.Save()
         |None ->  ()
 
     let setEditor() = // on log and all tabs
@@ -97,7 +96,6 @@ type Fonts (grid:TabsAndLog) = // will be constructed as part of Commands class
 
             for t in tabs.AllTabs do  t.Editor.AvaEdit.FontFamily  <- f
             sett.Set ("FontEditor", f.Source)
-            sett.Save()
 
             //match  f.FamilyTypefaces |> Seq.tryFind ( fun tf ->  tf.Style = Windows.FontStyles.Oblique && tf.Weight.ToString() = "Normal" ) with
             //|Some ft ->
@@ -115,7 +113,6 @@ type Fonts (grid:TabsAndLog) = // will be constructed as part of Commands class
         |Some f ->
             StyleState.fontToolTip <- f
             sett.Set ("FontToolTip", f.Source)
-            sett.Save()
         |None -> ()
 
     let setSize (newSize:float) = // on log and all tabs
@@ -124,7 +121,6 @@ type Fonts (grid:TabsAndLog) = // will be constructed as part of Commands class
             t.Editor.AvaEdit.FontSize  <- newSize
         sett.SetFloat ("SizeOfFont", newSize)
         StyleState.fontSize <- newSize
-        sett.Save ()
         log.PrintfnInfoMsg "new font size: %.2f" newSize
 
     //----- init ---------

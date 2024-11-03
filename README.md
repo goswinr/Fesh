@@ -5,7 +5,7 @@
 ![code size](https://img.shields.io/github/languages/code-size/goswinr/Fesh.svg)
 [![license](https://img.shields.io/github/license/goswinr/Fesh)](LICENSE)
 
-Fesh is a  **<ins>F</ins># <ins>E</ins>ditor & <ins>S</ins>cripting <ins>H</ins>ost**.\
+Fesh is an  ***F***# ***E***ditor & ***S***cripting ***H***ost.\
 On Windows.
 
 It is designed for embedding F# as application scripting tool.\
@@ -57,7 +57,7 @@ Initial static syntax highlighting is done via AvalonEdit's regex based highligh
 See [SyntaxHighlightingFSharp.xshd](https://github.com/goswinr/Fesh/blob/main/Src/SyntaxHighlightingFSharp.xshd).\
 The F# Compiler Service provides additional semantic highlighting.\
 If you want different colors go the menu: `About` -> `Open and watch SyntaxHighlighting in VS Code`.\
-You wil see any changes upon every save in VS Code.\
+You wil see any changes upon every save in VS Code.
 
 ### Auto complete
 Auto complete works on enter and dot, also when typing in the middle of a word.
@@ -84,6 +84,9 @@ Or via the menu: `About` -> `Open Settings Folder`.
 
 
 ## Release notes
+
+`0.14.0`
+- fix bug in unsaved settings
 
 `0.13.0`
 - fix crash on assembly load conflict

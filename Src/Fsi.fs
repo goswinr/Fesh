@@ -343,7 +343,7 @@ type Fsi private (config:Config) =
                     | FSharpDiagnosticSeverity.Info    -> () //log.PrintfnInfoMsg "EvalInteractionNonThrowing returned Info: %s" e.Message
 
                 //match evaluatedToValue with   //|Some v -> log.PrintfnDebugMsg "Interaction evaluated to %A <%A>" v.ReflectionValue v.ReflectionType //|None-> ()
-                if config.Settings.GetBoolSaveDefault("printDoneAfterEval",false) then log.PrintfnInfoMsg "*Done!"
+                if config.Settings.GetBool("printDoneAfterEval",false) then log.PrintfnInfoMsg "*Done!"
 
             |Choice2Of2 exn ->
                 match exn with
@@ -571,6 +571,8 @@ type Fsi private (config:Config) =
                         log.PrintfnFsiErrorMsg $"Then load the Fesh Editor first, that can solve assembly conflicts."
                     else
                         log.PrintfnFsiErrorMsg "Please try restarting Fesh."
+
+
                 }
             |> Async.Start
 
@@ -675,7 +677,6 @@ type Fsi private (config:Config) =
             mode <- sync
             modeChangedEv.Trigger(sync)
             setConfig()
-            config.Settings.Save()
             initFsi (config)
         | UserDoesntWantTo -> ()
         | NotPossibleSync -> log.PrintfnInfoMsg "Wait till current synchronous evaluation completes before setting mode to Async."

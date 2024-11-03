@@ -63,7 +63,6 @@ type TabsAndLog (config:Config, tabs:Tabs, log:Log, feshWin:Views.FeshWindow) as
                 logRowHeight.Height    <- makeGridLength    logRowHeight.ActualHeight
                 config.Settings.SetFloat ("EditorHeight"    ,editorRowHeight.ActualHeight)
                 config.Settings.SetFloat ("LogHeight"       ,logRowHeight.ActualHeight   )
-                config.Settings.Save ()
                 )
 
         splitterVert.DragCompleted.Add (fun _ ->
@@ -72,7 +71,6 @@ type TabsAndLog (config:Config, tabs:Tabs, log:Log, feshWin:Views.FeshWindow) as
                 logColumnWidth.Width    <- makeGridLength   logColumnWidth.ActualWidth
                 config.Settings.SetFloat("EditorWidth"      ,editorColumnWidth.ActualWidth)
                 config.Settings.SetFloat("LogWidth"         ,logColumnWidth.ActualWidth   )
-                config.Settings.Save ()
                 )
 
         feshWin.Window.StateChanged.Add (fun _ ->
@@ -105,7 +103,6 @@ type TabsAndLog (config:Config, tabs:Tabs, log:Log, feshWin:Views.FeshWindow) as
     member this.ToggleSplit() =
         if config.Settings.GetBool ("IsViewSplitVertical", true) then setGridHor()
         else                                                          setGridVert()
-        config.Settings.Save ()
 
     member this.ToggleMaxLog() =
         if isLogMaxed then // if it is already maxed then size down again

@@ -231,7 +231,6 @@ type FsiOutputStatus (grid:TabsAndLog) as this =
             else
                 this.Text <- offTxt
                 grid.Config.Settings.SetBool ("fsiOutputQuiet", true)
-            grid.Config.Settings.Save ()
             grid.Tabs.Fsi.Initialize()
             )
 

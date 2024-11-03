@@ -55,7 +55,7 @@ type FeshWindow (config:Config)=
         try
             // Add the Icon at the top left of the window and in the status bar, musst be called  after loading window.
             // Media/logo.ico with Build action : "Resource"
-            // (for the exe file icon in explorer use <Win32Resource>Media\logo.res</Win32Resource>  in fsproj, where the .res file contains the .ico file )
+            // (for the exe file icon in explorer use <Win32Resource>Media/logo.res</Win32Resource>  in fsproj, where the .res file contains the .ico file )
             let defaultUri = Uri("pack://application:,,,/Fesh;component/Media/logo.ico")
             match config.RunContext.Logo with
             |Some uri ->
