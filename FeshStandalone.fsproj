@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk.WindowsDesktop">
+  <!-- Sdk.WindowsDesktop is needed so that resources work with dotnet build:-->
   <!-- Project Sdk= WinDesktop for WPF, it is also needed so that resources work with dotnet build, 'WindowsDesktop' must be included when building for net472 and net6.0-->
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
@@ -30,9 +31,9 @@
     <Title>Fesh</Title>
     <Product>Fesh</Product>
 
-    <Version>0.14.0</Version>
-    <AssemblyVersion>0.14.0</AssemblyVersion>
-    <FileVersion>0.14.0</FileVersion>
+    <Version>0.14.1</Version>
+    <AssemblyVersion>0.14.1</AssemblyVersion>
+    <FileVersion>0.14.1</FileVersion>
 
     <Company>Goswin Rothenthal</Company>    <!-- <Company> shows up on file preview on fesh.exe in windows file explorer-->
     <Authors>GoswinR</Authors>

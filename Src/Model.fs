@@ -45,6 +45,8 @@ type IFeshLog =
 
     abstract member Clear : unit -> unit
 
+    abstract member AvalonLog : AvalonLog.AvalonLog
+
 [<RequireQualifiedAccess>]
 [<CompiledName("IFeshLogModule")>] // DON'T RENAME !! It is used via reflection in https://github.com/goswinr/FsEx and https://github.com/goswinr/Fesher
 module IFeshLog =

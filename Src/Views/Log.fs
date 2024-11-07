@@ -189,6 +189,8 @@ type Log private () =
         /// But not any other text printed with any custom color.
         member this.AdditionalLogger with get() = addLogger and set l = addLogger <- l
 
+        member this.AvalonLog = log
+
     member this.SaveAllText (pathHint: FilePath) =
         let dlg = new Microsoft.Win32.SaveFileDialog()
         match pathHint with

@@ -64,7 +64,7 @@ type Fsi private (config:Config) =
     let canceledEv       = new Event<unit>()
     let completedOkEv    = new Event<CodeToEval>()
     let runtimeErrorEv   = new Event<Exception>()
-    let fsiEvalErrorEv     = new Event<FSharpDiagnostic>()
+    let fsiEvalErrorEv    = new Event<FSharpDiagnostic>()
     let isReadyEv        = new Event<unit>()
     let resetEv          = new Event<unit>()
     let modeChangedEv    = new Event<FsiSyncMode>()
@@ -218,7 +218,7 @@ type Fsi private (config:Config) =
                     )
                 )
 
-            if config.RunContext.IsRunningOnDotNetCore then
+            if not config.RunContext.IsRunningOnDotNetCore then
                 nextThread.SetApartmentState(ApartmentState.STA) // works only on net48? so that the thread can create WPF windows.
 
             nextThread.IsBackground <- true
@@ -729,8 +729,26 @@ type Fsi private (config:Config) =
         // see http://reedcopsey.com/2011/11/28/launching-a-wpf-window-in-a-separate-thread-part-1/
         shutDownThreadEv.Trigger()
 
-
     member this.Session = sessionOpt
+
+    member this.ShutDown() = // to properly dispose the Fsi session in net8 Revit 2025?
+        // in a race condition there might be a call to printfn, the buffer in AvalonLog would queue it, and wait for 50 ms,
+        // but if within those 50ms the App shuts down it wil crash a hosting app such as Revit with a Thread cancelled Exception
+        // In Revit 2025 this happens when closing the Fesh Editor, because some other plugins try to print to stdout at shout down.
+        log.AvalonLog.IsAlive <- false // to stop logging
+        match asyncThread with
+        |Some thread ->
+            let abort = getControlledExecutionAborter(thread)
+            abort()  |> ignore
+        |None -> ()
+
+
+
+
+
+
+
+
 
 
 
