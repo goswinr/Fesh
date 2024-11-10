@@ -2,12 +2,12 @@
 
 # Fesh
 [![Fesh on nuget.org](https://img.shields.io/nuget/v/Fesh.svg)](https://nuget.org/packages/Fesh)
-[![Build Standalone](https://github.com/goswinr/Fesher/actions/workflows/buildStandalone.yml/badge.svg)](https://github.com/goswinr/Fesher/actions/workflows/buildStandalone.yml)
-[![Build Hosting](https://github.com/goswinr/Fesher/actions/workflows/buildHosting.yml/badge.svg)](https://github.com/goswinr/Fesher/actions/workflows/buildHosting.yml)
+[![Build Standalone](https://github.com/goswinr/Fesh/actions/workflows/buildStandalone.yml/badge.svg?event=push)](https://github.com/goswinr/Fesh/actions/workflows/buildStandalone.yml)
+[![Build Hosting](https://github.com/goswinr/Fesh/actions/workflows/buildHosting.yml/badge.svg?event=push)](https://github.com/goswinr/Fesh/actions/workflows/buildHosting.yml)
 ![code size](https://img.shields.io/github/languages/code-size/goswinr/Fesh.svg)
 [![license](https://img.shields.io/github/license/goswinr/Fesh)](LICENSE)
 
-Fesh is an  ***F***# ***E***ditor & ***S***cripting ***H***ost.\
+Fesh is an  **F**# **E**ditor & **S**cripting **H**ost.\
 On Windows.
 
 It is designed for embedding F# as application scripting tool.\
@@ -81,39 +81,11 @@ For *.fsx it will be at the top and prefixed with `#load`.
 
 ### Font
 The default font is [Cascadia Mono](https://github.com/microsoft/cascadia-code).\
-You can change it in the 'Settings.txt' file at `%APPDATA%\Local\Fesh\Settings.txt`.\
+Besides italic it also supports a cursive script mode. Fesh is using cursive for comments.\
+To enable ligatures set the font to `Cascadia Code`.\
+You can change the font in the 'Settings.txt' file at `%APPDATA%\Local\Fesh\Settings.txt`.\
 Or via the menu: `About` -> `Open Settings Folder`.
 
-
-## Release notes
-
-`0.14.1`
-- remove false warning about missing cancellation token
-
-`0.14.0`
- - add FSI.Shutdown command for hosting
-
-`0.13.0`
-- fix crash on assembly load conflict
-- faster completion window
-- optional tracking of evaluated code via settings
-
-`0.12.0`
-- add check for updates on startup
-- fix version number in Title
-- enable cancellation of running code in net48 and net8
-
-`0.11.1`
-- fix expiry date
-
-`0.11.0`
-- fix VisualLine not collapsed crash
-
-`0.10.0`
-- enable DefaultCode in host settings
-
-`0.9.0`
-- first public release
-
-
+### Changelog
+see [CHANGELOG.md](https://github.com/goswinr/Fesh/blob/main/CHANGELOG.md)
 
