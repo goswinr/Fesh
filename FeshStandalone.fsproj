@@ -45,7 +45,7 @@
 
     <OutputPath>bin/standalone</OutputPath>
     <OtherFlags>$(OtherFlags) --warnon:1182</OtherFlags>     <!-- 1182: warn on unused variables -->
-    <ChangelogFile>../CHANGELOG.md</ChangelogFile>
+    <ChangelogFile>CHANGELOG.md</ChangelogFile>
   </PropertyGroup>
 
   <ItemGroup>

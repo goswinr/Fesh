@@ -36,7 +36,8 @@ jobs:
         draft: false
         prerelease: false
         body: |
-            Don't forget to **unblock** the zip file before extracting.            
+            Don't forget to **unblock** the zip file before extracting.  
+            Changes:          
             [View Changelog](https://github.com/${{ github.repository }}/blob/${{ github.ref }}/CHANGELOG.md)
             
 

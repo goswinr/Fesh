@@ -22,7 +22,7 @@ type DefaultCode  (runContext:RunContext) =
             match runContext.DefaultCode with
             | Some dc -> dc
             | None ->
-                "#r \"nuget: Fesher, 0.2.0\" // for printf with color"
+                "#r \"nuget: Fesher\" // for printf with color"
                 ""
                 "open System"
                 "open Fesher"

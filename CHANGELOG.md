@@ -48,16 +48,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - first public release
 
-[Unreleased]: https://github.com/goswinr/Fesher/compare/0.14.3...HEAD
-[0.14.3]: https://github.com/goswinr/Fesher/compare/0.14.2...0.14.3
-[0.14.2]: https://github.com/goswinr/Fesher/compare/0.14.0...0.14.2
-[0.14.0]: https://github.com/goswinr/Fesher/compare/0.13.0...0.14.0
-[0.13.0]: https://github.com/goswinr/Fesher/compare/0.12.0...0.13.0
-[0.12.0]: https://github.com/goswinr/Fesher/compare/0.11.1...0.12.0
-[0.11.1]: https://github.com/goswinr/Fesher/compare/0.11.0...0.11.1
-[0.11.0]: https://github.com/goswinr/Fesher/compare/0.10.0...0.11.0
-[0.10.0]: https://github.com/goswinr/Fesher/compare/0.9.0...0.10.0
-[0.9.0]: https://github.com/goswinr/Fesher/releases/tag/0.9.0
+[Unreleased]: https://github.com/goswinr/Fesh/compare/0.14.3...HEAD
+[0.14.3]: https://github.com/goswinr/Fesh/compare/0.14.2...0.14.3
+[0.14.2]: https://github.com/goswinr/Fesh/compare/0.14.0...0.14.2
+[0.14.0]: https://github.com/goswinr/Fesh/compare/0.13.0...0.14.0
+[0.13.0]: https://github.com/goswinr/Fesh/compare/0.12.0...0.13.0
+[0.12.0]: https://github.com/goswinr/Fesh/compare/0.11.1...0.12.0
+[0.11.1]: https://github.com/goswinr/Fesh/compare/0.11.0...0.11.1
+[0.11.0]: https://github.com/goswinr/Fesh/compare/0.10.0...0.11.0
+[0.10.0]: https://github.com/goswinr/Fesh/compare/0.9.0...0.10.0
+[0.9.0]: https://github.com/goswinr/Fesh/releases/tag/0.9.0
 
 <!-- use to get tag dates:
 git log --tags --simplify-by-decoration --pretty="format:%ci %d"
