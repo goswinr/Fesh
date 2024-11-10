@@ -1,0 +1,20 @@
+version: 2
+updates:
+  # Update to newer version of GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+
+  # Update to newer NuGet dependencies
+  - package-ecosystem: "nuget"
+    directory: "/"
+    schedule:
+      interval: "daily"
+    # ignore:
+    #   - dependency-name: "FSharp.Core"
+
+  # - package-ecosystem: "nuget"
+  #   directory: "/Tests/"
+  #   schedule:
+  #     interval: "daily"

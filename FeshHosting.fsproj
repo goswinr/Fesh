@@ -3,13 +3,13 @@
 
   <PropertyGroup>
     <OutputType>Library</OutputType>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms><!--inherited from Avalonedit ?-->
     <TargetFrameworks>net472;net7.0-windows</TargetFrameworks>
     <DefineConstants Condition="'$(TargetFramework)' == 'net472'">NETFRAMEWORK</DefineConstants>
     <!-- <RuntimeIdentifier>win-x64</RuntimeIdentifier> -->
     <Configurations>Release</Configurations>
 
-    <UseWPF>true</UseWPF>
-    <UseWindowsForms>true</UseWindowsForms><!--inherited from Avalonedit ?-->
     <LangVersion>preview</LangVersion><!-- to enable indexing from end via ^ -->
 
     <NeutralLanguage>en</NeutralLanguage>
@@ -33,15 +33,12 @@
 
     <Authors>GoswinR</Authors>
     <Copyright>Goswin Rothenthal 2019</Copyright>
-
     <Description>A hostable fsharp scripting editor for Windows based on Avalonedit</Description>
     <ApplicationIcon>Media/logo.ico</ApplicationIcon>
     <Win32Resource>Media/logo.res</Win32Resource>    <!-- Win32Resource for Application Icon in explorer-->
 
-    <PlatformTarget>AnyCPU</PlatformTarget> <!-- the host will decide, Rhino on Mac needs that too-->
     <OutputPath>bin/hosting</OutputPath>
     <OtherFlags>$(OtherFlags) --warnon:1182</OtherFlags>     <!-- 1182: warn on unused variables -->
-
   </PropertyGroup>
 
   <PropertyGroup>
@@ -62,11 +59,11 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="all" IncludeAssets="runtime; build; native; contentfiles; analyzers; buildtransitive" />
+    <PackageReference Include="System.Net.Http" Version="4.3.4" />
+	  <PackageReference Include="FSharp.Compiler.Service" Version="43.8.400" />
     <!-- normally don't include FSharp.Core in a library, but Update to latest version is needed for latest FSharp.Compiler.Service-->
 	  <PackageReference Update="FSharp.Core" Version="8.0.400" />
 
-	  <PackageReference Include="FSharp.Compiler.Service" Version="43.8.400" />
-    <PackageReference Include="System.Net.Http" Version="4.3.4" />
 	  <PackageReference Include="Fittings" Version="0.8.8" />
 	  <PackageReference Include="AvalonLog" Version="0.16.0" />
     <!-- <ProjectReference Include="../AvalonLog/AvalonLog.fsproj" /> -->

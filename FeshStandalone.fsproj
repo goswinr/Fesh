@@ -7,9 +7,10 @@
     <UseWPF>true</UseWPF>
     <UseWindowsForms>true</UseWindowsForms>    <!--inherited from Avalonedit ?-->
 	  <TargetFrameworks>net472;net8.0-windows</TargetFrameworks>
+    <DefineConstants Condition="'$(TargetFramework)' == 'net472'">NETFRAMEWORK</DefineConstants>
     <!-- <RuntimeIdentifiers>win-x64;win-x86</RuntimeIdentifiers> -->
     <!-- <RuntimeIdentifier>win-x64</RuntimeIdentifier> -->
-    <DefineConstants Condition="'$(TargetFramework)' == 'net472'">NETFRAMEWORK</DefineConstants>
+    <Configurations>Release</Configurations>
 
     <LangVersion>preview</LangVersion> <!-- to enable indexing from end via ^ -->
 
@@ -39,27 +40,21 @@
     <Authors>GoswinR</Authors>
     <Copyright>Goswin Rothenthal 2019</Copyright>
     <Description>A hostable fsharp scripting editor for Windows based on Avalonedit</Description>
-
     <ApplicationIcon>Media/logo.ico</ApplicationIcon>
     <Win32Resource>Media/logo.res</Win32Resource>    <!-- Win32Resource for Application Icon in explorer-->
 
-    <Configurations>Release</Configurations>
-
     <OutputPath>bin/standalone</OutputPath>
-
     <OtherFlags>$(OtherFlags) --warnon:1182</OtherFlags>     <!-- 1182: warn on unused variables -->
   </PropertyGroup>
 
   <ItemGroup>
-
-    <PackageReference Update="FSharp.Core" Version="8.0.400"  GeneratePathProperty="true"/>
-    <PackageReference Include="FSharp.Compiler.Service" Version="43.8.400" />
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="all" IncludeAssets="runtime; build; native; contentfiles; analyzers; buildtransitive" />
     <PackageReference Include="System.Net.Http" Version="4.3.4" />
+    <PackageReference Include="FSharp.Compiler.Service" Version="43.8.400" />
+    <PackageReference Update="FSharp.Core" Version="8.0.400"  GeneratePathProperty="true"/>
 
     <PackageReference Include="Fittings" Version="0.8.8" />
     <PackageReference Include="AvalonLog" Version="0.16.0" />
-    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="all" IncludeAssets="runtime; build; native; contentfiles; analyzers; buildtransitive" />
-
 
     <!--this reference is needed for tooling only, it might not be installed on host PC. (running the .NET Framework version) see also https://github.com/fsprojects/IfSharp/issues/213 -->
     <PackageReference Include="NETStandard.Library" Version="2.0.3" Condition="'$(TargetFramework)' == 'net472'" GeneratePathProperty="true" /> <!-- Generated PathProperty will be 'PkgNETStandard_Library' -->

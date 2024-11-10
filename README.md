@@ -2,6 +2,8 @@
 
 # Fesh
 [![Fesh on nuget.org](https://img.shields.io/nuget/v/Fesh.svg)](https://nuget.org/packages/Fesh)
+[![Build Standalone](https://github.com/goswinr/Fesher/actions/workflows/buildStandalone.yml/badge.svg)](https://github.com/goswinr/Fesher/actions/workflows/buildStandalone.yml)
+[![Build Hosting](https://github.com/goswinr/Fesher/actions/workflows/buildHosting.yml/badge.svg)](https://github.com/goswinr/Fesher/actions/workflows/buildHosting.yml)
 ![code size](https://img.shields.io/github/languages/code-size/goswinr/Fesh.svg)
 [![license](https://img.shields.io/github/license/goswinr/Fesh)](LICENSE)
 
@@ -19,7 +21,7 @@ Unlike a typical F# REPL this editor has the input and the output in two separat
 Just [like Don Syme always wanted it](https://github.com/dotnet/fsharp/issues/2161#issuecomment-270465310).\
 You can even color the output with [Fescher](https://www.nuget.org/packages/Fesher).
 
-Contrary to most F# editors, it uses [FSharp.Compiler.Service](https://www.nuget.org/packages/FSharp.Compiler.Service/43.8.400) in the same process as the UI.\
+Contrary to most F# editors, it uses [FSharp.Compiler.Service](https://www.nuget.org/packages/FSharp.Compiler.Service) in the same process as the UI.\
 There is no separate language server or FSI process.\
 Therefore,  Fesh can easily be hosted in other apps to create an embedded application scripting tool.\
 This was in fact the primary motivation for creating Fesh.\
