@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.14.3] - 2024-11-10
+### Added
+- Release via Github Actions
+
 ## [0.14.2] - 2024-11-10
 ### Removed
 - remove false warning about missing cancellation token
@@ -44,7 +48,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - first public release
 
-[Unreleased]: https://github.com/goswinr/Fesher/compare/0.14.2...HEAD
+[Unreleased]: https://github.com/goswinr/Fesher/compare/0.14.3...HEAD
+[0.14.3]: https://github.com/goswinr/Fesher/compare/0.14.2...0.14.3
 [0.14.2]: https://github.com/goswinr/Fesher/compare/0.14.0...0.14.2
 [0.14.0]: https://github.com/goswinr/Fesher/compare/0.13.0...0.14.0
 [0.13.0]: https://github.com/goswinr/Fesher/compare/0.12.0...0.13.0

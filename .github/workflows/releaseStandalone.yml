@@ -1,0 +1,51 @@
+name: Build and Release Stanadalone
+
+on:
+  push:
+    tags:
+      - '*.*.*'
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+
+    - name: Build
+      run: dotnet test FeshStandalone.fsproj --configuration Release
+
+    - name: Create zip file
+      run: |
+        powershell Compress-Archive -Path bin/standalone/* -DestinationPath bin/standalone/standalone.zip
+
+    - name: Create GitHub Release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This token is provided by Actions, you do not need to create your own token
+      with:
+        tag_name: ${{ github.ref }}
+        release_name: Fesh ${{ github.ref }}
+        draft: false
+        prerelease: false
+        body: |
+            Don't forget to **unblock** the zip file before extracting.            
+            [View Changelog](https://github.com/${{ github.repository }}/blob/${{ github.ref }}/CHANGELOG.md)
+            
+
+    - name: Upload Release Asset
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: bin/standalone/standalone.zip
+        asset_name: standalone.zip
+        asset_content_type: application/zip
