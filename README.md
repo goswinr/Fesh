@@ -85,8 +85,11 @@ Or via the menu: `About` -> `Open Settings Folder`.
 
 ## Release notes
 
+`0.14.1`
+- remove false warning about missing cancellation token
+
 `0.14.0`
-- fix bug in unsaved settings
+ - add FSI.Shutdown command for hosting
 
 `0.13.0`
 - fix crash on assembly load conflict

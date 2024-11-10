@@ -149,7 +149,8 @@ type Fsi private (config:Config) =
                         // tryAbortInfo.Invoke(controlledExecution, null) |> ignore
                         match (cts:?> ValueOption<Threading.CancellationTokenSource>) with
                         | ValueNone -> // the token is none initially when creating a session.
-                            IFeshLog.log.PrintfnFsiErrorMsg "No cancellation token for ControlledExecution found. Cancelling running scripts might not work."
+                            // a reset of FSI would always print this:
+                            //IFeshLog.log.PrintfnFsiErrorMsg "No cancellation token for ControlledExecution found. Cancelling running scripts might not work."
                             false
                         | ValueSome ctk ->
                             ctk.Cancel()
@@ -163,7 +164,7 @@ type Fsi private (config:Config) =
                     thread.Abort()
                     true
                 #else
-                    ignore thread // to avoid warning
+                    ignore thread // to avoid warning when NETFRAMEWORK is not defined
                     false
                 #endif
 

@@ -56,8 +56,8 @@ type EvaluationTrackerRenderer (ed:TextEditor, state:InteractionState ) =
                     | ValueNone ->
                         ``1``
 
-            let noIntentLine = findIndent(min lns.LastLineIdx changedLineIdx)
-            printfn "noIntentLine: %d"  noIntentLine
+            let noIndentLine = findIndent(min lns.LastLineIdx changedLineIdx)
+            //printfn "noIndentLine: %d"  noIndentLine
 
             let rec nextNonWhiteLine i =
                 if i <= ``1`` then ``1``
@@ -70,7 +70,7 @@ type EvaluationTrackerRenderer (ed:TextEditor, state:InteractionState ) =
                         IFeshLog.log.PrintfnDebugMsg "nextNonWhiteLine: Line not found %d" i
                         ``1``
 
-            evalFromLine <- nextNonWhiteLine (noIntentLine-1)
+            evalFromLine <- nextNonWhiteLine (noIndentLine-1)
 
     /// Triggered on each document changed
     member _.SetLastChangeAt(changedLineIdx) =
