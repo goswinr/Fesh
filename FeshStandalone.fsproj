@@ -52,8 +52,8 @@
     <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="all" IncludeAssets="runtime; build; native; contentfiles; analyzers; buildtransitive" />
     <PackageReference Include="Ionide.KeepAChangelog.Tasks" Version="0.1.8" PrivateAssets="all"  />
     <PackageReference Include="System.Net.Http" Version="4.3.4" />
-    <PackageReference Include="FSharp.Compiler.Service" Version="43.8.401" />
-    <PackageReference Update="FSharp.Core" Version="8.0.401"  GeneratePathProperty="true"/>
+    <PackageReference Include="FSharp.Compiler.Service" Version="43.9.100" />
+    <PackageReference Update="FSharp.Core" Version="9.0.100"  GeneratePathProperty="true"/>
 
     <PackageReference Include="Fittings" Version="0.8.8" />
     <PackageReference Include="AvalonLog" Version="0.16.0" />
