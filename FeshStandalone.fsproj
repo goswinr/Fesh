@@ -55,7 +55,7 @@
     <PackageReference Include="FSharp.Compiler.Service" Version="43.9.100" />
     <PackageReference Update="FSharp.Core" Version="9.0.100"  GeneratePathProperty="true"/>
 
-    <PackageReference Include="Fittings" Version="0.8.8" />
+    <PackageReference Include="Fittings" Version="0.9.0" />
     <PackageReference Include="AvalonLog" Version="0.16.0" />
 
     <!--this reference is needed for tooling only, it might not be installed on host PC. (running the .NET Framework version) see also https://github.com/fsprojects/IfSharp/issues/213 -->

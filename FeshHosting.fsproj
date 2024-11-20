@@ -63,7 +63,7 @@
     <!-- normally don't include FSharp.Core in a library, but Update to latest version is needed for latest FSharp.Compiler.Service-->
 	  <PackageReference Update="FSharp.Core" Version="9.0.100" />
 
-	  <PackageReference Include="Fittings" Version="0.8.8" />
+	  <PackageReference Include="Fittings" Version="0.9.0" />
 	  <PackageReference Include="AvalonLog" Version="0.16.0" />
     <!-- <ProjectReference Include="../AvalonLog/AvalonLog.fsproj" /> -->
   </ItemGroup>
