@@ -136,7 +136,7 @@ module CompileScript =
         }
         |> String.concat (Environment.NewLine  + String(' ',4) )
 
-    let getFsxXml (projFolder:string, nameSpace, code, fsxloads:ResizeArray<FsxRef>) : string=
+    let getFsxXml (projFolder:string, nameSpace:string, code:string, fsxloads:ResizeArray<FsxRef>) : string=
         seq{
             for load in fsxloads do
                 let niceName = (load.fileName.Replace(".fsx", "") |> toCamelCase  ) + ".fs" /// TODO make case insensitive

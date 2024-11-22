@@ -6,7 +6,7 @@
     <OutputType>WinExe</OutputType>
     <UseWPF>true</UseWPF>
     <UseWindowsForms>true</UseWindowsForms>    <!--inherited from Avalonedit ?-->
-	  <TargetFrameworks>net472;net8.0-windows</TargetFrameworks>
+	  <TargetFrameworks>net472;net9.0-windows</TargetFrameworks>
     <DefineConstants Condition="'$(TargetFramework)' == 'net472'">NETFRAMEWORK</DefineConstants>
     <!-- <RuntimeIdentifiers>win-x64;win-x86</RuntimeIdentifiers> -->
     <!-- <RuntimeIdentifier>win-x64</RuntimeIdentifier> -->
@@ -49,22 +49,20 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="all" IncludeAssets="runtime; build; native; contentfiles; analyzers; buildtransitive" />
     <PackageReference Include="Ionide.KeepAChangelog.Tasks" Version="0.1.8" PrivateAssets="all"  />
     <PackageReference Include="System.Net.Http" Version="4.3.4" />
     <PackageReference Include="FSharp.Compiler.Service" Version="43.9.100" />
     <PackageReference Update="FSharp.Core" Version="9.0.100"  GeneratePathProperty="true"/>
+    <PackageReference Include="System.Private.Uri" Version="4.3.2" />    <!-- warning NU1903: Package 'System.Private.Uri' 4.3.0 has a known high severity vulnerability, https://github.com/advisories/GHSA-5f2m-466j-3848 -->
 
     <PackageReference Include="Fittings" Version="0.9.0" />
-    <PackageReference Include="AvalonLog" Version="0.16.0" />
+    <PackageReference Include="AvalonLog" Version="0.17.0" />
 
     <!--this reference is needed for tooling only, it might not be installed on host PC. (running the .NET Framework version) see also https://github.com/fsprojects/IfSharp/issues/213 -->
     <PackageReference Include="NETStandard.Library" Version="2.0.3" Condition="'$(TargetFramework)' == 'net472'" GeneratePathProperty="true" /> <!-- Generated PathProperty will be 'PkgNETStandard_Library' -->
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="README.md" Pack="true" PackagePath="\" />
-    <None Include="Media/logo128.png" Pack="true" PackagePath="\" />    <!--PackagePath = "\" makes the file available to nuget pack tool-->
     <EmbeddedResource Include="Media/logo.res" />    <!--  for Application Icon in explorer-->
     <Resource Include="Media/logo.ico" />            <!--  for Application Icon in primary windows-->
     <Resource Include="Media/logoGray.ico" />        <!--  for Application Icon in secondary PopOut windows-->

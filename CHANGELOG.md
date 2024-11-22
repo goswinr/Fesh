@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ## [Unreleased]
+## [0.15.0] - 2024-11-22
+### Added
+- Support for F# 9.0
 
 ## [0.14.3] - 2024-11-10
 ### Added

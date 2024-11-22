@@ -19,9 +19,9 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '8.0.x'
+          dotnet-version: '9.0.x'
 
-      - name: Test FeshStandalone.fsproj
-        run: dotnet test FeshStandalone.fsproj --configuration Release
+      - name: Build FeshStandalone.fsproj
+        run: dotnet build FeshStandalone.fsproj --configuration Release
 
 
