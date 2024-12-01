@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<Project Sdk="Microsoft.NET.Sdk.WindowsDesktop">
+<!-- <Project Sdk="Microsoft.NET.Sdk.WindowsDesktop"> -->
+<Project Sdk="Microsoft.NET.Sdk">
   <!-- Sdk.WindowsDesktop is needed so that resources work with dotnet build:-->
   <!-- Project Sdk= WinDesktop for WPF, it is also needed so that resources work with dotnet build, 'WindowsDesktop' must be included when building for net472 and net6.0-->
   <PropertyGroup>
@@ -10,16 +11,11 @@
     <DefineConstants Condition="'$(TargetFramework)' == 'net472'">NETFRAMEWORK</DefineConstants>
     <!-- <RuntimeIdentifiers>win-x64;win-x86</RuntimeIdentifiers> -->
     <!-- <RuntimeIdentifier>win-x64</RuntimeIdentifier> -->
-    <Configurations>Release</Configurations>
 
     <LangVersion>preview</LangVersion> <!-- to enable indexing from end via ^ -->
 
 	  <!-- the resulting 200 MB exe fails to load FSharp.Core correctly -->
-    <!-- <PublishSingleFile>true</PublishSingleFile>
-    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
-    <SelfContained>true</SelfContained>
-    <PublishReadyToRun>true</PublishReadyToRun>
-    <DebugType>embedded</DebugType> -->
+    <!-- <PublishSingleFile>true</PublishSingleFile><RuntimeIdentifier>win-x64</RuntimeIdentifier><SelfContained>true</SelfContained><PublishReadyToRun>true</PublishReadyToRun><DebugType>embedded</DebugType> -->
 
     <NeutralLanguage>en</NeutralLanguage>
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>    <!-- <SatelliteResourceLanguages> to only have the English resources-->
@@ -46,6 +42,7 @@
     <OutputPath>bin/standalone</OutputPath>
     <OtherFlags>$(OtherFlags) --warnon:1182</OtherFlags>     <!-- 1182: warn on unused variables -->
     <ChangelogFile>CHANGELOG.md</ChangelogFile>
+    <Configurations>Release</Configurations>
   </PropertyGroup>
 
   <ItemGroup>
