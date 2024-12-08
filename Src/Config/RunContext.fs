@@ -27,11 +27,11 @@ type RunContext (startUpData:HostedStartUpData option) =
         let path =
             match startUpData with
             |None ->
-                IO.Path.Combine(appData,"Fesh") // Standalone
+                IO.Path.Combine(appData, "Fesh", "Settings", "Standalone") // Standalone
             |Some sd ->
                 let mutable host = sd.hostName
                 for c in IO.Path.GetInvalidFileNameChars() do host <- host.Replace(c, '_') // make sure host name is a valid file name
-                IO.Path.Combine(appData,"Fesh",host)
+                IO.Path.Combine(appData,"Fesh", "Settings", host)
 
         IO.Directory.CreateDirectory(path) |> ignore
         path

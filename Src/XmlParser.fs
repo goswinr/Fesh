@@ -8,7 +8,9 @@ open Fesh.Model
 
 
 /// The only reason to build my own XML parser is to make it error tolerant.
-/// To fix https://github.com/dotnet/fsharp/issues/12702 , this might have affected a few nuget packages.
+/// To fix https://github.com/dotnet/fsharp/issues/12702
+/// While this issue was fixed fast, it took a few month to be release in the official sdk.
+/// So this might have affected a few nuget packages.
 /// The performance is actually comparable to  Xml.Linq.XDocument.Parse()
 /// https://stackoverflow.com/questions/4081425/error-tolerant-xml-reader
 module XmlParser =
@@ -55,8 +57,7 @@ module XmlParser =
         sb.Clear() |> ignore
         s
 
-
-    let inline isWhite c = c=' ' || c='\r' || c= '\n'
+    let inline isWhite c = c=' ' || c='\r' || c= '\n' || c= '\t'
 
     /// appends Text node from String builder. includes starting and ending whitespace.
     /// skips appending if text is only whitespace,  but always clears the string builder
@@ -292,7 +293,7 @@ module XmlParser =
                             skipSpace()
                             appendText sb cs //trimAppendText sb cs
                             |> readNodes
-                        | z -> failwithf $"untracked xml tag '<!{z}' in xml docstring"
+                        | z -> failwithf $"unrecognized xml tag '<!{z}' in xml docstring"
 
                     | '/' -> // probably node closing ,  TODO read name to be sure its the right closing ?
                         if x[i+2] = '>' && x[i+1] = 'p' then // a </p> in netstandard.xml to skip

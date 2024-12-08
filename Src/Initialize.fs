@@ -10,8 +10,6 @@ open Fesh.Config
 open Fesh.Util
 open System.Net.Http
 
-
-
 module Initialize =
 
     let mutable feshInstanceForDebug :Fesh = Unchecked.defaultof<Fesh>

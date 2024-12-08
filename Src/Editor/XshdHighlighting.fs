@@ -20,7 +20,7 @@ module SyntaxHighlighting =
                     let assemblyLocation = IO.Path.GetDirectoryName(Reflection.Assembly.GetExecutingAssembly().Location)
                     let path = Path.Combine(assemblyLocation,"SyntaxHighlightingFSharp.xshd")
                     filePath <- path
-                    let stream = new StreamReader(path)//will be copied there after compiling recompiling
+                    let stream = new StreamReader(path) //will be copied there after compiling recompiling
                     use reader = new Xml.XmlTextReader(stream)
                     let fsh = Xshd.HighlightingLoader.Load(reader, HighlightingManager.Instance)
                     fsHighlighting <- Some fsh
@@ -73,6 +73,7 @@ module SyntaxHighlighting =
                 let inQuotes = "\"" + filePath + "\""
                 psi.Arguments <- String.concat " " [inQuotes;  "--reuse-window"]
                 psi.WindowStyle <- Diagnostics.ProcessWindowStyle.Hidden
+                psi.UseShellExecute <- true
                 Diagnostics.Process.Start(psi) |> ignore
                 watch(FileInfo filePath, ed)
             else

@@ -19,7 +19,7 @@ jobs:
         dotnet-version: '9.0.x'
 
     - name: Build
-      run: dotnet build FeshHosting.fsproj --configuration Release
+      run: dotnet build FeshStandalone.fsproj --configuration Release
 
     - name: Publish NuGet package
       run: dotnet nuget push ./bin/hosting/Fesh.${{ github.ref_name }}.symbols.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json

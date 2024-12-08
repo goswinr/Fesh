@@ -262,6 +262,7 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, statusBar:FeshStatusBar, log:
             fileMenu,[
                 menuItem cmds.NewTab
                 menuItem cmds.OpenFile
+                menuItem cmds.OpenInVSCode
                 menuItem cmds.OpenTemplateFile
                 sep()
                 menuItem cmds.Save
@@ -270,6 +271,7 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, statusBar:FeshStatusBar, log:
                 menuItem cmds.SaveIncrementing
                 menuItem cmds.SaveAll
                 menuItem cmds.Close
+                menuItem cmds.CloseDelete
                 sep()
                 menuItem cmds.SaveLog
                 menuItem cmds.SaveLogSel

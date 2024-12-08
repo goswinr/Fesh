@@ -447,6 +447,20 @@ type Tabs(config:Config, log:Log,feshWin:FeshWindow) =
     /// also saves currently open files
     member this.CloseTab(t) = closeTab(t)
 
+    member this.CloseDelete(t:Tab) =
+        closeTab(t)
+        match t.Editor.FilePath with
+        |NotSet _
+        |Deleted _ -> ()
+        |SetTo fi ->
+            try
+                fi.Refresh()
+                if fi.Exists then
+                    Microsoft.VisualBasic.FileIO.FileSystem.DeleteFile( fi.FullName, Microsoft.VisualBasic.FileIO.UIOption.OnlyErrorDialogs, Microsoft.VisualBasic.FileIO.RecycleOption.SendToRecycleBin                    )
+            with e ->
+                log.PrintfnIOErrorMsg $"Failed to move file to recycle bin: {e.Message}"
+
+
     /// Returns true if saving operation was not canceled
     member this.Save(t:Tab) = trySave(t)
 
@@ -546,6 +560,28 @@ type Tabs(config:Config, log:Log,feshWin:FeshWindow) =
                 false
 
 
-
+    /// Opens the file in the Visual Studio Code editor
+    member this.OpenInVSCode() =
+        match current.Editor.FilePath with
+        |SetTo fi ->
+            let t = this.Current
+            fi.Refresh()
+            try
+                if fi.Exists  && ( t.IsCodeSaved || saveAt(t, fi, SaveInPlace) )then
+                    let psi = new Diagnostics.ProcessStartInfo()
+                    psi.FileName <- "code"
+                    let inQuotes = "\"" + fi.FullName + "\""
+                    psi.Arguments <- String.concat " " [inQuotes;  "--new-window"]
+                    psi.WindowStyle <- Diagnostics.ProcessWindowStyle.Hidden
+                    psi.UseShellExecute <- true
+                    Diagnostics.Process.Start(psi) |> ignore
+                else
+                    IFeshLog.log.PrintfnIOErrorMsg $"Open in VS Code: File reading or saving error {fi.FullName}"
+            with e ->
+                IFeshLog.log.PrintfnIOErrorMsg $"Open in VS Code: failed: {e}"
+        |Deleted fi ->
+            log.PrintfnIOErrorMsg $"Open in VS Code: File {fi.FullName} does not exist on drive anymore. Please save first"
+        |NotSet n ->
+            log.PrintfnAppErrorMsg $"Open in VS Code: The file {n} should be saved first!"
 
 

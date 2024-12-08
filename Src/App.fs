@@ -4,7 +4,6 @@ open System
 open System.Windows
 open Fesh.Config
 
-
 module App =
 
     /// To statically access the currently running instance.
@@ -38,7 +37,7 @@ module App =
         try
             app.Run(fesh.Window)
         with e ->
-            eprintfn "Application.Run Error:\r\n{e}"
+            eprintfn "Fesh Application.Run Error:\r\n{e}"
             1
 
 

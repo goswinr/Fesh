@@ -61,16 +61,18 @@ type Commands (grid:TabsAndLog, statusBar:FeshStatusBar)  =
 
     // File menu:
     member val NewTab            = {name= "New File"                  ;gesture= "Ctrl + N"       ;cmd= mkCmdSimple (fun _ -> tabs.AddTab(new Tab(Editor.New(config)),true))    ;tip="Creates a new script file."   }
-    member val OpenTemplateFile  = {name= "Edit Template File"        ;gesture= ""               ;cmd= mkCmdSimple (fun _ -> tabs.AddFile(config.DefaultCode.FileInfo,true)|> ignore)     ;tip="Opens the template file that is used when creating a New File ( Ctrl + N)." }
     member val OpenFile          = {name= "Open File"                 ;gesture= "Ctrl + O"       ;cmd= mkCmdSimple (fun _ -> tabs.OpenFile())                                 ;tip="Opens a script file."  }
+    member val OpenInVSCode      = {name= "Open in VS Code"           ;gesture= "Ctrl + Shift + O" ;cmd= mkCmdSimple (fun _ -> tabs.OpenInVSCode())                           ;tip="Saves changes and opens the current script file in VS Code. You can change the file there. Fesh wil prompt you to load changes back."  }
+    member val OpenTemplateFile  = {name= "Edit Template File"        ;gesture= ""               ;cmd= mkCmdSimple (fun _ -> tabs.AddFile(config.DefaultCode.FileInfo,true)|> ignore)     ;tip="Opens the template file that is used when creating a New File ( Ctrl + N)." }
     member val Save              = {name= "Save"                      ;gesture= "Ctrl + S"       ;cmd= mkCmdSimple (fun _ -> tabs.Save(tabs.Current) |> ignore )              ;tip="Saves the file. Shows a dialog only if the open file does not exist anymore." }
     member val Export            = {name= "Export"                    ;gesture= ""               ;cmd= mkCmdSimple (fun _ -> tabs.Export(tabs.Current) |> ignore)             ;tip="Shows a dialog to export the file at a new path or name. But keeps the file open at previous location." }
     member val SaveAs            = {name= "Save As"                   ;gesture= "Ctrl + Alt + S" ;cmd= mkCmdSimple (fun _ -> tabs.SaveAs(tabs.Current) |> ignore)             ;tip="Shows a dialog to save the file at a new path or name." }
     member val SaveIncrementing  = {name= "Save Incrementing"         ;gesture= ""               ;cmd= mkCmdSimple (fun _ -> tabs.SaveIncremental(tabs.Current) |> ignore)    ;tip="Saves with increased last character of filename.\r\nCan be alphabetic or numeric ( e.g.  d->e or 5->6).\r\nDoes not overwrite any existing file."}
-    member val SaveAll           = {name= "Save All"                  ;gesture= "Ctrl + Shift + S";cmd=mkCmdSimple (fun _ -> for t in tabs.AllTabs do tabs.Save(t) |> ignore);tip="Saves all tabs. Shows a dialog only if the open file does not exist on disk." }
-    member val Close             = {name= "Close File"                ;gesture= "Ctrl + F4"      ;cmd= mkCmdSimple (fun _ -> tabs.CloseTab(tabs.Current))                     ;tip="Closes the current tab, if there is only one tab then the window will be closed."}
-    member val SaveLog           = {name= "Save Text in Log"          ;gesture= ""               ;cmd= mkCmdSimple (fun _ -> log.SaveAllText(curr().FilePath))          ;tip="Saves all text from Log Window." }
-    member val SaveLogSel        = {name= "Save Selected Text in Log" ;gesture= ""               ;cmd= mkCmd isLse (fun _ -> log.SaveSelectedText(curr().FilePath))     ;tip="Saves selected text from Log Window."  }
+    member val SaveAll           = {name= "Save All"                  ;gesture= "Ctrl + Shift + S";cmd=mkCmdSimple (fun _ -> for t in tabs.AllTabs do tabs.Save(t) |> ignore) ;tip="Saves all tabs. Shows a dialog only if the open file does not exist on disk." }
+    member val Close             = {name= "Close File"                ;gesture= "Ctrl + F4"      ;cmd= mkCmdSimple (fun _ -> tabs.CloseTab(tabs.Current))                     ;tip="Closes the current tab, if there is only one tab then the default tab will be shown."}
+    member val CloseDelete       = {name= "Close and Delete File"     ;gesture= ""               ;cmd= mkCmdSimple (fun _ -> tabs.CloseDelete(tabs.Current))                  ;tip="Closes the current tab and deletes the file to the recycle bin, if there is only one tab then the default tab will be shown."}
+    member val SaveLog           = {name= "Save Text in Log"          ;gesture= ""               ;cmd= mkCmdSimple (fun _ -> log.SaveAllText(curr().FilePath))                ;tip="Saves all text from Log Window." }
+    member val SaveLogSel        = {name= "Save Selected Text in Log" ;gesture= ""               ;cmd= mkCmd isLse (fun _ -> log.SaveSelectedText(curr().FilePath))           ;tip="Saves selected text from Log Window."  }
 
     // Edit menu:
     member val Comment           = {name= "Comment"                   ;gesture= "Ctrl + K"       ;cmd = mkCmdSimple (fun _ -> Commenting.comment tabs.CurrAvaEdit)             ;tip="Removes '//' at the beginning of current line, \r\nor from all line touched by current selection" }
@@ -173,6 +175,7 @@ type Commands (grid:TabsAndLog, statusBar:FeshStatusBar)  =
             let allCustomCommands = [|  //for setting up Key gestures below, excluding the ones already provided by avalonedit
                 this.NewTab
                 this.OpenFile
+                this.OpenInVSCode
                 //this.OpenTemplateFile
                 this.Save
                 //this.Export
@@ -180,6 +183,7 @@ type Commands (grid:TabsAndLog, statusBar:FeshStatusBar)  =
                 //this.SaveIncrementing
                 this.SaveAll
                 this.Close
+                // this.CloseDelete
                 //this.SaveLog
                 //this.SaveLogSel
                 this.Comment
