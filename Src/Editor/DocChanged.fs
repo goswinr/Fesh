@@ -521,6 +521,13 @@ module DocChangeEvents =
                 DocChangeCompletion.handelShow (pos, doc, iEd, drawServ, state, state.DocChangedId.Value)
 
 
+    let maybeAdjustCursor(iEd:IEditor, eventArgs:DocumentChangeEventArgs) =
+        let t = eventArgs.InsertedText
+        if t.TextLength = 12 && t.Text  = "#r \"nuget: \"" then
+            let c = iEd.AvaEdit.TextArea.Caret
+            c.Offset <- c.Offset - 1
+
+
     // gets called before the document actually changes
     let changing(state:InteractionState, a:DocumentChangeEventArgs) =
         // (1) increment change counter
@@ -546,8 +553,11 @@ module DocChangeEvents =
         | React ->
             let id = state.DocChangedId.Value // the increment was done before this event in Doc.Changing (not Doc.Changed)
             let lineIdx = iEd.AvaEdit.Document.GetLineByOffset( eventArgs.Offset).LineNumber
-            if isASingleCharChange eventArgs then DocChangeCompletion.singleCharChange     (iEd, drawServ, state, id, lineIdx)// maybe shows completion window
-            else                                  DocChangeMark.updateAllTransformersAsync (iEd, drawServ, state, id, lineIdx)
+            if isASingleCharChange eventArgs then
+                DocChangeCompletion.singleCharChange     (iEd, drawServ, state, id, lineIdx)// maybe shows completion window
+            else
+                maybeAdjustCursor(iEd, eventArgs) // maybe shows completion window
+                DocChangeMark.updateAllTransformersAsync (iEd, drawServ, state, id, lineIdx)
 
 
     (*

@@ -372,6 +372,7 @@ type Completions(state: InteractionState) =
 
                             complList.InsertionRequested.Add(fun _ -> willInsert <- true)
 
+
                             if complList.ListBox.Items.Count = 1 then
                                 complList.SelectedItem <- unbox complList.ListBox.Items.[0] //complData.[0] // select the only item if there is just one
 
