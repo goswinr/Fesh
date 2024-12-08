@@ -186,7 +186,7 @@ type Checker private ()  =
     static let entityCache = EntityCache() // used in GetAllEntities method
 
     /// for a given method name returns a list of optional argument names
-    static let optArgsDict = Dictionary<string,ResizeArray<OptDefArg>>()
+    //static let optArgsDict = Dictionary<string,ResizeArray<OptDefArg>>()
 
     static let checkingStateEv = new Event<FileCheckState> ()
 
@@ -224,8 +224,8 @@ type Checker private ()  =
     [<CLIEvent>]
     static member CheckingStateChanged = checkingStateEv.Publish
 
-    /// for a given method name returns a list of optional argument names
-    static member OptArgsDict = optArgsDict
+    // for a given method name returns a list of optional argument names
+    // static member OptArgsDict = optArgsDict
 
     /// Returns None if check failed or was superseded by a newer Document change ID
     static member CheckCode(ed:IEditor, state:InteractionState, code, changeId, forCompl) : option<FullCheckResults> =
@@ -332,12 +332,12 @@ type Checker private ()  =
             // Find which parameters are optional and set the value on the passed in dictionary.
             // For adding question marks to optional arguments.
             // This is still done in Async mode
-            optArgsDict.Clear() //clean up from last time, or keep ?
-            for symbs in symUse do
-                for symb in symbs do
-                    let opts = TypeInfo.namesOfOptionalArgs(symb)
-                    if opts.Count>0 then
-                        optArgsDict.[symb.Symbol.FullName] <- opts
+            // optArgsDict.Clear() //clean up from last time, or keep ?
+            // for symbs in symUse do
+            //     for symb in symbs do
+            //         let opts = TypeInfo.namesOfOptionalArgs(symb)
+            //         if opts.Count>0 then
+            //             optArgsDict.[symb.Symbol.FullName] <- opts
 
             Some (decls)
 

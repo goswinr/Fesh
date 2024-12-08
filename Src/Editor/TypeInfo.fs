@@ -38,7 +38,7 @@ type ToolTipData = {
     name          : string;
     signature     : TaggedText[]
     fullName      : PathWithNameSpace
-    optDefs       : ResizeArray<string>
+    //optDefs       : ResizeArray<string>
     xmlDoc        : Result<XmlParser.Child*DllPath,ErrMsg>
     }
 
@@ -83,7 +83,8 @@ type TypeInfo private () =
         tb.TextWrapping <- TextWrapping.Wrap
         let ts = td.signature
         let mutable len = 0
-        let mutable skip = false
+        let mutable skipOptAndDefAttr = false
+        let mutable nextParamIsOpt = false
         let mutable literal = ""
         let mutable prev = ""
 
@@ -93,7 +94,7 @@ type TypeInfo private () =
                 len <- 0
 
         let append col (txt:string) =
-            if not skip then
+            if not skipOptAndDefAttr then
                 len <- len + txt.Length
                 prev <- txt
                 if notNull col then
@@ -103,7 +104,7 @@ type TypeInfo private () =
 
         for i=0 to ts.Length-1 do
             let t = ts.[i]
-            //IFeshLog.log.PrintfnDebugMsg $"{i}: {skip}'{t.Text}' Tag:{t.Tag} "
+            // IFeshLog.log.PrintfnDebugMsg $"{i}: {skipOptAndDefAttr}'{t.Text}' Tag:{t.Tag} "
 
             match t.Tag with
             | TextTag.Parameter ->
@@ -112,13 +113,22 @@ type TypeInfo private () =
                 match ts.[i-1].Text with
                 |"?" -> append gray t.Text // sometimes optional arguments have already a question mark but not always
                 | _ ->
-                    match td.optDefs |> Seq.tryFind ( fun oa -> oa = t.Text ) with
-                    | Some _  -> append gray ("?"+t.Text)
-                    | None    -> append black t.Text
+                    if nextParamIsOpt then append gray ("?"+t.Text)
+                    else                   append black t.Text
+
+                    // match td.optDefs |> Seq.tryFind ( fun oa -> oa = t.Text ) with
+                    // | Some _  -> append gray ("?"+t.Text)
+                    // | None    -> append black t.Text
+
+                nextParamIsOpt <- false
 
             | TextTag.Keyword ->
-                lengthCheck()
-                append blue t.Text
+                if skipOptAndDefAttr then
+                    if t.Text <> "null" then
+                        literal <- t.Text
+                else
+                    lengthCheck()
+                    append blue t.Text
 
             | TextTag.Punctuation->
                 match t.Text with
@@ -126,7 +136,17 @@ type TypeInfo private () =
                 | "*" | "->" -> append fullRed t.Text
                 | ">]"       ->
                     append purple t.Text
-                    skip <- false // skip might be set to true fom a System.Runtime.InteropServices.Optional attribute
+                    skipOptAndDefAttr <- false // skipOptAndDefAttr might be set to true fom a System.Runtime.InteropServices.Optional attribute
+                | "[<" ->
+                    if i+4 < ts.Length &&
+                        (  ts.[i+1].Text = "Optional" // to skip the System.Runtime.InteropServices.Optional attribute
+                        || ts.[i+2].Text = "Optional"
+                        || ts.[i+3].Text = "Optional") then
+                            skipOptAndDefAttr <- true
+                            nextParamIsOpt <- true
+                    else
+                        append purple t.Text
+
                 | ":" ->
                     if literal <> "" then
                         append gray ("="+literal)
@@ -144,18 +164,13 @@ type TypeInfo private () =
             | TextTag.UnionCase
             | TextTag.Member -> append red t.Text
 
-            | TextTag.Class ->
-                if t.Text = "Optional" && i>0 && ts.[i-1].Text ="System.Runtime.InteropServices." then
-                    tb.Inlines.Remove tb.Inlines.LastInline |> ignore // remove System.Runtime.InteropServices.
-                    tb.Inlines.Remove tb.Inlines.LastInline |> ignore // remove [<]
-                    skip <- true
-                else
-                    append cyan t.Text
+            | TextTag.Class -> append cyan t.Text
 
             | TextTag.NumericLiteral
-            | TextTag.StringLiteral -> // ist a DefaultParameterValue ??
-                if skip then
-                    literal <- t.Text
+            | TextTag.StringLiteral -> // is it a DefaultParameterValue ??
+                if skipOptAndDefAttr then
+                    if t.Text <> "\"\"" then
+                        literal <- t.Text
                 else
                     append null t.Text
 
@@ -166,8 +181,8 @@ type TypeInfo private () =
 
             | TextTag.TypeParameter -> append cyan t.Text   // generative argument like 'T or 'a
 
-            | TextTag.UnknownType   -> append gray t.Text
-            | TextTag.UnknownEntity -> append gray t.Text
+            | TextTag.UnknownType   -> append null t.Text
+            | TextTag.UnknownEntity -> append null t.Text
 
 
             | TextTag.LineBreak ->
@@ -253,17 +268,18 @@ type TypeInfo private () =
     /// check if List has at least two items
     static let twoOrMore = function [] | [ _ ] -> false | _ -> true
 
-    static let darkgray     = Brushes.Gray       |> darker    40 |> freeze
+    static let darkGray     = Brushes.Gray          |> darker    40 |> freeze
     static let darkblue     = Brushes.DarkSlateBlue |> darker 20 |> freeze
-    static let white        = Brushes.White      |> darker    5  |> freeze
+    static let white        = Brushes.White         |> darker    5  |> freeze
 
     static let codeRun (td:ToolTipData) (code:string) : seq<Run>=
         let tx = code.TrimEnd()
         [
         new Run(" ")
-        match td.optDefs |> Seq.tryFind ( fun oa -> oa = tx ) with
-        | Some _  ->  new Run("?"+tx ,FontFamily = StyleState.fontEditor, FontSize = StyleState.fontSize*1.1,  Foreground = gray,    Background = white)
-        | None    ->  new Run(tx     ,FontFamily = StyleState.fontEditor, FontSize = StyleState.fontSize*1.1,  Foreground = black,   Background = white)
+        new Run(tx ,FontFamily = StyleState.fontEditor, FontSize = StyleState.fontSize*1.1,  Foreground = black,   Background = white)
+        // match td.optDefs |> Seq.tryFind ( fun oa -> oa = tx ) with
+        // | Some _  ->  new Run("?"+tx ,FontFamily = StyleState.fontEditor, FontSize = StyleState.fontSize*1.1,  Foreground = gray,    Background = white)
+        // | None    ->  new Run(tx     ,FontFamily = StyleState.fontEditor, FontSize = StyleState.fontSize*1.1,  Foreground = black,   Background = white)
         new Run(" ")
         ]
 
@@ -333,7 +349,7 @@ type TypeInfo private () =
                     if last <> n.name && addTitle then // && n.name <> "?name?" then // to not repeat the parameter header every time
                         last <- n.name
                         tb.Inlines.Add( new LineBreak())
-                        tb.Inlines.Add( new Run(fixName n.name,  Foreground = darkgray)) //FontWeight = FontWeights.Bold,     // Summary header, Parameter header ....
+                        tb.Inlines.Add( new Run(fixName n.name,  Foreground = darkGray)) //FontWeight = FontWeights.Bold,     // Summary header, Parameter header ....
                         tb.Inlines.Add( new LineBreak())
                     for at in n.attrs do // there is normally just one ! like param:name, paramref:name typeparam:name
                         tb.Inlines.AddRange( at.value |> fixTypeName|> codeRun td )
@@ -540,7 +556,7 @@ type TypeInfo private () =
             | Error e ->
                 Error e
 
-    static let makeToolTipDataList (sdtt: ToolTipText, fullName:string, optDefs:ResizeArray<OptDefArg>) : ToolTipData list=
+    static let makeToolTipDataList (sdtt: ToolTipText, fullName:string) = //, optDefs:ResizeArray<OptDefArg>) : ToolTipData list =
         match sdtt with
         | ToolTipText.ToolTipText (els) ->
             match els with
@@ -549,25 +565,24 @@ type TypeInfo private () =
                 [ for el in els do
                     match el with
                     | ToolTipElement.None ->
-                        yield {name = ""; signature = [||]; fullName=""; optDefs=optDefs; xmlDoc = Error  "*no xml doc string*"}
+                        yield {name = ""; signature = [||]; fullName=""; xmlDoc = Error  "*no xml doc string*"}
 
                     | ToolTipElement.CompositionError(text) ->
                         if loggedErrors.Add(text) then // print only once
                             IFeshLog.log.PrintfnIOErrorMsg "Trying to get a Tooltip for 'fullName' failed with:\r\n%s" text
-                        yield {name = ""; signature = [||]; fullName=""; optDefs=optDefs; xmlDoc = Error ("*FSharpStructuredToolTipElement.CompositionError:\r\n"+ text)}
+                        yield {name = ""; signature = [||]; fullName=""; xmlDoc = Error ("*FSharpStructuredToolTipElement.CompositionError:\r\n"+ text)}
 
                     | ToolTipElement.Group(tooTipElemDataList) ->
                         for tooTipElemData in tooTipElemDataList do
                             yield { name      = Option.defaultValue "" tooTipElemData.ParamName
                                     signature = tooTipElemData.MainDescription
                                     fullName  = fullName
-                                    optDefs   = optDefs
                                     xmlDoc    = findXmlDoc tooTipElemData.XmlDoc}
                 ]
 
 
     /// Returns the names of optional Arguments in a given method call.
-    static let namesOfOptnlArgs(fsu:FSharpSymbolUse)  :ResizeArray<OptDefArg>=
+    static let namesOfOptnlArgsUNUSED(fsu:FSharpSymbolUse)  :ResizeArray<OptDefArg>=
         let optDefs = ResizeArray<OptDefArg>(0)
         try
             match fsu.Symbol with
@@ -613,9 +628,9 @@ type TypeInfo private () =
 
     static member loadingText = loadingTxt
 
-    static member namesOfOptionalArgs(fsu:FSharpSymbolUse) = namesOfOptnlArgs(fsu)
+    //static member namesOfOptionalArgs(fsu:FSharpSymbolUse) = namesOfOptnlArgs(fsu)
 
-    static member makeFeshToolTipDataList (sdtt: ToolTipText, fullName:string, optArgs:ResizeArray<string>) = makeToolTipDataList (sdtt, fullName, optArgs)
+    static member makeFeshToolTipDataList (sdtt: ToolTipText, fullName:string, optArgs:ResizeArray<string>) = makeToolTipDataList (sdtt, fullName) //, optArgs)
 
     static member getPanel  (tds:ToolTipData list, ed:ToolTipExtraData) =
         cachedToolTipData  <- tds
@@ -717,8 +732,8 @@ type TypeInfo private () =
                         let symbol = res.checkRes.GetSymbolUseAtLocation(lineNo, colAtEndOfNames, lineTxt, qualId )  //only to get to info about optional parameters
                         let fullName = if symbol.IsSome then symbol.Value.Symbol.FullName else ""
 
-                        let optArgs = if symbol.IsSome then namesOfOptnlArgs(symbol.Value) else ResizeArray(0)
-                        let tooltipDataList = makeToolTipDataList (ttt, fullName ,optArgs) //TODO can this still be async ?
+                        //let optArgs = if symbol.IsSome then namesOfOptnlArgs(symbol.Value) else ResizeArray(0)
+                        let tooltipDataList = makeToolTipDataList (ttt, fullName )//,optArgs) //TODO can this still be async ?
 
                         do! Async.SwitchToContext Fittings.SyncWpf.context
 

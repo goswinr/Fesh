@@ -208,9 +208,9 @@ type Completions(state: InteractionState) =
     let getToolTip (it:DeclarationListItem) : obj =
         async{
             let ttText = it.Description
-            let structured =
-                if Checker.OptArgsDict.ContainsKey it.FullName then  TypeInfo.makeFeshToolTipDataList (ttText, it.FullName, Checker.OptArgsDict.[it.FullName])
-                else                                                 TypeInfo.makeFeshToolTipDataList (ttText, it.FullName, empty)
+            let structured = TypeInfo.makeFeshToolTipDataList (ttText, it.FullName, empty)
+                // if Checker.OptArgsDict.ContainsKey it.FullName then  TypeInfo.makeFeshToolTipDataList (ttText, it.FullName, Checker.OptArgsDict.[it.FullName])
+                // else                                                 TypeInfo.makeFeshToolTipDataList (ttText, it.FullName, empty)
             do! Async.SwitchToContext Fittings.SyncWpf.context
             if win.IsSome then // might get closed during context switch
                 if selectedCompletionText() = it.NameInList then
