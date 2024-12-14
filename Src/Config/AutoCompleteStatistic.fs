@@ -9,7 +9,7 @@ open Fesh.Model
 type AutoCompleteStatistic  ( runContext:RunContext) =
 
     let customPriorities = [
-        // first item wil have highest priority
+        // first item will have highest priority
         "true"
         "false"
         "printfn"

@@ -272,7 +272,8 @@ type TypeInfo private () =
     static let darkblue     = Brushes.DarkSlateBlue |> darker 20 |> freeze
     static let white        = Brushes.White         |> darker    5  |> freeze
 
-    static let codeRun (td:ToolTipData) (code:string) : seq<Run>=
+    // static let codeRun (td:ToolTipData) (code:string) : seq<Run> =
+    static let codeRun (code:string) : seq<Run> =
         let tx = code.TrimEnd()
         [
         new Run(" ")
@@ -319,7 +320,8 @@ type TypeInfo private () =
         n.attrs.Head.value = (match n.children.Head with Text t -> t |Node _ -> "")
         )
 
-    static let mainXmlBlock (node:XmlParser.Child, td:ToolTipData): TextBlockSelectable =
+    // static let mainXmlBlock (node:XmlParser.Child, td:ToolTipData): TextBlockSelectable =
+    static let mainXmlBlock (node:XmlParser.Child): TextBlockSelectable =
         let tb = new TextBlockSelectable()
         tb.FontSize   <- StyleState.fontSize  * 1.0
         tb.FontFamily <- StyleState.fontToolTip
@@ -352,7 +354,7 @@ type TypeInfo private () =
                         tb.Inlines.Add( new Run(fixName n.name,  Foreground = darkGray)) //FontWeight = FontWeights.Bold,     // Summary header, Parameter header ....
                         tb.Inlines.Add( new LineBreak())
                     for at in n.attrs do // there is normally just one ! like param:name, paramref:name typeparam:name
-                        tb.Inlines.AddRange( at.value |> fixTypeName|> codeRun td )
+                        tb.Inlines.AddRange( at.value |> fixTypeName|> codeRun )
                         tb.Inlines.Add( new Run(": ",  Foreground = black))
 
                     let childs = n.children  |> Array.ofList
@@ -373,8 +375,8 @@ type TypeInfo private () =
                     // e.g. for: <returns> <see langword="true" /> if <paramref name="objA" /> is the same instance as <paramref name="objB" /> or if both are null; otherwise, <see langword="false" />.</returns>
                     for at in n.attrs do
                         //printfn $"{n.name} {at.name}:{at.value }"
-                        if   at.name="cref"  then  tb.Inlines.AddRange(  at.value |> fixTypeName |>  codeRun td)
-                        else                       tb.Inlines.AddRange(  at.value                |>  codeRun td)
+                        if   at.name="cref"  then  tb.Inlines.AddRange(  at.value |> fixTypeName |>  codeRun )
+                        else                       tb.Inlines.AddRange(  at.value                |>  codeRun )
                         //tb.Inlines.Add( new Run(" "))
 
                 else
@@ -388,7 +390,7 @@ type TypeInfo private () =
 
         and addCode (this:XmlParser.Child) depth =
             match this with
-            |Text t ->  tb.Inlines.AddRange(codeRun td t) // done in codeRun:  tb.Inlines.Add(" ")
+            |Text t ->  tb.Inlines.AddRange(codeRun t) // done in codeRun:  tb.Inlines.Add(" ")
             |Node n ->  loop this n.name false Trim.No depth
 
 
@@ -469,7 +471,7 @@ type TypeInfo private () =
                     if ass <> "" then assemblies.Add(ass) |> ignore
                     //if ass.Length > 10 then assemblies.Add("\r\n" + ass) |> ignore // it may be from more than one assembly? because of type extensions?
                     //else                    assemblies.Add(ass) |> ignore
-                    subAdd <| mainXmlBlock (node, td)
+                    subAdd <| mainXmlBlock (node)
                 |Error errTxt  ->
                     subAdd<|  TextBlockSelectable(Text = errTxt, TextWrapping = TextWrapping.Wrap, FontSize = StyleState.fontSize  * 0.70 , Foreground = errMsgGray)//,FontFamily = StyleState.fontToolTip )
 
@@ -630,14 +632,15 @@ type TypeInfo private () =
 
     //static member namesOfOptionalArgs(fsu:FSharpSymbolUse) = namesOfOptnlArgs(fsu)
 
-    static member makeFeshToolTipDataList (sdtt: ToolTipText, fullName:string, optArgs:ResizeArray<string>) = makeToolTipDataList (sdtt, fullName) //, optArgs)
+    static member makeFeshToolTipDataList (sdtt: ToolTipText, fullName:string) = //, optArgs:ResizeArray<string>) =
+        makeToolTipDataList (sdtt, fullName) //, optArgs)
 
     static member getPanel  (tds:ToolTipData list, ed:ToolTipExtraData) =
         cachedToolTipData  <- tds
         cachedExtraData    <- ed
         makeToolTipPanel (tds, ed, true)
 
-    /// regenerates a view of the last created panel so it can be used again in the popout window
+    /// regenerates a view of the last created panel so it can be used again in the pop-out window
     static member getPanelCached () =
         makeToolTipPanel (cachedToolTipData, cachedExtraData, false)
 

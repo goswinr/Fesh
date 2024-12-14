@@ -137,6 +137,9 @@ type Editor private (code:string, config:Config, initialFilePath:FilePath)  =
     /// setting this alone does not change the tab header !!
     member _.FilePath with get() = filePath and set (v)= filePath <- v
 
+    /// returns full path or Dummy name if unset
+    member _.FilePathOrDummyName = match filePath with NotSet dummyName -> dummyName  |Deleted fi |SetTo fi -> fi.FullName
+
     //member this.Log = config.Log
     member this.IsComplWinOpen  = compls.IsOpen
 

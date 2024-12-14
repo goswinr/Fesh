@@ -306,13 +306,13 @@ type Checker private ()  =
     static member GetDeclarations (posX:PositionInCodeEx, res:FullCheckResults ) =
         // IFeshLog.log.PrintfnDebugMsg "*2.0 GetCompletions for:\r\n%A" posX
         // Symbols are only for finding out if an argument is optional
-        let symUse =  res.checkRes.GetDeclarationListSymbols(
-                         Some res.parseRes  // ParsedFileResultsOpt
-                         , posX.lineIdx          // line
-                         , posX.lineToCaret  // lineText
-                         , posX.partLoName  // PartialLongName
-                         //, (fun () -> Checker.GetAllEntities(res, true)) // getAllEntities: (unit -> AssemblySymbol list) // TODO use that too like FsAutocomplete does ???
-                         )
+        // let symUse =  res.checkRes.GetDeclarationListSymbols(
+        //                  Some res.parseRes  // ParsedFileResultsOpt
+        //                  , posX.lineIdx          // line
+        //                  , posX.lineToCaret  // lineText
+        //                  , posX.partLoName  // PartialLongName
+        //                  //, (fun () -> Checker.GetAllEntities(res, true)) // getAllEntities: (unit -> AssemblySymbol list) // TODO use that too like FsAutocomplete does ???
+        //                  )
 
         // for auto completion
         let decls = res.checkRes.GetDeclarationListInfo(

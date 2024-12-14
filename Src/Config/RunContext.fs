@@ -2,6 +2,9 @@
 
 open System
 open Fesh.Model
+open System.IO
+
+
 
 /// hostName: a string for the name of the hosting App (will be used for settings file name an displayed in the Title Bar.
 /// mainWindowHandle: Pointer to main window(nativeInt),
@@ -15,6 +18,46 @@ type HostedStartUpData = {
     defaultCode:option<string>
     }
 
+module Folders =
+    let appData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData)
+
+
+    let validHost(n:string)=
+        let mutable n = n
+        for c in IO.Path.GetInvalidFileNameChars() do
+            n <- n.Replace(c, '_') // make sure host name is a valid file name
+        n
+
+
+    // restore settings files from version 0.15.0 or lower
+    let restoreSettingsFolderFromOldLocation(newFolder:string, startUpData:HostedStartUpData option) =
+        try
+        let oldPath =
+            match startUpData with
+            |None ->       IO.Path.Combine(appData, "Fesh") // Standalone
+            |Some sd ->    IO.Path.Combine(appData, "Fesh", validHost sd.hostName)
+        let oldSett = IO.Path.Combine(oldPath, "Settings.txt")
+        let newSett = IO.Path.Combine(newFolder, "Settings.txt")
+        if IO.File.Exists oldSett && not ( IO.File.Exists newSett) then
+            for f in [| "AutoCompleteStatistic.txt"
+                        "CurrentlyOpenFiles.txt"
+                        "DefaultCode.fsx"
+                        "FoldingStatus.txt"
+                        "FsiArguments.txt"
+                        "PositionedWindow.txt"
+                        "RecentlyUsedFiles.txt"
+                        "Settings.txt"
+                        |] do
+                let oldFile= IO.Path.Combine(oldPath, f)
+                let newFile = IO.Path.Combine(newFolder, f)
+                if IO.File.Exists oldFile && not (IO.File.Exists newFile) then
+                    IO.File.Move(oldFile,newFile)
+        with e ->
+            IFeshLog.log.PrintfnIOErrorMsg $"Error while trying to restore old settings file: {e}"
+
+
+open Folders
+
 /// A class to hold the current App Run context (Standalone or Hosted)
 type RunContext (startUpData:HostedStartUpData option) =
 
@@ -22,17 +65,12 @@ type RunContext (startUpData:HostedStartUpData option) =
         Runtime.InteropServices.RuntimeInformation.FrameworkDescription.StartsWith(".NET Framework", StringComparison.OrdinalIgnoreCase) |> not
         //Type.GetType("System.Runtime.Loader.AssemblyLoadContext") <> null // https://github.com/dotnet/runtime/issues/22779#issuecomment-315527735
 
+
     let settingsFolder =
-        let appData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData)
         let path =
             match startUpData with
-            |None ->
-                IO.Path.Combine(appData, "Fesh", "Settings", "Standalone") // Standalone
-            |Some sd ->
-                let mutable host = sd.hostName
-                for c in IO.Path.GetInvalidFileNameChars() do host <- host.Replace(c, '_') // make sure host name is a valid file name
-                IO.Path.Combine(appData,"Fesh", "Settings", host)
-
+            |None ->    IO.Path.Combine(appData, "Fesh", "Settings", "Standalone") // Standalone
+            |Some sd -> IO.Path.Combine(appData,"Fesh", "Settings", validHost sd.hostName)
         IO.Directory.CreateDirectory(path) |> ignore
         path
 
@@ -44,11 +82,14 @@ type RunContext (startUpData:HostedStartUpData option) =
         IO.Path.Combine(settingsFolder, "PositionedWindow.txt")
         |> IO.FileInfo
 
+    do
+        restoreSettingsFolderFromOldLocation(settingsFolder,startUpData)
+
     /// To get a path where to save the setting files, give file name including extension
     member this.GetPathToSaveAppData (fileNameInclExt:string) =
         IO.Path.Combine(settingsFolder, fileNameInclExt )
 
-    member this.SettingsFolder = settingsFolder
+    // member this.SettingsFolder = settingsFolder
 
     member this.SettingsFileInfo = settingsFileInfo
 

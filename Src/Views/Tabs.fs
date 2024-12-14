@@ -17,6 +17,7 @@ type SavingKind =
     | SaveExport
     | SaveNewLocation
     | SaveNewLocationSync // does not delay the update of recent file and current tabs, for when fesh is closing immediately afterwards
+    | RenameFile
 
 /// A class holding the Tab Control.
 /// Includes logic for saving and opening files.
@@ -85,7 +86,7 @@ type Tabs(config:Config, log:Log,feshWin:FeshWindow) =
 
         config.OpenTabs.Save(t.Editor.FilePath , allExistingFileInfos)
 
-    let fileWasSavedAs(savedCode, t:Tab, fi:FileInfo, sync) =
+    let saveSettingsForNewOpenFile(savedCode, t:Tab, fi:FileInfo, sync) =
         let ed = t.Editor
         t.FileTracker.ResetPath()
         t.IsCodeSaved <- true
@@ -101,7 +102,7 @@ type Tabs(config:Config, log:Log,feshWin:FeshWindow) =
         else
             config.OpenTabs.Save(ed.FilePath , allExistingFileInfos)
             config.RecentlyUsedFiles.AddAndSave(fi)
-        log.PrintfnInfoMsg "File saved as:\r\n\"%s\"" fi.FullName
+
 
     let workingDirectory () =
         match current.Editor.FilePath with
@@ -129,22 +130,32 @@ type Tabs(config:Config, log:Log,feshWin:FeshWindow) =
                 let txt = t.AvaEdit.Text
                 IO.File.WriteAllText(fi.FullName, txt, Text.Encoding.UTF8)
                 match saveKind with
-                |SaveNewLocation     -> fileWasSavedAs(txt,t,fi,false)
-                |SaveNewLocationSync -> fileWasSavedAs(txt,t,fi,true)
+                |SaveNewLocation  ->
+                    let oldName = t.Editor.FilePathOrDummyName
+                    saveSettingsForNewOpenFile(txt,t,fi,false)
+                    log.PrintfnInfoMsg $"The file     {oldName} \r\nwas saved as {fi.FullName}" // 5 spaces to vertically align filename
+                |SaveNewLocationSync ->
+                    let oldName = t.Editor.FilePathOrDummyName
+                    saveSettingsForNewOpenFile(txt,t,fi,true)
+                    log.PrintfnInfoMsg $"The file     {oldName} \r\nwas saved as {fi.FullName}"
                 |SaveInPlace -> // also called for Save-All command
                     t.IsCodeSaved <- true
                     t.Editor.CodeAtLastSave <- txt
-                    log.PrintfnInfoMsg "File saved:\r\n\"%s\"" fi.FullName
+                    log.PrintfnInfoMsg $"File saved {fi.FullName}"
                 |SaveExport ->
-                    config.FoldingStatus.Set(t.Editor.FilePath , t.Editor.Folds.Manager) // otherwise no record would exist for the new file name
-                    log.PrintfnInfoMsg "File exported to:\r\n\"%s\"" fi.FullName
+                    config.FoldingStatus.Set(t.Editor.FilePath , t.Editor.Folds.Manager) // otherwise no record would exist for the new file name.
+                    log.PrintfnInfoMsg $"File exported / duplicated to {fi.FullName}"
+                |RenameFile ->
+                    let oldName = t.Editor.FilePathOrDummyName
+                    saveSettingsForNewOpenFile(txt,t,fi,true)
+                    log.PrintfnInfoMsg $"File renamed or moved\r\n  from: {oldName}\r\n  to:   {fi.FullName}"
                 true
             with e ->
                 log.PrintfnIOErrorMsg "saveAt failed for: %s failed with %A" fi.FullName e
                 false
 
     /// Returns false if saving operation was canceled or had an error, true on successful saving
-    let saveAsDialog (t:Tab, saveKind:SavingKind) :bool=
+    let saveAsDialog (t:Tab, saveKind:SavingKind):bool=
         let dlg = new Microsoft.Win32.SaveFileDialog()
         match t.Editor.FilePath with
         |NotSet _ ->()
@@ -154,7 +165,15 @@ type Tabs(config:Config, log:Log,feshWin:FeshWindow) =
                 dlg.InitialDirectory <- fi.DirectoryName
             dlg.FileName <- fi.Name
         dlg.DefaultExt <- ".fsx"
-        dlg.Title <- sprintf "Save File As for: %s" (match t.Editor.FilePath with NotSet dummyName -> dummyName  |Deleted fi |SetTo fi -> fi.FullName )
+        dlg.Title <-
+            match saveKind with
+                |SaveNewLocation     -> $"Save-As for {t.Editor.FilePathOrDummyName}"
+                |SaveNewLocationSync -> $"Save-As for {t.Editor.FilePathOrDummyName}"
+                |SaveInPlace         -> $"Save {t.Editor.FilePathOrDummyName}"
+                |SaveExport          -> $"Export  / Duplicate {t.Editor.FilePathOrDummyName}"
+                |RenameFile          -> $"Rename/ Move {t.Editor.FilePathOrDummyName}"
+
+
         dlg.Filter <- "FSharp Files(*.fsx, *.fs)|*.fsx;*.fs|Text Files(*.txt)|*.txt|All Files(*.*)|*"
         if isTrue (dlg.ShowDialog()) then
             let fi = new FileInfo(dlg.FileName)
@@ -180,7 +199,7 @@ type Tabs(config:Config, log:Log,feshWin:FeshWindow) =
     let saveAsync (t:Tab) =  // gets called from evalAllText(),  evalAllTextSave()  and  evalAllTextSaveClear() only
         match t.Editor.FilePath with
         | NotSet _ ->
-            saveAsDialog(t,SaveNewLocation) |> ignore<bool>
+            saveAsDialog(t,SaveNewLocation ) |> ignore<bool>
 
         | SetTo fi ->
             let txt = t.AvaEdit.Text
@@ -201,7 +220,7 @@ type Tabs(config:Config, log:Log,feshWin:FeshWindow) =
                         log.PrintfnIOErrorMsg "saveAsync failed for: %s failed with %A" fi.FullName e
                     } |> Async.Start
          |Deleted _ ->
-            saveAsDialog(t, SaveNewLocation)
+            saveAsDialog(t, SaveNewLocation )
             |> ignore<bool>
 
     let export(t:Tab):bool=
@@ -218,10 +237,10 @@ type Tabs(config:Config, log:Log,feshWin:FeshWindow) =
                 saveAt(t, fi, SaveInPlace)
             else
                 log.PrintfnIOErrorMsg "File does not exist on drive anymore. Re-saving it at:\r\n%s" fi.FullName
-                saveAsDialog(t, SaveNewLocation)
+                saveAsDialog(t, SaveNewLocation )
         |Deleted _
         |NotSet _ ->
-                saveAsDialog(t, SaveNewLocation)
+                saveAsDialog(t, SaveNewLocation )
 
 
     /// Returns false if saving operation was canceled or had an error, true on successfully saving
@@ -402,6 +421,17 @@ type Tabs(config:Config, log:Log,feshWin:FeshWindow) =
 
             )
 
+    let tryDeleteToRecycleBin(fi: FilePath) =
+        match fi with
+        |NotSet _
+        |Deleted _ -> ()
+        |SetTo fi ->
+            try
+                fi.Refresh()
+                if fi.Exists then
+                    Microsoft.VisualBasic.FileIO.FileSystem.DeleteFile( fi.FullName, Microsoft.VisualBasic.FileIO.UIOption.OnlyErrorDialogs, Microsoft.VisualBasic.FileIO.RecycleOption.SendToRecycleBin                    )
+            with e ->
+                log.PrintfnIOErrorMsg $"Failed to move file to recycle bin: {e.Message}"
 
 
     //--------------- Public members------------------
@@ -449,17 +479,7 @@ type Tabs(config:Config, log:Log,feshWin:FeshWindow) =
 
     member this.CloseDelete(t:Tab) =
         closeTab(t)
-        match t.Editor.FilePath with
-        |NotSet _
-        |Deleted _ -> ()
-        |SetTo fi ->
-            try
-                fi.Refresh()
-                if fi.Exists then
-                    Microsoft.VisualBasic.FileIO.FileSystem.DeleteFile( fi.FullName, Microsoft.VisualBasic.FileIO.UIOption.OnlyErrorDialogs, Microsoft.VisualBasic.FileIO.RecycleOption.SendToRecycleBin                    )
-            with e ->
-                log.PrintfnIOErrorMsg $"Failed to move file to recycle bin: {e.Message}"
-
+        tryDeleteToRecycleBin t.Editor.FilePath
 
     /// Returns true if saving operation was not canceled
     member this.Save(t:Tab) = trySave(t)
@@ -469,6 +489,10 @@ type Tabs(config:Config, log:Log,feshWin:FeshWindow) =
 
     /// Returns true if saving operation was not canceled
     member this.Export(t:Tab) = export(t)
+    member this.Rename(t:Tab) =
+        let old = t.Editor.FilePath
+        if saveAsDialog(t, RenameFile) then
+            tryDeleteToRecycleBin old
 
     /// Returns true if saving operation was not canceled
     member this.SaveIncremental (t:Tab) =

@@ -114,6 +114,8 @@ type Fsi private (config:Config) =
     // will point to the token in https://github.com/dotnet/fsharp/blob/main/src/Compiler/Interactive/ControlledExecution.fs
     let mutable fscCancellationToken : CancellationTokenSource voption = ValueNone
 
+    // TODO: use non-interactive flag instead of accessing controlled execution via reflection:
+    // https://github.com/dotnet/fsharp/pull/15184
 
     let setAControlledExecutionCancellationToken()=
         if config.RunContext.IsRunningOnDotNetCore then
@@ -132,7 +134,7 @@ type Fsi private (config:Config) =
                 with e ->
                     IFeshLog.log.PrintfnFsiErrorMsg "Getting FSI token via reflection form Fsharp.Compiler.Service failed"
 
-
+    /// returns tru if something was aborted
     let getControlledExecutionAborter(thread:Thread) : unit -> bool =
         if config.RunContext.IsRunningOnDotNetCore then
             match sessionOpt with
@@ -162,7 +164,9 @@ type Fsi private (config:Config) =
             fun () ->
                 #if NETFRAMEWORK
                     thread.Abort()
-                    true
+                    match state with
+                    | Ready | Initializing | NotLoaded -> false
+                    | Compiling | Evaluating ->  true
                 #else
                     ignore thread // to avoid warning when NETFRAMEWORK is not defined
                     false

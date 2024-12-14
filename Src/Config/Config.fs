@@ -3,10 +3,12 @@
 open Fesh.Model
 
 
+
+
 type Config (log:IFeshLog, startUpData:HostedStartUpData option, startupArgs:string[]) =
 
     let  runContext                 = new RunContext                  (startUpData)
-    let  settings                   = new Fittings.PersistentSettings (runContext.SettingsFileInfo,IFeshLog.printError)
+    let  settings                   = new Fittings.PersistentSettings (runContext.SettingsFileInfo, IFeshLog.printError)
     let  recentlyUsedFiles          = new RecentlyUsedFiles           (runContext)
     let  openTabs                   = new OpenTabs                    (runContext, startupArgs)
     let  defaultCode                = new DefaultCode                 (runContext)

@@ -172,7 +172,7 @@ type Completions(state: InteractionState) =
 
     let mutable willInsert = false // to track if window closed without inserting ( e.g pressing esc)
 
-    let empty = ResizeArray<string>()
+    //let empty = ResizeArray<string>()
 
     let selectedCompletionText ()=
         match win with
@@ -208,7 +208,7 @@ type Completions(state: InteractionState) =
     let getToolTip (it:DeclarationListItem) : obj =
         async{
             let ttText = it.Description
-            let structured = TypeInfo.makeFeshToolTipDataList (ttText, it.FullName, empty)
+            let structured = TypeInfo.makeFeshToolTipDataList (ttText, it.FullName)
                 // if Checker.OptArgsDict.ContainsKey it.FullName then  TypeInfo.makeFeshToolTipDataList (ttText, it.FullName, Checker.OptArgsDict.[it.FullName])
                 // else                                                 TypeInfo.makeFeshToolTipDataList (ttText, it.FullName, empty)
             do! Async.SwitchToContext Fittings.SyncWpf.context

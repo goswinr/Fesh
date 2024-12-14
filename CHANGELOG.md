@@ -12,6 +12,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - command for opening a file in VS Code
 - command for closing and deleting a file
+- command for renaming files
+### Changed
+- location of SettingsFolder
+- simplify type signature of C# style optional args in tooltips
 
 ## [0.15.0] - 2024-11-22
 ### Added

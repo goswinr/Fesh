@@ -258,7 +258,7 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, statusBar:FeshStatusBar, log:
 
 
     do
-        updateMenu bar [// this function is called after window is layed out otherwise somehow the menu does not show. e.g.  if it is just a let value. // TODO still true ?
+        updateMenu bar [// this function is called after window is laid out otherwise somehow the menu does not show. e.g.  if it is just a let value. // TODO still true ?
             fileMenu,[
                 menuItem cmds.NewTab
                 menuItem cmds.OpenFile
@@ -266,10 +266,11 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, statusBar:FeshStatusBar, log:
                 menuItem cmds.OpenTemplateFile
                 sep()
                 menuItem cmds.Save
-                menuItem cmds.Export
                 menuItem cmds.SaveAs
                 menuItem cmds.SaveIncrementing
                 menuItem cmds.SaveAll
+                menuItem cmds.Export
+                menuItem cmds.Rename
                 menuItem cmds.Close
                 menuItem cmds.CloseDelete
                 sep()

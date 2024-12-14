@@ -36,7 +36,10 @@ jobs:
         draft: false
         prerelease: false
         body: |
-            Don't forget to **unblock** the zip file before extracting.  
+            > [!IMPORTANT]
+            > Don't forget to **unblock** the zip file before extracting.  
+
+            After extracting save at any location and just run `Fesh.exe` to start.
             Changes:          
             [View Changelog](https://github.com/goswinr/Fesh/blob/main/CHANGELOG.md)
             

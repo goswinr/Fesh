@@ -7,25 +7,32 @@ open Fesh.Model
 
 type FsiArguments   ( runContext:RunContext) =
 
-    let filePath0 = runContext.GetPathToSaveAppData("FsiArguments .txt")
+    let filePath0 = runContext.GetPathToSaveAppData("FsiArguments.txt")
     let writer = SaveReadWriter(filePath0,IFeshLog.printError)
 
     let defaultArgs =
-        if runContext.IsHosted then
+        if runContext.IsHosted then // dec 2024, F# 9, on net48 hosted in Rhino --multiemit- is needed to enable multiple evaluations, line numbers for errors don't work though.
             [| "first arg must be there but is ignored" ; "--langversion:preview"  ; "--exec"; "--debug+"; "--debug:full" ;"--optimize+" ; "--gui+" ; "--nologo"; "--multiemit-"|]
         else // Standalone for net48 too --multiemit is always there on netCore
             [| "first arg must be there but is ignored" ; "--langversion:preview"  ; "--exec"; "--debug+"; "--debug:full" ;"--optimize+" ; "--gui+" ; "--nologo"; "--multiemit+" |]
 
+
     // Standalone with "--multiemit" to have line numbers in error messages see https://github.com/dotnet/fsharp/discussions/13293
-    // Hosted without "--multiemit", error line numbers don't work there anyway, and in addition accessing previously emited assemblies might fail with a TypeLoadException.
-    // see: https://fsharp.github.io/fsharp-compiler-docs/fsi-emit.html and https://github.com/dotnet/fsharp/blob/main/src/Compiler/Interactive/fsi.fs#L1171
+    // Hosted without "--multiemit", error line numbers don't work there anyway, and in addition accessing previously emitted assemblies might fail with a TypeLoadException.
+    // see: https://fsharp.github.io/fsharp-compiler-docs/fsi-emit.html
+    // and https://github.com/dotnet/fsharp/blob/main/src/Compiler/Interactive/fsi.fs#L1171
+    // https://github.com/dotnet/fsharp/discussions/13293
 
     // first arg is ignored: https://github.com/fsharp/FSharp.Compiler.Service/issues/420
     // and  https://github.com/fsharp/FSharp.Compiler.Service/issues/877
     // and  https://github.com/fsharp/FSharp.Compiler.Service/issues/878
 
     // use "--gui+" to enable winforms event loop ( on by default) check if fixed: https://github.com/dotnet/fsharp/issues/13473
+
     // use "--exec" instead of "--noninteractive" see https://github.com/dotnet/fsharp/blob/7b46dad60df8da830dcc398c0d4a66f6cdf75cb1/src/Compiler/Interactive/fsi.fs#L937
+    // TODO: use --noninteractive flag instead of accessing controlled execution via reflection:
+    // https://github.com/dotnet/fsharp/pull/15184
+
     // "--shadowcopyreferences" is ignored https://github.com/fsharp/FSharp.Compiler.Service/issues/292
 
     let defaultArgsText = defaultArgs|> String.concat Environment.NewLine
