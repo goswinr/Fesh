@@ -23,7 +23,14 @@ jobs:
 
     - name: Create zip file
       run: |
-        powershell Compress-Archive -Path bin/standalone/* -DestinationPath bin/standalone/standalone.zip
+        powershell Compress-Archive -Path bin/standalone/* -DestinationPath bin/standalone/standalone.zip    
+    
+    - name: Get Changelog Entry
+      id: changelog_reader
+      uses: mindsers/changelog-reader-action@v2.2.3
+      with:
+        version: ${{ github.ref }}
+        path: ./CHANGELOG.md
 
     - name: Create GitHub Release
       id: create_release
@@ -40,8 +47,11 @@ jobs:
             > Don't forget to **unblock** the zip file before extracting.  
 
             After extracting save at any location and just run `Fesh.exe` to start.
-            Changes:          
-            [View Changelog](https://github.com/goswinr/Fesh/blob/main/CHANGELOG.md)
+
+            Changes:   
+            ${{ steps.changelog_reader.outputs.changes }}
+
+            [Full Changelog](https://github.com/goswinr/Fesh/blob/main/CHANGELOG.md)
             
 
     - name: Upload Release Asset
