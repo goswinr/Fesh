@@ -19,7 +19,7 @@ jobs:
         dotnet-version: '9.0.x'
 
     - name: Build
-      run: dotnet test FeshStandalone.fsproj --configuration Release
+      run: dotnet build FeshStandalone.fsproj --configuration Release
 
     - name: Create zip file
       run: |
