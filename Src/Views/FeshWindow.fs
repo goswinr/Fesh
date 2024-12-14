@@ -35,11 +35,15 @@ type FeshWindow (config:Config)=
         loop s
 
     let version =
-        let v = Reflection.Assembly.GetAssembly(typeof<FeshWindow>).GetName().Version
+        let ass =
+            match config.RunContext.HostAssembly with
+            |Some j -> j
+            |None   -> Reflection.Assembly.GetAssembly(typeof<FeshWindow>)
+        let v = ass.GetName().Version
         "v" + (v.ToString())//|> removeTrailingZerosOrPoints)
         // $"v{v.Major}.{v.Minor}.{v.Revision}"  + if  v.MinorRevision <> 0s then $".{v.MinorRevision}" else ""
 
-    let fscore  =
+    let fsCore  =
         let v = [].GetType().Assembly.GetName().Version
         "Fsharp.Core." + (v.ToString()|> removeTrailingZerosOrPoints)
         // $"Fsharp.Core {v.Major}.{v.Minor}.{v.Revision}"  + if  v.MinorRevision <> 0s then $".{v.MinorRevision}" else ""
@@ -87,7 +91,7 @@ type FeshWindow (config:Config)=
                 version
                 plat
                 frameW
-                fscore
+                fsCore
                 ] |> String.concat "  -  "
             win.Title <- txt
 
@@ -99,7 +103,7 @@ type FeshWindow (config:Config)=
                 version
                 plat
                 frameW
-                fscore
+                fsCore
                 fi.DirectoryName
                 ] |> String.concat "  -  "
             win.Title <- txt

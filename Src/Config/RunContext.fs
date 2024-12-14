@@ -16,6 +16,7 @@ type HostedStartUpData = {
     fsiCanRun: unit-> bool
     logo:option<Uri>
     defaultCode:option<string>
+    hostAssembly :option<Reflection.Assembly>
     }
 
 module Folders =
@@ -98,6 +99,9 @@ type RunContext (startUpData:HostedStartUpData option) =
     member this.FsiCanRun    = match startUpData with None ->  true | Some d -> d.fsiCanRun()
 
     member this.HostName     = match startUpData with None ->  None | Some d -> Some d.hostName
+
+    /// to get version number of hosting assembly
+    member this.HostAssembly = match startUpData with None ->  None | Some d -> d.hostAssembly
 
     member this.IsHosted     = match startUpData with None ->  false| Some _ -> true
 
