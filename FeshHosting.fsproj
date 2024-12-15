@@ -144,5 +144,9 @@
 
   </ItemGroup>
 
+  <Target Name="WriteChangelogVersion" AfterTargets="AfterBuild"> <!-- for version checks in github tag based builds -->
+    <WriteLinesToFile File="./bin/ChangelogVersion.txt" Lines="@(CurrentReleaseChangelog)" Overwrite="true" ContinueOnError="false" />
+  </Target>
+
 </Project>
 

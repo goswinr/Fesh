@@ -21,6 +21,23 @@ jobs:
     - name: Build
       run: dotnet build FeshStandalone.fsproj --configuration Release
 
+
+    - name: Check version consistency of git tag and CHANGELOG.md
+      # needs in fsproj:
+      # <Target Name="WriteChangelogVersion" AfterTargets="AfterBuild"><!-- for version checks in github tag based builds -->
+      #   <WriteLinesToFile File="./bin/ChangelogVersion.txt" Lines="@(CurrentReleaseChangelog)" Overwrite="true" ContinueOnError="false" />
+      # </Target>
+      id: check_version
+      shell: bash
+      run: |
+        CHANGELOG_VERSION=$(cat ./bin/ChangelogVersion.txt | tr -d '[:space:]')
+        echo "CHANGELOG_VERSION=$CHANGELOG_VERSION"
+        echo "github.ref_name=${{ github.ref_name }}"  
+        if [ "${{ github.ref_name }}" != "$CHANGELOG_VERSION" ]; then
+          echo "Version mismatch: git tag (${{ github.ref_name }}) and version in CHANGELOG.md ($CHANGELOG_VERSION) are not the same."
+          exit 1
+        fi 
+
     - name: Create zip file
       run: |
         powershell Compress-Archive -Path bin/standalone/* -DestinationPath bin/standalone/standalone.zip    
