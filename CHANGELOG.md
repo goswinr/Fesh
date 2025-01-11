@@ -6,10 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
-## [0.17.0] - 2024-12-14
+## [0.18.0] - 2024-12-14
 ### Changed
-- changed install Folder for Velopack to `.\AppData\Local\Fesh.App\`
-- changed Settings Folder  to `.\AppData\Local\Fesh.App.Settings\`
+- changed install Folder for Velopack to `.\AppData\Local\Fesh.net48\` for .Net 4.8
+- changed Settings Folder  to `.\AppData\Local\Fesh.Settings\` or `.\AppData\Local\Fesh.{host}.Settings\`
 
 ## [0.17.0] - 2024-12-14
 ### Changed

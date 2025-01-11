@@ -15,7 +15,7 @@ type FileToOpen = {file:FileInfo; makeCurrent:bool}
 /// Files that are open when closing the editor window, for next restart
 type OpenTabs  (runContext:RunContext, startupArgs:string[]) =
 
-    let filePath0 = runContext.GetPathToSaveAppData("CurrentlyOpenFiles.txt")
+    let filePath0 = runContext.GetPathToSaveAppData("Currently-Open-Files.txt")
     let writer = SaveReadWriter(filePath0,IFeshLog.printError)
 
     let currentTabPreFix = "*Current tab:* " //a string that can never be part of a filename

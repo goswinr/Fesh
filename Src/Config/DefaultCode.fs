@@ -8,7 +8,7 @@ open Fesh.Model
 
 type DefaultCode  (runContext:RunContext) =
 
-    let filePath0 = runContext.GetPathToSaveAppData("DefaultCode.fsx")
+    let filePath0 = runContext.GetPathToSaveAppData("Default-Code-for-New-Files.fsx")
 
     let writer = SaveReadWriter(filePath0,IFeshLog.printError)
 

@@ -43,18 +43,20 @@ module Initialize =
     //         |> Async.Start
 
     let checkForNewVelopackRelease(config:Config) =
-
         if config.RunContext.IsStandalone then
             try
+                let cv = Reflection.Assembly.GetAssembly(typeof<Config>).GetName().Version.ToString()
+                let cv = if cv.EndsWith(".0") then cv[..^2] else cv
                 // The GitHub access token to use with the request to download releases.
                 // If left empty, the GitHub rate limit for unauthenticated requests allows for up to 60 requests per hour, limited by IP address.
                 // only needs fine-grained access to content in readonly mode
                 // https://docs.velopack.io/reference/cs/Velopack/Sources/GithubSource/constructors
                 let readOnlyToken = ""
                 let source = new GithubSource("https://github.com/goswinr/Fesh", accessToken = readOnlyToken, prerelease = false)
-                let updateManager = new UpdateManager(source);
+                let updateManager = new UpdateManager(source)
+
                 match updateManager.CheckForUpdatesAsync().Result with
-                | null -> IFeshLog.log.PrintfnInfoMsg "No updates available for Fesh"
+                | null -> IFeshLog.log.PrintfnInfoMsg $"You are using the latest version of Fesh: {cv}"
                 | updateInfo ->
                     IFeshLog.log.PrintfnInfoMsg " downloading Updates for Fesh ..."
                     updateManager.DownloadUpdatesAsync(updateInfo).Wait()
@@ -66,8 +68,7 @@ module Initialize =
                     updateManager.ApplyUpdatesAndRestart(updateInfo)
                     IFeshLog.log.PrintfnInfoMsg " Updates for Fesh applied. Please restart the application."
             with e ->
-                IFeshLog.log.PrintfnInfoMsg "Could not check for Velopack updates on. %A" e
-
+                IFeshLog.log.PrintfnInfoMsg "Could not check for Velopack updates: %A" e
 
     let saveBeforeFailing()=
         async{

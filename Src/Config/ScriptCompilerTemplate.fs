@@ -7,7 +7,7 @@ open Fesh.Model
 
 type ScriptCompilerFsproj ( runContext:RunContext) =
 
-    let filePath0 = runContext.GetPathToSaveAppData("ScriptCompiler.fsproj")
+    let filePath0 = runContext.GetPathToSaveAppData("Script-Compiler-Template-Project.fsproj")
 
     let writer = SaveReadWriter(filePath0,IFeshLog.printError)
 

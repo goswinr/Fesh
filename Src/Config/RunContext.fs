@@ -10,6 +10,7 @@ open System.IO
 /// mainWindowHandle: Pointer to main window(nativeInt),
 /// fsiCanRun: a function to check if evaluation of fsi is currently allowed
 /// logo: optional a URI to an alternative logo for hosted mode default is Uri("pack://application:,,,/Fesh;component/Media/logo.ico")
+/// hostAssembly: to get version number of hosting assembly
 type HostedStartUpData = {
     hostName:string
     mainWindowHandel: nativeint
@@ -21,44 +22,11 @@ type HostedStartUpData = {
 
 module Folders =
     let appDataLocal = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData)
-
-
     let validHost(n:string)=
         let mutable n = n
         for c in IO.Path.GetInvalidFileNameChars() do
             n <- n.Replace(c, '_') // make sure host name is a valid file name
-        if String.Equals(n, "App", StringComparison.OrdinalIgnoreCase) then
-            IFeshLog.log.PrintfnIOErrorMsg "Host name 'App' is reserved for the standalone Fesh app, changing to 'HostApp'"
-            n <- "HostApp"
         n
-
-    let settingFile =
-        [|
-        "AutoCompleteStatistic.txt"
-        "CurrentlyOpenFiles.txt"
-        "DefaultCode.fsx"
-        "FoldingStatus.txt"
-        "FsiArguments.txt"
-        "PositionedWindow.txt"
-        "RecentlyUsedFiles.txt"
-        "Settings.txt"
-        |]
-
-    // restore settings files from version 0.15.0 or lower
-    let restoreSettingsFolder(oldFolder:string, newFolder:string) =
-        try
-            let oldSett = IO.Path.Combine(oldFolder, "Settings.txt")
-            let newSett = IO.Path.Combine(newFolder, "Settings.txt")
-            if IO.File.Exists oldSett && not ( IO.File.Exists newSett) then
-                for f in settingFile do
-                    let oldFile= IO.Path.Combine(oldFolder, f)
-                    let newFile = IO.Path.Combine(newFolder, f)
-                    if IO.File.Exists oldFile && not (IO.File.Exists newFile) then
-                        IO.File.Move(oldFile,newFile)
-        with e ->
-            IFeshLog.log.PrintfnIOErrorMsg $"Error while trying to restore old settings file: {e}"
-
-
 
 
 open Folders
@@ -70,46 +38,28 @@ type RunContext (host:HostedStartUpData option) =
         Runtime.InteropServices.RuntimeInformation.FrameworkDescription.StartsWith(".NET Framework", StringComparison.OrdinalIgnoreCase) |> not
         //Type.GetType("System.Runtime.Loader.AssemblyLoadContext") <> null // https://github.com/dotnet/runtime/issues/22779#issuecomment-315527735
 
-
-    let appSuffix =
-        match host with
-            |None    -> "App" // Standalone
-            |Some sd -> validHost sd.hostName
-
     let settingsFolder =
-        let path = IO.Path.Combine(appDataLocal,$"Fesh.{appSuffix}.Settings")
+        let path =
+            match host with
+            |None    ->
+                if isRunningOnDotNetCore then IO.Path.Combine(appDataLocal,$"Fesh.Settings")  // Standalone
+                else                          IO.Path.Combine(appDataLocal,$"Fesh.net48.Settings")  // Standalone .NET Framework
+            |Some sd ->                       IO.Path.Combine(appDataLocal,$"Fesh.{validHost sd.hostName}.Settings")
         IO.Directory.CreateDirectory(path) |> ignore
         path
-
-    let restoreSettingsFolderFromOldLocations() =
-        let oldFolder = // before version 0.15.0
-            match host with
-            |None ->    IO.Path.Combine(appDataLocal, "Fesh") // Standalone
-            |Some _ ->  IO.Path.Combine(appDataLocal, "Fesh", appSuffix)
-        restoreSettingsFolder(oldFolder, settingsFolder)
-        let oldFolder = // before version 0.17.0
-            match host with
-            |None ->    IO.Path.Combine(appDataLocal, "Fesh", "Settings", "Standalone") // Standalone
-            |Some _ ->  IO.Path.Combine(appDataLocal, "Fesh", "Settings", appSuffix)
-        restoreSettingsFolder(oldFolder, settingsFolder)
-
 
     let settingsFileInfo =
         IO.Path.Combine(settingsFolder, "Settings.txt")
         |> IO.FileInfo
 
     let positionedWindowSettingsFileInfo =
-        IO.Path.Combine(settingsFolder, "PositionedWindow.txt")
+        IO.Path.Combine(settingsFolder, "Position-of-Window-on-Screen.txt")
         |> IO.FileInfo
 
-    do
-        restoreSettingsFolderFromOldLocations()
 
     /// To get a path where to save the setting files, give file name including extension
     member this.GetPathToSaveAppData (fileNameInclExt:string) =
         IO.Path.Combine(settingsFolder, fileNameInclExt )
-
-    // member this.SettingsFolder = settingsFolder
 
     member this.SettingsFileInfo = settingsFileInfo
 
@@ -134,7 +84,7 @@ type RunContext (host:HostedStartUpData option) =
 
     /// opens up Explorer.exe
     member this.OpenSettingsFolder()=
-        Diagnostics.Process.Start("explorer.exe", "\"" + settingsFolder+ "\"")        |> ignore
+        Diagnostics.Process.Start("explorer.exe", "\"" + settingsFolder+ "\"") |> ignore
 
     /// opens up Explorer.exe with folder of Fesh.exe
     member this.OpenAppFolder()=
@@ -146,7 +96,45 @@ type RunContext (host:HostedStartUpData option) =
                 IFeshLog.log.PrintfnIOErrorMsg "Can get path of %A" ass.FullName
             else
                 let folder = IO.Path.GetDirectoryName( ass.Location)
-                Diagnostics.Process.Start("explorer.exe", "\"" + folder+ "\"")        |> ignore
+                Diagnostics.Process.Start("explorer.exe", "\"" + folder+ "\"") |> ignore
+
+    // let settingFile =
+    //     [|
+    //     "AutoCompleteStatistic.txt"
+    //     "CurrentlyOpenFiles.txt"
+    //     "DefaultCode.fsx"
+    //     "FoldingStatus.txt"
+    //     "FsiArguments.txt"
+    //     "PositionedWindow.txt"
+    //     "RecentlyUsedFiles.txt"
+    //     "Settings.txt"
+    //     |]
+
+    // // restore settings files from version 0.15.0 or lower
+    // let restoreSettingsFolder(oldFolder:string, newFolder:string) =
+    //     try
+    //         let oldSett = IO.Path.Combine(oldFolder, "Settings.txt")
+    //         let newSett = IO.Path.Combine(newFolder, "Settings.txt")
+    //         if IO.File.Exists oldSett && not ( IO.File.Exists newSett) then
+    //             for f in settingFile do
+    //                 let oldFile= IO.Path.Combine(oldFolder, f)
+    //                 let newFile = IO.Path.Combine(newFolder, f)
+    //                 if IO.File.Exists oldFile && not (IO.File.Exists newFile) then
+    //                     IO.File.Move(oldFile,newFile)
+    //     with e ->
+    //         IFeshLog.log.PrintfnIOErrorMsg $"Error while trying to restore old settings file: {e}"
 
 
 
+
+    // let restoreSettingsFolderFromOldLocations() =
+    //     let oldFolder = // before version 0.15.0
+    //         match host with
+    //         |None ->    IO.Path.Combine(appDataLocal, "Fesh") // Standalone
+    //         |Some _ ->  IO.Path.Combine(appDataLocal, "Fesh", appSuffix)
+    //     restoreSettingsFolder(oldFolder, settingsFolder)
+    //     let oldFolder = // before version 0.17.0
+    //         match host with
+    //         |None ->    IO.Path.Combine(appDataLocal, "Fesh", "Settings", "Standalone") // Standalone
+    //         |Some _ ->  IO.Path.Combine(appDataLocal, "Fesh", "Settings", appSuffix)
+    //     restoreSettingsFolder(oldFolder, settingsFolder)

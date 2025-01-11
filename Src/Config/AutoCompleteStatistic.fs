@@ -20,7 +20,7 @@ type AutoCompleteStatistic  ( runContext:RunContext) =
 
     let  sep = '=' // key value separator like in ini files
 
-    let filePath0 = runContext.GetPathToSaveAppData("AutoCompleteStatistic.txt")
+    let filePath0 = runContext.GetPathToSaveAppData("AutoComplete-Statistic.txt")
 
     let writer = SaveReadWriter(filePath0,IFeshLog.printError)
 

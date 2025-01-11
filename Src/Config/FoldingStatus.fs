@@ -13,7 +13,7 @@ type FoldingStatus ( runContext:RunContext, recentlyUsedFiles:RecentlyUsedFiles)
 
     let  sep = '|' // separator
 
-    let filePath0 = runContext.GetPathToSaveAppData("FoldingStatus.txt")
+    let filePath0 = runContext.GetPathToSaveAppData("Folding-States.txt")
 
     let writer = SaveReadWriter(filePath0,IFeshLog.printError)
 

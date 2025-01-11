@@ -33,14 +33,14 @@ jobs:
           --framework net9.0-windows `
           --no-self-contained
 
-    # - name: Run dotnet publish net48
-    #   run: |
-    #     dotnet publish FeshStandalone.fsproj `
-    #       --configuration release `
-    #       --runtime win-x64 `
-    #       --output bin/publish/net48 `
-    #       --framework net48 `
-    #       --no-self-contained
+    - name: Run dotnet publish net48
+      run: |
+        dotnet publish FeshStandalone.fsproj `
+          --configuration release `
+          --runtime win-x64 `
+          --output bin/publish/net48 `
+          --framework net48 `
+          --no-self-contained
 
     - name: Check version consistency of git tag and CHANGELOG.md
       # needs in fsproj:
@@ -78,21 +78,48 @@ jobs:
         #   --token ${{secrets.GITHUB_TOKEN}} `
         #   --outputDir bin/installer/net9.0 `
         #   --channel net9
-    - name: Pack, Sign and Release with Velopack
+
+    - name: Pack, Sign and Release with Velopack .NET Framework 4.8
       # https://docs.velopack.io/reference/cli/content/vpk-windows
       # If you are publishing your application with --no-self-contained, then you should provide the --framework argument. https://docs.velopack.io/packaging/bootstrapping
       run: |
         dotnet tool install vpk  --global       
 
         vpk pack `
-          --packId Fesh.App `
+          --packId Fesh.net48 `
+          --packVersion ${{github.ref_name}} `
+          --packDir bin/publish/net48 `
+          --mainExe Fesh.exe `
+          --framework net48 `
+          --icon Media/logoInstaller.ico  `
+          --packAuthors "Goswin R" `
+          --releaseNotes .github/InstallNotesNet48.md `
+          --azureTrustedSignFile .github/signing-metadata.json `
+          --splashImage Media/logo.png `
+          --outputDir bin/installer/net48         
+
+        vpk upload github `
+          --publish `
+          --repoUrl https://github.com/goswinr/Fesh `
+          --releaseName "Fesh ${{github.ref_name}} for .NET Framework 4.8" `
+          --tag ${{github.ref_name}} `
+          --token ${{secrets.GITHUB_TOKEN}} `
+          --outputDir bin/installer/net48
+
+    - name: Pack, Sign and Release with Velopack .NET 9.0
+      # https://docs.velopack.io/reference/cli/content/vpk-windows
+      # If you are publishing your application with --no-self-contained, then you should provide the --framework argument. https://docs.velopack.io/packaging/bootstrapping
+      run: |
+        dotnet tool install vpk  --global 
+           
+        vpk pack `
+          --packId Fesh `
           --packVersion ${{github.ref_name}} `
           --packDir bin/publish/net9.0 `
           --mainExe Fesh.exe `
           --framework net9.0-x64-desktop `
           --icon Media/logoInstaller.ico  `
           --packAuthors "Goswin R" `
-          --verbose `
           --releaseNotes .github/InstallNotesNet9.md `
           --azureTrustedSignFile .github/signing-metadata.json `
           --splashImage Media/logo.png `
@@ -102,7 +129,7 @@ jobs:
         vpk upload github `
           --publish `
           --repoUrl https://github.com/goswinr/Fesh `
-          --releaseName "Fesh ${{github.ref_name}}" `
+          --releaseName "Fesh ${{github.ref_name}} for .NET 9.0" `
           --tag ${{github.ref_name}} `
           --token ${{secrets.GITHUB_TOKEN}} `
           --outputDir bin/installer/net9.0 `

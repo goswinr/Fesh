@@ -7,8 +7,8 @@ open Fesh.Model
 
 type FsiArguments   ( runContext:RunContext) =
 
-    let filePath0 = runContext.GetPathToSaveAppData("FsiArguments.txt")
-    let writer = SaveReadWriter(filePath0,IFeshLog.printError)
+    let filePath0 = runContext.GetPathToSaveAppData("FSI-Arguments.txt")
+    let writer = SaveReadWriter(filePath0, IFeshLog.printError)
 
     let defaultArgs =
         if runContext.IsHosted then // dec 2024, F# 9, on net48 hosted in Rhino --multiemit- is needed to enable multiple evaluations, line numbers for errors don't work though.
@@ -48,7 +48,6 @@ type FsiArguments   ( runContext:RunContext) =
             |> Array.filter (String.IsNullOrWhiteSpace>>not)
             |> Array.filter (fun a -> a.ToLower() <>  "--quiet") // this argument is managed separately in config.Settings and statusbar
 
-
     let mutable args = [||]
 
     ///loads sync
@@ -62,9 +61,6 @@ type FsiArguments   ( runContext:RunContext) =
     member this.Reload() =
         args <- get()
         args
-
-
-
 (*
     note on docs:
     --multiemit  see: https://fsharp.github.io/fsharp-compiler-docs/fsi-emit.html
