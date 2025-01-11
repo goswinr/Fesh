@@ -23,10 +23,7 @@
     <Product>Fesh</Product>
     <PackageId>Fesh</PackageId>
 
-    <!-- <Version>0.14.2</Version> done by Ionide.KeepAChangelog.Tasks
-    <AssemblyVersion>0.14.2</AssemblyVersion>
-    <FileVersion>0.14.2</FileVersion>
-    <PackageReleaseNotes></PackageReleaseNotes> -->
+    <!-- <Version>0.14.2</Version> done by Ionide.KeepAChangelog.Tasks -->
 
     <Authors>GoswinR</Authors>
     <Copyright>Goswin Rothenthal 2019</Copyright>

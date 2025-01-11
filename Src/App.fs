@@ -39,7 +39,7 @@ module App =
         try
             app.Run(fesh.Window)
         with e ->
-            eprintfn "Fesh Application.Run Error:\r\n{e}"
+            eprintfn $"Fesh Application.Run Error:\r\n{e}"
             1
 
 

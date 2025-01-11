@@ -3,7 +3,7 @@
 Just download and run `Fesh-net9-Setup.exe` to install.
 
 No admin rights are required to install or run the app.
-The app wil be installed in `C:\Users\{username}\AppData\Local\Fesh\current`.\
+The app will be installed in `C:\Users\{username}\AppData\Local\Fesh\current`.\
 A shortcut will be created on the desktop.\
 In the parent folder will be a file `Update.exe`.\
 It will automatically update Fesh when a new version is released.\
