@@ -20,60 +20,79 @@ type HostedStartUpData = {
     }
 
 module Folders =
-    let appData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData)
+    let appDataLocal = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData)
 
 
     let validHost(n:string)=
         let mutable n = n
         for c in IO.Path.GetInvalidFileNameChars() do
             n <- n.Replace(c, '_') // make sure host name is a valid file name
+        if String.Equals(n, "App", StringComparison.OrdinalIgnoreCase) then
+            IFeshLog.log.PrintfnIOErrorMsg "Host name 'App' is reserved for the standalone Fesh app, changing to 'HostApp'"
+            n <- "HostApp"
         n
 
+    let settingFile =
+        [|
+        "AutoCompleteStatistic.txt"
+        "CurrentlyOpenFiles.txt"
+        "DefaultCode.fsx"
+        "FoldingStatus.txt"
+        "FsiArguments.txt"
+        "PositionedWindow.txt"
+        "RecentlyUsedFiles.txt"
+        "Settings.txt"
+        |]
 
     // restore settings files from version 0.15.0 or lower
-    let restoreSettingsFolderFromOldLocation(newFolder:string, startUpData:HostedStartUpData option) =
+    let restoreSettingsFolder(oldFolder:string, newFolder:string) =
         try
-        let oldPath =
-            match startUpData with
-            |None ->       IO.Path.Combine(appData, "Fesh") // Standalone
-            |Some sd ->    IO.Path.Combine(appData, "Fesh", validHost sd.hostName)
-        let oldSett = IO.Path.Combine(oldPath, "Settings.txt")
-        let newSett = IO.Path.Combine(newFolder, "Settings.txt")
-        if IO.File.Exists oldSett && not ( IO.File.Exists newSett) then
-            for f in [| "AutoCompleteStatistic.txt"
-                        "CurrentlyOpenFiles.txt"
-                        "DefaultCode.fsx"
-                        "FoldingStatus.txt"
-                        "FsiArguments.txt"
-                        "PositionedWindow.txt"
-                        "RecentlyUsedFiles.txt"
-                        "Settings.txt"
-                        |] do
-                let oldFile= IO.Path.Combine(oldPath, f)
-                let newFile = IO.Path.Combine(newFolder, f)
-                if IO.File.Exists oldFile && not (IO.File.Exists newFile) then
-                    IO.File.Move(oldFile,newFile)
+            let oldSett = IO.Path.Combine(oldFolder, "Settings.txt")
+            let newSett = IO.Path.Combine(newFolder, "Settings.txt")
+            if IO.File.Exists oldSett && not ( IO.File.Exists newSett) then
+                for f in settingFile do
+                    let oldFile= IO.Path.Combine(oldFolder, f)
+                    let newFile = IO.Path.Combine(newFolder, f)
+                    if IO.File.Exists oldFile && not (IO.File.Exists newFile) then
+                        IO.File.Move(oldFile,newFile)
         with e ->
             IFeshLog.log.PrintfnIOErrorMsg $"Error while trying to restore old settings file: {e}"
+
+
 
 
 open Folders
 
 /// A class to hold the current App Run context (Standalone or Hosted)
-type RunContext (startUpData:HostedStartUpData option) =
+type RunContext (host:HostedStartUpData option) =
 
     let isRunningOnDotNetCore =
         Runtime.InteropServices.RuntimeInformation.FrameworkDescription.StartsWith(".NET Framework", StringComparison.OrdinalIgnoreCase) |> not
         //Type.GetType("System.Runtime.Loader.AssemblyLoadContext") <> null // https://github.com/dotnet/runtime/issues/22779#issuecomment-315527735
 
 
+    let appSuffix =
+        match host with
+            |None    -> "App" // Standalone
+            |Some sd -> validHost sd.hostName
+
     let settingsFolder =
-        let path =
-            match startUpData with
-            |None ->    IO.Path.Combine(appData, "Fesh", "Settings", "Standalone") // Standalone
-            |Some sd -> IO.Path.Combine(appData,"Fesh", "Settings", validHost sd.hostName)
+        let path = IO.Path.Combine(appDataLocal,$"Fesh.{appSuffix}.Settings")
         IO.Directory.CreateDirectory(path) |> ignore
         path
+
+    let restoreSettingsFolderFromOldLocations() =
+        let oldFolder = // before version 0.15.0
+            match host with
+            |None ->    IO.Path.Combine(appDataLocal, "Fesh") // Standalone
+            |Some _ ->  IO.Path.Combine(appDataLocal, "Fesh", appSuffix)
+        restoreSettingsFolder(oldFolder, settingsFolder)
+        let oldFolder = // before version 0.17.0
+            match host with
+            |None ->    IO.Path.Combine(appDataLocal, "Fesh", "Settings", "Standalone") // Standalone
+            |Some _ ->  IO.Path.Combine(appDataLocal, "Fesh", "Settings", appSuffix)
+        restoreSettingsFolder(oldFolder, settingsFolder)
+
 
     let settingsFileInfo =
         IO.Path.Combine(settingsFolder, "Settings.txt")
@@ -84,7 +103,7 @@ type RunContext (startUpData:HostedStartUpData option) =
         |> IO.FileInfo
 
     do
-        restoreSettingsFolderFromOldLocation(settingsFolder,startUpData)
+        restoreSettingsFolderFromOldLocations()
 
     /// To get a path where to save the setting files, give file name including extension
     member this.GetPathToSaveAppData (fileNameInclExt:string) =
@@ -96,20 +115,20 @@ type RunContext (startUpData:HostedStartUpData option) =
 
     member this.PositionedWindowSettingsFileInfo = positionedWindowSettingsFileInfo
 
-    member this.FsiCanRun    = match startUpData with None ->  true | Some d -> d.fsiCanRun()
+    member this.FsiCanRun    = match host with None ->  true | Some d -> d.fsiCanRun()
 
-    member this.HostName     = match startUpData with None ->  None | Some d -> Some d.hostName
+    member this.HostName     = match host with None ->  None | Some d -> Some d.hostName
 
     /// to get version number of hosting assembly
-    member this.HostAssembly = match startUpData with None ->  None | Some d -> d.hostAssembly
+    member this.HostAssembly = match host with None ->  None | Some d -> d.hostAssembly
 
-    member this.IsHosted     = match startUpData with None ->  false| Some _ -> true
+    member this.IsHosted     = match host with None ->  false| Some _ -> true
 
-    member this.IsStandalone = match startUpData with None ->  true | Some _ -> false
+    member this.IsStandalone = match host with None ->  true | Some _ -> false
 
-    member this.Logo         = match startUpData with None ->  None | Some d -> d.logo
+    member this.Logo         = match host with None ->  None | Some d -> d.logo
 
-    member this.DefaultCode  = match startUpData with None -> None | Some sd -> sd.defaultCode
+    member this.DefaultCode  = match host with None -> None | Some sd -> sd.defaultCode
 
     member this.IsRunningOnDotNetCore = isRunningOnDotNetCore
 

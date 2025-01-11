@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ## [0.17.0] - 2024-12-14
 ### Changed
+- changed install Folder for Velopack to `.\AppData\Local\Fesh.App\`
+- changed Settings Folder  to `.\AppData\Local\Fesh.App.Settings\`
+
+## [0.17.0] - 2024-12-14
+### Changed
 - create a Velopack installer
 - enable auto updating via Velopack
 - line wrap off by default

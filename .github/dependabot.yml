@@ -1,3 +1,4 @@
+name: Dependabot for Nuget dependencies and Github Actions
 version: 2
 updates:
   # Update to newer version of GitHub Actions
