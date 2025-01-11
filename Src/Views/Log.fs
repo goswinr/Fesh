@@ -108,7 +108,7 @@ type Log private () =
     member _.FsiErrorsStringBuilder = fsiErrorsStringBuilder
 
     member internal _.FinishLogSetup(config:Config)=
-        setLineWrap( config.Settings.GetBool ("logHasLineWrap", true) )
+        setLineWrap( config.Settings.GetBool ("logHasLineWrap", false) ) // no wrap by default
         log.FontSize  <- config.Settings.GetFloat ("SizeOfFont" , Fesh.StyleState.fontSize )
         let hiLi = new SelectionHighlighterLog(log.AvalonEdit)
         // to clear selection highlighter marks first , before opening the search window. if they would be the same as the search word.
