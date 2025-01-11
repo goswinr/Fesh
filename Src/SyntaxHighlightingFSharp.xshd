@@ -472,6 +472,8 @@
     <Rule color="HexNumberLiteral">(?&lt;=0[xX])[0-9a-fA-F_]+</Rule>
     <Rule color="BinNumberLiteral">(?&lt;=0[bB])[01_]+</Rule>
     <Rule color="ExponentNumberLit">(?&lt;=\d)[eE][+-]?[0-9]+ </Rule><!-- (?&lt;=\d) is a positive lookbehind for digits -->
+    <Rule color="ExponentNumberLit">(?&lt;=\d)u[ysl] </Rule><!-- numeric literals suffixes https://learn.microsoft.com/en-us/dotnet/fsharp/language-reference/literals -->
+    <Rule color="ExponentNumberLit">(?&lt;=\d)[yslunLFfIMm] </Rule><!-- numeric literals suffixes https://learn.microsoft.com/en-us/dotnet/fsharp/language-reference/literals -->
     <Rule color="NumberLiteral">\b[0-9_]+\.?[0-9_]*</Rule>
     <!-- to exclude a 'x-1' to be highlighted as NegNumberLiteral below too: -->
     <Rule color="Punctuation">\b\-</Rule>

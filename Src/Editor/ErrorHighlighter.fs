@@ -217,34 +217,36 @@ type ErrorHighlighter ( state:InteractionState, folds:Folding.FoldingManager, is
     let ed = state.Editor
     let tView = ed.TextArea.TextView
 
-    /// returns true or false to indicate if CodeLines.GetLine was aborted because of a new state.
-    let insert (marginMarks:ResizeArray<int*SolidColorBrush>) (newSegments:ResizeArray<ResizeArray<SegmentToMark>>) id (e:FSharpDiagnostic) : bool =
+
+    let insert (marginMarks:ResizeArray<int*SolidColorBrush>) (newSegments:ResizeArray<ResizeArray<SegmentToMark>>) id (e:FSharpDiagnostic) : unit =
         let stLn = max 1 e.StartLine // because FSharpDiagnostic might have line number 0 form Parse-and-check-file-in-project errors, but Avalonedit starts at 1
         let enLn = max 1 e.EndLine
-        if stLn > enLn then
-            IFeshLog.log.PrintfnAppErrorMsg $"FSharp Checker reported an invalid error position: e.EndLine < e.StartLine:\r\n {e}"
-        if e.EndLine = e.StartLine && e.StartColumn > e.EndColumn then
-            IFeshLog.log.PrintfnAppErrorMsg $"FSharp Checker reported an invalid error position: e.StartColumn <= e.EndColumn:\r\n {e}"
-
-        let rec insert lnNo =
-            if lnNo > enLn then
-                true
-            elif lnNo-stLn > 2 then // don't insert more than 2 lines of errors, because the are costly to draw
-                true
-            else
-                match state.CodeLines.GetLine(lnNo,id) with
-                | ValueNone -> false
-                | ValueSome cln ->
-                    //if cln.len > cln.indent then // Don't skip just whitespace lines, they might also have errors when code is expected but missing.
-                    let st  = if lnNo = stLn then cln.offStart + e.StartColumn else cln.offStart
-                    let en  = if lnNo = enLn then cln.offStart + e.EndColumn   else cln.offStart + cln.len
-                    // e.StartColumn = e.EndColumn // this actually happens as a result from fs checker:
-                    let fixedEn =  if st = en then cln.offStart + max cln.len 1 else en
-                    let seg = SegmentToMark(st ,fixedEn , e)
-                    LineTransformers.Insert(newSegments, lnNo, seg)
-                    marginMarks.Add(lnNo, seg.Underline) // for status bar
-                    insert (lnNo+1)
-        insert stLn
+        if stLn > enLn then // this actually can happen
+            // IFeshLog.log.PrintfnAppErrorMsg $"FSharp Checker reported an invalid error position: e.EndLine < e.StartLine:\r\n {e}"
+            ()
+        elif e.EndLine = e.StartLine && e.StartColumn > e.EndColumn then // this actually can happen
+            // IFeshLog.log.PrintfnAppErrorMsg $"FSharp Checker reported an invalid error position: e.StartColumn <= e.EndColumn:\r\n {e}"
+            ()
+        else
+            let rec insert lnNo =
+                if lnNo > enLn then
+                    () //true
+                elif lnNo-stLn > 2 then // don't insert more than 2 lines of errors, because the are costly to draw
+                    () // true
+                else
+                    match state.CodeLines.GetLine(lnNo,id) with
+                    | ValueNone -> () //false
+                    | ValueSome cln ->
+                        //if cln.len > cln.indent then // Don't skip just whitespace lines, they might also have errors when code is expected but missing.
+                        let st  = if lnNo = stLn then cln.offStart + e.StartColumn else cln.offStart
+                        let en  = if lnNo = enLn then cln.offStart + e.EndColumn   else cln.offStart + cln.len
+                        // e.StartColumn = e.EndColumn // this actually happens as a result from fs checker:
+                        let fixedEn =  if st = en then cln.offStart + max cln.len 1 else en
+                        let seg = SegmentToMark(st ,fixedEn , e)
+                        LineTransformers.Insert(newSegments, lnNo, seg)
+                        marginMarks.Add(lnNo, seg.Underline) // for status bar
+                        insert (lnNo+1)
+            insert stLn
 
 
     let updateFolds id brush pen (e:FSharpDiagnostic): bool = // TODO in theory this could run async, can it ??
@@ -314,10 +316,10 @@ type ErrorHighlighter ( state:InteractionState, folds:Folding.FoldingManager, is
             let nSegs = ResizeArray<ResizeArray<SegmentToMark>>(state.ErrSegments.LineCount + 2 )
             let marginMarks = ResizeArray<int*SolidColorBrush>(errs.errors.Count + errs.warnings.Count)
             // first insert in to LineTransformer
-            for e in errs.hiddens  do insert marginMarks nSegs id e |> ignore<bool>
-            for e in errs.infos    do insert marginMarks nSegs id e |> ignore<bool>
-            for e in errs.warnings do insert marginMarks nSegs id e |> ignore<bool>
-            for e in errs.errors   do insert marginMarks nSegs id e |> ignore<bool>
+            for e in errs.hiddens  do insert marginMarks nSegs id e
+            for e in errs.infos    do insert marginMarks nSegs id e
+            for e in errs.warnings do insert marginMarks nSegs id e
+            for e in errs.errors   do insert marginMarks nSegs id e
             if state.IsLatest id then
                 state.ErrSegments.Update nSegs
                 this.ErrorsLines.Value <- marginMarks

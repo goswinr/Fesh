@@ -456,7 +456,7 @@ type TypeInfo private () =
                 let inline subAdd(e:UIElement) =  subPanel.Children.Add e |> ignore
 
                 if td.name <> "" then
-                    let tb = new TextBlockSelectable(Text= "Name: " + td.name)
+                    let tb = new TextBlockSelectable(Text = "Name: " + td.name)
                     tb.Foreground <- black
                     tb.FontSize <- StyleState.fontSize * 0.9
                     tb.FontWeight <- FontWeights.Bold
