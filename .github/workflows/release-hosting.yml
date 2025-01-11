@@ -1,4 +1,4 @@
-name: Publish NuGet Package
+name: Build and Publish NuGet Package
 
 on:
   push:
@@ -18,7 +18,7 @@ jobs:
       with:
         dotnet-version: '9.0.x'
 
-    - name: Build
+    - name: dotnet build FeshHosting
       run: dotnet build FeshHosting.fsproj --configuration Release
 
     - name: Check version consistency of git tag and CHANGELOG.md
@@ -29,13 +29,18 @@ jobs:
       id: check_version
       shell: bash
       run: |
-        CHANGELOG_VERSION=$(cat ./bin/ChangelogVersion.txt | tr -d '[:space:]')
-        echo "CHANGELOG_VERSION=$CHANGELOG_VERSION"
-        echo "github.ref_name=${{ github.ref_name }}"  
+        CHANGELOG_VERSION=$(cat ./bin/ChangelogVersion.txt | tr -d '[:space:]')        
         if [ "${{ github.ref_name }}" != "$CHANGELOG_VERSION" ]; then
           echo "Version mismatch: git tag (${{ github.ref_name }}) and version in CHANGELOG.md ($CHANGELOG_VERSION) are not the same."
           exit 1
-        fi   
+        fi 
+        echo "CHANGELOG_VERSION=$CHANGELOG_VERSION"
+        echo "github.ref_name=${{ github.ref_name }}"  
+        echo "Version check of git tag and CHANGELOG.md passed successfully." 
 
-    - name: Publish NuGet package
-      run: dotnet nuget push ./bin/hosting/Fesh.${{ github.ref_name }}.symbols.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json
+    - name: Push NuGet package to nuget.org
+      run: |
+        dotnet nuget push `
+        ./bin/hosting/Fesh.${{ github.ref_name }}.symbols.nupkg `
+        --api-key ${{ secrets.NUGET_API_KEY }} `
+        --source https://api.nuget.org/v3/index.json

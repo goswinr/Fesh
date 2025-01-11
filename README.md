@@ -53,6 +53,7 @@ Or, to build the Fesh nuget package run:
 dotnet build FeshHosting.fsproj
 ```
 
+
 ## Features
 
 ### Syntax Highlighting
@@ -84,9 +85,26 @@ For *.fsx it will be at the top and prefixed with `#load`.
 The default font is [Cascadia Mono](https://github.com/microsoft/cascadia-code).\
 Besides italic it also supports a cursive script mode. Fesh is using cursive for comments.\
 To enable ligatures set the font to `Cascadia Code`.\
-You can change the font in the 'Settings.txt' file at `%APPDATA%\Local\Fesh\Settings.txt`.\
+You can change the font in the 'Settings.txt' file at `%APPDATA%\Local\Fesh\Settings\Standalone\Settings.txt`.\
 Or via the menu: `About` -> `Open Settings Folder`.
 
 ### Changelog
 see [CHANGELOG.md](https://github.com/goswinr/Fesh/blob/main/CHANGELOG.md)
 
+### Publishing
+
+or self contained:
+
+```bash
+dotnet publish FeshStandalone.fsproj -c release -r win-x64 -o bin/publish/net9 --framework net9.0-windows --self-contained
+dotnet publish FeshStandalone.fsproj -c release -r win-x64 -o bin/publish/net9 --framework net9.0-windows
+dotnet publish FeshStandalone.fsproj -c release -r win-x64 -o bin/publish/net48 --framework net48
+```
+
+the use [Velopack](https://docs.velopack.io/packaging/installer) to create an installer:
+
+```bash
+vpk pack --packId Fesh --packVersion 0.15.1 --packDir bin/publish/net9 --outputDir bin/installer/net9 --mainExe Fesh.exe --framework net9.0-x64-desktop --icon Media/logo.ico
+```
+
+https://docs.velopack.io/packaging/deltas#disabling-deltas

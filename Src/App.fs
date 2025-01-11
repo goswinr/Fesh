@@ -3,6 +3,7 @@
 open System
 open System.Windows
 open Fesh.Config
+open Velopack
 
 module App =
 
@@ -29,6 +30,7 @@ module App =
     [< EntryPoint >]
     [< STAThread >]
     let runEditorStandalone (args: string []) : int =
+        VelopackApp.Build().Run() //https://docs.velopack.io/getting-started/csharp
         let app  = Application() // do first so that pack Uris work
         let fesh = Initialize.everything (None, args)
         current <- fesh

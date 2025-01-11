@@ -1,4 +1,4 @@
-﻿namespace Fesh.Config
+namespace Fesh.Config
 
 open System
 open Fesh.Model

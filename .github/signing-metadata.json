@@ -1,0 +1,6 @@
+{
+"Endpoint": "https://neu.codesigning.azure.net",
+"CodeSigningAccountName": "GoswinATS",
+"CertificateProfileName": "cert-prof-gos-ro-org",
+"CorrelationId": "HGR-GH-Fesh-Test-1"
+}

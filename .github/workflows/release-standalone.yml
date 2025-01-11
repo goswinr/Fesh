@@ -1,0 +1,111 @@
+name: Build and Release Standalone with Velopack
+
+on:
+  push:
+    tags:
+      - '[0-9]+.[0-9]+.[0-9]+'
+
+permissions:
+  id-token: write # for the Azure Login
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest # wil run commands on powershell, windows is needed so that ATS signtool.exe works inside --azureTrustedSignFile
+    permissions: write-all # or Workflow permissions https://github.com/goswinr/Fesh/settings/actions  ??
+    steps:
+
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '9.0.x'
+
+
+    - name: Run dotnet publish net9.0 Application
+      run: |
+        dotnet publish FeshStandalone.fsproj `
+          --configuration release `
+          --runtime win-x64 `
+          --output bin/publish/net9.0 `
+          --framework net9.0-windows `
+          --no-self-contained
+
+    # - name: Run dotnet publish net48
+    #   run: |
+    #     dotnet publish FeshStandalone.fsproj `
+    #       --configuration release `
+    #       --runtime win-x64 `
+    #       --output bin/publish/net48 `
+    #       --framework net48 `
+    #       --no-self-contained
+
+    - name: Check version consistency of git tag and CHANGELOG.md
+      # needs in fsproj:
+      # <Target Name="WriteChangelogVersion" AfterTargets="AfterBuild"><!-- for version checks in github tag based builds -->
+      #   <WriteLinesToFile File="./bin/ChangelogVersion.txt" Lines="@(CurrentReleaseChangelog)" Overwrite="true" ContinueOnError="false" />
+      # </Target>
+      id: check_version
+      shell: bash
+      run: |
+        CHANGELOG_VERSION=$(cat ./bin/ChangelogVersion.txt | tr -d '[:space:]')        
+        if [ "${{ github.ref_name }}" != "$CHANGELOG_VERSION" ]; then
+          echo "Version mismatch: git tag (${{ github.ref_name }}) and version in CHANGELOG.md ($CHANGELOG_VERSION) are not the same."
+          exit 1
+        fi 
+        echo "CHANGELOG_VERSION=$CHANGELOG_VERSION"
+        echo "github.ref_name=${{ github.ref_name }}"  
+        echo "Version check of git tag and CHANGELOG.md passed successfully."
+    
+
+    - name: Get Changelog Entry
+      id: changelog_reader
+      uses: mindsers/changelog-reader-action@v2 #https://github.com/marketplace/actions/changelog-reader
+      with:
+        version: ${{ github.ref_name }}
+        path: ./CHANGELOG.md
+
+    - name: Azure login
+      uses: azure/login@v2
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+        enable-AzPSSession: true
+
+    - name: Pack, Sign and Release with Velopack
+      # https://docs.velopack.io/reference/cli/content/vpk-windows
+      # If you are publishing your application with --no-self-contained, then you should provide the --framework argument. https://docs.velopack.io/packaging/bootstrapping
+      run: |
+        dotnet tool install vpk  --global 
+      
+        vpk download github `
+          --repoUrl https://github.com/goswinr/Fesh `
+          --token ${{secrets.GITHUB_TOKEN}} `
+          --outputDir bin/installer/net9.0 `
+          --channel net9 
+
+        vpk pack `
+          --packId Fesh `
+          --packVersion ${{github.ref_name}} `
+          --packDir bin/publish/net9.0 `
+          --mainExe Fesh.exe `
+          --framework net9.0-x64-desktop `
+          --icon Media/logoInstaller.ico  `
+          --packAuthors "Goswin R" `
+          --verbose `
+          --releaseNotes .github/InstallNotesNet9.md `
+          --azureTrustedSignFile .github/signing-metadata.json `
+          --outputDir bin/installer/net9.0 `
+          --channel net9 
+
+        vpk upload github `
+          --publish `
+          --repoUrl https://github.com/goswinr/Fesh `
+          --releaseName "Fesh ${{github.ref_name}}" `
+          --tag ${{github.ref_name}} `
+          --token ${{secrets.GITHUB_TOKEN}} `
+          --outputDir bin/installer/net9.0 `
+          --channel net9 
+        
+        

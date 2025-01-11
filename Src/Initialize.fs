@@ -8,36 +8,66 @@ open Fesh.Model
 open Fesh.Views
 open Fesh.Config
 open Fesh.Util
-open System.Net.Http
+// open System.Net.Http // for checking for updates via github api
+
+open Velopack
+open Velopack.Sources
 
 module Initialize =
 
     let mutable feshInstanceForDebug :Fesh = Unchecked.defaultof<Fesh>
 
-    let checkForNewRelease(config:Config) =
+    // let checkForNewReleaseByTag(config:Config) =
+    //     if config.RunContext.IsStandalone then
+    //         async {
+    //             try
+    //                 use client = new HttpClient()
+    //                 client.DefaultRequestHeaders.UserAgent.ParseAdd("Fesh")
+    //                 let! response = client.GetStringAsync("https://api.github.com/repos/goswinr/Fesh/releases/latest") |> Async.AwaitTask
+    //                 let v = response |> Fesh.Util.Str.between "\"tag_name\":\"" "\""
+    //                 //let json = JObject.Parse(response)
+    //                 //return json.["tag_name"].ToString()
+    //                 do! Async.SwitchToContext Fittings.SyncWpf.context
+    //                 match v with
+    //                 | None -> IFeshLog.log.PrintfnInfoMsg "Could not check for updates on https://github.com/goswinr/Fesh/releases. Are you offline?"
+    //                 | Some v ->
+    //                     let cv = Reflection.Assembly.GetAssembly(typeof<Config>).GetName().Version.ToString()
+    //                     let cv = if cv.EndsWith(".0") then cv[..^2] else cv
+    //                     if v <> cv then
+    //                         IFeshLog.log.PrintfnAppErrorMsg $"A newer version of Fesh is available: {v} , you are using {cv} \r\nPlease visit https://github.com/goswinr/Fesh/releases"
+    //                     else
+    //                         IFeshLog.log.PrintfnInfoMsg $"You are using the latest version of Fesh: {cv}"
+    //             with _ ->
+    //                 IFeshLog.log.PrintfnInfoMsg "Could not check for updates on https://github.com/goswinr/Fesh/releases.\r\nAre you offline?"
+    //         }
+    //         |> Async.Start
+
+    let checkForNewVelopackRelease(config:Config) =
+
         if config.RunContext.IsStandalone then
-            async {
-                try
-                    use client = new HttpClient()
-                    client.DefaultRequestHeaders.UserAgent.ParseAdd("Fesh")
-                    let! response = client.GetStringAsync("https://api.github.com/repos/goswinr/Fesh/releases/latest") |> Async.AwaitTask
-                    let v = response |> Fesh.Util.Str.between "\"tag_name\":\"" "\""
-                    //let json = JObject.Parse(response)
-                    //return json.["tag_name"].ToString()
-                    do! Async.SwitchToContext Fittings.SyncWpf.context
-                    match v with
-                    | None -> IFeshLog.log.PrintfnInfoMsg "Could not check for updates on https://github.com/goswinr/Fesh/releases. Are you offline?"
-                    | Some v ->
-                        let cv = Reflection.Assembly.GetAssembly(typeof<Config>).GetName().Version.ToString()
-                        let cv = if cv.EndsWith(".0") then cv[..^2] else cv
-                        if v <> cv then
-                            IFeshLog.log.PrintfnAppErrorMsg $"A newer version of Fesh is available: {v} , you are using {cv} \r\nPlease visit https://github.com/goswinr/Fesh/releases"
-                        else
-                            IFeshLog.log.PrintfnInfoMsg $"You are using the latest version of Fesh: {cv}"
-                with _ ->
-                    IFeshLog.log.PrintfnInfoMsg "Could not check for updates on https://github.com/goswinr/Fesh/releases.\r\nAre you offline?"
-            }
-            |> Async.Start
+            try
+                // The GitHub access token to use with the request to download releases.
+                // If left empty, the GitHub rate limit for unauthenticated requests allows for up to 60 requests per hour, limited by IP address.
+                // only needs fine-grained access to content in readonly mode
+                // https://docs.velopack.io/reference/cs/Velopack/Sources/GithubSource/constructors
+                let readOnlyToken = ""
+                let source = new GithubSource("https://github.com/goswinr/Fesh", accessToken = readOnlyToken, prerelease = false)
+                let updateManager = new UpdateManager(source);
+                match updateManager.CheckForUpdatesAsync().Result with
+                | null -> IFeshLog.log.PrintfnInfoMsg "No updates available for Fesh"
+                | updateInfo ->
+                    IFeshLog.log.PrintfnInfoMsg " downloading Updates for Fesh ..."
+                    updateManager.DownloadUpdatesAsync(updateInfo).Wait()
+                    IFeshLog.log.PrintfnInfoMsg " applying Updates for Fesh ..."
+                    match MessageBox.Show("Updates for Fesh are available and downloaded. Do you want to apply them now?", "Fesh Update", MessageBoxButton.YesNo) with
+                    | MessageBoxResult.No  -> IFeshLog.log.PrintfnInfoMsg "Updating Fesh was skipped."
+                    | MessageBoxResult.Yes -> IFeshLog.log.PrintfnInfoMsg "Restarting Fesh to apply updates ..."
+                    | _ -> IFeshLog.log.PrintfnInfoMsg "Unknown result from MessageBox.Show"
+                    updateManager.ApplyUpdatesAndRestart(updateInfo)
+                    IFeshLog.log.PrintfnInfoMsg " Updates for Fesh applied. Please restart the application."
+            with e ->
+                IFeshLog.log.PrintfnInfoMsg "Could not check for Velopack updates on. %A" e
+
 
     let saveBeforeFailing()=
         async{
@@ -103,7 +133,8 @@ module Initialize =
         log.FinishLogSetup(config)
 
         let f = Fesh(config, log)
-        checkForNewRelease(config)
+        // checkForNewReleaseByTag(config)
+        checkForNewVelopackRelease(config)
         feshInstanceForDebug <- f
         f
 
