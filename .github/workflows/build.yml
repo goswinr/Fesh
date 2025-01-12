@@ -1,4 +1,4 @@
-name: Build for Hosting
+name: Build for Standalone and Hosting
 
 on:
   push:
@@ -23,5 +23,8 @@ jobs:
 
       - name: Build FeshHosting.fsproj
         run: dotnet build FeshHosting.fsproj --configuration Release
+
+      - name: Build FeshStandalone.fsproj
+        run: dotnet build FeshStandalone.fsproj --configuration Release
 
 

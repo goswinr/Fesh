@@ -549,7 +549,7 @@ type Tabs(config:Config, log:Log,feshWin:FeshWindow) =
     /// if user clicks yes it will attempt to save files.
     /// Returns true if all files are saved or unsaved changes shall be ignored.
     /// So true mean the closing process was not canceled by user.
-    member this.AskForFileSavingToKnowIfClosingWindowIsOk()=
+    member this.AskForFileSavingToKnowIfClosingWindowIsOk() =
         let openFs = allTabs |> Seq.filter (fun t -> not t.IsCodeSaved && t.SavingWanted)
         //log.PrintfnDebugMsg "Unsaved files %d" (Seq.length openFs)
         if  Seq.isEmpty openFs then

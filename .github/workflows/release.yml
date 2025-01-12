@@ -1,16 +1,12 @@
-name: Build and Release Standalone with Velopack
+name: Release with Velopack
 
 on:
   push:
     tags:
       - '[0-9]+.[0-9]+.[0-9]+'
 
-permissions:
-  id-token: write # for the Azure Login
-  contents: read
-
 jobs:
-  build:
+  build-and-release:
     runs-on: windows-latest # wil run commands on powershell, windows is needed so that ATS signtool.exe works inside --azureTrustedSignFile
     permissions: write-all # or Workflow permissions https://github.com/goswinr/Fesh/settings/actions  ??
     steps:
@@ -18,20 +14,17 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
 
+    - name: Push tag with -net48 suffix
+      uses: richardsimko/update-tag@v1
+      with:
+        tag_name: "${{ github.ref_name }}-net48"
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: '9.0.x'
-
-
-    - name: Run dotnet publish net9.0 Application
-      run: |
-        dotnet publish FeshStandalone.fsproj `
-          --configuration release `
-          --runtime win-x64 `
-          --output bin/publish/net9.0 `
-          --framework net9.0-windows `
-          --no-self-contained
 
     - name: Run dotnet publish net48
       run: |
@@ -40,6 +33,15 @@ jobs:
           --runtime win-x64 `
           --output bin/publish/net48 `
           --framework net48 `
+          --no-self-contained
+
+    - name: Run dotnet publish net9.0
+      run: |
+        dotnet publish FeshStandalone.fsproj `
+          --configuration release `
+          --runtime win-x64 `
+          --output bin/publish/net9.0 `
+          --framework net9.0-windows `
           --no-self-contained
 
     - name: Check version consistency of git tag and CHANGELOG.md
@@ -57,15 +59,7 @@ jobs:
         fi 
         echo "CHANGELOG_VERSION=$CHANGELOG_VERSION"
         echo "github.ref_name=${{ github.ref_name }}"  
-        echo "Version check of git tag and CHANGELOG.md passed successfully."
-    
-
-    - name: Get Changelog Entry
-      id: changelog_reader
-      uses: mindsers/changelog-reader-action@v2 #https://github.com/marketplace/actions/changelog-reader
-      with:
-        version: ${{ github.ref_name }}
-        path: ./CHANGELOG.md
+        echo "Version check of git tag and CHANGELOG.md passed successfully."   
 
     - name: Azure login
       uses: azure/login@v2
@@ -73,45 +67,54 @@ jobs:
         creds: ${{ secrets.AZURE_CREDENTIALS }}
         enable-AzPSSession: true
 
-        # vpk download github `
-        #   --repoUrl https://github.com/goswinr/Fesh `
-        #   --token ${{secrets.GITHUB_TOKEN}} `
-        #   --outputDir bin/installer/net9.0 `
-        #   --channel net9
-
     - name: Pack, Sign and Release with Velopack .NET Framework 4.8
       # https://docs.velopack.io/reference/cli/content/vpk-windows
-      # If you are publishing your application with --no-self-contained, then you should provide the --framework argument. https://docs.velopack.io/packaging/bootstrapping
+      # If you are publishing your application with --no-self-contained,
+      # then you should provide the --framework argument. https://docs.velopack.io/packaging/bootstrapping
       run: |
         dotnet tool install vpk  --global       
+        
+        vpk download github `
+          --repoUrl https://github.com/goswinr/Fesh `
+          --token ${{secrets.GITHUB_TOKEN}} `
+          --outputDir bin/installer/net48 `
+          --channel framework
 
         vpk pack `
           --packId Fesh.net48 `
-          --packVersion ${{github.ref_name}} `
+          --packVersion "${{github.ref_name}}"  `
           --packDir bin/publish/net48 `
           --mainExe Fesh.exe `
           --framework net48 `
           --icon Media/logoInstaller.ico  `
           --packAuthors "Goswin R" `
-          --releaseNotes .github/InstallNotesNet48.md `
+          --releaseNotes .github/InstallNotes-net48.md `
           --azureTrustedSignFile .github/signing-metadata.json `
-          --splashImage Media/logo.png `
-          --outputDir bin/installer/net48         
+          --splashImage Media/logo128.png `
+          --outputDir bin/installer/net48 `
+          --channel framework   
 
         vpk upload github `
           --publish `
           --repoUrl https://github.com/goswinr/Fesh `
-          --releaseName "Fesh ${{github.ref_name}} for .NET Framework 4.8" `
-          --tag ${{github.ref_name}} `
+          --releaseName "Fesh ${{github.ref_name}} net4.8" `
+          --tag "${{github.ref_name}}-net48" `
           --token ${{secrets.GITHUB_TOKEN}} `
-          --outputDir bin/installer/net48
-
+          --outputDir bin/installer/net48 `
+          --channel framework 
+          
     - name: Pack, Sign and Release with Velopack .NET 9.0
       # https://docs.velopack.io/reference/cli/content/vpk-windows
       # If you are publishing your application with --no-self-contained, then you should provide the --framework argument. https://docs.velopack.io/packaging/bootstrapping
       run: |
         dotnet tool install vpk  --global 
-           
+        
+        vpk download github `
+          --repoUrl https://github.com/goswinr/Fesh `
+          --token ${{secrets.GITHUB_TOKEN}} `
+          --outputDir bin/installer/net9.0 `
+          --channel net9
+
         vpk pack `
           --packId Fesh `
           --packVersion ${{github.ref_name}} `
@@ -120,19 +123,18 @@ jobs:
           --framework net9.0-x64-desktop `
           --icon Media/logoInstaller.ico  `
           --packAuthors "Goswin R" `
-          --releaseNotes .github/InstallNotesNet9.md `
+          --releaseNotes .github/InstallNotes-net9.md `
           --azureTrustedSignFile .github/signing-metadata.json `
-          --splashImage Media/logo.png `
+          --splashImage Media/logo128.png `
           --outputDir bin/installer/net9.0 `
-          --channel net9 
-
+          --channel net9  
+          
         vpk upload github `
           --publish `
           --repoUrl https://github.com/goswinr/Fesh `
-          --releaseName "Fesh ${{github.ref_name}} for .NET 9.0" `
+          --releaseName "Fesh ${{github.ref_name}} net9" `
           --tag ${{github.ref_name}} `
           --token ${{secrets.GITHUB_TOKEN}} `
           --outputDir bin/installer/net9.0 `
           --channel net9 
-        
-        
+

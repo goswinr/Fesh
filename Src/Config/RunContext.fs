@@ -21,7 +21,12 @@ type HostedStartUpData = {
     }
 
 module Folders =
-    let appDataLocal = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData)
+    let appParentFolder =
+        // Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData)
+        let fi = IO.FileInfo(Reflection.Assembly.GetAssembly(typeof<HostedStartUpData>).Location )
+        //Because reinstalling the app with Velopack will delete the 'current' folder and its 'Settings' sibling, put the Settings outside the Fesh folder.
+        fi.Directory.Parent.Parent // next to the folder called 'current' or completely outside the folder called 'Fesh'.
+
     let validHost(n:string)=
         let mutable n = n
         for c in IO.Path.GetInvalidFileNameChars() do
@@ -39,12 +44,13 @@ type RunContext (host:HostedStartUpData option) =
         //Type.GetType("System.Runtime.Loader.AssemblyLoadContext") <> null // https://github.com/dotnet/runtime/issues/22779#issuecomment-315527735
 
     let settingsFolder =
+        //Because reinstalling the app with Velopack will delete the 'current' folder and its 'Settings' sibling, put the Settings outside the Fesh folder.
         let path =
             match host with
             |None    ->
-                if isRunningOnDotNetCore then IO.Path.Combine(appDataLocal,$"Fesh.Settings")  // Standalone
-                else                          IO.Path.Combine(appDataLocal,$"Fesh.net48.Settings")  // Standalone .NET Framework
-            |Some sd ->                       IO.Path.Combine(appDataLocal,$"Fesh.{validHost sd.hostName}.Settings")
+                if isRunningOnDotNetCore then IO.Path.Combine(appParentFolder.FullName, $"Fesh.Settings")  // Standalone
+                else                          IO.Path.Combine(appParentFolder.FullName, $"Fesh.net48.Settings")  // Standalone .NET Framework
+            |Some sd ->                       IO.Path.Combine(appParentFolder.FullName, $"Fesh.{validHost sd.hostName}.Settings")
         IO.Directory.CreateDirectory(path) |> ignore
         path
 

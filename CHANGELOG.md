@@ -6,15 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
-## [0.18.0] - 2024-12-14
-### Changed
-- changed install Folder for Velopack to `.\AppData\Local\Fesh.net48\` for .Net 4.8
-- changed Settings Folder  to `.\AppData\Local\Fesh.Settings\` or `.\AppData\Local\Fesh.{host}.Settings\`
-
-## [0.17.0] - 2024-12-14
+## [0.19.0] - 2025-01-12
 ### Changed
 - create a Velopack installer
 - enable auto updating via Velopack
+- changed install Folder for Velopack to `.\AppData\Local\Fesh.net48\` for .Net 4.8
+- changed Settings Folder to `.\AppData\Local\Fesh.Settings\` or `.\AppData\Local\Fesh.{host}.Settings\` if used via Nuget.
 - line wrap off by default
 ### Added
 - syntax highlighting for numeric suffixes
@@ -72,8 +69,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - first public release
 
-[Unreleased]: https://github.com/goswinr/Fesh/compare/0.17.0...HEAD
-[0.16.0]: https://github.com/goswinr/Fesh/compare/0.16.0...0.17.0
+[Unreleased]: https://github.com/goswinr/Fesh/compare/0.19.0...HEAD
+[0.19.0]: https://github.com/goswinr/Fesh/compare/0.16.0...0.19.0
 [0.16.0]: https://github.com/goswinr/Fesh/compare/0.15.0...0.16.0
 [0.15.0]: https://github.com/goswinr/Fesh/compare/0.14.3...0.15.0
 [0.14.3]: https://github.com/goswinr/Fesh/compare/0.14.2...0.14.3

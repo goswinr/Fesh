@@ -8,7 +8,6 @@ open Fesh.Model
 open Fesh.Views
 open Fesh.Config
 open Fesh.Util
-// open System.Net.Http // for checking for updates via github api
 
 open Velopack
 open Velopack.Sources
@@ -17,6 +16,7 @@ module Initialize =
 
     let mutable feshInstanceForDebug :Fesh = Unchecked.defaultof<Fesh>
 
+    // open System.Net.Http // for checking for updates via github api
     // let checkForNewReleaseByTag(config:Config) =
     //     if config.RunContext.IsStandalone then
     //         async {
@@ -42,33 +42,54 @@ module Initialize =
     //         }
     //         |> Async.Start
 
-    let checkForNewVelopackRelease(config:Config) =
+    let checkForNewVelopackRelease(config:Config, fesh:Fesh) =
         if config.RunContext.IsStandalone then
-            try
-                let cv = Reflection.Assembly.GetAssembly(typeof<Config>).GetName().Version.ToString()
-                let cv = if cv.EndsWith(".0") then cv[..^2] else cv
-                // The GitHub access token to use with the request to download releases.
-                // If left empty, the GitHub rate limit for unauthenticated requests allows for up to 60 requests per hour, limited by IP address.
-                // only needs fine-grained access to content in readonly mode
-                // https://docs.velopack.io/reference/cs/Velopack/Sources/GithubSource/constructors
-                let readOnlyToken = ""
-                let source = new GithubSource("https://github.com/goswinr/Fesh", accessToken = readOnlyToken, prerelease = false)
-                let updateManager = new UpdateManager(source)
+            async {
+                try
+                    let cv = Reflection.Assembly.GetAssembly(typeof<Config>).GetName().Version.ToString()
+                    let cv = if cv.EndsWith(".0") then cv[..^2] else cv
+                    // The GitHub access token to use with the request to download releases.
+                    // If left empty, the GitHub rate limit for unauthenticated requests allows for up to 60 requests per hour, limited by IP address.
+                    // only needs fine-grained access to content in readonly mode
+                    // https://docs.velopack.io/reference/cs/Velopack/Sources/GithubSource/constructors
+                    let readOnlyToken = ""
+                    let source = new GithubSource("https://github.com/goswinr/Fesh", accessToken = readOnlyToken, prerelease = false)
+                    let updateManager = new UpdateManager(source)
 
-                match updateManager.CheckForUpdatesAsync().Result with
-                | null -> IFeshLog.log.PrintfnInfoMsg $"You are using the latest version of Fesh: {cv}"
-                | updateInfo ->
-                    IFeshLog.log.PrintfnInfoMsg " downloading Updates for Fesh ..."
-                    updateManager.DownloadUpdatesAsync(updateInfo).Wait()
-                    IFeshLog.log.PrintfnInfoMsg " applying Updates for Fesh ..."
-                    match MessageBox.Show("Updates for Fesh are available and downloaded. Do you want to apply them now?", "Fesh Update", MessageBoxButton.YesNo) with
-                    | MessageBoxResult.No  -> IFeshLog.log.PrintfnInfoMsg "Updating Fesh was skipped."
-                    | MessageBoxResult.Yes -> IFeshLog.log.PrintfnInfoMsg "Restarting Fesh to apply updates ..."
-                    | _ -> IFeshLog.log.PrintfnInfoMsg "Unknown result from MessageBox.Show"
-                    updateManager.ApplyUpdatesAndRestart(updateInfo)
-                    IFeshLog.log.PrintfnInfoMsg " Updates for Fesh applied. Please restart the application."
-            with e ->
-                IFeshLog.log.PrintfnInfoMsg "Could not check for Velopack updates: %A" e
+                    match updateManager.CheckForUpdatesAsync().Result with
+                    | null ->
+                        IFeshLog.log.PrintfnInfoMsg $"You are using the latest version of Fesh: {cv}"
+                    | updateInfo ->
+                        IFeshLog.log.PrintfnInfoMsg "Update for Fesh available."
+                        let nv = updateInfo.TargetFullRelease.Version.ToString()
+                        do! Async.SwitchToContext Fittings.SyncWpf.context
+                        match MessageBox.Show(
+                            fesh.Window,
+                            $"Update Fesh from {cv} to {nv} and restart? Changes are saved.",
+                            "Fesh Updates available!",
+                            MessageBoxButton.YesNo,
+                            MessageBoxImage.Question,
+                            MessageBoxResult.Yes, // default result
+                            MessageBoxOptions.None) with
+                                | MessageBoxResult.No  ->
+                                    IFeshLog.log.PrintfnInfoMsg "Updating Fesh was skipped."
+                                | MessageBoxResult.Yes ->
+                                    // if fesh.Tabs.AllTabs |> Seq.map (fun t -> fesh.Tabs.Save(t)) |> Seq.forall id then // save needs to be in sync
+                                    if fesh.Tabs.AskForFileSavingToKnowIfClosingWindowIsOk() then // save needs to be in sync
+                                        do! Async.SwitchToThreadPool()
+                                        IFeshLog.log.PrintfnInfoMsg "All changes saved. Proceeding with update ..."
+                                        IFeshLog.log.PrintfnInfoMsg "Downloading Updates for Fesh ..."
+                                        updateManager.DownloadUpdatesAsync(updateInfo).Wait()
+                                        IFeshLog.log.PrintfnInfoMsg "Restarting Fesh to apply updates ..."
+                                        updateManager.ApplyUpdatesAndRestart(updateInfo)
+                                        IFeshLog.log.PrintfnInfoMsg "Updates for Fesh applied. Please restart the application."
+                                    else
+                                        IFeshLog.log.PrintfnIOErrorMsg "Some changes could not be saved. Update of Fesh cancelled."
+                                | _ ->
+                                    IFeshLog.log.PrintfnInfoMsg "Unknown result from MessageBox.Show"
+                with e ->
+                    IFeshLog.log.PrintfnInfoMsg "Could not check for Velopack updates: %A" e
+            } |> Async.Start
 
     let saveBeforeFailing()=
         async{
@@ -135,7 +156,7 @@ module Initialize =
 
         let f = Fesh(config, log)
         // checkForNewReleaseByTag(config)
-        checkForNewVelopackRelease(config)
+        f.Window.ContentRendered.Add(fun _ -> checkForNewVelopackRelease(config, f) )
         feshInstanceForDebug <- f
         f
 
