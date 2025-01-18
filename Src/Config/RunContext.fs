@@ -25,7 +25,11 @@ module Folders =
         // Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData)
         let fi = IO.FileInfo(Reflection.Assembly.GetAssembly(typeof<HostedStartUpData>).Location )
         //Because reinstalling the app with Velopack will delete the 'current' folder and its 'Settings' sibling, put the Settings outside the Fesh folder.
-        fi.Directory.Parent.Parent // next to the folder called 'current' or completely outside the folder called 'Fesh'.
+        let mainFolder = fi.Directory.Parent //  the folder called 'Fesh, the parent of 'current'
+        if IO.File.Exists(IO.Path.Combine(mainFolder.FullName, ".portable")) then
+            mainFolder // for portable version don't have an outside folder
+        else
+            mainFolder.Parent // next to the folder called 'current' or completely outside the folder called 'Fesh'.
 
     let validHost(n:string)=
         let mutable n = n
