@@ -72,6 +72,7 @@ module Initialize =
                             IFeshLog.log.PrintfnIOErrorMsg $"A newer version of Fesh is available: {nv} , you are using {cv}"
                             IFeshLog.log.PrintfnIOErrorMsg "Automattic updates are not available because Update.exe was not found in the parent folder."
                             IFeshLog.log.PrintfnIOErrorMsg "Please re-install from https://github.com/goswinr/Fesh/releases"
+
                         else
                             do! Async.SwitchToContext Fittings.SyncWpf.context
                             match MessageBox.Show(
@@ -91,9 +92,12 @@ module Initialize =
                                             IFeshLog.log.PrintfnInfoMsg "All changes saved. Proceeding with update ..."
                                             IFeshLog.log.PrintfnInfoMsg "Downloading Updates for Fesh ..."
                                             do! Async.AwaitTask (updateManager.DownloadUpdatesAsync(updateInfo))
-                                            IFeshLog.log.PrintfnInfoMsg "Restarting Fesh to apply updates ..."
-                                            updateManager.ApplyUpdatesAndRestart(updateInfo)
-                                            IFeshLog.log.PrintfnInfoMsg "Updates for Fesh applied. Please restart the application."
+                                            if Diagnostics.Process.GetProcessesByName("Fesh").Length  > 1 then
+                                                IFeshLog.log.PrintfnIOErrorMsg "Fesh is running multiple times. Please restart the application manually to apply updates."
+                                            else
+                                                IFeshLog.log.PrintfnInfoMsg "Restarting Fesh to apply updates ..."
+                                                updateManager.ApplyUpdatesAndRestart(updateInfo)
+                                                IFeshLog.log.PrintfnInfoMsg "Updates for Fesh applied. Restarting the application..."
                                         else
                                             IFeshLog.log.PrintfnIOErrorMsg "Some changes could not be saved. Update of Fesh cancelled."
                                     | r ->
@@ -101,6 +105,12 @@ module Initialize =
                 with e ->
                     IFeshLog.log.PrintfnInfoMsg "Could not check for Velopack updates: %A" e
             } |> Async.Start
+
+    let velopackRun() =
+        let justOne =  Diagnostics.Process.GetProcessesByName("Fesh").Length  = 1
+        VelopackApp.Build()
+            .SetAutoApplyOnStartup(justOne) // there maybe an unapplied update available if more than one fesh was running, only apply if there is only one now.
+            .Run() //https://docs.velopack.io/getting-started/csharp
 
     let saveBeforeFailing()=
         async{
