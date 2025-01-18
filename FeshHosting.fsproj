@@ -25,7 +25,7 @@
 
     <!-- <Version>0.14.2</Version> done by Ionide.KeepAChangelog.Tasks -->
 
-    <Authors>GoswinR</Authors>
+    <Authors>Goswin Rothenthal</Authors>
     <Copyright>Goswin Rothenthal 2019</Copyright>
     <Description>A hostable fsharp scripting editor for Windows based on Avalonedit</Description>
     <ApplicationIcon>Media/logo.ico</ApplicationIcon>
@@ -142,7 +142,7 @@
 
   </ItemGroup>
 
-  <Target Name="WriteChangelogVersion" AfterTargets="AfterBuild"> <!-- for version checks in github tag based builds -->
+  <Target Name="WriteChangelogVersion" AfterTargets="AfterBuild"> <!-- to check output from Ionide.KeepAChangelog.Tasks current git tag in gh actions -->
     <WriteLinesToFile File="./bin/ChangelogVersion.txt" Lines="@(CurrentReleaseChangelog)" Overwrite="true" ContinueOnError="false" />
   </Target>
 

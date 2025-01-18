@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+## [0.20.0] - 2025-01-18
+### Changed
+- for portable version the location of SettingsFolder is inside the app folder now
+- update to latest FSharp.Compiler.Service
+- improved Readme and error messages
+
 ## [0.19.0] - 2025-01-12
 ### Changed
 - create a Velopack installer

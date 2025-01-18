@@ -46,7 +46,8 @@ module Initialize =
         if config.RunContext.IsStandalone then
             async {
                 try
-                    let cv = Reflection.Assembly.GetAssembly(typeof<Config>).GetName().Version.ToString()
+                    let ass = Reflection.Assembly.GetAssembly(typeof<Config>)
+                    let cv = ass.GetName().Version.ToString()
                     let cv = if cv.EndsWith(".0") then cv[..^2] else cv
                     // The GitHub access token to use with the request to download releases.
                     // If left empty, the GitHub rate limit for unauthenticated requests allows for up to 60 requests per hour, limited by IP address.
@@ -62,31 +63,41 @@ module Initialize =
                     | updateInfo ->
                         IFeshLog.log.PrintfnInfoMsg "Update for Fesh available."
                         let nv = updateInfo.TargetFullRelease.Version.ToString()
-                        do! Async.SwitchToContext Fittings.SyncWpf.context
-                        match MessageBox.Show(
-                            fesh.Window,
-                            $"Update Fesh from {cv} to {nv} and restart? Changes are saved.",
-                            "Fesh Updates available!",
-                            MessageBoxButton.YesNo,
-                            MessageBoxImage.Question,
-                            MessageBoxResult.Yes, // default result
-                            MessageBoxOptions.None) with
-                                | MessageBoxResult.No  ->
-                                    IFeshLog.log.PrintfnInfoMsg "Updating Fesh was skipped."
-                                | MessageBoxResult.Yes ->
-                                    // if fesh.Tabs.AllTabs |> Seq.map (fun t -> fesh.Tabs.Save(t)) |> Seq.forall id then // save needs to be in sync
-                                    if fesh.Tabs.AskForFileSavingToKnowIfClosingWindowIsOk() then // save needs to be in sync
-                                        do! Async.SwitchToThreadPool()
-                                        IFeshLog.log.PrintfnInfoMsg "All changes saved. Proceeding with update ..."
-                                        IFeshLog.log.PrintfnInfoMsg "Downloading Updates for Fesh ..."
-                                        updateManager.DownloadUpdatesAsync(updateInfo).Wait()
-                                        IFeshLog.log.PrintfnInfoMsg "Restarting Fesh to apply updates ..."
-                                        updateManager.ApplyUpdatesAndRestart(updateInfo)
-                                        IFeshLog.log.PrintfnInfoMsg "Updates for Fesh applied. Please restart the application."
-                                    else
-                                        IFeshLog.log.PrintfnIOErrorMsg "Some changes could not be saved. Update of Fesh cancelled."
-                                | _ ->
-                                    IFeshLog.log.PrintfnInfoMsg "Unknown result from MessageBox.Show"
+                        let exe = ass.Location
+                        let exeFolder = Path.GetDirectoryName(exe)
+                        let parentFolder = Path.GetDirectoryName(exeFolder)
+                        let updater = Path.Combine(parentFolder, "Update.exe")
+                        if not (IO.File.Exists(updater)) then
+                            // this is expected when running a local build of Fesh not packaged with Velopack
+                            IFeshLog.log.PrintfnIOErrorMsg $"A newer version of Fesh is available: {nv} , you are using {cv}"
+                            IFeshLog.log.PrintfnIOErrorMsg "Automattic updates are not available because Update.exe was not found in the parent folder."
+                            IFeshLog.log.PrintfnIOErrorMsg "Please re-install from https://github.com/goswinr/Fesh/releases"
+                        else
+                            do! Async.SwitchToContext Fittings.SyncWpf.context
+                            match MessageBox.Show(
+                                fesh.Window,
+                                $"Update Fesh from {cv} to {nv} and restart? Changes are saved.",
+                                "Fesh Updates available!",
+                                MessageBoxButton.YesNo,
+                                MessageBoxImage.Question,
+                                MessageBoxResult.Yes, // default result
+                                MessageBoxOptions.None) with
+                                    | MessageBoxResult.No  ->
+                                        IFeshLog.log.PrintfnInfoMsg "Updating Fesh was skipped."
+                                    | MessageBoxResult.Yes ->
+                                        // if fesh.Tabs.AllTabs |> Seq.map (fun t -> fesh.Tabs.Save(t)) |> Seq.forall id then // save needs to be in sync
+                                        if fesh.Tabs.AskForFileSavingToKnowIfClosingWindowIsOk() then // save needs to be in sync
+                                            do! Async.SwitchToThreadPool()
+                                            IFeshLog.log.PrintfnInfoMsg "All changes saved. Proceeding with update ..."
+                                            IFeshLog.log.PrintfnInfoMsg "Downloading Updates for Fesh ..."
+                                            do! Async.AwaitTask (updateManager.DownloadUpdatesAsync(updateInfo))
+                                            IFeshLog.log.PrintfnInfoMsg "Restarting Fesh to apply updates ..."
+                                            updateManager.ApplyUpdatesAndRestart(updateInfo)
+                                            IFeshLog.log.PrintfnInfoMsg "Updates for Fesh applied. Please restart the application."
+                                        else
+                                            IFeshLog.log.PrintfnIOErrorMsg "Some changes could not be saved. Update of Fesh cancelled."
+                                    | r ->
+                                        IFeshLog.log.PrintfnInfoMsg $"Fesh Updates available, Unknown result from MessageBox.Show: {r}"
                 with e ->
                     IFeshLog.log.PrintfnInfoMsg "Could not check for Velopack updates: %A" e
             } |> Async.Start

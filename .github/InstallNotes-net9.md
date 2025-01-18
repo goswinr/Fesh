@@ -8,15 +8,19 @@ To install just download and run `Fesh-net9-Setup.exe` from the Assets.
 
 No admin rights are required to install or run the app.
 The app will be installed in `C:\Users\{username}\AppData\Local\Fesh\current`.\
-A shortcut will be created on the desktop.\
+A shortcut will be created on the desktop.
+It will automatically offer to update Fesh when a new version is available.
 
-It will automatically suggest to update Fesh when a new version is released.\
+There is also a portable package `Fesh-net9-Portable.zip`.\
+Extract that zip and place it wherever you'd like.\
+It has identical functionality to the installer.\
+It will also automatically offer to update itself when a new version is available.
+
 The installer is digitally code-signed via Azure Trusted Signing Service.\
 It should not raise any security warnings.
 
-There is also a portable package `Fesh-net9-Portable.zip` which does not need to be installed and is self-updating.\
-Feel free to extract your app from that zip and place it wherever you'd like.
+See the [Changelog](https://github.com/goswinr/Fesh/blob/main/CHANGELOG.md) for changes in this release.
 
-See the [Changelog](https://github.com/goswinr/Fesh/blob/main/CHANGELOG.md) for changes in this release
+This release was created with [Velopack](https://velopack.io/).
 
 </details>

@@ -16,7 +16,7 @@ But it works standalone just as well.
 ![Screenshot](https://raw.githubusercontent.com/goswinr/Fesh/main/Media/screen2.png)
 
 It is based on the excellent [AvalonEdit](https://github.com/goswinr/AvalonEditB), that is why it only works on Windows (for now).\
-The editor supports F# 8.0 and has modern IDE features like semantic syntax highlighting, type-info and autocomplete.\
+The editor supports F# 9.0 and has modern IDE features like semantic syntax highlighting, type-info and autocomplete.\
 Unlike a typical F# REPL this editor has the input and the output in two separate windows.\
 Just [like Don Syme always wanted it](https://github.com/dotnet/fsharp/issues/2161#issuecomment-270465310).\
 You can even color the output with [Fescher](https://www.nuget.org/packages/Fesher).
@@ -32,26 +32,6 @@ But it is no longer available. So I created Fesh.
 
 For hosting there is the nuget package [Fesh](https://www.nuget.org/packages/Fesh/). See hosting examples
 [Fesh.Rhino](https://github.com/goswinr/Fesh.Rhino) and [Fesh.Revit](https://github.com/goswinr/Fesh.Revit).
-
-## How to install
-
-### Standalone
-
-Build from the source with
-
-```bash
-dotnet build FeshStandalone.fsproj
-```
-or download the from [Releases](https://github.com/goswinr/Fesh/releases) to any location, **unblock** and run Fesh.exe.
-
-### For hosting in another app
-use the nuget package [Fesh](https://www.nuget.org/packages/Fesh/).\
-Or, to build the Fesh nuget package run:
-
-```bash
-dotnet build FeshHosting.fsproj
-```
-
 
 ## Features
 
@@ -87,23 +67,50 @@ To enable ligatures set the font to `Cascadia Code`.\
 You can change the font in the 'Settings.txt' file at `%APPDATA%\Local\Fesh\Settings\Standalone\Settings.txt`.\
 Or via the menu: `About` -> `Open Settings Folder`.
 
-### Changelog
-see [CHANGELOG.md](https://github.com/goswinr/Fesh/blob/main/CHANGELOG.md)
+## How to install the  Standalone App
 
-### Publishing
+### Installer
 
-or self contained:
+The recommended way is to run the Setup.exe from [Releases](https://github.com/goswinr/Fesh/releases).\
+Fesh will automatically offer to update itself when a new version is available.\
+There is a .NET 9 and a .NET 4.8 version. Apart from the runtime they are the same.
+
+The installer is created with [Velopack](https://velopack.io) and digitally signed.
+
+No admin rights are required to install or run the app.\
+The app will be installed in `\AppData\Local\Fesh`.\
+A shortcut will be created on the desktop.
+
+There is also a portable package in each release.\
+Extract that zip and place it wherever you'd like.\
+It has identical functionality to the installed app,\
+but keeps it's Settings folder in the same directory.\
+There is a ".portable" file in the folder to indicate that.\
+It will also automatically offer to update itself when a new version is available.
+
+
+###  Build from source
+
+Build from the source with:
 
 ```bash
-dotnet publish FeshStandalone.fsproj -c release -r win-x64 -o bin/publish/net9 --framework net9.0-windows --self-contained
-dotnet publish FeshStandalone.fsproj -c release -r win-x64 -o bin/publish/net9 --framework net9.0-windows
-dotnet publish FeshStandalone.fsproj -c release -r win-x64 -o bin/publish/net48 --framework net48
+dotnet build FeshStandalone.fsproj
 ```
+You will still get notifications about new releases, but you have to install them manually.
 
-the use [Velopack](https://docs.velopack.io/packaging/installer) to create an installer:
+
+## How to host Fesh in another app
+
+Use the nuget package [Fesh](https://www.nuget.org/packages/Fesh/).\
+Or, to build the Fesh nuget package run:
 
 ```bash
-vpk pack --packId Fesh --packVersion 0.15.1 --packDir bin/publish/net9 --outputDir bin/installer/net9 --mainExe Fesh.exe --framework net9.0-x64-desktop --icon Media/logo.ico
+dotnet build FeshHosting.fsproj
 ```
 
-https://docs.velopack.io/packaging/deltas#disabling-deltas
+
+## Release Notes
+For changes in each release see the  [CHANGELOG.md](https://github.com/goswinr/Fesh/blob/main/CHANGELOG.md)
+
+## License
+Fesh is licensed under the [MIT License](LICENSE.md).

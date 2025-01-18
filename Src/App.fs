@@ -31,7 +31,7 @@ module App =
     [< STAThread >]
     let runEditorStandalone (args: string []) : int =
         VelopackApp.Build()
-            .SetAutoApplyOnStartup(false)
+            .SetAutoApplyOnStartup(false) // to not install updates even if they are downloaded
             .Run() //https://docs.velopack.io/getting-started/csharp
         let app  = Application() // do first so that pack Uris work
         let fesh = Initialize.everything (None, args)
