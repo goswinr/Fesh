@@ -113,4 +113,4 @@ dotnet build FeshHosting.fsproj
 For changes in each release see the  [CHANGELOG.md](https://github.com/goswinr/Fesh/blob/main/CHANGELOG.md)
 
 ## License
-Fesh is licensed under the [MIT License](LICENSE.md).
+Fesh is licensed under the [MIT License](https://github.com/goswinr/Fesh/blob/main/LICENSE.md).
