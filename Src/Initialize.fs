@@ -92,8 +92,9 @@ module Initialize =
                                             IFeshLog.log.PrintfnInfoMsg "All changes saved. Proceeding with update ..."
                                             IFeshLog.log.PrintfnInfoMsg "Downloading Updates for Fesh ..."
                                             do! Async.AwaitTask (updateManager.DownloadUpdatesAsync(updateInfo))
-                                            if Diagnostics.Process.GetProcessesByName("Fesh").Length  > 1 then
-                                                IFeshLog.log.PrintfnIOErrorMsg "Fesh is running multiple times. Please restart the application manually to apply updates."
+                                            let pk = Diagnostics.Process.GetProcessesByName("Fesh").Length
+                                            if  pk > 1 then
+                                                IFeshLog.log.PrintfnIOErrorMsg $"{pk} Processes of Fesh are running. Please close all and restart the application manually to apply updates."
                                             else
                                                 IFeshLog.log.PrintfnInfoMsg "Restarting Fesh to apply updates ..."
                                                 updateManager.ApplyUpdatesAndRestart(updateInfo)

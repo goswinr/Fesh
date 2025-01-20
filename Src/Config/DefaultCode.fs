@@ -14,15 +14,15 @@ type DefaultCode  (runContext:RunContext) =
 
     let defaultCodeOnFirstRun =
             [
-            "// This is your default code for new files,"
-            "// you can change it by going to the menu: File -> Edit Template File"
+            "// This is your default code for new files."
+            "// You can change it by going to the menu: File -> Edit Template File"
             "// The default code is saved at at " + filePath0
             //"tips: // https://panesofglass.github.io/scripting-workshop/#/"
             //"tips: // http://brandewinder.com/2016/02/06/10-fsharp-scripting-tips/"
             match runContext.DefaultCode with
             | Some dc -> dc
             | None ->
-                "#r \"nuget: Fesher\" // for printf with color"
+                "#r \"nuget: Fesher\" // for printfn in color"
                 ""
                 "open System"
                 "open Fesher"

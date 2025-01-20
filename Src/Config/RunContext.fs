@@ -2,9 +2,6 @@ namespace Fesh.Config
 
 open System
 open Fesh.Model
-open System.IO
-
-
 
 /// hostName: a string for the name of the hosting App (will be used for settings file name an displayed in the Title Bar.
 /// mainWindowHandle: Pointer to main window(nativeInt),
@@ -21,15 +18,6 @@ type HostedStartUpData = {
     }
 
 module Folders =
-    let appParentFolder =
-        // Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData)
-        let fi = IO.FileInfo(Reflection.Assembly.GetAssembly(typeof<HostedStartUpData>).Location )
-        //Because reinstalling the app with Velopack will delete the 'current' folder and its 'Settings' sibling, put the Settings outside the Fesh folder.
-        let mainFolder = fi.Directory.Parent //  the folder called 'Fesh, the parent of 'current'
-        if IO.File.Exists(IO.Path.Combine(mainFolder.FullName, ".portable")) then
-            mainFolder // for portable version don't have an outside folder
-        else
-            mainFolder.Parent // next to the folder called 'current' or completely outside the folder called 'Fesh'.
 
     let validHost(n:string)=
         let mutable n = n
@@ -37,6 +25,8 @@ module Folders =
             n <- n.Replace(c, '_') // make sure host name is a valid file name
         n
 
+    let contains (sd:HostedStartUpData) (s:string) =
+        sd.hostName.IndexOf(s, StringComparison.OrdinalIgnoreCase) >= 0
 
 open Folders
 
@@ -52,9 +42,25 @@ type RunContext (host:HostedStartUpData option) =
         let path =
             match host with
             |None    ->
+                let appParentFolder =
+                    let fi = IO.FileInfo(Reflection.Assembly.GetAssembly(typeof<HostedStartUpData>).Location )
+                    //Because reinstalling the app with Velopack will delete the 'current' folder and its 'Settings' sibling, put the Settings outside the Fesh folder.
+                    let mainFolder = fi.Directory.Parent //  the folder called 'Fesh, the parent of 'current'
+                    if IO.File.Exists(IO.Path.Combine(mainFolder.FullName, ".portable")) then
+                        mainFolder // for portable version don't have an outside folder
+                    else
+                        mainFolder.Parent // next to the folder called 'current' or completely outside the folder called 'Fesh'.
+
                 if isRunningOnDotNetCore then IO.Path.Combine(appParentFolder.FullName, $"Fesh.Settings")  // Standalone
                 else                          IO.Path.Combine(appParentFolder.FullName, $"Fesh.net48.Settings")  // Standalone .NET Framework
-            |Some sd ->                       IO.Path.Combine(appParentFolder.FullName, $"Fesh.{validHost sd.hostName}.Settings")
+
+            |Some sd ->
+                let localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData)
+                if   contains sd "Rhino" then   IO.Path.Combine(localAppData, $"Fesh.Rhino.Settings") // don't use C:\Users\gwins\AppData\Roaming\McNeel\Rhinoceros\packages\8.0\Fesh\Fesh.Rhino.Settings
+                elif contains sd "Revit" then   IO.Path.Combine(localAppData, $"Fesh.Revit.Settings") // use same of net48 and net8
+                elif contains sd "AutoCAD" then IO.Path.Combine(localAppData, $"Fesh.AutoCAD.Settings")
+                else                            IO.Path.Combine(localAppData, $"Fesh.{validHost sd.hostName}.Settings")
+
         IO.Directory.CreateDirectory(path) |> ignore
         path
 
