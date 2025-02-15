@@ -15,6 +15,7 @@
     <NeutralLanguage>en</NeutralLanguage>
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>  <!--to only have the English resources-->
     <GenerateDocumentationFile>true</GenerateDocumentationFile>	 <!-- does not work when used in visual studio? only dotnet sdk ?-->
+    <DisableImplicitFSharpCoreReference>true</DisableImplicitFSharpCoreReference> <!-- for dotnet outdated tool to work -->
 
     <RootNamespace>Fesh</RootNamespace>
     <AssemblyName>Fesh</AssemblyName>
@@ -62,7 +63,7 @@
     <PackageReference Include="System.Private.Uri" Version="4.3.2" />    <!-- warning NU1903: Package 'System.Private.Uri' 4.3.0 has a known high severity vulnerability, https://github.com/advisories/GHSA-5f2m-466j-3848 -->
 
     <!-- normally don't include FSharp.Core in a library, but here it needs to match FSharp.Compiler.Service-->
-	  <PackageReference Update="FSharp.Core" Version="9.0.101" />
+	  <PackageReference Include="FSharp.Core" Version="9.0.201" />
 	  <PackageReference Include="FSharp.Compiler.Service" Version="43.9.101" />
 
 	  <PackageReference Include="Fittings" Version="0.9.0" />
