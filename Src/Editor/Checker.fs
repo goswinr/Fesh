@@ -325,7 +325,7 @@ type Checker private ()  =
                         )
 
         if decls.IsError then
-            IFeshLog.log.PrintfnAppErrorMsg "*ERROR in GetDeclarationListInfo: %A" decls //TODO use log
+            IFeshLog.log.PrintfnAppErrorMsg $"*ERROR in GetDeclarationListInfo of {decls.Items.Length} items."  //TODO use log
             None
         else
             // IFeshLog.log.PrintfnDebugMsg $"*2.1 GetCompletions for {posX} found {decls.Items.Length}"

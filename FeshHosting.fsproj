@@ -5,7 +5,7 @@
     <OutputType>Library</OutputType>
     <UseWPF>true</UseWPF>
     <UseWindowsForms>true</UseWindowsForms><!--inherited from Avalonedit ?-->
-    <TargetFrameworks>net472;net7.0-windows</TargetFrameworks><!--net7 for Rhino3D-->
+    <TargetFrameworks>net472;net7.0-windows</TargetFrameworks><!--net7 for Rhino3D, net 8 for Revit-->
     <DefineConstants Condition="'$(TargetFramework)' == 'net472'">NETFRAMEWORK</DefineConstants>
     <!-- <RuntimeIdentifier>win-x64</RuntimeIdentifier> -->
     <Configurations>Release</Configurations>
@@ -53,20 +53,22 @@
   </PropertyGroup>
 
   <ItemGroup>
+
     <PackageReference Include="Velopack" Version="0.0.1053" />
     <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="all" IncludeAssets="runtime; build; native; contentfiles; analyzers; buildtransitive" />
     <PackageReference Include="Ionide.KeepAChangelog.Tasks" Version="0.1.8" PrivateAssets="all"  />
-    <!-- <PackageReference Include="System.Net.Http" Version="4.3.4" />  -->
+
     <PackageReference Include="Microsoft.VisualBasic" Version="10.3.0" /> <!-- to move files to the recycle bin instead of deleting them -->
-	  <PackageReference Include="FSharp.Compiler.Service" Version="43.9.101" />
-    <!-- normally don't include FSharp.Core in a library, but Update to latest version is needed for latest FSharp.Compiler.Service-->
-	  <PackageReference Update="FSharp.Core" Version="9.0.101" />
     <PackageReference Include="System.Private.Uri" Version="4.3.2" />    <!-- warning NU1903: Package 'System.Private.Uri' 4.3.0 has a known high severity vulnerability, https://github.com/advisories/GHSA-5f2m-466j-3848 -->
 
+    <!-- normally don't include FSharp.Core in a library, but here it needs to match FSharp.Compiler.Service-->
+	  <PackageReference Update="FSharp.Core" Version="9.0.101" />
+	  <PackageReference Include="FSharp.Compiler.Service" Version="43.9.101" />
 
 	  <PackageReference Include="Fittings" Version="0.9.0" />
 	  <PackageReference Include="AvalonLog" Version="0.17.0" />
     <!-- <ProjectReference Include="../AvalonLog/AvalonLog.fsproj" /> -->
+
   </ItemGroup>
 
   <ItemGroup>

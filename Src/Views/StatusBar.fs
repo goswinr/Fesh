@@ -156,6 +156,7 @@ type CheckerStatus (grid:TabsAndLog) as this =
         this.Text <- checkingTxt
         this.Background <- waitCol //originalBackGround
 
+        tabs.OnTabChanged.Add (fun _ -> TypeInfo.LogErrors.Clear()) // to show old errors in new tab again
         tabs.OnTabChanged.Add (fun t -> updateCheckState(t.Editor.FileCheckState))
         Checker.CheckingStateChanged.Add updateCheckState
         this.MouseLeftButtonDown.Add ( fun _ -> CheckerStatus.goToNextSegment(grid.Tabs.Current.Editor))

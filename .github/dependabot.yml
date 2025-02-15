@@ -7,15 +7,11 @@ updates:
     schedule:
       interval: "weekly"
 
-  # Update to newer NuGet dependencies
-  - package-ecosystem: "nuget"
-    directory: "/"
-    schedule:
-      interval: "daily"
-    # ignore:
-    #   - dependency-name: "FSharp.Core"
-
-  # - package-ecosystem: "nuget"
-  #   directory: "/Tests/"
-  #   schedule:
-  #     interval: "daily"
+ # don't do nuget here, WPF does not build correctly on linux
+# to work on FSharp.Core too the fsproj needs : <DisableImplicitFSharpCoreReference>true</DisableImplicitFSharpCoreReference>
+# and <PackageReference Include="FSharp.Core" Version= ...
+# see https://github.com/dependabot/dependabot-core/issues/10883
+# - package-ecosystem: "nuget"
+#   directory: "/"
+#   schedule:
+#     interval: "daily"

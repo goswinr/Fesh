@@ -1,0 +1,74 @@
+name: Check dotnet tools  # this name shows in Readme badge
+# In the Github UI this workflow need: Settings -> Actions -> General -> Workflow Permissions:
+#  'Read and write permissions'  and
+#  'Allow Github Actions to create and approve pull requests'
+
+on:
+  # Allows you to run this workflow manually from the Actions tab in Github.com
+  workflow_dispatch:
+
+  schedule:
+    - cron: '0 0 * * *'   # Runs daily at midnight UTC
+    # - cron: '0 * * * *'   # Runs every hour for testing
+    # - cron: '*/6 * * * *' # Runs every 6 minutes for testing
+
+  # push: cannot trigger a pull request , see https://github.com/peter-evans/create-pull-request/tree/v7/?tab=readme-ov-file#token
+
+permissions: # https://github.com/peter-evans/create-pull-request/tree/v7/?tab=readme-ov-file#token
+  contents: write
+  pull-requests: write
+
+jobs:
+  nuget-update:
+    runs-on: windows-latest # so that WPF build works too
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '9.x' # Specify the .NET version you are using
+
+    # (1) update dotnet tools
+    - name: Update dotnet tools
+      id: update-dotnet-tools
+      run: dotnet tool update --all --prerelease --verbosity minimal > tool-update.txt 2>&1
+
+    - name: Parse tool update output
+      shell: pwsh
+      run: |
+        $output = Get-Content tool-update.txt
+        $updatedTools = $output | Where-Object { $_ -match "successfully updated" }
+        $toolNames = $updatedTools | ForEach-Object { if ($_ -match "'([^']+)'") { $matches[1] } } | Where-Object { $_ }
+        $toolList = "Bump dotnet tools: " + ($toolNames -join ', ')        
+        echo "COMMIT_MSG=$toolList" >> $env:GITHUB_ENV               
+    
+    - name: Read tool-update.txt file
+      id: read-tool-update
+      uses: juliangruber/read-file-action@v1
+      with:
+        path: ./tool-update.txt
+
+    - name: Delete tool-update.txt file
+      shell: pwsh
+      run: Remove-Item -Path tool-update.txt -Force
+
+    # (3) create a PR with the updated dependencies
+    # This will not create a duplicate PR if one exists already
+    - name: Create Pull Request
+      uses: peter-evans/create-pull-request@v7
+      with:
+        commit-message: ${{ env.COMMIT_MSG }}
+        committer: github-actions[bot] <github-actions[bot]@users.noreply.github.com>
+        author: ${{ github.actor }} <${{ github.actor_id }}+${{ github.actor }}@users.noreply.github.com>
+        branch: dotnet-tool-update-bot
+        delete-branch: true
+        title:  ${{ env.COMMIT_MSG }}
+        body: ${{ steps.read-tool-update.outputs.content }}
+        labels: "dotnet-tool-update"
+
+
+
+

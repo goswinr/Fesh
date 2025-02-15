@@ -567,22 +567,25 @@ type TypeInfo private () =
                 [ for el in els do
                     match el with
                     | ToolTipElement.None ->
-                        yield {name = ""; signature = [||]; fullName=""; xmlDoc = Error  "*no xml doc string*"}
+                        { name = ""; signature = [||]; fullName=""; xmlDoc = Error  "*no xml doc string*"}
 
                     | ToolTipElement.CompositionError(text) ->
                         if loggedErrors.Add(text) then // print only once
-                            IFeshLog.log.PrintfnIOErrorMsg "Trying to get a Tooltip for 'fullName' failed with:\r\n%s" text
-                        yield {name = ""; signature = [||]; fullName=""; xmlDoc = Error ("*FSharpStructuredToolTipElement.CompositionError:\r\n"+ text)}
+                            if text.Contains "must add a reference to assembly '" then
+                                AutoFixErrors.check(text)
+                            IFeshLog.log.PrintfnAppErrorMsg $"Trying to get a Tooltip for '{fullName}' failed with:\r\n{text}"
+                        { name = ""; signature = [||]; fullName=""; xmlDoc = Error ("*FSharpStructuredToolTipElement.CompositionError:\r\n"+ text)}
 
                     | ToolTipElement.Group(tooTipElemDataList) ->
                         for tooTipElemData in tooTipElemDataList do
-                            yield { name      = Option.defaultValue "" tooTipElemData.ParamName
-                                    signature = tooTipElemData.MainDescription
-                                    fullName  = fullName
-                                    xmlDoc    = findXmlDoc tooTipElemData.XmlDoc}
+                            { name      = Option.defaultValue "" tooTipElemData.ParamName
+                              signature = tooTipElemData.MainDescription
+                              fullName  = fullName
+                              xmlDoc    = findXmlDoc tooTipElemData.XmlDoc
+                              }
                 ]
 
-
+    (*
     /// Returns the names of optional Arguments in a given method call.
     static let namesOfOptnlArgsUNUSED(fsu:FSharpSymbolUse)  :ResizeArray<OptDefArg>=
         let optDefs = ResizeArray<OptDefArg>(0)
@@ -618,6 +621,8 @@ type TypeInfo private () =
 
         optDefs
 
+    *)
+
     static let mutable cachedToolTipData: list<ToolTipData> = []
     static let mutable cachedExtraData = {declListItem=None;semanticClass=None;declLocation=None;dllLocation=None }
 
@@ -627,6 +632,9 @@ type TypeInfo private () =
         |> HashSet
 
     //--------------public values and functions -----------------
+
+    /// to avoid duplicated error messages
+    static member LogErrors = loggedErrors
 
     static member loadingText = loadingTxt
 
