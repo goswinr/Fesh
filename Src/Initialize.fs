@@ -168,7 +168,7 @@ module Initialize =
             let errHandler = Fittings.ErrorHandling (
                 appName,
                 (fun () -> saveBeforeFailing();  "FSI Error Stream:\r\n" + log.FsiErrorsStringBuilder.ToString()),
-                (fun _err -> true)
+                (fun err -> err.Contains "Fesh") // do not unhandled log error to a file, if unrelated to fesh, ( might happen when Fesh is loaded into app-domain or host)
                 )
             errHandler.Setup()// do as soon as log exists
         with e ->

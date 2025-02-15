@@ -42,7 +42,6 @@ module UtilCompletion =
         tb.Padding <- Thickness(0. , 0. , 8. , 0. ) //left top right bottom / so that it does not appear to be trimmed
         tb
 
-
 type CompletionInfo =
     | Decl    of decl:DeclarationListItem * getToolTip:(DeclarationListItem -> obj) // getToolTip is a function that returns the tooltip text
     | KeyWord of text:string*toolTip:string
@@ -126,16 +125,23 @@ type CompletionItem(state: InteractionState, info:CompletionInfo , isDotCompleti
                 && ts.[ts.Length-7].Text = ":" then
                     complText <- complText + "()"
 
-        // IFeshLog.log.PrintfnDebugMsg "completionSegment: '%s' : %A" (textArea.Document.GetText(completionSegment)) completionSegment
-        // Extend the completionSegment to the right to include the whole word:
         let doc = textArea.Document
+
+        // IFeshLog.log.PrintfnDebugMsg "completionSegment: '%s' : %A" (textArea.Document.GetText(completionSegment)) completionSegment
+
         let extendedSegment =
-            let mutable k = 0
             let mutable e = completionSegment.EndOffset
-            let inline isValidIdentifierChar c = Char.IsLetterOrDigit(c) || c = '_' || c = '\'' || c = '`'
-            while k < 20 && e < doc.TextLength && isValidIdentifierChar(doc.GetCharAt(e)) do // don't extend by  more than 20 chars
-                e <- e + 1
-                k <- k + 1
+            // This deletes stuf that should be kept in most cases, don't do it, needs refinement:
+            // Extend the completionSegment to the right to include the whole word:
+            // let prevChar = doc.GetCharAt(max 0 (textArea.Caret.Offset - 1))
+            // IFeshLog.log.PrintfnDebugMsg $"prevChar '{prevChar}'"
+            // if Char.IsLetterOrDigit(prevChar) || prevChar = '_' || prevChar = '.'  then // test if this completion is  started inside a word
+            //     // Extend the completionSegment to the left to include the whole word:
+            //     let mutable k = 0
+            //     let inline isValidIdentifierChar c = Char.IsLetterOrDigit(c) || c = '_' //|| c = '\'' || c = '`'
+            //     while k < 20 && e < doc.TextLength && isValidIdentifierChar(doc.GetCharAt(e)) do // don't extend by more than 20 chars
+            //         e <- e + 1
+            //         k <- k + 1
             ISegment.FormTill(completionSegment.Offset, e)
 
         // replace in the document:
@@ -150,7 +156,7 @@ type CompletionItem(state: InteractionState, info:CompletionInfo , isDotCompleti
 
         // Event sequence on pressing enter in completion window:
         // (1) Close window
-        // (2) Insert text into editor (triggers completion window agin if it was one char only)
+        // (2) Insert text into editor (triggers completion window again if it was one char only)
         // (3) Raise InsertionRequested event
         // https://github.com/icsharpcode/AvalonEdit/blob/8fca62270d8ed3694810308061ff55c8820c8dfc/AvalonEditB/CodeCompletion/CompletionWindow.cs#L100
 
@@ -315,7 +321,7 @@ type Completions(state: InteractionState) =
                     //IFeshLog.log.PrintfnDebugMsg "*5.2.1: prefilter '%s'" prefilter
 
                     if prefilter.Length > 0 then
-                        complList.SelectItem(prefilter) //to pre-filter the list by al typed characters
+                        complList.SelectItem prefilter //to pre-filter the list by al typed characters
                         //IFeshLog.log.PrintfnDebugMsg "*5.3: count after SelectItem(prefilter): %d" complList.ListBox.Items.Count
 
                     if complList.ListBox.Items.Count > 0 // list is empty if prefilter does not match any item
@@ -329,7 +335,7 @@ type Completions(state: InteractionState) =
                             w.Width <- 250 // default 175
                             //complList.Height <- 400.  // has  UI bug
                             //w.Height <- 400. // does not work
-                            w.BorderThickness <- Thickness(0.0) //https://stackoverflow.com/questions/33149105/how-to-change-the-style-on-avalonedit-codecompletion-window
+                            w.BorderThickness <- Thickness 0.0 //https://stackoverflow.com/questions/33149105/how-to-change-the-style-on-avalonedit-codecompletion-window
                             w.ResizeMode      <- ResizeMode.NoResize // needed to have no border!
                             w.WindowStyle     <- WindowStyle.None // = no border
                             w.SizeToContent   <- SizeToContent.WidthAndHeight // https://github.com/icsharpcode/AvalonEdit/blob/master/ICSharpCode.AvalonEdit/CodeCompletion/CompletionWindow.cs#L47
