@@ -55,8 +55,8 @@ jobs:
     - name: Parse JSON and concatenate unique versions
       shell: pwsh
       run: |
-        if (Test-Path 'outdatedStand.json') {
-          $json = Get-Content 'outdatedStand.json' | ConvertFrom-Json
+        if (Test-Path 'outdated.json') {
+          $json = Get-Content 'outdated.json' | ConvertFrom-Json
           $uniqueDeps = @{}
           foreach ($project in $json.Projects) {
             foreach ($framework in $project.TargetFrameworks) {
