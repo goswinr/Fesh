@@ -46,11 +46,11 @@
   <ItemGroup>
     <PackageReference Include="Velopack" Version="0.0.1053" />
     <PackageReference Include="Ionide.KeepAChangelog.Tasks" Version="0.1.8" PrivateAssets="all"  />
-    <!-- <PackageReference Include="System.Net.Http" Version="4.3.4" />  -->
+
     <PackageReference Include="Microsoft.VisualBasic" Version="10.3.0" /> <!-- to move files to the recycle bin instead of deleting them -->
+    <PackageReference Include="System.Private.Uri" Version="4.3.2" />    <!-- warning NU1903: Package 'System.Private.Uri' 4.3.0 has a known high severity vulnerability, https://github.com/advisories/GHSA-5f2m-466j-3848 -->
     <PackageReference Include="FSharp.Compiler.Service" Version="43.9.101" />
     <PackageReference Update="FSharp.Core" Version="9.0.101"  GeneratePathProperty="true"/>
-    <PackageReference Include="System.Private.Uri" Version="4.3.2" />    <!-- warning NU1903: Package 'System.Private.Uri' 4.3.0 has a known high severity vulnerability, https://github.com/advisories/GHSA-5f2m-466j-3848 -->
 
     <PackageReference Include="Fittings" Version="0.9.0" />
     <PackageReference Include="AvalonLog" Version="0.17.0" />
@@ -135,8 +135,8 @@
     <WriteLinesToFile File="./bin/ChangelogVersion.txt" Lines="@(CurrentReleaseChangelog)" Overwrite="true" ContinueOnError="false" />
 
     <!--netstandard dll is needed for editor tooling only, copy it because it might not be installed on host PC . see also  https://github.com/fsprojects/IfSharp/issues/213 -->
-    <Copy SourceFiles="$(PkgNETStandard_Library)/build/netstandard2.0/ref/netstandard.dll" DestinationFiles="$(TargetDir)netstandard.dll" ContinueOnError="false" Condition="'$(TargetFramework)' == 'net472'"/>
-    <Copy SourceFiles="$(PkgNETStandard_Library)/build/netstandard2.0/ref/netstandard.xml" DestinationFiles="$(TargetDir)netstandard.xml" ContinueOnError="false" Condition="'$(TargetFramework)' == 'net472'"/>
+    <Copy SourceFiles="$(PkgNETStandard_Library)/build/netstandard2.0/ref/netstandard.dll" DestinationFiles="$(TargetDir)netstandard.dll" ContinueOnError="false" Condition="'$(TargetFramework)' == 'net48'"/>
+    <Copy SourceFiles="$(PkgNETStandard_Library)/build/netstandard2.0/ref/netstandard.xml" DestinationFiles="$(TargetDir)netstandard.xml" ContinueOnError="false" Condition="'$(TargetFramework)' == 'net48'"/>
 
     <!--FSharp.Core.xml because <FSharpCoreIncludeDocFileInOutput> does not seem to work add it explicitly: -->
     <Copy SourceFiles="$(PkgFSharp_Core)/lib/netstandard2.0/FSharp.Core.xml" DestinationFiles="$(TargetDir)FSharp.Core.xml" ContinueOnError="false" />

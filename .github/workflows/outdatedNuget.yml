@@ -37,26 +37,33 @@ jobs:
         dotnet-version: '9.x' # Specify the .NET version you are using
 
     - name: Restore NuGet packages
-      run: dotnet restore
+      run: |
+        dotnet restore FeshHosting.fsproj
+        dotnet restore FeshStandalone.fsproj
 
     - name: Install dotnet-outdated
       run: dotnet tool install -g dotnet-outdated-tool
 
     - name: Simulate Update NuGet packages to get JSON output
-      run: dotnet outdated --output outdated.json --exclude FSharp.Core --exclude Microsoft.Extensions.Logging
+      # dotnet-outdated fails if there are two fsproj files in the same directory, see https://github.com/dotnet-outdated/dotnet-outdated/issues/204
+      # so just rename the file to avoid this:
+      run: |
+        mv FeshStandalone.fsproj FeshStandalone.fsprojOFF
+        dotnet outdated --output outdated.json 
+        mv FeshStandalone.fsprojOFF FeshStandalone.fsproj    
 
     - name: Parse JSON and concatenate unique versions
       shell: pwsh
       run: |
-        if (Test-Path 'outdated.json') {
-          $json = Get-Content 'outdated.json' | ConvertFrom-Json
+        if (Test-Path 'outdatedStand.json') {
+          $json = Get-Content 'outdatedStand.json' | ConvertFrom-Json
           $uniqueDeps = @{}
           foreach ($project in $json.Projects) {
             foreach ($framework in $project.TargetFrameworks) {
               foreach ($dep in $framework.Dependencies) {
-          if (-not $uniqueDeps.ContainsKey($dep.Name)) {
-            $uniqueDeps[$dep.Name] = "$($dep.Name) to $($dep.LatestVersion) (from $($dep.ResolvedVersion))"
-          }
+                if (-not $uniqueDeps.ContainsKey($dep.Name)) {
+                  $uniqueDeps[$dep.Name] = "$($dep.Name) to $($dep.LatestVersion) (from $($dep.ResolvedVersion))"
+                }
               }
             }
           }
@@ -73,7 +80,16 @@ jobs:
     - name: Update NuGet packages and get Markdown output
       # if no updates are available, no output.json file is created
       if: ${{env.COMMIT_MSG }}
-      run: dotnet outdated --upgrade --output outdated.md --output-format Markdown --exclude FSharp.Core --exclude Microsoft.Extensions.Logging
+      # dotnet-outdated fails if there are two fsproj files in the same directory, see https://github.com/dotnet-outdated/dotnet-outdated/issues/204
+      # so just rename the file to avoid this:
+      run: |
+        mv FeshStandalone.fsproj FeshStandalone.fsprojOFF
+        dotnet outdated --upgrade 
+        mv FeshStandalone.fsprojOFF FeshStandalone.fsproj
+        
+        mv FeshHosting.fsproj FeshHosting.fsprojOFF
+        dotnet outdated --upgrade --output outdated.md --output-format Markdown
+        mv FeshHosting.fsprojOFF FeshHosting.fsproj
 
     - name: Read outdated.md file
       if: ${{env.COMMIT_MSG }}
