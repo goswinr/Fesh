@@ -67,7 +67,7 @@
 	  <PackageReference Include="FSharp.Compiler.Service" Version="43.9.201" />
 
 	  <PackageReference Include="Fittings" Version="0.10.0" />
-	  <PackageReference Include="AvalonLog" Version="0.17.0" />
+	  <PackageReference Include="AvalonLog" Version="0.18.0" />
     <!-- <ProjectReference Include="../AvalonLog/AvalonLog.fsproj" /> -->
 
   </ItemGroup>
