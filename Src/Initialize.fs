@@ -167,7 +167,8 @@ module Initialize =
             // TODO attempt to save files before closing ?  or save anyway every 2 minutes to backup folder if less than 10k lines
             let errHandler = Fittings.ErrorHandling (
                 appName,
-                fun () -> saveBeforeFailing();  "FSI Error Stream:\r\n" + log.FsiErrorsStringBuilder.ToString()
+                (fun () -> saveBeforeFailing();  "FSI Error Stream:\r\n" + log.FsiErrorsStringBuilder.ToString()),
+                (fun _err -> true)
                 )
             errHandler.Setup()// do as soon as log exists
         with e ->
