@@ -1,10 +1,13 @@
-name: Dependabot for Nuget dependencies and Github Actions
 version: 2
 updates:
-  # Update to newer version of GitHub Actions
+  # Update GitHub Actions
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "weekly"
 
   # don't do nuget here, WPF does not build correctly on linux
+
+
+
+
