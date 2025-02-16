@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+
+## [0.23.0] - 2024-02-16
+### Fixed
+- include FSharp.Core.xml
+
 ## [0.22.0] - 2025-02-15
 ### Fixed
 - Completions never replace next word too eagerly
@@ -88,8 +93,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - first public release
 
-[Unreleased]: https://github.com/goswinr/Fesh/compare/0.22.0...HEAD
-[0.22.0]: https://github.com/goswinr/Fesh/compare/0.21.0...0.22.0
+[Unreleased]: https://github.com/goswinr/Fesh/compare/0.23.0...HEAD
+[0.23.0]: https://github.com/goswinr/Fesh/compare/0.22.0...0.23.0
 [0.21.0]: https://github.com/goswinr/Fesh/compare/0.20.0...0.21.0
 [0.20.0]: https://github.com/goswinr/Fesh/compare/0.19.0...0.20.0
 [0.19.0]: https://github.com/goswinr/Fesh/compare/0.16.0...0.19.0

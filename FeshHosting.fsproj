@@ -63,7 +63,7 @@
     <PackageReference Include="System.Private.Uri" Version="4.3.2" />    <!-- warning NU1903: Package 'System.Private.Uri' 4.3.0 has a known high severity vulnerability, https://github.com/advisories/GHSA-5f2m-466j-3848 -->
 
     <!-- normally don't include FSharp.Core in a library, but here it needs to match FSharp.Compiler.Service-->
-	  <PackageReference Include="FSharp.Core" Version="9.0.201" />
+	  <PackageReference Include="FSharp.Core" Version="9.0.201" GeneratePathProperty="true" />
 	  <PackageReference Include="FSharp.Compiler.Service" Version="43.9.201" />
 
 	  <PackageReference Include="Fittings" Version="0.10.0" />
@@ -72,14 +72,22 @@
 
   </ItemGroup>
 
+  <Target Name="CopyFSharpCoreXml" BeforeTargets="BeforeBuild">
+    <!--  because Pack="true" PackagePath="\"  fails source $(PkgFSharp_Core) , so copy it first -->
+    <Copy SourceFiles="$(PkgFSharp_Core)/lib/netstandard2.0/FSharp.Core.xml"  DestinationFolder="Src"  ContinueOnError="false" />
+  </Target>
+
   <ItemGroup>
-    <None Include="README.md" Pack="true" PackagePath="\" />
-    <None Include="Media/logo128.png" Pack="true" PackagePath="\" /> <!--PackagePath = "\" makes the file available to nuget pack tool-->
-    <EmbeddedResource Include="Media/logo.res" />  <!--  for Application Icon in explorer-->
+    <Content Include="README.md" Pack="true" PackagePath="\" />
+    <Content Include="Media/logo128.png" Pack="true" PackagePath="\" /> <!--PackagePath = "\" makes the file available to nuget pack tool-->
     <Resource Include="Media/logo.ico" />          <!--  for Application Icon in primary windows-->
     <Resource Include="Media/logoGray.ico" />      <!--  for Application Icon in secondary PopOut windows-->
+    <EmbeddedResource Include="Media/logo.res" />  <!--  for Application Icon in explorer-->
 
-	  <None Include="Src/SyntaxHighlightingFSharp.xshd" CopyToOutputDirectory="PreserveNewest" TargetPath="SyntaxHighlightingFSharp.xshd" Pack="true" PackagePath="\" />
+	  <Content Include="Src/SyntaxHighlightingFSharp.xshd" CopyToOutputDirectory="PreserveNewest" TargetPath="SyntaxHighlightingFSharp.xshd" Pack="true" PackagePath="\" />
+
+    <!-- so that the hosting app does not need to pull in FSharp.Core separately just for right the xml -->
+    <Content Include="Src/FSharp.Core.xml" CopyToOutputDirectory="Always" TargetPath="FSharp.Core.xml"  Pack="true" PackagePath="\" />
 
     <Compile Include="Src/Util.fs" />
     <Compile Include="Src/ParseFs.fs" />
