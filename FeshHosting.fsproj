@@ -84,10 +84,10 @@
     <Resource Include="Media/logoGray.ico" />      <!--  for Application Icon in secondary PopOut windows-->
     <EmbeddedResource Include="Media/logo.res" />  <!--  for Application Icon in explorer-->
 
-	  <Content Include="Src/SyntaxHighlightingFSharp.xshd" CopyToOutputDirectory="PreserveNewest" TargetPath="SyntaxHighlightingFSharp.xshd" Pack="true" PackagePath="\" />
+	  <Content Include="Src/SyntaxHighlightingFSharp.xshd" CopyToOutputDirectory="PreserveNewest"  Pack="true" PackagePath="\" />
 
     <!-- so that the hosting app does not need to pull in FSharp.Core separately just for right the xml -->
-    <Content Include="Src/FSharp.Core.xml" CopyToOutputDirectory="Always" TargetPath="FSharp.Core.xml"  Pack="true" PackagePath="\" />
+    <Content Include="Src/FSharp.Core.xml" CopyToOutputDirectory="Always"  Pack="true" PackagePath="\" />
 
     <Compile Include="Src/Util.fs" />
     <Compile Include="Src/ParseFs.fs" />

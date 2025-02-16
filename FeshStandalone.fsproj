@@ -129,9 +129,9 @@
     <Compile Include="Src/Initialize.fs" />
     <Compile Include="Src/App.fs" />
 
-    <Content Include="$(PkgFSharp_Core)/lib/netstandard2.0/FSharp.Core.xml" CopyToOutputDirectory="Always" TargetPath="FSharp.Core.xml"  />
-    <Content Include="$(PkgNETStandard_Library)/build/netstandard2.0/ref/netstandard.dll" Condition="'$(TargetFramework)' == 'net48'" CopyToOutputDirectory="Always" TargetPath="netstandard.dll" />
-    <Content Include="$(PkgNETStandard_Library)/build/netstandard2.0/ref/netstandard.xml" Condition="'$(TargetFramework)' == 'net48'" CopyToOutputDirectory="Always" TargetPath="netstandard.xml" />
+    <Content Include="$(PkgFSharp_Core)/lib/netstandard2.0/FSharp.Core.xml" CopyToOutputDirectory="Always"  />
+    <Content Include="$(PkgNETStandard_Library)/build/netstandard2.0/ref/netstandard.dll" Condition="'$(TargetFramework)' == 'net48'" CopyToOutputDirectory="Always" />
+    <Content Include="$(PkgNETStandard_Library)/build/netstandard2.0/ref/netstandard.xml" Condition="'$(TargetFramework)' == 'net48'" CopyToOutputDirectory="Always" />
 
 
   </ItemGroup>
