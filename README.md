@@ -11,8 +11,8 @@
 Fesh is an  **F**# **E**ditor & **S**cripting **H**ost.<br>
 On Windows.
 
-It is designed for embedding F# as application scripting tool.<br>B
-ut it works standalone just as well.
+It is designed for embedding F# as application scripting tool.<br>
+But it works standalone just as well.
 
 ![Screenshot](https://raw.githubusercontent.com/goswinr/Fesh/main/Media/screen2.png)
 
