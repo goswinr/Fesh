@@ -40,7 +40,7 @@
 
     <OutputPath>bin/standalone</OutputPath>
     <OtherFlags>$(OtherFlags) --warnon:1182</OtherFlags>     <!-- 1182: warn on unused variables -->
-    <ChangelogFile>CHANGELOG.md</ChangelogFile> <!-- for Ionide.KeepAChangelog.Tasks -->
+    <ChangelogFile>./CHANGELOG.md</ChangelogFile> <!-- for Ionide.KeepAChangelog.Tasks -->
     <Configurations>Release</Configurations>
   </PropertyGroup>
 

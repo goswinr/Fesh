@@ -110,7 +110,7 @@ jobs:
       with:
         commit-message: ${{ env.COMMIT_MSG }}
         committer: github-actions[bot] <github-actions[bot]@users.noreply.github.com>
-        author: ${{ github.actor }} <${{ github.actor_id }}+${{ github.actor }}@users.noreply.github.com>
+        author: dotnet-outdated[bot] <dotnet-outdated[bot]@users.noreply.github.com>
         branch: dotnet-outdated-bot
         delete-branch: true
         title: ${{ env.COMMIT_MSG }}

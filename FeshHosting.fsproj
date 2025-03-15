@@ -34,7 +34,7 @@
 
     <OutputPath>bin/hosting</OutputPath>
     <OtherFlags>$(OtherFlags) --warnon:1182</OtherFlags>   <!-- 1182: warn on unused variables -->
-    <ChangelogFile>CHANGELOG.md</ChangelogFile> <!-- for Ionide.KeepAChangelog.Tasks -->
+    <ChangelogFile>./CHANGELOG.md</ChangelogFile> <!-- for Ionide.KeepAChangelog.Tasks -->
   </PropertyGroup>
 
   <PropertyGroup>
@@ -156,6 +156,11 @@
   <Target Name="WriteChangelogVersion" AfterTargets="AfterBuild"> <!-- to check output from Ionide.KeepAChangelog.Tasks current git tag in gh actions -->
     <WriteLinesToFile File="./bin/ChangelogVersion.txt" Lines="@(CurrentReleaseChangelog)" Overwrite="true" ContinueOnError="false" />
   </Target>
+
+  <!-- <Target Name="CopyReadmeToDocs" AfterTargets="Build">
+    for fsdocs to build locally
+    <Copy SourceFiles="./README.md" DestinationFiles="./Docs/index.md" ContinueOnError="false"/>
+  </Target> -->
 
 </Project>
 
