@@ -19,7 +19,8 @@
   https://marketplace.visualstudio.com/items?itemName=kamikillerto.vscode-colorize
   -->
   <Color name="Comment"             foreground="#777777" fontWeight="300" fontStyle="italic" stylisticSet1="true"/>
-  <Color name="DocComment"          foreground="#005500" fontWeight="300" fontStyle="italic" />
+  <Color name="DocComment"          foreground="#005500" fontWeight="400" fontStyle="italic" stylisticSet1="true"/>
+  <Color name="BracketComment"      foreground="#555555" fontWeight="800" fontStyle="italic" stylisticSet1="true"/>
   <Color name="TODO"                foreground="#EE0000" fontWeight="800"/>
   <Color name="HACK"                foreground="#A0A000" fontWeight="800"/>
 
@@ -139,6 +140,7 @@
       <Word>HACK</Word>
       <Word>UNDONE</Word>
     </Keywords>
+    <Rule color="BracketComment">\([\d\.]+\)</Rule>
   </RuleSet >
 
   <RuleSet name="CommentSet">
