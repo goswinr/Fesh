@@ -28,41 +28,75 @@ module Folders =
     let contains (sd:HostedStartUpData) (s:string) =
         sd.hostName.IndexOf(s, StringComparison.OrdinalIgnoreCase) >= 0
 
+
+    let createMutualShortcuts(pathApp:string ,pathSettings:string) =
+        async{
+            try
+                let pathApp = pathApp.Replace('\\', '/')
+                let pathSettings = pathSettings.Replace('\\', '/')
+
+                IO.File.WriteAllLines ( IO.Path.Combine(pathApp, "Settings Folder.url") , [|
+                    @"[InternetShortcut]"
+                    $"URL=file:///{pathSettings}"
+                    @"IconIndex=3"
+                    @"IconFile=C:\WINDOWS\System32\SHELL32.dll"
+                    |] )
+
+                IO.File.WriteAllLines ( IO.Path.Combine(pathSettings, "App Folder.url") , [|
+                    @"[InternetShortcut]"
+                    $"URL=file:///{pathApp}"
+                    @"IconIndex=3"
+                    @"IconFile=C:\WINDOWS\System32\SHELL32.dll"
+                    |] )
+
+            with e ->
+                eprintfn $"Error while trying to create mutual shortcuts: {e}"
+
+        } |> Async.Start
+
+
 open Folders
 
 /// A class to hold the current App Run context (Standalone or Hosted)
 type RunContext (host:HostedStartUpData option) =
 
     let isRunningOnDotNetCore =
-        Runtime.InteropServices.RuntimeInformation.FrameworkDescription.StartsWith(".NET Framework", StringComparison.OrdinalIgnoreCase) |> not
+        Runtime.InteropServices.RuntimeInformation.FrameworkDescription.StartsWith(".NET Framework", StringComparison.OrdinalIgnoreCase)
+        |> not
         //Type.GetType("System.Runtime.Loader.AssemblyLoadContext") <> null // https://github.com/dotnet/runtime/issues/22779#issuecomment-315527735
 
+
+
     let settingsFolder =
-        //Because reinstalling the app with Velopack will delete the 'current' folder and its 'Settings' sibling, put the Settings outside the Fesh folder.
-        let path =
+        // Because reinstalling the app with Velopack will delete the 'current' folder and its 'Settings' sibling, put the Settings outside the Fesh folder.
+        // use Roaming AppData folder for Settings as suggested by https://docs.velopack.io/integrating/preserved-files#application-settings
+        // unless in portable mode
+        let settingsPath =
             match host with
             |None    ->
-                let appParentFolder =
-                    let fi = IO.FileInfo(Reflection.Assembly.GetAssembly(typeof<HostedStartUpData>).Location )
-                    //Because reinstalling the app with Velopack will delete the 'current' folder and its 'Settings' sibling, put the Settings outside the Fesh folder.
-                    let mainFolder = fi.Directory.Parent //  the folder called 'Fesh, the parent of 'current'
-                    if IO.File.Exists(IO.Path.Combine(mainFolder.FullName, ".portable")) then
-                        mainFolder // for portable version don't have an outside folder
-                    else
-                        mainFolder.Parent // next to the folder called 'current' or completely outside the folder called 'Fesh'.
-
-                if isRunningOnDotNetCore then IO.Path.Combine(appParentFolder.FullName, $"Fesh.Settings")  // Standalone
-                else                          IO.Path.Combine(appParentFolder.FullName, $"Fesh.net48.Settings")  // Standalone .NET Framework
+                let fi = IO.FileInfo(Reflection.Assembly.GetAssembly(typeof<HostedStartUpData>).Location )
+                //Because reinstalling the app with Velopack will delete the 'current' folder and its 'Settings' sibling,
+                // put the Settings outside the main Fesh folder.
+                let mainFolder = fi.Directory.Parent //  the folder called 'Fesh, the parent of 'current'
+                if IO.File.Exists(IO.Path.Combine(mainFolder.FullName, ".portable")) then
+                    IO.Path.Combine(mainFolder.FullName, "Settings")  // for portable version don't have an outside folder
+                else
+                    let roamingAppData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) // Roaming AppData folder
+                    if isRunningOnDotNetCore then IO.Path.Combine(roamingAppData, $"Fesh", "Settings")  // Standalone
+                    else                          IO.Path.Combine(roamingAppData, $"Fesh.net48", "Settings")  // Standalone .NET Framework
 
             |Some sd ->
-                let localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData)
-                if   contains sd "Rhino" then   IO.Path.Combine(localAppData, $"Fesh.Rhino.Settings") // don't use C:\Users\gwins\AppData\Roaming\McNeel\Rhinoceros\packages\8.0\Fesh\Fesh.Rhino.Settings
-                elif contains sd "Revit" then   IO.Path.Combine(localAppData, $"Fesh.Revit.Settings") // use same of net48 and net8
-                elif contains sd "AutoCAD" then IO.Path.Combine(localAppData, $"Fesh.AutoCAD.Settings")
-                else                            IO.Path.Combine(localAppData, $"Fesh.{validHost sd.hostName}.Settings")
+                let roamingAppData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) // Roaming AppData folder
+                if   contains sd "Rhino" then   IO.Path.Combine(roamingAppData,  "Fesh.Rhino", "Settings") // don't use C:\Users\gwins\AppData\Roaming\McNeel\Rhinoceros\packages\8.0\Fesh\Fesh.Rhino.Settings
+                elif contains sd "Revit" then   IO.Path.Combine(roamingAppData,  "Fesh.Revit", "Settings") // use same of net48 and net8
+                elif contains sd "AutoCAD" then IO.Path.Combine(roamingAppData,  "Fesh.AutoCAD", "Settings")
+                else                            IO.Path.Combine(roamingAppData, $"Fesh.{validHost sd.hostName}", "Settings")
 
-        IO.Directory.CreateDirectory(path) |> ignore
-        path
+        if not (IO.Directory.Exists settingsPath) then
+            IO.Directory.CreateDirectory(settingsPath) |> ignore
+            let appFi = IO.FileInfo(Reflection.Assembly.GetAssembly(typeof<HostedStartUpData>).Location )
+            createMutualShortcuts(appFi.Directory.Parent.FullName, settingsPath )
+        settingsPath
 
     let settingsFileInfo =
         IO.Path.Combine(settingsFolder, "Settings.txt")

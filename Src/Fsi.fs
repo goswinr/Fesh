@@ -135,7 +135,7 @@ type Fsi private (config:Config) =
                     IFeshLog.log.PrintfnFsiErrorMsg "Getting FSI token via reflection form Fsharp.Compiler.Service failed"
 
     /// returns tru if something was aborted
-    let getControlledExecutionAborter(thread:Thread) : unit -> bool =
+    let getFrameworkAgnosticAborter(thread:Thread) : unit -> bool =
         if config.RunContext.IsRunningOnDotNetCore then
             match sessionOpt with
             |None ->
@@ -150,7 +150,7 @@ type Fsi private (config:Config) =
                     fun ()  ->
                         // tryAbortInfo.Invoke(controlledExecution, null) |> ignore
                         match (cts:?> ValueOption<Threading.CancellationTokenSource>) with
-                        | ValueNone -> // the token is none initially when creating a session.
+                        | ValueNone -> // the token is None initially when creating a session.
                             // a reset of FSI would always print this:
                             //IFeshLog.log.PrintfnFsiErrorMsg "No cancellation token for ControlledExecution found. Cancelling running scripts might not work."
                             false
@@ -162,13 +162,13 @@ type Fsi private (config:Config) =
                     fun () -> false
         else
             fun () ->
-                #if NETFRAMEWORK
+                #if NETFRAMEWORK //the definition of NETFRAMEWORK is only needed to avoid a compiler error on netCore, the actual runtime detection happens in Config.fs
                     thread.Abort()
                     match state with
                     | Ready | Initializing | NotLoaded -> false
                     | Compiling | Evaluating ->  true
                 #else
-                    ignore thread // to avoid warning when NETFRAMEWORK is not defined
+                    ignore thread // this ignore only exists to the avoid then warning when NETFRAMEWORK is not defined
                     false
                 #endif
 
@@ -181,7 +181,7 @@ type Fsi private (config:Config) =
         |Some thread -> // _ = thread
             asyncContext <- None
             asyncThread  <- None
-            let aborter = getControlledExecutionAborter(thread)
+            let aborter = getFrameworkAgnosticAborter(thread)
             if aborter() then
                 asyncThread <- None
                 SyncWpf.doSync( fun () ->
@@ -402,10 +402,10 @@ type Fsi private (config:Config) =
 
         } |> Async.StartImmediate
 
-    [< Security.SecurityCritical >]
     #if NETFRAMEWORK //This construct is deprecated in net6.0 . Recovery from corrupted process state exceptions is not supported; HandleProcessCorruptedStateExceptionsAttribute is ignored.
     [< Runtime.ExceptionServices.HandleProcessCorruptedStateExceptions >] //to handle AccessViolationExceptions too //https://stackoverflow.com/questions/3469368/how-to-handle-accessviolationexception/4759831
-     #endif
+    #endif
+    [< Security.SecurityCritical >]
     let evalSave (session:FsiEvaluationSession, code:string, codeToEv:CodeToEval) =
         // net472
         // Cancellation happens via Thread Abort
@@ -743,7 +743,7 @@ type Fsi private (config:Config) =
         log.AvalonLog.IsAlive <- false // to stop logging
         match asyncThread with
         |Some thread ->
-            let abort = getControlledExecutionAborter(thread)
+            let abort = getFrameworkAgnosticAborter(thread)
             abort()  |> ignore
         |None -> ()
 
