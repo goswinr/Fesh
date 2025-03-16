@@ -29,8 +29,7 @@ jobs:
         run: |
           dotnet publish FeshStandalone.fsproj `
             --configuration Release `
-            --runtime win-x64 `
-            --output bin/publish/net48 `
+            --runtime win-x64 `            
             --framework net48 `
             --no-self-contained
 
@@ -38,8 +37,7 @@ jobs:
         run: |
           dotnet publish FeshStandalone.fsproj `
             --configuration Release `
-            --runtime win-x64 `
-            --output bin/publish/net9.0 `
+            --runtime win-x64 `            
             --framework net9.0-windows `
             --no-self-contained
 

@@ -1,14 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
-<Project Sdk="Microsoft.NET.Sdk.WindowsDesktop"> <!--WinDesktop is needed so that resources work with dotnet build-->
-
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Library</OutputType>
     <UseWPF>true</UseWPF>
     <UseWindowsForms>true</UseWindowsForms><!--inherited from Avalonedit ?-->
     <TargetFrameworks>net472;net7.0-windows</TargetFrameworks><!--net7 for Rhino3D, net 8 for Revit-->
-    <DefineConstants Condition="'$(TargetFramework)' == 'net472'">NETFRAMEWORK</DefineConstants>
+    <DefineConstants Condition="'$(TargetFramework)' == 'net472'">NETFRAMEWORK</DefineConstants> <!-- so thread.Abort() can be used -->
     <!-- <RuntimeIdentifier>win-x64</RuntimeIdentifier> -->
-    <Configurations>Release</Configurations>
 
     <LangVersion>preview</LangVersion><!-- to enable indexing from end via ^ -->
 
@@ -24,7 +22,7 @@
     <Product>Fesh</Product>
     <PackageId>Fesh</PackageId>
 
-    <!-- <Version>0.14.2</Version> done by Ionide.KeepAChangelog.Tasks -->
+    <!-- <Version></Version> done by Ionide.KeepAChangelog.Tasks -->
 
     <Authors>Goswin Rothenthal</Authors>
     <Copyright>Goswin Rothenthal 2019</Copyright>
@@ -32,7 +30,6 @@
     <ApplicationIcon>Media/logo.ico</ApplicationIcon>
     <Win32Resource>Media/logo.res</Win32Resource>    <!-- Win32Resource for Application Icon in explorer-->
 
-    <OutputPath>bin/hosting</OutputPath>
     <OtherFlags>$(OtherFlags) --warnon:1182</OtherFlags>   <!-- 1182: warn on unused variables -->
     <ChangelogFile>./CHANGELOG.md</ChangelogFile> <!-- for Ionide.KeepAChangelog.Tasks -->
   </PropertyGroup>
@@ -63,7 +60,7 @@
     <PackageReference Include="System.Private.Uri" Version="4.3.2" />    <!-- warning NU1903: Package 'System.Private.Uri' 4.3.0 has a known high severity vulnerability, https://github.com/advisories/GHSA-5f2m-466j-3848 -->
 
     <!-- normally don't include FSharp.Core in a library, but here it needs to match FSharp.Compiler.Service-->
-	  <PackageReference Include="FSharp.Core" Version="9.0.201" GeneratePathProperty="true" />
+	  <PackageReference Include="FSharp.Core" Version="9.0.201" GeneratePathProperty="true" /> <!-- use 'Include' and DisableImplicitFSharpCoreReference, not 'Update', for dotnet outdated tool to work -->
 	  <PackageReference Include="FSharp.Compiler.Service" Version="43.9.201" />
 
 	  <PackageReference Include="Fittings" Version="0.10.0" />
@@ -72,10 +69,7 @@
 
   </ItemGroup>
 
-  <Target Name="CopyFSharpCoreXml" BeforeTargets="BeforeBuild">
-    <!--  because Pack="true" PackagePath="\"  fails source $(PkgFSharp_Core) , so copy it first -->
-    <Copy SourceFiles="$(PkgFSharp_Core)/lib/netstandard2.0/FSharp.Core.xml"  DestinationFolder="Src"  ContinueOnError="false" />
-  </Target>
+
 
   <ItemGroup>
     <Content Include="README.md" Pack="true" PackagePath="\" />
@@ -85,9 +79,6 @@
     <EmbeddedResource Include="Media/logo.res" />  <!--  for Application Icon in explorer-->
 
 	  <Content Include="Src/SyntaxHighlightingFSharp.xshd" CopyToOutputDirectory="PreserveNewest"  Pack="true" PackagePath="\" />
-
-    <!-- so that the hosting app does not need to pull in FSharp.Core separately just for right the xml -->
-    <Content Include="Src/FSharp.Core.xml" CopyToOutputDirectory="Always"  Pack="true" PackagePath="\" />
 
     <Compile Include="Src/Util.fs" />
     <Compile Include="Src/ParseFs.fs" />
@@ -156,11 +147,6 @@
   <Target Name="WriteChangelogVersion" AfterTargets="AfterBuild"> <!-- to check output from Ionide.KeepAChangelog.Tasks current git tag in gh actions -->
     <WriteLinesToFile File="./bin/ChangelogVersion.txt" Lines="@(CurrentReleaseChangelog)" Overwrite="true" ContinueOnError="false" />
   </Target>
-
-  <!-- <Target Name="CopyReadmeToDocs" AfterTargets="Build">
-    for fsdocs to build locally
-    <Copy SourceFiles="./README.md" DestinationFiles="./Docs/index.md" ContinueOnError="false"/>
-  </Target> -->
 
 </Project>
 

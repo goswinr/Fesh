@@ -46,9 +46,7 @@ type FileChangeTracker (editor:Editor, setCodeSavedStatus:bool->unit) =
         loop 0
 
 
-
-
-    let check(reason) =
+    let check(_reason) =
         match editor.FilePath with
         |NotSet _ ->()
         |Deleted _  |SetTo _ ->

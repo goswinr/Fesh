@@ -1,8 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<!-- <Project Sdk="Microsoft.NET.Sdk.WindowsDesktop"> -->
 <Project Sdk="Microsoft.NET.Sdk">
-  <!-- Sdk.WindowsDesktop is needed so that resources work with dotnet build:-->
-  <!-- Project Sdk= WinDesktop for WPF, it is also needed so that resources work with dotnet build, 'WindowsDesktop' must be included when building for net472 and net6.0-->
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <UseWPF>true</UseWPF>
@@ -23,13 +20,16 @@
     <FSharpCoreIncludeDocFileInOutput>true</FSharpCoreIncludeDocFileInOutput> <!-- doesn't seem to work -->
     <DisableImplicitFSharpCoreReference>true</DisableImplicitFSharpCoreReference> <!-- for dotnet outdated tool to work -->
 
+    <CopyDebugSymbolFilesFromPackages>true</CopyDebugSymbolFilesFromPackages>
+    <CopyDocumentationFilesFromPackages>true</CopyDocumentationFilesFromPackages>
+
     <RootNamespace>Fesh</RootNamespace>
     <AssemblyName>Fesh</AssemblyName>
     <AssemblyTitle>Fesh</AssemblyTitle>
     <Title>Fesh</Title>
     <Product>Fesh</Product>
 
-    <!-- <Version>0.14.2</Version> taken from CHANGELOG.md by Ionide.KeepAChangelog.Tasks -->
+    <!-- <Version></Version> taken from CHANGELOG.md by Ionide.KeepAChangelog.Tasks -->
 
     <Company>Goswin Rothenthal</Company>    <!-- <Company> shows up on file preview on fesh.exe in windows file explorer-->
     <Authors>Goswin Rothenthal</Authors>
@@ -38,7 +38,7 @@
     <ApplicationIcon>Media/logo.ico</ApplicationIcon>
     <Win32Resource>Media/logo.res</Win32Resource>    <!-- Win32Resource for Application Icon in explorer-->
 
-    <OutputPath>bin/standalone</OutputPath>
+    <!-- <OutputPath>bin/standalone</OutputPath> this can mess up Ionide tooling since there no sln file -->
     <OtherFlags>$(OtherFlags) --warnon:1182</OtherFlags>     <!-- 1182: warn on unused variables -->
     <ChangelogFile>./CHANGELOG.md</ChangelogFile> <!-- for Ionide.KeepAChangelog.Tasks -->
 
@@ -129,17 +129,10 @@
     <Compile Include="Src/Initialize.fs" />
     <Compile Include="Src/App.fs" />
 
-    <Content Include="$(PkgFSharp_Core)/lib/netstandard2.0/FSharp.Core.xml" CopyToOutputDirectory="Always"  />
-    <Content Include="$(PkgNETStandard_Library)/build/netstandard2.0/ref/netstandard.dll" Condition="'$(TargetFramework)' == 'net48'" CopyToOutputDirectory="Always" />
-    <Content Include="$(PkgNETStandard_Library)/build/netstandard2.0/ref/netstandard.xml" Condition="'$(TargetFramework)' == 'net48'" CopyToOutputDirectory="Always" />
-
-
   </ItemGroup>
 
 
-  <!-- -->
-  <Target Name="CopyFilesOverAfterBuild" AfterTargets="AfterBuild">
-    <!-- to check output from Ionide.KeepAChangelog.Tasks current git tag in gh actions -->
+  <Target Name="WriteChangelogVersion" AfterTargets="AfterBuild"> <!-- to check output from Ionide.KeepAChangelog.Tasks current git tag in gh actions -->
     <WriteLinesToFile File="./bin/ChangelogVersion.txt" Lines="@(CurrentReleaseChangelog)" Overwrite="true" ContinueOnError="false" />
   </Target>
 
