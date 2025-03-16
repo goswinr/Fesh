@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <OutputType>Library</OutputType>
+    <!-- https://learn.microsoft.com/en-us/dotnet/core/project-sdk/msbuild-props-desktop -->
+    <!-- <OutputType>Library</OutputType> not needed -->
     <UseWPF>true</UseWPF>
     <UseWindowsForms>true</UseWindowsForms><!--inherited from Avalonedit ?-->
     <TargetFrameworks>net472;net7.0-windows</TargetFrameworks><!--net7 for Rhino3D, net 8 for Revit-->
