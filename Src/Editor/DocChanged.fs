@@ -362,14 +362,29 @@ module MaybeShow =
             ||
             (pos.column > 2 &&  isNum pos.lineToCaret[pos.column-1] && isAlpha pos.lineToCaret[pos.column-2])
 
+
+        /// even if ther is a digit before the dot it might be part of a name
+        /// so this checks if before the dot is a number or a name
+        let isNotInNumber (pos:PositionInCode) =
+            let rec loop i =
+                if i = -1 then false // start of line reached no letter found yet
+                else
+                    let c = pos.lineToCaret.[i]
+                    if c = '_' then loop (i-1) // can be vailid numbers, so loop on
+                    elif Char.IsLetter c then true
+                    elif Char.IsDigit c then loop (i-1)
+                    else false
+            loop (pos.column-2)
+
+
         let inline getCtrlDown() = Keyboard.IsKeyDown Key.LeftCtrl || Keyboard.IsKeyDown Key.RightCtrl // can't be async
         let inline getSpaceDown() = Keyboard.IsKeyDown Key.Space // can't be async
 
         let inline lastCharTriggersCompletion (lastChar, pos) =
             match lastChar with
             | c when isAlpha c -> true // a ASCII letter
-            | c when isNum c && isAlphaBefore pos  -> true// an number preceded by a letter
-            | '.'  // dot completion
+            | c when isNum c && isAlphaBefore pos  -> true // an number preceded by a letter
+            | '.' when isNotInNumber pos -> true // dot completion
             | '_'  // for __SOURCE_DIRECTORY__ or in names
             //| '`'  // for complex F# names in `` `` // not needed
             | '#'  -> true // for #if directives
@@ -497,7 +512,7 @@ module DocChangeCompletion =
                         do! Async.Sleep DocChangeMark.mainWait  // to not trigger completion if typing is fast
 
                     if state.IsLatest chId then
-                        if not <| MaybeShow.lastCharTriggersCompletion (lastChar,pos) then
+                        if not <| MaybeShow.lastCharTriggersCompletion (lastChar, pos) then
                             // The typed character should not trigger completion.
                             // DocChangedConsequence is still  'React', no need to reset.
                             DocChangeMark.updateAllTransformersSync(iEd, doc, drawServ, state, chId, lineIdx )

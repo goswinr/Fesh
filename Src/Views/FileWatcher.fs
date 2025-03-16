@@ -113,7 +113,7 @@ type FileChangeTracker (editor:Editor, setCodeSavedStatus:bool->unit) =
                                     match MessageBox.Show(
                                         IEditor.mainWindow,
                                         // $"{reason}: File{nl}{nl}{fi.Name}{nl}{nl}was changed.{nl}Do you want to reload it?", // Debug
-                                        $"File{nl}{nl}{fi.Name}{nl}{nl}was changed.{nl}Do you want to reload it?{nl}{nl}for {reason}",
+                                        $"File{nl}{nl}{fi.Name}{nl}{nl}was changed.{nl}Do you want to reload it?",
                                         "Fesh | Reload Changes?",
                                         MessageBoxButton.YesNo,
                                         MessageBoxImage.Exclamation,

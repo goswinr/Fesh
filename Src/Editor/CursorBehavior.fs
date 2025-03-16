@@ -346,7 +346,7 @@ module CursorBehavior  =
                 true
             else
                 let c = ed.Document.GetCharAt(i)
-                c=' '|| c='\r'
+                c = ' '|| c = '\r'
 
         /// test if next character is whitespace, double quote or end of file
         let inline nextSpaceQ() =
@@ -357,6 +357,18 @@ module CursorBehavior  =
                 let c = ed.Document.GetCharAt(i)
                 c=' '|| c='\r'|| c='"' // " for being in a string
 
+
+        /// test if next character is whitespace, closingBracket or end of file
+        let inline nextSpaceCB() =
+            let i = ed.TextArea.Caret.Offset
+            if ed.Document.TextLength <= i then
+                true
+            else
+                let c = ed.Document.GetCharAt(i)
+                c = ' '|| c = '\r'|| c='"' || c = ')' || c = '}' || c = ']' || c = ',' || c = ';'  // " for being in a string
+
+
+
         /// test if previous character is not from the alphanumeric( so a space, a bracket or similar)
         let inline prevNonAlpha() =
             let i = ed.TextArea.Caret.Offset
@@ -366,9 +378,9 @@ module CursorBehavior  =
                 let c = ed.Document.GetCharAt(i) // TODO:only testsing for ascii here, good enough!?
                 c < '0'
                 ||
-                (c > '9' && c < 'A')
+                c > '9' && c < 'A'
                 ||
-                (c > 'Z' && c < '_') // _ then ` then a
+                c > 'Z' && c < '_' // _ then ` then a
                 ||
                 c > 'z'
 
@@ -410,13 +422,13 @@ module CursorBehavior  =
         |NoSel ->
 
             match e.Text with
-            | "("  -> if nextSpace()  then addPair 1 "()"
-            | "{"  -> if nextSpaceQ() then addPair 1 "{}"
-            | "["  -> if nextSpace()  then addPair 1 "[]"
-            | "'"  -> if nextSpace()&&prevNonAlpha()  then addPair 1 "''"
-            | "\"" -> if nextSpace()&&evenQuoteCount() then addPair 1 "\"\""
-            | "$"  -> if nextSpace()  then addPair 2 "$\"\"" // for formatting string
-            | "`"  -> if nextSpace()  then addPair 2 "````"  // for quoted identifiers
+            | "("  -> if nextSpace()                       then addPair 1 "()"
+            | "{"  -> if nextSpaceQ()                      then addPair 1 "{}"
+            | "["  -> if nextSpace()                       then addPair 1 "[]"
+            | "'"  -> if nextSpaceCB() && prevNonAlpha()   then addPair 1 "''"
+            | "\"" -> if nextSpaceCB() && evenQuoteCount() then addPair 1 "\"\""
+            | "$"  -> if nextSpaceCB()                     then addPair 3 "$\"{}\"" // for formatting string
+            | "`"  -> if nextSpaceCB()                     then addPair 2 "````"  // for quoted identifiers
 
             | "|" ->
                 // first check previous character:
