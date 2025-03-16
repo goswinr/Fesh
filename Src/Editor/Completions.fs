@@ -394,16 +394,20 @@ type Completions(state: InteractionState) =
                         NoShow
 
     /// For closing and inserting from completion window
-    member this.MaybeInsertOrClose  (ev:Input.TextCompositionEventArgs) =
+    member this.MaybeInsertOrClose (ev:Input.TextCompositionEventArgs) =
         if this.IsOpen then
             // checking for Tab or Enter key is not needed  here for  insertion,
             // insertion with Tab or Enter key is built into Avalonedit!!
 
             match ev.Text with
+            // |"\t" -> built in by AvalonEdit
             |" " -> this.CloseAndEnableReacting()
 
             // insert on dot too? //TODO only when more than one char is typed in completion window??
-            |"." -> win.Value.CompletionList.RequestInsertion(ev)
+            |"." ->
+                match this.ComplWin.Value.CompletionList.SelectedItem with
+                | null -> () // dont insert __LINE__ when doing an underscore and a dot in the new shorthand meber acces like: xs |> Array.map _.Length
+                | i -> if not <|  i.Text.StartsWith "_" then win.Value.CompletionList.RequestInsertion(ev)
 
             | _  -> () // other triggers like tab, enter and return are covered in   https://github.com/goswinr/AvalonEditB/blob/main/AvalonEditB/CodeCompletion/CompletionList.cs#L170
 
