@@ -129,19 +129,19 @@ type CompletionItem(state: InteractionState, info:CompletionInfo , isDotCompleti
 
         // IFeshLog.log.PrintfnDebugMsg "completionSegment: '%s' : %A" (textArea.Document.GetText(completionSegment)) completionSegment
 
+        // Extend the completionSegment to the left to replace an existing word
+        // if typing stated inside a word. // This deletes characters that should be kept in some cases?
         let extendedSegment =
             let mutable e = completionSegment.EndOffset
-            // This deletes stuf that should be kept in most cases, don't do it, needs refinement:
-            // Extend the completionSegment to the right to include the whole word:
-            // let prevChar = doc.GetCharAt(max 0 (textArea.Caret.Offset - 1))
-            // IFeshLog.log.PrintfnDebugMsg $"prevChar '{prevChar}'"
-            // if Char.IsLetterOrDigit(prevChar) || prevChar = '_' || prevChar = '.'  then // test if this completion is  started inside a word
-            //     // Extend the completionSegment to the left to include the whole word:
-            //     let mutable k = 0
-            //     let inline isValidIdentifierChar c = Char.IsLetterOrDigit(c) || c = '_' //|| c = '\'' || c = '`'
-            //     while k < 20 && e < doc.TextLength && isValidIdentifierChar(doc.GetCharAt(e)) do // don't extend by more than 20 chars
-            //         e <- e + 1
-            //         k <- k + 1
+            let prevChar = doc.GetCharAt(max 0 (textArea.Caret.Offset - 2)) //
+            IFeshLog.log.PrintfnDebugMsg $"prevChar '{prevChar}'"
+            if Char.IsLetterOrDigit prevChar || prevChar = '_' then // test if this completion is  started inside a word || prevChar = '.'
+                // Extend the completionSegment to the left to include the whole word:
+                let mutable k = 0
+                let inline isValidIdentifierChar c = Char.IsLetterOrDigit(c) || c = '_' || c = '`' || c = '\''
+                while k < 20 && e < doc.TextLength && isValidIdentifierChar(doc.GetCharAt(e)) do // don't extend by more than 20 chars
+                    e <- e + 1
+                    k <- k + 1
             ISegment.FormTill(completionSegment.Offset, e)
 
         // replace in the document:
