@@ -523,9 +523,11 @@ module DocChangeEvents =
 
     let maybeAdjustCursor(iEd:IEditor, eventArgs:DocumentChangeEventArgs) =
         let t = eventArgs.InsertedText
-        if t.TextLength = 12 && t.Text  = "#r \"nuget: \"" then
+        if t.TextLength = 12 && t.Text  = "#r \"nuget: \""
+        || t.TextLength = 5 &&  t.Text  = "#r \"\""         then
             let c = iEd.AvaEdit.TextArea.Caret
             c.Offset <- c.Offset - 1
+
 
 
     // gets called before the document actually changes

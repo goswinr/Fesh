@@ -134,7 +134,7 @@ type CompletionItem(state: InteractionState, info:CompletionInfo , isDotCompleti
         let extendedSegment =
             let mutable e = completionSegment.EndOffset
             let prevChar = doc.GetCharAt(max 0 (textArea.Caret.Offset - 2)) //
-            IFeshLog.log.PrintfnDebugMsg $"prevChar '{prevChar}'"
+            // IFeshLog.log.PrintfnDebugMsg $"prevChar '{prevChar}'"
             if Char.IsLetterOrDigit prevChar || prevChar = '_' then // test if this completion is  started inside a word || prevChar = '.'
                 // Extend the completionSegment to the left to include the whole word:
                 let mutable k = 0
