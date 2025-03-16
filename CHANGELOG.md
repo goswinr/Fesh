@@ -7,8 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.24.0] - 2025-03-16
+### Fixed
+- allow completion for `_.`
+- no completions on decimal period
+- adjust cursor for  `#r ""` completion
+- re-extend segment on completion when typing inside
 
-## [0.23.0] - 2024-02-16
+## [0.23.0] - 2025-02-16
 ### Fixed
 - include FSharp.Core.xml
 
