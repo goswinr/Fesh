@@ -108,7 +108,12 @@ module RecognizePath =
                                             if path.EndsWith ":\\" || String.IsNullOrWhiteSpace path then // just the root path C:\
                                                 IFeshLog.log.PrintfnIOErrorMsg "The directory \r\n%s\r\n does not exist" dir
                                             elif IO.Directory.Exists dir then
-                                                Diagnostics.Process.Start("Explorer.exe", "\"" + dir+ "\"") |> ignore
+                                                let psi = new Diagnostics.ProcessStartInfo()
+                                                psi.UseShellExecute <- true // default chnaged from net48 to net8
+                                                psi.FileName <- "Explorer.exe"
+                                                psi.Arguments <- "\"" + dir+ "\""
+                                                Diagnostics.Process.Start(psi) |> ignore
+                                                // Diagnostics.Process.Start("Explorer.exe", "\"" + dir+ "\"") |> ignore
                                             else // if a path does not exist try the parent folder:
                                                 path.Split( [|'\\'|] ).[.. ^1]
                                                 |> String.concat "\\"

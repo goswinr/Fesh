@@ -134,7 +134,12 @@ type RunContext (host:HostedStartUpData option) =
 
     /// opens up Explorer.exe
     member this.OpenSettingsFolder()=
-        Diagnostics.Process.Start("explorer.exe", "\"" + settingsFolder+ "\"") |> ignore
+        let psi = new Diagnostics.ProcessStartInfo()
+        psi.UseShellExecute <- true // default chnaged from net48 to net8
+        psi.FileName <- "Explorer.exe"
+        psi.Arguments <- "\"" + settingsFolder+ "\""
+        Diagnostics.Process.Start(psi) |> ignore
+        // Diagnostics.Process.Start("explorer.exe", "\"" + settingsFolder+ "\"") |> ignore
 
     /// opens up Explorer.exe with folder of Fesh.exe
     member this.OpenAppFolder()=
@@ -146,7 +151,12 @@ type RunContext (host:HostedStartUpData option) =
                 IFeshLog.log.PrintfnIOErrorMsg "Can get path of %A" ass.FullName
             else
                 let folder = IO.Path.GetDirectoryName( ass.Location)
-                Diagnostics.Process.Start("explorer.exe", "\"" + folder+ "\"") |> ignore
+                let psi = new Diagnostics.ProcessStartInfo()
+                psi.UseShellExecute <- true // default chnaged from net48 to net8
+                psi.FileName <- "Explorer.exe"
+                psi.Arguments <- "\"" + folder+ "\""
+                Diagnostics.Process.Start(psi) |> ignore
+                // Diagnostics.Process.Start("explorer.exe", "\"" + folder+ "\"") |> ignore
 
     // let settingFile =
     //     [|

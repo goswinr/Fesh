@@ -358,9 +358,9 @@ module MaybeShow =
 
         /// checks if the second or third last character  is a letter
         let inline isAlphaBefore (pos:PositionInCode) =
-            (pos.column > 1 &&  isAlpha pos.lineToCaret[pos.column-1])
+            pos.column > 1 &&  isAlpha pos.lineToCaret[pos.column-1]
             ||
-            (pos.column > 2 &&  isNum pos.lineToCaret[pos.column-1] && isAlpha pos.lineToCaret[pos.column-2])
+            pos.column > 2 &&  isNum pos.lineToCaret[pos.column-1] && isAlpha pos.lineToCaret[pos.column-2]
 
 
         /// even if ther is a digit before the dot it might be part of a name
@@ -375,6 +375,7 @@ module MaybeShow =
                     elif Char.IsDigit c then loop (i-1)
                     else false
             loop (pos.column-2)
+
 
 
         let inline getCtrlDown() = Keyboard.IsKeyDown Key.LeftCtrl || Keyboard.IsKeyDown Key.RightCtrl // can't be async
