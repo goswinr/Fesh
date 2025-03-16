@@ -14,34 +14,6 @@ open Velopack.Sources
 
 module Initialize =
 
-    let mutable feshInstanceForDebug :Fesh = Unchecked.defaultof<Fesh>
-
-    // open System.Net.Http // for checking for updates via github api
-    // let checkForNewReleaseByTag(config:Config) =
-    //     if config.RunContext.IsStandalone then
-    //         async {
-    //             try
-    //                 use client = new HttpClient()
-    //                 client.DefaultRequestHeaders.UserAgent.ParseAdd("Fesh")
-    //                 let! response = client.GetStringAsync("https://api.github.com/repos/goswinr/Fesh/releases/latest") |> Async.AwaitTask
-    //                 let v = response |> Fesh.Util.Str.between "\"tag_name\":\"" "\""
-    //                 //let json = JObject.Parse(response)
-    //                 //return json.["tag_name"].ToString()
-    //                 do! Async.SwitchToContext Fittings.SyncWpf.context
-    //                 match v with
-    //                 | None -> IFeshLog.log.PrintfnInfoMsg "Could not check for updates on https://github.com/goswinr/Fesh/releases. Are you offline?"
-    //                 | Some v ->
-    //                     let cv = Reflection.Assembly.GetAssembly(typeof<Config>).GetName().Version.ToString()
-    //                     let cv = if cv.EndsWith(".0") then cv[..^2] else cv
-    //                     if v <> cv then
-    //                         IFeshLog.log.PrintfnAppErrorMsg $"A newer version of Fesh is available: {v} , you are using {cv} \r\nPlease visit https://github.com/goswinr/Fesh/releases"
-    //                     else
-    //                         IFeshLog.log.PrintfnInfoMsg $"You are using the latest version of Fesh: {cv}"
-    //             with _ ->
-    //                 IFeshLog.log.PrintfnInfoMsg "Could not check for updates on https://github.com/goswinr/Fesh/releases.\r\nAre you offline?"
-    //         }
-    //         |> Async.Start
-
     let checkForNewVelopackRelease(config:Config, fesh:Fesh) =
         if config.RunContext.IsStandalone then
             async {
@@ -178,9 +150,8 @@ module Initialize =
         log.FinishLogSetup(config)
 
         let f = Fesh(config, log)
-        // checkForNewReleaseByTag(config)
-        f.Window.ContentRendered.Add(fun _ -> checkForNewVelopackRelease(config, f) )
-        feshInstanceForDebug <- f
+        f.Window.ContentRendered.Add(fun _ -> checkForNewVelopackRelease(config, f))
+        //Theming.setDark(f.Window)
         f
 
 
@@ -195,3 +166,29 @@ module Initialize =
 
 
 
+
+    // open System.Net.Http // for checking for updates via github api
+    // let checkForNewReleaseByTag(config:Config) =
+    //     if config.RunContext.IsStandalone then
+    //         async {
+    //             try
+    //                 use client = new HttpClient()
+    //                 client.DefaultRequestHeaders.UserAgent.ParseAdd("Fesh")
+    //                 let! response = client.GetStringAsync("https://api.github.com/repos/goswinr/Fesh/releases/latest") |> Async.AwaitTask
+    //                 let v = response |> Fesh.Util.Str.between "\"tag_name\":\"" "\""
+    //                 //let json = JObject.Parse(response)
+    //                 //return json.["tag_name"].ToString()
+    //                 do! Async.SwitchToContext Fittings.SyncWpf.context
+    //                 match v with
+    //                 | None -> IFeshLog.log.PrintfnInfoMsg "Could not check for updates on https://github.com/goswinr/Fesh/releases. Are you offline?"
+    //                 | Some v ->
+    //                     let cv = Reflection.Assembly.GetAssembly(typeof<Config>).GetName().Version.ToString()
+    //                     let cv = if cv.EndsWith(".0") then cv[..^2] else cv
+    //                     if v <> cv then
+    //                         IFeshLog.log.PrintfnAppErrorMsg $"A newer version of Fesh is available: {v} , you are using {cv} \r\nPlease visit https://github.com/goswinr/Fesh/releases"
+    //                     else
+    //                         IFeshLog.log.PrintfnInfoMsg $"You are using the latest version of Fesh: {cv}"
+    //             with _ ->
+    //                 IFeshLog.log.PrintfnInfoMsg "Could not check for updates on https://github.com/goswinr/Fesh/releases.\r\nAre you offline?"
+    //         }
+    //         |> Async.Start
