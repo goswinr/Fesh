@@ -142,5 +142,16 @@
     <WriteLinesToFile File="./bin/ChangelogVersion.txt" Lines="@(CurrentReleaseChangelog)" Overwrite="true" ContinueOnError="false" />
   </Target>
 
+
+  <Target Name="CleanReadmeForPackaging" BeforeTargets="GenerateNuspec">
+    <!-- Run PowerShell to clean the README file  and use two spaces-->
+    <Exec Command="powershell -Command &quot;(Get-Content -Path '.\READMEnuget.md' -Raw) -replace '&lt;br&gt;', '  ' | Set-Content -Path '.\READMEnuget.md'&quot;" />
+    <!-- Update the Content item to use the clean version for packaging -->
+    <ItemGroup>
+      <Content Remove="README.md" />
+      <Content Include="'.\READMEnuget.md'" Pack="true" PackagePath="\README.md" />
+    </ItemGroup>
+  </Target>
 </Project>
+
 
