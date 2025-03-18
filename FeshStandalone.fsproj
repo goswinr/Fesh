@@ -11,9 +11,6 @@
 
     <LangVersion>preview</LangVersion> <!-- to enable indexing from end via ^ -->
 
-	  <!-- the resulting 200 MB exe fails to load FSharp.Core correctly -->
-    <!-- <PublishSingleFile>true</PublishSingleFile><RuntimeIdentifier>win-x64</RuntimeIdentifier><SelfContained>true</SelfContained><PublishReadyToRun>true</PublishReadyToRun><DebugType>embedded</DebugType> -->
-
     <NeutralLanguage>en</NeutralLanguage>
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>    <!-- <SatelliteResourceLanguages> to only have the English resources-->
     <GenerateDocumentationFile>true</GenerateDocumentationFile>    <!-- <GenerateDocumentationFile> just in case the editor itself gets referenced from a script-->
@@ -21,7 +18,7 @@
     <DisableImplicitFSharpCoreReference>true</DisableImplicitFSharpCoreReference> <!-- for dotnet outdated tool to work -->
 
     <CopyDebugSymbolFilesFromPackages>true</CopyDebugSymbolFilesFromPackages>
-    <CopyDocumentationFilesFromPackages>true</CopyDocumentationFilesFromPackages>
+    <CopyDocumentationFilesFromPackages>true</CopyDocumentationFilesFromPackages> <!-- doesnt work for netstandard.xml -->
 
     <RootNamespace>Fesh</RootNamespace>
     <AssemblyName>Fesh</AssemblyName>
@@ -51,12 +48,13 @@
     <PackageReference Include="Microsoft.VisualBasic" Version="10.3.0" /> <!-- to move files to the recycle bin instead of deleting them -->
     <PackageReference Include="System.Private.Uri" Version="4.3.2" />    <!-- warning NU1903: Package 'System.Private.Uri' 4.3.0 has a known high severity vulnerability, https://github.com/advisories/GHSA-5f2m-466j-3848 -->
     <PackageReference Include="FSharp.Compiler.Service" Version="43.9.201" />
-    <PackageReference Include="FSharp.Core" Version="9.0.201" GeneratePathProperty="true" />
+    <PackageReference Include="FSharp.Core" Version="9.0.201"/>
 
     <PackageReference Include="Fittings" Version="0.10.0" />
-    <PackageReference Include="AvalonLog" Version="0.18.0" />
+    <PackageReference Include="AvalonLog" Version="0.19.0" />
+    <!-- <ProjectReference Include="../AvalonLog/AvalonLog.fsproj" /> -->
 
-    <!--this reference is needed for tooling only, it might not be installed on host PC. (running the .NET Framework version) see also https://github.com/fsprojects/IfSharp/issues/213 -->
+    <!-- netstandard reference is needed for tooling only, it might not be installed on host PC. (running the .NET Framework version) see also https://github.com/fsprojects/IfSharp/issues/213 -->
     <PackageReference Include="NETStandard.Library" Version="2.0.3" Condition="'$(TargetFramework)' == 'net48'" GeneratePathProperty="true" /> <!-- Generated PathProperty will be 'PkgNETStandard_Library' -->
   </ItemGroup>
 
@@ -66,6 +64,8 @@
     <Resource Include="Media/logoGray.ico" />        <!--  for Application Icon in secondary PopOut windows-->
 
     <Content Include="Src/SyntaxHighlightingFSharp.xshd" CopyToOutputDirectory="PreserveNewest" TargetPath="SyntaxHighlightingFSharp.xshd" Pack="true" PackagePath="\" />
+    <Content Include="$(PkgNETStandard_Library)/build/netstandard2.0/ref/netstandard.dll" Condition="'$(TargetFramework)' == 'net48'" CopyToOutputDirectory="Always" />
+    <Content Include="$(PkgNETStandard_Library)/build/netstandard2.0/ref/netstandard.xml" Condition="'$(TargetFramework)' == 'net48'" CopyToOutputDirectory="Always" />
 
     <Compile Include="Src/Util.fs" />
     <Compile Include="Src/ParseFs.fs" />
@@ -135,5 +135,7 @@
   <Target Name="WriteChangelogVersion" AfterTargets="AfterBuild"> <!-- to check output from Ionide.KeepAChangelog.Tasks current git tag in gh actions -->
     <WriteLinesToFile File="./bin/ChangelogVersion.txt" Lines="@(CurrentReleaseChangelog)" Overwrite="true" ContinueOnError="false" />
   </Target>
+
+
 
 </Project>

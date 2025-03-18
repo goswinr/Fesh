@@ -52,25 +52,18 @@
   </PropertyGroup>
 
   <ItemGroup>
-
     <PackageReference Include="Velopack" Version="0.0.1053" />
     <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="all" IncludeAssets="runtime; build; native; contentfiles; analyzers; buildtransitive" />
-    <PackageReference Include="Ionide.KeepAChangelog.Tasks" Version="0.1.8" PrivateAssets="all" />
+    <PackageReference Include="Ionide.KeepAChangelog.Tasks" Version="0.1.8" PrivateAssets="all"  />
 
     <PackageReference Include="Microsoft.VisualBasic" Version="10.3.0" /> <!-- to move files to the recycle bin instead of deleting them -->
     <PackageReference Include="System.Private.Uri" Version="4.3.2" />    <!-- warning NU1903: Package 'System.Private.Uri' 4.3.0 has a known high severity vulnerability, https://github.com/advisories/GHSA-5f2m-466j-3848 -->
-
-    <!-- normally don't include FSharp.Core in a library, but here it needs to match FSharp.Compiler.Service-->
-	  <PackageReference Include="FSharp.Core" Version="9.0.201" GeneratePathProperty="true" /> <!-- use 'Include' and DisableImplicitFSharpCoreReference, not 'Update', for dotnet outdated tool to work -->
-	  <PackageReference Include="FSharp.Compiler.Service" Version="43.9.201" />
+    <PackageReference Include="FSharp.Compiler.Service" Version="43.9.201" />
+    <PackageReference Include="FSharp.Core" Version="9.0.201" />
 
 	  <PackageReference Include="Fittings" Version="0.10.0" />
-	  <PackageReference Include="AvalonLog" Version="0.18.0" />
-    <!-- <ProjectReference Include="../AvalonLog/AvalonLog.fsproj" /> -->
-
+	  <PackageReference Include="AvalonLog" Version="0.19.0" />
   </ItemGroup>
-
-
 
   <ItemGroup>
     <Content Include="README.md" Pack="true" PackagePath="\" />
