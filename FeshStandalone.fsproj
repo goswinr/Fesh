@@ -51,7 +51,7 @@
     <PackageReference Include="FSharp.Core" Version="9.0.201"/>
 
     <PackageReference Include="Fittings" Version="0.10.0" />
-    <PackageReference Include="AvalonLog" Version="0.19.0" />
+    <PackageReference Include="AvalonLog" Version="0.20.0" />
     <!-- <ProjectReference Include="../AvalonLog/AvalonLog.fsproj" /> -->
 
     <!-- netstandard reference is needed for tooling only, it might not be installed on host PC. (running the .NET Framework version) see also https://github.com/fsprojects/IfSharp/issues/213 -->
