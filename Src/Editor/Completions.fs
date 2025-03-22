@@ -345,7 +345,8 @@ type Completions(state: InteractionState) =
                             w.CloseWhenCaretAtBeginning <- not posX.dotBefore
                             w.StartOffset <- stOff // to replace some previous characters too
 
-                            let taCaretChanged  = new EventHandler(fun _ _ ->
+
+                            let checkIfOnlyOneMatch  = fun() ->
                                 match complList.ListBox.Items.Count with
                                 | 0 ->  w.Close()  //  close when list is empty. 'willInsert' is still false so checkAndMark will be called in closing event handler
                                 | 1 ->  match complList.SelectedItem with // insert and close if there is an exact match and no other possible match available
@@ -358,11 +359,11 @@ type Completions(state: InteractionState) =
                                                 if textInWin = textInDoc then
                                                     complList.RequestInsertion(new EventArgs()) // this triggers a doc-changed event
                                 | _ -> () // else keep window open
-                                )
 
-                            ta.Caret.PositionChanged.AddHandler taCaretChanged
+                            let autoCloseOnCaretChanged = EventHandler(fun _ _ -> checkIfOnlyOneMatch())
+                            ta.Caret.PositionChanged.AddHandler autoCloseOnCaretChanged
                             w.Closed.Add (fun _  -> // this gets called even if the window never shows up
-                                    ta.Caret.PositionChanged.RemoveHandler taCaretChanged
+                                    ta.Caret.PositionChanged.RemoveHandler autoCloseOnCaretChanged
 
                                     // Event sequence on pressing enter in completion window:
                                     // (1) raise InsertionRequested event
@@ -387,6 +388,7 @@ type Completions(state: InteractionState) =
                             showingEv.Trigger() // to close error and type info tooltip
                             this.ComplWin <- Some w
                             w.Show()
+                            checkIfOnlyOneMatch()
                             DidShow
                     else
                         //IFeshLog.log.PrintfnDebugMsg "*5.5 Skipped showing empty Completion Window"
