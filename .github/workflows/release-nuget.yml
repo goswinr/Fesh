@@ -18,9 +18,13 @@ jobs:
       with:
         dotnet-version: '9.x'
 
-    - name: dotnet build FeshHosting
-      # run: dotnet build FeshHosting.fsproj --configuration Release
+    - name: Replace <br> in README.md with two spaces for nuget.org
+      run: |
+        $content = Get-Content -Path README.md -Raw
+        $content = $content -replace "<br>", "  "
+        Set-Content -Path README.md -Value $content           
 
+    - name: dotnet build FeshHosting
       run: dotnet build FeshHosting.fsproj  --configuration Release  --output bin/publishNuget
 
 
