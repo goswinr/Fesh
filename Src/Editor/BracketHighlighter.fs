@@ -172,7 +172,7 @@ module ParseBrackets =
                     | '}' -> pushExit ClCurly
                     |  _  -> RegCode // just exit loop
 
-                else // i < lastIdx
+                else // i < lastIdx, check a pair inside the line
                     let next = code[i+1]
                     match chr,next with
                     | '/','/' -> RegCode // a comment starts, don't parse rest of line
@@ -211,19 +211,19 @@ module ParseBrackets =
                                  else
                                     RawAtString // the line ends immediately after @"
 
-                    | '"', _  -> skipString next (i+1)  |> flowOnOrOver SimpleString //a  regular string starts,
+                    | '"',   _  -> skipString next (i+1)  |> flowOnOrOver SimpleString //a  regular string starts,
 
                     | ''', '\\' ->  if i + 3 <= lastIdx then
                                         let next3 = code[i+3] //skip the first char after '\ it might be a ' or a " .
-                                        skipChar next3 (i+3) |> flowOnOrOver RegCode
-                                    else
-                                        RegCode // the line ends immediately after '\"' or '\''
-                    | ''', '''
-                    | ''', '"' ->   if i + 3 <= lastIdx then
-                                        let next3 = code[i+3] // the char after '"' or after '''
-                                        charLoop next3 (i+3)
+                                        skipChar next3 (i+3) |> flowOnOrOver RegCode // skipChar becaus this might be a long unicode escaped char literal
                                     else
                                         RegCode // the line ends immediately after '"' or '''
+
+                    | ''',  _  ->   if i + 3 <= lastIdx then // a regular char literal starts, its length is 3
+                                        let next3 = code[i+3] // the char after `?`
+                                        charLoop next3 (i+3)
+                                    else
+                                        RegCode // the line ends immediately after `?`
 
                     | _       -> charLoop next (i+1)
 
