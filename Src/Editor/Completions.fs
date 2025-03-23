@@ -132,21 +132,24 @@ type CompletionItem(state: InteractionState, info:CompletionInfo , isDotCompleti
         // Extend the completionSegment to the left to replace an existing word
         // if typing stated inside a word. // This deletes characters that should be kept in some cases?
         let extendedSegment =
-            let mutable e = completionSegment.EndOffset
-            let prevChar = doc.GetCharAt(max 0 (textArea.Caret.Offset - 2)) //
+            let prevChar2 = doc.GetCharAt(max 0 (textArea.Caret.Offset - 2))
+            let prevChar3 = doc.GetCharAt(max 0 (textArea.Caret.Offset - 3))
+            let inline isIdent c  = Char.IsLetterOrDigit c || c = '_' || c = '`' || c = ''' // al characters that can make up a name in F#
             // IFeshLog.log.PrintfnDebugMsg $"prevChar '{prevChar}'"
-            if Char.IsLetterOrDigit prevChar || prevChar = '_' then // test if this completion is  started inside a word || prevChar = '.'
+            if isIdent prevChar2 && isIdent prevChar3 then // test if this completion is  started inside a word || prevChar = '.'
                 // Extend the completionSegment to the left to include the whole word:
+                let mutable e = completionSegment.EndOffset
                 let mutable k = 0
-                let inline isValidIdentifierChar c = Char.IsLetterOrDigit(c) || c = '_' || c = '`' || c = '\''
-                while k < 20 && e < doc.TextLength && isValidIdentifierChar(doc.GetCharAt(e)) do // don't extend by more than 20 chars
+                while k < 20 && e < doc.TextLength && isIdent(doc.GetCharAt(e)) do // don't extend by more than 20 chars
                     e <- e + 1
                     k <- k + 1
-            ISegment.FormTill(completionSegment.Offset, e)
+                ISegment.FormTill(completionSegment.Offset, e)
+            else
+                completionSegment
 
         // replace in the document:
         if Selection.getSelType textArea = Selection.RectSel then
-            RectangleSelection.complete (textArea, extendedSegment, complText)
+            RectangleSelection.complete (textArea, completionSegment, complText) // don't us the exdended segment here
         else
             doc.Replace(extendedSegment, complText)
 
