@@ -1,4 +1,4 @@
-﻿namespace Fesh.Views
+namespace Fesh.Views
 
 open System
 open System.Windows
@@ -381,7 +381,6 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, statusBar:FeshStatusBar, log:
                 menuItem cmds.SettingsFolder
                 menuItem cmds.AppFolder
                 menuItem cmds.OpenXshdFile
-                //menuItem cmds.ReloadXshdFile
                 ]
             ]
         recentFilesInsertPosition <- fileMenu.Items.Count // to put recent files at bottom of file menu

@@ -1,4 +1,4 @@
-﻿namespace Fesh
+namespace Fesh
 
 open System
 open System.IO
@@ -99,8 +99,8 @@ module Initialize =
                         let doc = ed.AvaEdit.Document
                         do! Async.SwitchToThreadPool()
                         let txt = doc.CreateSnapshot().Text
-                        let desk = Environment.GetFolderPath(Environment.SpecialFolder.Desktop)
-                        let p = Path.Combine(desk, Path.GetFileNameWithoutExtension(fi.Name) + " " + DateTime.nowStr + fi.Extension  )
+                        let desk = Environment.GetFolderPath Environment.SpecialFolder.Desktop
+                        let p = Path.Combine(desk, Path.GetFileNameWithoutExtension fi.Name + " " + DateTime.nowStr + fi.Extension  )
                         File.WriteAllText(p,txt)
             with _ -> //saving might fail because another error might be writing to the same file already
                 ()
@@ -112,7 +112,7 @@ module Initialize =
 
         Fittings.SyncWpf.installSynchronizationContext(true)    // do first
 
-        let en_US = Globalization.CultureInfo.CreateSpecificCulture("en-US")
+        let en_US = Globalization.CultureInfo.CreateSpecificCulture "en-US"
         Threading.Thread.CurrentThread.CurrentCulture <- en_US
         Threading.Thread.CurrentThread.CurrentUICulture <- en_US
         Globalization.CultureInfo.DefaultThreadCurrentCulture   <- en_US
@@ -149,10 +149,10 @@ module Initialize =
         let config = new Config(log, mode, startupArgs)
         log.FinishLogSetup(config)
 
-        let f = Fesh(config, log)
-        f.Window.ContentRendered.Add(fun _ -> checkForNewVelopackRelease(config, f))
-        //Theming.setDark(f.Window)
-        f
+        let fesh = Fesh(config, log)
+        fesh.Window.ContentRendered.Add(fun _ -> checkForNewVelopackRelease(config, fesh))
+        fesh
+
 
 
         // not needed?
