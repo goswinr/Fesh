@@ -47,7 +47,9 @@ jobs:
     - name: Simulate Update NuGet packages to get JSON output
       # dotnet-outdated fails if there are two fsproj files in the same directory, see https://github.com/dotnet-outdated/dotnet-outdated/issues/204
       # so just rename the file to avoid this:
+      # first delete the sulution file so that dotnet outdated can pick up the correct fsproj file in the next step
       run: |
+        if (Test-Path 'fesh.sln') { Remove-Item -Path 'fesh.sln' -Force }
         mv FeshStandalone.fsproj FeshStandalone.fsprojOFF
         dotnet outdated --output outdated.json 
         mv FeshStandalone.fsprojOFF FeshStandalone.fsproj    
