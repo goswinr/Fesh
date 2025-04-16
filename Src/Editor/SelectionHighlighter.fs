@@ -119,7 +119,8 @@ type SelectionHighlighter (state:InteractionState) =
             loop (offsSearchFromIdx)
 
 
-    let forceClear(triggerNext) =
+    let forceClear triggerNext =
+        if lastWord <> "" then
             lastWord <- ""
             lastSkipOff <- MarkAll
             lastSels.Clear()
@@ -249,7 +250,7 @@ type SelectionHighlighter (state:InteractionState) =
                 let redrawRange = // get range to redraw
                     match  prevRange, thisRange with
                     | None       , None  ->    // nothing before, nothing now
-                        if lastSels.Count = 1 || prevFoundCount =1 then StatusbarOnly // but maybe just the current selection that doesn't need highlighting, but still show in status bar
+                        if lastSels.Count = 1 || prevFoundCount = 1 then StatusbarOnly // but maybe just the current selection that doesn't need highlighting, but still show in status bar
                         else NoSelRedraw
 
                     | Some (f,l) , None          // some before, nothing now
@@ -284,28 +285,41 @@ type SelectionHighlighter (state:InteractionState) =
 
             match Selection.getSelType ed.TextArea with
             |RectSel ->
-                clearIfNeeded(true)
+                clearIfNeeded true
 
             |RegSel  ->
                 if ed.TextArea.Selection.IsMultiline then
-                    clearIfNeeded(true)
+                    clearIfNeeded true
                 else
                     let word = ed.SelectedText
                     if isTextToHighlight word then  //is at least two chars and has no line breaks
                         let skip = SkipOffset ed.SelectionStart
                         redrawMarking(word, skip, true, newSelId)
                     else
-                        clearIfNeeded(true)
+                        clearIfNeeded true
 
             // keep highlighting if the cursor is just moved ? even while typing in comments?:
             |NoSel   ->
                 if lastWord <> "" then
                     if state.CodeLines.IsNotFromId(state.DocChangedId.Value) // if the doc has changed only in a comment the IDs don't match and we redrawMarking. this redrawMarking will update the code lines
                     || lastSkipOff <> MarkAll then  // if lastSkipOff = MarkAll then all words are highlighted there is no change to highlighting needed
-                        redrawMarking(lastWord, MarkAll, true,newSelId) // keep highlighting and add the word that was selected before
+                        redrawMarking(lastWord, MarkAll, true, newSelId) // keep highlighting and add the word that was selected before
+
+
+    let debounce =
+        let mutable lastId = ref 0L
+        fun (milliSeconds:int) ->
+            let thisId = Threading.Interlocked.Increment lastId
+            forceClear false
+            async{
+                do! Async.Sleep milliSeconds
+                if thisId = lastId.Value then updateToCurrentSelection()
+            } |> Async.StartImmediate
+
 
     do
-        ed.TextArea.SelectionChanged.Add ( fun _ -> updateToCurrentSelection() )
+        ed.TextArea.SelectionChanged.Add ( fun _ -> debounce 300 )
+        // ed.TextArea.SelectionChanged.Add ( fun _ -> updateToCurrentSelection() )
         // ed.Document.Changed.Add (fun _ ->  ) will call UpdateTransformers from DocChanged.fs
 
     [<CLIEvent>]
@@ -329,12 +343,12 @@ type SelectionHighlighter (state:InteractionState) =
 
     member _.ClearMarksIfOneSelected() = // to be used when the search panel opens
         match lastSkipOff with
-        | SkipOffset _ -> clearIfNeeded(true) // there is a selection to clear, then clear all its marks too
+        | SkipOffset _ -> clearIfNeeded true // there is a selection to clear, then clear all its marks too
         | MarkAll      -> () // keep the marks, the do not match the search window probably
 
 
     // used when escape is pressed and not type info is open
-    member _.ForceClear() = forceClear(false)
+    member _.ForceClear() = forceClear false
 
     member _.Word = lastWord
 
@@ -347,7 +361,7 @@ type SelectionHighlighter (state:InteractionState) =
         if isTextToHighlight word then // isTextToHighlight is needed , word might be empty string
             redrawMarking(word, MarkAll, false, selChangeId.Value)
         else
-            clearIfNeeded(false)
+            clearIfNeeded false
 
 
 /// Highlight-all-occurrences-of-selected-text in Log
@@ -372,25 +386,26 @@ type SelectionHighlighterLog (lg:TextEditor) =
     let markCallID  = ref 0 // because while getting the text below, the Editor selection might have changed already
 
     let trans = LineTransformers<LinePartChange>()
-    let colorizer = FastColorizer([|trans|]) //, lg )
+    let colorizer = FastColorizer( [|trans|] ) //, lg )
     let lines = CodeLinesSimple()
 
     let forceClear(triggerNext) =
-        lastWord <- ""
-        lastSkipOff <- MarkAll
-        lastSels.Clear()
-        prevRange <- None
-        async{
-            do! Async.SwitchToContext Fittings.SyncWpf.context
-            match thisRange with
-            | None   -> ()
-                // TODO ? still trigger event to clear the selection in StatusBar if it is just a selection without any highlighting(e.g. multiline)
-            | Some (f,l) ->
-                trans.Update(empty)// using empty array
-                //for f in state.FoldManager.AllFoldings do f.BackgroundColor <- null  // no folds in Log !!
-                lg.TextArea.TextView.Redraw(f, l, priority)
-            foundSelectionLogEv.Trigger(triggerNext)
-        } |> Async.Start
+        if lastWord <> "" then
+            lastWord <- ""
+            lastSkipOff <- MarkAll
+            lastSels.Clear()
+            prevRange <- None
+            async{
+                do! Async.SwitchToContext Fittings.SyncWpf.context
+                match thisRange with
+                | None   -> ()
+                    // TODO ? still trigger event to clear the selection in StatusBar if it is just a selection without any highlighting(e.g. multiline)
+                | Some (f,l) ->
+                    trans.Update(empty)// using empty array
+                    //for f in state.FoldManager.AllFoldings do f.BackgroundColor <- null  // no folds in Log !!
+                    lg.TextArea.TextView.Redraw(f, l, priority)
+                foundSelectionLogEv.Trigger(triggerNext)
+            } |> Async.Start
 
     let clearLogIfNeeded(triggerNext) =
         if lastSels.Count > 0 then
@@ -532,10 +547,22 @@ type SelectionHighlighterLog (lg:TextEditor) =
                 if lastWord <> "" && lastSkipOff <> MarkAll then  // if lastSkipOff = MarkAll then all words are highlighted. there is no change to highlighting needed
                     mark(lastWord, MarkAll, true) // keep highlighting and add the word that was selected before
 
+    let debounce =
+        let mutable lastId = ref 0L
+        fun (milliSeconds:int) ->
+            let thisId = Threading.Interlocked.Increment lastId
+            forceClear false
+            async{
+                do! Async.Sleep milliSeconds
+                if thisId = lastId.Value then updateToCurrentSelection()
+            } |> Async.StartImmediate
+
+
     do
         lg.TextArea.TextView.LineTransformers.Insert(0, colorizer) // insert at index 0 so that it is drawn first, so that text color is overwritten the selection highlighting
 
-        lg.TextArea.SelectionChanged.Add ( fun _ -> updateToCurrentSelection() )
+        // lg.TextArea.SelectionChanged.Add ( fun _ -> updateToCurrentSelection() )
+        lg.TextArea.SelectionChanged.Add ( fun _ -> debounce 300 )
 
         lg.Document.Changing.Add (fun _ ->
             Threading.Interlocked.Increment logStateRef |> ignore
