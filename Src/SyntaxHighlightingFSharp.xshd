@@ -19,7 +19,7 @@
   https://marketplace.visualstudio.com/items?itemName=kamikillerto.vscode-colorize
   -->
   <Color name="Comment"             foreground="#777777" fontWeight="300" fontStyle="italic" stylisticSet1="true"/>
-  <Color name="DocComment"          foreground="#005500" fontWeight="400" fontStyle="italic" stylisticSet1="true"/>
+  <Color name="DocComment"          foreground="#009900" fontWeight="400" fontStyle="italic" stylisticSet1="true"/>
   <Color name="BracketComment"      foreground="#555555" fontWeight="800" fontStyle="italic" stylisticSet1="true"/>
   <Color name="TODO"                foreground="#EE0000" fontWeight="800"/>
   <Color name="HACK"                foreground="#A0A000" fontWeight="800"/>
@@ -310,8 +310,9 @@
   </RuleSet >
 
   <RuleSet name="_StringDollarFormatSet">
-    <Span> <Begin color="CodeInString">\{\{</Begin> <End >(?=.)</End>  </Span>
-    <Span> <Begin color="CodeInString">\}\}</Begin> <End >(?=.)</End>  </Span>
+    <!-- mak sure a {{ and a }} is not considered a code in string , and highlight the outer ones as escaped: -->
+    <Span> <Begin color="StringEscaped">\{(?=\{)</Begin><End>\{</End></Span>
+    <Span> <Begin>\}(?=\})</Begin><End color="StringEscaped">\}</End></Span>
     <Import ruleSet="_StringFormatSet"/>
     <Span color="DollarInlines">
       <Begin color="CodeInString">\{</Begin>
