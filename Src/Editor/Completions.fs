@@ -42,6 +42,8 @@ module UtilCompletion =
         tb.Padding <- Thickness(0. , 0. , 8. , 0. ) //left top right bottom / so that it does not appear to be trimmed
         tb
 
+
+
 type CompletionInfo =
     | Decl    of decl:DeclarationListItem * getToolTip:(DeclarationListItem -> obj) // getToolTip is a function that returns the tooltip text
     | KeyWord of text:string*toolTip:string
@@ -131,25 +133,25 @@ type CompletionItem(state: InteractionState, info:CompletionInfo , isDotCompleti
 
         // Extend the completionSegment to the left to replace an existing word
         // if typing stated inside a word. // This deletes characters that should be kept in some cases?
-        let extendedSegment =
-            let prevChar2 = doc.GetCharAt(max 0 (textArea.Caret.Offset - 2))
-            let prevChar3 = doc.GetCharAt(max 0 (textArea.Caret.Offset - 3))
-            let inline isIdent c  = Char.IsLetterOrDigit c || c = '_' || c = '`' || c = ''' // al characters that can make up a name in F#
-            // IFeshLog.log.PrintfnDebugMsg $"prevChar '{prevChar}'"
-            if isIdent prevChar2 && isIdent prevChar3 then // test if this completion is  started inside a word || prevChar = '.'
-                // Extend the completionSegment to the left to include the whole word:
-                let mutable e = completionSegment.EndOffset
-                let mutable k = 0
-                while k < 20 && e < doc.TextLength && isIdent(doc.GetCharAt(e)) do // don't extend by more than 20 chars
-                    e <- e + 1
-                    k <- k + 1
-                ISegment.FormTill(completionSegment.Offset, e)
-            else
-                completionSegment
+        let extendedSegment = completionSegment
+            // let prevChar2 = doc.GetCharAt(max 0 (textArea.Caret.Offset - 2))
+            // let prevChar3 = doc.GetCharAt(max 0 (textArea.Caret.Offset - 3))
+            // let inline isIdent c  = Char.IsLetterOrDigit c || c = '_' || c = '`' || c = ''' // al characters that can make up a name in F#
+            // // IFeshLog.log.PrintfnDebugMsg $"prevChar '{prevChar}'"
+            // if isIdent prevChar2 && isIdent prevChar3 then // test if this completion is  started inside a word || prevChar = '.'
+            //     // Extend the completionSegment to the left to include the whole word:
+            //     let mutable e = completionSegment.EndOffset
+            //     let mutable k = 0
+            //     while k < 20 && e < doc.TextLength && isIdent(doc.GetCharAt(e)) do // don't extend by more than 20 chars
+            //         e <- e + 1
+            //         k <- k + 1
+            //     ISegment.FormTill(completionSegment.Offset, e)
+            // else
+            //     completionSegment
 
         // replace in the document:
         if Selection.getSelType textArea = Selection.RectSel then
-            RectangleSelection.complete (textArea, completionSegment, complText) // don't us the exdended segment here
+            RectangleSelection.complete (textArea, completionSegment, complText) // don't us the expended segment here
         else
             doc.Replace(extendedSegment, complText)
 
@@ -366,19 +368,19 @@ type Completions(state: InteractionState) =
                             let autoCloseOnCaretChanged = EventHandler(fun _ _ -> checkIfOnlyOneMatch())
                             ta.Caret.PositionChanged.AddHandler autoCloseOnCaretChanged
                             w.Closed.Add (fun _  -> // this gets called even if the window never shows up
-                                    ta.Caret.PositionChanged.RemoveHandler autoCloseOnCaretChanged
+                                ta.Caret.PositionChanged.RemoveHandler autoCloseOnCaretChanged
 
-                                    // Event sequence on pressing enter in completion window:
-                                    // (1) raise InsertionRequested event
-                                    // (2) in one of the event handlers first Closes window
-                                    // (3) then on the item line this.Complete (TextArea, ISegment, EventArgs) is called and change the Document
-                                    // https://github.com/goswinr/AvalonEditB/blob/main/AvalonEditB/CodeCompletion/CompletionWindow.cs#L110
-                                    this.CloseAndEnableReacting()
-                                    //IFeshLog.log.PrintfnDebugMsg "Completion window just closed with selected item: %A " complList.SelectedItem
+                                // Event sequence on pressing enter in completion window:
+                                // (1) raise InsertionRequested event
+                                // (2) in one of the event handlers first Closes window
+                                // (3) then on the item line this.Complete (TextArea, ISegment, EventArgs) is called and change the Document
+                                // https://github.com/goswinr/AvalonEditB/blob/main/AvalonEditB/CodeCompletion/CompletionWindow.cs#L110
+                                this.CloseAndEnableReacting()
+                                //IFeshLog.log.PrintfnDebugMsg "Completion window just closed with selected item: %A " complList.SelectedItem
 
-                                    if not willInsert then // else -on inserting- a DocChanged event is triggered anyway that will do the checkAndMark
-                                        checkAndMark()
-                                    )
+                                if not willInsert then // else -on inserting- a DocChanged event is triggered anyway that will do the checkAndMark
+                                    checkAndMark()
+                                )
 
                             complList.InsertionRequested.Add(fun _ -> willInsert <- true)
 
@@ -411,7 +413,7 @@ type Completions(state: InteractionState) =
             // insert on dot too? //TODO only when more than one char is typed in completion window??
             |"." ->
                 match this.ComplWin.Value.CompletionList.SelectedItem with
-                | null -> () // dont insert __LINE__ when doing an underscore and a dot in the new shorthand meber acces like: xs |> Array.map _.Length
+                | null -> () // don't insert __LINE__ when doing an underscore and a dot in the new shorthand meber acces like: xs |> Array.map _.Length
                 | i -> if not <|  i.Text.StartsWith "_" then win.Value.CompletionList.RequestInsertion(ev)
 
             | _  -> () // other triggers like tab, enter and return are covered in   https://github.com/goswinr/AvalonEditB/blob/main/AvalonEditB/CodeCompletion/CompletionList.cs#L170

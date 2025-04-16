@@ -34,6 +34,7 @@ open EvaluationTrackerRendererUtil
 /// IBackgroundRenderer
 type EvaluationTrackerRenderer (ed:TextEditor, state:InteractionState ) =
 
+    /// the first line number as literal
     let [<Literal>] ``1`` = 1
 
     let mutable evalFromLine = ``1``
@@ -49,7 +50,7 @@ type EvaluationTrackerRenderer (ed:TextEditor, state:InteractionState ) =
                 else
                     match lns.GetLine(i,id.Value) with // checks for 0 index
                     | ValueSome ln ->
-                        if ln.indent = 0 then
+                        if ln.indent = 0 && ln.len > 0 then // a non empty line with 0 indent
                             i
                         else
                             findIndent (i-1)
@@ -154,8 +155,8 @@ type EvaluationTracker (ed:TextEditor, state, config:Config.Config) =
 
     do
         if isActive then
-            ed.TextArea.TextView.BackgroundRenderers.Add(renderer)
-            let fsi =Fsi.GetOrCreate(config)
+            ed.TextArea.TextView.BackgroundRenderers.Add renderer
+            let fsi =Fsi.GetOrCreate config
             fsi.OnReset.Add       (fun _ -> renderer.ClearMarking()) // reset for all editors
             fsi.OnCanceled.Add    (fun _ -> if IEditor.isCurrent ed then renderer.ClearMarking())
             fsi.OnRuntimeError.Add(fun _ -> if IEditor.isCurrent ed then renderer.ClearMarking())
@@ -169,7 +170,7 @@ type EvaluationTracker (ed:TextEditor, state, config:Config.Config) =
                     |FsiSegment s ->
                         if s.startLine <= renderer.EvaluateFromLine then // only mark if the code before was evaluated already
                             let li = ed.Document.GetLineByOffset(s.startOffset + s.length).LineNumber
-                            renderer.MarkEvaluatedTillLine(li)
+                            renderer.MarkEvaluatedTillLine li
                             ed.TextArea.TextView.Redraw()
                         else
                             IFeshLog.log.PrintfnDebugMsg "FsiSegment.startLine > renderer.EvaluateFromLine: %d > %d" s.startLine renderer.EvaluateFromLine

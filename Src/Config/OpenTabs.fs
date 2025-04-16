@@ -15,7 +15,7 @@ type FileToOpen = {file:FileInfo; makeCurrent:bool}
 /// Files that are open when closing the editor window, for next restart
 type OpenTabs  (runContext:RunContext, startupArgs:string[]) =
 
-    let filePath0 = runContext.GetPathToSaveAppData("Currently-Open-Files.txt")
+    let filePath0 = runContext.GetPathToSaveAppData "Currently-Open-Files.txt"
     let writer = SaveReadWriter(filePath0,IFeshLog.printError)
 
     let currentTabPreFix = "*Current tab:* " //a string that can never be part of a filename
@@ -32,8 +32,8 @@ type OpenTabs  (runContext:RunContext, startupArgs:string[]) =
         let mutable curr =""
         writer.CreateFileIfMissing("")  |> ignore
 
-        // If ther are file in the startup args only open those, not the previously open files.
-        // This is to avoid openinh the same files twice.
+        // If there are file in the startup args only open those, not the previously open files.
+        // This is to avoid opening the same files twice.
         // One instance of Fesh might be open with some files.
         // If the user then double clicks another fsx file it would open a new instance of Fesh with this fsx file,
         // but also all the others that are already in the first instance of Fesh open.
@@ -84,6 +84,6 @@ type OpenTabs  (runContext:RunContext, startupArgs:string[]) =
 
 
     /// second item in tuple indicates current tab
-    /// ensures that ther is only one file to make current
+    /// ensures that there is only one file to make current
     member this.Get() = files
 

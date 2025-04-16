@@ -299,8 +299,8 @@ type Fsi private (config:Config) =
             //settings.ShowDeclarationValues <- true // use this instead of switching the quiet flag ?
             fsiObj.PrintWidth <- 200 //TODO adapt to Log view size taking font size into account
             fsiObj.FloatingPointFormat <- "g7"
-            fsiObj.AddPrinter<DateTime>(fun d -> if d.Hour=0 && d.Minute=0 && d.Second = 0 then d.ToString("yyyy-MM-dd") else d.ToString("yyyy-MM-dd HH:mm:ss"))
-            fsiObj.AddPrinter<DateTimeOffset>(fun d -> d.ToString("yyyy-MM-dd HH:mm:ss K"))
+            fsiObj.AddPrinter<DateTime>(fun d -> if d.Hour=0 && d.Minute=0 && d.Second = 0 then d.ToString "yyyy-MM-dd" else d.ToString "yyyy-MM-dd HH:mm:ss")
+            fsiObj.AddPrinter<DateTimeOffset>(fun d -> d.ToString "yyyy-MM-dd HH:mm:ss K")
 
             // https://github.com/dotnet/fsharp/blob/4978145c8516351b1338262b6b9bdf2d0372e757/src/fsharp/fsi/fsi.fs#L2839
             FsiEvaluationSession.GetDefaultConfiguration(fsiObj, useFsiAuxLib = false) // useFsiAuxLib = FSharp.Compiler.Interactive.Settings.dll . But it is missing in FCS !!
@@ -313,11 +313,14 @@ type Fsi private (config:Config) =
         else
             (*  This is needed since FCS 34. it solves https://github.com/dotnet/fsharp/issues/9064
             FCS takes the current Directory which might be the one of the hosting App and will then probably not contain FSharp.Core.
-            at https://github.com/dotnet/fsharp/blob/7b46dad60df8da830dcc398c0d4a66f6cdf75cb1/src/Compiler/Interactive/fsi.fs#L3213   *)
+            at https://github.com/dotnet/fsharp/blob/7b46dad60df8da830dcc398c0d4a66f6cdf75cb1/src/Compiler/Interactive/fsi.fs#L3213
+            Cal this after all files are loaded and the current directory is set from the current tab, only then initialize FSI.
+            If done earlier the current directory set by a tab might get lost in a race condition while creating the fsi session async.
+            *)
             let prevDir = Environment.CurrentDirectory
             Directory.SetCurrentDirectory(Path.GetDirectoryName(Reflection.Assembly.GetAssembly([].GetType()).Location))
             let fsiSession = FsiEvaluationSession.Create(fsiConfig, fsiArgs, inStream, log.TextWriterFsiStdOut, log.TextWriterFsiErrorOut) //, collectible=false ??) //https://github.com/dotnet/fsharp/blob/6b0719845c928361e63f6e38a9cce4ae7d621fbf/src/fsharp/fsi/fsi.fs#L2440
-            Directory.SetCurrentDirectory(prevDir)
+            Directory.SetCurrentDirectory prevDir
 
             //fsiSession.Run() // don't call Run(), crashes app, done by WPF App.Run(). see https://github.com/dotnet/fsharp/issues/14486
             fsiSession
@@ -336,9 +339,10 @@ type Fsi private (config:Config) =
             |Choice1Of2 _evaluatedToValue ->
                 let errs = diagnostics |> Array.filter (fun e -> e.Severity = FSharpDiagnosticSeverity.Error )
                 if errs.Length = 0 then
-                    completedOkEv.Trigger(codeToEv)
+                    completedOkEv.Trigger codeToEv
                 else
-                    fsiEvalErrorEv.Trigger(diagnostics.[0])
+                    fsiEvalErrorEv.Trigger diagnostics.[0]
+
 
                 for e in diagnostics do
                     match e.Severity with

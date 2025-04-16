@@ -35,10 +35,10 @@ type Tabs(config:Config, log:Log,feshWin:FeshWindow) =
     let win = feshWin.Window
 
 
-    let fsi =
-        let f = Fsi.GetOrCreate(config)
-        f.Initialize()
-        f
+    // let fsi =
+    //     let f = Fsi.GetOrCreate(config)
+    //     f.Initialize()
+    //     f
 
     let allTabs:seq<Tab> =  Seq.cast tabs.Items
 
@@ -340,7 +340,7 @@ type Tabs(config:Config, log:Log,feshWin:FeshWindow) =
                     setCurrentTab(i)
                     config.RecentlyUsedFiles.AddAndSave(fi) // to move it up to top of stack
                 true
-            | None -> // regular case, actually open file
+            | None -> // regular case, its not open already, so actually open the file
                 try
                     let codeRaw = IO.File.ReadAllText (fi.FullName, Text.Encoding.UTF8)
                     let codeClean =
@@ -351,7 +351,7 @@ type Tabs(config:Config, log:Log,feshWin:FeshWindow) =
                     let t = new Tab(ed)
                     t.Editor.CodeAtLastSave <- codeRaw
                     //log.PrintfnDebugMsg "adding Tab %A in %A " t.Editor.FilePath t.Editor.FileCheckState
-                    addTab(t,makeCurrent, moreTabsToCome)
+                    addTab(t, makeCurrent, moreTabsToCome)
                     true
                 with  e ->
                     log.PrintfnIOErrorMsg "Error reading and adding (with Encoding.UTF8):\r\n%s\r\n%A" fi.FullName e
@@ -394,7 +394,6 @@ type Tabs(config:Config, log:Log,feshWin:FeshWindow) =
         else
             false
 
-
     do
         // --------------first load tabs from last session including startup args--------------
         for f in config.OpenTabs.Get() do
@@ -421,6 +420,11 @@ type Tabs(config:Config, log:Log,feshWin:FeshWindow) =
 
             )
 
+        // After all files are loaded and the current directory is set from the current tab, now initialize FSI.
+        // This temporarily sets the current directory to the App folder where FSharp.Core.dll is located.
+        // if done earlier the current directory set by a tab might get lost in a race condition
+        Fsi.GetOrCreate(config).Initialize()
+
     let tryDeleteToRecycleBin(fi: FilePath) =
         match fi with
         |NotSet _
@@ -442,7 +446,7 @@ type Tabs(config:Config, log:Log,feshWin:FeshWindow) =
 
     member this.Control = tabs
 
-    member this.Fsi = fsi
+    member this.Fsi = Fsi.GetOrCreate(config)
 
     member this.Config = config
 

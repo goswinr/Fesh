@@ -330,7 +330,7 @@ module CursorBehavior  =
                 e.Handled <- true // TODO raise TextArea.TextEntered Event ?
         | _ -> ()
 
-    let addClosingBracket(ed:TextEditor, e:Input.TextCompositionEventArgs) =
+    let encloseInBracketOrQuote(ed:TextEditor, e:Input.TextCompositionEventArgs) =
         let inline addPair caretForward (s:string)  =
             let caret = ed.TextArea.Caret.Offset
             ed.Document.Insert(caret, s );
@@ -358,46 +358,64 @@ module CursorBehavior  =
                 c=' '|| c='\r'|| c='"' // " for being in a string
 
 
-        /// test if next character is whitespace, closingBracket or end of file
-        let inline nextSpaceCB() =
+        /// test if next character is whitespace, a quote, a closingBracket or end of file
+        let inline nextSpaceQB() =
             let i = ed.TextArea.Caret.Offset
             if ed.Document.TextLength <= i then
                 true
             else
                 let c = ed.Document.GetCharAt(i)
-                c = ' '|| c = '\r'|| c='"' || c = ')' || c = '}' || c = ']' || c = ',' || c = ';'  // " for being in a string
+                c = ' '|| c = '\r' || c='"' || c = ')' || c = '}' || c = ']' || c = ',' || c = ';'  // " for being in a string
 
-
-
-        /// test if previous character is not from the alphanumeric( so a space, a bracket or similar)
-        let inline prevNonAlpha() =
+        /// test if next character is whitespace, closingBracket or end of file
+        let inline nextSpaceB() =
             let i = ed.TextArea.Caret.Offset
-            if i = 0  then
+            if ed.Document.TextLength <= i then
                 true
             else
-                let c = ed.Document.GetCharAt(i) // TODO:only testsing for ascii here, good enough!?
-                c < '0'
-                ||
-                c > '9' && c < 'A'
-                ||
-                c > 'Z' && c < '_' // _ then ` then a
-                ||
-                c > 'z'
+                let c = ed.Document.GetCharAt(i)
+                c = ' '|| c = '\r'  || c = ')' || c = '}' || c = ']' || c = ',' || c = ';'  // " for being in a string
+
+        /// test if previous character might not be followed by a single tick
+        let inline prevNoSingleTick() =
+            let i = ed.TextArea.Caret.Offset
+            if i < 2  then
+                true
+            else
+                let c = ed.Document.GetCharAt(i-2) // TODO:only testsing for ascii here, good enough!?
+                c <> '<' // a generic type like array<'a> likely starts after this
+                &&
+                not (Char.IsLetterOrDigit c) // just a name with a apostrophe in the end
 
 
-        /// test if the current line has an even count of quotes ?
-        let inline evenQuoteCount() =
-            let mutable i = ed.TextArea.Caret.Offset - 1 // do minus one first, caret might be at end of document. that would not be a valid index
-            let rec count(k) =
-                if i = -1 then k
+        let inline notNextToQuote() =
+            let i = ed.TextArea.Caret.Offset
+            if i<2 then
+                true
+            else
+                let p = ed.Document.GetCharAt(i-2)
+                if p = '"' then
+                    false
+                elif ed.Document.TextLength <= i then
+                    true
                 else
                     let c = ed.Document.GetCharAt(i)
-                    i<-i-1 // do minus one first, caret might be at end of document. that would not be a valid index
-                    match c with
-                    | '"'  -> count(k+1)
-                    | '\n' -> k
-                    | _    -> count(k)
-            count(0) % 2 = 0
+                    c <> '"'
+
+
+        // test if the current line has an even count of quotes ?
+        // let inline evenQuoteCount() =
+        //     let mutable i = ed.TextArea.Caret.Offset - 1 // do minus one first, caret might be at end of document. that would not be a valid index
+        //     let rec count(k) =
+        //         if i = -1 then k
+        //         else
+        //             let c = ed.Document.GetCharAt(i)
+        //             i<-i-1 // do minus one first, caret might be at end of document. that would not be a valid index
+        //             match c with
+        //             | '"'  -> count(k+1)
+        //             | '\n' -> k
+        //             | _    -> count(k)
+        //     count(0) % 2 = 0
 
 
         match Selection.getSelType(ed.TextArea) with
@@ -405,41 +423,50 @@ module CursorBehavior  =
 
         // if there is a simple selection on one line surround it in Brackets
         |RegSel ->
-            match e.Text with
-            | "("  ->
+            let inline surroundWord (st:string) (en:string)=
                 let s = Selection.getSelectionOrdered(ed.TextArea)
                 if s.LineCount = 1 then
                     ed.Document.BeginUpdate()
-                    ed.Document.Insert(s.enOffset(ed.Document),")")
-                    ed.Document.Insert(s.stOffset(ed.Document),"(")
+                    ed.Document.Insert(s.enOffset(ed.Document),en)
+                    ed.Document.Insert(s.stOffset(ed.Document),st)
                     ed.Document.EndUpdate()
                     ed.SelectionLength <- 0
                     ed.CaretOffset <- s.enOffset(ed.Document)+1
                     e.Handled<-true
+
+            match e.Text with
+            | "("  -> surroundWord "(" ")"
+            | "{"  -> surroundWord "{" "}"
+            | "["  -> surroundWord "[" "]"
+            | "'"  -> surroundWord "'" "'"
+            | "\"" -> surroundWord "\"" "\""
             | _ -> ()
+
 
         // if no selection for an opening bracket add a closing bracket
         |NoSel ->
 
             match e.Text with
-            | "("  -> if nextSpace()                       then addPair 1 "()"
-            | "{"  -> if nextSpaceQ()                      then addPair 1 "{}"
-            | "["  -> if nextSpace()                       then addPair 1 "[]"
-            | "'"  -> if nextSpaceCB() && prevNonAlpha()   then addPair 1 "''"
-            | "\"" -> if nextSpaceCB() && evenQuoteCount() then addPair 1 "\"\""
-            | "$"  -> if nextSpaceCB()                     then addPair 3 "$\"{}\"" // for formatting string
-            | "`"  -> if nextSpaceCB()                     then addPair 2 "````"  // for quoted identifiers
+            | "("  -> if nextSpace()                           then addPair 1 "()"
+            | "{"  -> if nextSpaceQ()                          then addPair 1 "{}"
+            | "["  -> if nextSpace()                           then addPair 1 "[]"
+            | "'"  -> if nextSpaceQB() && prevNoSingleTick()   then addPair 1 "''"
+            | "\"" -> if notNextToQuote() && nextSpaceB()      then addPair 1 "\"\""
+            | "$"  -> if nextSpaceB()                          then addPair 3 "$\"{}\"" // for formatting string
+            | "`"  -> if nextSpaceQB()                         then addPair 2 "````"  // for quoted identifiers
 
             | "|" ->
                 // first check previous character:
                 match prevChar() with
-                | '{' | '[' | '(' -> addPair 2 "|  |" // it was moved 2, now set it to one ahead, in the middle
+                | '{' -> addPair 1 "||"
+                | '[' -> addPair 1 "||"
+                | '(' -> addPair 2 "|  |" // it was moved 2, now set it to one ahead, in the middle
                 | _ -> ()
 
             | "*" -> // for comments with  (* *)
                 // first check previous character:
                 match prevChar() with
-                | '(' -> addPair 2 "*  *"
+                | '(' -> addPair 1 "**"
                 | _ -> ()
 
             | _ -> ()
@@ -454,7 +481,7 @@ module CursorBehavior  =
         | NoSel | RegSel ->
             addWhitespaceAfterChar(ed,e)
             if not e.Handled then
-                addClosingBracket(ed,e)
+                encloseInBracketOrQuote(ed,e)
 
 
 

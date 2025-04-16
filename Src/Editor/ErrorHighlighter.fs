@@ -47,15 +47,15 @@ module ErrorUtil =
             // to filter out duplicate errors, a bug in FCS !
             if i=0 || ( let p = all.[i-1] in p.StartLine <> e.StartLine || p.StartColumn <> e.StartColumn || p.EndLine <> e.EndLine || p.EndColumn <> e.EndColumn) then
                 match e.Severity with
-                | FSharpDiagnosticSeverity.Error   -> if ers.Count < m then (ers.Add e ;  erWs.Add e)
-                | FSharpDiagnosticSeverity.Warning -> if was.Count < m then (was.Add e ;  erWs.Add e)
+                | FSharpDiagnosticSeverity.Error   -> if ers.Count < m then ers.Add e ;  erWs.Add e
+                | FSharpDiagnosticSeverity.Warning -> if was.Count < m then was.Add e ;  erWs.Add e
                 | FSharpDiagnosticSeverity.Hidden  -> if his.Count < m then his.Add e
                 | FSharpDiagnosticSeverity.Info    -> if ins.Count < m && e.ErrorNumber <> 3370 then ins.Add e   //  exclude infos about ref cell incrementing ??
 
         //printfn $"Errors: {ers.Count} Warnings: {was.Count} Infos: {ins.Count} Hidden: {his.Count} "
         { errors = ers; warnings = was; infos = ins; hiddens = his; errorsAndWarnings = erWs }
 
-    let linesStartAtOne i = if i<1 then 1 else i
+    let linesStartAtOne i = if i < 1 then 1 else i
 
     let makeSeg(from,till) =
         Some {new ISegment with
@@ -150,17 +150,14 @@ type ErrorRenderer (state: InteractionState) =
         if textView.VisualLinesValid then //to avoid above error.
             let vls = textView.VisualLines
             if vls.Count > 0 then // check needed !
-                let fromLine = vls[0].FirstDocumentLine.LineNumber
-                let toLine   = vls[vls.Count-1].LastDocumentLine.LineNumber
                 let allSegments = state.ErrSegments
-                // let codeLines = state.CodeLines
                 let shift = allSegments.Shift
-                // let id = state.DocChangedId.Value
-                for lineNo = fromLine to toLine do
-                    let segments = allSegments.GetLine(lineNo)
+                for i=0 to vls.Count-1 do
+                    let vl = vls[i]
+                    let lineNo = vl.LastDocumentLine.LineNumber
+                    let segments = allSegments.GetLine lineNo
                     for i=0 to segments.Count-1 do
                         let seg = segments[i]
-
                         // adjust offset to shifts:
                         let mutable till = seg.EndOffset
                         let from =
@@ -189,16 +186,34 @@ type ErrorRenderer (state: InteractionState) =
                             let iSeg = ISegment.FormTill(from,till)
                             let rects = BackgroundGeometryBuilder.GetRectsForSegment(textView, iSeg) |> ResizeArray
                             if rects.Count = 1 then // skip if line overflows and there is more than one rect
-                                let geo = ErrorUtil.getSquiggleLine(rects[0], -1.0) // neg offset to move down
+                                let geo = ErrorUtil.getSquiggleLine(rects[0], -1.1) // neg offset to move down , // move a bit lower than the line so that the squiggle is not hidden by a selection highlighting
                                 drawingContext.DrawGeometry(Brushes.Transparent, seg.UnderlinePen, geo)
-
     member _.Layer =
-
         // when drawing on Caret layer  This method is called on every blink of the CaretLayer
-        // KnownLayer.Caret// .Selection// for IBackgroundRenderer
-        KnownLayer.Caret
+        // KnownLayer.Caret
+        // KnownLayer.Text // seems to not show  ??
+        KnownLayer.Selection // seems OK ?
+
+    interface IBackgroundRenderer with
+        member this.Draw(tv,dc) = this.Draw(tv,dc)
+        member this.Layer = this.Layer
 
 
+/// to also draw the full line in a red  background, not only the squiggle, but on the background layer
+type ErrorLineRenderer (state: InteractionState) =
+    member _.Draw(textView:TextView , drawingContext:DrawingContext) = // for IBackgroundRenderer
+        if textView.VisualLinesValid then
+            let vls = textView.VisualLines
+            if vls.Count > 0 then // check needed !
+                let allSegments = state.ErrSegments
+                for i=0 to vls.Count-1 do
+                    let vl = vls[i]
+                    let lineNo = vl.LastDocumentLine.LineNumber
+                    let segments = allSegments.GetLine lineNo
+                    if segments.Count > 0 then
+                        let rect = BackgroundGeometryBuilder.GetRectsFromVisualSegment(textView, vl, 0, 1000)  |> Seq.head
+                        drawingContext.DrawRectangle(segments[0].BackgroundBrush, null, rect)
+    member _.Layer = KnownLayer.Background
     interface IBackgroundRenderer with
         member this.Draw(tv,dc) = this.Draw(tv,dc)
         member this.Layer = this.Layer
@@ -240,7 +255,7 @@ type ErrorHighlighter ( state:InteractionState, folds:Folding.FoldingManager, is
                         //if cln.len > cln.indent then // Don't skip just whitespace lines, they might also have errors when code is expected but missing.
                         let st  = if lnNo = stLn then cln.offStart + e.StartColumn else cln.offStart
                         let en  = if lnNo = enLn then cln.offStart + e.EndColumn   else cln.offStart + cln.len
-                        // e.StartColumn = e.EndColumn // this actually happens as a result from fs checker:
+                        // e.StartColumn = e.EndColumn // this may actually happens as a result from fs checker:
                         let fixedEn =  if st = en then cln.offStart + max cln.len 1 else en
                         let seg = SegmentToMark(st ,fixedEn , e)
                         LineTransformers.Insert(newSegments, lnNo, seg)
@@ -255,12 +270,12 @@ type ErrorHighlighter ( state:InteractionState, folds:Folding.FoldingManager, is
         | ValueNone -> false
         | ValueSome cln ->
             let offset = cln.offStart + e.StartColumn
-            for fold in folds.GetFoldingsContaining(offset) do
+            for fold in folds.GetFoldingsContaining offset do
                 //if fold.IsFolded then // do on all folds, even open ones, so they show correctly when collapsing !
                 //fold.BackgroundColor  <- ErrorStyle.errBackGr // done via ctx.DrawRectangle(ErrorStyle.errBackGr
                 fold.DecorateRectangle <-
                     Action<Rect,DrawingContext>( fun rect ctx ->
-                        let geo = ErrorUtil.getSquiggleLine(rect, 0.0)
+                        let geo = ErrorUtil.getSquiggleLine(rect, 0.1) // move a bit lower than the line so that the squiggle is not hidden by a selection highlighting
                         if isNull fold.BackgroundColor then // in case of selection highlighting skip brush, only use Pen
                             ctx.DrawRectangle(brush, null, rect)
                         ctx.DrawGeometry(Brushes.Transparent, pen, geo)
@@ -299,6 +314,7 @@ type ErrorHighlighter ( state:InteractionState, folds:Folding.FoldingManager, is
 
     do
         tView.BackgroundRenderers.Add(new ErrorRenderer(state))
+        tView.BackgroundRenderers.Add(new ErrorLineRenderer(state))
 
         tView.MouseHover.Add        ( showErrorToolTip)
         tView.MouseHoverStopped.Add ( fun _->  tip.IsOpen <- false ) //; e.Handled <- true) )

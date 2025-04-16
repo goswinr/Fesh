@@ -51,7 +51,7 @@ module ErrorStyle=
 
     let penSize = 1.2
 
-    let errBackGr       = Brushes.Red     |> brighter 220   |> freeze
+    let errBackGr       = Brushes.Red     |> brighter 230   |> freeze
     let errSquiggle     = Brushes.Red     |> darker 10      |> freeze
     let errSquigglePen     = Pen(errSquiggle, penSize) |> Pen.freeze
 
@@ -124,7 +124,7 @@ type SegmentToMark (startOffset:int,  endOffset:int , e:FSharpDiagnostic)  =
             }
 
 /// For accessing the highlighting of a line in constant time
-type LineTransformers<'T>() =    // generic so it can work for LinePartChange and SegmentToMark
+type LineTransformers<'T>() =  // generic so it can work for LinePartChange and SegmentToMark
 
     let mutable lines = ResizeArray<ResizeArray<'T>>(256)// for approx 256 lines on screen
 
