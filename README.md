@@ -4,7 +4,7 @@
 [![Fesh on nuget.org](https://img.shields.io/nuget/v/Fesh.svg)](https://nuget.org/packages/Fesh)
 [![Build](https://github.com/goswinr/Fesh/actions/workflows/build.yml/badge.svg?event=push)](https://github.com/goswinr/Fesh/actions/workflows/build.yml)
 [![Check NuGet](https://github.com/goswinr/Fesh/actions/workflows/outdatedNuget.yml/badge.svg)](https://github.com/goswinr/Fesh/actions/workflows/outdatedNuget.yml)
-[![Hits](https://hits.seeyoufarm.com/api/count/incr/badge.svg?url=https%3A%2F%2Fgithub.com%2Fgoswinr%2FFesh&count_bg=%2379C83D&title_bg=%23555555&icon=github.svg&icon_color=%23E7E7E7&title=hits&edge_flat=false)](https://hits.seeyoufarm.com)
+<!-- [![Hits](https://hits.seeyoufarm.com/api/count/incr/badge.svg?url=https%3A%2F%2Fgithub.com%2Fgoswinr%2FFesh&count_bg=%2379C83D&title_bg=%23555555&icon=github.svg&icon_color=%23E7E7E7&title=hits&edge_flat=false)](https://hits.seeyoufarm.com) -->
 ![code size](https://img.shields.io/github/languages/code-size/goswinr/Fesh.svg)
 [![license](https://img.shields.io/github/license/goswinr/Fesh)](LICENSE)
 
@@ -68,7 +68,7 @@ To enable ligatures set the font to `Cascadia Code`.<br>
 You can change the font in the 'Settings.txt' file at `%APPDATA%\Local\Fesh\Settings\Standalone\Settings.txt`.<br>
 Or via the menu: `About` -> `Open Settings Folder`.
 
-## How to install the  Standalone App
+## How to install the Standalone App
 
 ### Installer
 
@@ -80,6 +80,7 @@ The installer is created with [Velopack](https://velopack.io) and digitally sign
 
 No admin rights are required to install or run the app.<br>
 The app will be installed in `\AppData\Local\Fesh`.<br>
+And will save it's settings in `\AppData\Roaming\Fesh`.<br>
 A shortcut will be created on the desktop.
 
 There is also a portable package in each release.<br>
