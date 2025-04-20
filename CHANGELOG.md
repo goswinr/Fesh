@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.26.1] - 2025-04-16
+### Changed
+- publish net472 and net7 nuget separately due to build errors in Fesh.Rhino and Fesh.Revit
+
 ## [0.26.0] - 2025-04-16
 ### Added
 - improve completion edge cases

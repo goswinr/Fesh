@@ -5,7 +5,10 @@
     <!-- <OutputType>Library</OutputType> not needed -->
     <UseWPF>true</UseWPF>
     <UseWindowsForms>true</UseWindowsForms><!--inherited from Avalonedit ?-->
-    <TargetFrameworks>net472;net7.0-windows</TargetFrameworks><!--net7 for Rhino3D, net 8 for Revit-->
+    <!-- <TargetFrameworks>net472;net7.0-windows</TargetFrameworks> the resultant nuget from multiple target frameworks
+    does get unified to 7.0 and does not work on net48 -->
+    <!--so the the release-nuget.yml aktion will change this and also publish a net7.0-windows nuget separately: -->
+    <TargetFramework>net472</TargetFramework>
     <DefineConstants Condition="'$(TargetFramework)' == 'net472'">NETFRAMEWORK</DefineConstants> <!-- so thread.Abort() can be used -->
     <!-- <RuntimeIdentifier>win-x64</RuntimeIdentifier> -->
 
