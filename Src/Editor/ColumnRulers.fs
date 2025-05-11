@@ -1,19 +1,18 @@
 ﻿namespace Fesh.Editor
 
 open System
-open System.Windows
-open System.Windows.Media
+open Avalonia
+open Avalonia.Media
 open System.Collections.Generic
 
-open AvalonEditB
-open AvalonEditB.Rendering
-open AvalonEditB.Utils
-open AvalonEditB.Editing
-open AvalonEditB.Folding
+open AvaloniaEdit
+open AvaloniaEdit.Rendering
+open AvaloniaEdit.Utils
+open AvaloniaEdit.Editing
+open AvaloniaEdit.Folding
+open Avalonia.Media.Immutable
 
-open AvalonLog.Brush
-
-
+open AvaloniaLog.ImmBrush
 
 type ColumnRulers (editor:TextEditor)  as this =
     //https://github.com/icsharpcode/AvalonEdit/blob/master/ICSharpCode.AvalonEdit/Rendering/ColumnRulerRenderer.cs
@@ -25,8 +24,8 @@ type ColumnRulers (editor:TextEditor)  as this =
     let mutable color = Brushes.White |> darker 24
 
     // make it more transparent
-    let addTransparency (amount:int) (br:SolidColorBrush)  =
-        SolidColorBrush(Color.FromArgb(clampToByte (int br.Color.A - amount), br.Color.R, br.Color.G, br.Color.B))
+    let addTransparency (amount:int) (br:ImmutableSolidColorBrush) =
+        ImmutableSolidColorBrush(Color.FromArgb(clampToByte (int br.Color.A - amount), br.Color.R, br.Color.G, br.Color.B))
 
 
     let pens =
@@ -35,25 +34,28 @@ type ColumnRulers (editor:TextEditor)  as this =
                 let p = new Pen(color, 1.1 )
                 // color <- brighter 2 color   // fade out next ruler
                 color <- addTransparency 20 color   // fade out next ruler
-                p.Freeze()
+
                 p
         ]
 
-    let columns = ResizeArray(columnsInit)
+    let columns = ResizeArray columnsInit
 
-    let pixelSize = PixelSnapHelpers.GetPixelSize(editor.TextArea.TextView)
+    let pixelSize = PixelSnapHelpers.GetPixelSize editor.TextArea.TextView
 
     do
-        editor.TextArea.TextView.BackgroundRenderers.Add(this)
+        editor.TextArea.TextView.BackgroundRenderers.Add this
 
         // set color in Margins:
         editor.ShowLineNumbers <- true //needs to be done before iterating margins
+
+        (* TODO WPF only
         for uiElm in editor.TextArea.LeftMargins do
             let marginColor =  Brushes.White |> darker 8 // set color
             match uiElm with
             | :? LineNumberMargin as lnm ->  lnm.BackgroundColor <- marginColor
             | :? FoldingMargin    as fm  ->  fm.BackgroundColor  <- marginColor
-            | _-> ()//log.PrintfnAppErrorMsg "other left margin: %A" uiElm // TODO other left margin: System.Windows.Shapes.Line
+            | _-> ()//log.PrintfnAppErrorMsg "other left margin: %A" uiElm // TODO other left margin: Avalonia.Shapes.Line
+        *)
 
 
     member this.Layer =
@@ -66,13 +68,13 @@ type ColumnRulers (editor:TextEditor)  as this =
             let offset = width * float column
             let markerXPos = PixelSnapHelpers.PixelAlign(offset, pixelSize.Width) - textView.ScrollOffset.X
             let start = new Point(markerXPos, 0.0);
-            let ende =  new Point(markerXPos, Math.Max(textView.DocumentHeight, textView.ActualHeight))
+            let ende =  new Point(markerXPos, Math.Max(textView.DocumentHeight, textView.Height))
             drawingContext.DrawLine(pen, start, ende)
 
     member this.SetRulers( columnsNew: seq<int>) = // to be able to change them later
         if HashSet(columnsNew).SetEquals(columns) then
             columns.Clear()
-            columns.AddRange(columnsNew)
+            columns.AddRange columnsNew
             editor.TextArea.TextView.InvalidateLayer(this.Layer)
 
 

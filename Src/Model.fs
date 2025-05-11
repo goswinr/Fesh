@@ -2,14 +2,14 @@
 
 open System
 open System.IO
-open System.Windows.Input
+open Avalonia.Input
 
-open AvalonEditB
-open AvalonEditB.Folding
+open AvaloniaEdit
+open AvaloniaEdit.Folding
 
 open FSharp.Compiler.CodeAnalysis
 open FSharp.Compiler
-open AvalonEditB.Document
+open AvaloniaEdit.Document
 
 
 type IFeshLog =
@@ -45,7 +45,7 @@ type IFeshLog =
 
     abstract member Clear : unit -> unit
 
-    abstract member AvalonLog : AvalonLog.AvalonLog
+    abstract member AvaloniaLog : AvaloniaLog.AvaloniaLog
 
 [<RequireQualifiedAccess>]
 [<CompiledName("IFeshLogModule")>] // DON'T RENAME !! It is used via reflection in https://github.com/goswinr/FsEx and https://github.com/goswinr/Fesher
@@ -129,6 +129,11 @@ type IEditor =
     abstract member FoldingManager : FoldingManager // so that fsi can go to error location and unfold    /
     abstract member EvaluateFromLine   : int  // the line number to start evaluating from if EvaluationTracker is active
 
+
+open Avalonia
+open Avalonia.Controls
+
+
 [<RequireQualifiedAccess>]
 module IEditor =
 
@@ -136,7 +141,8 @@ module IEditor =
     let mutable current :option<IEditor> = None
 
     /// A global reference to the current main window
-    let mutable mainWindow = Unchecked.defaultof<Fittings.PositionedWindow>
+    // let mutable mainWindow = Unchecked.defaultof<Fittings.PositionedWindow>
+    let mutable mainWindow = Unchecked.defaultof<Window>
 
     let isCurrent(e:TextEditor)=
         match current with
@@ -178,11 +184,14 @@ type PositionInCode = {
     offset:int
     }
 
+
+
+
 /// UI Menu and commands:
 type CommandInfo = {
     name:string
     gesture:string
-    cmd:ICommand
+    cmd:Windows.Input.ICommand
     tip:string
     }
 

@@ -22,7 +22,7 @@ type AutoCompleteStatistic  ( runContext:RunContext) =
 
     let filePath0 = runContext.GetPathToSaveAppData("AutoComplete-Statistic.txt")
 
-    let writer = SaveReadWriter(filePath0,IFeshLog.printError)
+    let writer = SafeReadWriter(filePath0,IFeshLog.printError)
 
     let completionStats =
         let dict=Collections.Concurrent.ConcurrentDictionary<string,float>()

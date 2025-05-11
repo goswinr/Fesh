@@ -1,10 +1,8 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <OutputType>WinExe</OutputType>
-    <UseWPF>true</UseWPF>
-    <UseWindowsForms>true</UseWindowsForms>    <!--inherited from Avalonedit ?-->
-	  <TargetFrameworks>net48;net9.0-windows</TargetFrameworks>
+    <OutputType>Exe</OutputType>
+	  <TargetFramework>net9.0-windows</TargetFramework>
     <DefineConstants Condition="'$(TargetFramework)' == 'net48'">NETFRAMEWORK</DefineConstants>
     <!-- <RuntimeIdentifiers>win-x64;win-x86</RuntimeIdentifiers> -->
     <!-- <RuntimeIdentifier>win-x64</RuntimeIdentifier> -->
@@ -45,34 +43,53 @@
     <PackageReference Include="Velopack" Version="0.0.1053" />
     <PackageReference Include="Ionide.KeepAChangelog.Tasks" Version="0.1.8" PrivateAssets="all" />
 
+    <PackageReference Include="Avalonia.Desktop" Version="11.2.6" />
+    <PackageReference Include="MessageBox.Avalonia" Version="3.2.0" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="11.2.6" />
+    <!-- <PackageReference Include="Avalonia.AvaloniaEdit" Version="11.2.0" /> -->
+    <ProjectReference Include="../AvaloniaEdit/src/AvaloniaEdit/AvaloniaEdit.csproj" />
+
     <PackageReference Include="Microsoft.VisualBasic" Version="10.3.0" /> <!-- to move files to the recycle bin instead of deleting them -->
     <PackageReference Include="System.Private.Uri" Version="4.3.2" />    <!-- warning NU1903: Package 'System.Private.Uri' 4.3.0 has a known high severity vulnerability, https://github.com/advisories/GHSA-5f2m-466j-3848 -->
     <PackageReference Include="FSharp.Compiler.Service" Version="43.9.202" />
     <PackageReference Include="FSharp.Core" Version="9.0.202" />
 
-    <PackageReference Include="Fittings" Version="0.10.0" />
-    <PackageReference Include="AvalonLog" Version="0.20.0" />
-    <!-- <ProjectReference Include="../AvalonLog/AvalonLog.fsproj" /> -->
 
     <!-- netstandard reference is needed for tooling only, it might not be installed on host PC. (running the .NET Framework version) see also https://github.com/fsprojects/IfSharp/issues/213 -->
     <PackageReference Include="NETStandard.Library" Version="2.0.3" Condition="'$(TargetFramework)' == 'net48'" GeneratePathProperty="true" /> <!-- Generated PathProperty will be 'PkgNETStandard_Library' -->
   </ItemGroup>
 
   <ItemGroup>
-    <EmbeddedResource Include="Media/logo.res" />    <!--  for Application Icon in explorer-->
-    <Resource Include="Media/logo.ico" />            <!--  for Application Icon in primary windows-->
-    <Resource Include="Media/logoGray.ico" />        <!--  for Application Icon in secondary PopOut windows-->
+    <EmbeddedResource Include="Media/logo.res" />    <!--  for Application Icon in Windows explorer-->
+    <AvaloniaResource Include="Media/logo.ico" />            <!--  for Application Icon in primary windows-->
+    <AvaloniaResource Include="Media/logoGray.ico" />        <!--  for Application Icon in secondary PopOut windows-->
 
     <Content Include="Src/SyntaxHighlightingFSharp.xshd" CopyToOutputDirectory="PreserveNewest" TargetPath="SyntaxHighlightingFSharp.xshd" Pack="true" PackagePath="\" />
     <Content Include="$(PkgNETStandard_Library)/build/netstandard2.0/ref/netstandard.dll" Condition="'$(TargetFramework)' == 'net48'" CopyToOutputDirectory="Always" />
     <Content Include="$(PkgNETStandard_Library)/build/netstandard2.0/ref/netstandard.xml" Condition="'$(TargetFramework)' == 'net48'" CopyToOutputDirectory="Always" />
+
+    <Compile Include="Src/Fittings/Sync.fs" />
+    <Compile Include="Src/Fittings/MessageBox.fs" />
+    <Compile Include="Src/Fittings/TextBlockSelectable.fs" />
+    <Compile Include="Src/Fittings/SafeReadWriter.fs" />
+    <Compile Include="Src/Fittings/PersistentSettings.fs" />
+    <Compile Include="Src/Fittings/Command.fs" />
+    <Compile Include="Src/Fittings/ViewModel.fs" />
+    <Compile Include="Src/Fittings/DependencyProps.fs" />
+    <Compile Include="Src/Fittings/ErrorHandling.fs" />
+    <Compile Include="Src/Fittings/PositionedWindow.fs" />
+
+    <Compile Include="Src/AvaloniaLog/Brush.fs" />
+    <Compile Include="Src/AvaloniaLog/Util.fs" />
+    <Compile Include="Src/AvaloniaLog/TextColor.fs" />
+    <Compile Include="Src/AvaloniaLog/LogTextWriter.fs" />
+    <Compile Include="Src/AvaloniaLog/AvaloniaLog.fs" />
 
     <Compile Include="Src/Util.fs" />
     <Compile Include="Src/ParseFs.fs" />
     <Compile Include="Src/Timer.fs" />
     <Compile Include="Src/StyleState.fs" />
     <Compile Include="Src/Model.fs" />
-
     <Compile Include="Src/Config/RunContext.fs" />
     <Compile Include="Src/Config/DefaultCode.fs" />
     <Compile Include="Src/Config/ScriptCompilerTemplate.fs" />

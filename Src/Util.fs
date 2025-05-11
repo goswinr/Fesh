@@ -2,39 +2,40 @@
 
 open System
 
+[<RequireQualifiedAccess>]
+type OS =
+    | Windows
+    | Mac
+    | Linux
+
+    /// Returns the current OS.
+    static member val current =
+        let os = Environment.OSVersion.Platform
+        match os with
+        | PlatformID.Win32NT -> Windows
+        | PlatformID.Win32S -> Windows
+        | PlatformID.Win32Windows -> Windows
+        | PlatformID.MacOSX -> Mac
+        | PlatformID.Unix -> Linux
+        | _ -> failwithf "Unsupported Environment.OSVersion.Platform: %A" os
+
+
+
+
 [<AutoOpen>]
 module AutoOpenDateTime =
 
     type DateTime with
         /// yyyy-MM-dd_HH-mm-ss
-        static member nowStr      = System.DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss")
+        static member nowStr      = System.DateTime.Now.ToString "yyyy-MM-dd_HH-mm-ss"
         /// yyyy-MM-dd_HH-mm-ss.FFF
-        static member nowStrMilli = System.DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss.FFF")
+        static member nowStrMilli = System.DateTime.Now.ToString "yyyy-MM-dd_HH-mm-ss.FFF"
         /// yyyy-MM-dd
-        static member todayStr    = System.DateTime.Now.ToString("yyyy-MM-dd")
+        static member todayStr    = System.DateTime.Now.ToString "yyyy-MM-dd"
         // month
-        static member log()       = System.DateTime.Now.ToString("yyyy-MM")
-
-
-/// Utility functions for System.Windows.Media.Pen
-module Pen =
-    open  System.Windows.Media
-
-    /// To make it thread safe and faster
-    let freeze(br:Pen)=
-        if br.IsFrozen then
-            ()
-        else
-            if br.CanFreeze then
-                br.Freeze()
-            // else
-            //    eprintfn "Could not freeze Pen: %A" br
-        br
-
+        static member log()       = System.DateTime.Now.ToString "yyyy-MM"
 
 module General =
-    open System
-
 
     let inline isTrue (nb:Nullable<bool>) = nb.HasValue && nb.Value
 
@@ -57,7 +58,7 @@ module General =
 
     /// Post to this agent for writing a debug string to a desktop file. Only used for bugs that can't be logged to the UI.
     let LogFile = // for async debug logging to a file (if the Log window fails to show)
-        let file = IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "Fesh-Log.txt")
+        let file = IO.Path.Combine(Environment.GetFolderPath Environment.SpecialFolder.Desktop, "Fesh-Log.txt")
         MailboxProcessor.Start(
             fun inbox ->
                 let rec loop () =
@@ -124,7 +125,7 @@ module General =
 /// operations on Strings
 module Str  =
     open System.Text.RegularExpressions
-    open AvalonEditB.Document
+    open AvaloniaEdit.Document
 
     /// poor man's name parsing: returns the offset from end of string to last non alphanumeric or '_' character, or # for compiler directives
     /// this is used to do code completion even if a few characters are typed already. to track back to the start of the item to complete.
@@ -288,7 +289,7 @@ module Str  =
             if ende = -1 then s,"",""
             else
                 s.Substring(0, start ),
-                s.Substring(start + startChar.Length, ende - start - startChar.Length),// finds text between two chars
+                s.Substring(start + startChar.Length, ende - start - startChar.Length), // finds text between two chars
                 s.Substring(ende + endChar.Length)
 
     /// finds text between two strings

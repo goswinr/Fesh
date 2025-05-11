@@ -1,10 +1,11 @@
 ﻿namespace Fesh.Views
 
 open System
-open System.Windows.Media.Imaging
+open Avalonia.Media.Imaging
 open System.Runtime.InteropServices
 open Fesh.Model
 open Fesh.Config
+open Avalonia.Controls
 
 /// A class holding the main WPF Window
 /// Includes loading icon
@@ -56,22 +57,26 @@ type FeshWindow (config:Config)=
 
     do
         //Add Icon:
+        let defaultUri = Uri "avares://Fesh/Media/logo.ico"
         try
+            let setIcon (uri:Uri)=
+                let bitmap = new Bitmap(Avalonia.Platform.AssetLoader.Open uri)
+                win.Icon <- new WindowIcon(bitmap)
             // Add the Icon at the top left of the window and in the status bar, musst be called  after loading window.
-            // Media/logo.ico with Build action : "Resource"
+            // Media/logo.ico with Build action : "Resource"// WPF only
             // (for the exe file icon in explorer use <Win32Resource>Media/logo.res</Win32Resource>  in fsproj, where the .res file contains the .ico file )
-            let defaultUri = Uri("pack://application:,,,/Fesh;component/Media/logo.ico")
+            // let defaultUri = Uri("pack://application:,,,/Fesh;component/Media/logo.ico") // WPF only
             match config.RunContext.Logo with
             |Some uri ->
-                try             win.Icon <- BitmapFrame.Create(uri)
-                with  _ ->      win.Icon <- BitmapFrame.Create(defaultUri)
+                try         setIcon uri
+                with  _ ->  setIcon defaultUri
             |None ->
-                win.Icon <- BitmapFrame.Create(defaultUri)
+                setIcon defaultUri
         with ex ->
-            config.Log.PrintfnAppErrorMsg  "Failed to load Media/logo.ico from Application.ResourceStream : %A" ex
+            config.Log.PrintfnAppErrorMsg  $"Failed to load {defaultUri} from Application.ResourceStream : {ex}"
 
     /// The main WPF Window
-    member this.Window : Fittings.PositionedWindow = win //:> System.Windows.Window // cast to a Fittings.PositionedWindow
+    member this.Window : Fittings.PositionedWindow = win //:> Avalonia.Window // cast to a Fittings.PositionedWindow
 
     /// Indicating if the Window is in Full-screen mode or minimized mode (not normal mode)
     member this.IsMinOrMax = win.IsMinOrMax

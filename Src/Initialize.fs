@@ -2,7 +2,7 @@ namespace Fesh
 
 open System
 open System.IO
-open System.Windows
+open Avalonia
 
 open Fesh.Model
 open Fesh.Views
@@ -11,6 +11,7 @@ open Fesh.Util
 
 open Velopack
 open Velopack.Sources
+open Fittings
 
 module Initialize =
 
@@ -46,7 +47,7 @@ module Initialize =
                             IFeshLog.log.PrintfnIOErrorMsg "Please re-install from https://github.com/goswinr/Fesh/releases"
 
                         else
-                            do! Async.SwitchToContext Fittings.SyncWpf.context
+                            do! Async.SwitchToContext Fittings.SyncContext.context
                             match MessageBox.Show(
                                 fesh.Window,
                                 $"Update Fesh from {cv} to {nv} and restart? Changes are saved.",
@@ -95,7 +96,7 @@ module Initialize =
                     |NotSet _ -> ()
                     |Deleted _ -> ()
                     |SetTo fi ->
-                        do! Async.SwitchToContext Fittings.SyncWpf.context
+                        do! Async.SwitchToContext Fittings.SyncContext.context
                         let doc = ed.AvaEdit.Document
                         do! Async.SwitchToThreadPool()
                         let txt = doc.CreateSnapshot().Text
@@ -110,7 +111,7 @@ module Initialize =
 
         //match mode with None ->  Timer.InstanceStartup.tic()   | _ -> ()  // optional timer for full init process
 
-        Fittings.SyncWpf.installSynchronizationContext(true)    // do first
+        Fittings.SyncContext.installSynchronizationContext(true)    // do first
 
         let en_US = Globalization.CultureInfo.CreateSpecificCulture "en-US"
         Threading.Thread.CurrentThread.CurrentCulture <- en_US
@@ -120,10 +121,10 @@ module Initialize =
 
         // to still show-tooltip-when a button(or menu item ) is disabled-by-command
         // https://stackoverflow.com/questions/4153539/wpf-how-to-show-tooltip-when-button-disabled-by-command
-        Controls.ToolTipService.ShowOnDisabledProperty.OverrideMetadata  (typeof<Controls.Control>, new FrameworkPropertyMetadata( true )            )
-        Controls.ToolTipService.ShowDurationProperty.OverrideMetadata    (typeof<DependencyObject>, new FrameworkPropertyMetadata( Int32.MaxValue )  )
-        Controls.ToolTipService.InitialShowDelayProperty.OverrideMetadata(typeof<DependencyObject>, new FrameworkPropertyMetadata( 50 )              )
-        Controls.ToolTipService.InitialShowDelayProperty.OverrideMetadata(typeof<FrameworkElement>, new FrameworkPropertyMetadata( 50 )              ) // also set in Editor.fs
+        // Controls.ToolTipService.ShowOnDisabledProperty.OverrideMetadata  (typeof<Controls.Control>, new FrameworkPropertyMetadata( true )            )
+        // Controls.ToolTipService.ShowDurationProperty.OverrideMetadata    (typeof<DependencyObject>, new FrameworkPropertyMetadata( Int32.MaxValue )  )
+        // Controls.ToolTipService.InitialShowDelayProperty.OverrideMetadata(typeof<DependencyObject>, new FrameworkPropertyMetadata( 50 )              )
+        // Controls.ToolTipService.InitialShowDelayProperty.OverrideMetadata(typeof<FrameworkElement>, new FrameworkPropertyMetadata( 50 )              ) // also set in Editor.fs
 
         /// ------------------ Log and Config --------------------
 
@@ -150,7 +151,7 @@ module Initialize =
         log.FinishLogSetup(config)
 
         let fesh = Fesh(config, log)
-        fesh.Window.ContentRendered.Add(fun _ -> checkForNewVelopackRelease(config, fesh))
+        fesh.Window.Loaded.Add(fun _ -> checkForNewVelopackRelease(config, fesh))
         fesh
 
 
@@ -178,7 +179,7 @@ module Initialize =
     //                 let v = response |> Fesh.Util.Str.between "\"tag_name\":\"" "\""
     //                 //let json = JObject.Parse(response)
     //                 //return json.["tag_name"].ToString()
-    //                 do! Async.SwitchToContext Fittings.SyncWpf.context
+    //                 do! Async.SwitchToContext Fittings.SyncContext.context
     //                 match v with
     //                 | None -> IFeshLog.log.PrintfnInfoMsg "Could not check for updates on https://github.com/goswinr/Fesh/releases. Are you offline?"
     //                 | Some v ->

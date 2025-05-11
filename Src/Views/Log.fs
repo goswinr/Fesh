@@ -2,16 +2,18 @@
 
 open System
 open System.IO
-open System.Windows.Media // for color brushes
+open Avalonia.Media // for color brushes
+open Avalonia.Media.Immutable
 open System.Text
-open System.Windows.Controls
-open System.Windows
-open System.Windows.Input
+open Avalonia.Controls
+open Avalonia
+open Avalonia.Input
+open Avalonia.Controls.Primitives
 
-open AvalonEditB
-open AvalonEditB.Utils
-open AvalonEditB.Document
-open AvalonLog.Brush
+open AvaloniaEdit
+open AvaloniaEdit.Utils
+open AvaloniaEdit.Document
+open AvaloniaLog.ImmBrush
 
 open Fesh
 open Fesh.Editor
@@ -22,41 +24,37 @@ open Fesh.Config
 
 module LogColors =
 
-    let mutable consoleOut    = Brushes.Black             |> freeze // should be same as default  foreground. Will be set on foreground changes
-    let fsiStdOut     = Brushes.DarkGray |> darker 20     |> freeze // values printed by fsi itself like "val it = ...."
-    let fsiErrorOut   = Brushes.DarkMagenta               |> freeze // are they all caught by evaluate non throwing ? prints "Stopped due to error" on non compiling code
-    let consoleError  = Brushes.OrangeRed                 |> freeze // this is used by eprintfn
-    let infoMsg       = Brushes.LightSteelBlue            |> freeze
-    let fsiErrorMsg   = Brushes.Magenta                   |> freeze
-    let appErrorMsg   = Brushes.LightSalmon |> darker 20  |> freeze
-    let iOErrorMsg    = Brushes.DarkRed                   |> freeze
-    let debugMsg      = Brushes.LightSeaGreen             |> freeze
-    let runtimeErr    = Brushes.Red         |> darker 55  |> freeze
+    let mutable consoleOut = ImmutableSolidColorBrush Colors.Black              // should be same as default  foreground. Will be set on foreground changes
+    let fsiStdOut          = ImmutableSolidColorBrush Colors.DarkGray |> darker 20      // values printed by fsi itself like "val it = ...."
+    let fsiErrorOut        = ImmutableSolidColorBrush Colors.DarkMagenta                // are they all caught by evaluate non throwing ? prints "Stopped due to error" on non compiling code
+    let consoleError       = ImmutableSolidColorBrush Colors.OrangeRed                  // this is used by eprintfn
+    let infoMsg            = ImmutableSolidColorBrush Colors.LightSteelBlue
+    let fsiErrorMsg        = ImmutableSolidColorBrush Colors.Magenta
+    let appErrorMsg        = ImmutableSolidColorBrush Colors.LightSalmon |> darker 20
+    let iOErrorMsg         = ImmutableSolidColorBrush Colors.DarkRed
+    let debugMsg           = ImmutableSolidColorBrush Colors.LightSeaGreen
+    let runtimeErr         = ImmutableSolidColorBrush Colors.Red  |> darker 55
 
-    //let red           = Brushes.Red                     |> freeze
-    //let green         = Brushes.Green                   |> freeze
-    //let blue          = Brushes.Blue                    |> freeze
 
-#nowarn "44" //for obsolete grid.Log.AvalonLog.AvalonEdit
+
+
 
 /// A ReadOnly text AvalonEdit Editor that provides print formatting methods
 /// call ApplyConfig() once config is set up too, (config depends on this Log instance)
 type Log private () =
 
-    let log =  new AvalonLog.AvalonLog()
+    let log =  new AvaloniaLog.AvaloniaLog()
 
     let mutable addLogger : option<TextWriter> = None
 
     do
-        log.SelectedTextHighLighter.IsEnabled <- false // because there is a custom highlighter in Fesh that covers both log and editor mutual highlighting
-
         //styling:
-        log.BorderThickness <- new Thickness( 0.5)
-        log.Padding         <- new Thickness( 0.7)
-        log.Margin          <- new Thickness( 0.7)
-        log.BorderBrush <- Brushes.Black |> freeze
+        // log.BorderThickness <- new Thickness 0.5
+        // log.Padding         <- new Thickness 0.7
+        // log.Margin          <- new Thickness 0.7
+        // log.BorderBrush     <- Brushes.Black
 
-        log.VerticalScrollBarVisibility <- Controls.ScrollBarVisibility.Auto
+        log.VerticalScrollBarVisibility <- ScrollBarVisibility.Auto
         //log.HorizontalScrollBarVisibility <- Controls.ScrollBarVisibility.Auto // set below with word wrap
         log.MaximumCharacterAllowance <- 5_000_000
 
@@ -72,25 +70,25 @@ type Log private () =
     //used in FSI constructor:
     let fsiErrorsStringBuilder = StringBuilder()
 
-    let textWriterConsoleOut    =  log.GetTextWriter   ( LogColors.consoleOut )
-    let textWriterConsoleError  =  log.GetTextWriter   ( LogColors.consoleError)
-    let textWriterFsiStdOut     =  log.GetTextWriter   ( LogColors.fsiStdOut )
-    let textWriterFsiErrorOut   =  log.GetConditionalTextWriter ( (fun s -> fsiErrorsStringBuilder.Append(s)|> ignore; true) ,  LogColors.fsiErrorOut) // use filter for side effect
+    let textWriterConsoleOut    =  log.GetTextWriter LogColors.consoleOut
+    let textWriterConsoleError  =  log.GetTextWriter LogColors.consoleError
+    let textWriterFsiStdOut     =  log.GetTextWriter LogColors.fsiStdOut
+    let textWriterFsiErrorOut   =  log.GetConditionalTextWriter ( (fun s -> fsiErrorsStringBuilder.Append s |> ignore; true) ,  LogColors.fsiErrorOut) // use filter for side effect
 
 
     /// for an additional textWriter to also write Info, AppError, IOError,Debug and FsiError messages to.
     /// But not any other text printed with any custom color.
-    let appendAndLogLn (b:SolidColorBrush) (tx:string) =
+    let appendAndLogLn (b:ImmutableSolidColorBrush) (tx:string) =
         log.AppendLineWithBrush (b, tx)
         match addLogger with
         | Some tw -> tw.WriteLine tx
-        | None ->()
+        | None -> ()
 
-    let appendAndLog (b:SolidColorBrush) (tx:string) =
+    let appendAndLog (b:ImmutableSolidColorBrush) (tx:string) =
         log.AppendWithBrush (b, tx)
         match addLogger with
         | Some tw -> tw.Write tx
-        | None ->()
+        | None -> ()
 
     let mutable selectionHighlighter: SelectionHighlighterLog option = None
 
@@ -101,19 +99,19 @@ type Log private () =
     /// should always be some
     member _.SelectionHighlighter = selectionHighlighter
 
-    member _.AvalonLog = log
+    member _.AvaloniaLog = log
 
-    member _.AvalonEditLog = log.AvalonEdit
+    member _.AvaloniaEditLog = log.AvaloniaEdit
 
     member _.FsiErrorsStringBuilder = fsiErrorsStringBuilder
 
     member internal _.FinishLogSetup(config:Config)=
         setLineWrap( config.Settings.GetBool ("logHasLineWrap", false) ) // no wrap by default
         log.FontSize  <- config.Settings.GetFloat ("SizeOfFont" , Fesh.StyleState.fontSize )
-        let hiLi = new SelectionHighlighterLog(log.AvalonEdit)
+        let hiLi = new SelectionHighlighterLog(log.AvaloniaEdit)
         // to clear selection highlighter marks first , before opening the search window. if they would be the same as the search word.
         // creating a new command binding for 'ApplicationCommands.Find' would remove the existing one. so we add to the delegate instead
-        for binding in log.AvalonEdit.TextArea.CommandBindings do if  binding.Command = ApplicationCommands.Find then binding.Executed.Add(fun _ -> hiLi.ClearMarksIfOneSelected())
+        for binding in log.AvaloniaEdit.TextArea.CommandBindings do if  binding.Command = ApplicationCommands.Find then binding.Executed.Add(fun _ -> hiLi.ClearMarksIfOneSelected())
         selectionHighlighter <- Some hiLi
 
 
@@ -121,7 +119,7 @@ type Log private () =
         let newState = not log.WordWrap
         setLineWrap newState
         config.Settings.SetBool ("logHasLineWrap", newState)
-        config.Settings.Save ()
+        config.Settings.SaveWithDelay 300
 
     member _.Clear() = log.Clear()
 
@@ -171,14 +169,14 @@ type Log private () =
         member _.TextWriterConsoleOut   = textWriterConsoleOut   :> TextWriter
         member _.TextWriterConsoleError = textWriterConsoleError :> TextWriter
 
-        member this.PrintfnRuntimeErr  msg =  this.PrintfnRuntimeErr   msg
-        member this.PrintfnInfoMsg     msg =   this.PrintfnInfoMsg     msg
-        member this.PrintfnAppErrorMsg msg =   this.PrintfnAppErrorMsg msg
-        member this.PrintfnIOErrorMsg  msg =   this.PrintfnIOErrorMsg  msg
-        member this.PrintfnDebugMsg    msg =   this.PrintfnDebugMsg    msg
+        member this.PrintfnRuntimeErr  msg = this.PrintfnRuntimeErr   msg
+        member this.PrintfnInfoMsg     msg = this.PrintfnInfoMsg     msg
+        member this.PrintfnAppErrorMsg msg = this.PrintfnAppErrorMsg msg
+        member this.PrintfnIOErrorMsg  msg = this.PrintfnIOErrorMsg  msg
+        member this.PrintfnDebugMsg    msg = this.PrintfnDebugMsg    msg
 
-        member this.PrintfnFsiErrorMsg msg =   this.PrintfnFsiErrorMsg msg
-        member this.PrintfFsiErrorMsg  msg =   this.PrintfFsiErrorMsg msg
+        member this.PrintfnFsiErrorMsg msg = this.PrintfnFsiErrorMsg msg
+        member this.PrintfFsiErrorMsg  msg = this.PrintfFsiErrorMsg msg
 
         member this.PrintfnColor red green blue msg = this.PrintfnColor red green blue msg
         member this.PrintfColor  red green blue msg = this.PrintfColor red green blue msg
@@ -189,49 +187,51 @@ type Log private () =
         /// But not any other text printed with any custom color.
         member this.AdditionalLogger with get() = addLogger and set l = addLogger <- l
 
-        member this.AvalonLog = log
+        member this.AvaloniaLog = log
 
-    member this.SaveAllText (pathHint: FilePath) =
-        let dlg = new Microsoft.Win32.SaveFileDialog()
-        match pathHint with
-        |NotSet _ ->()
-        |Deleted fi |SetTo fi ->
-            fi.Refresh()
-            if fi.Directory.Exists then dlg.InitialDirectory <- fi.DirectoryName
-            dlg.FileName <- fi.Name + "_Log"
-        dlg.Title <- "Fesh | SaveText from Log Window"
-        dlg.DefaultExt <- ".txt"
-        dlg.Filter <- "Text Files(*.txt)|*.txt|Text Files(*.csv)|*.csv|All Files(*.*)|*"
-        if isTrue (dlg.ShowDialog()) then
-            try
-                IO.File.WriteAllText(dlg.FileName, log.Text(), Text.Encoding.UTF8)
-                this.PrintfnInfoMsg "Log File saved as:\r\n%s" dlg.FileName
-            with e ->
-                this.PrintfnIOErrorMsg "Failed to save text from Log at :\r\n%s\r\n%A" dlg.FileName e
+    member this.SaveAllText (_pathHint: FilePath) =
+        ()
+        // let dlg = new Microsoft.Win32.SaveFileDialog()
+        // match pathHint with
+        // |NotSet _ ->()
+        // |Deleted fi |SetTo fi ->
+        //     fi.Refresh()
+        //     if fi.Directory.Exists then dlg.InitialDirectory <- fi.DirectoryName
+        //     dlg.FileName <- fi.Name + "_Log"
+        // dlg.Title <- "Fesh | SaveText from Log Window"
+        // dlg.DefaultExt <- ".txt"
+        // dlg.Filter <- "Text Files(*.txt)|*.txt|Text Files(*.csv)|*.csv|All Files(*.*)|*"
+        // if isTrue (dlg.ShowDialog()) then
+        //     try
+        //         IO.File.WriteAllText(dlg.FileName, log.Text(), Text.Encoding.UTF8)
+        //         this.PrintfnInfoMsg "Log File saved as:\r\n%s" dlg.FileName
+        //     with e ->
+        //         this.PrintfnIOErrorMsg "Failed to save text from Log at :\r\n%s\r\n%A" dlg.FileName e
 
-    member this.SaveSelectedText (pathHint: FilePath) =
-        if log.Selection.Length > 0 then // this check is also done in "canexecute command"
-           let txt =
-                log.Selection.Segments
-                |> Seq.map (fun s -> log.Text(s) ) // to ensure block selection is saved correctly
-                |> String.concat Environment.NewLine
+    member this.SaveSelectedText (_pathHint: FilePath) =
+        ()
+        // if log.Selection.Length > 0 then // this check is also done in "canexecute command"
+        //    let txt =
+        //         log.Selection.Segments
+        //         |> Seq.map (fun s -> log.Text(s) ) // to ensure block selection is saved correctly
+        //         |> String.concat Environment.NewLine
 
-           let dlg = new Microsoft.Win32.SaveFileDialog()
-           match pathHint with
-           |NotSet _ ->()
-           |Deleted fi |SetTo fi ->
-               fi.Refresh()
-               if fi.Directory.Exists then dlg.InitialDirectory <- fi.DirectoryName
-               dlg.FileName <- fi.Name + "_Log"
-           dlg.Title <- "Fesh | Save Selected Text from Log Window"
-           dlg.DefaultExt <- ".txt"
-           dlg.Filter <- "Text Files(*.txt)|*.txt|Text Files(*.csv)|*.csv|All Files(*.*)|*"
-           if isTrue (dlg.ShowDialog()) then
-              try
-                   IO.File.WriteAllText(dlg.FileName, txt, Text.Encoding.UTF8)
-                   this.PrintfnInfoMsg "Selected text from Log saved as:\r\n%s" dlg.FileName
-              with e ->
-                   this.PrintfnIOErrorMsg "Failed to save selected text from Log at :\r\n%s\r\n%A" dlg.FileName e
+        //    let dlg = new Microsoft.Win32.SaveFileDialog()
+        //    match pathHint with
+        //    |NotSet _ ->()
+        //    |Deleted fi |SetTo fi ->
+        //        fi.Refresh()
+        //        if fi.Directory.Exists then dlg.InitialDirectory <- fi.DirectoryName
+        //        dlg.FileName <- fi.Name + "_Log"
+        //    dlg.Title <- "Fesh | Save Selected Text from Log Window"
+        //    dlg.DefaultExt <- ".txt"
+        //    dlg.Filter <- "Text Files(*.txt)|*.txt|Text Files(*.csv)|*.csv|All Files(*.*)|*"
+        //    if isTrue (dlg.ShowDialog()) then
+        //       try
+        //            IO.File.WriteAllText(dlg.FileName, txt, Text.Encoding.UTF8)
+        //            this.PrintfnInfoMsg "Selected text from Log saved as:\r\n%s" dlg.FileName
+        //       with e ->
+        //            this.PrintfnIOErrorMsg "Failed to save selected text from Log at :\r\n%s\r\n%A" dlg.FileName e
 
     //--------------------------------------------------------------------------------------------------------------------------------------------
     //-----------------------------Static members---------------------------------------------------------------------------------------------------------------
@@ -246,13 +246,12 @@ type Log private () =
         IFeshLog.clear       <- l.Clear
 
         // these two where part of FSI initializing in the past
-        Console.SetOut  (l.TextWriterConsoleOut)   // TODO needed to redirect printfn or covered by TextWriterFsiStdOut? //https://github.com/fsharp/FSharp.Compiler.Service/issues/201
-        Console.SetError(l.TextWriterConsoleError) // TODO needed if evaluate non throwing or covered by TextWriterFsiErrorOut?
-
+        Console.SetOut   l.TextWriterConsoleOut   // TODO needed to redirect printfn or covered by TextWriterFsiStdOut? //https://github.com/fsharp/FSharp.Compiler.Service/issues/201
+        Console.SetError l.TextWriterConsoleError // TODO needed if evaluate non throwing or covered by TextWriterFsiErrorOut?
         l
 
         (*
-        trying to enable Ansi Control sequences for https://github.com/spectreconsole/spectre.console
+        trying to enable ANSI Control sequences for https://github.com/spectreconsole/spectre.console
 
         but doesn't work yet ESC char seam to be swallowed by Console.SetOut to textWriter. see:
 
@@ -267,9 +266,9 @@ type Log private () =
         However, some functions provide equivalent functionality. For more information, see SetCursorPos, SetConsoleTextAttribute, and GetConsoleCursorInfo.
 
         To write the bytes directly to the console without WriteConsoleW interfering a simple filehandle/stream will do which is achieved by calling OpenStandardOutput.
-        By wrapping that stream in a StreamWriter so we can set it again with Console.SetOut we are done. The byte sequences are send to the OutputStream and picked up by AnsiCon.
+        By wrapping that stream in a StreamWriter so we can set it again with Console.SetOut we are done. The byte sequences are send to the OutputStream and picked up by ANSI-Con.
 
-        let strWriter = l.AvalonLog.GetStreamWriter( LogColors.consoleOut) // Encoding.ASCII ??
+        let strWriter = l.AvaloniaLog.GetStreamWriter( LogColors.consoleOut) // Encoding.ASCII ??
         Console.SetOut(strWriter)
         *)
 

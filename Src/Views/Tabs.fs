@@ -2,15 +2,19 @@
 
 open System
 open System.IO
-open System.Windows.Controls
-open System.Windows
-open System.Windows.Media
+open Avalonia.Controls
+open Avalonia
+open Avalonia.Media
+open Fittings
 
 open Fesh
 open Fesh.Editor
 open Fesh.Model
 open Fesh.Util.General
 open Fesh.Config
+open Avalonia.Platform.Storage
+open Avalonia.Visuals
+open Avalonia.VisualTree
 
 type SavingKind =
     | SaveInPlace
@@ -22,47 +26,51 @@ type SavingKind =
 /// A class holding the Tab Control.
 /// Includes logic for saving and opening files.
 /// Window is needed for closing after last Tab closed
-type Tabs(config:Config, log:Log,feshWin:FeshWindow) =
+type Tabs(config:Config, log:Log, feshWin:FeshWindow) =
 
-    let tabs =
-        new TabControl(
-            Padding = Thickness(0.6),
-            Margin = Thickness( 0.6),
-            BorderThickness = Thickness(0.6),
-            BorderBrush = Brushes.Black
-            )
+    let tabControl =
+        let tc = new TabControl()
+        tc.Padding <- Thickness 0.
+        tc.Margin  <- Thickness 0.
+        // tc.BorderThickness <- Thickness(0.6)
+        // tc.BorderBrush <- Brushes.Black
+        tc
 
     let win = feshWin.Window
 
-
-    // let fsi =
-    //     let f = Fsi.GetOrCreate(config)
-    //     f.Initialize()
-    //     f
-
-    let allTabs:seq<Tab> =  Seq.cast tabs.Items
+    let allTabs() : seq<Tab> =
+        tabControl.Items |> Seq.cast<_>
 
     // excludes deleted files
-    let allExistingFileInfos = seq{ for t in allTabs do match t.Editor.FilePath with NotSet _  |Deleted _-> () |SetTo fi -> yield fi } //TODO does this re-evaluate every time?
+    let allExistingFileInfos() =
+        seq{
+            for t in allTabs() do
+                match t.Editor.FilePath with
+                |NotSet _
+                |Deleted _-> ()
+                |SetTo fi -> yield fi
+        } //TODO does this re-evaluate every time? yes !
 
     let currentTabChangedEv = new Event<Tab>() //to Trigger Fs Checker and status bar update
 
     let mutable current =  Unchecked.defaultof<Tab>
 
-    let enviroDefaultDir = Environment.CurrentDirectory
+    let currentDefaultDir = Environment.CurrentDirectory
 
-    let setCurrentTab(idx) =
-        if not <| Object.ReferenceEquals(null, current) then
-            current.Editor.State.Increment()  |> ignore<int64> // to cancel any running checkers
+    let setCurrentTab idx =
+        // TODO make sure to reset checker if it is currently still running from another file ??
+        // even though the error highlighter is only called if changeId is still the same
+        if notNull current then
+            current.Editor.State.Increment() |> ignore<int64> // to cancel any running checkers
 
-        tabs.SelectedIndex <- idx
-        let t = tabs.Items[idx] :?> Tab
+        tabControl.SelectedIndex <- idx
+        let t = tabControl.Items.[idx] :?> Tab
         current <- t
         IEditor.current <- Some (t.Editor:>IEditor)
 
-        feshWin.SetFileNameInTitle(t.Editor.FilePath)
+        feshWin.SetFileNameInTitle t.Editor.FilePath
 
-        currentTabChangedEv.Trigger(t) // to update statusbar
+        currentTabChangedEv.Trigger t // to update statusbar
 
         let dir =
             match current.Editor.FilePath with
@@ -72,19 +80,16 @@ type Tabs(config:Config, log:Log,feshWin:FeshWindow) =
                 if fi.Directory.Exists then // the directory might be deleted too
                     fi.Directory.FullName
                 else
-                    enviroDefaultDir
+                    currentDefaultDir
             |NotSet _ ->
-                enviroDefaultDir
+                currentDefaultDir
 
         Environment.CurrentDirectory <- dir // to be able to use __SOURCE_DIRECTORY__
 
         let ed = t.Editor
         DocChangeMark.updateAllTransformersAsync(ed, ed.DrawingServices, ed.State, ed.State.Increment(), 0)
 
-        // TODO make sure to reset checker if it is currently still running from another file ??
-        // even though the error highlighter is only called if changeId is still the same
-
-        config.OpenTabs.Save(t.Editor.FilePath , allExistingFileInfos)
+        config.OpenTabs.Save(t.Editor.FilePath , allExistingFileInfos())
 
     let saveSettingsForNewOpenFile(savedCode, t:Tab, fi:FileInfo, sync) =
         let ed = t.Editor
@@ -97,10 +102,10 @@ type Tabs(config:Config, log:Log,feshWin:FeshWindow) =
         Environment.CurrentDirectory <- fi.Directory.FullName
         config.FoldingStatus.Set(ed.FilePath , ed.Folds.Manager) // otherwise no record would exist for the new file name
         if sync then
-            config.OpenTabs.SaveSync(ed.FilePath , allExistingFileInfos)
+            config.OpenTabs.SaveSync(ed.FilePath , allExistingFileInfos())
             config.RecentlyUsedFiles.AddAndSaveSync(fi)
         else
-            config.OpenTabs.Save(ed.FilePath , allExistingFileInfos)
+            config.OpenTabs.Save(ed.FilePath , allExistingFileInfos())
             config.RecentlyUsedFiles.AddAndSave(fi)
 
 
@@ -111,11 +116,11 @@ type Tabs(config:Config, log:Log,feshWin:FeshWindow) =
             if fi.Directory.Exists then // the directory might be deleted too
                 Some fi.Directory
             else
-                match allExistingFileInfos |> Seq.tryHead with
+                match allExistingFileInfos() |> Seq.tryHead with
                 |Some fi -> Some fi.Directory
                 |None    -> config.RecentlyUsedFiles.MostRecentPath
         |NotSet _ ->
-            match allExistingFileInfos |> Seq.tryHead with
+            match allExistingFileInfos() |> Seq.tryHead with
             |Some fi -> Some fi.Directory
             |None    -> config.RecentlyUsedFiles.MostRecentPath
 
@@ -155,46 +160,69 @@ type Tabs(config:Config, log:Log,feshWin:FeshWindow) =
                 false
 
     /// Returns false if saving operation was canceled or had an error, true on successful saving
-    let saveAsDialog (t:Tab, saveKind:SavingKind):bool=
-        let dlg = new Microsoft.Win32.SaveFileDialog()
-        match t.Editor.FilePath with
-        |NotSet _ ->()
+    let saveAsDialog (tab:Tab, saveKind:SavingKind):bool=
+        let storage = (TopLevel.GetTopLevel tab.AvaEdit).StorageProvider
+        let opt = new FilePickerSaveOptions()
+        opt.Title <-
+            match saveKind with
+            |SaveNewLocation     -> $"Fesh | Save-As for {tab.Editor.FilePathOrDummyName}"
+            |SaveNewLocationSync -> $"Fesh | Save-As for {tab.Editor.FilePathOrDummyName}"
+            |SaveInPlace         -> $"Fesh | Save {tab.Editor.FilePathOrDummyName}"
+            |SaveExport          -> $"Fesh | Export  / Duplicate {tab.Editor.FilePathOrDummyName}"
+            |RenameFile          -> $"Fesh | Rename/ Move {tab.Editor.FilePathOrDummyName}"
+        opt.DefaultExtension <- ".fsx"
+        opt.ShowOverwritePrompt <- true
+        // find a folder:
+        match tab.Editor.FilePath with
+        |NotSet _ ->
+            match config.RecentlyUsedFiles.MostRecentPath with
+            |Some fi ->
+                fi.Refresh()
+                if fi.Exists then
+                    let folder =  storage.TryGetFolderFromPathAsync fi.FullName |> Async.AwaitTask |> Async.RunSynchronously
+                    if notNull folder then
+                        opt.SuggestedStartLocation <- folder
+            |None -> ()
         |Deleted fi |SetTo fi ->
             fi.Refresh()
             if fi.Directory.Exists then
-                dlg.InitialDirectory <- fi.DirectoryName
-            dlg.FileName <- fi.Name
-        dlg.DefaultExt <- ".fsx"
-        dlg.Title <-
-            match saveKind with
-                |SaveNewLocation     -> $"Save-As for {t.Editor.FilePathOrDummyName}"
-                |SaveNewLocationSync -> $"Save-As for {t.Editor.FilePathOrDummyName}"
-                |SaveInPlace         -> $"Save {t.Editor.FilePathOrDummyName}"
-                |SaveExport          -> $"Export  / Duplicate {t.Editor.FilePathOrDummyName}"
-                |RenameFile          -> $"Rename/ Move {t.Editor.FilePathOrDummyName}"
+                let folder =  storage.TryGetFolderFromPathAsync fi.DirectoryName |> Async.AwaitTask |> Async.RunSynchronously
+                if notNull folder then
+                    opt.SuggestedStartLocation <- folder
+            opt.SuggestedFileName <- fi.Name
 
+        let iFile = storage.SaveFilePickerAsync opt |> Async.AwaitTask |> Async.RunSynchronously
 
-        dlg.Filter <- "FSharp Files(*.fsx, *.fs)|*.fsx;*.fs|Text Files(*.txt)|*.txt|All Files(*.*)|*"
-        if isTrue (dlg.ShowDialog()) then
-            let fi = new FileInfo(dlg.FileName)
-            //this check is not needed, it is done by SaveFileDialog already:
-            //if fi.Exists then
-            //    match MessageBox.Show(
-            //        IEditor.mainWindow,
-            //        $"Do you want to overwrite the existing file?\r\n{fi.FullName}" ,
-            //        "Overwrite file?",
-            //        MessageBoxButton.YesNo,
-            //        MessageBoxImage.Question,
-            //        MessageBoxResult.No,// default result
-            //        MessageBoxOptions.None) with
-            //    | MessageBoxResult.Yes -> saveAt (t, fi, saveKind)
-            //    | MessageBoxResult.No -> false
-            //    | _ -> false
-            //else
-
-            saveAt (t, fi, saveKind)
-        else
+        if isNull iFile then
             false
+        else
+            let fileInfo = FileInfo iFile.Path.AbsolutePath
+            saveAt (tab, fileInfo, saveKind)
+
+        // match t.Editor.FilePath with
+        // |NotSet _ ->()
+        // |Deleted fi |SetTo fi ->
+        //     fi.Refresh()
+        //     if fi.Directory.Exists then
+        //         dlg.InitialDirectory <- fi.DirectoryName
+        //     dlg.FileName <- fi.Name
+        // dlg.DefaultExt <- ".fsx"
+        // dlg.Title <-
+        //     match saveKind with
+        //         |SaveNewLocation     -> $"Save-As for {t.Editor.FilePathOrDummyName}"
+        //         |SaveNewLocationSync -> $"Save-As for {t.Editor.FilePathOrDummyName}"
+        //         |SaveInPlace         -> $"Save {t.Editor.FilePathOrDummyName}"
+        //         |SaveExport          -> $"Export  / Duplicate {t.Editor.FilePathOrDummyName}"
+        //         |RenameFile          -> $"Rename/ Move {t.Editor.FilePathOrDummyName}"
+
+        // dlg.Filter <- "FSharp Files(*.fsx, *.fs)|*.fsx;*.fs|Text Files(*.txt)|*.txt|All Files(*.*)|*"
+        // if isTrue (dlg.ShowDialog()) then
+        //     let fi = new FileInfo(dlg.FileName)
+        //     //no overwrite check is not needed, it is done by SaveFileDialog already
+        //     saveAt (tab, fi, saveKind)
+        // else
+        //     false
+
 
     let saveAsync (t:Tab) =  // gets called from evalAllText(),  evalAllTextSave()  and  evalAllTextSaveClear() only
         match t.Editor.FilePath with
@@ -211,7 +239,7 @@ type Tabs(config:Config, log:Log,feshWin:FeshWindow) =
                     else
                         IO.File.WriteAllText(fi.FullName, txt, Text.Encoding.UTF8)
                         t.Editor.CodeAtLastSave <- txt
-                        t.AvaEdit.Dispatcher.Invoke(fun ()->
+                        SyncContext.doSync (fun ()->
                             t.IsCodeSaved <- true
                             log.PrintfnInfoMsg "File saved."
                             //log.PrintfnInfoMsg "File saved:\r\n\"%s\"" fi.FullName
@@ -223,11 +251,11 @@ type Tabs(config:Config, log:Log,feshWin:FeshWindow) =
             saveAsDialog(t, SaveNewLocation )
             |> ignore<bool>
 
-    let export(t:Tab):bool=
+    let export(t:Tab):bool =
         saveAsDialog (t, SaveExport)
 
     /// Returns false if saving operation was canceled or had an error, true on successfully saving
-    let trySave (t:Tab)=
+    let trySave (t:Tab) =
         match t.Editor.FilePath with
         |SetTo fi ->
             if  t.IsCodeSaved then
@@ -244,7 +272,7 @@ type Tabs(config:Config, log:Log,feshWin:FeshWindow) =
 
 
     /// Returns false if saving operation was canceled or had an error, true on successfully saving
-    let trySaveBeforeClosing (t:Tab)=
+    let trySaveBeforeClosing (t:Tab) =
         match t.Editor.FilePath with
         |SetTo fi ->
             if  t.IsCodeSaved then
@@ -259,7 +287,7 @@ type Tabs(config:Config, log:Log,feshWin:FeshWindow) =
 
 
     /// Returns true if file is saved or if closing ok (not canceled by user)
-    let askIfClosingTabIsOk(t:Tab) :bool=
+    let askIfClosingTabIsOk(t:Tab) :bool =
         if t.IsCodeSaved then
             true
         else
@@ -280,38 +308,38 @@ type Tabs(config:Config, log:Log,feshWin:FeshWindow) =
                     "Fesh | Save Changes before closing Tab?",
                     MessageBoxButton.YesNoCancel,
                     MessageBoxImage.Question,
-                    MessageBoxResult.Yes,// default result
+                    MessageBoxResult.Yes, // default result
                     MessageBoxOptions.None) with
                 | MessageBoxResult.Yes -> trySave t
                 | MessageBoxResult.No -> true
                 | MessageBoxResult.Cancel -> false
                 | _ -> false
 
-    let closeTab(t:Tab)=
-        if askIfClosingTabIsOk(t) then
+    let closeTab(t:Tab) =
+        if askIfClosingTabIsOk t then
             t.FileTracker.Stop()
-            tabs.Items.Remove(t)
-            config.OpenTabs.Save (t.Editor.FilePath , allExistingFileInfos) //saving removed file, not added
+            tabControl.Items.Remove t |> ignore
+            config.OpenTabs.Save (t.Editor.FilePath , allExistingFileInfos()) //saving removed file, not added
 
 
     /// addTab(Tab, makeCurrent, moreTabsToCome)
     let addTab(tab:Tab, makeCurrent, moreTabsToCome) =
-        let idx = tabs.Items.Add tab
+        let idx = tabControl.Items.Add tab
         if makeCurrent then
-            setCurrentTab(idx)
+            setCurrentTab idx
 
-        tab.CloseButton.Click.Add (fun _ -> closeTab(tab))
+        tab.CloseButton.Click.Add (fun _ -> closeTab tab)
 
         match tab.Editor.FilePath with
         |SetTo fi ->
             if moreTabsToCome then
-                config.RecentlyUsedFiles.Add(fi)
+                config.RecentlyUsedFiles.Add fi
             else
                 // also close any tab that only has default code:
-                allTabs
-                |> Seq.filter ( fun (t:Tab) -> t.Editor.FilePath.DoesNotExistsAsFile && t.IsCodeSaved=true ) // no explicit criteria for being the default code!
+                allTabs()
+                |> Seq.filter ( fun t-> t.Editor.FilePath.DoesNotExistsAsFile && t.IsCodeSaved = true ) // no explicit criteria for being the default code!
                 |> Array.ofSeq // force enumeration and cache
-                |> Seq.iter ( fun t -> tabs.Items.Remove t)
+                |> Seq.iter ( fun t -> tabControl.Items.Remove t|> ignore)
 
                 config.RecentlyUsedFiles.AddAndSave(fi)
         |NotSet _ ->
@@ -334,11 +362,11 @@ type Tabs(config:Config, log:Log,feshWin:FeshWindow) =
 
         fi.Refresh()
         if fi.Exists then
-            match allTabs |> Seq.indexed |> Seq.tryFind (fun (_,t) -> areFilePathsSame fi t.Editor.FilePath) with // check if file is already open
+            match allTabs()|> Seq.indexed |> Seq.tryFind (fun (_,t) -> areFilePathsSame fi t.Editor.FilePath) with // check if file is already open
             | Some (i,_) ->
                 if makeCurrent then // && not t.IsCurrent then
                     setCurrentTab(i)
-                    config.RecentlyUsedFiles.AddAndSave(fi) // to move it up to top of stack
+                    config.RecentlyUsedFiles.AddAndSave fi // to move it up to top of stack
                 true
             | None -> // regular case, its not open already, so actually open the file
                 try
@@ -347,11 +375,11 @@ type Tabs(config:Config, log:Log,feshWin:FeshWindow) =
                         codeRaw
                         |> Util.Str.unifyLineEndings
                         |> Util.Str.tabsToSpaces (config.Settings.GetInt("IndentationSize",4))
-                    let ed = Editor.SetUp(codeClean, config, SetTo fi)
-                    let t = new Tab(ed)
-                    t.Editor.CodeAtLastSave <- codeRaw
+                    let mkEd = Editor.SetUp(codeClean, config, SetTo fi)
+                    let tab = new Tab(mkEd)
+                    tab.Editor.CodeAtLastSave <- codeRaw
                     //log.PrintfnDebugMsg "adding Tab %A in %A " t.Editor.FilePath t.Editor.FileCheckState
-                    addTab(t, makeCurrent, moreTabsToCome)
+                    addTab(tab, makeCurrent, moreTabsToCome)
                     true
                 with  e ->
                     log.PrintfnIOErrorMsg "Error reading and adding (with Encoding.UTF8):\r\n%s\r\n%A" fi.FullName e
@@ -364,7 +392,7 @@ type Tabs(config:Config, log:Log,feshWin:FeshWindow) =
                 "Fesh | File not found !",
                 MessageBoxButton.OK,
                 MessageBoxImage.Error,
-                MessageBoxResult.OK ,// default result
+                MessageBoxResult.OK , // default result
                 MessageBoxOptions.None) |> ignore
             false
 
@@ -380,45 +408,72 @@ type Tabs(config:Config, log:Log,feshWin:FeshWindow) =
 
 
     /// Shows a file opening dialog
-    let openFile() : bool =
-        let dlg = new Microsoft.Win32.OpenFileDialog()
-        dlg.Multiselect <- true
-        match workingDirectory()  with
-        | Some t -> t.Refresh(); if  t.Exists then  dlg.InitialDirectory <- t.FullName
-        | _ -> ()
-        dlg.DefaultExt <- ".fsx"
-        dlg.Title <- "Fesh | Open file"
-        dlg.Filter <- "FSharp Files(*.fsx, *.fs)|*.fsx;*.fs|Text Files(*.txt)|*.txt|All Files(*.*)|*"
-        if isTrue (dlg.ShowDialog()) then
-            tryAddFiles dlg.FileNames
-        else
+    let openFile(contr:Control) : bool =
+        let storage = (TopLevel.GetTopLevel contr).StorageProvider
+        let opt = new FilePickerOpenOptions()
+        opt.Title <- "Fesh | Open file(s)"
+        opt.AllowMultiple <- true
+        // opt.FileTypeFilter <- [|
+        //         new FilePickerFileType("F# Files (*.fsx, *.fs)", [| "*.fsx"; "*.fs" |])
+        //         new FilePickerFileType("Text Files (*.txt)", [| "*.txt" |])
+        //         new FilePickerFileType("All Files (*.*)", [| "*.*" |])
+        //     |]
+        // find a folder:
+
+        match workingDirectory() with
+        |Some fi ->
+            fi.Refresh()
+            if fi.Exists then
+                let folder =  storage.TryGetFolderFromPathAsync fi.FullName |> Async.AwaitTask |> Async.RunSynchronously
+                if notNull folder then
+                    opt.SuggestedStartLocation <- folder
+        |None -> ()
+
+        let iFiles = storage.OpenFilePickerAsync opt |> Async.AwaitTask |> Async.RunSynchronously
+
+        if isNull iFiles || iFiles.Count = 0 then
             false
+        else
+            tryAddFiles (iFiles |> Seq.map (fun iFile -> iFile.Path.AbsolutePath) |> Seq.toArray)
+
+        // let dlg = new Microsoft.Win32.OpenFileDialog()
+        // dlg.Multiselect <- true
+        // match workingDirectory()  with
+        // | Some t -> t.Refresh(); if  t.Exists then  dlg.InitialDirectory <- t.FullName
+        // | _ -> ()
+        // dlg.DefaultExt <- ".fsx"
+        // dlg.Title <- "Fesh | Open file"
+        // dlg.Filter <- "FSharp Files(*.fsx, *.fs)|*.fsx;*.fs|Text Files(*.txt)|*.txt|All Files(*.*)|*"
+        // if isTrue (dlg.ShowDialog()) then
+        //     tryAddFiles dlg.FileNames
+        // else
+        //     false
 
     do
         // --------------first load tabs from last session including startup args--------------
         for f in config.OpenTabs.Get() do
             tryAddFile( f.file, f.makeCurrent, true)  |> ignore
 
-        if tabs.Items.Count=0 then //Open default file if none found in recent files or args
-            let t = new Tab(Editor.New(config))
+        if tabControl.Items.Count=0 then //Open default file if none found in recent files or args
+            let t = new Tab(Editor.New config)
             addTab(t, true, true) |> ignore
 
-        if tabs.SelectedIndex = -1 then  //make one tab current if none yet , happens if current file on last closing was an unsaved file
-            setCurrentTab(0)
-
+        if tabControl.Items.Count > 0 && tabControl.SelectedIndex = -1 then  //make one tab current if none yet , happens if current file on last closing was an unsaved file
+            setCurrentTab 0
 
         // set up tab change events last so this doesn't get triggered on every tab while opening files initially
-        tabs.SelectionChanged.Add( fun _->
-            if tabs.Items.Count = 0 then //  happens when closing the last open tab
+        tabControl.SelectionChanged.Add( fun _->
+            if tabControl.Items.Count = 0 then //  happens when closing the last open tab
                 //create new tab
-                let tab = new Tab(Editor.New(config))
-                addTab(tab, true, false)
-
+                SyncContext.doSync(fun () -> //delay to avoid: System.InvalidOperationException: Source collection was modified during selection update.
+                    let tab = new Tab(Editor.New config)
+                    addTab(tab, true, false)
+                )
             else
-                let idx = max 0 tabs.SelectedIndex // might be -1 too , there was no tab selected by default" //  does happen
-                setCurrentTab(idx)
-
+                let idx = max 0 tabControl.SelectedIndex // might be -1 too , there was no tab selected by default" //  does happen
+                setCurrentTab idx
             )
+
 
         // After all files are loaded and the current directory is set from the current tab, now initialize FSI.
         // This temporarily sets the current directory to the App folder where FSharp.Core.dll is located.
@@ -433,9 +488,12 @@ type Tabs(config:Config, log:Log,feshWin:FeshWindow) =
             try
                 fi.Refresh()
                 if fi.Exists then
-                    Microsoft.VisualBasic.FileIO.FileSystem.DeleteFile( fi.FullName, Microsoft.VisualBasic.FileIO.UIOption.OnlyErrorDialogs, Microsoft.VisualBasic.FileIO.RecycleOption.SendToRecycleBin                    )
+                    if Util.OS.current.IsWindows then
+                        Microsoft.VisualBasic.FileIO.FileSystem.DeleteFile( fi.FullName, Microsoft.VisualBasic.FileIO.UIOption.OnlyErrorDialogs, Microsoft.VisualBasic.FileIO.RecycleOption.SendToRecycleBin )
+                    else
+                        IO.File.Delete fi.FullName // TODO: implement recycle bin for other OS?
             with e ->
-                log.PrintfnIOErrorMsg $"Failed to move file to recycle bin: {e.Message}"
+                log.PrintfnIOErrorMsg $"Failed to delete or move file to recycle bin: {e.Message}"
 
 
     //--------------- Public members------------------
@@ -444,7 +502,7 @@ type Tabs(config:Config, log:Log,feshWin:FeshWindow) =
     [<CLIEvent>]
     member this.OnTabChanged = currentTabChangedEv.Publish
 
-    member this.Control = tabs
+    member this.Control = tabControl
 
     member this.Fsi = Fsi.GetOrCreate(config)
 
@@ -457,29 +515,36 @@ type Tabs(config:Config, log:Log,feshWin:FeshWindow) =
     // excludes files that are deleted but still open in editor
     member this.AllExistingFileInfos = allExistingFileInfos
 
-    member this.AllTabs = allTabs
+    member this.AllTabs = allTabs()
 
-    member this.AddTab(tab:Tab, makeCurrent) = addTab(tab, makeCurrent, false)
+    member this.AddTab(tab:Tab, makeCurrent) =
+        addTab(tab, makeCurrent, false)
 
     /// Checks if file is open already then calls addTab
-    member this.AddFile(fi:FileInfo, makeCurrent) =  tryAddFile(fi, makeCurrent,false)
+    member this.AddFile(fi:FileInfo, makeCurrent) =
+        tryAddFile(fi, makeCurrent,false)
 
     /// Checks if file is open already
     /// last file will be set current
     /// true if at least one opened
-    member this.AddFiles(paths: string []) =  tryAddFiles(paths)
+    member this.AddFiles(paths: string []) =
+        tryAddFiles(paths)
 
     /// Gets the most recently used folder if possible
-    member this.WorkingDirectory = workingDirectory()
+    member this.WorkingDirectory =
+        workingDirectory()
 
     /// Shows a file opening dialog
-    member this.OpenFile() = openFile()  |> ignore
+    member this.OpenFile() =
+        openFile(this.Control)  |> ignore
 
     /// Shows a file opening dialog
-    member this.SaveAs (t:Tab) = saveAsDialog(t, SaveNewLocation)
+    member this.SaveAs (t:Tab) =
+        saveAsDialog(t, SaveNewLocation)
 
     /// also saves currently open files
-    member this.CloseTab(t) = closeTab(t)
+    member this.CloseTab(t) =
+        closeTab(t)
 
     member this.CloseDelete(t:Tab) =
         closeTab(t)
@@ -554,7 +619,7 @@ type Tabs(config:Config, log:Log,feshWin:FeshWindow) =
     /// Returns true if all files are saved or unsaved changes shall be ignored.
     /// So true mean the closing process was not canceled by user.
     member this.AskForFileSavingToKnowIfClosingWindowIsOk() =
-        let openFs = allTabs |> Seq.filter (fun t -> not t.IsCodeSaved && t.SavingWanted)
+        let openFs = allTabs() |> Seq.filter (fun t -> not t.IsCodeSaved && t.SavingWanted)
         //log.PrintfnDebugMsg "Unsaved files %d" (Seq.length openFs)
         if  Seq.isEmpty openFs then
             true
@@ -574,13 +639,13 @@ type Tabs(config:Config, log:Log,feshWin:FeshWindow) =
                 MessageBoxOptions.None) with
 
             | MessageBoxResult.Yes ->
-                seq { for t in allTabs do if not t.IsCodeSaved then yield trySaveBeforeClosing t } // if saving was canceled ( eg, no filename picked) then cancel closing
+                seq { for t in allTabs() do if not t.IsCodeSaved then yield trySaveBeforeClosing t } // if saving was canceled ( eg, no filename picked) then cancel closing
                 |> Seq.forall id // checks if all are true, if one file-saving was canceled return false, so the closing of the main window can be aborted
                 //if Seq.exists ( fun ok -> ok = false) oks then false else true
             | MessageBoxResult.No  ->
                 // In a hosted context like Rhino the dialog would pop on closing fesh window and on closing the Rhino window
                 // so that the dialog about saving only pops up once set t.SavingWanted <- false for all tabs
-                for t in allTabs do t.SavingWanted <- false
+                for t in allTabs() do t.SavingWanted <- false
                 true
             | MessageBoxResult.Cancel  ->
                 false

@@ -2,16 +2,18 @@
 
 
 open System
-open System.Windows
-open System.Windows.Media
-open System.Windows.Input
+open Avalonia
+open Avalonia.Media
+open Avalonia.Input
+open Avalonia.Controls
 
 open FSharp.Compiler.Tokenization // for keywords
 
-open AvalonEditB
-open AvalonEditB.Utils
-open AvalonEditB.Document
-open AvalonLog
+open AvaloniaEdit
+open AvaloniaEdit.Utils
+open AvaloniaEdit.Document
+open AvaloniaLog
+open AvaloniaLog.ImmBrush
 open Fittings
 
 open Fesh
@@ -19,36 +21,37 @@ open Fesh.Model
 open Fesh.Config
 open Fesh.Util.Str
 open FSharp.Compiler.EditorServices
-open AvalonEditB.Rendering
+open AvaloniaEdit.Rendering
 open System.Threading
-open System.Windows.Media
+open Avalonia.Media
+open Avalonia.Controls.Primitives
 
 /// returns a bigger integer on each access for naming unsaved files
-type Counter private () =
-    static let unsavedFile = ref 0
+type DefaultFileName private () =
+    static let counter = ref 0
 
     /// Returns a bigger integer on each access
     /// used to give each unsaved file a unique number
-    static member UnsavedFileName() =
-        incr unsavedFile
-        sprintf "*unsaved-%d*" !unsavedFile
+    static member NewWithCount() =
+        counter.Value <- counter.Value + 1
+        sprintf "*unsaved-%d*" counter.Value
 
 
  /// The tab that holds the tab header and the code editor
 type Editor private (code:string, config:Config, initialFilePath:FilePath)  =
     let avaEdit =
-        let av = TextEditor()
+        let av = new TextEditor()
         av.Options.IndentationSize <- config.Settings.GetInt("IndentationSize", 4) // do first because its used by tabs to spaces below.
         av.Text <- code
 
-        av.BorderThickness <- new Thickness( 0.0)
-        av.ShowLineNumbersWithDottedMargin <- false
+        av.BorderThickness <- new Thickness 0.0
+        // av.ShowLineNumbersWithDottedMargin <- false
         av.ShowLineNumbers <- true // background color is set in ColumnRulers.cs
-        av.VerticalScrollBarVisibility <- Controls.ScrollBarVisibility.Auto
-        av.HorizontalScrollBarVisibility <- Controls.ScrollBarVisibility.Auto
+        av.VerticalScrollBarVisibility <- ScrollBarVisibility.Auto
+        av.HorizontalScrollBarVisibility <- ScrollBarVisibility.Auto
         av.Options.EnableHyperlinks <- true
         av.Options.EnableEmailHyperlinks <- false
-        av.TextArea.TextView.LinkTextForegroundBrush <- Brushes.DarkGreen |> AvalonLog.Brush.freeze
+        av.TextArea.TextView.LinkTextForegroundBrush <- Brushes.DarkGreen
         av.Options.EnableTextDragDrop <- true
         av.Options.ShowSpaces <- false
         av.Options.ShowTabs <- false // they are always converted to spaces, see above
@@ -58,21 +61,22 @@ type Editor private (code:string, config:Config, initialFilePath:FilePath)  =
         av.TextArea.SelectionBorder <- null
         av.FontFamily <- StyleState.fontEditor
         av.FontSize <- config.Settings.GetFloat("SizeOfFont", StyleState.fontSize)
-        av.AllowDrop <- true
+        // av.AllowDrop <- true
         av.Options.HighlightCurrentLine <- true // http://stackoverflow.com/questions/5072761/avalonedit-highlight-current-line-even-when-not-focused
 
         SyntaxHighlighting.setFSharp(av,false)
 
-        av.TextArea.TextView.CurrentLineBackground <- Brushes.LightSteelBlue |> Brush.brighter 70 |> Brush.freeze
+        av.TextArea.TextView.CurrentLineBackground <- Brushes.LightSteelBlue |> brighter 70
         // av.TextArea.TextView.CurrentLineBorder     <- new Pen(Brushes.LightSlateGray|> Brush.freeze, 1.0) |> Util.Pen.freeze
 
         //av.TextArea.AllowCaretOutsideSelection <- true
         //av.Options.EnableVirtualSpace <- true // to postion caret anywhere in editor
+
         av
 
     let search =
         let se = Search.SearchPanel.Install(avaEdit)
-        se.MarkerCornerRadius <- 0.
+        // se.MarkerCornerRadius <- 0. // TODO WPF only ?
         se.MatchCase  <- true  // config.Settings.GetBool("SearchMatchCase", true) // TODO how to actually save changes ?
         se.WholeWords <- false // config.Settings.GetBool("SearchWholeWords", false)
         se
@@ -113,7 +117,7 @@ type Editor private (code:string, config:Config, initialFilePath:FilePath)  =
 
     member _.DrawingServices = drawServices
 
-    member val TypeInfoTip = new Controls.ToolTip(IsOpen=false)
+    member val TypeInfoTip = new Popup(IsOpen=false)
 
     member val CodeAtLastSave : string = "" with get,set // used to check if file was changed in the background by other apps in FileChangeTracker
 
@@ -158,15 +162,15 @@ type Editor private (code:string, config:Config, initialFilePath:FilePath)  =
 
     /// sets up Text change event handlers
     /// a static method so that an instance if IEditor can be used
-    static member SetUp  (code:string, config:Config, filePath:FilePath) =
+    static member SetUp (code:string, config:Config, filePath:FilePath) =
         let ed = Editor(code, config, filePath )
         let avaEdit = ed.AvaEdit
         let compls = ed.Completions
 
-        ed.Folds.Manager.AutoRedrawFoldingSections <- false  // to just redraw the changed line but not the full folding section on changes
+        //ed.Folds.Manager.AutoRedrawFoldingSections <- false  // to just redraw the changed line but not the full folding section on changes
 
-        // for logging Debug and Error Messages in AvalonEditB
-        Logging.LogAction <- new Action<string>( fun (s:string) -> IFeshLog.log.PrintfnDebugMsg "AvalonEditB Logging.Log: %s" s)
+        // for logging Debug and Error Messages in AvaloniaEdit
+        //Logging.LogAction <- new Action<string>( fun (s:string) -> IFeshLog.log.PrintfnDebugMsg "AvaloniaEdit Logging.Log: %s" s)
 
         // ----------------------------------------------------------
         // -------------------------View events ---------------------
@@ -174,18 +178,20 @@ type Editor private (code:string, config:Config, initialFilePath:FilePath)  =
 
         let _rulers =  new ColumnRulers(avaEdit) // draw last , so on top? do foldings first
         avaEdit.Loaded.Add (fun _ -> new MagicScrollbar.ScrollBarEnhancer(avaEdit, ed.ErrorHighlighter)  |> ignore )
-        avaEdit.Drop.Add   (fun e -> DragAndDrop.onTextArea(avaEdit, e))
+        // avaEdit.Drop.Add(fun e -> DragAndDrop.onTextArea(avaEdit, e))
+        //https://github.com/AvaloniaUI/AvaloniaUI.QuickGuides/blob/main/DragDropOps/Views/MainWindow.axaml.cs
+        //SetupDnd(DragMeCustom, d => d.Set(CustomFormat, "Some Custom Data Here"), DragDropEffects.Move);
 
 
         ed.Completions.OnShowing.Add(fun _ ->                         ed.CloseToolTips() )
         avaEdit.TextArea.TextView.VisualLinesChanged.Add (fun _ ->    ed.CloseToolTips() )// close type info on typing
-        avaEdit.TextArea.TextView.MouseHoverStopped.Add(fun _ ->      ed.CloseToolTips() )
+        avaEdit.TextArea.TextView.PointerHoverStopped.Add(fun _ ->      ed.CloseToolTips() )
 
-        ed.Folds.Margin.MouseDown.Add(fun _ -> ed.CloseToolTips(); ed.Completions.CloseAndEnableReacting() ) // close tooltips on clicking in the margin
+        ed.Folds.Margin.PointerPressed.Add(fun _ -> ed.CloseToolTips(); ed.Completions.CloseAndEnableReacting() ) // close tooltips on clicking in the margin
 
         // Mouse Hover Type info:
-        avaEdit.TextArea.TextView.MouseHover.Add(fun e -> if not ed.IsComplWinOpen then TypeInfo.mouseHover(e, ed, ed.TypeInfoTip))
-        ed.TypeInfoTip.SetValue(Controls.ToolTipService.InitialShowDelayProperty, 50) // this delay is also set in Initialize.fs
+        avaEdit.TextArea.TextView.PointerHover.Add(fun e -> if not ed.IsComplWinOpen then TypeInfo.mouseHover(e, ed, ed.TypeInfoTip))
+        //ed.TypeInfoTip.SetValue(Controls.ToolTipService.InitialShowDelayProperty, 50) // this delay is also set in Initialize.fs // TODO wpf only ?
 
 
         // To clear selection highlighter marks first , before opening the search window. if they would be the same as the search word.
@@ -198,16 +204,16 @@ type Editor private (code:string, config:Config, initialFilePath:FilePath)  =
         // -------------------------keyboard events -----------------
         // ----------------------------------------------------------
 
-        avaEdit.TextArea.AlternativeRectangularPaste <- Action<string,bool>(fun txt txtIsFromOtherRectSel -> RectangleSelection.paste(ed.AvaEdit, txt, txtIsFromOtherRectSel)) //TODO check txtIsFromOtherRectSel on pasting text with \r\n
-        avaEdit.TextArea.PreviewTextInput.Add ( fun e -> CursorBehavior.previewTextInput( avaEdit, e))  // A TextCompositionEventArgs that has a string , handling typing in rectangular selection
-        avaEdit.PreviewKeyDown.Add (fun e -> KeyboardShortcuts.previewKeyDown( ed , e))  // A single Key event arg, indent and dedent, and change block selection delete behavior
+        //avaEdit.TextArea.AlternativeRectangularPaste <- Action<string,bool>(fun txt txtIsFromOtherRectSel -> RectangleSelection.paste(ed.AvaEdit, txt, txtIsFromOtherRectSel)) //TODO check txtIsFromOtherRectSel on pasting text with \r\n
+        avaEdit.TextArea.TextInput.Add ( fun e -> CursorBehavior.previewTextInput( avaEdit, e))  // A TextCompositionEventArgs that has a string , handling typing in rectangular selection
+        avaEdit.KeyDown.Add (fun e -> KeyboardShortcuts.previewKeyDown( ed , e))  // A single Key event arg, indent and dedent, and change block selection delete behavior
 
         // -------------React to doc changes and add Line transformers----------------
         let drawServ = ed.DrawingServices
         // match drawServ.evalTracker with
         // |None -> ()
         // |Some evalTracker -> avaEdit.Document.Changed.Add(  fun a -> evalTracker.SetLastChangeAt (a.Offset-a.RemovalLength))
-        avaEdit.PreviewKeyDown.Add ( fun e -> DocChangeEvents.ctrlSpace (ed, drawServ, ed.State, e)) // to trigger completion window on ctrl+space without entering any character
+        avaEdit.KeyDown.Add ( fun e -> DocChangeEvents.ctrlSpace (ed, drawServ, ed.State, e)) // to trigger completion window on ctrl+space without entering any character
         avaEdit.Document.Changing.Add( fun a -> DocChangeEvents.changing (ed.State, a) )
         avaEdit.Document.Changed.Add ( fun a -> DocChangeEvents.changed  (ed,  drawServ, ed.State, a))
 
@@ -232,7 +238,7 @@ type Editor private (code:string, config:Config, initialFilePath:FilePath)  =
 
     ///additional constructor using default code
     static member New (config:Config) =
-        let dummyName = Counter.UnsavedFileName()
+        let dummyName = DefaultFileName.NewWithCount()
         Editor.SetUp( config.DefaultCode.Get() , config, NotSet dummyName)
 
 

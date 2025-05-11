@@ -1,6 +1,6 @@
 ﻿namespace Fesh.Editor
 
-open AvalonEditB
+open AvaloniaEdit
 open Fesh.Util
 
 /// Commenting:  turning code into Comments and back

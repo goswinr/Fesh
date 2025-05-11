@@ -1,11 +1,11 @@
 ﻿namespace Fesh.Views
 
 open System
-open System.Windows //for FontStyles
-open System.Windows.Media // for Fontfamilly
+open Avalonia //for FontStyle
+open Avalonia.Media // for Fontfamilly
 open Fesh.Model
 open Fesh
-open AvalonEditB.Rendering
+open AvaloniaEdit.Rendering
 
 type Fonts (grid:TabsAndLog) = // will be constructed as part of Commands class
     let log = grid.Log
@@ -13,21 +13,23 @@ type Fonts (grid:TabsAndLog) = // will be constructed as part of Commands class
     let sett = grid.Config.Settings
     let comma = "; "
 
-    let mediaUri =  new Uri("pack://application:,,,/Fesh;component/Media/")
+    // let mediaUri =  new Uri("pack://application:,,,/Fesh;component/Media/")
+    let mediaUri = new Uri "avares://Fesh/Media/"
+
     //let fontsUri =  new Uri("pack://application:,,,/Fesh;component/Media/#")
     //let resFontsLazy = lazy (Fonts.GetFontFamilies(fontsUri))
 
     let defaultFontNames = [|
         "Cascadia Mono" // Cascadia Mono is without ligatures
-        "Consolas" // only Consolas renders fast
+        "Consolas" // only Consolas renders fast in AvalonEdit
         |]
 
 
 
     /// test if font is installed
     let isInstalled (f:FontFamily) =
-        let n = f.FamilyNames.Values |> Seq.head
-        if f.Source.Contains(n) then  // source might stat with ./#
+        let n = f.FamilyNames|> Seq.head
+        if f.Name.Contains(n) then  // source might stat with ./#
             true
         else
             false
@@ -47,7 +49,7 @@ type Fonts (grid:TabsAndLog) = // will be constructed as part of Commands class
         with e ->
             None
 
-    let tryGetFontOrAlt(key) =
+    let tryGetFontOrAlt key =
         match sett.TryGetString key with
         |Some na ->
             match getFontThatIsInstalled(na) with
@@ -82,22 +84,22 @@ type Fonts (grid:TabsAndLog) = // will be constructed as part of Commands class
         match tryGetFontOrAlt "FontLog" with
         |Some f ->
             StyleState.fontLog <- f
-            log.AvalonLog.FontFamily <- f
-            sett.Set ("FontLog", f.Source)
+            log.AvaloniaLog.FontFamily <- f
+            sett.Set ("FontLog", f.Name)
         |None ->  ()
 
     let setEditor() = // on log and all tabs
         match tryGetFontOrAlt "FontEditor" with
         |Some f ->
             StyleState.fontEditor <- f
-            StyleState.italicBoldEditorTf  <-  new Typeface(f, FontStyles.Italic, FontWeights.Bold,    FontStretches.Normal)
-            StyleState.italicEditorTf      <-  new Typeface(f, FontStyles.Italic, FontWeights.Normal,  FontStretches.Normal)
-            StyleState.boldEditorTf        <-  new Typeface(f, FontStyles.Normal, FontWeights.Bold,    FontStretches.Normal)
+            StyleState.italicBoldEditorTf  <-  new Typeface(f, FontStyle.Italic, FontWeight.Bold,    FontStretch.Normal)
+            StyleState.italicEditorTf      <-  new Typeface(f, FontStyle.Italic, FontWeight.Normal,  FontStretch.Normal)
+            StyleState.boldEditorTf        <-  new Typeface(f, FontStyle.Normal, FontWeight.Bold,    FontStretch.Normal)
 
             for t in tabs.AllTabs do  t.Editor.AvaEdit.FontFamily  <- f
-            sett.Set ("FontEditor", f.Source)
+            sett.Set ("FontEditor", f.Name)
 
-            //match  f.FamilyTypefaces |> Seq.tryFind ( fun tf ->  tf.Style = Windows.FontStyles.Oblique && tf.Weight.ToString() = "Normal" ) with
+            //match  f.FamilyTypefaces |> Seq.tryFind ( fun tf ->  tf.Style = Windows.FontStyle.Oblique && tf.Weight.ToString() = "Normal" ) with
             //|Some ft ->
             //    let obl = Typeface(ft.)
             //    Editor.SemAction.makeCursive <- fun (el:VisualLineElement) -> el.TextRunProperties.SetTypeface ft.
@@ -112,11 +114,11 @@ type Fonts (grid:TabsAndLog) = // will be constructed as part of Commands class
         match tryGetFontOrAlt "FontToolTip" with
         |Some f ->
             StyleState.fontToolTip <- f
-            sett.Set ("FontToolTip", f.Source)
+            sett.Set ("FontToolTip", f.Name)
         |None -> ()
 
     let setSize (newSize:float) = // on log and all tabs
-        log.AvalonLog.FontSize <- newSize
+        log.AvaloniaLog.FontSize <- newSize
         for t in tabs.AllTabs do
             t.Editor.AvaEdit.FontSize  <- newSize
         sett.SetFloat ("SizeOfFont", newSize)
@@ -157,8 +159,8 @@ type Fonts (grid:TabsAndLog) = // will be constructed as part of Commands class
 (*
 module Typography =
 
-    open System.Windows
-    open System.Windows.Media.TextFormatting
+    open Avalonia
+    open Avalonia.Media.TextFormatting
 
     // from https://github.com/icsharpcode/AvalonEdit/blob/master/ICSharpCode.AvalonEdit/Rendering/DefaultTextRunTypographyProperties.cs
     // avalonedit comment on RunTransformers: For some strange reason, WPF requires that either all or none of the typography properties are set.

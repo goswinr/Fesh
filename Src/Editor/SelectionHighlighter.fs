@@ -1,24 +1,26 @@
 ﻿namespace Fesh.Editor
 
 open System
-open System.Windows.Media
+open Avalonia.Media
+open AvaloniaLog.ImmBrush
 
-open AvalonEditB
-open AvalonEditB.Rendering
-open AvalonEditB.Document
+open AvaloniaEdit
+open AvaloniaEdit.Rendering
+open AvaloniaEdit.Document
 
 open Fesh.Util
 open Fesh.Editor
 open Fesh.Editor.Selection
 open Fesh.Editor.CodeLineTools
+open AvaloniaLog
 
 
 module SelectionHighlighting =
 
-    let selColorEditor  = Brushes.PaleTurquoise |> AvalonLog.Brush.brighter 30  |> AvalonLog.Brush.freeze
+    let selColorEditor  = Brushes.PaleTurquoise |> brighter 30
 
-    let selColorLog     = Brushes.Blue |> AvalonLog.Brush.brighter 220  |> AvalonLog.Brush.freeze
-    let colorInactive= Brushes.Gray                                  |> AvalonLog.Brush.freeze
+    let selColorLog     = Brushes.Blue |> brighter 220
+    let colorInactive   = Brushes.Gray  |> brighter 1
 
     let foundSelectionLogEv    = new Event<bool>()
     let globalFoundSelectionEditorEv = new Event<bool>()
@@ -32,7 +34,7 @@ module SelectionHighlighting =
     let inline isTextToHighlight(t:string) =
         t.Length > 1 && not (Str.isJustSpaceCharsOrEmpty t)  && not <| t.Contains("\n")
 
-    let priority = Windows.Threading.DispatcherPriority.Render
+    // let priority = Windows.Threading.DispatcherPriority.Render // wpf only
 
     let empty = ResizeArray()
 
@@ -46,7 +48,7 @@ module SelectionHighlighting =
             let code = doc.CreateSnapshot().Text // the only threadsafe way to access the code string
             if state.IsLatest id then
                 // async{ //DELETE
-                //     do! Async.SwitchToContext Fittings.SyncWpf.context // for doc TextLength
+                //     do! Async.SwitchToContext Fittings.SyncContext.context // for doc TextLength
                 //     IFeshLog.log.PrintfnAppErrorMsg $"id:{id} makeEditorSnapShot: doc.TextLength={doc.TextLength} code.Length={code.Length}"
                 //     } |> Async.RunSynchronously
                 Some code
@@ -103,7 +105,7 @@ type SelectionHighlighter (state:InteractionState) =
     let markFoldingsSorted(offs:ResizeArray<int>) =
         let mutable offsSearchFromIdx =  0
         for f in state.FoldManager.AllFoldings do
-            f.BackgroundColor <- null // first reset
+            // f.BackgroundColor <- null // first reset  // TODO fix in AvaloniaEdit
             let rec loop i =
                 if i >= offs.Count then
                     offsSearchFromIdx <- i // to exit on all next fold immediately
@@ -112,7 +114,7 @@ type SelectionHighlighter (state:InteractionState) =
                     if f.EndOffset < off then // all following offset are bigger than this fold stop searching
                         offsSearchFromIdx <- i // to search from this index on in next fold
                     elif f.StartOffset < off && off < f.EndOffset then // this offset is the first within the range of the current fold
-                        f.BackgroundColor <- selColorEditor
+                        // f.BackgroundColor <- selColorEditor  // TODO fix in AvaloniaEdit
                         offsSearchFromIdx <- i // to search from this index on in next fold
                     else
                         loop (i+1)
@@ -127,14 +129,14 @@ type SelectionHighlighter (state:InteractionState) =
             prevRange <- None
             let trans = state.TransformersSelection
             async{
-                do! Async.SwitchToContext Fittings.SyncWpf.context
+                do! Async.SwitchToContext Fittings.SyncContext.context
                 match thisRange with
                 | None   ->  ()
                     // TODO ? still trigger event to clear the selection in StatusBar if it is just a selection without any highlighting(e.g. multiline)
                 | Some (f,l) ->
                     trans.Update(empty)// using empty array
-                    for f in state.FoldManager.AllFoldings do f.BackgroundColor <- null
-                    ed.TextArea.TextView.Redraw(f, l, priority)
+                    // for f in state.FoldManager.AllFoldings do f.BackgroundColor <- null // TODO fix in AvaloniaEdit
+                    ed.TextArea.TextView.Redraw(f, l) //, priority)
                 globalFoundSelectionEditorEv.Trigger(triggerNext)
             }|> Async.Start
 
@@ -241,7 +243,7 @@ type SelectionHighlighter (state:InteractionState) =
                     |NoSel   -> ()
                     |RectSel
                     |RegSel  ->
-                        do! Async.SwitchToContext Fittings.SyncWpf.context
+                        do! Async.SwitchToContext Fittings.SyncContext.context
                         reactToSelChange <- false // to not trigger a selection changed event
                         ed.TextArea.ClearSelection()
                         reactToSelChange <- true
@@ -266,14 +268,14 @@ type SelectionHighlighter (state:InteractionState) =
                 | NoSelRedraw -> ()
 
                 | StatusbarOnly ->
-                    do! Async.SwitchToContext Fittings.SyncWpf.context
+                    do! Async.SwitchToContext Fittings.SyncContext.context
                     globalFoundSelectionEditorEv.Trigger(triggerNext)
 
                 | SelRange (st,en) ->
-                    do! Async.SwitchToContext Fittings.SyncWpf.context
+                    do! Async.SwitchToContext Fittings.SyncContext.context
                     markFoldingsSorted(lastSels)
                     prevRange <- thisRange
-                    ed.TextArea.TextView.Redraw(st,en, priority)
+                    ed.TextArea.TextView.Redraw(st,en) //, priority)
                     globalFoundSelectionEditorEv.Trigger(triggerNext)
 
         }|> Async.Start
@@ -336,7 +338,7 @@ type SelectionHighlighter (state:InteractionState) =
         let k = lastSels.Count
         if setTransformers(id) && lastSels.Count <> k then // do only if the selection count changed
             async{
-                do! Async.SwitchToContext Fittings.SyncWpf.context
+                do! Async.SwitchToContext Fittings.SyncContext.context
                 globalFoundSelectionEditorEv.Trigger(false) // to redraw statusbar
             } |> Async.Start
 
@@ -396,14 +398,14 @@ type SelectionHighlighterLog (lg:TextEditor) =
             lastSels.Clear()
             prevRange <- None
             async{
-                do! Async.SwitchToContext Fittings.SyncWpf.context
+                do! Async.SwitchToContext Fittings.SyncContext.context
                 match thisRange with
                 | None   -> ()
                     // TODO ? still trigger event to clear the selection in StatusBar if it is just a selection without any highlighting(e.g. multiline)
                 | Some (f,l) ->
                     trans.Update(empty)// using empty array
                     //for f in state.FoldManager.AllFoldings do f.BackgroundColor <- null  // no folds in Log !!
-                    lg.TextArea.TextView.Redraw(f, l, priority)
+                    lg.TextArea.TextView.Redraw(f, l) //, priority)
                 foundSelectionLogEv.Trigger(triggerNext)
             } |> Async.Start
 
@@ -501,7 +503,7 @@ type SelectionHighlighterLog (lg:TextEditor) =
                         |NoSel   -> ()
                         |RectSel
                         |RegSel  ->
-                            do! Async.SwitchToContext Fittings.SyncWpf.context
+                            do! Async.SwitchToContext Fittings.SyncContext.context
                             reactToSelChange <- false // to not trigger a selection changed event
                             lg.TextArea.ClearSelection()
                             reactToSelChange <- true
@@ -511,14 +513,14 @@ type SelectionHighlighterLog (lg:TextEditor) =
                     | NoSelRedraw -> ()
 
                     | StatusbarOnly ->
-                        do! Async.SwitchToContext Fittings.SyncWpf.context
+                        do! Async.SwitchToContext Fittings.SyncContext.context
                         foundSelectionLogEv.Trigger(triggerNext)
 
                     | SelRange (st,en) ->
-                        do! Async.SwitchToContext Fittings.SyncWpf.context
+                        do! Async.SwitchToContext Fittings.SyncContext.context
                         //markFoldingsSorted(offs) // no foldings in Log
                         prevRange <- thisRange
-                        lg.TextArea.TextView.Redraw(st,en, priority)
+                        lg.TextArea.TextView.Redraw(st,en) //, priority)
                         foundSelectionLogEv.Trigger(triggerNext)
 
                 else

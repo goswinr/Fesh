@@ -235,7 +235,7 @@ type Checker private ()  =
                 | Done res | WaitForCompl res | WaitForErr res -> if forCompl then WaitForCompl res else WaitForErr res
                 | NotChecked                                    -> NotChecked
 
-            Fittings.SyncWpf.doSync (fun () -> checkingStateEv.Trigger aCheckingState )
+            Fittings.SyncContext.doSync (fun () -> checkingStateEv.Trigger aCheckingState )
             ed.FileCheckState <- aCheckingState
 
             match parseAndCheck( state, code, ed.FilePath, changeId) with
@@ -253,7 +253,7 @@ type Checker private ()  =
                     editor   = ed.AvaEdit
                     }
 
-                Fittings.SyncWpf.doSync (fun () -> checkingStateEv.Trigger (Done res) )
+                Fittings.SyncContext.doSync (fun () -> checkingStateEv.Trigger (Done res) )
                 ed.FileCheckState <- Done res
                 Some res
         with

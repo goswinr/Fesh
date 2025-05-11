@@ -1,6 +1,7 @@
 ﻿namespace Fesh
 
-open System.Windows
+open Avalonia
+open Avalonia.Controls
 open System
 open Fittings.DependencyProps
 
@@ -16,32 +17,28 @@ type Fesh (config:Config,log:Log) =
 
     let feshWin = new FeshWindow(config)
     let win = feshWin.Window
+
     let tabs = new Tabs(config, log, feshWin)
     let tabsAndLog = new TabsAndLog(config, tabs, log, feshWin)
 
-    let statusBar = FeshStatusBar(tabsAndLog)
+    let statusBar = FeshStatusBar tabsAndLog
     let commands = Commands(tabsAndLog, statusBar)
     let menu = Menu(config, commands, tabs, statusBar, log)
     let dockP = dockPanelVert(menu.Bar , tabsAndLog.Grid , statusBar.Bar)
 
     do
-        dockP.Margin <- Thickness(tabsAndLog.GridSplitterSize)
+        //dockP.Margin <- Thickness tabsAndLog.GridSplitterSize // TODO why?
 
         commands.SetUpGestureInputBindings()
 
-        win.AllowDrop <- true // so it works on tab bar
-        win.Drop.Add (fun e -> DragAndDrop.onTabHeaders(tabs.AddFiles, e)) // text editor has it own drag event, this applies to all other area ( eg log, tab bar) except the editor (see handler)
+        // win.AllowDrop <- true // so it works on tab bar
+        // win.Drop.Add (fun e -> DragAndDrop.onTabHeaders(tabs.AddFiles, e)) // text editor has it own drag event, this applies to all other area ( eg log, tab bar) except the editor (see handler)
 
         win.Content     <- dockP
-        win.Background  <- menu.Bar.Background // call after setting up content, otherwise space next to tab headers is in an odd color
-
-        win.ContentRendered.Add(fun _    -> KeyboardNative.hookUpForAltKeys(win) )
-        win.Closed.Add(         fun _    -> KeyboardNative.unHookForAltKeys() |> ignore )
-        KeyboardNative.OnAltKeyCombo.Add(fun ac -> KeyboardShortcuts.altKeyCombo(ac) )
 
         //if config.RunContext.IsStandalone then win.Window.ContentRendered.Add(fun _ -> log.PrintfnInfoMsg "* Time for loading and rendering of main window: %s"  Timer.InstanceStartup.tocEx)
 
-        win.Closing.Add( fun (e:ComponentModel.CancelEventArgs) ->
+        win.Closing.Add( fun (e:WindowClosingEventArgs) ->
             // first check for running FSI
             match tabs.Fsi.AskIfCancellingIsOk () with
             | NotEvaluating   -> ()
@@ -58,15 +55,12 @@ type Fesh (config:Config,log:Log) =
 
         win.Closed.Add(fun _ ->  tabs.Fsi.TriggerShutDownThreadEv() )// to clean up threads
 
-        win.ContentRendered.Add(fun _ -> tabs.CurrAvaEdit.Focus() |> ignore )
-
-
-        tabs.Fsi.OnRuntimeError.Add(fun _ ->
-            let w = win // because it might be hidden manually, or not visible from the start ( e.g. current script is evaluated in Fesh.Rhino)
-            if w.Visibility <> Visibility.Visible || w.WindowState=WindowState.Minimized then win.Show() )
-        tabs.Fsi.OnFsiEvalError.Add(fun _ ->
-            let w = win // because it might be hidden manually, or not visible from the start ( e.g. current script is evaluated in Fesh.Rhino)
-            if w.Visibility <> Visibility.Visible || w.WindowState=WindowState.Minimized then win.Show() )
+        // tabs.Fsi.OnRuntimeError.Add(fun _ ->
+        //     let w = win // because it might be hidden manually, or not visible from the start ( e.g. current script is evaluated in Fesh.Rhino)
+        //     if w.Visibility <> Visibility.Visible || w.WindowState=WindowState.Minimized then win.Show() )
+        // tabs.Fsi.OnFsiEvalError.Add(fun _ ->
+        //     let w = win // because it might be hidden manually, or not visible from the start ( e.g. current script is evaluated in Fesh.Rhino)
+        //     if w.Visibility <> Visibility.Visible || w.WindowState=WindowState.Minimized then win.Show() )
 
 
     member this.Config = config

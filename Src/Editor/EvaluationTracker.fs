@@ -1,13 +1,14 @@
 ﻿namespace Fesh.Editor
 
 open System
-open System.Windows.Media
+open Avalonia.Media
+open Avalonia.Media.Immutable
 
-open AvalonEditB
-open AvalonEditB.Document
-open AvalonEditB.Rendering
+open AvaloniaEdit
+open AvaloniaEdit.Document
+open AvaloniaEdit.Rendering
 
-open AvalonLog.Brush
+open AvaloniaLog.ImmBrush
 
 open Fesh.Util.General
 open Fesh.Model
@@ -15,18 +16,14 @@ open Fesh
 
 module private EvaluationTrackerRendererUtil =
 
-    //let backGround = Brushes.Teal |> brighter 230 |> freeze
-    //let backGround = Brushes.Ivory |> brighter 5   |> freeze
-    let backGround = Brushes.Gray |> brighter 110 |> freeze
-    // let backGround = SolidColorBrush(Color.FromArgb(120uy,239uy,239uy,239uy))|> freeze // a=0 : fully transparent A=255 opaque
+    //let backGround = Brushes.Teal |> brighter 230
+    //let backGround = Brushes.Ivory |> brighter 5
+    let backGround = Brushes.Gray |> brighter 110
+    // let backGround = ImmutableSolidColorBrush(Color.FromArgb(120uy,239uy,239uy,239uy)) // a=0 : fully transparent A=255 opaque
 
+    let border = ImmutablePen(Brushes.Gray |> darker 20  , 1.0) // new Pen(Brushes.Gray |> darker 20  , 1.0)
 
-    let border =
-        let p = new Pen(Brushes.Gray |> darker 20 |> freeze , 1.0)
-        p.Freeze()
-        p
-
-    //let border = new Pen( Brushes.Teal |> freeze , 0.7)  |> Pen.freeze
+    //let border = new Pen( Brushes.Teal  , 0.7)  |> Pen.freeze
 
 
 open EvaluationTrackerRendererUtil
@@ -118,7 +115,7 @@ type EvaluationTrackerRenderer (ed:TextEditor, state:InteractionState ) =
                                 endIdx <- endIdx + 1
                             let endLine = vls[endIdx]
                             let y = endLine.VisualTop - textView.VerticalOffset + endLine.Height
-                            let rect = RectangleGeometry(new Windows.Rect(1.0, -1.0, textView.ActualWidth - 1.0, y + 2.0))
+                            let rect = RectangleGeometry(new Avalonia.Rect(1.0, -1.0, textView.Width - 1.0, y + 2.0))
                             drawingContext.DrawGeometry(backGround, border, rect) // pen could be null too
 
 

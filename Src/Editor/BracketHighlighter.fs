@@ -1,17 +1,18 @@
 ﻿namespace Fesh.Editor
 
 open System
-open System.Windows.Media
+open Avalonia.Media
+open Avalonia.Media.Immutable
 open System.Collections.Generic
 
-open AvalonEditB
-open AvalonLog.Brush
+open AvaloniaEdit
+open AvaloniaLog.ImmBrush
 
 open Fesh.Model
 open Fesh.Util
 open Fesh.Util.General
-open AvalonEditB.Document
-open AvalonEditB.Rendering
+open AvaloniaEdit.Document
+open AvaloniaEdit.Rendering
 
 
 type BracketKind =
@@ -59,10 +60,10 @@ type RedrawSegment(startOffset,  endOffset)  =
 
 module Render =
 
-    let inline setTextColor (b:SolidColorBrush) (el:Rendering.VisualLineElement) =
+    let inline setTextColor (b:ImmutableSolidColorBrush) (el:Rendering.VisualLineElement) =
         el.TextRunProperties.SetForegroundBrush(b)
 
-    let inline setBgColor (b:SolidColorBrush) (el:Rendering.VisualLineElement) =
+    let inline setBgColor (b:ImmutableSolidColorBrush) (el:Rendering.VisualLineElement) =
         el.TextRunProperties.SetBackgroundBrush(b)
 
 module ParseBrackets =
@@ -379,18 +380,18 @@ open ParseBrackets
 
 type BracketHighlighter (state:InteractionState) =
 
-    let colPair  = Brushes.Gray |> brighter 80  |> freeze
-    let colErr   = Brushes.Red                  |> freeze
-    //let colErrBg = Brushes.Pink |> brighter 25  |> freeze
-    //let colErrBg = SolidColorBrush(Color.FromArgb(15uy,255uy,0uy,0uy))|> freeze // a=0 : fully transparent, a=255 opaque
-    let colErrBg = SolidColorBrush(Color.FromArgb(90uy,255uy,150uy,0uy))|> freeze // a=0 : fully transparent, a=255 opaque
+    let colPair  = Brushes.Gray |> brighter 80  
+    let colErr   = Brushes.Red                  
+    //let colErrBg = Brushes.Pink |> brighter 25  
+    //let colErrBg = ImmutableSolidColorBrush(Color.FromArgb(15uy,255uy,0uy,0uy)) // a=0 : fully transparent, a=255 opaque
+    let colErrBg = ImmutableSolidColorBrush(Color.FromArgb(90uy,255uy,150uy,0uy)) // a=0 : fully transparent, a=255 opaque
 
     let colors = [|
         null // the first one is null ( to keep the coloring from xshd file)
-        Brushes.Purple     |> brighter 40  |> freeze
-        Brushes.Orange     |> darker 30    |> freeze
-        Brushes.Green      |> brighter 30  |> freeze
-        Brushes.Cyan       |> darker 40    |> freeze
+        Brushes.Purple     |> brighter 40  
+        Brushes.Orange     |> darker 30    
+        Brushes.Green      |> brighter 30  
+        Brushes.Cyan       |> darker 40    
         |]
 
     let actErr      = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(colErr); el.TextRunProperties.SetBackgroundBrush(colErrBg))
@@ -423,7 +424,7 @@ type BracketHighlighter (state:InteractionState) =
                     //transMatch.ClearAllLines() // or keep showing the bracket highlighting when cursor moves away??
                     if state.IsLatest id then
                         //redrawSegment:
-                        do! Async.SwitchToContext Fittings.SyncWpf.context
+                        do! Async.SwitchToContext Fittings.SyncContext.context
                         match prevPairSeg with
                         |Some prev ->
                             state.Editor.TextArea.TextView.Redraw(prev)
@@ -437,7 +438,7 @@ type BracketHighlighter (state:InteractionState) =
                     transMatch.Update(newTrans)
                     if state.IsLatest id then
                         //redrawSegment:
-                        do! Async.SwitchToContext Fittings.SyncWpf.context
+                        do! Async.SwitchToContext Fittings.SyncContext.context
                         //IFeshLog.log.PrintfnDebugMsg $"redraw for caretPositionChanged , id:{id}"
                         let seg = RedrawSegment(f.from,t.till)
                         match prevPairSeg with

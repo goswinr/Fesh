@@ -3,13 +3,12 @@
 open System
 
 open System.Collections.Generic
-open System.Windows
-open System.Windows.Controls
-open System.Windows.Media
-open System.Windows.Input
-open System.Windows.Documents
+open Avalonia
+open Avalonia.Controls
+open Avalonia.Media
+open Avalonia.Input
 
-open AvalonLog.Brush
+open AvaloniaLog.ImmBrush
 
 open Fittings // for TextBlockSelectable
 
@@ -25,7 +24,10 @@ open Fesh.Util
 open Fesh.Util.General
 open Fesh.Model
 open Fesh.XmlParser
-open AvalonEditB
+open AvaloniaEdit
+open Avalonia.Controls.Documents
+open Avalonia.Layout
+open Avalonia.Controls.Primitives
 
 
 type OptDefArg  = string //{ name:string ; defVal:string} //  TODO actual default value from attribute  seems to be not available via FCS see below in: namesOfOptnlArgs(fsu:FSharpSymbolUse)
@@ -59,15 +61,15 @@ type TypeInfo private () =
 
     static let loadingTxt =  "Loading type info ..."
 
-    static let black        = Brushes.Black                      |> freeze
-    static let gray         = Brushes.Gray                       |> freeze
-    static let errMsgGray    = Brushes.LightGray                  |> freeze
-    static let purple       = Brushes.Purple     |> brighter  40 |> freeze
+    static let black        = Brushes.Black
+    static let gray         = Brushes.Gray
+    static let errMsgGray    = Brushes.LightGray
+    static let purple       = Brushes.Purple     |> brighter  40
 
-    static let blue         = Brushes.Blue       |> darker    90 |> freeze
-    static let red          = Brushes.DarkSalmon |> darker   120 |> freeze
-    static let fullRed      = Brushes.Red        |> darker    60 |> freeze
-    static let cyan         = Brushes.DarkCyan   |> darker    60 |> freeze
+    static let blue         = Brushes.Blue       |> darker    90
+    static let red          = Brushes.DarkSalmon |> darker   120
+    static let fullRed      = Brushes.Red        |> darker    60
+    static let cyan         = Brushes.DarkCyan   |> darker    60
 
 
     static let maxCharInSignLine = 150
@@ -268,21 +270,21 @@ type TypeInfo private () =
     /// check if List has at least two items
     static let twoOrMore = function [] | [ _ ] -> false | _ -> true
 
-    static let darkGray     = Brushes.Gray          |> darker    40 |> freeze
-    static let darkblue     = Brushes.DarkSlateBlue |> darker 20 |> freeze
-    static let white        = Brushes.White         |> darker    5  |> freeze
+    static let darkGray     = Brushes.Gray          |> darker    40
+    static let darkblue     = Brushes.DarkSlateBlue |> darker 20
+    static let white        = Brushes.White         |> darker    5
 
     // static let codeRun (td:ToolTipData) (code:string) : seq<Run> =
-    static let codeRun (code:string) : seq<Run> =
+    static let codeRun (code:string) : Inline[] =
         let tx = code.TrimEnd()
-        [
+        [|
         new Run(" ")
         new Run(tx ,FontFamily = StyleState.fontEditor, FontSize = StyleState.fontSize*1.1,  Foreground = black,   Background = white)
         // match td.optDefs |> Seq.tryFind ( fun oa -> oa = tx ) with
         // | Some _  ->  new Run("?"+tx ,FontFamily = StyleState.fontEditor, FontSize = StyleState.fontSize*1.1,  Foreground = gray,    Background = white)
         // | None    ->  new Run(tx     ,FontFamily = StyleState.fontEditor, FontSize = StyleState.fontSize*1.1,  Foreground = black,   Background = white)
         new Run(" ")
-        ]
+        |]
 
 
     static let debugPrint (c:Child) =
@@ -343,7 +345,7 @@ type TypeInfo private () =
                         |Trim.End    -> t.TrimEnd()
                         |Trim.Start  -> t |> trimStartIfHasRet|> trimStartIfOneLiner
                         |Trim.No     -> t |> trimStartIfHasRet
-                tb.Inlines.Add( new Run(txt,  Foreground = darkblue, FontStyle = FontStyles.Italic))
+                tb.Inlines.Add( new Run(txt,  Foreground = darkblue, FontStyle = FontStyle.Italic))
 
 
             |Node n ->
@@ -354,7 +356,7 @@ type TypeInfo private () =
                         tb.Inlines.Add( new Run(fixName n.name,  Foreground = darkGray)) //FontWeight = FontWeights.Bold,     // Summary header, Parameter header ....
                         tb.Inlines.Add( new LineBreak())
                     for at in n.attrs do // there is normally just one ! like param:name, paramref:name typeparam:name
-                        tb.Inlines.AddRange( at.value |> fixTypeName|> codeRun )
+                        tb.Inlines.AddRange(at.value |> fixTypeName|> codeRun )
                         tb.Inlines.Add( new Run(": ",  Foreground = black))
 
                     let childs = n.children  |> Array.ofList
@@ -403,7 +405,8 @@ type TypeInfo private () =
             loop node "" false Trim.No 0
 
         // remove last line break:
-        if tb.Inlines.LastInline  :? LineBreak then  tb.Inlines.Remove tb.Inlines.LastInline  |> ignore
+        let li = tb.Inlines.Count - 1
+        if tb.Inlines[li] :? LineBreak then  tb.Inlines.RemoveAt li |> ignore
 
         // match node with
         // |Node n -> for c in n.children do debugPrint c
@@ -416,7 +419,7 @@ type TypeInfo private () =
     static let makeToolTipPanel  ( tds:ToolTipData list, ted:ToolTipExtraData,  addPersistInfo:bool) :ScrollViewer =
         let panel = new StackPanel(Orientation = Orientation.Vertical)
         let scrollViewer = new ScrollViewer(Content=panel , VerticalScrollBarVisibility = ScrollBarVisibility.Auto ) //TODO cant be scrolled, never gets focus? because completion window keeps focus on editor?
-        let inline add(e:UIElement) =  panel.Children.Add e |> ignore
+        let inline add(e:Control) =  panel.Children.Add e |> ignore
 
         if addPersistInfo then
             add <|  TextBlock(Text = "Press Ctrl + P to persist this window.", FontSize = StyleState.fontSize * 0.75)
@@ -453,13 +456,13 @@ type TypeInfo private () =
                 deDup.Add sign  |> ignore
 
                 let subPanel = new StackPanel(Orientation = Orientation.Vertical)
-                let inline subAdd(e:UIElement) =  subPanel.Children.Add e |> ignore
+                let inline subAdd(e:Control) =  subPanel.Children.Add e |> ignore
 
                 if td.name <> "" then
                     let tb = new TextBlockSelectable(Text = "Name: " + td.name)
                     tb.Foreground <- black
                     tb.FontSize <- StyleState.fontSize * 0.9
-                    tb.FontWeight <- FontWeights.Bold
+                    tb.FontWeight <- FontWeight.Bold
                     tb.TextWrapping <- TextWrapping.Wrap
                     subAdd tb
 
@@ -653,7 +656,7 @@ type TypeInfo private () =
         makeToolTipPanel (cachedToolTipData, cachedExtraData, false)
 
 
-    static member mouseHover(e: MouseEventArgs, iEditor:IEditor, tip:ToolTip) =
+    static member mouseHover(e: PointerEventArgs, iEditor:IEditor, tip:Popup) =
         // see https://github.com/icsharpcode/AvalonEdit/blob/master/ICSharpCode.AvalonEdit/Editing/SelectionMouseHandler.cs#L477
 
         match iEditor.FileCheckState with
@@ -702,18 +705,18 @@ type TypeInfo private () =
                     //IFeshLog.log.PrintfnDebugMsg "QuickParse.GetCompleteIdentifierIsland failed : lineTxt:%A, txt: '%s'"  lineTxt (lineTxt.Substring(offLn-1,3))
 
                 |Some (word, colAtEndOfNames, _ ) -> // _ = isQuotedIdentifier
-                    tip.Content <- loadingTxt
+                    tip.Child <- TextBlock(Text=loadingTxt)
                     let tView = av.TextArea.TextView
                     let pos = doc.GetLocation(off)
                     let tvPos = new TextViewPosition(pos.Line,pos.Column)
                     let pt = tView.GetVisualPosition(tvPos, Rendering.VisualYPosition.LineBottom)
                     let ptInclScroll = pt - tView.ScrollOffset
                     tip.PlacementTarget <- av.TextArea
-                    tip.PlacementRectangle <- new Rect(ptInclScroll.X, ptInclScroll.Y, 0., 0.)
-                    tip.Placement <- Primitives.PlacementMode.Bottom // Error Tooltip is on Top //https://docs.microsoft.com/en-us/dotnet/framework/wpf/controls/popup-placement-behavior
+                    tip.PlacementRect <- new Rect(ptInclScroll.X, ptInclScroll.Y, 0., 0.)
+                    tip.Placement <- PlacementMode.Bottom // Error Tooltip is on Top //https://docs.microsoft.com/en-us/dotnet/framework/wpf/controls/popup-placement-behavior
                     tip.VerticalOffset <- -5.0
 
-                    tip.StaysOpen <- true
+                    // tip.StaysOpen <- true // WPF only
                     tip.IsOpen <- true
                     async{
                         let qualId  = PrettyNaming.GetLongNameFromString word
@@ -746,10 +749,10 @@ type TypeInfo private () =
                         //let optArgs = if symbol.IsSome then namesOfOptnlArgs(symbol.Value) else ResizeArray(0)
                         let tooltipDataList = makeToolTipDataList (ttt, fullName )//,optArgs) //TODO can this still be async ?
 
-                        do! Async.SwitchToContext Fittings.SyncWpf.context
+                        do! Async.SwitchToContext Fittings.SyncContext.context
 
                         if List.isEmpty tooltipDataList then
-                            tip.Content <- new TextBlock(Text = "No type info found for:\r\n'" + word + "'", FontSize = StyleState.fontSize  * 0.65 , FontFamily = StyleState.fontToolTip , Foreground = gray )
+                            tip.Child <- new TextBlock(Text = "No type info found for:\r\n'" + word + "'", FontSize = StyleState.fontSize  * 0.65 , FontFamily = StyleState.fontToolTip , Foreground = gray )
                             //ed.TypeInfoToolTip.IsOpen <- false
                         else
                             let sem, declLoc, dllLoc =
@@ -776,7 +779,7 @@ type TypeInfo private () =
                             let ed = {declListItem=None; semanticClass=sem; declLocation=declLoc; dllLocation=dllLoc }
                             let ttPanel = TypeInfo.getPanel (tooltipDataList, ed )
                             if tip.IsOpen then // showing the "loading" text till here.
-                                tip.Content <- ttPanel
+                                tip.Child <- ttPanel
                     } |> Async.Start
 
                 //e.Handled <- true //  don't set handled! so that on type errors the  Error tooltip still gets shown after this tooltip

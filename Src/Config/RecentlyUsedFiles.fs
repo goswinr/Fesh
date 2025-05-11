@@ -21,7 +21,7 @@ type RecentlyUsedFiles  ( runContext:RunContext) =
 
     let filePath0 = runContext.GetPathToSaveAppData("Recently-Used-Files.txt")
 
-    let writer = SaveReadWriter(filePath0,IFeshLog.printError)
+    let writer = SafeReadWriter(filePath0,IFeshLog.printError)
 
     let recentFilesChangedEv = new Event<unit>()
 

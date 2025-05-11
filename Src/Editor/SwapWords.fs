@@ -1,7 +1,7 @@
 ﻿namespace Fesh.Editor
 
 open System
-open AvalonEditB
+open AvaloniaEdit
 
 module SwapWords =
 

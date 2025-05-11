@@ -3,7 +3,7 @@
 open System
 open System.IO
 open System.Threading
-open System.Windows
+open Avalonia
 
 open Fesh.Model
 open Fesh.Config
@@ -13,7 +13,8 @@ open Fittings
 open FSharp.Compiler
 open FSharp.Compiler.Interactive.Shell
 open FSharp.Compiler.Diagnostics
-open System.Windows.Threading
+open Avalonia.Threading
+
 
 type FsiState =
     Ready | Compiling| Evaluating | Initializing | NotLoaded
@@ -101,7 +102,7 @@ type Fsi private (config:Config) =
     //                             match codeInEval with
     //                             | None -> ()
     //                             | Some cie ->
-    //                                     do! Async.SwitchToContext SyncWpf.context
+    //                                     do! Async.SwitchToContext SyncContext.context
     //                                     state <- Evaluating
     //                                     emittingEv.Trigger(cie)
     //                                     codeInEval <- None
@@ -184,7 +185,7 @@ type Fsi private (config:Config) =
             let aborter = getFrameworkAgnosticAborter(thread)
             if aborter() then
                 asyncThread <- None
-                SyncWpf.doSync( fun () ->
+                SyncContext.doSync( fun () ->
                     canceledEv.Trigger()
                     log.PrintfnInfoMsg "\r\nFSI evaluation was canceled by user!"
                     )
@@ -209,6 +210,17 @@ type Fsi private (config:Config) =
             let nextThread =
                 new Thread(new ThreadStart(
                     fun () ->
+                        Avalonia.Threading.AvaloniaSynchronizationContext.InstallIfNeeded()
+                        let ctx = Avalonia.Threading.AvaloniaSynchronizationContext.Current
+                        asyncContext <- Some ctx
+                        onShutDownThread.Add ( fun _ ->
+                            asyncContext <- None
+                            asyncThread <- None
+                            )
+                        //Avalonia.Threading.Dispatcher.UIThread.RunJobs(DispatcherPriority.Background)
+                        // TODO: test starting WPF or Avalonia UI app from Fesh code
+
+                        (* WPF version:
                         // Create our context, and install it: http://reedcopsey.com/2011/11/28/launching-a-wpf-window-in-a-separate-thread-part-1/
                         let ctx = new DispatcherSynchronizationContext( Dispatcher.CurrentDispatcher)
                         asyncContext <- Some (ctx:>SynchronizationContext)
@@ -220,6 +232,7 @@ type Fsi private (config:Config) =
                             )
                         // Start the Dispatcher Processing
                         System.Windows.Threading.Dispatcher.Run()
+                        *)
                     )
                 )
 
@@ -232,7 +245,7 @@ type Fsi private (config:Config) =
 
             // do here because it seems that OperationCanceledException caught in handeleEvaluationResult is not thrown anymore, just thread stopped, on net 48
             state <- Ready
-            SyncWpf.doSync( fun () -> isReadyEv.Trigger())
+            SyncContext.doSync( fun () -> isReadyEv.Trigger())
 
         (* does not work somehow see issues, just set System.Environment.CurrentDirectory instead on every tab change !?
             let mutable currentDir = ""
@@ -330,7 +343,7 @@ type Fsi private (config:Config) =
         async{
             match mode with
             |InSync -> ()
-            |AsyncMode -> do! Async.SwitchToContext SyncWpf.context
+            |AsyncMode -> do! Async.SwitchToContext SyncContext.context
 
             state <- Ready
             isReadyEv.Trigger()
@@ -460,7 +473,7 @@ type Fsi private (config:Config) =
                         match mode with
                         |InSync ->
                             do! Async.Sleep 1 // this helps to show "FSI is running" immediately in status bar
-                            do! Async.SwitchToContext SyncWpf.context
+                            do! Async.SwitchToContext SyncContext.context
                         |AsyncMode ->
                             match asyncContext, asyncThread with
                             |Some actx , Some athr  when athr.IsAlive ->
@@ -475,7 +488,7 @@ type Fsi private (config:Config) =
                                 |_ ->
                                     IFeshLog.log.PrintfnFsiErrorMsg "asyncContext is None or asyncThread is not alive."
                                     IFeshLog.log.PrintfnFsiErrorMsg "abortMakeAndStartAsyncThread() cannot create it either! evaluation happens in sync"
-                                    do! Async.SwitchToContext SyncWpf.context
+                                    do! Async.SwitchToContext SyncContext.context
 
                         //Done already at startup in Initialize.fs, not needed here? AppDomain.CurrentDomain is the same ?
                         //if notNull Application.Current then // null if application is not yet created, or no application in hosted context
@@ -558,7 +571,7 @@ type Fsi private (config:Config) =
                         abortThenMakeAndStartAsyncThread()
                         setAControlledExecutionCancellationToken()
 
-                    do! Async.SwitchToContext SyncWpf.context
+                    do! Async.SwitchToContext SyncContext.context
 
                     match pendingEval with
                     |None ->
@@ -642,11 +655,11 @@ type Fsi private (config:Config) =
 
     // without this back and forth switch the UI freezes.
     // Use after showing the MessageBox.Show( "Do you want to Cancel currently running code?",
-    member this.EvalDelayed(code)=
+    member this.EvalDelayed code=
         async{
             do! Async.Sleep 20
-            do! Async.SwitchToContext Fittings.SyncWpf.context
-            eval(code)
+            do! Async.SwitchToContext Fittings.SyncContext.context
+            eval code
         } |> Async.StartImmediate
 
 
@@ -661,16 +674,16 @@ type Fsi private (config:Config) =
                     log.PrintfnFsiErrorMsg "*** https://github.com/goswinr/Fesh ***"
                     log.PrintfnFsiErrorMsg "*** or contact goswin@rothenthal.com ***"
             match this.AskIfCancellingIsOk () with
-            | NotEvaluating    -> eval(code)
-            | YesAsync         -> this.CancelIfAsync();this.EvalDelayed(code)
+            | NotEvaluating    -> eval code
+            | YesAsync         -> this.CancelIfAsync();this.EvalDelayed code
             | UserDoesntWantTo -> ()
             | NotPossibleSync  -> log.PrintfnInfoMsg "Wait till current synchronous evaluation completes before starting new one."
 
 
     member this.Reset() =
         match this.AskIfCancellingIsOk () with
-        | NotEvaluating   ->                       initFsi (config); resetEv.Trigger()
-        | YesAsync        -> this.CancelIfAsync(); initFsi (config); resetEv.Trigger()
+        | NotEvaluating   ->                       initFsi config; resetEv.Trigger()
+        | YesAsync        -> this.CancelIfAsync(); initFsi config; resetEv.Trigger()
         | UserDoesntWantTo-> ()
         | NotPossibleSync -> log.PrintfnInfoMsg "ResetFsi is not be possible in current synchronous evaluation." // TODO test
 
@@ -684,7 +697,7 @@ type Fsi private (config:Config) =
         match this.AskIfCancellingIsOk() with
         | NotEvaluating | YesAsync    ->
             mode <- sync
-            modeChangedEv.Trigger(sync)
+            modeChangedEv.Trigger sync
             setConfig()
             initFsi (config)
         | UserDoesntWantTo -> ()
@@ -741,10 +754,10 @@ type Fsi private (config:Config) =
     member this.Session = sessionOpt
 
     member this.ShutDown() = // to properly dispose the Fsi session in net8 Revit 2025?
-        // in a race condition there might be a call to printfn, the buffer in AvalonLog would queue it, and wait for 50 ms,
+        // in a race condition there might be a call to printfn, the buffer in AvaloniaLog would queue it, and wait for 50 ms,
         // but if within those 50ms the App shuts down it wil crash a hosting app such as Revit with a Thread cancelled Exception
         // In Revit 2025 this happens when closing the Fesh Editor, because some other plugins try to print to stdout at shout down.
-        log.AvalonLog.IsAlive <- false // to stop logging
+        log.AvaloniaLog.IsAlive <- false // to stop logging
         match asyncThread with
         |Some thread ->
             let abort = getFrameworkAgnosticAborter(thread)

@@ -2,11 +2,12 @@ namespace Fesh.Config
 
 open System
 open Fesh.Model
+open Fesh.Util
 
 /// hostName: a string for the name of the hosting App (will be used for settings file name an displayed in the Title Bar.
 /// mainWindowHandle: Pointer to main window(nativeInt),
 /// fsiCanRun: a function to check if evaluation of fsi is currently allowed
-/// logo: optional a URI to an alternative logo for hosted mode default is Uri("pack://application:,,,/Fesh;component/Media/logo.ico")
+/// logo: optional a URI to an alternative logo for hosted mode
 /// hostAssembly: to get version number of hosting assembly
 type HostedStartUpData = {
     hostName:string
@@ -30,29 +31,30 @@ module Folders =
 
 
     let createMutualShortcuts(pathApp:string ,pathSettings:string) =
-        async{
-            try
-                let pathApp = pathApp.Replace('\\', '/')
-                let pathSettings = pathSettings.Replace('\\', '/')
+        if OS.current.IsWindows then
+            async{
+                try
+                    let pathApp = pathApp.Replace('\\', '/')
+                    let pathSettings = pathSettings.Replace('\\', '/')
 
-                IO.File.WriteAllLines ( IO.Path.Combine(pathApp, "Settings Folder.url") , [|
-                    @"[InternetShortcut]"
-                    $"URL=file:///{pathSettings}"
-                    @"IconIndex=3"
-                    @"IconFile=C:\WINDOWS\System32\SHELL32.dll"
-                    |] )
+                    IO.File.WriteAllLines ( IO.Path.Combine(pathApp, "Settings Folder.url") , [|
+                        @"[InternetShortcut]"
+                        $"URL=file:///{pathSettings}"
+                        @"IconIndex=3"
+                        @"IconFile=C:\WINDOWS\System32\SHELL32.dll"
+                        |] )
 
-                IO.File.WriteAllLines ( IO.Path.Combine(pathSettings, "App Folder.url") , [|
-                    @"[InternetShortcut]"
-                    $"URL=file:///{pathApp}"
-                    @"IconIndex=3"
-                    @"IconFile=C:\WINDOWS\System32\SHELL32.dll"
-                    |] )
+                    IO.File.WriteAllLines ( IO.Path.Combine(pathSettings, "App Folder.url") , [|
+                        @"[InternetShortcut]"
+                        $"URL=file:///{pathApp}"
+                        @"IconIndex=3"
+                        @"IconFile=C:\WINDOWS\System32\SHELL32.dll"
+                        |] )
 
-            with e ->
-                eprintfn $"Error while trying to create mutual shortcuts: {e}"
+                with e ->
+                    eprintfn $"Error while trying to create mutual shortcuts: {e}"
 
-        } |> Async.Start
+            } |> Async.Start
 
 
 open Folders
@@ -93,7 +95,7 @@ type RunContext (host:HostedStartUpData option) =
                 else                            IO.Path.Combine(roamingAppData, $"Fesh.{validHost sd.hostName}", "Settings")
 
         if not (IO.Directory.Exists settingsPath) then
-            IO.Directory.CreateDirectory(settingsPath) |> ignore
+            IO.Directory.CreateDirectory settingsPath |> ignore
             let appFi = IO.FileInfo(Reflection.Assembly.GetAssembly(typeof<HostedStartUpData>).Location )
             createMutualShortcuts(appFi.Directory.Parent.FullName, settingsPath )
         settingsPath
@@ -135,11 +137,11 @@ type RunContext (host:HostedStartUpData option) =
     /// opens up Explorer.exe
     member this.OpenSettingsFolder()=
         let psi = new Diagnostics.ProcessStartInfo()
-        psi.UseShellExecute <- true // default chnaged from net48 to net8
-        psi.FileName <- "Explorer.exe"
+        psi.UseShellExecute <- true // default changed from net48 to net8
+        psi.FileName <- match OS.current with OS.Windows -> "Explorer.exe" | OS.Mac -> "open" | OS.Linux ->  "xdg-open"
         psi.Arguments <- "\"" + settingsFolder+ "\""
-        Diagnostics.Process.Start(psi) |> ignore
-        // Diagnostics.Process.Start("explorer.exe", "\"" + settingsFolder+ "\"") |> ignore
+        Diagnostics.Process.Start psi |> ignore
+
 
     /// opens up Explorer.exe with folder of Fesh.exe
     member this.OpenAppFolder()=
@@ -153,10 +155,10 @@ type RunContext (host:HostedStartUpData option) =
                 let folder = IO.Path.GetDirectoryName( ass.Location)
                 let psi = new Diagnostics.ProcessStartInfo()
                 psi.UseShellExecute <- true // default chnaged from net48 to net8
-                psi.FileName <- "Explorer.exe"
+                psi.FileName <- match OS.current with OS.Windows -> "Explorer.exe" | OS.Mac -> "open" | OS.Linux ->  "xdg-open"
                 psi.Arguments <- "\"" + folder+ "\""
-                Diagnostics.Process.Start(psi) |> ignore
-                // Diagnostics.Process.Start("explorer.exe", "\"" + folder+ "\"") |> ignore
+                Diagnostics.Process.Start psi |> ignore
+
 
     // let settingFile =
     //     [|

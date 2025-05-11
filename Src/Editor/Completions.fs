@@ -1,13 +1,13 @@
 ﻿namespace Fesh.Editor
 
 open System
-open System.Windows
+open Avalonia
 open System.Collections.Generic
 
-open AvalonEditB
-open AvalonEditB.CodeCompletion
-open AvalonEditB.Editing
-open AvalonEditB.Document
+open AvaloniaEdit
+open AvaloniaEdit.CodeCompletion
+open AvaloniaEdit.Editing
+open AvaloniaEdit.Document
 open FSharp.Compiler.EditorServices
 open FSharp.Compiler.Tokenization // for keywords
 open FSharp.Compiler
@@ -15,8 +15,8 @@ open FSharp.Compiler
 open Fesh
 open Fesh.Model
 open Fesh.Config
-open System.Windows.Controls
-open System.Windows.Media
+open Avalonia.Controls
+open Avalonia.Media
 open Fesh.XmlParser
 open System
 open System
@@ -51,11 +51,11 @@ type CompletionInfo =
 type CompletionItem(state: InteractionState, info:CompletionInfo , isDotCompletion:bool) =
 
     //let style =
-    //    if it.IsOwnMember then FontStyles.Normal
+    //    if it.IsOwnMember then FontStyle.Normal
     //    else
     //        match it.Glyph with    //new Font(FontFamily.GenericSansSerif,12.0F, FontStyle.Bold | FontStyle.Italic) // needs system.drawing
-    //        | FSharpGlyph.Module | FSharpGlyph.NameSpace -> FontStyles.Normal
-    //        | _                                          -> FontStyles.Italic
+    //        | FSharpGlyph.Module | FSharpGlyph.NameSpace -> FontStyle.Normal
+    //        | _                                          -> FontStyle.Italic
 
     let priority = //if it.IsOwnMember then 1. else 1.
         if isDotCompletion then 1.0 // not on Dot completion
@@ -66,8 +66,8 @@ type CompletionItem(state: InteractionState, info:CompletionInfo , isDotCompleti
 
     let textVal, textDisplay=
         match info with
-        | Decl (it,_)           -> it.NameInList ,UtilCompletion.mkTexBlock(it.NameInList , FontStyles.Normal)   // create once and cache ?
-        | KeyWord (text,_) -> text          ,UtilCompletion.mkTexBlock(text , FontStyles.Normal)   // create once and cache ?
+        | Decl (it,_)           -> it.NameInList ,UtilCompletion.mkTexBlock(it.NameInList , FontStyle.Normal)   // create once and cache ?
+        | KeyWord (text,_) -> text          ,UtilCompletion.mkTexBlock(text , FontStyle.Normal)   // create once and cache ?
 
     member this.Content = textDisplay :> obj // the displayed item in the completion window
     member this.Description =
@@ -163,7 +163,7 @@ type CompletionItem(state: InteractionState, info:CompletionInfo , isDotCompleti
         // (1) Close window
         // (2) Insert text into editor (triggers completion window again if it was one char only)
         // (3) Raise InsertionRequested event
-        // https://github.com/icsharpcode/AvalonEdit/blob/8fca62270d8ed3694810308061ff55c8820c8dfc/AvalonEditB/CodeCompletion/CompletionWindow.cs#L100
+        // https://github.com/icsharpcode/AvalonEdit/blob/8fca62270d8ed3694810308061ff55c8820c8dfc/AvaloniaEdit/CodeCompletion/CompletionWindow.cs#L100
 
     interface ICompletionData with
         // Note that the CompletionList uses WPF data binding against the properties in this interface.
@@ -222,7 +222,7 @@ type Completions(state: InteractionState) =
             let structured = TypeInfo.makeFeshToolTipDataList (ttText, it.FullName)
                 // if Checker.OptArgsDict.ContainsKey it.FullName then  TypeInfo.makeFeshToolTipDataList (ttText, it.FullName, Checker.OptArgsDict.[it.FullName])
                 // else                                                 TypeInfo.makeFeshToolTipDataList (ttText, it.FullName, empty)
-            do! Async.SwitchToContext Fittings.SyncWpf.context
+            do! Async.SwitchToContext Fittings.SyncContext.context
             if win.IsSome then // might get closed during context switch
                 if selectedCompletionText() = it.NameInList then
                     win.Value.ToolTipContent <- TypeInfo.getPanel (structured, {declListItem=Some it; semanticClass=None; declLocation=None; dllLocation=None })
@@ -338,12 +338,13 @@ type Completions(state: InteractionState) =
                             // Only now actually show the window:
                             w.MaxHeight <- 500 // default 300
                             w.Width <- 250 // default 175
-                            //complList.Height <- 400.  // has  UI bug
-                            //w.Height <- 400. // does not work
-                            w.BorderThickness <- Thickness 0.0 //https://stackoverflow.com/questions/33149105/how-to-change-the-style-on-avalonedit-codecompletion-window
-                            w.ResizeMode      <- ResizeMode.NoResize // needed to have no border!
-                            w.WindowStyle     <- WindowStyle.None // = no border
-                            w.SizeToContent   <- SizeToContent.WidthAndHeight // https://github.com/icsharpcode/AvalonEdit/blob/master/ICSharpCode.AvalonEdit/CodeCompletion/CompletionWindow.cs#L47
+
+                            // TODO check in avalonia
+                            // w.BorderThickness <- Thickness 0.0 //https://stackoverflow.com/questions/33149105/how-to-change-the-style-on-avalonedit-codecompletion-window
+                            // w.ResizeMode      <- ResizeMode.NoResize // needed to have no border!
+                            // w.WindowStyle     <- WindowStyle.None // = no border
+                            // w.SizeToContent   <- SizeToContent.WidthAndHeight // https://github.com/icsharpcode/AvalonEdit/blob/master/ICSharpCode.AvalonEdit/CodeCompletion/CompletionWindow.cs#L47
+
                             w.MinHeight       <- StyleState.fontSize
                             w.MinWidth        <- StyleState.fontSize * 8.0
                             w.CloseAutomatically <- true
@@ -374,7 +375,7 @@ type Completions(state: InteractionState) =
                                 // (1) raise InsertionRequested event
                                 // (2) in one of the event handlers first Closes window
                                 // (3) then on the item line this.Complete (TextArea, ISegment, EventArgs) is called and change the Document
-                                // https://github.com/goswinr/AvalonEditB/blob/main/AvalonEditB/CodeCompletion/CompletionWindow.cs#L110
+                                // https://github.com/goswinr/AvaloniaEdit/blob/main/AvaloniaEdit/CodeCompletion/CompletionWindow.cs#L110
                                 this.CloseAndEnableReacting()
                                 //IFeshLog.log.PrintfnDebugMsg "Completion window just closed with selected item: %A " complList.SelectedItem
 
@@ -392,7 +393,10 @@ type Completions(state: InteractionState) =
                             //IFeshLog.log.PrintfnDebugMsg "*5.4 Show Completion Window with %d items prefilter: '%s' " complList.ListBox.Items.Count prefilter
                             showingEv.Trigger() // to close error and type info tooltip
                             this.ComplWin <- Some w
-                            w.Show()
+                            try
+                                w.Show()
+                            with e ->
+                                IFeshLog.log.PrintfnAppErrorMsg $"Error showing completion window: {e.Message}"
                             checkIfOnlyOneMatch()
                             DidShow
                     else
@@ -401,7 +405,7 @@ type Completions(state: InteractionState) =
                         NoShow
 
     /// For closing and inserting from completion window
-    member this.MaybeInsertOrClose (ev:Input.TextCompositionEventArgs) =
+    member this.MaybeInsertOrClose (ev:Input.TextInputEventArgs) =
         if this.IsOpen then
             // checking for Tab or Enter key is not needed  here for  insertion,
             // insertion with Tab or Enter key is built into Avalonedit!!
@@ -413,10 +417,10 @@ type Completions(state: InteractionState) =
             // insert on dot too? //TODO only when more than one char is typed in completion window??
             |"." ->
                 match this.ComplWin.Value.CompletionList.SelectedItem with
-                | null -> () // don't insert __LINE__ when doing an underscore and a dot in the new shorthand meber acces like: xs |> Array.map _.Length
+                | null -> () // don't insert __LINE__ when doing an underscore and a dot in the new shorthand member access like: xs |> Array.map _.Length
                 | i -> if not <|  i.Text.StartsWith "_" then win.Value.CompletionList.RequestInsertion(ev)
 
-            | _  -> () // other triggers like tab, enter and return are covered in   https://github.com/goswinr/AvalonEditB/blob/main/AvalonEditB/CodeCompletion/CompletionList.cs#L170
+            | _  -> () // other triggers like tab, enter and return are covered in   https://github.com/goswinr/AvaloniaEdit/blob/main/AvaloniaEdit/CodeCompletion/CompletionList.cs#L170
 
             // insert on open Bracket too?
             //|"(" -> compls.RequestInsertion(ev)

@@ -1,13 +1,13 @@
 namespace Fesh.Views
 
 open System
-open System.Windows
-open System.Windows.Input
-open System.Windows.Controls
+open Avalonia
+open Avalonia.Input
+open Avalonia.Controls
 open System.Collections.Generic
 
-open AvalonEditB
-
+open AvaloniaEdit
+open Fittings
 open Fittings.Command
 open Fittings.DependencyProps
 
@@ -47,7 +47,7 @@ module RecognizePath =
         '*'
         |]
 
-    let addPathIfPresentToMenu (m:MouseButtonEventArgs, tempItemsInMenu:ref<int>, menu:ContextMenu, ava:TextEditor, openFile:IO.FileInfo*bool->bool)=
+    let addPathIfPresentToMenu (m:PointerEventArgs, tempItemsInMenu:ref<int>, menu:ContextMenu, ava:TextEditor, openFile:IO.FileInfo*bool->bool)=
         for i = 1 to !tempItemsInMenu do // the menu entry, maybe another entry and  the separator
             menu.Items.RemoveAt(0)
         tempItemsInMenu := 0
@@ -110,7 +110,7 @@ module RecognizePath =
                                             elif IO.Directory.Exists dir then
                                                 let psi = new Diagnostics.ProcessStartInfo()
                                                 psi.UseShellExecute <- true // default chnaged from net48 to net8
-                                                psi.FileName <- "Explorer.exe"
+                                                psi.FileName <- match OS.current with OS.Windows -> "Explorer.exe" | OS.Mac -> "open" | OS.Linux ->  "xdg-open"
                                                 psi.Arguments <- "\"" + dir+ "\""
                                                 Diagnostics.Process.Start(psi) |> ignore
                                                 // Diagnostics.Process.Start("Explorer.exe", "\"" + dir+ "\"") |> ignore
@@ -177,10 +177,11 @@ module RecognizePath =
                         IFeshLog.log.PrintfnIOErrorMsg "Failed to make menu item for fullPath %s:\r\n%A" fullPath e
 
 
- #nowarn "44" //to use log.AvalonLog.AvalonEdit in addPathIfPresentToMenu
+ #nowarn "44" //to use log.AvaloniaLog.AvalonEdit in addPathIfPresentToMenu
+ open Avalonia.Media
 
 type Menu (config:Config,cmds:Commands, tabs:Tabs, statusBar:FeshStatusBar, log:Log) =
-    let bar = new Windows.Controls.Menu()
+    let bar = new Avalonia.Controls.Menu()
 
     // File menu:
     let fileMenu = MenuItem(Header = "_File")
@@ -190,7 +191,7 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, statusBar:FeshStatusBar, log:
 
     let mutable recentFilesInsertPosition = 0
 
-    let sep() = Separator():> Control
+    let sep() = Separator() :> Control
 
     // let item (ngc: string * string * #ICommand * string) =
     //     let n,g,c,tt = ngc
@@ -206,7 +207,7 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, statusBar:FeshStatusBar, log:
                 |> Seq.toArray
 
 
-            do! Async.SwitchToContext Fittings.SyncWpf.context
+            do! Async.SwitchToContext Fittings.SyncContext.context
 
             //first clear
             while fileMenu.Items.Count > recentFilesInsertPosition do
@@ -218,7 +219,7 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, statusBar:FeshStatusBar, log:
             let tb(s) =
                 if not<| HeaderIsIn.Contains s then // so that header appears only once
                     HeaderIsIn.Add s  |> ignore
-                    let tb = TextBlock (Text= "          - " + s + " -", FontWeight = FontWeights.Bold)
+                    let tb = TextBlock (Text= "          - " + s + " -", FontWeight = FontWeight.Bold)
                     let mi = MenuItem (Header = tb )
                     mi.Focusable <- false // to not highlight it ?
                     fileMenu.Items.Add( mi)  |> ignore
@@ -418,7 +419,7 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, statusBar:FeshStatusBar, log:
                 //sep()
                 ]
 
-        log.AvalonLog.ContextMenu <-
+        log.AvaloniaLog.ContextMenu <-
             makeContextMenu [
                 menuItem cmds.ClearLog
                 menuItem cmds.CancelFSI
@@ -434,21 +435,23 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, statusBar:FeshStatusBar, log:
                 menuItem cmds.SaveLogSel
                 ]
 
-        statusBar.FsiStatus.ContextMenu <-
+        statusBar.FsiStatus.TextBlock.ContextMenu <-
             makeContextMenu [
                 menuItem cmds.CancelFSI
                 menuItem cmds.ResetFSI
                 ]
 
         // add menu to open file path if there is on on current line
-        tabs.Control.PreviewMouseRightButtonDown.Add ( fun m ->
-            RecognizePath.addPathIfPresentToMenu (m, tempItemsInEditorMenu, tabs.Control.ContextMenu, tabs.Current.AvaEdit , tabs.AddFile)
+        tabs.Control.PointerPressed.Add(fun m ->
+            if not m.Pointer.IsPrimary then
+                RecognizePath.addPathIfPresentToMenu (m, tempItemsInEditorMenu, tabs.Control.ContextMenu, tabs.Current.AvaEdit , tabs.AddFile)
             )
 
 
         // add menu to open file path if there is on on current line
-        log.AvalonLog.PreviewMouseRightButtonDown.Add ( fun m ->
-            RecognizePath.addPathIfPresentToMenu (m, tempItemsInLogMenu, log.AvalonLog.ContextMenu, log.AvalonLog.AvalonEdit , tabs.AddFile)
+        log.AvaloniaLog.PointerPressed.Add(fun m ->
+            if not m.Pointer.IsPrimary then
+                RecognizePath.addPathIfPresentToMenu (m, tempItemsInLogMenu, log.AvaloniaLog.ContextMenu, log.AvaloniaEditLog , tabs.AddFile)
             )
 
 

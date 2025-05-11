@@ -2,7 +2,7 @@ namespace Fesh.Views
 
 open System
 open System.IO
-open System.Windows
+open Avalonia
 
 open Fesh.Editor
 open Fesh.Model
@@ -22,7 +22,7 @@ type FileChangeTracker (editor:Editor, setCodeSavedStatus:bool->unit) =
     let mutable doWatch = true
 
     let setCode(newCode,ed:Editor)=
-        ed.AvaEdit.Dispatcher.Invoke ( fun () ->
+        SyncContext.doSync ( fun () ->
             let av = ed.AvaEdit
             let cOff = av.CaretOffset
             av.Document.Text <- newCode // this allows undo and redo, just setting AvaEdit.Text not
@@ -70,7 +70,7 @@ type FileChangeTracker (editor:Editor, setCodeSavedStatus:bool->unit) =
                             else
                                 if doWatch then
                                     doWatch<-false // to not trigger new event from closing this window
-                                    do! Async.SwitchToContext SyncWpf.context
+                                    do! Async.SwitchToContext SyncContext.context
                                     match MessageBox.Show(
                                         IEditor.mainWindow,
                                         // $"{reason}: File{nl}{nl}{fi.Name}{nl}{nl}was changed.{nl}Do you want to reload it?", // Debug
@@ -107,7 +107,7 @@ type FileChangeTracker (editor:Editor, setCodeSavedStatus:bool->unit) =
                                 // eprintfn "'%s'" editor.CodeAtLastSave
                                 if doWatch then
                                     doWatch<-false // to not trigger new event from closing this window
-                                    do! Async.SwitchToContext SyncWpf.context
+                                    do! Async.SwitchToContext SyncContext.context
                                     match MessageBox.Show(
                                         IEditor.mainWindow,
                                         // $"{reason}: File{nl}{nl}{fi.Name}{nl}{nl}was changed.{nl}Do you want to reload it?", // Debug
@@ -129,7 +129,7 @@ type FileChangeTracker (editor:Editor, setCodeSavedStatus:bool->unit) =
                     else
                         editor.FilePath <- Deleted fi
                         setCodeSavedStatus(false)
-                        do! Async.SwitchToContext SyncWpf.context
+                        do! Async.SwitchToContext SyncContext.context
                         doWatch<-false // to not trigger new event from closing this window
                         MessageBox.Show(
                             IEditor.mainWindow,
@@ -152,7 +152,7 @@ type FileChangeTracker (editor:Editor, setCodeSavedStatus:bool->unit) =
     let bufferedCheck(msg) =
         checkPending <- true
         async{
-            do! Async.SwitchToContext SyncWpf.context
+            do! Async.SwitchToContext SyncContext.context
             if ta.IsFocused && IEditor.mainWindow.IsActive then
                 do! Async.Sleep 1000 // during this wait some other file watch events might happen
                 if checkPending then

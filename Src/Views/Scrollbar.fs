@@ -2,15 +2,17 @@ namespace Fesh.Editor
 
 
 open System
-open System.Windows
-open System.Windows.Media
-open System.Windows.Controls
-open System.Windows.Controls.Primitives
-open System.Windows.Documents
-open System.Windows.Input
+open Avalonia
+open Avalonia.Media
+open Avalonia.Media.Immutable
 
-open AvalonEditB
-open AvalonEditB.Utils
+open Avalonia.Controls
+open Avalonia.Controls.Primitives
+// open Avalonia.Documents
+open Avalonia.Input
+
+open AvaloniaEdit
+open AvaloniaEdit.Utils
 
 open Fesh
 open Fesh.Util.General
@@ -21,11 +23,13 @@ module MagicScrollbar =
 
     // see // https://github.com/icsharpcode/SharpDevelop/blob/master/src/AddIns/DisplayBindings/AvalonEdit.AddIn/Src/EnhancedScrollBar.cs
 
-    type Marks = ResizeArray<int*SolidColorBrush>
+    type Marks = ResizeArray<int*ImmutableSolidColorBrush>
 
+    (*
     [<AllowNullLiteral>]
     type ScrollbarAdorner(ed:TextEditor,  errs:ErrorHighlighter, track: Track)  as this = //state:InteractionState,
         inherit Adorner(track)
+
 
         let textView = ed.TextArea.TextView
 
@@ -36,7 +40,7 @@ module MagicScrollbar =
         let setLineNos (v: Marks) =
             if not <| Util.General.areSameBy fst v markLineNos.Value then // compare by fst, that is only the line number
                 markLineNos.Value <- v
-                ed.Dispatcher.Invoke (fun _ -> this.InvalidateVisual())
+                Fittings.SyncContext.post (fun _ -> this.InvalidateVisual())
 
         let visualTopCache = Array.create (ErrorUtil.maxErrorCountToTrack * 4 ) 0.0
 
@@ -89,10 +93,12 @@ module MagicScrollbar =
                         drawingContext.DrawRectangle (brush, null, rect)
 
             //else printfn $"ScrollbarAdorner.OnRender: not showing"
+*)
 
+    type ScrollBarEnhancer(_ed:TextEditor,  _errs:ErrorHighlighter) = // state:InteractionState,
 
-    type ScrollBarEnhancer(ed:TextEditor,  errs:ErrorHighlighter) = // state:InteractionState,
-
+        class end
+    (*
         let vertScrollBar : ScrollBar =
             ed.ApplyTemplate ()  |> ignore
             let scrollViewer = ed.Template.FindName ("PART_ScrollViewer", ed) :?> ScrollViewer
@@ -130,3 +136,5 @@ module MagicScrollbar =
                     adorner.IsTrackShowing <- false
                     adorner.InvalidateVisual()
             )
+
+    *)

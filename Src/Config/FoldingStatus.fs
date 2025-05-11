@@ -5,7 +5,7 @@ open System.Text
 open System.Collections.Generic
 open Fittings
 open Fesh.Model
-open AvalonEditB
+open AvaloniaEdit
 
 
 /// A class to hold the folding status for all recently used files
@@ -15,7 +15,7 @@ type FoldingStatus ( runContext:RunContext, recentlyUsedFiles:RecentlyUsedFiles)
 
     let filePath0 = runContext.GetPathToSaveAppData("Folding-States.txt")
 
-    let writer = SaveReadWriter(filePath0,IFeshLog.printError)
+    let writer = SafeReadWriter(filePath0,IFeshLog.printError)
 
     let mutable waitingForFileRead =  true
 

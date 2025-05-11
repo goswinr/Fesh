@@ -9,11 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.25.0] - 2025-03-19
 ### Fixed
-- use AvalonLog 0.20.0 to fix Velopack missing method exception when hosting in Revit
+- use AvaloniaLog 0.20.0 to fix Velopack missing method exception when hosting in Revit
 
 ## [0.24.1] - 2025-03-18
 ### Fixed
-- use AvalonLog 0.19.0 to fix type load exception when hosting in Revit
+- use AvaloniaLog 0.19.0 to fix type load exception when hosting in Revit
 
 ## [0.24.0] - 2025-03-16
 ### Fixed

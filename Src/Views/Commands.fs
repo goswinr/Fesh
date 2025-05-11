@@ -1,11 +1,12 @@
 namespace Fesh.Views
 
-open System.Windows.Documents
+open Avalonia.Controls.Documents
 open System.Diagnostics
+open Avalonia.Input
 open System.Windows.Input
 
-open AvalonEditB
-open AvalonEditB.Editing
+open AvaloniaEdit
+open AvaloniaEdit.Editing
 
 open Fittings.Command
 
@@ -47,11 +48,18 @@ type Commands (grid:TabsAndLog, statusBar:FeshStatusBar)  =
 
     //let version = lazy (let an = Reflection.Assembly.GetAssembly(tabs.GetType()).GetName() in sprintf "%s %s" an.Name (an.Version.ToString()))
 
-    //see https://github.com/icsharpcode/AvalonEdit/blob/697ff0d38c95c9e5a536fbc05ae2307ec9ef2a63/AvalonEditB/Editing/CaretNavigationCommandHandler.cs#L73
+    //see https://github.com/icsharpcode/AvalonEdit/blob/697ff0d38c95c9e5a536fbc05ae2307ec9ef2a63/AvaloniaEdit/Editing/CaretNavigationCommandHandler.cs#L73
     //TODO these get evaluated for each cmd on every mouse click or key press. is this OK?  any lag ?? in Can-execute for commands
 
     let isEse (_:obj) = tabs.Current.Editor.AvaEdit.SelectionLength > 0 // Editor
-    let isLse (_:obj) = log.AvalonLog.Selection.Length > 0 // Log
+        // try
+        //     tabs.Current.Editor.AvaEdit.SelectionLength > 0 // Editor
+        // with e ->
+        //     log.PrintfnAppErrorMsg $"tabs:'{tabs}'"
+        //     log.PrintfnAppErrorMsg $"tabs.Current:'{tabs.Current}'"
+        //     false
+
+    let isLse (_:obj) = log.AvaloniaLog.Selection.Length > 0 // Log
     let isAsy (_:obj) = fsi.State = Evaluating && fsi.Mode.IsAsync
 
 
@@ -60,7 +68,7 @@ type Commands (grid:TabsAndLog, statusBar:FeshStatusBar)  =
     // NOTE :--------------------------------------------------------------------
 
     // File menu:
-    member val NewTab            = {name= "New File"                  ;gesture= "Ctrl + N"       ;cmd= mkCmdSimple (fun _ -> tabs.AddTab(new Tab(Editor.New(config)),true))    ;tip="Creates a new script file."   }
+    member val NewTab            = {name= "New File"                  ;gesture= "Ctrl + N"       ;cmd= mkCmdSimple (fun _ -> tabs.AddTab(new Tab(Editor.New config),true))    ;tip="Creates a new script file."   }
     member val OpenFile          = {name= "Open File"                 ;gesture= "Ctrl + O"       ;cmd= mkCmdSimple (fun _ -> tabs.OpenFile())                                 ;tip="Opens a script file."  }
     member val OpenInVSCode      = {name= "Open in VS Code"           ;gesture= "Ctrl + Shift + O" ;cmd= mkCmdSimple (fun _ -> tabs.OpenInVSCode())                           ;tip="Saves changes and opens the current script file in VS Code. You can change the file there. Fesh wil prompt you to load changes back."  }
     member val OpenTemplateFile  = {name= "Edit Template File"        ;gesture= ""               ;cmd= mkCmdSimple (fun _ -> tabs.AddFile(config.DefaultCode.FileInfo,true)|> ignore)     ;tip="Opens the template file that is used when creating a New File ( Ctrl + N)." }
@@ -140,14 +148,14 @@ type Commands (grid:TabsAndLog, statusBar:FeshStatusBar)  =
     member val Find      = {name= "Find"     ;gesture=  "Ctrl + F"   ;cmd= ApplicationCommands.Find   ; tip="Finds text of current selection." }
     member val Replace   = {name= "Replace"  ;gesture=  "Ctrl + H"   ;cmd= ApplicationCommands.Replace; tip="Finds and replaces text for the current selection."  }
 
-    member val ToUppercase       = {name= "To UPPERCASE"  ;gesture= ""               ;cmd=AvalonEditCommands.ConvertToUppercase                                   ;tip="Converts the selected text to UPPERCASE."  }
-    member val ToLowercase       = {name= "To lowercase"  ;gesture= ""               ;cmd=AvalonEditCommands.ConvertToLowercase                                   ;tip="Converts the selected text to lowercase."  }
-    member val ToTitleCase       = {name= "To Titlecase " ;gesture= ""               ;cmd=AvalonEditCommands.ConvertToTitleCase                                   ;tip="Converts the selected text to Titlecase."  }
+    member val ToUppercase       = {name= "To UPPERCASE"  ;gesture= ""               ;cmd=AvaloniaEditCommands.ConvertToUppercase                                   ;tip="Converts the selected text to UPPERCASE."  }
+    member val ToLowercase       = {name= "To lowercase"  ;gesture= ""               ;cmd=AvaloniaEditCommands.ConvertToLowercase                                   ;tip="Converts the selected text to lowercase."  }
+    member val ToTitleCase       = {name= "To Titlecase " ;gesture= ""               ;cmd=AvaloniaEditCommands.ConvertToTitleCase                                   ;tip="Converts the selected text to Titlecase."  }
 
-    member val DeleteLine     = {name= "Delete Line"          ;gesture= "Ctrl + D"          ;cmd = AvalonEditCommands.DeleteLine         ; tip="Deletes the current line."  }
+    member val DeleteLine     = {name= "Delete Line"          ;gesture= "Ctrl + D"          ;cmd = AvaloniaEditCommands.DeleteLine         ; tip="Deletes the current line."  }
     member val DeleteNextWord = {name= "Delete Next Word"     ;gesture= "Ctrl + Del"        ;cmd = EditingCommands.DeleteNextWord        ; tip="Deletes the word to the right of the caret." }
     member val DeletePrevWord = {name= "Delete Previous Word" ;gesture= "Ctrl + Backspace"  ;cmd = EditingCommands.DeletePreviousWord    ; tip="Deletes the word to the left of the caret." }
-    member val TrailWhite     = {name= "Removes Trailing Whitespace" ;gesture= "" ;cmd = AvalonEditCommands.RemoveTrailingWhitespace  ; tip="Removes trailing whitespace from the selected lines (or the whole document if the selection is empty)." }
+    member val TrailWhite     = {name= "Removes Trailing Whitespace" ;gesture= "" ;cmd = AvaloniaEditCommands.RemoveTrailingWhitespace  ; tip="Removes trailing whitespace from the selected lines (or the whole document if the selection is empty)." }
 
     // this shortcut is implemented in Avalonedit but I cant find out where the routed command class is
     //member val SelectLinesUp      = {name= "Select Lines Upwards"      ;gesture= "Shift + Up"     ;cmd = null ;tip="Not implemented yet"}
@@ -200,8 +208,8 @@ type Commands (grid:TabsAndLog, statusBar:FeshStatusBar)  =
                 this.SelectLine
                 //this.SwapWordLeft    // key gesture handled via previewKeyDown event in CursorBehavior module
                 //this.SwapWordRight   // key gesture handled via previewKeyDown event in CursorBehavior module
-                //this.SelectLinesUp   // implemented in AvalonEditB
-                //this.SelectLinesDown // implemented in AvalonEditB
+                //this.SelectLinesUp   // implemented in AvaloniaEdit
+                //this.SelectLinesDown // implemented in AvaloniaEdit
                 this.RunAllText
                 this.RunAllTextSave
                 this.RunAllTxSaveClear
@@ -233,7 +241,7 @@ type Commands (grid:TabsAndLog, statusBar:FeshStatusBar)  =
 
 
             // these functions parse the KeyGesture from a string defined above.
-            // eg. "Ctrl + V" becomes KeyGesture(Key.V , ModifierKeys.Control)
+            // eg. "Ctrl + V" becomes KeyGesture(Key.V , KeyModifiers.Control)
             // this is to make sure the displayed gesture matches the actual gesture
             let getKey = function
                 |"'-'"   -> Key.Subtract //|"'+'"   -> Key.Add // fails on gg.Split('+')
@@ -248,10 +256,10 @@ type Commands (grid:TabsAndLog, statusBar:FeshStatusBar)  =
                        | _ -> log.PrintfnAppErrorMsg "*AllInputBindings: failed to parse cmd Key '%A'" x; Key.NoName
 
             let getModKey = function
-                |"Ctrl" -> ModifierKeys.Control
-                | x -> match ModifierKeys.TryParse(x,true) with
+                |"Ctrl" -> KeyModifiers.Control
+                | x -> match KeyModifiers.TryParse(x,true) with
                        |true, mk -> mk
-                       | _ -> log.PrintfnAppErrorMsg "*AllInputBindings: failed to parse ModifierKey '%A'" x; ModifierKeys.None
+                       | _ -> log.PrintfnAppErrorMsg "*AllInputBindings: failed to parse ModifierKey '%A'" x; KeyModifiers.None
 
             try
                 let bindings =
@@ -259,28 +267,30 @@ type Commands (grid:TabsAndLog, statusBar:FeshStatusBar)  =
                             match cmd.gesture.Trim() with
                             | "" -> log.PrintfnAppErrorMsg "*SetUpGestureInputBindings: Input gesture is empty for '%s'" cmd.name
                             | "Ctrl + '+'" | "Ctrl + +" | "Ctrl +" -> // because  gg.Split('+') would fail
-                                yield InputBinding(cmd.cmd,  KeyGesture(Key.Add,ModifierKeys.Control))
-                                yield InputBinding(cmd.cmd,  KeyGesture(Key.OemPlus,ModifierKeys.Control))// for microsoft surface keyboard
+                                yield KeyBinding(Command=cmd.cmd, Gesture=KeyGesture(Key.Add,KeyModifiers.Control))
+                                yield KeyBinding(Command=cmd.cmd, Gesture=KeyGesture(Key.OemPlus,KeyModifiers.Control))// for microsoft surface keyboard
                             | "Ctrl + '-'" | "Ctrl + -" | "Ctrl -" -> // because  gg.Split('+') would fail
-                                yield InputBinding(cmd.cmd,  KeyGesture(Key.Subtract,ModifierKeys.Control))
-                                yield InputBinding(cmd.cmd,  KeyGesture(Key.OemMinus,ModifierKeys.Control))// for microsoft surface keyboard
+                                yield KeyBinding(Command=cmd.cmd, Gesture=KeyGesture(Key.Subtract,KeyModifiers.Control))
+                                yield KeyBinding(Command=cmd.cmd, Gesture=KeyGesture(Key.OemMinus,KeyModifiers.Control))// for microsoft surface keyboard
+
                             | gg ->
                                 yield
                                     match gg.Split('+') |> Array.map ( fun k -> k.Trim()) with
-                                    | [| m1; m2; k |]   -> InputBinding(cmd.cmd,  KeyGesture(getKey k, getModKey m1 + getModKey m2))
-                                    | [| m; k |]        -> InputBinding(cmd.cmd,  KeyGesture(getKey k, getModKey m))
-                                    | [| k |]           -> InputBinding(cmd.cmd,  KeyGesture(getKey k))
+                                    | [| m1; m2; m3; k |]   -> KeyBinding(Command=cmd.cmd, Gesture=KeyGesture(getKey k, getModKey m1 + getModKey m2 + getModKey m3))
+                                    | [| m1; m2; k |]       -> KeyBinding(Command=cmd.cmd, Gesture=KeyGesture(getKey k, getModKey m1 + getModKey m2))
+                                    | [| m; k |]            -> KeyBinding(Command=cmd.cmd, Gesture=KeyGesture(getKey k, getModKey m))
+                                    | [| k |]               -> KeyBinding(Command=cmd.cmd, Gesture=KeyGesture(getKey k))
                                     | _ ->
                                         log.PrintfnAppErrorMsg "*SetUpGestureInputBindings: failed to parse cmd Input gesture '%s' for '%s'" cmd.gesture cmd.name
-                                        InputBinding(cmd.cmd,  KeyGesture(Key.None))
+                                        KeyBinding(Command=cmd.cmd, Gesture=KeyGesture(Key.None))
                                         // TODO check for memory leaks: https://github.com/icsharpcode/AvalonEdit/blame/master/ICSharpCode.AvalonEdit/Editing/TextAreaDefaultInputHandlers.cs#L71-L79
 
                     |]
-                grid.FeshWindow.Window.InputBindings.AddRange (bindings)
+                grid.FeshWindow.Window.KeyBindings.AddRange (bindings)
 
                 // to no redirect alt to the menu bar :
-                grid.Tabs.Control.InputBindings.Add (InputBinding(this.RunSelectedText.cmd, KeyGesture(Key.Return , ModifierKeys.Alt))) |> ignore
-                grid.Tabs.Control.InputBindings.Add (InputBinding(this.RunSelectedText.cmd, KeyGesture(Key.Enter  , ModifierKeys.Alt))) |> ignore
+                grid.Tabs.Control.KeyBindings.Add (KeyBinding(Command=this.RunSelectedText.cmd, Gesture=KeyGesture(Key.Return , KeyModifiers.Alt))) |> ignore
+                grid.Tabs.Control.KeyBindings.Add (KeyBinding(Command=this.RunSelectedText.cmd, Gesture=KeyGesture(Key.Enter  , KeyModifiers.Alt))) |> ignore
             with e ->
                 log.PrintfnAppErrorMsg "*AllInputBindings: failed to create keyboard shortcuts: %A"e
 

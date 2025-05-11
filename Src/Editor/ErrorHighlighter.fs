@@ -1,25 +1,27 @@
 ﻿namespace Fesh.Editor
 
 open System
-open System.Windows
-open System.Windows.Controls
-open System.Windows.Media
+open Avalonia
+open Avalonia.Controls
+open Avalonia.Media
+open Avalonia.Media.Immutable
 open System.Collections.Generic
 
 open FSharp.Compiler
 open FSharp.Compiler.Diagnostics
 open FSharp.Compiler.EditorServices
 
-open AvalonEditB
-open AvalonEditB.Document
-open AvalonEditB.Rendering
+open AvaloniaEdit
+open AvaloniaEdit.Document
+open AvaloniaEdit.Rendering
 
-open AvalonLog.Brush
+open AvaloniaLog.ImmBrush
 
 open Fesh
 open Fesh.Util
 open Fesh.Model
-open System.Windows.Media
+open Avalonia.Media
+open Avalonia.Controls.Primitives
 
 // Error colors are defined in FastColorizer.fs
 
@@ -87,15 +89,19 @@ module ErrorUtil =
         let count = max 4 (int((endPoint.X - startPoint.X)/offset) + 1) // at least 4 squiggles visible
         let geometry = new StreamGeometry()
         use ctx = geometry.Open()
-        ctx.BeginFigure(startPoint, false, false)
-        ctx.PolyLineTo(
-            [| for i=0 to count - 1 do
-                let x = startPoint.X + (float i * offset)
-                let y = startPoint.Y - if (i + 1) % 2 = 0 then offset + yOffset else yOffset
-                Point(x,y) |] , // for Squiggly line
-            true,
-            false)
-        geometry.Freeze()
+        ctx.BeginFigure(startPoint, false)//, false)
+        // ctx.PolyLineTo(
+        //     [| for i=0 to count - 1 do
+        //         let x = startPoint.X + (float i * offset)
+        //         let y = startPoint.Y - if (i + 1) % 2 = 0 then offset + yOffset else yOffset
+        //         Point(x,y) |] , // for Squiggly line
+        //     true,
+        //     false)
+        for i=0 to count - 1 do
+            let x = startPoint.X + (float i * offset)
+            let y = startPoint.Y - if (i + 1) % 2 = 0 then offset + yOffset else yOffset
+            ctx.LineTo(Point(x,y))
+        // geometry.Freeze()
         geometry
 
 
@@ -141,11 +147,11 @@ type ErrorRenderer (state: InteractionState) =
     /// Draw the error squiggle on the code
 
     member _.Draw(textView:TextView , drawingContext:DrawingContext) = // for IBackgroundRenderer
-        //AvalonEditB.Rendering.VisualLinesInvalidException: Exception of type 'AvalonEditB.Rendering.VisualLinesInvalidException' was thrown.
-        //    at AvalonEditB.Rendering.TextView.get_VisualLines()
+        //AvaloniaEdit.Rendering.VisualLinesInvalidException: Exception of type 'AvaloniaEdit.Rendering.VisualLinesInvalidException' was thrown.
+        //    at AvaloniaEdit.Rendering.TextView.get_VisualLines()
         //    at Fesh.Editor.ErrorRenderer.Draw(TextView textView, DrawingContext drawingContext) in D:\Git\Fesh\Src\Editor\ErrorHighlighter.fs:line 138
-        //    at AvalonEditB.Rendering.TextView.RenderBackground(DrawingContext drawingContext, KnownLayer layer)
-        //    at AvalonEditB.Editing.CaretLayer.OnRender(DrawingContext drawingContext)
+        //    at AvaloniaEdit.Rendering.TextView.RenderBackground(DrawingContext drawingContext, KnownLayer layer)
+        //    at AvaloniaEdit.Editing.CaretLayer.OnRender(DrawingContext drawingContext)
 
         if textView.VisualLinesValid then //to avoid above error.
             let vls = textView.VisualLines
@@ -227,13 +233,13 @@ type ErrorHighlighter ( state:InteractionState, folds:Folding.FoldingManager, is
     //  let actionHidden  = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetBackgroundBrush(ErrorStyle.infoBackGr))
 
     let foundErrorsEv = new Event<int64>()
-    let tip = new ToolTip(IsOpen=false)
+    let tip  = new Popup(IsOpen=false)
 
     let ed = state.Editor
     let tView = ed.TextArea.TextView
 
 
-    let insert (marginMarks:ResizeArray<int*SolidColorBrush>) (newSegments:ResizeArray<ResizeArray<SegmentToMark>>) id (e:FSharpDiagnostic) : unit =
+    let insert (marginMarks:ResizeArray<int*ImmutableSolidColorBrush>) (newSegments:ResizeArray<ResizeArray<SegmentToMark>>) id (e:FSharpDiagnostic) : unit =
         let stLn = max 1 e.StartLine // because FSharpDiagnostic might have line number 0 form Parse-and-check-file-in-project errors, but Avalonedit starts at 1
         let enLn = max 1 e.EndLine
         if stLn > enLn then // this actually can happen
@@ -271,66 +277,76 @@ type ErrorHighlighter ( state:InteractionState, folds:Folding.FoldingManager, is
         | ValueSome cln ->
             let offset = cln.offStart + e.StartColumn
             for fold in folds.GetFoldingsContaining offset do
-                //if fold.IsFolded then // do on all folds, even open ones, so they show correctly when collapsing !
-                //fold.BackgroundColor  <- ErrorStyle.errBackGr // done via ctx.DrawRectangle(ErrorStyle.errBackGr
-                fold.DecorateRectangle <-
-                    Action<Rect,DrawingContext>( fun rect ctx ->
-                        let geo = ErrorUtil.getSquiggleLine(rect, 0.1) // move a bit lower than the line so that the squiggle is not hidden by a selection highlighting
-                        if isNull fold.BackgroundColor then // in case of selection highlighting skip brush, only use Pen
-                            ctx.DrawRectangle(brush, null, rect)
-                        ctx.DrawGeometry(Brushes.Transparent, pen, geo)
-                        )
+                if fold.IsFolded then // do on all folds, even open ones, so they show correctly when collapsing !
+                    fold.BackgroundColor  <- ErrorStyle.errBackGr // done via ctx.DrawRectangle(ErrorStyle.errBackGr
+
+                    fold.DecorateRectangle <- //TODO reenable
+                        Action<Rect,DrawingContext>( fun rect ctx ->
+                            let geo = ErrorUtil.getSquiggleLine(rect, 0.1) // move a bit lower than the line so that the squiggle is not hidden by a selection highlighting
+                            if isNull fold.BackgroundColor then // in case of selection highlighting skip brush, only use Pen
+                                ctx.DrawRectangle(brush, null, rect)
+                            ctx.DrawGeometry(Brushes.Transparent, pen, geo)
+                            )
+                ()
             true
 
 
-    let showErrorToolTip(mouse:Input.MouseEventArgs) =
+    let showErrorToolTip(mouse:Input.PointerEventArgs) =
         if not <| isComplWinOpen() then // don't show tooltip when completion window is open
             let pos = tView.GetPositionFloor(mouse.GetPosition(tView) + tView.ScrollOffset)
             if pos.HasValue then
                 let loc = pos.Value.Location
-                let offset = ed.Document.GetOffset(loc)
-                state.ErrSegments.GetLine(loc.Line)
+                let offset = ed.Document.GetOffset loc
+                state.ErrSegments.GetLine loc.Line
                 |> Seq.tryFind( fun s ->  offset >= s.Offset && offset <= s.EndOffset )
                 |> Option.iter(fun segm ->
-                    let tb = new TextBlock()
+                    let pos = ed.Document.GetLocation segm.Offset
+                    let tvpos = new TextViewPosition(pos.Line,pos.Column)
+                    let pt = tView.GetVisualPosition(tvpos, Rendering.VisualYPosition.LineTop)
+                    let ptInclScroll = pt - tView.ScrollOffset
+
+                    let tb = new SelectableTextBlock()
                     tb.Text <- segm.Message       //TODO move styling out of event handler ?
                     tb.FontSize <- StyleState.fontSize * 0.9
                     tb.FontFamily <- StyleState.fontToolTip //TODO use another monospace font ?
                     tb.TextWrapping <- TextWrapping.Wrap
-                    //tb.Foreground <- Media.SolidColorBrush(if seg.IsWarning then Colors.DarkRed else Colors.DarkGreen)
-                    tip.Content <- tb
+                    //tb.Foreground <- Media.ImmutableSolidColorBrush(if seg.IsWarning then Colors.DarkRed else Colors.DarkGreen)
 
-                    let pos = ed.Document.GetLocation(segm.Offset)
-                    let tvpos = new TextViewPosition(pos.Line,pos.Column)
-                    let pt = tView.GetVisualPosition(tvpos, Rendering.VisualYPosition.LineTop)
-                    let ptInclScroll = pt - tView.ScrollOffset
+
+                    tip.Child <- tb
                     tip.PlacementTarget <- ed.TextArea
-                    tip.PlacementRectangle <- new Rect(ptInclScroll.X, ptInclScroll.Y, 0., 0.)
-                    tip.Placement <- Primitives.PlacementMode.Top // Type info Tooltip is on Bottom //https://docs.microsoft.com/en-us/dotnet/framework/wpf/controls/popup-placement-behavior
+                    tip.PlacementRect <- new Rect(ptInclScroll.X, ptInclScroll.Y, 0., 0.)
+                    tip.Placement <- PlacementMode.Top // Type info Tooltip is on Bottom //https://docs.microsoft.com/en-us/dotnet/framework/wpf/controls/tipup-placement-behavior
                     tip.VerticalOffset <- -5.0
-
                     tip.IsOpen <- true
+
+                    // tip.Content <- tb // TODO delete
+                    // tip.PlacementTarget <- ed.TextArea
+                    // tip.PlacementRectangle <- new Rect(ptInclScroll.X, ptInclScroll.Y, 0., 0.)
+                    // tip.Placement <- Primitives.PlacementMode.Top // Type info Tooltip is on Bottom //https://docs.microsoft.com/en-us/dotnet/framework/wpf/controls/popup-placement-behavior
+                    // tip.VerticalOffset <- -5.0
+                    // tip.IsOpen <- true
                     )
 
     do
         tView.BackgroundRenderers.Add(new ErrorRenderer(state))
         tView.BackgroundRenderers.Add(new ErrorLineRenderer(state))
 
-        tView.MouseHover.Add        ( showErrorToolTip)
-        tView.MouseHoverStopped.Add ( fun _->  tip.IsOpen <- false ) //; e.Handled <- true) )
+        tView.PointerHover.Add        ( showErrorToolTip)
+        tView.PointerHoverStopped.Add( fun _->  ToolTip.SetTip(tView, AvaloniaProperty.UnsetValue))// WPF : tView.PointerHoverStopped.Add ( fun _->  tip.IsEnabled <- false ) //; e.Handled <- true) )
         //tView.VisualLinesChanged.Add( fun e ->  tip.IsOpen <- false ) // done in Editor.setup: avaEdit.TextArea.TextView.VisualLinesChanged.Add (fun _ ->    closeToolTips() )// close type info on typing
 
 
     [<CLIEvent>]
     member _.FoundErrors = foundErrorsEv.Publish
 
-    member val ErrorsLines = ref (ResizeArray<int*SolidColorBrush>()) // line numbers of errors, for status bar
+    member val ErrorsLines = ref (ResizeArray<int*ImmutableSolidColorBrush>()) // line numbers of errors, for status bar
 
     /// triggers foundErrorsEv
     member this.UpdateErrs(errs:ErrorsBySeverity, id) =
         if state.IsLatest id then
             let nSegs = ResizeArray<ResizeArray<SegmentToMark>>(state.ErrSegments.LineCount + 2 )
-            let marginMarks = ResizeArray<int*SolidColorBrush>(errs.errors.Count + errs.warnings.Count)
+            let marginMarks = ResizeArray<int*ImmutableSolidColorBrush>(errs.errors.Count + errs.warnings.Count)
             // first insert in to LineTransformer
             for e in errs.hiddens  do insert marginMarks nSegs id e
             for e in errs.infos    do insert marginMarks nSegs id e
@@ -343,8 +359,8 @@ type ErrorHighlighter ( state:InteractionState, folds:Folding.FoldingManager, is
 
                 // second mark folding boxes if an error is inside, even open ones, so that it shows when collapsed:
                 async{
-                    do! Async.SwitchToContext Fittings.SyncWpf.context
-                    for fold in folds.AllFoldings do  fold.DecorateRectangle <- null   // first clear
+                    do! Async.SwitchToContext Fittings.SyncContext.context
+                    // for fold in folds.AllFoldings do  fold.DecorateRectangle <- null   // first clear TODO reenable
                     for e in errs.hiddens  do updateFolds id ErrorStyle.infoBackGr ErrorStyle.infoSquigglePen e  |> ignore<bool>
                     for e in errs.infos    do updateFolds id ErrorStyle.infoBackGr ErrorStyle.infoSquigglePen e  |> ignore<bool>
                     for e in errs.warnings do updateFolds id ErrorStyle.warnBackGr ErrorStyle.warnSquigglePen e  |> ignore<bool>
