@@ -1,12 +1,9 @@
 name: Build and Publish NuGet Package
 
 on:
-  # Allows you to run this workflow manually from the Actions tab in Github.com
-  workflow_dispatch:
   push:
     tags:
       - '*.*.*'
-
 
 jobs:
   publish:
