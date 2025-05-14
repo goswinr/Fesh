@@ -7,8 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.26.2] - 2025-05-14
 ### Fixed
-- fixed net7 nuget separately due to build errors in Fesh.Rhino and Fesh.Revit
+- use latest F# 9.3
 
 ## [0.26.1] - 2025-04-20
 ### Changed
@@ -119,7 +120,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - first public release
 
-[Unreleased]: https://github.com/goswinr/Fesh/compare/0.26.1...HEAD
+
+[Unreleased]: https://github.com/goswinr/Fesh/compare/0.26.2...HEAD
+[0.26.2]: https://github.com/goswinr/Fesh/compare/0.26.1...0.26.2
 [0.26.1]: https://github.com/goswinr/Fesh/compare/0.26.0...0.26.1
 [0.26.0]: https://github.com/goswinr/Fesh/compare/0.25.0...0.26.0
 [0.25.0]: https://github.com/goswinr/Fesh/compare/0.24.1...0.25.0
