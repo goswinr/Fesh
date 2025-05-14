@@ -28,8 +28,6 @@ module TabStyle =
 type Tab (editor:Editor)  =
     inherit TabItem()
 
-
-
     // these two are used to avoid redrawing header on very keystroke:
     let mutable isCodeSaved        = true
     let mutable headerShowsSaved   = true
@@ -149,7 +147,8 @@ type Tab (editor:Editor)  =
     // The control TextBlock (Text = Body) already has a visual parent ContentPresenter
     // (Name = PART_SelectedContentHost, Host = TabControl) while trying to add it
     // as a child of ContentPresenter (Name = PART_ContentPresenter, Host = TestTabs.Tab).
-    override _.StyleKeyOverride = typeof<TabItem>
+    // see https://github.com/AvaloniaUI/Avalonia/discussions/18697
+    override _.StyleKeyOverride = typeof<TabItem> //
 
     member _.FileTracker = fileTracker
 

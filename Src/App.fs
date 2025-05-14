@@ -36,7 +36,8 @@ module App =
 
         override this.Initialize() =
             this.Styles.Add (FluentTheme())
-            this.RequestedThemeVariant <- Styling.ThemeVariant.Light
+            // this.RequestedThemeVariant <- Styling.ThemeVariant.Light
+            this.RequestedThemeVariant <- Styling.ThemeVariant.Dark
 
             // https://github.com/AvaloniaUI/AvaloniaEdit/issues/322:s
             this.Styles.Add(Avalonia.Markup.Xaml.Styling.StyleInclude(baseUri = null, Source = Uri "avares://AvaloniaEdit/Themes/Fluent/AvaloniaEdit.xaml"))
@@ -46,7 +47,7 @@ module App =
             | :? IClassicDesktopStyleApplicationLifetime as desktopLifetime ->
                     current <- Initialize.everything (None, desktopLifetime.Args)
                     desktopLifetime.MainWindow <- current.Window
-                    current.Window.Background <- Brushes.White |> AvaloniaLog.ImmBrush.darker 5 //otherwise it is transparent !?
+                    // current.Window.Background <- Brushes.White |> AvaloniaLog.ImmBrush.darker 5 //otherwise it is transparent !?
             | _ -> ()
 
 

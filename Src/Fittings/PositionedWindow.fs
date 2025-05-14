@@ -1,6 +1,6 @@
 ﻿namespace Fittings
 
-open System
+// open System
 open Avalonia
 open Avalonia.Controls
 open Avalonia.Platform
@@ -9,8 +9,8 @@ open Avalonia.Platform
 /// A class holding a re-sizable Window that remembers its position even after restarting.
 /// The path in settingsFile will be used to persist the position of this window in a txt file.
 /// The errorLogger function will be called if persisting the window size does not work.
-type PositionedWindow (settingsFile:IO.FileInfo, errorLogger:string->unit) as this =
-    inherit Avalonia.Controls.Window()
+type PositionedWindow (settingsFile:System.IO.FileInfo, errorLogger:string->unit) as this =
+    inherit Window()
 
     // The ErrorLogger function will be called if the previous Window position could not restore.
     // The window be positioned in the screen center with a size of 600 x 600.
@@ -131,13 +131,13 @@ type PositionedWindow (settingsFile:IO.FileInfo, errorLogger:string->unit) as th
     new (applicationName:string, errorLogger:string->unit) =
         let appName =
            let mutable n = applicationName
-           for c in IO.Path.GetInvalidFileNameChars() do  n <- n.Replace(c, '_')
+           for c in System.IO.Path.GetInvalidFileNameChars() do  n <- n.Replace(c, '_')
            n
-        let appData = Environment.GetFolderPath Environment.SpecialFolder.LocalApplicationData
-        let p = IO.Path.Combine(appData, appName)
-        IO.Directory.CreateDirectory(p) |> ignore
-        let f = IO.Path.Combine(p, "Fittings.PositionedWindow.Settings.txt")
-        PositionedWindow(IO.FileInfo(f), errorLogger)
+        let appData = System.Environment.GetFolderPath System.Environment.SpecialFolder.LocalApplicationData
+        let p = System.IO.Path.Combine(appData, appName)
+        System.IO.Directory.CreateDirectory(p) |> ignore
+        let f = System.IO.Path.Combine(p, "Fittings.PositionedWindow.Settings.txt")
+        PositionedWindow(System.IO.FileInfo(f), errorLogger)
 
 
     /// Indicating if the Window is in Full-screen mode or minimized mode (not normal mode)
@@ -160,5 +160,4 @@ type PositionedWindow (settingsFile:IO.FileInfo, errorLogger:string->unit) as th
 
     member this.Settings = settings
 
-
-
+    override _.StyleKeyOverride = typeof<Window> // see https://github.com/AvaloniaUI/Avalonia/discussions/18697

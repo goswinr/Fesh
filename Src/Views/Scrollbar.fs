@@ -93,6 +93,8 @@ module MagicScrollbar =
                         drawingContext.DrawRectangle (brush, null, rect)
 
             //else printfn $"ScrollbarAdorner.OnRender: not showing"
+
+        override _.StyleKeyOverride = typeof<Adorner> // see https://github.com/AvaloniaUI/Avalonia/discussions/18697
 *)
 
     type ScrollBarEnhancer(_ed:TextEditor,  _errs:ErrorHighlighter) = // state:InteractionState,

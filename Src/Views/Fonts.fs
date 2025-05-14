@@ -210,4 +210,6 @@ module Typography =
         override this.CapitalSpacing with get() = false
         override this.Capitals with get() = FontCapitals.Normal
         override this.AnnotationAlternates with get() = 0
+
+        override _.StyleKeyOverride = typeof<Application> // see https://github.com/AvaloniaUI/Avalonia/discussions/18697
 *)
