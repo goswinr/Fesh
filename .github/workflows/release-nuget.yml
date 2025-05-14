@@ -59,7 +59,7 @@ jobs:
     - name: Set target framework to net7.0
       run: |
         $projFile = Get-Content -Path FeshHosting.fsproj -Raw
-        $projFile = $projFile -replace "<TargetFramework>net472</TargetFramework>", "<TargetFramework>net7.0</TargetFramework>"
+        $projFile = $projFile -replace "<TargetFramework>net472</TargetFramework>", "<TargetFramework>net7.0-windows</TargetFramework>"
         Set-Content -Path FeshHosting.fsproj -Value $projFile
 
     - name : Set -net7 suffix in changelog
