@@ -20,7 +20,6 @@ type FsiState =
 
 type FsiSyncMode  =
     InSync | AsyncMode
-
     member this.IsAsync =
         match this with
         | InSync -> false
@@ -74,7 +73,7 @@ type Fsi private (config:Config) =
 
     let mutable state = NotLoaded
 
-    let mutable mode = if config.RunContext.IsHosted then InSync else AsyncMode
+    let mutable syMode = if config.RunContext.CanRunAsync then AsyncMode else InSync
 
     let mutable sessionOpt : FsiEvaluationSession option = None
 
@@ -328,7 +327,7 @@ type Fsi private (config:Config) =
     let handeleEvaluationResult (evaluatedTo:Choice<FsiValue option,exn>, diagnostics: FSharpDiagnostic[], codeToEv:CodeToEval) =
         // switch back to sync Thread:
         async{
-            match mode with
+            match syMode with
             |InSync -> ()
             |AsyncMode -> do! Async.SwitchToContext SyncWpf.context
 
@@ -361,8 +360,8 @@ type Fsi private (config:Config) =
                     // FCS also handles the required ResetAbort:
                     // https://learn.microsoft.com/en-us/dotnet/api/system.threading.thread.abort?view=netframework-4.7.2#system-threading-thread-abort
                     // canceledEv.Trigger() // don in abortThenMakeAndStartAsyncThread()
-                    if config.RunContext.IsHosted && mode = AsyncMode && isNull exn.StackTrace  then
-                        log.PrintfnFsiErrorMsg "FSI evaluation was canceled,\r\nif you did not trigger this cancellation try running FSI in Synchronous evaluation mode (instead of Async)."
+                    if config.RunContext.IsHosted && syMode = AsyncMode && isNull exn.StackTrace  then
+                        log.PrintfnFsiErrorMsg "FSI evaluation was canceled,\r\nif you did not trigger this cancellation try running FSI in Synchronous evaluation syMode (instead of Async)."
 
 
                 | :? FsiCompilationException ->
@@ -457,7 +456,7 @@ type Fsi private (config:Config) =
 
                     let asyncEval = async {
                         // set context this or other async thread:
-                        match mode with
+                        match syMode with
                         |InSync ->
                             do! Async.Sleep 1 // this helps to show "FSI is running" immediately in status bar
                             do! Async.SwitchToContext SyncWpf.context
@@ -517,8 +516,8 @@ type Fsi private (config:Config) =
                 try
                     //let timer = Fesh.Timer()
                     //timer.tic()
-                    if config.Settings.GetBool ("asyncFsi", mode.IsAsync) then mode <- AsyncMode
-                    else                                                       mode <- InSync
+                    if config.Settings.GetBool ("asyncFsi", syMode.IsAsync) then syMode <- AsyncMode
+                    else                                                         syMode <- InSync
 
                     match sessionOpt with
                     |Some session -> session.Interrupt()  //TODO does this cancel running session correctly ?? // TODO how to dispose previous session ?  Thread.Abort() ??
@@ -544,7 +543,7 @@ type Fsi private (config:Config) =
 
                     (*
                     if config.RunContext.IsHosted then
-                        match mode with
+                        match syMode with
                         |InSync ->             log.PrintfnInfoMsg "FSharp Interactive will evaluate synchronously on UI Thread."
                         |Async472| Async60 ->  log.PrintfnInfoMsg "FSharp Interactive will evaluate asynchronously on a new Thread with ApartmentState.STA."
                     else
@@ -552,7 +551,7 @@ type Fsi private (config:Config) =
                     *)
 
                     // TODO what happens in Abort if current state is NotLoaded
-                    match mode with
+                    match syMode with
                     |InSync ->   ()
                     |AsyncMode ->
                         abortThenMakeAndStartAsyncThread()
@@ -599,7 +598,7 @@ type Fsi private (config:Config) =
 
     member this.State = state
 
-    member this.Mode = mode
+    member this.Mode = syMode
 
     /// starts a new Fsi session
     member this.Initialize() =  initFsi(config) // Checker class will call this after first run of checker, to start fsi when checker is  idle
@@ -608,7 +607,7 @@ type Fsi private (config:Config) =
         match state  with
         | Ready | Initializing | NotLoaded -> ()
         | Compiling | Evaluating ->
-            match mode with
+            match syMode with
             | InSync -> () //don't block event completion by doing some debug logging. TODO test how to log !//log.PrintfnInfoMsg "Current synchronous Fsi Interaction cannot be canceled"     // UI for this only available in asynchronous mode anyway, see Commands
             | AsyncMode ->
                 abortThenMakeAndStartAsyncThread()
@@ -620,7 +619,7 @@ type Fsi private (config:Config) =
         match state with
         | Ready | Initializing | NotLoaded -> NotEvaluating
         | Compiling | Evaluating ->
-            match mode with
+            match syMode with
             |InSync -> NotPossibleSync
             |AsyncMode  ->
                 match MessageBox.Show(
@@ -677,13 +676,13 @@ type Fsi private (config:Config) =
 
     member this.SetMode(sync:FsiSyncMode) =
         let setConfig()=
-            match mode with
+            match syMode with
             |InSync    -> config.Settings.SetBool ("asyncFsi", false)    |> ignore
             |AsyncMode -> config.Settings.SetBool ("asyncFsi", true)     |> ignore
 
         match this.AskIfCancellingIsOk() with
         | NotEvaluating | YesAsync    ->
-            mode <- sync
+            syMode <- sync
             modeChangedEv.Trigger(sync)
             setConfig()
             initFsi (config)
@@ -691,7 +690,7 @@ type Fsi private (config:Config) =
         | NotPossibleSync -> log.PrintfnInfoMsg "Wait till current synchronous evaluation completes before setting mode to Async."
 
     member this.ToggleSync()=
-        match mode with
+        match syMode with
         |AsyncMode  ->  this.SetMode InSync
         |InSync     ->  this.SetMode AsyncMode
 

@@ -238,7 +238,7 @@ type FsiOutputStatus (grid:TabsAndLog) as this =
 type AsyncStatus (grid:TabsAndLog) as this =
     inherit TextBlock()
     let fsi = grid.Tabs.Fsi
-    let isAsync = grid.Config.Settings.GetBool ("asyncFsi", true)
+    let isAsync = grid.Config.Settings.GetBool ("asyncFsi", false)
     let sync = "FSI evaluation mode: Synchronous"
     let asyn = "FSI evaluation mode: Asynchronous"
 
@@ -379,7 +379,7 @@ type FeshStatusBar (grid:TabsAndLog)  =
         add    Dock.Right <| FsiOutputStatus(grid)
         addSep Dock.Right
 
-        if grid.Config.RunContext.IsHosted then
+        if grid.Config.RunContext.CanRunAsync then
             add    Dock.Right  <|  AsyncStatus(grid)
             addSep Dock.Right
 

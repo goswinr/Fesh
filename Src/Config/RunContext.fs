@@ -15,7 +15,30 @@ type HostedStartUpData = {
     logo:option<Uri>
     defaultCode:option<string>
     hostAssembly :option<Reflection.Assembly>
+    canRunAsync: bool
     }
+
+// /// OptionalAttribute for member parameters
+// type internal OPT = Runtime.InteropServices.OptionalAttribute
+
+// /// DefaultParameterValueAttribute for member parameters
+// type internal DEF =  Runtime.InteropServices.DefaultParameterValueAttribute
+
+// type HostConfig (
+//     mainWindowHandle:nativeint,
+//     [<OPT;DEF("a FeshHostingApp")>]hostName:string,
+//     [<OPT;DEF(null:Func<unit,bool>)>]fsiCanRun:Func<unit,bool>,
+//     [<OPT;DEF(null:Uri)>] logo:Uri,
+//     [<OPT;DEF("")>] defaultCode:string,
+//     [<OPT;DEF(null:Reflection.Assembly)>]  hostAssembly:Reflection.Assembly
+//     ) =
+
+//     member this.hostName = hostName
+//     member this.mainWindowHandle = mainWindowHandle
+//     member this.fsiCanRun = fsiCanRun|> Option.ofObj
+//     member this.logo = logo |> Option.ofObj
+//     member this.defaultCode = defaultCode
+//     member this.hostAssembly = hostAssembly |> Option.ofObj
 
 module Folders =
 
@@ -123,6 +146,8 @@ type RunContext (host:HostedStartUpData option) =
     member this.HostAssembly = match host with None ->  None | Some d -> d.hostAssembly
 
     member this.IsHosted     = match host with None ->  false| Some _ -> true
+
+    member this.CanRunAsync  = match host with None ->  true | Some d -> d.canRunAsync // standalone only runs async
 
     member this.IsStandalone = match host with None ->  true | Some _ -> false
 
