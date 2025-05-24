@@ -70,6 +70,12 @@ module IFeshLog =
     let mutable clear : unit -> unit = // DON'T RENAME !! It's used via reflection in FsEx
         fun () -> () //implementation is changed  when Log instance is created
 
+    let mutable printColorTupled : int * int * int * string -> unit = // DON'T RENAME !! It's used via reflection in Rhino.Scripting.
+        fun (_, _, _, s) -> printf "%s" s  //this implementation is changed when Log instance is created.
+
+    let mutable printnColorTupled : int * int * int * string -> unit = // DON'T RENAME !! It's used via reflection in Rhino.Scripting.
+        fun (_, _, _, s) -> printf "%s" s  //this implementation is changed when Log instance is created.
+
 
 // ---- Editor types -----------
 

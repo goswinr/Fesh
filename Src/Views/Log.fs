@@ -153,11 +153,11 @@ type Log private () =
 
     /// Change custom color to a RGB value ( each between 0 and 255)
     /// Then print without adding a new line at the end
-    member _.PrintColor red green blue s = log.AppendWithColor (red, green, blue, s)
+    member _.PrintColor red green blue txt = log.AppendWithColor (red, green, blue, txt)
 
     /// Change custom color to a RGB value ( each between 0 and 255)
     /// Adds a new line at the end
-    member _.PrintnColor red green blue s = log.AppendLineWithColor (red, green, blue, s)
+    member _.PrintnColor red green blue txt = log.AppendLineWithColor (red, green, blue, txt)
 
     /// An additional TextWriter to also write Info, AppError, IOError,Debug and FsiError messages to.
     /// But not any other text printed with any custom color.
@@ -244,6 +244,8 @@ type Log private () =
         IFeshLog.printColor  <- l.PrintColor
         IFeshLog.printnColor <- l.PrintnColor
         IFeshLog.clear       <- l.Clear
+        IFeshLog.printColorTupled  <- fun (red, green, blue, txt) -> l.AvalonLog.AppendWithColor (red, green, blue, txt)
+        IFeshLog.printnColorTupled <- fun (red, green, blue, txt) -> l.AvalonLog.AppendLineWithColor (red, green, blue, txt)
 
         // these two where part of FSI initializing in the past
         Console.SetOut  (l.TextWriterConsoleOut)   // TODO needed to redirect printfn or covered by TextWriterFsiStdOut? //https://github.com/fsharp/FSharp.Compiler.Service/issues/201

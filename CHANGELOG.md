@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.27.0] - 2025-05-25
+### Added
+- canRunAsync field to FeshHostSettings
+
 ## [0.26.3] - 2025-05-14
 ### Fixed
 - fix net7 nuget build
