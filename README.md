@@ -4,7 +4,6 @@
 [![Fesh on nuget.org](https://img.shields.io/nuget/v/Fesh.svg)](https://nuget.org/packages/Fesh)
 [![Build](https://github.com/goswinr/Fesh/actions/workflows/build.yml/badge.svg?event=push)](https://github.com/goswinr/Fesh/actions/workflows/build.yml)
 [![Check NuGet](https://github.com/goswinr/Fesh/actions/workflows/outdatedNuget.yml/badge.svg)](https://github.com/goswinr/Fesh/actions/workflows/outdatedNuget.yml)
-<!-- [![Hits](https://hits.seeyoufarm.com/api/count/incr/badge.svg?url=https%3A%2F%2Fgithub.com%2Fgoswinr%2FFesh&count_bg=%2379C83D&title_bg=%23555555&icon=github.svg&icon_color=%23E7E7E7&title=hits&edge_flat=false)](https://hits.seeyoufarm.com) -->
 ![code size](https://img.shields.io/github/languages/code-size/goswinr/Fesh.svg)
 [![license](https://img.shields.io/github/license/goswinr/Fesh)](LICENSE)
 
@@ -24,7 +23,7 @@ You can even color the output with [Fescher](https://www.nuget.org/packages/Fesh
 
 Contrary to most F# editors, it uses [FSharp.Compiler.Service](https://www.nuget.org/packages/FSharp.Compiler.Service) in the same process as the UI.<br>
 There is no separate language server or FSI process.<br>
-Therefore,  Fesh can easily be hosted in other apps to create an embedded application scripting tool.<br>
+Therefore, Fesh can easily be hosted in other apps to create an embedded application scripting tool.<br>
 This was in fact the primary motivation for creating Fesh.<br>
 It is public since 2024.<br>
 But I started prototyping it in 2017. I used it for scripting in Rhino3D professionally since 2019.<br>
@@ -40,8 +39,8 @@ For hosting there is the nuget package [Fesh](https://www.nuget.org/packages/Fes
 Initial static syntax highlighting is done via AvalonEdit's regex based highlighting.<br>
 See [SyntaxHighlightingFSharp.xshd](https://github.com/goswinr/Fesh/blob/main/Src/SyntaxHighlightingFSharp.xshd).<br>
 The F# Compiler Service provides additional semantic highlighting.<br>
-If you want different colors go the menu: `About` -> `Open and watch SyntaxHighlighting in VS Code`.<br>
-You wil see any changes upon every save in VS Code.
+If you want different colors go to the menu: `About` -> `Open and watch SyntaxHighlighting in VS Code`.<br>
+You will see any changes upon every save in VS Code.
 
 ### Auto complete
 Auto complete works on enter and dot, also when typing in the middle of a word.
@@ -80,13 +79,13 @@ The installer is created with [Velopack](https://velopack.io) and digitally sign
 
 No admin rights are required to install or run the app.<br>
 The app will be installed in `\AppData\Local\Fesh`.<br>
-And will save it's settings in `\AppData\Roaming\Fesh`.<br>
+And will save its settings in `\AppData\Roaming\Fesh`.<br>
 A shortcut will be created on the desktop.
 
 There is also a portable package in each release.<br>
 Extract that zip and place it wherever you'd like.<br>
 It has identical functionality to the installed app,<br>
-but keeps it's Settings folder in the same directory.<br>
+but keeps its Settings folder in the same directory.<br>
 There is a ".portable" file in the folder to indicate that.<br>
 It will also automatically offer to update itself when a new version is available.
 
