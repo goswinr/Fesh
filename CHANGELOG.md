@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.28.0] - 2025-06-23
+### Fixed
+- in completions only add `()` to the end of a `unit -> unit` function name if it is at line start.
+
 ## [0.27.0] - 2025-05-25
 ### Added
 - canRunAsync field to FeshHostSettings

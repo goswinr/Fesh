@@ -42,11 +42,25 @@ module UtilCompletion =
         tb.Padding <- Thickness(0. , 0. , 8. , 0. ) //left top right bottom / so that it does not appear to be trimmed
         tb
 
+    let isAtLineStart (completionSegment:ISegment) (textArea:TextArea) =
+        let doc = textArea.Document
+        let rec loop (off:int) =
+            if off = 0 then true // at start of line
+            else
+                let c = doc.GetCharAt(off)
+                if c = ' ' then
+                    loop (off - 1)
+                elif c = '\n' || c = '\r' then
+                    true
+                else
+                    false
+        loop (completionSegment.Offset - 1)
 
+open UtilCompletion
 
 type CompletionInfo =
     | Decl    of decl:DeclarationListItem * getToolTip:(DeclarationListItem -> obj) // getToolTip is a function that returns the tooltip text
-    | KeyWord of text:string*toolTip:string
+    | KeyWord of text:string * toolTip:string
 
 type CompletionItem(state: InteractionState, info:CompletionInfo , isDotCompletion:bool) =
 
@@ -61,12 +75,12 @@ type CompletionItem(state: InteractionState, info:CompletionInfo , isDotCompleti
         if isDotCompletion then 1.0 // not on Dot completion
         else
             match info with
-            | Decl (it,_)          ->  1.0 + state.Config.AutoCompleteStatistic.Get(it.NameInList) //if p>1.0 then log.PrintfnDebugMsg "%s %g" it.Name p
+            | Decl (it,_)      ->  1.0 + state.Config.AutoCompleteStatistic.Get(it.NameInList) //if p>1.0 then log.PrintfnDebugMsg "%s %g" it.Name p
             | KeyWord (text,_) ->  1.0 + state.Config.AutoCompleteStatistic.Get(text) // create once and cache ?
 
     let textVal, textDisplay=
         match info with
-        | Decl (it,_)           -> it.NameInList ,UtilCompletion.mkTexBlock(it.NameInList , FontStyles.Normal)   // create once and cache ?
+        | Decl (it,_)      -> it.NameInList ,UtilCompletion.mkTexBlock(it.NameInList , FontStyles.Normal)   // create once and cache ?
         | KeyWord (text,_) -> text          ,UtilCompletion.mkTexBlock(text , FontStyles.Normal)   // create once and cache ?
 
     member this.Content = textDisplay :> obj // the displayed item in the completion window
@@ -97,7 +111,7 @@ type CompletionItem(state: InteractionState, info:CompletionInfo , isDotCompleti
                 else
                     it.NameInCode // may include backticks
 
-        // add '()' at end of word if this is a function taking unit:
+        // to maybe add '()' at end of word if this is a function taking unit:
         let taggedTextSig =
             match info with
             | KeyWord _ -> None
@@ -120,12 +134,15 @@ type CompletionItem(state: InteractionState, info:CompletionInfo , isDotCompleti
         match taggedTextSig with
         |None -> ()
         |Some ts ->
-            if ts.Length >= 7 && ts.Length < 25 then // < 25 to skip long list of class definitions
-                if ts.[ts.Length-5].Text = "unit"
-                && ts.[ts.Length-3].Text = "->"
-                && ts.[ts.Length-1].Text = "unit"
-                && ts.[ts.Length-7].Text = ":" then
-                    complText <- complText + "()"
+            if ts.Length >= 7
+            && ts.Length < 25  // < 25 to skip long list of class definitions
+            && ts.[ts.Length-5].Text = "unit"
+            && ts.[ts.Length-3].Text = "->"
+            && ts.[ts.Length-1].Text = "unit"
+            && ts.[ts.Length-7].Text = ":"
+            && isAtLineStart completionSegment textArea
+            && completionSegment.Length < complText.Length then // the full text is not yet typed in, and the two '()' wher not just deleted
+                complText <- complText + "()"
 
         let doc = textArea.Document
 
