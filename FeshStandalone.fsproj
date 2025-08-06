@@ -47,8 +47,8 @@
 
     <PackageReference Include="Microsoft.VisualBasic" Version="10.3.0" /> <!-- to move files to the recycle bin instead of deleting them -->
     <PackageReference Include="System.Private.Uri" Version="4.3.2" />    <!-- warning NU1903: Package 'System.Private.Uri' 4.3.0 has a known high severity vulnerability, https://github.com/advisories/GHSA-5f2m-466j-3848 -->
-    <PackageReference Include="FSharp.Compiler.Service" Version="43.9.300" />
-    <PackageReference Include="FSharp.Core" Version="9.0.300" />
+    <PackageReference Include="FSharp.Compiler.Service" Version="43.9.303" />
+    <PackageReference Include="FSharp.Core" Version="9.0.303" />
 
     <PackageReference Include="Fittings" Version="0.10.0" />
     <PackageReference Include="AvalonLog" Version="0.20.0" />
