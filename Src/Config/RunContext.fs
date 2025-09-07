@@ -8,6 +8,7 @@ open Fesh.Model
 /// fsiCanRun: a function to check if evaluation of fsi is currently allowed
 /// logo: optional a URI to an alternative logo for hosted mode default is Uri("pack://application:,,,/Fesh;component/Media/logo.ico")
 /// hostAssembly: to get version number of hosting assembly
+/// canRunAsync: bool to indicate if the hosted app can run async code
 type HostedStartUpData = {
     hostName:string
     mainWindowHandel: nativeint
@@ -18,27 +19,6 @@ type HostedStartUpData = {
     canRunAsync: bool
     }
 
-// /// OptionalAttribute for member parameters
-// type internal OPT = Runtime.InteropServices.OptionalAttribute
-
-// /// DefaultParameterValueAttribute for member parameters
-// type internal DEF =  Runtime.InteropServices.DefaultParameterValueAttribute
-
-// type HostConfig (
-//     mainWindowHandle:nativeint,
-//     [<OPT;DEF("a FeshHostingApp")>]hostName:string,
-//     [<OPT;DEF(null:Func<unit,bool>)>]fsiCanRun:Func<unit,bool>,
-//     [<OPT;DEF(null:Uri)>] logo:Uri,
-//     [<OPT;DEF("")>] defaultCode:string,
-//     [<OPT;DEF(null:Reflection.Assembly)>]  hostAssembly:Reflection.Assembly
-//     ) =
-
-//     member this.hostName = hostName
-//     member this.mainWindowHandle = mainWindowHandle
-//     member this.fsiCanRun = fsiCanRun|> Option.ofObj
-//     member this.logo = logo |> Option.ofObj
-//     member this.defaultCode = defaultCode
-//     member this.hostAssembly = hostAssembly |> Option.ofObj
 
 module Folders =
 
