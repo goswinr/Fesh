@@ -650,13 +650,13 @@ type Fsi private (config:Config) =
 
 
     member this.Evaluate(code:CodeToEval) =
-        if DateTime.Today > DateTime(2025, 12, 31) then
+        if DateTime.Today > DateTime(2026, 12, 31) then
             log.PrintfnFsiErrorMsg "*** Your Fesh Editor has expired, please download a new version. ***"
             log.PrintfnFsiErrorMsg "*** https://github.com/goswinr/Fesh ***"
             log.PrintfnFsiErrorMsg "*** or contact goswin@rothenthal.com ***"
         else
-            if DateTime.Today > DateTime(2025, 9, 30) then
-                    log.PrintfnFsiErrorMsg "*** Your Fesh Editor will expire on 2025-12-31, please download a new version soon.***"
+            if DateTime.Today > DateTime(2026, 9, 30) then
+                    log.PrintfnFsiErrorMsg "*** Your Fesh Editor will expire on 2026-12-31, please download a new version soon.***"
                     log.PrintfnFsiErrorMsg "*** https://github.com/goswinr/Fesh ***"
                     log.PrintfnFsiErrorMsg "*** or contact goswin@rothenthal.com ***"
             match this.AskIfCancellingIsOk () with
