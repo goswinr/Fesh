@@ -164,6 +164,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [0.10.0]: https://github.com/goswinr/Fesh/compare/0.9.0...0.10.0
 [0.9.0]: https://github.com/goswinr/Fesh/releases/tag/0.9.0
 
-<!-- use to get tag dates:
-git log --tags --simplify-by-decoration --pretty="format:%ci %d"
--->
+
