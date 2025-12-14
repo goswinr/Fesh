@@ -1,6 +1,6 @@
-#### for .NET 9
+#### for .NET 10
 
-To install just download and run `Fesh-net9-Setup.exe` from the Assets.
+To install just download and run `Fesh-net10-Setup.exe` from the Assets.
 
 <details>
 
@@ -11,7 +11,7 @@ The app will be installed in `C:\Users\{username}\AppData\Local\Fesh\current`.<b
 A shortcut will be created on the desktop.
 It will automatically offer to update Fesh when a new version is available.
 
-There is also a portable package `Fesh-net9-Portable.zip`.<br>
+There is also a portable package `Fesh-net10-Portable.zip`.<br>
 Extract that zip and place it wherever you'd like.<br>
 It has identical functionality to the installer.<br>
 It will also automatically offer to update itself when a new version is available.

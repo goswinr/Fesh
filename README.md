@@ -73,7 +73,7 @@ Or via the menu: `About` -> `Open Settings Folder`.
 
 The recommended way is to run the Setup.exe from [Releases](https://github.com/goswinr/Fesh/releases).<br>
 Fesh will automatically offer to update itself when a new version is available.<br>
-There is a .NET 9 and a .NET 4.8 version. Apart from the runtime they are the same.
+There is a .NET 10 and a .NET 4.8 version. Apart from the runtime they are the same.
 
 The installer is created with [Velopack](https://velopack.io) and digitally signed.
 

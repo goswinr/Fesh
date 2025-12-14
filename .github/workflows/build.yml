@@ -33,12 +33,12 @@ jobs:
             --framework net48 `
             --no-self-contained
 
-      - name: Run dotnet publish net9.0
+      - name: Run dotnet publish net10.0
         run: |
           dotnet publish FeshStandalone.fsproj `
             --configuration Release `
             --runtime win-x64 `
-            --framework net9.0-windows `
+            --framework net10.0-windows `
             --no-self-contained
 
 
