@@ -32,17 +32,27 @@ module Initialize =
 
                     let updateInfoMaybe, updateManager =
                         if config.RunContext.IsRunningOnDotNetCore then
-                            let updateManager48 = new UpdateManager(source, UpdateOptions (ExplicitChannel = "framework48" ))  // match .github\workflows\release.yml
-                            updateManager48.CheckForUpdatesAsync().Result, updateManager48
+                            let updateManager = new UpdateManager(source)
+                            match updateManager.CheckForUpdatesAsync().Result with
+                            | null ->
+                                let updateManager48 = new UpdateManager(source, UpdateOptions (ExplicitChannel = "framework48" ))  // match .github\workflows\release.yml
+                                updateManager48.CheckForUpdatesAsync().Result, updateManager48
+                            | u ->
+                                u, updateManager
 
                         else
-                            let updateManager10 = new UpdateManager(source, UpdateOptions (ExplicitChannel = "net10" ))  // match .github\workflows\release.yml
-                            match updateManager10.CheckForUpdatesAsync().Result with
+                            let updateManager = new UpdateManager(source)
+                            match updateManager.CheckForUpdatesAsync().Result with
                             | null ->
-                                let updateManager11= new UpdateManager(source, UpdateOptions (ExplicitChannel = "net11" ))
-                                (updateManager11.CheckForUpdatesAsync().Result, updateManager11)
+                                let updateManager10 = new UpdateManager(source, UpdateOptions (ExplicitChannel = "net10" ))  // match .github\workflows\release.yml
+                                match updateManager10.CheckForUpdatesAsync().Result with
+                                | null ->
+                                    let updateManager11= new UpdateManager(source, UpdateOptions (ExplicitChannel = "net11" ))
+                                    (updateManager11.CheckForUpdatesAsync().Result, updateManager11)
+                                | u ->
+                                    (u, updateManager10)
                             | u ->
-                                (u, updateManager10)
+                                (u, updateManager)
 
 
                     match updateInfoMaybe with

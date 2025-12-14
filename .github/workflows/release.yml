@@ -78,7 +78,7 @@ jobs:
           --repoUrl https://github.com/goswinr/Fesh `
           --token ${{secrets.GITHUB_TOKEN}} `
           --outputDir bin/installer/net48 `
-          --channel framework48
+          --channel framework
 
         vpk pack `
           --packId Fesh.net48 `
@@ -92,7 +92,7 @@ jobs:
           --azureTrustedSignFile .github/signing-metadata.json `
           --splashImage Media/logo128.png `
           --outputDir bin/installer/net48 `
-          --channel framework48
+          --channel framework
 
         vpk upload github `
           --publish `
@@ -101,7 +101,7 @@ jobs:
           --tag "${{github.ref_name}}-net48" `
           --token ${{secrets.GITHUB_TOKEN}} `
           --outputDir bin/installer/net48 `
-          --channel framework48
+          --channel framework
           
     - name: Pack, Sign and Release with Velopack .NET 10.0
       # https://docs.velopack.io/reference/cli/content/vpk-windows
@@ -113,7 +113,7 @@ jobs:
           --repoUrl https://github.com/goswinr/Fesh `
           --token ${{secrets.GITHUB_TOKEN}} `
           --outputDir bin/installer/net10.0 `
-          --channel net10
+          --channel net9
 
         vpk pack `
           --packId Fesh `
@@ -127,7 +127,7 @@ jobs:
           --azureTrustedSignFile .github/signing-metadata.json `
           --splashImage Media/logo128.png `
           --outputDir bin/installer/net10.0 `
-          --channel net10
+          --channel net9
           
         vpk upload github `
           --publish `
@@ -136,6 +136,6 @@ jobs:
           --tag ${{github.ref_name}} `
           --token ${{secrets.GITHUB_TOKEN}} `
           --outputDir bin/installer/net10.0 `
-          --channel net10
+          --channel net9
           
 

@@ -7,9 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.29.1] - 2025-12-14
+## [0.29.2] - 2025-12-14
 ### Fixed
-- updating channels
+- updating velopack channels
 
 ## [0.29.0] - 2025-12-14
 ### Changed
@@ -145,7 +145,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - first public release
 
-[Unreleased]: https://github.com/goswinr/Fesh/compare/0.29.0...HEAD
+[Unreleased]: https://github.com/goswinr/Fesh/compare/0.29.2...HEAD
+[0.29.2]: https://github.com/goswinr/Fesh/compare/0.29.0...0.29.2
 [0.29.0]: https://github.com/goswinr/Fesh/compare/0.28.1...0.29.0
 [0.28.1]: https://github.com/goswinr/Fesh/compare/0.28.0...0.28.1
 [0.28.0]: https://github.com/goswinr/Fesh/compare/0.27.0...0.28.0
