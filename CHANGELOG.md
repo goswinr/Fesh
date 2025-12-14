@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.29.0] - 2025-12-14
+### Changed
+- support F# 10 and .Net 10
+- fix bug in bracket highlighting
+
 ## [0.28.1] - 2025-10-04
 ### Fixed
 - app expiry

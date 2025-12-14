@@ -4,7 +4,7 @@
     <OutputType>WinExe</OutputType>
     <UseWPF>true</UseWPF>
     <UseWindowsForms>true</UseWindowsForms>    <!--inherited from Avalonedit ?-->
-	  <TargetFrameworks>net48;net9.0-windows</TargetFrameworks>
+	  <TargetFrameworks>net48;net10.0-windows</TargetFrameworks>
     <DefineConstants Condition="'$(TargetFramework)' == 'net48'">NETFRAMEWORK</DefineConstants>
     <!-- <RuntimeIdentifiers>win-x64;win-x86</RuntimeIdentifiers> -->
     <!-- <RuntimeIdentifier>win-x64</RuntimeIdentifier> -->

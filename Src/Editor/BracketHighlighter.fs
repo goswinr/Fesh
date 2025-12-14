@@ -87,7 +87,7 @@ module ParseBrackets =
                     Int32.MaxValue // char flows over to the next line (invalid F# char literal)
                 else
                     match chr with
-                    | ''' ->  i+1 // first char after char literal
+                    | ''' -> i+1 // first char after char literal
                     |  _  -> skipChar code[i+1] (i+1)
 
             /// for simple strings
@@ -215,15 +215,19 @@ module ParseBrackets =
 
                     | ''', '\\' ->  if i + 3 <= lastIdx then
                                         let next3 = code[i+3] //skip the first char after '\ it might be a ' or a " .
-                                        skipChar next3 (i+3) |> flowOnOrOver RegCode // skipChar becaus this might be a long unicode escaped char literal
+                                        skipChar next3 (i+3) |> flowOnOrOver RegCode // skipChar because this might be a long unicode escaped char literal
                                     else
                                         RegCode // the line ends immediately after '"' or '''
 
-                    | ''',  _  ->   if i + 3 <= lastIdx then // a regular char literal starts, its length is 3
-                                        let next3 = code[i+3] // the char after `?`
-                                        charLoop next3 (i+3)
+                    | ''',  _  ->   if i + 3 <= lastIdx then // a regular char literal starts,  its length is 3, or a generic Type
+                                        if code[i+2] = ''' then
+                                            let next3 = code[i+3] // the char after '''
+                                            charLoop next3 (i+3)
+                                        else
+                                            // might be a generic type like 'T or a malformed char literal
+                                            charLoop next (i+1)
                                     else
-                                        RegCode // the line ends immediately after `?`
+                                        RegCode // the line ends immediately after `'`
 
                     | _       -> charLoop next (i+1)
 
