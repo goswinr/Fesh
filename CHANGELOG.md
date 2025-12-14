@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.29.3] - 2025-12-15
+### Changed
+- Build NET core nuget targeting F# 8 and .Net 8 to try fix assembly load issues in Rhino and Revit
+
 ## [0.29.2] - 2025-12-14
 ### Fixed
 - updating velopack channels

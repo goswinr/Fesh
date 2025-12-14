@@ -106,6 +106,10 @@ jobs:
     - name: Pack, Sign and Release with Velopack .NET 10.0
       # https://docs.velopack.io/reference/cli/content/vpk-windows
       # If you are publishing your application with --no-self-contained, then you should provide the --framework argument. https://docs.velopack.io/packaging/bootstrapping
+      # the channel net9 is be not named correctly, since we are on net10 now, but if changed velopack updates don't happen automatically anymore.
+      # the channel name is just an identifier here. it is not showing up in the app I think
+      # see also checkForNewVelopackRelease(config:Config, fesh:Fesh)  in Initialize.fs
+      # and see https://docs.velopack.io/integrating/switching-channels for channels
       run: |
         dotnet tool install vpk  --global 
         

@@ -27,9 +27,9 @@ module Initialize =
                     // https://docs.velopack.io/reference/cs/Velopack/Sources/GithubSource/constructors
                     let readOnlyToken = ""
                     let source = new GithubSource("https://github.com/goswinr/Fesh", accessToken = readOnlyToken, prerelease = false)
-                    // let updateManager = new UpdateManager(source)
 
 
+                    // see https://docs.velopack.io/integrating/switching-channels for channels
                     let updateInfoMaybe, updateManager =
                         if config.RunContext.IsRunningOnDotNetCore then
                             let updateManager = new UpdateManager(source)

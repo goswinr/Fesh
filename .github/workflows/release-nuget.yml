@@ -52,28 +52,28 @@ jobs:
         --api-key ${{ secrets.NUGET_API_KEY }} `
         --source https://api.nuget.org/v3/index.json
 
-    # now that net427 is out do the same for net7.0
-    # all of this is only needed because   <TargetFrameworks>net7.0;net472</TargetFrameworks> does no make a valid nuget package for ne48
-    # so wwe make a separate build for net7.0 and net472
+    # now that net472 is done do the same for net8.0
+    # all of this is only needed because   <TargetFrameworks>net8.0-windows;net472</TargetFrameworks> does no make a valid nuget package for net48
+    # so wwe make a separate build for net8.0 and net472
 
-    - name: Set target framework to net7.0
+    - name: Set target framework to net8.0
       run: |
         $projFile = Get-Content -Path FeshHosting.fsproj -Raw
-        $projFile = $projFile -replace "<TargetFramework>net472</TargetFramework>", "<TargetFramework>net7.0-windows</TargetFramework>"
+        $projFile = $projFile -replace "<TargetFramework>net472</TargetFramework>", "<TargetFramework>net8.0-windows</TargetFramework>"
         Set-Content -Path FeshHosting.fsproj -Value $projFile
 
-    - name : Set -net7 suffix in changelog
+    - name : Set -net8 suffix in changelog
       run: |
         $content = Get-Content -Path CHANGELOG.md -Raw
-        $content = $content -replace "${{ github.ref_name }}", "${{ github.ref_name }}-net7"
+        $content = $content -replace "${{ github.ref_name }}", "${{ github.ref_name }}-net8"
         Set-Content -Path CHANGELOG.md -Value $content
     
-    - name: Dotnet build FeshHosting for net7.0
-      run: dotnet build FeshHosting.fsproj  --configuration Release  --output bin/publishNuget
+    - name: Dotnet build FeshHosting for net8.0
+      run: dotnet build FeshHosting.fsproj --configuration Release --output bin/publishNuget
 
-    - name: Push net7.0 NuGet package to nuget.org
+    - name: Push net8.0 NuGet package to nuget.org
       run: |
         dotnet nuget push `
-        ./bin/publishNuget/Fesh.${{ github.ref_name }}-net7.symbols.nupkg `
+        ./bin/publishNuget/Fesh.${{ github.ref_name }}-net8.symbols.nupkg `
         --api-key ${{ secrets.NUGET_API_KEY }} `
         --source https://api.nuget.org/v3/index.json
