@@ -34,7 +34,7 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v5
       with:
-        dotnet-version: '9.x' # Specify the .NET version you are using
+        dotnet-version: '10.x' # Specify the .NET version you are using
 
     - name: Restore NuGet packages
       run: |

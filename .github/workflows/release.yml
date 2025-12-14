@@ -24,7 +24,7 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v5
       with:
-        dotnet-version: '9.x'
+        dotnet-version: '10.x'
 
     - name: Run dotnet publish net48
       run: |
@@ -78,7 +78,7 @@ jobs:
           --repoUrl https://github.com/goswinr/Fesh `
           --token ${{secrets.GITHUB_TOKEN}} `
           --outputDir bin/installer/net48 `
-          --channel framework
+          --channel framework48
 
         vpk pack `
           --packId Fesh.net48 `
@@ -92,7 +92,7 @@ jobs:
           --azureTrustedSignFile .github/signing-metadata.json `
           --splashImage Media/logo128.png `
           --outputDir bin/installer/net48 `
-          --channel framework   
+          --channel framework48
 
         vpk upload github `
           --publish `
@@ -101,7 +101,7 @@ jobs:
           --tag "${{github.ref_name}}-net48" `
           --token ${{secrets.GITHUB_TOKEN}} `
           --outputDir bin/installer/net48 `
-          --channel framework 
+          --channel framework48
           
     - name: Pack, Sign and Release with Velopack .NET 10.0
       # https://docs.velopack.io/reference/cli/content/vpk-windows
@@ -127,7 +127,7 @@ jobs:
           --azureTrustedSignFile .github/signing-metadata.json `
           --splashImage Media/logo128.png `
           --outputDir bin/installer/net10.0 `
-          --channel net10  
+          --channel net10
           
         vpk upload github `
           --publish `
@@ -136,5 +136,6 @@ jobs:
           --tag ${{github.ref_name}} `
           --token ${{secrets.GITHUB_TOKEN}} `
           --outputDir bin/installer/net10.0 `
-          --channel net10 
+          --channel net10
+          
 
