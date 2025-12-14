@@ -27,9 +27,25 @@ module Initialize =
                     // https://docs.velopack.io/reference/cs/Velopack/Sources/GithubSource/constructors
                     let readOnlyToken = ""
                     let source = new GithubSource("https://github.com/goswinr/Fesh", accessToken = readOnlyToken, prerelease = false)
-                    let updateManager = new UpdateManager(source)
+                    // let updateManager = new UpdateManager(source)
 
-                    match updateManager.CheckForUpdatesAsync().Result with
+
+                    let updateInfoMaybe, updateManager =
+                        if config.RunContext.IsRunningOnDotNetCore then
+                            let updateManager48 = new UpdateManager(source, UpdateOptions (ExplicitChannel = "framework48" ))  // match .github\workflows\release.yml
+                            updateManager48.CheckForUpdatesAsync().Result, updateManager48
+
+                        else
+                            let updateManager10 = new UpdateManager(source, UpdateOptions (ExplicitChannel = "net10" ))  // match .github\workflows\release.yml
+                            match updateManager10.CheckForUpdatesAsync().Result with
+                            | null ->
+                                let updateManager11= new UpdateManager(source, UpdateOptions (ExplicitChannel = "net11" ))
+                                (updateManager11.CheckForUpdatesAsync().Result, updateManager11)
+                            | u ->
+                                (u, updateManager10)
+
+
+                    match updateInfoMaybe with
                     | null ->
                         IFeshLog.log.PrintfnInfoMsg $"You are using the latest version of Fesh: {cv}"
                     | updateInfo ->
