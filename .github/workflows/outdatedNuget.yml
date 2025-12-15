@@ -108,7 +108,7 @@ jobs:
     # This will not create a duplicate PR if one exists already
     - name: Create Pull Request
       if: ${{env.COMMIT_MSG }}
-      uses: peter-evans/create-pull-request@v7
+      uses: peter-evans/create-pull-request@v8
       with:
         commit-message: ${{ env.COMMIT_MSG }}
         committer: github-actions[bot] <github-actions[bot]@users.noreply.github.com>
