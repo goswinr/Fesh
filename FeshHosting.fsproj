@@ -10,7 +10,7 @@
     <!-- <TargetFrameworks>net472;net8.0-windows</TargetFrameworks> somehow the resultant nuget from multiple target frameworks
     does get unified to 8.0 and does not work on net48 -->
     <!--so the the release-nuget.yml aktion will change this and also publish a net472,net8,net9 nuget separately: -->
-    <TargetFramework>net8.0-windows</TargetFramework> <!-- use the lowest F# here by default -->
+    <TargetFramework>net8.0-windows</TargetFramework> <!-- use the lowest F# here by default, will be replace by other versions in release-nuget.yml -->
 
     <DefineConstants Condition="'$(TargetFramework)' == 'net472'">NETFRAMEWORK</DefineConstants> <!-- so thread.Abort() can be used -->
     <DefineConstants Condition="'$(TargetFramework)' == 'net8.0-windows'">NET8</DefineConstants> <!-- so that caret in GetProjectOptionsFromScript can be skipped-->

@@ -25,9 +25,6 @@ jobs:
         $content = $content -replace "<br>", "  "
         Set-Content -Path README.md -Value $content           
 
-    - name: Dotnet build FeshHosting for net8
-      run: dotnet build FeshHosting.fsproj  --configuration Release  --output bin/publishNuget
-
 
     - name: Check version consistency of git tag and CHANGELOG.md
       # needs in fsproj:
@@ -54,8 +51,11 @@ jobs:
         $projFile = Get-Content -Path FeshHosting.fsproj -Raw
         $projFile = $projFile -replace "<TargetFramework>.*?</TargetFramework>", "<TargetFramework>net10.0-windows</TargetFramework>"
         Set-Content -Path FeshHosting.fsproj -Value $projFile    
-    
-    - name: Push net10 NuGet package to nuget.org
+      
+    - name: Dotnet build FeshHosting for net10
+      run:  dotnet build FeshHosting.fsproj --configuration Release --output bin/publishNuget
+
+    - name: Push net10 NuGet package to nuget.org without suffix
       run: |
         dotnet nuget push `
         ./bin/publishNuget/Fesh.${{ github.ref_name }}.symbols.nupkg `

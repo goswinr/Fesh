@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.30.0-alpha3] - 2025-12-19
+## [0.30.1] - 2025-12-19
 ### Changed
 - net472, net8, net9 nuget with suffix, net10 nuget without suffix
 - don't load nuget packages while typing them to avoid loading unwanted packages
