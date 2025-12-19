@@ -9,10 +9,11 @@
     <UseWindowsForms>true</UseWindowsForms><!--inherited from Avalonedit ?-->
     <!-- <TargetFrameworks>net472;net8.0-windows</TargetFrameworks> somehow the resultant nuget from multiple target frameworks
     does get unified to 8.0 and does not work on net48 -->
-    <!--so the the release-nuget.yml aktion will change this and also publish a net472 nuget separately: -->
-    <TargetFramework>net8.0-windows</TargetFramework>
+    <!--so the the release-nuget.yml aktion will change this and also publish a net472,net8,net9 nuget separately: -->
+    <TargetFramework>net8.0-windows</TargetFramework> <!-- use the lowest F# here by default -->
 
     <DefineConstants Condition="'$(TargetFramework)' == 'net472'">NETFRAMEWORK</DefineConstants> <!-- so thread.Abort() can be used -->
+    <DefineConstants Condition="'$(TargetFramework)' == 'net8.0-windows'">NET8</DefineConstants> <!-- so that caret in GetProjectOptionsFromScript can be skipped-->
 
     <LangVersion>preview</LangVersion><!-- to enable indexing from end via ^ -->
 
@@ -56,6 +57,28 @@
     <PackageTags>WPF TextEditor fsharp scripting FSI AvalonEdit fesh</PackageTags>
   </PropertyGroup>
 
+
+  <!-- build the NET core nuget for F#8 so that dependencies like System.Diagnostics.DiagnosticSource are also for net8 and load properly in Rhino and Revit:
+  see https://github.com/dotnet/fsharp/issues/19174
+  Use Include not Update for FSharp.Core because of DisableImplicitFSharpCoreReference-->
+  <ItemGroup Condition="'$(TargetFramework)' == 'net472'"> <!-- net472 can use the latest versions -->
+    <PackageReference Include="FSharp.Compiler.Service" Version="43.10.101" />
+    <PackageReference Include="FSharp.Core"             Version="10.0.101" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)' == 'net10.0-windows'">
+    <PackageReference Include="FSharp.Compiler.Service" Version="43.10.101" />
+    <PackageReference Include="FSharp.Core"             Version="10.0.101" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)' == 'net8.0-windows'">
+    <PackageReference Include="FSharp.Compiler.Service" Version="43.8.403" />
+    <PackageReference Include="FSharp.Core"             Version="8.0.403" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)' == 'net9.0-windows'">
+    <PackageReference Include="FSharp.Compiler.Service" Version="43.9.303" />
+    <PackageReference Include="FSharp.Core"             Version="9.0.303" />
+  </ItemGroup>
+
+
   <ItemGroup>
     <PackageReference Include="Velopack" Version="0.0.1298" />
     <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="all" IncludeAssets="runtime; build; native; contentfiles; analyzers; buildtransitive" />
@@ -63,15 +86,6 @@
 
     <PackageReference Include="Microsoft.VisualBasic" Version="10.3.0" /> <!-- to move files to the recycle bin instead of deleting them -->
     <PackageReference Include="System.Private.Uri" Version="4.3.2" />    <!-- warning NU1903: Package 'System.Private.Uri' 4.3.0 has a known high severity vulnerability, https://github.com/advisories/GHSA-5f2m-466j-3848 -->
-
-    <PackageReference Include="FSharp.Compiler.Service" Version="43.10.101" />
-    <PackageReference Include="FSharp.Core" Version="10.0.101" />
-
-    <!-- build the NET core nuget for F#8 so that dependencies like System.Diagnostics.DiagnosticSource are also for Net80 and load properly in Rhino and Revit:-->
-    <!-- <PackageReference Include="FSharp.Compiler.Service" Version="43.10.101" Condition="'$(TargetFramework)' == 'net472'" />
-    <PackageReference Include="FSharp.Compiler.Service" Version="43.8.403"  Condition="'$(TargetFramework)' != 'net472'" />
-    <PackageReference Include="FSharp.Core" Version="10.0.101"  Condition="'$(TargetFramework)' == 'net472'"/>
-    <PackageReference Include="FSharp.Core" Version="8.0.403"  Condition="'$(TargetFramework)' != 'net472'"/> -->
 
 	  <PackageReference Include="Fittings" Version="0.10.0" />
 	  <PackageReference Include="AvalonLog" Version="0.20.0" />

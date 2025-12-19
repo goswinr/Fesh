@@ -46,6 +46,15 @@ jobs:
         echo "github.ref_name=${{ github.ref_name }}"  
         echo "Version check of git tag and CHANGELOG.md passed successfully." 
 
+    
+    
+    # publish net 10 with no suffix
+    - name: Set target framework to net10 in FeshHosting.fsproj
+      run: |
+        $projFile = Get-Content -Path FeshHosting.fsproj -Raw
+        $projFile = $projFile -replace "<TargetFramework>.*?</TargetFramework>", "<TargetFramework>net10.0-windows</TargetFramework>"
+        Set-Content -Path FeshHosting.fsproj -Value $projFile    
+    
     - name: Push net10 NuGet package to nuget.org
       run: |
         dotnet nuget push `
@@ -53,9 +62,10 @@ jobs:
         --api-key ${{ secrets.NUGET_API_KEY }} `
         --source https://api.nuget.org/v3/index.json
 
-    # now that net8 is done do the same for net472
-    # all of this is only needed because   <TargetFrameworks>net8.0-windows;net472</TargetFrameworks> does no make a valid nuget package for net48
-    # so we make a separate build for net8.0 and net472
+    # now packages with suffix:
+
+    # all of this is only needed because  <TargetFrameworks>net8.0-windows;net472</TargetFrameworks> does no make a valid nuget package for net48
+    # so we make a separate build for net8 and net472 and net9
 
     - name: Set target framework to net472 in FeshHosting.fsproj
       run: |
@@ -70,11 +80,65 @@ jobs:
         Set-Content -Path CHANGELOG.md -Value $content
     
     - name: Dotnet build FeshHosting for net472
-      run: dotnet build FeshHosting.fsproj --configuration Release --output bin/publishNuget
+      run: |
+        Remove-Item -Path ./bin/publishNuget/* -Recurse -Force
+        dotnet build FeshHosting.fsproj --configuration Release --output bin/publishNuget
 
     - name: Push net472 NuGet package to nuget.org
       run: |
         dotnet nuget push `
         ./bin/publishNuget/Fesh.${{ github.ref_name }}-net472.symbols.nupkg `
+        --api-key ${{ secrets.NUGET_API_KEY }} `
+        --source https://api.nuget.org/v3/index.json
+
+
+    # now that net472 is done do the same for net8
+    - name: Set target framework to net8 in FeshHosting.fsproj
+      run: |
+        $projFile = Get-Content -Path FeshHosting.fsproj -Raw
+        $projFile = $projFile -replace "<TargetFramework>.*?</TargetFramework>", "<TargetFramework>net8.0-windows</TargetFramework>"
+        Set-Content -Path FeshHosting.fsproj -Value $projFile
+
+    - name : Set -net8 suffix in changelog
+      run: |
+        $content = Get-Content -Path CHANGELOG.md -Raw
+        $content = $content -replace "${{ github.ref_name }}-net472", "${{ github.ref_name }}-net8"
+        Set-Content -Path CHANGELOG.md -Value $content
+    
+    - name: Dotnet build FeshHosting for net8
+      run: |
+        Remove-Item -Path ./bin/publishNuget/* -Recurse -Force
+        dotnet build FeshHosting.fsproj --configuration Release --output bin/publishNuget
+
+    - name: Push net8 NuGet package to nuget.org
+      run: |
+        dotnet nuget push `
+        ./bin/publishNuget/Fesh.${{ github.ref_name }}-net8.symbols.nupkg `
+        --api-key ${{ secrets.NUGET_API_KEY }} `
+        --source https://api.nuget.org/v3/index.json
+
+
+    # now that net472 is done do the same for net9
+    - name: Set target framework to net9 in FeshHosting.fsproj
+      run: |
+        $projFile = Get-Content -Path FeshHosting.fsproj -Raw
+        $projFile = $projFile -replace "<TargetFramework>.*?</TargetFramework>", "<TargetFramework>net9.0-windows</TargetFramework>"
+        Set-Content -Path FeshHosting.fsproj -Value $projFile
+
+    - name : Set -net9 suffix in changelog
+      run: |
+        $content = Get-Content -Path CHANGELOG.md -Raw
+        $content = $content -replace "${{ github.ref_name }}-net8", "${{ github.ref_name }}-net9"
+        Set-Content -Path CHANGELOG.md -Value $content
+    
+    - name: Dotnet build FeshHosting for net9
+      run: |
+        Remove-Item -Path ./bin/publishNuget/* -Recurse -Force
+        dotnet build FeshHosting.fsproj --configuration Release --output bin/publishNuget
+
+    - name: Push net9 NuGet package to nuget.org
+      run: |
+        dotnet nuget push `
+        ./bin/publishNuget/Fesh.${{ github.ref_name }}-net9.symbols.nupkg `
         --api-key ${{ secrets.NUGET_API_KEY }} `
         --source https://api.nuget.org/v3/index.json
