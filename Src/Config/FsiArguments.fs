@@ -11,11 +11,20 @@ type FsiArguments   ( runContext:RunContext) =
     let writer = SaveReadWriter(filePath0, IFeshLog.printError)
 
     let defaultArgs =
-        if runContext.IsHosted then // dec 2024, F# 9, on net48 hosted in Rhino --multiemit- is needed to enable multiple evaluations, line numbers for errors don't work though.
-            [| "first arg must be there but is ignored" ; "--langversion:preview"  ; "--exec"; "--debug+"; "--debug:full" ;"--optimize+" ; "--gui+" ; "--nologo"; "--multiemit-"|]
-        else // Standalone for net48 too --multiemit is always there on netCore
-            [| "first arg must be there but is ignored" ; "--langversion:preview"  ; "--exec"; "--debug+"; "--debug:full" ;"--optimize+" ; "--gui+" ; "--nologo"; "--multiemit+" |]
-
+        [|
+        "first arg ignored"
+        "--langversion:preview"
+        "--exec"
+        "--debug+"
+        "--debug:full"
+        "--optimize+"
+        "--gui+"
+        "--nologo"
+        if runContext.IsHosted && not runContext.IsRunningOnDotNetCore then // dec 2024, F# 9, on net48 hosted in Rhino --multiemit- is needed to enable multiple evaluations, line numbers for errors don't work though.
+            "--multiemit-"
+        else
+            "--multiemit+" // to see line numbers in error messages
+        |]
 
     // Standalone with "--multiemit" to have line numbers in error messages see https://github.com/dotnet/fsharp/discussions/13293
     // Hosted without "--multiemit", error line numbers don't work there anyway, and in addition accessing previously emitted assemblies might fail with a TypeLoadException.
