@@ -26,7 +26,17 @@ jobs:
         Set-Content -Path README.md -Value $content           
 
 
-    - name: Check version consistency of git tag and CHANGELOG.md
+    # publish net 10 with no suffix
+    - name: Set target framework to net10 in FeshHosting.fsproj
+      run: |
+        $projFile = Get-Content -Path FeshHosting.fsproj -Raw
+        $projFile = $projFile -replace "<TargetFramework>.*?</TargetFramework>", "<TargetFramework>net10.0-windows</TargetFramework>"
+        Set-Content -Path FeshHosting.fsproj -Value $projFile    
+      
+    - name: Dotnet build FeshHosting for net10
+      run:  dotnet build FeshHosting.fsproj --configuration Release --output bin/publishNuget
+
+    - name: Check version consistency of git tag and CHANGELOG.md after build
       # needs in fsproj:
       # <Target Name="WriteChangelogVersion" AfterTargets="AfterBuild"><!-- for version checks in github tag based builds -->
       #   <WriteLinesToFile File="./bin/ChangelogVersion.txt" Lines="@(CurrentReleaseChangelog)" Overwrite="true" ContinueOnError="false" />
@@ -41,19 +51,8 @@ jobs:
         fi 
         echo "CHANGELOG_VERSION=$CHANGELOG_VERSION"
         echo "github.ref_name=${{ github.ref_name }}"  
-        echo "Version check of git tag and CHANGELOG.md passed successfully." 
-
+        echo "Version check of git tag and CHANGELOG.md passed successfully."     
     
-    
-    # publish net 10 with no suffix
-    - name: Set target framework to net10 in FeshHosting.fsproj
-      run: |
-        $projFile = Get-Content -Path FeshHosting.fsproj -Raw
-        $projFile = $projFile -replace "<TargetFramework>.*?</TargetFramework>", "<TargetFramework>net10.0-windows</TargetFramework>"
-        Set-Content -Path FeshHosting.fsproj -Value $projFile    
-      
-    - name: Dotnet build FeshHosting for net10
-      run:  dotnet build FeshHosting.fsproj --configuration Release --output bin/publishNuget
 
     - name: Push net10 NuGet package to nuget.org without suffix
       run: |

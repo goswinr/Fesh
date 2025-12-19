@@ -154,7 +154,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - first public release
 
-[Unreleased]: https://github.com/goswinr/Fesh/compare/0.29.2...HEAD
+[Unreleased]: https://github.com/goswinr/Fesh/compare/0.30.1...HEAD
+[0.30.1]: https://github.com/goswinr/Fesh/compare/0.29.3...0.30.1
+[0.29.3]: https://github.com/goswinr/Fesh/compare/0.29.2...0.29.3
 [0.29.2]: https://github.com/goswinr/Fesh/compare/0.29.0...0.29.2
 [0.29.0]: https://github.com/goswinr/Fesh/compare/0.28.1...0.29.0
 [0.28.1]: https://github.com/goswinr/Fesh/compare/0.28.0...0.28.1
