@@ -146,7 +146,7 @@ module DocChangeMark =
 
             // second: Errors and Semantic Highlighting and BadIndentation on FCS check result .
             async{
-                match Checker.CheckCode(iEd, state, code, id, false) with // code checking does not need to wait for CodeLines.Update
+                match Checker.CheckCode(iEd, state, code, id, false, lineIdx) with // code checking does not need to wait for CodeLines.Update
                 |None -> ()
                 |Some res ->
                     if state.IsLatest id then
@@ -410,7 +410,7 @@ module DocChangeCompletion =
 
     let handelShow(pos:PositionInCode, doc:TextDocument, iEd:IEditor, drawServ:DrawingServices, state:InteractionState, chId:int64) =
 
-        let inline check() = Checker.CheckCode(iEd, state, doc.CreateSnapshot().Text , chId, true)
+        let inline check() = Checker.CheckCode(iEd, state, doc.CreateSnapshot().Text , chId, true, pos.lineIdx )
 
         let inline getDecls(posX:PositionInCodeEx) : DeclarationListInfo option =
             let res =

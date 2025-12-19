@@ -106,7 +106,7 @@ module FsCheckerUtil =
         // "you should generally use one global, shared FSharpChecker for everything in an IDE application." from http://fsharp.github.io/FSharp.Compiler.Service/caches.html
         FSharpChecker.Create(suggestNamesForErrors=true) //TODO default options OK?
 
-    let getOptions (fsChecker:FSharpChecker, config:Config, fileFsx ,sourceText ): option<FSharpProjectOptions>=
+    let getOptions (fsChecker:FSharpChecker, config:Config, fileFsx ,sourceText, _lineNumber:int ): option<FSharpProjectOptions>=
         // see https://github.com/dotnet/fsharp/issues/7669 for performance problems
 
         // For a given script file, get the FSharpProjectOptions implied by the #load closure.
@@ -141,6 +141,11 @@ module FsCheckerUtil =
                         //,sdkDirOverride: string *
                         //,optionsStamp: int64 *
                         //,userOpName: string
+                        #if !NET8
+                        ,caret = Text.Position.mkPos _lineNumber 0// to avoid loading nuget packages while typing them:
+                            // used here https://github.com/dotnet/fsharp/blob/1112c72f1344f8a9c79e2f4c197b17016f8d6939/src/Compiler/Driver/ScriptClosure.fs#L306
+                            // and https://github.com/dotnet/fsharp/pull/18393
+                        #endif
                         )
                 //Not needed because these errors are reported by ParseAndCheckFileInProject too
                 //for oe in optionsErr do
@@ -193,7 +198,7 @@ type Checker private ()  =
 
     static let mutable projectOptions = None: FSharpProjectOptions option
 
-    static let parseAndCheck( state:InteractionState, code:string, filePath:Fesh.Model.FilePath, changeId): option<ParseCheckRes> =
+    static let parseAndCheck( state:InteractionState, code:string, filePath:Fesh.Model.FilePath, changeId, caretLineNumber:int): option<ParseCheckRes> =
         match fsChecker with
         | Some _ -> ()
         | None   ->  fsChecker <- Some (FsCheckerUtil.getNew())
@@ -205,7 +210,7 @@ type Checker private ()  =
             let  fileFsx    = FsCheckerUtil.getFsxFileNameForChecker filePath
             let! _ = ok()
             let  sourceText = Text.SourceText.ofString code
-            let! opts = FsCheckerUtil.getOptions(fsChecker.Value, state.Config, fileFsx, sourceText)
+            let! opts = FsCheckerUtil.getOptions(fsChecker.Value, state.Config, fileFsx, sourceText, caretLineNumber)
             projectOptions <- Some opts
             let! _ = ok()
             let! checkRes = FsCheckerUtil.parseAndCheckImpl fsChecker.Value fileFsx sourceText opts
@@ -228,7 +233,7 @@ type Checker private ()  =
     // static member OptArgsDict = optArgsDict
 
     /// Returns None if check failed or was superseded by a newer Document change ID
-    static member CheckCode(ed:IEditor, state:InteractionState, code, changeId, forCompl) : option<FullCheckResults> =
+    static member CheckCode(ed:IEditor, state:InteractionState, code:string, changeId:int64, forCompl:bool, caretLineNumber:int) : option<FullCheckResults> =
         try
             let aCheckingState =
                 match ed.FileCheckState with
@@ -238,7 +243,7 @@ type Checker private ()  =
             Fittings.SyncWpf.doSync (fun () -> checkingStateEv.Trigger aCheckingState )
             ed.FileCheckState <- aCheckingState
 
-            match parseAndCheck( state, code, ed.FilePath, changeId) with
+            match parseAndCheck( state, code, ed.FilePath, changeId, caretLineNumber) with
             |None ->
                 //IFeshLog.log.PrintfnDebugMsg $"*parseAndCheck: aborted early, waiting for newer checke state event."
                 None
