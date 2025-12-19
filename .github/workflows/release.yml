@@ -3,6 +3,7 @@ name: Release with Velopack
 on:
   push:
     tags:
+      # does not trigger on prerelease tags like 0.30.0-beta1
       - '[0-9]+.[0-9]+.[0-9]+'
 
 jobs:

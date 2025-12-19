@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.30.0-alpha1] - 2025-12-19
+### Changed
+- net472 nuget with suffix, net10 nuget without suffix
+
 ## [0.29.3] - 2025-12-15
 ### Changed
 - Build NET core nuget targeting F# 8 and .Net 8 to try fix assembly load issues in Rhino and Revit

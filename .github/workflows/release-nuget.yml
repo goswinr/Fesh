@@ -3,6 +3,7 @@ name: Build and Publish NuGet Package
 on:
   push:
     tags:
+      # does  trigger on prerelease tags like 0.30.0-beta1 too
       - '*.*.*'
 
 jobs:
@@ -24,7 +25,7 @@ jobs:
         $content = $content -replace "<br>", "  "
         Set-Content -Path README.md -Value $content           
 
-    - name: Dotnet build FeshHosting for net472
+    - name: Dotnet build FeshHosting for net8
       run: dotnet build FeshHosting.fsproj  --configuration Release  --output bin/publishNuget
 
 
@@ -45,35 +46,35 @@ jobs:
         echo "github.ref_name=${{ github.ref_name }}"  
         echo "Version check of git tag and CHANGELOG.md passed successfully." 
 
-    - name: Push net472 NuGet package to nuget.org
+    - name: Push net10 NuGet package to nuget.org
       run: |
         dotnet nuget push `
         ./bin/publishNuget/Fesh.${{ github.ref_name }}.symbols.nupkg `
         --api-key ${{ secrets.NUGET_API_KEY }} `
         --source https://api.nuget.org/v3/index.json
 
-    # now that net472 is done do the same for net8.0
+    # now that net8 is done do the same for net472
     # all of this is only needed because   <TargetFrameworks>net8.0-windows;net472</TargetFrameworks> does no make a valid nuget package for net48
-    # so wwe make a separate build for net8.0 and net472
+    # so we make a separate build for net8.0 and net472
 
-    - name: Set target framework to net8.0
+    - name: Set target framework to net472 in FeshHosting.fsproj
       run: |
         $projFile = Get-Content -Path FeshHosting.fsproj -Raw
-        $projFile = $projFile -replace "<TargetFramework>net472</TargetFramework>", "<TargetFramework>net8.0-windows</TargetFramework>"
+        $projFile = $projFile -replace "<TargetFramework>.*?</TargetFramework>", "<TargetFramework>net472</TargetFramework>"
         Set-Content -Path FeshHosting.fsproj -Value $projFile
 
-    - name : Set -net8 suffix in changelog
+    - name : Set -net472 suffix in changelog
       run: |
         $content = Get-Content -Path CHANGELOG.md -Raw
-        $content = $content -replace "${{ github.ref_name }}", "${{ github.ref_name }}-net8"
+        $content = $content -replace "${{ github.ref_name }}", "${{ github.ref_name }}-net472"
         Set-Content -Path CHANGELOG.md -Value $content
     
-    - name: Dotnet build FeshHosting for net8.0
+    - name: Dotnet build FeshHosting for net472
       run: dotnet build FeshHosting.fsproj --configuration Release --output bin/publishNuget
 
-    - name: Push net8.0 NuGet package to nuget.org
+    - name: Push net472 NuGet package to nuget.org
       run: |
         dotnet nuget push `
-        ./bin/publishNuget/Fesh.${{ github.ref_name }}-net8.symbols.nupkg `
+        ./bin/publishNuget/Fesh.${{ github.ref_name }}-net472.symbols.nupkg `
         --api-key ${{ secrets.NUGET_API_KEY }} `
         --source https://api.nuget.org/v3/index.json

@@ -3,21 +3,23 @@
   <PropertyGroup>
     <!-- https://learn.microsoft.com/en-us/dotnet/core/project-sdk/msbuild-props-desktop -->
     <!-- <OutputType>Library</OutputType> not needed -->
+    <!-- <RuntimeIdentifier>win-x64</RuntimeIdentifier> -->
+
     <UseWPF>true</UseWPF>
     <UseWindowsForms>true</UseWindowsForms><!--inherited from Avalonedit ?-->
-    <!-- <TargetFrameworks>net472;net8.0-windows</TargetFrameworks> the resultant nuget from multiple target frameworks
+    <!-- <TargetFrameworks>net472;net8.0-windows</TargetFrameworks> somehow the resultant nuget from multiple target frameworks
     does get unified to 8.0 and does not work on net48 -->
-    <!--so the the release-nuget.yml aktion will change this and also publish a net8.0-windows nuget separately: -->
-    <TargetFramework>net472</TargetFramework>
+    <!--so the the release-nuget.yml aktion will change this and also publish a net472 nuget separately: -->
+    <TargetFramework>net8.0-windows</TargetFramework>
+
     <DefineConstants Condition="'$(TargetFramework)' == 'net472'">NETFRAMEWORK</DefineConstants> <!-- so thread.Abort() can be used -->
-    <!-- <RuntimeIdentifier>win-x64</RuntimeIdentifier> -->
 
     <LangVersion>preview</LangVersion><!-- to enable indexing from end via ^ -->
 
     <NeutralLanguage>en</NeutralLanguage>
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>  <!--to only have the English resources-->
     <GenerateDocumentationFile>true</GenerateDocumentationFile>	 <!-- does not work when used in visual studio? only dotnet sdk ?-->
-    <DisableImplicitFSharpCoreReference>true</DisableImplicitFSharpCoreReference> <!-- for dotnet outdated tool to work -->
+    <DisableImplicitFSharpCoreReference>true</DisableImplicitFSharpCoreReference> <!-- for dotnet outdated tool to work, so use Include not Update for FSharp.Core -->
 
     <RootNamespace>Fesh</RootNamespace>
     <AssemblyName>Fesh</AssemblyName>
@@ -62,13 +64,14 @@
     <PackageReference Include="Microsoft.VisualBasic" Version="10.3.0" /> <!-- to move files to the recycle bin instead of deleting them -->
     <PackageReference Include="System.Private.Uri" Version="4.3.2" />    <!-- warning NU1903: Package 'System.Private.Uri' 4.3.0 has a known high severity vulnerability, https://github.com/advisories/GHSA-5f2m-466j-3848 -->
 
-
+    <PackageReference Include="FSharp.Compiler.Service" Version="43.10.101" />
+    <PackageReference Include="FSharp.Core" Version="10.0.101" />
 
     <!-- build the NET core nuget for F#8 so that dependencies like System.Diagnostics.DiagnosticSource are also for Net80 and load properly in Rhino and Revit:-->
-    <PackageReference Include="FSharp.Compiler.Service" Version="43.10.101" Condition="'$(TargetFramework)' == 'net472'" />
+    <!-- <PackageReference Include="FSharp.Compiler.Service" Version="43.10.101" Condition="'$(TargetFramework)' == 'net472'" />
     <PackageReference Include="FSharp.Compiler.Service" Version="43.8.403"  Condition="'$(TargetFramework)' != 'net472'" />
     <PackageReference Include="FSharp.Core" Version="10.0.101"  Condition="'$(TargetFramework)' == 'net472'"/>
-    <PackageReference Include="FSharp.Core" Version="8.0.403"  Condition="'$(TargetFramework)' != 'net472'"/>
+    <PackageReference Include="FSharp.Core" Version="8.0.403"  Condition="'$(TargetFramework)' != 'net472'"/> -->
 
 	  <PackageReference Include="Fittings" Version="0.10.0" />
 	  <PackageReference Include="AvalonLog" Version="0.20.0" />
