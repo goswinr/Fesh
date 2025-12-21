@@ -16,7 +16,7 @@ But it works standalone just as well.
 ![Screenshot](https://raw.githubusercontent.com/goswinr/Fesh/main/Media/screen2.png)
 
 It is based on the excellent [AvalonEdit](https://github.com/goswinr/AvalonEditB), that is why it only works on Windows (for now).<br>
-The editor supports F# 9.0 and has modern IDE features like semantic syntax highlighting, type-info and autocomplete.<br>
+The editor supports F# 10 and has modern IDE features like semantic syntax highlighting, type-info and autocomplete.<br>
 Unlike a typical F# REPL this editor has the input and the output in two separate windows.<br>
 Just [like Don Syme always wanted it](https://github.com/dotnet/fsharp/issues/2161#issuecomment-270465310).<br>
 You can even color the output with [Fescher](https://www.nuget.org/packages/Fesher).
