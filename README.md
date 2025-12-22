@@ -3,7 +3,7 @@
 # Fesh
 [![Fesh on nuget.org](https://img.shields.io/nuget/v/Fesh.svg)](https://nuget.org/packages/Fesh)
 [![Build](https://github.com/goswinr/Fesh/actions/workflows/build.yml/badge.svg?event=push)](https://github.com/goswinr/Fesh/actions/workflows/build.yml)
-[![Check NuGet](https://github.com/goswinr/Fesh/actions/workflows/outdatedNuget.yml/badge.svg)](https://github.com/goswinr/Fesh/actions/workflows/outdatedNuget.yml)
+<!-- [![Check NuGet](https://github.com/goswinr/Fesh/actions/workflows/outdatedNuget.yml/badge.svg)](https://github.com/goswinr/Fesh/actions/workflows/outdatedNuget.yml) -->
 ![code size](https://img.shields.io/github/languages/code-size/goswinr/Fesh.svg)
 [![license](https://img.shields.io/github/license/goswinr/Fesh)](LICENSE)
 
@@ -19,7 +19,7 @@ It is based on the excellent [AvalonEdit](https://github.com/goswinr/AvalonEditB
 The editor supports F# 10 and has modern IDE features like semantic syntax highlighting, type-info and autocomplete.<br>
 Unlike a typical F# REPL this editor has the input and the output in two separate windows.<br>
 Just [like Don Syme always wanted it](https://github.com/dotnet/fsharp/issues/2161#issuecomment-270465310).<br>
-You can even color the output with [Fescher](https://www.nuget.org/packages/Fesher).
+You can even color the output with [Fescher](https://www.nuget.org/packages/Fescher).
 
 Contrary to most F# editors, it uses [FSharp.Compiler.Service](https://www.nuget.org/packages/FSharp.Compiler.Service) in the same process as the UI.<br>
 There is no separate language server or FSI process.<br>
