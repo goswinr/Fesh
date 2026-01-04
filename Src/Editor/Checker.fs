@@ -45,7 +45,9 @@ type PositionInCodeEx =
         setback      = setback     // to maybe replace some previous characters too
         query        = ln.Substring(ln.Length - setback)
         dotBefore    = dotBefore
-        partLoName   = QuickParse.GetPartialLongNameEx(ln, colSetBack - 1) //TODO is minus one correct ? https://github.com/fsharp/FSharp.Compiler.Service/issues/837
+        partLoName   =
+            let lns = QuickParse.GetPartialLongNameEx(ln, colSetBack - 1) //TODO is minus one correct ? https://github.com/fsharp/FSharp.Compiler.Service/issues/837
+            if List.isEmpty lns.QualifyingIdents then {lns with QualifyingIdents = [pos.lineToCaret]} else lns
         }
 
 [<RequireQualifiedAccess>]
@@ -322,8 +324,8 @@ type Checker private ()  =
         // for auto completion
         let decls = res.checkRes.GetDeclarationListInfo(
                           Some res.parseRes  // ParsedFileResultsOpt
-                        , posX.lineIdx            // line
-                        , posX.lineToCaret    // lineText
+                        , posX.lineIdx       // line
+                        , posX.lineToCaret   // lineText
                         , posX.partLoName    // PartialLongName
                         //, (fun () -> Checker.GetAllEntities(res, true)) // getAllEntities: (unit -> AssemblySymbol list) // TODO use that too like FsAutocomplete does ???
                         //, completionContextAtPos //  TODO use it ?   Completion context for a particular position computed in advance.
@@ -344,7 +346,13 @@ type Checker private ()  =
             //         if opts.Count>0 then
             //             optArgsDict.[symb.Symbol.FullName] <- opts
 
-            Some (decls)
+
+
+            IFeshLog.log.PrintfnDebugMsg $"*2.1 GetCompletions for {posX} found {decls.Items.Length}"
+
+
+            Some decls
+
 
     /// Create a new Checker
     static member Reset() =
