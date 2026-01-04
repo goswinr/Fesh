@@ -370,26 +370,39 @@ module MaybeShow =
                 if i = -1 then false // start of line reached no letter found yet
                 else
                     let c = pos.lineToCaret.[i]
-                    if c = '_' then loop (i-1) // can be vailid numbers, so loop on
+                    if c = '_' then loop (i-1) // can be valid numbers, so loop on
                     elif Char.IsLetter c then true
                     elif Char.IsDigit c then loop (i-1)
                     else false
             loop (pos.column-2)
 
+        let isAfterClosingBracket (pos:PositionInCode) =
+            let prevI = pos.column - 2
+            if prevI < 0 then false
+            else
+                match pos.lineToCaret.[prevI] with
+                | ')' | ']' | '}' |'"' | ''' -> true  // todo also complete on next line ?
+                | _                          -> false
 
 
-        let inline getCtrlDown() = Keyboard.IsKeyDown Key.LeftCtrl || Keyboard.IsKeyDown Key.RightCtrl // can't be async
-        let inline getSpaceDown() = Keyboard.IsKeyDown Key.Space // can't be async
+
+
+        let inline getCtrlDown() =
+            Keyboard.IsKeyDown Key.LeftCtrl || Keyboard.IsKeyDown Key.RightCtrl // can't be async
+
+        let inline getSpaceDown() =
+            Keyboard.IsKeyDown Key.Space // can't be async
 
         let inline lastCharTriggersCompletion (lastChar, pos) =
             match lastChar with
             | c when isAlpha c -> true // a ASCII letter
             | c when isNum c && isAlphaBefore pos  -> true // an number preceded by a letter
-            | '.' when isNotInNumber pos -> true // dot completion
-            | '_'  // for __SOURCE_DIRECTORY__ or in names
-            //| '`'  // for complex F# names in `` `` // not needed
+            | '.' when isAfterClosingBracket pos   -> true //  dot completion after a closing bracket
+            | '.' when isNotInNumber pos           -> true // dot completion
+            | '_'  -> true // for __SOURCE_DIRECTORY__ or in names
             | '#'  -> true // for #if directives
             | _    -> false
+            //| '`'  // for complex F# names in `` `` // not needed
 
 
 module DocChangeCompletion =
@@ -463,7 +476,7 @@ module DocChangeCompletion =
 
                 let showListOpt : option<RestrictedShowList> =
                     match show with
-                    | ShowAll        -> getDecls(posX)|> Option.map JustAllFrom //|> Option.orElse  ( if posX.dotBefore then None else Some JustDeclModifiers) // if nod declarations where found, and there was no dot before, try show keywords
+                    | ShowAll        -> getDecls(posX)|> Option.map JustAllFrom //|> Option.orElse  ( if posX.dotBefore then None else Some JustDeclModifiers) // if no declarations where found, and there was no dot before, try show keywords
                     | ShowOnlyDU     -> getDecls(posX)|> Option.map JustDuFrom
                     | DeclModifiers  -> Some JustDeclModifiers
                     | ShowDirectives -> Some JustDirectives
@@ -518,7 +531,7 @@ module DocChangeCompletion =
                             // DocChangedConsequence is still  'React', no need to reset.
                             DocChangeMark.updateAllTransformersSync(iEd, doc, drawServ, state, chId, lineIdx )
                         else
-                            handelShow(pos, doc,iEd, drawServ, state, chId)
+                            handelShow(pos, doc, iEd, drawServ, state, chId)
                 } |> Async.Start
 
 
