@@ -1,0 +1,47 @@
+# https://github.com/marketplace/actions/delete-workflow-runs
+name: Delete old workflow runs
+on:
+  schedule:
+    - cron: "0 4 * * 1" # Weekly on Monday at 04:00
+  # to allow manual triggering of the workflow from the GitHub Actions tab:
+  workflow_dispatch:
+
+jobs:
+  delete-runs:
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+      contents: read
+    steps:
+
+      - name: Delete all workflow runs but docs,test and build
+        # those are kept for badges in readme
+        uses: Mattraks/delete-workflow-runs@v2
+        with:
+          token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          delete_workflow_pattern: dependabot|cleanup|releaseNuget|outdatedNuget
+          retain_days: 0
+          keep_minimum_runs: 0
+          delete_run_by_conclusion_pattern: success
+
+
+      - name: Delete all but last run of all other workflow runs ( docs, test and build)
+        uses: Mattraks/delete-workflow-runs@v2
+        with:
+          token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          retain_days: 0
+          # keep only last build, docs, and test run for badge in readme,
+          # this job runs one per action name.
+          # this will also keep runs older than 'retain_days'
+          keep_minimum_runs: 1
+          delete_run_by_conclusion_pattern: success
+
+      - name: Delete all failed runs older than 30 days
+        uses: Mattraks/delete-workflow-runs@v2
+        with:
+          token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          retain_days: 30
+          keep_minimum_runs: 0

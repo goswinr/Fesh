@@ -8,7 +8,7 @@ on:
 
 jobs:
   build-and-release:
-    runs-on: windows-latest # wil run commands on powershell, windows is needed so that ATS signtool.exe works inside --azureTrustedSignFile
+    runs-on: windows-latest # will run commands on powershell, windows is needed so that ATS signtool.exe works inside --azureTrustedSignFile
     permissions: write-all # or Workflow permissions https://github.com/goswinr/Fesh/settings/actions  ??
     steps:
 
@@ -65,6 +65,8 @@ jobs:
     - name: Azure login
       uses: azure/login@v2
       with:
+        # get creds via Azure CLI:
+        # az ad sp create-for-rbac --name "cli-Service-Principal5" --role "Trusted Signing Certificate Profile Signer" --scopes /subscriptions/4138e73f-????-????-????-44540281d64e --sdk-auth
         creds: ${{ secrets.AZURE_CREDENTIALS }}
         enable-AzPSSession: true
 
