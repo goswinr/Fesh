@@ -62,12 +62,12 @@
   see https://github.com/dotnet/fsharp/issues/19174
   Use Include not Update for FSharp.Core because of DisableImplicitFSharpCoreReference-->
   <ItemGroup Condition="'$(TargetFramework)' == 'net472'"> <!-- net472 can use the latest versions -->
-    <PackageReference Include="FSharp.Compiler.Service" Version="43.10.101" />
-    <PackageReference Include="FSharp.Core"             Version="10.0.101" />
+    <PackageReference Include="FSharp.Compiler.Service" Version="43.10.103" />
+    <PackageReference Include="FSharp.Core"             Version="10.0.103" />
   </ItemGroup>
   <ItemGroup Condition="'$(TargetFramework)' == 'net10.0-windows'">
-    <PackageReference Include="FSharp.Compiler.Service" Version="43.10.101" />
-    <PackageReference Include="FSharp.Core"             Version="10.0.101" />
+    <PackageReference Include="FSharp.Compiler.Service" Version="43.10.103" />
+    <PackageReference Include="FSharp.Core"             Version="10.0.103" />
   </ItemGroup>
   <ItemGroup Condition="'$(TargetFramework)' == 'net8.0-windows'">
     <PackageReference Include="FSharp.Compiler.Service" Version="43.8.403" />
@@ -81,8 +81,8 @@
 
   <ItemGroup>
     <PackageReference Include="Velopack" Version="0.0.1298" />
-    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="all" IncludeAssets="runtime; build; native; contentfiles; analyzers; buildtransitive" />
-    <PackageReference Include="Ionide.KeepAChangelog.Tasks" Version="0.3.1" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="10.0.103" PrivateAssets="all" IncludeAssets="runtime; build; native; contentfiles; analyzers; buildtransitive" />
+    <PackageReference Include="Ionide.KeepAChangelog.Tasks" Version="0.3.3" PrivateAssets="all" />
 
     <PackageReference Include="Microsoft.VisualBasic" Version="10.3.0" /> <!-- to move files to the recycle bin instead of deleting them -->
     <PackageReference Include="System.Private.Uri" Version="4.3.2" />    <!-- warning NU1903: Package 'System.Private.Uri' 4.3.0 has a known high severity vulnerability, https://github.com/advisories/GHSA-5f2m-466j-3848 -->
