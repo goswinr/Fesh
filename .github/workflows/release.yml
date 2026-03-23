@@ -63,7 +63,7 @@ jobs:
         echo "Version check of git tag and CHANGELOG.md passed successfully."   
 
     - name: Azure login
-      uses: azure/login@v2
+      uses: azure/login@v3
       with:
         # get creds via Azure CLI:
         # az ad sp create-for-rbac --name "cli-Service-Principal5" --role "Trusted Signing Certificate Profile Signer" --scopes /subscriptions/4138e73f-????-????-????-44540281d64e --sdk-auth
