@@ -45,3 +45,4 @@ jobs:
           repository: ${{ github.repository }}
           retain_days: 30
           keep_minimum_runs: 0
+          delete_run_by_conclusion_pattern: cancelled, failure, skipped
