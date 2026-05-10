@@ -269,7 +269,8 @@ type Fsi private (config:Config) =
     let createSession() =
         let fsiArgs =
             // see: Config/FsiArguments.fs
-            let args = config.FsiArguments.Get
+            // Reload from disk so that a Reset FSI picks up edits to FSI-Arguments.txt
+            let args = config.FsiArguments.Reload()
             let beQuiet = config.Settings.GetBool ("fsiOutputQuiet", false)
 
             match beQuiet, args |> Array.tryFindIndex (fun s -> s="--quiet") with

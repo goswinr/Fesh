@@ -363,6 +363,7 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, statusBar:FeshStatusBar, log:
                 menuItem cmds.ClearLog
                 menuItem cmds.CancelFSI
                 menuItem cmds.ResetFSI
+                menuItem cmds.ResetFsiArgs
                 if config.RunContext.IsHosted then
                     sep()
                     menuItem cmds.ToggleSync

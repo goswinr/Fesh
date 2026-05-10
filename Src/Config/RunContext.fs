@@ -142,7 +142,7 @@ type RunContext (host:HostedStartUpData option) =
         let psi = new Diagnostics.ProcessStartInfo()
         psi.UseShellExecute <- true // default chnaged from net48 to net8
         psi.FileName <- "Explorer.exe"
-        psi.Arguments <- "\"" + settingsFolder+ "\""
+        psi.Arguments <- "\"" + settingsFolder + "\""
         Diagnostics.Process.Start(psi) |> ignore
         // Diagnostics.Process.Start("explorer.exe", "\"" + settingsFolder+ "\"") |> ignore
 

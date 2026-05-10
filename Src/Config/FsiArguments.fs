@@ -70,6 +70,14 @@ type FsiArguments   ( runContext:RunContext) =
     member this.Reload() =
         args <- get()
         args
+
+    /// Overwrites the FSI-Arguments.txt file with the built-in defaults and updates the in-memory cache.
+    /// Returns (previousArgs, defaultArgs).
+    member this.ResetToDefault() =
+        let previous = if Array.isEmpty args then get() else args
+        args <- defaultArgs
+        IO.File.WriteAllText(filePath0, defaultArgsText) // sync so a subsequent Reload reads the new content
+        previous, defaultArgs
 (*
     note on docs:
     --multiemit  see: https://fsharp.github.io/fsharp-compiler-docs/fsi-emit.html

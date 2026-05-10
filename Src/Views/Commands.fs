@@ -41,6 +41,21 @@ type Commands (grid:TabsAndLog, statusBar:FeshStatusBar)  =
 
     let goToError()            =  ErrorUtil.getNextSegment(curr()) |> Option.iter (fun s -> curr().Folds.GoToOffsetAndUnfold(s.Offset, s.Length, false))
     let reset()                = log.Clear(); Checker.Reset(); Fsi.GetOrCreate(config).Initialize()
+
+    let resetFsiArgs() =
+        let previous, defaults = config.FsiArguments.ResetToDefault()
+        let printArgs (args:string[]) =
+            for a in args do IFeshLog.log.PrintfnInfoMsg "    %s" a
+        IFeshLog.log.PrintfnInfoMsg "FSI arguments reset to defaults."
+        IFeshLog.log.PrintfnInfoMsg "Previous arguments:"
+        printArgs previous
+        IFeshLog.log.PrintfnInfoMsg "New (default) arguments:"
+        printArgs defaults
+        IFeshLog.log.PrintfnInfoMsg "Reset FSI (Ctrl + Alt + R) to apply the new arguments."
+        IFeshLog.log.PrintfnInfoMsg $"FSI arguments are saved in: {config.RunContext.SettingsFileInfo.DirectoryName}/FSI-Arguments.txt "
+        IFeshLog.log.PrintfnInfoMsg "You can edit FSI arguments in that file and restart FSI to apply the changes."
+
+
     //let evalFromCursor()       =  let ln,tx = Selection.linesFromCursor(tabs.CurrAvaEdit)             in  fsi.Evaluate {editor=curr(); code = tx ; file=curr().FilePath; allOfFile=false; fromLine = ln }
 
     let compileScr(useMsBuild) = CompileScript.compileScript(tabs.CurrAvaEdit.Text, curr().FilePath,  useMsBuild, grid.Config)
@@ -104,6 +119,7 @@ type Commands (grid:TabsAndLog, statusBar:FeshStatusBar)  =
     member val ClearLog          = {name= "Clear Log"                     ;gesture= "Ctrl + Alt + C"  ;cmd= mkCmdSimple (fun _ -> log.Clear())             ;tip="Clears all text from FSI Log window."  }
     member val CancelFSI         = {name= "Cancel FSI"                    ;gesture= "Ctrl + Break"    ;cmd= mkCmd isAsy (fun _ -> fsi.CancelIfAsync())     ;tip="Cancels running FSI evaluation. Via " + if config.RunContext.IsRunningOnDotNetCore then "System.Runtime.ControlledExecution." else "Thread.Abort()" }
     member val ResetFSI          = {name= "Reset FSI"                     ;gesture= "Ctrl + Alt + R"  ;cmd= mkCmdSimple (fun _ -> reset())                 ;tip="Clears all text from FSI Log window and reset FSharp Interactive and FSharp type checker." }
+    member val ResetFsiArgs      = {name= "Reset FSI Arguments to Default";gesture= ""                ;cmd= mkCmdSimple (fun _ -> resetFsiArgs())          ;tip="Overwrites FSI-Arguments.txt with the built-in defaults and prints previous and new arguments to the log window.\r\nReset FSI to apply the new arguments." }
     member val ToggleSync        = {name= "Toggle Sync / Async"           ;gesture= ""                ;cmd= mkCmdSimple (fun _ -> fsi.ToggleSync())        ;tip="Switches between synchronous and asynchronous evaluation in FSI, see status in StatusBar."}
     member val CompileScriptSDK  = {name= "Compile Script via dotnet SDK" ;gesture= "Ctrl + Alt + B"  ;cmd= mkCmdSimple (fun _ -> compileScr(false))       ;tip="Creates an fsproj from the template file in settings folder with current code (including unsaved changes) and tries to build it via 'dotnet build'.\r\nAll code must be in modules or behind an `#if INTERACTIVE directive`.\r\nThe dotnet SDK needs to be installed.\r\n See log window for output."}
     member val CompileScriptMSB  = {name= "Compile Script via MSBuild"    ;gesture= "Ctrl + Shift + B";cmd= mkCmdSimple (fun _ -> compileScr(true))        ;tip="Creates an fsproj from the template file in settings folder with current code (including unsaved changes) and tries to build it via MSBuild.\r\nAll code must be in modules or behind an `#if INTERACTIVE directive`.\r\n MSBuild or VisualStudio needs to be installed.\r\n See log window for output."}
