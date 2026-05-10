@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+
+## [0.32.2] - 2026-05-10
+### Added
+- better highlight in xml doc comments
+
 ## [0.32.1] - 2026-05-10
 ### Fixed
 - Fix release channel naming

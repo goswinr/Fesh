@@ -60,6 +60,7 @@ type TypeInfo private () =
     static let loadingTxt =  "Loading type info ..."
 
     static let black        = Brushes.Black                      |> freeze
+    static let brown        = Brushes.Brown                      |> freeze
     static let gray         = Brushes.Gray                       |> freeze
     static let errMsgGray    = Brushes.LightGray                  |> freeze
     static let purple       = Brushes.Purple     |> brighter  40 |> freeze
@@ -273,11 +274,11 @@ type TypeInfo private () =
     static let white        = Brushes.White         |> darker    5  |> freeze
 
     // static let codeRun (td:ToolTipData) (code:string) : seq<Run> =
-    static let codeRun (code:string) : seq<Run> =
+    static let codeRun (color:Brush) (code:string) : seq<Run> =
         let tx = code.TrimEnd()
         [
         new Run(" ")
-        new Run(tx ,FontFamily = StyleState.fontEditor, FontSize = StyleState.fontSize*1.1,  Foreground = black,   Background = white)
+        new Run(tx ,FontFamily = StyleState.fontEditor, FontSize = StyleState.fontSize*1.1,  Foreground = color,  Background = white)
         // match td.optDefs |> Seq.tryFind ( fun oa -> oa = tx ) with
         // | Some _  ->  new Run("?"+tx ,FontFamily = StyleState.fontEditor, FontSize = StyleState.fontSize*1.1,  Foreground = gray,    Background = white)
         // | None    ->  new Run(tx     ,FontFamily = StyleState.fontEditor, FontSize = StyleState.fontSize*1.1,  Foreground = black,   Background = white)
@@ -354,7 +355,7 @@ type TypeInfo private () =
                         tb.Inlines.Add( new Run(fixName n.name,  Foreground = darkGray)) //FontWeight = FontWeights.Bold,     // Summary header, Parameter header ....
                         tb.Inlines.Add( new LineBreak())
                     for at in n.attrs do // there is normally just one ! like param:name, paramref:name typeparam:name
-                        tb.Inlines.AddRange( at.value |> fixTypeName|> codeRun )
+                        tb.Inlines.AddRange( at.value |> fixTypeName|> codeRun black)
                         tb.Inlines.Add( new Run(": ",  Foreground = black))
 
                     let childs = n.children  |> Array.ofList
@@ -375,8 +376,8 @@ type TypeInfo private () =
                     // e.g. for: <returns> <see langword="true" /> if <paramref name="objA" /> is the same instance as <paramref name="objB" /> or if both are null; otherwise, <see langword="false" />.</returns>
                     for at in n.attrs do
                         //printfn $"{n.name} {at.name}:{at.value }"
-                        if   at.name="cref"  then  tb.Inlines.AddRange(  at.value |> fixTypeName |>  codeRun )
-                        else                       tb.Inlines.AddRange(  at.value                |>  codeRun )
+                        if   at.name="cref"  then  tb.Inlines.AddRange(  at.value |> fixTypeName |>  codeRun black)
+                        else                       tb.Inlines.AddRange(  at.value                |>  codeRun black)
                         //tb.Inlines.Add( new Run(" "))
 
                 else
@@ -390,7 +391,7 @@ type TypeInfo private () =
 
         and addCode (this:XmlParser.Child) depth =
             match this with
-            |Text t ->  tb.Inlines.AddRange(codeRun t) // done in codeRun:  tb.Inlines.Add(" ")
+            |Text t ->  tb.Inlines.AddRange(codeRun brown t) // done in codeRun:  tb.Inlines.Add(" ")
             |Node n ->  loop this n.name false Trim.No depth
 
 
