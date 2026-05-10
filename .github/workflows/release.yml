@@ -109,18 +109,28 @@ jobs:
     - name: Pack, Sign and Release with Velopack .NET 10.0
       # https://docs.velopack.io/reference/cli/content/vpk-windows
       # If you are publishing your application with --no-self-contained, then you should provide the --framework argument. https://docs.velopack.io/packaging/bootstrapping
-      # the channel net9 is be not named correctly, since we are on net10 now, but if changed velopack updates don't happen automatically anymore.
-      # the channel name is just an identifier here. it is not showing up in the app I think
-      # see also checkForNewVelopackRelease(config:Config, fesh:Fesh)  in Initialize.fs
-      # and see https://docs.velopack.io/integrating/switching-channels for channels
+      # The channel name is just an identifier; it is not shown in the app.
+      # See also checkForNewVelopackRelease(config:Config, fesh:Fesh) in Initialize.fs
+      # and https://docs.velopack.io/integrating/switching-channels for channels.
+      #
+      # Channel rename (e.g. net10 -> net11 in the future):
+      # Per https://docs.velopack.io/packaging/channels#renaming-a-channel a channel cannot be
+      # renamed directly. To migrate users, pack/upload the next release on the new channel
+      # (e.g. --channel net11) and then upload a copy of releases.net11.json as releases.net10.json
+      # to the same GitHub release. Existing net10 clients will fetch releases.net10.json, update
+      # to that build, and from then on poll releases.net11.json (because the package itself is
+      # stamped with --channel net11). Keep the redirect step on every release so latecomers
+      # always get pulled forward to the latest build on the new channel.
+      env:
+        GH_TOKEN: ${{secrets.GITHUB_TOKEN}}
       run: |
-        dotnet tool install vpk  --global 
-        
+        dotnet tool install vpk  --global
+
         vpk download github `
           --repoUrl https://github.com/goswinr/Fesh `
           --token ${{secrets.GITHUB_TOKEN}} `
           --outputDir bin/installer/net10.0 `
-          --channel net9
+          --channel net10
 
         vpk pack `
           --packId Fesh `
@@ -134,8 +144,14 @@ jobs:
           --azureTrustedSignFile .github/signing-metadata.json `
           --splashImage Media/logo128.png `
           --outputDir bin/installer/net10.0 `
-          --channel net9
-          
+          --channel net10
+
+        # Redirect file for the previous channel name (net9 -> net10 migration).
+        # Existing net9 clients fetch releases.net9.json, see this newer build, and update.
+        # Once updated they poll releases.net10.json from then on. Safe to remove this line
+        # after enough time has passed that no net9 clients remain in the wild.
+        Copy-Item bin/installer/net10.0/releases.net10.json bin/installer/net10.0/releases.net9.json
+
         vpk upload github `
           --publish `
           --repoUrl https://github.com/goswinr/Fesh `
@@ -143,6 +159,9 @@ jobs:
           --tag ${{github.ref_name}} `
           --token ${{secrets.GITHUB_TOKEN}} `
           --outputDir bin/installer/net10.0 `
-          --channel net9
+          --channel net10
+
+        # Attach the net9 redirect manifest to the same GitHub release so old clients can find it.
+        gh release upload "${{github.ref_name}}" bin/installer/net10.0/releases.net9.json --clobber
           
 
