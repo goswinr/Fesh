@@ -16,6 +16,13 @@ type FileChangeTracker (editor:Editor, setCodeSavedStatus:bool->unit) =
 
     let mutable checkPending = false
 
+    let autoReloadIfClean () =
+        editor.Config.Settings.GetBool ("AutoReloadExternalChangesIfClean", true)
+
+    /// must be called on the WPF UI thread
+    let editorHasUnsavedChanges () =
+        editor.AvaEdit.Document.Text <> editor.CodeAtLastSave
+
     /// TODO in case of renaming MessageBox is shown and file gets set to unsaved. But doesn't switch to new filename automatically.
 
     // to stop watching once the user clicks "no" to "load changes?"
@@ -71,6 +78,11 @@ type FileChangeTracker (editor:Editor, setCodeSavedStatus:bool->unit) =
                                 if doWatch then
                                     doWatch<-false // to not trigger new event from closing this window
                                     do! Async.SwitchToContext SyncWpf.context
+                                    if autoReloadIfClean() && not (editorHasUnsavedChanges()) then
+                                        setCode(fileCode, editor)
+                                        setCodeSavedStatus(true)
+                                        doWatch <- true
+                                    else
                                     match MessageBox.Show(
                                         IEditor.mainWindow,
                                         // $"{reason}: File{nl}{nl}{fi.Name}{nl}{nl}was changed.{nl}Do you want to reload it?", // Debug
@@ -108,23 +120,28 @@ type FileChangeTracker (editor:Editor, setCodeSavedStatus:bool->unit) =
                                 if doWatch then
                                     doWatch<-false // to not trigger new event from closing this window
                                     do! Async.SwitchToContext SyncWpf.context
-                                    match MessageBox.Show(
-                                        IEditor.mainWindow,
-                                        // $"{reason}: File{nl}{nl}{fi.Name}{nl}{nl}was changed.{nl}Do you want to reload it?", // Debug
-                                        $"File{nl}{nl}{fi.Name}{nl}{nl}was changed.{nl}Do you want to reload it?",
-                                        "Fesh | Reload Changes?",
-                                        MessageBoxButton.YesNo,
-                                        MessageBoxImage.Exclamation,
-                                        MessageBoxResult.Yes, // default result
-                                        MessageBoxOptions.None) with // previously MessageBoxOptions.DefaultDesktopOnly
-
-                                    | MessageBoxResult.Yes ->
+                                    if autoReloadIfClean() && not (editorHasUnsavedChanges()) then
                                         setCode(fileCode, editor)
                                         setCodeSavedStatus(true)
-                                        doWatch<- true
-                                    | _  ->
-                                        setCodeSavedStatus(false)
-                                        doWatch<- false
+                                        doWatch <- true
+                                    else
+                                        match MessageBox.Show(
+                                            IEditor.mainWindow,
+                                            // $"{reason}: File{nl}{nl}{fi.Name}{nl}{nl}was changed.{nl}Do you want to reload it?", // Debug
+                                            $"File{nl}{nl}{fi.Name}{nl}{nl}was changed.{nl}Do you want to reload it?",
+                                            "Fesh | Reload Changes?",
+                                            MessageBoxButton.YesNo,
+                                            MessageBoxImage.Exclamation,
+                                            MessageBoxResult.Yes, // default result
+                                            MessageBoxOptions.None) with // previously MessageBoxOptions.DefaultDesktopOnly
+
+                                        | MessageBoxResult.Yes ->
+                                            setCode(fileCode, editor)
+                                            setCodeSavedStatus(true)
+                                            doWatch<- true
+                                        | _  ->
+                                            setCodeSavedStatus(false)
+                                            doWatch<- false
 
                     else
                         editor.FilePath <- Deleted fi

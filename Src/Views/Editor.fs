@@ -141,6 +141,8 @@ type Editor private (code:string, config:Config, initialFilePath:FilePath)  =
     member _.FilePathOrDummyName = match filePath with NotSet dummyName -> dummyName  |Deleted fi |SetTo fi -> fi.FullName
 
     //member this.Log = config.Log
+    member _.Config = config
+
     member this.IsComplWinOpen  = compls.IsOpen
 
 
