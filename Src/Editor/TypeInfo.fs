@@ -329,6 +329,31 @@ type TypeInfo private () =
         tb.TextWrapping <- TextWrapping.Wrap
         let mutable last = ""
 
+        let addPlainRun (s:string) =
+            if s.Length > 0 then
+                tb.Inlines.Add( new Run(s, Foreground = darkblue, FontStyle = FontStyles.Italic))
+
+        // Split txt on `..` and '..' pairs; render the inside with codeRun, the rest as plain italic.
+        let addTextInlines (txt:string) =
+            let len = txt.Length
+            let mutable i = 0
+            let mutable plainStart = 0
+            while i < len do
+                let c = txt.[i]
+                if c = '`' || c = '\'' then
+                    let close = txt.IndexOf(c, i + 1)
+                    // require non-empty content and no newline inside, so contractions and multi-line text don't match
+                    if close > i + 1 && txt.IndexOf('\n', i + 1, close - i - 1) < 0 then
+                        addPlainRun (txt.Substring(plainStart, i - plainStart))
+                        tb.Inlines.AddRange(codeRun brown (txt.Substring(i + 1, close - i - 1)))
+                        i <- close + 1
+                        plainStart <- i
+                    else
+                        i <- i + 1
+                else
+                    i <- i + 1
+            addPlainRun <| txt.Substring plainStart
+
         let rec loop (this:XmlParser.Child) parentName addTitle (trim:Trim) depth =
             match this with
             |Text t ->
@@ -344,7 +369,7 @@ type TypeInfo private () =
                         |Trim.End    -> t.TrimEnd()
                         |Trim.Start  -> t |> trimStartIfHasRet|> trimStartIfOneLiner
                         |Trim.No     -> t |> trimStartIfHasRet
-                tb.Inlines.Add( new Run(txt,  Foreground = darkblue, FontStyle = FontStyles.Italic))
+                addTextInlines txt
 
 
             |Node n ->

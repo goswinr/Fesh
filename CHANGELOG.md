@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.32.2] - 2026-05-10
 ### Added
 - better highlight in xml doc comments
+- highlight inline code between backticks or single quotes in xml doc tooltips
 
 ## [0.32.1] - 2026-05-10
 ### Fixed
