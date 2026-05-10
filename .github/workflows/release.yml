@@ -28,7 +28,7 @@ jobs:
         dotnet-version: '10.x'
 
     - name: Run dotnet publish net48
-      run: |
+      run: | #shell
         dotnet publish FeshStandalone.fsproj `
           --configuration Release `
           --runtime win-x64 `
@@ -37,7 +37,7 @@ jobs:
           --no-self-contained
 
     - name: Run dotnet publish net10.0
-      run: |
+      run: | #shell
         dotnet publish FeshStandalone.fsproj `
           --configuration Release `
           --runtime win-x64 `
@@ -52,15 +52,15 @@ jobs:
       # </Target>
       id: check_version
       shell: bash
-      run: |
-        CHANGELOG_VERSION=$(cat ./bin/ChangelogVersion.txt | tr -d '[:space:]')        
+      run: | #shell
+        CHANGELOG_VERSION=$(cat ./bin/ChangelogVersion.txt | tr -d '[:space:]')
         if [ "${{ github.ref_name }}" != "$CHANGELOG_VERSION" ]; then
           echo "Version mismatch: git tag (${{ github.ref_name }}) and version in CHANGELOG.md ($CHANGELOG_VERSION) are not the same."
           exit 1
-        fi 
+        fi
         echo "CHANGELOG_VERSION=$CHANGELOG_VERSION"
-        echo "github.ref_name=${{ github.ref_name }}"  
-        echo "Version check of git tag and CHANGELOG.md passed successfully."   
+        echo "github.ref_name=${{ github.ref_name }}"
+        echo "Version check of git tag and CHANGELOG.md passed successfully."
 
     - name: Azure login
       uses: azure/login@v3

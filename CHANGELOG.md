@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.32.1] - 2026-05-10
+### Fixed
+- Fix release channel naming
+- Fix coloring when numbers are in a identifier followed by a numeric literals suffix
+
 ## [0.32.0] - 2026-01-28
 ### Fixed
 - Include netstandard.xml in output, to show better tooltips in net10

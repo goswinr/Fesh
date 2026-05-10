@@ -7,7 +7,7 @@
 	  <TargetFrameworks>net48;net10.0-windows</TargetFrameworks>
     <DefineConstants Condition="'$(TargetFramework)' == 'net48'">NETFRAMEWORK</DefineConstants>
     <!-- <RuntimeIdentifiers>win-x64;win-x86</RuntimeIdentifiers> -->
-    <!-- <RuntimeIdentifier>win-x64</RuntimeIdentifier> -->
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
 
     <LangVersion>preview</LangVersion> <!-- to enable indexing from end via ^ -->
 
