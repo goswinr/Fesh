@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - highlight inline code between backticks or single quotes in xml doc tooltips
 ### Changed
 - silently reload externally changed files when the editor has no unsaved changes (configurable via `AutoReloadExternalChangesIfClean` setting)
+- File menu: added "Auto-Reload External Changes" toggle to control the above
 
 ## [0.32.1] - 2026-05-10
 ### Fixed

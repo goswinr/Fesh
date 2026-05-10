@@ -192,6 +192,17 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, statusBar:FeshStatusBar, log:
 
     let sep() = Separator():> Control
 
+    let autoReloadKey = "AutoReloadExternalChangesIfClean"
+    let autoReloadMenuItem =
+        let mi = MenuItem(
+                    Header = "Auto-Reload External Changes",
+                    IsCheckable = true,
+                    IsChecked = config.Settings.GetBool(autoReloadKey, true),
+                    ToolTip = "When checked, externally changed files are reloaded silently if the editor has no unsaved changes.\r\nWhen unchecked, you will always be asked before reloading.")
+        mi.Checked.Add  (fun _ -> config.Settings.SetBool(autoReloadKey, true ); config.Settings.Save())
+        mi.Unchecked.Add(fun _ -> config.Settings.SetBool(autoReloadKey, false); config.Settings.Save())
+        mi :> Control
+
     // let item (ngc: string * string * #ICommand * string) =
     //     let n,g,c,tt = ngc
     //     MenuItem(Header = n, InputGestureText = g, ToolTip = tt, Command = c):> Control
@@ -281,6 +292,8 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, statusBar:FeshStatusBar, log:
                 sep()
                 menuItem cmds.SaveLog
                 menuItem cmds.SaveLogSel
+                sep()
+                autoReloadMenuItem
                 sep() ]
             MenuItem(Header = "_Edit"),[
                 menuItem cmds.Copy
