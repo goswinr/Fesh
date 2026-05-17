@@ -30,7 +30,7 @@ module Commenting =
                 | None ->
                     comm ln.NextLine // do not comment empty lines
                 | Some _ ->
-                    doc.Insert(ln.Offset + indent, "//")
+                    doc.Insert(ln.Offset + indent, "// ") // include a space after comment for better readability
                     comm ln.NextLine
         doc.BeginUpdate()
         comm start
@@ -49,7 +49,11 @@ module Commenting =
                 | Some i ->
                     if  dl.Length > i && // there must be 2 chars min.
                         dl.[i]  ='/' &&
-                        dl.[i+1]='/' then doc.Remove(ln.Offset + i , 2)
+                        dl.[i+1]='/' then
+                            if dl.Length > i + 2 && dl.[i+2] = ' ' then // also remove space after comment if there is one
+                                doc.Remove(ln.Offset + i , 3)
+                            else
+                                doc.Remove(ln.Offset + i , 2)
                     uComm ln.NextLine
         doc.BeginUpdate()
         uComm start
@@ -68,10 +72,14 @@ module Commenting =
                 | Some i ->
                     if  dl.Length > i && // there must be 2 chars min.
                         dl.[i]  ='/' &&
-                        dl.[i+1]='/' then doc.Remove(ln.Offset + i , 2)
+                        dl.[i+1]='/' then
+                            if dl.Length > i + 2 && dl.[i+2] = ' ' then // also remove space after comment if there is one
+                                doc.Remove(ln.Offset + i , 3)
+                            else
+                                doc.Remove(ln.Offset + i , 2)
                     else
                         let indent = Str.spacesAtStart dl
-                        doc.Insert(ln.Offset + indent, "//")
+                        doc.Insert(ln.Offset + indent, "// ") // include a space after comment for better readability
                     toggle ln.NextLine
         doc.BeginUpdate()
         toggle start
