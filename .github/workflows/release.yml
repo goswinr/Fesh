@@ -101,7 +101,10 @@ jobs:
         client-id: ${{ secrets.AZURE_CLIENT_ID }}
         tenant-id: ${{ secrets.AZURE_TENANT_ID }}
         subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-        enable-AzPSSession: true
+        # No enable-AzPSSession: vpk's Azure Trusted Signing authenticates via the Azure CLI
+        # credential (the `az login` session this step always creates), not the Az PowerShell
+        # module. Enabling the PS session only adds an unused login whose post-job teardown
+        # (Clear-AzContext) emits the noisy "Az version is out of date" warnings.
 
     - name: Pack, Sign and Release with Velopack .NET Framework 4.8
       # https://docs.velopack.io/reference/cli/content/vpk-windows
