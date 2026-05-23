@@ -5,7 +5,7 @@
 [![Build](https://github.com/goswinr/Fesh/actions/workflows/build.yml/badge.svg?event=push)](https://github.com/goswinr/Fesh/actions/workflows/build.yml)
 <!-- [![Check NuGet](https://github.com/goswinr/Fesh/actions/workflows/outdatedNuget.yml/badge.svg)](https://github.com/goswinr/Fesh/actions/workflows/outdatedNuget.yml) -->
 ![code size](https://img.shields.io/github/languages/code-size/goswinr/Fesh.svg)
-[![license](https://img.shields.io/github/license/goswinr/Fesh)](LICENSE)
+[![license](https://img.shields.io/github/license/goswinr/Fesh)](LICENSE.md)
 
 Fesh is an  **F**# **E**ditor & **S**cripting **H**ost.<br>
 On Windows.

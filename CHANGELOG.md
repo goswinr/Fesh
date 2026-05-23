@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.32.3] - 2026-05-23
+### Fixed
+- when commenting code add a space after '//'
 
 ## [0.32.2] - 2026-05-10
 ### Added
@@ -208,7 +211,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [0.12.0]: https://github.com/goswinr/Fesh/compare/0.11.1...0.12.0
 [0.11.1]: https://github.com/goswinr/Fesh/compare/0.11.0...0.11.1
 [0.11.0]: https://github.com/goswinr/Fesh/compare/0.10.0...0.11.0
-[0.10.0]: https://github.com/goswinr/Fesh/compare/0.9.0...0.10.0
-[0.9.0]: https://github.com/goswinr/Fesh/releases/tag/0.9.0
+<!-- [0.10.0]: https://github.com/goswinr/Fesh/compare/0.9.0...0.10.0
+[0.9.0]: https://github.com/goswinr/Fesh/releases/tag/0.9.0 -->
 
 
