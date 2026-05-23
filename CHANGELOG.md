@@ -180,7 +180,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - first public release
 
-[Unreleased]: https://github.com/goswinr/Fesh/compare/0.32.0...HEAD
+[Unreleased]: https://github.com/goswinr/Fesh/compare/0.32.3...HEAD
+[0.32.3]: https://github.com/goswinr/Fesh/compare/0.32.2...0.32.3
+[0.32.2]: https://github.com/goswinr/Fesh/compare/0.32.1...0.32.2
+[0.32.1]: https://github.com/goswinr/Fesh/compare/0.32.0...0.32.1
 [0.32.0]: https://github.com/goswinr/Fesh/compare/0.31.0...0.32.0
 [0.31.0]: https://github.com/goswinr/Fesh/compare/0.30.1...0.31.0
 [0.30.1]: https://github.com/goswinr/Fesh/compare/0.29.3...0.30.1
