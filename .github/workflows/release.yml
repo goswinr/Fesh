@@ -9,21 +9,46 @@ on:
 jobs:
   build-and-release:
     runs-on: windows-latest # will run commands on powershell, windows is needed so that ATS signtool.exe works inside --azureTrustedSignFile
-    permissions: write-all # or Workflow permissions https://github.com/goswinr/Fesh/settings/actions  ??
+    # Run in a GitHub Environment so the OIDC token's `sub` claim is the environment form
+    # (repo:goswinr/Fesh:environment:releaseStandalone) instead of the branch/tag ref. This
+    # decouples Azure federated login from the tag trigger: the same subject is presented on
+    # every release regardless of which tag was pushed. Add required reviewers / branch limits
+    # to this environment in repo Settings to gate who can release.
+    environment:
+      name: releaseStandalone
+    # Least privilege: this workflow only pushes the -net48 tag and creates the GitHub Release,
+    # both of which need just `contents: write`. Avoid `write-all`, which also grants packages,
+    # deployments, actions, security-events, etc. that this job never uses.
+    permissions:
+      contents: write
+      # Required for OIDC: lets the runner request a short-lived federated token from GitHub's
+      # OIDC provider, which azure/login exchanges for an Azure access token. No client secret
+      # is stored in GitHub. Azure trusts the token only if its `sub` claim matches the
+      # federated credential configured on the app registration:
+      #   repo:goswinr/Fesh:environment:releaseStandalone
+      id-token: write
     steps:
 
     - name: Checkout repository
-      uses: actions/checkout@v6
+      # Pinned to a full commit SHA (a tag is mutable and can be repointed). Dependabot's
+      # github-actions updater bumps both the SHA and the trailing version comment.
+      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+      with:
+        # Don't leave GITHUB_TOKEN in .git/config, where the vpk / dotnet tooling run later
+        # could read it. This job authenticates each tool explicitly, so persistence isn't needed.
+        persist-credentials: false
 
     - name: Push tag with -net48 suffix
-      uses: richardsimko/update-tag@v1
+      # Third-party action MUST be SHA-pinned: its v1 tag is mutable, and this step runs with
+      # GITHUB_TOKEN, so a moved tag could exfiltrate the token or tamper with the release.
+      uses: richardsimko/update-tag@aab2434e9a5040687874aa39d1c6377ec0cb0d94 # v1
       with:
         tag_name: "${{ github.ref_name }}-net48"
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Setup .NET
-      uses: actions/setup-dotnet@v5
+      uses: actions/setup-dotnet@c2fa09f4bde5ebb9d1777cf28262a3eb3db3ced7 # v5
       with:
         dotnet-version: '10.x'
 
@@ -63,23 +88,36 @@ jobs:
         echo "Version check of git tag and CHANGELOG.md passed successfully."
 
     - name: Azure login
-      uses: azure/login@v3
+      # SHA-pinned (mutable tag). This step opens a session that can sign with the org's
+      # Trusted Signing certificate, so an upstream tag move here is especially high-impact.
+      uses: azure/login@532459ea530d8321f2fb9bb10d1e0bcf23869a43 # v3
       with:
-        # get creds via Azure CLI:
-        # az ad sp create-for-rbac --name "cli-Service-Principal5" --role "Trusted Signing Certificate Profile Signer" --scopes /subscriptions/4138e73f-????-????-????-44540281d64e --sdk-auth
-        creds: ${{ secrets.AZURE_CREDENTIALS }}
+        # OIDC (federated) login — no long-lived client secret in GitHub. Configure a
+        # federated credential on the Azure app registration with:
+        #   Issuer:  https://token.actions.githubusercontent.com
+        #   Subject: repo:goswinr/Fesh:environment:releaseStandalone
+        #   Audience: api://AzureADTokenExchange
+        # and grant that app the "Trusted Signing Certificate Profile Signer" role.
+        client-id: ${{ secrets.AZURE_CLIENT_ID }}
+        tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+        subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
         enable-AzPSSession: true
 
     - name: Pack, Sign and Release with Velopack .NET Framework 4.8
       # https://docs.velopack.io/reference/cli/content/vpk-windows
       # If you are publishing your application with --no-self-contained,
       # then you should provide the --framework argument. https://docs.velopack.io/packaging/bootstrapping
+      env:
+        # vpk reads the token from VPK_TOKEN, so it is never placed on the command line / process
+        # table. Actions already masks GITHUB_TOKEN in logs; this also covers the arg-exposure path.
+        VPK_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
-        dotnet tool install vpk  --global       
-        
+        # Pin the vpk version (supply-chain): an unpinned `tool install` pulls whatever is latest at
+        # build time and runs it against the active signing session. Bump this manually when updating.
+        dotnet tool install vpk --global --version 0.0.1298
+
         vpk download github `
           --repoUrl https://github.com/goswinr/Fesh `
-          --token ${{secrets.GITHUB_TOKEN}} `
           --outputDir bin/installer/net48 `
           --channel framework
 
@@ -102,7 +140,6 @@ jobs:
           --repoUrl https://github.com/goswinr/Fesh `
           --releaseName "Fesh ${{github.ref_name}} net4.8" `
           --tag "${{github.ref_name}}-net48" `
-          --token ${{secrets.GITHUB_TOKEN}} `
           --outputDir bin/installer/net48 `
           --channel framework
           
@@ -122,13 +159,14 @@ jobs:
       # stamped with --channel net11). Keep the redirect step on every release so latecomers
       # always get pulled forward to the latest build on the new channel.
       env:
-        GH_TOKEN: ${{secrets.GITHUB_TOKEN}}
+        GH_TOKEN: ${{secrets.GITHUB_TOKEN}}   # used by `gh release upload` below
+        VPK_TOKEN: ${{secrets.GITHUB_TOKEN}}  # used by vpk instead of --token on the command line
       run: |
-        dotnet tool install vpk  --global
+        # Pinned vpk version (supply-chain) — keep in sync with the net48 step. Bump manually.
+        dotnet tool install vpk --global --version 0.0.1298
 
         vpk download github `
           --repoUrl https://github.com/goswinr/Fesh `
-          --token ${{secrets.GITHUB_TOKEN}} `
           --outputDir bin/installer/net10.0 `
           --channel net10
 
@@ -157,7 +195,6 @@ jobs:
           --repoUrl https://github.com/goswinr/Fesh `
           --releaseName "Fesh ${{github.ref_name}} net10" `
           --tag ${{github.ref_name}} `
-          --token ${{secrets.GITHUB_TOKEN}} `
           --outputDir bin/installer/net10.0 `
           --channel net10
 
