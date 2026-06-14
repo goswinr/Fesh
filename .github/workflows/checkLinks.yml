@@ -11,7 +11,7 @@ jobs:
   linkinator:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6.0.2
+      - uses: actions/checkout@v6.0.3
       - uses: JustinBeckwith/linkinator-action@v2
         with:
           paths: README.md CHANGELOG.md
