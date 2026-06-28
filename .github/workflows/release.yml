@@ -32,7 +32,7 @@ jobs:
     - name: Checkout repository
       # Pinned to a full commit SHA (a tag is mutable and can be repointed). Dependabot's
       # github-actions updater bumps both the SHA and the trailing version comment.
-      uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+      uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
       with:
         # Don't leave GITHUB_TOKEN in .git/config, where the vpk / dotnet tooling run later
         # could read it. This job authenticates each tool explicitly, so persistence isn't needed.
