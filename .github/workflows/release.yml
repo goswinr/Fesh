@@ -41,7 +41,7 @@ jobs:
     - name: Push tag with -net48 suffix
       # Third-party action MUST be SHA-pinned: its v1 tag is mutable, and this step runs with
       # GITHUB_TOKEN, so a moved tag could exfiltrate the token or tamper with the release.
-      uses: richardsimko/update-tag@d43d3236a342abd387f0ba5d6a7bc93b77e0e718 # v2.0.0
+      uses: richardsimko/update-tag@24fe62c216198eb57283429200e63a06f62afe5b # v3.0.0
       with:
         tag_name: "${{ github.ref_name }}-net48"
       env:
