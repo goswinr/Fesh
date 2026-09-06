@@ -90,7 +90,7 @@ jobs:
     - name: Azure login
       # SHA-pinned (mutable tag). This step opens a session that can sign with the org's
       # Trusted Signing certificate, so an upstream tag move here is especially high-impact.
-      uses: azure/login@f5d393ae46f8fde4be8b75f32e3fc50e654ad0ca # v3
+      uses: azure/login@7ddb5af1ef8758cf1353cf3b42f940aee27ba21c # v3
       with:
         # OIDC (federated) login — no long-lived client secret in GitHub. Configure a
         # federated credential on the Azure app registration with:
