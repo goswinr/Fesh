@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [0.33.0] - 2026-10-01
 ### Added
 - `libFolders` field on `HostedStartUpData`: folders passed as `--lib:` to the type checker and FSI, to resolve `#r` references to host assemblies
 - log a message when external file changes or a previously deleted file get reloaded
@@ -194,7 +196,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - first public release
 
-[Unreleased]: https://github.com/goswinr/Fesh/compare/0.32.3...HEAD
+[Unreleased]: https://github.com/goswinr/Fesh/compare/0.33.0...HEAD
+[0.33.0]: https://github.com/goswinr/Fesh/compare/0.32.3...0.33.0
 [0.32.3]: https://github.com/goswinr/Fesh/compare/0.32.2...0.32.3
 [0.32.2]: https://github.com/goswinr/Fesh/compare/0.32.1...0.32.2
 [0.32.1]: https://github.com/goswinr/Fesh/compare/0.32.0...0.32.1
