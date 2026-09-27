@@ -29,6 +29,7 @@ type Tab (editor:Editor) = //, config:Fesh.Config.Config, allFileInfos:seq<IO.Fi
     // these two are used to avoid redrawing header on very keystroke:
     let mutable isCodeSaved        = true
     let mutable headerShowsSaved   = true
+    let mutable headerShowsDeleted = false
 
     /// this can be set to false so that the dialog about saving only pops up once.
     /// In a hosted context like Rhino the dialog would pop on closing fesh window and on closing the Rhino window
@@ -68,24 +69,28 @@ type Tab (editor:Editor) = //, config:Fesh.Config.Config, allFileInfos:seq<IO.Fi
         editor.AvaEdit.Dispatcher.Invoke(fun () ->
             match editor.FilePath, isCodeSaved with
             |SetTo fi , true ->
+                headerShowsDeleted        <- false
                 textBlock.ToolTip         <- "File saved at:\r\n" + fi.FullName
                 textBlock.Text            <- fi.Name
                 textBlock.TextDecorations <- null
                 textBlock.Foreground      <- TabStyle.savedHeader
                 headerShowsSaved          <- true
             |SetTo fi , false ->
+                headerShowsDeleted        <- false
                 textBlock.ToolTip         <- "File with unsaved changes from :\r\n" + fi.FullName
                 textBlock.Text            <- fi.Name + "*"
                 textBlock.TextDecorations <- null
                 textBlock.Foreground      <- TabStyle.changedHeader
                 headerShowsSaved          <- false
             |NotSet dummyName,true ->
+                headerShowsDeleted        <- false
                 textBlock.ToolTip         <- "This file just shows the default code for every new file."
                 textBlock.Text            <- dummyName
                 textBlock.TextDecorations <- null
                 textBlock.Foreground      <- TabStyle.unsavedHeader
                 headerShowsSaved          <- true
             |NotSet dummyName,false ->
+                headerShowsDeleted        <- false
                 textBlock.ToolTip         <- "This file has not yet been saved to disk."
                 textBlock.Text            <- dummyName
                 textBlock.TextDecorations <- null
@@ -93,6 +98,7 @@ type Tab (editor:Editor) = //, config:Fesh.Config.Config, allFileInfos:seq<IO.Fi
                 textBlock.Foreground      <- TabStyle.changedHeader
                 headerShowsSaved          <- false
             |Deleted dfi, _ ->
+                headerShowsDeleted        <- true
                 textBlock.ToolTip         <- "This file has been deleted (or renamed) from:\r\n" + dfi.FullName
                 textBlock.Text            <- dfi.Name
                 textBlock.TextDecorations <- TextDecorations.Strikethrough
@@ -105,7 +111,13 @@ type Tab (editor:Editor) = //, config:Fesh.Config.Config, allFileInfos:seq<IO.Fi
     let setCodeSavedStatus(isSaved)=
         savingWanted <-true //to always ask gain after a doc change
         isCodeSaved <- isSaved
-        if not isSaved && headerShowsSaved then // to only update header if actually required
+        let filePathStateChanged =
+            match editor.FilePath with
+            |Deleted _ -> not headerShowsDeleted
+            |SetTo _ |NotSet _ -> headerShowsDeleted
+        if filePathStateChanged then
+            setHeader()
+        elif not isSaved && headerShowsSaved then // to only update header if actually required
             setHeader()
         elif isSaved && not headerShowsSaved  then // to only update header if actually required
             setHeader()

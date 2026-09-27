@@ -345,11 +345,10 @@ type Tabs(config:Config, log:Log,feshWin:FeshWindow) =
                     let codeRaw = IO.File.ReadAllText (fi.FullName, Text.Encoding.UTF8)
                     let codeClean =
                         codeRaw
-                        |> Util.Str.unifyLineEndings
-                        |> Util.Str.tabsToSpaces (config.Settings.GetInt("IndentationSize",4))
+                        |> Util.Str.normalizeCode config.Settings
                     let ed = Editor.SetUp(codeClean, config, SetTo fi)
                     let t = new Tab(ed)
-                    t.Editor.CodeAtLastSave <- codeRaw
+                    t.Editor.CodeAtLastSave <- codeClean
                     //log.PrintfnDebugMsg "adding Tab %A in %A " t.Editor.FilePath t.Editor.FileCheckState
                     addTab(t, makeCurrent, moreTabsToCome)
                     true

@@ -166,6 +166,12 @@ module Str  =
     let tabsToSpaces spaces (s:string) =
         s.Replace("\t", String(' ',spaces))
 
+    /// Normalizes file text to the representation used by the editor.
+    let normalizeCode (settings:Fittings.PersistentSettings) (s:string) =
+        s
+        |> unifyLineEndings
+        |> tabsToSpaces (settings.GetInt("IndentationSize", 4))
+
     let inline trim  (s:string) = s.Trim()
 
     ///s.Replace(toReplace, replacement)
