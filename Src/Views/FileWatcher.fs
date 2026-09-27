@@ -55,10 +55,10 @@ type FileChangeTracker (editor:Editor, setCodeSavedStatus:bool->unit) =
 
     let check(_reason) =
         match editor.FilePath with
-        |NotSet _ ->()
+        |NotSet _ -> ()
         |Deleted _  |SetTo _ ->
             async{
-                do! Async.Sleep 600 // wait so that the new tab can be displayed first, ( on tab switches)
+                do! Async.Sleep 200 // wait so that the new tab can be displayed first, ( on tab switches)
                 // editor.FilePath might have change in the Async.Sleep wait if this check was just
                 // triggered from reactivating the main window after closing a saveAs dialog.
                 // so get it again
@@ -67,39 +67,42 @@ type FileChangeTracker (editor:Editor, setCodeSavedStatus:bool->unit) =
 
                 |Deleted fi ->
                     fi.Refresh()
-                    if fi.Exists then //file was deleted and now exist again ??
+                    if fi.Exists then // file was deleted and now exist again ??
                         editor.FilePath <- SetTo fi
                         match tryReadFile fi with
                         |None -> IFeshLog.log.PrintfnIOErrorMsg "FileWatcher.fs: check: tryReadFile failed"
                         |Some fileCode ->
                             if fileCode = editor.CodeAtLastSave then
-                                ()// don't !! editor.CodeAtLastSave might not be current code in Document :setCodeSavedStatus(true)
+                                () // don't !! editor.CodeAtLastSave might not be current code in Document :setCodeSavedStatus(true)
                             else
                                 if doWatch then
-                                    doWatch<-false // to not trigger new event from closing this window
+                                    doWatch <- false // to not trigger new event from closing this window
                                     do! Async.SwitchToContext SyncWpf.context
                                     if autoReloadIfClean() && not (editorHasUnsavedChanges()) then
                                         setCode(fileCode, editor)
-                                        setCodeSavedStatus(true)
+                                        setCodeSavedStatus true
                                         doWatch <- true
+                                        IFeshLog.log.PrintfnInfoMsg $"Previously deleted file reloaded for {fi.Name}"
                                     else
-                                    match MessageBox.Show(
-                                        IEditor.mainWindow,
-                                        // $"{reason}: File{nl}{nl}{fi.Name}{nl}{nl}was changed.{nl}Do you want to reload it?", // Debug
-                                        $"The File{nl}{nl}{fi.Name}{nl}{nl}was changed.{nl}Do you want to reload it?",
-                                        "Fesh | Reload Changes?",
-                                        MessageBoxButton.YesNo,
-                                        MessageBoxImage.Exclamation,
-                                        MessageBoxResult.Yes, // default result
-                                        MessageBoxOptions.None) with // previously MessageBoxOptions.DefaultDesktopOnly
+                                        match MessageBox.Show(
+                                            IEditor.mainWindow,
+                                            // $"{reason}: File{nl}{nl}{fi.Name}{nl}{nl}was changed.{nl}Do you want to reload it?", // Debug
+                                            $"The File{nl}{nl}{fi.Name}{nl}{nl}was previously deleted.{nl}It exists again. Do you want to reload it?",
+                                            "Fesh | Reload Changes?",
+                                            MessageBoxButton.YesNo,
+                                            MessageBoxImage.Exclamation,
+                                            MessageBoxResult.Yes, // default result
+                                            MessageBoxOptions.None) with // previously MessageBoxOptions.DefaultDesktopOnly
 
-                                    | MessageBoxResult.Yes ->
-                                        setCode(fileCode, editor)
-                                        setCodeSavedStatus(true)
-                                        doWatch <- true
-                                    | _  ->
-                                        setCodeSavedStatus(false)
-                                        doWatch<- false
+                                        | MessageBoxResult.Yes ->
+                                            setCode(fileCode, editor)
+                                            setCodeSavedStatus true
+                                            doWatch <- true
+                                            if not <| autoReloadIfClean() then
+                                                IFeshLog.log.PrintfnInfoMsg "Previously deleted file reloaded. You can enable AutoReloadExternalChangesIfClean in Settings.txt to avoid this prompt."
+                                        | _  ->
+                                            setCodeSavedStatus false
+                                            doWatch <- false
 
                     else
                         // do nothing, the file is still deleted
@@ -118,12 +121,13 @@ type FileChangeTracker (editor:Editor, setCodeSavedStatus:bool->unit) =
                                 // printfn "'%s'" fileCode
                                 // eprintfn "'%s'" editor.CodeAtLastSave
                                 if doWatch then
-                                    doWatch<-false // to not trigger new event from closing this window
+                                    doWatch <- false // to not trigger new event from closing this MessageBox window
                                     do! Async.SwitchToContext SyncWpf.context
                                     if autoReloadIfClean() && not (editorHasUnsavedChanges()) then
                                         setCode(fileCode, editor)
-                                        setCodeSavedStatus(true)
+                                        setCodeSavedStatus true
                                         doWatch <- true
+                                        IFeshLog.log.PrintfnInfoMsg $"External file changes loaded for {fi.Name}"
                                     else
                                         match MessageBox.Show(
                                             IEditor.mainWindow,
@@ -137,15 +141,17 @@ type FileChangeTracker (editor:Editor, setCodeSavedStatus:bool->unit) =
 
                                         | MessageBoxResult.Yes ->
                                             setCode(fileCode, editor)
-                                            setCodeSavedStatus(true)
-                                            doWatch<- true
+                                            setCodeSavedStatus true
+                                            doWatch <- true
+                                            if not <| autoReloadIfClean() then
+                                                IFeshLog.log.PrintfnInfoMsg "External file changes loaded. You can enable AutoReloadExternalChangesIfClean in Settings.txt to avoid this prompt."
                                         | _  ->
-                                            setCodeSavedStatus(false)
-                                            doWatch<- false
+                                            setCodeSavedStatus false
+                                            doWatch <- false
 
                     else
                         editor.FilePath <- Deleted fi
-                        setCodeSavedStatus(false)
+                        setCodeSavedStatus false
                         do! Async.SwitchToContext SyncWpf.context
                         doWatch<-false // to not trigger new event from closing this window
                         MessageBox.Show(
@@ -159,7 +165,7 @@ type FileChangeTracker (editor:Editor, setCodeSavedStatus:bool->unit) =
                             MessageBoxOptions.None // previously MessageBoxOptions.DefaultDesktopOnly
                             )
                             |> ignore
-                        doWatch<-false
+                        doWatch <- false
 
             }
             |>Async.Start
@@ -171,7 +177,7 @@ type FileChangeTracker (editor:Editor, setCodeSavedStatus:bool->unit) =
         async{
             do! Async.SwitchToContext SyncWpf.context
             if ta.IsFocused && IEditor.mainWindow.IsActive then
-                do! Async.Sleep 1000 // during this wait some other file watch events might happen
+                do! Async.Sleep 200 //1000 // during this wait some other file watch events might happen
                 if checkPending then
                     checkPending <- false
                     check(msg)
@@ -198,10 +204,12 @@ type FileChangeTracker (editor:Editor, setCodeSavedStatus:bool->unit) =
         // https://wpf.2000things.com/2012/07/30/613-window-event-sequence/
 
         ta.GotFocus.Add (fun _ -> // this also get triggered when one of the above message boxes gets closed ?
-            if doWatch then check("ta.GotFocus"))
+            if doWatch then
+                check("ta.GotFocus"))
 
         IEditor.mainWindow.Activated.Add (fun _ -> // this also get triggered when one of the above message boxes gets closed
-            if doWatch && IEditor.isCurrent editor.AvaEdit then check("mainWindow.Activated") )
+            if doWatch && IEditor.isCurrent editor.AvaEdit then
+                check("mainWindow.Activated") )
 
         setWatcher()
 
