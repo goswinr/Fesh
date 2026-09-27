@@ -134,7 +134,13 @@ module FsCheckerUtil =
                         ,source            = sourceText
                         ,previewEnabled    = true // // Bug in FCS! if otherFlags argument is given the value here is ignored !
                         //,loadedTimeStamp: DateTime *
-                        ,otherFlags            = [| "--targetprofile:" + (if isNet8 then "netstandard" else "mscorlib") ; "--langversion:preview" |]//https://github.com/fsharp/FsAutoComplete/blob/f176825521215725e5b7ba888d4bb11d1e408e56/src/FsAutoComplete.Core/CompilerServiceInterface.fs#L178
+                        ,otherFlags            = [|
+                            //https://github.com/fsharp/FsAutoComplete/blob/f176825521215725e5b7ba888d4bb11d1e408e56/src/FsAutoComplete.Core/CompilerServiceInterface.fs#L178
+                            "--targetprofile:" + (if isNet8 then "netstandard" else "mscorlib")
+                            "--langversion:preview"
+                            for dir in config.RunContext.LibFolders do
+                                "--lib:" + dir
+                            |]
                         ,useSdkRefs            = isNet8
                         ,assumeDotNetFramework = not isNet8
                         //,useFsiAuxLib = true // so that fsi object is available // doesn't work

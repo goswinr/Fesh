@@ -9,6 +9,7 @@ open Fesh.Model
 /// logo: optional a URI to an alternative logo for hosted mode default is Uri("pack://application:,,,/Fesh;component/Media/logo.ico")
 /// hostAssembly: to get version number of hosting assembly
 /// canRunAsync: bool to indicate if the hosted app can run async code
+/// libFolders: folders to search for assemblies referenced via #r, passed as '--lib:' arguments to the type checker and to FSI. Can be empty.
 type HostedStartUpData = {
     hostName:string
     mainWindowHandel: nativeint
@@ -17,6 +18,7 @@ type HostedStartUpData = {
     defaultCode:option<string>
     hostAssembly :option<Reflection.Assembly>
     canRunAsync: bool
+    libFolders: string[]
     }
 
 
@@ -134,6 +136,9 @@ type RunContext (host:HostedStartUpData option) =
     member this.Logo         = match host with None ->  None | Some d -> d.logo
 
     member this.DefaultCode  = match host with None -> None | Some sd -> sd.defaultCode
+
+    /// Folders given by the host to search for assemblies referenced via #r. Empty in standalone mode.
+    member this.LibFolders   = match host with None -> [||] | Some sd -> if isNull sd.libFolders then [||] else sd.libFolders
 
     member this.IsRunningOnDotNetCore = isRunningOnDotNetCore
 

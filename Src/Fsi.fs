@@ -271,6 +271,7 @@ type Fsi private (config:Config) =
             // see: Config/FsiArguments.fs
             // Reload from disk so that a Reset FSI picks up edits to FSI-Arguments.txt
             let args = config.FsiArguments.Reload()
+            let args = Array.append args [| for dir in config.RunContext.LibFolders do "--lib:" + dir |] // same folders as used by the type checker in Editor/Checker.fs
             let beQuiet = config.Settings.GetBool ("fsiOutputQuiet", false)
 
             match beQuiet, args |> Array.tryFindIndex (fun s -> s="--quiet") with
