@@ -164,11 +164,16 @@ type FsiCodeAmount =
     | ContinueFromChanges
     | FsiSegment of  CodeSegment
 
-type CodeToEval = {
+type EvalRequest = {
     editor:IEditor
     amount:FsiCodeAmount
     logger:option<TextWriter>
     scriptName:string // the file name for reporting in errors
+    }
+
+type EvalData = {
+    request: EvalRequest
+    code: string
     }
 
 

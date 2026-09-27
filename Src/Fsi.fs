@@ -58,10 +58,10 @@ type Fsi private (config:Config) =
     let log = config.Log
 
     ///FSI events
-    let compilingEv      = new Event<CodeToEval>()
-    let emittingEv       = new Event<CodeToEval>()
+    let compilingEv      = new Event<EvalData>()
+    let emittingEv       = new Event<EvalRequest>()
     let canceledEv       = new Event<unit>()
-    let completedOkEv    = new Event<CodeToEval>()
+    let completedOkEv    = new Event<EvalRequest>()
     let runtimeErrorEv   = new Event<Exception>()
     let fsiEvalErrorEv    = new Event<FSharpDiagnostic>()
     let isReadyEv        = new Event<unit>()
@@ -81,7 +81,7 @@ type Fsi private (config:Config) =
 
     let mutable asyncThread: option<Thread> = None
 
-    let mutable pendingEval :option<CodeToEval> = None // for storing evaluations that are triggered before fsi is ready
+    let mutable pendingEval :option<EvalData> = None // for storing evaluations that are triggered before fsi is ready
 
     //let mutable codeInEval : option<CodeToEval> = None
     // let _ = // just for OnEmitting Event !!
@@ -325,7 +325,7 @@ type Fsi private (config:Config) =
             //fsiSession.Run() // don't call Run(), crashes app, done by WPF App.Run(). see https://github.com/dotnet/fsharp/issues/14486
             fsiSession
 
-    let handeleEvaluationResult (evaluatedTo:Choice<FsiValue option,exn>, diagnostics: FSharpDiagnostic[], codeToEv:CodeToEval) =
+    let handeleEvaluationResult (evaluatedTo:Choice<FsiValue option,exn>, diagnostics: FSharpDiagnostic[], codeToEv:EvalRequest) =
         // switch back to sync Thread:
         async{
             match syMode with
@@ -410,7 +410,7 @@ type Fsi private (config:Config) =
     [< Runtime.ExceptionServices.HandleProcessCorruptedStateExceptions >] //to handle AccessViolationExceptions too //https://stackoverflow.com/questions/3469368/how-to-handle-accessviolationexception/4759831
     #endif
     [< Security.SecurityCritical >]
-    let evalSave (session:FsiEvaluationSession, code:string, codeToEv:CodeToEval) =
+    let evalSave (session:FsiEvaluationSession, code:string, codeToEv:EvalRequest) =
         // net472
         // Cancellation happens via Thread Abort
         // TODO actually using the token would work too but only if session.Run() has been called before, but that fails when hosted. see https://github.com/dotnet/fsharp/issues/14486
@@ -424,36 +424,25 @@ type Fsi private (config:Config) =
             with e -> Choice2Of2 e , [| |]
         handeleEvaluationResult(evaluatedTo, errs, codeToEv)
 
-    let eval(codeToEv:CodeToEval) :unit =
-        let avaEd = codeToEv.editor.AvaEdit
-        let fsCode =
-            match codeToEv.amount with
-            |All -> avaEd.Text
-            |ContinueFromChanges ->
-                let fromLn = codeToEv.editor.EvaluateFromLine
-                if fromLn = 0 then avaEd.Text
-                else
-                    let from = avaEd.Document.GetLineByNumber(fromLn).Offset
-                    let len = avaEd.Document.TextLength - from
-                    if len > 0 then avaEd.Document.GetText(from , len ) //|> (fun s -> printfn $"ContinueFromChanges ln: {fromLn}, off {from} to {len} :\r\n'{s}'" ; s)
-                    else "" // ContinueFromChanges reached end, all of document is evaluated
-            | FsiSegment seg -> seg.text
+    let eval(evalData:EvalData) :unit =
+        let evalReq = evalData.request
 
-        if not(String.IsNullOrWhiteSpace fsCode) then
+
+        if not(String.IsNullOrWhiteSpace evalData.code) then
             if not config.RunContext.FsiCanRun then
                 log.PrintfnAppErrorMsg "The Hosting App has blocked Fsi from Running, maybe because the App is busy in another command or task."
             else
                 match sessionOpt with
                 |None ->
-                    pendingEval <- Some codeToEv
-                    //compilingEv.Trigger(codeToEv) //  to show "FSI is running" immediately , even while initializing?
+                    pendingEval <- Some evalData
+                    //compilingEv.Trigger(evalData) //  to show "FSI is running" immediately , even while initializing?
                     //initFsi()  //don't ! not needed !, setting pendingEval is enough
                     //previously: log.PrintfnFsiErrorMsg "Please wait till FSI is initialized for running scripts"
 
                 |Some session ->
                     state <- Compiling
                     //codeInEval <- Some codeToEv
-                    compilingEv.Trigger(codeToEv) // do always sync, to show "FSI is running" immediately
+                    compilingEv.Trigger(evalData) // do always sync, to show "FSI is running" immediately
 
                     let asyncEval = async {
                         // set context this or other async thread:
@@ -501,7 +490,7 @@ type Fsi private (config:Config) =
                             //setDir session fi
                             //setFileAndLine session code.fromLine fi // TODO both fail ??
 
-                        evalSave(session, fsCode, codeToEv)
+                        evalSave(session, evalData.code , evalReq)
                         }
                     Async.StartImmediate(asyncEval)
 
@@ -650,7 +639,7 @@ type Fsi private (config:Config) =
         } |> Async.StartImmediate
 
 
-    member this.Evaluate(code:CodeToEval) =
+    member this.Evaluate(evalReq:EvalRequest) =
         // if DateTime.Today > DateTime(2026, 12, 31) then
         //     log.PrintfnFsiErrorMsg "*** Your Fesh Editor has expired, please download a new version. ***"
         //     log.PrintfnFsiErrorMsg "*** https://github.com/goswinr/Fesh ***"
@@ -660,11 +649,28 @@ type Fsi private (config:Config) =
         //             log.PrintfnFsiErrorMsg "*** Your Fesh Editor will expire on 2026-12-31, please download a new version soon.***"
         //             log.PrintfnFsiErrorMsg "*** https://github.com/goswinr/Fesh ***"
         //             log.PrintfnFsiErrorMsg "*** or contact goswin@rothenthal.com ***"
-            match this.AskIfCancellingIsOk () with
-            | NotEvaluating    -> eval(code)
-            | YesAsync         -> this.CancelIfAsync();this.EvalDelayed(code)
-            | UserDoesntWantTo -> ()
-            | NotPossibleSync  -> log.PrintfnInfoMsg "Wait till current synchronous evaluation completes before starting new one."
+
+        let evalData() = {
+            request = evalReq;
+            code =
+                match evalReq.amount with
+                |All -> evalReq.editor.AvaEdit.Text
+                |ContinueFromChanges ->
+                    let fromLn = evalReq.editor.EvaluateFromLine
+                    if fromLn = 0 then evalReq.editor.AvaEdit.Text
+                    else
+                        let from = evalReq.editor.AvaEdit.Document.GetLineByNumber(fromLn).Offset
+                        let len = evalReq.editor.AvaEdit.Document.TextLength - from
+                        if len > 0 then evalReq.editor.AvaEdit.Document.GetText(from , len ) //|> (fun s -> printfn $"ContinueFromChanges ln: {fromLn}, off {from} to {len} :\r\n'{s}'" ; s)
+                        else "" // ContinueFromChanges reached end, all of document is evaluated
+                | FsiSegment seg -> seg.text
+            }
+
+        match this.AskIfCancellingIsOk () with
+        | NotEvaluating    -> eval(evalData())
+        | YesAsync         -> this.CancelIfAsync();this.EvalDelayed(evalData())
+        | UserDoesntWantTo -> ()
+        | NotPossibleSync  -> log.PrintfnInfoMsg "Wait till current synchronous evaluation completes before starting new one."
 
 
     member this.Reset() =
