@@ -94,6 +94,8 @@ type Editor private (code:string, config:Config, initialFilePath:FilePath)  =
         // if config.Settings.GetBool(EvaluationTracker.SettingsStr, EvaluationTracker.onByDefault) then Some <| EvaluationTracker(avaEdit,state, config)
         // else None
 
+    let mutable codeAtLastSave = ""
+
     let drawServices :Redrawing.DrawingServices = {
         folds       = folds
         compls      = compls
@@ -115,7 +117,12 @@ type Editor private (code:string, config:Config, initialFilePath:FilePath)  =
 
     member val TypeInfoTip = new Controls.ToolTip(IsOpen=false)
 
-    member val CodeAtLastSave : string = "" with get,set // used to check if file was changed in the background by other apps in FileChangeTracker
+    /// Used to check if file was changed in the background by other apps in FileChangeTracker.
+    /// The value is always normalized (see Util.Str.normalizeCode) so that it can be compared
+    /// directly with the normalized text read back from disk.
+    member _.CodeAtLastSave
+        with get() = codeAtLastSave
+        and  set(v) = codeAtLastSave <- normalizeCode config.Settings v
 
     member _.ErrorHighlighter = error
 

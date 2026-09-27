@@ -14,8 +14,9 @@ type FileChangeTracker (editor:Editor, setCodeSavedStatus:bool->unit) =
     let ta = editor.AvaEdit.TextArea
     let watcher = new FileSystemWatcher()
 
-    let mutable checkPending = false
     let mutable checkVersion = 0
+    let mutable bufferVersion = 0
+    let mutable isStopped = false
     let mutable gotFocusSubscription : IDisposable option = None
     let mutable activatedSubscription : IDisposable option = None
 
@@ -59,7 +60,8 @@ type FileChangeTracker (editor:Editor, setCodeSavedStatus:bool->unit) =
         loop 0
 
 
-    let check(_reason) =
+    /// must be called on the WPF UI thread
+    let check() =
         if doWatch then
             checkVersion <- checkVersion + 1
             let version = checkVersion
@@ -140,6 +142,9 @@ type FileChangeTracker (editor:Editor, setCodeSavedStatus:bool->unit) =
                                         | _ ->
                                             setCodeSavedStatus false
                                             doWatch <- false
+                                else
+                                    // the file on disk matches the last saved code, but the Document might still have unsaved edits
+                                    setCodeSavedStatus (not <| editorHasUnsavedChanges())
                     else
                         do! Async.SwitchToContext SyncWpf.context
                         if doWatch && version = checkVersion && codeAtStart = editor.CodeAtLastSave then
@@ -160,66 +165,83 @@ type FileChangeTracker (editor:Editor, setCodeSavedStatus:bool->unit) =
             |> Async.Start
 
 
-    /// this will only check the file for diffs if focused and active
-    let bufferedCheck(msg) =
+    /// This will only check the file for diffs if focused and active.
+    /// Several file system events in quick succession are collapsed into one check,
+    /// the waiting restarts on every new event so that a slow external writer is not
+    /// read while it is only half done.
+    let bufferedCheck() =
         if doWatch then
-            checkPending <- true
             async{
-                do! Async.SwitchToContext SyncWpf.context
+                do! Async.SwitchToContext SyncWpf.context // bufferVersion is only ever touched on the UI thread
+                bufferVersion <- bufferVersion + 1
+                let version = bufferVersion
                 if ta.IsFocused && IEditor.mainWindow.IsActive then
                     do! Async.Sleep 200 // during this wait some other file watch events might happen
-                    if checkPending then
-                        checkPending <- false
-                        check(msg)
+                    if version = bufferVersion && doWatch then // only the most recent event triggers the check
+                        check()
                 }
                 |> Async.Start
 
 
     let setWatcher() =
         watcher.EnableRaisingEvents <- false
-        match editor.FilePath with
-        |NotSet _ -> ()
-        |SetTo fi
-        |Deleted fi ->
-            watcher.Path   <- fi.DirectoryName
-            watcher.Filter <- fi.Name
-            watcher.NotifyFilter <- NotifyFilters.LastWrite ||| NotifyFilters.FileName||| NotifyFilters.DirectoryName
-            watcher.EnableRaisingEvents <- true // must be after setting path and filters
+        if not isStopped then
+            match editor.FilePath with
+            |NotSet _ -> ()
+            |SetTo fi
+            |Deleted fi ->
+                watcher.Path   <- fi.DirectoryName
+                watcher.Filter <- fi.Name
+                watcher.NotifyFilter <- NotifyFilters.LastWrite ||| NotifyFilters.FileName||| NotifyFilters.DirectoryName
+                watcher.EnableRaisingEvents <- true // must be after setting path and filters
 
     do
         // https://wpf.2000things.com/2012/07/30/613-window-event-sequence/
 
-        watcher.Renamed.Add (fun _ -> bufferedCheck("buffered Renamed") )
-        watcher.Deleted.Add (fun _ -> bufferedCheck("buffered Deleted") )
-        watcher.Changed.Add (fun _ -> bufferedCheck("buffered Changed") )
-        watcher.Created.Add (fun _ -> bufferedCheck("buffered Created") ) // recreated after deletion
+        watcher.Renamed.Add (fun _ -> bufferedCheck() )
+        watcher.Deleted.Add (fun _ -> bufferedCheck() )
+        watcher.Changed.Add (fun _ -> bufferedCheck() )
+        watcher.Created.Add (fun _ -> bufferedCheck() ) // recreated after deletion
 
         gotFocusSubscription <-
             ta.GotFocus.Subscribe (fun _ -> // this also gets triggered when one of the above message boxes closes
                 if doWatch then
-                    check("ta.GotFocus"))
+                    check())
             |> Some
 
         activatedSubscription <-
             IEditor.mainWindow.Activated.Subscribe (fun _ -> // this also gets triggered when one of the above message boxes closes
                 if doWatch && IEditor.isCurrent editor.AvaEdit then
-                    check("mainWindow.Activated"))
+                    check())
             |> Some
 
         setWatcher()
 
     /// to update the location if file location changed
+    /// does nothing after Stop() was called
     member _.ResetPath() =
-        checkVersion <- checkVersion + 1
-        doWatch <- true
-        setWatcher()
+        if not isStopped then
+            checkVersion <- checkVersion + 1
+            doWatch <- true
+            setWatcher()
 
-    /// sets watcher.EnableRaisingEvents <- false
+    /// Resumes watching the same file again.
+    /// Needed because answering 'No' to a "reload changes?" dialog stops the watching of this file.
+    /// Call this after the file was saved from within Fesh, so that later external changes are noticed again.
+    /// Does nothing after Stop() was called.
+    member _.Rearm() =
+        if not isStopped then
+            checkVersion <- checkVersion + 1 // discard checks that are still in flight from our own saving
+            doWatch <- true
+
+    /// stops watching, disposes the watcher and unsubscribes the window events
     member _.Stop()=
-        checkVersion <- checkVersion + 1
-        doWatch <- false
-        watcher.EnableRaisingEvents <- false
-        gotFocusSubscription |> Option.iter (fun subscription -> subscription.Dispose())
-        activatedSubscription |> Option.iter (fun subscription -> subscription.Dispose())
-        watcher.Dispose()
+        if not isStopped then
+            isStopped <- true
+            checkVersion <- checkVersion + 1
+            doWatch <- false
+            watcher.EnableRaisingEvents <- false
+            gotFocusSubscription |> Option.iter (fun subscription -> subscription.Dispose())
+            activatedSubscription |> Option.iter (fun subscription -> subscription.Dispose())
+            watcher.Dispose()
 

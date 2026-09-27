@@ -141,6 +141,7 @@ type Tabs(config:Config, log:Log,feshWin:FeshWindow) =
                 |SaveInPlace -> // also called for Save-All command
                     t.IsCodeSaved <- true
                     t.Editor.CodeAtLastSave <- txt
+                    t.FileTracker.Rearm() // in case watching was stopped by answering 'No' to a reload dialog
                     log.PrintfnInfoMsg $"File saved {fi.FullName}"
                 |SaveExport ->
                     config.FoldingStatus.Set(t.Editor.FilePath , t.Editor.Folds.Manager) // otherwise no record would exist for the new file name.
@@ -213,6 +214,7 @@ type Tabs(config:Config, log:Log,feshWin:FeshWindow) =
                         t.Editor.CodeAtLastSave <- txt
                         t.AvaEdit.Dispatcher.Invoke(fun ()->
                             t.IsCodeSaved <- true
+                            t.FileTracker.Rearm() // in case watching was stopped by answering 'No' to a reload dialog
                             log.PrintfnInfoMsg "File saved."
                             //log.PrintfnInfoMsg "File saved:\r\n\"%s\"" fi.FullName
                             )
