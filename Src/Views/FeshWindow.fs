@@ -27,11 +27,15 @@ type FeshWindow (config:Config)=
         if Environment.Is64BitProcess then "64bit" else "32bit"
 
 
-    let removeTrailingZerosOrPoints (s:string) =
+    let removeTrailingZerosAndPoints (s:string) =
         let rec loop (s:string) =
-            if s.EndsWith "0" then loop (s.Substring(0,s.Length-1))
-            elif s.EndsWith "." then s.Substring(0,s.Length-1)
-            else s
+            let es = s.Split('.')
+            let last = Array.last es
+            let lastTrimmed = last.Trim().Replace("0","")// remove block of zeros like .000 from end
+            if lastTrimmed.Length = 0 then
+                String.Join(".", Array.truncate (es.Length-1) es) |> loop
+            else
+                s
         loop s
 
     let version =
@@ -40,16 +44,16 @@ type FeshWindow (config:Config)=
             |Some j -> j
             |None   -> Reflection.Assembly.GetAssembly(typeof<FeshWindow>)
         let v = ass.GetName().Version
-        "v" + (v.ToString())//|> removeTrailingZerosOrPoints)
+        "v" + (v.ToString())//|> removeTrailingZerosAndPoints)
         // $"v{v.Major}.{v.Minor}.{v.Revision}"  + if  v.MinorRevision <> 0s then $".{v.MinorRevision}" else ""
 
     let fsCore  =
         let v = [].GetType().Assembly.GetName().Version
-        "Fsharp.Core." + (v.ToString()|> removeTrailingZerosOrPoints)
+        "Fsharp.Core." + (v.ToString()|> removeTrailingZerosAndPoints)
         // $"Fsharp.Core {v.Major}.{v.Minor}.{v.Revision}"  + if  v.MinorRevision <> 0s then $".{v.MinorRevision}" else ""
 
     let frameW =
-        RuntimeInformation.FrameworkDescription |> removeTrailingZerosOrPoints
+        RuntimeInformation.FrameworkDescription |> removeTrailingZerosAndPoints
         // let d = RuntimeInformation.FrameworkDescription
         // let t = if d.EndsWith ".0" then d[..^2] else d
         // $"{t}"
