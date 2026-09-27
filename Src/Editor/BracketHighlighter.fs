@@ -213,7 +213,7 @@ module ParseBrackets =
 
                     | '"',   _  -> skipString next (i+1)  |> flowOnOrOver SimpleString //a  regular string starts,
 
-                    | ''', '\\' ->  if i + 3 <= lastIdx then
+                    | ''', '\\' ->  if i + 3 <= lastIdx then // an escaped char literal starts,
                                         let next3 = code[i+3] //skip the first char after '\ it might be a ' or a " .
                                         skipChar next3 (i+3) |> flowOnOrOver RegCode // skipChar because this might be a long unicode escaped char literal
                                     else
@@ -222,12 +222,13 @@ module ParseBrackets =
                     | ''',  _  ->   if i + 3 <= lastIdx then // a regular char literal starts,  its length is 3, or a generic Type
                                         if code[i+2] = ''' then
                                             let next3 = code[i+3] // the char after '''
-                                            charLoop next3 (i+3)
+                                            charLoop next3 (i+3) // jump over the char literal
                                         else
                                             // might be a generic type like 'T or a malformed char literal
-                                            charLoop next (i+1)
+                                            charLoop next (i+1) // just move on to next char
                                     else
-                                        RegCode // the line ends immediately after `'`
+                                        charLoop next (i+1)
+                                        // RegCode // the line ends immediately after `'`
 
                     | _       -> charLoop next (i+1)
 
