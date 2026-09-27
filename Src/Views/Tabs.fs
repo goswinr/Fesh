@@ -88,9 +88,9 @@ type Tabs(config:Config, log:Log,feshWin:FeshWindow) =
 
     let saveSettingsForNewOpenFile(savedCode, t:Tab, fi:FileInfo, sync) =
         let ed = t.Editor
-        t.FileTracker.ResetPath()
         t.IsCodeSaved <- true
         ed.FilePath <- SetTo fi //this also updates the Tab header and set file info on editor
+        t.FileTracker.ResetPath()
         ed.CodeAtLastSave <- savedCode
         t.UpdateTabHeader()
         feshWin.SetFileNameInTitle(ed.FilePath)

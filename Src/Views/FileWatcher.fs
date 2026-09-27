@@ -115,7 +115,7 @@ type FileChangeTracker (editor:Editor, setCodeSavedStatus:bool->unit) =
                         |None -> IFeshLog.log.PrintfnIOErrorMsg "FileWatcher.fs: check: tryReadFile failed"
                         |Some fileCode ->
                             if fileCode = editor.CodeAtLastSave then // this means that the last file saving was not done by Fesh
-                                () // don't !! editor.CodeAtLastSave might not be current code in Document :setCodeSavedStatus(true)
+                                () // don't do :  editor.CodeAtLastSave might not be current code in Document :setCodeSavedStatus(true)
                             else
                                 // eprintfn "file changed: %d vs %d" fileCode.Length editor.CodeAtLastSave.Length
                                 // printfn "'%s'" fileCode
@@ -153,7 +153,7 @@ type FileChangeTracker (editor:Editor, setCodeSavedStatus:bool->unit) =
                         editor.FilePath <- Deleted fi
                         setCodeSavedStatus false
                         do! Async.SwitchToContext SyncWpf.context
-                        doWatch<-false // to not trigger new event from closing this window
+                        doWatch <- false // to not trigger new event from closing this window
                         MessageBox.Show(
                             IEditor.mainWindow,
                             //$"{reason}: {fi.Name}{nl}{nl}was deleted or renamed.{nl}{nl}at {fi.DirectoryName}", // Debug
