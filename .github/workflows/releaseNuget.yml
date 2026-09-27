@@ -6,16 +6,30 @@ on:
       # does  trigger on prerelease tags like 0.30.0-beta1 too
       - '*.*.*'
 
+# The repo default for GITHUB_TOKEN is read/write. Nothing here writes to the repo.
+permissions:
+  contents: read
+
 jobs:
   publish:
     runs-on: windows-latest
+    permissions:
+      contents: read
+      # Required for nuget.org Trusted Publishing (OIDC): lets the runner request a short-lived
+      # token from GitHub's OIDC provider, which NuGet/login exchanges for a temporary API key.
+      # No long-lived NUGET_API_KEY secret is stored in GitHub.
+      id-token: write
 
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v7.0.1
+      # Pinned to a full commit SHA (a tag is mutable and can be repointed). Dependabot's
+      # github-actions updater bumps both the SHA and the trailing version comment.
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        persist-credentials: false
 
     - name: Setup .NET
-      uses: actions/setup-dotnet@v6.0.0
+      uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
       with:
         dotnet-version: '10.x'
 
@@ -23,18 +37,21 @@ jobs:
       run: |
         $content = Get-Content -Path README.md -Raw
         $content = $content -replace "<br>", "  "
-        Set-Content -Path README.md -Value $content           
+        Set-Content -Path README.md -Value $content
 
 
-    # publish net 10 with no suffix
+    # All four packages are built first and only pushed at the end,
+    # so that a failing build can't leave a partial set of packages on nuget.org.
+
+    # build net 10 with no suffix
     - name: Set target framework to net10 in FeshHosting.fsproj
       run: |
         $projFile = Get-Content -Path FeshHosting.fsproj -Raw
         $projFile = $projFile -replace "<TargetFramework>.*?</TargetFramework>", "<TargetFramework>net10.0-windows</TargetFramework>"
-        Set-Content -Path FeshHosting.fsproj -Value $projFile    
-      
+        Set-Content -Path FeshHosting.fsproj -Value $projFile
+
     - name: Dotnet build FeshHosting for net10
-      run:  dotnet build FeshHosting.fsproj --configuration Release --output bin/publishNuget
+      run:  dotnet build FeshHosting.fsproj --configuration Release --output bin/publishNuget/net10
 
     - name: Check version consistency of git tag and CHANGELOG.md after build
       # needs in fsproj:
@@ -43,23 +60,17 @@ jobs:
       # </Target>
       id: check_version
       shell: bash
+      # uses the GITHUB_REF_NAME environment variable instead of ${{ github.ref_name }},
+      # so that the tag name is never pasted into the script text.
       run: |
-        CHANGELOG_VERSION=$(cat ./bin/ChangelogVersion.txt | tr -d '[:space:]')        
-        if [ "${{ github.ref_name }}" != "$CHANGELOG_VERSION" ]; then
-          echo "Version mismatch: git tag (${{ github.ref_name }}) and version in CHANGELOG.md ($CHANGELOG_VERSION) are not the same."
+        CHANGELOG_VERSION=$(cat ./bin/ChangelogVersion.txt | tr -d '[:space:]')
+        if [ "$GITHUB_REF_NAME" != "$CHANGELOG_VERSION" ]; then
+          echo "Version mismatch: git tag ($GITHUB_REF_NAME) and version in CHANGELOG.md ($CHANGELOG_VERSION) are not the same."
           exit 1
-        fi 
+        fi
         echo "CHANGELOG_VERSION=$CHANGELOG_VERSION"
-        echo "github.ref_name=${{ github.ref_name }}"  
-        echo "Version check of git tag and CHANGELOG.md passed successfully."     
-    
-
-    - name: Push net10 NuGet package to nuget.org without suffix
-      run: |
-        dotnet nuget push `
-        ./bin/publishNuget/Fesh.${{ github.ref_name }}.symbols.nupkg `
-        --api-key ${{ secrets.NUGET_API_KEY }} `
-        --source https://api.nuget.org/v3/index.json
+        echo "GITHUB_REF_NAME=$GITHUB_REF_NAME"
+        echo "Version check of git tag and CHANGELOG.md passed successfully."
 
     # now packages with suffix:
 
@@ -74,21 +85,13 @@ jobs:
 
     - name : Set -net472 suffix in changelog
       run: |
+        $v = $env:GITHUB_REF_NAME
         $content = Get-Content -Path CHANGELOG.md -Raw
-        $content = $content -replace "${{ github.ref_name }}", "${{ github.ref_name }}-net472"
+        $content = $content -replace [regex]::Escape($v), "$v-net472"
         Set-Content -Path CHANGELOG.md -Value $content
-    
-    - name: Dotnet build FeshHosting for net472
-      run: |
-        Remove-Item -Path ./bin/publishNuget/* -Recurse -Force
-        dotnet build FeshHosting.fsproj --configuration Release --output bin/publishNuget
 
-    - name: Push net472 NuGet package to nuget.org
-      run: |
-        dotnet nuget push `
-        ./bin/publishNuget/Fesh.${{ github.ref_name }}-net472.symbols.nupkg `
-        --api-key ${{ secrets.NUGET_API_KEY }} `
-        --source https://api.nuget.org/v3/index.json
+    - name: Dotnet build FeshHosting for net472
+      run: dotnet build FeshHosting.fsproj --configuration Release --output bin/publishNuget/net472
 
 
     # now that net472 is done do the same for net8
@@ -100,24 +103,16 @@ jobs:
 
     - name : Set -net8 suffix in changelog
       run: |
+        $v = $env:GITHUB_REF_NAME
         $content = Get-Content -Path CHANGELOG.md -Raw
-        $content = $content -replace "${{ github.ref_name }}-net472", "${{ github.ref_name }}-net8"
+        $content = $content -replace [regex]::Escape("$v-net472"), "$v-net8"
         Set-Content -Path CHANGELOG.md -Value $content
-    
+
     - name: Dotnet build FeshHosting for net8
-      run: |
-        Remove-Item -Path ./bin/publishNuget/* -Recurse -Force
-        dotnet build FeshHosting.fsproj --configuration Release --output bin/publishNuget
-
-    - name: Push net8 NuGet package to nuget.org
-      run: |
-        dotnet nuget push `
-        ./bin/publishNuget/Fesh.${{ github.ref_name }}-net8.symbols.nupkg `
-        --api-key ${{ secrets.NUGET_API_KEY }} `
-        --source https://api.nuget.org/v3/index.json
+      run: dotnet build FeshHosting.fsproj --configuration Release --output bin/publishNuget/net8
 
 
-    # now that net472 is done do the same for net9
+    # now that net8 is done do the same for net9
     - name: Set target framework to net9 in FeshHosting.fsproj
       run: |
         $projFile = Get-Content -Path FeshHosting.fsproj -Raw
@@ -126,18 +121,45 @@ jobs:
 
     - name : Set -net9 suffix in changelog
       run: |
+        $v = $env:GITHUB_REF_NAME
         $content = Get-Content -Path CHANGELOG.md -Raw
-        $content = $content -replace "${{ github.ref_name }}-net8", "${{ github.ref_name }}-net9"
+        $content = $content -replace [regex]::Escape("$v-net8"), "$v-net9"
         Set-Content -Path CHANGELOG.md -Value $content
-    
-    - name: Dotnet build FeshHosting for net9
-      run: |
-        Remove-Item -Path ./bin/publishNuget/* -Recurse -Force
-        dotnet build FeshHosting.fsproj --configuration Release --output bin/publishNuget
 
-    - name: Push net9 NuGet package to nuget.org
+    - name: Dotnet build FeshHosting for net9
+      run: dotnet build FeshHosting.fsproj --configuration Release --output bin/publishNuget/net9
+
+
+    # Trusted Publishing: https://learn.microsoft.com/en-us/nuget/nuget-org/trusted-publishing
+    # nuget.org only issues the key if a Trusted Publishing policy of the user below matches
+    # the OIDC token of this run. Configure it on nuget.org -> user name -> Trusted Publishing:
+    #   Repository Owner: goswinr
+    #   Repository:       Fesh
+    #   Workflow File:    releaseNuget.yml   (file name only, no path)
+    #   Environment:      (empty)
+    # The key is valid for 1 hour, so it is requested only now, after all builds are done.
+    - name: NuGet login (OIDC -> temporary API key)
+      id: login
+      # SHA-pinned (mutable tag): this step holds the key that can publish all packages of the user.
+      uses: NuGet/login@8d196754b4036150537f80ac539e15c2f1028841 # v1.2.0
+      with:
+        user: goswinr # the nuget.org profile name, not the email address
+
+    - name: Push all NuGet packages to nuget.org
+      env:
+        NUGET_API_KEY: ${{ steps.login.outputs.NUGET_API_KEY }}
       run: |
-        dotnet nuget push `
-        ./bin/publishNuget/Fesh.${{ github.ref_name }}-net9.symbols.nupkg `
-        --api-key ${{ secrets.NUGET_API_KEY }} `
-        --source https://api.nuget.org/v3/index.json
+        $v = $env:GITHUB_REF_NAME
+        $packages =
+          "net10/Fesh.$v", # net10 has no suffix
+          "net472/Fesh.$v-net472",
+          "net8/Fesh.$v-net8",
+          "net9/Fesh.$v-net9"
+        foreach ($p in $packages) {
+          # --skip-duplicate so that the workflow can be re-run if only some of the pushes succeeded
+          dotnet nuget push "./bin/publishNuget/$p.symbols.nupkg" `
+            --api-key $env:NUGET_API_KEY `
+            --source https://api.nuget.org/v3/index.json `
+            --skip-duplicate
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+        }
