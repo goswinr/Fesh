@@ -8,6 +8,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ### Added
 - `libFolders` field on `HostedStartUpData`: folders passed as `--lib:` to the type checker and FSI, to resolve `#r` references to host assemblies
+- log a message when external file changes or a previously deleted file get reloaded
+### Changed
+- external file changes are detected faster
+- separate reload prompt text for a file that was deleted and exists again
+- hosting API: `CodeToEval` is split into `EvalRequest` and `EvalData` (the request plus the extracted code)
+### Fixed
+- repeated "file was changed, reload?" prompt on every focus when the document got tabs or LF line endings via paste
+- file not being watched anymore for the rest of the session after answering 'No' in the reload prompt
+- externally changed files being read while the other program is still writing them
+- tab header not updating when a file gets deleted or restored
+- bracket highlighting when a line ends right after a generic type parameter like `'T)`
+- display of .NET and FSharp.Core version numbers, e.g. `9.0.300` was shown as `9.0.3`
 
 ## [0.32.3] - 2026-05-23
 ### Fixed
