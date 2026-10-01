@@ -138,10 +138,10 @@ module RectangleSelection =
         let doc = ed.Document
         let minVisCol = s.stPos.VisualColumn
         let maxVisCol = s.enPos.VisualColumn
-        let stOff = doc.GetLineByNumber(s.stPos.Line).Offset
-        let enOff = doc.GetLineByNumber(s.enPos.Line-1).EndOffset // -1 to do last line individual to trigger potential autocompletion:
         doc.BeginUpdate()
         if s.LineCount > 1 then
+            let stOff = doc.GetLineByNumber(s.stPos.Line).Offset
+            let enOff = doc.GetLineByNumber(s.enPos.Line-1).EndOffset // -1 to do last line individual to trigger potential autocompletion:
             let len = enOff-stOff
             let txt = doc.GetText(stOff, len)
             let sb = StringBuilder()
@@ -173,10 +173,10 @@ module RectangleSelection =
     let private deleteRight (ed:TextEditor, s:SelectionPos) =
         let doc = ed.Document
         let col = s.stPos.VisualColumn
-        let stOff = doc.GetLineByNumber(s.stPos.Line).Offset
-        let enOff = doc.GetLineByNumber(s.enPos.Line-1).EndOffset // -1 to do last line individual to trigger potential autocompletion:
         doc.BeginUpdate()
         if s.LineCount > 1 then
+            let stOff = doc.GetLineByNumber(s.stPos.Line).Offset
+            let enOff = doc.GetLineByNumber(s.enPos.Line-1).EndOffset // -1 to do last line individual to trigger potential autocompletion:
             let len = enOff-stOff
             let txt = doc.GetText(stOff, len)
             let sb = StringBuilder()
@@ -206,10 +206,10 @@ module RectangleSelection =
         let vcol = s.stPos.VisualColumn
         let nvcol = vcol - 1
         if vcol > 0 then
-            let stOff = doc.GetLineByNumber(s.stPos.Line).Offset
-            let enOff = doc.GetLineByNumber(s.enPos.Line-1).EndOffset // -1 to do last line individual to trigger potential autocompletion:
             doc.BeginUpdate()
             if s.LineCount > 1 then
+                let stOff = doc.GetLineByNumber(s.stPos.Line).Offset
+                let enOff = doc.GetLineByNumber(s.enPos.Line-1).EndOffset // -1 to do last line individual to trigger potential autocompletion:
                 let len = enOff-stOff
                 let txt = doc.GetText(stOff, len)
                 let sb = StringBuilder()
