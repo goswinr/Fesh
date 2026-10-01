@@ -125,6 +125,7 @@ type Fonts (grid:TabsAndLog) = // will be constructed as part of Commands class
 
     //----- init ---------
     do
+        StyleState.fontSize <- sett.GetFloat ("SizeOfFont", StyleState.fontSize) // the size from the last session, already used by the Editor and the Log
         setEditor()
         setLog()
         setToolTip()
