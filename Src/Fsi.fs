@@ -326,10 +326,11 @@ type Fsi private (config:Config) =
             //fsiSession.Run() // don't call Run(), crashes app, done by WPF App.Run(). see https://github.com/dotnet/fsharp/issues/14486
             fsiSession
 
-    let handeleEvaluationResult (evaluatedTo:Choice<FsiValue option,exn>, diagnostics: FSharpDiagnostic[], codeToEv:EvalRequest) =
+    let handeleEvaluationResult (evaluatedTo:Choice<FsiValue option,exn>, diagnostics: FSharpDiagnostic[], evalData:EvalData, evalMode:FsiSyncMode) =
+        let codeToEv = evalData.request
         // switch back to sync Thread:
         async{
-            match syMode with
+            match evalMode with // not syMode, it might have been changed via SetMode while this evaluation was running
             |InSync -> ()
             |AsyncMode -> do! Async.SwitchToContext SyncWpf.context
 
@@ -362,7 +363,7 @@ type Fsi private (config:Config) =
                     // FCS also handles the required ResetAbort:
                     // https://learn.microsoft.com/en-us/dotnet/api/system.threading.thread.abort?view=netframework-4.7.2#system-threading-thread-abort
                     // canceledEv.Trigger() // don in abortThenMakeAndStartAsyncThread()
-                    if config.RunContext.IsHosted && syMode = AsyncMode && isNull exn.StackTrace  then
+                    if config.RunContext.IsHosted && evalMode = AsyncMode && isNull exn.StackTrace  then
                         log.PrintfnFsiErrorMsg "FSI evaluation was canceled,\r\nif you did not trigger this cancellation try running FSI in Synchronous evaluation syMode (instead of Async)."
 
 
@@ -411,7 +412,7 @@ type Fsi private (config:Config) =
     [< Runtime.ExceptionServices.HandleProcessCorruptedStateExceptions >] //to handle AccessViolationExceptions too //https://stackoverflow.com/questions/3469368/how-to-handle-accessviolationexception/4759831
     #endif
     [< Security.SecurityCritical >]
-    let evalSave (session:FsiEvaluationSession, code:string, codeToEv:EvalRequest) =
+    let evalSave (session:FsiEvaluationSession, evalData:EvalData, evalMode:FsiSyncMode) =
         // net472
         // Cancellation happens via Thread Abort
         // TODO actually using the token would work too but only if session.Run() has been called before, but that fails when hosted. see https://github.com/dotnet/fsharp/issues/14486
@@ -421,13 +422,11 @@ type Fsi private (config:Config) =
         // using  session.EvalInteractionNonThrowing(code, codeToEv.scriptName, net7cancellationToken.Token) the token does actually not cancel anything
         state <- Evaluating // actually this happens later better use: TODO: https://github.com/dotnet/fsharp/pull/15957
         let evaluatedTo, errs =
-            try session.EvalInteractionNonThrowing(code, codeToEv.scriptName)
+            try session.EvalInteractionNonThrowing(evalData.code, evalData.request.scriptName)
             with e -> Choice2Of2 e , [| |]
-        handeleEvaluationResult(evaluatedTo, errs, codeToEv)
+        handeleEvaluationResult(evaluatedTo, errs, evalData, evalMode)
 
     let eval(evalData:EvalData) :unit =
-        let evalReq = evalData.request
-
 
         if not(String.IsNullOrWhiteSpace evalData.code) then
             if not config.RunContext.FsiCanRun then
@@ -445,9 +444,10 @@ type Fsi private (config:Config) =
                     //codeInEval <- Some codeToEv
                     compilingEv.Trigger(evalData) // do always sync, to show "FSI is running" immediately
 
+                    let evalMode = syMode // keep the mode of this evaluation, syMode might get changed via SetMode while it is still running
                     let asyncEval = async {
                         // set context this or other async thread:
-                        match syMode with
+                        match evalMode with
                         |InSync ->
                             do! Async.Sleep 1 // this helps to show "FSI is running" immediately in status bar
                             do! Async.SwitchToContext SyncWpf.context
@@ -491,7 +491,7 @@ type Fsi private (config:Config) =
                             //setDir session fi
                             //setFileAndLine session code.fromLine fi // TODO both fail ??
 
-                        evalSave(session, evalData.code , evalReq)
+                        evalSave(session, evalData, evalMode)
                         }
                     Async.StartImmediate(asyncEval)
 
@@ -689,7 +689,8 @@ type Fsi private (config:Config) =
             |AsyncMode -> config.Settings.SetBool ("asyncFsi", true)     |> ignore
 
         match this.AskIfCancellingIsOk() with
-        | NotEvaluating | YesAsync    ->
+        | NotEvaluating | YesAsync as answer ->
+            if answer = YesAsync then this.CancelIfAsync() // do before changing syMode
             syMode <- sync
             modeChangedEv.Trigger(sync)
             setConfig()
