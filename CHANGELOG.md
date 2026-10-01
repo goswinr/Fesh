@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.33.1] - 2026-10-01
+### Changed
+- 'Reset FSI' asks before cancelling a running evaluation, the log is only cleared if the reset starts
+- switching between sync and async FSI mode cancels the running evaluation (after confirmation)
+- hosting API: new field `firstLine` on `EvalData`, new `Fsi.TryReset()` that returns if the reset was started
+### Fixed
+- 'Close and Delete File' deleting the file even when closing the tab was canceled
+- 'Rename/Move' deleting the file when the name was kept or only its casing was changed
+- file not being watched anymore after the "deleted or renamed" message, so a file that exists again was not noticed
+- 'Save Incrementing' dropping the character before a single trailing digit, e.g. `test1.fsx` was saved as `tes2.fsx`
+- possible endless loop in selection highlighting when the selection gets cleared while searching
+- possible crash when the list of recently used files is accessed from several threads
+- crash on Delete or Backspace in a rectangular selection on the first line
+- crash on swapping the last word of a document to the right
+- jump to the wrong line after a runtime error when only a part of the script was evaluated or when the error is in a file loaded via `#load`
+- marking of evaluated code not being cleared on 'Reset FSI'
+- closing the window shutting down the dispatcher of the UI thread instead of the one of the FSI thread
+- tab shown as unsaved after saving a document that got tabs or LF line endings via paste
+- font size of tooltips and completion window not using the saved size on startup
+- event handlers of the scrollbar error markers piling up on every tab switch
+
 ## [0.33.0] - 2026-10-01
 ### Added
 - `libFolders` field on `HostedStartUpData`: folders passed as `--lib:` to the type checker and FSI, to resolve `#r` references to host assemblies
@@ -196,7 +217,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - first public release
 
-[Unreleased]: https://github.com/goswinr/Fesh/compare/0.33.0...HEAD
+[Unreleased]: https://github.com/goswinr/Fesh/compare/0.33.1...HEAD
+[0.33.1]: https://github.com/goswinr/Fesh/compare/0.33.0...0.33.1
 [0.33.0]: https://github.com/goswinr/Fesh/compare/0.32.3...0.33.0
 [0.32.3]: https://github.com/goswinr/Fesh/compare/0.32.2...0.32.3
 [0.32.2]: https://github.com/goswinr/Fesh/compare/0.32.1...0.32.2
