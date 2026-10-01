@@ -289,11 +289,15 @@ type Tabs(config:Config, log:Log,feshWin:FeshWindow) =
                 | MessageBoxResult.Cancel -> false
                 | _ -> false
 
-    let closeTab(t:Tab)=
+    /// Returns true if the tab was closed, false if closing was canceled by the user
+    let closeTab(t:Tab) :bool =
         if askIfClosingTabIsOk(t) then
             t.FileTracker.Stop()
             tabs.Items.Remove(t)
             config.OpenTabs.Save (t.Editor.FilePath , allExistingFileInfos) //saving removed file, not added
+            true
+        else
+            false
 
 
     /// addTab(Tab, makeCurrent, moreTabsToCome)
@@ -302,7 +306,7 @@ type Tabs(config:Config, log:Log,feshWin:FeshWindow) =
         if makeCurrent then
             setCurrentTab(idx)
 
-        tab.CloseButton.Click.Add (fun _ -> closeTab(tab))
+        tab.CloseButton.Click.Add (fun _ -> closeTab(tab) |> ignore<bool>)
 
         match tab.Editor.FilePath with
         |SetTo fi ->
@@ -480,11 +484,11 @@ type Tabs(config:Config, log:Log,feshWin:FeshWindow) =
     member this.SaveAs (t:Tab) = saveAsDialog(t, SaveNewLocation)
 
     /// also saves currently open files
-    member this.CloseTab(t) = closeTab(t)
+    member this.CloseTab(t) = closeTab(t) |> ignore<bool>
 
     member this.CloseDelete(t:Tab) =
-        closeTab(t)
-        tryDeleteToRecycleBin t.Editor.FilePath
+        if closeTab(t) then // don't delete the file if closing was canceled
+            tryDeleteToRecycleBin t.Editor.FilePath
 
     /// Returns true if saving operation was not canceled
     member this.Save(t:Tab) = trySave(t)
