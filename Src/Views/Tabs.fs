@@ -539,13 +539,14 @@ type Tabs(config:Config, log:Log,feshWin:FeshWindow) =
                         |  i  -> incrC i
                     else
                         let ll = rn[rn.Length-2]
-                        let abc = rn.Substring(0,rn.Length-2)
                         if isNum ll then
+                            let abc = rn.Substring(0,rn.Length-2) // the name without the two digits
                             match ll,l with
                             | '9','9' -> "" // null sentinel
                             |  i ,'9' -> abc + incrC  i + "0"
                             |  i , j  -> abc + string i + incrC j
                         else
+                            let abc = rn.Substring(0,rn.Length-1) // the name without the one digit
                             match l with
                             | '9' -> abc + "10"
                             |  i   -> abc + incrC i
