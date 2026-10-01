@@ -38,16 +38,28 @@ module GoTo =
     let errorLine (lineNumber :int, ied:IEditor) =
         //this implementation is similar to Foldings.GoToLineAndUnfold
         let ava = ied.AvaEdit
-        let ln = ava.Document.GetLineByNumber(lineNumber)
-        //let mutable unfoldedOneOrMore = false
-        for fold in ied.FoldingManager.GetFoldingsContaining(ln.Offset) do
-            if fold.IsFolded then
-                fold.IsFolded <- false
-                //unfoldedOneOrMore <- true
-        ava.ScrollTo(ln.LineNumber,1)
-        ied.AvaEdit.CaretOffset<- ln.Offset // done by ied.AvaEdit.Select too
-        //ied.AvaEdit.CaretOffset<- loc.EndOffset // done by ied.AvaEdit.Select too
-        // ava.Select(ln.Offset, ln.Length)
+        if lineNumber >= 1 && lineNumber <= ava.Document.LineCount then // the document might have become shorter since the evaluation started
+            let ln = ava.Document.GetLineByNumber(lineNumber)
+            //let mutable unfoldedOneOrMore = false
+            for fold in ied.FoldingManager.GetFoldingsContaining(ln.Offset) do
+                if fold.IsFolded then
+                    fold.IsFolded <- false
+                    //unfoldedOneOrMore <- true
+            ava.ScrollTo(ln.LineNumber,1)
+            ied.AvaEdit.CaretOffset<- ln.Offset // done by ied.AvaEdit.Select too
+            //ied.AvaEdit.CaretOffset<- loc.EndOffset // done by ied.AvaEdit.Select too
+            // ava.Select(ln.Offset, ln.Length)
+
+    /// Gets the file name from the start of a stack trace line up to and including the file extension.
+    /// e.g. 'script.fsx' from '   at FSI_0002.f() in C:\dir\script.fsx'
+    let fileNameInStackTrace (lineTillExtension:string) =
+        let sep = lineTillExtension.LastIndexOfAny [|'\\'; '/'|]
+        if sep >= 0 then
+            lineTillExtension.Substring(sep + 1)
+        else
+            let i = lineTillExtension.LastIndexOf " in "
+            if i >= 0 then lineTillExtension.Substring(i + 4)
+            else lineTillExtension.Trim()
 
 //for: HandleProcessCorruptedStateExceptionsAttribute: This construct is deprecated. Recovery from corrupted process state exceptions is not supported; HandleProcessCorruptedStateExceptionsAttribute is ignored.
 //and for : Runtime.ControlledExecution.Run
@@ -398,11 +410,12 @@ type Fsi private (config:Config) =
                         if ln.Contains ".fsx:" && isFirstFsx then
                             isFirstFsx <- false
                             log.PrintfnFsiErrorMsg "%s" (ln.TrimEnd())
-                            // go to first error line in an fsx file
-                            let _,lr = Str.splitOnce ".fsx:" ln
-                            match Int32.TryParse (lr.Replace("line","").Trim()) with
-                            |true , i -> GoTo.errorLine(i,codeToEv.editor)
-                            |_ -> ()
+                            // go to first error line in an fsx file, but only if it is the evaluated file and not a file loaded via #load
+                            let path,lr = Str.splitOnce ".fsx:" ln
+                            if String.Equals(GoTo.fileNameInStackTrace(path + ".fsx"), codeToEv.scriptName, StringComparison.OrdinalIgnoreCase) then
+                                match Int32.TryParse (lr.Replace("line","").Trim()) with
+                                |true , i -> GoTo.errorLine(evalData.firstLine - 1 + i, codeToEv.editor) // the line number is relative to the evaluated code
+                                |_ -> ()
                         else
                             log.PrintfnRuntimeErr "%s" (ln.TrimEnd())
 
@@ -665,6 +678,13 @@ type Fsi private (config:Config) =
                         if len > 0 then evalReq.editor.AvaEdit.Document.GetText(from , len ) //|> (fun s -> printfn $"ContinueFromChanges ln: {fromLn}, off {from} to {len} :\r\n'{s}'" ; s)
                         else "" // ContinueFromChanges reached end, all of document is evaluated
                 | FsiSegment seg -> seg.text
+            firstLine =
+                match evalReq.amount with
+                |All -> 1
+                |ContinueFromChanges -> max 1 evalReq.editor.EvaluateFromLine
+                |FsiSegment seg ->
+                    let doc = evalReq.editor.AvaEdit.Document
+                    doc.GetLineByOffset(max 0 (min seg.startOffset doc.TextLength)).LineNumber // not seg.startLine, it is the last line if the selection was made upwards
             }
 
         match this.AskIfCancellingIsOk () with

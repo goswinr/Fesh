@@ -174,6 +174,7 @@ type EvalRequest = {
 type EvalData = {
     request: EvalRequest
     code: string
+    firstLine: int // the line number in the editor of the first line of the code, line numbers reported by FSI are relative to this line
     }
 
 
