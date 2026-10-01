@@ -501,7 +501,14 @@ type Tabs(config:Config, log:Log,feshWin:FeshWindow) =
     member this.Rename(t:Tab) =
         let old = t.Editor.FilePath
         if saveAsDialog(t, RenameFile) then
-            tryDeleteToRecycleBin old
+            match old, t.Editor.FilePath with
+            |SetTo o, SetTo n when String.Equals(o.FullName, n.FullName, StringComparison.OrdinalIgnoreCase) ->
+                // same file on disk, deleting the old path would delete the file that was just saved
+                if o.FullName <> n.FullName then // only the casing changed
+                    try IO.File.Move(o.FullName, n.FullName)
+                    with e -> log.PrintfnIOErrorMsg $"Failed to change the casing of the file name: {e.Message}"
+            | _ ->
+                tryDeleteToRecycleBin old
 
     /// Returns true if saving operation was not canceled
     member this.SaveIncremental (t:Tab) =
