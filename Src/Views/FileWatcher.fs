@@ -160,7 +160,7 @@ type FileChangeTracker (editor:Editor, setCodeSavedStatus:bool->unit) =
                                 MessageBoxResult.OK,
                                 MessageBoxOptions.None)
                                 |> ignore
-                            doWatch <- false
+                            doWatch <- true // to notice when the file exists again
             }
             |> Async.Start
 
