@@ -51,7 +51,7 @@ module SwapWords =
             let doc = ed.Document
             //IFeshLog.log.PrintfnDebugMsg "seg Word: %s" (doc.GetText(seg))
             let rec getNextStart i =
-                if i=doc.TextLength then -79 // end of file
+                if i>=doc.TextLength then -79 // end of file
                 else
                     let c = doc.GetCharAt i
                     if  Selection.isFsLetter  c then i
