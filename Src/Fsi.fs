@@ -221,13 +221,14 @@ type Fsi private (config:Config) =
                 new Thread(new ThreadStart(
                     fun () ->
                         // Create our context, and install it: http://reedcopsey.com/2011/11/28/launching-a-wpf-window-in-a-separate-thread-part-1/
-                        let ctx = new DispatcherSynchronizationContext( Dispatcher.CurrentDispatcher)
+                        let dispatcher = Dispatcher.CurrentDispatcher // the dispatcher of this new thread, get it here because the event below is raised from the UI thread
+                        let ctx = new DispatcherSynchronizationContext( dispatcher)
                         asyncContext <- Some (ctx:>SynchronizationContext)
-                        SynchronizationContext.SetSynchronizationContext( new DispatcherSynchronizationContext( Dispatcher.CurrentDispatcher))
+                        SynchronizationContext.SetSynchronizationContext( new DispatcherSynchronizationContext( dispatcher))
                         onShutDownThread.Add ( fun _ ->
                             asyncContext <- None
                             asyncThread <- None
-                            Dispatcher.CurrentDispatcher.BeginInvokeShutdown(DispatcherPriority.Background) // TODO does this fail if it is shut down already ??
+                            dispatcher.BeginInvokeShutdown(DispatcherPriority.Background) // TODO does this fail if it is shut down already ??
                             )
                         // Start the Dispatcher Processing
                         System.Windows.Threading.Dispatcher.Run()
