@@ -165,16 +165,17 @@ type SelectionHighlighter (state:InteractionState) =
         *)
 
         // (2) search for the word in the lines:
+        let word = lastWord // a local copy, because lastWord might get changed from the UI thread while searching here on another thread
         if not <| state.IsLatest changeId then
             false
         else
-            if lastWord = "" then
+            if word = "" then
                 selTransformersSetEv.Trigger(changeId) // can by async, this still needs to be called this ! so the  EventCombiner can  the full redrawing of the other highlighters.
                 true
             else
                 let codeStr  = lines.FullCode
                 let lastLineNo = lines.LastLineIdx
-                let wordLen = lastWord.Length
+                let wordLen = word.Length
                 let offs = ResizeArray<int>()
 
                 let newMarks = ResizeArray<ResizeArray<LinePartChange>>()
@@ -194,7 +195,7 @@ type SelectionHighlighter (state:InteractionState) =
                         |ValueNone -> false // could not get code line, newer change happened already
                         |ValueSome l ->
                             // let line = codeStr.Substring(l.offStart, l.len)
-                            let mutable off = codeStr.IndexOf(lastWord, l.offStart, l.len, StringComparison.Ordinal)
+                            let mutable off = codeStr.IndexOf(word, l.offStart, l.len, StringComparison.Ordinal)
                             while off >= 0 do
                                 offs.Add off // also add for current selection
                                 if off <> selectionStartOff then // skip the actual current selection from highlighting
@@ -202,10 +203,10 @@ type SelectionHighlighter (state:InteractionState) =
                                     rangeEnd <- off + wordLen
                                     if rangeStart < 0 then // set range start if not set yet
                                         rangeStart <- off
-                                let start = off + lastWord.Length // search from this for next occurrence in this line
+                                let start = off + wordLen // search from this for next occurrence in this line
                                 let lenReduction = start - l.offStart
                                 let remainingLineLength = l.len - lenReduction
-                                off <- codeStr.IndexOf(lastWord, start, remainingLineLength , StringComparison.Ordinal)
+                                off <- codeStr.IndexOf(word, start, remainingLineLength , StringComparison.Ordinal)
 
                             searchFromLine (lineNo + 1)
 
