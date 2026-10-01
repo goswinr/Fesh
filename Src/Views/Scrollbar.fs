@@ -42,9 +42,14 @@ module MagicScrollbar =
 
         let pixelSize = PixelSnapHelpers.GetPixelSize(textView)
 
-        do
-            ed.TextArea.TextView.VisualLinesChanged.Add (fun _ -> if isTrackShowing then this.InvalidateVisual() )
-            errs.FoundErrors.Add (fun _                        -> setLineNos errs.ErrorsLines.Value )
+        let subscriptions : IDisposable list = [
+            ed.TextArea.TextView.VisualLinesChanged.Subscribe (fun _ -> if isTrackShowing then this.InvalidateVisual() )
+            errs.FoundErrors.Subscribe (fun _                        -> setLineNos errs.ErrorsLines.Value )
+            ]
+
+        /// removes the event handlers of this adorner from the editor
+        member this.Detach() =
+            for s in subscriptions do s.Dispose()
 
         member this.IsTrackShowing
             with get() = isTrackShowing
@@ -119,7 +124,8 @@ module MagicScrollbar =
                 adorner.IsTrackShowing <- true
                 adorner.InvalidateVisual()
 
-            vertScrollBar.IsVisibleChanged.Add (fun _ -> // when the text is small no scrollbar is visible.
+        let visibilitySubscription =
+            vertScrollBar.IsVisibleChanged.Subscribe (fun _ -> // when the text is small no scrollbar is visible.
                 //eprintfn $"vScrollBar.VisibleChanged: {vertScrollBar.IsVisible}" // this event even happens while normal scrolling ! why ?
                 if vertScrollBar.IsVisible then
                     setAdorner()
@@ -130,3 +136,14 @@ module MagicScrollbar =
                     adorner.IsTrackShowing <- false
                     adorner.InvalidateVisual()
             )
+
+        /// Removes the adorner and all event handlers.
+        /// Call this before creating a new ScrollBarEnhancer for the same editor.
+        member _.Detach() =
+            visibilitySubscription.Dispose()
+            if notNull adorner then
+                adorner.Detach()
+                let layer = AdornerLayer.GetAdornerLayer (adorner.AdornedElement)
+                if notNull layer then
+                    layer.Remove (adorner)
+                adorner <- null

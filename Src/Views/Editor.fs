@@ -182,7 +182,11 @@ type Editor private (code:string, config:Config, initialFilePath:FilePath)  =
         // ----------------------------------------------------------
 
         let _rulers =  new ColumnRulers(avaEdit) // draw last , so on top? do foldings first
-        avaEdit.Loaded.Add (fun _ -> new MagicScrollbar.ScrollBarEnhancer(avaEdit, ed.ErrorHighlighter)  |> ignore )
+        let scrollBarEnhancer : MagicScrollbar.ScrollBarEnhancer option ref = ref None
+        avaEdit.Loaded.Add (fun _ -> // Loaded is raised every time this tab gets selected
+            scrollBarEnhancer.Value |> Option.iter (fun e -> e.Detach()) // otherwise the event handlers of the previous ones would pile up
+            scrollBarEnhancer.Value <- Some (new MagicScrollbar.ScrollBarEnhancer(avaEdit, ed.ErrorHighlighter))
+            )
         avaEdit.Drop.Add   (fun e -> DragAndDrop.onTextArea(avaEdit, e))
 
 
