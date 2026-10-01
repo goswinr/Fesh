@@ -40,7 +40,7 @@ type Commands (grid:TabsAndLog, statusBar:FeshStatusBar)  =
     let evalSelectedText()     =  fsi.Evaluate {editor=curr(); amount = FsiSegment <|SelectionForEval.current (tabs.CurrAvaEdit)                   ; logger=None; scriptName=fName()}   // null or empty check is done in fsi.Evaluate
 
     let goToError()            =  ErrorUtil.getNextSegment(curr()) |> Option.iter (fun s -> curr().Folds.GoToOffsetAndUnfold(s.Offset, s.Length, false))
-    let reset()                = log.Clear(); Checker.Reset(); Fsi.GetOrCreate(config).Initialize()
+    let reset()                = if fsi.TryReset() then (log.Clear(); Checker.Reset()) // TryReset asks before cancelling a running evaluation
 
     let resetFsiArgs() =
         let previous, defaults = config.FsiArguments.ResetToDefault()

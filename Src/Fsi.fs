@@ -694,12 +694,21 @@ type Fsi private (config:Config) =
         | NotPossibleSync  -> log.PrintfnInfoMsg "Wait till current synchronous evaluation completes before starting new one."
 
 
-    member this.Reset() =
+    /// Returns true if the reset was started.
+    /// Returns false if the user does not want to cancel the running evaluation, if it cannot be cancelled, or if FSI is initializing already.
+    member this.TryReset() : bool =
+        let reset() =
+            let canStart = state <> Initializing // initFsi does nothing while another initialization is in process
+            initFsi (config)
+            if canStart then resetEv.Trigger()
+            canStart
         match this.AskIfCancellingIsOk () with
-        | NotEvaluating   ->                       initFsi (config); resetEv.Trigger()
-        | YesAsync        -> this.CancelIfAsync(); initFsi (config); resetEv.Trigger()
-        | UserDoesntWantTo-> ()
-        | NotPossibleSync -> log.PrintfnInfoMsg "ResetFsi is not be possible in current synchronous evaluation." // TODO test
+        | NotEvaluating   ->                       reset()
+        | YesAsync        -> this.CancelIfAsync(); reset()
+        | UserDoesntWantTo-> false
+        | NotPossibleSync -> log.PrintfnInfoMsg "ResetFsi is not be possible in current synchronous evaluation."; false // TODO test
+
+    member this.Reset() = this.TryReset() |> ignore<bool>
 
 
     member this.SetMode(sync:FsiSyncMode) =
