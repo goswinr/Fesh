@@ -25,7 +25,8 @@ type FileChangeTracker (editor:Editor, setCodeSavedStatus:bool->unit) =
 
     /// must be called on the WPF UI thread
     let editorHasUnsavedChanges () =
-        editor.AvaEdit.Document.Text <> editor.CodeAtLastSave
+        // CodeAtLastSave is always normalized, the Document might have tabs or LF line endings via paste
+        Fesh.Util.Str.normalizeCode editor.Config.Settings editor.AvaEdit.Document.Text <> editor.CodeAtLastSave
 
     /// TODO in case of renaming MessageBox is shown and file gets set to unsaved. But doesn't switch to new filename automatically.
 
