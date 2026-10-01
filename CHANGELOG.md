@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.33.2] - 2026-10-01
+### Fixed
+- when hosted: `#r` and `#load` not finding files next to the evaluated script by name or relative path, the folder of the script is now added via `#I` to FSI before its first evaluation. It stays included for all scripts until FSI is reset.
+- `__SOURCE_DIRECTORY__` depending on the current directory, FSI now gets the full path of the script instead of just its name
+
 ## [0.33.1] - 2026-10-01
 ### Changed
 - 'Reset FSI' asks before cancelling a running evaluation, the log is only cleared if the reset starts
@@ -217,7 +222,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - first public release
 
-[Unreleased]: https://github.com/goswinr/Fesh/compare/0.33.1...HEAD
+[Unreleased]: https://github.com/goswinr/Fesh/compare/0.33.2...HEAD
+[0.33.2]: https://github.com/goswinr/Fesh/compare/0.33.1...0.33.2
 [0.33.1]: https://github.com/goswinr/Fesh/compare/0.33.0...0.33.1
 [0.33.0]: https://github.com/goswinr/Fesh/compare/0.32.3...0.33.0
 [0.32.3]: https://github.com/goswinr/Fesh/compare/0.32.2...0.32.3
