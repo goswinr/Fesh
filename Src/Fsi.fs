@@ -89,6 +89,9 @@ type Fsi private (config:Config) =
 
     let mutable sessionOpt : FsiEvaluationSession option = None
 
+    /// The folders of evaluated scripts that are already added via #I, for each session. So a new session after a reset starts empty.
+    let includedFolders = Runtime.CompilerServices.ConditionalWeakTable<FsiEvaluationSession, Collections.Generic.HashSet<string>>()
+
     let mutable asyncContext : option<SynchronizationContext> = None
 
     let mutable asyncThread: option<Thread> = None
@@ -422,6 +425,24 @@ type Fsi private (config:Config) =
 
         } |> Async.StartImmediate
 
+    /// Adds the folder of the script via #I to the search paths of the session, if not done yet.
+    /// So that files next to the script can be referenced by name or relative path in #r and #load.
+    /// Setting Environment.CurrentDirectory (see Tabs.fs) is not enough for that, FSI only uses the directory it was created in.
+    /// Only used when hosted, because there the session is created in the folder of FSharp.Core, not in the folder of the current script. (see createSession)
+    /// A folder stays included for all scripts until FSI is reset.
+    let includeScriptFolder (session:FsiEvaluationSession, fi:FileInfo) =
+        let dir = fi.DirectoryName
+        let included = includedFolders.GetOrCreateValue session
+        if Directory.Exists dir && included.Add dir then
+            let res, _ =
+                try session.EvalInteractionNonThrowing("#I @\"" + dir + "\"", fi.FullName)
+                with e -> Choice2Of2 e , [| |]
+            match res with
+            | Choice1Of2 _ -> ()
+            | Choice2Of2 e ->
+                included.Remove dir |> ignore
+                log.PrintfnInfoMsg "The folder of the script could not be added to the search paths of FSI:\r\n%s\r\n%s" dir e.Message
+
     #if NETFRAMEWORK //This construct is deprecated in net6.0 . Recovery from corrupted process state exceptions is not supported; HandleProcessCorruptedStateExceptionsAttribute is ignored.
     [< Runtime.ExceptionServices.HandleProcessCorruptedStateExceptions >] //to handle AccessViolationExceptions too //https://stackoverflow.com/questions/3469368/how-to-handle-accessviolationexception/4759831
     #endif
@@ -435,8 +456,16 @@ type Fsi private (config:Config) =
         // when using: Run method: Compiler Error:input.fsx (1,1)-(1,1) interactive error internal error: The thread is already executing the ControlledExecution.Run method.
         // using  session.EvalInteractionNonThrowing(code, codeToEv.scriptName, net7cancellationToken.Token) the token does actually not cancel anything
         state <- Evaluating // actually this happens later better use: TODO: https://github.com/dotnet/fsharp/pull/15957
+        // With the full path instead of just the file name __SOURCE_DIRECTORY__ does not depend on Environment.CurrentDirectory (see Tabs.fs).
+        let scriptPath =
+            match evalData.request.editor.FilePath with
+            | SetTo fi | Deleted fi ->
+                if config.RunContext.IsHosted then includeScriptFolder(session, fi)
+                fi.FullName
+            | NotSet _ ->
+                evalData.request.scriptName
         let evaluatedTo, errs =
-            try session.EvalInteractionNonThrowing(evalData.code, evalData.request.scriptName)
+            try session.EvalInteractionNonThrowing(evalData.code, scriptPath)
             with e -> Choice2Of2 e , [| |]
         handeleEvaluationResult(evaluatedTo, errs, evalData, evalMode)
 
