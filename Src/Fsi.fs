@@ -62,6 +62,38 @@ module GoTo =
             if i >= 0 then lineTillExtension.Substring(i + 4)
             else lineTillExtension.Trim()
 
+/// A SynchronizationContext that runs everything that is posted to it on one dedicated thread.
+/// It is the message loop of the thread that does the asynchronous FSI evaluation.
+/// (In WPF this was a Dispatcher running on that thread, but in Avalonia there is only one Dispatcher and it belongs to the UI thread.)
+type EvalThreadContext() =
+    inherit SynchronizationContext()
+
+    let queue = new Collections.Concurrent.BlockingCollection<SendOrPostCallback * obj>()
+
+    override _.Post(callback:SendOrPostCallback, state:obj) =
+        try
+            queue.Add((callback, state))
+        with :? InvalidOperationException ->
+            () // Complete() was called already, the thread is shutting down
+
+    override this.CreateCopy() =
+        this :> SynchronizationContext
+
+    /// Runs all posted callbacks on the calling thread.
+    /// This blocks the calling thread until Complete() is called.
+    member this.Run() =
+        SynchronizationContext.SetSynchronizationContext this
+        for callback, state in queue.GetConsumingEnumerable() do
+            try
+                callback.Invoke state
+            with e ->
+                IFeshLog.log.PrintfnAppErrorMsg "Unhandled exception on FSI evaluation thread:\r\n%A" e
+
+    /// Ends the loop in Run() after the callback that is currently executing has returned.
+    member _.Complete() =
+        queue.CompleteAdding()
+
+
 //for: HandleProcessCorruptedStateExceptionsAttribute: This construct is deprecated. Recovery from corrupted process state exceptions is not supported; HandleProcessCorruptedStateExceptionsAttribute is ignored.
 //and for : Runtime.ControlledExecution.Run
 //#nowarn "44"
@@ -94,9 +126,16 @@ type Fsi private (config:Config) =
     /// The folders of evaluated scripts that are already added via #I, for each session. So a new session after a reset starts empty.
     let includedFolders = Runtime.CompilerServices.ConditionalWeakTable<FsiEvaluationSession, Collections.Generic.HashSet<string>>()
 
-    let mutable asyncContext : option<SynchronizationContext> = None
+    let mutable asyncContext : option<EvalThreadContext> = None
 
     let mutable asyncThread: option<Thread> = None
+
+    do
+        onShutDownThread.Add ( fun _ ->
+            asyncContext |> Option.iter (fun ctx -> ctx.Complete()) // ends the loop of the evaluation thread
+            asyncContext <- None
+            asyncThread <- None
+            )
 
     let mutable pendingEval :option<EvalData> = None // for storing evaluations that are triggered before fsi is ready
 
@@ -195,6 +234,7 @@ type Fsi private (config:Config) =
         match asyncThread with
         |None -> ()
         |Some thread -> // _ = thread
+            asyncContext |> Option.iter (fun ctx -> ctx.Complete()) // so that the previous thread ends once its evaluation got canceled
             asyncContext <- None
             asyncThread  <- None
             let aborter = getFrameworkAgnosticAborter(thread)
@@ -222,41 +262,19 @@ type Fsi private (config:Config) =
             //     // https://github.com/dotnet/fsharp/discussions/14491
 
         if asyncThread.IsNone then
-            let nextThread =
-                new Thread(new ThreadStart(
-                    fun () ->
-                        Avalonia.Threading.AvaloniaSynchronizationContext.InstallIfNeeded()
-                        let ctx = Avalonia.Threading.AvaloniaSynchronizationContext.Current
-                        asyncContext <- Some ctx
-                        onShutDownThread.Add ( fun _ ->
-                            asyncContext <- None
-                            asyncThread <- None
-                            )
-                        //Avalonia.Threading.Dispatcher.UIThread.RunJobs(DispatcherPriority.Background)
-                        // TODO: test starting WPF or Avalonia UI app from Fesh code
-
-                        (* WPF version:
-                        // Create our context, and install it: http://reedcopsey.com/2011/11/28/launching-a-wpf-window-in-a-separate-thread-part-1/
-                        let dispatcher = Dispatcher.CurrentDispatcher // the dispatcher of this new thread, get it here because the event below is raised from the UI thread
-                        let ctx = new DispatcherSynchronizationContext( dispatcher)
-                        asyncContext <- Some (ctx:>SynchronizationContext)
-                        SynchronizationContext.SetSynchronizationContext( new DispatcherSynchronizationContext( dispatcher))
-                        onShutDownThread.Add ( fun _ ->
-                            asyncContext <- None
-                            asyncThread <- None
-                            dispatcher.BeginInvokeShutdown(DispatcherPriority.Background) // TODO does this fail if it is shut down already ??
-                            )
-                        // Start the Dispatcher Processing
-                        System.Windows.Threading.Dispatcher.Run()
-                        *)
-                    )
-                )
+            // In WPF this thread had its own Dispatcher, see http://reedcopsey.com/2011/11/28/launching-a-wpf-window-in-a-separate-thread-part-1/
+            // Avalonia has only one Dispatcher, the one of the UI thread. So this thread gets its own simple message loop instead.
+            // Scripts that want to show Avalonia UI need to use Avalonia.Threading.Dispatcher.UIThread
+            let ctx = new EvalThreadContext()
+            let nextThread = new Thread(new ThreadStart(ctx.Run)) // blocks until ctx.Complete() is called
+            nextThread.Name <- "Fesh FSI evaluation thread"
 
             if not config.RunContext.IsRunningOnDotNetCore then
                 nextThread.SetApartmentState(ApartmentState.STA) // works only on net48? so that the thread can create WPF windows.
 
             nextThread.IsBackground <- true
             nextThread.Start()
+            asyncContext <- Some ctx // the shut down of this context is done in the onShutDownThread handler above
             asyncThread <- Some nextThread
 
             // do here because it seems that OperationCanceledException caught in handeleEvaluationResult is not thrown anymore, just thread stopped, on net 48
