@@ -68,7 +68,7 @@ type Tabs(config:Config, log:Log, feshWin:FeshWindow) =
         let t = tabControl.Items.[idx] :?> Tab
         current <- t
         IEditor.current <- Some (t.Editor:>IEditor)
-
+        IFeshLog.log.PrintfnDebugMsg $"setCurrentTab: {idx},current='{current}'"
         feshWin.SetFileNameInTitle t.Editor.FilePath
 
         currentTabChangedEv.Trigger t // to update statusbar
@@ -393,7 +393,7 @@ type Tabs(config:Config, log:Log, feshWin:FeshWindow) =
                     let mkEd = Editor.SetUp(codeClean, config, SetTo fi)
                     let tab = new Tab(mkEd)
                     tab.Editor.CodeAtLastSave <- codeClean
-                    //log.PrintfnDebugMsg "adding Tab %A in %A " t.Editor.FilePath t.Editor.FileCheckState
+                    log.PrintfnDebugMsg "makeCurrent: %b, moreTabsToCome: %b" makeCurrent moreTabsToCome
                     addTab(tab, makeCurrent, moreTabsToCome)
                     true
                 with  e ->
@@ -466,12 +466,15 @@ type Tabs(config:Config, log:Log, feshWin:FeshWindow) =
         for f in config.OpenTabs.Get() do
             tryAddFile( f.file, f.makeCurrent, true)  |> ignore
 
-        if tabControl.Items.Count=0 then //Open default file if none found in recent files or args
+        if tabControl.Items.Count = 0 then //Open default file if none found in recent files or args
             let t = new Tab(Editor.New config)
             addTab(t, true, true) |> ignore
 
-        if tabControl.Items.Count > 0 && tabControl.SelectedIndex = -1 then  //make one tab current if none yet , happens if current file on last closing was an unsaved file
-            setCurrentTab 0
+        // IFeshLog.log.PrintfnDebugMsg $"Tabs: tabControl.SelectedIndex {tabControl.SelectedIndex}, tabControl.Items.Count: {tabControl.Items.Count}"
+        // if tabControl.Items.Count > 0 && tabControl.SelectedIndex = -1 then  // -1 only in WPF , make one tab current if none yet , happens if current file on last closing was an unsaved file
+        //     setCurrentTab 0
+
+        setCurrentTab tabControl.SelectedIndex // never -1 in Avalonia, need so that Fesh.Tabs.Current is set correctly
 
         // set up tab change events last so this doesn't get triggered on every tab while opening files initially
         tabControl.SelectionChanged.Add( fun _->
@@ -482,8 +485,9 @@ type Tabs(config:Config, log:Log, feshWin:FeshWindow) =
                     addTab(tab, true, false)
                 )
             else
-                let idx = max 0 tabControl.SelectedIndex // might be -1 too , there was no tab selected by default" //  does happen
-                setCurrentTab idx
+                // let idx = max 0 tabControl.SelectedIndex // WPF only  might be -1 too , there was no tab selected by default" //  does happen
+                // setCurrentTab idx
+                setCurrentTab (tabControl.Items.Count - 1)
             )
 
 
@@ -646,15 +650,12 @@ type Tabs(config:Config, log:Log, feshWin:FeshWindow) =
     /// So true mean the closing process was not canceled by user.
     member this.AskForFileSavingToKnowIfClosingWindowIsOk() : Task<bool> =
         task{
-            let openFs = allTabs() |> Seq.filter (fun t -> not t.IsCodeSaved && t.SavingWanted)
-            //log.PrintfnDebugMsg "Unsaved files %d" (Seq.length openFs)
-            if  Seq.isEmpty openFs then
+            let unsavedTabs = allTabs() |> Seq.filter (fun t -> not t.IsCodeSaved && t.SavingWanted)
+
+            if  Seq.isEmpty unsavedTabs then
                 return true
             else
-                let msg =
-                    openFs  |> Seq.fold (fun m t ->
-                        let name  = match t.Editor.FilePath with NotSet dummyName -> dummyName  |Deleted fi |SetTo fi -> fi.Name
-                        sprintf "%s\r\n \r\n%s" m name) "Do you want to\r\nsave the changes to:"
+                let msg = unsavedTabs |> Seq.fold (fun m t -> sprintf "%s\r\n \r\n%s" m t.Editor.FilePath.FileName) "Do you want to save the changes before closing the window?\r\n \r\n"
 
                 let! answer =  MessageBox.Show(
                     win,
@@ -666,23 +667,27 @@ type Tabs(config:Config, log:Log, feshWin:FeshWindow) =
 
                 match answer with
                 | MessageBoxResult.Yes ->
-                    let mutable allSaved = true
-                    for t in allTabs() do
-                        if not t.IsCodeSaved || not allSaved then
+                    let mutable continueSaving = true
+                    for t in unsavedTabs do
+                        if continueSaving then
                             let! savingWasOK = trySaveBeforeClosing t
                             if not savingWasOK then
-                                allSaved <- false
-                    return allSaved // if any file saving was canceled then return false, so the closing of the main window can be aborted
+                                continueSaving <- false
+                    return continueSaving // if any file saving was canceled then return false, so the closing of the main window can be aborted
+
                     // seq { for t in allTabs() do if not t.IsCodeSaved then yield trySaveBeforeClosing t } // if saving was canceled ( eg, no filename picked) then cancel closing
                     // |> Seq.forall id // checks if all are true, if one file-saving was canceled return false, so the closing of the main window can be aborted
                     //if Seq.exists ( fun ok -> ok = false) oks then false else true
+
                 | MessageBoxResult.No  ->
                     // In a hosted context like Rhino the dialog would pop on closing fesh window and on closing the Rhino window
                     // so that the dialog about saving only pops up once set t.SavingWanted <- false for all tabs
                     for t in allTabs() do t.SavingWanted <- false
                     return true
+
                 | MessageBoxResult.Cancel  ->
                     return false
+
                 | _  -> // never happening
                     return false
         }

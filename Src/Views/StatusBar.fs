@@ -108,7 +108,7 @@ type CheckerStatus (grid:TabsAndLog) =
                     tb.Text <- "No compiler errors"
                     tb.Background <- okColor
 
-                    tb.ToolTip <- "FSharp Compiler Service found no Errors in"+ Environment.NewLine + tabs.Current.FormattedFileName
+                    tb.ToolTip <- "FSharp Compiler Service found no Errors in" + Environment.NewLine + tabs.Current.FormattedFileName
                     lastFile <- tabs.Current.Editor.AvaEdit
                     lastErrCount <- 0
 

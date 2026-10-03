@@ -39,27 +39,30 @@ type Fesh (config:Config,log:Log) =
 
         //if config.RunContext.IsStandalone then win.Window.ContentRendered.Add(fun _ -> log.PrintfnInfoMsg "* Time for loading and rendering of main window: %s"  Timer.InstanceStartup.tocEx)
 
+        let mutable closingNeedsConfirmation = true
         win.Closing.Add( fun (e:WindowClosingEventArgs) ->
-
-            // let cancel =
-            task{
-                // first check for running FSI
-                match! tabs.Fsi.AskIfCancellingIsOk () with
-                | NotEvaluating   -> ()
-                | YesAsync        -> tabs.Fsi.CancelIfAsync()
-                | UserDoesntWantTo-> e.Cancel <- true // don't close window
-                | NotPossibleSync -> () // cant show a dialog when in sync mode. show dialog from new thread ? TODO
-
-                //second check for unsaved files if not already canceled
-                if not e.Cancel then
-                    let! canClose = tabs.AskForFileSavingToKnowIfClosingWindowIsOk()
-                    if not canClose then
-                        e.Cancel <- true // don't close window
-            }
-            |> ignore<Task<unit>>
+            if closingNeedsConfirmation then
+                e.Cancel <- true
+                task{
+                    // first check for running FSI
+                    match! tabs.Fsi.AskIfCancellingIsOk() with
+                    | UserDoesntWantTo->  () // don't close window
+                    | NotEvaluating
+                    | NotPossibleSync
+                    | YesAsync        ->
+                        tabs.Fsi.CancelIfAsync()
+                        //second check for unsaved files if not already canceled
+                        match! tabs.AskForFileSavingToKnowIfClosingWindowIsOk() with
+                        | false -> () // don't close window
+                        | true  ->
+                            closingNeedsConfirmation <- false // so that this event handler doesn't get triggered again
+                            win.Close() // close the window
+                }
+                |> ignore<Task<unit>>
             )
 
-        win.Closed.Add(fun _ ->  tabs.Fsi.TriggerShutDownThreadEv() )// to clean up threads
+        win.Closed.Add(fun _ ->
+            tabs.Fsi.TriggerShutDownThreadEv() )// to clean up threads
 
         // tabs.Fsi.OnRuntimeError.Add(fun _ ->
         //     let w = win // because it might be hidden manually, or not visible from the start ( e.g. current script is evaluated in Fesh.Rhino)
