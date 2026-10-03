@@ -7,13 +7,13 @@ module CodeLineTools =
 
     /// offStart: the offset of the first character off this line
     /// indent:  the count of spaces at the start of this line
-    /// len: the amount of characters in this line excluding the trailing \r\n
+    /// len: the amount of characters in this line excluding the trailing line break
     /// if indent equals len the line is only whitespace
     [<Struct>]
     type LineInfo = {
         offStart:int // the offset of the first character off this line
         indent:int // the count of spaces at the start of this line
-        len: int // the amount of characters in this line excluding the trailing \r\n
+        len: int // the amount of characters in this line excluding the trailing line break
         }
 
 
@@ -24,11 +24,38 @@ module CodeLineTools =
             ind <- ind + 1
         ind
 
+    /// Splits the code into lines.
+    /// A line can end on "\r\n", on a single '\n' or on a single '\r'.
+    /// So this does not depend on Environment.NewLine and also works for text with mixed line endings.
+    /// The item at index 0 is a dummy, lines start at 1 as in AvaloniaEdit.
+    let private getLineInfos (capacity:int) (code:string) : ResizeArray<LineInfo> =
+        let lns = ResizeArray<LineInfo>(capacity)
+        let codeLen = code.Length
+
+        let rec loop stOff =
+            if stOff >= codeLen then // the last line is empty
+                lns.Add {offStart=stOff; indent=0; len=0}
+            else
+                match code.IndexOfAny (Fesh.Util.Str.lineBreakChars, stOff) with
+                | -1 ->
+                    let len = codeLen - stOff
+                    let indent = spacesFrom stOff len code
+                    lns.Add {offStart=stOff; indent=indent; len=len}  // the last line
+                | r ->
+                    let len = r - stOff
+                    let indent = spacesFrom stOff len code
+                    lns.Add {offStart=stOff; indent=indent; len=len}
+                    loop (r + Fesh.Util.Str.lineBreakLength r code) // to jump over the line break, it is one or two characters long
+
+        lns.Add {offStart=0; indent=0; len=0}   // ad dummy line at index 0 , line 0 is always empty, line start at 1 in AvalonEdit
+        loop 0
+        lns
+
     /// used for Editor, not Log
     /// Holds a List who's indices correspond to each line with info about:
     /// offStart: the offset of the first character off this line
     /// indent:  the count of spaces at the start of this line
-    /// len: the amount of characters in this line excluding the trailing \r\n
+    /// len: the amount of characters in this line excluding the trailing line break
     /// if indent equals len the line is only whitespace
     type CodeLines() =
 
@@ -39,30 +66,7 @@ module CodeLineTools =
         let mutable correspondingId = 0L
 
         let getNewLines(code:string) =
-
-            let newLns = ResizeArray<LineInfo>(lines.Count + 2)
-
-            let codeLen = code.Length
-
-            let rec loop stOff =
-                if stOff >= codeLen then // last line
-                    let len = codeLen - stOff
-                    newLns.Add {offStart=stOff; indent=len; len=len}
-                else
-                    match code.IndexOf ('\r', stOff) with //TODO '\r' might fail if Fesh is ever ported to AvaloniaEdit to work on MAC
-                    | -1 ->
-                        let len = codeLen - stOff
-                        let indent = spacesFrom stOff len code
-                        newLns.Add {offStart=stOff; indent=indent; len=len}  // the last line
-                    | r ->
-                        let len = r - stOff
-                        let indent = spacesFrom stOff len code
-                        newLns.Add {offStart=stOff; indent=indent; len=len}
-                        loop (r+2) // +2 to jump over \r and \n
-
-            newLns.Add {offStart=0; indent=0; len=0}   // ad dummy line at index 0 , line 0 is always empty, line start at 1 in AvalonEdit
-            loop (0)
-            newLns
+            getLineInfos (lines.Count + 2) code
 
         member _.LastLineIdx = lines.Count - 1
 
@@ -113,7 +117,7 @@ module CodeLineTools =
     /// Holds a List who's indices correspond to each line with info about:
     /// offStart: the offset of the first character off this line
     /// indent:  the count of spaces at the start of this line
-    /// len: the amount of characters in this line excluding the trailing \r\n
+    /// len: the amount of characters in this line excluding the trailing line break
     /// if indent equals len the line is only whitespace
     type CodeLinesSimple() =
 
@@ -122,27 +126,7 @@ module CodeLineTools =
         let mutable fullCode = ""
 
         let getNewLines(code:string) =
-            let newLns = ResizeArray<LineInfo>(lines.Count + 50) // TODO turn this into an append only , since the Log is append only, instead of reallocating:
-            let codeLen = code.Length
-            let rec loop stOff =
-                if stOff >= codeLen then // last line
-                    let len = codeLen - stOff
-                    newLns.Add {offStart=stOff; indent=len; len=len}
-                else
-                    match code.IndexOf ('\r', stOff) with //TODO '\r' might fail if Fesh is ever ported to AvaloniaEdit to work on MAC
-                    | -1 ->
-                        let len = codeLen - stOff
-                        let indent = spacesFrom stOff len code
-                        newLns.Add {offStart=stOff; indent=indent; len=len}  // the last line
-                    | r ->
-                        let len = r - stOff
-                        let indent = spacesFrom stOff len code
-                        newLns.Add {offStart=stOff; indent=indent; len=len}
-                        loop (r+2) // +2 to jump over \r and \n
-
-            newLns.Add {offStart=0; indent=0; len=0}   // ad dummy line at index 0
-            loop (0)
-            newLns
+            getLineInfos (lines.Count + 50) code // TODO turn this into an append only , since the Log is append only, instead of reallocating
 
 
         member _.LastLineIdx = lines.Count - 1

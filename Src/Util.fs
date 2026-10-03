@@ -157,6 +157,18 @@ module Str  =
         if s="" then s else Char.ToLower(s.[0]).ToString() + s.Substring(1)
 
 
+    /// The characters that can be part of a line break: '\r' and '\n'
+    let lineBreakChars = [| '\r'; '\n' |]
+
+    /// Returns the length of the line break that starts at the given index of the string:
+    /// 2 for "\r\n", 1 for a single '\n' or a single '\r' and 0 if there is no line break at this index.
+    /// So that code that scans text does not depend on the kind of line ending. (Environment.NewLine is "\r\n" on Windows, but "\n" on Linux and macOS)
+    let lineBreakLength (i:int) (s:string) : int =
+        match s.[i] with
+        | '\r' -> if i + 1 < s.Length && s.[i+1] = '\n' then 2 else 1
+        | '\n' -> 1
+        | _    -> 0
+
     /// ensures all lines end on Environment.NewLine
     let unifyLineEndings (s:string) =
         //Text.StringBuilder(s).Replace("\r\n", "\n").Replace("\r", "\n").Replace("\n", Environment.NewLine).ToString()
