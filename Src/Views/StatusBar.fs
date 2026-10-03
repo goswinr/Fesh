@@ -20,9 +20,24 @@ open Fittings.DependencyProps
 
 module MenuUtil =
     open Avalonia.Input
+    let private gestureColor = Brushes.Gray
+
     let menuItem (cmd:CommandInfo) =
-        let mi = MenuItem(Header = cmd.name, Command = cmd.cmd) //:> Control
-        // mi.InputGesture <- KeyGesture (cmd.gesture)
+        let mi = MenuItem(Command = cmd.cmd)
+        // WPF has MenuItem.InputGestureText for any text.
+        // MenuItem.InputGesture in Avalonia needs a KeyGesture, it would display keys like '/' or '[' as 'OemQuestion' or 'OemOpenBrackets'.
+        // So show the gesture text as part of the header:
+        if String.IsNullOrWhiteSpace cmd.gesture then
+            mi.Header <- TextBlock(Text = cmd.name) // wrap in TextBlock to avoid Mnemonics (alt key access at underscore)
+        else
+            let name    = TextBlock(Text = cmd.name)
+            let gesture = TextBlock(Text = cmd.gesture, Foreground = gestureColor, Margin = Thickness(30., 0., 0., 0.), HorizontalAlignment = Layout.HorizontalAlignment.Right)
+            let panel = DockPanel()
+            DockPanel.SetDock(gesture, Dock.Right)
+            panel.Children.Add gesture
+            panel.Children.Add name
+            mi.Header <- panel
+        Automation.AutomationProperties.SetName(mi, cmd.name) // for screen readers and UI automation, since the header is not just a string
         mi.ToolTip <- cmd.tip
         mi
         :> Control
