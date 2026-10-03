@@ -115,7 +115,7 @@ type EvaluationTrackerRenderer (ed:TextEditor, state:InteractionState ) =
                                 endIdx <- endIdx + 1
                             let endLine = vls[endIdx]
                             let y = endLine.VisualTop - textView.VerticalOffset + endLine.Height
-                            let rect = RectangleGeometry(new Avalonia.Rect(1.0, -1.0, textView.Width - 1.0, y + 2.0))
+                            let rect = RectangleGeometry(new Avalonia.Rect(1.0, -1.0, textView.Bounds.Width - 1.0, y + 2.0)) // not textView.Width, that is NaN unless set explicitly
                             drawingContext.DrawGeometry(backGround, border, rect) // pen could be null too
 
 

@@ -14,7 +14,7 @@ module Mouse =
     let getOffset(e: PointerEventArgs, ed:TextEditor) =
         let textView = ed.TextArea.TextView
         let mutable pt = e.GetPosition(textView);
-        if pt.Y < 0 && pt.Y > textView.Height then
+        if pt.Y < 0 && pt.Y > textView.Bounds.Height then
             None
         else
             let pt = pt +  textView.ScrollOffset

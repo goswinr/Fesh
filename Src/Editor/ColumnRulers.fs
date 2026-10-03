@@ -68,7 +68,7 @@ type ColumnRulers (editor:TextEditor)  as this =
             let offset = width * float column
             let markerXPos = PixelSnapHelpers.PixelAlign(offset, pixelSize.Width) - textView.ScrollOffset.X
             let start = new Point(markerXPos, 0.0);
-            let ende =  new Point(markerXPos, Math.Max(textView.DocumentHeight, textView.Height))
+            let ende =  new Point(markerXPos, Math.Max(textView.DocumentHeight, textView.Bounds.Height)) // not textView.Height, that is NaN unless set explicitly
             drawingContext.DrawLine(pen, start, ende)
 
     member this.SetRulers( columnsNew: seq<int>) = // to be able to change them later
