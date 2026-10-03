@@ -4,8 +4,8 @@ open System
 open Fesh.Model
 
 module SyntaxHighlighting =
-    open AvalonEditB
-    open AvalonEditB.Highlighting
+    open AvaloniaEdit
+    open AvaloniaEdit.Highlighting
     open System.IO
 
     let mutable private fsHighlighting: IHighlightingDefinition option = None //use same highlighter for al tabs. load just once
@@ -24,7 +24,7 @@ module SyntaxHighlighting =
                     use reader = new Xml.XmlTextReader(stream)
                     let fsh = Xshd.HighlightingLoader.Load(reader, HighlightingManager.Instance)
                     fsHighlighting <- Some fsh
-                    do! Async.SwitchToContext Fittings.SyncWpf.context
+                    do! Async.SwitchToContext Fittings.SyncContext.context
                     ed.SyntaxHighlighting <- fsh
                     //HighlightingManager.Instance.RegisterHighlighting("F#", [| ".fsx"; ".fs";".fsi" |], fsh)
                     if forceReLoad then

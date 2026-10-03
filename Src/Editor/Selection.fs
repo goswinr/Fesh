@@ -1,20 +1,20 @@
 ﻿namespace Fesh.Editor
 
 open System
-open System.Windows.Input
-open AvalonEditB
-open AvalonEditB.Editing
-open AvalonEditB.Document
+open Avalonia.Input
+open AvaloniaEdit
+open AvaloniaEdit.Editing
+open AvaloniaEdit.Document
 open Fesh.Model
 
 [<RequireQualifiedAccess>]
 module Mouse =
 
     /// Get Document Offset from mouse position event
-    let getOffset(e: MouseEventArgs, ed:TextEditor) =
+    let getOffset(e: PointerEventArgs, ed:TextEditor) =
         let textView = ed.TextArea.TextView
         let mutable pt = e.GetPosition(textView);
-        if pt.Y < 0 && pt.Y > textView.ActualHeight then
+        if pt.Y < 0 && pt.Y > textView.Height then
             None
         else
             let pt = pt +  textView.ScrollOffset

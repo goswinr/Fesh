@@ -9,7 +9,7 @@ type ScriptCompilerFsproj ( runContext:RunContext) =
 
     let filePath0 = runContext.GetPathToSaveAppData("Script-Compiler-Template-Project.fsproj")
 
-    let writer = SaveReadWriter(filePath0,IFeshLog.printError)
+    let writer = SafeReadWriter(filePath0,IFeshLog.printError)
 
 
     // TODO really only <PlatformTarget>x64</PlatformTarget><!--  x64 is required e.g by Rhino, don't us just 'Platform' tag-->   ??

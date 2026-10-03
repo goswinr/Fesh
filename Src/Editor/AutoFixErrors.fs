@@ -1,6 +1,6 @@
 ﻿namespace Fesh.Editor
 
-open System.Windows
+open Avalonia
 open System.Collections.Generic
 open Fittings
 open Fesh
@@ -18,17 +18,17 @@ module AutoFixErrors =
         // it is actually better to start the message box from another thread ?
         isMessageBoxOpen <- true
         async{
-            do! Async.SwitchToContext SyncWpf.context
+            do! Async.SwitchToContext SyncContext.context
             match MessageBox.Show(
                 IEditor.mainWindow,
                 $"Do you want to add a reference to\r\n\r\n{assemblyName}.dll\r\n\r\non the first line of the script? \r\n\r\nTo fix this Error:\r\n{errMsg}" ,
                 $"Fesh | Add a reference to {assemblyName} ?",
                 MessageBoxButton.YesNo,
                 MessageBoxImage.Question,
-                MessageBoxResult.Yes,// default result
+                MessageBoxResult.Yes, // default result
                 MessageBoxOptions.None) with
             | MessageBoxResult.Yes ->
-                do! Async.SwitchToContext SyncWpf.context
+                do! Async.SwitchToContext SyncContext.context
                 match IEditor.current with
                 |Some ied ->
                     ied.AvaEdit.Document.Insert(0, $"#r \"{assemblyName}\" // auto added\r\n")

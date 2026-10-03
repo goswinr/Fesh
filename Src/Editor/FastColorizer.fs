@@ -1,16 +1,17 @@
 ﻿namespace Fesh.Editor
 
 open System
-open AvalonEditB
-open AvalonEditB.Rendering
+open AvaloniaEdit
+open AvaloniaEdit.Rendering
 open Fesh.Model
 open Fesh.Util.General
 
-open System.Windows
-open System.Windows.Controls
-open System.Windows.Media
+open Avalonia
+open Avalonia.Controls
+open Avalonia.Media
+open Avalonia.Media.Immutable
 
-open AvalonLog.Brush
+open AvaloniaLog.ImmBrush
 
 open Fesh
 open Fesh.Util
@@ -20,9 +21,9 @@ open FSharp.Compiler
 open FSharp.Compiler.Diagnostics
 open FSharp.Compiler.EditorServices
 
-open AvalonEditB
-open AvalonEditB.Document
-open AvalonEditB.Rendering
+open AvaloniaEdit
+open AvaloniaEdit.Document
+open AvaloniaEdit.Rendering
 open System
 open System
 
@@ -51,18 +52,17 @@ module ErrorStyle=
 
     let penSize = 1.2
 
-    let errBackGr       = Brushes.Red     |> brighter 230   |> freeze
-    let errSquiggle     = Brushes.Red     |> darker 10      |> freeze
-    let errSquigglePen     = Pen(errSquiggle, penSize) |> Pen.freeze
+    let errBackGr       = Brushes.Red     |> brighter 230
+    let errSquiggle     = Brushes.Red     |> darker 10
+    let errSquigglePen   = ImmutablePen(errSquiggle, penSize)
 
-    //let warnSquiggle    = Pen(  Brushes.Yellow  |> darker 40      |> freeze, penSize) |> Pen.freeze
-    let warnBackGr      =  Brushes.Yellow  |> brighter 200   |> freeze
-    let warnSquiggle    =  Brushes.Gold                      |> freeze
-    let warnSquigglePen = Pen(warnSquiggle, penSize) |> Pen.freeze
+    let warnBackGr      =  Brushes.Yellow  |> brighter 200
+    let warnSquiggle    =  ImmutableSolidColorBrush Colors.Gold
+    let warnSquigglePen = ImmutablePen(warnSquiggle, penSize)
 
-    let infoBackGr      =  Brushes.Green  |> brighter 220   |> freeze
-    let infoSquiggle    =  Brushes.Green  |> darker 5       |> freeze
-    let infoSquigglePen = Pen( infoSquiggle, penSize) |> Pen.freeze
+    let infoBackGr      =  Brushes.Green  |> brighter 220
+    let infoSquiggle    =  Brushes.Green  |> darker 5
+    let infoSquigglePen = ImmutablePen( infoSquiggle, penSize)
 
 
 /// an ISegment: This segment also contains back and foreground color and diagnostic display text

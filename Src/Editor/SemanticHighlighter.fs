@@ -1,84 +1,85 @@
 ﻿namespace Fesh.Editor
 
 open System
-open System.Windows.Media
+open Avalonia.Media
 
 open FSharp.Compiler
 open FSharp.Compiler.EditorServices
 open FSharp.Compiler.CodeAnalysis
 
-open AvalonEditB
-open AvalonEditB.Rendering
-open AvalonLog.Brush
+open AvaloniaEdit
+open AvaloniaEdit.Rendering
+open AvaloniaLog.ImmBrush
 
 open Fesh
 open Fesh.Model
+open Avalonia.Media.Immutable
 
 // see  https://github.com/dotnet/fsharp/blob/main/src/Compiler/Service/SemanticClassification.fs
 
 
 type SemActions() =
 
-    let c_ValueType                    = freeze <| Brushes.MediumOrchid  |> darker 40
-    let c_ReferenceType                = freeze <| Brushes.MediumVioletRed  |> darker 60
-    let c_Type                         = freeze <| Brushes.MediumVioletRed  |> darker 40
-    let c_UnionCase                    = freeze <| Brushes.LightSkyBlue  |> darker 100
-    let c_UnionCaseField               = freeze <| Brushes.LightSkyBlue  |> darker 100
-    let c_Function                     = freeze <| Brushes.DarkGoldenrod |> darker 40
-    let c_Property                     = freeze <| Brushes.DarkTurquoise |> darker 110
-    let c_MutableVar                   = freeze <| Brushes.Goldenrod     |> darker 20
-    let c_MutableRecordField           = freeze <| Brushes.Goldenrod     |> darker 20
-    let c_Module                       = freeze <| Brushes.Black
-    let c_Namespace                    = freeze <| Brushes.Black
-    //let c_Printf                       = freeze <| Brushes.Plum      // covered by xshd highlighting
-    let c_ComputationExpression        = freeze <| Brushes.Indigo
-    let c_IntrinsicFunction            = freeze <| Brushes.DarkBlue
-    let c_Enumeration                  = freeze <| Brushes.Indigo
-    let c_Interface                    = freeze <| Brushes.MediumVioletRed  |> darker 20
-    let c_TypeArgument                 = freeze <| Brushes.SlateBlue
-    let c_Operator                     = freeze <| Brushes.MediumSlateBlue
-    let c_DisposableType               = freeze <| Brushes.DarkOrchid
-    let c_DisposableTopLevelValue      = freeze <| Brushes.DarkOrchid
-    let c_DisposableLocalValue         = freeze <| Brushes.DarkOrchid
-    let c_Method                       = freeze <| Brushes.DarkTurquoise |> darker 60
-    let c_ExtensionMethod              = freeze <| Brushes.DarkTurquoise |> darker 30
-    let c_ConstructorForReferenceType  = freeze <| Brushes.Brown
-    let c_ConstructorForValueType      = freeze <| Brushes.SandyBrown    |> darker 80
-    let c_Literal                      = freeze <| Brushes.SeaGreen
-    let c_RecordField                  = freeze <| Brushes.DarkSlateGray |> darker 10
-    let c_RecordFieldAsFunction        = freeze <| Brushes.Plum
-    let c_Exception                    = freeze <| Brushes.HotPink |> darker 40
-    let c_Field                        = freeze <| Brushes.MediumPurple
-    let c_Event                        = freeze <| Brushes.Olive
-    let c_Delegate                     = freeze <| Brushes.DarkOliveGreen
-    let c_NamedArgument                = freeze <| Brushes.PaleVioletRed |> darker 80
-    let c_Value                        = freeze <| Brushes.DarkRed       |> darker 20
-    let c_LocalValue                   = freeze <| Brushes.DarkRed       |> darker 40
-    let c_TypeDef                      = freeze <| Brushes.Purple
-    let c_Plaintext                    = freeze <| Brushes.OrangeRed     |> darker 60
+    let c_ValueType                    = Brushes.MediumOrchid  |> darker 40
+    let c_ReferenceType                = Brushes.MediumVioletRed  |> darker 60
+    let c_Type                         = Brushes.MediumVioletRed  |> darker 40
+    let c_UnionCase                    = Brushes.LightSkyBlue  |> darker 100
+    let c_UnionCaseField               = Brushes.LightSkyBlue  |> darker 100
+    let c_Function                     = Brushes.DarkGoldenrod |> darker 40
+    let c_Property                     = Brushes.DarkTurquoise |> darker 110
+    let c_MutableVar                   = Brushes.Goldenrod     |> darker 20
+    let c_MutableRecordField           = Brushes.Goldenrod     |> darker 20
+    let c_Module                       = Brushes.Black
+    let c_Namespace                    = Brushes.Black
+    //let c_Printf                       = Brushes.Plum      // covered by xshd highlighting
+    let c_ComputationExpression        = Brushes.Indigo
+    let c_IntrinsicFunction            = Brushes.DarkBlue
+    let c_Enumeration                  = Brushes.Indigo
+    let c_Interface                    = Brushes.MediumVioletRed  |> darker 20
+    let c_TypeArgument                 = Brushes.SlateBlue
+    let c_Operator                     = Brushes.MediumSlateBlue
+    let c_DisposableType               = Brushes.DarkOrchid
+    let c_DisposableTopLevelValue      = Brushes.DarkOrchid
+    let c_DisposableLocalValue         = Brushes.DarkOrchid
+    let c_Method                       = Brushes.DarkTurquoise |> darker 60
+    let c_ExtensionMethod              = Brushes.DarkTurquoise |> darker 30
+    let c_ConstructorForReferenceType  = Brushes.Brown
+    let c_ConstructorForValueType      = Brushes.SandyBrown    |> darker 80
+    let c_Literal                      = Brushes.SeaGreen
+    let c_RecordField                  = Brushes.DarkSlateGray |> darker 10
+    let c_RecordFieldAsFunction        = Brushes.Plum
+    let c_Exception                    = Brushes.HotPink |> darker 40
+    let c_Field                        = Brushes.MediumPurple
+    let c_Event                        = Brushes.Olive
+    let c_Delegate                     = Brushes.DarkOliveGreen
+    let c_NamedArgument                = Brushes.PaleVioletRed |> darker 80
+    let c_Value                        = Brushes.DarkRed       |> darker 20
+    let c_LocalValue                   = Brushes.DarkRed       |> darker 40
+    let c_TypeDef                      = Brushes.Purple
+    let c_Plaintext                    = Brushes.OrangeRed     |> darker 60
 
-    let c_UnUsed                       = freeze <| Brushes.Gray |> brighter 40
+    let c_UnUsed                       = Brushes.Gray |> brighter 40
 
     let badIndentBrush =
         let opacity = 40uy // 0uy is transparent, 255uy is opaque, transparent to show column rulers behind
         let r,g,b = 255uy, 180uy, 0uy // orange
         Color.FromArgb(opacity,r,g,b)
-        |> SolidColorBrush
-        |> freeze
+        |> ImmutableSolidColorBrush
+
 
     /// this allows using the cursive version of Cascadia Mono
-    let stylisticSet1 =
-        {new DefaultTextRunTypographyProperties() with
-            override this.StylisticSet1 with get() = true
-        }
+    // let stylisticSet1 =
+    //     {new DefaultTextRunTypographyProperties() with  // TODO fix in AvaloniaEdit
+    //         override this.StylisticSet1 with get() = true
+    //     }
 
     let makeCursive (el:VisualLineElement) =
         // let f = el.TextRunProperties.Typeface.FontFamily
-        // let tf = new Typeface(f, FontStyles.Italic, FontWeights.Bold, FontStretches.Normal)
+        // let tf = new Typeface(f, FontStyle.Italic, FontWeights.Bold, FontStretches.Normal)
         // eprintfn $"makeCursive {f}"
         // el.TextRunProperties.SetTypeface(tf)
         el.TextRunProperties.SetTypeface(StyleState.italicBoldEditorTf)
-        el.TextRunProperties.SetTypographyProperties(stylisticSet1) // for cursive set of Cascadia Mono
+        // el.TextRunProperties.SetTypographyProperties(stylisticSet1) // for cursive set of Cascadia Mono  // TODO fix in AvaloniaEdit
 
 
     member val ReferenceTypeA              = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(c_ReferenceType              ))
@@ -155,7 +156,7 @@ type SemanticHighlighter (state: InteractionState) =
         |> Async.RunSynchronously
 
 
-    //let action (el:VisualLineElement,brush:SolidColorBrush,r:Text.Range) = el.TextRunProperties.SetForegroundBrush(Brushes.Red)
+    //let action (el:VisualLineElement,brush:ImmutableSolidColorBrush,r:Text.Range) = el.TextRunProperties.SetForegroundBrush(Brushes.Red)
     let defaultIndenting = state.Editor.Options.IndentationSize
 
     let trans = state.TransformersSemantic

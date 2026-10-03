@@ -3,13 +3,13 @@ namespace Fesh.Editor
 open System
 open System.Collections.Generic
 
-open AvalonEditB
-open AvalonEditB.Folding
+open AvaloniaEdit
+open AvaloniaEdit.Folding
 
 open Fesh.Model
 open Fesh.Util.General
 open Fesh.XmlParser
-open AvalonEditB
+open AvaloniaEdit
 
 
 [<Struct>]
@@ -193,25 +193,28 @@ type Foldings(manager:Folding.FoldingManager, state:InteractionState, getFilePat
             //     let too = ed.Document.GetLineByOffset(nf.EndOffset)
             //     IFeshLog.log.PrintfnDebugMsg $"{i+1}. fold from line {from.LineNumber} to {too.LineNumber}"
 
+            // TODO add ato avalonia edit first:
 
-            // (2.3) update foldings, or restore if something went wrong and CollapsedLinesAreInconsistent:
-            if ed.TextArea.TextView.CollapsedLinesAreInconsistent then
-                // IFeshLog.log.PrintfnDebugMsg "CollapsedLinesAreInconsistent: restore foldings"
-                manager.Clear()
-                let vs = foldStatus.Get(getFilePath())
-                for i = 0 to folds.Count-1 do
-                    let f = folds.[i]
-                    if f.foldStartOff < f.foldEndOff then // TODO this seems to not always be the case
-                        let folded = if i < vs.Length then vs.[i] else false
-                        let fs = manager.CreateFolding(f.foldStartOff, f.foldEndOff)
-                        fs.Tag      <- box f.nestingLevel
-                        fs.IsFolded <- folded
-                        fs.Title    <- textInFoldBox f.linesInFold
-            else
-                // the expected regular case:
-                // Existing foldings starting after this firstErrorOffset will be kept even if they don't appear in newFoldings.
-                // Use -1 for this parameter if there were no parse errors.
-                manager.UpdateFoldings(nFolds, firstErrorOffset)
+            // // (2.3) update foldings, or restore if something went wrong and CollapsedLinesAreInconsistent:
+            // if ed.TextArea.TextView.CollapsedLinesAreInconsistent then
+            //     // IFeshLog.log.PrintfnDebugMsg "CollapsedLinesAreInconsistent: restore foldings"
+            //     manager.Clear()
+            //     let vs = foldStatus.Get(getFilePath())
+            //     for i = 0 to folds.Count-1 do
+            //         let f = folds.[i]
+            //         if f.foldStartOff < f.foldEndOff then // TODO this seems to not always be the case
+            //             let folded = if i < vs.Length then vs.[i] else false
+            //             let fs = manager.CreateFolding(f.foldStartOff, f.foldEndOff)
+            //             fs.Tag      <- box f.nestingLevel
+            //             fs.IsFolded <- folded
+            //             fs.Title    <- textInFoldBox f.linesInFold
+            // else
+            //     // the expected regular case:
+            //     // Existing foldings starting after this firstErrorOffset will be kept even if they don't appear in newFoldings.
+            //     // Use -1 for this parameter if there were no parse errors.
+            //     manager.UpdateFoldings(nFolds, firstErrorOffset)
+
+            manager.UpdateFoldings(nFolds, firstErrorOffset)
 
 
             // (2.4) scroll to caret if unfolded
@@ -245,7 +248,7 @@ type Foldings(manager:Folding.FoldingManager, state:InteractionState, getFilePat
                         do! Async.Sleep 40
 
                     let vs = foldStatus.Get(getFilePath())
-                    do! Async.SwitchToContext Fittings.SyncWpf.context
+                    do! Async.SwitchToContext Fittings.SyncContext.context
 
                     for i = 0 to folds.Count-1 do
                         let f = folds.[i]
@@ -264,7 +267,7 @@ type Foldings(manager:Folding.FoldingManager, state:InteractionState, getFilePat
 
                 // for any change after initial opening of the file
                 elif state.IsLatest id then
-                    do! Async.SwitchToContext Fittings.SyncWpf.context
+                    do! Async.SwitchToContext Fittings.SyncContext.context
                     let edFolds = manager.AllFoldings
 
                     // (1) first find out if a folding update is needed at all
@@ -307,7 +310,7 @@ type Foldings(manager:Folding.FoldingManager, state:InteractionState, getFilePat
 
     do
         // set up initial state is done in foldEditor function
-        margin.MouseUp.Add (fun _ ->  saveFoldingStatus() )// so that they are saved immediately
+        margin.PointerReleased.Add (fun _ ->  saveFoldingStatus() )// so that they are saved immediately
 
 
     member _.RedrawFoldings() = redrawFoldings()

@@ -354,7 +354,7 @@ module Test =
         clearFeshLog()
         let rawXml =
             File.ReadAllText
-                //@"C:\Users\gwins\.nuget\packages\avalonlog\0.7.0\lib\net472\AvalonLog.xml"
+                //@"C:\Users\gwins\.nuget\packages\avalonlog\0.7.0\lib\net472\AvaloniaLog.xml"
                 //@"D:\Git\Fesh\binStandalone\net472\win-x64\netstandard.xml"
                 @"D:\Git\Rhino.Scripting\bin\Release\net48\Rhino.Scripting.xml"
                 //@"D:\Git\Fesh\binStandalone\net472\FSharp.Core.xml"

@@ -1,7 +1,7 @@
 ﻿namespace Fesh.Editor
 
 open Fesh.Model
-open AvalonEditB.Editing
+open AvaloniaEdit.Editing
 
 module SwapLines =
     open Selection
@@ -77,7 +77,7 @@ module SwapLines =
                 let mutable endPos   = sp.enPos
                 startPos.Line <-  startPos.Line - 1
                 endPos.Line   <-  endPos.Line   - 1
-                let newSel = new SimpleSelection(ta,startPos,endPos)
+                let newSel = new SimpleSelection(ta, startPos, endPos)
                 ta.Selection <- newSel
 
             | RectSel ->

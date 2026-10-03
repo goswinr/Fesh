@@ -1,11 +1,16 @@
 ﻿namespace Fesh
 
 open System
-open System.Windows
+open Avalonia
 open Fesh.Config
 open Velopack
+open Avalonia.Controls.ApplicationLifetimes
+open Avalonia.Themes.Fluent
+open System
 
 module App =
+    open Avalonia.Media
+
 
     /// To statically access the currently running instance.
     /// For debugging only
@@ -20,26 +25,48 @@ module App =
         current <- Initialize.everything (Some host , [| |])
         if host.mainWindowHandel <> IntPtr.Zero then
             // so that the editor window opens and closes at the same time as the main host window:
-            Interop.WindowInteropHelper(current.Window).Owner <- host.mainWindowHandel
+            // Interop.WindowInteropHelper(current.Window).Owner <- host.mainWindowHandel
+            ()
 
         //win.Show() // do in host instead, so that the host can control the window show time
         current
 
+    type FeshApp() =
+        inherit Application()
 
-    [< EntryPoint >]
-    [< STAThread >]
-    let runEditorStandalone (args: string []) : int =
-        VelopackApp.Build()
-            .SetAutoApplyOnStartup(false) // to not install updates even if they are downloaded
-            .Run() //https://docs.velopack.io/getting-started/csharp
+        override this.Initialize() =
+            this.Styles.Add (FluentTheme())
+            this.RequestedThemeVariant <- Styling.ThemeVariant.Light
 
-        let app  = Application() // do first so that pack Uris work
-        current <- Initialize.everything (None, args)
+            // https://github.com/AvaloniaUI/AvaloniaEdit/issues/322:s
+            this.Styles.Add(Avalonia.Markup.Xaml.Styling.StyleInclude(baseUri = null, Source = Uri "avares://AvaloniaEdit/Themes/Fluent/AvaloniaEdit.xaml"))
 
-        try
-            app.Run current.Window
-        with e ->
-            eprintfn $"Fesh Application.Run Error:\r\n{e}"
-            1
+        override this.OnFrameworkInitializationCompleted() =
+            match this.ApplicationLifetime with
+            | :? IClassicDesktopStyleApplicationLifetime as desktopLifetime ->
+                    current <- Initialize.everything (None, desktopLifetime.Args)
+                    desktopLifetime.MainWindow <- current.Window
+                    current.Window.Background <- Brushes.White |> AvaloniaLog.ImmBrush.darker 5 //otherwise it is transparent !?
+            | _ -> ()
 
 
+    // let runEditorStandalone (args: string []) : int =
+    //     // VelopackApp.Build()
+    //     //     .SetAutoApplyOnStartup(false) // to not install updates even if they are downloaded
+    //     //     .Run() //https://docs.velopack.io/getting-started/csharp
+
+    //     // let app  = Application() // do first so that pack Uris work
+    //     // current <- Initialize.everything (None, args)
+
+    //     // app.Run current.Window
+    //     0
+
+
+
+    [<EntryPoint>]
+    let main(args: string[]) =
+        AppBuilder
+            .Configure<FeshApp>()
+            .UsePlatformDetect()
+            // .UseSkia()
+            .StartWithClassicDesktopLifetime(args)

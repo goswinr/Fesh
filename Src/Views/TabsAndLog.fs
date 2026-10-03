@@ -1,17 +1,19 @@
 ﻿namespace Fesh.Views
 
 open System
-open System.Windows.Controls
-open System.Windows
+open Avalonia.Controls
+open Avalonia
 
 open Fittings.DependencyProps
 
 open Fesh
 open Fesh.Config
+open Avalonia.Layout
+open Avalonia.Media
 
 /// A class holding the main grid of Tabs and the log Window
 /// Includes logic for toggling the view split and saving and restoring size and position
-type TabsAndLog (config:Config, tabs:Tabs, log:Log, feshWin:Views.FeshWindow) as this =
+type TabsAndLog (config:Config, tabs:Tabs, log:Log, feshWin:FeshWindow) as this =
 
     let gridSplitterSize = 4.0
 
@@ -20,42 +22,43 @@ type TabsAndLog (config:Config, tabs:Tabs, log:Log, feshWin:Views.FeshWindow) as
     let logRowHeight        = new RowDefinition   (Height = makeGridLength (config.Settings.GetFloat ("LogHeight"     ,400.0)))
     let editorColumnWidth   = new ColumnDefinition(Width  = makeGridLength (config.Settings.GetFloat ("EditorWidth"   ,400.0)))
     let logColumnWidth      = new ColumnDefinition(Width  = makeGridLength (config.Settings.GetFloat ("LogWidth"      ,400.0)))
-    let splitterHor         = new GridSplitter()
-    let splitterVert        = new GridSplitter()
+    let splitterHor         = new GridSplitter(Background = Brushes.LightGray)
+    let splitterVert        = new GridSplitter(Background = Brushes.LightGray)
     let mutable isLogMaxed = false
 
     let setGridHor() =
         config.Settings.SetBool ("IsViewSplitVertical", false) |> ignore
         setGridHorizontal grid [
-            tabs.Control        :> UIElement, editorRowHeight
-            splitterHor         :> UIElement, RowDefinition(Height = GridLength.Auto)
-            log.AvalonLog       :> UIElement, logRowHeight
+            tabs.Control        :> Control, editorRowHeight
+            splitterHor         :> Control, RowDefinition(Height = GridLength.Auto)
+            log.AvaloniaLog     :> Control, logRowHeight
             ]
 
     let setGridVert() =
         config.Settings.SetBool ("IsViewSplitVertical", true) |> ignore
         setGridVertical grid [
-            tabs.Control        :> UIElement, editorColumnWidth
-            splitterVert        :> UIElement, ColumnDefinition(Width = GridLength.Auto)
-            log.AvalonLog       :> UIElement, logColumnWidth
+            tabs.Control        :> Control, editorColumnWidth
+            splitterVert        :> Control, ColumnDefinition(Width = GridLength.Auto)
+            log.AvaloniaLog     :> Control, logColumnWidth
             ]
 
     static let mutable instance = Unchecked.defaultof<TabsAndLog>
 
     do
         TabsAndLog.Instance <- this
+
         if config.Settings.GetBool ("IsViewSplitVertical", true) then setGridVert()
-        else                                               setGridHor()
+        else                                                          setGridHor()
 
         splitterHor.Height <- gridSplitterSize
-        splitterHor.HorizontalAlignment <- Windows.HorizontalAlignment.Stretch
-        splitterHor.VerticalAlignment <- Windows.VerticalAlignment.Center
-        splitterHor.ToolTip <- "Drag to resize code editor and log window"
+        splitterHor.HorizontalAlignment <- HorizontalAlignment.Stretch
+        splitterHor.VerticalAlignment <- VerticalAlignment.Center
+        // splitterHor.ToolTip <- "Drag to resize code editor and log window"
 
         splitterVert.Width  <- gridSplitterSize
-        splitterVert.VerticalAlignment <- Windows.VerticalAlignment.Stretch
-        splitterVert.HorizontalAlignment <- Windows.HorizontalAlignment.Center //needed only on vertical split
-        splitterVert.ToolTip <- "Drag to resize code editor and log window"
+        splitterVert.VerticalAlignment <- VerticalAlignment.Stretch
+        splitterVert.HorizontalAlignment <- HorizontalAlignment.Center //needed only on vertical split
+        // splitterVert.ToolTip <- "Drag to resize code editor and log window"
 
         splitterHor.DragCompleted.Add  (fun _ ->
                 isLogMaxed <- false
@@ -73,14 +76,14 @@ type TabsAndLog (config:Config, tabs:Tabs, log:Log, feshWin:Views.FeshWindow) as
                 config.Settings.SetFloat("LogWidth"         ,logColumnWidth.ActualWidth   )
                 )
 
-        feshWin.Window.StateChanged.Add (fun _ ->
-            match feshWin.Window.WindowState with
-            | WindowState.Normal ->
-                if isLogMaxed then this.ToggleMaxLog() // to also switch back from maximized when the window size gets restored
-            | _ -> ()
-            //| WindowState.Maximized -> // normally the state change event comes after the location change event but before size changed. async sleep in LocationChanged prevents this                ()
-            //| WindowState.Minimized ->
-            )
+        // feshWin.Window.StateChanged.Add (fun _ ->
+        //     match feshWin.Window.WindowState with
+        //     | WindowState.Normal ->
+        //         if isLogMaxed then this.ToggleMaxLog() // to also switch back from maximized when the window size gets restored
+        //     | _ -> ()
+        //     //| WindowState.Maximized -> // normally the state change event comes after the location change event but before size changed. async sleep in LocationChanged prevents this                ()
+        //     //| WindowState.Minimized ->
+        //     )
 
         // react to Escape key globally
         feshWin.Window.KeyDown.Add (fun k ->  //clear selection on Escape key
@@ -92,7 +95,7 @@ type TabsAndLog (config:Config, tabs:Tabs, log:Log, feshWin:Views.FeshWindow) as
                         ed.CloseToolTips()
                     else
                         ed.SelectionHighlighter.ForceClear()
-                        match log.SelectionHighlighter with Some h -> h.ForceClear() | None    -> ()
+                        match log.SelectionHighlighter with Some h -> h.ForceClear() | None -> ()
             | _ -> ()
         )
 
@@ -104,11 +107,12 @@ type TabsAndLog (config:Config, tabs:Tabs, log:Log, feshWin:Views.FeshWindow) as
         if config.Settings.GetBool ("IsViewSplitVertical", true) then setGridHor()
         else                                                          setGridVert()
 
+
     member this.ToggleMaxLog() =
         if isLogMaxed then // if it is already maxed then size down again
             isLogMaxed <- false// do first
-            editorRowHeight.Height   <- makeGridLength <|config.Settings.GetFloat ("EditorHeight", 99.)
-            logRowHeight.Height      <- makeGridLength <|config.Settings.GetFloat ("LogHeight"   , 99.)
+            editorRowHeight.Height   <- makeGridLength <|config.Settings.GetFloat ("EditorHeight", 99. )
+            logRowHeight.Height      <- makeGridLength <|config.Settings.GetFloat ("LogHeight"   , 99. )
             editorColumnWidth.Width  <- makeGridLength <|config.Settings.GetFloat ("EditorWidth" , 99. )
             logColumnWidth.Width     <- makeGridLength <|config.Settings.GetFloat ("LogWidth"    , 99. )
             if not feshWin.WasMax then feshWin.Window.WindowState <- WindowState.Normal // do last because of  win.Window.StateChanged.Add handler above

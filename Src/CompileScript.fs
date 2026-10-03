@@ -1,7 +1,7 @@
 ﻿namespace Fesh
 
 open System
-open System.Windows
+open Avalonia
 open System.IO
 open System.Drawing
 
@@ -9,6 +9,7 @@ open Fesh.Model
 open Fesh.Util
 open Fesh.Config
 open System.Text
+open Fittings
 
 
 
@@ -78,7 +79,7 @@ module CompileScript =
     //if last write is more than 1h ago ask for overwrite permissions
     let overWriteExisting fsProj :bool=
         async{
-            do! Async.SwitchToContext Fittings.SyncWpf.context
+            do! Async.SwitchToContext Fittings.SyncContext.context
             let maxAgeHours = 0.5
             let fi = FileInfo(fsProj)
             return
@@ -86,14 +87,13 @@ module CompileScript =
                     let age = DateTime.UtcNow - fi.LastWriteTimeUtc
                     if age > (TimeSpan.FromHours maxAgeHours) then
                         let msg = sprintf "Do you want to recompile and overwrite the existing files?\r\n \r\n%s\r\n \r\nthat are %.2f days old at\r\n \r\n(This dialog only shows if the last compilation was more than %.1f hours ago.)"fi.FullName age.TotalDays  maxAgeHours
-                        //match MessageBox.Show(msg, StyleState.dialogCaption, MessageBoxButtons.YesNo, MessageBoxIcon.Exclamation, MessageBoxDefaultButton.Button2) with  // uses Windows.Forms
                         match MessageBox.Show(
                             IEditor.mainWindow,
                             msg,
                             "Fesh | Recompile and overwrite?",
                             MessageBoxButton.YesNo,
                             MessageBoxImage.Exclamation,
-                            MessageBoxResult.No,// default result
+                            MessageBoxResult.No, // default result
                             MessageBoxOptions.None) with
                         | MessageBoxResult.Yes-> true
                         | MessageBoxResult.No-> false
@@ -271,7 +271,7 @@ module CompileScript =
                                         IFeshLog.log.PrintfColor  190 0 50 "#r @\""
                                         IFeshLog.log.PrintfColor  0 0 0 "%s" resultDll
                                         IFeshLog.log.PrintfnColor 190 0 50 "\""
-                                        Fittings.SyncWpf.doSync ( fun () -> Clipboard.SetText("#r @\"" + resultDll + "\"\r\n") )
+                                        //Fittings.SyncContext.doSync ( fun () -> Clipboard.SetText("#r @\"" + resultDll + "\"\r\n") ) TODO Windows only?
                                     else
                                         gray  "*build process ended!"
                                     gray "--------------------------------------------------------------------------------"

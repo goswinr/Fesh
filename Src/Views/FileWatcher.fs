@@ -1,8 +1,8 @@
-namespace Fesh.Views
+﻿namespace Fesh.Views
 
 open System
 open System.IO
-open System.Windows
+open Avalonia
 
 open Fesh.Editor
 open Fesh.Model
@@ -34,7 +34,7 @@ type FileChangeTracker (editor:Editor, setCodeSavedStatus:bool->unit) =
     let mutable doWatch = true
 
     let setCode(newCode,ed:Editor)=
-        ed.AvaEdit.Dispatcher.Invoke ( fun () ->
+        SyncContext.doSync ( fun () ->
             let av = ed.AvaEdit
             let cOff = av.CaretOffset
             av.Document.Text <- newCode // this allows undo and redo, just setting AvaEdit.Text not
@@ -79,7 +79,7 @@ type FileChangeTracker (editor:Editor, setCodeSavedStatus:bool->unit) =
                         match tryReadFile fi with
                         |None -> IFeshLog.log.PrintfnIOErrorMsg "FileWatcher.fs: check: tryReadFile failed"
                         |Some fileCode ->
-                            do! Async.SwitchToContext SyncWpf.context
+                            do! Async.SwitchToContext SyncContext.context
                             if doWatch && version = checkVersion && codeAtStart = editor.CodeAtLastSave then
                                 editor.FilePath <- SetTo fi
                                 if fileCode = editor.CodeAtLastSave then
@@ -116,7 +116,7 @@ type FileChangeTracker (editor:Editor, setCodeSavedStatus:bool->unit) =
                         match tryReadFile fi with
                         |None -> IFeshLog.log.PrintfnIOErrorMsg "FileWatcher.fs: check: tryReadFile failed"
                         |Some fileCode ->
-                            do! Async.SwitchToContext SyncWpf.context
+                            do! Async.SwitchToContext SyncContext.context
                             if doWatch && version = checkVersion && codeAtStart = editor.CodeAtLastSave then
                                 if fileCode <> editor.CodeAtLastSave then
                                     doWatch <- false // to not trigger new event from closing this MessageBox window
@@ -147,7 +147,7 @@ type FileChangeTracker (editor:Editor, setCodeSavedStatus:bool->unit) =
                                     // the file on disk matches the last saved code, but the Document might still have unsaved edits
                                     setCodeSavedStatus (not <| editorHasUnsavedChanges())
                     else
-                        do! Async.SwitchToContext SyncWpf.context
+                        do! Async.SwitchToContext SyncContext.context
                         if doWatch && version = checkVersion && codeAtStart = editor.CodeAtLastSave then
                             editor.FilePath <- Deleted fi
                             setCodeSavedStatus false
@@ -173,7 +173,7 @@ type FileChangeTracker (editor:Editor, setCodeSavedStatus:bool->unit) =
     let bufferedCheck() =
         if doWatch then
             async{
-                do! Async.SwitchToContext SyncWpf.context // bufferVersion is only ever touched on the UI thread
+                do! Async.SwitchToContext SyncContext.context // bufferVersion is only ever touched on the UI thread
                 bufferVersion <- bufferVersion + 1
                 let version = bufferVersion
                 if ta.IsFocused && IEditor.mainWindow.IsActive then

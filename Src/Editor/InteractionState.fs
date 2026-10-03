@@ -1,7 +1,7 @@
 namespace Fesh.Editor
 
-open AvalonEditB
-open AvalonEditB.Folding
+open AvaloniaEdit
+open AvaloniaEdit.Folding
 
 module CodeLineTools =
 

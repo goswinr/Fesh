@@ -10,7 +10,7 @@
   https://github.com/icsharpcode/SharpDevelop/wiki/Syntax-highlighting
   The named colors 'Comment' and 'String' are also used in SharpDevelop to detect if a line is inside a multiline string/comment
 
-  AvalonEditB supports all named System.Windows.FontWeights, (while the original SharpDevelop.AvalonEdit only supports normal and bold.)
+  AvalonEditB supports all named Avalonia.FontWeights, (while the original SharpDevelop.AvalonEdit only supports normal and bold.)
   see schema https://github.com/goswinr/AvalonEditB/blob/main/AvalonEditB/Highlighting/Resources/ModeV2.xsd
   -->
 

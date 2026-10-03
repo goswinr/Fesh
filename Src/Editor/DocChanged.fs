@@ -1,11 +1,11 @@
 namespace Fesh.Editor
 
 open System
-open System.Windows.Threading
-open System.Windows.Input
+open Avalonia.Threading
+open Avalonia.Input
 
-open AvalonEditB
-open AvalonEditB.Document
+open AvaloniaEdit
+open AvaloniaEdit.Document
 
 open Fesh.Model
 open Fesh.Util
@@ -79,7 +79,7 @@ module Redrawing =
         let ed = state.Editor
         // let mutable scan = ScanState.None
 
-        let priority = DispatcherPriority.Render
+        // let priority = DispatcherPriority.Render
 
         let mutable idBrackets   = 0L
         let mutable idSemantics  = 0L
@@ -91,16 +91,17 @@ module Redrawing =
             //printfn $"id={id}, idSemantics={idSemantics}, idBrackets={idBrackets}, idErrors={idErrors}, idSels={idSels}, idFolds={idFolds}"
             if state.IsLatest id && idSemantics=id && idBrackets=id && idErrors=id && idSels=id && idFolds=id then
                     async{
-                        do! Async.SwitchToContext Fittings.SyncWpf.context
+                        do! Async.SwitchToContext Fittings.SyncContext.context
                         //eprintfn $"Redrawing full: id={id}, idSemantics={idSemantics}, idBrackets={idBrackets}, idErrors={idErrors}, idSels={idSels}, idFolds={idFolds}"
                         // first render then fold do avoid  this ?
                         //System.ArgumentException: Cannot dispose visual line because it is in construction!
-                        //at AvalonEditB.Rendering.TextView.DisposeVisualLine(VisualLine visualLine)
-                        //at AvalonEditB.Rendering.TextView.ClearVisualLines()
-                        //at AvalonEditB.Rendering.TextView.Redraw(DispatcherPriority redrawPriority)
+                        //at AvaloniaEdit.Rendering.TextView.DisposeVisualLine(VisualLine visualLine)
+                        //at AvaloniaEdit.Rendering.TextView.ClearVisualLines()
+                        //at AvaloniaEdit.Rendering.TextView.Redraw(DispatcherPriority redrawPriority)
                         //at Fesh.Editor.Redrawing.cloQQ?—153.Invoke(Unit _arg2) in D:\Git\Fesh\Src\Editor\DocChanged.fs:line 99
-                        ed.TextArea.TextView.Redraw(priority)
-                        // do! Async.Sleep 50 // to try to avoid: InvalidOperationException: Line 117 was skipped by a VisualLineElementGenerator, but it is not collapsed. at AvalonEditB.Rendering.TextView.BuildVisualLine(..)
+                        // ed.TextArea.TextView.Redraw(priority) // WPF only
+                        ed.TextArea.TextView.Redraw()
+                        // do! Async.Sleep 50 // to try to avoid: InvalidOperationException: Line 117 was skipped by a VisualLineElementGenerator, but it is not collapsed. at AvaloniaEdit.Rendering.TextView.BuildVisualLine(..)
                         // if state.IsLatest id then
                         services.folds.RedrawFoldings()
                     }
@@ -378,8 +379,8 @@ module MaybeShow =
 
 
 
-        let inline getCtrlDown() = Keyboard.IsKeyDown Key.LeftCtrl || Keyboard.IsKeyDown Key.RightCtrl // can't be async
-        let inline getSpaceDown() = Keyboard.IsKeyDown Key.Space // can't be async
+        // let inline getCtrlDown() = Keyboard.IsKeyDown Key.LeftCtrl || Keyboard.IsKeyDown Key.RightCtrl // can't be async
+        // let inline getSpaceDown() = Keyboard.IsKeyDown Key.Space // can't be async
 
         let inline lastCharTriggersCompletion (lastChar, pos) =
             match lastChar with
@@ -475,7 +476,7 @@ module DocChangeCompletion =
                     // Switch to Sync and try showing completion window:
                     let checkAndMark = fun () -> DocChangeMark.updateAllTransformersAsync (iEd, drawServ, state, state.Increment(), pos.lineIdx ) // will be called if window closes without an insertion
 
-                    do! Async.SwitchToContext Fittings.SyncWpf.context
+                    do! Async.SwitchToContext Fittings.SyncContext.context
                     match drawServ.compls.TryShow( posX, showList, checkAndMark) with
                     |NoShow ->
                         state.DocChangedConsequence <- React
@@ -530,7 +531,22 @@ module DocChangeEvents =
         match state.DocChangedConsequence with
         | WaitForCompletions -> ()
         | React ->
-            if eventArgs.Key = Key.Space && MaybeShow.getCtrlDown() then
+            if eventArgs.Key = Key.Space && eventArgs.KeyModifiers = KeyModifiers.Control then
+                // IFeshLog.log.PrintfnDebugMsg $"ctrl+space pressed"
+                eventArgs.Handled <- true // to not actually insert a space
+                let pos = getPosInCode(iEd.AvaEdit)
+                let doc = iEd.AvaEdit.Document // get in sync
+                DocChangeCompletion.handelShow (pos, doc, iEd, drawServ, state, state.DocChangedId.Value)
+
+            elif eventArgs.Key = Key.Space && eventArgs.KeyModifiers = KeyModifiers.None && state.JustCompleted then // && eventArgs.IsRepeat
+                // IFeshLog.log.PrintfnDebugMsg $"ctrl+space pressed"
+                state.JustCompleted <- false // reset it
+                eventArgs.Handled <- true // to not actually insert a space
+                let pos = getPosInCode(iEd.AvaEdit)
+                let doc = iEd.AvaEdit.Document // get in sync
+                DocChangeCompletion.handelShow (pos, doc, iEd, drawServ, state, state.DocChangedId.Value)
+
+            elif eventArgs.Key = Key.Space && eventArgs.KeyModifiers = KeyModifiers.Control then
                 eventArgs.Handled <- true // to not actually insert a space
                 let pos = getPosInCode(iEd.AvaEdit)
                 let doc = iEd.AvaEdit.Document // get in sync

@@ -3,8 +3,6 @@
 open Fesh.Model
 
 
-
-
 type Config (log:IFeshLog, startUpData:HostedStartUpData option, startupArgs:string[]) =
 
     let  runContext                 = new RunContext                  (startUpData)

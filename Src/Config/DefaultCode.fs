@@ -10,7 +10,7 @@ type DefaultCode  (runContext:RunContext) =
 
     let filePath0 = runContext.GetPathToSaveAppData("Default-Code-for-New-Files.fsx")
 
-    let writer = SaveReadWriter(filePath0,IFeshLog.printError)
+    let writer = SafeReadWriter(filePath0,IFeshLog.printError)
 
     let defaultCodeOnFirstRun =
             [

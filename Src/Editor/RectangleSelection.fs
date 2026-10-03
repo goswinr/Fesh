@@ -3,9 +3,9 @@
 open System
 open System.Text
 
-open AvalonEditB
-open AvalonEditB.Editing
-open AvalonEditB.Document
+open AvaloniaEdit
+open AvaloniaEdit.Editing
+open AvaloniaEdit.Document
 
 module RectangleSelection =
 
@@ -262,7 +262,7 @@ module RectangleSelection =
         else
             delete (ed, s)
 
-    /// The replacement for the OnTextInput handler on TextArea of AvalonEditB
+    /// The replacement for the OnTextInput handler on TextArea of AvaloniaEdit
     let insertText (ed:TextEditor, txt: string) =
         match txt with
         | null | "" | "\x1b" | "\b" -> ()  // see avalonedit source OnTextInput event handler on Text Area

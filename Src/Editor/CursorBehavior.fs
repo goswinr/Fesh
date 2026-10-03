@@ -1,10 +1,10 @@
 ﻿namespace Fesh.Editor
 
 open System
-open System.Windows
+open Avalonia
 
-open AvalonEditB
-open AvalonEditB.Document
+open AvaloniaEdit
+open AvaloniaEdit.Document
 
 open Fesh.Model
 open Fesh.Util.Str
@@ -306,7 +306,7 @@ module CursorBehavior  =
                 e.Handled <- true // TODO raise TextArea.TextEntered Event ?
 
     /// for no and regular selection
-    let addWhitespaceAfterChar(ed:TextEditor, e:Input.TextCompositionEventArgs) =
+    let addWhitespaceAfterChar(ed:TextEditor, e:Input.TextInputEventArgs) =
         match e.Text with
         // space before and after:
         //| "=" //TODO check previous char is not punctuation for <= // space is added in previewKeyDown before return
@@ -330,7 +330,7 @@ module CursorBehavior  =
                 e.Handled <- true // TODO raise TextArea.TextEntered Event ?
         | _ -> ()
 
-    let encloseInBracketOrQuote(ed:TextEditor, e:Input.TextCompositionEventArgs) =
+    let encloseInBracketOrQuote(ed:TextEditor, e:Input.TextInputEventArgs) =
         let inline addPair caretForward (s:string)  =
             let caret = ed.TextArea.Caret.Offset
             ed.Document.Insert(caret, s );
@@ -472,7 +472,7 @@ module CursorBehavior  =
             | _ -> ()
 
 
-    let previewTextInput(ed:TextEditor, e:Input.TextCompositionEventArgs) =
+    let previewTextInput(ed:TextEditor, e:Input.TextInputEventArgs) =
         // not needed: if not ed.IsComplWinOpen then
         match getSelType(ed.TextArea) with
         | RectSel ->
@@ -487,9 +487,10 @@ module CursorBehavior  =
 
 [<RequireQualifiedAccess>]
 module DragAndDrop =
+    open Avalonia.Input
     let onTextArea (ed:TextEditor,  e:DragEventArgs) =
         let doc = ed.Document
-        if e.Data.GetDataPresent DataFormats.FileDrop then
+        if e.Data.Contains DataFormats.Files then
             let isDll (p:string) = p.EndsWith(".dll", StringComparison.OrdinalIgnoreCase) ||  p.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)
             let isFsx (p:string) = p.EndsWith(".fsx", StringComparison.OrdinalIgnoreCase) ||  p.EndsWith(".fs", StringComparison.OrdinalIgnoreCase)
 
@@ -506,8 +507,12 @@ module DragAndDrop =
 
             try
                 let printGreen = IFeshLog.log.PrintfnColor 0 150 0
-
-                let fs = (e.Data.GetData DataFormats.FileDrop :?> string []) |> Array.sort |> Array.rev // to get file path
+                let fs =
+                    e.Data.GetFiles()
+                    |> Seq.map (fun f -> f.Path.AbsolutePath)
+                    |> Seq.sort
+                    |> Seq.rev // to get file path
+                    |> Seq.toArray
                 if fs.Length > 2 && Array.forall isDll fs then      // TODO make path relative to script location
                     for f in fs  do
                         let file = IO.Path.GetFileName(f)
@@ -582,14 +587,19 @@ module DragAndDrop =
 
 
     /// A Event handler that will open a new tab per file.
-    /// If event comes from a AvalonEditB.TextEditor that is not read only ( like the Log) the event is ignored.
+    /// If event comes from a AvaloniaEdit.TextEditor that is not read only ( like the Log) the event is ignored.
     let onTabHeaders (openFiles: string[] -> bool, e:DragEventArgs) =
         //IFeshLog.log.PrintfnDebugMsg "Drop onto e.Source :%A ; e.OriginalSource:%A" e.Source e.OriginalSource
         let addTabsForFiles() =
-            if e.Data.GetDataPresent DataFormats.FileDrop then
+            if e.Data.Contains DataFormats.Files then
                 let isFsx (p:string) = p.EndsWith(".fsx", StringComparison.OrdinalIgnoreCase) ||  p.EndsWith(".fs", StringComparison.OrdinalIgnoreCase)
                 try
-                    let fs = (e.Data.GetData DataFormats.FileDrop :?> string [])
+                    let fs =
+                        e.Data.GetFiles()
+                        |> Seq.map (fun f -> f.Path.AbsolutePath)
+                        |> Seq.sort
+                        |> Seq.rev // to get file path
+                        |> Seq.toArray
                     fs
                     |> Array.filter isFsx
                     |> openFiles
@@ -605,8 +615,8 @@ module DragAndDrop =
                     IFeshLog.log.PrintfnIOErrorMsg "Other Drag & Drop failed: %A" er
 
         match e.Source with
-        | :? AvalonEditB.TextEditor  as te ->
-                // do only when on AvalonLog, not if drop happens on code editor, for code editor the file is not opened
+        | :? AvaloniaEdit.TextEditor  as te ->
+                // do only when on AvaloniaLog, not if drop happens on code editor, for code editor the file is not opened
                 // but a link to it inserted into the code, see separate TextAreaDragAndDrop event above.
                 if te.IsReadOnly then addTabsForFiles()
                 else () // do nothing

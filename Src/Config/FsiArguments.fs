@@ -8,7 +8,7 @@ open Fesh.Model
 type FsiArguments   ( runContext:RunContext) =
 
     let filePath0 = runContext.GetPathToSaveAppData("FSI-Arguments.txt")
-    let writer = SaveReadWriter(filePath0, IFeshLog.printError)
+    let writer = SafeReadWriter(filePath0, IFeshLog.printError)
 
     let defaultArgs =
         [|
