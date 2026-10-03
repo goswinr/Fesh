@@ -37,6 +37,35 @@ module App =
             | _ -> () // when hosted there is no lifetime, the host creates the editor via createEditorForHosting
 
 
+    /// To make a native window of the host the owner of the editor window.
+    /// In WPF this was: Interop.WindowInteropHelper(window).Owner <- handle
+    /// Avalonia has no API for an owner that is not an Avalonia window, so this is done via user32.dll. It only works on Windows.
+    module private NativeOwner =
+        open System.Runtime.InteropServices
+
+        [<DllImport("user32.dll")>]
+        extern nativeint SetWindowLongPtrW(nativeint hWnd, int nIndex, nativeint dwNewLong) // only exists in 64 bit processes
+
+        [<DllImport("user32.dll")>]
+        extern int SetWindowLongW(nativeint hWnd, int nIndex, int dwNewLong)
+
+        /// The index to set the owner of a top level window.
+        let GWLP_HWNDPARENT = -8
+
+        /// An owned window always stays in front of its owner and gets minimized and closed together with it.
+        let set (win:Window, ownerHandle:nativeint) =
+            if ownerHandle <> IntPtr.Zero && OperatingSystem.IsWindows() then
+                let setOwner() =
+                    match win.TryGetPlatformHandle() with
+                    | null -> ()
+                    | h ->
+                        if IntPtr.Size = 8 then SetWindowLongPtrW(h.Handle, GWLP_HWNDPARENT, ownerHandle) |> ignore<nativeint>
+                        else                    SetWindowLongW   (h.Handle, GWLP_HWNDPARENT, int ownerHandle) |> ignore<int>
+                // Avalonia resets the owner every time the window gets shown, so set it after each Show():
+                win.Opened.Add(fun _ -> setOwner())
+                if win.IsVisible then setOwner()
+
+
     /// Makes sure that Avalonia is set up in this process.
     let private ensureAvaloniaIsSetUp() =
         match Application.Current with
@@ -65,6 +94,9 @@ module App =
     let createEditorForHosting (host:HostedStartUpData) : Fesh =
         ensureAvaloniaIsSetUp()
         current <- Initialize.everything (Some host , [| |])
+
+        // so that the editor window stays in front of the main host window and gets minimized and closed with it:
+        NativeOwner.set(current.Window, host.mainWindowHandel)
 
         //win.Show() // do in host instead, so that the host can control the window show time
         current
