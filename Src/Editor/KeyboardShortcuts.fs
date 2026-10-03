@@ -21,9 +21,9 @@ module KeyboardShortcuts =
     open Keys
     open Selection
 
-    // For alt and arrow keys only since they need a special keyboard hook to not get hijacked in Rhino
+    // For alt and arrow keys only.
+    // In WPF they needed a special keyboard hook to not get hijacked in Rhino, see bug https://discourse.mcneel.com/t/using-alt-up-key-in-plugin-does-not-work/105740/3
     let altKeyCombo(aKey:AltKeyCombo) =
-        // see bug https://discourse.mcneel.com/t/using-alt-up-key-in-plugin-does-not-work/105740/3
         match IEditor.current with
         | None -> () //never happens ?
         | Some ed ->
@@ -34,8 +34,7 @@ module KeyboardShortcuts =
                 | AltRight -> SwapWords.right(ed.AvaEdit)  |> ignore
                 | AltLeft  -> SwapWords.left(ed.AvaEdit)   |> ignore
 
-    /// gets attached to each editor instance. via avaEdit.PreviewKeyDown.Add
-    /// except for Alt and arrow keys that are handled via KeyboardNative
+    /// gets attached to each editor instance as a tunneling KeyDown handler ( = PreviewKeyDown in WPF )
     let previewKeyDown (ied:IEditor, ke:KeyEventArgs) =
         let ed = ied.AvaEdit
         let ta = ed.TextArea
@@ -61,6 +60,13 @@ module KeyboardShortcuts =
             | Key.Enter | Key.Return -> // if alt or ctrl is down this means sending to fsi ...
                 if ke.KeyModifiers = KeyModifiers.None  && not ied.IsComplWinOpen then
                     CursorBehavior.addFSharpIndentation(ed,ke)  // add indent after do, for , ->, =
+
+            // In WPF these four where handled via a native keyboard hook, see altKeyCombo above.
+            // Only for Alt alone, to keep the built in rectangular selection via Alt + Shift + arrow keys working.
+            | Key.Up    when ke.KeyModifiers = KeyModifiers.Alt -> altKeyCombo AltUp    ; ke.Handled <- true
+            | Key.Down  when ke.KeyModifiers = KeyModifiers.Alt -> altKeyCombo AltDown  ; ke.Handled <- true
+            | Key.Left  when ke.KeyModifiers = KeyModifiers.Alt -> altKeyCombo AltLeft  ; ke.Handled <- true
+            | Key.Right when ke.KeyModifiers = KeyModifiers.Alt -> altKeyCombo AltRight ; ke.Handled <- true
 
             (*
             These are handled in: let altKeyCombo(aKey:AltKeyCombo)

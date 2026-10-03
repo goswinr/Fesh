@@ -218,15 +218,19 @@ type Editor private (code:string, config:Config, initialFilePath:FilePath)  =
         // ----------------------------------------------------------
 
         //avaEdit.TextArea.AlternativeRectangularPaste <- Action<string,bool>(fun txt txtIsFromOtherRectSel -> RectangleSelection.paste(ed.AvaEdit, txt, txtIsFromOtherRectSel)) //TODO check txtIsFromOtherRectSel on pasting text with \r\n
-        avaEdit.TextArea.TextInput.Add ( fun e -> CursorBehavior.previewTextInput( avaEdit, e))  // A TextCompositionEventArgs that has a string , handling typing in rectangular selection
-        avaEdit.KeyDown.Add (fun e -> KeyboardShortcuts.previewKeyDown( ed , e))  // A single Key event arg, indent and dedent, and change block selection delete behavior
+
+        // The WPF Preview.. events are tunneling events in Avalonia.
+        // The TextArea handles KeyDown and TextInput itself and marks them as handled, a normal (bubbling) handler would never be called.
+        let tunnel = Interactivity.RoutingStrategies.Tunnel
+        avaEdit.TextArea.AddHandler(InputElement.TextInputEvent, (fun _ (e:TextInputEventArgs) -> CursorBehavior.previewTextInput( avaEdit, e)), tunnel)  // has a string , handling typing in rectangular selection
+        avaEdit.AddHandler(InputElement.KeyDownEvent, (fun _ (e:KeyEventArgs) -> KeyboardShortcuts.previewKeyDown( ed , e)), tunnel)  // A single Key event arg, indent and dedent, and change block selection delete behavior
 
         // -------------React to doc changes and add Line transformers----------------
         let drawServ = ed.DrawingServices
         // match drawServ.evalTracker with
         // |None -> ()
         // |Some evalTracker -> avaEdit.Document.Changed.Add(  fun a -> evalTracker.SetLastChangeAt (a.Offset-a.RemovalLength))
-        avaEdit.KeyDown.Add ( fun e -> DocChangeEvents.ctrlSpace (ed, drawServ, ed.State, e)) // to trigger completion window on ctrl+space without entering any character
+        avaEdit.AddHandler(InputElement.KeyDownEvent, (fun _ (e:KeyEventArgs) -> DocChangeEvents.ctrlSpace (ed, drawServ, ed.State, e)), tunnel) // to trigger completion window on ctrl+space without entering any character
         avaEdit.Document.Changing.Add( fun a -> DocChangeEvents.changing (ed.State, a) )
         avaEdit.Document.Changed.Add ( fun a -> DocChangeEvents.changed  (ed,  drawServ, ed.State, a))
 
