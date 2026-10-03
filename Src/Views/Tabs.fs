@@ -162,45 +162,47 @@ type Tabs(config:Config, log:Log, feshWin:FeshWindow) =
                 false
 
     /// Returns false if saving operation was canceled or had an error, true on successful saving
-    let saveAsDialog (tab:Tab, saveKind:SavingKind):bool=
-        let storage = (TopLevel.GetTopLevel tab.AvaEdit).StorageProvider
-        let opt = new FilePickerSaveOptions()
-        opt.Title <-
-            match saveKind with
-            |SaveNewLocation     -> $"Fesh | Save-As for {tab.Editor.FilePathOrDummyName}"
-            |SaveNewLocationSync -> $"Fesh | Save-As for {tab.Editor.FilePathOrDummyName}"
-            |SaveInPlace         -> $"Fesh | Save {tab.Editor.FilePathOrDummyName}"
-            |SaveExport          -> $"Fesh | Export  / Duplicate {tab.Editor.FilePathOrDummyName}"
-            |RenameFile          -> $"Fesh | Rename/ Move {tab.Editor.FilePathOrDummyName}"
-        opt.DefaultExtension <- ".fsx"
-        opt.ShowOverwritePrompt <- true
-        // find a folder:
-        match tab.Editor.FilePath with
-        |NotSet _ ->
-            match config.RecentlyUsedFiles.MostRecentPath with
-            |Some fi ->
+    let saveAsDialog (tab:Tab, saveKind:SavingKind):Task<bool>=
+        task{
+            let storage = (TopLevel.GetTopLevel tab.AvaEdit).StorageProvider
+            let opt = new FilePickerSaveOptions()
+            opt.Title <-
+                match saveKind with
+                |SaveNewLocation     -> $"Fesh | Save-As for {tab.Editor.FilePathOrDummyName}"
+                |SaveNewLocationSync -> $"Fesh | Save-As for {tab.Editor.FilePathOrDummyName}"
+                |SaveInPlace         -> $"Fesh | Save {tab.Editor.FilePathOrDummyName}"
+                |SaveExport          -> $"Fesh | Export  / Duplicate {tab.Editor.FilePathOrDummyName}"
+                |RenameFile          -> $"Fesh | Rename/ Move {tab.Editor.FilePathOrDummyName}"
+            opt.DefaultExtension <- ".fsx"
+            opt.ShowOverwritePrompt <- true
+            // find a folder:
+            match tab.Editor.FilePath with
+            |NotSet _ ->
+                match config.RecentlyUsedFiles.MostRecentPath with
+                |Some fi ->
+                    fi.Refresh()
+                    if fi.Exists then
+                        let! folder =  storage.TryGetFolderFromPathAsync fi.FullName
+                        if notNull folder then
+                            opt.SuggestedStartLocation <- folder
+                |None -> ()
+            |Deleted fi |SetTo fi ->
                 fi.Refresh()
-                if fi.Exists then
-                    let folder =  storage.TryGetFolderFromPathAsync fi.FullName |> Async.AwaitTask |> Async.RunSynchronously
+                if fi.Directory.Exists then
+                    let! folder =  storage.TryGetFolderFromPathAsync fi.DirectoryName
                     if notNull folder then
                         opt.SuggestedStartLocation <- folder
-            |None -> ()
-        |Deleted fi |SetTo fi ->
-            fi.Refresh()
-            if fi.Directory.Exists then
-                let folder =  storage.TryGetFolderFromPathAsync fi.DirectoryName |> Async.AwaitTask |> Async.RunSynchronously
-                if notNull folder then
-                    opt.SuggestedStartLocation <- folder
-            opt.SuggestedFileName <- fi.Name
+                opt.SuggestedFileName <- fi.Name
 
-        let iFile = storage.SaveFilePickerAsync opt |> Async.AwaitTask |> Async.RunSynchronously
+            let! iFile = storage.SaveFilePickerAsync opt
 
-        if isNull iFile then
-            false
-        else
-            let fileInfo = FileInfo iFile.Path.AbsolutePath
-            saveAt (tab, fileInfo, saveKind)
+            if isNull iFile then
+                return false
+            else
+                let fileInfo = FileInfo iFile.Path.AbsolutePath
+                return saveAt (tab, fileInfo, saveKind)
 
+        }
         // match t.Editor.FilePath with
         // |NotSet _ ->()
         // |Deleted fi |SetTo fi ->
