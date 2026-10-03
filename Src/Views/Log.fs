@@ -9,6 +9,7 @@ open Avalonia.Controls
 open Avalonia
 open Avalonia.Input
 open Avalonia.Controls.Primitives
+open Avalonia.Platform.Storage
 
 open AvaloniaEdit
 open AvaloniaEdit.Utils
@@ -189,49 +190,66 @@ type Log private () =
 
         member this.AvaloniaLog = log
 
-    member this.SaveAllText (_pathHint: FilePath) =
-        ()
-        // let dlg = new Microsoft.Win32.SaveFileDialog()
-        // match pathHint with
-        // |NotSet _ ->()
-        // |Deleted fi |SetTo fi ->
-        //     fi.Refresh()
-        //     if fi.Directory.Exists then dlg.InitialDirectory <- fi.DirectoryName
-        //     dlg.FileName <- fi.Name + "_Log"
-        // dlg.Title <- "Fesh | SaveText from Log Window"
-        // dlg.DefaultExt <- ".txt"
-        // dlg.Filter <- "Text Files(*.txt)|*.txt|Text Files(*.csv)|*.csv|All Files(*.*)|*"
-        // if isTrue (dlg.ShowDialog()) then
-        //     try
-        //         IO.File.WriteAllText(dlg.FileName, log.Text(), Text.Encoding.UTF8)
-        //         this.PrintfnInfoMsg "Log File saved as:\r\n%s" dlg.FileName
-        //     with e ->
-        //         this.PrintfnIOErrorMsg "Failed to save text from Log at :\r\n%s\r\n%A" dlg.FileName e
+    /// Shows a save file dialog and writes the given text to the picked file.
+    member private this.SaveWithDialog (title:string, pathHint: FilePath, txt:string, savedMsg:string, failedMsg:string) : unit =
+        task {
+            match TopLevel.GetTopLevel log with
+            | null -> this.PrintfnIOErrorMsg "%s: the Log is not part of a window." failedMsg
+            | topLevel ->
+                let storage = topLevel.StorageProvider
+                let opt = new FilePickerSaveOptions()
+                opt.Title <- title
+                opt.DefaultExtension <- "txt"
+                opt.ShowOverwritePrompt <- true
+                opt.FileTypeChoices <- [|
+                    FilePickerFileType("Text Files (*.txt)", Patterns = [| "*.txt" |])
+                    FilePickerFileType("Text Files (*.csv)", Patterns = [| "*.csv" |])
+                    FilePickerFileType("All Files (*.*)"   , Patterns = [| "*" |])
+                    |]
+                match pathHint with
+                |NotSet _ ->()
+                |Deleted fi |SetTo fi ->
+                    fi.Refresh()
+                    if fi.Directory.Exists then
+                        let! folder = storage.TryGetFolderFromPathAsync fi.DirectoryName
+                        if notNull folder then
+                            opt.SuggestedStartLocation <- folder
+                    opt.SuggestedFileName <- fi.Name + "_Log"
 
-    member this.SaveSelectedText (_pathHint: FilePath) =
-        ()
-        // if log.Selection.Length > 0 then // this check is also done in "canexecute command"
-        //    let txt =
-        //         log.Selection.Segments
-        //         |> Seq.map (fun s -> log.Text(s) ) // to ensure block selection is saved correctly
-        //         |> String.concat Environment.NewLine
+                let! iFile = storage.SaveFilePickerAsync opt
+                if notNull iFile then
+                    match iFile.TryGetLocalPath() with
+                    | null -> this.PrintfnIOErrorMsg "%s, this is not a local file path:\r\n%O" failedMsg iFile.Path
+                    | path ->
+                        try
+                            IO.File.WriteAllText(path, txt, Text.Encoding.UTF8)
+                            this.PrintfnInfoMsg "%s\r\n%s" savedMsg path
+                        with e ->
+                            this.PrintfnIOErrorMsg "%s at :\r\n%s\r\n%A" failedMsg path e
+        }
+        |> ignore<Threading.Tasks.Task<unit>>
 
-        //    let dlg = new Microsoft.Win32.SaveFileDialog()
-        //    match pathHint with
-        //    |NotSet _ ->()
-        //    |Deleted fi |SetTo fi ->
-        //        fi.Refresh()
-        //        if fi.Directory.Exists then dlg.InitialDirectory <- fi.DirectoryName
-        //        dlg.FileName <- fi.Name + "_Log"
-        //    dlg.Title <- "Fesh | Save Selected Text from Log Window"
-        //    dlg.DefaultExt <- ".txt"
-        //    dlg.Filter <- "Text Files(*.txt)|*.txt|Text Files(*.csv)|*.csv|All Files(*.*)|*"
-        //    if isTrue (dlg.ShowDialog()) then
-        //       try
-        //            IO.File.WriteAllText(dlg.FileName, txt, Text.Encoding.UTF8)
-        //            this.PrintfnInfoMsg "Selected text from Log saved as:\r\n%s" dlg.FileName
-        //       with e ->
-        //            this.PrintfnIOErrorMsg "Failed to save selected text from Log at :\r\n%s\r\n%A" dlg.FileName e
+    member this.SaveAllText (pathHint: FilePath) =
+        this.SaveWithDialog(
+            "Fesh | SaveText from Log Window",
+            pathHint,
+            log.Text(),
+            "Log File saved as:",
+            "Failed to save text from Log")
+
+    member this.SaveSelectedText (pathHint: FilePath) =
+        if log.Selection.Length > 0 then // this check is also done in "canexecute command"
+            let txt =
+                log.Selection.Segments
+                |> Seq.map (fun s -> log.Text(s) ) // to ensure block selection is saved correctly
+                |> String.concat Environment.NewLine
+
+            this.SaveWithDialog(
+                "Fesh | Save Selected Text from Log Window",
+                pathHint,
+                txt,
+                "Selected text from Log saved as:",
+                "Failed to save selected text from Log")
 
     //--------------------------------------------------------------------------------------------------------------------------------------------
     //-----------------------------Static members---------------------------------------------------------------------------------------------------------------
