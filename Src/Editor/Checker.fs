@@ -147,7 +147,7 @@ module FsCheckerUtil =
                         //,sdkDirOverride: string *
                         //,optionsStamp: int64 *
                         //,userOpName: string
-                        #if !NET8
+                        #if !NET8 // caret position only works for NET 9 or later
                         ,caret = Text.Position.mkPos _lineNumber 0// to avoid loading nuget packages while typing them:
                             // used here https://github.com/dotnet/fsharp/blob/1112c72f1344f8a9c79e2f4c197b17016f8d6939/src/Compiler/Driver/ScriptClosure.fs#L306
                             // and https://github.com/dotnet/fsharp/pull/18393

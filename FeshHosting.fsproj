@@ -8,7 +8,7 @@
     <TargetFramework>net8.0</TargetFramework> <!-- use the lowest F# here by default, will be replace by other versions in releaseNuget.yml -->
 
     <!-- StartsWith so that 'net8.0' and 'net8.0-windows' both work -->
-    <DefineConstants Condition="$(TargetFramework.StartsWith('net8.0'))">NET8</DefineConstants> <!-- so that caret in GetProjectOptionsFromScript can be skipped-->
+    <DefineConstants Condition="$(TargetFramework.StartsWith('net8.0'))">NET8</DefineConstants> <!-- so that caret in GetProjectOptionsFromScript can be skipped in NET9 or later-->
 
     <LangVersion>preview</LangVersion><!-- to enable indexing from end via ^ -->
 
@@ -57,7 +57,8 @@
 
   <!-- build the NET core nuget for F#8 so that dependencies like System.Diagnostics.DiagnosticSource are also for net8 and load properly in Rhino and Revit:
   see https://github.com/dotnet/fsharp/issues/19174
-  Use Include not Update for FSharp.Core because of DisableImplicitFSharpCoreReference-->
+  Use Include not Update for FSharp.Core because of DisableImplicitFSharpCoreReference
+  FSharp.Compiler.Service and FSharp.Core references must be aligned e.g 43.11.303 needs 10.1.303 -->
   <ItemGroup Condition="$(TargetFramework.StartsWith('net10.0'))"> <!-- 43.11.x depends on the 10.x versions of System.Diagnostics.DiagnosticSource etc, 43.10.x still on 9.x -->
     <PackageReference Include="FSharp.Compiler.Service" Version="43.11.303" />
     <PackageReference Include="FSharp.Core"             Version="10.1.303" />
