@@ -83,6 +83,38 @@ type Commands (grid:TabsAndLog, statusBar:FeshStatusBar)  =
     let isLse (_:obj) = log.AvaloniaLog.Selection.Length > 0 // Log
     let isAsy (_:obj) = fsi.State = Evaluating && fsi.Mode.IsAsync
 
+    /// The TextArea of an editor or of the log that had the keyboard focus last.
+    let mutable lastFocusedTextArea : TextArea = null
+
+    do
+        grid.FeshWindow.Window.AddHandler(
+            InputElement.GotFocusEvent,
+            (fun _ (e:FocusChangedEventArgs) -> match e.Source with :? TextArea as ta -> lastFocusedTextArea <- ta | _ -> () ),
+            Avalonia.Interactivity.RoutingStrategies.Bubble,
+            handledEventsToo = true)
+
+    /// The commands that are built into AvaloniaEdit (Copy, Paste, Undo ..) are RoutedCommands, they need a target element.
+    /// By default AvaloniaEdit uses the element that got the focus last. When the command is invoked from a menu that is the menu item itself.
+    /// Then the command can't find the editor and the menu item is always disabled.
+    /// (In WPF the menu is its own focus scope, so that the editor stays the target.)
+    /// This wraps the command to always target the last focused editor or log.
+    let routed (cmd:RoutedCommand) : ICommand =
+        let target() : TextArea =
+            if General.notNull lastFocusedTextArea && Avalonia.VisualTree.VisualExtensions.IsAttachedToVisualTree lastFocusedTextArea then
+                lastFocusedTextArea
+            else // nothing was focused yet, or it is the editor of a tab that is not showing anymore
+                tabs.CurrAvaEdit.TextArea
+        let canExecuteChanged = Event<System.EventHandler, System.EventArgs>()
+        { new ICommand with
+            [<CLIEvent>]
+            member _.CanExecuteChanged = canExecuteChanged.Publish // never triggered, menu items check CanExecute when their menu opens
+            member _.CanExecute p = cmd.CanExecute(p, target())
+            member _.Execute p =
+                let ta = target()
+                cmd.Execute(p, ta)
+                ta.Focus() |> ignore // the focus was in the menu
+        }
+
 
     // NOTE :--------------------------------------------------------------------
     // some more gestures and for selection manipulation are defined in module CursorBehavior.previewKeyDown(..)
@@ -162,35 +194,35 @@ type Commands (grid:TabsAndLog, statusBar:FeshStatusBar)  =
     //--------------------------
     // Built in Commands from Avalonedit (listed as function so the can be created more than once( eg for menu; and context menu)
     //----------------------------
-    member val Copy      = {name= "Copy"     ;gesture=  "Ctrl + C"   ;cmd= ApplicationCommands.Copy   ; tip="Copies selected text\r\nOr full current line if nothing is selected." }
-    member val Cut       = {name= "Cut"      ;gesture=  "Ctrl + X"   ;cmd= ApplicationCommands.Cut    ; tip="Cuts selected text\r\nOr full current line if nothing is selected." }
-    member val Paste     = {name= "Paste"    ;gesture=  "Ctrl + V"   ;cmd= ApplicationCommands.Paste  ; tip="Inserts text from Clipboard." }
-    member val UnDo      = {name= "UnDo"     ;gesture=  "Ctrl + Z"   ;cmd= ApplicationCommands.Undo   ; tip="Undo last edit."  }
-    member val ReDo      = {name= "ReDo"     ;gesture=  "Ctrl + Y"   ;cmd= ApplicationCommands.Redo   ; tip="Undo last undo."  }
-    member val Find      = {name= "Find"     ;gesture=  "Ctrl + F"   ;cmd= ApplicationCommands.Find   ; tip="Finds text of current selection." }
-    member val Replace   = {name= "Replace"  ;gesture=  "Ctrl + H"   ;cmd= ApplicationCommands.Replace; tip="Finds and replaces text for the current selection."  }
+    member val Copy      = {name= "Copy"     ;gesture=  "Ctrl + C"   ;cmd= routed ApplicationCommands.Copy   ; tip="Copies selected text\r\nOr full current line if nothing is selected." }
+    member val Cut       = {name= "Cut"      ;gesture=  "Ctrl + X"   ;cmd= routed ApplicationCommands.Cut    ; tip="Cuts selected text\r\nOr full current line if nothing is selected." }
+    member val Paste     = {name= "Paste"    ;gesture=  "Ctrl + V"   ;cmd= routed ApplicationCommands.Paste  ; tip="Inserts text from Clipboard." }
+    member val UnDo      = {name= "UnDo"     ;gesture=  "Ctrl + Z"   ;cmd= routed ApplicationCommands.Undo   ; tip="Undo last edit."  }
+    member val ReDo      = {name= "ReDo"     ;gesture=  "Ctrl + Y"   ;cmd= routed ApplicationCommands.Redo   ; tip="Undo last undo."  }
+    member val Find      = {name= "Find"     ;gesture=  "Ctrl + F"   ;cmd= routed ApplicationCommands.Find   ; tip="Finds text of current selection." }
+    member val Replace   = {name= "Replace"  ;gesture=  "Ctrl + H"   ;cmd= routed ApplicationCommands.Replace; tip="Finds and replaces text for the current selection."  }
 
-    member val ToUppercase       = {name= "To UPPERCASE"  ;gesture= ""               ;cmd=AvaloniaEditCommands.ConvertToUppercase                                   ;tip="Converts the selected text to UPPERCASE."  }
-    member val ToLowercase       = {name= "To lowercase"  ;gesture= ""               ;cmd=AvaloniaEditCommands.ConvertToLowercase                                   ;tip="Converts the selected text to lowercase."  }
-    member val ToTitleCase       = {name= "To Titlecase " ;gesture= ""               ;cmd=AvaloniaEditCommands.ConvertToTitleCase                                   ;tip="Converts the selected text to Titlecase."  }
+    member val ToUppercase       = {name= "To UPPERCASE"  ;gesture= ""               ;cmd=routed AvaloniaEditCommands.ConvertToUppercase                                   ;tip="Converts the selected text to UPPERCASE."  }
+    member val ToLowercase       = {name= "To lowercase"  ;gesture= ""               ;cmd=routed AvaloniaEditCommands.ConvertToLowercase                                   ;tip="Converts the selected text to lowercase."  }
+    member val ToTitleCase       = {name= "To Titlecase " ;gesture= ""               ;cmd=routed AvaloniaEditCommands.ConvertToTitleCase                                   ;tip="Converts the selected text to Titlecase."  }
 
-    member val DeleteLine     = {name= "Delete Line"          ;gesture= "Ctrl + D"          ;cmd = AvaloniaEditCommands.DeleteLine         ; tip="Deletes the current line."  }
-    member val DeleteNextWord = {name= "Delete Next Word"     ;gesture= "Ctrl + Del"        ;cmd = EditingCommands.DeleteNextWord        ; tip="Deletes the word to the right of the caret." }
-    member val DeletePrevWord = {name= "Delete Previous Word" ;gesture= "Ctrl + Backspace"  ;cmd = EditingCommands.DeletePreviousWord    ; tip="Deletes the word to the left of the caret." }
-    member val TrailWhite     = {name= "Removes Trailing Whitespace" ;gesture= "" ;cmd = AvaloniaEditCommands.RemoveTrailingWhitespace  ; tip="Removes trailing whitespace from the selected lines (or the whole document if the selection is empty)." }
+    member val DeleteLine     = {name= "Delete Line"          ;gesture= "Ctrl + D"          ;cmd = routed AvaloniaEditCommands.DeleteLine         ; tip="Deletes the current line."  }
+    member val DeleteNextWord = {name= "Delete Next Word"     ;gesture= "Ctrl + Del"        ;cmd = routed EditingCommands.DeleteNextWord        ; tip="Deletes the word to the right of the caret." }
+    member val DeletePrevWord = {name= "Delete Previous Word" ;gesture= "Ctrl + Backspace"  ;cmd = routed EditingCommands.DeletePreviousWord    ; tip="Deletes the word to the left of the caret." }
+    member val TrailWhite     = {name= "Removes Trailing Whitespace" ;gesture= "" ;cmd = routed AvaloniaEditCommands.RemoveTrailingWhitespace  ; tip="Removes trailing whitespace from the selected lines (or the whole document if the selection is empty)." }
 
     // this shortcut is implemented in Avalonedit but I cant find out where the routed command class is
     //member val SelectLinesUp      = {name= "Select Lines Upwards"      ;gesture= "Shift + Up"     ;cmd = null ;tip="Not implemented yet"}
     //member val SelectLinesDown    = {name= "Select Lines Downwards"    ;gesture= "Shift + Down"   ;cmd = null ;tip="Not implemented yet"} //TODO!
 
-    member val BoxSelLeftByCharacter  = {name= "Box Select Left By Character"  ;gesture= "Alt + Shift + Left"        ;cmd= RectangleSelection.BoxSelectLeftByCharacter  ; tip="Expands the selection left by one character; creating a rectangular selection." }
-    member val BoxSelRightByCharacter = {name= "Box Select Right By Character" ;gesture= "Alt + Shift + Right"       ;cmd= RectangleSelection.BoxSelectRightByCharacter ; tip="Expands the selection right by one character; creating a rectangular selection." }
-    member val BoxSelLeftByWord       = {name= "Box Select Left By Word"       ;gesture= "Ctrl + Alt + Shift + Left" ;cmd= RectangleSelection.BoxSelectLeftByWord       ; tip="Expands the selection left by one word; creating a rectangular selection." }
-    member val BoxSelRightByWord      = {name= "Box Select Right By Word"      ;gesture= "Ctrl + Alt + Shift + Right";cmd= RectangleSelection.BoxSelectRightByWord      ; tip="Expands the selection right by one word; creating a rectangular selection." }
-    member val BoxSelUpByLine         = {name= "Box Select Up By Line"         ;gesture= "Alt + Shift + Up"          ;cmd= RectangleSelection.BoxSelectUpByLine         ; tip="Expands the selection up by one line; creating a rectangular selection." }
-    member val BoxSelDownByLine       = {name= "Box Select Down By Line"       ;gesture= "Alt + Shift + Down"        ;cmd= RectangleSelection.BoxSelectDownByLine       ; tip="Expands the selection down by one line; creating a rectangular selection." }
-    member val BoxSelToLineStart      = {name= "Box Select To Line Start"      ;gesture= "Alt + Shift + Home"        ;cmd= RectangleSelection.BoxSelectToLineStart      ; tip="Expands the selection to the start of the line; creating a rectangular selection." }
-    member val BoxSelToLineEnd        = {name= "Box Select To Line End"        ;gesture= "Alt + Shift + End"         ;cmd= RectangleSelection.BoxSelectToLineEnd        ; tip="Expands the selection to the end of the line; creating a rectangular selection." }
+    member val BoxSelLeftByCharacter  = {name= "Box Select Left By Character"  ;gesture= "Alt + Shift + Left"        ;cmd= routed RectangleSelection.BoxSelectLeftByCharacter  ; tip="Expands the selection left by one character; creating a rectangular selection." }
+    member val BoxSelRightByCharacter = {name= "Box Select Right By Character" ;gesture= "Alt + Shift + Right"       ;cmd= routed RectangleSelection.BoxSelectRightByCharacter ; tip="Expands the selection right by one character; creating a rectangular selection." }
+    member val BoxSelLeftByWord       = {name= "Box Select Left By Word"       ;gesture= "Ctrl + Alt + Shift + Left" ;cmd= routed RectangleSelection.BoxSelectLeftByWord       ; tip="Expands the selection left by one word; creating a rectangular selection." }
+    member val BoxSelRightByWord      = {name= "Box Select Right By Word"      ;gesture= "Ctrl + Alt + Shift + Right";cmd= routed RectangleSelection.BoxSelectRightByWord      ; tip="Expands the selection right by one word; creating a rectangular selection." }
+    member val BoxSelUpByLine         = {name= "Box Select Up By Line"         ;gesture= "Alt + Shift + Up"          ;cmd= routed RectangleSelection.BoxSelectUpByLine         ; tip="Expands the selection up by one line; creating a rectangular selection." }
+    member val BoxSelDownByLine       = {name= "Box Select Down By Line"       ;gesture= "Alt + Shift + Down"        ;cmd= routed RectangleSelection.BoxSelectDownByLine       ; tip="Expands the selection down by one line; creating a rectangular selection." }
+    member val BoxSelToLineStart      = {name= "Box Select To Line Start"      ;gesture= "Alt + Shift + Home"        ;cmd= routed RectangleSelection.BoxSelectToLineStart      ; tip="Expands the selection to the start of the line; creating a rectangular selection." }
+    member val BoxSelToLineEnd        = {name= "Box Select To Line End"        ;gesture= "Alt + Shift + End"         ;cmd= routed RectangleSelection.BoxSelectToLineEnd        ; tip="Expands the selection to the end of the line; creating a rectangular selection." }
 
    // TODO add  all built in  DocumentNavigation shortcuts
 
