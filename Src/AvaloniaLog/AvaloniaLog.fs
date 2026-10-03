@@ -101,6 +101,48 @@ type AvaloniaLog () =
 
     let newLine = Environment.NewLine
 
+    /// True if the last printed text ended on a single '\r'. It might be the first half of a "\r\n" that got split over two print calls.
+    /// Only access this inside 'lock buffer'
+    let mutable lastTextEndedOnCR = false
+
+    /// Makes all line breaks in the text the same as Environment.NewLine,
+    /// no matter if the text uses "\r\n", just '\n' or just '\r'.
+    /// So that the Log has the line breaks of the current platform, even if a script or a message of Fesh prints other ones.
+    /// Returns the same string instance if there is nothing to change.
+    /// Only call this inside 'lock buffer'
+    let unifyNewLines (txt:string) : string =
+        let len = txt.Length
+        if len = 0 then
+            txt
+        else
+            let skipFirst = lastTextEndedOnCR && txt.[0] = '\n' // the '\r' before was turned into a full line break already
+            lastTextEndedOnCR <- txt.[len-1] = '\r'
+            let mutable sb : StringBuilder = null
+            let mutable i = if skipFirst then 1 else 0
+            let mutable copiedTill = i // the characters from this index till i are not copied to the StringBuilder yet
+            let replaceWithNewLine (count:int) =
+                if isNull sb then sb <- StringBuilder(len + 16)
+                sb.Append(txt, copiedTill, i - copiedTill).Append(newLine) |> ignore<StringBuilder>
+                i <- i + count
+                copiedTill <- i
+            while i < len do
+                match txt.[i] with
+                | '\r' ->
+                    if i + 1 < len && txt.[i+1] = '\n' then
+                        if newLine.Length = 2 then i <- i + 2 // it is Environment.NewLine already
+                        else replaceWithNewLine 2
+                    else
+                        replaceWithNewLine 1
+                | '\n' ->
+                    if newLine.Length = 1 then i <- i + 1 // it is Environment.NewLine already
+                    else replaceWithNewLine 1
+                | _ ->
+                    i <- i + 1
+            if isNull sb then
+                if skipFirst then txt.Substring 1 else txt
+            else
+                sb.Append(txt, copiedTill, len - copiedTill).ToString()
+
     // let debugFile =
     //     Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "AvaloniaLogDebug.txt")
     //     |>  fun p -> IO.File.AppendAllText(p, "AvaloniaLogDebug.txt created" + Environment.NewLine); p
@@ -120,8 +162,11 @@ type AvaloniaLog () =
                     offsetColors.Add { off = docLength; brush = brush } // TODO filter out ANSI escape chars first or just keep them in the doc but not in the visual line ??
                     prevMsgBrush <- brush
 
+                let txt = unifyNewLines txt // do before counting the length
+
                 // add to buffer
                 if addNewLine then
+                    lastTextEndedOnCR <- false
                     buffer.AppendLine(txt)  |> ignore<StringBuilder>
                     docLength <- docLength + txt.Length + newLine.Length
                 else
