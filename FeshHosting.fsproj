@@ -1,19 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <!-- https://learn.microsoft.com/en-us/dotnet/core/project-sdk/msbuild-props-desktop -->
     <!-- <OutputType>Library</OutputType> not needed -->
-    <!-- <RuntimeIdentifier>win-x64</RuntimeIdentifier> -->
 
-    <UseWPF>true</UseWPF>
-    <UseWindowsForms>true</UseWindowsForms><!--inherited from Avalonedit ?-->
-    <!-- <TargetFrameworks>net472;net8.0-windows</TargetFrameworks> somehow the resultant nuget from multiple target frameworks
-    does get unified to 8.0 and does not work on net48 -->
-    <!--so the the releaseNuget.yml aktion will change this and also publish a net472,net8,net9,net10 nuget separately: -->
-    <TargetFramework>net8.0-windows</TargetFramework> <!-- use the lowest F# here by default, will be replace by other versions in releaseNuget.yml -->
+    <!-- Avalonia 12 needs net8.0 or higher, so there is no .NET Framework build anymore.
+    The the releaseNuget.yml action replaces this line to publish nugets for other frameworks separately: -->
+    <TargetFramework>net8.0</TargetFramework> <!-- use the lowest F# here by default, will be replace by other versions in releaseNuget.yml -->
 
-    <DefineConstants Condition="'$(TargetFramework)' == 'net472'">NETFRAMEWORK</DefineConstants> <!-- so thread.Abort() can be used -->
-    <DefineConstants Condition="'$(TargetFramework)' == 'net8.0-windows'">NET8</DefineConstants> <!-- so that caret in GetProjectOptionsFromScript can be skipped-->
+    <!-- StartsWith so that 'net8.0' and 'net8.0-windows' both work -->
+    <DefineConstants Condition="$(TargetFramework.StartsWith('net8.0'))">NET8</DefineConstants> <!-- so that caret in GetProjectOptionsFromScript can be skipped-->
 
     <LangVersion>preview</LangVersion><!-- to enable indexing from end via ^ -->
 
@@ -33,7 +28,7 @@
 
     <Authors>Goswin Rothenthal</Authors>
     <Copyright>Goswin Rothenthal 2019</Copyright>
-    <Description>A hostable fsharp scripting editor for Windows based on Avalonedit</Description>
+    <Description>A hostable cross-platform scripting editor for F#, based on AvaloniaEdit</Description>
     <ApplicationIcon>Media/logo.ico</ApplicationIcon>
     <Win32Resource>Media/logo.res</Win32Resource>    <!-- Win32Resource for Application Icon in explorer-->
 
@@ -50,30 +45,28 @@
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/goswinr/Fesh</PackageProjectUrl>
     <RepositoryUrl>https://github.com/goswinr/Fesh</RepositoryUrl>
-    <PublishRepositoryUrl>true</PublishRepositoryUrl>
     <PackageIcon>logo128.png</PackageIcon>
     <PackageReadmeFile>README.md</PackageReadmeFile><!-- using snupkg the readme does not pack https://github.com/NuGet/Home/issues/10791 -->
-    <PackageDescription>A hostable fsharp scripting editor for Windows based on Avalonedit</PackageDescription>
-    <PackageTags>WPF TextEditor fsharp scripting FSI AvalonEdit fesh</PackageTags>
+    <PackageDescription>A hostable cross-platform scripting editor for F#, based on AvaloniaEdit</PackageDescription>
+    <PackageTags>Avalonia TextEditor fsharp scripting FSI AvaloniaEdit fesh</PackageTags>
+
+    <!-- to put the dll of the AvaloniaEdit fork into this nuget package, see target below -->
+    <TargetsForTfmSpecificBuildOutput>$(TargetsForTfmSpecificBuildOutput);IncludeAvaloniaEditForkInPackage</TargetsForTfmSpecificBuildOutput>
   </PropertyGroup>
 
 
   <!-- build the NET core nuget for F#8 so that dependencies like System.Diagnostics.DiagnosticSource are also for net8 and load properly in Rhino and Revit:
   see https://github.com/dotnet/fsharp/issues/19174
   Use Include not Update for FSharp.Core because of DisableImplicitFSharpCoreReference-->
-  <ItemGroup Condition="'$(TargetFramework)' == 'net472'"> <!-- net472 can use the latest versions -->
-    <PackageReference Include="FSharp.Compiler.Service" Version="43.11.303" />
-    <PackageReference Include="FSharp.Core"             Version="10.1.303" /> <!-- FSharp.Compiler.Service pins this exact version -->
-  </ItemGroup>
-  <ItemGroup Condition="'$(TargetFramework)' == 'net10.0-windows'"> <!-- 43.11.x depends on the 10.x versions of System.Diagnostics.DiagnosticSource etc, 43.10.x still on 9.x -->
+  <ItemGroup Condition="$(TargetFramework.StartsWith('net10.0'))"> <!-- 43.11.x depends on the 10.x versions of System.Diagnostics.DiagnosticSource etc, 43.10.x still on 9.x -->
     <PackageReference Include="FSharp.Compiler.Service" Version="43.11.303" />
     <PackageReference Include="FSharp.Core"             Version="10.1.303" />
   </ItemGroup>
-  <ItemGroup Condition="'$(TargetFramework)' == 'net8.0-windows'">
+  <ItemGroup Condition="$(TargetFramework.StartsWith('net8.0'))">
     <PackageReference Include="FSharp.Compiler.Service" Version="43.8.403" />
     <PackageReference Include="FSharp.Core"             Version="8.0.403" />
   </ItemGroup>
-  <ItemGroup Condition="'$(TargetFramework)' == 'net9.0-windows'">
+  <ItemGroup Condition="$(TargetFramework.StartsWith('net9.0'))">
     <PackageReference Include="FSharp.Compiler.Service" Version="43.9.303" />
     <PackageReference Include="FSharp.Core"             Version="9.0.303" />
   </ItemGroup>
@@ -84,21 +77,45 @@
     <PackageReference Include="Microsoft.SourceLink.GitHub" Version="10.0.103" PrivateAssets="all" IncludeAssets="runtime; build; native; contentfiles; analyzers; buildtransitive" />
     <PackageReference Include="Ionide.KeepAChangelog.Tasks" Version="0.3.3" PrivateAssets="all" />
 
-    <PackageReference Include="Microsoft.VisualBasic" Version="10.3.0" /> <!-- to move files to the recycle bin instead of deleting them -->
-    <PackageReference Include="System.Private.Uri" Version="4.3.2" />    <!-- warning NU1903: Package 'System.Private.Uri' 4.3.0 has a known high severity vulnerability, https://github.com/advisories/GHSA-5f2m-466j-3848 -->
+    <PackageReference Include="Avalonia.Desktop" Version="12.1.3" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="12.1.3" />
+    <PackageReference Include="MessageBox.Avalonia" Version="12.0.0" />
 
-	  <PackageReference Include="Fittings" Version="0.10.0" />
-	  <PackageReference Include="AvaloniaLog" Version="0.20.0" />
+    <!-- The fork of AvaloniaEdit needs to be on a branch that is built for Avalonia 12 ( 'avalonia12' ).
+    Fesh uses features that only this fork has, so the nuget package Avalonia.AvaloniaEdit can't be used instead.
+    PrivateAssets="all" keeps the nuget package of Fesh from depending on the package Avalonia.AvaloniaEdit,
+    the dll of the fork is put into the package of Fesh instead, see the target IncludeAvaloniaEditForkInPackage below. -->
+    <ProjectReference Include="../AvaloniaEdit/src/AvaloniaEdit/AvaloniaEdit.csproj" PrivateAssets="all" />
+
+    <PackageReference Include="Microsoft.VisualBasic" Version="10.3.0" /> <!-- to move files to the recycle bin instead of deleting them -->
   </ItemGroup>
 
   <ItemGroup>
     <Content Include="README.md" Pack="true" PackagePath="\" />
     <Content Include="Media/logo128.png" Pack="true" PackagePath="\" /> <!--PackagePath = "\" makes the file available to nuget pack tool-->
-    <Resource Include="Media/logo.ico" />          <!--  for Application Icon in primary windows-->
-    <Resource Include="Media/logoGray.ico" />      <!--  for Application Icon in secondary PopOut windows-->
+    <AvaloniaResource Include="Media/logo.ico" />          <!--  for Application Icon in primary windows-->
+    <AvaloniaResource Include="Media/logoGray.ico" />      <!--  for Application Icon in secondary PopOut windows-->
     <EmbeddedResource Include="Media/logo.res" />  <!--  for Application Icon in explorer-->
 
-	  <Content Include="Src/SyntaxHighlightingFSharp.xshd" CopyToOutputDirectory="PreserveNewest" Pack="true" PackagePath="\" />
+    <Content Include="Src/SyntaxHighlightingFSharp.xshd" CopyToOutputDirectory="PreserveNewest" TargetPath="SyntaxHighlightingFSharp.xshd" Pack="true" PackagePath="\" />
+
+    <!-- keep this list of files the same as in FeshStandalone.fsproj: -->
+    <Compile Include="Src/Fittings/Sync.fs" />
+    <Compile Include="Src/Fittings/WebBrowser.fs" />
+    <Compile Include="Src/Fittings/MessageBox.fs" />
+    <Compile Include="Src/Fittings/SafeReadWriter.fs" />
+    <Compile Include="Src/Fittings/PersistentSettings.fs" />
+    <Compile Include="Src/Fittings/Command.fs" />
+    <Compile Include="Src/Fittings/ViewModel.fs" />
+    <Compile Include="Src/Fittings/DependencyProps.fs" />
+    <Compile Include="Src/Fittings/ErrorHandling.fs" />
+    <Compile Include="Src/Fittings/PositionedWindow.fs" />
+
+    <Compile Include="Src/AvaloniaLog/Brush.fs" />
+    <Compile Include="Src/AvaloniaLog/Util.fs" />
+    <Compile Include="Src/AvaloniaLog/TextColor.fs" />
+    <Compile Include="Src/AvaloniaLog/LogTextWriter.fs" />
+    <Compile Include="Src/AvaloniaLog/AvaloniaLog.fs" />
 
     <Compile Include="Src/Util.fs" />
     <Compile Include="Src/ParseFs.fs" />
@@ -164,10 +181,15 @@
 
   </ItemGroup>
 
+  <!-- Puts AvaloniaEdit.dll of the fork (and its pdb) next to Fesh.dll in the lib folder of the nuget package. -->
+  <Target Name="IncludeAvaloniaEditForkInPackage" DependsOnTargets="ResolveReferences">
+    <ItemGroup>
+      <BuildOutputInPackage Include="@(ReferenceCopyLocalPaths-&gt;WithMetadataValue('ReferenceSourceTarget', 'ProjectReference'))" />
+    </ItemGroup>
+  </Target>
+
   <Target Name="WriteChangelogVersion" AfterTargets="AfterBuild"> <!-- to check output from Ionide.KeepAChangelog.Tasks current git tag in gh actions -->
     <WriteLinesToFile File="./bin/ChangelogVersion.txt" Lines="@(CurrentReleaseChangelog)" Overwrite="true" ContinueOnError="false" />
   </Target>
 
 </Project>
-
-
