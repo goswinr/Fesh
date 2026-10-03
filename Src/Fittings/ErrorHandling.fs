@@ -75,9 +75,9 @@ type ProcessCorruptedState(applicationName:string, appendText:unit->string, writ
 /// <param name="writeErrorFile">A function that takes the error message and returns a boolean indicating whether the error file should be written onto the desktop.</param>
 type ErrorHandling(applicationName:string, appendText:unit->string, writeErrorFile: string -> bool)  =
 
-    // let maxThrowCount = 20
+    let maxThrowCount = 20
 
-    // let mutable throwCount = 0
+    let mutable throwCount = 0
 
     /// Sets up global AppDomain.CurrentDomain.UnhandledException.Handler
     /// (applicationName) for name to be displayed
@@ -85,29 +85,21 @@ type ErrorHandling(applicationName:string, appendText:unit->string, writeErrorFi
     /// Exception get printed to the text writer at Console.SetError
     /// UnhandledException that cant be caught create a log file on the desktop
     member this.Setup() : unit=
-        (*
         throwCount <- 0 // reset
 
-        not available in Avalonia: https://docs.avaloniaui.net/docs/concepts/unhandledexceptions
-        if not <| isNull Application.Current then // null if application is not yet created, or no application in hosted context
-            Application.Current.DispatcherUnhandledException.Add(fun e -> // only in WPF
-                let mutable print = true
-                if print then
-                    if throwCount < maxThrowCount then // reduce printing to Log UI, it might crash from printing too much
-                        throwCount <- throwCount + 1
-                        if e <> null then
-                            eprintfn "%s:Application.Current.DispatcherUnhandledException in main Thread:\r\n%A" applicationName e.Exception
-                            eprintfn "%s" (ProcessCorruptedState.getWin32Errors())
-                            e.Handled<- true
-                        else
-                            eprintfn "%s:Application.Current.DispatcherUnhandledException in main Thread: *null* Exception Object" applicationName
-                            eprintfn "%s" (ProcessCorruptedState.getWin32Errors())
-                    else
-                        print <- false
-                        eprintfn "\r\nMORE THAN %d Application.Current.DispatcherUnhandledExceptions"    maxThrowCount
-                        eprintfn "\r\n\r\n   *** LOGGING STOPPED. CLEAR LOG FIRST TO START PRINTING AGAIN *** "
-                         )
-        *)
+        // Exceptions on the UI thread: the equivalent of Application.Current.DispatcherUnhandledException in WPF.
+        // Setting e.Handled keeps the app alive. (available since Avalonia 11.3)
+        Threading.Dispatcher.UIThread.UnhandledException.Add(fun e ->
+            if throwCount < maxThrowCount then // reduce printing to Log UI, it might crash from printing too much
+                throwCount <- throwCount + 1
+                eprintfn "%s: Dispatcher.UIThread.UnhandledException in main Thread:\r\n%A" applicationName e.Exception
+                eprintfn "%s" (ProcessCorruptedState.getWin32Errors())
+            elif throwCount = maxThrowCount then
+                throwCount <- throwCount + 1
+                eprintfn "\r\nMORE THAN %d Dispatcher.UIThread.UnhandledExceptions"    maxThrowCount
+                eprintfn "\r\n\r\n   *** LOGGING STOPPED. *** "
+            e.Handled <- true
+            )
 
         //catching un-handled exceptions generated from all threads running under the context of a specific application domain.
         //https://dzone.com/articles/order-chaos-handling-unhandled
