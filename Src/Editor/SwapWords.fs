@@ -19,7 +19,7 @@ module SwapWords =
                 else
                     let c = doc.GetCharAt i
                     if  Selection.isFsLetter  c then i
-                    elif c = '\n' then -99
+                    elif c = '\n' || c = '\r' then -99
                     else getPrevEnd (i-1)
             let prevEnd = getPrevEnd (seg.StartOffset - 1)
             if prevEnd < 0 then false // line end found or start of file found
@@ -55,7 +55,7 @@ module SwapWords =
                 else
                     let c = doc.GetCharAt i
                     if  Selection.isFsLetter  c then i
-                    elif c = '\n'  then -69
+                    elif c = '\n' || c = '\r' then -69
                     else getNextStart (i+1)
             let nextStart = getNextStart (seg.EndOffset + 1)
             if nextStart < 0 then false // line or file end found

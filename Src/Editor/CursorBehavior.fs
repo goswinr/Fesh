@@ -21,8 +21,7 @@ module Doc =
             else
                 match doc.GetCharAt(off) with
                 | ' ' -> isAtLineEnd (off+1)
-                | '\r' -> true
-                //| '\n' -> true // not needed line ends are always \r\n
+                | '\r' | '\n' -> true // line ends are "\r\n" on Windows, but just "\n" on Linux and macOS
                 | _ -> false
         isAtLineEnd offset
 
@@ -34,8 +33,7 @@ module Doc =
             else
                 match doc.GetCharAt(off) with
                 | ' ' -> find (off-1) (k+1)
-                //| '\r' -> true // not needed line ends are always \r\n
-                | '\n' -> k
+                | '\n' | '\r' -> k // the end of the previous line
                 | _ -> find (off-1) 0
         find (offset-1) 0
 
@@ -103,12 +101,18 @@ module Doc =
     /// Returns offset of next non white char, passing max one line break
     let nextNonWhiteCharOneLine offset (doc:TextDocument) = // removed inline to have function name in error stack trace
         let len = doc.TextLength
-        let rec find off rs =
+        let rec find off passedLineBreak =
             if off >= len then len
             else
                 match doc.GetCharAt(off) with
-                | '\r' -> if rs then off else   find (off+1) true
-                | ' '  | '\n' ->                find (off+1) rs
+                | ' '  ->  find (off+1) passedLineBreak
+                | '\r' | '\n' as c ->
+                    if passedLineBreak then
+                        off
+                    elif c = '\r' && off + 1 < len && doc.GetCharAt(off+1) = '\n' then
+                        find (off+2) true // "\r\n" is one line break
+                    else
+                        find (off+1) true // a single '\n' or '\r'
                 | _ -> off
         find offset false
 
@@ -295,12 +299,13 @@ module CursorBehavior  =
             let nc = Doc.nextNonWhiteCharOneLine caret doc
             let len = nc - caret
             //ed.Log.PrintfnDebugMsg "remove len=%d "len
-            if len>2 then // leave handling  other cases especially the end of file to avaEdit
+            let lineBreakLen = (doc.GetLineByOffset caret).DelimiterLength // 2 for "\r\n", 1 for "\n"
+            if len > lineBreakLen then // leave handling  other cases especially the end of file to avaEdit
                 if caret = 0  then
                     doc.Replace(caret,len  , " ")//  add space at start
                 else
                     match doc.GetCharAt(caret-1) with
-                    |' ' | '\n' -> doc.Remove(caret, len) // don't add space because there is already one before
+                    |' ' | '\n' | '\r' -> doc.Remove(caret, len) // don't add space because there is already one before
                     |_ -> doc.Replace(caret,len  , " ")//  add space
 
                 e.Handled <- true // TODO raise TextArea.TextEntered Event ?
@@ -346,7 +351,7 @@ module CursorBehavior  =
                 true
             else
                 let c = ed.Document.GetCharAt(i)
-                c = ' '|| c = '\r'
+                c = ' '|| c = '\r' || c = '\n' // a line can end on "\r\n" or just on "\n"
 
         /// test if next character is whitespace, double quote or end of file
         let inline nextSpaceQ() =
@@ -355,7 +360,7 @@ module CursorBehavior  =
                 true
             else
                 let c = ed.Document.GetCharAt(i)
-                c=' '|| c='\r'|| c='"' // " for being in a string
+                c=' '|| c='\r'|| c='\n'|| c='"' // " for being in a string
 
 
         /// test if next character is whitespace, a quote, a closingBracket or end of file
@@ -365,7 +370,7 @@ module CursorBehavior  =
                 true
             else
                 let c = ed.Document.GetCharAt(i)
-                c = ' '|| c = '\r' || c='"' || c = ')' || c = '}' || c = ']' || c = ',' || c = ';'  // " for being in a string
+                c = ' '|| c = '\r' || c = '\n' || c='"' || c = ')' || c = '}' || c = ']' || c = ',' || c = ';'  // " for being in a string
 
         /// test if next character is whitespace, closingBracket or end of file
         let inline nextSpaceB() =
@@ -374,7 +379,7 @@ module CursorBehavior  =
                 true
             else
                 let c = ed.Document.GetCharAt(i)
-                c = ' '|| c = '\r'  || c = ')' || c = '}' || c = ']' || c = ',' || c = ';'  // " for being in a string
+                c = ' '|| c = '\r' || c = '\n' || c = ')' || c = '}' || c = ']' || c = ',' || c = ';'  // " for being in a string
 
         /// test if previous character might not be followed by a single tick
         let inline prevNoSingleTick() =
