@@ -39,7 +39,7 @@ module App =
             this.RequestedThemeVariant <- Styling.ThemeVariant.Light
             // this.RequestedThemeVariant <- Styling.ThemeVariant.Dark
 
-            // https://github.com/AvaloniaUI/AvaloniaEdit/issues/322:s
+            // https://github.com/AvaloniaUI/AvaloniaEdit/issues/322
             this.Styles.Add(Avalonia.Markup.Xaml.Styling.StyleInclude(baseUri = null, Source = Uri "avares://AvaloniaEdit/Themes/Fluent/AvaloniaEdit.xaml"))
 
         override this.OnFrameworkInitializationCompleted() =
