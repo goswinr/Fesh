@@ -7,6 +7,34 @@ open Avalonia.Input
 open Avalonia.Layout
 
 
+/// A Popup that looks like a ToolTip.
+/// Other than with a ToolTip its position and its open state can be controlled explicitly.
+/// (In WPF this was done with a ToolTip instance.)
+/// The logicalParent is needed so that the styles of the application are applied to the content of the popup.
+type TipPopup (logicalParent:Control) as this =
+    inherit Primitives.Popup()
+
+    let border =
+        new Border(
+            Background      = Media.Immutable.ImmutableSolidColorBrush(Media.Color.FromRgb(250uy, 250uy, 250uy)),
+            BorderBrush     = Media.Immutable.ImmutableSolidColorBrush(Media.Color.FromRgb(118uy, 118uy, 118uy)),
+            BorderThickness = Thickness 1.0,
+            Padding         = Thickness 5.0
+            )
+
+    do
+        this.Child <- border
+        this.IsLightDismissEnabled <- false // stays open until closed explicitly
+        (this :> ISetLogicalParent).SetParent logicalParent
+
+    /// The control shown inside the border of this tooltip.
+    member _.Content
+        with get() : Control = border.Child
+        and set (v:Control)  = border.Child <- v
+
+    override _.StyleKeyOverride = typeof<Primitives.Popup> // see https://github.com/AvaloniaUI/Avalonia/discussions/18697
+
+
 [<AutoOpen>]
 module AutoOpenToolTip =
 

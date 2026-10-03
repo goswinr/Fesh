@@ -119,7 +119,7 @@ type Editor private (code:string, config:Config, initialFilePath:FilePath)  =
 
     member _.DrawingServices = drawServices
 
-    member val TypeInfoTip = new Popup(IsOpen=false)
+    member val TypeInfoTip = new TipPopup(avaEdit.TextArea)
 
     /// Used to check if file was changed in the background by other apps in FileChangeTracker.
     /// The value is always normalized (see Util.Str.normalizeCode) so that it can be compared

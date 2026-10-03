@@ -233,10 +233,10 @@ type ErrorHighlighter ( state:InteractionState, folds:Folding.FoldingManager, is
     //  let actionHidden  = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetBackgroundBrush(ErrorStyle.infoBackGr))
 
     let foundErrorsEv = new Event<int64>()
-    let tip  = new Popup(IsOpen=false)
-
     let ed = state.Editor
     let tView = ed.TextArea.TextView
+
+    let tip  = new Fittings.TipPopup(ed.TextArea)
 
 
     let insert (marginMarks:ResizeArray<int*ImmutableSolidColorBrush>) (newSegments:ResizeArray<ResizeArray<SegmentToMark>>) id (e:FSharpDiagnostic) : unit =
@@ -313,19 +313,12 @@ type ErrorHighlighter ( state:InteractionState, folds:Folding.FoldingManager, is
                     //tb.Foreground <- Media.ImmutableSolidColorBrush(if seg.IsWarning then Colors.DarkRed else Colors.DarkGreen)
 
 
-                    tip.Child <- tb
+                    tip.Content <- tb
                     tip.PlacementTarget <- ed.TextArea
-                    tip.PlacementRect <- new Rect(ptInclScroll.X, ptInclScroll.Y, 0., 0.)
-                    tip.Placement <- PlacementMode.Top // Type info Tooltip is on Bottom //https://docs.microsoft.com/en-us/dotnet/framework/wpf/controls/tipup-placement-behavior
+                    tip.PlacementRect <- new Rect(ptInclScroll.X, ptInclScroll.Y, 1., 1.) // a rect of zero size would be ignored in Avalonia
+                    tip.Placement <- PlacementMode.TopEdgeAlignedLeft // Type info Tooltip is on Bottom. (Top in WPF, but Top in Avalonia would center the popup horizontally)
                     tip.VerticalOffset <- -5.0
                     tip.IsOpen <- true
-
-                    // tip.Content <- tb // TODO delete
-                    // tip.PlacementTarget <- ed.TextArea
-                    // tip.PlacementRectangle <- new Rect(ptInclScroll.X, ptInclScroll.Y, 0., 0.)
-                    // tip.Placement <- Primitives.PlacementMode.Top // Type info Tooltip is on Bottom //https://docs.microsoft.com/en-us/dotnet/framework/wpf/controls/popup-placement-behavior
-                    // tip.VerticalOffset <- -5.0
-                    // tip.IsOpen <- true
                     )
 
     do
@@ -333,7 +326,7 @@ type ErrorHighlighter ( state:InteractionState, folds:Folding.FoldingManager, is
         tView.BackgroundRenderers.Add(new ErrorLineRenderer(state))
 
         tView.PointerHover.Add        ( showErrorToolTip)
-        tView.PointerHoverStopped.Add( fun _->  ToolTip.SetTip(tView, AvaloniaProperty.UnsetValue))// WPF : tView.PointerHoverStopped.Add ( fun _->  tip.IsEnabled <- false ) //; e.Handled <- true) )
+        tView.PointerHoverStopped.Add ( fun _->  tip.IsOpen <- false ) //; e.Handled <- true) )
         //tView.VisualLinesChanged.Add( fun e ->  tip.IsOpen <- false ) // done in Editor.setup: avaEdit.TextArea.TextView.VisualLinesChanged.Add (fun _ ->    closeToolTips() )// close type info on typing
 
 

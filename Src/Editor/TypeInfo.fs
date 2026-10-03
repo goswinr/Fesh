@@ -682,7 +682,7 @@ type TypeInfo private () =
         makeToolTipPanel (cachedToolTipData, cachedExtraData, false)
 
 
-    static member mouseHover(e: PointerEventArgs, iEditor:IEditor, tip:Popup) =
+    static member mouseHover(e: PointerEventArgs, iEditor:IEditor, tip:TipPopup) =
         // see https://github.com/icsharpcode/AvalonEdit/blob/master/ICSharpCode.AvalonEdit/Editing/SelectionMouseHandler.cs#L477
 
         match iEditor.FileCheckState with
@@ -731,15 +731,15 @@ type TypeInfo private () =
                     //IFeshLog.log.PrintfnDebugMsg "QuickParse.GetCompleteIdentifierIsland failed : lineTxt:%A, txt: '%s'"  lineTxt (lineTxt.Substring(offLn-1,3))
 
                 |Some (word, colAtEndOfNames, _ ) -> // _ = isQuotedIdentifier
-                    tip.Child <- TextBlock(Text=loadingTxt)
+                    tip.Content <- TextBlock(Text=loadingTxt)
                     let tView = av.TextArea.TextView
                     let pos = doc.GetLocation(off)
                     let tvPos = new TextViewPosition(pos.Line,pos.Column)
                     let pt = tView.GetVisualPosition(tvPos, Rendering.VisualYPosition.LineBottom)
                     let ptInclScroll = pt - tView.ScrollOffset
                     tip.PlacementTarget <- av.TextArea
-                    tip.PlacementRect <- new Rect(ptInclScroll.X, ptInclScroll.Y, 0., 0.)
-                    tip.Placement <- PlacementMode.Bottom // Error Tooltip is on Top //https://docs.microsoft.com/en-us/dotnet/framework/wpf/controls/popup-placement-behavior
+                    tip.PlacementRect <- new Rect(ptInclScroll.X, ptInclScroll.Y, 1., 1.) // a rect of zero size would be ignored in Avalonia
+                    tip.Placement <- PlacementMode.BottomEdgeAlignedLeft // Error Tooltip is on Top. (Bottom in WPF, but Bottom in Avalonia would center the popup horizontally)
                     tip.VerticalOffset <- -5.0
 
                     // tip.StaysOpen <- true // WPF only
@@ -778,7 +778,7 @@ type TypeInfo private () =
                         do! Async.SwitchToContext Fittings.SyncContext.context
 
                         if List.isEmpty tooltipDataList then
-                            tip.Child <- new TextBlock(Text = "No type info found for:\r\n'" + word + "'", FontSize = StyleState.fontSize  * 0.65 , FontFamily = StyleState.fontToolTip , Foreground = gray )
+                            tip.Content <- new TextBlock(Text = "No type info found for:\r\n'" + word + "'", FontSize = StyleState.fontSize  * 0.65 , FontFamily = StyleState.fontToolTip , Foreground = gray )
                             //ed.TypeInfoToolTip.IsOpen <- false
                         else
                             let sem, declLoc, dllLoc =
@@ -805,7 +805,7 @@ type TypeInfo private () =
                             let ed = {declListItem=None; semanticClass=sem; declLocation=declLoc; dllLocation=dllLoc }
                             let ttPanel = TypeInfo.getPanel (tooltipDataList, ed )
                             if tip.IsOpen then // showing the "loading" text till here.
-                                tip.Child <- ttPanel
+                                tip.Content <- ttPanel
                     } |> Async.Start
 
                 //e.Handled <- true //  don't set handled! so that on type errors the  Error tooltip still gets shown after this tooltip
