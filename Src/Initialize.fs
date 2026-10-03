@@ -146,11 +146,14 @@ module Initialize =
         Globalization.CultureInfo.DefaultThreadCurrentUICulture <- en_US
 
         // to still show-tooltip-when a button(or menu item ) is disabled-by-command
-        // https://stackoverflow.com/questions/4153539/wpf-how-to-show-tooltip-when-button-disabled-by-command
-        // Controls.ToolTipService.ShowOnDisabledProperty.OverrideMetadata  (typeof<Controls.Control>, new FrameworkPropertyMetadata( true )            )
-        // Controls.ToolTipService.ShowDurationProperty.OverrideMetadata    (typeof<DependencyObject>, new FrameworkPropertyMetadata( Int32.MaxValue )  )
-        // Controls.ToolTipService.InitialShowDelayProperty.OverrideMetadata(typeof<DependencyObject>, new FrameworkPropertyMetadata( 50 )              )
-        // Controls.ToolTipService.InitialShowDelayProperty.OverrideMetadata(typeof<FrameworkElement>, new FrameworkPropertyMetadata( 50 )              ) // also set in Editor.fs
+        // (there is no ShowDuration in Avalonia, tooltips stay open as long as the pointer is over the control)
+        // The defaults for Control itself can't be overridden, so do it for the control types that have tooltips in Fesh.
+        try
+            Controls.ToolTip.ShowOnDisabledProperty.OverrideDefaultValue<Controls.MenuItem>(true)
+            Controls.ToolTip.ShowDelayProperty.OverrideDefaultValue<Controls.MenuItem>(50)
+            Controls.ToolTip.ShowDelayProperty.OverrideDefaultValue<Controls.TextBlock>(50)
+        with e ->
+            eprintfn $"Setting ToolTip defaults failed: {e.Message}" // might fail when hosted and another Avalonia UI is already running
 
         /// ------------------ Log and Config --------------------
 
