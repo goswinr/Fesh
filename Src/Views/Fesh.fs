@@ -64,6 +64,14 @@ type Fesh (config:Config,log:Log) =
         win.Closed.Add(fun _ ->
             tabs.Fsi.TriggerShutDownThreadEv() )// to clean up threads
 
+        // WPF: win.ContentRendered.Add(fun _ -> tabs.CurrAvaEdit.Focus() |> ignore )
+        // When the Opened event is raised the editor of the current tab is not part of the visual tree yet, so it can't take the focus.
+        // Posting it with a low priority runs it after the first layout pass.
+        win.Opened.Add(fun _ ->
+            Threading.Dispatcher.UIThread.Post(
+                (fun () -> tabs.CurrAvaEdit.TextArea.Focus() |> ignore), // the TextEditor itself is not focusable in AvaloniaEdit, only its TextArea
+                Threading.DispatcherPriority.Background))
+
         // tabs.Fsi.OnRuntimeError.Add(fun _ ->
         //     let w = win // because it might be hidden manually, or not visible from the start ( e.g. current script is evaluated in Fesh.Rhino)
         //     if w.Visibility <> Visibility.Visible || w.WindowState=WindowState.Minimized then win.Show() )
