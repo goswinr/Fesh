@@ -54,36 +54,33 @@ module PopOut =
             if notNull icon then w.Icon <- icon
             w.PositionChanged.Add(fun _ -> lastLocation <- Some w.Position)
             if width > 30. then
-                w.ShowDialog(parent).Wait()
-                w.Width <- width
-                w.Height<- height
+                w.Width <- width  + 2. // to avoid border artifacts
+                w.Height<- height + 2.
+                w.Show(parent) // not ShowDialog(parent).Wait(), that would block the UI thread forever
             else
                 w.SizeToContent <- SizeToContent.WidthAndHeight
-                w.Show()
-                if w.Height > parent.Height * 0.8  then w.Height  <-  parent.Height * 0.8
-                if w.Width  > parent.Width  * 0.8  then w.Width   <-  parent.Width  * 0.8
-                w.Height  <-  max 10 <| parent.Height + 2. // to avoid border artifacts
-                w.Width   <-  max 30 <| parent.Width  + 2. // to avoid border artifacts
+                w.MaxHeight <- max 100. (parent.Bounds.Height * 0.8)
+                w.MaxWidth  <- max 100. (parent.Bounds.Width  * 0.8)
+                w.Show(parent)
             lastLocation <- Some w.Position
 
     let create(grid:TabsAndLog, statusBar:FeshStatusBar) =
         let parent = grid.FeshWindow.Window
         let ed = grid.Tabs.Current.Editor
         if statusBar.CheckerStatus.TextBlock.IsPointerOver|| ed.DrawingServices.errors.ToolTip.IsOpen then
-            // match statusBar.CheckerStatus.ToolTip with
-            //     | :? ToolTip as tt ->
-            //         match tt.Content with
-            //         | :? StackPanel as sp -> showWindow ("Fesh PopOut | Compiler Error Info ", sp.Width, sp.Height, (fun () -> statusBar.CheckerStatus.GetErrorPanelCached ed) , parent)
-            //         | _ -> () // if ToolTip is just a string  don't pop out
-            //     | :? StackPanel as sp -> showWindow ("Fesh PopOut | Compiler Error Info ", sp.Width, sp.Height, (fun () -> statusBar.CheckerStatus.GetErrorPanelCached ed), parent)
-            //     | _ -> () // if ToolTip is just a string don't pop out
-            ()
+            match ToolTip.GetTip statusBar.CheckerStatus.TextBlock with
+            | :? StackPanel as sp -> showWindow ("Fesh PopOut | Compiler Error Info ", sp.Bounds.Width, sp.Bounds.Height, (fun () -> statusBar.CheckerStatus.GetErrorPanelCached ed), parent)
+            | _ -> () // if ToolTip is just a string don't pop out
 
         if ed.TypeInfoTip.IsOpen then
             let ti = ed.TypeInfoTip
+            let wi, hi =
+                match ti.Content with
+                | null -> 0.,0.
+                | c    -> c.Bounds.Width, c.Bounds.Height
             let newSV = TypeInfo.getPanelCached ()
             newSV.HorizontalScrollBarVisibility <- ScrollBarVisibility.Disabled // to have word wrap
-            showWindow ("Fesh PopOut | Type Info ", ti.Width, ti.Height ,(fun () -> Some newSV), parent)
+            showWindow ("Fesh PopOut | Type Info ", wi, hi ,(fun () -> Some newSV), parent)
 
         if ed.Completions.IsOpen  then  //&& Completions.HasStackPanelTypeInfo then
             let newSV = TypeInfo.getPanelCached ()
@@ -93,7 +90,7 @@ module PopOut =
                 | None -> 0.,0.
                 | Some w ->
                     match w.ToolTipContent with
-                    | :? ScrollViewer as sv -> sv.Width, sv.Height
+                    | :? ScrollViewer as sv -> sv.Bounds.Width, sv.Bounds.Height
                     | _ -> 0.,0.
 
             showWindow ("Fesh PopOut | Autocomplete Type Info ", wi, hi,(fun () -> Some newSV ), parent)
