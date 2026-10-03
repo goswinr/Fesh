@@ -50,9 +50,6 @@ module MagicScrollbar =
         // inherit Adorner(track)
         inherit Control() // Adorner is not available in Avalonia, so we use Control instead
 
-        let adornerLayer = AdornerLayer.GetAdornerLayer track //adornerElement
-
-
         let textView = ed.TextArea.TextView
 
         let mutable isTrackShowing = false
@@ -135,10 +132,10 @@ module MagicScrollbar =
     type ScrollBarEnhancer(ed:TextEditor,  errs:ErrorHighlighter) = // state:InteractionState,
 
         let vertScrollBar : ScrollBar =
-            ed.ApplyTemplate ()  |> ignore
-            let scrollViewer = ed.Template.FindName ("PART_ScrollViewer", ed) :?> ScrollViewer
-            scrollViewer.ApplyTemplate ()|> ignore
-            let vScrollBar = scrollViewer.Template.FindName ("PART_VerticalScrollBar", scrollViewer) :?> ScrollBar
+            ed.ApplyTemplate()
+            let scrollViewer = ed.FindControl<ScrollViewer> "PART_ScrollViewer"
+            scrollViewer.ApplyTemplate()
+            let vScrollBar = scrollViewer.FindControl<ScrollBar> "PART_VerticalScrollBar"
             if isNull vScrollBar then failwithf $"scrollViewer.Template.FindName (\"PART_VerticalScrollBar\")  is null" // never happens
             vScrollBar
 
@@ -146,31 +143,36 @@ module MagicScrollbar =
 
         let setAdorner() =
             if isNull adorner then
-                let track =  vertScrollBar.Template.FindName ("PART_Track", vertScrollBar) :?> Track
+                let track =  vertScrollBar.FindControl<Track> "PART_Track"
                 if notNull track then
-                    //let trackGrid = VisualTreeHelper.GetParent (track) :?> Grid // sharp develop uses this for the adorner layer
-                    let layer = AdornerLayer.GetAdornerLayer (track)
+                    let adornerLayer = AdornerLayer.GetAdornerLayer track //adornerElement
                     adorner <- new ScrollbarAdorner(ed, errs, track)
-                    layer.Add (adorner)
-
+                    // https://stackoverflow.com/questions/63598245/analogous-to-the-abstract-adorner-wpf-class-in-avalonia-ui
+                    adornerLayer.Children.Add(adorner)
+                    AdornerLayer.SetAdornedElement(adorner, track) //adornerElement)
 
         do
+            ed.TemplateApplied.Add(fun _ ->
+            )
+
+
             setAdorner()
             if notNull adorner then
                 adorner.IsTrackShowing <- true
                 adorner.InvalidateVisual()
 
         let visibilitySubscription =
-            vertScrollBar.IsVisibleChanged.Subscribe (fun _ -> // when the text is small no scrollbar is visible.
-                //eprintfn $"vScrollBar.VisibleChanged: {vertScrollBar.IsVisible}" // this event even happens while normal scrolling ! why ?
-                if vertScrollBar.IsVisible then
-                    setAdorner()
-                    if notNull adorner then
-                        adorner.IsTrackShowing <- true
+            vertScrollBar.PropertyChanged.Subscribe (fun e ->
+                if e.Property = ScrollBar.IsVisibleProperty then
+                    eprintfn $"vScrollBar.VisibleChanged: {vertScrollBar.IsVisible}" // this event even happens while normal scrolling ! why ?
+                    if vertScrollBar.IsVisible then
+                        setAdorner()
+                        if notNull adorner then
+                            adorner.IsTrackShowing <- true
+                            adorner.InvalidateVisual()
+                    elif notNull adorner then
+                        adorner.IsTrackShowing <- false
                         adorner.InvalidateVisual()
-                elif notNull adorner then
-                    adorner.IsTrackShowing <- false
-                    adorner.InvalidateVisual()
             )
 
         /// Removes the adorner and all event handlers.
