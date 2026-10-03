@@ -276,7 +276,7 @@ type TypeInfo private () =
     static let white        = Brushes.White         |> darker    5
 
     // static let codeRun (td:ToolTipData) (code:string) : seq<Run> =
-    static let codeRun (color:Brush) (code:string) : Inline[] =
+    static let codeRun (color:IBrush) (code:string) : Inline[] =
         let tx = code.TrimEnd()
         [|
         new Run(" ")

@@ -70,15 +70,10 @@ module MagicScrollbar =
             errs.FoundErrors.Subscribe (fun _                        -> setLineNos errs.ErrorsLines.Value )
             ]
 
-        do
-            if notNull adornerLayer then
-                let adornedElement = new Border()
-                adornerLayer.Children.Add(adornedElement)
-                AdornerLayer.SetAdornedElement(adornedElement, track) //adornerElement)
-
         /// removes the event handlers of this adorner from the editor and removes it from the adorner layer
         member this.Detach() =
             for s in subscriptions do s.Dispose()
+            let adornerLayer = AdornerLayer.GetAdornerLayer track
             if notNull adornerLayer then
                 adornerLayer.Children.Remove this |> ignore
 
@@ -152,8 +147,7 @@ module MagicScrollbar =
                     AdornerLayer.SetAdornedElement(adorner, track) //adornerElement)
 
         do
-            ed.TemplateApplied.Add(fun _ ->
-            )
+            ed.TemplateApplied.Add(fun _ -> ())
 
 
             setAdorner()

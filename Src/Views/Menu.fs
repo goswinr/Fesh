@@ -1,4 +1,4 @@
-namespace Fesh.Views
+﻿namespace Fesh.Views
 
 open System
 open Avalonia
@@ -197,11 +197,13 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, statusBar:FeshStatusBar, log:
     let autoReloadMenuItem =
         let mi = MenuItem(
                     Header = "Auto-Reload External Changes",
-                    IsCheckable = true,
+                    ToggleType = MenuItemToggleType.CheckBox,
                     IsChecked = config.Settings.GetBool(autoReloadKey, true),
                     ToolTip = "When checked, externally changed files are reloaded silently if the editor has no unsaved changes.\r\nWhen unchecked, you will always be asked before reloading.")
-        mi.Checked.Add  (fun _ -> config.Settings.SetBool(autoReloadKey, true ); config.Settings.Save())
-        mi.Unchecked.Add(fun _ -> config.Settings.SetBool(autoReloadKey, false); config.Settings.Save())
+        mi.PropertyChanged.Add(fun e ->
+            if e.Property = MenuItem.IsCheckedProperty then
+                config.Settings.SetBool(autoReloadKey, mi.IsChecked)
+                config.Settings.SaveWithDelay())
         mi :> Control
 
     // let item (ngc: string * string * #ICommand * string) =

@@ -1,4 +1,4 @@
-namespace Fesh.Views
+﻿namespace Fesh.Views
 
 open Avalonia.Controls.Documents
 open System.Diagnostics
@@ -41,7 +41,13 @@ type Commands (grid:TabsAndLog, statusBar:FeshStatusBar)  =
     let evalSelectedText()     =  fsi.Evaluate {editor=curr(); amount = FsiSegment <|SelectionForEval.current (tabs.CurrAvaEdit)                   ; logger=None; scriptName=fName()}   // null or empty check is done in fsi.Evaluate
 
     let goToError()            =  ErrorUtil.getNextSegment(curr()) |> Option.iter (fun s -> curr().Folds.GoToOffsetAndUnfold(s.Offset, s.Length, false))
-    let reset()                = if fsi.TryReset() then (log.Clear(); Checker.Reset()) // TryReset asks before cancelling a running evaluation
+    let reset()                = // TryReset asks before cancelling a running evaluation
+        task{
+            let! started = fsi.TryReset()
+            if started then
+                log.Clear()
+                Checker.Reset()
+        } |> ignore<System.Threading.Tasks.Task<unit>>
 
     let resetFsiArgs() =
         let previous, defaults = config.FsiArguments.ResetToDefault()
