@@ -85,28 +85,28 @@ type Tab (editor:Editor)  =
             match editor.FilePath, isCodeSaved with
             |SetTo fi , true ->
                 headerShowsDeleted        <- false
-                // textBlock.SetValue(ToolTipProperty, new ToolTip( "File saved at:\r\n" + fi.FullName))
+                ToolTip.SetTip(textBlock, "File saved at:\r\n" + fi.FullName)
                 textBlock.Text            <- fi.Name
                 textBlock.TextDecorations <- null
                 textBlock.Foreground      <- TabStyle.savedHeader
                 headerShowsSaved          <- true
             |SetTo fi , false ->
                 headerShowsDeleted        <- false
-                // textBlock.ToolTip         <- "File with unsaved changes from :\r\n" + fi.FullName
+                ToolTip.SetTip(textBlock, "File with unsaved changes from :\r\n" + fi.FullName)
                 textBlock.Text            <- fi.Name + "*"
                 textBlock.TextDecorations <- null
                 textBlock.Foreground      <- TabStyle.changedHeader
                 headerShowsSaved          <- false
             |NotSet dummyName,true ->
                 headerShowsDeleted        <- false
-                // textBlock.ToolTip         <- "This file just shows the default code for every new file."
+                ToolTip.SetTip(textBlock, "This file just shows the default code for every new file.")
                 textBlock.Text            <- dummyName
                 textBlock.TextDecorations <- null
                 textBlock.Foreground      <- TabStyle.unsavedHeader
                 headerShowsSaved          <- true
             |NotSet dummyName,false ->
                 headerShowsDeleted        <- false
-                // textBlock.ToolTip         <- "This file has not yet been saved to disk."
+                ToolTip.SetTip(textBlock, "This file has not yet been saved to disk.")
                 textBlock.Text            <- dummyName
                 textBlock.TextDecorations <- null
                 //if not ( textBlock.Text.EndsWith "*") then textBlock.Text <- textBlock.Text + "*"
@@ -114,7 +114,7 @@ type Tab (editor:Editor)  =
                 headerShowsSaved          <- false
             |Deleted dfi, _ ->
                 headerShowsDeleted        <- true
-                // textBlock.ToolTip         <- "This file has been deleted (or renamed) from:\r\n" + dfi.FullName
+                ToolTip.SetTip(textBlock, "This file has been deleted (or renamed) from:\r\n" + dfi.FullName)
                 textBlock.Text            <- dfi.Name
                 textBlock.TextDecorations <- TextDecorations.Strikethrough
                 textBlock.Foreground      <- TabStyle.deletedHeader

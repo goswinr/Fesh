@@ -53,12 +53,12 @@ type TabsAndLog (config:Config, tabs:Tabs, log:Log, feshWin:FeshWindow) as this 
         splitterHor.Height <- gridSplitterSize
         splitterHor.HorizontalAlignment <- HorizontalAlignment.Stretch
         splitterHor.VerticalAlignment <- VerticalAlignment.Center
-        // splitterHor.ToolTip <- "Drag to resize code editor and log window"
+        ToolTip.SetTip(splitterHor, "Drag to resize code editor and log window")
 
         splitterVert.Width  <- gridSplitterSize
         splitterVert.VerticalAlignment <- VerticalAlignment.Stretch
         splitterVert.HorizontalAlignment <- HorizontalAlignment.Center //needed only on vertical split
-        // splitterVert.ToolTip <- "Drag to resize code editor and log window"
+        ToolTip.SetTip(splitterVert, "Drag to resize code editor and log window")
 
         splitterHor.DragCompleted.Add  (fun _ ->
                 isLogMaxed <- false
