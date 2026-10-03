@@ -105,7 +105,7 @@ type SelectionHighlighter (state:InteractionState) =
     let markFoldingsSorted(offs:ResizeArray<int>) =
         let mutable offsSearchFromIdx =  0
         for f in state.FoldManager.AllFoldings do
-            // f.BackgroundColor <- null // first reset  // TODO fix in AvaloniaEdit
+            f.BackgroundColor <- null // first reset
             let rec loop i =
                 if i >= offs.Count then
                     offsSearchFromIdx <- i // to exit on all next fold immediately
@@ -114,7 +114,7 @@ type SelectionHighlighter (state:InteractionState) =
                     if f.EndOffset < off then // all following offset are bigger than this fold stop searching
                         offsSearchFromIdx <- i // to search from this index on in next fold
                     elif f.StartOffset < off && off < f.EndOffset then // this offset is the first within the range of the current fold
-                        // f.BackgroundColor <- selColorEditor  // TODO fix in AvaloniaEdit
+                        f.BackgroundColor <- selColorEditor
                         offsSearchFromIdx <- i // to search from this index on in next fold
                     else
                         loop (i+1)
@@ -135,7 +135,7 @@ type SelectionHighlighter (state:InteractionState) =
                     // TODO ? still trigger event to clear the selection in StatusBar if it is just a selection without any highlighting(e.g. multiline)
                 | Some (f,l) ->
                     trans.Update(empty)// using empty array
-                    // for f in state.FoldManager.AllFoldings do f.BackgroundColor <- null // TODO fix in AvaloniaEdit
+                    for f in state.FoldManager.AllFoldings do f.BackgroundColor <- null
                     ed.TextArea.TextView.Redraw(f, l) //, priority)
                 globalFoundSelectionEditorEv.Trigger(triggerNext)
             }|> Async.Start

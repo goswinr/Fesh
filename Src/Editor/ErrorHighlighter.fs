@@ -277,17 +277,15 @@ type ErrorHighlighter ( state:InteractionState, folds:Folding.FoldingManager, is
         | ValueSome cln ->
             let offset = cln.offStart + e.StartColumn
             for fold in folds.GetFoldingsContaining offset do
-                if fold.IsFolded then // do on all folds, even open ones, so they show correctly when collapsing !
-                    fold.BackgroundColor  <- ErrorStyle.errBackGr // done via ctx.DrawRectangle(ErrorStyle.errBackGr
-
-                    fold.DecorateRectangle <- //TODO reenable
-                        Action<Rect,DrawingContext>( fun rect ctx ->
-                            let geo = ErrorUtil.getSquiggleLine(rect, 0.1) // move a bit lower than the line so that the squiggle is not hidden by a selection highlighting
-                            if isNull fold.BackgroundColor then // in case of selection highlighting skip brush, only use Pen
-                                ctx.DrawRectangle(brush, null, rect)
-                            ctx.DrawGeometry(Brushes.Transparent, pen, geo)
-                            )
-                ()
+                //if fold.IsFolded then // do on all folds, even open ones, so they show correctly when collapsing !
+                //fold.BackgroundColor  <- ErrorStyle.errBackGr // done via ctx.DrawRectangle(ErrorStyle.errBackGr
+                fold.DecorateRectangle <-
+                    Action<Rect,DrawingContext>( fun rect ctx ->
+                        let geo = ErrorUtil.getSquiggleLine(rect, 0.1) // move a bit lower than the line so that the squiggle is not hidden by a selection highlighting
+                        if isNull fold.BackgroundColor then // in case of selection highlighting skip brush, only use Pen
+                            ctx.DrawRectangle(brush, null, rect)
+                        ctx.DrawGeometry(Brushes.Transparent, pen, geo)
+                        )
             true
 
 
@@ -353,7 +351,7 @@ type ErrorHighlighter ( state:InteractionState, folds:Folding.FoldingManager, is
                 // second mark folding boxes if an error is inside, even open ones, so that it shows when collapsed:
                 async{
                     do! Async.SwitchToContext Fittings.SyncContext.context
-                    // for fold in folds.AllFoldings do  fold.DecorateRectangle <- null   // first clear TODO reenable
+                    for fold in folds.AllFoldings do  fold.DecorateRectangle <- null   // first clear
                     for e in errs.hiddens  do updateFolds id ErrorStyle.infoBackGr ErrorStyle.infoSquigglePen e  |> ignore<bool>
                     for e in errs.infos    do updateFolds id ErrorStyle.infoBackGr ErrorStyle.infoSquigglePen e  |> ignore<bool>
                     for e in errs.warnings do updateFolds id ErrorStyle.warnBackGr ErrorStyle.warnSquigglePen e  |> ignore<bool>
