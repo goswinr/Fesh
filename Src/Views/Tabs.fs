@@ -64,9 +64,9 @@ type Tabs(config:Config, log:Log, feshWin:FeshWindow) =
         if notNull current then
             current.Editor.State.Increment() |> ignore<int64> // to cancel any running checkers
 
-        tabControl.SelectedIndex <- idx
         let t = tabControl.Items.[idx] :?> Tab
-        current <- t
+        current <- t // set this before changing the SelectedIndex, so that the SelectionChanged handler below can see that there is nothing left to do
+        tabControl.SelectedIndex <- idx
         IEditor.current <- Some (t.Editor:>IEditor)
         feshWin.SetFileNameInTitle t.Editor.FilePath
 
@@ -473,20 +473,23 @@ type Tabs(config:Config, log:Log, feshWin:FeshWindow) =
         // if tabControl.Items.Count > 0 && tabControl.SelectedIndex = -1 then  // -1 only in WPF , make one tab current if none yet , happens if current file on last closing was an unsaved file
         //     setCurrentTab 0
 
-        setCurrentTab tabControl.SelectedIndex // never -1 in Avalonia, need so that Fesh.Tabs.Current is set correctly
+        setCurrentTab (max 0 tabControl.SelectedIndex) // needed so that Fesh.Tabs.Current is set correctly
 
         // set up tab change events last so this doesn't get triggered on every tab while opening files initially
-        tabControl.SelectionChanged.Add( fun _->
-            if tabControl.Items.Count = 0 then //  happens when closing the last open tab
-                //create new tab
-                SyncContext.doSync(fun () -> //delay to avoid: System.InvalidOperationException: Source collection was modified during selection update.
-                    let tab = new Tab(Editor.New config)
-                    addTab(tab, true, false)
-                )
-            else
-                // let idx = max 0 tabControl.SelectedIndex // WPF only  might be -1 too , there was no tab selected by default" //  does happen
-                // setCurrentTab idx
-                setCurrentTab (tabControl.Items.Count - 1)
+        tabControl.SelectionChanged.Add( fun e ->
+            // SelectionChanged is a routed event in Avalonia, it bubbles up from controls inside the tabs too (e.g. from the list in the completion window)
+            if Object.ReferenceEquals(e.Source, tabControl) then
+                if tabControl.Items.Count = 0 then //  happens when closing the last open tab
+                    //create new tab
+                    SyncContext.doSync(fun () -> //delay to avoid: System.InvalidOperationException: Source collection was modified during selection update.
+                        if tabControl.Items.Count = 0 then
+                            let tab = new Tab(Editor.New config)
+                            addTab(tab, true, false)
+                    )
+                else
+                    let idx = max 0 tabControl.SelectedIndex // might be -1 too if there is no tab selected
+                    if not (Object.ReferenceEquals(tabControl.Items.[idx], current)) then // otherwise this was triggered by setCurrentTab itself
+                        setCurrentTab idx
             )
 
 
