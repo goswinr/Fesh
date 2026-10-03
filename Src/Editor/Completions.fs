@@ -33,7 +33,7 @@ type RestrictedShowList =
 module UtilCompletion =
 
     let mkTexBlock(txt,style) = // the displayed item in the completion window
-        let mutable tb = Controls.TextBlock()
+        let tb = Controls.TextBlock()
         tb.Text <- txt
         tb.FontFamily <- StyleState.fontEditor
         tb.FontSize <-   StyleState.fontSize
@@ -270,7 +270,7 @@ type Completions(state: InteractionState) =
         and set(w:Option<CompletionWindow>) = win <- w
 
 
-    member val justKeyWords  =
+    member _.JustKeyWords  =
         let lines = ResizeArray<ICompletionData>()
         for kw,desc in FSharpKeywords.KeywordsWithDescription  do // add keywords to list
             if kw.StartsWith "pri" || kw.StartsWith "mut" || kw.StartsWith "inl" || kw.StartsWith "int" then
@@ -280,7 +280,8 @@ type Completions(state: InteractionState) =
     member val directives =
         hashDirectives
 
-    member val justAll =
+    /// F# Keywords and all top level declarations and open modules
+    member _.All =
         let lines = ResizeArray<ICompletionData>()
         for kw,desc in FSharpKeywords.KeywordsWithDescription  do // add keywords to list
             lines.Add( CompletionItem(state, KeyWord(kw,desc), false) :> ICompletionData )
@@ -291,7 +292,7 @@ type Completions(state: InteractionState) =
     member this.MakeCompletionLines (  pos:PositionInCodeEx, rShowList:RestrictedShowList ) : ResizeArray<ICompletionData> =
         match rShowList with
         |JustDeclModifiers ->
-            this.justKeyWords
+            this.JustKeyWords
         |JustDirectives ->
             this.directives
         |JustDuFrom decls ->
@@ -303,7 +304,7 @@ type Completions(state: InteractionState) =
                 |_ -> ()
             lines
         |JustAllFrom decls ->
-            let kws = this.justAll
+            let kws = this.All
             let lines = ResizeArray<ICompletionData>(decls.Items.Length + kws.Count)
             if not pos.dotBefore then
                 lines.AddRange kws

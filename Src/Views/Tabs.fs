@@ -68,7 +68,6 @@ type Tabs(config:Config, log:Log, feshWin:FeshWindow) =
         let t = tabControl.Items.[idx] :?> Tab
         current <- t
         IEditor.current <- Some (t.Editor:>IEditor)
-        IFeshLog.log.PrintfnDebugMsg $"setCurrentTab: {idx},current='{current}'"
         feshWin.SetFileNameInTitle t.Editor.FilePath
 
         currentTabChangedEv.Trigger t // to update statusbar

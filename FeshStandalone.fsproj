@@ -74,7 +74,7 @@
     <Compile Include="Src/Fittings/Sync.fs" />
     <Compile Include="Src\Fittings\WebBrowser.fs" />
     <Compile Include="Src/Fittings/MessageBox.fs" />
-    <Compile Include="Src/Fittings/TextBlockSelectable.fs" />
+    
     <Compile Include="Src/Fittings/SafeReadWriter.fs" />
     <Compile Include="Src/Fittings/PersistentSettings.fs" />
     <Compile Include="Src/Fittings/Command.fs" />

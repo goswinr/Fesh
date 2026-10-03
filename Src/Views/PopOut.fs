@@ -27,7 +27,7 @@ module PopOut =
             null
 
     //let internal copyUi(ui:Control) =
-    //    // fails to serialize TextBlockSelectable
+    //    // fails to serialize SelectableTextBlock
     //    // https://stackoverflow.com/questions/32541/how-can-you-clone-a-wpf-object
     //    ui  |> Markup.XamlWriter.Save   |> fun s -> new IO.StringReader(s)  |> Xml.XmlReader.Create |> Markup.XamlReader.Load   :?> Control
 

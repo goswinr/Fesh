@@ -10,7 +10,7 @@ open Avalonia.Input
 
 open AvaloniaLog.ImmBrush
 
-open Fittings // for TextBlockSelectable
+open Fittings // for SelectableTextBlock
 
 open FSharp.Compiler.CodeAnalysis
 open FSharp.Compiler.EditorServices    // Misc functionality for editors, e.g. interface stub generation
@@ -78,8 +78,8 @@ type TypeInfo private () =
     static let loggedErrors = HashSet<string>()
 
 
-    static let coloredSignature(td:ToolTipData): TextBlockSelectable =
-        let tb = TextBlockSelectable()
+    static let coloredSignature(td:ToolTipData): SelectableTextBlock =
+        let tb = SelectableTextBlock()
         tb.Foreground <- black
         tb.FontSize   <- StyleState.fontSize * 1.0 // prev 1.2
         tb.FontFamily <- StyleState.fontToolTip
@@ -323,9 +323,9 @@ type TypeInfo private () =
         n.attrs.Head.value = (match n.children.Head with Text t -> t |Node _ -> "")
         )
 
-    // static let mainXmlBlock (node:XmlParser.Child, td:ToolTipData): TextBlockSelectable =
-    static let mainXmlBlock (node:XmlParser.Child): TextBlockSelectable =
-        let tb = new TextBlockSelectable()
+    // static let mainXmlBlock (node:XmlParser.Child, td:ToolTipData): SelectableTextBlock =
+    static let mainXmlBlock (node:XmlParser.Child): SelectableTextBlock =
+        let tb = new SelectableTextBlock()
         tb.FontSize   <- StyleState.fontSize  * 1.0
         tb.FontFamily <- StyleState.fontToolTip
         tb.TextWrapping <- TextWrapping.Wrap
@@ -453,7 +453,7 @@ type TypeInfo private () =
         match ted.declListItem with
         |None -> ()
         |Some dItem ->
-            let tb = new TextBlockSelectable(Text = dItem.Glyph.ToString() )
+            let tb = new SelectableTextBlock(Text = dItem.Glyph.ToString() )
             tb.Foreground <- Brushes.DarkOrange |> darker 10
             tb.FontSize <- StyleState.fontSize  * 0.95
             tb.FontFamily <- StyleState.fontToolTip
@@ -464,8 +464,8 @@ type TypeInfo private () =
         match ted.semanticClass with
         |None -> ()
         |Some sem ->
-            let tb = new TextBlockSelectable(Text = sem.Type.ToString() )
-            //let tb = new TextBlockSelectable(Text = $"{sem.Type}, {sem.Range.EndColumn-sem.Range.StartColumn} chars") //from {sem.Range.StartColumn}")
+            let tb = new SelectableTextBlock(Text = sem.Type.ToString() )
+            //let tb = new SelectableTextBlock(Text = $"{sem.Type}, {sem.Range.EndColumn-sem.Range.StartColumn} chars") //from {sem.Range.StartColumn}")
             tb.Foreground <- Brushes.DarkOrange |> darker 10
             tb.FontSize <- StyleState.fontSize  * 0.95
             tb.FontFamily <- StyleState.fontToolTip
@@ -485,7 +485,7 @@ type TypeInfo private () =
                 let inline subAdd(e:Control) =  subPanel.Children.Add e |> ignore
 
                 if td.name <> "" then
-                    let tb = new TextBlockSelectable(Text = "Name: " + td.name)
+                    let tb = new SelectableTextBlock(Text = "Name: " + td.name)
                     tb.Foreground <- black
                     tb.FontSize <- StyleState.fontSize * 0.9
                     tb.FontWeight <- FontWeight.Bold
@@ -502,7 +502,7 @@ type TypeInfo private () =
                     //else                    assemblies.Add(ass) |> ignore
                     subAdd <| mainXmlBlock (node)
                 |Error errTxt  ->
-                    subAdd<|  TextBlockSelectable(Text = errTxt, TextWrapping = TextWrapping.Wrap, FontSize = StyleState.fontSize  * 0.70 , Foreground = errMsgGray)//,FontFamily = StyleState.fontToolTip )
+                    subAdd<|  SelectableTextBlock(Text = errTxt, TextWrapping = TextWrapping.Wrap, FontSize = StyleState.fontSize  * 0.70 , Foreground = errMsgGray)//,FontFamily = StyleState.fontToolTip )
 
                 let border = Border()
                 border.Child <- subPanel
@@ -514,7 +514,7 @@ type TypeInfo private () =
 
             // add full name:
             if td.fullName<>"" then
-                let tb = new TextBlockSelectable()
+                let tb = new SelectableTextBlock()
                 tb.Inlines.Add( new Run(td.fullName  ,  Foreground = darkblue))
                 tb.Foreground <- darkblue
                 tb.FontSize <- StyleState.fontSize  * 1.0
@@ -524,8 +524,8 @@ type TypeInfo private () =
 
         if assemblies.Count > 0 then
             let tb =
-                if assemblies.Count = 1 then new TextBlockSelectable(Text= "assembly: "   + Seq.head assemblies)
-                else                         new TextBlockSelectable(Text= "assemblies: " + String.concat "\r\n" assemblies)
+                if assemblies.Count = 1 then new SelectableTextBlock(Text= "assembly: "   + Seq.head assemblies)
+                else                         new SelectableTextBlock(Text= "assemblies: " + String.concat "\r\n" assemblies)
             tb.FontSize <- StyleState.fontSize  * 0.85
             tb.Foreground <-black
             tb.TextWrapping <- TextWrapping.Wrap
@@ -535,7 +535,7 @@ type TypeInfo private () =
             match ted.dllLocation with
             |None -> ()
             |Some f ->
-                    let tb = TextBlockSelectable(Text= "assembly path: " + f)
+                    let tb = SelectableTextBlock(Text= "assembly path: " + f)
                     tb.FontSize <- StyleState.fontSize  * 0.85
                     tb.Foreground <-black
                     tb.TextWrapping <- TextWrapping.Wrap
@@ -547,7 +547,7 @@ type TypeInfo private () =
         |Some r ->
                 let f = r.FileName.Replace('\\','/')
                 if f <> "unknown" then
-                    let tb = TextBlockSelectable(Text = sprintf "defined at: %s  Line:%d" f r.StartLine)
+                    let tb = SelectableTextBlock(Text = sprintf "defined at: %s  Line:%d" f r.StartLine)
                     tb.FontSize <- StyleState.fontSize  * 0.85
                     tb.Foreground <-black
                     tb.TextWrapping <- TextWrapping.Wrap
