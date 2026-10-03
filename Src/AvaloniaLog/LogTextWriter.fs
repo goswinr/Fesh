@@ -23,8 +23,9 @@ type LogTextWriter(write:string->unit, writeLine:string->unit) =
         //if s.Contains "\u001b" then  write ("esc"+s) else write ("?"+s) //debugging for using  spectre ?? https://github.com/spectreconsole/spectre.console/discussions/573
         write s
 
-    override _.WriteLine (s:string)  = // actually never used in F# printfn, but maybe buy other too using the console or error out , see  https://github.com/dotnet/fsharp/issues/3712
-        //if s.Contains "\u001b" then  writeLine ("eSc"+s) else writeLine ("?"+s)
+    override _.WriteLine (s:string)  =
+        // actually never used in F# printfn, but maybe buy other too using the console or error out , see  https://github.com/dotnet/fsharp/issues/3712
+        //if s.Contains "\u001b" then  writeLine ("eSc"+s) else writeLine ("?"+s) //debugging for using  spectre console ??
         writeLine s
 
     override _.WriteLine () =

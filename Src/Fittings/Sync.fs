@@ -1,15 +1,54 @@
 namespace Fittings
 
 
-open System
-open System.Threading
-open Avalonia.Controls
+
 open Avalonia.Threading
 
 // https://docs.avaloniaui.net/docs/guides/development-guides/accessing-the-ui-thread
-
-
 // https://reference.avaloniaui.net/api/Avalonia.Threading/AvaloniaSynchronizationContext/
+
+
+module UiThread =
+
+    // https://reference.avaloniaui.net/api/Avalonia.Threading/DispatcherPriority/
+    // Dispatcher priority values
+    // | Priority        | Value | Description                                                      |
+    // |-----------------|-------|------------------------------------------------------------------|
+    // | MinValue        | 1     | Minimum possible priority                                        |
+    // | SystemIdle      | 1     | The job will be processed when the system is idle                |
+    // | ApplicationIdle | 2     | The job will be processed when the application is idle           |
+    // | ContextIdle     | 3     | The job will be processed after background operations completed  |
+    // | Background      | 4     | The job will be processed after other non-idle operations        |
+    // | Input           | 5     | The job will be processed with the same priority as input        |
+    // | Loaded          | 6     | The job will be processed after layout and render before input   |
+    // | Render          | 7     | The job will be processed with the same priority as render       |
+    // | Layout          | 8     | The job will be processed with the same priority as render       |
+    // | DataBind        | 9     | The job will be processed with the same priority as data binding |
+    // | Normal          | 10    | The job will be processed with normal priority                   |
+    // | Send            | 11    | The job will be processed before other asynchronous operations   |
+    // | MaxValue        | 11    | Maximum possible priority                                        |
+
+    /// Dispatcher.UIThread.Post
+    let inline post (func:unit -> unit) =
+        Dispatcher.UIThread.Post func
+
+    /// Dispatcher.UIThread.Post with highest priority = DispatcherPriority.Send
+    let inline send (func:unit -> unit) =
+        Dispatcher.UIThread.Post(func,DispatcherPriority.Send)
+
+    let inline invoke (func:unit -> 'T) =
+        Dispatcher.UIThread.InvokeAsync(func)
+
+
+    let inline awaitSend (t:System.Threading.Tasks.Task<'T>) =
+        Dispatcher.UIThread.AwaitWithPriority(t, Avalonia.Threading.DispatcherPriority.Send )
+
+
+open System
+open System.Threading
+open Avalonia.Controls
+
+
 
 /// Threading Utils to setup and access the SynchronizationContext
 /// and evaluate any function on UI thread (Sync.doSync(f))
