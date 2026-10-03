@@ -531,22 +531,9 @@ module DocChangeEvents =
         match state.DocChangedConsequence with
         | WaitForCompletions -> ()
         | React ->
+            // Only for Ctrl + Space.
+            // A plain Space key must not be handled here, even right after a completion, otherwise no space can be typed after an inserted completion.
             if eventArgs.Key = Key.Space && eventArgs.KeyModifiers = KeyModifiers.Control then
-                // IFeshLog.log.PrintfnDebugMsg $"ctrl+space pressed"
-                eventArgs.Handled <- true // to not actually insert a space
-                let pos = getPosInCode(iEd.AvaEdit)
-                let doc = iEd.AvaEdit.Document // get in sync
-                DocChangeCompletion.handelShow (pos, doc, iEd, drawServ, state, state.DocChangedId.Value)
-
-            elif eventArgs.Key = Key.Space && eventArgs.KeyModifiers = KeyModifiers.None && state.JustCompleted then // && eventArgs.IsRepeat
-                // IFeshLog.log.PrintfnDebugMsg $"ctrl+space pressed"
-                state.JustCompleted <- false // reset it
-                eventArgs.Handled <- true // to not actually insert a space
-                let pos = getPosInCode(iEd.AvaEdit)
-                let doc = iEd.AvaEdit.Document // get in sync
-                DocChangeCompletion.handelShow (pos, doc, iEd, drawServ, state, state.DocChangedId.Value)
-
-            elif eventArgs.Key = Key.Space && eventArgs.KeyModifiers = KeyModifiers.Control then
                 eventArgs.Handled <- true // to not actually insert a space
                 let pos = getPosInCode(iEd.AvaEdit)
                 let doc = iEd.AvaEdit.Document // get in sync
