@@ -486,7 +486,7 @@ type Fsi private (config:Config) =
 
         if not(String.IsNullOrWhiteSpace evalData.code) then
             if not config.RunContext.FsiCanRun then
-                log.PrintfnAppErrorMsg "The Hosting App has blocked Fsi from Running, maybe because the App is busy in another command or task."
+                log.PrintfnAppErrorMsg $"The Hosting App '{config.RunContext.HostName}' has blocked Fsi from Running, maybe because the App is busy in another command or task."
             else
                 match sessionOpt with
                 |None ->
@@ -662,29 +662,30 @@ type Fsi private (config:Config) =
                 //isReadyEv.Trigger() // TODO needed
 
 
-    member this.AskIfCancellingIsOk() =
+    member this.AskIfCancellingIsOk(cont: FsiIsCancelingIsOk -> unit) :unit =
         match state with
-        | Ready | Initializing | NotLoaded -> NotEvaluating
+        | Ready | Initializing | NotLoaded -> cont NotEvaluating
         | Compiling | Evaluating ->
             match syMode with
-            |InSync -> NotPossibleSync
+            |InSync -> cont NotPossibleSync
             |AsyncMode  ->
-                match MessageBox.Show(
+                MessageBox.Show(
                     IEditor.mainWindow,
                     "Do you want to Cancel currently running code?",
                     "Fesh | Cancel Current Evaluation?",
                     MessageBoxButton.YesNo,
                     MessageBoxImage.Exclamation,
                     MessageBoxResult.No, // default result
-                    MessageBoxOptions.None) with
-                | MessageBoxResult.Yes ->
-                    match state with // might have changed in the meantime of Message box show
-                    | Ready | Initializing | NotLoaded -> NotEvaluating
-                    | Compiling | Evaluating -> YesAsync
-                | MessageBoxResult.No | _ ->
-                    match state with // might have changed in the meantime of Message box show
-                    | Ready | Initializing | NotLoaded -> NotEvaluating
-                    | Compiling | Evaluating -> UserDoesntWantTo
+                    function
+                    | MessageBoxResult.Yes ->
+                        match state with // might have changed in the meantime of Message box show
+                        | Ready | Initializing | NotLoaded -> cont NotEvaluating
+                        | Compiling | Evaluating -> cont YesAsync
+                    | MessageBoxResult.No | _ ->
+                        match state with // might have changed in the meantime of Message box show
+                        | Ready | Initializing | NotLoaded -> cont NotEvaluating
+                        | Compiling | Evaluating -> cont UserDoesntWantTo
+                    )
 
     // without this back and forth switch the UI freezes.
     // Use after showing the MessageBox.Show( "Do you want to Cancel currently running code?",

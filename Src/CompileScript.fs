@@ -14,6 +14,7 @@ open Fittings
 
 
 module CompileScript =
+    open Avalonia.Threading
 
     /// also removes "_" ;  "-" ; "+"; "|"; " " from string
     /// first letter will be capital
@@ -76,33 +77,31 @@ module CompileScript =
 
         refs, fsxs, nugs, (codeWithoutNugetRefs.ToString())
 
-    //if last write is more than 1h ago ask for overwrite permissions
-    let overWriteExisting fsProj :bool=
-        async{
-            do! Async.SwitchToContext Fittings.SyncContext.context
+    /// if last write is more than 1h ago ask for overwrite permissions
+    let overWriteExisting fsProj (write: unit -> unit) :unit =
+        SyncContext.post( fun _ ->
             let maxAgeHours = 0.5
             let fi = FileInfo(fsProj)
-            return
-                if fi.Exists then
-                    let age = DateTime.UtcNow - fi.LastWriteTimeUtc
-                    if age > (TimeSpan.FromHours maxAgeHours) then
-                        let msg = sprintf "Do you want to recompile and overwrite the existing files?\r\n \r\n%s\r\n \r\nthat are %.2f days old at\r\n \r\n(This dialog only shows if the last compilation was more than %.1f hours ago.)"fi.FullName age.TotalDays  maxAgeHours
-                        match MessageBox.Show(
-                            IEditor.mainWindow,
-                            msg,
-                            "Fesh | Recompile and overwrite?",
-                            MessageBoxButton.YesNo,
-                            MessageBoxImage.Exclamation,
-                            MessageBoxResult.No, // default result
-                            MessageBoxOptions.None) with
-                        | MessageBoxResult.Yes-> true
-                        | MessageBoxResult.No-> false
-                        | _ -> false
-                    else
-                        true
+            if fi.Exists then
+                let age = DateTime.UtcNow - fi.LastWriteTimeUtc
+                if age > TimeSpan.FromHours maxAgeHours then
+                    let msg = sprintf "Do you want to recompile and overwrite the existing files?\r\n \r\n%s\r\n \r\nthat are %.2f days old at\r\n \r\n(This dialog only shows if the last compilation was more than %.1f hours ago.)"fi.FullName age.TotalDays  maxAgeHours
+                    MessageBox.Show(
+                        IEditor.mainWindow,
+                        msg,
+                        "Fesh | Recompile and overwrite?",
+                        MessageBoxButton.YesNo,
+                        MessageBoxImage.Exclamation,
+                        MessageBoxResult.No, // default result
+                        function
+                        | MessageBoxResult.Yes-> write()
+                        | _ -> ()
+                    )
                 else
-                    true
-        }|>  Async.RunSynchronously
+                    write()
+            else
+                write()
+        )
 
     let getNugsXml (nugs:ResizeArray<NugetRef>) : string =
            seq{ for nug in nugs  do  "<PackageReference Include=\"" + nug.name + "\" Version=\"" + nug.version + "\" />" }
@@ -211,77 +210,79 @@ module CompileScript =
                     IO.Directory.CreateDirectory(libFolderFull)  |> ignore
                     IO.Directory.CreateDirectory(projFolder)  |> ignore
                     let fsProj = IO.Path.Combine(projFolder,nameSpace + ".fsproj")
-                    if overWriteExisting fsProj then
-                        let refs, fsxs, nugs, codeWithoutNugetRefs = extractRefs (code,nameSpace)
-                        let fsxXml = getFsxXml(projFolder, nameSpace ,codeWithoutNugetRefs, fsxs)
-                        let refXml = getRefsXml(libFolderFull,refs)
-                        let nugXml = getNugsXml(nugs)
-                        config.ScriptCompilerFsproj.Get()
-                        |> replace "{rootNamespace}" nameSpace
-                        |> replace "{assemblyName}" nameSpace
-                        |> replace "{version}" ScriptCompilerFsproj.AssemblyVersionToWrite
-                        |> replace "{nuget-packages}" nugXml
-                        |> replace "{dll-file-references}" refXml
-                        |> replace "{code-files}" fsxXml
-                        |> fun s ->
-                            IO.File.WriteAllText(fsProj,s,Text.Encoding.UTF8)
-                            gray "project files created at %s" fsProj
-                            //https://stackoverflow.com/questions/1145969/processinfo-and-redirectstandardoutput
-                            let psi = new System.Diagnostics.ProcessStartInfo()
-                            let compilerExists =
-                                if useMSBuild then msBuild     ( psi, fsProj, config)
-                                else               dotnetBuild ( psi, fsProj)
-                            if compilerExists then
-                                IFeshLog.log.PrintfnColor 0 0 200 "%s %s" psi.FileName psi.Arguments
-                                psi.UseShellExecute <- false
-                                psi.CreateNoWindow <- true //true if the process should be started without creating a new window to contain it
-                                psi.RedirectStandardError <-true
-                                psi.RedirectStandardOutput <-true
+                    overWriteExisting fsProj ( fun () ->
+                        async{
+                            let refs, fsxs, nugs, codeWithoutNugetRefs = extractRefs (code,nameSpace)
+                            let fsxXml = getFsxXml(projFolder, nameSpace ,codeWithoutNugetRefs, fsxs)
+                            let refXml = getRefsXml(libFolderFull,refs)
+                            let nugXml = getNugsXml(nugs)
+                            config.ScriptCompilerFsproj.Get()
+                            |> replace "{rootNamespace}" nameSpace
+                            |> replace "{assemblyName}" nameSpace
+                            |> replace "{version}" ScriptCompilerFsproj.AssemblyVersionToWrite
+                            |> replace "{nuget-packages}" nugXml
+                            |> replace "{dll-file-references}" refXml
+                            |> replace "{code-files}" fsxXml
+                            |> fun s ->
+                                IO.File.WriteAllText(fsProj,s,Text.Encoding.UTF8)
+                                gray "project files created at %s" fsProj
+                                //https://stackoverflow.com/questions/1145969/processinfo-and-redirectstandardoutput
+                                let psi = new System.Diagnostics.ProcessStartInfo()
+                                let compilerExists =
+                                    if useMSBuild then msBuild     ( psi, fsProj, config)
+                                    else               dotnetBuild ( psi, fsProj)
+                                if compilerExists then
+                                    IFeshLog.log.PrintfnColor 0 0 200 "%s %s" psi.FileName psi.Arguments
+                                    psi.UseShellExecute <- false
+                                    psi.CreateNoWindow <- true //true if the process should be started without creating a new window to contain it
+                                    psi.RedirectStandardError <-true
+                                    psi.RedirectStandardOutput <-true
 
-                                let enc =
-                                    // Text.Encoding.GetEncoding(Globalization.CultureInfo.CurrentCulture.TextInfo.OEMCodePage) // original version
-                                    // CodePagesEncodingProvider.Instance.GetEncoding(Globalization.CultureInfo.CurrentCulture.TextInfo.OEMCodePage) // stackoverflow version
-                                    Encoding.UTF8
-                                // https://stackoverflow.com/questions/56802715/firefoxwebdriver-no-data-is-available-for-encoding-437
-                                // <PackageReference Include="System.Text.Encoding.CodePages" Version="8.0.0" />
-                                // for console also see https://stackoverflow.com/a/1427817/969070
-                                // https://stackoverflow.com/a/48436394/969070
-                                psi.StandardOutputEncoding <- enc
-                                psi.StandardErrorEncoding  <- enc
+                                    let enc =
+                                        // Text.Encoding.GetEncoding(Globalization.CultureInfo.CurrentCulture.TextInfo.OEMCodePage) // original version
+                                        // CodePagesEncodingProvider.Instance.GetEncoding(Globalization.CultureInfo.CurrentCulture.TextInfo.OEMCodePage) // stackoverflow version
+                                        Encoding.UTF8
+                                    // https://stackoverflow.com/questions/56802715/firefoxwebdriver-no-data-is-available-for-encoding-437
+                                    // <PackageReference Include="System.Text.Encoding.CodePages" Version="8.0.0" />
+                                    // for console also see https://stackoverflow.com/a/1427817/969070
+                                    // https://stackoverflow.com/a/48436394/969070
+                                    psi.StandardOutputEncoding <- enc
+                                    psi.StandardErrorEncoding  <- enc
 
-                                let p = new Diagnostics.Process()
-                                p.StartInfo <- psi
-                                p.EnableRaisingEvents <- true
-                                p.OutputDataReceived.Add ( fun d ->
-                                    let txt = d.Data
-                                    if not <| isNull txt then // happens often actually
-                                        if   txt.Contains "Build FAILED." then      IFeshLog.log.PrintfnColor 220 0 150  "%s" txt
-                                        elif txt.Contains "error FS"   then         IFeshLog.log.PrintfnColor 220 0 0  "%s" txt
-                                        elif txt.Contains "Build succeeded." then   green  "%s" txt
-                                        elif txt.Contains outLiteral  then
-                                            resultDll <- txt.Replace(outLiteral,"").Trim()
-                                            gray "%s" txt
+                                    let p = new Diagnostics.Process()
+                                    p.StartInfo <- psi
+                                    p.EnableRaisingEvents <- true
+                                    p.OutputDataReceived.Add ( fun d ->
+                                        let txt = d.Data
+                                        if not <| isNull txt then // happens often actually
+                                            if   txt.Contains "Build FAILED." then      IFeshLog.log.PrintfnColor 220 0 150  "%s" txt
+                                            elif txt.Contains "error FS"   then         IFeshLog.log.PrintfnColor 220 0 0  "%s" txt
+                                            elif txt.Contains "Build succeeded." then   green  "%s" txt
+                                            elif txt.Contains outLiteral  then
+                                                resultDll <- txt.Replace(outLiteral,"").Trim()
+                                                gray "%s" txt
+                                            else
+                                                gray "%s" txt
+                                            )
+                                    p.ErrorDataReceived.Add (  fun d -> IFeshLog.log.PrintfnAppErrorMsg "%s" d.Data)
+                                    p.Exited.Add( fun _ ->
+                                        if resultDll <> "" then
+                                            gray  "*build done! This line is copied to your clipboard, paste via Ctrl + V :"
+                                            IFeshLog.log.PrintfColor  190 0 50 "#r @\""
+                                            IFeshLog.log.PrintfColor  0 0 0 "%s" resultDll
+                                            IFeshLog.log.PrintfnColor 190 0 50 "\""
+                                            //Fittings.SyncContext.doSync ( fun () -> Clipboard.SetText("#r @\"" + resultDll + "\"\r\n") ) TODO Windows only?
                                         else
-                                            gray "%s" txt
+                                            gray  "*build process ended!"
+                                        gray "--------------------------------------------------------------------------------"
                                         )
-                                p.ErrorDataReceived.Add (  fun d -> IFeshLog.log.PrintfnAppErrorMsg "%s" d.Data)
-                                p.Exited.Add( fun _ ->
-                                    if resultDll <> "" then
-                                        gray  "*build done! This line is copied to your clipboard, paste via Ctrl + V :"
-                                        IFeshLog.log.PrintfColor  190 0 50 "#r @\""
-                                        IFeshLog.log.PrintfColor  0 0 0 "%s" resultDll
-                                        IFeshLog.log.PrintfnColor 190 0 50 "\""
-                                        //Fittings.SyncContext.doSync ( fun () -> Clipboard.SetText("#r @\"" + resultDll + "\"\r\n") ) TODO Windows only?
-                                    else
-                                        gray  "*build process ended!"
-                                    gray "--------------------------------------------------------------------------------"
-                                    )
-                                p.Start() |> ignore
-                                p.BeginOutputReadLine()
-                                p.BeginErrorReadLine()
-                                //log.PrintfnInfoMsg "compiling to %s" (IO.Path.Combine(projFolder,"bin","Release","netstandard2.0",nameSpace+".dll"))
-                                p.WaitForExit()
-
+                                    p.Start() |> ignore
+                                    p.BeginOutputReadLine()
+                                    p.BeginErrorReadLine()
+                                    //log.PrintfnInfoMsg "compiling to %s" (IO.Path.Combine(projFolder,"bin","Release","netstandard2.0",nameSpace+".dll"))
+                                    p.WaitForExit()
+                        }|> Async.Start
+                    ) // end of overWriteExisting
                 with
                     e -> IFeshLog.log.PrintfnAppErrorMsg "%A" e
             } |> Async.Start

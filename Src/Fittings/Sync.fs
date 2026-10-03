@@ -30,6 +30,7 @@ type SyncContext private () =
                 // https://stackoverflow.com/questions/10448987/dispatcher-currentdispatcher-vs-application-current-dispatcher
                 // DispatcherSynchronizationContext(Windows.Application.Current.Dispatcher) |> SynchronizationContext.SetSynchronizationContext
                 AvaloniaSynchronizationContext.InstallIfNeeded()
+                // AvaloniaSynchronizationContext.Ensure(DispatcherPriority.Background) |> ignore
             ctx <- AvaloniaSynchronizationContext.Current
 
             if isNull ctx && logErrorsOnDesktop && not errorFileWrittenOnce then
@@ -64,9 +65,11 @@ type SyncContext private () =
 
     /// dispatches an asynchronous message
     static member post (func:unit -> unit) =
-        if isNull ctx then SyncContext.installSynchronizationContext true
-        let f = SendOrPostCallback(fun _ -> func())
-        ctx.Post(f, null) // asynchronous
+        let act = new Action( func)
+        Dispatcher.UIThread.Post(act)
+        // if isNull ctx then SyncContext.installSynchronizationContext true
+        // let f = SendOrPostCallback(fun _ -> func())
+        // ctx.Post(f, null) // asynchronous
 
     /// dispatches a synchronous message
     static member send (func:unit -> unit) =
