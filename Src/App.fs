@@ -51,23 +51,19 @@ module App =
             | _ -> ()
 
 
-    // let runEditorStandalone (args: string []) : int =
-    //     // VelopackApp.Build()
-    //     //     .SetAutoApplyOnStartup(false) // to not install updates even if they are downloaded
-    //     //     .Run() //https://docs.velopack.io/getting-started/csharp
-
-    //     // let app  = Application() // do first so that pack Uris work
-    //     // current <- Initialize.everything (None, args)
-
-    //     // app.Run current.Window
-    //     0
-
-
-
     [<EntryPoint>]
+    [<STAThread>]
     let main(args: string[]) =
-        AppBuilder
-            .Configure<FeshApp>()
-            .UsePlatformDetect()
-            // .UseSkia()
-            .StartWithClassicDesktopLifetime(args)
+        VelopackApp.Build()
+            .SetAutoApplyOnStartup(false) // to not install updates even if they are downloaded
+            .Run() //https://docs.velopack.io/getting-started/csharp
+
+        try
+            AppBuilder
+                .Configure<FeshApp>()
+                .UsePlatformDetect()
+                // .UseSkia()
+                .StartWithClassicDesktopLifetime(args)
+        with e ->
+            eprintfn $"Fesh Application Run Error:\r\n{e}"
+            1
