@@ -488,9 +488,24 @@ module CursorBehavior  =
 [<RequireQualifiedAccess>]
 module DragAndDrop =
     open Avalonia.Input
+    open Avalonia.Platform.Storage
+    open Avalonia.VisualTree
+
+    /// The local paths of the dropped files, sorted descending.
+    let private getFilePaths (e:DragEventArgs) : string[] =
+        match e.DataTransfer.TryGetFiles() with
+        | null -> [||]
+        | items ->
+            items
+            |> Seq.map (fun f -> f.TryGetLocalPath()) // not f.Path.AbsolutePath, that is URL encoded (e.g. %20 for spaces)
+            |> Seq.filter (isNull >> not)
+            |> Seq.sort
+            |> Seq.rev
+            |> Seq.toArray
+
     let onTextArea (ed:TextEditor,  e:DragEventArgs) =
         let doc = ed.Document
-        if e.Data.Contains DataFormats.Files then
+        if e.DataTransfer.Contains DataFormat.File then
             let isDll (p:string) = p.EndsWith(".dll", StringComparison.OrdinalIgnoreCase) ||  p.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)
             let isFsx (p:string) = p.EndsWith(".fsx", StringComparison.OrdinalIgnoreCase) ||  p.EndsWith(".fs", StringComparison.OrdinalIgnoreCase)
 
@@ -507,12 +522,7 @@ module DragAndDrop =
 
             try
                 let printGreen = IFeshLog.log.PrintfnColor 0 150 0
-                let fs =
-                    e.Data.GetFiles()
-                    |> Seq.map (fun f -> f.Path.AbsolutePath)
-                    |> Seq.sort
-                    |> Seq.rev // to get file path
-                    |> Seq.toArray
+                let fs = getFilePaths e
                 if fs.Length > 2 && Array.forall isDll fs then      // TODO make path relative to script location
                     for f in fs  do
                         let file = IO.Path.GetFileName(f)
@@ -591,15 +601,10 @@ module DragAndDrop =
     let onTabHeaders (openFiles: string[] -> bool, e:DragEventArgs) =
         //IFeshLog.log.PrintfnDebugMsg "Drop onto e.Source :%A ; e.OriginalSource:%A" e.Source e.OriginalSource
         let addTabsForFiles() =
-            if e.Data.Contains DataFormats.Files then
+            if e.DataTransfer.Contains DataFormat.File then
                 let isFsx (p:string) = p.EndsWith(".fsx", StringComparison.OrdinalIgnoreCase) ||  p.EndsWith(".fs", StringComparison.OrdinalIgnoreCase)
                 try
-                    let fs =
-                        e.Data.GetFiles()
-                        |> Seq.map (fun f -> f.Path.AbsolutePath)
-                        |> Seq.sort
-                        |> Seq.rev // to get file path
-                        |> Seq.toArray
+                    let fs = getFilePaths e
                     fs
                     |> Array.filter isFsx
                     |> openFiles
