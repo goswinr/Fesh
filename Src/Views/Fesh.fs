@@ -72,12 +72,12 @@ type Fesh (config:Config,log:Log) =
                 (fun () -> tabs.CurrAvaEdit.TextArea.Focus() |> ignore), // the TextEditor itself is not focusable in AvaloniaEdit, only its TextArea
                 Threading.DispatcherPriority.Background))
 
-        // tabs.Fsi.OnRuntimeError.Add(fun _ ->
-        //     let w = win // because it might be hidden manually, or not visible from the start ( e.g. current script is evaluated in Fesh.Rhino)
-        //     if w.Visibility <> Visibility.Visible || w.WindowState=WindowState.Minimized then win.Show() )
-        // tabs.Fsi.OnFsiEvalError.Add(fun _ ->
-        //     let w = win // because it might be hidden manually, or not visible from the start ( e.g. current script is evaluated in Fesh.Rhino)
-        //     if w.Visibility <> Visibility.Visible || w.WindowState=WindowState.Minimized then win.Show() )
+        // because it might be hidden manually, or not visible from the start ( e.g. current script is evaluated in Fesh.Rhino)
+        let showWindow() =
+            if not win.IsVisible then win.Show()
+            if win.WindowState = WindowState.Minimized then win.WindowState <- WindowState.Normal
+        tabs.Fsi.OnRuntimeError.Add(fun _ -> showWindow() )
+        tabs.Fsi.OnFsiEvalError.Add(fun _ -> showWindow() )
 
 
     member this.Config = config
