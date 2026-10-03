@@ -32,8 +32,8 @@ type Fesh (config:Config,log:Log) =
 
         commands.SetUpGestureInputBindings()
 
-        // win.AllowDrop <- true // so it works on tab bar
-        // win.Drop.Add (fun e -> DragAndDrop.onTabHeaders(tabs.AddFiles, e)) // text editor has it own drag event, this applies to all other area ( eg log, tab bar) except the editor (see handler)
+        Input.DragDrop.SetAllowDrop(win, true) // so it works on tab bar
+        win.AddHandler(Input.DragDrop.DropEvent, fun _ (e:Input.DragEventArgs) -> DragAndDrop.onTabHeaders(tabs.AddFiles, e)) // text editor has it own drag event, this applies to all other area ( eg log, tab bar) except the editor (see handler)
 
         win.Content     <- dockP
 

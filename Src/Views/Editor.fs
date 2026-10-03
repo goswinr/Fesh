@@ -191,9 +191,9 @@ type Editor private (code:string, config:Config, initialFilePath:FilePath)  =
             scrollBarEnhancer.Value |> Option.iter (fun e -> e.Detach()) // otherwise the event handlers of the previous ones would pile up
             scrollBarEnhancer.Value <- Some (new MagicScrollbar.ScrollBarEnhancer(avaEdit, ed.ErrorHighlighter))
             )
-        // avaEdit.Drop.Add(fun e -> DragAndDrop.onTextArea(avaEdit, e))
-        //https://github.com/AvaloniaUI/AvaloniaUI.QuickGuides/blob/main/DragDropOps/Views/MainWindow.axaml.cs
-        //SetupDnd(DragMeCustom, d => d.Set(CustomFormat, "Some Custom Data Here"), DragDropEffects.Move);
+        // for dropping files from the file explorer:
+        DragDrop.SetAllowDrop(avaEdit, true)
+        avaEdit.AddHandler(DragDrop.DropEvent, fun _ (e:DragEventArgs) -> DragAndDrop.onTextArea(avaEdit, e))
 
 
         ed.Completions.OnShowing.Add(fun _ ->                         ed.CloseToolTips() )

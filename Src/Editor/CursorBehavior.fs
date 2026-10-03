@@ -619,11 +619,17 @@ module DragAndDrop =
                 with er ->
                     IFeshLog.log.PrintfnIOErrorMsg "Other Drag & Drop failed: %A" er
 
-        match e.Source with
-        | :? AvaloniaEdit.TextEditor  as te ->
+        // e.Source is the innermost element under the pointer, so look for the editor that contains it:
+        let editor =
+            match e.Source with
+            | :? Avalonia.Visual as v -> v.FindAncestorOfType<AvaloniaEdit.TextEditor>(includeSelf = true)
+            | _ -> null
+
+        match editor with
+        | null -> addTabsForFiles()
+        | te ->
                 // do only when on AvaloniaLog, not if drop happens on code editor, for code editor the file is not opened
                 // but a link to it inserted into the code, see separate TextAreaDragAndDrop event above.
                 if te.IsReadOnly then addTabsForFiles()
                 else () // do nothing
-        | _ -> addTabsForFiles()
 
