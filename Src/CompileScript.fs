@@ -13,6 +13,7 @@ open Fittings
 
 module CompileScript =
     open Avalonia.Threading
+    open Avalonia.Input.Platform // for the SetTextAsync extension method of the clipboard
     open System.Threading.Tasks
 
     /// also removes "_" ;  "-" ; "+"; "|"; " " from string
@@ -281,7 +282,11 @@ module CompileScript =
                                             IFeshLog.log.PrintfColor  190 0 50 "#r @\""
                                             IFeshLog.log.PrintfColor  0 0 0 "%s" resultDll
                                             IFeshLog.log.PrintfnColor 190 0 50 "\""
-                                            //Fittings.SyncContext.doSync ( fun () -> Clipboard.SetText("#r @\"" + resultDll + "\"\r\n") ) TODO Windows only?
+                                            Fittings.SyncContext.doSync ( fun () ->
+                                                let win = IEditor.mainWindow
+                                                if not (isNull win) then
+                                                    win.Clipboard.SetTextAsync("#r @\"" + resultDll + "\"\r\n") |> ignore<Task>
+                                                )
                                         else
                                             gray  "*build process ended!"
                                         gray "--------------------------------------------------------------------------------"
