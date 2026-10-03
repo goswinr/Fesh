@@ -32,7 +32,7 @@ type FeshWindow (config:Config)=
             let es = s.Split('.')
             let last = Array.last es
             let lastTrimmed = last.Trim().Replace("0","")// remove block of zeros like .000 from end
-            if lastTrimmed.Length = 0 then
+            if lastTrimmed.Length = 0 && es.Length > 1 then // es.Length > 1 to not loop forever on "0" or ""
                 String.Join(".", Array.truncate (es.Length-1) es) |> loop
             else
                 s
@@ -48,9 +48,16 @@ type FeshWindow (config:Config)=
         // $"v{v.Major}.{v.Minor}.{v.Revision}"  + if  v.MinorRevision <> 0s then $".{v.MinorRevision}" else ""
 
     let fsCore  =
-        let v = [].GetType().Assembly.GetName().Version
-        "Fsharp.Core." + (v.ToString()|> removeTrailingZerosAndPoints)
-        // $"Fsharp.Core {v.Major}.{v.Minor}.{v.Revision}"  + if  v.MinorRevision <> 0s then $".{v.MinorRevision}" else ""
+        let ass = [].GetType().Assembly
+        // The AssemblyVersion of FSharp.Core is only Major.Minor.0.0 (e.g. 10.1.0.0),
+        // the full nuget version (e.g. 10.1.303) is only in the informational version: 10.1.303-servicing.26377.103+e730f1d..
+        let v =
+            match Attribute.GetCustomAttribute(ass, typeof<Reflection.AssemblyInformationalVersionAttribute>) with
+            | :? Reflection.AssemblyInformationalVersionAttribute as a when not (String.IsNullOrWhiteSpace a.InformationalVersion) ->
+                a.InformationalVersion.Split('-','+').[0]
+            | _ ->
+                ass.GetName().Version.ToString() |> removeTrailingZerosAndPoints
+        "Fsharp.Core." + v
 
     let frameW =
         RuntimeInformation.FrameworkDescription |> removeTrailingZerosAndPoints
