@@ -244,8 +244,8 @@ type Log private () =
         IFeshLog.printColor  <- l.PrintColor
         IFeshLog.printnColor <- l.PrintnColor
         IFeshLog.clear       <- l.Clear
-        IFeshLog.printColorTupled  <- fun (red, green, blue, txt) -> l.AvalonLog.AppendWithColor (red, green, blue, txt)
-        IFeshLog.printnColorTupled <- fun (red, green, blue, txt) -> l.AvalonLog.AppendLineWithColor (red, green, blue, txt)
+        IFeshLog.printColorTupled  <- fun (red, green, blue, txt) -> l.AvaloniaLog.AppendWithColor (red, green, blue, txt)
+        IFeshLog.printnColorTupled <- fun (red, green, blue, txt) -> l.AvaloniaLog.AppendLineWithColor (red, green, blue, txt)
 
         // these two where part of FSI initializing in the past
         Console.SetOut   l.TextWriterConsoleOut   // TODO needed to redirect printfn or covered by TextWriterFsiStdOut? //https://github.com/fsharp/FSharp.Compiler.Service/issues/201

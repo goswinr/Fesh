@@ -45,7 +45,7 @@ open StatusbarStyle
 open System.Threading
 
 type CheckerStatus (grid:TabsAndLog) =
-    let this = TextBlock()
+    let tb = TextBlock()
 
     let tabs = grid.Tabs
     let checkingTxt = "Checking for Errors ..."
@@ -105,10 +105,10 @@ type CheckerStatus (grid:TabsAndLog) =
 
             if erWas.Count = 0 then
                 if lastErrCount <> 0  || lastFile <> tabs.Current.Editor.AvaEdit then // no UI update needed in this case
-                    this.Text <- "No compiler errors"
-                    this.Background <- okColor
+                    tb.Text <- "No compiler errors"
+                    tb.Background <- okColor
 
-                    this.ToolTip <- "FSharp Compiler Service found no Errors in"+ Environment.NewLine + tabs.Current.FormattedFileName
+                    tb.ToolTip <- "FSharp Compiler Service found no Errors in"+ Environment.NewLine + tabs.Current.FormattedFileName
                     lastFile <- tabs.Current.Editor.AvaEdit
                     lastErrCount <- 0
 
@@ -120,22 +120,22 @@ type CheckerStatus (grid:TabsAndLog) =
                 let erk = es.errors.Count
                 let wak = es.warnings.Count
                 if wak > 0 && erk > 0 then
-                    this.Text <- sprintf " %d compiler errors, %d warnings, first one on line: %d" erk wak erWas.[0].StartLine
-                    this.Background <- errColor
+                    tb.Text <- sprintf " %d compiler errors, %d warnings, first one on line: %d" erk wak erWas.[0].StartLine
+                    tb.Background <- errColor
                 elif wak > 0 then
-                    this.Text <- sprintf " %d compiler warnings, first one on line %d" wak erWas.[0].StartLine
-                    this.Background <- warnColor
+                    tb.Text <- sprintf " %d compiler warnings, first one on line %d" wak erWas.[0].StartLine
+                    tb.Background <- warnColor
                 elif erk > 0 then
-                    this.Text <- sprintf " %d compiler errors, first one on line: %d" erk erWas.[0].StartLine
-                    this.Background <- errColor
+                    tb.Text <- sprintf " %d compiler errors, first one on line: %d" erk erWas.[0].StartLine
+                    tb.Background <- errColor
                 else
-                    this.Text <- $"No compiler errors, {es.hiddens.Count + es.infos.Count} Infos"
-                    this.Background <- okColor
+                    tb.Text <- $"No compiler errors, {es.hiddens.Count + es.infos.Count} Infos"
+                    tb.Background <- okColor
 
                 let tip = new Popup(Child = getErrPanel(es, true) )
                 tip.Placement <- PlacementMode.Top //https://docs.microsoft.com/en-us/dotnet/framework/wpf/controls/popup-placement-behavior
                 tip.VerticalOffset <- -6.0
-                this.ToolTipControl <- tip
+                tb.ToolTipControl <- tip
 
         | WaitForCompl _  -> ()
         | WaitForErr _| NotChecked ->
@@ -150,24 +150,24 @@ type CheckerStatus (grid:TabsAndLog) =
                     | WaitForErr _ | NotChecked ->
                         if callCounter.Value = callID then
                             lastErrCount <- -1
-                            this.Text <- checkingTxt
-                            this.Background <- waitCol //originalBackGround
-                            this.ToolTip <- sprintf "Checking %s for Errors ..." tabs.Current.FormattedFileName
+                            tb.Text <- checkingTxt
+                            tb.Background <- waitCol //originalBackGround
+                            tb.ToolTip <- sprintf "Checking %s for Errors ..." tabs.Current.FormattedFileName
             } |> Async.StartImmediate
 
     do
         lastErrCount <- -1
-        this.Padding <-textPadding
-        this.Text <- checkingTxt
-        this.Background <- waitCol //originalBackGround
+        tb.Padding <-textPadding
+        tb.Text <- checkingTxt
+        tb.Background <- waitCol //originalBackGround
 
         tabs.OnTabChanged.Add (fun _ -> TypeInfo.LogErrors.Clear()) // to show old errors in new tab again
         tabs.OnTabChanged.Add (fun t -> updateCheckState(t.Editor.FileCheckState))
         Checker.CheckingStateChanged.Add updateCheckState
-        this.PointerPressed.Add(fun e ->
+        tb.PointerPressed.Add(fun e ->
             if e.Pointer.IsPrimary then  CheckerStatus.goToNextSegment grid.Tabs.Current.Editor)
 
-    member _.TextBlock = this
+    member _.TextBlock = tb
 
     member _.GetErrorPanelCached(ed:IEditor) =
         match ed.FileCheckState with
@@ -182,95 +182,95 @@ type CheckerStatus (grid:TabsAndLog) =
 
 
 type FsiRunStatus (grid:TabsAndLog)  =
-    let this =  TextBlock()
+    let tb =  TextBlock()
 
     do
-        this.Padding <- textPadding
-        this.Inlines.Add ("FSI is initializing . . .")
-        this.Background <- waitCol //originalBackGround
+        tb.Padding <- textPadding
+        tb.Inlines.Add ("FSI is initializing . . .")
+        tb.Background <- waitCol //originalBackGround
         //this.ContextMenu <- makeContextMenu [ menuItem cmds.CancelFSI ]
-        this.ToolTip <- "Shows the status of the fsi evaluation core. This is the same for all tabs. Only one script can run at the time."
+        tb.ToolTip <- "Shows the status of the fsi evaluation core. This is the same for all tabs. Only one script can run at the time."
 
         grid.Tabs.Fsi.OnCompiling.Add(fun evalData ->
-            this.Background <- activeCol
-            this.Inlines.Clear()
+            tb.Background <- activeCol
+            tb.Inlines.Clear()
             match evalData.request.editor.FilePath with
             |Deleted fi|SetTo fi ->
                 match evalData.request.amount with
-                | All                 ->  this.Inlines.Add(new Run ("FSI is compiling "          , Foreground = grayText))
-                | ContinueFromChanges ->  this.Inlines.Add(new Run ("FSI continues to compiling ", Foreground = grayText))
-                | FsiSegment _        ->  this.Inlines.Add(new Run ("FSI is compiling a part of ", Foreground = grayText))
-                this.Inlines.Add( new Run (fi.Name, FontFamily = StyleState.fontEditor) )
-                this.Inlines.Add( new Run (" . . ."                                              , Foreground = grayText))
+                | All                 ->  tb.Inlines.Add(new Run ("FSI is compiling "          , Foreground = grayText))
+                | ContinueFromChanges ->  tb.Inlines.Add(new Run ("FSI continues to compiling ", Foreground = grayText))
+                | FsiSegment _        ->  tb.Inlines.Add(new Run ("FSI is compiling a part of ", Foreground = grayText))
+                tb.Inlines.Add( new Run (fi.Name, FontFamily = StyleState.fontEditor) )
+                tb.Inlines.Add( new Run (" . . ."                                              , Foreground = grayText))
             |NotSet dummyName ->
-                this.Inlines.Add( "FSI is compiling "+dummyName + " . . ." )
+                tb.Inlines.Add( "FSI is compiling "+dummyName + " . . ." )
             )
 
         grid.Tabs.Fsi.OnEmitting.Add(fun codeToEval -> // TODO unused  till https://github.com/dotnet/fsharp/pull/15957
-            this.Background <- compileCol
-            this.Inlines.Clear()
+            tb.Background <- compileCol
+            tb.Inlines.Clear()
             match codeToEval.editor.FilePath with
             |Deleted fi|SetTo fi ->
                 match codeToEval.amount with
-                | All                 ->  this.Inlines.Add(new Run ("FSI is running ",           Foreground = grayText))
-                | ContinueFromChanges ->  this.Inlines.Add(new Run ("FSI continues to run "   ,  Foreground = grayText))
-                | FsiSegment _        ->  this.Inlines.Add(new Run ("FSI is running a part of ", Foreground = grayText))
-                this.Inlines.Add( new Run (fi.Name, FontFamily = StyleState.fontEditor) )
-                this.Inlines.Add( new Run (" . . ."                                           , Foreground = grayText))
+                | All                 ->  tb.Inlines.Add(new Run ("FSI is running ",           Foreground = grayText))
+                | ContinueFromChanges ->  tb.Inlines.Add(new Run ("FSI continues to run "   ,  Foreground = grayText))
+                | FsiSegment _        ->  tb.Inlines.Add(new Run ("FSI is running a part of ", Foreground = grayText))
+                tb.Inlines.Add( new Run (fi.Name, FontFamily = StyleState.fontEditor) )
+                tb.Inlines.Add( new Run (" . . ."                                           , Foreground = grayText))
             |NotSet dummyName ->
-                this.Inlines.Add( "FSI is running "+dummyName + " . . ." )
+                tb.Inlines.Add( "FSI is running "+dummyName + " . . ." )
             )
 
         grid.Tabs.Fsi.OnIsReady.Add(fun _ ->
-            this.Inlines.Clear()
-            this.Inlines.Add("FSI is ready")
-            this.Background <- okColor)
+            tb.Inlines.Clear()
+            tb.Inlines.Add("FSI is ready")
+            tb.Background <- okColor)
 
-    member _.TextBlock = this
+    member _.TextBlock = tb
 
 type FsiOutputStatus (grid:TabsAndLog) =
-    let this =  TextBlock()
+    let tb =  TextBlock()
     let onTxt = "FSI prints to log window"
     let offTxt = "FSI is quiet"
     let isOff () = grid.Config.Settings.GetBool ("fsiOutputQuiet", false)
     do
-        this.Padding <- textPadding
-        this.Text <- if isOff() then offTxt else onTxt
-        this.ToolTip <- "Click here to enable or disable the default output from fsi in the log window\r\n(This will also reset FSI.)"
-        this.PointerPressed.Add(fun e ->
+        tb.Padding <- textPadding
+        tb.Text <- if isOff() then offTxt else onTxt
+        tb.ToolTip <- "Click here to enable or disable the default output from fsi in the log window\r\n(This will also reset FSI.)"
+        tb.PointerPressed.Add(fun e ->
             if e.Pointer.IsPrimary then
                 if isOff() then
-                    this.Text <- onTxt
+                    tb.Text <- onTxt
                     grid.Config.Settings.SetBool ("fsiOutputQuiet", false)
                 else
-                    this.Text <- offTxt
+                    tb.Text <- offTxt
                     grid.Config.Settings.SetBool ("fsiOutputQuiet", true)
                 grid.Tabs.Fsi.Initialize()
             )
-    member _.TextBlock = this
+    member _.TextBlock = tb
 
 type AsyncStatus (grid:TabsAndLog) =
-    let this =  TextBlock()
+    let tb =  TextBlock()
     let fsi = grid.Tabs.Fsi
     let isAsync = grid.Config.Settings.GetBool ("asyncFsi", false)
     let sync = "FSI evaluation mode: Synchronous"
     let asyn = "FSI evaluation mode: Asynchronous"
 
     do
-        this.Padding <- textPadding
-        this.Text <- if isAsync then asyn else sync
-        this.ToolTip <- "Click to switch between synchronous and asynchronous evaluation in FSI,\r\nsynchronous is needed for UI interaction,\r\nasynchronous allows easy cancellation and keeps the editor window alive"
-        this.PointerPressed.Add(fun _ -> fsi.ToggleSync())     // TODO better make it dependent on commands , not fsi
+        tb.Padding <- textPadding
+        tb.Text <- if isAsync then asyn else sync
+        tb.ToolTip <- "Click to switch between synchronous and asynchronous evaluation in FSI,\r\nsynchronous is needed for UI interaction,\r\nasynchronous allows easy cancellation and keeps the editor window alive"
+        tb.PointerPressed.Add(fun _ -> fsi.ToggleSync())     // TODO better make it dependent on commands , not fsi
         fsi.OnModeChanged.Add(function
-            | InSync             -> this.Text <- sync
-            | AsyncMode          -> this.Text <- asyn  )
+            | InSync             -> tb.Text <- sync
+            | AsyncMode          -> tb.Text <- asyn  )
 
-    member _.TextBlock = this
+    member _.TextBlock = tb
 
 #nowarn "44" //for obsolete grid.Log.AvalonLog.AvalonEdit
 
 type SelectedEditorTextStatus (grid:TabsAndLog) =
-    let this = TextBlock()
+    let tb = TextBlock()
     let noSelTxt = new Run ("no selection in Editor", Foreground = SelectionHighlighting.colorInactive) //Editor Selection Highlighting"
     let tipText = "Highlights and counts the occurrences of the currently selected Text in the current Editor.\r\nMinimum two characters and no line breaks.\r\nClick here to scroll through all occurrences."
     let mutable scrollToIdx = 0
@@ -283,22 +283,22 @@ type SelectedEditorTextStatus (grid:TabsAndLog) =
             |None         -> IFeshLog.log.PrintfnAppErrorMsg "Log.SelectionHighlighter not set up"
 
         if sel.Offsets.Count = 0 then
-            this.Inlines.Clear()
-            this.Inlines.Add noSelTxt
+            tb.Inlines.Clear()
+            tb.Inlines.Add noSelTxt
         else
-            this.Inlines.Clear()
-            this.Inlines.Add( $"%d{sel.Offsets.Count} of "  )
-            this.Inlines.Add( new Run (sel.Word, FontFamily = StyleState.fontEditor, Background = SelectionHighlighting.selColorEditor))
-            this.Inlines.Add( $" (%d{sel.Word.Length} Chars) " )
+            tb.Inlines.Clear()
+            tb.Inlines.Add( $"%d{sel.Offsets.Count} of "  )
+            tb.Inlines.Add( new Run (sel.Word, FontFamily = StyleState.fontEditor, Background = SelectionHighlighting.selColorEditor))
+            tb.Inlines.Add( $" (%d{sel.Word.Length} Chars) " )
 
     do
-        this.Padding <- textPadding
-        this.ToolTip <- tipText
-        this.Inlines.Add noSelTxt
+        tb.Padding <- textPadding
+        tb.ToolTip <- tipText
+        tb.Inlines.Add noSelTxt
         SelectionHighlighting.GlobalFoundSelectionsEditor.Add(fillStatusMarkLog)
 
         // on each click loop through all locations where text appears
-        this.PointerPressed.Add ( fun _ -> // press mouse to scroll to them
+        tb.PointerPressed.Add ( fun _ -> // press mouse to scroll to them
             let ed = grid.Tabs.Current.Editor
             let sel = ed.DrawingServices.selection
             if sel.Offsets.Count > 0 then
@@ -312,10 +312,10 @@ type SelectedEditorTextStatus (grid:TabsAndLog) =
                 else
                     scrollToIdx <- 0
             )
-    member _.TextBlock = this
+    member _.TextBlock = tb
 
 type SelectedLogTextStatus (grid:TabsAndLog) =
-    let this =  TextBlock()
+    let tb =  TextBlock()
     let log = grid.Log
     let noSelTxt = new Run ("no selection in Log", Foreground = SelectionHighlighting.colorInactive) //Log Selection Highlighting "
     let tipText = "Highlights and counts the occurrences of the currently selected Text in the Log output.\r\nMinimum two characters and no line breaks.\r\nClick here to scroll through all occurrences."
@@ -329,22 +329,22 @@ type SelectedLogTextStatus (grid:TabsAndLog) =
                 grid.Tabs.Current.Editor.DrawingServices.selection.RedrawMarksInEditor(hiLi.Word)
 
             if hiLi.Offsets.Count = 0 then
-                this.Inlines.Clear()
-                this.Inlines.Add noSelTxt
+                tb.Inlines.Clear()
+                tb.Inlines.Add noSelTxt
             else
-                this.Inlines.Clear()
-                this.Inlines.Add( sprintf $"%d{hiLi.Offsets.Count} of ")
-                this.Inlines.Add( new Run (hiLi.Word, FontFamily = StyleState.fontEditor, Background = SelectionHighlighting.selColorLog))
-                this.Inlines.Add( sprintf " (%d Chars) " hiLi.Word.Length)
+                tb.Inlines.Clear()
+                tb.Inlines.Add( sprintf $"%d{hiLi.Offsets.Count} of ")
+                tb.Inlines.Add( new Run (hiLi.Word, FontFamily = StyleState.fontEditor, Background = SelectionHighlighting.selColorLog))
+                tb.Inlines.Add( sprintf " (%d Chars) " hiLi.Word.Length)
 
     do
-        this.Padding <- textPadding
-        this.ToolTip <- tipText
-        this.Inlines.Add noSelTxt
+        tb.Padding <- textPadding
+        tb.ToolTip <- tipText
+        tb.Inlines.Add noSelTxt
         SelectionHighlighting.FoundSelectionsLog.Add(setStatusMarkEd)
 
         // on each click loop through all locations where text appears
-        this.PointerPressed.Add ( fun _ -> // press mouse to scroll to them
+        tb.PointerPressed.Add ( fun _ -> // press mouse to scroll to them
             match log.SelectionHighlighter with
             |None      -> ()
             |Some hiLi ->
@@ -366,7 +366,7 @@ type SelectedLogTextStatus (grid:TabsAndLog) =
         // this event is added in Log highLighter constructor, so that this happens only once !
         grid.Tabs.OnTabChanged.Add ( fun _ -> grid.Tabs.Current.Editor.DrawingServices.selection.TriggerGlobalFoundSelectionEditorEv())
 
-    member _.TextBlock = this
+    member _.TextBlock = tb
 
 type FeshStatusBar (grid:TabsAndLog)  =
     let bar = new DockPanel()
@@ -386,8 +386,10 @@ type FeshStatusBar (grid:TabsAndLog)  =
     let errs = CheckerStatus grid
     let edSel = SelectedEditorTextStatus grid
     let logSel = SelectedLogTextStatus grid
-    let asyncStatus = AsyncStatus grid
     let fsiOutput = FsiOutputStatus grid
+    let asyncStatus = AsyncStatus grid
+
+
     do
         add    Dock.Left  errs.TextBlock // on very left
         addSep Dock.Left
@@ -405,7 +407,7 @@ type FeshStatusBar (grid:TabsAndLog)  =
             add    Dock.Right  asyncStatus.TextBlock // on right
             addSep Dock.Right
 
-        bar.Children.Add (new ContentControl()) |> ignore // to fill remaining gap
+        bar.Children.Add (new ContentControl()) |> ignore // needed to fill remaining gap
 
 
     member this.Bar =  bar
