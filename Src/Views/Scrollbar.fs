@@ -19,16 +19,38 @@ open Fesh.Util.General
 
 module MagicScrollbar =
 
+    let forceScrollBarWidth18 (scrollViewer: ScrollViewer) =
+        scrollViewer.TemplateApplied.Add(fun _ ->
+            // Find the scrollbars in the template
+            let verticalScrollBar = scrollViewer.FindControl<ScrollBar>("PART_VerticalScrollBar")
+            let horizontalScrollBar = scrollViewer.FindControl<ScrollBar>("PART_HorizontalScrollBar")
+
+            match verticalScrollBar with
+            | null -> ()
+            | bar ->
+                bar.Width <- 18.0
+                bar.MinWidth <- 18.0
+
+            match horizontalScrollBar with
+            | null -> ()
+            | bar ->
+                bar.Height <- 18.0
+                bar.MinHeight <- 18.0
+        )
 
 
-    // see // https://github.com/icsharpcode/SharpDevelop/blob/master/src/AddIns/DisplayBindings/AvalonEdit.AddIn/Src/EnhancedScrollBar.cs
+    // initially take from see https://github.com/icsharpcode/SharpDevelop/blob/master/src/AddIns/DisplayBindings/AvalonEdit.AddIn/Src/EnhancedScrollBar.cs
+    //  adapted to Avalonia https://stackoverflow.com/questions/63598245/analogous-to-the-abstract-adorner-wpf-class-in-avalonia-ui
 
     type Marks = ResizeArray<int*ImmutableSolidColorBrush>
 
-    (*
+
     [<AllowNullLiteral>]
     type ScrollbarAdorner(ed:TextEditor,  errs:ErrorHighlighter, track: Track)  as this = //state:InteractionState,
-        inherit Adorner(track)
+        // inherit Adorner(track)
+        inherit Control() // Adorner is not available in Avalonia, so we use Control instead
+
+        let adornerLayer = AdornerLayer.GetAdornerLayer track //adornerElement
 
 
         let textView = ed.TextArea.TextView
@@ -51,18 +73,26 @@ module MagicScrollbar =
             errs.FoundErrors.Subscribe (fun _                        -> setLineNos errs.ErrorsLines.Value )
             ]
 
-        /// removes the event handlers of this adorner from the editor
+        do
+            if notNull adornerLayer then
+                let adornedElement = new Border()
+                adornerLayer.Children.Add(adornedElement)
+                AdornerLayer.SetAdornedElement(adornedElement, track) //adornerElement)
+
+        /// removes the event handlers of this adorner from the editor and removes it from the adorner layer
         member this.Detach() =
             for s in subscriptions do s.Dispose()
+            if notNull adornerLayer then
+                adornerLayer.Children.Remove this |> ignore
 
         member this.IsTrackShowing
             with get() = isTrackShowing
             and set(v) = isTrackShowing <- v
 
-        override this.OnRender(drawingContext : DrawingContext) =
+        override this.Render(drawingContext : DrawingContext) =
             if isTrackShowing  then
                 //textView.EnsureVisualLines()
-                let renderSize = base.RenderSize
+                let renderSize = track.DesiredSize
                 let lineHeight = textView.DefaultLineHeight
                 let documentHeight = textView.DocumentHeight
                 let lnNos = markLineNos.Value // this iteration never fails, even if the value in the ref gets replaced while looping
@@ -99,14 +129,11 @@ module MagicScrollbar =
 
             //else printfn $"ScrollbarAdorner.OnRender: not showing"
 
-        override _.StyleKeyOverride = typeof<Adorner> // see https://github.com/AvaloniaUI/Avalonia/discussions/18697
-*)
+        override _.StyleKeyOverride = typeof<Control> // see https://github.com/AvaloniaUI/Avalonia/discussions/18697
 
-    type ScrollBarEnhancer(_ed:TextEditor,  _errs:ErrorHighlighter) = // state:InteractionState,
 
-        /// stub until the scrollbar adorner is ported to Avalonia, the WPF version is kept below.
-        member _.Detach() = ()
-    (*
+    type ScrollBarEnhancer(ed:TextEditor,  errs:ErrorHighlighter) = // state:InteractionState,
+
         let vertScrollBar : ScrollBar =
             ed.ApplyTemplate ()  |> ignore
             let scrollViewer = ed.Template.FindName ("PART_ScrollViewer", ed) :?> ScrollViewer
@@ -152,8 +179,4 @@ module MagicScrollbar =
             visibilitySubscription.Dispose()
             if notNull adorner then
                 adorner.Detach()
-                let layer = AdornerLayer.GetAdornerLayer (adorner.AdornedElement)
-                if notNull layer then
-                    layer.Remove (adorner)
                 adorner <- null
-    *)
