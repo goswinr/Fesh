@@ -88,32 +88,26 @@ type PositionedWindow (settingsFile:System.IO.FileInfo, errorLogger:string->unit
 
 
 
-        //base.StateChanged.Add (fun _ -> WPF only
-        // this.SizeChanged.Add(fun _ ->
-        //     match this.WindowState with
-        //     | WindowState.Normal ->
-        //         // because when Window is hosted in other App the restore from Maximized does not remember the previous position automatically
-        //         this.Position <- PixelPoint(
-        //                              settings.GetInt ("WindowLeft"   , 100 ),
-        //                              settings.GetInt ("WindowTop"    , 100 ))
-        //         this.Height <-  int (settings.GetInt ("WindowHeight" , 800 ))
-        //         this.Width  <-  int (settings.GetInt ("WindowWidth"  , 800 ))
-        //         settings.SetBool  ("WindowIsMax", false)  |> ignore
-        //         isMinOrMax <- false
-        //         settings.SaveWithDelay ()
+        // WPF has a StateChanged event, in Avalonia WindowState is a property to observe:
+        this.PropertyChanged.Add (fun e ->
+            if e.Property = Window.WindowStateProperty then
+                match this.WindowState with
+                | WindowState.Normal ->
+                    // The OS restores the previous position and size when leaving the maximized or minimized state.
+                    settings.SetBool  ("WindowIsMax", false)
+                    isMinOrMax <- false
 
-        //     | WindowState.Maximized ->
-        //         // normally the state change event comes after the location change event but before size changed. async sleep in LocationChanged prevents this
-        //         isMinOrMax  <- true
-        //         settings.SetBool ("WindowIsMax", true) |> ignore
-        //         settings.SaveWithDelay  ()
+                | WindowState.Maximized ->
+                    // normally the state change event comes after the location change event but before size changed. async sleep in PositionChanged prevents this
+                    isMinOrMax  <- true
+                    settings.SetBool ("WindowIsMax", true)
 
-        //     |WindowState.Minimized ->
-        //         isMinOrMax  <- true
+                | WindowState.Minimized
+                | WindowState.FullScreen ->
+                    isMinOrMax  <- true
 
-        //     | WindowState.FullScreen -> () // TODO don't save ?
-        //     | _ -> () // never happens
-        //     )
+                | _ -> () // never happens
+            )
 
         this.SizeChanged.Add (fun _ -> // does no get trigger on maximizing
             if this.WindowState = WindowState.Normal &&  not isMinOrMax  then

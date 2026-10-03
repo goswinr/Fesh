@@ -76,14 +76,13 @@ type TabsAndLog (config:Config, tabs:Tabs, log:Log, feshWin:FeshWindow) as this 
                 config.Settings.SetFloat("LogWidth"         ,logColumnWidth.ActualWidth   )
                 )
 
-        // feshWin.Window.StateChanged.Add (fun _ ->
-        //     match feshWin.Window.WindowState with
-        //     | WindowState.Normal ->
-        //         if isLogMaxed then this.ToggleMaxLog() // to also switch back from maximized when the window size gets restored
-        //     | _ -> ()
-        //     //| WindowState.Maximized -> // normally the state change event comes after the location change event but before size changed. async sleep in LocationChanged prevents this                ()
-        //     //| WindowState.Minimized ->
-        //     )
+        feshWin.Window.PropertyChanged.Add (fun e -> // WPF has a StateChanged event for this
+            if e.Property = Window.WindowStateProperty then
+                match feshWin.Window.WindowState with
+                | WindowState.Normal ->
+                    if isLogMaxed then this.ToggleMaxLog() // to also switch back from maximized when the window size gets restored
+                | _ -> ()
+            )
 
         // react to Escape key globally
         feshWin.Window.KeyDown.Add (fun k ->  //clear selection on Escape key
