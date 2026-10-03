@@ -2,21 +2,20 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-	  <TargetFramework>net10.0-windows</TargetFramework>
+	  <TargetFramework>net10.0</TargetFramework>
+    <!-- <TargetFrameworks>net48;net10.0</TargetFrameworks> -->
     <DefineConstants Condition="'$(TargetFramework)' == 'net48'">NETFRAMEWORK</DefineConstants>
-    <!-- <RuntimeIdentifiers>win-x64;win-x86</RuntimeIdentifiers> -->
-    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
 
     <LangVersion>preview</LangVersion> <!-- to enable indexing from end via ^ -->
 
     <NeutralLanguage>en</NeutralLanguage>
-    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>    <!-- <SatelliteResourceLanguages> to only have the English resources-->
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>    <!-- <SatelliteResourceLanguages> to only have the English resources in output directory-->
     <GenerateDocumentationFile>true</GenerateDocumentationFile>    <!-- <GenerateDocumentationFile> just in case the editor itself gets referenced from a script-->
     <FSharpCoreIncludeDocFileInOutput>true</FSharpCoreIncludeDocFileInOutput> <!-- doesn't seem to work -->
     <DisableImplicitFSharpCoreReference>true</DisableImplicitFSharpCoreReference> <!-- for dotnet outdated tool to work -->
 
     <CopyDebugSymbolFilesFromPackages>true</CopyDebugSymbolFilesFromPackages>
-    <CopyDocumentationFilesFromPackages>true</CopyDocumentationFilesFromPackages> <!-- doesnt work for netstandard.xml -->
+    <CopyDocumentationFilesFromPackages>true</CopyDocumentationFilesFromPackages> <!-- doesn't work for netstandard.xml -->
 
     <RootNamespace>Fesh</RootNamespace>
     <AssemblyName>Fesh</AssemblyName>
@@ -29,7 +28,7 @@
     <Company>Goswin Rothenthal</Company>    <!-- <Company> shows up on file preview on fesh.exe in windows file explorer-->
     <Authors>Goswin Rothenthal</Authors>
     <Copyright>Goswin Rothenthal 2019</Copyright>
-    <Description>A hostable fsharp scripting editor for Windows based on Avalonedit</Description>
+    <Description>A hostable cross-platform scripting editor for F#, based on AvaloniaEdit</Description>
     <ApplicationIcon>Media/logo.ico</ApplicationIcon>
     <Win32Resource>Media/logo.res</Win32Resource>    <!-- Win32Resource for Application Icon in explorer-->
 
@@ -44,13 +43,14 @@
     <PackageReference Include="Ionide.KeepAChangelog.Tasks" Version="0.3.3" PrivateAssets="all" />
 
     <PackageReference Include="Avalonia.Desktop" Version="11.3.0" />
-    <PackageReference Include="MessageBox.Avalonia" Version="3.2.0" />
     <PackageReference Include="Avalonia.Themes.Fluent" Version="11.3.0" />
-    <!-- <PackageReference Include="Avalonia.AvaloniaEdit" Version="11.2.0" /> -->
+    <!-- <PackageReference Include="Avalonia.AvaloniaEdit" Version="11.3.0" /> -->
     <ProjectReference Include="../AvaloniaEdit/src/AvaloniaEdit/AvaloniaEdit.csproj" />
 
+    <PackageReference Include="MessageBox.Avalonia" Version="3.2.0" />
     <PackageReference Include="Microsoft.VisualBasic" Version="10.3.0" /> <!-- to move files to the recycle bin instead of deleting them -->
-    <PackageReference Include="System.Private.Uri" Version="4.3.2" />    <!-- warning NU1903: Package 'System.Private.Uri' 4.3.0 has a known high severity vulnerability, https://github.com/advisories/GHSA-5f2m-466j-3848 -->
+    <!-- <PackageReference Include="System.Private.Uri" Version="4.3.2" />    -->
+     <!-- warning NU1903: Package 'System.Private.Uri' 4.3.0 has a known high severity vulnerability, https://github.com/advisories/GHSA-5f2m-466j-3848 -->
     <PackageReference Include="FSharp.Compiler.Service" Version="43.11.303" />
     <PackageReference Include="FSharp.Core"             Version="10.1.303" />
 

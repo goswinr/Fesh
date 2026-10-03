@@ -36,8 +36,8 @@ module App =
 
         override this.Initialize() =
             this.Styles.Add (FluentTheme())
-            // this.RequestedThemeVariant <- Styling.ThemeVariant.Light
-            this.RequestedThemeVariant <- Styling.ThemeVariant.Dark
+            this.RequestedThemeVariant <- Styling.ThemeVariant.Light
+            // this.RequestedThemeVariant <- Styling.ThemeVariant.Dark
 
             // https://github.com/AvaloniaUI/AvaloniaEdit/issues/322:s
             this.Styles.Add(Avalonia.Markup.Xaml.Styling.StyleInclude(baseUri = null, Source = Uri "avares://AvaloniaEdit/Themes/Fluent/AvaloniaEdit.xaml"))

@@ -186,7 +186,7 @@ type FsiRunStatus (grid:TabsAndLog)  =
 
     do
         tb.Padding <- textPadding
-        tb.Inlines.Add ("FSI is initializing . . .")
+        tb.Inlines.Add(new Run ("FSI is initializing . . ."          , Foreground = grayText))
         tb.Background <- waitCol //originalBackGround
         //this.ContextMenu <- makeContextMenu [ menuItem cmds.CancelFSI ]
         tb.ToolTip <- "Shows the status of the fsi evaluation core. This is the same for all tabs. Only one script can run at the time."
@@ -194,36 +194,28 @@ type FsiRunStatus (grid:TabsAndLog)  =
         grid.Tabs.Fsi.OnCompiling.Add(fun evalData ->
             tb.Background <- activeCol
             tb.Inlines.Clear()
-            match evalData.request.editor.FilePath with
-            |Deleted fi|SetTo fi ->
-                match evalData.request.amount with
-                | All                 ->  tb.Inlines.Add(new Run ("FSI is compiling "          , Foreground = grayText))
-                | ContinueFromChanges ->  tb.Inlines.Add(new Run ("FSI continues to compiling ", Foreground = grayText))
-                | FsiSegment _        ->  tb.Inlines.Add(new Run ("FSI is compiling a part of ", Foreground = grayText))
-                tb.Inlines.Add( new Run (fi.Name, FontFamily = StyleState.fontEditor) )
-                tb.Inlines.Add( new Run (" . . ."                                              , Foreground = grayText))
-            |NotSet dummyName ->
-                tb.Inlines.Add( "FSI is compiling "+dummyName + " . . ." )
+            match evalData.request.amount with
+            | All                 ->  tb.Inlines.Add(new Run ("FSI is compiling "          , Foreground = grayText))
+            | ContinueFromChanges ->  tb.Inlines.Add(new Run ("FSI continues to compiling ", Foreground = grayText))
+            | FsiSegment _        ->  tb.Inlines.Add(new Run ("FSI is compiling a part of ", Foreground = grayText))
+            tb.Inlines.Add( new Run (evalData.request.editor.FilePath.FileName, FontFamily = StyleState.fontEditor) )
+            tb.Inlines.Add( new Run (" . . ."                                              , Foreground = grayText))
             )
 
-        grid.Tabs.Fsi.OnEmitting.Add(fun codeToEval -> // TODO unused  till https://github.com/dotnet/fsharp/pull/15957
+        grid.Tabs.Fsi.OnEmitting.Add(fun codeToEval -> // TODO unused till https://github.com/dotnet/fsharp/pull/15957
             tb.Background <- compileCol
             tb.Inlines.Clear()
-            match codeToEval.editor.FilePath with
-            |Deleted fi|SetTo fi ->
-                match codeToEval.amount with
-                | All                 ->  tb.Inlines.Add(new Run ("FSI is running ",           Foreground = grayText))
-                | ContinueFromChanges ->  tb.Inlines.Add(new Run ("FSI continues to run "   ,  Foreground = grayText))
-                | FsiSegment _        ->  tb.Inlines.Add(new Run ("FSI is running a part of ", Foreground = grayText))
-                tb.Inlines.Add( new Run (fi.Name, FontFamily = StyleState.fontEditor) )
-                tb.Inlines.Add( new Run (" . . ."                                           , Foreground = grayText))
-            |NotSet dummyName ->
-                tb.Inlines.Add( "FSI is running "+dummyName + " . . ." )
+            match codeToEval.amount with
+            | All                 ->  tb.Inlines.Add(new Run ("FSI is running ",           Foreground = grayText))
+            | ContinueFromChanges ->  tb.Inlines.Add(new Run ("FSI continues to run "   ,  Foreground = grayText))
+            | FsiSegment _        ->  tb.Inlines.Add(new Run ("FSI is running a part of ", Foreground = grayText))
+            tb.Inlines.Add( new Run (codeToEval.editor.FilePath.FileName, FontFamily = StyleState.fontEditor) )
+            tb.Inlines.Add( new Run (" . . ."                                           , Foreground = grayText))
             )
 
         grid.Tabs.Fsi.OnIsReady.Add(fun _ ->
             tb.Inlines.Clear()
-            tb.Inlines.Add("FSI is ready")
+            tb.Inlines.Add(new Run ("FSI is ready", Foreground = grayText))
             tb.Background <- okColor)
 
     member _.TextBlock = tb
@@ -377,7 +369,7 @@ type FeshStatusBar (grid:TabsAndLog)  =
         bar.Children.Add s |> ignore
 
 
-    let add (side:Dock) (e:Control) =
+    let add (side:Dock) (e:TextBlock) =
         DockPanel.SetDock(e,side)
         bar.Children.Add e |> ignore
 
@@ -393,14 +385,14 @@ type FeshStatusBar (grid:TabsAndLog)  =
     do
         add    Dock.Left  errs.TextBlock // on very left
         addSep Dock.Left
-        add    Dock.Left  edSel.TextBlock // on left
+        add    Dock.Left  edSel.TextBlock // on  first left
         addSep Dock.Left
-        add    Dock.Left  logSel.TextBlock // on left
+        add    Dock.Left  logSel.TextBlock // on second left
         addSep Dock.Left
 
         add    Dock.Right fsi.TextBlock // on very right
         addSep Dock.Right
-        add    Dock.Right fsiOutput.TextBlock // on right
+        add    Dock.Right fsiOutput.TextBlock // on second right
         addSep Dock.Right
 
         if grid.Config.RunContext.CanRunAsync then
