@@ -526,10 +526,10 @@ module DragAndDrop =
                 if fs.Length > 2 && Array.forall isDll fs then      // TODO make path relative to script location
                     for f in fs  do
                         let file = IO.Path.GetFileName(f)
-                        doc.Insert (0, sprintf "#r \"%s\"\r\n" file)
+                        doc.Insert (0, sprintf "#r \"%s\"%s" file Environment.NewLine)
                         IFeshLog.log.PrintfnInfoMsg "Drag & Drop inserted at Line 0: %s"  file
                     let folder = IO.Path.GetDirectoryName(fs.[0]).Replace("\\","/")
-                    doc.Insert (0, sprintf "#I \"%s\"\r\n" folder)
+                    doc.Insert (0, sprintf "#I \"%s\"%s" folder Environment.NewLine)
                     IFeshLog.log.PrintfnInfoMsg "Drag & Drop inserted at Line 0: %s"  folder
                 else
 
@@ -554,12 +554,12 @@ module DragAndDrop =
                     for f0 in fs do
                         let f = f0.Replace("\\","/")
                         if isDll f then
-                            let txt = sprintf "#r \"%s\"\r\n" f
+                            let txt = sprintf "#r \"%s\"%s" f Environment.NewLine
                             doc.Insert (0, txt )
                             IFeshLog.log.PrintfnInfoMsg "Drag & Drop inserted at Line 0:"
                             printGreen "  %s" txt
                         elif isFsx f  then
-                            let txt = sprintf "#load \"%s\"\r\n" f
+                            let txt = sprintf "#load \"%s\"%s" f Environment.NewLine
                             doc.Insert (0, txt)     // TODO find end or #r statements
                             IFeshLog.log.PrintfnInfoMsg "Drag & Drop inserted at Line 0:"
                             printGreen "  %s" txt

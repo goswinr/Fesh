@@ -285,7 +285,7 @@ module CompileScript =
                                             Fittings.SyncContext.doSync ( fun () ->
                                                 let win = IEditor.mainWindow
                                                 if not (isNull win) then
-                                                    win.Clipboard.SetTextAsync("#r @\"" + resultDll + "\"\r\n") |> ignore<Task>
+                                                    win.Clipboard.SetTextAsync("#r @\"" + resultDll + "\"" + Environment.NewLine) |> ignore<Task>
                                                 )
                                         else
                                             gray  "*build process ended!"
