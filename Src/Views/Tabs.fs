@@ -392,7 +392,6 @@ type Tabs(config:Config, log:Log, feshWin:FeshWindow) =
                     let mkEd = Editor.SetUp(codeClean, config, SetTo fi)
                     let tab = new Tab(mkEd)
                     tab.Editor.CodeAtLastSave <- codeClean
-                    log.PrintfnDebugMsg "makeCurrent: %b, moreTabsToCome: %b" makeCurrent moreTabsToCome
                     addTab(tab, makeCurrent, moreTabsToCome)
                     true
                 with  e ->
