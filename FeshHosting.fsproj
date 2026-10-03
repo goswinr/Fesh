@@ -81,7 +81,7 @@
     <PackageReference Include="Avalonia.Themes.Fluent" Version="12.1.3" />
     <PackageReference Include="MessageBox.Avalonia" Version="12.0.0" />
 
-    <!-- The fork of AvaloniaEdit needs to be on a branch that is built for Avalonia 12 ( 'avalonia12' ).
+    <!-- The fork https://github.com/goswinr/AvaloniaEdit needs to be on its branch 'main', that is built for Avalonia 12.
     Fesh uses features that only this fork has, so the nuget package Avalonia.AvaloniaEdit can't be used instead.
     PrivateAssets="all" keeps the nuget package of Fesh from depending on the package Avalonia.AvaloniaEdit,
     the dll of the fork is put into the package of Fesh instead, see the target IncludeAvaloniaEditForkInPackage below. -->
