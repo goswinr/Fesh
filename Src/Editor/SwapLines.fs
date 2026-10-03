@@ -65,9 +65,10 @@ module SwapLines =
 
             doc.BeginUpdate()
             ta.ClearSelection()
-            doc.Remove(lnAbove.st, lnAbove.len + 2 + lnsThis.len)
-            doc.Insert(lnAbove.st, txtThis + "\r\n" + txtAbove)
-            avaEdit.CaretOffset <- caret - (lnAbove.len + 2)
+            let lineBreak = doc.GetText(lnAbove.en, lnsThis.st - lnAbove.en) // the line break between the two, "\r\n" or just "\n"
+            doc.Remove(lnAbove.st, lnAbove.len + lineBreak.Length + lnsThis.len)
+            doc.Insert(lnAbove.st, txtThis + lineBreak + txtAbove)
+            avaEdit.CaretOffset <- caret - (lnAbove.len + lineBreak.Length)
 
             match sel with
             | NoSel -> () // just change caret below
@@ -128,9 +129,10 @@ module SwapLines =
             doc.BeginUpdate()
             ta.ClearSelection()
 
-            doc.Remove(lnsThis.st, lnsThis.len + 2 + lnBelow.len)
-            doc.Insert(lnsThis.st, txtBelow + "\r\n" + txtThis)
-            avaEdit.CaretOffset <- caret + (lnBelow.len + 2)
+            let lineBreak = doc.GetText(lnsThis.en, lnBelow.st - lnsThis.en) // the line break between the two, "\r\n" or just "\n"
+            doc.Remove(lnsThis.st, lnsThis.len + lineBreak.Length + lnBelow.len)
+            doc.Insert(lnsThis.st, txtBelow + lineBreak + txtThis)
+            avaEdit.CaretOffset <- caret + (lnBelow.len + lineBreak.Length)
 
             match sel with
             | NoSel -> () // just change carte below

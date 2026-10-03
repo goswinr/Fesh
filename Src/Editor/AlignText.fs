@@ -92,9 +92,14 @@ module AlignText =
 
                 searchFrom <- maxOff
 
+            let lineBreak = // keep the kind of line break that the document has, "\r\n" or just "\n"
+                let firstLn = doc.GetLineByNumber(s.stPos.Line)
+                if firstLn.DelimiterLength > 0 then doc.GetText(firstLn.EndOffset, firstLn.DelimiterLength)
+                else Environment.NewLine
+
             stringBuilders
             |> Seq.map ( fun sb -> sb.ToString())
-            |> String.concat "\r\n"
+            |> String.concat lineBreak
             |> fun t -> doc.Replace(stOff,enOff-stOff, t)
 
 
