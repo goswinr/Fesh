@@ -2,6 +2,8 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+> On the Avalonia port branch (`Avalonia2`) read [AvaloniaPort.md](AvaloniaPort.md) first. This file describes the WPF version on `main`.
+
 ## Project Overview
 
 Fesh is an **F# Editor & Scripting Host** for Windows, built on WPF and AvalonEdit. It uses FSharp.Compiler.Service in-process (no separate language server or FSI process) to provide semantic highlighting, type info, and autocomplete. It can run standalone or be hosted/embedded in other .NET apps as a scripting tool.
