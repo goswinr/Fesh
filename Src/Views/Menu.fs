@@ -457,17 +457,22 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, statusBar:FeshStatusBar, log:
                 menuItem cmds.ResetFSI
                 ]
 
+        // WPF has PreviewMouseRightButtonDown, in Avalonia that is a tunneling PointerPressed handler that checks for the right button.
+        // (Pointer.IsPrimary can't be used for this, it is true for all mouse buttons)
+        let onRightButtonDown (ctrl:Control) (action: PointerPressedEventArgs -> unit) =
+            ctrl.AddHandler(
+                InputElement.PointerPressedEvent,
+                (fun _ (m:PointerPressedEventArgs) -> if m.GetCurrentPoint(ctrl).Properties.IsRightButtonPressed then action m),
+                Interactivity.RoutingStrategies.Tunnel)
+
         // add menu to open file path if there is on on current line
-        tabs.Control.PointerPressed.Add(fun m ->
-            if not m.Pointer.IsPrimary then
-                RecognizePath.addPathIfPresentToMenu (m, tempItemsInEditorMenu, tabs.Control.ContextMenu, tabs.Current.AvaEdit , tabs.AddFile)
+        onRightButtonDown tabs.Control (fun m ->
+            RecognizePath.addPathIfPresentToMenu (m, tempItemsInEditorMenu, tabs.Control.ContextMenu, tabs.Current.AvaEdit , tabs.AddFile)
             )
 
-
         // add menu to open file path if there is on on current line
-        log.AvaloniaLog.PointerPressed.Add(fun m ->
-            if not m.Pointer.IsPrimary then
-                RecognizePath.addPathIfPresentToMenu (m, tempItemsInLogMenu, log.AvaloniaLog.ContextMenu, log.AvaloniaEditLog , tabs.AddFile)
+        onRightButtonDown log.AvaloniaLog (fun m ->
+            RecognizePath.addPathIfPresentToMenu (m, tempItemsInLogMenu, log.AvaloniaLog.ContextMenu, log.AvaloniaEditLog , tabs.AddFile)
             )
 
 
