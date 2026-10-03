@@ -2,8 +2,9 @@
 
 open System
 open System.Windows.Input
+// open Avalonia.Input
 
-/// A module to Create Avalonia.Input.ICommand instances
+/// A module to create ICommand instances
 module Command =
 
     // WPF:
@@ -56,4 +57,17 @@ module Command =
                 member this.CanExecute(obj) = true
                 member this.Execute(obj) = action(obj)
                 }
+
+        /// creates a ICommand, CanExecute is always true
+    let mkCmdSimplest (action:unit-> unit) =
+        let ev = Event<_ , _>()
+        { new ICommand with
+                [<CLIEvent>]
+                member this.CanExecuteChanged = ev.Publish
+                member this.CanExecute(obj) = true
+                member this.Execute(obj) = action()
+                }
+
+
+
 

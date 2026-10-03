@@ -74,19 +74,19 @@ module Initialize =
 
                         else
                             do! Async.SwitchToContext Fittings.SyncContext.context
-                            match MessageBox.Show(
+                            match! MessageBox.Show(
                                 fesh.Window,
                                 $"Update Fesh from {cv} to {nv} and restart? Changes are saved.",
                                 "Fesh Updates available!",
                                 MessageBoxButton.YesNo,
                                 MessageBoxImage.Question,
-                                MessageBoxResult.Yes, // default result
-                                MessageBoxOptions.None) with
+                                MessageBoxResult.Yes) |> Async.AwaitTask with
                                     | MessageBoxResult.No  ->
                                         IFeshLog.log.PrintfnInfoMsg "Updating Fesh was skipped."
                                     | MessageBoxResult.Yes ->
                                         // if fesh.Tabs.AllTabs |> Seq.map (fun t -> fesh.Tabs.Save(t)) |> Seq.forall id then // save needs to be in sync
-                                        if fesh.Tabs.AskForFileSavingToKnowIfClosingWindowIsOk() then // save needs to be in sync
+                                        let! closeOK = fesh.Tabs.AskForFileSavingToKnowIfClosingWindowIsOk() |> Async.AwaitTask
+                                        if closeOK then // save needs to be in sync
                                             do! Async.SwitchToThreadPool()
                                             IFeshLog.log.PrintfnInfoMsg "All changes saved. Proceeding with update ..."
                                             IFeshLog.log.PrintfnInfoMsg "Downloading Updates for Fesh ..."

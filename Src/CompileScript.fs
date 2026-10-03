@@ -11,10 +11,9 @@ open Fesh.Config
 open System.Text
 open Fittings
 
-
-
 module CompileScript =
     open Avalonia.Threading
+    open System.Threading.Tasks
 
     /// also removes "_" ;  "-" ; "+"; "|"; " " from string
     /// first letter will be capital
@@ -78,30 +77,33 @@ module CompileScript =
         refs, fsxs, nugs, (codeWithoutNugetRefs.ToString())
 
     /// if last write is more than 1h ago ask for overwrite permissions
-    let overWriteExisting fsProj (write: unit -> unit) :unit =
-        SyncContext.post( fun _ ->
+
+    //if last write is more than 1h ago ask for overwrite permissions
+    let overWriteExisting fsProj :Task<bool> =
+        task{
             let maxAgeHours = 0.5
             let fi = FileInfo(fsProj)
             if fi.Exists then
                 let age = DateTime.UtcNow - fi.LastWriteTimeUtc
-                if age > TimeSpan.FromHours maxAgeHours then
+                if age > (TimeSpan.FromHours maxAgeHours) then
                     let msg = sprintf "Do you want to recompile and overwrite the existing files?\r\n \r\n%s\r\n \r\nthat are %.2f days old at\r\n \r\n(This dialog only shows if the last compilation was more than %.1f hours ago.)"fi.FullName age.TotalDays  maxAgeHours
-                    MessageBox.Show(
-                        IEditor.mainWindow,
-                        msg,
-                        "Fesh | Recompile and overwrite?",
-                        MessageBoxButton.YesNo,
-                        MessageBoxImage.Exclamation,
-                        MessageBoxResult.No, // default result
-                        function
-                        | MessageBoxResult.Yes-> write()
-                        | _ -> ()
-                    )
+                    let! res = MessageBox.Show(
+                                    IEditor.mainWindow,
+                                    msg,
+                                    "Fesh | Recompile and overwrite?",
+                                    MessageBoxButton.YesNo,
+                                    MessageBoxImage.Exclamation,
+                                    MessageBoxResult.No)
+                    return
+                        match res with
+                        | MessageBoxResult.Yes -> true
+                        | MessageBoxResult.No -> false
+                        | _ -> false
                 else
-                    write()
+                    return true
             else
-                write()
-        )
+                return true
+        }
 
     let getNugsXml (nugs:ResizeArray<NugetRef>) : string =
            seq{ for nug in nugs  do  "<PackageReference Include=\"" + nug.name + "\" Version=\"" + nug.version + "\" />" }
@@ -193,25 +195,42 @@ module CompileScript =
         psi.Arguments <- String.concat " " ["build"; "\"" + fsProj + "\""  ] //;  "--configuration Release"] configuration is part of fsproj file
         true
 
+    let encoding =
+        // Text.Encoding.GetEncoding(Globalization.CultureInfo.CurrentCulture.TextInfo.OEMCodePage) // original version
+        // CodePagesEncodingProvider.Instance.GetEncoding(Globalization.CultureInfo.CurrentCulture.TextInfo.OEMCodePage) // stackoverflow version
+        Encoding.UTF8
+        // https://stackoverflow.com/questions/56802715/firefoxwebdriver-no-data-is-available-for-encoding-437
+        // <PackageReference Include="System.Text.Encoding.CodePages" Version="8.0.0" />
+        // for console also see https://stackoverflow.com/a/1427817/969070
+        // https://stackoverflow.com/a/48436394/969070
+
+
     let compileScript(code, fp:FilePath, useMSBuild, config:Config) =
         match fp with
-        |Deleted _ | NotSet _ -> IFeshLog.log.PrintfnAppErrorMsg "Cannot compile an unsaved or deleted script. Save it first"
+        | Deleted _ | NotSet _ ->
+            IFeshLog.log.PrintfnAppErrorMsg "Cannot compile an unsaved or deleted script. Save it first"
         | SetTo fi ->
-            async{
-                try
-                    gray "compiling %s ..." fi.Name
-                    let fileName = fi.Name.Replace(".fsx","")
-                    let nameSpace = fileName |> toCamelCase
-                    let outLiteral = "  " + nameSpace + " -> "
-                    let mutable resultDll = "" // found via matching on outLiteral below
-                    let folderName = "_compiled_" + nameSpace
-                    let projFolder = IO.Path.Combine(fi.DirectoryName,folderName)
-                    let libFolderFull = IO.Path.Combine(projFolder, ScriptCompilerFsproj.LibFolderName)
-                    IO.Directory.CreateDirectory(libFolderFull)  |> ignore
-                    IO.Directory.CreateDirectory(projFolder)  |> ignore
-                    let fsProj = IO.Path.Combine(projFolder,nameSpace + ".fsproj")
-                    overWriteExisting fsProj ( fun () ->
-                        async{
+            task {
+                gray "compiling %s ..." fi.Name
+                let fileName = fi.Name.Replace(".fsx","")
+                let nameSpace = fileName |> toCamelCase
+                let outLiteral = "  " + nameSpace + " -> "
+                let mutable resultDll = "" // found via matching on outLiteral below
+                let folderName = "_compiled_" + nameSpace
+                let projFolder = IO.Path.Combine(fi.DirectoryName,folderName)
+                let libFolderFull = IO.Path.Combine(projFolder, ScriptCompilerFsproj.LibFolderName)
+                let fsProj = IO.Path.Combine(projFolder,nameSpace + ".fsproj")
+                do! backgroundTask {
+                    try
+                        IO.Directory.CreateDirectory(libFolderFull)  |> ignore
+                        IO.Directory.CreateDirectory(projFolder)  |> ignore
+                    with e ->
+                        eprintfn $"Error creating folders for script compilation: {e}"
+                    }
+                let! ok = overWriteExisting fsProj
+                if ok then
+                    backgroundTask{
+                        try
                             let refs, fsxs, nugs, codeWithoutNugetRefs = extractRefs (code,nameSpace)
                             let fsxXml = getFsxXml(projFolder, nameSpace ,codeWithoutNugetRefs, fsxs)
                             let refXml = getRefsXml(libFolderFull,refs)
@@ -237,17 +256,8 @@ module CompileScript =
                                     psi.CreateNoWindow <- true //true if the process should be started without creating a new window to contain it
                                     psi.RedirectStandardError <-true
                                     psi.RedirectStandardOutput <-true
-
-                                    let enc =
-                                        // Text.Encoding.GetEncoding(Globalization.CultureInfo.CurrentCulture.TextInfo.OEMCodePage) // original version
-                                        // CodePagesEncodingProvider.Instance.GetEncoding(Globalization.CultureInfo.CurrentCulture.TextInfo.OEMCodePage) // stackoverflow version
-                                        Encoding.UTF8
-                                    // https://stackoverflow.com/questions/56802715/firefoxwebdriver-no-data-is-available-for-encoding-437
-                                    // <PackageReference Include="System.Text.Encoding.CodePages" Version="8.0.0" />
-                                    // for console also see https://stackoverflow.com/a/1427817/969070
-                                    // https://stackoverflow.com/a/48436394/969070
-                                    psi.StandardOutputEncoding <- enc
-                                    psi.StandardErrorEncoding  <- enc
+                                    psi.StandardOutputEncoding <- encoding
+                                    psi.StandardErrorEncoding  <- encoding
 
                                     let p = new Diagnostics.Process()
                                     p.StartInfo <- psi
@@ -281,11 +291,12 @@ module CompileScript =
                                     p.BeginErrorReadLine()
                                     //log.PrintfnInfoMsg "compiling to %s" (IO.Path.Combine(projFolder,"bin","Release","netstandard2.0",nameSpace+".dll"))
                                     p.WaitForExit()
-                        }|> Async.Start
-                    ) // end of overWriteExisting
-                with
-                    e -> IFeshLog.log.PrintfnAppErrorMsg "%A" e
-            } |> Async.Start
+
+                        with
+                            e -> IFeshLog.log.PrintfnAppErrorMsg "%A" e
+                        }
+                        |> ignore<Task<unit>> // start and do not await result
+            }|> ignore<Task<unit>> // start and do not await result
 
 
 

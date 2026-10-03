@@ -1,6 +1,7 @@
 ﻿namespace Fesh.Editor
 
 open Avalonia
+open System
 open System.Collections.Generic
 open Fittings
 open Fesh
@@ -8,6 +9,7 @@ open Fesh.Model
 open FSharp.Compiler.CodeAnalysis
 
 module AutoFixErrors =
+    open System.Threading.Tasks
 
     let asked  = HashSet<string>()
     let askedAgain  = HashSet<string>()
@@ -17,26 +19,26 @@ module AutoFixErrors =
     let ask(errMsg:string,assemblyName:string) =
         // it is actually better to start the message box from another thread ?
         isMessageBoxOpen <- true
-        async{
-            do! Async.SwitchToContext SyncContext.context
-            match MessageBox.Show(
-                IEditor.mainWindow,
-                $"Do you want to add a reference to\r\n\r\n{assemblyName}.dll\r\n\r\non the first line of the script? \r\n\r\nTo fix this Error:\r\n{errMsg}" ,
-                $"Fesh | Add a reference to {assemblyName} ?",
-                MessageBoxButton.YesNo,
-                MessageBoxImage.Question,
-                MessageBoxResult.Yes, // default result
-                MessageBoxOptions.None) with
-            | MessageBoxResult.Yes ->
-                do! Async.SwitchToContext SyncContext.context
-                match IEditor.current with
-                |Some ied ->
-                    ied.AvaEdit.Document.Insert(0, $"#r \"{assemblyName}\" // auto added\r\n")
-                |None -> ()
-            | _ -> ()
+        UiThread.post (fun () ->
+            task {
+                match! MessageBox.Show(
+                    IEditor.mainWindow,
+                    $"Do you want to add a reference to\r\n\r\n{assemblyName}.dll\r\n\r\non the first line of the script? \r\n\r\nTo fix this Error:\r\n{errMsg}" ,
+                    $"Fesh | Add a reference to {assemblyName} ?",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Question,
+                    MessageBoxResult.Yes) with
+                | MessageBoxResult.Yes ->
+                    match IEditor.current with
+                    |Some ied ->
+                        ied.AvaEdit.Document.Insert(0, $"#r \"{assemblyName}\" // auto added{Environment.NewLine}")
+                    |None -> ()
+                | _ -> ()
 
-            isMessageBoxOpen <- false
-        }|> Async.Start
+                isMessageBoxOpen <- false
+            }
+            |> ignore<Task<unit>>
+        )
 
     let check(errMsg) =
         match Util.Str.between "add a reference to assembly '" ","  errMsg with //assembly name with version number

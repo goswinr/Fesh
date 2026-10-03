@@ -15,6 +15,7 @@ open Fesh.Config
 open Avalonia.Platform.Storage
 open Avalonia.Visuals
 open Avalonia.VisualTree
+open System.Threading.Tasks
 
 type SavingKind =
     | SaveInPlace
@@ -226,106 +227,112 @@ type Tabs(config:Config, log:Log, feshWin:FeshWindow) =
 
 
     let saveAsync (t:Tab) =  // gets called from evalAllText(),  evalAllTextSave()  and  evalAllTextSaveClear() only
-        match t.Editor.FilePath with
-        | NotSet _ ->
-            saveAsDialog(t,SaveNewLocation ) |> ignore<bool>
+        task{
+            match t.Editor.FilePath with
+            | NotSet _ | Deleted _ ->
+                do! saveAsDialog(t, SaveNewLocation ) |> ignore<Task<bool>>
 
-        | SetTo fi ->
-            let txt = t.AvaEdit.Text
-            async{
+            | SetTo fi ->
+                let txt = t.AvaEdit.Text
                 try
                     fi.Refresh()
                     if not <| fi.Directory.Exists then
                         log.PrintfnIOErrorMsg "saveAsync: Directory does not exist, file not saved :\r\n%s" fi.Directory.FullName
                     else
-                        IO.File.WriteAllText(fi.FullName, txt, Text.Encoding.UTF8)
+                        do! IO.File.WriteAllTextAsync(fi.FullName, txt, Text.Encoding.UTF8)
                         t.Editor.CodeAtLastSave <- txt
-                        SyncContext.doSync (fun ()->
-                            t.IsCodeSaved <- true
-                            t.FileTracker.Rearm() // in case watching was stopped by answering 'No' to a reload dialog
-                            log.PrintfnInfoMsg "File saved."
-                            //log.PrintfnInfoMsg "File saved:\r\n\"%s\"" fi.FullName
-                            )
-                    with e ->
+                        t.IsCodeSaved <- true
+                        t.FileTracker.Rearm() // in case watching was stopped by answering 'No' to a reload dialog
+                        log.PrintfnInfoMsg "File saved."
+                        //log.PrintfnInfoMsg "File saved:\r\n\"%s\"" fi.FullName
+                with e ->
                         log.PrintfnIOErrorMsg "saveAsync failed for: %s failed with %A" fi.FullName e
-                    } |> Async.Start
-         |Deleted _ ->
-            saveAsDialog(t, SaveNewLocation )
-            |> ignore<bool>
+        }
 
-    let export(t:Tab):bool =
+    let export(t:Tab):Task<bool> =
         saveAsDialog (t, SaveExport)
 
-    /// Returns false if saving operation was canceled or had an error, true on successfully saving
-    let trySave (t:Tab) =
-        match t.Editor.FilePath with
-        |SetTo fi ->
-            if  t.IsCodeSaved then
-                log.PrintfnInfoMsg "File already up to date:\r\n%s" fi.FullName
-                true
-            elif (fi.Refresh(); fi.Exists) then // test again for file existence, it might have moved while dialog was open.
-                saveAt(t, fi, SaveInPlace)
-            else
-                log.PrintfnIOErrorMsg "File does not exist on drive anymore. Re-saving it at:\r\n%s" fi.FullName
-                saveAsDialog(t, SaveNewLocation )
-        |Deleted _
-        |NotSet _ ->
-                saveAsDialog(t, SaveNewLocation )
-
 
     /// Returns false if saving operation was canceled or had an error, true on successfully saving
-    let trySaveBeforeClosing (t:Tab) =
-        match t.Editor.FilePath with
-        |SetTo fi ->
-            if  t.IsCodeSaved then
-                true
-            elif (fi.Refresh(); fi.Exists) then // test again for file existence, it might have moved while dialog was open.
-                saveAt(t, fi, SaveInPlace)
-            else
-                saveAsDialog(t, SaveNewLocationSync)
-        |Deleted _
-        |NotSet _ ->
-                saveAsDialog(t, SaveNewLocationSync)
-
-
-    /// Returns true if file is saved or if closing ok (not canceled by user)
-    let askIfClosingTabIsOk(t:Tab) :bool =
-        if t.IsCodeSaved then
-            true
-        else
+    let trySave (t:Tab) :Task<bool> =
+        task{
             match t.Editor.FilePath with
-            |Deleted _ ->  true // don't ask for saving a file that is already deleted
-            |SetTo _
+            |SetTo fi ->
+                if  t.IsCodeSaved then
+                    log.PrintfnInfoMsg "File already up to date:\r\n%s" fi.FullName
+                    return true
+                elif (fi.Refresh(); fi.Exists) then // test again for file existence, it might have moved while dialog was open.
+                    return saveAt(t, fi, SaveInPlace)
+                else
+                    log.PrintfnIOErrorMsg "File does not exist on drive anymore. Re-saving it at:\r\n%s" fi.FullName
+                    return! saveAsDialog(t, SaveNewLocation )
+            |Deleted _
             |NotSet _ ->
+                    return! saveAsDialog(t, SaveNewLocation )
+        }
 
-                let nameLines =
-                    match t.Editor.FilePath with
-                    |Deleted _ ->  " xx " // excluded above
-                    |SetTo p ->  $"\r\n{p.Name}\r\n\r\n({p.DirectoryName})\r\n"
-                    |NotSet dummyName -> $"\r\n{dummyName}\r\n"
 
-                match MessageBox.Show(
-                    win,
-                    $"Do you want to save the changes to:\r\n{nameLines}\r\nbefore closing this tab?" ,
-                    "Fesh | Save Changes before closing Tab?",
-                    MessageBoxButton.YesNoCancel,
-                    MessageBoxImage.Question,
-                    MessageBoxResult.Yes, // default result
-                    MessageBoxOptions.None) with
-                | MessageBoxResult.Yes -> trySave t
-                | MessageBoxResult.No -> true
-                | MessageBoxResult.Cancel -> false
-                | _ -> false
+    /// Returns false if saving operation was canceled or had an error, true on successfully saving
+    let trySaveBeforeClosing (t:Tab) :Task<bool> =
+        task{
+            match t.Editor.FilePath with
+            |SetTo fi ->
+                if  t.IsCodeSaved then
+                    return true
+                elif (fi.Refresh(); fi.Exists) then // test again for file existence, it might have moved while dialog was open.
+                    return saveAt(t, fi, SaveInPlace)
+                else
+                    return! saveAsDialog(t, SaveNewLocationSync)
+            |Deleted _
+            |NotSet _ ->
+                    return! saveAsDialog(t, SaveNewLocationSync)
+        }
+
+
+    /// Returns true if closing the tab next is ok (false if dialog was canceled by user)
+    let askIfClosingTabIsOk(t:Tab) : Task<bool> =
+        task{
+            if t.IsCodeSaved then
+                return true
+            else
+                match t.Editor.FilePath with
+                |Deleted _ ->  return true // don't ask for saving a file that is already deleted
+                |SetTo _
+                |NotSet _ ->
+                    let nameLines =
+                        match t.Editor.FilePath with
+                        |Deleted _ ->  " xx " // excluded above
+                        |SetTo p ->  $"\r\n{p.Name}\r\n\r\n({p.DirectoryName})\r\n"
+                        |NotSet dummyName -> $"\r\n{dummyName}\r\n"
+
+                    let! answer =
+                        MessageBox.Show(
+                            win,
+                            $"Do you want to save the changes to:\r\n{nameLines}\r\nbefore closing this tab?" ,
+                            "Fesh | Save changes before closing Tab?",
+                            MessageBoxButton.YesNoCancel,
+                            MessageBoxImage.Question,
+                            MessageBoxResult.Yes)
+
+                    match answer with
+                    | MessageBoxResult.Yes -> return! trySave t
+                    | MessageBoxResult.No -> return true
+                    | MessageBoxResult.Cancel -> return false
+                    | _ -> return false
+            }
 
     /// Returns true if the tab was closed, false if closing was canceled by the user
-    let closeTab(t:Tab) :bool =
-        if askIfClosingTabIsOk t then
-            t.FileTracker.Stop()
-            tabControl.Items.Remove t |> ignore
-            config.OpenTabs.Save (t.Editor.FilePath , allExistingFileInfos()) //saving removed file, not added
-            true
-        else
-            false
+    let closeTab(t:Tab) : Task<bool> =
+        task{
+            let! tIsOk = askIfClosingTabIsOk t
+            if tIsOk then
+                t.FileTracker.Stop()
+                tabControl.Items.Remove t |> ignore
+                config.OpenTabs.Save (t.Editor.FilePath , allExistingFileInfos()) //saving removed file, not added
+                return true
+            else
+                return false
+        }
 
 
     /// addTab(Tab, makeCurrent, moreTabsToCome)
@@ -334,7 +341,7 @@ type Tabs(config:Config, log:Log, feshWin:FeshWindow) =
         if makeCurrent then
             setCurrentTab idx
 
-        tab.CloseButton.Click.Add (fun _ -> closeTab(tab) |> ignore<bool>)
+        tab.CloseButton.Click.Add (fun _ -> closeTab(tab) |> ignore<Task<bool>>)
 
         match tab.Editor.FilePath with
         |SetTo fi ->
@@ -391,14 +398,11 @@ type Tabs(config:Config, log:Log, feshWin:FeshWindow) =
                     false
         else
             log.PrintfnIOErrorMsg "File not found:\r\n%s" fi.FullName
-            MessageBox.Show(
+            MessageBox.ShowOK(
                 win,
                 $"File not found:\r\n\r\n{fi.FullName}" ,
                 "Fesh | File not found !",
-                MessageBoxButton.OK,
-                MessageBoxImage.Error,
-                MessageBoxResult.OK , // default result
-                MessageBoxOptions.None) |> ignore
+                MessageBoxImage.Error)
             false
 
     /// Return true if at least one file was opened correctly
@@ -548,121 +552,135 @@ type Tabs(config:Config, log:Log, feshWin:FeshWindow) =
         saveAsDialog(t, SaveNewLocation)
 
     /// also saves currently open files
-    member this.CloseTab(t) = closeTab(t) |> ignore<bool>
+    member this.CloseTab(t) = closeTab(t) |> ignore<Task<bool>>
 
     member this.CloseDelete(t:Tab) =
-        if closeTab(t) then // don't delete the file if closing was canceled
-            tryDeleteToRecycleBin t.Editor.FilePath
+        task{
+            let! closed = closeTab(t)
+            if closed then // don't delete the file if closing was canceled
+                tryDeleteToRecycleBin t.Editor.FilePath
+        }
+        |> ignore<Task<unit>>
 
     /// Returns true if saving operation was not canceled
     member this.Save(t:Tab) = trySave(t)
 
     /// Prints errors to log
-    member this.SaveAsync(t:Tab) = saveAsync(t)
+    member this.SaveAsync(t:Tab) = saveAsync(t) |> ignore<Task<unit>>
 
     /// Returns true if saving operation was not canceled
     member this.Export(t:Tab) = export(t)
     member this.Rename(t:Tab) =
-        let old = t.Editor.FilePath
-        if saveAsDialog(t, RenameFile) then
-            match old, t.Editor.FilePath with
-            |SetTo o, SetTo n when String.Equals(o.FullName, n.FullName, StringComparison.OrdinalIgnoreCase) ->
-                // same file on disk, deleting the old path would delete the file that was just saved
-                if o.FullName <> n.FullName then // only the casing changed
-                    try IO.File.Move(o.FullName, n.FullName)
-                    with e -> log.PrintfnIOErrorMsg $"Failed to change the casing of the file name: {e.Message}"
-            | _ ->
-                tryDeleteToRecycleBin old
+        task {
+            let old = t.Editor.FilePath
+            let! ok = saveAsDialog(t, RenameFile)
+            if ok then
+                match old, t.Editor.FilePath with
+                |SetTo o, SetTo n when String.Equals(o.FullName, n.FullName, StringComparison.OrdinalIgnoreCase) ->
+                    // same file on disk, deleting the old path would delete the file that was just saved
+                    if o.FullName <> n.FullName then // only the casing changed
+                        try IO.File.Move(o.FullName, n.FullName)
+                        with e -> log.PrintfnIOErrorMsg $"Failed to change the casing of the file name: {e.Message}"
+                | _ ->
+                    tryDeleteToRecycleBin old
+        }
 
     /// Returns true if saving operation was not canceled
-    member this.SaveIncremental (t:Tab) =
-        let isNum c = c >= '0' && c <= '9'
-        let incrC (c:Char)   = string( int c - 48 + 1) // 48 = int '0'
-        match t.Editor.FilePath with
-        |Deleted fi
-        |SetTo fi ->
-            let nex = fi.Name
-            let ext = fi.Extension
-            let rn  = nex.Substring(0,nex.Length-ext.Length)
-            let save (nn:string) :bool =
-                let ni = FileInfo(Path.Combine(fi.DirectoryName, nn + ext ))
-                if ni.Directory.Exists then
-                    if ni.Exists then
-                        this.SaveAs(t)
-                    else
-                        saveAt(t,ni, SaveNewLocation)
-                else // directory was deleted too save a new path:
-                    saveAsDialog(t, SaveNewLocation)
-
-            let l = rn[rn.Length-1]
-            let nn = // the new numeric suffix
-                if isNum l then
-                    if rn.Length = 1 then
-                        match l with
-                        | '9' -> "10"
-                        |  i  -> incrC i
-                    else
-                        let ll = rn[rn.Length-2]
-                        if isNum ll then
-                            let abc = rn.Substring(0,rn.Length-2) // the name without the two digits
-                            match ll,l with
-                            | '9','9' -> "" // null sentinel
-                            |  i ,'9' -> abc + incrC  i + "0"
-                            |  i , j  -> abc + string i + incrC j
-                        else
-                            let abc = rn.Substring(0,rn.Length-1) // the name without the one digit
+    member this.SaveIncremental (t:Tab) : Task<bool> =
+        task{
+            let isNum c = c >= '0' && c <= '9'
+            let incrC (c:Char)   = string( int c - 48 + 1) // 48 = int '0'
+            match t.Editor.FilePath with
+            |Deleted fi
+            |SetTo fi ->
+                let nex = fi.Name
+                let ext = fi.Extension
+                let rn  = nex.Substring(0,nex.Length-ext.Length)
+                let l = rn[rn.Length-1]
+                let nn = // the new numeric suffix
+                    if isNum l then
+                        if rn.Length = 1 then
                             match l with
-                            | '9' -> abc + "10"
-                            |  i   -> abc + incrC i
+                            | '9' -> "10"
+                            |  i  -> incrC i
+                        else
+                            let ll = rn[rn.Length-2]
+                            if isNum ll then
+                                let abc = rn.Substring(0,rn.Length-2) // the name without the two digits
+                                match ll,l with
+                                | '9','9' -> "" // null sentinel
+                                |  i ,'9' -> abc + incrC  i + "0"
+                                |  i , j  -> abc + string i + incrC j
+                            else
+                                let abc = rn.Substring(0,rn.Length-1) // the name without the one digit
+                                match l with
+                                | '9' -> abc + "10"
+                                |  i   -> abc + incrC i
+                    else
+                        rn + "_01"
+
+                if nn<>"" then
+                    let ni = FileInfo(Path.Combine(fi.DirectoryName, nn + ext ))
+                    if ni.Directory.Exists then
+                        if ni.Exists then
+                            return! this.SaveAs(t)
+                        else
+                            return saveAt(t,ni, SaveNewLocation)
+                    else // directory was deleted too save a new path:
+                        return! saveAsDialog(t, SaveNewLocation)
                 else
-                    rn + "_01"
+                    return! this.SaveAs(t)
 
-            if nn<>"" then
-                save nn
-            else
-                this.SaveAs(t)
-
-        |NotSet _ ->
-            //log.PrintfnIOErrorMsg "Can't Save Incrementing unsaved file."
-            this.SaveAs(t)
-
+            |NotSet _ ->
+                //log.PrintfnIOErrorMsg "Can't Save Incrementing unsaved file."
+                return! this.SaveAs(t)
+        }
     /// Will display a dialog if there are unsaved files.
     /// if user clicks yes it will attempt to save files.
     /// Returns true if all files are saved or unsaved changes shall be ignored.
     /// So true mean the closing process was not canceled by user.
-    member this.AskForFileSavingToKnowIfClosingWindowIsOk() =
-        let openFs = allTabs() |> Seq.filter (fun t -> not t.IsCodeSaved && t.SavingWanted)
-        //log.PrintfnDebugMsg "Unsaved files %d" (Seq.length openFs)
-        if  Seq.isEmpty openFs then
-            true
-        else
-            let msg =
-                openFs  |> Seq.fold (fun m t ->
-                    let name  = match t.Editor.FilePath with NotSet dummyName -> dummyName  |Deleted fi |SetTo fi -> fi.Name
-                    sprintf "%s\r\n \r\n%s" m name) "Do you want to\r\nsave the changes to:"
+    member this.AskForFileSavingToKnowIfClosingWindowIsOk() : Task<bool> =
+        task{
+            let openFs = allTabs() |> Seq.filter (fun t -> not t.IsCodeSaved && t.SavingWanted)
+            //log.PrintfnDebugMsg "Unsaved files %d" (Seq.length openFs)
+            if  Seq.isEmpty openFs then
+                return true
+            else
+                let msg =
+                    openFs  |> Seq.fold (fun m t ->
+                        let name  = match t.Editor.FilePath with NotSet dummyName -> dummyName  |Deleted fi |SetTo fi -> fi.Name
+                        sprintf "%s\r\n \r\n%s" m name) "Do you want to\r\nsave the changes to:"
 
-            match MessageBox.Show(
-                win,
-                msg,
-                "Fesh | Save Changes?",
-                MessageBoxButton.YesNoCancel,
-                MessageBoxImage.Question,
-                MessageBoxResult.Yes, // default result
-                MessageBoxOptions.None) with
+                let! answer =  MessageBox.Show(
+                    win,
+                    msg,
+                    "Fesh | Save changes?",
+                    MessageBoxButton.YesNoCancel,
+                    MessageBoxImage.Question,
+                    MessageBoxResult.Yes)
 
-            | MessageBoxResult.Yes ->
-                seq { for t in allTabs() do if not t.IsCodeSaved then yield trySaveBeforeClosing t } // if saving was canceled ( eg, no filename picked) then cancel closing
-                |> Seq.forall id // checks if all are true, if one file-saving was canceled return false, so the closing of the main window can be aborted
-                //if Seq.exists ( fun ok -> ok = false) oks then false else true
-            | MessageBoxResult.No  ->
-                // In a hosted context like Rhino the dialog would pop on closing fesh window and on closing the Rhino window
-                // so that the dialog about saving only pops up once set t.SavingWanted <- false for all tabs
-                for t in allTabs() do t.SavingWanted <- false
-                true
-            | MessageBoxResult.Cancel  ->
-                false
-            | _  -> // never happening
-                false
+                match answer with
+                | MessageBoxResult.Yes ->
+                    let mutable allSaved = true
+                    for t in allTabs() do
+                        if not t.IsCodeSaved || not allSaved then
+                            let! savingWasOK = trySaveBeforeClosing t
+                            if not savingWasOK then
+                                allSaved <- false
+                    return allSaved // if any file saving was canceled then return false, so the closing of the main window can be aborted
+                    // seq { for t in allTabs() do if not t.IsCodeSaved then yield trySaveBeforeClosing t } // if saving was canceled ( eg, no filename picked) then cancel closing
+                    // |> Seq.forall id // checks if all are true, if one file-saving was canceled return false, so the closing of the main window can be aborted
+                    //if Seq.exists ( fun ok -> ok = false) oks then false else true
+                | MessageBoxResult.No  ->
+                    // In a hosted context like Rhino the dialog would pop on closing fesh window and on closing the Rhino window
+                    // so that the dialog about saving only pops up once set t.SavingWanted <- false for all tabs
+                    for t in allTabs() do t.SavingWanted <- false
+                    return true
+                | MessageBoxResult.Cancel  ->
+                    return false
+                | _  -> // never happening
+                    return false
+        }
 
 
     /// Opens the file in the Visual Studio Code editor

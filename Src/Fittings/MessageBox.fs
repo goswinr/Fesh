@@ -4,6 +4,7 @@ namespace Fittings
 type MessageBoxButton =
     | OK
     | YesNo
+    | YesAlwaysNo
     | YesNoCancel
 
 [<RequireQualifiedAccess>]
@@ -14,137 +15,110 @@ type MessageBoxImage =
 
 [<RequireQualifiedAccess>]
 type MessageBoxResult =
-    | Yes
-    | No
     | OK
+    | Yes
+    | Always
+    | No
     | Cancel
 
-[<RequireQualifiedAccess>]
-type MessageBoxOptions =
-    | None
+module MsgBxLiterals =
+    let [<Literal>] ok = "OK"
+    let [<Literal>] yes = "Yes"
+    let [<Literal>] yesAlways = "Yes, always"
+    let [<Literal>] no = "No"
+    let [<Literal>] cancel = "Cancel"
+
+
 
 open MsBox.Avalonia // <PackageReference Include="MessageBox.Avalonia" Version="3.2.0" />
-
-open System
-open System.Diagnostics
-open System.Runtime.InteropServices
 open Avalonia.Controls
 open MsBox.Avalonia.Dto
 open MsBox.Avalonia.Models
+open System.Threading.Tasks
 
-module Browse =
-    let hyperLinkAction = Action(fun () ->
-        let url = "https://docs.avaloniaui.net/"
-        if RuntimeInformation.IsOSPlatform(OSPlatform.Windows) then
-            use proc = new Process()
-            proc.StartInfo.UseShellExecute <- true
-            proc.StartInfo.FileName <- url
-            proc.Start() |> ignore
-        elif RuntimeInformation.IsOSPlatform(OSPlatform.Linux) then
-            Process.Start("x-www-browser", url) |> ignore
-        elif RuntimeInformation.IsOSPlatform(OSPlatform.OSX) then
-            Process.Start("open", url) |> ignore
-        else
-            raise (Exception("invalid url: " + url))
-        )
 
 [<RequireQualifiedAccess>]
 type MessageBox =
 
+    // https://github.com/AvaloniaCommunity/MessageBox.Avalonia
+
     static member Show(
-        _host: Avalonia.Controls.Window,
+        host: Avalonia.Controls.Window,
         message: string,
         title: string,
-        _button: MessageBoxButton,
-        _image: MessageBoxImage,
-        _defaultResult: MessageBoxResult,
-        _options: MessageBoxOptions,
-        cont:MessageBoxResult -> unit) : unit =
+        button: MessageBoxButton,
+        image: MessageBoxImage,
+        defaultResult: MessageBoxResult) : Task<MessageBoxResult> =
+            let buttons =
+                match button with
+                | MessageBoxButton.OK -> [
+                    new ButtonDefinition(Name = MsgBxLiterals.ok, IsDefault = true, IsCancel = true)
+                    ]
+                | MessageBoxButton.YesNo -> [
+                    new ButtonDefinition(Name = MsgBxLiterals.yes, IsDefault = defaultResult.IsYes)
+                    new ButtonDefinition(Name = MsgBxLiterals.no , IsDefault = defaultResult.IsNo)
+                    ]
+                | MessageBoxButton.YesAlwaysNo -> [
+                    new ButtonDefinition(Name = MsgBxLiterals.yes, IsDefault = defaultResult.IsYes)
+                    new ButtonDefinition(Name = MsgBxLiterals.yesAlways, IsDefault = defaultResult.IsAlways)
+                    new ButtonDefinition(Name = MsgBxLiterals.no, IsDefault = defaultResult.IsNo) //A user can activate the Cancel button by pressing the ESC key.
+                    ]
+                | MessageBoxButton.YesNoCancel -> [
+                    new ButtonDefinition(Name = MsgBxLiterals.yes, IsDefault = defaultResult.IsYes)
+                    new ButtonDefinition(Name = MsgBxLiterals.no , IsDefault = defaultResult.IsNo)
+                    new ButtonDefinition(Name = MsgBxLiterals.cancel, IsDefault = defaultResult.IsCancel, IsCancel = true) //A user can activate the Cancel button by pressing the ESC key.
+                    ]
 
+            let icon =
+                match image with
+                | MessageBoxImage.Exclamation -> MsBox.Avalonia.Enums.Icon.Warning
+                | MessageBoxImage.Question -> MsBox.Avalonia.Enums.Icon.Question
+                | MessageBoxImage.Error -> MsBox.Avalonia.Enums.Icon.Error
             let opt =
                 new MessageBoxCustomParams(
-                    ButtonDefinitions = [
-                        new ButtonDefinition(Name = "Yes")
-                        new ButtonDefinition(Name = "No")
-                        new ButtonDefinition(Name = "Cancel")
-                    ],
+                    ButtonDefinitions = buttons,
                     ContentTitle = title,
                     ContentMessage = message,
-                    Icon = MsBox.Avalonia.Enums.Icon.Warning,
+                    Icon = icon,
                     WindowStartupLocation = WindowStartupLocation.CenterOwner,
                     CanResize = false,
                     MaxWidth = 800,
                     MaxHeight = 700,
                     SizeToContent = SizeToContent.WidthAndHeight,
                     ShowInCenter = true,
-                    Topmost = false,
-                    HyperLinkParams = new HyperLinkParams(
-                        Text = "https://docs.avaloniaui.net/",
-                        Action = Browse.hyperLinkAction
+                    Topmost = false
+                    // HyperLinkParams = new HyperLinkParams( Text = "https://docs.avaloniaui.net/", Action = Browse.hyperLinkAction
                     )
-                )
+            // opt.SystemDecorations <- SystemDecorations.BorderOnly
 
 
             let box = MessageBoxManager.GetMessageBoxCustom(opt)
-            task{
-                let! res = box.ShowWindowDialogAsync(_host)
-                let result =
+            task {
+                let! res = box.ShowWindowDialogAsync host
+                return
                     match res with
-                    | "Yes"     -> MessageBoxResult.Yes
-                    | "No"      -> MessageBoxResult.No
-                    | "Cancel"  -> MessageBoxResult.Cancel
-                    | _ -> MessageBoxResult.No // does not exist in the enum, so return No
-                cont result
+                    | MsgBxLiterals.ok      -> MessageBoxResult.OK
+                    | MsgBxLiterals.yes     -> MessageBoxResult.Yes
+                    | MsgBxLiterals.yesAlways -> MessageBoxResult.Always
+                    | MsgBxLiterals.no      -> MessageBoxResult.No
+                    | MsgBxLiterals.cancel  -> MessageBoxResult.Cancel
+                    | x         ->
+                        eprintfn $"Result from MessageBox '{x}' is not recognized, returning 'Cancel'."
+                        MessageBoxResult.Cancel
+                }
+
+
+    static member ShowOK (
+        host: Avalonia.Controls.Window,
+        message: string,
+        title: string,
+        image: MessageBoxImage) : unit  =
+            task{
+                let! _ = MessageBox.Show(host, message, title, MessageBoxButton.OK, image, MessageBoxResult.OK)
+                ()
             }
-            |> ignore
+            |> ignore<Task<unit>>
 
-
-
-
-            // let box =
-            //     MessageBoxManager.GetMessageBoxStandard(
-            //         title,
-            //         message,
-            //         Enums.ButtonEnum.YesNo)
-            //         // .ShowWindowDialogAsync(_host)
-            //         // .ShowAsync()
-            //         // .GetAwaiter()
-            //         // .GetResult()
-
-            // task{
-            //     let! res = box.ShowWindowDialogAsync(_host)
-            //     let result =
-            //         match res with
-            //         | Enums.ButtonResult.Ok -> MessageBoxResult.OK //= 0
-            //         | Enums.ButtonResult.Yes -> MessageBoxResult.Yes //= 1
-            //         | Enums.ButtonResult.No -> MessageBoxResult.No //= 2
-            //         | Enums.ButtonResult.Abort -> MessageBoxResult.No //= 3
-            //         | Enums.ButtonResult.Cancel -> MessageBoxResult.Cancel //= 4
-            //         | Enums.ButtonResult.None -> MessageBoxResult.No //= 5
-            //         | _ -> MessageBoxResult.No // does not exist in the enum, so return No
-            //     return result
-            // }
-            //  |> ignore
-
-            // MessageBoxResult.No //= 5
-
-
-            // async{
-            //     do! Async.SwitchToContext Avalonia.Threading.AvaloniaSynchronizationContext.Current
-            //     let! res = Async.AwaitTask <| box.ShowAsync()
-            //     let result =
-            //         match res with
-            //         |  Enums.ButtonResult.Ok -> MessageBoxResult.Yes //= 0
-            //         |  Enums.ButtonResult.Yes -> MessageBoxResult.Yes //= 1
-            //         |  Enums.ButtonResult.No -> MessageBoxResult.No //= 2
-            //         |  Enums.ButtonResult.Abort -> MessageBoxResult.No //= 3
-            //         |  Enums.ButtonResult.Cancel -> MessageBoxResult.No //= 4
-            //         |  Enums.ButtonResult.None -> MessageBoxResult.No //= 5
-            //         |  _ -> MessageBoxResult.No // does not exist in the enum, so return No
-
-            //     return result
-            // }
-            // |> Async.RunSynchronously
 
 
 

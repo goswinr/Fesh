@@ -66,6 +66,7 @@ module GoTo =
 //and for : Runtime.ControlledExecution.Run
 //#nowarn "44"
 open System.Reflection
+open System.Threading.Tasks
 
 type Fsi private (config:Config) =
     let log = config.Log
@@ -650,7 +651,7 @@ type Fsi private (config:Config) =
     /// starts a new Fsi session
     member this.Initialize() =  initFsi(config) // Checker class will call this after first run of checker, to start fsi when checker is  idle
 
-    member this.CancelIfAsync() = // this is called directly from UI
+    member this.CancelIfAsync()  : unit = // this is called directly from UI
         match state  with
         | Ready | Initializing | NotLoaded -> ()
         | Compiling | Evaluating ->
@@ -662,30 +663,32 @@ type Fsi private (config:Config) =
                 //isReadyEv.Trigger() // TODO needed
 
 
-    member this.AskIfCancellingIsOk(cont: FsiIsCancelingIsOk -> unit) :unit =
-        match state with
-        | Ready | Initializing | NotLoaded -> cont NotEvaluating
-        | Compiling | Evaluating ->
-            match syMode with
-            |InSync -> cont NotPossibleSync
-            |AsyncMode  ->
-                MessageBox.Show(
-                    IEditor.mainWindow,
-                    "Do you want to Cancel currently running code?",
-                    "Fesh | Cancel Current Evaluation?",
-                    MessageBoxButton.YesNo,
-                    MessageBoxImage.Exclamation,
-                    MessageBoxResult.No, // default result
-                    function
-                    | MessageBoxResult.Yes ->
-                        match state with // might have changed in the meantime of Message box show
-                        | Ready | Initializing | NotLoaded -> cont NotEvaluating
-                        | Compiling | Evaluating -> cont YesAsync
-                    | MessageBoxResult.No | _ ->
-                        match state with // might have changed in the meantime of Message box show
-                        | Ready | Initializing | NotLoaded -> cont NotEvaluating
-                        | Compiling | Evaluating -> cont UserDoesntWantTo
-                    )
+    member this.AskIfCancellingIsOk() : Task<FsiIsCancelingIsOk> =
+        task {
+            match state with
+            | Ready | Initializing | NotLoaded -> return NotEvaluating
+            | Compiling | Evaluating ->
+                match syMode with
+                |InSync ->   return NotPossibleSync
+                |AsyncMode  ->
+                    let! answer = MessageBox.Show(
+                                        IEditor.mainWindow,
+                                        "Do you want to Cancel currently running code?",
+                                        "Fesh | Cancel Current Evaluation?",
+                                        MessageBoxButton.YesNo,
+                                        MessageBoxImage.Exclamation,
+                                        MessageBoxResult.No) // default result
+                    return
+                        match answer with
+                        | MessageBoxResult.Yes ->
+                            match state with // might have changed in the meantime of Message box show
+                            | Ready | Initializing | NotLoaded ->  NotEvaluating
+                            | Compiling | Evaluating ->  YesAsync
+                        | MessageBoxResult.No | _ ->
+                            match state with // might have changed in the meantime of Message box show
+                            | Ready | Initializing | NotLoaded ->  NotEvaluating
+                            | Compiling | Evaluating ->  UserDoesntWantTo
+        }
 
     // without this back and forth switch the UI freezes.
     // Use after showing the MessageBox.Show( "Do you want to Cancel currently running code?",
@@ -697,7 +700,7 @@ type Fsi private (config:Config) =
         } |> Async.StartImmediate
 
 
-    member this.Evaluate(evalReq:EvalRequest) =
+    member this.Evaluate(evalReq:EvalRequest) : unit =
         // if DateTime.Today > DateTime(2026, 12, 31) then
         //     log.PrintfnFsiErrorMsg "*** Your Fesh Editor has expired, please download a new version. ***"
         //     log.PrintfnFsiErrorMsg "*** https://github.com/goswinr/Fesh ***"
@@ -731,45 +734,48 @@ type Fsi private (config:Config) =
                     doc.GetLineByOffset(max 0 (min seg.startOffset doc.TextLength)).LineNumber // not seg.startLine, it is the last line if the selection was made upwards
             }
 
-        match this.AskIfCancellingIsOk () with
-        | NotEvaluating    -> eval(evalData())
-        | YesAsync         -> this.CancelIfAsync();this.EvalDelayed(evalData())
-        | UserDoesntWantTo -> ()
-        | NotPossibleSync  -> log.PrintfnInfoMsg "Wait till current synchronous evaluation completes before starting new one."
+        task {
+            match! this.AskIfCancellingIsOk () with
+            | NotEvaluating    -> eval(evalData())
+            | YesAsync         -> this.CancelIfAsync();this.EvalDelayed(evalData())
+            | UserDoesntWantTo -> ()
+            | NotPossibleSync  -> log.PrintfnInfoMsg "Wait till current synchronous evaluation completes before starting new one."
+        }
+        |> ignore<Task<unit>>
 
 
     /// Returns true if the reset was started.
     /// Returns false if the user does not want to cancel the running evaluation, if it cannot be cancelled, or if FSI is initializing already.
-    member this.TryReset() : bool =
+    member this.TryReset() : Task<bool> =
         let reset() =
             let canStart = state <> Initializing // initFsi does nothing while another initialization is in process
             initFsi (config)
             if canStart then resetEv.Trigger()
             canStart
-        match this.AskIfCancellingIsOk () with
-        | NotEvaluating   ->                       reset()
-        | YesAsync        -> this.CancelIfAsync(); reset()
-        | UserDoesntWantTo-> false
-        | NotPossibleSync -> log.PrintfnInfoMsg "ResetFsi is not be possible in current synchronous evaluation."; false // TODO test
+        task {
+            match! this.AskIfCancellingIsOk () with
+            | NotEvaluating   ->                       return reset()
+            | YesAsync        -> this.CancelIfAsync(); return reset()
+            | UserDoesntWantTo-> return false
+            | NotPossibleSync -> log.PrintfnInfoMsg "ResetFsi is not be possible in current synchronous evaluation."; return false // TODO test
+        }
 
-    member this.Reset() = this.TryReset() |> ignore<bool>
+    member this.Reset() : unit = this.TryReset() |> ignore<Task<bool>>
 
 
-    member this.SetMode(sync:FsiSyncMode) =
-        let setConfig()=
-            match syMode with
-            |InSync    -> config.Settings.SetBool ("asyncFsi", false)    |> ignore
-            |AsyncMode -> config.Settings.SetBool ("asyncFsi", true)     |> ignore
-
-        match this.AskIfCancellingIsOk() with
-        | NotEvaluating | YesAsync as answer ->
-            if answer = YesAsync then this.CancelIfAsync() // do before changing syMode
-            syMode <- sync
-            modeChangedEv.Trigger(sync)
-            setConfig()
-            initFsi (config)
-        | UserDoesntWantTo -> ()
-        | NotPossibleSync -> log.PrintfnInfoMsg "Wait till current synchronous evaluation completes before setting mode to Async."
+    member this.SetMode(sync:FsiSyncMode) : unit =
+        task {
+            match! this.AskIfCancellingIsOk() with
+            | NotEvaluating | YesAsync as answer ->
+                if answer = YesAsync then this.CancelIfAsync() // do before changing syMode
+                syMode <- sync
+                modeChangedEv.Trigger(sync)
+                config.Settings.SetBool ("asyncFsi", syMode.IsAsyncMode)
+                initFsi (config)
+            | UserDoesntWantTo -> ()
+            | NotPossibleSync -> log.PrintfnInfoMsg "Wait till current synchronous evaluation completes before setting mode to Async."
+        }
+        |> ignore<Task<unit>>
 
     member this.ToggleSync()=
         match syMode with
@@ -821,7 +827,7 @@ type Fsi private (config:Config) =
 
     member this.Session = sessionOpt
 
-    member this.ShutDown() = // to properly dispose the Fsi session in net8 Revit 2025?
+    member this.ShutDown()  : unit = // to properly dispose the Fsi session in net8 Revit 2025?
         // in a race condition there might be a call to printfn, the buffer in AvaloniaLog would queue it, and wait for 50 ms,
         // but if within those 50ms the App shuts down it wil crash a hosting app such as Revit with a Thread cancelled Exception
         // In Revit 2025 this happens when closing the Fesh Editor, because some other plugins try to print to stdout at shout down.

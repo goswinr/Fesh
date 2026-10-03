@@ -2,76 +2,77 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-	  <TargetFramework>net10.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <!-- <TargetFrameworks>net48;net10.0</TargetFrameworks> -->
     <DefineConstants Condition="'$(TargetFramework)' == 'net48'">NETFRAMEWORK</DefineConstants>
-
-    <LangVersion>preview</LangVersion> <!-- to enable indexing from end via ^ -->
-
+    <LangVersion>preview</LangVersion>
+    <!-- to enable indexing from end via ^ -->
     <NeutralLanguage>en</NeutralLanguage>
-    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>    <!-- <SatelliteResourceLanguages> to only have the English resources in output directory-->
-    <GenerateDocumentationFile>true</GenerateDocumentationFile>    <!-- <GenerateDocumentationFile> just in case the editor itself gets referenced from a script-->
-    <FSharpCoreIncludeDocFileInOutput>true</FSharpCoreIncludeDocFileInOutput> <!-- doesn't seem to work -->
-    <DisableImplicitFSharpCoreReference>true</DisableImplicitFSharpCoreReference> <!-- for dotnet outdated tool to work -->
-
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+    <!-- <SatelliteResourceLanguages> to only have the English resources in output directory-->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <!-- <GenerateDocumentationFile> just in case the editor itself gets referenced from a script-->
+    <FSharpCoreIncludeDocFileInOutput>true</FSharpCoreIncludeDocFileInOutput>
+    <!-- doesn't seem to work -->
+    <DisableImplicitFSharpCoreReference>true</DisableImplicitFSharpCoreReference>
+    <!-- for dotnet outdated tool to work -->
     <CopyDebugSymbolFilesFromPackages>true</CopyDebugSymbolFilesFromPackages>
-    <CopyDocumentationFilesFromPackages>true</CopyDocumentationFilesFromPackages> <!-- doesn't work for netstandard.xml -->
-
+    <CopyDocumentationFilesFromPackages>true</CopyDocumentationFilesFromPackages>
+    <!-- doesn't work for netstandard.xml -->
     <RootNamespace>Fesh</RootNamespace>
     <AssemblyName>Fesh</AssemblyName>
     <AssemblyTitle>Fesh</AssemblyTitle>
     <Title>Fesh</Title>
     <Product>Fesh</Product>
-
     <!-- <Version></Version> taken from CHANGELOG.md by Ionide.KeepAChangelog.Tasks -->
-
-    <Company>Goswin Rothenthal</Company>    <!-- <Company> shows up on file preview on fesh.exe in windows file explorer-->
+    <Company>Goswin Rothenthal</Company>
+    <!-- <Company> shows up on file preview on fesh.exe in windows file explorer-->
     <Authors>Goswin Rothenthal</Authors>
     <Copyright>Goswin Rothenthal 2019</Copyright>
     <Description>A hostable cross-platform scripting editor for F#, based on AvaloniaEdit</Description>
     <ApplicationIcon>Media/logo.ico</ApplicationIcon>
-    <Win32Resource>Media/logo.res</Win32Resource>    <!-- Win32Resource for Application Icon in explorer-->
-
+    <Win32Resource>Media/logo.res</Win32Resource>
+    <!-- Win32Resource for Application Icon in explorer-->
     <!-- <OutputPath>bin/standalone</OutputPath> this can mess up Ionide tooling since there no sln file -->
-    <OtherFlags>$(OtherFlags) --warnon:1182</OtherFlags>     <!-- 1182: warn on unused variables -->
-    <ChangelogFile>./CHANGELOG.md</ChangelogFile> <!-- for Ionide.KeepAChangelog.Tasks -->
-
+    <OtherFlags>$(OtherFlags) --warnon:1182</OtherFlags>
+    <!-- 1182: warn on unused variables -->
+    <ChangelogFile>./CHANGELOG.md</ChangelogFile>
+    <!-- for Ionide.KeepAChangelog.Tasks -->
   </PropertyGroup>
-
   <ItemGroup>
     <PackageReference Include="Velopack" Version="0.0.1298" />
     <PackageReference Include="Ionide.KeepAChangelog.Tasks" Version="0.3.3" PrivateAssets="all" />
-
     <PackageReference Include="Avalonia.Desktop" Version="11.3.0" />
     <PackageReference Include="Avalonia.Themes.Fluent" Version="11.3.0" />
     <!-- <PackageReference Include="Avalonia.AvaloniaEdit" Version="11.3.0" /> -->
     <ProjectReference Include="../AvaloniaEdit/src/AvaloniaEdit/AvaloniaEdit.csproj" />
-
     <PackageReference Include="MessageBox.Avalonia" Version="3.2.0" />
-    <PackageReference Include="Microsoft.VisualBasic" Version="10.3.0" /> <!-- to move files to the recycle bin instead of deleting them -->
+    <PackageReference Include="Microsoft.VisualBasic" Version="10.3.0" />
+    <!-- to move files to the recycle bin instead of deleting them -->
     <!-- <PackageReference Include="System.Private.Uri" Version="4.3.2" />    -->
-     <!-- warning NU1903: Package 'System.Private.Uri' 4.3.0 has a known high severity vulnerability, https://github.com/advisories/GHSA-5f2m-466j-3848 -->
+    <!-- warning NU1903: Package 'System.Private.Uri' 4.3.0 has a known high severity vulnerability, https://github.com/advisories/GHSA-5f2m-466j-3848 -->
     <PackageReference Include="FSharp.Compiler.Service" Version="43.11.303" />
-    <PackageReference Include="FSharp.Core"             Version="10.1.303" />
-
-
+    <PackageReference Include="FSharp.Core" Version="10.1.303" />
     <!-- netstandard reference is needed for tooling only,
     in net 10 the F# Compiler.Service need the xml to show the tooltips,
     in net48 it might not be installed on host PC. (running the .NET Framework version) see also https://github.com/fsprojects/IfSharp/issues/213 -->
-    <PackageReference Include="NETStandard.Library" Version="2.0.3" GeneratePathProperty="true" /> <!-- Generated PathProperty will be 'PkgNETStandard_Library' -->
+    <PackageReference Include="NETStandard.Library" Version="2.0.3" GeneratePathProperty="true" />
+    <!-- Generated PathProperty will be 'PkgNETStandard_Library' -->
   </ItemGroup>
-
   <ItemGroup>
-    <EmbeddedResource Include="Media/logo.res" />    <!--  for Application Icon in Windows explorer-->
-    <AvaloniaResource Include="Media/logo.ico" />            <!--  for Application Icon in primary windows-->
-    <AvaloniaResource Include="Media/logoGray.ico" />        <!--  for Application Icon in secondary PopOut windows-->
-
+    <EmbeddedResource Include="Media/logo.res" />
+    <!--  for Application Icon in Windows explorer-->
+    <AvaloniaResource Include="Media/logo.ico" />
+    <!--  for Application Icon in primary windows-->
+    <AvaloniaResource Include="Media/logoGray.ico" />
+    <!--  for Application Icon in secondary PopOut windows-->
     <Content Include="Src/SyntaxHighlightingFSharp.xshd" CopyToOutputDirectory="PreserveNewest" TargetPath="SyntaxHighlightingFSharp.xshd" Pack="true" PackagePath="\" />
 
     <Content Include="$(PkgNETStandard_Library)/build/netstandard2.0/ref/netstandard.dll" Condition="'$(TargetFramework)' == 'net48'" CopyToOutputDirectory="Always" />
-    <Content Include="$(PkgNETStandard_Library)/build/netstandard2.0/ref/netstandard.xml" CopyToOutputDirectory="Always" /> <!-- needed for tooltips -->
-
+    <Content Include="$(PkgNETStandard_Library)/build/netstandard2.0/ref/netstandard.xml" CopyToOutputDirectory="Always" />
+    <!-- needed for tooltips -->
     <Compile Include="Src/Fittings/Sync.fs" />
+    <Compile Include="Src\Fittings\WebBrowser.fs" />
     <Compile Include="Src/Fittings/MessageBox.fs" />
     <Compile Include="Src/Fittings/TextBlockSelectable.fs" />
     <Compile Include="Src/Fittings/SafeReadWriter.fs" />
@@ -81,13 +82,11 @@
     <Compile Include="Src/Fittings/DependencyProps.fs" />
     <Compile Include="Src/Fittings/ErrorHandling.fs" />
     <Compile Include="Src/Fittings/PositionedWindow.fs" />
-
     <Compile Include="Src/AvaloniaLog/Brush.fs" />
     <Compile Include="Src/AvaloniaLog/Util.fs" />
     <Compile Include="Src/AvaloniaLog/TextColor.fs" />
     <Compile Include="Src/AvaloniaLog/LogTextWriter.fs" />
     <Compile Include="Src/AvaloniaLog/AvaloniaLog.fs" />
-
     <Compile Include="Src/Util.fs" />
     <Compile Include="Src/ParseFs.fs" />
     <Compile Include="Src/Timer.fs" />
@@ -102,11 +101,9 @@
     <Compile Include="Src/Config/AutoCompleteStatistic.fs" />
     <Compile Include="Src/Config/FoldingStatus.fs" />
     <Compile Include="Src/Config/Config.fs" />
-
     <Compile Include="Src/Fsi.fs" />
     <Compile Include="Src/CompileScript.fs" />
     <Compile Include="Src/XmlParser.fs" />
-
     <Compile Include="Src/Editor/AutoFixErrors.fs" />
     <Compile Include="Src/Editor/Selection.fs" />
     <Compile Include="Src/Editor/RectangleSelection.fs" />
@@ -130,7 +127,6 @@
     <Compile Include="Src/Editor/BracketHighlighter.fs" />
     <Compile Include="Src/Editor/DocChanged.fs" />
     <Compile Include="Src/Editor/KeyboardShortcuts.fs" />
-
     <Compile Include="Src/Views/Scrollbar.fs" />
     <Compile Include="Src/Views/Log.fs" />
     <Compile Include="Src/Views/Editor.fs" />
@@ -145,17 +141,11 @@
     <Compile Include="Src/Views/Commands.fs" />
     <Compile Include="Src/Views/Menu.fs" />
     <Compile Include="Src/Views/Fesh.fs" />
-
     <Compile Include="Src/Initialize.fs" />
     <Compile Include="Src/App.fs" />
-
   </ItemGroup>
-
-
-  <Target Name="WriteChangelogVersion" AfterTargets="AfterBuild"> <!-- to check output from Ionide.KeepAChangelog.Tasks current git tag in gh actions -->
+  <Target Name="WriteChangelogVersion" AfterTargets="AfterBuild">
+    <!-- to check output from Ionide.KeepAChangelog.Tasks current git tag in gh actions -->
     <WriteLinesToFile File="./bin/ChangelogVersion.txt" Lines="@(CurrentReleaseChangelog)" Overwrite="true" ContinueOnError="false" />
   </Target>
-
-
-
 </Project>
