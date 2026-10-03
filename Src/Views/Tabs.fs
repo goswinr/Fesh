@@ -24,6 +24,15 @@ type SavingKind =
     | SaveNewLocationSync // does not delay the update of recent file and current tabs, for when fesh is closing immediately afterwards
     | RenameFile
 
+module FileDialogs =
+
+    /// The file types to pick from in the open and save dialogs for scripts
+    let scriptFileTypes : FilePickerFileType[] = [|
+        FilePickerFileType("FSharp Files (*.fsx, *.fs)", Patterns = [| "*.fsx"; "*.fs" |])
+        FilePickerFileType("Text Files (*.txt)"       , Patterns = [| "*.txt" |])
+        FilePickerFileType("All Files (*.*)"          , Patterns = [| "*" |])
+        |]
+
 /// A class holding the Tab Control.
 /// Includes logic for saving and opening files.
 /// Window is needed for closing after last Tab closed
@@ -172,7 +181,8 @@ type Tabs(config:Config, log:Log, feshWin:FeshWindow) =
                 |SaveInPlace         -> $"Fesh | Save {tab.Editor.FilePathOrDummyName}"
                 |SaveExport          -> $"Fesh | Export  / Duplicate {tab.Editor.FilePathOrDummyName}"
                 |RenameFile          -> $"Fesh | Rename/ Move {tab.Editor.FilePathOrDummyName}"
-            opt.DefaultExtension <- ".fsx"
+            opt.DefaultExtension <- "fsx"
+            opt.FileTypeChoices <- FileDialogs.scriptFileTypes
             opt.ShowOverwritePrompt <- true
             // find a folder:
             match tab.Editor.FilePath with
@@ -198,33 +208,13 @@ type Tabs(config:Config, log:Log, feshWin:FeshWindow) =
             if isNull iFile then
                 return false
             else
-                let fileInfo = FileInfo iFile.Path.AbsolutePath
-                return saveAt (tab, fileInfo, saveKind)
-
+                match iFile.TryGetLocalPath() with // not iFile.Path.AbsolutePath, that is URL encoded (e.g. %20 for spaces)
+                | null ->
+                    log.PrintfnIOErrorMsg $"Can't save, this is not a local file path: {iFile.Path}"
+                    return false
+                | path ->
+                    return saveAt (tab, FileInfo path, saveKind)
         }
-        // match t.Editor.FilePath with
-        // |NotSet _ ->()
-        // |Deleted fi |SetTo fi ->
-        //     fi.Refresh()
-        //     if fi.Directory.Exists then
-        //         dlg.InitialDirectory <- fi.DirectoryName
-        //     dlg.FileName <- fi.Name
-        // dlg.DefaultExt <- ".fsx"
-        // dlg.Title <-
-        //     match saveKind with
-        //         |SaveNewLocation     -> $"Save-As for {t.Editor.FilePathOrDummyName}"
-        //         |SaveNewLocationSync -> $"Save-As for {t.Editor.FilePathOrDummyName}"
-        //         |SaveInPlace         -> $"Save {t.Editor.FilePathOrDummyName}"
-        //         |SaveExport          -> $"Export  / Duplicate {t.Editor.FilePathOrDummyName}"
-        //         |RenameFile          -> $"Rename/ Move {t.Editor.FilePathOrDummyName}"
-
-        // dlg.Filter <- "FSharp Files(*.fsx, *.fs)|*.fsx;*.fs|Text Files(*.txt)|*.txt|All Files(*.*)|*"
-        // if isTrue (dlg.ShowDialog()) then
-        //     let fi = new FileInfo(dlg.FileName)
-        //     //no overwrite check is not needed, it is done by SaveFileDialog already
-        //     saveAt (tab, fi, saveKind)
-        // else
-        //     false
 
 
     let saveAsync (t:Tab) : Task<unit> =  // gets called from evalAllText(),  evalAllTextSave()  and  evalAllTextSaveClear() only
@@ -417,47 +407,38 @@ type Tabs(config:Config, log:Log, feshWin:FeshWindow) =
         |> Array.exists id //check if at least one file was opened OK, then true
 
 
-    /// Shows a file opening dialog
-    let openFile(contr:Control) : bool =
-        let storage = (TopLevel.GetTopLevel contr).StorageProvider
-        let opt = new FilePickerOpenOptions()
-        opt.Title <- "Fesh | Open file(s)"
-        opt.AllowMultiple <- true
-        // opt.FileTypeFilter <- [|
-        //         new FilePickerFileType("F# Files (*.fsx, *.fs)", [| "*.fsx"; "*.fs" |])
-        //         new FilePickerFileType("Text Files (*.txt)", [| "*.txt" |])
-        //         new FilePickerFileType("All Files (*.*)", [| "*.*" |])
-        //     |]
-        // find a folder:
+    /// Shows a file opening dialog.
+    /// Returns true if at least one file was opened.
+    let openFile(contr:Control) : Task<bool> =
+        task{ // the dialog must be awaited, blocking the UI thread while it is open would freeze the app.
+            let storage = (TopLevel.GetTopLevel contr).StorageProvider
+            let opt = new FilePickerOpenOptions()
+            opt.Title <- "Fesh | Open file(s)"
+            opt.AllowMultiple <- true
+            opt.FileTypeFilter <- FileDialogs.scriptFileTypes
 
-        match workingDirectory() with
-        |Some fi ->
-            fi.Refresh()
-            if fi.Exists then
-                let folder =  storage.TryGetFolderFromPathAsync fi.FullName |> Async.AwaitTask |> Async.RunSynchronously
-                if notNull folder then
-                    opt.SuggestedStartLocation <- folder
-        |None -> ()
+            // find a folder:
+            match workingDirectory() with
+            |Some fi ->
+                fi.Refresh()
+                if fi.Exists then
+                    let! folder =  storage.TryGetFolderFromPathAsync fi.FullName
+                    if notNull folder then
+                        opt.SuggestedStartLocation <- folder
+            |None -> ()
 
-        let iFiles = storage.OpenFilePickerAsync opt |> Async.AwaitTask |> Async.RunSynchronously
+            let! iFiles = storage.OpenFilePickerAsync opt
 
-        if isNull iFiles || iFiles.Count = 0 then
-            false
-        else
-            tryAddFiles (iFiles |> Seq.map (fun iFile -> iFile.Path.AbsolutePath) |> Seq.toArray)
-
-        // let dlg = new Microsoft.Win32.OpenFileDialog()
-        // dlg.Multiselect <- true
-        // match workingDirectory()  with
-        // | Some t -> t.Refresh(); if  t.Exists then  dlg.InitialDirectory <- t.FullName
-        // | _ -> ()
-        // dlg.DefaultExt <- ".fsx"
-        // dlg.Title <- "Fesh | Open file"
-        // dlg.Filter <- "FSharp Files(*.fsx, *.fs)|*.fsx;*.fs|Text Files(*.txt)|*.txt|All Files(*.*)|*"
-        // if isTrue (dlg.ShowDialog()) then
-        //     tryAddFiles dlg.FileNames
-        // else
-        //     false
+            if isNull iFiles || iFiles.Count = 0 then
+                return false
+            else
+                let paths =
+                    iFiles
+                    |> Seq.map (fun iFile -> iFile.TryGetLocalPath()) // not iFile.Path.AbsolutePath, that is URL encoded (e.g. %20 for spaces)
+                    |> Seq.filter notNull
+                    |> Seq.toArray
+                return tryAddFiles paths
+        }
 
     do
         // --------------first load tabs from last session including startup args--------------
@@ -553,7 +534,7 @@ type Tabs(config:Config, log:Log, feshWin:FeshWindow) =
 
     /// Shows a file opening dialog
     member this.OpenFile() =
-        openFile(this.Control)  |> ignore
+        openFile(this.Control)  |> ignore<Task<bool>>
 
     /// Shows a file opening dialog
     member this.SaveAs (t:Tab) =
