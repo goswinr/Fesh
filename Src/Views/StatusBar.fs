@@ -147,10 +147,9 @@ type CheckerStatus (grid:TabsAndLog) =
                     tb.Text <- $"No compiler errors, {es.hiddens.Count + es.infos.Count} Infos"
                     tb.Background <- okColor
 
-                let tip = new Popup(Child = getErrPanel(es, true) )
-                tip.Placement <- PlacementMode.Top //https://docs.microsoft.com/en-us/dotnet/framework/wpf/controls/popup-placement-behavior
-                tip.VerticalOffset <- -6.0
-                tb.ToolTipControl <- tip
+                ToolTip.SetTip(tb, getErrPanel(es, true))
+                ToolTip.SetPlacement(tb, PlacementMode.TopEdgeAlignedLeft)
+                ToolTip.SetVerticalOffset(tb, -6.0)
 
         | WaitForCompl _  -> ()
         | WaitForErr _| NotChecked ->
