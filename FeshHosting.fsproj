@@ -9,7 +9,7 @@
     <UseWindowsForms>true</UseWindowsForms><!--inherited from Avalonedit ?-->
     <!-- <TargetFrameworks>net472;net8.0-windows</TargetFrameworks> somehow the resultant nuget from multiple target frameworks
     does get unified to 8.0 and does not work on net48 -->
-    <!--so the the releaseNuget.yml aktion will change this and also publish a net472,net8,net9 nuget separately: -->
+    <!--so the the releaseNuget.yml aktion will change this and also publish a net472,net8,net9,net10 nuget separately: -->
     <TargetFramework>net8.0-windows</TargetFramework> <!-- use the lowest F# here by default, will be replace by other versions in releaseNuget.yml -->
 
     <DefineConstants Condition="'$(TargetFramework)' == 'net472'">NETFRAMEWORK</DefineConstants> <!-- so thread.Abort() can be used -->
@@ -62,12 +62,12 @@
   see https://github.com/dotnet/fsharp/issues/19174
   Use Include not Update for FSharp.Core because of DisableImplicitFSharpCoreReference-->
   <ItemGroup Condition="'$(TargetFramework)' == 'net472'"> <!-- net472 can use the latest versions -->
-    <PackageReference Include="FSharp.Compiler.Service" Version="43.10.103" />
-    <PackageReference Include="FSharp.Core"             Version="10.0.103" />
+    <PackageReference Include="FSharp.Compiler.Service" Version="43.11.303" />
+    <PackageReference Include="FSharp.Core"             Version="10.1.303" /> <!-- FSharp.Compiler.Service pins this exact version -->
   </ItemGroup>
-  <ItemGroup Condition="'$(TargetFramework)' == 'net10.0-windows'">
-    <PackageReference Include="FSharp.Compiler.Service" Version="43.10.103" />
-    <PackageReference Include="FSharp.Core"             Version="10.0.103" />
+  <ItemGroup Condition="'$(TargetFramework)' == 'net10.0-windows'"> <!-- 43.11.x depends on the 10.x versions of System.Diagnostics.DiagnosticSource etc, 43.10.x still on 9.x -->
+    <PackageReference Include="FSharp.Compiler.Service" Version="43.11.303" />
+    <PackageReference Include="FSharp.Core"             Version="10.1.303" />
   </ItemGroup>
   <ItemGroup Condition="'$(TargetFramework)' == 'net8.0-windows'">
     <PackageReference Include="FSharp.Compiler.Service" Version="43.8.403" />

@@ -40,7 +40,7 @@ jobs:
         Set-Content -Path README.md -Value $content
 
 
-    # All four packages are built first and only pushed at the end,
+    # All five packages are built first and only pushed at the end,
     # so that a failing build can't leave a partial set of packages on nuget.org.
 
     # build net 10 with no suffix
@@ -75,7 +75,7 @@ jobs:
     # now packages with suffix:
 
     # all of this is only needed because  <TargetFrameworks>net8.0-windows;net472</TargetFrameworks> does no make a valid nuget package for net48
-    # so we make a separate build for net8 and net472 and net9
+    # so we make a separate build for net8 and net472 and net9 and net10
 
     - name: Set target framework to net472 in FeshHosting.fsproj
       run: |
@@ -130,6 +130,24 @@ jobs:
       run: dotnet build FeshHosting.fsproj --configuration Release --output bin/publishNuget/net9
 
 
+    # now that net9 is done build net10 again, this time with a suffix like the others
+    - name: Set target framework to net10 in FeshHosting.fsproj
+      run: |
+        $projFile = Get-Content -Path FeshHosting.fsproj -Raw
+        $projFile = $projFile -replace "<TargetFramework>.*?</TargetFramework>", "<TargetFramework>net10.0-windows</TargetFramework>"
+        Set-Content -Path FeshHosting.fsproj -Value $projFile
+
+    - name : Set -net10 suffix in changelog
+      run: |
+        $v = $env:GITHUB_REF_NAME
+        $content = Get-Content -Path CHANGELOG.md -Raw
+        $content = $content -replace [regex]::Escape("$v-net9"), "$v-net10"
+        Set-Content -Path CHANGELOG.md -Value $content
+
+    - name: Dotnet build FeshHosting for net10 with suffix
+      run: dotnet build FeshHosting.fsproj --configuration Release --output bin/publishNuget/net10
+
+
     # Trusted Publishing: https://learn.microsoft.com/en-us/nuget/nuget-org/trusted-publishing
     # nuget.org only issues the key if a Trusted Publishing policy of the user below matches
     # the OIDC token of this run. Configure it on nuget.org -> user name -> Trusted Publishing:
@@ -151,10 +169,11 @@ jobs:
       run: |
         $v = $env:GITHUB_REF_NAME
         $packages =
-          "net10/Fesh.$v", # net10 has no suffix
+          "net10/Fesh.$v", # the package without suffix is net10 too
           "net472/Fesh.$v-net472",
           "net8/Fesh.$v-net8",
-          "net9/Fesh.$v-net9"
+          "net9/Fesh.$v-net9",
+          "net10/Fesh.$v-net10"
         foreach ($p in $packages) {
           # --skip-duplicate so that the workflow can be re-run if only some of the pushes succeeded
           dotnet nuget push "./bin/publishNuget/$p.symbols.nupkg" `
