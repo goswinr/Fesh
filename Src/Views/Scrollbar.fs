@@ -10,6 +10,7 @@ open Avalonia.Controls
 open Avalonia.Controls.Primitives
 // open Avalonia.Documents
 open Avalonia.Input
+open Avalonia.VisualTree
 
 open AvaloniaEdit
 open AvaloniaEdit.Utils
@@ -19,11 +20,25 @@ open Fesh.Util.General
 
 module MagicScrollbar =
 
+    /// Finds a named part of a control template.
+    /// control.FindControl<'T>(name) only works for names registered in a XAML name scope, not for template parts.
+    /// Returns null if the template is not applied yet or the part does not exist.
+    let findTemplatePart<'T when 'T :> Control and 'T : null> (name:string) (parent:Visual) : 'T =
+        parent.GetVisualDescendants()
+        |> Seq.tryPick (fun v ->
+            match v with
+            | :? Control as c when c.Name = name ->
+                match box c with
+                | :? 'T as t -> Some t
+                | _ -> None
+            | _ -> None)
+        |> Option.toObj
+
     let forceScrollBarWidth18 (scrollViewer: ScrollViewer) =
-        scrollViewer.TemplateApplied.Add(fun _ ->
+        scrollViewer.TemplateApplied.Add(fun e ->
             // Find the scrollbars in the template
-            let verticalScrollBar = scrollViewer.FindControl<ScrollBar>("PART_VerticalScrollBar")
-            let horizontalScrollBar = scrollViewer.FindControl<ScrollBar>("PART_HorizontalScrollBar")
+            let verticalScrollBar = e.NameScope.Find<ScrollBar>("PART_VerticalScrollBar")
+            let horizontalScrollBar = e.NameScope.Find<ScrollBar>("PART_HorizontalScrollBar")
 
             match verticalScrollBar with
             | null -> ()
@@ -84,7 +99,7 @@ module MagicScrollbar =
         override this.Render(drawingContext : DrawingContext) =
             if isTrackShowing  then
                 //textView.EnsureVisualLines()
-                let renderSize = track.DesiredSize
+                let renderSize = track.Bounds.Size
                 let lineHeight = textView.DefaultLineHeight
                 let documentHeight = textView.DocumentHeight
                 let lnNos = markLineNos.Value // this iteration never fails, even if the value in the ref gets replaced while looping
@@ -126,53 +141,57 @@ module MagicScrollbar =
 
     type ScrollBarEnhancer(ed:TextEditor,  errs:ErrorHighlighter) = // state:InteractionState,
 
+        /// null if the templates are not applied yet.
         let vertScrollBar : ScrollBar =
             ed.ApplyTemplate()
-            let scrollViewer = ed.FindControl<ScrollViewer> "PART_ScrollViewer"
-            scrollViewer.ApplyTemplate()
-            let vScrollBar = scrollViewer.FindControl<ScrollBar> "PART_VerticalScrollBar"
-            if isNull vScrollBar then failwithf $"scrollViewer.Template.FindName (\"PART_VerticalScrollBar\")  is null" // never happens
-            vScrollBar
+            let scrollViewer = findTemplatePart<ScrollViewer> "PART_ScrollViewer" ed
+            if isNull scrollViewer then
+                null
+            else
+                scrollViewer.ApplyTemplate()
+                findTemplatePart<ScrollBar> "PART_VerticalScrollBar" scrollViewer
 
         let mutable adorner: ScrollbarAdorner = null
 
         let setAdorner() =
-            if isNull adorner then
-                let track =  vertScrollBar.FindControl<Track> "PART_Track"
+            if isNull adorner && notNull vertScrollBar then
+                vertScrollBar.ApplyTemplate()
+                let track = findTemplatePart<Track> "PART_Track" vertScrollBar
                 if notNull track then
                     let adornerLayer = AdornerLayer.GetAdornerLayer track //adornerElement
-                    adorner <- new ScrollbarAdorner(ed, errs, track)
-                    // https://stackoverflow.com/questions/63598245/analogous-to-the-abstract-adorner-wpf-class-in-avalonia-ui
-                    adornerLayer.Children.Add(adorner)
-                    AdornerLayer.SetAdornedElement(adorner, track) //adornerElement)
+                    if notNull adornerLayer then
+                        adorner <- new ScrollbarAdorner(ed, errs, track)
+                        // https://stackoverflow.com/questions/63598245/analogous-to-the-abstract-adorner-wpf-class-in-avalonia-ui
+                        adornerLayer.Children.Add(adorner)
+                        AdornerLayer.SetAdornedElement(adorner, track) //adornerElement)
 
         do
-            ed.TemplateApplied.Add(fun _ -> ())
-
-
             setAdorner()
             if notNull adorner then
                 adorner.IsTrackShowing <- true
                 adorner.InvalidateVisual()
 
-        let visibilitySubscription =
-            vertScrollBar.PropertyChanged.Subscribe (fun e ->
-                if e.Property = ScrollBar.IsVisibleProperty then
-                    eprintfn $"vScrollBar.VisibleChanged: {vertScrollBar.IsVisible}" // this event even happens while normal scrolling ! why ?
-                    if vertScrollBar.IsVisible then
-                        setAdorner()
-                        if notNull adorner then
-                            adorner.IsTrackShowing <- true
+        let visibilitySubscription : IDisposable =
+            if isNull vertScrollBar then
+                null
+            else
+                vertScrollBar.PropertyChanged.Subscribe (fun e -> // when the text is small no scrollbar is visible.
+                    if e.Property = Visual.IsVisibleProperty then
+                        if vertScrollBar.IsVisible then
+                            setAdorner()
+                            if notNull adorner then
+                                adorner.IsTrackShowing <- true
+                                adorner.InvalidateVisual()
+                        elif notNull adorner then
+                            adorner.IsTrackShowing <- false
                             adorner.InvalidateVisual()
-                    elif notNull adorner then
-                        adorner.IsTrackShowing <- false
-                        adorner.InvalidateVisual()
-            )
+                )
 
         /// Removes the adorner and all event handlers.
         /// Call this before creating a new ScrollBarEnhancer for the same editor.
         member _.Detach() =
-            visibilitySubscription.Dispose()
+            if notNull visibilitySubscription then
+                visibilitySubscription.Dispose()
             if notNull adorner then
                 adorner.Detach()
                 adorner <- null
