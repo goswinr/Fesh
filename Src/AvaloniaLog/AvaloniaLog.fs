@@ -454,6 +454,7 @@ type AvaloniaLog () =
         Printf.kprintf (fun s -> printOrBuffer (s, true, customBrush))  msg
 
 
+    override _.StyleKeyOverride = typeof<ContentControl> // see https://github.com/AvaloniaUI/Avalonia/discussions/18697
 
 // module ILoggingColors =
 //     let mutable trace = Brushes.Gray

@@ -1,3 +1,12 @@
+
+## This branch called Avalonia is an experimantal port of Fesh from WPF to Avalonia.
+### not only does it bring dark and light mode to Fesh
+### it also allows to run Fesh on Linux and MacOS.
+It compiles and runs but needs full testing and a dark color pallette.
+To build it you also need to clone my fork of AvalioniaEdit from https://github.com/goswinr/AvaloniaEdit see https://github.com/goswinr/Fesh/blob/95da7778087ec6e952017a5f7b86d6437b26bf98/FeshStandalone.fsproj#L50
+
+
+
 ![Logo](https://raw.githubusercontent.com/goswinr/Fesh/main/Media/logo128.png)
 
 # Fesh
