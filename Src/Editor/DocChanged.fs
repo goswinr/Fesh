@@ -28,8 +28,9 @@ module DocChangeUtil =
         let ins = a.InsertionLength
         let rem = a.RemovalLength
         // count line returns added and deleted:
-        let addLns = if ins > 1 then countCharI '\n' a.InsertedText else 0 // a line return is minimum 2 characters
-        let remLns = if rem > 1 then countCharI '\n' a.RemovedText  else 0 // a line return is minimum 2 characters
+        // A line return can be a single character too: Environment.NewLine is "\r\n" on Windows, but "\n" on Linux and macOS
+        let addLns = if ins > 0 then countCharI '\n' a.InsertedText else 0
+        let remLns = if rem > 0 then countCharI '\n' a.RemovedText  else 0
         // printfn $"getShift: off={off} ins={ins} rem={rem} addLns={addLns} remLns={remLns}"
         // printfn $" insText='{a.InsertedText}' remText='{a.RemovedText}'"
         { fromOff = off
