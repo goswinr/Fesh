@@ -363,15 +363,19 @@ type SelectedLogTextStatus (grid:TabsAndLog) =
 type FeshStatusBar (grid:TabsAndLog)  =
     let bar = new DockPanel()
 
-    let addSep (side:Dock) =
-        let s = new Separator()
-        DockPanel.SetDock(s,side)
-        bar.Children.Add s |> ignore
-
-
     let add (side:Dock) (e:TextBlock) =
-        DockPanel.SetDock(e,side)
-        bar.Children.Add e |> ignore
+        let b = new Border(Child = e)
+        b.BorderBrush <- grayText
+        b.BorderThickness <- // the border is used like a separator (only wpf has vertical separators)
+            match side with
+            | Dock.Left  -> Thickness(0. , 0. , 1. , 0.) // left, top, right, bottom
+            | Dock.Right -> Thickness(1. , 0. , 0. , 0.) // left, top, right, bottom
+            | _ -> Thickness(3.) // left, top, right, bottom
+        // e.Margin  <- Thickness(8.0)
+        e.Margin <- Thickness(8. , 2. , 8. , 2.) // the white space till the border, left, top, right, bottom
+        e.Padding<- Thickness(3. , 1. , 3. , 1.) // how big the color background will be around the text // left, top, right, bottom
+        DockPanel.SetDock(b,side)
+        bar.Children.Add b |> ignore
 
 
     let fsi = FsiRunStatus grid
@@ -383,21 +387,15 @@ type FeshStatusBar (grid:TabsAndLog)  =
 
 
     do
+        bar.Margin <- Thickness(4.0) // left, top, right, bottom
         add    Dock.Left  errs.TextBlock // on very left
-        addSep Dock.Left
         add    Dock.Left  edSel.TextBlock // on  first left
-        addSep Dock.Left
         add    Dock.Left  logSel.TextBlock // on second left
-        addSep Dock.Left
 
         add    Dock.Right fsi.TextBlock // on very right
-        addSep Dock.Right
         add    Dock.Right fsiOutput.TextBlock // on second right
-        addSep Dock.Right
-
         if grid.Config.RunContext.CanRunAsync then
             add    Dock.Right  asyncStatus.TextBlock // on right
-            addSep Dock.Right
 
         bar.Children.Add (new ContentControl()) |> ignore // needed to fill remaining gap
 
