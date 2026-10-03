@@ -40,6 +40,8 @@ type Fesh (config:Config,log:Log) =
         //if config.RunContext.IsStandalone then win.Window.ContentRendered.Add(fun _ -> log.PrintfnInfoMsg "* Time for loading and rendering of main window: %s"  Timer.InstanceStartup.tocEx)
 
         win.Closing.Add( fun (e:WindowClosingEventArgs) ->
+
+            // let cancel =
             task{
                 // first check for running FSI
                 match! tabs.Fsi.AskIfCancellingIsOk () with

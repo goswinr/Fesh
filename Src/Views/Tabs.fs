@@ -228,11 +228,12 @@ type Tabs(config:Config, log:Log, feshWin:FeshWindow) =
         //     false
 
 
-    let saveAsync (t:Tab) =  // gets called from evalAllText(),  evalAllTextSave()  and  evalAllTextSaveClear() only
+    let saveAsync (t:Tab) : Task<unit> =  // gets called from evalAllText(),  evalAllTextSave()  and  evalAllTextSaveClear() only
         task{
             match t.Editor.FilePath with
             | NotSet _ | Deleted _ ->
-                do! saveAsDialog(t, SaveNewLocation ) |> ignore<Task<bool>>
+                let! _r =  saveAsDialog(t, SaveNewLocation )
+                ()
 
             | SetTo fi ->
                 let txt = t.AvaEdit.Text
@@ -565,10 +566,12 @@ type Tabs(config:Config, log:Log, feshWin:FeshWindow) =
         |> ignore<Task<unit>>
 
     /// Returns true if saving operation was not canceled
-    member this.Save(t:Tab) = trySave(t)
+    member this.Save(t:Tab):  Task<bool> =
+        trySave(t)
 
     /// Prints errors to log
-    member this.SaveAsync(t:Tab) = saveAsync(t) |> ignore<Task<unit>>
+    member this.SaveAsync(t:Tab) :unit =
+        saveAsync(t) |> ignore<Task<unit>>
 
     /// Returns true if saving operation was not canceled
     member this.Export(t:Tab) = export(t)
