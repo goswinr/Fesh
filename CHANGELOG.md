@@ -13,7 +13,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - update FSharp.Compiler.Service to `43.12.401` and FSharp.Core to `10.1.401` for standalone, .NET 4.7.2 hosting and .NET 10 hosting; keep the compatible F# versions for .NET 8 and .NET 9 hosting
 - update Velopack and its release packaging tool to `1.2.161`, SourceLink to `10.0.401`, and Ionide.KeepAChangelog.Tasks to `0.4.0`
+- highlights of all occurrences of the selected text stay until Esc is pressed or other text is selected, the selected text itself never gets this highlight
+- occurrences of the selected text are highlighted after 150 ms instead of 300 ms
 ### Fixed
+- selecting text in the Log while the Editor had a selection (or the other way round) cleared the highlights it had just made
+- clicking the status bar to step through the occurrences of the selected text stopped working after the first click
+- 'Find next' in the search panel cleared the highlights of the selected text
+- rare outdated highlights when the selection changed while its occurrences were still being searched
 - restore highlighting of matching brackets at the cursor, with a light green background
 - show the full FSharp.Core package version in the window title, including its patch number
 - remove unused-value compiler warnings and NU1510 warnings about redundant package references on modern .NET targets

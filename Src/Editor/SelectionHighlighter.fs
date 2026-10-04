@@ -250,22 +250,7 @@ type SelectionHighlighter (state:InteractionState) =
         async{
             let transFormersDone = setTransformers( state.DocChangedId.Value )
             if transFormersDone && selId = selChangeId.Value  then
-                // (1) If there is a Editor selection but skipOff is set to MarkAll
-                // , because the mark call is coming from the Log selection,
-                // then clear the this editor selection, because it will not match the word to highlight from Log.
-                match skipOff with
-                | SkipOffset _-> ()
-                | MarkAll ->
-                    match Selection.getSelType ed.TextArea with
-                    |NoSel   -> ()
-                    |RectSel
-                    |RegSel  ->
-                        do! Async.SwitchToContext Fittings.SyncWpf.context
-                        reactToSelChange <- false // to not trigger a selection changed event
-                        ed.TextArea.ClearSelection()
-                        reactToSelChange <- true
-
-                // (2) get ranges to redraw
+                // (1) get ranges to redraw
                 let redrawRange = // get range to redraw
                     match  prevRange, thisRange with
                     | None       , None  ->    // nothing before, nothing now
@@ -280,7 +265,7 @@ type SelectionHighlighter (state:InteractionState) =
                         SelRange(  min pf f, max pl l)
 
                 //printfn $"+++redrawRange={redrawRange} skipOff={skipOff}+++" // prevRange={prevRange} thisRange={thisRange}"
-                //(3) redraw statusbar and editor in range
+                //(2) redraw statusbar and editor in range
                 match redrawRange with
                 | NoSelRedraw -> ()
 
@@ -334,7 +319,7 @@ type SelectionHighlighter (state:InteractionState) =
 
 
     do
-        ed.TextArea.SelectionChanged.Add ( fun _ -> if reactToSelChange then debounce 300 ) // reactToSelChange is false while redrawMarking clears the selection itself
+        ed.TextArea.SelectionChanged.Add ( fun _ -> if reactToSelChange then debounce 150 ) // reactToSelChange is false while RedrawMarksInEditor clears the selection itself
         // ed.TextArea.SelectionChanged.Add ( fun _ -> updateToCurrentSelection() )
         // ed.Document.Changed.Add (fun _ ->  ) will call UpdateTransformers from DocChanged.fs
 
@@ -375,6 +360,12 @@ type SelectionHighlighter (state:InteractionState) =
     /// Called from StatusBar to highlight the current selection of Log in Editor too
     member _.RedrawMarksInEditor(word) =
         if isTextToHighlight word then // isTextToHighlight is needed , word might be empty string
+            // Clear an Editor selection, because it does not match the word from the Log.
+            // Done here in sync and not after the async search, so that a selection the user starts meanwhile does not get cleared.
+            if not ed.TextArea.Selection.IsEmpty then
+                reactToSelChange <- false // to not trigger a selection changed event
+                ed.TextArea.ClearSelection()
+                reactToSelChange <- true
             redrawMarking(word, MarkAll, false, selChangeId.Value)
         else
             clearIfNeeded false
@@ -508,21 +499,7 @@ type SelectionHighlighterLog (lg:TextEditor) =
 
                         lastSels <- offs
 
-                        // (2) if there is a selection but skipOff is set to MarkAll
-                        // ( because the mark call is coming from the Editor selection )
-                        // then clear the selection, because it will not match the word to highlight.
-                        match skipOff with
-                        | SkipOffset _-> ()
-                        | MarkAll ->
-                            match Selection.getSelType lg.TextArea with
-                            |NoSel   -> ()
-                            |RectSel
-                            |RegSel  ->
-                                reactToSelChange <- false // to not trigger a selection changed event
-                                lg.TextArea.ClearSelection()
-                                reactToSelChange <- true
-
-                        // (3) redraw statusbar and editor
+                        // (2) redraw statusbar and editor
                         match redrawRange with
                         | NoSelRedraw -> ()
 
@@ -573,7 +550,7 @@ type SelectionHighlighterLog (lg:TextEditor) =
         lg.TextArea.TextView.LineTransformers.Insert(0, colorizer) // insert at index 0 so that it is drawn first, so that text color is overwritten the selection highlighting
 
         // lg.TextArea.SelectionChanged.Add ( fun _ -> updateToCurrentSelection() )
-        lg.TextArea.SelectionChanged.Add ( fun _ -> if reactToSelChange then debounce 300 ) // reactToSelChange is false while mark clears the selection itself
+        lg.TextArea.SelectionChanged.Add ( fun _ -> if reactToSelChange then debounce 150 ) // reactToSelChange is false while MarkInLog clears the selection itself
 
         lg.Document.Changing.Add (fun _ ->
             Threading.Interlocked.Increment logStateRef |> ignore
@@ -603,6 +580,12 @@ type SelectionHighlighterLog (lg:TextEditor) =
     /// Called from StatusBar to highlight the current selection of Editor in Log too
     member _.MarkInLog(word) =
         if isTextToHighlight word then // isTextToHighlight is needed , word might be empty string
+            // Clear a Log selection, because it does not match the word from the Editor.
+            // Done here in sync and not after the async search, so that a selection the user starts meanwhile does not get cleared.
+            if not lg.TextArea.Selection.IsEmpty then
+                reactToSelChange <- false // to not trigger a selection changed event
+                lg.TextArea.ClearSelection()
+                reactToSelChange <- true
             mark(word, MarkAll, false)
         else
             clearLogIfNeeded(false)
