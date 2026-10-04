@@ -148,6 +148,10 @@ type LineTransformers<'T>() =  // generic so it can work for LinePartChange and 
 
     member _.LineCount = lines.Count
 
+    /// If true, the FastColorizer does not apply these changes to selected text, because the selection has its own highlighting.
+    /// (Used for highlighting all occurrences of the selected word)
+    member val SkipSelectedText = false with get, set
+
     /// provide the new list.
     /// when done call update with this new list
     static member Insert(lineList:ResizeArray<ResizeArray<'T>>, lineNumber:int, x:'T) =
@@ -207,7 +211,8 @@ type LineTransformers<'T>() =  // generic so it can work for LinePartChange and 
             empty
 
 /// An efficient DocumentColorizingTransformer using line number indices into a line transformer list.
-type FastColorizer(transformers:LineTransformers<LinePartChange> []) = //, ed:TextEditor) =
+/// The TextArea is needed to get the selection for LineTransformers with SkipSelectedText = true.
+type FastColorizer(transformers:LineTransformers<LinePartChange> [], ta:Editing.TextArea) = //, ed:TextEditor) =
     inherit DocumentColorizingTransformer()
 
     member _.AdjustShifts(s:Shift) =
@@ -221,6 +226,10 @@ type FastColorizer(transformers:LineTransformers<LinePartChange> []) = //, ed:Te
         let lineNo = line.LineNumber
         let offSt  = line.Offset
         let offEn  = line.EndOffset
+
+        // The selected parts of this line, only needed for LineTransformers with SkipSelectedText. Computed on first use:
+        let mutable selChecked = false
+        let mutable selOnLine : ResizeArray<Editing.SelectionSegment> = null // stays null if nothing is selected on this line
 
         for j = 0 to transformers.Length-1 do // there are four
             let lts = transformers.[j]
@@ -244,7 +253,28 @@ type FastColorizer(transformers:LineTransformers<LinePartChange> []) = //, ed:Te
                             lpc.from
 
                     if from >= offSt && till <= offEn && from < till && notNull lpc.act then
-                        base.ChangeLinePart(from, till, lpc.act)
+                        if lts.SkipSelectedText then
+                            if not selChecked then
+                                selChecked <- true
+                                let sel = ta.Selection
+                                if not sel.IsEmpty then
+                                    for seg in sel.Segments do // more than one for rectangular selection
+                                        if seg.EndOffset > offSt && seg.StartOffset < offEn then
+                                            if isNull selOnLine then selOnLine <- ResizeArray()
+                                            selOnLine.Add seg
+
+                            if isNull selOnLine then
+                                base.ChangeLinePart(from, till, lpc.act)
+                            else
+                                // only apply to the parts that are not selected:
+                                let mutable st = from
+                                for seg in selOnLine do
+                                    if seg.EndOffset > st && seg.StartOffset < till then
+                                        if seg.StartOffset > st then base.ChangeLinePart(st, seg.StartOffset, lpc.act)
+                                        st <- max st seg.EndOffset
+                                if st < till then base.ChangeLinePart(st, till, lpc.act)
+                        else
+                            base.ChangeLinePart(from, till, lpc.act)
 
 
                     // if from >= till then () // negative length or skipped because of shift offset

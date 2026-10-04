@@ -186,7 +186,7 @@ type InteractionState(ed:TextEditor, foldManager:FoldingManager, config:Fesh.Con
 
     /// reacts to selection changes
     /// for colorizing text that matches the current selection
-    let transformersSelection         = new LineTransformers<LinePartChange>()
+    let transformersSelection         = new LineTransformers<LinePartChange>(SkipSelectedText = true) // the selected text has its own highlighting
 
     let fastColorizer = new FastColorizer(
                                     [|
@@ -195,7 +195,7 @@ type InteractionState(ed:TextEditor, foldManager:FoldingManager, config:Fesh.Con
                                     transformersSelection
                                     transformersSemantic // draw errors last so they are on top of matching brackets
                                     |]
-                                    //,ed // for debugging only
+                                    , ed.TextArea // for SkipSelectedText
                                     )
 
     let errSegments = LineTransformers<SegmentToMark>()
