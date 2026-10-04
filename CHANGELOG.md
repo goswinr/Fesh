@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.33.5] - 2026-10-04
+### Added
+- hosting NuGet package with a `-net10` suffix, alongside the existing .NET 10 package without a suffix
+### Changed
+- update FSharp.Compiler.Service to `43.12.401` and FSharp.Core to `10.1.401` for standalone, .NET 4.7.2 hosting and .NET 10 hosting; keep the compatible F# versions for .NET 8 and .NET 9 hosting
+- update Velopack and its release packaging tool to `1.2.161`, SourceLink to `10.0.401`, and Ionide.KeepAChangelog.Tasks to `0.4.0`
+### Fixed
+- restore highlighting of matching brackets at the cursor, with a light green background
+- show the full FSharp.Core package version in the window title, including its patch number
+- remove unused-value compiler warnings and NU1510 warnings about redundant package references on modern .NET targets
+- fix solution builds failing because the hosting and standalone projects shared their NuGet restore assets and intermediate build files
+
 ## [0.33.2] - 2026-10-01
 ### Fixed
 - when hosted: `#r` and `#load` not finding files next to the evaluated script by name or relative path, the folder of the script is now added via `#I` to FSI before its first evaluation. It stays included for all scripts until FSI is reset.
@@ -222,7 +234,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - first public release
 
-[Unreleased]: https://github.com/goswinr/Fesh/compare/0.33.2...HEAD
+[Unreleased]: https://github.com/goswinr/Fesh/compare/0.33.5...HEAD
+[0.33.5]: https://github.com/goswinr/Fesh/compare/0.33.2...0.33.5
 [0.33.2]: https://github.com/goswinr/Fesh/compare/0.33.1...0.33.2
 [0.33.1]: https://github.com/goswinr/Fesh/compare/0.33.0...0.33.1
 [0.33.0]: https://github.com/goswinr/Fesh/compare/0.32.3...0.33.0

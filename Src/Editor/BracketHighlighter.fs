@@ -75,7 +75,7 @@ module ParseBrackets =
 
     type MuliLineState = RegCode | MultiLineComment | SimpleString| RawAtString | RawTripleString
 
-    let finAll(lns:CodeLineTools.CodeLines, id) : ResizeArray<ResizeArray<Bracket>> option=
+    let findAll(lns:CodeLineTools.CodeLines, id) : ResizeArray<ResizeArray<Bracket>> option=
         let code = lns.FullCode
 
         let brss = ResizeArray<ResizeArray<Bracket>>()
@@ -170,6 +170,7 @@ module ParseBrackets =
                     | ']' -> pushExit ClRect
                     | ')' -> pushExit ClRound
                     | '}' -> pushExit ClCurly
+                    | '"' -> SimpleString // a regular string starts at the end of the line and flows over to the next line
                     |  _  -> RegCode // just exit loop
 
                 else // i < lastIdx, check a pair inside the line
@@ -178,7 +179,12 @@ module ParseBrackets =
                     | '/','/' -> RegCode // a comment starts, don't parse rest of line
                     | '(','*' -> if i + 2 <= lastIdx then // a multi line comment starts
                                     let next2 = code[i+2]
-                                    skipMultiLineComment next2 (i+2) |> flowOnOrOver MultiLineComment
+                                    if next2 = ')' then // (*) is the multiplication operator, not a comment
+                                        brs.Add {kind=OpRound; from = i}
+                                        brs.Add {kind=ClRound; from = i+2}
+                                        if i + 3 <= lastIdx then charLoop code[i+3] (i+3) else RegCode
+                                    else
+                                        skipMultiLineComment next2 (i+2) |> flowOnOrOver MultiLineComment
                                  else
                                     MultiLineComment //the line ends immediately after (*
 
@@ -219,16 +225,15 @@ module ParseBrackets =
                                     else
                                         RegCode // the line ends immediately after '"' or '''
 
-                    | ''',  _  ->   if i + 3 <= lastIdx then // a regular char literal starts,  its length is 3, or a generic Type
-                                        if code[i+2] = ''' then
+                    | ''',  _  ->   if i + 2 <= lastIdx && code[i+2] = ''' then // a regular char literal starts, its length is 3
+                                        if i + 3 <= lastIdx then
                                             let next3 = code[i+3] // the char after '''
                                             charLoop next3 (i+3) // jump over the char literal
                                         else
-                                            // might be a generic type like 'T or a malformed char literal
-                                            charLoop next (i+1) // just move on to next char
+                                            RegCode // the line ends with the char literal, e.g. '('
                                     else
-                                        charLoop next (i+1)
-                                        // RegCode // the line ends immediately after `'`
+                                        // might be a generic type like 'T or a malformed char literal
+                                        charLoop next (i+1) // just move on to next char
 
                     | _       -> charLoop next (i+1)
 
@@ -327,22 +332,56 @@ module ParseBrackets =
                             ps[j] <- p
         pss
 
-    let getOnePair(pss: BracketPair[][], line:int, offset:int) : (BracketPair*BracketPair) option =
-        if line >= pss.Length then // this can happen when writing on last line and the code lines are not yet updated
-            //eprintfn $"tried to get line {line} of {pss.Length}items"
+    let isOpening = function
+        | OpAnRec | OpArr | OpRect | OpCurly | OpRound -> true
+        | ClAnRec | ClArr | ClRect | ClCurly | ClRound -> false
+
+    /// Finds the bracket pair to highlight for the caret.
+    /// If the caret touches a bracket from the outside (right after a closing or right before an opening bracket)
+    /// or is in the middle of a two character bracket like [| , then this pair is returned.
+    /// Otherwise the innermost pair enclosing the caret is returned, it may span many lines.
+    /// Unmatched brackets are ignored.
+    /// Returns the opening and the closing bracket.
+    let findPairAtCaret(pss: BracketPair[][], caretLine:int, caretOff:int) : (BracketPair*BracketPair) option =
+        if caretLine < 1 || caretLine >= pss.Length then // this can happen when writing on last line and the code lines are not yet updated
             None
         else
-            pss[line]
-            |> Array.tryFindBack ( fun p -> p.from <= offset && offset <= p.till+1  ) // + 1 to also catch caret right after bracket
-            |> Option.bind ( fun t ->
-                    match t.other with
-                    |Some o ->
-                        // first sort them:
-                        let a,b = if o.from < t.from then o,t else t,o
-                        if b.from-a.till <= 1 then None // don't return a pair if only on char between them
-                        else                       Some(a,b)
-                    |None  ->                      None
-                    )
+            let sorted (p:BracketPair) (o:BracketPair) = if isOpening p.kind then Some(p,o) else Some(o,p)
+
+            /// the first matched bracket on the caret line that satisfies the predicate
+            let touching (isAt: BracketPair -> bool) =
+                let ps = pss[caretLine]
+                let rec loop i =
+                    if i = ps.Length then None
+                    else
+                        let p = ps[i]
+                        match p.other with
+                        | Some o when isAt p -> sorted p o
+                        | _                  -> loop (i+1)
+                loop 0
+
+            /// Searches backwards from the caret for the innermost opening bracket that is not closed before the caret.
+            /// Only brackets that end at or before 'limit' are considered.
+            /// A closed pair before the caret is skipped in one step by jumping to its opening bracket.
+            let rec enclosing lnNo j limit =
+                if j < 0 then
+                    if lnNo <= 1 then None
+                    else enclosing (lnNo-1) (pss[lnNo-1].Length-1) limit
+                else
+                    let p = pss[lnNo][j]
+                    if p.till > limit then
+                        enclosing lnNo (j-1) limit // after the caret, or inside a skipped pair
+                    else
+                        match p.other with
+                        | None   -> enclosing lnNo (j-1) limit // unmatched bracket
+                        | Some o ->
+                            if isOpening p.kind then Some(p,o) // its closing bracket is after the caret, otherwise this pair would have been skipped
+                            else enclosing o.line (pss[o.line].Length-1) o.from // jump over the closed pair
+
+            touching (fun p -> not (isOpening p.kind) && p.till = caretOff)                             // caret right after a closing bracket
+            |> Option.orElseWith (fun () -> touching (fun p -> isOpening p.kind && p.from = caretOff))  // caret right before an opening bracket
+            |> Option.orElseWith (fun () -> touching (fun p -> p.from < caretOff && caretOff < p.till)) // caret in the middle of a two character bracket
+            |> Option.orElseWith (fun () -> enclosing caretLine (pss[caretLine].Length-1) caretOff)
 
 
     let debugPrintBrackets(bss:ResizeArray<ResizeArray<Bracket>>, lns:CodeLineTools.CodeLines, id) :unit =
@@ -384,7 +423,7 @@ open ParseBrackets
 
 type BracketHighlighter (state:InteractionState) =
 
-    let colPair  = Brushes.Gray |> brighter 80  |> freeze
+    let colPair  = Brushes.Green |> brighter 160  |> freeze
     let colErr   = Brushes.Red                  |> freeze
     //let colErrBg = Brushes.Pink |> brighter 25  |> freeze
     //let colErrBg = SolidColorBrush(Color.FromArgb(15uy,255uy,0uy,0uy))|> freeze // a=0 : fully transparent, a=255 opaque
@@ -407,51 +446,53 @@ type BracketHighlighter (state:InteractionState) =
 
     let transMatch = state.TransformersMatchingBrackets
 
-    let mutable prevPairSeg: RedrawSegment option = None
+    /// All bracket pairs grouped by line, and the doc change id they were parsed for.
+    /// Set from a background thread.
+    let mutable allPairs : option<int64 * BracketPair[][]> = None
 
-    let mutable allPairs : option<BracketPair[][]> = None
+    /// The pair currently in transMatch. Only accessed on the UI thread.
+    let mutable shownPair : option<BracketPair * BracketPair> = None
 
-    let caretPositionChanged(_:EventArgs) =
-        let id = state.DocChangedId.Value
-        let caret = state.Editor.TextArea.Caret
-        let caretOff = caret.Offset
-        let caretLine= caret.Line
+    /// Redraws the two brackets of a pair from transMatch.
+    /// Their offsets are adjusted for the document changes since transMatch was last updated, the same way the FastColorizer does it.
+    let redrawPair (a:BracketPair, b:BracketPair) =
+        let s = transMatch.Shift
+        let inline shifted off = if off >= s.fromOff then off + s.amountOff else off
+        let tv = state.Editor.TextArea.TextView
+        tv.Redraw(RedrawSegment(shifted a.from, shifted a.till))
+        tv.Redraw(RedrawSegment(shifted b.from, shifted b.till))
 
-        async{
-            do! Async.Sleep 50 // wait for update the offset list Offs lists
-            while allPairs.IsNone || state.CodeLines.IsNotFromId id do
-                do! Async.Sleep 50 // wait for update the offset list Offs lists
-
-            if state.IsLatest id then
-               match ParseBrackets.getOnePair(allPairs.Value, caretLine, caretOff) with
-               |None ->
-                    //transMatch.ClearAllLines() // or keep showing the bracket highlighting when cursor moves away??
-                    if state.IsLatest id then
-                        //redrawSegment:
-                        do! Async.SwitchToContext Fittings.SyncWpf.context
-                        match prevPairSeg with
-                        |Some prev ->
-                            state.Editor.TextArea.TextView.Redraw(prev)
-                            prevPairSeg <- None
-                        |None ->()
-
-               |Some (f,t) ->
-                    let newTrans = ResizeArray<ResizeArray<LinePartChange>>(t.line+1)
-                    LineTransformers.Insert(newTrans, f.line, {from=f.from; till=f.till; act = actPair})
-                    LineTransformers.Insert(newTrans, t.line, {from=t.from; till=t.till; act = actPair})
+    /// Highlights the bracket pair at or around the caret.
+    /// Does nothing if the brackets of the current code are not parsed yet, UpdateAllBrackets will call this again when done.
+    /// Must be called on the UI thread, so that the caret, the document and transMatch are all in sync.
+    let updateMatch () =
+        match allPairs with
+        | Some (id, pss) when state.IsLatest id && state.DocChangedConsequence = React -> // while the completion window is open the document changes without a new id
+            let caret = state.Editor.TextArea.Caret
+            let pair = ParseBrackets.findPairAtCaret(pss, caret.Line, caret.Offset)
+            let isShown =
+                match pair, shownPair with
+                | Some (a, _), Some (p, _) -> LanguagePrimitives.PhysicalEquality a p // only the same if from the same parse result
+                | None, None -> true
+                | _ -> false
+            if not isShown then
+                shownPair |> Option.iter redrawPair // to remove the previous highlighting
+                let newTrans = ResizeArray<ResizeArray<LinePartChange>>()
+                match pair with
+                | Some (a, b) ->
+                    LineTransformers.Insert(newTrans, a.line, {from=a.from; till=a.till; act = actPair})
+                    LineTransformers.Insert(newTrans, b.line, {from=b.from; till=b.till; act = actPair})
                     transMatch.Update(newTrans)
-                    if state.IsLatest id then
-                        //redrawSegment:
-                        do! Async.SwitchToContext Fittings.SyncWpf.context
-                        //IFeshLog.log.PrintfnDebugMsg $"redraw for caretPositionChanged , id:{id}"
-                        let seg = RedrawSegment(f.from,t.till)
-                        match prevPairSeg with
-                        |Some prev ->
-                            let m = seg.Merge(prev)
-                            state.Editor.TextArea.TextView.Redraw(m)
-                        |None ->
-                            state.Editor.TextArea.TextView.Redraw(seg)
-                        prevPairSeg <- Some seg
+                    redrawPair (a, b)
+                | None ->
+                    transMatch.Update(newTrans)
+                shownPair <- pair
+        | _ -> ()
+
+    let updateMatchAsync () =
+        async{
+            do! Async.SwitchToContext Fittings.SyncWpf.context
+            updateMatch()
         } |> Async.Start
 
     let foundBracketsEv = new Event<int64>()
@@ -460,21 +501,20 @@ type BracketHighlighter (state:InteractionState) =
 
     let nextAction i = acts.[i % acts.Length]
 
-    // do state.Editor.TextArea.Caret.PositionChanged.Add (caretPositionChanged)        // TODO reenable when fixed, also in list of fast colorizers in InteractionState.fs
+    do
+        state.Editor.TextArea.Caret.PositionChanged.Add (fun _ -> updateMatchAsync())
 
     [<CLIEvent>]
     member _.FoundBrackets = foundBracketsEv.Publish
 
     member _.UpdateAllBrackets(id) =
-        allPairs <- None
-        match ParseBrackets.finAll(state.CodeLines, id) with
+        match ParseBrackets.findAll(state.CodeLines, id) with
         |None -> ()
         |Some bss ->
             //ParseBrackets.debugPrintBrackets(bss, state.CodeLines, id)
             let pss =  ParseBrackets.findAllPairs(bss)
             if state.IsLatest id then
                 let newTrans = ResizeArray<ResizeArray<LinePartChange>>(transAll.LineCount+4)
-                allPairs <-Some pss
                 for lnNo = 0 to pss.Length - 1 do
                     let ps = pss[lnNo]
                     for i = 0 to ps.Length - 1 do
@@ -482,6 +522,8 @@ type BracketHighlighter (state:InteractionState) =
                         let act = match p.other with |None -> actErr |Some _ -> nextAction p.nestingDepth
                         LineTransformers.Insert(newTrans, lnNo, {from=p.from; till=p.till; act= act })
                 transAll.Update(newTrans)
+                allPairs <- Some (id, pss)
+                updateMatchAsync() // the caret may not have moved, but the brackets around it may have changed
                 foundBracketsEv.Trigger(id)
 
 

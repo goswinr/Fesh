@@ -286,7 +286,7 @@ type TypeInfo private () =
         ]
 
 
-    static let debugPrint (c:Child) =
+    static let _debugPrint (c:Child) =
         let rec printx  i (c:Child) =
             let ind = String(' ',  i*4)
             match c with

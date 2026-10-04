@@ -86,6 +86,23 @@ type Fonts (grid:TabsAndLog) = // will be constructed as part of Commands class
             sett.Set ("FontLog", f.Source)
         |None ->  ()
 
+
+    // cursive unused? was in Src\Editor\SemanticHighlighter.fs before :
+    
+    // /// this allows using the cursive version of Cascadia Mono
+    // let stylisticSet1 =
+    //     {new DefaultTextRunTypographyProperties() with
+    //         override this.StylisticSet1 with get() = true
+    //     }
+
+    // let makeCursive (el:VisualLineElement) =
+    //     // let f = el.TextRunProperties.Typeface.FontFamily
+    //     // let tf = new Typeface(f, FontStyles.Italic, FontWeights.Bold, FontStretches.Normal)
+    //     // eprintfn $"makeCursive {f}"
+    //     // el.TextRunProperties.SetTypeface(tf)
+    //     el.TextRunProperties.SetTypeface(StyleState.italicBoldEditorTf)
+    //     el.TextRunProperties.SetTypographyProperties(stylisticSet1) // for cursive set of Cascadia Mono
+
     let setEditor() = // on log and all tabs
         match tryGetFontOrAlt "FontEditor" with
         |Some f ->

@@ -1,0 +1,6 @@
+<Project>
+  <PropertyGroup>
+    <!-- Projects in this directory must not share NuGet assets or generated build files. -->
+    <BaseIntermediateOutputPath>obj\$(MSBuildProjectName)\</BaseIntermediateOutputPath>
+  </PropertyGroup>
+</Project>

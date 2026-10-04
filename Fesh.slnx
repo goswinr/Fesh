@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="FeshHosting.fsproj" />
+  <Project Path="FeshStandalone.fsproj" />
+</Solution>

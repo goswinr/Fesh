@@ -182,7 +182,7 @@ type InteractionState(ed:TextEditor, foldManager:FoldingManager, config:Fesh.Con
 
     /// reacts to caret changes
     /// for colorizing matching brackets
-    let transformersMatchingBrackets  = new LineTransformers<LinePartChange>()   // TODO reenable use when fixed
+    let transformersMatchingBrackets  = new LineTransformers<LinePartChange>()
 
     /// reacts to selection changes
     /// for colorizing text that matches the current selection
@@ -191,7 +191,7 @@ type InteractionState(ed:TextEditor, foldManager:FoldingManager, config:Fesh.Con
     let fastColorizer = new FastColorizer(
                                     [|
                                     transformersAllBrackets
-                                    //transformersMatchingBrackets   // TODO reenable when fixed
+                                    transformersMatchingBrackets
                                     transformersSelection
                                     transformersSemantic // draw errors last so they are on top of matching brackets
                                     |]

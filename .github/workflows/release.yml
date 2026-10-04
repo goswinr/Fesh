@@ -117,7 +117,7 @@ jobs:
       run: |
         # Pin the vpk version (supply-chain): an unpinned `tool install` pulls whatever is latest at
         # build time and runs it against the active signing session. Bump this manually when updating.
-        dotnet tool install vpk --global --version 0.0.1298
+        dotnet tool install vpk --global --version 1.2.161
 
         vpk download github `
           --repoUrl https://github.com/goswinr/Fesh `
@@ -166,7 +166,7 @@ jobs:
         VPK_TOKEN: ${{secrets.GITHUB_TOKEN}}  # used by vpk instead of --token on the command line
       run: |
         # Pinned vpk version (supply-chain) — keep in sync with the net48 step. Bump manually.
-        dotnet tool install vpk --global --version 0.0.1298
+        dotnet tool install vpk --global --version 1.2.161
 
         vpk download github `
           --repoUrl https://github.com/goswinr/Fesh `

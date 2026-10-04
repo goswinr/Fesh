@@ -8,8 +8,8 @@
     <UseWPF>true</UseWPF>
     <UseWindowsForms>true</UseWindowsForms><!--inherited from Avalonedit ?-->
     <!-- <TargetFrameworks>net472;net8.0-windows</TargetFrameworks> somehow the resultant nuget from multiple target frameworks
-    does get unified to 8.0 and does not work on net48 -->
-    <!--so the the releaseNuget.yml aktion will change this and also publish a net472,net8,net9,net10 nuget separately: -->
+    does get unified to 8.0 and does not work on net48 so for now the the releaseNuget.yml action
+    will change this and also publish a net472,net8,net9,net10 nuget separately: -->
     <TargetFramework>net8.0-windows</TargetFramework> <!-- use the lowest F# here by default, will be replace by other versions in releaseNuget.yml -->
 
     <DefineConstants Condition="'$(TargetFramework)' == 'net472'">NETFRAMEWORK</DefineConstants> <!-- so thread.Abort() can be used -->
@@ -32,7 +32,7 @@
     <!-- <Version></Version> done by Ionide.KeepAChangelog.Tasks -->
 
     <Authors>Goswin Rothenthal</Authors>
-    <Copyright>Goswin Rothenthal 2019</Copyright>
+    <Copyright>Goswin Rothenthal 2019-2026</Copyright>
     <Description>A hostable fsharp scripting editor for Windows based on Avalonedit</Description>
     <ApplicationIcon>Media/logo.ico</ApplicationIcon>
     <Win32Resource>Media/logo.res</Win32Resource>    <!-- Win32Resource for Application Icon in explorer-->
@@ -62,12 +62,8 @@
   see https://github.com/dotnet/fsharp/issues/19174
   Use Include not Update for FSharp.Core because of DisableImplicitFSharpCoreReference-->
   <ItemGroup Condition="'$(TargetFramework)' == 'net472'"> <!-- net472 can use the latest versions -->
-    <PackageReference Include="FSharp.Compiler.Service" Version="43.11.303" />
-    <PackageReference Include="FSharp.Core"             Version="10.1.303" /> <!-- FSharp.Compiler.Service pins this exact version -->
-  </ItemGroup>
-  <ItemGroup Condition="'$(TargetFramework)' == 'net10.0-windows'"> <!-- 43.11.x depends on the 10.x versions of System.Diagnostics.DiagnosticSource etc, 43.10.x still on 9.x -->
-    <PackageReference Include="FSharp.Compiler.Service" Version="43.11.303" />
-    <PackageReference Include="FSharp.Core"             Version="10.1.303" />
+    <PackageReference Include="FSharp.Compiler.Service" Version="43.12.401" />
+    <PackageReference Include="FSharp.Core"             Version="10.1.401" /> <!-- FSharp.Compiler.Service pins this exact version -->
   </ItemGroup>
   <ItemGroup Condition="'$(TargetFramework)' == 'net8.0-windows'">
     <PackageReference Include="FSharp.Compiler.Service" Version="43.8.403" />
@@ -77,15 +73,19 @@
     <PackageReference Include="FSharp.Compiler.Service" Version="43.9.303" />
     <PackageReference Include="FSharp.Core"             Version="9.0.303" />
   </ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)' == 'net10.0-windows'"> <!-- 43.11.x depends on the 10.x versions of System.Diagnostics.DiagnosticSource etc, 43.10.x still on 9.x -->
+    <PackageReference Include="FSharp.Compiler.Service" Version="43.12.401" />
+    <PackageReference Include="FSharp.Core"             Version="10.1.401" />
+  </ItemGroup>
 
 
   <ItemGroup>
-    <PackageReference Include="Velopack" Version="0.0.1298" />
-    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="10.0.103" PrivateAssets="all" IncludeAssets="runtime; build; native; contentfiles; analyzers; buildtransitive" />
-    <PackageReference Include="Ionide.KeepAChangelog.Tasks" Version="0.3.3" PrivateAssets="all" />
+    <PackageReference Include="Velopack" Version="1.2.161" />
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="10.0.401" PrivateAssets="all" IncludeAssets="runtime; build; native; contentfiles; analyzers; buildtransitive" />
+    <PackageReference Include="Ionide.KeepAChangelog.Tasks" Version="0.4.0" PrivateAssets="all" />
 
-    <PackageReference Include="Microsoft.VisualBasic" Version="10.3.0" /> <!-- to move files to the recycle bin instead of deleting them -->
-    <PackageReference Include="System.Private.Uri" Version="4.3.2" />    <!-- warning NU1903: Package 'System.Private.Uri' 4.3.0 has a known high severity vulnerability, https://github.com/advisories/GHSA-5f2m-466j-3848 -->
+    <PackageReference Include="Microsoft.VisualBasic" Version="10.3.0" Condition="'$(TargetFramework)' == 'net472'" /> <!-- to move files to the recycle bin instead of deleting them -->
+    <PackageReference Include="System.Private.Uri" Version="4.3.2" Condition="'$(TargetFramework)' == 'net472'" />    <!-- warning NU1903: Package 'System.Private.Uri' 4.3.0 has a known high severity vulnerability, https://github.com/advisories/GHSA-5f2m-466j-3848 -->
 
 	  <PackageReference Include="Fittings" Version="0.10.0" />
 	  <PackageReference Include="AvalonLog" Version="0.20.0" />

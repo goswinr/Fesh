@@ -66,19 +66,7 @@ type SemActions() =
         |> SolidColorBrush
         |> freeze
 
-    /// this allows using the cursive version of Cascadia Mono
-    let stylisticSet1 =
-        {new DefaultTextRunTypographyProperties() with
-            override this.StylisticSet1 with get() = true
-        }
 
-    let makeCursive (el:VisualLineElement) =
-        // let f = el.TextRunProperties.Typeface.FontFamily
-        // let tf = new Typeface(f, FontStyles.Italic, FontWeights.Bold, FontStretches.Normal)
-        // eprintfn $"makeCursive {f}"
-        // el.TextRunProperties.SetTypeface(tf)
-        el.TextRunProperties.SetTypeface(StyleState.italicBoldEditorTf)
-        el.TextRunProperties.SetTypographyProperties(stylisticSet1) // for cursive set of Cascadia Mono
 
 
     member val ReferenceTypeA              = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(c_ReferenceType              ))
