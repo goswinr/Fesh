@@ -54,6 +54,9 @@
     <PackageReference Include="AvalonLog" Version="0.20.0" />
     <!-- <ProjectReference Include="../AvalonLog/AvalonLog.fsproj" /> -->
 
+    <PackageReference Include="NuGet.Protocol"   Version="7.9.0" /> <!-- to find the latest version of packages in #r "nuget: ..." lines -->
+    <PackageReference Include="NuGet.Versioning" Version="7.9.0" />
+
     <!-- netstandard reference is needed for tooling only,
     in net 10 the F# Compiler.Service need the xml to show the tooltips,
     in net48 it might not be installed on host PC. (running the .NET Framework version) see also https://github.com/fsprojects/IfSharp/issues/213 -->
@@ -113,6 +116,8 @@
     <Compile Include="Src/Editor/BracketHighlighter.fs" />
     <Compile Include="Src/Editor/DocChanged.fs" />
     <Compile Include="Src/Editor/KeyboardShortcuts.fs" />
+    <Compile Include="Src/Editor/NugetVersions.fs" />
+    <Compile Include="Src/Editor/NugetHints.fs" />
 
     <Compile Include="Src/Views/Scrollbar.fs" />
     <Compile Include="Src/Views/Log.fs" />

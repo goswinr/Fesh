@@ -89,6 +89,9 @@
 
 	  <PackageReference Include="Fittings" Version="0.10.0" />
 	  <PackageReference Include="AvalonLog" Version="0.20.0" />
+
+    <PackageReference Include="NuGet.Protocol"   Version="7.9.0" /> <!-- to find the latest version of packages in #r "nuget: ..." lines -->
+    <PackageReference Include="NuGet.Versioning" Version="7.9.0" />
   </ItemGroup>
 
   <ItemGroup>
@@ -143,6 +146,8 @@
     <Compile Include="Src/Editor/BracketHighlighter.fs" />
     <Compile Include="Src/Editor/DocChanged.fs" />
     <Compile Include="Src/Editor/KeyboardShortcuts.fs" />
+    <Compile Include="Src/Editor/NugetVersions.fs" />
+    <Compile Include="Src/Editor/NugetHints.fs" />
 
     <Compile Include="Src/Views/Scrollbar.fs" />
     <Compile Include="Src/Views/Log.fs" />

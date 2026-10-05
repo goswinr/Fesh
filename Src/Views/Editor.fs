@@ -233,6 +233,20 @@ type Editor private (code:string, config:Config, initialFilePath:FilePath)  =
         // avaEdit.TextArea.TextView.LineTransformers.Add(new DebugColorizer2( [| ed.State.TransformersSemantic |], ed.AvaEdit))  // for debugging the line transformers
         // avaEdit.Document.Changed.Add(fun a -> DocChangeEvents.logPerformance( a.InsertedText.Text)) // AutoHotKey SendInput of ßabcdefghijklmnopqrstuvwxyz£
 
+        // shows the latest version after #r "nuget: ..." lines, the folder is used to find the NuGet.Config files:
+        if config.Settings.GetBool(NugetHints.SettingsStr, NugetHints.onByDefault) then
+            let getFolder () = match ed.FilePath with SetTo fi | Deleted fi -> fi.DirectoryName | NotSet _ -> ""
+            // The check started by an edit skips the edited #r line, because FCS does not resolve packages on the caret line (to not restore them while typing).
+            // So after a version change, or when the caret leaves an edited #r line, start a new check with the next change id, that cancels the previous one,
+            // and with line 0 as caret line, so that the packages of that line get resolved:
+            let tryRecheck () =
+                match ed.State.DocChangedConsequence with
+                | WaitForCompletions -> false // the completion window starts a check when it closes
+                | React ->
+                    DocChangeMark.updateAllTransformersAsync(ed, drawServ, ed.State, ed.State.Increment(), 0)
+                    true
+            new NugetHints(avaEdit, getFolder, tryRecheck) |> ignore // kept alive by its event handlers on the TextView
+
 
         // avaEdit.KeyDown.Add (fun k ->  // close tooltips or clear selection on Escape key
         //     match k.Key with
