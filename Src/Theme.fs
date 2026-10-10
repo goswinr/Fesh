@@ -17,6 +17,8 @@ type EditorColors = {
     /// Background of the line number and folding margin
     margin              : SolidColorBrush
     lineNumbers         : SolidColorBrush
+    /// The line number of the line with the caret
+    currentLineNumber   : SolidColorBrush
     /// The first column ruler, the following ones fade out
     columnRuler         : SolidColorBrush
     foldingMarker       : SolidColorBrush
@@ -181,8 +183,9 @@ module Theme =
         currentLine         = Brushes.LightSteelBlue |> brighter 70 |> freeze
         link                = Brushes.DarkGreen
         margin              = Brushes.White          |> darker 8    |> freeze
-        lineNumbers         = Brushes.Gray
-        columnRuler         = Brushes.White          |> darker 24   |> freeze
+        lineNumbers         = Brushes.Silver
+        currentLineNumber   = Brushes.Black
+        columnRuler        = Brushes.White          |> darker 24   |> freeze
         foldingMarker       = Brushes.Gray
         foldingMarkerBg     = Brushes.White
         foldingMarkerSel    = Brushes.Black
@@ -211,6 +214,7 @@ module Theme =
         link                = hex "#5DBB63"
         margin              = hex "#252526"
         lineNumbers         = hex "#858585"
+        currentLineNumber   = hex "#C6C6C6"
         columnRuler         = hex "#383838"
         foldingMarker       = hex "#808080"
         foldingMarkerBg     = hex "#252526"

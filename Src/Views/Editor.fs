@@ -172,7 +172,6 @@ type Editor private (code:string, config:Config, initialFilePath:FilePath)  =
         let av = avaEdit
         av.Background <- c.background
         av.Foreground <- c.foreground
-        av.LineNumbersForeground <- c.lineNumbers
         av.TextArea.TextView.LinkTextForegroundBrush <- c.link
         av.TextArea.TextView.CurrentLineBackground   <- c.currentLine
         Folding.FoldingMargin.SetFoldingMarkerBrush                (av, c.foldingMarker)
@@ -188,7 +187,11 @@ type Editor private (code:string, config:Config, initialFilePath:FilePath)  =
             av.TextArea.SelectionForeground <- null // keep the syntax colors
         for m in av.TextArea.LeftMargins do
             match m with
-            | :? Editing.LineNumberMargin as lnm -> lnm.BackgroundColor <- c.margin
+            | :? Editing.LineNumberMargin as lnm ->
+                lnm.BackgroundColor <- c.margin
+                // not av.LineNumbersForeground, the LineNumberMargin of AvalonEditB ignores it when drawing
+                lnm.LineNumberForegroundColor        <- c.lineNumbers
+                lnm.CurrentLineNumberForegroundColor <- c.currentLineNumber
             | :? Folding.FoldingMargin    as fm  -> fm.BackgroundColor  <- c.margin
             | _ -> ()
         av.TextArea.TextView.Redraw()
