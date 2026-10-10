@@ -191,6 +191,30 @@ type NugetHints (ed:TextEditor, getFolder: unit -> string, tryRecheck: unit -> b
         layer.Children.Clear()
         shown.Clear()
 
+    /// Apply metadata casing as soon as it is known, including for packages already up to date.
+    /// CharacterReplace keeps the caret and selection in place while the user is typing.
+    let fixPackageCasing () =
+        if not disabled then
+            let folder = getFolder()
+            let doc = ed.Document
+            let editedLine = editedNugetLine
+            doc.BeginUpdate()
+            try
+                for line in doc.Lines do
+                    if NugetDirective.isCandidate doc line then
+                        match NugetDirective.tryParse (doc.GetText line) with
+                        | Some d ->
+                            let name = NugetVersions.GetPackageName(folder, d.name)
+                            if name <> d.name then
+                                doc.Replace(line.Offset + d.nameEnd - d.name.Length, d.name.Length, name, OffsetChangeMappingType.CharacterReplace)
+                        | None -> ()
+            finally
+                doc.EndUpdate()
+                // Casing does not change package resolution or supersede a pending version edit.
+                editedNugetLine <- editedLine
+
+    let mutable casingFixPending = false
+
     /// Runs on each VisualLinesChanged event, so during the measure pass of the TextView.
     let rebuild () =
         if disabled then
@@ -212,6 +236,13 @@ type NugetHints (ed:TextEditor, getFolder: unit -> string, tryRecheck: unit -> b
                             let struct(hints, isStale) = NugetVersions.TryGetHints(folder, d)
                             if isStale then
                                 needsFetch <- true
+                            if not casingFixPending && NugetVersions.GetPackageName(folder, d.name) <> d.name then
+                                // VisualLinesChanged runs inside layout; defer document edits until it finishes.
+                                casingFixPending <- true
+                                ed.Dispatcher.BeginInvoke(DispatcherPriority.Background, Action(fun () ->
+                                    try fixPackageCasing()
+                                    finally casingFixPending <- false
+                                    )) |> ignore
                             if not hints.IsEmpty then
                                 let hintKey = hints |> List.map (fun h -> $"{h.kind}|{h.version}|{h.tip}|{h.projectUrl}") |> String.concat "|"
                                 let key = $"{hintKey}|{ed.FontSize}|{Theme.isDark}"
@@ -274,6 +305,7 @@ type NugetHints (ed:TextEditor, getFolder: unit -> string, tryRecheck: unit -> b
                     match NugetVersions.LoadError with
                     | Some e -> disable e
                     | None -> ()
+                    fixPackageCasing()
                     rebuild()
                 }
                 |> Async.Start

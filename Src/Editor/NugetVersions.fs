@@ -190,10 +190,11 @@ type NugetHint = {
 [<RequireQualifiedAccess>]
 type NugetLookup =
     /// versions: All listed versions from all sources that answered, sorted ascending. Empty if the package does not exist.
+    /// packageName: The original casing of the package id from its metadata, or "" if not found.
     /// projectUrl: The project website of the latest version that has one, or "".
     /// checkedOn: The names of the sources that answered.
     /// notReachable: The names of the sources that failed, or "".
-    | Found  of versions:NuGetVersion[] * projectUrl:string * checkedOn:string * notReachable:string
+    | Found  of versions:NuGetVersion[] * packageName:string * projectUrl:string * checkedOn:string * notReachable:string
     | Failed of reason:string
 
 
@@ -239,7 +240,7 @@ type internal NugetFeeds private () =
                                 else
                                     // this downloads the same registration data as MetadataResource.GetVersions, but keeps the project URL too:
                                     let! metas = res.GetMetadataAsync(pkgId, true, false, cacheContext, NullLogger.Instance, cts.Token) |> Async.AwaitTask // true: includePrerelease, false: includeUnlisted
-                                    let found = metas |> Seq.map (fun m -> struct(m.Identity.Version, m.ProjectUrl)) |> Seq.toArray
+                                    let found = metas |> Seq.map (fun m -> struct(m.Identity.Version, m.Identity.Id, m.ProjectUrl)) |> Seq.toArray
                                     return Some (Ok (srcName, found))
                             with e ->
                                 if NugetLoad.isLoadError e then
@@ -257,24 +258,30 @@ type internal NugetFeeds private () =
                     else
                         return NugetLookup.Failed ("Not reachable: " + String.Join(", ", failed))
                 else
-                    let all = answered |> Array.collect snd
+                    let all = // prefer the newest stable metadata, then the newest prerelease
+                        answered
+                        |> Array.collect snd
+                        |> Array.sortWith (fun struct(a, _, _) struct(b, _, _) ->
+                            match compare a.IsPrerelease b.IsPrerelease with
+                            | 0 -> VersionComparer.Default.Compare(b, a)
+                            | c -> c)
                     let versions =
                         all
-                        |> Array.map (fun struct(v, _) -> v)
+                        |> Array.map (fun struct(v, _, _) -> v)
                         |> Array.distinctBy (fun v -> v.ToNormalizedString().ToLowerInvariant())
                         |> Array.sortWith (fun a b -> VersionComparer.Default.Compare(a, b))
                     let projectUrl = // from the latest stable version that has one, else from the latest prerelease
                         all
-                        |> Array.filter (fun struct(_, u) -> isWebUrl u)
-                        |> Array.sortWith (fun struct(a, _) struct(b, _) ->
-                            match compare a.IsPrerelease b.IsPrerelease with
-                            | 0 -> VersionComparer.Default.Compare(b, a) // newest first
-                            | c -> c )                                    // stable first
+                        |> Array.tryFind (fun struct(_, _, u) -> isWebUrl u)
+                        |> Option.map (fun struct(_, _, u) -> u.AbsoluteUri)
+                        |> Option.defaultValue ""
+                    let packageName =
+                        all
                         |> Array.tryHead
-                        |> Option.map (fun struct(_, u) -> u.AbsoluteUri)
+                        |> Option.map (fun struct(_, name, _) -> name)
                         |> Option.defaultValue ""
                     let checkedOn = answered |> Array.map fst |> String.concat ", "
-                    return NugetLookup.Found (versions, projectUrl, checkedOn, String.Join(", ", failed))
+                    return NugetLookup.Found (versions, packageName, projectUrl, checkedOn, String.Join(", ", failed))
         }
 
 
@@ -322,7 +329,7 @@ type NugetVersions private () =
         | NugetLookup.Failed _ ->
             []
 
-        | NugetLookup.Found (versions, projectUrl, checkedOn, notReachable) ->
+        | NugetLookup.Found (versions, _, projectUrl, checkedOn, notReachable) ->
             let sources =
                 if notReachable = "" then $"Checked on: {checkedOn}"
                 else                      $"Checked on: {checkedOn}\r\nNot reachable: {notReachable}"
@@ -388,6 +395,14 @@ type NugetVersions private () =
 
     /// Set if the NuGet client assemblies could not be loaded.
     static member LoadError = loadError
+
+    /// The original package id casing from a completed lookup, otherwise the name as written.
+    /// Only accept casing changes, never a different package id.
+    static member GetPackageName(folder:string, name:string) : string =
+        match results.TryGetValue(keyOf folder name) with
+        | true, struct(NugetLookup.Found (_, packageName, _, _, _), _)
+            when String.Equals(name, packageName, StringComparison.OrdinalIgnoreCase) -> packageName
+        | _ -> name
 
     /// Returns the hints to show for this line and whether a lookup is needed because there is no result yet or it is outdated.
     /// Never blocks and does not start a lookup itself, call Fetch for that.
