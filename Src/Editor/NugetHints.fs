@@ -66,7 +66,7 @@ type NugetHintLayer(tv:TextView) =
 
 
 /// Shows a small control after each  #r "nuget: ..."  line:
-/// A green check mark if the version is the latest one, a button to update it, or a button to pin the latest version if none is given.
+/// A green check mark, update/pin buttons, and an optional prerelease or stable downgrade button.
 /// getFolder returns the folder of the script, to find the NuGet.Config files. Or "" if the file is not saved yet.
 /// tryRecheck starts a type check that also resolves the packages on the line of the last edit.
 /// (The normal check after an edit skips them, so that they are not restored while typing.)
@@ -136,7 +136,7 @@ type NugetHints (ed:TextEditor, getFolder: unit -> string, tryRecheck: unit -> b
                     editedNugetLine <- null
         ed.TextArea.Focus() |> ignore
 
-    let makeElement (line:DocumentLine) (h:NugetHint) : FrameworkElement =
+    let makeHintButton (line:DocumentLine) (h:NugetHint) =
         let tb = TextBlock(FontSize = ed.FontSize * 0.85, VerticalAlignment = VerticalAlignment.Center)
         let b = Border(Child = tb, CornerRadius = CornerRadius 3.0, Padding = Thickness(4.0, 0.0, 4.0, 0.0), ToolTip = h.tip, Cursor = Cursors.Arrow)
         ToolTipService.SetInitialShowDelay(b, 300)
@@ -158,26 +158,33 @@ type NugetHints (ed:TextEditor, getFolder: unit -> string, tryRecheck: unit -> b
         | NugetHintKind.UpToDate -> tb.Text <- "✔"; tb.Foreground <- c.upToDateFg
         | NugetHintKind.NotFound -> tb.Text <- "?"; tb.Foreground <- c.notFoundFg
         | NugetHintKind.UpdateTo -> asButton ("↑ " + h.version)   c.updateFg c.updateBg c.updateBgHover
+        | NugetHintKind.UpdateToPrerelease -> asButton ("↑ prerelease " + h.version) c.updateFg c.updateBg c.updateBgHover
+        | NugetHintKind.DowngradeToStable -> asButton ("↓ stable " + h.version) c.pinFg c.pinBg c.pinBgHover
         | NugetHintKind.PinTo    -> asButton ("pin " + h.version) c.pinFg    c.pinBg    c.pinBgHover
         | NugetHintKind.NoHint   -> ()
+        b
 
-        if h.projectUrl = "" then
-            b :> FrameworkElement
-        else
+    let makeElement (line:DocumentLine) (hints:NugetHint list) : FrameworkElement =
+        let panel = StackPanel(Orientation = Orientation.Horizontal)
+        for h in hints do
+            let b = makeHintButton line h
+            if panel.Children.Count > 0 then b.Margin <- Thickness(4.0, 0.0, 0.0, 0.0)
+            panel.Children.Add b |> ignore
+        let projectUrl = hints.Head.projectUrl
+        if projectUrl <> "" then
+            let c = Theme.nugetHints
             let size = ed.FontSize * 0.8
             let icon = Shapes.Path(Data = linkGeometry, Stroke = c.linkFg, StrokeThickness = 1.3, Stretch = Stretch.Uniform, Width = size, Height = size)
             let link = Border(Child = icon, Background = Brushes.Transparent, Padding = Thickness(3.0, 0.0, 3.0, 0.0), Cursor = Cursors.Hand, VerticalAlignment = VerticalAlignment.Center)
-            link.ToolTip <- "Open the project website:\r\n" + h.projectUrl
+            link.ToolTip <- "Open the project website:\r\n" + projectUrl
             ToolTipService.SetInitialShowDelay(link, 300)
             link.MouseEnter.Add(fun _ -> icon.Stroke <- c.linkFgHover)
             link.MouseLeave.Add(fun _ -> icon.Stroke <- c.linkFg)
             link.MouseLeftButtonDown.Add(fun e ->
                 e.Handled <- true // so that the TextArea does not start a selection
-                Fesh.Util.General.browseTo h.projectUrl)
-            let panel = StackPanel(Orientation = Orientation.Horizontal)
-            panel.Children.Add b    |> ignore
+                Fesh.Util.General.browseTo projectUrl)
             panel.Children.Add link |> ignore
-            panel :> FrameworkElement
+        panel :> FrameworkElement
 
     let clearAll () =
         layer.Placed.Clear()
@@ -202,18 +209,19 @@ type NugetHints (ed:TextEditor, getFolder: unit -> string, tryRecheck: unit -> b
                         match NugetDirective.tryParse (doc.GetText line) with
                         | None -> ()
                         | Some d ->
-                            let struct(hint, isStale) = NugetVersions.TryGetHint(folder, d)
+                            let struct(hints, isStale) = NugetVersions.TryGetHints(folder, d)
                             if isStale then
                                 needsFetch <- true
-                            if hint.kind <> NugetHintKind.NoHint then
-                                let key = $"{hint.kind}|{hint.version}|{hint.tip}|{hint.projectUrl}|{ed.FontSize}|{Theme.isDark}"
+                            if not hints.IsEmpty then
+                                let hintKey = hints |> List.map (fun h -> $"{h.kind}|{h.version}|{h.tip}|{h.projectUrl}") |> String.concat "|"
+                                let key = $"{hintKey}|{ed.FontSize}|{Theme.isDark}"
                                 let el =
                                     match shown.TryGetValue line with
                                     | true, struct(k, el) when k = key ->
                                         el
                                     | found, struct(_, old) ->
                                         if found then layer.Children.Remove old
-                                        let el = makeElement line hint
+                                        let el = makeElement line hints
                                         layer.Children.Add el |> ignore
                                         shown[line] <- struct(key, el)
                                         el

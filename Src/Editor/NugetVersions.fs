@@ -161,6 +161,10 @@ type NugetHintKind =
     | UpToDate
     /// A newer version exists.
     | UpdateTo
+    /// A newer prerelease version exists.
+    | UpdateToPrerelease
+    /// Return from a prerelease to the latest stable version.
+    | DowngradeToStable
     /// No version or a floating version is given.
     | PinTo
     /// The package was not found on any source.
@@ -285,8 +289,6 @@ type NugetVersions private () =
 
     static let mutable loadError : exn option = None
 
-    static let noHint = { kind = NugetHintKind.NoHint; version = ""; tip = ""; projectUrl = "" }
-
     /// The sources depend on the NuGet.Config files of the script folder, so the folder is part of the key.
     static let keyOf (folder:string) (name:string) =
         folder.ToLowerInvariant() + "|" + name.ToLowerInvariant()
@@ -315,10 +317,10 @@ type NugetVersions private () =
         }
         |> Async.StartAsTask
 
-    static let makeHint (d:NugetDirective) (res:NugetLookup) : NugetHint =
+    static let makeHints (d:NugetDirective) (res:NugetLookup) : NugetHint list =
         match res with
         | NugetLookup.Failed _ ->
-            noHint
+            []
 
         | NugetLookup.Found (versions, projectUrl, checkedOn, notReachable) ->
             let sources =
@@ -337,50 +339,65 @@ type NugetVersions private () =
 
             match latest true, latest false with
             | None, _ ->
-                hint NugetHintKind.NotFound "" $"Package '{d.name}' was not found.\r\n{sources}"
+                [hint NugetHintKind.NotFound "" $"Package '{d.name}' was not found.\r\n{sources}"]
 
             | Some latestAny, latestStable ->
                 let latestStableOrAny = defaultArg latestStable latestAny
                 if d.version = "" then
                     let v = str latestStableOrAny
-                    hint NugetHintKind.PinTo v $"Click to pin {d.name} to its latest version {v}.\r\n{sources}"
+                    [
+                        hint NugetHintKind.PinTo v $"Click to pin {d.name} to its latest version {v}.\r\n{sources}"
+                        if latestAny.IsPrerelease && VersionComparer.Default.Compare(latestAny, latestStableOrAny) > 0 then
+                            let p = str latestAny
+                            hint NugetHintKind.UpdateToPrerelease p $"Click to pin {d.name} to its latest prerelease {p}.\r\n{sources}"
+                    ]
                 else
                     let mutable current : NuGetVersion = null
                     let mutable range   : VersionRange = null
                     if NuGetVersion.TryParse(d.version, &current) then
                         let target = if current.IsPrerelease then latestAny else latestStableOrAny
-                        if VersionComparer.Default.Compare(current, target) >= 0 then
-                            let preNote =
-                                if not current.IsPrerelease && VersionComparer.Default.Compare(latestAny, current) > 0 then
-                                    $"\r\nA newer prerelease exists: {str latestAny}"
-                                else
-                                    ""
-                            hint NugetHintKind.UpToDate d.version $"{d.name} {d.version} is the latest version.{preNote}\r\n{sources}"
-                        else
+                        let change kind (target:NuGetVersion) action =
                             let t = str target
-                            hint NugetHintKind.UpdateTo t $"Click to update {d.name} from {d.version} to {t}.\r\n{sources}\r\n\r\nIf version {d.version} is already loaded in the running FSI session,\r\nFSI needs a reset to use version {t}."
+                            hint kind t $"Click to {action} {d.name} from {d.version} to {t}.\r\n{sources}\r\n\r\nIf version {d.version} is already loaded in the running FSI session,\r\nFSI needs a reset to use version {t}."
+                        [
+                            if VersionComparer.Default.Compare(current, target) >= 0 then
+                                hint NugetHintKind.UpToDate d.version $"{d.name} {d.version} is the latest version.\r\n{sources}"
+                            else
+                                let kind = if target.IsPrerelease then NugetHintKind.UpdateToPrerelease else NugetHintKind.UpdateTo
+                                change kind target "update"
+
+                            if current.IsPrerelease then
+                                match latestStable with
+                                | Some stable when VersionComparer.Default.Compare(stable, current) < 0 ->
+                                    change NugetHintKind.DowngradeToStable stable "downgrade to stable"
+                                | Some stable when VersionComparer.Default.Compare(stable, target) <> 0 ->
+                                    change NugetHintKind.UpdateTo stable "update to stable"
+                                | _ -> ()
+                            elif latestAny.IsPrerelease && VersionComparer.Default.Compare(latestAny, current) > 0 && VersionComparer.Default.Compare(latestAny, target) <> 0 then
+                                change NugetHintKind.UpdateToPrerelease latestAny "update to prerelease"
+                        ]
 
                     elif VersionRange.TryParse(d.version, true, &range) && range.IsFloating then // like *, 1.* or *-*
                         match range.FindBestMatch(versions) with
-                        | null -> noHint
+                        | null -> []
                         | best ->
                             let b = str best
-                            hint NugetHintKind.PinTo b $"Click to pin {d.name} to {b}.\r\n'{d.version}' currently resolves to {b}.\r\n{sources}"
+                            [hint NugetHintKind.PinTo b $"Click to pin {d.name} to {b}.\r\n'{d.version}' currently resolves to {b}.\r\n{sources}"]
                     else
-                        noHint // a version range without floating, or an invalid version
+                        [] // a version range without floating, or an invalid version
 
     /// Set if the NuGet client assemblies could not be loaded.
     static member LoadError = loadError
 
-    /// Returns the hint to show for this line and whether a lookup is needed because there is no result yet or it is outdated.
+    /// Returns the hints to show for this line and whether a lookup is needed because there is no result yet or it is outdated.
     /// Never blocks and does not start a lookup itself, call Fetch for that.
-    static member TryGetHint(folder:string, d:NugetDirective) : struct(NugetHint * bool) =
+    static member TryGetHints(folder:string, d:NugetDirective) : struct(NugetHint list * bool) =
         match results.TryGetValue(keyOf folder d.name) with
         | true, entry ->
             let struct(res, _) = entry
-            struct(makeHint d res, isStale entry)
+            struct(makeHints d res, isStale entry)
         | _ ->
-            struct(noHint, true)
+            struct([], true)
 
     /// Looks up the versions of the given packages, unless there is a recent result already.
     /// Completes when all of these lookups are done.
