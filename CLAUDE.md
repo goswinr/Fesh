@@ -44,7 +44,7 @@ There are no unit test projects in the solution. The `Test/` folder contains an 
 - Versioning is extracted from `CHANGELOG.md` by `Ionide.KeepAChangelog.Tasks`
 - Updates use Velopack with GitHub Releases as the source
 - Syntax highlighting: initial regex-based via `Src/SyntaxHighlightingFSharp.xshd`, then semantic pass from compiler service
-- Light and dark theme: all syntax colors (including the `Semantic.*` ones) are in the xshd file, with `dark...` attributes for the dark theme; all other colors are in `Src/Theme.fs`; the dark styles for WPF controls are in `Src/ThemeChrome.fs`. Code reads colors from `Theme.*` when drawing or reacts to `Theme.Changed`, so the theme switches live
+- Light and dark theme: all syntax colors (including the `Semantic.*` ones) are in the xshd file, with `dark...` attributes for the dark theme; all other colors are in `Src/Theme.fs`; the dark styles for WPF controls are in `Src/ThemeChrome.xaml` (an EmbeddedResource with `Page Remove`, since F# can't compile XAML; loaded by `Src/ThemeChrome.fs`). Code reads colors from `Theme.*` when drawing or reacts to `Theme.Changed`, so the theme switches live
 
 **Key dependencies:**
 - `AvalonEditB` (fork of AvalonEdit) — text editor control

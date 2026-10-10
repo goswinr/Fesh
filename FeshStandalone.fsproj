@@ -70,6 +70,8 @@
     <Resource Include="Media/logoGray.ico" />        <!--  for Application Icon in secondary PopOut windows-->
 
     <Content Include="Src/SyntaxHighlightingFSharp.xshd" CopyToOutputDirectory="PreserveNewest" TargetPath="SyntaxHighlightingFSharp.xshd" Pack="true" PackagePath="\" />
+    <Page Remove="Src/ThemeChrome.xaml" />                                      <!-- F# can't compile XAML, it is loaded at runtime -->
+    <EmbeddedResource Include="Src/ThemeChrome.xaml" LogicalName="ThemeChrome.xaml" /> <!-- the dark styles for WPF controls -->
 
     <Content Include="$(PkgNETStandard_Library)/build/netstandard2.0/ref/netstandard.dll" Condition="'$(TargetFramework)' == 'net48'" CopyToOutputDirectory="Always" />
     <Content Include="$(PkgNETStandard_Library)/build/netstandard2.0/ref/netstandard.xml" CopyToOutputDirectory="Always" /> <!-- needed for tooltips -->

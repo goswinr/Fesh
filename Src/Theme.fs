@@ -6,7 +6,7 @@ open AvalonLog.Brush
 
 // All colors of Fesh, except the ones for syntax highlighting.
 // The syntax highlighting colors (including the semantic highlighting) are in SyntaxHighlightingFSharp.xshd.
-// The dark versions of the WPF controls (menus, tabs, scrollbars, ...) are in ThemeChrome.fs.
+// The dark styles of the WPF controls (menus, tabs, scrollbars, ...) are in ThemeChrome.xaml, loaded by ThemeChrome.fs.
 
 /// Colors of the code editor that are not part of the syntax highlighting
 type EditorColors = {
