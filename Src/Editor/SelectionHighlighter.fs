@@ -404,16 +404,13 @@ type SelectionHighlighterLog (lg:TextEditor) =
 
     // Called from StatusBar to highlight the current selection of Editor in Log too
     // All occurrences are marked and counted, the FastColorizer skips the selected text.
-    // delay: milliseconds to wait before searching, so that a burst of prints to the Log only triggers one search.
-    let mark (word:string, skipOff: SkipMarking, triggerNext:bool, delay:int) =
+    // No debouncing needed for prints, AvalonLog already batches them into one append every 30 to 50 ms.
+    let mark (word:string, skipOff: SkipMarking, triggerNext:bool) =
         let markId = Threading.Interlocked.Increment markCallID
         let lines  = logLines.Snapshot // taken here on the UI thread, so it matches the current Log text
         lastWord <- word // save last selection word even if it is not found, it might be found after a doc change
         lastSkipOff <- skipOff
         async{
-            if delay > 0 then
-                do! Async.Sleep delay
-
             // search for the word in the lines:
             if markId = markCallID.Value then // false if there was a newer mark call or a forceClear in the meantime
                 let lastLineNo = lines.LastLineNo
@@ -496,13 +493,13 @@ type SelectionHighlighterLog (lg:TextEditor) =
                     let word = lg.SelectedText
                     if isTextToHighlight word then  //is at least two chars and has no line breaks
                         let skip = SkipOffset lg.SelectionStart
-                        mark(word, skip, true, 0)
+                        mark(word, skip, true)
                     // else keep the highlighting
 
             // keep highlighting if the cursor is just repositioned, but nothing selected:
             |NoSel  ->
                 if lastWord <> "" && lastSkipOff <> MarkAll then  // if lastSkipOff = MarkAll then all words are highlighted. there is no change to highlighting needed
-                    mark(lastWord, MarkAll, true, 0) // keep highlighting and add the word that was selected before
+                    mark(lastWord, MarkAll, true) // keep highlighting and add the word that was selected before
 
     let debounce =
         let mutable lastId = ref 0L
@@ -529,7 +526,7 @@ type SelectionHighlighterLog (lg:TextEditor) =
                 logLines.Reset(lg.Document.Text) // e.g. when the Log got cleared
 
             if lastWord <> "" then // redraw highlighting because new text to highlight might get printed to log
-                mark(lastWord, lastSkipOff, false, 50) // using lastSkipOff is OK for Log because if there is a selection in the Log the text in a selection can not move or be deleted
+                mark(lastWord, lastSkipOff, false) // using lastSkipOff is OK for Log because if there is a selection in the Log the text in a selection can not move or be deleted
             )
 
     /// used when escape is pressed and not type info is open
@@ -557,6 +554,6 @@ type SelectionHighlighterLog (lg:TextEditor) =
                 reactToSelChange <- false // to not trigger a selection changed event
                 lg.TextArea.ClearSelection()
                 reactToSelChange <- true
-            mark(word, MarkAll, false, 0)
+            mark(word, MarkAll, false)
         else
             clearLogIfNeeded(false)
