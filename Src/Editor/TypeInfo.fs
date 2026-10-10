@@ -232,6 +232,13 @@ type TypeInfo private () =
         | "typeparam" -> "Type Parameters: "
         | t           -> Str.up1 t + ": "
 
+    /// Tags that are inline formatting, not section headers like summary, param or returns.
+    /// They can appear at top level in a doc comment without a summary tag, e.g.: /// Returns <c>true</c> if ...
+    static let isInlineTag s =
+        match s with
+        | "c" | "code" | "see" | "paramref" | "typeparamref" | "para" | "br" | "b" | "i" | "em" | "strong" | "a" -> true
+        | _ -> false
+
     // for F:System.IO.Path.InvalidPathChars -> System.IO.Path.InvalidPathChars
     static let fixTypeName (s:string) =
         match s.IndexOf ':' with
@@ -373,7 +380,7 @@ type TypeInfo private () =
 
 
             |Node n ->
-                if depth=0 then
+                if depth=0 && not (isInlineTag n.name) then
                     if last <> n.name && addTitle then // && n.name <> "?name?" then // to not repeat the parameter header every time
                         last <- n.name
                         tb.Inlines.Add( new LineBreak())
