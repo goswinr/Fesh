@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - the colors of the semantic highlighting are in the SyntaxHighlightingFSharp.xshd file too, as `Semantic.` colors, so they can be edited and reloaded like the other syntax colors
 - reloading the SyntaxHighlightingFSharp.xshd file after an edit updates all open tabs, not only the current one
+### Fixed
+- typing a dot after a closing bracket, like in `System.Guid.NewGuid().` or `xs[0].`, opens the completion list with the members of that expression. Whitespace before the dot is skipped too, so it also works at the start of a correctly indented line, like in a method chain on several lines
 
 ## [0.34.0] - 2026-10-05
 ### Added

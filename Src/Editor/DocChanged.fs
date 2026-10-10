@@ -365,29 +365,39 @@ module MaybeShow =
             pos.column > 2 &&  isNum pos.lineToCaret[pos.column-1] && isAlpha pos.lineToCaret[pos.column-2]
 
 
-        /// even if ther is a digit before the dot it might be part of a name
-        /// so this checks if before the dot is a number or a name
-        let isNotInNumber (pos:PositionInCode) =
-            let rec loop i =
-                if i = -1 then false // start of line reached no letter found yet
+        /// For dot completion: checks if before the dot is a name (not a number) or a closing bracket,
+        /// like in `xs.` or `System.Guid.NewGuid().` or `xs[0].`
+        /// All whitespace before the dot is skipped, even line breaks, like in a method chain on several lines.
+        /// If the indentation is wrong the F# compiler service just finds no completions.
+        /// Must be called from UI thread, it reads the document.
+        let isDotAfterExpression (doc:TextDocument, caretOffset:int) =
+            let rec skipWhite i =
+                if i >= 0 && Char.IsWhiteSpace(doc.GetCharAt i) then skipWhite (i-1) else i
+            // even if there is a digit before the dot it might be part of a name
+            let rec isName i =
+                if i = -1 then false // start of document reached no letter found yet
                 else
-                    let c = pos.lineToCaret.[i]
-                    if c = '_' then loop (i-1) // can be vailid numbers, so loop on
+                    let c = doc.GetCharAt i
+                    if c = '_' then isName (i-1) // can be valid numbers, so loop on
                     elif Char.IsLetter c then true
-                    elif Char.IsDigit c then loop (i-1)
+                    elif Char.IsDigit c then isName (i-1)
                     else false
-            loop (pos.column-2)
-
+            let i = skipWhite (caretOffset-2) // caretOffset-1 is the dot
+            i >= 0 &&
+                match doc.GetCharAt i with
+                | ')' | ']' -> true
+                | _ -> isName i
 
 
         let inline getCtrlDown() = Keyboard.IsKeyDown Key.LeftCtrl || Keyboard.IsKeyDown Key.RightCtrl // can't be async
         let inline getSpaceDown() = Keyboard.IsKeyDown Key.Space // can't be async
 
-        let inline lastCharTriggersCompletion (lastChar, pos) =
+        /// Must be called from UI thread, it reads the document.
+        let inline lastCharTriggersCompletion (lastChar, pos:PositionInCode, doc:TextDocument) =
             match lastChar with
             | c when isAlpha c -> true // a ASCII letter
             | c when isNum c && isAlphaBefore pos  -> true // an number preceded by a letter
-            | '.' when isNotInNumber pos -> true // dot completion
+            | '.' when isDotAfterExpression (doc, pos.offset) -> true // dot completion
             | '_'  // for __SOURCE_DIRECTORY__ or in names
             //| '`'  // for complex F# names in `` `` // not needed
             | '#'  -> true // for #if directives
@@ -454,6 +464,18 @@ module DocChangeCompletion =
 
             match res with // false for not aborting on a new check id
             | None -> None
+            | Some res when posX.dotBefore && res.changeId <> chId ->
+                // The parse tree of an outdated check result does not have the dot yet,
+                // but it is needed for completions on the result of an expression like `System.Guid.NewGuid().`
+                // So parse the current code again (fast) and use it with the outdated type check results:
+                match Checker.ParseCode(iEd, doc.CreateSnapshot().Text) with
+                | None -> Checker.GetDeclarations(posX, res)
+                | Some parseRes ->
+                    match Checker.GetDeclarations(posX, {res with parseRes = parseRes}) with
+                    | Some decls when decls.Items.Length = 0 ->
+                        // the type check result is too old to know the type of the expression before the dot, so check again:
+                        check() |> Option.bind (fun r -> Checker.GetDeclarations(posX, r))
+                    | decls -> decls
             | Some res -> Checker.GetDeclarations(posX,res)
             // if containsQuery(posX.query, decls) then
 
@@ -544,12 +566,13 @@ module DocChangeCompletion =
                 DocChangeMark.updateAllTransformersAsync (iEd, drawServ, state, chId, lineIdx )
             else
                 let doc = iEd.AvaEdit.Document // get in sync
+                let triggers = MaybeShow.lastCharTriggersCompletion (lastChar, pos, doc) // in sync, it reads the document
                 async{
                     if DocChangeMark.mainWait <> 0 then
                         do! Async.Sleep DocChangeMark.mainWait  // to not trigger completion if typing is fast
 
                     if state.IsLatest chId then
-                        if not <| MaybeShow.lastCharTriggersCompletion (lastChar, pos) then
+                        if not triggers then
                             // The typed character should not trigger completion.
                             // DocChangedConsequence is still  'React', no need to reset.
                             DocChangeMark.updateAllTransformersSync(iEd, doc, drawServ, state, chId, lineIdx )

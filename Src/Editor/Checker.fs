@@ -281,6 +281,23 @@ type Checker private ()  =
                 None
 
 
+    /// Parses the code without type checking, this is fast.
+    /// Returns None if no code was checked yet.
+    static member ParseCode(ed:IEditor, code:string) : option<FSharpParseFileResults> =
+        match fsChecker, projectOptions with
+        | Some ch, Some opts ->
+            try
+                let fileFsx = FsCheckerUtil.getFsxFileNameForChecker ed.FilePath
+                // the project options might be from the script in another tab, but the parsing options are the same for all scripts:
+                let parsingOpts, _ = ch.GetParsingOptionsFromProjectOptions opts
+                ch.ParseFile(fileFsx, Text.SourceText.ofString code, { parsingOpts with SourceFiles = [| fileFsx |] })
+                |> Async.RunSynchronously
+                |> Some
+            with e ->
+                IFeshLog.log.PrintfnAppErrorMsg "Fesh.Editor.Error in ParseCode: \r\n%A" e
+                None
+        | _ -> None
+
     /// Currently unused optional argument to GetDeclarationListSymbols
     /// Completion list would get huge !!!
     static member GetAllEntities(res: FSharpCheckFileResults, publicOnly: bool): AssemblySymbol list =
