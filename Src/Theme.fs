@@ -126,6 +126,7 @@ type ToolTipColors = {
 type NugetHintColors = {
     upToDateFg          : SolidColorBrush
     notFoundFg          : SolidColorBrush
+    checkingFg          : SolidColorBrush
     updateFg            : SolidColorBrush
     updateBg            : SolidColorBrush
     updateBgHover       : SolidColorBrush
@@ -404,6 +405,7 @@ module Theme =
     let lightNugetHints : NugetHintColors = {
         upToDateFg          = ofRGB  20 150  50
         notFoundFg          = ofRGB 150 150 150
+        checkingFg          = ofRGB 110 130 160
         updateFg            = ofRGB 170  85   0
         updateBg            = ofRGB 255 240 215
         updateBgHover       = ofRGB 255 220 165
@@ -417,6 +419,7 @@ module Theme =
     let darkNugetHints : NugetHintColors = {
         upToDateFg          = ofRGB  90 190 100
         notFoundFg          = ofRGB 140 140 140
+        checkingFg          = ofRGB 150 165 190
         updateFg            = ofRGB 235 165  90
         updateBg            = ofRGB  75  52  25
         updateBgHover       = ofRGB 105  72  32

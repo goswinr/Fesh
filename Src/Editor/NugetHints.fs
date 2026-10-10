@@ -5,6 +5,7 @@ open System.Windows
 open System.Windows.Controls
 open System.Windows.Input
 open System.Windows.Media
+open System.Windows.Media.Animation
 open System.Windows.Threading
 open System.Collections.Generic
 
@@ -30,6 +31,29 @@ module private NugetHintStyle =
         g.Transform <- RotateTransform(-45.0, 7.5, 3.0)
         g.Freeze()
         g
+
+    /// Three quarters of a circle, to be drawn as a stroke.
+    let spinnerGeometry =
+        let f = PathFigure(StartPoint = Point(5.0, 0.0))
+        f.Segments.Add(ArcSegment(Point(0.0, 5.0), Size(5.0, 5.0), 0.0, true, SweepDirection.Clockwise, true)) // true: isLargeArc, true: isStroked
+        let g = PathGeometry()
+        g.Figures.Add f
+        g.Freeze()
+        g
+
+    /// A rotating arc, to show that a lookup is running.
+    let makeSpinner (size:float) (stroke:Brush) : FrameworkElement =
+        let rot = RotateTransform()
+        let p =
+            Shapes.Path(
+                Data = spinnerGeometry, Stroke = stroke, StrokeThickness = 1.5, Stretch = Stretch.Uniform, Width = size, Height = size,
+                StrokeStartLineCap = PenLineCap.Round, StrokeEndLineCap = PenLineCap.Round,
+                RenderTransform = rot, RenderTransformOrigin = Point(0.5, 0.5), VerticalAlignment = VerticalAlignment.Center)
+        let spin = DoubleAnimation(0.0, 360.0, Duration(TimeSpan.FromSeconds 1.0), RepeatBehavior = RepeatBehavior.Forever)
+        // Only animate while shown, a running animation would keep WPF rendering frames even after the element is removed:
+        p.Loaded.Add  (fun _ -> rot.BeginAnimation(RotateTransform.AngleProperty, spin))
+        p.Unloaded.Add(fun _ -> rot.BeginAnimation(RotateTransform.AngleProperty, null))
+        p
 
 open NugetHintStyle
 
@@ -67,6 +91,7 @@ type NugetHintLayer(tv:TextView) =
 
 /// Shows a small control after each  #r "nuget: ..."  line:
 /// A green check mark, update/pin buttons, and an optional prerelease or stable downgrade button.
+/// While the versions are looked up for the first time, an animated spinner.
 /// getFolder returns the folder of the script, to find the NuGet.Config files. Or "" if the file is not saved yet.
 /// tryRecheck starts a type check that also resolves the packages on the line of the last edit.
 /// (The normal check after an edit skips them, so that they are not restored while typing.)
@@ -157,6 +182,7 @@ type NugetHints (ed:TextEditor, getFolder: unit -> string, tryRecheck: unit -> b
         match h.kind with
         | NugetHintKind.UpToDate -> tb.Text <- "✔"; tb.Foreground <- c.upToDateFg
         | NugetHintKind.NotFound -> tb.Text <- "?"; tb.Foreground <- c.notFoundFg
+        | NugetHintKind.Checking -> b.Child <- makeSpinner (ed.FontSize * 0.75) c.checkingFg
         | NugetHintKind.UpdateTo -> asButton ("↑ " + h.version)   c.updateFg c.updateBg c.updateBgHover
         | NugetHintKind.UpdateToPrerelease -> asButton ("↑ prerelease " + h.version) c.updateFg c.updateBg c.updateBgHover
         | NugetHintKind.DowngradeToStable -> asButton ("↓ stable " + h.version) c.pinFg c.pinBg c.pinBgHover
@@ -215,6 +241,9 @@ type NugetHints (ed:TextEditor, getFolder: unit -> string, tryRecheck: unit -> b
 
     let mutable casingFixPending = false
 
+    /// The number of fetchAll calls that wait for their lookups to finish, to then update the hints.
+    let mutable waiting = 0
+
     /// Runs on each VisualLinesChanged event, so during the measure pass of the TextView.
     let rebuild () =
         if disabled then
@@ -233,9 +262,11 @@ type NugetHints (ed:TextEditor, getFolder: unit -> string, tryRecheck: unit -> b
                         match NugetDirective.tryParse (doc.GetText line) with
                         | None -> ()
                         | Some d ->
-                            let struct(hints, isStale) = NugetVersions.TryGetHints(folder, d)
-                            if isStale then
-                                needsFetch <- true
+                            let struct(hints, state) = NugetVersions.TryGetHints(folder, d)
+                            match state with
+                            | NugetLookupState.NeedsLookup -> needsFetch <- true
+                            | NugetLookupState.Running     -> if waiting = 0 then needsFetch <- true // started by another editor tab, fetchAll waits for it too
+                            | NugetLookupState.Current     -> ()
                             if not casingFixPending && NugetVersions.GetPackageName(folder, d.name) <> d.name then
                                 // VisualLinesChanged runs inside layout; defer document edits until it finishes.
                                 casingFixPending <- true
@@ -293,22 +324,33 @@ type NugetHints (ed:TextEditor, getFolder: unit -> string, tryRecheck: unit -> b
                         | Some d -> yield d.name
                         | None   -> () |]
             if names.Length > 0 then
-                async {
-                    try
-                        do! NugetVersions.Fetch(folder, names)
-                    with e ->
-                        if NugetLoad.isLoadError e then
-                            disable e
-                        else
-                            IFeshLog.log.PrintfnAppErrorMsg "Error in NugetHints.fetchAll:\r\n%A" e
-                    do! Async.SwitchToContext Fittings.SyncWpf.context
-                    match NugetVersions.LoadError with
-                    | Some e -> disable e
-                    | None -> ()
-                    fixPackageCasing()
-                    rebuild()
-                }
-                |> Async.Start
+                try
+                    let lookups = NugetVersions.Fetch(folder, names) // starts the lookups right away
+                    waiting <- waiting + 1
+                    rebuild() // to show the spinners
+                    async {
+                        try
+                            do! lookups
+                        with e ->
+                            if NugetLoad.isLoadError e then
+                                disable e
+                            else
+                                IFeshLog.log.PrintfnAppErrorMsg "Error in NugetHints.fetchAll:\r\n%A" e
+                        do! Async.SwitchToContext Fittings.SyncWpf.context
+                        waiting <- waiting - 1
+                        match NugetVersions.LoadError with
+                        | Some e -> disable e
+                        | None -> ()
+                        fixPackageCasing()
+                        rebuild()
+                    }
+                    |> Async.Start
+                with e ->
+                    if NugetLoad.isLoadError e then
+                        disable e
+                        clearAll()
+                    else
+                        IFeshLog.log.PrintfnAppErrorMsg "Error in NugetHints.fetchAll:\r\n%A" e
 
     do
         tv.InsertLayer(layer, KnownLayer.Text, LayerInsertionPosition.Above)

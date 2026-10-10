@@ -234,8 +234,20 @@ type NugetHintKind =
     | PinTo
     /// The package was not found on any source.
     | NotFound
-    /// Nothing to show, e.g. while looking up, or no source was reachable.
+    /// The versions are being looked up, there is no result yet.
+    | Checking
+    /// Nothing to show, e.g. no source was reachable.
     | NoHint
+
+/// The state of the version lookup of a package.
+[<RequireQualifiedAccess>]
+type NugetLookupState =
+    /// There is a recent result.
+    | Current
+    /// There is no result yet, or it is outdated, and no lookup is running.
+    | NeedsLookup
+    /// A lookup is running.
+    | Running
 
 /// What to show after a  #r "nuget: ..."  line.
 type NugetHint = {
@@ -503,18 +515,28 @@ type NugetVersions private () =
             when String.Equals(name, packageName, StringComparison.OrdinalIgnoreCase) -> packageName
         | _ -> name
 
-    /// Returns the hints to show for this line and whether a lookup is needed because there is no result yet or it is outdated.
+    /// Returns the hints to show for this line and the state of its lookup.
+    /// While a lookup runs and there is no successful result yet, the hint is NugetHintKind.Checking.
     /// Never blocks and does not start a lookup itself, call Fetch for that.
-    static member TryGetHints(folder:string, d:NugetDirective) : struct(NugetHint list * bool) =
-        match results.TryGetValue(keyOf folder d.name) with
+    static member TryGetHints(folder:string, d:NugetDirective) : struct(NugetHint list * NugetLookupState) =
+        let key = keyOf folder d.name
+        let checking () = [{ kind = NugetHintKind.Checking; version = ""; tip = $"Looking up the versions of {d.name} ..."; projectUrl = "" }]
+        match results.TryGetValue key with
         | true, entry ->
             let struct(res, _) = entry
-            struct(makeHints d res, isStale entry)
+            let state =
+                if not (isStale entry)      then NugetLookupState.Current
+                elif inFlight.ContainsKey key then NugetLookupState.Running
+                else                             NugetLookupState.NeedsLookup
+            match res with
+            | NugetLookup.Failed _ when state = NugetLookupState.Running -> struct(checking(), state) // retrying, e.g. after being offline
+            | _ -> struct(makeHints d res, state)
         | _ ->
-            struct([], true)
+            if inFlight.ContainsKey key then struct(checking(), NugetLookupState.Running)
+            else                             struct([], NugetLookupState.NeedsLookup)
 
-    /// Looks up the versions of the given packages, unless there is a recent result already.
-    /// Completes when all of these lookups are done.
+    /// Starts looking up the versions of the given packages right away, unless there is a recent result already.
+    /// The returned Async completes when all of these lookups are done, also the ones that were already running.
     static member Fetch(folder:string, names:string[]) : Async<unit> =
         let tasks =
             [| for name in names do
