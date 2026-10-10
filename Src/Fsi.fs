@@ -61,10 +61,7 @@ module GoTo =
             if i >= 0 then lineTillExtension.Substring(i + 4)
             else lineTillExtension.Trim()
 
-//for: HandleProcessCorruptedStateExceptionsAttribute: This construct is deprecated. Recovery from corrupted process state exceptions is not supported; HandleProcessCorruptedStateExceptionsAttribute is ignored.
-//and for : Runtime.ControlledExecution.Run
-//#nowarn "44"
-open System.Reflection
+#nowarn "44" // Runtime.ControlledExecution.Run is obsolete (SYSLIB0046), but it is the only way to cancel a running evaluation on .NET
 
 type Fsi private (config:Config) =
     let log = config.Log
@@ -91,6 +88,19 @@ type Fsi private (config:Config) =
 
     /// The folders of evaluated scripts that are already added via #I, for each session. So a new session after a reset starts empty.
     let includedFolders = Runtime.CompilerServices.ConditionalWeakTable<FsiEvaluationSession, Collections.Generic.HashSet<string>>()
+
+    /// The sessions that an evaluation runs on now, so that a session replaced by a reset is only disposed when no evaluation uses it anymore.
+    /// On .NET a canceled evaluation might still run on its old thread, e.g. in a Thread.Sleep. Only use inside 'lock sessionsInUse'.
+    let sessionsInUse = Collections.Generic.List<FsiEvaluationSession>()
+
+    /// Disposes a session that was replaced by a reset, unless an evaluation still runs on it. Then evalSave disposes it when that evaluation ends.
+    /// Disposing removes the AppDomain.AssemblyResolve handler of the session and releases its references.
+    /// Only call inside 'lock sessionsInUse'.
+    let disposeIfReplacedAndUnused (session:FsiEvaluationSession) =
+        let isCurrent = match sessionOpt with Some s -> Object.ReferenceEquals(s, session) | None -> false
+        if not isCurrent && not (sessionsInUse.Contains session) then
+            try (session :> IDisposable).Dispose()
+            with e -> log.PrintfnAppErrorMsg "Disposing the previous FSI session failed:\r\n%A" e
 
     let mutable asyncContext : option<SynchronizationContext> = None
 
@@ -127,101 +137,49 @@ type Fsi private (config:Config) =
     //     )
 
 
-    // will point to the token in https://github.com/dotnet/fsharp/blob/main/src/Compiler/Interactive/ControlledExecution.fs
-    let mutable fscCancellationToken : CancellationTokenSource voption = ValueNone
+    /// Cancels the evaluation that runs now on the async thread. Only set on .NET, see evalCancellable.
+    let mutable evalCancellation : CancellationTokenSource option = None
 
-    // TODO: use non-interactive flag instead of accessing controlled execution via reflection:
-    // https://github.com/dotnet/fsharp/pull/15184
-
-    let setAControlledExecutionCancellationToken()=
+    /// Cancels the running async evaluation, on .NET via ControlledExecution, on .NET Framework via Thread.Abort().
+    /// Returns true if something was canceled.
+    let abortEvaluation(thread:Thread) : bool =
         if config.RunContext.IsRunningOnDotNetCore then
-            match sessionOpt with
-            |None ->
-                IFeshLog.log.PrintfnFsiErrorMsg "Getting FSI token setter failed, no session to abort"
-            |Some session ->
-                fscCancellationToken <- ValueSome (new CancellationTokenSource())
-                try
-                    let flags = BindingFlags.NonPublic ||| BindingFlags.Instance
-                    let fsiInterruptController = session.GetType().GetField( "fsiInterruptController" ,flags).GetValue(session)
-                    let controlledExecution = fsiInterruptController.GetType().GetField( "controlledExecution" ,flags).GetValue(fsiInterruptController)
-                    controlledExecution.GetType().GetField("cts",flags).SetValue(controlledExecution, fscCancellationToken)
-                    //so that this triggers: https://github.com/dotnet/fsharp/blob/9db7f5b109f17746467531779ce6c9226b6d60b9/src/Compiler/Interactive/ControlledExecution.fs#L48
-                    controlledExecution.GetType().GetField("isInteractive",flags).SetValue(controlledExecution, true)
-                with e ->
-                    IFeshLog.log.PrintfnFsiErrorMsg "Getting FSI token via reflection form Fsharp.Compiler.Service failed"
-
-    /// returns tru if something was aborted
-    let getFrameworkAgnosticAborter(thread:Thread) : unit -> bool =
-        if config.RunContext.IsRunningOnDotNetCore then
-            match sessionOpt with
-            |None ->
-                IFeshLog.log.PrintfnFsiErrorMsg "Getting FSI aborter failed, no session to abort"
-                fun () -> false
-            |Some session ->
-                try
-                    let flags = BindingFlags.NonPublic ||| BindingFlags.Instance
-                    let fsiInterruptController = session.GetType().GetField( "fsiInterruptController" ,flags).GetValue(session)
-                    let controlledExecution = fsiInterruptController.GetType().GetField( "controlledExecution" ,flags).GetValue(fsiInterruptController)
-                    let cts = controlledExecution.GetType().GetField("cts",flags).GetValue(controlledExecution)
-                    fun ()  ->
-                        // tryAbortInfo.Invoke(controlledExecution, null) |> ignore
-                        match (cts:?> ValueOption<Threading.CancellationTokenSource>) with
-                        | ValueNone -> // the token is None initially when creating a session.
-                            // a reset of FSI would always print this:
-                            //IFeshLog.log.PrintfnFsiErrorMsg "No cancellation token for ControlledExecution found. Cancelling running scripts might not work."
-                            false
-                        | ValueSome ctk ->
-                            ctk.Cancel()
-                            true
-                with e ->
-                    IFeshLog.log.PrintfnFsiErrorMsg "Getting FSI aborter via reflection form Fsharp.Compiler.Service failed"
-                    fun () -> false
+            match evalCancellation with
+            | Some cts ->
+                evalCancellation <- None // so that a second cancel or a reset does not report it again, it might take a while till it stops
+                // Cancel() returns only when the evaluation is aborted, and that happens only when it runs managed code.
+                // So for an evaluation in a Thread.Sleep or another blocking call, Cancel() on the UI thread would freeze the UI till the call returns.
+                Thread((fun () -> cts.Cancel()), IsBackground = true).Start()
+                true
+            | None -> false // also always in a net472 build running on .NET, it has no ControlledExecution
         else
-            fun () ->
-                #if NETFRAMEWORK //the definition of NETFRAMEWORK is only needed to avoid a compiler error on netCore, the actual runtime detection happens in Config.fs
-                    thread.Abort()
-                    match state with
-                    | Ready | Initializing | NotLoaded -> false
-                    | Compiling | Evaluating ->  true
-                #else
-                    ignore thread // this ignore only exists to the avoid then warning when NETFRAMEWORK is not defined
-                    false
-                #endif
+            #if NETFRAMEWORK //the definition of NETFRAMEWORK is only needed to avoid a compiler error on netCore, the actual runtime detection happens in Config.fs
+                thread.Abort()
+                match state with
+                | Ready | Initializing | NotLoaded -> false
+                | Compiling | Evaluating ->  true
+            #else
+                ignore thread // this ignore only exists to the avoid then warning when NETFRAMEWORK is not defined
+                false
+            #endif
 
     let abortThenMakeAndStartAsyncThread() =
         // shutDownThreadEv.Trigger() // don't do this ! this shuts down all of Fesh !!
-        // Use Interrupt instead of Abort  ? see https://github.com/dotnet/fsharp/pull/14546#pullrequestreview-1240043309
 
         match asyncThread with
         |None -> ()
         |Some thread -> // _ = thread
             asyncContext <- None
             asyncThread  <- None
-            let aborter = getFrameworkAgnosticAborter(thread)
-            if aborter() then
-                asyncThread <- None
+            // On .NET the canceled evaluation might still be running on the old thread, e.g. in a Thread.Sleep.
+            // ControlledExecution can only stop it when it returns to managed code. So the next evaluation runs on a new thread.
+            if abortEvaluation thread then
                 let canceled = runningEval
                 runningEval <- None
                 SyncWpf.doSync( fun () ->
                     canceled |> Option.iter canceledEv.Trigger // None if no evaluation was running, e.g. on a reset
                     log.PrintfnInfoMsg "\r\nFSI evaluation was canceled by user!"
                     )
-
-            // if not config.RunContext.IsRunningOnDotNetCore then
-            //     thread.Abort() // raises OperationCanceledException on NetFramework and would raise Platform-not-supported-Exception on net60
-            //     // Thread.Abort method is not supported in .NET 6 https://github.com/dotnet/runtime/issues/41291  but in there is a new way in net7 !
-            //     // Don Syme: Thread.Abort - it is needed in interruptible interactive execution scenarios: https://github.com/dotnet/fsharp/issues/9397#issuecomment-648376476
-            // else
-
-            //     // TODO in the standalone version using the cancellation token should work too
-            //     // also see https://github.com/dotnet/fsharp/issues/14486
-
-            //     // net7cancellationToken.Cancel()
-            //     // net7cancellationToken <- new CancellationTokenSource()
-            //     // use reflection to access https://github.com/dotnet/fsharp/blob/main/src/Compiler/Interactive/ControlledExecution.fs ?
-            //     // https://github.com/dotnet/fsharp/issues/14489
-            //     // https://github.com/dotnet/fsharp/pull/14546
-            //     // https://github.com/dotnet/fsharp/discussions/14491
 
         if asyncThread.IsNone then
             let nextThread =
@@ -292,6 +250,13 @@ type Fsi private (config:Config) =
             // Reload from disk so that a Reset FSI picks up edits to FSI-Arguments.txt
             let args = config.FsiArguments.Reload()
             let args = Array.append args [| for dir in config.RunContext.LibFolders do "--lib:" + dir |] // same folders as used by the type checker in Editor/Checker.fs
+            // Without --exec (or the same --noninteractive) FCS runs each evaluation in its own ControlledExecution.Run block.
+            // Then evalCancellable would fail with 'The thread is already executing the ControlledExecution.Run method'.
+            // see https://github.com/dotnet/fsharp/pull/15184
+            // Insert it after the first argument, an argument after '--' would be passed to the script.
+            let args =
+                if args |> Array.exists (fun s -> s = "--exec" || s = "--noninteractive") then args
+                else Array.insertAt (min 1 args.Length) "--exec" args
             let beQuiet = config.Settings.GetBool ("fsiOutputQuiet", false)
 
             match beQuiet, args |> Array.tryFindIndex (fun s -> s="--quiet") with
@@ -354,11 +319,14 @@ type Fsi private (config:Config) =
             |InSync -> ()
             |AsyncMode -> do! Async.SwitchToContext SyncWpf.context
 
-            state <- Ready
+            // On .NET a canceled evaluation might finish after the next one started, see abortThenMakeAndStartAsyncThread.
+            // Then the state belongs to the next evaluation. The cancel has set the state to Ready and triggered isReadyEv already.
             match runningEval with
-            | Some r when Object.ReferenceEquals(r, codeToEv) -> runningEval <- None // a canceled evaluation might finish after the next one started
+            | Some r when Object.ReferenceEquals(r, codeToEv) ->
+                runningEval <- None
+                state <- Ready
+                isReadyEv.Trigger()
             | _ -> ()
-            isReadyEv.Trigger()
 
             match evaluatedTo with //TODO move out of this thread?
             |Choice1Of2 _evaluatedToValue ->
@@ -450,30 +418,56 @@ type Fsi private (config:Config) =
                 included.Remove dir |> ignore
                 log.PrintfnInfoMsg "The folder of the script could not be added to the search paths of FSI:\r\n%s\r\n%s" dir e.Message
 
+    /// On .NET runs the evaluation in a ControlledExecution.Run block, so that abortEvaluation can cancel it via evalCancellation.
+    /// This block is not nested in one of FCS, because FSI runs with --exec, see createSession.
+    /// On .NET Framework the evaluation is just run, it is canceled via Thread.Abort().
+    let evalCancellable (evalNow: unit -> Choice<FsiValue option,exn> * FSharpDiagnostic[]) =
+        #if NETFRAMEWORK
+        evalNow()
+        #else
+        let cts = new CancellationTokenSource() // not disposed, abortEvaluation might call Cancel() on it from another thread after the evaluation has finished
+        evalCancellation <- Some cts
+        let mutable result = Choice2Of2 (OperationCanceledException() :> exn), [| |]
+        try
+            try
+                Runtime.ControlledExecution.Run((fun () -> result <- evalNow()), cts.Token)
+            with :? OperationCanceledException as e ->
+                result <- Choice2Of2 (e :> exn), [| |]
+        finally
+            match evalCancellation with
+            | Some c when Object.ReferenceEquals(c, cts) -> evalCancellation <- None
+            | _ -> () // a canceled evaluation that finished after the next one started
+        result
+        #endif
+
     #if NETFRAMEWORK //This construct is deprecated in net6.0 . Recovery from corrupted process state exceptions is not supported; HandleProcessCorruptedStateExceptionsAttribute is ignored.
     [< Runtime.ExceptionServices.HandleProcessCorruptedStateExceptions >] //to handle AccessViolationExceptions too //https://stackoverflow.com/questions/3469368/how-to-handle-accessviolationexception/4759831
     #endif
     [< Security.SecurityCritical >]
     let evalSave (session:FsiEvaluationSession, evalData:EvalData, evalMode:FsiSyncMode) =
-        // net472
-        // Cancellation happens via Thread Abort
-        // TODO actually using the token would work too but only if session.Run() has been called before, but that fails when hosted. see https://github.com/dotnet/fsharp/issues/14486
-        // net6+ :
-        // don't do System.Runtime.ControlledExecution.Run(action, net7cancellationToken.Token) // this is actually already done by FSI
-        // when using: Run method: Compiler Error:input.fsx (1,1)-(1,1) interactive error internal error: The thread is already executing the ControlledExecution.Run method.
-        // using  session.EvalInteractionNonThrowing(code, codeToEv.scriptName, net7cancellationToken.Token) the token does actually not cancel anything
+        // Cancellation of async evaluations: on .NET Framework via Thread.Abort(), on .NET via ControlledExecution, see evalCancellable.
+        // The cancellationToken argument of session.EvalInteractionNonThrowing does not stop running code, FCS only checks it between interactions.
         state <- Evaluating // actually this happens later better use: TODO: https://github.com/dotnet/fsharp/pull/15957
-        // With the full path instead of just the file name __SOURCE_DIRECTORY__ does not depend on Environment.CurrentDirectory (see Tabs.fs).
-        let scriptPath =
-            match evalData.request.editor.FilePath with
-            | SetTo fi | Deleted fi ->
-                if config.RunContext.IsHosted then includeScriptFolder(session, fi)
-                fi.FullName
-            | NotSet _ ->
-                evalData.request.scriptName
         let evaluatedTo, errs =
-            try session.EvalInteractionNonThrowing(evalData.code, scriptPath)
-            with e -> Choice2Of2 e , [| |]
+            try
+                // With the full path instead of just the file name __SOURCE_DIRECTORY__ does not depend on Environment.CurrentDirectory (see Tabs.fs).
+                let scriptPath =
+                    match evalData.request.editor.FilePath with
+                    | SetTo fi | Deleted fi ->
+                        if config.RunContext.IsHosted then includeScriptFolder(session, fi)
+                        fi.FullName
+                    | NotSet _ ->
+                        evalData.request.scriptName
+                let evalNow () =
+                    try session.EvalInteractionNonThrowing(evalData.code, scriptPath)
+                    with e -> Choice2Of2 e , [| |]
+                match evalMode with
+                | InSync    -> evalNow() // can't be canceled
+                | AsyncMode -> evalCancellable evalNow
+            finally // also runs on a Thread.Abort()
+                lock sessionsInUse (fun () ->
+                    sessionsInUse.Remove session |> ignore // added in eval
+                    disposeIfReplacedAndUnused session)
         handeleEvaluationResult(evaluatedTo, errs, evalData, evalMode)
 
     let eval(evalData:EvalData) :unit =
@@ -490,6 +484,7 @@ type Fsi private (config:Config) =
                     //previously: log.PrintfnFsiErrorMsg "Please wait till FSI is initialized for running scripts"
 
                 |Some session ->
+                    lock sessionsInUse (fun () -> sessionsInUse.Add session) // already here, so that a reset before evalSave starts does not dispose it. Removed in evalSave.
                     state <- Compiling
                     runningEval <- Some evalData.request
                     //codeInEval <- Some codeToEv
@@ -561,22 +556,20 @@ type Fsi private (config:Config) =
                     if config.Settings.GetBool ("asyncFsi", syMode.IsAsync) then syMode <- AsyncMode
                     else                                                         syMode <- InSync
 
-                    match sessionOpt with
-                    |Some session -> session.Interrupt()  //TODO does this cancel running session correctly ?? // TODO how to dispose previous session ?  Thread.Abort() ??
-                    |None -> ()
-
+                    // A running evaluation of the previous session is canceled already, see TryReset and SetMode.
+                    // session.Interrupt() would do nothing, it only works after session.Run().
                     let fsiSession = createSession()
-                    sessionOpt <- Some <| fsiSession
+                    lock sessionsInUse (fun () ->
+                        let previous = sessionOpt
+                        sessionOpt <- Some fsiSession
+                        previous |> Option.iter disposeIfReplacedAndUnused)
 
                     //timer.stop()
 
                     // fsiSession.Run()// don't do this, covered by WPF app loop:  https://github.com/dotnet/fsharp/issues/14486#issuecomment-1358310942
-                    // This Run call crashes the app when hosted in Rhino and Standalone too !
+                    // This Run call ends the process: with --exec it calls exit after loading the initial files,
+                    // without --exec its stdin reader thread calls exit at the end of the empty input stream.
                     // see https://github.com/dotnet/fsharp/issues/14486
-                    // and https://github.com/dotnet/fsharp/blob/main/src/Compiler/Interactive/fsi.fs#L3759
-                    // Is it needed to be able to cancel the evaluations in net7 and make the above net7cancellationToken work ??
-                    // see https://github.com/dotnet/fsharp/pull/14546
-                    // https://github.com/dotnet/fsharp/issues/14489
 
 
                     match prevState with
@@ -597,7 +590,6 @@ type Fsi private (config:Config) =
                     |InSync ->   ()
                     |AsyncMode ->
                         abortThenMakeAndStartAsyncThread()
-                        setAControlledExecutionCancellationToken()
 
                     do! Async.SwitchToContext SyncWpf.context
 
@@ -817,6 +809,7 @@ type Fsi private (config:Config) =
         // see http://reedcopsey.com/2011/11/28/launching-a-wpf-window-in-a-separate-thread-part-1/
         shutDownThreadEv.Trigger()
 
+    /// The current session. A reset replaces it and disposes the previous one, so don't keep a reference to it.
     member this.Session = sessionOpt
 
     member this.ShutDown() = // to properly dispose the Fsi session in net8 Revit 2025?
@@ -825,9 +818,7 @@ type Fsi private (config:Config) =
         // In Revit 2025 this happens when closing the Fesh Editor, because some other plugins try to print to stdout at shout down.
         log.AvalonLog.IsAlive <- false // to stop logging
         match asyncThread with
-        |Some thread ->
-            let abort = getFrameworkAgnosticAborter(thread)
-            abort()  |> ignore
+        |Some thread -> abortEvaluation thread |> ignore
         |None -> ()
 
 

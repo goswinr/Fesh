@@ -38,9 +38,9 @@ type FsiArguments   ( runContext:RunContext) =
 
     // use "--gui+" to enable winforms event loop ( on by default) check if fixed: https://github.com/dotnet/fsharp/issues/13473
 
-    // use "--exec" instead of "--noninteractive" see https://github.com/dotnet/fsharp/blob/7b46dad60df8da830dcc398c0d4a66f6cdf75cb1/src/Compiler/Interactive/fsi.fs#L937
-    // TODO: use --noninteractive flag instead of accessing controlled execution via reflection:
-    // https://github.com/dotnet/fsharp/pull/15184
+    // "--exec" sets the same flag as "--noninteractive". Fsi.createSession adds it if it is missing.
+    // With it FCS does not run evaluations in its own ControlledExecution.Run block, so that Fesh can do it to cancel evaluations on .NET.
+    // see https://github.com/dotnet/fsharp/pull/15184
 
     // "--shadowcopyreferences" is ignored https://github.com/fsharp/FSharp.Compiler.Service/issues/292
 

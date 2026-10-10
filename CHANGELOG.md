@@ -13,8 +13,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - the colors of the semantic highlighting are in the SyntaxHighlightingFSharp.xshd file too, as `Semantic.` colors, so they can be edited and reloaded like the other syntax colors
 - reloading the SyntaxHighlightingFSharp.xshd file after an edit updates all open tabs, not only the current one
+- on .NET, cancelling a running script calls `System.Runtime.ControlledExecution` directly instead of changing private fields of FSharp.Compiler.Service via reflection. For this FSI always runs with `--exec`, it is added if it is missing in the FSI-Arguments.txt file
 ### Fixed
 - typing a dot after a closing bracket, like in `System.Guid.NewGuid().` or `xs[0].`, opens the completion list with the members of that expression. Whitespace before the dot is skipped too, so it also works at the start of a correctly indented line, like in a method chain on several lines
+- on .NET, cancelling a script that waits in a blocking call like `Thread.Sleep` no longer freezes the editor until that call returns
+- a reset of FSI disposes the previous session. Before, every reset kept the previous session with its loaded references and its assembly resolve handler. If an evaluation of the previous session is still running, the session is disposed when that evaluation ends
 
 ## [0.34.0] - 2026-10-05
 ### Added
