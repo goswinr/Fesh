@@ -176,7 +176,7 @@ module DocChangeMark =
         }
         |> Async.Start
 
-type ShowAutocomplete = DoNothing | JustMark| ShowOnlyDU | ShowAll | DeclModifiers | ShowDirectives
+type ShowAutocomplete = DoNothing | JustMark| ShowOnlyDU | ShowAll | DeclModifiers | ShowDirectives | ShowNugetPackages
 
 
 [<RequireQualifiedAccess>]
@@ -320,6 +320,7 @@ module MaybeShow =
             |DoNothing    -> DoNothing
             |DeclModifiers -> DeclModifiers
             |ShowDirectives -> ShowDirectives
+            |ShowNugetPackages -> ShowNugetPackages
 
         let completionWindow ( pos:PositionInCode) : ShowAutocomplete =
             let ln = pos.lineToCaret // this line will include the character that trigger auto completion(dot or first letter)
@@ -327,6 +328,8 @@ module MaybeShow =
             //IFeshLog.log.PrintfnDebugMsg "*2.1 maybeShowCompletionWindow for lineToCaret: \r\n    '%s'" ln
             if len=0 then // line is empty,
                 ShowAll // ctrl+space was triggered at start of line empty line, // not JustMark, an empty line after deleting is caught in singleCharChange() already
+            elif NugetDirective.packageNameStart ln >= 0 then
+                ShowNugetPackages // typing the package name after #r "nuget:
             else
                 let last = ln.[len-1]
                 if isCaretInComment ln then
@@ -407,7 +410,25 @@ module DocChangeCompletion =
 
 
 
-    let handelShow(pos:PositionInCode, doc:TextDocument, iEd:IEditor, drawServ:DrawingServices, state:InteractionState, chId:int64) =
+    /// Searches nuget.org for the package name typed so far, and again if more was typed while waiting.
+    /// The characters typed while waiting for the completion window to show become its prefilter.
+    let searchNugetTyped (avaEdit:TextEditor, posX:PositionInCodeEx) : Async<NugetSearchResult[]> =
+        let nameStart = posX.offset - posX.setback
+        let rec loop (query:string) (found:NugetSearchResult[]) (tries:int) =
+            async {
+                let! more = NugetSearch.SearchWithin(query, TimeSpan.FromSeconds 2.0) // only searches if the query is long enough
+                let found = Array.append found more
+                do! Async.SwitchToContext Fittings.SyncWpf.context
+                let len = avaEdit.TextArea.Caret.Offset - nameStart
+                let typed = if len > query.Length && len < 200 then avaEdit.Document.GetText(nameStart, len) else query
+                if tries < 3 && typed.Length > query.Length && Seq.forall NugetDirective.isPackageIdChar typed then
+                    return! loop typed found (tries + 1)
+                else
+                    return found
+            }
+        loop posX.query [||] 0
+
+    let rec handelShow(pos:PositionInCode, doc:TextDocument, iEd:IEditor, drawServ:DrawingServices, state:InteractionState, chId:int64) =
 
         let inline check() = Checker.CheckCode(iEd, state, doc.CreateSnapshot().Text , chId, true, pos.lineIdx )
 
@@ -452,13 +473,24 @@ module DocChangeCompletion =
             |JustMark ->
                 DocChangeMark.updateAllTransformersSync(iEd, doc, drawServ, state, chId, pos.lineIdx  )
 
-            | ShowAll | ShowOnlyDU | DeclModifiers | ShowDirectives ->
+            | ShowAll | ShowOnlyDU | DeclModifiers | ShowDirectives | ShowNugetPackages ->
                 // WaitForCompletions: from now on any typed character will NOT increment the doc change
                 // AND never trigger a checking or or new completion window
                 // the characters go to the doc and will be taken from there as a prefilter for the completion list
                 state.DocChangedConsequence <- WaitForCompletions // incrementing  IDs is disabled now
 
-                let posX = PositionInCodeEx.get(pos)
+                let posX =
+                    let p = PositionInCodeEx.get(pos)
+                    match show with
+                    | ShowNugetPackages -> // the completion replaces the whole package name typed so far, including dots and dashes
+                        let nameStart = NugetDirective.packageNameStart pos.lineToCaret
+                        { p with setback = pos.column - nameStart; query = pos.lineToCaret.Substring nameStart; dotBefore = false }
+                    | _ -> p
+
+                let! nugetFound = // only searches nuget.org if enough characters are typed, and waits at most two seconds per search
+                    match show with
+                    | ShowNugetPackages -> searchNugetTyped(iEd.AvaEdit, posX)
+                    | _                 -> async.Return [||]
 
                 let showListOpt : option<RestrictedShowList> =
                     match show with
@@ -466,6 +498,7 @@ module DocChangeCompletion =
                     | ShowOnlyDU     -> getDecls(posX)|> Option.map JustDuFrom
                     | DeclModifiers  -> Some JustDeclModifiers
                     | ShowDirectives -> Some JustDirectives
+                    | ShowNugetPackages -> Some (JustNugetPackages nugetFound)
                     | DoNothing      -> None // never reached
                     | JustMark       -> None // never reached
 
@@ -474,8 +507,12 @@ module DocChangeCompletion =
                     // Switch to Sync and try showing completion window:
                     let checkAndMark = fun () -> DocChangeMark.updateAllTransformersAsync (iEd, drawServ, state, state.Increment(), pos.lineIdx ) // will be called if window closes without an insertion
 
+                    // For the NuGet packages: called when the window closes because the typed text matches none of the packages,
+                    // to search nuget.org for the typed text and show the window again:
+                    let searchAgain = fun () -> handelShow(getPosInCode iEd.AvaEdit, doc, iEd, drawServ, state, state.Increment())
+
                     do! Async.SwitchToContext Fittings.SyncWpf.context
-                    match drawServ.compls.TryShow( posX, showList, checkAndMark) with
+                    match drawServ.compls.TryShow( posX, showList, checkAndMark, searchAgain) with
                     |NoShow ->
                         state.DocChangedConsequence <- React
                         DocChangeMark.updateAllTransformersAsync(iEd, drawServ, state, state.Increment(), pos.lineIdx )// incrementing because it was disabled from state.DocChangedConsequence <- WaitForCompletions
@@ -536,12 +573,16 @@ module DocChangeEvents =
                 DocChangeCompletion.handelShow (pos, doc, iEd, drawServ, state, state.DocChangedId.Value)
 
 
-    let maybeAdjustCursor(iEd:IEditor, eventArgs:DocumentChangeEventArgs) =
+    /// Moves the caret into the quotes after inserting  #r "nuget: "  or  #r "" .
+    /// Returns true for  #r "nuget: " , then the completion window for the package name can be shown.
+    let maybeAdjustCursor(iEd:IEditor, eventArgs:DocumentChangeEventArgs) : bool =
         let t = eventArgs.InsertedText
-        if t.TextLength = 12 && t.Text  = "#r \"nuget: \""
+        let isNuget = t.TextLength = 12 && t.Text  = "#r \"nuget: \""
+        if isNuget
         || t.TextLength = 5 &&  t.Text  = "#r \"\""         then
             let c = iEd.AvaEdit.TextArea.Caret
             c.Offset <- c.Offset - 1
+        isNuget
 
 
 
@@ -575,8 +616,12 @@ module DocChangeEvents =
             let id = state.DocChangedId.Value // the increment was done before this event in Doc.Changing (not Doc.Changed)
             if isASingleCharChange eventArgs then
                 DocChangeCompletion.singleCharChange     (iEd, drawServ, state, id, lineIdx)// maybe shows completion window
+            elif maybeAdjustCursor(iEd, eventArgs) then
+                // show the previously used packages,
+                // and let the typed characters show them again if the window closes, even though #r "nuget: " was just completed:
+                state.JustCompleted <- false
+                DocChangeCompletion.handelShow (getPosInCode iEd.AvaEdit, iEd.AvaEdit.Document, iEd, drawServ, state, id)
             else
-                maybeAdjustCursor(iEd, eventArgs) // maybe shows completion window
                 DocChangeMark.updateAllTransformersAsync (iEd, drawServ, state, id, lineIdx)
 
 

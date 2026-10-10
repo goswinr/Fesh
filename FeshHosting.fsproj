@@ -121,6 +121,7 @@
     <Compile Include="Src/Config/OpenTabs.fs" />
     <Compile Include="Src/Config/RecentlyUsedFiles.fs" />
     <Compile Include="Src/Config/AutoCompleteStatistic.fs" />
+    <Compile Include="Src/Config/NugetStatistic.fs" />
     <Compile Include="Src/Config/FoldingStatus.fs" />
     <Compile Include="Src/Config/Config.fs" />
 
@@ -143,6 +144,7 @@
     <Compile Include="Src/Editor/ErrorHighlighter.fs" />
     <Compile Include="Src/Editor/TypeInfo.fs" />
     <Compile Include="Src/Editor/Checker.fs" />
+    <Compile Include="Src/Editor/NugetVersions.fs" />
     <Compile Include="Src/Editor/Completions.fs" />
     <Compile Include="Src/Editor/Foldings.fs" />
     <Compile Include="Src/Editor/EvaluationTracker.fs" />
@@ -151,7 +153,6 @@
     <Compile Include="Src/Editor/BracketHighlighter.fs" />
     <Compile Include="Src/Editor/DocChanged.fs" />
     <Compile Include="Src/Editor/KeyboardShortcuts.fs" />
-    <Compile Include="Src/Editor/NugetVersions.fs" />
     <Compile Include="Src/Editor/NugetHints.fs" />
 
     <Compile Include="Src/Views/Scrollbar.fs" />

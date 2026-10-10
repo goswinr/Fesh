@@ -14,7 +14,8 @@ type Config (log:IFeshLog, startUpData:HostedStartUpData option, startupArgs:str
     let  defaultCode                = new DefaultCode                 (runContext)
     let  scriptCompilerFsproj       = new ScriptCompilerFsproj        (runContext)
     let  autoCompleteStatistic      = new AutoCompleteStatistic       (runContext)
-    let  fsiArguments               = new FsiArguments                (runContext)
+    let  nugetStatistic             = new NugetStatistic              (runContext)
+    let  fsiArguments              = new FsiArguments                (runContext)
     let  foldingStatus              = new FoldingStatus               (runContext, recentlyUsedFiles)
 
     member this.RunContext                 = runContext
@@ -24,6 +25,7 @@ type Config (log:IFeshLog, startUpData:HostedStartUpData option, startupArgs:str
     member this.DefaultCode                = defaultCode
     member this.ScriptCompilerFsproj       = scriptCompilerFsproj
     member this.AutoCompleteStatistic      = autoCompleteStatistic
+    member this.NugetStatistic             = nugetStatistic
     member this.FsiArguments               = fsiArguments
     member this.FoldingStatus              = foldingStatus
 

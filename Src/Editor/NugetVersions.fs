@@ -4,9 +4,12 @@ open System
 open System.IO
 open System.Threading
 open System.Threading.Tasks
+open System.Collections.Generic
 open System.Collections.Concurrent
 
 open AvalonEditB.Document
+
+open Fesh.Model
 
 open NuGet.Common
 open NuGet.Configuration
@@ -154,6 +157,68 @@ module NugetDirective =
                             isKeyed      = isKeyed
                             }
 
+    /// The characters allowed in a NuGet package id.
+    let isPackageIdChar (c:char) =
+        Char.IsLetterOrDigit c || c = '.' || c = '-' || c = '_'
+
+    /// For the text of a line till the caret:
+    /// If the caret is in the package name of a  #r "nuget: ..."  line, so after  "nuget:  and before the first comma,
+    /// returns the index where the package name starts, otherwise -1.
+    /// For  #r "nuget: Include=Name  the name starts after the equal sign.
+    let packageNameStart (lineToCaret:string) : int =
+        let ln = lineToCaret
+        let len = ln.Length
+        let skipWhite (from:int) =
+            let mutable j = from
+            while j < len && Char.IsWhiteSpace ln[j] do
+                j <- j + 1
+            j
+        let mutable i = skipWhite 0
+        if String.CompareOrdinal(ln, i, "#r", 0, 2) <> 0 then
+            -1
+        else
+            i <- i + 2
+            while i < len && ln[i] = ' ' do
+                i <- i + 1
+            if i < len && ln[i] = '@' then // a verbatim string
+                i <- i + 1
+            if i >= len || ln[i] <> '"' || String.CompareOrdinal(ln, i + 1, "nuget:", 0, 6) <> 0 then
+                -1
+            else
+                let mutable st = skipWhite (i + 7) // after "nuget:
+                match ln.IndexOf('=', st) with
+                | -1 -> ()
+                | eq ->
+                    if String.Equals(ln.Substring(st, eq - st).TrimEnd(), "Include", StringComparison.OrdinalIgnoreCase) then
+                        st <- skipWhite (eq + 1)
+                    else
+                        st <- -1 // after another option, like Version=
+                if st < 0 then
+                    -1
+                else
+                    // only package id characters till the caret, so no comma, space or closing quote:
+                    let mutable k = st
+                    while k < len && isPackageIdChar ln[k] do
+                        k <- k + 1
+                    if k = len then st else -1
+
+    /// The package names of all  #r "nuget: ..."  lines in this code, without duplicates.
+    let namesInCode (code:string) : string[] =
+        let names = ResizeArray<string>()
+        let seen = HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        let mutable st = 0
+        while st < code.Length do
+            let en = match code.IndexOf('\n', st) with -1 -> code.Length | i -> i
+            let mutable i = st
+            while i < en && Char.IsWhiteSpace code[i] do
+                i <- i + 1
+            if i + 1 < en && code[i] = '#' && code[i+1] = 'r' then // fast check before parsing
+                match tryParse (code.Substring(st, en - st)) with
+                | Some d when seen.Add d.name -> names.Add d.name
+                | _ -> ()
+            st <- en + 1
+        names.ToArray()
+
 
 [<RequireQualifiedAccess>]
 type NugetHintKind =
@@ -197,6 +262,21 @@ type NugetLookup =
     | Found  of versions:NuGetVersion[] * packageName:string * projectUrl:string * checkedOn:string * notReachable:string
     | Failed of reason:string
 
+/// A package found by a search on nuget.org.
+type NugetSearchResult = {
+    /// The package id.
+    id: string
+
+    /// The latest version, including prereleases.
+    version: string
+
+    /// The description from the package metadata, or "".
+    description: string
+
+    /// The total download count.
+    downloads: int64
+    }
+
 
 /// Queries the NuGet package sources.
 /// NuGet.Protocol is only used here, so that its assemblies only get loaded on a background thread when the first lookup starts.
@@ -215,6 +295,9 @@ type internal NugetFeeds private () =
         |> Seq.filter (fun s -> s.IsEnabled)
         |> Seq.map (fun s -> Repository.Factory.GetCoreV3 s)
         |> Seq.toArray
+
+    /// For searching package ids, independent of the NuGet.Config files.
+    static let nugetOrg = lazy (Repository.Factory.GetCoreV3 "https://api.nuget.org/v3/index.json")
 
     /// Only http and https links from the package metadata get opened in the browser.
     static let isWebUrl (u:Uri) =
@@ -282,6 +365,22 @@ type internal NugetFeeds private () =
                         |> Option.defaultValue ""
                     let checkedOn = answered |> Array.map fst |> String.concat ", "
                     return NugetLookup.Found (versions, packageName, projectUrl, checkedOn, String.Join(", ", failed))
+        }
+
+    /// Search nuget.org for packages, including prereleases, the most relevant first.
+    static member Search(query:string, take:int) : Async<NugetSearchResult[]> =
+        async {
+            use cts = new CancellationTokenSource(TimeSpan.FromSeconds 10.0)
+            let! res = nugetOrg.Value.GetResourceAsync<PackageSearchResource>(cts.Token) |> Async.AwaitTask
+            let! found = res.SearchAsync(query, SearchFilter(true), 0, take, NullLogger.Instance, cts.Token) |> Async.AwaitTask // true: includePrerelease
+            return
+                [| for m in found do
+                    {
+                    id          = m.Identity.Id
+                    version     = m.Identity.Version.ToNormalizedString()
+                    description = if isNull m.Description then "" else m.Description.Trim()
+                    downloads   = if m.DownloadCount.HasValue then m.DownloadCount.Value else 0L
+                    } |]
         }
 
 
@@ -430,4 +529,73 @@ type NugetVersions private () =
         async {
             if tasks.Length > 0 then
                 do! Task.WhenAll(tasks) |> Async.AwaitTask |> Async.Ignore
+        }
+
+
+/// Searches nuget.org for package ids, for the completion list after  #r "nuget:
+/// The results are cached, shared by all editor tabs.
+type NugetSearch private () =
+
+    /// The completed searches and when they finished, by the lowercase query.
+    static let results  = ConcurrentDictionary<string, struct(NugetSearchResult[] * DateTime)>()
+
+    /// The running searches, so that each query is only searched once at a time.
+    static let inFlight = ConcurrentDictionary<string, Lazy<Task<NugetSearchResult[]>>>()
+
+    /// When the last search failed, to not try again for a while when offline.
+    static let mutable lastFailure = DateTime.MinValue
+
+    /// Set when the NuGet client assemblies can't be loaded, e.g. because of version conflicts in a hosting app.
+    static let mutable disabled = false
+
+    static let startSearch (key:string) (query:string) : Task<NugetSearchResult[]> =
+        async {
+            let! res =
+                async {
+                    try
+                        let! found = NugetFeeds.Search(query, 20)
+                        results[key] <- struct(found, DateTime.UtcNow)
+                        return found
+                    with e ->
+                        if NugetLoad.isLoadError e then
+                            if not disabled then
+                                disabled <- true
+                                IFeshLog.log.PrintfnAppErrorMsg "The search on nuget.org for the completions in #r \"nuget: ...\" lines is turned off because the NuGet client libraries could not be loaded:\r\n%s" e.Message
+                        else
+                            lastFailure <- DateTime.UtcNow
+                        return [||]
+                }
+            inFlight.TryRemove(key) |> ignore
+            return res
+        }
+        |> Async.StartAsTask
+
+    /// The minimum length of the typed package name to start a search on nuget.org.
+    static member MinQueryLength = 3
+
+    /// Returns the packages found on nuget.org for this query, the most relevant first.
+    /// The result is empty if nuget.org can't be reached, then no new search is started for one minute.
+    /// The results are cached for ten minutes.
+    static member Search(query:string) : Task<NugetSearchResult[]> =
+        let key = query.ToLowerInvariant()
+        match results.TryGetValue key with
+        | true, struct(found, time) when DateTime.UtcNow - time < TimeSpan.FromMinutes 10.0 ->
+            Task.FromResult found
+        | _ ->
+            if disabled || DateTime.UtcNow - lastFailure < TimeSpan.FromMinutes 1.0 then
+                Task.FromResult [||]
+            else
+                inFlight.GetOrAdd(key, fun k -> lazy (startSearch k query)).Value
+
+    /// Like Search, but waits at most maxWait for the result, then returns an empty array.
+    /// Also returns an empty array right away if the query is shorter than MinQueryLength.
+    static member SearchWithin(query:string, maxWait:TimeSpan) : Async<NugetSearchResult[]> =
+        async {
+            if query.Length < NugetSearch.MinQueryLength then
+                return [||]
+            else
+                let t = NugetSearch.Search query
+                if not t.IsCompleted then
+                    do! Task.WhenAny(t :> Task, Task.Delay maxWait) |> Async.AwaitTask |> Async.Ignore
+                return if t.Status = TaskStatus.RanToCompletion then t.Result else [||]
         }

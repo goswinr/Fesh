@@ -24,6 +24,9 @@ type Fesh (config:Config,log:Log) =
     let menu = Menu(config, commands, tabs, statusBar, log)
     let dockP = dockPanelVert(menu.Bar , tabsAndLog.Grid , statusBar.Bar)
 
+    /// The evaluation that is compiling or running now, with its code.
+    let mutable evaluating : option<Model.EvalRequest * string> = None
+
     do
         dockP.Margin <- Thickness(tabsAndLog.GridSplitterSize)
 
@@ -67,6 +70,21 @@ type Fesh (config:Config,log:Log) =
         tabs.Fsi.OnFsiEvalError.Add(fun _ ->
             let w = win // because it might be hidden manually, or not visible from the start ( e.g. current script is evaluated in Fesh.Rhino)
             if w.Visibility <> Visibility.Visible || w.WindowState=WindowState.Minimized then win.Show() )
+
+        // Count the packages of the #r "nuget: ..." lines of each evaluation that completed without errors,
+        // so that they are offered first in the completion list after #r "nuget:
+        tabs.Fsi.OnCompiling.Add(fun evd -> evaluating <- Some (evd.request, evd.code))
+        tabs.Fsi.OnCompletedOk.Add(fun req ->
+            match evaluating with
+            | Some (r, code) when Object.ReferenceEquals(r, req) ->
+                evaluating <- None
+                let names = NugetDirective.namesInCode code
+                if names.Length > 0 then
+                    for name in names do
+                        config.NugetStatistic.Incr name
+                    config.NugetStatistic.Save()
+            | _ -> ()
+            )
 
 
     member this.Config = config

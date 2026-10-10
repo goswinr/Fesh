@@ -2,6 +2,7 @@
 
 open System
 open System.Windows
+open System.Windows.Threading
 open System.Collections.Generic
 
 open AvalonEditB
@@ -28,6 +29,8 @@ type RestrictedShowList =
     | JustDuFrom of DeclarationListInfo
     | JustDeclModifiers
     | JustDirectives
+    /// The previously used packages after  #r "nuget:  and the ones found on nuget.org
+    | JustNugetPackages of found:NugetSearchResult[]
 
 
 module UtilCompletion =
@@ -198,6 +201,58 @@ type CompletionItem(state: InteractionState, info:CompletionInfo , isDotCompleti
         member this.Priority        = this.Priority
         member this.Text            = this.Text // not used for display, but for priority sorting ?
 
+/// An item in the completion list after  #r "nuget:
+/// usedCount: how often the package was used before, 0 if it was only found on nuget.org.
+type NugetCompletionItem(state: InteractionState, name:string, usedCount:int, found:NugetSearchResult option) =
+
+    let textDisplay = UtilCompletion.mkTexBlock(name, FontStyles.Normal)
+
+    let description = lazy (
+        let lines = ResizeArray<string>()
+        match usedCount with
+        | 0 -> ()
+        | 1 -> lines.Add "Used once before."
+        | n -> lines.Add $"Used {n} times before."
+        match found with
+        | None -> ()
+        | Some r ->
+            lines.Add $"On nuget.org: latest version {r.version}, {r.downloads:N0} downloads."
+            if r.description <> "" then
+                lines.Add ""
+                lines.Add (if r.description.Length > 400 then r.description.Substring(0, 400) + " …" else r.description)
+        TextBlock(Text = String.Join("\r\n", lines), TextWrapping = TextWrapping.Wrap, MaxWidth = 500.0) :> obj
+        )
+
+    member this.Content = textDisplay :> obj
+    member this.Description = description.Value
+    member this.Image = null
+    member this.Priority = 1.0 + float usedCount
+    member this.Text = name
+    member this.Complete (textArea:TextArea, completionSegment:ISegment, e:EventArgs) =
+        ignore e
+        state.JustCompleted <- false // so that the next typed character, like a backspace, can show the packages again
+        let doc = textArea.Document
+        let start = completionSegment.Offset // before the Replace, the anchored segment might move with the insertion
+        // also replace the rest of the package name after the caret:
+        let lineEnd = doc.GetLineByOffset(completionSegment.EndOffset).EndOffset
+        let mutable en = completionSegment.EndOffset
+        while en < lineEnd && NugetDirective.isPackageIdChar (doc.GetCharAt en) do
+            en <- en + 1
+        doc.Replace(start, en - start, name)
+        textArea.Caret.Offset <- start + name.Length
+        state.Config.NugetStatistic.Incr name
+        state.Config.NugetStatistic.Save()
+
+    override this.ToString() = name // for UI Automation, e.g. screen readers
+
+    interface ICompletionData with
+        member this.Complete(t,s,e) = this.Complete(t,s,e)
+        member this.Content         = this.Content
+        member this.Description     = this.Description
+        member this.Image           = this.Image
+        member this.Priority        = this.Priority
+        member this.Text            = this.Text
+
 type Completions(state: InteractionState) =
     let avEd = state.Editor
 
@@ -255,6 +310,56 @@ type Completions(state: InteractionState) =
             //     IFeshLog.log.PrintfnDebugMsg $"win.IsSome2: '{win.IsSome}'"
         } |> Async.Start
         TypeInfo.loadingText :> obj
+
+    /// Is the current completion window the one for the NuGet packages after  #r "nuget:
+    let mutable isNugetWin = false
+
+    /// The text typed so far since the completion window started.
+    let typedText (w:CompletionWindow) =
+        let off = avEd.TextArea.Caret.Offset
+        if off > w.StartOffset then avEd.Document.GetText(w.StartOffset, off - w.StartOffset) else ""
+
+    /// Long enough to search for it on nuget.org, and could be (the start of) a package id.
+    let isNugetQuery (txt:string) =
+        txt.Length >= NugetSearch.MinQueryLength && Seq.forall NugetDirective.isPackageIdChar txt
+
+    /// For the completion window of the NuGet packages:
+    /// When typing pauses, search nuget.org for the typed text and add the found packages to the list.
+    let searchNugetWhileOpen (w:CompletionWindow) =
+        let complList = w.CompletionList
+        let searched = HashSet<string>(StringComparer.OrdinalIgnoreCase)
+
+        let addFound (found:NugetSearchResult[]) =
+            let have = HashSet<string>(complList.CompletionData |> Seq.map (fun d -> d.Text), StringComparer.OrdinalIgnoreCase)
+            let mutable added = false
+            for r in found do
+                if have.Add r.id then
+                    complList.CompletionData.Add(NugetCompletionItem(state, r.id, 0, Some r) :> ICompletionData)
+                    added <- true
+            if added then
+                // SelectItem only filters again if the text changed, a space matches no package id:
+                complList.SelectItem " "
+                complList.SelectItem (typedText w)
+
+        let search () =
+            let query = typedText w
+            if isNugetQuery query && searched.Add query then
+                async {
+                    let! found = NugetSearch.Search query |> Async.AwaitTask
+                    do! Async.SwitchToContext Fittings.SyncWpf.context
+                    match win with
+                    | Some cw when Object.ReferenceEquals(cw, w) -> addFound found
+                    | _ -> () // closed meanwhile
+                } |> Async.Start
+
+        let timer = DispatcherTimer(DispatcherPriority.Background, Interval = TimeSpan.FromMilliseconds 300.0)
+        timer.Tick.Add(fun _ -> timer.Stop(); search())
+        let restartTimer = EventHandler(fun _ _ -> timer.Stop(); timer.Start())
+        avEd.TextArea.Caret.PositionChanged.AddHandler restartTimer
+        w.Closed.Add(fun _ ->
+            timer.Stop()
+            avEd.TextArea.Caret.PositionChanged.RemoveHandler restartTimer)
+        search() // for the text typed while waiting for the window to show
 
     [<CLIEvent>]
     member _.OnShowing = showingEv.Publish // to close other tooltips that might be open from type info
@@ -315,10 +420,29 @@ type Completions(state: InteractionState) =
             for it in decls.Items do
                 lines.Add (new CompletionItem(state, Decl(it, getToolTip ), pos.dotBefore)) // for normal completion add all others too.
             lines
+        |JustNugetPackages found ->
+            let foundById = Dictionary<string, NugetSearchResult>(StringComparer.OrdinalIgnoreCase)
+            for r in found do
+                if not (foundById.ContainsKey r.id) then foundById[r.id] <- r
+            let lines = ResizeArray<ICompletionData>()
+            for struct(name, count) in state.Config.NugetStatistic.Packages do // the most used first
+                match foundById.TryGetValue name with
+                | true, r ->
+                    foundById.Remove name |> ignore
+                    lines.Add (NugetCompletionItem(state, name, count, Some r))
+                | _ ->
+                    lines.Add (NugetCompletionItem(state, name, count, None))
+            for r in found do // in the order of relevance from nuget.org
+                if foundById.Remove r.id then
+                    lines.Add (NugetCompletionItem(state, r.id, 0, Some r))
+            lines
 
     /// must be called from UI thread
-    member this.TryShow( posX:PositionInCodeEx, rShowList:RestrictedShowList, checkAndMark:unit->unit) : TriedShow =
+    /// searchAgain is called for the NuGet packages, when the window closes because the typed text matches none of them,
+    /// so that nuget.org gets searched for the typed text.
+    member this.TryShow( posX:PositionInCodeEx, rShowList:RestrictedShowList, checkAndMark:unit->unit, searchAgain:unit->unit) : TriedShow =
         willInsert <- false
+        let isNuget = match rShowList with JustNugetPackages _ -> true | _ -> false
         // IFeshLog.log.PrintfnDebugMsg $"*5.0 TryShow Completion Window , {rShowList} items, onlyDU:{rShowList}:\r\n{pos}"
         if AutoFixErrors.isMessageBoxOpen then // because msg box would appear behind completion window and type info
             NoShow
@@ -370,13 +494,18 @@ type Completions(state: InteractionState) =
                             w.MinHeight       <- StyleState.fontSize
                             w.MinWidth        <- StyleState.fontSize * 8.0
                             w.CloseAutomatically <- true
-                            w.CloseWhenCaretAtBeginning <- not posX.dotBefore
+                            w.CloseWhenCaretAtBeginning <- not posX.dotBefore && not isNuget // for NuGet packages show all again when deleting back to the start of the name
                             w.StartOffset <- stOff // to replace some previous characters too
 
+                            let searchAgainOnClose = ref false
 
                             let checkIfOnlyOneMatch  = fun() ->
                                 match complList.ListBox.Items.Count with
-                                | 0 ->  w.Close()  //  close when list is empty. 'willInsert' is still false so checkAndMark will be called in closing event handler
+                                | 0 ->
+                                    if isNuget && isNugetQuery (typedText w) then
+                                        searchAgainOnClose.Value <- true // nuget.org might have other packages for the longer text
+                                    w.Close()  //  close when list is empty. 'willInsert' is still false so checkAndMark (or searchAgain) will be called in closing event handler
+                                | 1 when isNuget -> () // keep it open, a package name is often the start of other ones, like Euclid and Euclid.Rhino
                                 | 1 ->  match complList.SelectedItem with // insert and close if there is an exact match and no other possible match available
                                         | null -> ()
                                         | it ->
@@ -402,7 +531,10 @@ type Completions(state: InteractionState) =
                                 //IFeshLog.log.PrintfnDebugMsg "Completion window just closed with selected item: %A " complList.SelectedItem
 
                                 if not willInsert then // else -on inserting- a DocChanged event is triggered anyway that will do the checkAndMark
-                                    checkAndMark()
+                                    if searchAgainOnClose.Value then
+                                        searchAgain() // also does the checkAndMark if nothing is found
+                                    else
+                                        checkAndMark()
                                 )
 
                             complList.InsertionRequested.Add(fun _ -> willInsert <- true)
@@ -415,6 +547,9 @@ type Completions(state: InteractionState) =
                             //IFeshLog.log.PrintfnDebugMsg "*5.4 Show Completion Window with %d items prefilter: '%s' " complList.ListBox.Items.Count prefilter
                             showingEv.Trigger() // to close error and type info tooltip
                             this.ComplWin <- Some w
+                            isNugetWin <- isNuget
+                            if isNuget then
+                                searchNugetWhileOpen w // before Show, it hooks up to the Closed event
                             w.Show()
                             checkIfOnlyOneMatch()
                             DidShow
@@ -437,6 +572,7 @@ type Completions(state: InteractionState) =
             |"." ->
                 match this.ComplWin.Value.CompletionList.SelectedItem with
                 | null -> () // don't insert __LINE__ when doing an underscore and a dot in the new shorthand meber acces like: xs |> Array.map _.Length
+                | _ when isNugetWin -> () // the dot is part of the package name
                 | i -> if not <|  i.Text.StartsWith "_" then win.Value.CompletionList.RequestInsertion(ev)
 
             | _  -> () // other triggers like tab, enter and return are covered in   https://github.com/goswinr/AvalonEditB/blob/main/AvalonEditB/CodeCompletion/CompletionList.cs#L170
