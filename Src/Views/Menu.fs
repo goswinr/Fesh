@@ -152,19 +152,10 @@ module RecognizePath =
                                 name = sprintf "Open with VS Code  '%s'" fullPath
                                 gesture = ""
                                 cmd = mkCmdSimple (fun _ ->
-                                    try
-                                        if IO.Directory.Exists fullPath || IO.File.Exists fullPath then
-                                            let psi = new Diagnostics.ProcessStartInfo()
-                                            psi.FileName <- "code"
-                                            let inQuotes = "\"" + fullPath + "\""
-                                            psi.Arguments <- String.concat " " [inQuotes;  "--reuse-window"]
-                                            psi.WindowStyle <- Diagnostics.ProcessWindowStyle.Hidden
-                                            psi.UseShellExecute <- true
-                                            Diagnostics.Process.Start(psi) |> ignore
-                                        else
-                                            IFeshLog.log.PrintfnIOErrorMsg "Directory or file \r\n%s\r\n does not exist" fullPath
-                                    with e ->
-                                        IFeshLog.log.PrintfnIOErrorMsg "Open with VS Code failed: %A" e
+                                    if IO.Directory.Exists fullPath || IO.File.Exists fullPath then
+                                        VSCode.openPath(fullPath, false) |> ignore
+                                    else
+                                        IFeshLog.log.PrintfnIOErrorMsg "Directory or file \r\n%s\r\n does not exist" fullPath
                                     )
                                 tip = sprintf "Try to open file in VS Code:\r\n%s" fullPath
                                 }

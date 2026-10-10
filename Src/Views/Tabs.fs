@@ -615,13 +615,7 @@ type Tabs(config:Config, log:Log,feshWin:FeshWindow) =
             fi.Refresh()
             try
                 if fi.Exists  && ( t.IsCodeSaved || saveAt(t, fi, SaveInPlace) )then
-                    let psi = new Diagnostics.ProcessStartInfo()
-                    psi.FileName <- "code"
-                    let inQuotes = "\"" + fi.FullName + "\""
-                    psi.Arguments <- String.concat " " [inQuotes;  "--new-window"]
-                    psi.WindowStyle <- Diagnostics.ProcessWindowStyle.Hidden
-                    psi.UseShellExecute <- true
-                    Diagnostics.Process.Start(psi) |> ignore
+                    VSCode.openPath(fi.FullName, true) |> ignore
                 else
                     IFeshLog.log.PrintfnIOErrorMsg $"Open in VS Code: File reading or saving error {fi.FullName}"
             with e ->

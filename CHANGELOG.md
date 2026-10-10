@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - typing a dot after a closing bracket, like in `System.Guid.NewGuid().` or `xs[0].`, opens the completion list with the members of that expression. Whitespace before the dot is skipped too, so it also works at the start of a correctly indented line, like in a method chain on several lines
 - on .NET, cancelling a script that waits in a blocking call like `Thread.Sleep` no longer freezes the editor until that call returns
 - a reset of FSI disposes the previous session. Before, every reset kept the previous session with its loaded references and its assembly resolve handler. If an evaluation of the previous session is still running, the session is disposed when that evaluation ends
+- 'Open in VS Code', 'Open with VS Code' for file paths, and opening the SyntaxHighlightingFSharp.xshd file start VS Code via its `code.cmd` from the PATH. Before, Windows started `Code.exe` directly, hidden, and VS Code could ignore the file to open
 
 ## [0.34.0] - 2026-10-05
 ### Added

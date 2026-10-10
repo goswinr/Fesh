@@ -138,6 +138,7 @@
     <Compile Include="Src/Editor/SwapLines.fs" />
     <Compile Include="Src/Editor/CursorBehavior.fs" />
     <Compile Include="Src/Editor/AlignText.fs" />
+    <Compile Include="Src/Editor/VSCode.fs" />
     <Compile Include="Src/Editor/XshdHighlighting.fs" />
     <Compile Include="Src/Editor/FastColorizer.fs" />
     <Compile Include="Src/Editor/InteractionState.fs" />

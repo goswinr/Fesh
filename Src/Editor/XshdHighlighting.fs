@@ -199,14 +199,8 @@ module SyntaxHighlighting =
     let openVSCode(editors: unit -> seq<TextEditor>) =
         try
             if IO.File.Exists filePath then
-                let psi = new Diagnostics.ProcessStartInfo()
-                psi.FileName <- "code"
-                let inQuotes = "\"" + filePath + "\""
-                psi.Arguments <- String.concat " " [inQuotes;  "--reuse-window"]
-                psi.WindowStyle <- Diagnostics.ProcessWindowStyle.Hidden
-                psi.UseShellExecute <- true
-                Diagnostics.Process.Start(psi) |> ignore
-                watch(FileInfo filePath, editors)
+                if VSCode.openPath(filePath, false) then
+                    watch(FileInfo filePath, editors)
             else
                 IFeshLog.log.PrintfnIOErrorMsg "File not found: %s" filePath
         with e ->
