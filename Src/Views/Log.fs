@@ -7,10 +7,12 @@ open System.Text
 open System.Windows.Controls
 open System.Windows
 open System.Windows.Input
+open System.Collections.Generic
 
 open AvalonEditB
 open AvalonEditB.Utils
 open AvalonEditB.Document
+open AvalonEditB.Rendering
 open AvalonLog.Brush
 
 open Fesh
@@ -20,22 +22,78 @@ open Fesh.Model
 open Fesh.Config
 
 
+/// The Log always prints with these brushes, also in the dark theme.
+/// Because the TextWriters keep the brush they were created with.
+/// In the dark theme the LogThemeColorizer replaces them with the ones from Theme.darkLogText when rendering.
 module LogColors =
 
-    let mutable consoleOut    = Brushes.Black             |> freeze // should be same as default  foreground. Will be set on foreground changes
-    let fsiStdOut     = Brushes.DarkGray |> darker 20     |> freeze // values printed by fsi itself like "val it = ...."
-    let fsiErrorOut   = Brushes.DarkMagenta               |> freeze // are they all caught by evaluate non throwing ? prints "Stopped due to error" on non compiling code
-    let consoleError  = Brushes.OrangeRed                 |> freeze // this is used by eprintfn
-    let infoMsg       = Brushes.LightSteelBlue            |> freeze
-    let fsiErrorMsg   = Brushes.Magenta                   |> freeze
-    let appErrorMsg   = Brushes.LightSalmon |> darker 20  |> freeze
-    let iOErrorMsg    = Brushes.DarkRed                   |> freeze
-    let debugMsg      = Brushes.LightSeaGreen             |> freeze
-    let runtimeErr    = Brushes.Red         |> darker 55  |> freeze
+    let consoleOut    = Theme.lightLogText.consoleOut   // should be same as default  foreground.
+    let fsiStdOut     = Theme.lightLogText.fsiStdOut    // values printed by fsi itself like "val it = ...."
+    let fsiErrorOut   = Theme.lightLogText.fsiErrorOut  // are they all caught by evaluate non throwing ? prints "Stopped due to error" on non compiling code
+    let consoleError  = Theme.lightLogText.consoleError // this is used by eprintfn
+    let infoMsg       = Theme.lightLogText.infoMsg
+    let fsiErrorMsg   = Theme.lightLogText.fsiErrorMsg
+    let appErrorMsg   = Theme.lightLogText.appErrorMsg
+    let iOErrorMsg    = Theme.lightLogText.iOErrorMsg
+    let debugMsg      = Theme.lightLogText.debugMsg
+    let runtimeErr    = Theme.lightLogText.runtimeErr
 
-    //let red           = Brushes.Red                     |> freeze
-    //let green         = Brushes.Green                   |> freeze
-    //let blue          = Brushes.Blue                    |> freeze
+
+/// In the dark theme: replaces the colors of the printed text with their dark versions from Theme.darkLogText.
+/// Other colors, e.g. from printing with a custom RGB color, get lighter if they are too dark to read on a dark background.
+type LogThemeColorizer () =
+    inherit DocumentColorizingTransformer()
+
+    static let darkVersions =
+        let d = Dictionary<Brush,Brush>(HashIdentity.Reference)
+        let l = Theme.lightLogText
+        let k = Theme.darkLogText
+        for light, dark in [
+                l.consoleOut  , k.consoleOut
+                l.fsiStdOut   , k.fsiStdOut
+                l.fsiErrorOut , k.fsiErrorOut
+                l.consoleError, k.consoleError
+                l.infoMsg     , k.infoMsg
+                l.fsiErrorMsg , k.fsiErrorMsg
+                l.appErrorMsg , k.appErrorMsg
+                l.iOErrorMsg  , k.iOErrorMsg
+                l.debugMsg    , k.debugMsg
+                l.runtimeErr  , k.runtimeErr  ] do
+            d.[light] <- dark
+        d
+
+    /// The other brushes and their dark versions, or the same brush if it is light enough already
+    let adapted = Dictionary<Brush,Brush>(HashIdentity.Reference)
+
+    let getAdapted (fg:Brush) =
+        match adapted.TryGetValue fg with
+        | true, d -> d
+        | _ ->
+            let d =
+                match fg with
+                | :? SolidColorBrush as b ->
+                    let c = Theme.adaptToDark b.Color
+                    if c = b.Color then fg else SolidColorBrush(c) |> freeze :> Brush
+                | _ -> fg
+            if adapted.Count > 1000 then adapted.Clear() // AvalonLog creates a new brush for each new custom color
+            adapted.[fg] <- d
+            d
+
+    let replace =
+        new Action<VisualLineElement>(fun el ->
+            let p = el.TextRunProperties
+            let fg = p.ForegroundBrush
+            if notNull fg then
+                match darkVersions.TryGetValue fg with
+                | true, d -> p.SetForegroundBrush d
+                | _ ->
+                    let d = getAdapted fg
+                    if not (Object.ReferenceEquals(d, fg)) then p.SetForegroundBrush d
+            )
+
+    override _.ColorizeLine(line:DocumentLine) =
+        if Theme.isDark && not line.IsDeleted && line.Length > 0 then
+            base.ChangeLinePart(line.Offset, line.EndOffset, replace)
 
 #nowarn "44" //for obsolete grid.Log.AvalonLog.AvalonEdit
 
@@ -54,11 +112,31 @@ type Log private () =
         log.BorderThickness <- new Thickness( 0.5)
         log.Padding         <- new Thickness( 0.7)
         log.Margin          <- new Thickness( 0.7)
-        log.BorderBrush <- Brushes.Black |> freeze
+        // the colors are set in applyTheme()
 
         log.VerticalScrollBarVisibility <- Controls.ScrollBarVisibility.Auto
         //log.HorizontalScrollBarVisibility <- Controls.ScrollBarVisibility.Auto // set below with word wrap
         log.MaximumCharacterAllowance <- 5_000_000
+
+    let applyTheme () =
+        let c = Theme.log
+        let ed = log.AvalonEdit
+        log.BorderBrush <- c.border
+        ed.Background   <- c.background
+        ed.Foreground   <- c.foreground
+        ed.TextArea.TextView.LinkTextForegroundBrush <- c.link
+        if isNull Theme.editor.selection then
+            ed.TextArea.ClearValue Editing.TextArea.SelectionBrushProperty
+            ed.TextArea.ClearValue Editing.TextArea.SelectionForegroundProperty
+        else
+            ed.TextArea.SelectionBrush <- Theme.editor.selection
+            ed.TextArea.SelectionForeground <- null // keep the colors of the printed text
+        ed.TextArea.TextView.Redraw()
+
+    do
+        log.AvalonEdit.TextArea.TextView.LineTransformers.Add(new LogThemeColorizer())
+        applyTheme()
+        Theme.Changed.Add applyTheme
 
     let setLineWrap(v)=
         if v then

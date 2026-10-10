@@ -5,6 +5,7 @@ open System.Windows.Controls
 open System.Windows
 open System.Windows.Media
 
+open Fesh
 open Fesh.Editor
 open Fesh.Model
 
@@ -12,13 +13,7 @@ open AvalonLog.Brush
 
 
 module TabStyle =
-    let savedHeader   =  Brushes.Black  |> freeze
-    let changedHeader =  Brushes.Red    |> darker 90   |> freeze
-    let deletedHeader =  Brushes.Red    |> darker 20   |> freeze
-    let unsavedHeader =  Brushes.Gray   |> brighter 40 |> freeze
-    // button in header
-    let redButton     =  ofRGB 232 17 35 // same red color as default for the main window
-    let grayButton    =  ofRGB 150 150 150 // for gray cross inside red button
+    // the colors are in Theme.tabs
     let transpButton  =  ofARGB 0 255 255 255 // fully transparent
 
 
@@ -38,10 +33,11 @@ type Tab (editor:Editor) = //, config:Fesh.Config.Config, allFileInfos:seq<IO.Fi
 
     let textBlock = new TextBlock(VerticalAlignment = VerticalAlignment.Center) //, Padding = Thickness(2.) ) , FontFamily = StyleState.fontEditor)
 
+    //let cross = new Shapes.Path( Data = Geometry.Parse("M0,7 L7,0 M0,0 L7,7"),   StrokeThickness = 0.8 )  //"M1,8 L8,1 M1,1 L8,8"
+    let cross = new Shapes.Path( Data = Geometry.Parse("M0,10 L10,0 M0,0 L10,10"))
+
     let closeButton =
         let b =  new Button()
-        //let cross = new Shapes.Path( Data = Geometry.Parse("M0,7 L7,0 M0,0 L7,7"),   StrokeThickness = 0.8 )  //"M1,8 L8,1 M1,1 L8,8"
-        let cross = new Shapes.Path( Data = Geometry.Parse("M0,10 L10,0 M0,0 L10,10"))
         b.Content <- cross
         //b.Margin <-  new Thickness(7., 0.5, 0.5, 3.) //left ,top, right, bottom
         b.Margin <-  new Thickness(7., 1. , 1. , 1.) //left ,top, right, bottom
@@ -49,10 +45,10 @@ type Tab (editor:Editor) = //, config:Fesh.Config.Config, allFileInfos:seq<IO.Fi
         b.BorderThickness <- new Thickness(1.)
         b.BorderBrush <- TabStyle.transpButton
         b.Background <- TabStyle.transpButton
-        cross.Stroke <- TabStyle.grayButton
+        cross.Stroke <- Theme.tabs.closeButton
         cross.StrokeThickness <- 1.0
-        b.MouseEnter.Add (fun _ -> cross.StrokeThickness <- 1.0   ; cross.Stroke <- TabStyle.redButton ; b.BorderBrush <- TabStyle.grayButton)
-        b.MouseLeave.Add (fun _ -> cross.StrokeThickness <- 1.0   ; cross.Stroke <- TabStyle.grayButton; b.BorderBrush <- TabStyle.transpButton)
+        b.MouseEnter.Add (fun _ -> cross.StrokeThickness <- 1.0   ; cross.Stroke <- Theme.tabs.closeButtonHover ; b.BorderBrush <- Theme.tabs.closeButton)
+        b.MouseLeave.Add (fun _ -> cross.StrokeThickness <- 1.0   ; cross.Stroke <- Theme.tabs.closeButton; b.BorderBrush <- TabStyle.transpButton)
         b
 
     let header =
@@ -73,21 +69,21 @@ type Tab (editor:Editor) = //, config:Fesh.Config.Config, allFileInfos:seq<IO.Fi
                 textBlock.ToolTip         <- "File saved at:\r\n" + fi.FullName
                 textBlock.Text            <- fi.Name
                 textBlock.TextDecorations <- null
-                textBlock.Foreground      <- TabStyle.savedHeader
+                textBlock.Foreground      <- Theme.tabs.saved
                 headerShowsSaved          <- true
             |SetTo fi , false ->
                 headerShowsDeleted        <- false
                 textBlock.ToolTip         <- "File with unsaved changes from :\r\n" + fi.FullName
                 textBlock.Text            <- fi.Name + "*"
                 textBlock.TextDecorations <- null
-                textBlock.Foreground      <- TabStyle.changedHeader
+                textBlock.Foreground      <- Theme.tabs.changed
                 headerShowsSaved          <- false
             |NotSet dummyName,true ->
                 headerShowsDeleted        <- false
                 textBlock.ToolTip         <- "This file just shows the default code for every new file."
                 textBlock.Text            <- dummyName
                 textBlock.TextDecorations <- null
-                textBlock.Foreground      <- TabStyle.unsavedHeader
+                textBlock.Foreground      <- Theme.tabs.unsaved
                 headerShowsSaved          <- true
             |NotSet dummyName,false ->
                 headerShowsDeleted        <- false
@@ -95,14 +91,14 @@ type Tab (editor:Editor) = //, config:Fesh.Config.Config, allFileInfos:seq<IO.Fi
                 textBlock.Text            <- dummyName
                 textBlock.TextDecorations <- null
                 //if not ( textBlock.Text.EndsWith "*") then textBlock.Text <- textBlock.Text + "*"
-                textBlock.Foreground      <- TabStyle.changedHeader
+                textBlock.Foreground      <- Theme.tabs.changed
                 headerShowsSaved          <- false
             |Deleted dfi, _ ->
                 headerShowsDeleted        <- true
                 textBlock.ToolTip         <- "This file has been deleted (or renamed) from:\r\n" + dfi.FullName
                 textBlock.Text            <- dfi.Name
                 textBlock.TextDecorations <- TextDecorations.Strikethrough
-                textBlock.Foreground      <- TabStyle.deletedHeader
+                textBlock.Foreground      <- Theme.tabs.deleted
                 headerShowsSaved          <- false
             )
 
@@ -128,6 +124,8 @@ type Tab (editor:Editor) = //, config:Fesh.Config.Config, allFileInfos:seq<IO.Fi
     do
         base.Content <- editor.AvaEdit
         base.Header <- header
+        // implicit styles only apply to the exact type, this is a subclass of TabItem, so use the dark TabItem style explicitly:
+        base.SetResourceReference(FrameworkElement.StyleProperty, typeof<TabItem>)
         // TODO wrap tabItem in border element and the style the border instead ??
         //base.Padding <- Thickness(2.)   // don't messes it all up
         //base.Margin <- Thickness(2.)   // don't messes it all up
@@ -150,6 +148,12 @@ type Tab (editor:Editor) = //, config:Fesh.Config.Config, allFileInfos:seq<IO.Fi
         and set(v) = savingWanted<-v
 
     member _.UpdateTabHeader() = setHeader()
+
+    /// Applies the colors of the current theme to the header and the editor
+    member _.ApplyTheme() =
+        cross.Stroke <- Theme.tabs.closeButton
+        setHeader()
+        editor.ApplyTheme()
 
     member _.CloseButton = closeButton // public so click event can be attached later in Tabs.fs AddTab
 

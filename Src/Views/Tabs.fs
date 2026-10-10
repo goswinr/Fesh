@@ -29,7 +29,7 @@ type Tabs(config:Config, log:Log,feshWin:FeshWindow) =
             Padding = Thickness(0.6),
             Margin = Thickness( 0.6),
             BorderThickness = Thickness(0.6),
-            BorderBrush = Brushes.Black
+            BorderBrush = Theme.tabs.border
             )
 
     let win = feshWin.Window
@@ -423,6 +423,12 @@ type Tabs(config:Config, log:Log,feshWin:FeshWindow) =
                 let idx = max 0 tabs.SelectedIndex // might be -1 too , there was no tab selected by default" //  does happen
                 setCurrentTab(idx)
 
+            )
+
+        Theme.Changed.Add (fun () ->
+            tabs.BorderBrush <- Theme.tabs.border
+            for t in allTabs do t.ApplyTheme()
+            SyntaxHighlighting.applyTheme (fun () -> allTabs |> Seq.map (fun t -> t.AvaEdit))
             )
 
         // After all files are loaded and the current directory is set from the current tab, now initialize FSI.

@@ -7,6 +7,7 @@ open System.Collections.Generic
 open AvalonEditB
 open AvalonLog.Brush
 
+open Fesh
 open Fesh.Model
 open Fesh.Util
 open Fesh.Util.General
@@ -423,24 +424,15 @@ open ParseBrackets
 
 type BracketHighlighter (state:InteractionState) =
 
-    let colPair  = Brushes.Green |> brighter 160  |> freeze
-    let colErr   = Brushes.Red                  |> freeze
-    //let colErrBg = Brushes.Pink |> brighter 25  |> freeze
-    //let colErrBg = SolidColorBrush(Color.FromArgb(15uy,255uy,0uy,0uy))|> freeze // a=0 : fully transparent, a=255 opaque
-    let colErrBg = SolidColorBrush(Color.FromArgb(90uy,255uy,150uy,0uy))|> freeze // a=0 : fully transparent, a=255 opaque
+    // The colors are looked up when the Actions are invoked, so that they change with the theme:
+    let actErr      = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(Theme.editor.bracketError); el.TextRunProperties.SetBackgroundBrush(Theme.editor.bracketErrorBg))
+    let actPair     = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetBackgroundBrush(Theme.editor.bracketPair))
 
-    let colors = [|
-        null // the first one is null ( to keep the coloring from xshd file)
-        Brushes.Purple     |> brighter 40  |> freeze
-        Brushes.Orange     |> darker 30    |> freeze
-        Brushes.Green      |> brighter 30  |> freeze
-        Brushes.Cyan       |> darker 40    |> freeze
-        |]
-
-    let actErr      = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(colErr); el.TextRunProperties.SetBackgroundBrush(colErrBg))
-    let actPair     = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetBackgroundBrush(colPair))
-
-    let acts = colors|> Array.map ( fun c -> if isNull c then null else new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(c)))
+    let acts =
+        Theme.editor.bracketNesting
+        |> Array.mapi ( fun i c ->
+            if isNull c then null // the first one is null ( to keep the coloring from xshd file)
+            else new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(Theme.editor.bracketNesting.[i])))
 
     // ----------coloring on pair of matching brackets at cursor:---------------
 

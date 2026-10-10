@@ -3,6 +3,7 @@
 open System
 open System.Windows.Media.Imaging
 open System.Runtime.InteropServices
+open Fesh
 open Fesh.Model
 open Fesh.Config
 
@@ -13,6 +14,8 @@ type FeshWindow (config:Config)=
     let win =
         let w = new Fittings.PositionedWindow(config.RunContext.PositionedWindowSettingsFileInfo, IFeshLog.printError)
         IEditor.mainWindow <- w
+        // the background is visible next to the tab headers, it has the same color as the menu bar:
+        ThemeChrome.registerWindow w Windows.SystemColors.MenuBarBrush Theme.darkChrome.background
         w
 
     let mutable wasMax = win.Settings.GetBool ("WindowIsMax", false) //indicating if the Window was in Full-screen mode before switching to temporary Log only full-screen

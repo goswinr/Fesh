@@ -33,7 +33,7 @@ type Fesh (config:Config,log:Log) =
         win.Drop.Add (fun e -> DragAndDrop.onTabHeaders(tabs.AddFiles, e)) // text editor has it own drag event, this applies to all other area ( eg log, tab bar) except the editor (see handler)
 
         win.Content     <- dockP
-        win.Background  <- menu.Bar.Background // call after setting up content, otherwise space next to tab headers is in an odd color
+        // the window background is set in FeshWindow via ThemeChrome.registerWindow, to the same color as the menu bar
 
         win.ContentRendered.Add(fun _    -> KeyboardNative.hookUpForAltKeys(win) )
         win.Closed.Add(         fun _    -> KeyboardNative.unHookForAltKeys() |> ignore )

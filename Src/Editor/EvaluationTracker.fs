@@ -13,24 +13,6 @@ open Fesh.Util.General
 open Fesh.Model
 open Fesh
 
-module private EvaluationTrackerRendererUtil =
-
-    //let backGround = Brushes.Teal |> brighter 230 |> freeze
-    //let backGround = Brushes.Ivory |> brighter 5   |> freeze
-    let backGround = Brushes.Gray |> brighter 110 |> freeze
-    // let backGround = SolidColorBrush(Color.FromArgb(120uy,239uy,239uy,239uy))|> freeze // a=0 : fully transparent A=255 opaque
-
-
-    let border =
-        let p = new Pen(Brushes.Gray |> darker 20 |> freeze , 1.0)
-        p.Freeze()
-        p
-
-    //let border = new Pen( Brushes.Teal |> freeze , 0.7)  |> Pen.freeze
-
-
-open EvaluationTrackerRendererUtil
-
 /// IBackgroundRenderer
 type EvaluationTrackerRenderer (ed:TextEditor) =
 
@@ -134,7 +116,7 @@ type EvaluationTrackerRenderer (ed:TextEditor) =
                             let endLine = vls[endIdx]
                             let y = endLine.VisualTop - textView.VerticalOffset + endLine.Height
                             let rect = RectangleGeometry(new Windows.Rect(1.0, -1.0, textView.ActualWidth - 1.0, y + 2.0))
-                            drawingContext.DrawGeometry(backGround, border, rect) // pen could be null too
+                            drawingContext.DrawGeometry(Theme.editor.evaluatedBg, Theme.editor.evaluatedBorder, rect) // pen could be null too
 
 
                 // let geoBuilder = new BackgroundGeometryBuilder (AlignToWholePixels = true, CornerRadius = 0.0 )

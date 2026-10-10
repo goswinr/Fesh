@@ -11,6 +11,7 @@ open AvalonEditB.Utils
 open AvalonEditB.Editing
 open AvalonEditB.Folding
 
+open Fesh
 open AvalonLog.Brush
 
 
@@ -22,14 +23,12 @@ type ColumnRulers (editor:TextEditor)  as this =
         [0 .. 10] |> List.map ( fun i -> i * editor.Options.IndentationSize)
         //[ 0; 4; 8; 12 ; 16 ; 20 ; 24 ; 28 ; 32 ; 36]
 
-    let mutable color = Brushes.White |> darker 24
-
     // make it more transparent
     let addTransparency (amount:int) (br:SolidColorBrush)  =
         SolidColorBrush(Color.FromArgb(clampToByte (int br.Color.A - amount), br.Color.R, br.Color.G, br.Color.B))
 
-
-    let pens =
+    let makePens (firstColor:SolidColorBrush) =
+        let mutable color = firstColor
         [
             for _ in columnsInit do
                 let p = new Pen(color, 1.1 )
@@ -39,6 +38,11 @@ type ColumnRulers (editor:TextEditor)  as this =
                 p
         ]
 
+    /// the color the pens were made for, to make new ones when the theme changes
+    let mutable pensColor = Theme.editor.columnRuler
+
+    let mutable pens = makePens pensColor
+
     let columns = ResizeArray(columnsInit)
 
     let pixelSize = PixelSnapHelpers.GetPixelSize(editor.TextArea.TextView)
@@ -46,14 +50,7 @@ type ColumnRulers (editor:TextEditor)  as this =
     do
         editor.TextArea.TextView.BackgroundRenderers.Add(this)
 
-        // set color in Margins:
-        editor.ShowLineNumbers <- true //needs to be done before iterating margins
-        for uiElm in editor.TextArea.LeftMargins do
-            let marginColor =  Brushes.White |> darker 8 // set color
-            match uiElm with
-            | :? LineNumberMargin as lnm ->  lnm.BackgroundColor <- marginColor
-            | :? FoldingMargin    as fm  ->  fm.BackgroundColor  <- marginColor
-            | _-> ()//log.PrintfnAppErrorMsg "other left margin: %A" uiElm // TODO other left margin: System.Windows.Shapes.Line
+        // the color of the Margins is set in Editor.ApplyTheme()
 
 
     member this.Layer =
@@ -61,6 +58,9 @@ type ColumnRulers (editor:TextEditor)  as this =
         KnownLayer.Selection
 
     member this.Draw(textView:TextView, drawingContext:DrawingContext) =
+        if not (Object.ReferenceEquals(pensColor, Theme.editor.columnRuler)) then
+            pensColor <- Theme.editor.columnRuler
+            pens <- makePens pensColor
         let width = textView.WideSpaceWidth
         for column,pen in Seq.zip columns pens do
             let offset = width * float column

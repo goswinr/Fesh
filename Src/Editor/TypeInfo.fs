@@ -59,16 +59,7 @@ type TypeInfo private () =
 
     static let loadingTxt =  "Loading type info ..."
 
-    static let black        = Brushes.Black                      |> freeze
-    static let brown        = Brushes.Brown                      |> freeze
-    static let gray         = Brushes.Gray                       |> freeze
-    static let errMsgGray    = Brushes.LightGray                  |> freeze
-    static let purple       = Brushes.Purple     |> brighter  40 |> freeze
-
-    static let blue         = Brushes.Blue       |> darker    90 |> freeze
-    static let red          = Brushes.DarkSalmon |> darker   120 |> freeze
-    static let fullRed      = Brushes.Red        |> darker    60 |> freeze
-    static let cyan         = Brushes.DarkCyan   |> darker    60 |> freeze
+    // the colors are in Theme.toolTip, they are looked up each time a tooltip gets created
 
 
     static let maxCharInSignLine = 150
@@ -77,6 +68,8 @@ type TypeInfo private () =
 
 
     static let coloredSignature(td:ToolTipData): TextBlockSelectable =
+        let c = Theme.toolTip
+        let black, gray, blue, fullRed, purple, red, cyan = c.text, c.gray, c.blue, c.fullRed, c.purple, c.red, c.cyan
         let tb = TextBlockSelectable()
         tb.Foreground <- black
         tb.FontSize   <- StyleState.fontSize * 1.0 // prev 1.2
@@ -276,16 +269,12 @@ type TypeInfo private () =
     /// check if List has at least two items
     static let twoOrMore = function [] | [ _ ] -> false | _ -> true
 
-    static let darkGray     = Brushes.Gray          |> darker    40 |> freeze
-    static let darkblue     = Brushes.DarkSlateBlue |> darker 20 |> freeze
-    static let white        = Brushes.White         |> darker    5  |> freeze
-
     // static let codeRun (td:ToolTipData) (code:string) : seq<Run> =
     static let codeRun (color:Brush) (code:string) : seq<Run> =
         let tx = code.TrimEnd()
         [
         new Run(" ")
-        new Run(tx ,FontFamily = StyleState.fontEditor, FontSize = StyleState.fontSize*1.1,  Foreground = color,  Background = white)
+        new Run(tx ,FontFamily = StyleState.fontEditor, FontSize = StyleState.fontSize*1.1,  Foreground = color,  Background = Theme.toolTip.codeBg)
         // match td.optDefs |> Seq.tryFind ( fun oa -> oa = tx ) with
         // | Some _  ->  new Run("?"+tx ,FontFamily = StyleState.fontEditor, FontSize = StyleState.fontSize*1.1,  Foreground = gray,    Background = white)
         // | None    ->  new Run(tx     ,FontFamily = StyleState.fontEditor, FontSize = StyleState.fontSize*1.1,  Foreground = black,   Background = white)
@@ -330,6 +319,8 @@ type TypeInfo private () =
 
     // static let mainXmlBlock (node:XmlParser.Child, td:ToolTipData): TextBlockSelectable =
     static let mainXmlBlock (node:XmlParser.Child): TextBlockSelectable =
+        let c = Theme.toolTip
+        let black, brown, darkGray, darkblue = c.text, c.code, c.darkGray, c.darkBlue
         let tb = new TextBlockSelectable()
         tb.FontSize   <- StyleState.fontSize  * 1.0
         tb.FontFamily <- StyleState.fontToolTip
@@ -447,6 +438,8 @@ type TypeInfo private () =
 
     // make a fancy tooltip panel in a ScrollViewer:
     static let makeToolTipPanel  ( tds:ToolTipData list, ted:ToolTipExtraData,  addPersistInfo:bool) :ScrollViewer =
+        let c = Theme.toolTip
+        let black, errMsgGray, darkblue = c.text, c.errMsg, c.darkBlue
         let panel = new StackPanel(Orientation = Orientation.Vertical)
         let scrollViewer = new ScrollViewer(Content=panel , VerticalScrollBarVisibility = ScrollBarVisibility.Auto ) //TODO cant be scrolled, never gets focus? because completion window keeps focus on editor?
         let inline add(e:UIElement) =  panel.Children.Add e |> ignore
@@ -458,7 +451,7 @@ type TypeInfo private () =
         |None -> ()
         |Some dItem ->
             let tb = new TextBlockSelectable(Text = dItem.Glyph.ToString() )
-            tb.Foreground <- Brushes.DarkOrange |> darker 10
+            tb.Foreground <- c.glyph
             tb.FontSize <- StyleState.fontSize  * 0.95
             tb.FontFamily <- StyleState.fontToolTip
             tb.TextWrapping <- TextWrapping.Wrap
@@ -470,7 +463,7 @@ type TypeInfo private () =
         |Some sem ->
             let tb = new TextBlockSelectable(Text = sem.Type.ToString() )
             //let tb = new TextBlockSelectable(Text = $"{sem.Type}, {sem.Range.EndColumn-sem.Range.StartColumn} chars") //from {sem.Range.StartColumn}")
-            tb.Foreground <- Brushes.DarkOrange |> darker 10
+            tb.Foreground <- c.glyph
             tb.FontSize <- StyleState.fontSize  * 0.95
             tb.FontFamily <- StyleState.fontToolTip
             tb.TextWrapping <- TextWrapping.Wrap
@@ -511,7 +504,7 @@ type TypeInfo private () =
                 let border = Border()
                 border.Child <- subPanel
                 border.BorderThickness <- Thickness(1.0)
-                border.BorderBrush <- Brushes.LightGray
+                border.BorderBrush <- c.border
                 border.Padding <- Thickness(4.0)
                 border.Margin <- Thickness(2.0)
                 add border
@@ -782,7 +775,7 @@ type TypeInfo private () =
                         do! Async.SwitchToContext Fittings.SyncWpf.context
 
                         if List.isEmpty tooltipDataList then
-                            tip.Content <- new TextBlock(Text = "No type info found for:\r\n'" + word + "'", FontSize = StyleState.fontSize  * 0.65 , FontFamily = StyleState.fontToolTip , Foreground = gray )
+                            tip.Content <- new TextBlock(Text = "No type info found for:\r\n'" + word + "'", FontSize = StyleState.fontSize  * 0.65 , FontFamily = StyleState.fontToolTip , Foreground = Theme.toolTip.gray )
                             //ed.TypeInfoToolTip.IsOpen <- false
                         else
                             let sem, declLoc, dllLoc =

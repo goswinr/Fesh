@@ -48,7 +48,6 @@ type Editor private (code:string, config:Config, initialFilePath:FilePath)  =
         av.HorizontalScrollBarVisibility <- Controls.ScrollBarVisibility.Auto
         av.Options.EnableHyperlinks <- true
         av.Options.EnableEmailHyperlinks <- false
-        av.TextArea.TextView.LinkTextForegroundBrush <- Brushes.DarkGreen |> AvalonLog.Brush.freeze
         av.Options.EnableTextDragDrop <- true
         av.Options.ShowSpaces <- false
         av.Options.ShowTabs <- false // they are always converted to spaces, see above
@@ -61,9 +60,9 @@ type Editor private (code:string, config:Config, initialFilePath:FilePath)  =
         av.AllowDrop <- true
         av.Options.HighlightCurrentLine <- true // http://stackoverflow.com/questions/5072761/avalonedit-highlight-current-line-even-when-not-focused
 
-        SyntaxHighlighting.setFSharp(av,false)
+        SyntaxHighlighting.setFSharp av
 
-        av.TextArea.TextView.CurrentLineBackground <- Brushes.LightSteelBlue |> Brush.brighter 70 |> Brush.freeze
+        // the colors are set in this.ApplyTheme()
         // av.TextArea.TextView.CurrentLineBorder     <- new Pen(Brushes.LightSlateGray|> Brush.freeze, 1.0) |> Util.Pen.freeze
 
         //av.TextArea.AllowCaretOutsideSelection <- true
@@ -115,7 +114,13 @@ type Editor private (code:string, config:Config, initialFilePath:FilePath)  =
 
     member _.DrawingServices = drawServices
 
-    member val TypeInfoTip = new Controls.ToolTip(IsOpen=false)
+    member val TypeInfoTip =
+        let t = new Controls.ToolTip(IsOpen=false)
+        ThemeChrome.register t // it is opened from code, so it has no parent to inherit the theme from
+        t
+
+    /// Set in Editor.SetUp: to attach the error marks again, after the ScrollBar got a new template from a theme change
+    member val internal ReattachScrollBar : unit -> unit = ignore with get, set
 
     /// Used to check if file was changed in the background by other apps in FileChangeTracker.
     /// The value is always normalized (see Util.Str.normalizeCode) so that it can be compared
@@ -161,6 +166,35 @@ type Editor private (code:string, config:Config, initialFilePath:FilePath)  =
         member _.FoldingManager  = foldMg
         member _.EvaluateFromLine    = evalTracker.EvaluateFromLine
 
+    /// Applies the colors of the current theme. The syntax highlighting is set separately.
+    member this.ApplyTheme() =
+        let c = Theme.editor
+        let av = avaEdit
+        av.Background <- c.background
+        av.Foreground <- c.foreground
+        av.LineNumbersForeground <- c.lineNumbers
+        av.TextArea.TextView.LinkTextForegroundBrush <- c.link
+        av.TextArea.TextView.CurrentLineBackground   <- c.currentLine
+        Folding.FoldingMargin.SetFoldingMarkerBrush                (av, c.foldingMarker)
+        Folding.FoldingMargin.SetFoldingMarkerBackgroundBrush      (av, c.foldingMarkerBg)
+        Folding.FoldingMargin.SetSelectedFoldingMarkerBrush        (av, c.foldingMarkerSel)
+        Folding.FoldingMargin.SetSelectedFoldingMarkerBackgroundBrush(av, c.foldingMarkerSelBg)
+        search.MarkerBrush <- c.searchMarker
+        if isNull c.selection then
+            av.TextArea.ClearValue Editing.TextArea.SelectionBrushProperty
+            av.TextArea.ClearValue Editing.TextArea.SelectionForegroundProperty
+        else
+            av.TextArea.SelectionBrush <- c.selection
+            av.TextArea.SelectionForeground <- null // keep the syntax colors
+        for m in av.TextArea.LeftMargins do
+            match m with
+            | :? Editing.LineNumberMargin as lnm -> lnm.BackgroundColor <- c.margin
+            | :? Folding.FoldingMargin    as fm  -> fm.BackgroundColor  <- c.margin
+            | _ -> ()
+        av.TextArea.TextView.Redraw()
+        // The ScrollBar may get a new template, attach the error marks again when it is applied:
+        av.Dispatcher.BeginInvoke(Threading.DispatcherPriority.Loaded, Action(fun () -> if av.IsLoaded then this.ReattachScrollBar())) |> ignore
+
     member this.CloseToolTips() =
         this.TypeInfoTip.IsOpen <- false
         this.DrawingServices.errors.ToolTip.IsOpen <- false
@@ -183,10 +217,12 @@ type Editor private (code:string, config:Config, initialFilePath:FilePath)  =
 
         let _rulers =  new ColumnRulers(avaEdit) // draw last , so on top? do foldings first
         let scrollBarEnhancer : MagicScrollbar.ScrollBarEnhancer option ref = ref None
-        avaEdit.Loaded.Add (fun _ -> // Loaded is raised every time this tab gets selected
+        let attachScrollBar () =
             scrollBarEnhancer.Value |> Option.iter (fun e -> e.Detach()) // otherwise the event handlers of the previous ones would pile up
             scrollBarEnhancer.Value <- Some (new MagicScrollbar.ScrollBarEnhancer(avaEdit, ed.ErrorHighlighter))
-            )
+        avaEdit.Loaded.Add (fun _ -> attachScrollBar()) // Loaded is raised every time this tab gets selected
+        ed.ReattachScrollBar <- attachScrollBar
+        ed.ApplyTheme()
         avaEdit.Drop.Add   (fun e -> DragAndDrop.onTextArea(avaEdit, e))
 
 

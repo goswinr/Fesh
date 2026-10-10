@@ -89,6 +89,7 @@
 
 	  <PackageReference Include="Fittings" Version="0.10.0" />
 	  <PackageReference Include="AvalonLog" Version="0.20.0" />
+	  <PackageReference Include="AvalonEditB" Version="2.5.0" /> <!-- newer than the one AvalonLog depends on, for CompletionWindow.DescriptionToolTip -->
 
     <PackageReference Include="NuGet.Protocol"   Version="7.9.0" /> <!-- to find the latest version of packages in #r "nuget: ..." lines -->
     <PackageReference Include="NuGet.Versioning" Version="7.9.0" />
@@ -107,6 +108,8 @@
     <Compile Include="Src/ParseFs.fs" />
     <Compile Include="Src/Timer.fs" />
     <Compile Include="Src/StyleState.fs" />
+    <Compile Include="Src/Theme.fs" />
+    <Compile Include="Src/ThemeChrome.fs" />
     <Compile Include="Src/Model.fs" />
 
     <Compile Include="Src/Config/RunContext.fs" />

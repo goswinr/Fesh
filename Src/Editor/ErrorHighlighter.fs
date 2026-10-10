@@ -221,13 +221,16 @@ type ErrorLineRenderer (state: InteractionState) =
 
 type ErrorHighlighter ( state:InteractionState, folds:Folding.FoldingManager, isComplWinOpen: unit-> bool) =
 
-    //  let actionError   = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetBackgroundBrush(ErrorStyle.errBackGr))
-    //  let actionWarning = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetBackgroundBrush(ErrorStyle.warnBackGr))
-    //  let actionInfo    = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetBackgroundBrush(ErrorStyle.infoBackGr))
-    //  let actionHidden  = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetBackgroundBrush(ErrorStyle.infoBackGr))
+    //  let actionError   = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetBackgroundBrush(Theme.errors.errBackGr))
+    //  let actionWarning = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetBackgroundBrush(Theme.errors.warnBackGr))
+    //  let actionInfo    = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetBackgroundBrush(Theme.errors.infoBackGr))
+    //  let actionHidden  = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetBackgroundBrush(Theme.errors.infoBackGr))
 
     let foundErrorsEv = new Event<int64>()
-    let tip = new ToolTip(IsOpen=false)
+    let tip =
+        let t = new ToolTip(IsOpen=false)
+        ThemeChrome.register t // it is opened from code, so it has no parent to inherit the theme from
+        t
 
     let ed = state.Editor
     let tView = ed.TextArea.TextView
@@ -264,7 +267,16 @@ type ErrorHighlighter ( state:InteractionState, folds:Folding.FoldingManager, is
             insert stLn
 
 
-    let updateFolds id brush pen (e:FSharpDiagnostic): bool = // TODO in theory this could run async, can it ??
+    /// The background and squiggle for a folding box, looked up when drawing, so that they change with the theme
+    let foldColors (s:FSharpDiagnosticSeverity) =
+        let c = Theme.errors
+        match s with
+        | FSharpDiagnosticSeverity.Error   -> c.errBackGr , c.errSquigglePen
+        | FSharpDiagnosticSeverity.Warning -> c.warnBackGr, c.warnSquigglePen
+        | FSharpDiagnosticSeverity.Info
+        | FSharpDiagnosticSeverity.Hidden  -> c.infoBackGr, c.infoSquigglePen
+
+    let updateFolds id (e:FSharpDiagnostic): bool = // TODO in theory this could run async, can it ??
         let lnNo =  max 1 e.StartLine // because FSharpDiagnostic might have line number 0
         match state.CodeLines.GetLine(lnNo,id) with
         | ValueNone -> false
@@ -272,9 +284,10 @@ type ErrorHighlighter ( state:InteractionState, folds:Folding.FoldingManager, is
             let offset = cln.offStart + e.StartColumn
             for fold in folds.GetFoldingsContaining offset do
                 //if fold.IsFolded then // do on all folds, even open ones, so they show correctly when collapsing !
-                //fold.BackgroundColor  <- ErrorStyle.errBackGr // done via ctx.DrawRectangle(ErrorStyle.errBackGr
+                //fold.BackgroundColor  <- Theme.errors.errBackGr // done via ctx.DrawRectangle
                 fold.DecorateRectangle <-
                     Action<Rect,DrawingContext>( fun rect ctx ->
+                        let brush, pen = foldColors e.Severity
                         let geo = ErrorUtil.getSquiggleLine(rect, 0.1) // move a bit lower than the line so that the squiggle is not hidden by a selection highlighting
                         if isNull fold.BackgroundColor then // in case of selection highlighting skip brush, only use Pen
                             ctx.DrawRectangle(brush, null, rect)
@@ -345,10 +358,10 @@ type ErrorHighlighter ( state:InteractionState, folds:Folding.FoldingManager, is
                 async{
                     do! Async.SwitchToContext Fittings.SyncWpf.context
                     for fold in folds.AllFoldings do  fold.DecorateRectangle <- null   // first clear
-                    for e in errs.hiddens  do updateFolds id ErrorStyle.infoBackGr ErrorStyle.infoSquigglePen e  |> ignore<bool>
-                    for e in errs.infos    do updateFolds id ErrorStyle.infoBackGr ErrorStyle.infoSquigglePen e  |> ignore<bool>
-                    for e in errs.warnings do updateFolds id ErrorStyle.warnBackGr ErrorStyle.warnSquigglePen e  |> ignore<bool>
-                    for e in errs.errors   do updateFolds id ErrorStyle.errBackGr  ErrorStyle.errSquigglePen  e  |> ignore<bool>
+                    for e in errs.hiddens  do updateFolds id e  |> ignore<bool>
+                    for e in errs.infos    do updateFolds id e  |> ignore<bool>
+                    for e in errs.warnings do updateFolds id e  |> ignore<bool>
+                    for e in errs.errors   do updateFolds id e  |> ignore<bool>
                 } |> Async.Start
 
     member this.ToolTip = tip

@@ -37,6 +37,7 @@ module PopOut =
             scr.Padding <- Thickness(7.0)
 
             let w = Window(Title= title)
+            ThemeChrome.registerWindow w null Theme.darkChrome.popup
             w.Content <- scr
             w.Owner <- parent
             match lastLocation with

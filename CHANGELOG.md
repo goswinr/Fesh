@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+### Added
+- a dark theme. Switch it with 'Toggle Dark / Light Theme' in the View menu. It switches right away, including the text already printed to the Log. The choice is saved as `DarkTheme` in the Settings.txt file.
+- the dark colors of the syntax highlighting are in the SyntaxHighlightingFSharp.xshd file, as `darkForeground` attributes next to the light colors
+### Changed
+- the colors of the semantic highlighting are in the SyntaxHighlightingFSharp.xshd file too, as `Semantic.` colors, so they can be edited and reloaded like the other syntax colors
+- reloading the SyntaxHighlightingFSharp.xshd file after an edit updates all open tabs, not only the current one
+
 ## [0.34.0] - 2026-10-05
 ### Added
 - a small control after each `#r "nuget: ..."` line: a green check mark if the version is the latest, a button to update to the latest version, or a button to pin the latest version if none or a floating version like `1.*` is given, and a link icon to the project website if the package lists one. The versions come from the NuGet sources in the `NuGet.Config` files of the script folder, like for `dotnet restore`. Turn it off with `CheckNugetVersions=False` in the Settings.txt file.

@@ -173,6 +173,7 @@ module Initialize =
             log.PrintfnAppErrorMsg "Setting up Global Error Handling via Fittings.ErrorHandling failed. Or is done already? Is Fittings already loaded by another plug-in?\r\n%A" e
 
         let config = new Config(log, mode, startupArgs)
+        Theme.set (config.Settings.GetBool(Theme.SettingsStr, false)) // before any UI is created, except the log
         log.FinishLogSetup(config)
 
         let fesh = Fesh(config, log)

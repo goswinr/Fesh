@@ -381,6 +381,8 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, statusBar:FeshStatusBar, log:
                 menuItem cmds.FontBigger
                 menuItem cmds.FontSmaller
                 sep()
+                menuItem cmds.ToggleTheme
+                sep()
                 menuItem cmds.CollapseFolding
                 menuItem cmds.ExpandFolding
                 menuItem cmds.CollapseCode

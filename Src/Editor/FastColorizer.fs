@@ -47,47 +47,8 @@ type Shift = {
     }
 
 
-module ErrorStyle=
-
-    let penSize = 1.2
-
-    let errBackGr       = Brushes.Red     |> brighter 230   |> freeze
-    let errSquiggle     = Brushes.Red     |> darker 10      |> freeze
-    let errSquigglePen     = Pen(errSquiggle, penSize) |> Pen.freeze
-
-    //let warnSquiggle    = Pen(  Brushes.Yellow  |> darker 40      |> freeze, penSize) |> Pen.freeze
-    let warnBackGr      =  Brushes.Yellow  |> brighter 200   |> freeze
-    let warnSquiggle    =  Brushes.Gold                      |> freeze
-    let warnSquigglePen = Pen(warnSquiggle, penSize) |> Pen.freeze
-
-    let infoBackGr      =  Brushes.Green  |> brighter 220   |> freeze
-    let infoSquiggle    =  Brushes.Green  |> darker 5       |> freeze
-    let infoSquigglePen = Pen( infoSquiggle, penSize) |> Pen.freeze
-
-
 /// an ISegment: This segment also contains back and foreground color and diagnostic display text
 type SegmentToMark (startOffset:int,  endOffset:int , e:FSharpDiagnostic)  =
-
-    let underlinePen =
-        match e.Severity with
-        | FSharpDiagnosticSeverity.Info    -> ErrorStyle.infoSquigglePen
-        | FSharpDiagnosticSeverity.Hidden  -> ErrorStyle.infoSquigglePen
-        | FSharpDiagnosticSeverity.Warning -> ErrorStyle.warnSquigglePen
-        | FSharpDiagnosticSeverity.Error   -> ErrorStyle.errSquigglePen
-
-    let underline =
-        match e.Severity with
-        | FSharpDiagnosticSeverity.Info    -> ErrorStyle.infoSquiggle
-        | FSharpDiagnosticSeverity.Hidden  -> ErrorStyle.infoSquiggle
-        | FSharpDiagnosticSeverity.Warning -> ErrorStyle.warnSquiggle
-        | FSharpDiagnosticSeverity.Error   -> ErrorStyle.errSquiggle
-
-    let backgroundBrush =
-        match e.Severity with
-        | FSharpDiagnosticSeverity.Hidden  -> ErrorStyle.infoBackGr
-        | FSharpDiagnosticSeverity.Info    -> ErrorStyle.infoBackGr
-        | FSharpDiagnosticSeverity.Warning -> ErrorStyle.warnBackGr
-        | FSharpDiagnosticSeverity.Error   -> ErrorStyle.errBackGr
 
     member _.Offset      = startOffset
     member _.EndOffset   = endOffset
@@ -102,11 +63,28 @@ type SegmentToMark (startOffset:int,  endOffset:int , e:FSharpDiagnostic)  =
 
     member _.Diagnostic        =  e
     member _.Severity          =  e.Severity
-    member _.UnderlinePen      =  underlinePen
 
-    member _.Underline         =  underline
+    // the colors are looked up on each access, so that they change with the theme:
+    member _.UnderlinePen =
+        match e.Severity with
+        | FSharpDiagnosticSeverity.Info    -> Theme.errors.infoSquigglePen
+        | FSharpDiagnosticSeverity.Hidden  -> Theme.errors.infoSquigglePen
+        | FSharpDiagnosticSeverity.Warning -> Theme.errors.warnSquigglePen
+        | FSharpDiagnosticSeverity.Error   -> Theme.errors.errSquigglePen
 
-    member _.BackgroundBrush   =  backgroundBrush
+    member _.Underline =
+        match e.Severity with
+        | FSharpDiagnosticSeverity.Info    -> Theme.errors.infoSquiggle
+        | FSharpDiagnosticSeverity.Hidden  -> Theme.errors.infoSquiggle
+        | FSharpDiagnosticSeverity.Warning -> Theme.errors.warnSquiggle
+        | FSharpDiagnosticSeverity.Error   -> Theme.errors.errSquiggle
+
+    member _.BackgroundBrush =
+        match e.Severity with
+        | FSharpDiagnosticSeverity.Hidden  -> Theme.errors.infoBackGr
+        | FSharpDiagnosticSeverity.Info    -> Theme.errors.infoBackGr
+        | FSharpDiagnosticSeverity.Warning -> Theme.errors.warnBackGr
+        | FSharpDiagnosticSeverity.Error   -> Theme.errors.errBackGr
 
     interface ISegment with
         member _.Offset      = startOffset

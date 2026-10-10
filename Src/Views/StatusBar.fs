@@ -25,16 +25,8 @@ module MenuUtil =
 open MenuUtil
 
 module StatusbarStyle =
-
-    let errColor =  Brushes.Red      |> brighter 160   |> freeze // not ErrorStyle.errBackGr
-    let warnColor = Brushes.Yellow   |> brighter 40    |> freeze // not ErrorStyle.warnBackGr
-
+    // the colors are in Theme.statusBar
     let textPadding = Thickness(4. , 1. , 4., 1. ) //left ,top, right, bottom)
-    let okColor =   Brushes.Green    |> brighter 140   |> freeze
-    let activeCol = Brushes.Orange   |> brighter 20    |> freeze
-    let compileCol = Brushes.Magenta                    |> freeze
-    let grayText =  Brushes.Gray     |> darker 60      |> freeze
-    let waitCol  =  Brushes.HotPink  |> brighter 80    |> freeze
 
 open StatusbarStyle
 open System.Threading
@@ -47,6 +39,13 @@ type CheckerStatus (grid:TabsAndLog) as this =
 
     let mutable lastErrCount = -1
     let mutable lastFile : TextEditor = null
+
+    /// To set the background again when the theme changes
+    let mutable background : StatusBarColors -> SolidColorBrush = fun c -> c.wait
+
+    let setBackground f =
+        background <- f
+        this.Background <- f Theme.statusBar
 
 
     let callCounter = ref 0L
@@ -102,7 +101,7 @@ type CheckerStatus (grid:TabsAndLog) as this =
             if erWas.Count = 0 then
                 if lastErrCount <> 0  || lastFile <> tabs.Current.Editor.AvaEdit then // no UI update needed in this case
                     this.Text <- "No compiler errors"
-                    this.Background <- okColor
+                    setBackground (fun c -> c.ok)
                     this.ToolTip <- "FSharp Compiler Service found no Errors in"+ Environment.NewLine + tabs.Current.FormattedFileName
                     lastFile <- tabs.Current.Editor.AvaEdit
                     lastErrCount <- 0
@@ -116,16 +115,16 @@ type CheckerStatus (grid:TabsAndLog) as this =
                 let wak = es.warnings.Count
                 if wak > 0 && erk > 0 then
                     this.Text <- sprintf " %d compiler errors, %d warnings, first one on line: %d" erk wak erWas.[0].StartLine
-                    this.Background <- errColor
+                    setBackground (fun c -> c.err)
                 elif wak > 0 then
                     this.Text <- sprintf " %d compiler warnings, first one on line %d" wak erWas.[0].StartLine
-                    this.Background <- warnColor
+                    setBackground (fun c -> c.warn)
                 elif erk > 0 then
                     this.Text <- sprintf " %d compiler errors, first one on line: %d" erk erWas.[0].StartLine
-                    this.Background <- errColor
+                    setBackground (fun c -> c.err)
                 else
                     this.Text <- $"No compiler errors, {es.hiddens.Count + es.infos.Count} Infos"
-                    this.Background <- okColor
+                    setBackground (fun c -> c.ok)
 
                 let tip = new ToolTip(Content = getErrPanel(es, true) )
                 tip.Placement <- Primitives.PlacementMode.Top //https://docs.microsoft.com/en-us/dotnet/framework/wpf/controls/popup-placement-behavior
@@ -146,7 +145,7 @@ type CheckerStatus (grid:TabsAndLog) as this =
                         if callCounter.Value = callID then
                             lastErrCount <- -1
                             this.Text <- checkingTxt
-                            this.Background <- waitCol //originalBackGround
+                            setBackground (fun c -> c.wait) //originalBackGround
                             this.ToolTip <- sprintf "Checking %s for Errors ..." tabs.Current.FormattedFileName
             } |> Async.StartImmediate
 
@@ -154,7 +153,8 @@ type CheckerStatus (grid:TabsAndLog) as this =
         lastErrCount <- -1
         this.Padding <-textPadding
         this.Text <- checkingTxt
-        this.Background <- waitCol //originalBackGround
+        setBackground (fun c -> c.wait) //originalBackGround
+        Theme.Changed.Add (fun () -> this.Background <- background Theme.statusBar)
 
         tabs.OnTabChanged.Add (fun _ -> TypeInfo.LogErrors.Clear()) // to show old errors in new tab again
         tabs.OnTabChanged.Add (fun t -> updateCheckState(t.Editor.FileCheckState))
@@ -174,39 +174,54 @@ type CheckerStatus (grid:TabsAndLog) as this =
 
 type FsiRunStatus (grid:TabsAndLog) as this =
     inherit TextBlock()
+
+    /// To set the background again when the theme changes
+    let mutable background : StatusBarColors -> SolidColorBrush = fun c -> c.wait
+
+    let setBackground f =
+        background <- f
+        this.Background <- f Theme.statusBar
+
+    let grayRun (txt:string) = new Run (txt, Foreground = Theme.statusBar.grayText, Tag = "gray")
+
     do
         this.Padding <- textPadding
         this.Inlines.Add ("FSI is initializing . . .")
-        this.Background <- waitCol //originalBackGround
+        setBackground (fun c -> c.wait) //originalBackGround
+        Theme.Changed.Add (fun () ->
+            this.Background <- background Theme.statusBar
+            for i in this.Inlines do
+                if i.Tag = box "gray" then i.Foreground <- Theme.statusBar.grayText
+            )
         //this.ContextMenu <- makeContextMenu [ menuItem cmds.CancelFSI ]
         this.ToolTip <- "Shows the status of the fsi evaluation core. This is the same for all tabs. Only one script can run at the time."
 
         grid.Tabs.Fsi.OnCompiling.Add(fun evalData ->
-            this.Background <- activeCol
+            setBackground (fun c -> c.active)
             this.Inlines.Clear()
             match evalData.request.editor.FilePath with
             |Deleted fi|SetTo fi ->
                 match evalData.request.amount with
-                | All                 ->  this.Inlines.Add(new Run ("FSI is compiling "          , Foreground = grayText))
-                | ContinueFromChanges ->  this.Inlines.Add(new Run ("FSI continues to compiling ", Foreground = grayText))
-                | FsiSegment _        ->  this.Inlines.Add(new Run ("FSI is compiling a part of ", Foreground = grayText))
+                | All                 ->  this.Inlines.Add(grayRun "FSI is compiling "          )
+                | ContinueFromChanges ->  this.Inlines.Add(grayRun "FSI continues to compiling ")
+                | FsiSegment _        ->  this.Inlines.Add(grayRun "FSI is compiling a part of ")
                 this.Inlines.Add( new Run (fi.Name, FontFamily = StyleState.fontEditor) )
-                this.Inlines.Add( new Run (" . . ."                                              , Foreground = grayText))
+                this.Inlines.Add( grayRun " . . ."                                              )
             |NotSet dummyName ->
                 this.Inlines.Add( "FSI is compiling "+dummyName + " . . ." )
             )
 
         grid.Tabs.Fsi.OnEmitting.Add(fun codeToEval -> // TODO unused  till https://github.com/dotnet/fsharp/pull/15957
-            this.Background <- compileCol
+            setBackground (fun c -> c.compile)
             this.Inlines.Clear()
             match codeToEval.editor.FilePath with
             |Deleted fi|SetTo fi ->
                 match codeToEval.amount with
-                | All                 ->  this.Inlines.Add(new Run ("FSI is running ",           Foreground = grayText))
-                | ContinueFromChanges ->  this.Inlines.Add(new Run ("FSI continues to run "   ,  Foreground = grayText))
-                | FsiSegment _        ->  this.Inlines.Add(new Run ("FSI is running a part of ", Foreground = grayText))
+                | All                 ->  this.Inlines.Add(grayRun "FSI is running ")
+                | ContinueFromChanges ->  this.Inlines.Add(grayRun "FSI continues to run "   )
+                | FsiSegment _        ->  this.Inlines.Add(grayRun "FSI is running a part of ")
                 this.Inlines.Add( new Run (fi.Name, FontFamily = StyleState.fontEditor) )
-                this.Inlines.Add( new Run (" . . ."                                           , Foreground = grayText))
+                this.Inlines.Add( grayRun " . . ."                                           )
             |NotSet dummyName ->
                 this.Inlines.Add( "FSI is running "+dummyName + " . . ." )
             )
@@ -214,7 +229,7 @@ type FsiRunStatus (grid:TabsAndLog) as this =
         grid.Tabs.Fsi.OnIsReady.Add(fun _ ->
             this.Inlines.Clear()
             this.Inlines.Add("FSI is ready")
-            this.Background <- okColor)
+            setBackground (fun c -> c.ok))
 
 type FsiOutputStatus (grid:TabsAndLog) as this =
     inherit TextBlock()
@@ -255,7 +270,7 @@ type AsyncStatus (grid:TabsAndLog) as this =
 
 type SelectedEditorTextStatus (grid:TabsAndLog) as this =
     inherit TextBlock()
-    let noSelTxt = new Run ("no selection in Editor", Foreground = SelectionHighlighting.colorInactive) //Editor Selection Highlighting"
+    let noSelTxt = new Run ("no selection in Editor", Foreground = Theme.statusBar.inactiveText) //Editor Selection Highlighting"
     let tipText = "Highlights and counts the occurrences of the currently selected Text in the current Editor.\r\nMinimum two characters and no line breaks.\r\nClick here to scroll through all occurrences."
     let mutable scrollToIdx = 0
 
@@ -272,7 +287,7 @@ type SelectedEditorTextStatus (grid:TabsAndLog) as this =
         else
             this.Inlines.Clear()
             this.Inlines.Add( $"%d{sel.Offsets.Count} of "  )
-            this.Inlines.Add( new Run (sel.Word, FontFamily = StyleState.fontEditor, Background = SelectionHighlighting.selColorEditor))
+            this.Inlines.Add( new Run (sel.Word, FontFamily = StyleState.fontEditor, Background = Theme.editor.selectionHighlight))
             this.Inlines.Add( $" (%d{sel.Word.Length} Chars) " )
 
     do
@@ -280,6 +295,7 @@ type SelectedEditorTextStatus (grid:TabsAndLog) as this =
         this.ToolTip <- tipText
         this.Inlines.Add noSelTxt
         SelectionHighlighting.GlobalFoundSelectionsEditor.Add(fillStatusMarkLog)
+        Theme.Changed.Add (fun () -> noSelTxt.Foreground <- Theme.statusBar.inactiveText; fillStatusMarkLog false)
 
         // on each click loop through all locations where text appears
         this.MouseDown.Add ( fun _ -> // press mouse to scroll to them
@@ -300,7 +316,7 @@ type SelectedEditorTextStatus (grid:TabsAndLog) as this =
 type SelectedLogTextStatus (grid:TabsAndLog) as this =
     inherit TextBlock()
     let log = grid.Log
-    let noSelTxt = new Run ("no selection in Log", Foreground = SelectionHighlighting.colorInactive) //Log Selection Highlighting "
+    let noSelTxt = new Run ("no selection in Log", Foreground = Theme.statusBar.inactiveText) //Log Selection Highlighting "
     let tipText = "Highlights and counts the occurrences of the currently selected Text in the Log output.\r\nMinimum two characters and no line breaks.\r\nClick here to scroll through all occurrences."
     let mutable scrollToIdx = 0
 
@@ -317,7 +333,7 @@ type SelectedLogTextStatus (grid:TabsAndLog) as this =
             else
                 this.Inlines.Clear()
                 this.Inlines.Add( sprintf $"%d{hiLi.Offsets.Count} of ")
-                this.Inlines.Add( new Run (hiLi.Word, FontFamily = StyleState.fontEditor, Background = SelectionHighlighting.selColorLog))
+                this.Inlines.Add( new Run (hiLi.Word, FontFamily = StyleState.fontEditor, Background = Theme.log.selectionHighlight))
                 this.Inlines.Add( sprintf " (%d Chars) " hiLi.Word.Length)
 
     do
@@ -325,6 +341,7 @@ type SelectedLogTextStatus (grid:TabsAndLog) as this =
         this.ToolTip <- tipText
         this.Inlines.Add noSelTxt
         SelectionHighlighting.FoundSelectionsLog.Add(setStatusMarkEd)
+        Theme.Changed.Add (fun () -> noSelTxt.Foreground <- Theme.statusBar.inactiveText; setStatusMarkEd false)
 
         // on each click loop through all locations where text appears
         this.MouseDown.Add ( fun _ -> // press mouse to scroll to them

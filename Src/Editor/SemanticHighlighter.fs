@@ -1,116 +1,63 @@
 ﻿namespace Fesh.Editor
 
 open System
-open System.Windows.Media
 
 open FSharp.Compiler
 open FSharp.Compiler.EditorServices
 open FSharp.Compiler.CodeAnalysis
 
 open AvalonEditB
-open AvalonEditB.Rendering
-open AvalonLog.Brush
 
-open Fesh
 open Fesh.Model
 
 // see  https://github.com/dotnet/fsharp/blob/main/src/Compiler/Service/SemanticClassification.fs
 
 
+/// The colors are defined in SyntaxHighlightingFSharp.xshd, as 'Semantic.' colors.
+/// They change with the theme, the Actions don't need to be recreated.
 type SemActions() =
 
-    let c_ValueType                    = freeze <| Brushes.MediumOrchid  |> darker 40
-    let c_ReferenceType                = freeze <| Brushes.MediumVioletRed  |> darker 60
-    let c_Type                         = freeze <| Brushes.MediumVioletRed  |> darker 40
-    let c_UnionCase                    = freeze <| Brushes.LightSkyBlue  |> darker 100
-    let c_UnionCaseField               = freeze <| Brushes.LightSkyBlue  |> darker 100
-    let c_Function                     = freeze <| Brushes.DarkGoldenrod |> darker 40
-    let c_Property                     = freeze <| Brushes.DarkTurquoise |> darker 110
-    let c_MutableVar                   = freeze <| Brushes.Goldenrod     |> darker 20
-    let c_MutableRecordField           = freeze <| Brushes.Goldenrod     |> darker 20
-    let c_Module                       = freeze <| Brushes.Black
-    let c_Namespace                    = freeze <| Brushes.Black
-    //let c_Printf                       = freeze <| Brushes.Plum      // covered by xshd highlighting
-    let c_ComputationExpression        = freeze <| Brushes.Indigo
-    let c_IntrinsicFunction            = freeze <| Brushes.DarkBlue
-    let c_Enumeration                  = freeze <| Brushes.Indigo
-    let c_Interface                    = freeze <| Brushes.MediumVioletRed  |> darker 20
-    let c_TypeArgument                 = freeze <| Brushes.SlateBlue
-    let c_Operator                     = freeze <| Brushes.MediumSlateBlue
-    let c_DisposableType               = freeze <| Brushes.DarkOrchid
-    let c_DisposableTopLevelValue      = freeze <| Brushes.DarkOrchid
-    let c_DisposableLocalValue         = freeze <| Brushes.DarkOrchid
-    let c_Method                       = freeze <| Brushes.DarkTurquoise |> darker 60
-    let c_ExtensionMethod              = freeze <| Brushes.DarkTurquoise |> darker 30
-    let c_ConstructorForReferenceType  = freeze <| Brushes.Brown
-    let c_ConstructorForValueType      = freeze <| Brushes.SandyBrown    |> darker 80
-    let c_Literal                      = freeze <| Brushes.SeaGreen
-    let c_RecordField                  = freeze <| Brushes.DarkSlateGray |> darker 10
-    let c_RecordFieldAsFunction        = freeze <| Brushes.Plum
-    let c_Exception                    = freeze <| Brushes.HotPink |> darker 40
-    let c_Field                        = freeze <| Brushes.MediumPurple
-    let c_Event                        = freeze <| Brushes.Olive
-    let c_Delegate                     = freeze <| Brushes.DarkOliveGreen
-    let c_NamedArgument                = freeze <| Brushes.PaleVioletRed |> darker 80
-    let c_Value                        = freeze <| Brushes.DarkRed       |> darker 20
-    let c_LocalValue                   = freeze <| Brushes.DarkRed       |> darker 40
-    let c_TypeDef                      = freeze <| Brushes.Purple
-    let c_Plaintext                    = freeze <| Brushes.OrangeRed     |> darker 60
+    member val ReferenceType               = SemanticColors.action "ReferenceType"
+    member val ValueType                   = SemanticColors.action "ValueType"
+    member val UnionCase                   = SemanticColors.action "UnionCase"
+    member val UnionCaseField              = SemanticColors.action "UnionCaseField"
+    member val Function                    = SemanticColors.action "Function"
+    member val Property                    = SemanticColors.action "Property"
+    member val MutableVar                  = SemanticColors.action "MutableVar"
+    member val Module                      = SemanticColors.action "Module"
+    member val Namespace                   = SemanticColors.action "Namespace"
+    //member val Printf                    = SemanticColors.action "Printf" // covered by xshd
+    member val ComputationExpression       = SemanticColors.action "ComputationExpression"
+    member val IntrinsicFunction           = SemanticColors.action "IntrinsicFunction"
+    member val Enumeration                 = SemanticColors.action "Enumeration"
+    member val Interface                   = SemanticColors.action "Interface"
+    member val TypeArgument                = SemanticColors.action "TypeArgument"
+    member val Operator                    = SemanticColors.action "Operator"
+    member val DisposableType              = SemanticColors.action "DisposableType"
+    member val DisposableTopLevelValue     = SemanticColors.action "DisposableTopLevelValue"
+    member val DisposableLocalValue        = SemanticColors.action "DisposableLocalValue"
+    member val Method                      = SemanticColors.action "Method"
+    member val ExtensionMethod             = SemanticColors.action "ExtensionMethod"
+    member val ConstructorForReferenceType = SemanticColors.action "ConstructorForReferenceType"
+    member val ConstructorForValueType     = SemanticColors.action "ConstructorForValueType"
+    member val Literal                     = SemanticColors.action "Literal"
+    member val RecordField                 = SemanticColors.action "RecordField"
+    member val MutableRecordField          = SemanticColors.action "MutableRecordField"
+    member val RecordFieldAsFunction       = SemanticColors.action "RecordFieldAsFunction"
+    member val Exception                   = SemanticColors.action "Exception"
+    member val Field                       = SemanticColors.action "Field"
+    member val Event                       = SemanticColors.action "Event"
+    member val Delegate                    = SemanticColors.action "Delegate"
+    member val NamedArgument               = SemanticColors.action "NamedArgument"
+    member val Value                       = SemanticColors.action "Value"
+    member val LocalValue                  = SemanticColors.action "LocalValue"
+    member val Type                        = SemanticColors.action "Type"
+    member val TypeDef                     = SemanticColors.action "TypeDef"
+    member val Plaintext                   = SemanticColors.action "Plaintext"
 
-    let c_UnUsed                       = freeze <| Brushes.Gray |> brighter 40
+    member val UnUsed                      = SemanticColors.action "Unused"
 
-    let badIndentBrush =
-        let opacity = 40uy // 0uy is transparent, 255uy is opaque, transparent to show column rulers behind
-        let r,g,b = 255uy, 180uy, 0uy // orange
-        Color.FromArgb(opacity,r,g,b)
-        |> SolidColorBrush
-        |> freeze
-
-
-
-
-    member val ReferenceTypeA              = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(c_ReferenceType              ))
-    member val ReferenceType               = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(c_ReferenceType              ))
-    member val ValueType                   = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(c_ValueType                  ))
-    member val UnionCase                   = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(c_UnionCase                  ))
-    member val UnionCaseField              = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(c_UnionCaseField             ))
-    member val Function                    = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(c_Function                   ))
-    member val Property                    = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(c_Property                   ))
-    member val MutableVar                  = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(c_MutableVar                 ))
-    member val Module                      = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(c_Module                     ))
-    member val Namespace                   = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(c_Namespace                  ))
-    //member val Printf                    = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(c_Printf                     )) // covered by xshd
-    member val ComputationExpression       = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(c_ComputationExpression      ))
-    member val IntrinsicFunction           = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(c_IntrinsicFunction          ))
-    member val Enumeration                 = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(c_Enumeration                ))
-    member val Interface                   = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(c_Interface                  ))
-    member val TypeArgument                = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(c_TypeArgument               ))
-    member val Operator                    = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(c_Operator                   ))
-    member val DisposableType              = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(c_DisposableType             ))
-    member val DisposableTopLevelValue     = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(c_DisposableTopLevelValue    ))
-    member val DisposableLocalValue        = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(c_DisposableLocalValue       ))
-    member val Method                      = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(c_Method                     ))
-    member val ExtensionMethod             = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(c_ExtensionMethod            ))
-    member val ConstructorForReferenceType = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(c_ConstructorForReferenceType))
-    member val ConstructorForValueType     = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(c_ConstructorForValueType    ))
-    member val Literal                     = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(c_Literal                    ))
-    member val RecordField                 = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(c_RecordField                ))
-    member val MutableRecordField          = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(c_MutableRecordField         ))
-    member val RecordFieldAsFunction       = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(c_RecordFieldAsFunction      ))
-    member val Exception                   = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(c_Exception                  ))
-    member val Field                       = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(c_Field                      ))
-    member val Event                       = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(c_Event                      ))
-    member val Delegate                    = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(c_Delegate                   ))
-    member val NamedArgument               = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(c_NamedArgument              ))
-    member val Value                       = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(c_Value                      ))
-    member val LocalValue                  = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(c_LocalValue                 ))//; makeCursive el
-    member val Type                        = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(c_Type                       ))
-    member val TypeDef                     = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(c_TypeDef                    ))
-    member val Plaintext                   = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(c_Plaintext                  ))
-
-    member val UnUsed                      = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetForegroundBrush(c_UnUsed);el.TextRunProperties.SetTypeface(StyleState.boldEditorTf))
-
-    member val BadIndentAction             = new Action<VisualLineElement>(fun el -> el.TextRunProperties.SetBackgroundBrush(badIndentBrush))
+    member val BadIndentAction             = SemanticColors.action "BadIndent"
 
 
 // type alias

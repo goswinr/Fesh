@@ -39,6 +39,12 @@ type Commands (grid:TabsAndLog, statusBar:FeshStatusBar)  =
     let evalSelectedLines()    =  fsi.Evaluate {editor=curr(); amount = FsiSegment <|SelectionForEval.expandSelectionToFullLines(tabs.CurrAvaEdit) ; logger=None; scriptName=fName()}
     let evalSelectedText()     =  fsi.Evaluate {editor=curr(); amount = FsiSegment <|SelectionForEval.current (tabs.CurrAvaEdit)                   ; logger=None; scriptName=fName()}   // null or empty check is done in fsi.Evaluate
 
+    let toggleTheme() =
+        let dark = not Theme.isDark
+        Theme.set dark
+        config.Settings.SetBool (Theme.SettingsStr, dark) |> ignore
+        config.Settings.SaveWithDelay ()
+
     let goToError()            =  ErrorUtil.getNextSegment(curr()) |> Option.iter (fun s -> curr().Folds.GoToOffsetAndUnfold(s.Offset, s.Length, false))
     let reset()                = if fsi.TryReset() then (log.Clear(); Checker.Reset()) // TryReset asks before cancelling a running evaluation
 
@@ -129,6 +135,7 @@ type Commands (grid:TabsAndLog, statusBar:FeshStatusBar)  =
     member val ToggleLogSize     = {name= "Toggle Log Maximized"          ;gesture= "F11"         ;cmd= mkCmdSimple (fun _ -> grid.ToggleMaxLog())        ;tip="Maximizes or resets the size of the Log window. \r\n(depending on current state)" }
     member val ToggleLogLineWrap = {name= "Toggle Line Wrapping in Log"   ;gesture= "Alt + Z"     ;cmd= mkCmdSimple (fun _ -> log.ToggleLineWrap(config)) ;tip="Toggles the Line Wrapping on or off for the Log window" }
     member val FontBigger        = {name= "Make Font Bigger"              ;gesture= "Ctrl + '+'"  ;cmd= mkCmdSimple (fun _ -> fonts.FontsBigger())        ;tip="Increases the Text Size for both Editor and Log" }
+    member val ToggleTheme       = {name= "Toggle Dark / Light Theme"     ;gesture= ""            ;cmd= mkCmdSimple (fun _ -> toggleTheme())              ;tip="Switch between the dark and the light color theme.\r\nThe colors of the syntax highlighting are in the file SyntaxHighlightingFSharp.xshd, see the About menu." }
     member val FontSmaller       = {name= "Make Font Smaller"             ;gesture= "Ctrl + '-'"  ;cmd= mkCmdSimple (fun _ -> fonts.FontsSmaller())       ;tip="Decreases the Text Size for both Editor and Log" }
     member val CollapseFolding   = {name= "Collapse this folding"         ;gesture= "Ctrl + ["    ;cmd = mkCmdSimple (fun _ -> Foldings.CollapseAtCaret())  ;tip="Folds the innermost un-collapsed region at the cursor." }
     member val ExpandFolding     = {name= "Expand this folding"          ;gesture= "Ctrl + ]"     ;cmd = mkCmdSimple (fun _ -> Foldings.ExpandAtCaret())   ;tip="Unfolds the collapsed region at the cursor." }
@@ -142,7 +149,7 @@ type Commands (grid:TabsAndLog, statusBar:FeshStatusBar)  =
     member val Help              = {name= "Homepage / Help"        ;gesture= ""              ;cmd= mkCmdSimple (fun _ -> General.browseTo("https://github.com/goswinr/Fesh") |> ignore ) ;tip="Opens a browser window showing https://github.com/goswinr/Fesh/"  }
     member val SettingsFolder    = {name= "Open Settings Folder"  ;gesture= ""               ;cmd= mkCmdSimple (fun _ -> config.RunContext.OpenSettingsFolder())                         ;tip="Opens the Folder where user settings such as default file content is saved." }
     member val AppFolder         = {name= "Open App Folder"       ;gesture= ""               ;cmd= mkCmdSimple (fun _ -> config.RunContext.OpenAppFolder())                              ;tip="Opens the Folder where this App (Fesh.exe) is loaded from." }
-    member val OpenXshdFile      = {name= "Open and watch SyntaxHighlighting in VS Code" ;gesture= ""  ;cmd= mkCmdSimple (fun _ -> SyntaxHighlighting.openVSCode(tabs.CurrAvaEdit))       ;tip="Opens the SyntaxHighlightingFSharp.xshd, file in VS Code.\r\nWatches the file for changes and reloads automatically." }
+    member val OpenXshdFile      = {name= "Open and watch SyntaxHighlighting in VS Code" ;gesture= ""  ;cmd= mkCmdSimple (fun _ -> SyntaxHighlighting.openVSCode(fun () -> tabs.AllTabs |> Seq.map (fun t -> t.AvaEdit)))       ;tip="Opens the SyntaxHighlightingFSharp.xshd, file in VS Code.\r\nWatches the file for changes and reloads automatically." }
     //member val ReloadXshdFile  = {name= "Reload SyntaxHighlighting" ;gesture= "F10"            ;cmd= mkCmdSimple (fun _ -> SyntaxHighlighting.setFSharp(tabs.CurrAvaEdit,true))         ;tip="Reloads SyntaxHighlightingFSharp.xshd, this is useful for testing new highlighting files without a restart." }
 
     //--------------------------

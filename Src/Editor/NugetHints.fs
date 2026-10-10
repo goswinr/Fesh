@@ -14,24 +14,13 @@ open AvalonEditB.Rendering
 
 open AvalonLog.Brush
 
+open Fesh
 open Fesh.Model
 
 
 module private NugetHintStyle =
 
-    let upToDateFg      = SolidColorBrush(Color.FromRgb( 20uy, 150uy,  50uy)) |> freeze
-    let notFoundFg      = SolidColorBrush(Color.FromRgb(150uy, 150uy, 150uy)) |> freeze
-
-    let updateFg        = SolidColorBrush(Color.FromRgb(170uy,  85uy,   0uy)) |> freeze
-    let updateBg        = SolidColorBrush(Color.FromRgb(255uy, 240uy, 215uy)) |> freeze
-    let updateBgHover   = SolidColorBrush(Color.FromRgb(255uy, 220uy, 165uy)) |> freeze
-
-    let pinFg           = SolidColorBrush(Color.FromRgb( 40uy,  90uy, 160uy)) |> freeze
-    let pinBg           = SolidColorBrush(Color.FromRgb(228uy, 238uy, 252uy)) |> freeze
-    let pinBgHover      = SolidColorBrush(Color.FromRgb(200uy, 220uy, 248uy)) |> freeze
-
-    let linkFg          = SolidColorBrush(Color.FromRgb(120uy, 130uy, 150uy)) |> freeze
-    let linkFgHover     = SolidColorBrush(Color.FromRgb( 30uy,  90uy, 200uy)) |> freeze
+    // the colors are in Theme.nugetHints
 
     /// Two chain links, to be drawn as a stroke.
     let linkGeometry =
@@ -164,23 +153,24 @@ type NugetHints (ed:TextEditor, getFolder: unit -> string, tryRecheck: unit -> b
                 e.Handled <- true // so that the TextArea does not start a selection
                 applyVersion line h.version)
 
+        let c = Theme.nugetHints
         match h.kind with
-        | NugetHintKind.UpToDate -> tb.Text <- "✔"; tb.Foreground <- upToDateFg
-        | NugetHintKind.NotFound -> tb.Text <- "?"; tb.Foreground <- notFoundFg
-        | NugetHintKind.UpdateTo -> asButton ("↑ " + h.version)   updateFg updateBg updateBgHover
-        | NugetHintKind.PinTo    -> asButton ("pin " + h.version) pinFg    pinBg    pinBgHover
+        | NugetHintKind.UpToDate -> tb.Text <- "✔"; tb.Foreground <- c.upToDateFg
+        | NugetHintKind.NotFound -> tb.Text <- "?"; tb.Foreground <- c.notFoundFg
+        | NugetHintKind.UpdateTo -> asButton ("↑ " + h.version)   c.updateFg c.updateBg c.updateBgHover
+        | NugetHintKind.PinTo    -> asButton ("pin " + h.version) c.pinFg    c.pinBg    c.pinBgHover
         | NugetHintKind.NoHint   -> ()
 
         if h.projectUrl = "" then
             b :> FrameworkElement
         else
             let size = ed.FontSize * 0.8
-            let icon = Shapes.Path(Data = linkGeometry, Stroke = linkFg, StrokeThickness = 1.3, Stretch = Stretch.Uniform, Width = size, Height = size)
+            let icon = Shapes.Path(Data = linkGeometry, Stroke = c.linkFg, StrokeThickness = 1.3, Stretch = Stretch.Uniform, Width = size, Height = size)
             let link = Border(Child = icon, Background = Brushes.Transparent, Padding = Thickness(3.0, 0.0, 3.0, 0.0), Cursor = Cursors.Hand, VerticalAlignment = VerticalAlignment.Center)
             link.ToolTip <- "Open the project website:\r\n" + h.projectUrl
             ToolTipService.SetInitialShowDelay(link, 300)
-            link.MouseEnter.Add(fun _ -> icon.Stroke <- linkFgHover)
-            link.MouseLeave.Add(fun _ -> icon.Stroke <- linkFg)
+            link.MouseEnter.Add(fun _ -> icon.Stroke <- c.linkFgHover)
+            link.MouseLeave.Add(fun _ -> icon.Stroke <- c.linkFg)
             link.MouseLeftButtonDown.Add(fun e ->
                 e.Handled <- true // so that the TextArea does not start a selection
                 Fesh.Util.General.browseTo h.projectUrl)
@@ -216,7 +206,7 @@ type NugetHints (ed:TextEditor, getFolder: unit -> string, tryRecheck: unit -> b
                             if isStale then
                                 needsFetch <- true
                             if hint.kind <> NugetHintKind.NoHint then
-                                let key = $"{hint.kind}|{hint.version}|{hint.tip}|{hint.projectUrl}|{ed.FontSize}"
+                                let key = $"{hint.kind}|{hint.version}|{hint.tip}|{hint.projectUrl}|{ed.FontSize}|{Theme.isDark}"
                                 let el =
                                     match shown.TryGetValue line with
                                     | true, struct(k, el) when k = key ->

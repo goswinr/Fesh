@@ -42,6 +42,11 @@ module UtilCompletion =
         tb.Padding <- Thickness(0. , 0. , 8. , 0. ) //left top right bottom / so that it does not appear to be trimmed
         tb
 
+    let setTheme (w:CompletionWindow) =
+        ThemeChrome.registerWindow w null Theme.darkChrome.popup
+        // the ToolTip for the item descriptions has no parent to inherit the theme from, so it needs to be registered too:
+        ThemeChrome.register w.DescriptionToolTip
+
     let isAtLineStart (completionSegment:ISegment) (textArea:TextArea) =
         let doc = textArea.Document
         let rec loop (off:int) =
@@ -326,6 +331,7 @@ type Completions(state: InteractionState) =
             else
                 let ta = avEd.TextArea
                 let w =  new CodeCompletion.CompletionWindow(ta)
+                setTheme w
                 let complList = w.CompletionList
                 let complData =  complList.CompletionData
                 for cln in completionLines do
