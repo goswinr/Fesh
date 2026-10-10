@@ -272,6 +272,33 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, statusBar:FeshStatusBar, log:
     let tempItemsInEditorMenu = ref 0
     let tempItemsInLogMenu = ref 0
 
+    /// for right clicking on a symbol, call after RecognizePath.addPathIfPresentToMenu, it removes the previous temporary items
+    let addGoToDefinitionToMenu (m:MouseButtonEventArgs) =
+        match GoToDefinition.findAtMouse(tabs.Current.Editor, m) with
+        | None -> ()
+        | Some d ->
+            let name = d.name.Replace("_", "__") // so that an underscore is not taken as access key
+            let header, tip =
+                match d.location with
+                | InThisFile r ->
+                    sprintf "Go to Definition of '%s'" name,
+                    sprintf "Jumps to line %d in this file, where\r\n%s\r\nis defined." r.StartLine d.fullName
+                | InLoadedFile (fi, r) ->
+                    sprintf "Go to Definition of '%s' in %s" name (fi.Name.Replace("_", "__")),
+                    sprintf "Opens the file\r\n%s\r\nat line %d, where\r\n%s\r\nis defined." fi.FullName r.StartLine d.fullName
+                | InLibrarySource (fi, r) ->
+                    sprintf "Go to Definition of '%s' in VS Code" name,
+                    sprintf "Asks to open the file\r\n%s\r\nin VS Code at line %d, where\r\n%s\r\nis defined." fi.FullName r.StartLine d.fullName
+                | InAssembly (asm, _, _) ->
+                    sprintf "Go to Definition of '%s' in VS Code (from %s)" name (asm.Replace("_", "__")),
+                    sprintf "%s\r\nis defined in the assembly %s.\r\nIts source is not on this computer.\r\nFesh looks it up via SourceLink and asks to download it and open it in VS Code." d.fullName asm
+            let cmd = {name = header; gesture = "F12"; cmd = mkCmdSimple (fun _ -> cmds.GoToDefinitionOf d); tip = tip}
+            let menu = tabs.Control.ContextMenu
+            menu.Items.Insert(0, sep())
+            incr tempItemsInEditorMenu
+            menu.Items.Insert(0, menuItem cmd)
+            incr tempItemsInEditorMenu
+
 
     do
         updateMenu bar [// this function is called after window is laid out otherwise somehow the menu does not show. e.g.  if it is just a let value. // TODO still true ?
@@ -309,6 +336,7 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, statusBar:FeshStatusBar, log:
                 sep()
                 menuItem cmds.Find
                 menuItem cmds.Replace
+                menuItem cmds.GoToDefinition
                 sep()
                 menuItem cmds.DeleteLine
                 menuItem cmds.DeletePrevWord
@@ -456,9 +484,10 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, statusBar:FeshStatusBar, log:
                 menuItem cmds.ResetFSI
                 ]
 
-        // add menu to open file path if there is on on current line
+        // add menu to open file path if there is on on current line, and to go to the definition of the symbol under the mouse
         tabs.Control.PreviewMouseRightButtonDown.Add ( fun m ->
             RecognizePath.addPathIfPresentToMenu (m, tempItemsInEditorMenu, tabs.Control.ContextMenu, tabs.Current.AvaEdit , tabs.AddFile)
+            addGoToDefinitionToMenu m
             )
 
 

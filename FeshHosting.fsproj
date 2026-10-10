@@ -144,6 +144,8 @@
     <Compile Include="Src/Editor/ErrorHighlighter.fs" />
     <Compile Include="Src/Editor/TypeInfo.fs" />
     <Compile Include="Src/Editor/Checker.fs" />
+    <Compile Include="Src/Editor/GoToDefinition.fs" />
+    <Compile Include="Src/Editor/SourceLink.fs" />
     <Compile Include="Src/Editor/NugetVersions.fs" />
     <Compile Include="Src/Editor/Completions.fs" />
     <Compile Include="Src/Editor/Foldings.fs" />

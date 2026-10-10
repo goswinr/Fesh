@@ -657,12 +657,47 @@ type TypeInfo private () =
         |> Seq.map fst
         |> HashSet
 
+    /// Returns the identifier at the column, including any qualifying names before it.
+    /// As word, colAtEndOfNames, isQuotedIdentifier
+    static let identifierIsland (tolerateJustAfter:bool, lineTxt:string, offLn:int) =
+        match QuickParse.GetCompleteIdentifierIsland tolerateJustAfter lineTxt offLn with
+        |Some (word, colAtEndOfNames, isQuotedIdentifier)-> Some (word, colAtEndOfNames, isQuotedIdentifier)
+        |None -> // find operators because QuickParse.GetCompleteIdentifierIsland does not find them:
+            if offLn >= lineTxt.Length then
+                None
+            else
+                let nextW =
+                    let rec find i =
+                        if i=lineTxt.Length then i//-1
+                        else
+                            let c = lineTxt[i]
+                            if c=' ' || c= '\r' || c='\n' then i//-1
+                            else find (i+1)
+                    find offLn
+                let prevW =
+                    let rec find i =
+                        if i = -1 then 0
+                        else
+                            let c = lineTxt[i]
+                            if c=' ' || c= '\r' || c='\n' then i+1
+                            else find (i-1)
+                    find offLn
+                if prevW<nextW then
+                    let word = lineTxt.Substring(prevW,nextW-prevW)
+                    Some (word, nextW, false) //word, colAtEndOfNames, isQuotedIdentifier
+                else
+                    None
+
     //--------------public values and functions -----------------
 
     /// to avoid duplicated error messages
     static member LogErrors = loggedErrors
 
     static member loadingText = loadingTxt
+
+    /// Returns the identifier or operator at the column, including any qualifying names before it.
+    /// As word, colAtEndOfNames, isQuotedIdentifier
+    static member IdentifierIsland(tolerateJustAfter, lineTxt, offLn) = identifierIsland (tolerateJustAfter, lineTxt, offLn)
 
     //static member namesOfOptionalArgs(fsu:FSharpSymbolUse) = namesOfOptnlArgs(fsu)
 
@@ -694,36 +729,7 @@ type TypeInfo private () =
                 let lineTxt = doc.GetText ln
                 let lineNo = ln.LineNumber
                 let offLn = off-ln.Offset
-                let island =
-                    match QuickParse.GetCompleteIdentifierIsland false lineTxt offLn with
-                    |Some (word, colAtEndOfNames, isQuotedIdentifier)-> Some (word, colAtEndOfNames, isQuotedIdentifier)
-                    |None -> // find operators because QuickParse.GetCompleteIdentifierIsland does not find them:
-                        if offLn >= lineTxt.Length then
-                            None
-                        else
-                            let nextW =
-                                let rec find i =
-                                    if i=lineTxt.Length then i//-1
-                                    else
-                                        let c = lineTxt[i]
-                                        if c=' ' || c= '\r' || c='\n' then i//-1
-                                        else find (i+1)
-                                find offLn
-                            let prevW =
-                                let rec find i =
-                                    if i = -1 then 0
-                                    else
-                                        let c = lineTxt[i]
-                                        if c=' ' || c= '\r' || c='\n' then i+1
-                                        else find (i-1)
-                                find offLn
-                            if prevW<nextW then
-                                let word = lineTxt.Substring(prevW,nextW-prevW)
-                                Some (word, nextW, false) //word, colAtEndOfNames, isQuotedIdentifier
-                            else
-                                None
-
-                match island with
+                match identifierIsland (false, lineTxt, offLn) with
                 |None -> ()
                     //IFeshLog.log.PrintfnDebugMsg "QuickParse.GetCompleteIdentifierIsland failed : lineTxt:%A, txt: '%s'"  lineTxt (lineTxt.Substring(offLn-1,3))
 

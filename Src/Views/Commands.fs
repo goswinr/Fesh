@@ -1,5 +1,6 @@
 namespace Fesh.Views
 
+open System
 open System.Windows.Documents
 open System.Diagnostics
 open System.Windows.Input
@@ -15,6 +16,52 @@ open Fesh.Model
 open Fesh.Editor
 open Fesh.Editor.SelectionForEval
 
+
+/// A small dialog with a question, details, a button for each choice and a Cancel button
+module ChoiceDialog =
+    open Fittings // for TextBlockSelectable
+
+    /// Returns the index of the chosen button, or None for Cancel or closing the window
+    let show (owner:Windows.Window, title:string, question:string, details:string, choices:list<string>) : option<int> =
+        let chosen = ref None
+        let w =
+            Windows.Window(
+                Title = title,
+                Owner = owner,
+                SizeToContent = Windows.SizeToContent.WidthAndHeight,
+                ResizeMode = Windows.ResizeMode.NoResize,
+                WindowStartupLocation = Windows.WindowStartupLocation.CenterOwner,
+                ShowInTaskbar = false)
+        ThemeChrome.registerWindow w null Theme.darkChrome.popup
+        let text (t:string) =
+            TextBlockSelectable(Text = t, TextWrapping = Windows.TextWrapping.Wrap, MaxWidth = 640.0, Margin = Windows.Thickness(0.0, 0.0, 0.0, 10.0))
+        let panel = Windows.Controls.StackPanel(Margin = Windows.Thickness 16.0)
+        let q = text question
+        q.FontWeight <- Windows.FontWeights.Bold
+        panel.Children.Add q |> ignore
+        panel.Children.Add (text details) |> ignore
+        let buttons =
+            Windows.Controls.StackPanel(
+                Orientation = Windows.Controls.Orientation.Horizontal,
+                HorizontalAlignment = Windows.HorizontalAlignment.Right,
+                Margin = Windows.Thickness(0.0, 6.0, 0.0, 0.0))
+        let addButton (label:string) (choice:option<int>) =
+            let b =
+                Windows.Controls.Button(
+                    Content = label,
+                    MinWidth = 90.0,
+                    Padding = Windows.Thickness(10.0, 3.0, 10.0, 3.0),
+                    Margin = Windows.Thickness(8.0, 0.0, 0.0, 0.0),
+                    IsDefault = (choice = Some 0),
+                    IsCancel = choice.IsNone)
+            b.Click.Add(fun _ -> chosen.Value <- choice; w.Close())
+            buttons.Children.Add b |> ignore
+        choices |> List.iteri (fun i c -> addButton c (Some i))
+        addButton "Cancel" None
+        panel.Children.Add buttons |> ignore
+        w.Content <- panel
+        w.ShowDialog() |> ignore
+        chosen.Value
 
 
 type Commands (grid:TabsAndLog, statusBar:FeshStatusBar)  =
@@ -47,6 +94,125 @@ type Commands (grid:TabsAndLog, statusBar:FeshStatusBar)  =
 
     let goToError()            =  ErrorUtil.getNextSegment(curr()) |> Option.iter (fun s -> curr().Folds.GoToOffsetAndUnfold(s.Offset, s.Length, false))
     let reset()                = if fsi.TryReset() then (log.Clear(); Checker.Reset()) // TryReset asks before cancelling a running evaluation
+
+    /// Selects the range in the editor and unfolds it if needed
+    let selectRange (ed:Editor, r:FSharp.Compiler.Text.Range) =
+        let doc = ed.AvaEdit.Document
+        if r.StartLine <= doc.LineCount then // the document might have become shorter since it was type checked
+            let ln  = doc.GetLineByNumber r.StartLine
+            let st  = ln.Offset + min r.StartColumn ln.Length
+            let len = if r.EndLine = r.StartLine then min (r.EndColumn - r.StartColumn) (ln.EndOffset - st) else 0
+            ed.Folds.GoToOffsetAndUnfold(st, max 0 len, true)
+
+    /// Asks before downloading anything or opening VS Code.
+    /// Returns the index of the chosen button, or None for Cancel.
+    let ask (question:string, details:string, choices:list<string>) =
+        ChoiceDialog.show(grid.FeshWindow.Window, "Fesh | Go to Definition", question, details, choices)
+
+    let logNoSource (d:Definition, asm:string, dll:option<string>, builtFrom:option<FSharp.Compiler.Text.Range>, reason:string) =
+        IFeshLog.log.PrintfnInfoMsg "Go to Definition: no source found for '%s' from the assembly %s, because %s." d.fullName asm reason
+        dll       |> Option.iter (fun p -> IFeshLog.log.PrintfnInfoMsg "    assembly: %s" p)
+        builtFrom |> Option.iter (fun r -> IFeshLog.log.PrintfnInfoMsg "    compiled from: %s  Line:%d" r.FileName r.StartLine)
+
+    let openSourceLinkFile (src:SourceLinkFile) =
+        async {
+            do! SourceLink.downloadSource src
+            VSCode.openAt(None, src.localPath, SourceLink.declarationLine src, 1)
+        }
+
+    /// Clones the repository and opens its folder in VS Code, so that VS Code can load the project.
+    let openRepository (src:SourceLinkFile) =
+        async {
+            match GitClone.tryGitHubFile src.url with
+            | None ->
+                IFeshLog.log.PrintfnInfoMsg "The source is not on GitHub, so only the file is opened: %s" src.url
+                do! openSourceLinkFile src
+            | Some g ->
+                let! dir = GitClone.clone g
+                let file = GitClone.fileInClone g
+                if IO.File.Exists file then
+                    VSCode.openAt(Some dir, file, SourceLink.declarationLine { src with localPath = file }, 1)
+                else
+                    IFeshLog.log.PrintfnIOErrorMsg "The file %s is not in the clone in %s" g.path dir
+        }
+
+    let openFileText (src:SourceLinkFile) =
+        if IO.File.Exists src.localPath then $"Open File: opens the file that was downloaded before from\r\n{src.url}"
+        else                                 $"Open File: downloads only the file\r\n{src.url}"
+
+    let openRepositoryText (g:option<GitHubFile>) =
+        let why = "with git, so that VS Code can load the project and navigate further. From big repositories only the folder of the project."
+        match g with
+        | Some g when GitClone.isCloned g -> $"Open Repository: opens the clone from before in\r\n{GitClone.folder g}"
+        | Some g -> $"Open Repository: clones github.com/{g.owner}/{g.repo} at the commit of the build {why}"
+        | None   -> $"Open Repository: clones the repository at the commit of the build {why}"
+
+    let goToDefinition (d:Definition) =
+        match d.location with
+        | InThisFile r ->
+            selectRange(curr(), r)
+
+        | InLoadedFile (fi, r) ->
+            if tabs.AddFile(fi, true) then
+                let ed = curr()
+                // A tab that was just opened is not laid out yet, ScrollTo would have no effect. So wait for the layout:
+                ed.AvaEdit.Dispatcher.BeginInvoke(Windows.Threading.DispatcherPriority.Background, Action(fun () ->
+                    selectRange(ed, r)
+                    ed.AvaEdit.TextArea.Focus() |> ignore
+                    )) |> ignore
+
+        | InLibrarySource (fi, r) -> // Fesh can't load projects, so VS Code is better for navigating further from there
+            let folder = VSCode.projectFolder fi
+            if Option.isSome (ask ($"Open the source of '{d.name}' in VS Code?", $"File: {fi.FullName}\r\nLine: {r.StartLine}\r\nFolder: {folder}", ["Open in VS Code"])) then
+                VSCode.openAt(Some folder, fi.FullName, r.StartLine, r.StartColumn + 1)
+
+        | InAssembly (asm, None, builtFrom) ->
+            logNoSource(d, asm, None, builtFrom, "the assembly file is unknown")
+
+        | InAssembly (asm, Some dll, builtFrom) ->
+            let failed reason = logNoSource(d, asm, Some dll, builtFrom, reason)
+            let startDownload (work:Async<unit>) =
+                async {
+                    try do! work
+                    with e -> failed (SourceLink.errorMessage e)
+                } |> Async.Start
+            let question = $"Open the source of '{d.name}' in VS Code?"
+            match SourceLink.lookup(d.symbol, dll, builtFrom) with
+            | NoSource reason ->
+                failed reason
+            | SourceFound src ->
+                match GitClone.tryGitHubFile src.url with
+                | None ->
+                    if Option.isSome (ask (question, openFileText src, ["Open File"])) then
+                        startDownload (openSourceLinkFile src)
+                | Some g ->
+                    match ask (question, openFileText src + "\r\n\r\n" + openRepositoryText (Some g), ["Open File"; "Open Repository"]) with
+                    | Some 0 -> startDownload (openSourceLinkFile src)
+                    | Some _ -> startDownload (openRepository src)
+                    | None   -> ()
+            | SymbolsNeeded pdb ->
+                let details =
+                    $"The URL of the source is in the debug symbols of {asm}. Fesh downloads them first, from symbols.nuget.org or msdl.microsoft.com:\r\n{pdb.pdbName}"
+                    + "\r\n\r\nOpen File: then downloads only the file."
+                    + "\r\n\r\n" + openRepositoryText None
+                match ask (question, details, ["Open File"; "Open Repository"]) with
+                | None -> ()
+                | Some choice ->
+                    startDownload (async {
+                        match! SourceLink.downloadSymbols(d.symbol, dll, builtFrom, pdb) with
+                        | SourceFound src -> if choice = 0 then do! openSourceLinkFile src else do! openRepository src
+                        | SymbolsNeeded _ -> failed "its downloaded debug symbols could not be read"
+                        | NoSource reason -> failed reason
+                        })
+
+    let goToDefinitionAtCaret() =
+        let ed = curr()
+        match GoToDefinition.find(ed, ed.AvaEdit.CaretOffset) with
+        | Some d -> goToDefinition d
+        | None ->
+            match ed.FileCheckState with
+            | Done _ -> IFeshLog.log.PrintfnInfoMsg "Go to Definition: there is no symbol at the caret."
+            | _      -> IFeshLog.log.PrintfnInfoMsg "Go to Definition: the type check is not done yet. Try again in a moment."
 
     let resetFsiArgs() =
         let previous, defaults = config.FsiArguments.ResetToDefault()
@@ -109,6 +275,7 @@ type Commands (grid:TabsAndLog, statusBar:FeshStatusBar)  =
     member val SelectLine        = {name= "Select Current Line"       ;gesture= "Ctrl  + L"     ;cmd= mkCmdSimple (fun _ -> expandSelectionToFullLines(tabs.CurrAvaEdit) |> ignore )  ;tip="Selects the current line"} // TODO compare VSCODE shortcuts to  see https://github.com/icsharpcode/SharpDevelop/wiki/Keyboard-Shortcuts
     member val SwapWordLeft      = {name= "Swap selected word left"   ;gesture= "Alt + Left"    ;cmd= mkCmdSimple (fun _ -> SwapWords.left  tabs.CurrAvaEdit|> ignore )  ;tip="Swaps the currently selected word with the word on the left. A word may include any letter, digit, underscore or dot."}
     member val SwapWordRight     = {name= "Swap selected word right"  ;gesture= "Alt + Right"   ;cmd= mkCmdSimple (fun _ -> SwapWords.right tabs.CurrAvaEdit|> ignore )  ;tip="Swaps the currently selected word with the word on the right. A word may include any letter, digit, underscore or dot."}
+    member val GoToDefinition    = {name= "Go to Definition"          ;gesture= "F12"           ;cmd= mkCmdSimple (fun _ -> goToDefinitionAtCaret())  ;tip="Jumps to where the symbol at the caret is defined, in this file or in a file loaded with #load.\r\nFor symbols from assemblies, like NuGet packages, it asks to open their source in VS Code.\r\nIf the source is not on this computer, it is downloaded via SourceLink."}
 
     // FSI menu:
     member val MarkEval          = {name= "Mark as Evaluated till Current Line" ;gesture= "F2"             ;cmd= mkCmdSimple (fun _ -> markEvaluated())        ;tip="Marks text till current line inclusive as evaluated." }
@@ -189,6 +356,9 @@ type Commands (grid:TabsAndLog, statusBar:FeshStatusBar)  =
 
     member this.Fonts = fonts
 
+    /// Opens the file and selects the definition, or prints the assembly path to the log
+    member this.GoToDefinitionOf(d:Definition) = goToDefinition d
+
     /// excluding the ones already provided by avalonedit
     member this.SetUpGestureInputBindings () =
 
@@ -221,7 +391,8 @@ type Commands (grid:TabsAndLog, statusBar:FeshStatusBar)  =
                 //this.SwapLineDown     // handled via native keyboard hook see module KeyboardNative
                 //this.SwapLineUp       // handled via native keyboard hook see module KeyboardNative
                 this.SelectLine
-                //this.SwapWordLeft    // key gesture handled via previewKeyDown event in CursorBehavior module
+                this.GoToDefinition
+                //this.SwapWordLeft   // key gesture handled via previewKeyDown event in CursorBehavior module
                 //this.SwapWordRight   // key gesture handled via previewKeyDown event in CursorBehavior module
                 //this.SelectLinesUp   // implemented in AvalonEditB
                 //this.SelectLinesDown // implemented in AvalonEditB
