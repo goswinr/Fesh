@@ -175,6 +175,7 @@ type EvalData = {
     request: EvalRequest
     code: string
     firstLine: int // the line number in the editor of the first line of the code, line numbers reported by FSI are relative to this line
+    docVersion: ITextSourceVersion // the version of the document when the code was taken from it, to find the changes made while it is evaluating
     }
 
 

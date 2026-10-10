@@ -89,7 +89,7 @@ type Editor private (code:string, config:Config, initialFilePath:FilePath)  =
     let brackets    = new BracketHighlighter( state)
     let semHiLi     = new SemanticHighlighter(state)
     let selHiLi     = new SelectionHighlighter(state)
-    let evalTracker = new EvaluationTracker(avaEdit,state, config)
+    let evalTracker = new EvaluationTracker(avaEdit, config)
     let error       = new ErrorHighlighter(state, foldMg, fun () -> compls.IsOpen )
         // if config.Settings.GetBool(EvaluationTracker.SettingsStr, EvaluationTracker.onByDefault) then Some <| EvaluationTracker(avaEdit,state, config)
         // else None

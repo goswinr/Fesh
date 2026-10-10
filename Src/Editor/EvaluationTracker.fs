@@ -32,51 +32,47 @@ module private EvaluationTrackerRendererUtil =
 open EvaluationTrackerRendererUtil
 
 /// IBackgroundRenderer
-type EvaluationTrackerRenderer (ed:TextEditor, state:InteractionState ) =
+type EvaluationTrackerRenderer (ed:TextEditor) =
 
     /// the first line number as literal
     let [<Literal>] ``1`` = 1
 
     let mutable evalFromLine = ``1``
 
+    let isWhite (ln:DocumentLine) =
+        TextUtilities.GetLeadingWhitespace(ed.Document, ln).Length = ln.Length
+
+    /// a non empty line with 0 indent
+    let isNotIndented (ln:DocumentLine) =
+        ln.Length > 0 && TextUtilities.GetLeadingWhitespace(ed.Document, ln).Length = 0
+
     let recomputeEvalFromLineByIndent(changedLineIdx) =
         if changedLineIdx <= ``1`` then
             evalFromLine <- ``1``
         else
-            let lns = state.CodeLines
-            let id = state.DocChangedId
-            let rec findIndent i =
-                if i <= ``1`` then ``1``
-                else
-                    match lns.GetLine(i,id.Value) with // checks for 0 index
-                    | ValueSome ln ->
-                        if ln.indent = 0 && ln.len > 0 then // a non empty line with 0 indent
-                            i
-                        else
-                            findIndent (i-1)
-                    | ValueNone ->
-                        ``1``
+            let doc = ed.Document
+            let rec findNotIndented (ln:DocumentLine) =
+                if ln.LineNumber <= ``1`` || isNotIndented ln then ln
+                else findNotIndented ln.PreviousLine
 
-            let noIndentLine = findIndent(min lns.LastLineIdx changedLineIdx)
-            //printfn "noIndentLine: %d"  noIndentLine
+            let noIndentLine = findNotIndented (doc.GetLineByNumber(min doc.LineCount changedLineIdx))
+            //printfn "noIndentLine: %d"  noIndentLine.LineNumber
 
-            let rec nextNonWhiteLine i =
-                if i <= ``1`` then ``1``
-                else
-                    match lns.GetLineText(i,id.Value) with
-                    | ValueSome txt ->
-                        if String.IsNullOrWhiteSpace(txt) then nextNonWhiteLine (i-1)
-                        else i+1
-                    | ValueNone ->
-                        IFeshLog.log.PrintfnDebugMsg "nextNonWhiteLine: Line not found %d" i
-                        ``1``
+            // include the white lines directly above it too:
+            let rec firstOfWhiteLinesAbove (ln:DocumentLine) =
+                if ln.LineNumber <= ``1`` then ``1``
+                elif isWhite ln.PreviousLine then firstOfWhiteLinesAbove ln.PreviousLine
+                else ln.LineNumber
 
-            evalFromLine <- nextNonWhiteLine (noIndentLine-1)
+            evalFromLine <- firstOfWhiteLinesAbove noIndentLine
 
-    /// Triggered on each document changed
+    /// Call in sync on each document change, with the line number where the change starts.
     member _.SetLastChangeAt(changedLineIdx) =
         if changedLineIdx < evalFromLine then
+            let prev = evalFromLine
             recomputeEvalFromLineByIndent(changedLineIdx)
+            if evalFromLine <> prev then
+                ed.TextArea.TextView.InvalidateLayer(KnownLayer.Background) // to redraw the gray background
 
     member _.ClearMarking() =
         evalFromLine <- ``1``
@@ -87,16 +83,35 @@ type EvaluationTrackerRenderer (ed:TextEditor, state:InteractionState ) =
         evalFromLine <- changedLineIdx + 1
 
     member _.MarkAllEvaluated() =
-        let cLns = state.CodeLines
-        let mutable li = cLns.LastLineIdx
-        let inline isWhite(i) =
-            match cLns.GetLineText(i, state.DocChangedId.Value) with
-            | ValueSome txt -> String.IsNullOrWhiteSpace(txt)
-            | ValueNone -> false
-        while li > ``1`` && isWhite(li)  do // to exclude empty lines at end
-            li <- li-1
-        evalFromLine <- li + 1
+        let mutable ln = ed.Document.GetLineByNumber(ed.Document.LineCount)
+        while ln.LineNumber > ``1`` && isWhite ln do // to exclude empty lines at end
+            ln <- ln.PreviousLine
+        evalFromLine <- ln.LineNumber + 1
         ed.TextArea.TextView.Redraw()
+
+    /// Marks the evaluated code, moved to where it is in the current document.
+    /// Then applies the changes made while it was evaluating again, they are not evaluated.
+    /// fromVersion: the version of the document the evaluated code was taken from.
+    member this.MarkEvaluated(amount:FsiCodeAmount, fromVersion:ITextSourceVersion) =
+        let doc = ed.Document
+        let current = doc.Version
+        match amount with
+        |All |ContinueFromChanges -> this.MarkAllEvaluated()
+        |FsiSegment s ->
+            let stOff = fromVersion.MoveOffsetTo(current, s.startOffset, AnchorMovementType.AfterInsertion)
+            let stLine = doc.GetLineByOffset(stOff).LineNumber // not s.startLine, it is the last line if the selection was made upwards
+            if stLine <= evalFromLine then // only mark if the code before was evaluated already
+                let endOff = fromVersion.MoveOffsetTo(current, s.startOffset + s.length, AnchorMovementType.BeforeInsertion)
+                this.MarkEvaluatedTillLine(doc.GetLineByOffset(endOff).LineNumber)
+                ed.TextArea.TextView.Redraw()
+            else
+                IFeshLog.log.PrintfnDebugMsg "FsiSegment start line > EvaluateFromLine: %d > %d" stLine evalFromLine
+
+        // The first changed offset is enough, a change only moves the offsets after it.
+        // So the smallest offset of all changes is also the first changed offset in the current document:
+        let firstChangeOff = fromVersion.GetChangesTo(current) |> Seq.fold (fun m c -> min m c.Offset) Int32.MaxValue
+        if firstChangeOff < Int32.MaxValue then
+            this.SetLastChangeAt(doc.GetLineByOffset(min firstChangeOff doc.TextLength).LineNumber)
 
     /// Line Number where evaluation should continue from
     member _.EvaluateFromLine = evalFromLine
@@ -145,11 +160,24 @@ type EvaluationTrackerRenderer (ed:TextEditor, state:InteractionState ) =
         member this.Layer = this.Layer
 
 
-type EvaluationTracker (ed:TextEditor, state, config:Config.Config) =
+type EvaluationTracker (ed:TextEditor, config:Config.Config) =
 
     let isActive = config.Settings.GetBool(EvaluationTracker.SettingsStr, EvaluationTracker.onByDefault)
 
-    let renderer = EvaluationTrackerRenderer(ed,state)
+    let renderer = EvaluationTrackerRenderer(ed)
+
+    /// The Fsi events are hooked up for each tab, so check if the evaluated code is from this editor.
+    /// (It might not be the current one anymore when an async evaluation completes)
+    let isThisEditor (req:EvalRequest) = Object.ReferenceEquals(req.editor.AvaEdit, ed)
+
+    /// The evaluation of this editor that is compiling or running now,
+    /// with the version of the document its code was taken from.
+    let mutable running : option<EvalRequest * ITextSourceVersion> = None
+
+    let clearIfThisEditor (req:EvalRequest) =
+        if isThisEditor req then
+            running <- None
+            renderer.ClearMarking()
 
     //TODO on tab change and "EvalInteractionNonThrowing returned Error:" reset too !
 
@@ -157,25 +185,25 @@ type EvaluationTracker (ed:TextEditor, state, config:Config.Config) =
         if isActive then
             ed.TextArea.TextView.BackgroundRenderers.Add renderer
             let fsi =Fsi.GetOrCreate config
-            fsi.OnReset.Add       (fun _ -> renderer.ClearMarking()) // reset for all editors
-            fsi.OnCanceled.Add    (fun _ -> if IEditor.isCurrent ed then renderer.ClearMarking())
-            fsi.OnRuntimeError.Add(fun _ -> if IEditor.isCurrent ed then renderer.ClearMarking())
+            fsi.OnCompiling.Add   (fun evd -> running <- if isThisEditor evd.request then Some (evd.request, evd.docVersion) else None)
+            fsi.OnReset.Add       (fun _ -> running <- None; renderer.ClearMarking()) // reset for all editors
+            fsi.OnCanceled.Add    (fun req      -> clearIfThisEditor req)
+            fsi.OnRuntimeError.Add(fun (req, _) -> clearIfThisEditor req)
             // fsi.OnFsiEvalError.Add(fun _ -> if IEditor.isCurrent ed then renderer.ClearMarking())
             fsi.OnCompletedOk.Add (fun evc ->
-                if IEditor.isCurrent ed then  //this event will be hooked up for each tab so check id too
+                if isThisEditor evc then
                     //IFeshLog.log.PrintfnColor 150 150 150  "Fsi.OnCompletedOk:%A" evc
                     //IFeshLog.log.PrintfnFsiErrorMsg "Fsi.OnCompletedOk:renderer.EvaluateFrom:%d" renderer.EvaluateFrom
-                    match evc.amount with
-                    |All |ContinueFromChanges -> renderer.MarkAllEvaluated()
-                    |FsiSegment s ->
-                        if s.startLine <= renderer.EvaluateFromLine then // only mark if the code before was evaluated already
-                            let li = ed.Document.GetLineByOffset(s.startOffset + s.length).LineNumber
-                            renderer.MarkEvaluatedTillLine li
-                            ed.TextArea.TextView.Redraw()
-                        else
-                            IFeshLog.log.PrintfnDebugMsg "FsiSegment.startLine > renderer.EvaluateFromLine: %d > %d" s.startLine renderer.EvaluateFromLine
+                    match running with
+                    | Some (req, ver) when Object.ReferenceEquals(req, evc) && ver.BelongsToSameDocumentAs ed.Document.Version ->
+                        running <- None
+                        renderer.MarkEvaluated(evc.amount, ver)
+                    | _ ->
+                        running <- None
+                        IFeshLog.log.PrintfnDebugMsg "EvaluationTracker: the document version for the completed evaluation is unknown, it is not marked as evaluated."
                 )
 
+    /// Call in sync on each document change, with the line number where the change starts.
     member _.SetLastChangeAt(lineIdx) =
         if isActive then
             renderer.SetLastChangeAt(lineIdx)

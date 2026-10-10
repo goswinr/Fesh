@@ -72,9 +72,9 @@ type Fsi private (config:Config) =
     ///FSI events
     let compilingEv      = new Event<EvalData>()
     let emittingEv       = new Event<EvalRequest>()
-    let canceledEv       = new Event<unit>()
+    let canceledEv       = new Event<EvalRequest>()
     let completedOkEv    = new Event<EvalRequest>()
-    let runtimeErrorEv   = new Event<Exception>()
+    let runtimeErrorEv   = new Event<EvalRequest * Exception>()
     let fsiEvalErrorEv    = new Event<FSharpDiagnostic>()
     let isReadyEv        = new Event<unit>()
     let resetEv          = new Event<unit>()
@@ -97,6 +97,8 @@ type Fsi private (config:Config) =
     let mutable asyncThread: option<Thread> = None
 
     let mutable pendingEval :option<EvalData> = None // for storing evaluations that are triggered before fsi is ready
+
+    let mutable runningEval :option<EvalRequest> = None // the evaluation that is compiling or running now, for the OnCanceled event
 
     //let mutable codeInEval : option<CodeToEval> = None
     // let _ = // just for OnEmitting Event !!
@@ -198,8 +200,10 @@ type Fsi private (config:Config) =
             let aborter = getFrameworkAgnosticAborter(thread)
             if aborter() then
                 asyncThread <- None
+                let canceled = runningEval
+                runningEval <- None
                 SyncWpf.doSync( fun () ->
-                    canceledEv.Trigger()
+                    canceled |> Option.iter canceledEv.Trigger // None if no evaluation was running, e.g. on a reset
                     log.PrintfnInfoMsg "\r\nFSI evaluation was canceled by user!"
                     )
 
@@ -351,6 +355,9 @@ type Fsi private (config:Config) =
             |AsyncMode -> do! Async.SwitchToContext SyncWpf.context
 
             state <- Ready
+            match runningEval with
+            | Some r when Object.ReferenceEquals(r, codeToEv) -> runningEval <- None // a canceled evaluation might finish after the next one started
+            | _ -> ()
             isReadyEv.Trigger()
 
             match evaluatedTo with //TODO move out of this thread?
@@ -384,7 +391,7 @@ type Fsi private (config:Config) =
 
 
                 | :? FsiCompilationException ->
-                    runtimeErrorEv.Trigger(exn)
+                    runtimeErrorEv.Trigger(codeToEv, exn)
                     log.PrintfnFsiErrorMsg "Compiler Error:"
                     let es =
                         diagnostics
@@ -400,7 +407,7 @@ type Fsi private (config:Config) =
 
 
                 | _ -> // any other runtime exception
-                    runtimeErrorEv.Trigger(exn)  // in fesh.fs this is used to ensure the main window is visible, because it might be hidden manually, or not visible from the start ( e.g. current script is evaluated in Fesh.Rhino)
+                    runtimeErrorEv.Trigger(codeToEv, exn)  // in fesh.fs this is used to ensure the main window is visible, because it might be hidden manually, or not visible from the start ( e.g. current script is evaluated in Fesh.Rhino)
                     log.PrintfnAppErrorMsg "Runtime Error:"
                     match exn with
                     | :? Reflection.ReflectionTypeLoadException as ex ->
@@ -484,6 +491,7 @@ type Fsi private (config:Config) =
 
                 |Some session ->
                     state <- Compiling
+                    runningEval <- Some evalData.request
                     //codeInEval <- Some codeToEv
                     compilingEv.Trigger(evalData) // do always sync, to show "FSI is running" immediately
 
@@ -702,6 +710,7 @@ type Fsi private (config:Config) =
                 |ContinueFromChanges ->
                     let fromLn = evalReq.editor.EvaluateFromLine
                     if fromLn = 0 then evalReq.editor.AvaEdit.Text
+                    elif fromLn > evalReq.editor.AvaEdit.Document.LineCount then "" // the last line is evaluated already
                     else
                         let from = evalReq.editor.AvaEdit.Document.GetLineByNumber(fromLn).Offset
                         let len = evalReq.editor.AvaEdit.Document.TextLength - from
@@ -715,6 +724,7 @@ type Fsi private (config:Config) =
                 |FsiSegment seg ->
                     let doc = evalReq.editor.AvaEdit.Document
                     doc.GetLineByOffset(max 0 (min seg.startOffset doc.TextLength)).LineNumber // not seg.startLine, it is the last line if the selection was made upwards
+            docVersion = evalReq.editor.AvaEdit.Document.Version
             }
 
         match this.AskIfCancellingIsOk () with
@@ -771,7 +781,8 @@ type Fsi private (config:Config) =
     [<CLIEvent>]
     member this.OnEmitting = emittingEv.Publish
 
-    /// Interactive evaluation was canceled because of a runtime error
+    /// Interactive evaluation was canceled because of a runtime error or compiler error.
+    /// Carries the request that failed and the exception.
     [<CLIEvent>]
     member this.OnRuntimeError = runtimeErrorEv.Publish
 
@@ -780,6 +791,7 @@ type Fsi private (config:Config) =
     member this.OnFsiEvalError = fsiEvalErrorEv.Publish
 
     /// Interactive evaluation was canceled by user (e.g. by pressing Esc)
+    /// Carries the request that was canceled.
     [<CLIEvent>]
     member this.OnCanceled = canceledEv.Publish
 

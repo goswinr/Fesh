@@ -72,7 +72,7 @@ module Redrawing =
         errors      : ErrorHighlighter
         semantic    : SemanticHighlighter
         selection   : SelectionHighlighter
-        evalTracker : EvaluationTracker // not tracked by tryDraw !! TODO, runs in sync
+        evalTracker : EvaluationTracker // not tracked by tryDraw, updated in sync in DocChangeEvents.changed
         }
 
     type EventCombiner(services:DrawingServices, state:InteractionState) =
@@ -141,7 +141,6 @@ module DocChangeMark =
                     drawServ.selection.UpdateTransformers(id)
                     drawServ.brackets.UpdateAllBrackets(id)
                     drawServ.folds.CheckFolds(id)
-                    drawServ.evalTracker.SetLastChangeAt(lineIdx)
             } |> Async.Start
 
             // second: Errors and Semantic Highlighting and BadIndentation on FCS check result .
@@ -563,6 +562,10 @@ module DocChangeEvents =
         state.ErrSegments.AdjustOneShift shift
 
     let changed (iEd:IEditor, drawServ:Redrawing.DrawingServices, state:InteractionState, eventArgs:DocumentChangeEventArgs) : unit  =
+        let lineIdx = iEd.AvaEdit.Document.GetLineByOffset( eventArgs.Offset).LineNumber
+        // In sync for each change, the async updates below only run for the latest of several quick changes.
+        // e.g. indenting a block raises one event per line:
+        drawServ.evalTracker.SetLastChangeAt(lineIdx)
         match state.DocChangedConsequence with
         | WaitForCompletions ->
             // no type checking ! just keep on tying,
@@ -570,7 +573,6 @@ module DocChangeEvents =
             ()
         | React ->
             let id = state.DocChangedId.Value // the increment was done before this event in Doc.Changing (not Doc.Changed)
-            let lineIdx = iEd.AvaEdit.Document.GetLineByOffset( eventArgs.Offset).LineNumber
             if isASingleCharChange eventArgs then
                 DocChangeCompletion.singleCharChange     (iEd, drawServ, state, id, lineIdx)// maybe shows completion window
             else
