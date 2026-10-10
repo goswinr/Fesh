@@ -109,57 +109,88 @@ module CodeLineTools =
         member _.CorrespondingId = correspondingId
 
 
-    /// used for Log
-    /// Holds a List who's indices correspond to each line with info about:
-    /// offStart: the offset of the first character off this line
-    /// indent:  the count of spaces at the start of this line
-    /// len: the amount of characters in this line excluding the trailing \r\n
-    /// if indent equals len the line is only whitespace
-    type CodeLinesSimple() =
+    /// used for Log, not Editor
+    /// offStart: the offset of the first character of this line in the Log document
+    /// text: the text of this line excluding the line break
+    [<Struct>]
+    type LogLine = {
+        offStart:int
+        text:string
+        }
 
-        let mutable lines = ResizeArray<LineInfo>()
-
-        let mutable fullCode = ""
-
-        let getNewLines(code:string) =
-            let newLns = ResizeArray<LineInfo>(lines.Count + 50) // TODO turn this into an append only , since the Log is append only, instead of reallocating:
-            let codeLen = code.Length
-            let rec loop stOff =
-                if stOff >= codeLen then // last line
-                    let len = codeLen - stOff
-                    newLns.Add {offStart=stOff; indent=len; len=len}
-                else
-                    match code.IndexOf ('\r', stOff) with //TODO '\r' might fail if Fesh is ever ported to AvaloniaEdit to work on MAC
-                    | -1 ->
-                        let len = codeLen - stOff
-                        let indent = spacesFrom stOff len code
-                        newLns.Add {offStart=stOff; indent=indent; len=len}  // the last line
-                    | r ->
-                        let len = r - stOff
-                        let indent = spacesFrom stOff len code
-                        newLns.Add {offStart=stOff; indent=indent; len=len}
-                        loop (r+2) // +2 to jump over \r and \n
-
-            newLns.Add {offStart=0; indent=0; len=0}   // ad dummy line at index 0
-            loop (0)
-            newLns
+    /// An immutable view on the LogLines at the time it was taken. Safe to search on any thread.
+    /// Line numbers start at 1, like in AvalonEdit.
+    type LogLinesSnapshot =
+        {
+        /// Index 0 is a dummy line. The lines with a line break at the end are at index 1 to count-1.
+        /// Elements below count never change. Appending only writes at count or above.
+        lines: LogLine[]
+        count: int
+        /// The last line, it has no line break (yet). It might be empty.
+        tail: LogLine
+        }
+        member s.LastLineNo = s.count
+        member s.GetLine(lineNo) = if lineNo = s.count then s.tail else s.lines.[lineNo]
 
 
-        member _.LastLineIdx = lines.Count - 1
+    /// used for Log, not Editor
+    /// The lines of the Log, built only from the appended text, without ever copying the full text of the Log.
+    /// Append and Reset must be called from the UI thread. The Snapshot can be searched on any thread.
+    type LogLines() =
 
-        member _.FullCode = fullCode
+        let lineBreaks = [| '\r'; '\n' |] // same as AvalonEdit: \r\n, \r and \n are all line breaks
 
-        member _.UpdateLogLines(code) =
-            lines <- getNewLines code
-            fullCode <- code
+        let mutable lines : LogLine[] = Array.zeroCreate 256
+        let mutable count = 1 // index 0 is a dummy line
+        let mutable tail = {offStart=0; text=""}
+        let mutable docLength = 0
 
-        /// Safe: checks isDone && docChangedIdHolder.Value = id
-        /// returns also none for bad indices
-        member _.GetLine(lineIdx): LineInfo  =
-            if lineIdx < 0 || lineIdx >= lines.Count then
-                failwithf "bad lineIdx %i for %d items in CodeLinesSimple" lineIdx lines.Count
-            else
-                lines.[lineIdx]
+        /// The last appended text ended with \r. Then a \n at the start of the next text belongs to the same line break.
+        let mutable endsWithCR = false
+
+        let mutable snap = {lines=lines; count=count; tail=tail}
+
+        let addLine (l:LogLine) =
+            if count = lines.Length then
+                let bigger = Array.zeroCreate (lines.Length * 2) // a new array, so that existing snapshots keep their array unchanged
+                Array.blit lines 0 bigger 0 count
+                lines <- bigger
+            lines.[count] <- l
+            count <- count + 1
+
+        /// The length of the text that the lines were built from.
+        member _.DocLength = docLength
+
+        member _.Snapshot = snap
+
+        /// Call when text gets appended at the end of the Log document.
+        member _.Append(txt:string) =
+            let mutable st = 0 // start of the current line in txt
+            if endsWithCR && txt.Length > 0 && txt.[0] = '\n' then // the \r\n line break was split over two appends
+                st <- 1
+                tail <- {tail with offStart = tail.offStart + 1} // tail is empty because the \r closed the previous line
+            let mutable br = txt.IndexOfAny(lineBreaks, st)
+            while br >= 0 do
+                let part = txt.Substring(st, br - st)
+                addLine {offStart = tail.offStart; text = if tail.text.Length = 0 then part else tail.text + part}
+                st <- if txt.[br] = '\r' && br + 1 < txt.Length && txt.[br + 1] = '\n' then br + 2 else br + 1
+                tail <- {offStart = docLength + st; text = ""}
+                br <- if st < txt.Length then txt.IndexOfAny(lineBreaks, st) else -1
+            if st < txt.Length then
+                tail <- {tail with text = tail.text + txt.Substring(st)}
+            if txt.Length > 0 then
+                endsWithCR <- txt.[txt.Length - 1] = '\r'
+            docLength <- docLength + txt.Length
+            snap <- {lines=lines; count=count; tail=tail}
+
+        /// Call when the Log document changed in any other way than appending, e.g. when it got cleared.
+        member this.Reset(fullText:string) =
+            lines <- Array.zeroCreate 256 // a new array, so that existing snapshots keep their array unchanged
+            count <- 1
+            tail <- {offStart=0; text=""}
+            docLength <- 0
+            endsWithCR <- false
+            this.Append fullText
 
 type DocChangedConsequence =
     | React

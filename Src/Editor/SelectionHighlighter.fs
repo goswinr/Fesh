@@ -56,20 +56,6 @@ module SelectionHighlighting =
             None
 
 
-    /// makes sure that there are no concurrent calls to doc.CreateSnapshot().Text
-    /// It waits if there is a concurrent call, but does not cancel the concurrent call.
-    /// returns NONE if the doc has changed in the meantime
-    let makeLogSnapShot  (doc:TextDocument, stateRef:int64 ref, id:int64) =
-        if stateRef.Value = id then
-            let code = doc.CreateSnapshot().Text
-            if stateRef.Value = id then
-                Some code
-            else
-                None
-        else
-            None
-
-
 open SelectionHighlighting
 open System.Threading
 
@@ -301,11 +287,10 @@ type SelectionHighlighter (state:InteractionState) =
                     // else keep the highlighting
 
             // keep highlighting if the cursor is just moved, even while typing in comments:
+            // (any doc change, also in comments, updates the CodeLines and then searches again via UpdateTransformers)
             |NoSel   ->
-                if lastWord <> "" then
-                    if state.CodeLines.IsNotFromId(state.DocChangedId.Value) // if the doc has changed only in a comment the IDs don't match and we redrawMarking. this redrawMarking will update the code lines
-                    || lastSkipOff <> MarkAll then  // if lastSkipOff = MarkAll then all words are highlighted there is no change to highlighting needed
-                        redrawMarking(lastWord, MarkAll, true, newSelId) // keep highlighting and add the word that was selected before
+                if lastWord <> "" && lastSkipOff <> MarkAll then  // if lastSkipOff = MarkAll then all words are highlighted there is no change to highlighting needed
+                    redrawMarking(lastWord, MarkAll, true, newSelId) // keep highlighting and add the word that was selected before
 
 
     let debounce =
@@ -384,18 +369,15 @@ type SelectionHighlighterLog (lg:TextEditor) =
     let mutable thisRange: (int*int) option = None
     let mutable prevRange: (int*int) option = None
 
-    /// tracks changes to the log
-    let logStateRef = ref 0L
-
     /// track new highlighting requests
-    let markCallID  = ref 0 // because while getting the text below, the Editor selection might have changed already
+    let markCallID  = ref 0 // because while searching below, the Log text or the selection might have changed already
 
     let trans = LineTransformers<LinePartChange>(SkipSelectedText = true) // the selected text has its own highlighting
     let colorizer = FastColorizer( [|trans|], lg.TextArea )
 
-    /// The lines to search in, and the logStateRef id of the text they were made from.
-    /// Replaced as a whole, so that a search that is still running keeps a consistent copy.
-    let mutable linesSnap = (-1L, CodeLinesSimple())
+    /// The lines to search in. Only the appended text gets added on each change, the full text of the Log is never copied.
+    /// A search uses a snapshot of it, so it stays consistent while more text gets appended.
+    let logLines = LogLines()
 
     let forceClear(triggerNext) =
         if lastWord <> "" then
@@ -422,31 +404,19 @@ type SelectionHighlighterLog (lg:TextEditor) =
 
     // Called from StatusBar to highlight the current selection of Editor in Log too
     // All occurrences are marked and counted, the FastColorizer skips the selected text.
-    let mark (word:string, skipOff: SkipMarking, triggerNext:bool) =
-        let changeId = logStateRef.Value
-        let markId   = Threading.Interlocked.Increment markCallID
-        let lgDoc = lg.Document
-        // let prevFoundCount = lastSels.Count
+    // delay: milliseconds to wait before searching, so that a burst of prints to the Log only triggers one search.
+    let mark (word:string, skipOff: SkipMarking, triggerNext:bool, delay:int) =
+        let markId = Threading.Interlocked.Increment markCallID
+        let lines  = logLines.Snapshot // taken here on the UI thread, so it matches the current Log text
         lastWord <- word // save last selection word even if it is not found, it might be found after a doc change
         lastSkipOff <- skipOff
         async{
+            if delay > 0 then
+                do! Async.Sleep delay
 
-            // (1) make sure the lines for searching are up to date
-            // TODO: could be optimized to append changes to the lines instead of recreating the whole text
-            if fst linesSnap <> changeId then
-                do! Async.Sleep 50 // needed for getting correct text in snapshot
-                match SelectionHighlighting.makeLogSnapShot(lgDoc,logStateRef,changeId) with
-                | None     -> ()   // there are some newer doc changes !
-                | Some txt ->
-                    let newLines = CodeLinesSimple()
-                    newLines.UpdateLogLines(txt)
-                    linesSnap <- (changeId, newLines)
-
-            // (2) search for the word in the lines:
-            let linesId, lines = linesSnap
-            if linesId = changeId && markId = markCallID.Value && logStateRef.Value = changeId  then // because while getting the text above, the text or the selection might have changed already
-                let codeStr  = lines.FullCode
-                let lastLineNo = lines.LastLineIdx
+            // search for the word in the lines:
+            if markId = markCallID.Value then // false if there was a newer mark call or a forceClear in the meantime
+                let lastLineNo = lines.LastLineNo
                 let wordLen = word.Length
                 let offs = ResizeArray<int>()
 
@@ -455,30 +425,28 @@ type SelectionHighlighterLog (lg:TextEditor) =
                 let mutable rangeStart = -1
                 let mutable rangeEnd = -1
 
-                /// returns false if aborted because of newer doc change
+                /// returns false if aborted because of a newer mark call
                 let rec searchFromLine lineNo =
                     if lineNo > lastLineNo then
                         true // return true if loop completed
-                    elif logStateRef.Value <> changeId then
-                        false // return false if there is a newer doc change
+                    elif markId <> markCallID.Value then
+                        false // return false if there is a newer mark call, e.g. from a doc change
                     else
                         let l = lines.GetLine(lineNo)
-                        let mutable off = codeStr.IndexOf(word, l.offStart, l.len, StringComparison.Ordinal)
-                        while off >= 0 do
+                        let mutable i = l.text.IndexOf(word, StringComparison.Ordinal)
+                        while i >= 0 do
+                            let off = l.offStart + i
                             offs.Add off
                             // also mark the current selection, the FastColorizer skips selected text because SkipSelectedText = true
                             LineTransformers.Insert(newMarks,lineNo, {from=off; till=off+wordLen; act=action})
                             rangeEnd <- off + wordLen
                             if rangeStart < 0 then // set range start if not set yet
                                 rangeStart <- off
-                            let start = off + word.Length // search from this for next occurrence in this line
-                            let lenReduction = start - l.offStart
-                            let remainingLineLength = l.len - lenReduction
-                            off <- codeStr.IndexOf(word, start, remainingLineLength , StringComparison.Ordinal)
+                            i <- l.text.IndexOf(word, i + wordLen, StringComparison.Ordinal) // search for next occurrence in this line
 
                         searchFromLine (lineNo + 1)
 
-                if searchFromLine 1 then // tests if there is a newer doc change
+                if searchFromLine 1 then // tests if there is a newer mark call
                     // Commit on the UI thread, so that forceClear (also on the UI thread) can't run between the check and the commit.
                     do! Async.SwitchToContext Fittings.SyncWpf.context
                     if markId = markCallID.Value then // false if there was a newer mark call or a forceClear in the meantime
@@ -513,7 +481,7 @@ type SelectionHighlighterLog (lg:TextEditor) =
                             foundSelectionLogEv.Trigger(triggerNext)
 
                 else
-                    () // don't redraw, there is already a new doc change happening that will be drawn
+                    () // don't redraw, there is already a newer mark call that will be drawn
 
         }|> Async.Start
 
@@ -528,13 +496,13 @@ type SelectionHighlighterLog (lg:TextEditor) =
                     let word = lg.SelectedText
                     if isTextToHighlight word then  //is at least two chars and has no line breaks
                         let skip = SkipOffset lg.SelectionStart
-                        mark(word, skip, true)
+                        mark(word, skip, true, 0)
                     // else keep the highlighting
 
             // keep highlighting if the cursor is just repositioned, but nothing selected:
             |NoSel  ->
                 if lastWord <> "" && lastSkipOff <> MarkAll then  // if lastSkipOff = MarkAll then all words are highlighted. there is no change to highlighting needed
-                    mark(lastWord, MarkAll, true) // keep highlighting and add the word that was selected before
+                    mark(lastWord, MarkAll, true, 0) // keep highlighting and add the word that was selected before
 
     let debounce =
         let mutable lastId = ref 0L
@@ -552,13 +520,16 @@ type SelectionHighlighterLog (lg:TextEditor) =
         // lg.TextArea.SelectionChanged.Add ( fun _ -> updateToCurrentSelection() )
         lg.TextArea.SelectionChanged.Add ( fun _ -> if reactToSelChange then debounce 150 ) // reactToSelChange is false while MarkInLog clears the selection itself
 
-        lg.Document.Changing.Add (fun _ ->
-            Threading.Interlocked.Increment logStateRef |> ignore
-            )
+        logLines.Reset(lg.Document.Text) // the Log might have some text already
 
-        lg.Document.Changed.Add (fun _ -> // redraw highlighting because new text to highlight might get printed to log
-            if lastWord <> "" then
-                mark(lastWord, lastSkipOff, false) // using lastSkipOff is OK for Log because if there is a selection in the Log the text in a selection can not move or be deleted
+        lg.Document.Changed.Add (fun e ->
+            if e.RemovalLength = 0 && e.Offset = logLines.DocLength then
+                logLines.Append(e.InsertedText.Text) // the usual case, the Log is append only, so only the new text gets added
+            else
+                logLines.Reset(lg.Document.Text) // e.g. when the Log got cleared
+
+            if lastWord <> "" then // redraw highlighting because new text to highlight might get printed to log
+                mark(lastWord, lastSkipOff, false, 50) // using lastSkipOff is OK for Log because if there is a selection in the Log the text in a selection can not move or be deleted
             )
 
     /// used when escape is pressed and not type info is open
@@ -586,6 +557,6 @@ type SelectionHighlighterLog (lg:TextEditor) =
                 reactToSelChange <- false // to not trigger a selection changed event
                 lg.TextArea.ClearSelection()
                 reactToSelChange <- true
-            mark(word, MarkAll, false)
+            mark(word, MarkAll, false, 0)
         else
             clearLogIfNeeded(false)
