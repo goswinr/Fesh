@@ -20,8 +20,8 @@ jobs:
     # nuget.org Trusted Publishing in releaseNuget.yml doesn't read `sub`, it checks the repo and owner ids itself.
     environment:
       name: releaseStandalone
-    # Least privilege: this workflow only pushes the -net48 tag and creates the GitHub Release,
-    # both of which need just `contents: write`. Avoid `write-all`, which also grants packages,
+    # Least privilege: this workflow only creates the GitHub Releases and with them the -net48 tag,
+    # which needs just `contents: write`. Avoid `write-all`, which also grants packages,
     # deployments, actions, security-events, etc. that this job never uses.
     permissions:
       contents: write
@@ -41,15 +41,6 @@ jobs:
         # Don't leave GITHUB_TOKEN in .git/config, where the vpk / dotnet tooling run later
         # could read it. This job authenticates each tool explicitly, so persistence isn't needed.
         persist-credentials: false
-
-    - name: Push tag with -net48 suffix
-      # Third-party action MUST be SHA-pinned: its v1 tag is mutable, and this step runs with
-      # GITHUB_TOKEN, so a moved tag could exfiltrate the token or tamper with the release.
-      uses: richardsimko/update-tag@24fe62c216198eb57283429200e63a06f62afe5b # v3.0.0
-      with:
-        tag_name: "${{ github.ref_name }}-net48"
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Setup .NET
       uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
@@ -142,11 +133,15 @@ jobs:
           --outputDir bin/installer/net48 `
           --channel framework
 
+        # The -net48 tag doesn't exist yet: GitHub creates it at --targetCommitish, the released commit,
+        # when vpk publishes the draft release after uploading. So a run that fails before, e.g. at
+        # signing, leaves no tag behind. (The net10 release uses the tag that triggered this run.)
         vpk upload github `
           --publish `
           --repoUrl https://github.com/goswinr/Fesh `
           --releaseName "Fesh ${{github.ref_name}} net4.8" `
           --tag "${{github.ref_name}}-net48" `
+          --targetCommitish "${{github.sha}}" `
           --outputDir bin/installer/net48 `
           --channel framework
           
