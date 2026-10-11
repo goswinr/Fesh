@@ -240,6 +240,8 @@
     <Style TargetType="{x:Type TabControl}">
         <Setter Property="Foreground" Value="{DynamicResource Fesh.Text}"/>
         <Setter Property="Background" Value="{DynamicResource Fesh.EditorBg}"/>
+        <!-- so that the AlternationIndex of each tab is its index, the TabItem style uses it to find the first tab -->
+        <Setter Property="AlternationCount" Value="2147483647"/>
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="{x:Type TabControl}">
@@ -248,9 +250,11 @@
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="*"/>
                         </Grid.RowDefinitions>
-                        <TabPanel x:Name="HeaderPanel" IsItemsHost="True" Panel.ZIndex="1" Margin="2,0,2,0" KeyboardNavigation.TabIndex="1"/>
-                        <Border Grid.Row="1" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
-                                BorderThickness="{TemplateBinding BorderThickness}"
+                        <!-- the first tab is aligned on the left with the editor below, the right margin leaves room for the curve of the last tab -->
+                        <TabPanel x:Name="HeaderPanel" IsItemsHost="True" Panel.ZIndex="1" Margin="{DynamicResource Fesh.TabStripMargin}" KeyboardNavigation.TabIndex="1"/>
+                        <!-- the same border as the tabs, so that it continues from the selected tab around the editor -->
+                        <Border Grid.Row="1" Background="{TemplateBinding Background}" BorderBrush="{DynamicResource Fesh.Border}"
+                                BorderThickness="1"
                                 KeyboardNavigation.TabNavigation="Local" KeyboardNavigation.DirectionalNavigation="Contained" KeyboardNavigation.TabIndex="2">
                             <ContentPresenter x:Name="PART_SelectedContentHost" ContentSource="SelectedContent" Margin="{TemplateBinding Padding}"/>
                         </Border>
@@ -269,10 +273,23 @@
                 <ControlTemplate TargetType="{x:Type TabItem}">
                     <Grid x:Name="Root" Margin="0,2,0,0" SnapsToDevicePixels="True">
                         <Border x:Name="Bd" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
-                                BorderThickness="1,1,1,0" Margin="0,0,-1,0">
+                                BorderThickness="1,1,1,0" Margin="0,0,-1,0" CornerRadius="{DynamicResource Fesh.TabCornerRadius}">
                             <ContentPresenter ContentSource="Header" RecognizesAccessKey="True" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="2,0,2,0"/>
                         </Border>
-                        <Border x:Name="Accent" Height="2" VerticalAlignment="Top" Margin="0,0,-1,0" Background="{DynamicResource Fesh.Accent}" Visibility="Collapsed"/>
+                        <!-- The concave curves from the selected tab into the editor below. They reach out of the tab on both sides.
+                             Each is a fill in the editor color that covers the border line of the editor, and the curved border line on top. -->
+                        <Canvas x:Name="CurveLeft" HorizontalAlignment="Left" VerticalAlignment="Bottom" Visibility="Collapsed">
+                            <Path Canvas.Right="-1" Canvas.Bottom="0" Width="{DynamicResource Fesh.TabCurveSize}" Height="{DynamicResource Fesh.TabCurveSize}"
+                                  Stretch="Fill" Fill="{DynamicResource Fesh.EditorBg}" Data="M1,0 A1,1 0 0 1 0,1 L1,1 Z"/>
+                            <Path Canvas.Right="-1" Canvas.Bottom="0" Width="{DynamicResource Fesh.TabCurveSize}" Height="{DynamicResource Fesh.TabCurveSize}"
+                                  Stretch="Fill" Stroke="{TemplateBinding BorderBrush}" StrokeThickness="1" Data="M1,0 A1,1 0 0 1 0,1"/>
+                        </Canvas>
+                        <Canvas x:Name="CurveRight" HorizontalAlignment="Right" VerticalAlignment="Bottom" Visibility="Collapsed">
+                            <Path Canvas.Left="0" Canvas.Bottom="0" Width="{DynamicResource Fesh.TabCurveSize}" Height="{DynamicResource Fesh.TabCurveSize}"
+                                  Stretch="Fill" Fill="{DynamicResource Fesh.EditorBg}" Data="M0,0 A1,1 0 0 0 1,1 L0,1 Z"/>
+                            <Path Canvas.Left="0" Canvas.Bottom="0" Width="{DynamicResource Fesh.TabCurveSize}" Height="{DynamicResource Fesh.TabCurveSize}"
+                                  Stretch="Fill" Stroke="{TemplateBinding BorderBrush}" StrokeThickness="1" Data="M0,0 A1,1 0 0 0 1,1"/>
+                        </Canvas>
                     </Grid>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
@@ -282,8 +299,17 @@
                             <Setter Property="Panel.ZIndex" Value="1"/>
                             <Setter TargetName="Root" Property="Margin" Value="0,0,0,-1"/>
                             <Setter TargetName="Bd" Property="Background" Value="{DynamicResource Fesh.EditorBg}"/>
-                            <Setter TargetName="Accent" Property="Visibility" Value="Visible"/>
+                            <Setter TargetName="CurveLeft" Property="Visibility" Value="Visible"/>
+                            <Setter TargetName="CurveRight" Property="Visibility" Value="Visible"/>
                         </Trigger>
+                        <!-- the first tab is aligned with the left side of the editor, so it continues straight down into it -->
+                        <MultiTrigger>
+                            <MultiTrigger.Conditions>
+                                <Condition Property="IsSelected" Value="True"/>
+                                <Condition Property="ItemsControl.AlternationIndex" Value="0"/>
+                            </MultiTrigger.Conditions>
+                            <Setter TargetName="CurveLeft" Property="Visibility" Value="Collapsed"/>
+                        </MultiTrigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
             </Setter.Value>

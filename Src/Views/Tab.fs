@@ -31,7 +31,7 @@ type Tab (editor:Editor) = //, config:Fesh.Config.Config, allFileInfos:seq<IO.Fi
     let mutable savingWanted = true
 
 
-    let textBlock = new TextBlock(VerticalAlignment = VerticalAlignment.Center) //, Padding = Thickness(2.) ) , FontFamily = StyleState.fontEditor)
+    let textBlock = new TextBlock(VerticalAlignment = VerticalAlignment.Center, FontSize = 14.) //, Padding = Thickness(2.) ) , FontFamily = StyleState.fontEditor)
 
     //let cross = new Shapes.Path( Data = Geometry.Parse("M0,7 L7,0 M0,0 L7,7"),   StrokeThickness = 0.8 )  //"M1,8 L8,1 M1,1 L8,8"
     let cross = new Shapes.Path( Data = Geometry.Parse("M0,10 L10,0 M0,0 L10,10"))

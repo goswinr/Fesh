@@ -28,6 +28,11 @@ module StatusbarStyle =
     // the colors are in Theme.statusBar
     let textPadding = Thickness(4. , 1. , 4., 1. ) //left ,top, right, bottom)
 
+    /// Rounds the corners of the colored background of a status, by clipping it.
+    /// A TextBlock has no CornerRadius.
+    let roundCorners (t:TextBlock) =
+        t.SizeChanged.Add (fun e -> t.Clip <- RectangleGeometry(Rect(e.NewSize), 3.0, 3.0))
+
 open StatusbarStyle
 open System.Threading
 
@@ -152,6 +157,7 @@ type CheckerStatus (grid:TabsAndLog) as this =
     do
         lastErrCount <- -1
         this.Padding <-textPadding
+        roundCorners this
         this.Text <- checkingTxt
         setBackground (fun c -> c.wait) //originalBackGround
         Theme.Changed.Add (fun () -> this.Background <- background Theme.statusBar)
@@ -186,6 +192,7 @@ type FsiRunStatus (grid:TabsAndLog) as this =
 
     do
         this.Padding <- textPadding
+        roundCorners this
         this.Inlines.Add ("FSI is initializing . . .")
         setBackground (fun c -> c.wait) //originalBackGround
         Theme.Changed.Add (fun () ->

@@ -77,12 +77,26 @@ module ThemeChrome =
         d.[SystemColors.ControlTextColorKey] <- c.text.Color
         d
 
+    /// The radius of the rounded corners of the tabs in the dark theme:
+    /// the top corners of each tab, and the curves from the selected tab into the editor below it.
+    let tabCornerRadius = 6.0
+
+    /// The sizes used by the styles in ThemeChrome.xaml, all derived from tabCornerRadius.
+    let private sizes () =
+        let d = ResourceDictionary()
+        let r = tabCornerRadius
+        d.["Fesh.TabCornerRadius"] <- box (CornerRadius(r, r, 0., 0.))
+        d.["Fesh.TabCurveSize"]    <- box r
+        d.["Fesh.TabStripMargin"]  <- box (Thickness(0., 0., r, 0.))
+        d
+
     let mutable private darkDict : ResourceDictionary = null
 
     /// The resources for the dark theme. Only call it if the dark theme is on, it uses the current colors of the editor.
     let darkResources () =
         if isNull darkDict then
             let d = ResourceDictionary()
+            d.MergedDictionaries.Add(sizes())
             d.MergedDictionaries.Add(brushes Theme.darkChrome Theme.editor)
             d.MergedDictionaries.Add(loadStyles())
             darkDict <- d
