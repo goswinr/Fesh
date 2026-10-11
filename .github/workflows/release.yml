@@ -10,10 +10,14 @@ jobs:
   build-and-release:
     runs-on: windows-latest # will run commands on powershell, windows is needed so that ATS signtool.exe works inside --azureTrustedSignFile
     # Run in a GitHub Environment so the OIDC token's `sub` claim is the environment form
-    # (repo:goswinr/Fesh:environment:releaseStandalone) instead of the branch/tag ref. This
+    # (repo:goswinr@884885/Fesh@600576619:environment:releaseStandalone) instead of the branch/tag ref. This
     # decouples Azure federated login from the tag trigger: the same subject is presented on
     # every release regardless of which tag was pushed. Add required reviewers / branch limits
     # to this environment in repo Settings to gate who can release.
+    # The repo uses GitHub's immutable subject, with the ids of the owner (884885) and the repo (600576619),
+    # so a repo recreated under the same name after a rename or deletion can't sign. The setting is at
+    # GET/PUT repos/goswinr/Fesh/actions/oidc/customization/sub (use_immutable_subject).
+    # nuget.org Trusted Publishing in releaseNuget.yml doesn't read `sub`, it checks the repo and owner ids itself.
     environment:
       name: releaseStandalone
     # Least privilege: this workflow only pushes the -net48 tag and creates the GitHub Release,
@@ -25,7 +29,7 @@ jobs:
       # OIDC provider, which azure/login exchanges for an Azure access token. No client secret
       # is stored in GitHub. Azure trusts the token only if its `sub` claim matches the
       # federated credential configured on the app registration:
-      #   repo:goswinr/Fesh:environment:releaseStandalone
+      #   repo:goswinr@884885/Fesh@600576619:environment:releaseStandalone
       id-token: write
     steps:
 
@@ -95,7 +99,7 @@ jobs:
         # OIDC (federated) login — no long-lived client secret in GitHub. Configure a
         # federated credential on the Azure app registration with:
         #   Issuer:  https://token.actions.githubusercontent.com
-        #   Subject: repo:goswinr/Fesh:environment:releaseStandalone
+        #   Subject: repo:goswinr@884885/Fesh@600576619:environment:releaseStandalone
         #   Audience: api://AzureADTokenExchange
         # and grant that app the "Trusted Signing Certificate Profile Signer" role.
         client-id: ${{ secrets.AZURE_CLIENT_ID }}
