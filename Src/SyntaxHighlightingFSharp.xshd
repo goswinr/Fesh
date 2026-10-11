@@ -109,7 +109,7 @@
   <Color name="Semantic.UnionCaseField"               foreground="#236A96" darkForeground="#4FC1FF" />
   <Color name="Semantic.Function"                     foreground="#905E00" darkForeground="#DCDCAA" />
   <Color name="Semantic.Property"                     foreground="#006063" darkForeground="#98E2E2" />
-  <Color name="Semantic.MutableVar"                   foreground="#C6910C" darkForeground="#FFAF5F" underline="true" />
+  <Color name="Semantic.MutableVar"                   foreground="#C6910C" darkForeground="#FFAF5F" /> <!-- underline="true" -->
   <Color name="Semantic.Module"                       foreground="#000000" darkForeground="#D4D4D4" />
   <Color name="Semantic.Namespace"                    foreground="#000000" darkForeground="#D4D4D4" />
   <Color name="Semantic.ComputationExpression"        foreground="#4B0082" darkForeground="#D19AE8" />
@@ -127,7 +127,7 @@
   <Color name="Semantic.ConstructorForValueType"      foreground="#A45410" darkForeground="#5FA868" />
   <Color name="Semantic.Literal"                      foreground="#2E8B57" darkForeground="#53E0A0" />
   <Color name="Semantic.RecordField"                  foreground="#254545" darkForeground="#ABCDCD" />
-  <Color name="Semantic.MutableRecordField"           foreground="#C6910C" darkForeground="#FFAF5F" underline="true" />
+  <Color name="Semantic.MutableRecordField"           foreground="#C6910C" darkForeground="#FFAF5F" /> <!-- underline="true" -->
   <Color name="Semantic.RecordFieldAsFunction"        foreground="#DDA0DD" darkForeground="#F0C0D8" />
   <Color name="Semantic.Exception"                    foreground="#D7418C" darkForeground="#E88AB8" />
   <Color name="Semantic.Field"                        foreground="#9370DB" darkForeground="#C8B8F0" />
@@ -149,13 +149,13 @@
   Only 'Editor.Selection' is optional, if it is missing AvalonEdit's default selection color is used.
   Colors can have an alpha value, e.g. #28FFB400
   -->
-  <Color name="Editor.Background"                 background="#FFFFFF" darkBackground="#1E1E1E" />
+  <Color name="Editor.Background"                 background="#FFFFFF" darkBackground="#121212" />
   <Color name="Editor.Foreground"                 foreground="#000000" darkForeground="#D4D4D4" /> <!-- text that no rule colors -->
-  <Color name="Editor.CurrentLine"                background="#F6FFFF" darkBackground="#2A2D2E" />
+  <Color name="Editor.CurrentLine"                background="#F6FFFF" darkBackground="#1f1f1f" />
   <Color name="Editor.Link"                       foreground="#006400" darkForeground="#5DBB63" />
-  <Color name="Editor.Margin"                     background="#F7F7F7" darkBackground="#252526" /> <!-- the line number and folding margin -->
-  <Color name="Editor.LineNumbers"                foreground="#C0C0C0" darkForeground="#858585" />
-  <Color name="Editor.CurrentLineNumber"          foreground="#000000" darkForeground="#C6C6C6" /> <!-- the line with the caret -->
+  <Color name="Editor.Margin"                     background="#F7F7F7" darkBackground="#151515" /> <!-- the line number and folding margin -->
+  <Color name="Editor.LineNumbers"                foreground="#C0C0C0" darkForeground="#555" />
+  <Color name="Editor.CurrentLineNumber"          foreground="#000000" darkForeground="#EEEEEE" /> <!-- the line with the caret -->
   <Color name="Editor.ColumnRuler"                foreground="#E7E7E7" darkForeground="#383838" /> <!-- the first ruler, the following ones fade out -->
   <Color name="Editor.FoldingMarker"              foreground="#808080" darkForeground="#808080" />
   <Color name="Editor.FoldingMarkerBg"            background="#FFFFFF" darkBackground="#252526" />
@@ -180,7 +180,7 @@
   <Color name="Log.Border"                        foreground="#000000" darkForeground="#3F3F46" />
   <Color name="Log.SelectionHighlight"            background="#DCDCFF" darkBackground="#2E2E5E" /> <!-- all other occurrences of the selected word -->
   <Color name="Log.Margin"                        background="#FFFFFF" darkBackground="#1B1B1C" /> <!-- the line number margin -->
-  <Color name="Log.LineNumbers"                   foreground="#C0C0C0" darkForeground="#858585" />
+  <Color name="Log.LineNumbers"                   foreground="#C0C0C0" darkForeground="#555" />
 
 
   <!-- ReExes that are listed higher have precedence of lower positions in this list
