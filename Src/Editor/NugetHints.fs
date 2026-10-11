@@ -224,6 +224,7 @@ type NugetHints (ed:TextEditor, getFolder: unit -> string, tryRecheck: unit -> b
             let folder = getFolder()
             let doc = ed.Document
             let editedLine = editedNugetLine
+            let mutable changedLine : DocumentLine = null
             doc.BeginUpdate()
             try
                 for line in doc.Lines do
@@ -233,11 +234,16 @@ type NugetHints (ed:TextEditor, getFolder: unit -> string, tryRecheck: unit -> b
                             let name = NugetVersions.GetPackageName(folder, d.name)
                             if name <> d.name then
                                 doc.Replace(line.Offset + d.nameEnd - d.name.Length, d.name.Length, name, OffsetChangeMappingType.CharacterReplace)
+                                changedLine <- line
                         | None -> ()
             finally
                 doc.EndUpdate()
                 // Casing does not change package resolution or supersede a pending version edit.
                 editedNugetLine <- editedLine
+            // But like any edit, the casing fix starts a type check that skips the packages on its line.
+            // Unless a pending edit of a #r line checks again anyway when the caret leaves it, check again right away:
+            if not (isNull changedLine) && isNull editedLine && not (tryRecheck()) then
+                editedNugetLine <- changedLine
 
     let mutable casingFixPending = false
 

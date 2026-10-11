@@ -5,12 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.35.0] - 2026-10-11
 ### Added
 - a dark theme. Switch it with 'Toggle Dark / Light Theme' in the View menu. It switches right away, including the text already printed to the Log. The choice is saved as `DarkTheme` in the Settings.txt file.
 - the dark colors of the syntax highlighting are in the SyntaxHighlightingFSharp.xshd file, as `darkForeground` attributes next to the light colors. They are based on the colors of F# in VS Code with its default dark theme and the Ionide extension, including the colors of nested brackets. All the distinctions of the light theme are kept, with shades of these colors
 - mutable values and mutable record fields are underlined, in both themes. They have their own color, and so do the `mutable` keyword and the `<-` assignment
 - a completion list for the package name in `#r "nuget: ..."` lines, with the previously used packages, the most used first. A package counts as used when it is picked from this list, and when code with its `#r "nuget: ..."` line is evaluated without errors. The counts are saved in the NuGet-Statistic.txt file in the Settings folder. From the third typed character on, the packages found on nuget.org are added to the list
+- the control after a `#r "nuget: ..."` line also offers a newer prerelease, if there is one. For a prerelease version it offers a button to return to the latest stable version
+- an animated spinner after a `#r "nuget: ..."` line, while the versions of its package are looked up for the first time
+- the package name in a `#r "nuget: ..."` line gets the casing from its NuGet source, e.g. `fsharp.data` becomes `FSharp.Data`, as soon as its versions are looked up
 - Go to Definition (F12, or right-click a name): selects where the name is defined, in the same file or in a file loaded with `#load`. For names from assemblies, like NuGet packages, it asks to open their source in VS Code. A source file on this computer opens with its git repository folder. Otherwise the source is found via SourceLink, or via the GitHub repository and commit in the .nuspec file of the package. Then either only the file is downloaded, or the repository is cloned with git at that commit, so that VS Code can load the project. From big repositories only the folder of the project is checked out. Both are cached in the Temp folder
 ### Changed
 - the font of the tab headers is bigger. In the dark theme the tabs have rounded corners, and the selected tab curves into the editor below it, without the accent line on top. The border of the tabs continues around the editor
@@ -19,12 +22,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - the colors of the semantic highlighting are in the SyntaxHighlightingFSharp.xshd file too, as `Semantic.` colors, so they can be edited and reloaded like the other syntax colors
 - reloading the SyntaxHighlightingFSharp.xshd file after an edit updates all open tabs, not only the current one
 - on .NET, cancelling a running script calls `System.Runtime.ControlledExecution` directly instead of changing private fields of FSharp.Compiler.Service via reflection. For this FSI always runs with `--exec`, it is added if it is missing in the FSI-Arguments.txt file
+- highlighting the occurrences of the selected text in a long Log is faster. The Log text is no longer copied for each search, only new output is added, and new output is searched without a 50 ms delay
+- 'Compile Script via MSBuild' finds MSBuild.exe via vswhere.exe, so it also finds Visual Studio 2026 and the Build Tools
+- update AvalonLog to `0.21.0`, it brings AvalonEditB `2.5.0`
 ### Fixed
 - in `p.X` only the record field `X` gets the color of record fields, not the `p.` before it
 - typing a dot after a closing bracket, like in `System.Guid.NewGuid().` or `xs[0].`, opens the completion list with the members of that expression. Whitespace before the dot is skipped too, so it also works at the start of a correctly indented line, like in a method chain on several lines
 - on .NET, cancelling a script that waits in a blocking call like `Thread.Sleep` no longer freezes the editor until that call returns
 - a reset of FSI disposes the previous session. Before, every reset kept the previous session with its loaded references and its assembly resolve handler. If an evaluation of the previous session is still running, the session is disposed when that evaluation ends
 - 'Open in VS Code', 'Open with VS Code' for file paths, and opening the SyntaxHighlightingFSharp.xshd file start VS Code via its `code.cmd` from the PATH. Before, Windows started `Code.exe` directly, hidden, and VS Code could ignore the file to open
+- code that is edited while it is being evaluated is no longer marked as evaluated when the evaluation finishes
+- in xml doc tooltips, inline tags like `<c>` outside of a `<summary>` tag are shown as code, not as a section header
+- 'Compile Script' resolves the paths in `#r` and `#load` lines relative to the file that contains them, not to the current directory. It also handles the `#r` and `#load` lines in files that are loaded with `#load`
+- 'Compile Script' sometimes did not print the `#r` line of the built dll and did not copy it to the clipboard, because the last build output arrived after the build process had ended
 
 ## [0.34.0] - 2026-10-05
 ### Added
@@ -267,7 +277,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - first public release
 
-[Unreleased]: https://github.com/goswinr/Fesh/compare/0.33.5...HEAD
+[Unreleased]: https://github.com/goswinr/Fesh/compare/0.35.0...HEAD
+[0.35.0]: https://github.com/goswinr/Fesh/compare/0.34.0...0.35.0
+[0.34.0]: https://github.com/goswinr/Fesh/compare/0.33.5...0.34.0
 [0.33.5]: https://github.com/goswinr/Fesh/compare/0.33.2...0.33.5
 [0.33.2]: https://github.com/goswinr/Fesh/compare/0.33.1...0.33.2
 [0.33.1]: https://github.com/goswinr/Fesh/compare/0.33.0...0.33.1
