@@ -13,7 +13,8 @@ On Windows.
 It is designed for embedding F# as application scripting tool.<br>
 But it works standalone just as well.
 
-![Screenshot](https://raw.githubusercontent.com/goswinr/Fesh/main/Media/screen2.png)
+![Screenshot](https://raw.githubusercontent.com/goswinr/Fesh/main/Media/screen-dark.png#gh-dark-mode-only)
+![Screenshot](https://raw.githubusercontent.com/goswinr/Fesh/main/Media/screen-light.png#gh-light-mode-only)
 
 It is based on the excellent [AvalonEdit](https://github.com/goswinr/AvalonEditB), that is why it only works on Windows (for now).<br>
 The editor supports F# 10 and has modern IDE features like semantic syntax highlighting, type-info and autocomplete.<br>
