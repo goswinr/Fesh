@@ -94,26 +94,13 @@ module SyntaxHighlighting =
     /// Editors that wait for the first loading to finish
     let private waiting = ResizeArray<TextEditor>()
 
-    /// Replaces each attribute that has a 'dark' version, e.g. 'foreground' with 'darkForeground', if the dark theme is used.
-    /// Then removes all these 'dark...' attributes, they are not part of the xshd schema.
-    let private applyDarkAttributes (doc:XmlDocument) =
-        let isDarkVersion (name:string) = name.Length > 4 && name.StartsWith "dark" && Char.IsUpper name.[4]
-        for el in doc.GetElementsByTagName "*" |> Seq.cast<XmlElement> do
-            let darkAttributes = el.Attributes |> Seq.cast<XmlAttribute> |> Seq.filter (fun a -> isDarkVersion a.LocalName) |> Seq.toArray
-            for a in darkAttributes do
-                if Theme.isDark then
-                    let n = a.LocalName.Substring 4
-                    el.SetAttribute(string (Char.ToLowerInvariant n.[0]) + n.Substring 1, a.Value)
-                el.Attributes.Remove a |> ignore
-
     let private loadDefinition () =
         //let stream = Reflection.Assembly.GetExecutingAssembly().GetManifestResourceStream("FSharpSyntaxHighlighter.xshd") // Build action : Embedded Resource; Copy to output Dir: NO
-        let assemblyLocation = IO.Path.GetDirectoryName(Reflection.Assembly.GetExecutingAssembly().Location)
-        let path = Path.Combine(assemblyLocation,"SyntaxHighlightingFSharp.xshd") //will be copied there after compiling recompiling
+        let path = Theme.xshdPath //will be copied there after compiling recompiling
         filePath <- path
         let doc = XmlDocument(PreserveWhitespace = true) // to keep the line numbers for error messages
         doc.Load path
-        applyDarkAttributes doc
+        Theme.applyDarkAttributes Theme.isDark doc
         use reader = new XmlTextReader(new StringReader(doc.OuterXml))
         Xshd.HighlightingLoader.Load(reader, HighlightingManager.Instance)
 
@@ -167,6 +154,7 @@ module SyntaxHighlighting =
         darkDef  <- null
         load (fun def ->
             for e in editors() do e.SyntaxHighlighting <- def
+            for problem in Theme.reloadColors() do IFeshLog.log.PrintfnAppErrorMsg "%s" problem // the colors of the editor and the Log, raises Theme.Changed
             IFeshLog.log.PrintfnInfoMsg "loaded syntax highlighting from: %s" filePath
             )
 

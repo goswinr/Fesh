@@ -124,6 +124,12 @@ type Log private () =
         log.BorderBrush <- c.border
         ed.Background   <- c.background
         ed.Foreground   <- c.foreground
+        for m in ed.TextArea.LeftMargins do
+            match m with
+            | :? Editing.LineNumberMargin as lnm ->
+                lnm.BackgroundColor            <- c.margin
+                lnm.LineNumberForegroundColor  <- c.lineNumbers
+            | _ -> ()
         ed.TextArea.TextView.LinkTextForegroundBrush <- c.link
         if isNull Theme.editor.selection then
             ed.TextArea.ClearValue Editing.TextArea.SelectionBrushProperty

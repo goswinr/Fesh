@@ -79,11 +79,11 @@ module ThemeChrome =
 
     let mutable private darkDict : ResourceDictionary = null
 
-    /// The resources for the dark theme
+    /// The resources for the dark theme. Only call it if the dark theme is on, it uses the current colors of the editor.
     let darkResources () =
         if isNull darkDict then
             let d = ResourceDictionary()
-            d.MergedDictionaries.Add(brushes Theme.darkChrome Theme.darkEditor)
+            d.MergedDictionaries.Add(brushes Theme.darkChrome Theme.editor)
             d.MergedDictionaries.Add(loadStyles())
             darkDict <- d
         darkDict
@@ -152,9 +152,14 @@ module ThemeChrome =
 
     do
         Theme.Changed.Add (fun () ->
+            let old = darkDict
+            darkDict <- null // it uses the editor colors from the xshd file, they might have been edited. It is created again when needed
             tracked.RemoveAll(fun t ->
                 match t.element.TryGetTarget() with
-                | true, fe -> applyTo fe t.lightBg t.darkBg; false
+                | true, fe ->
+                    if notNull old then fe.Resources.MergedDictionaries.Remove old |> ignore
+                    applyTo fe t.lightBg t.darkBg
+                    false
                 | _ -> true
                 ) |> ignore
             )

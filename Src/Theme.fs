@@ -1,14 +1,18 @@
 ﻿namespace Fesh
 
 open System
+open System.Collections.Generic
 open System.Windows.Media
+open System.Xml
 open AvalonLog.Brush
 
-// All colors of Fesh, except the ones for syntax highlighting.
-// The syntax highlighting colors (including the semantic highlighting) are in SyntaxHighlightingFSharp.xshd.
+// All colors of Fesh that are not in SyntaxHighlightingFSharp.xshd.
+// The xshd file has the syntax highlighting colors (including the semantic highlighting) and the 'Editor.' and 'Log.' colors,
+// that is the colors of the code editor and of the Log window, including their line number margins. See EditorColors and LogWindowColors.
 // The dark styles of the WPF controls (menus, tabs, scrollbars, ...) are in ThemeChrome.xaml, loaded by ThemeChrome.fs.
 
-/// Colors of the code editor that are not part of the syntax highlighting
+/// Colors of the code editor that are not part of the syntax highlighting.
+/// They are read from the 'Editor.' colors in SyntaxHighlightingFSharp.xshd
 type EditorColors = {
     background          : SolidColorBrush
     foreground          : SolidColorBrush
@@ -55,7 +59,8 @@ type ErrorColors = {
     infoSquigglePen     : Pen
     }
 
-/// Colors of the Log window, not of the printed text
+/// Colors of the Log window, not of the printed text.
+/// They are read from the 'Log.' colors in SyntaxHighlightingFSharp.xshd
 type LogWindowColors = {
     background          : SolidColorBrush
     foreground          : SolidColorBrush
@@ -63,6 +68,9 @@ type LogWindowColors = {
     border              : SolidColorBrush
     /// Background of all other occurrences of the selected word
     selectionHighlight  : SolidColorBrush
+    /// Background of the line number margin
+    margin              : SolidColorBrush
+    lineNumbers         : SolidColorBrush
     }
 
 /// The colors of the text printed to the Log window
@@ -176,67 +184,97 @@ module Theme =
 
     let private squiggle = pen 1.2
 
-    // -------------------- Editor --------------------
+    // -------------------- Editor and Log window, read from the xshd file --------------------
 
-    let lightEditor : EditorColors = {
-        background          = Brushes.White
-        foreground          = Brushes.Black
-        currentLine         = Brushes.LightSteelBlue |> brighter 70 |> freeze
-        link                = Brushes.DarkGreen
-        margin              = Brushes.White          |> darker 8    |> freeze
-        lineNumbers         = Brushes.Silver
-        currentLineNumber   = Brushes.Black
-        columnRuler        = Brushes.White          |> darker 24   |> freeze
-        foldingMarker       = Brushes.Gray
-        foldingMarkerBg     = Brushes.White
-        foldingMarkerSel    = Brushes.Black
-        foldingMarkerSelBg  = Brushes.White
-        searchMarker        = Brushes.LightGreen
-        selection           = null
-        selectionHighlight  = Brushes.PaleTurquoise  |> brighter 30  |> freeze
-        evaluatedBg         = Brushes.Gray           |> brighter 110 |> freeze
-        evaluatedBorder     = Brushes.Gray           |> darker 20    |> freeze |> pen 1.0
-        bracketPair         = Brushes.Green          |> brighter 160 |> freeze
-        bracketError        = Brushes.Red
-        bracketErrorBg      = ofARGB 90 255 150 0
-        bracketNesting      = [|
-                                null
-                                Brushes.Purple |> brighter 40 |> freeze
-                                Brushes.Orange |> darker 30   |> freeze
-                                Brushes.Green  |> brighter 30 |> freeze
-                                Brushes.Cyan   |> darker 40   |> freeze
-                                |]
+    /// The syntax highlighting file. It has the 'Editor.' and 'Log.' colors too.
+    let xshdPath = IO.Path.Combine(IO.Path.GetDirectoryName(Reflection.Assembly.GetExecutingAssembly().Location), "SyntaxHighlightingFSharp.xshd")
+
+    /// Replaces each attribute that has a 'dark' version, e.g. 'foreground' with 'darkForeground', if dark is true.
+    /// Then removes all these 'dark...' attributes, they are not part of the xshd schema.
+    let applyDarkAttributes (dark:bool) (doc:XmlDocument) =
+        let isDarkVersion (name:string) = name.Length > 4 && name.StartsWith "dark" && Char.IsUpper name.[4]
+        for el in doc.GetElementsByTagName "*" |> Seq.cast<XmlElement> do
+            let darkAttributes = el.Attributes |> Seq.cast<XmlAttribute> |> Seq.filter (fun a -> isDarkVersion a.LocalName) |> Seq.toArray
+            for a in darkAttributes do
+                if dark then
+                    let n = a.LocalName.Substring 4
+                    el.SetAttribute(string (Char.ToLowerInvariant n.[0]) + n.Substring 1, a.Value)
+                el.Attributes.Remove a |> ignore
+
+    type private XshdColors = {
+        editor   : EditorColors
+        log      : LogWindowColors
+        /// False if the file could not be read
+        ok       : bool
+        problems : string list
         }
 
-    let darkEditor : EditorColors = {
-        background          = hex "#1E1E1E"
-        foreground          = hex "#D4D4D4"
-        currentLine         = hex "#2A2D2E"
-        link                = hex "#5DBB63"
-        margin              = hex "#252526"
-        lineNumbers         = hex "#858585"
-        currentLineNumber   = hex "#C6C6C6"
-        columnRuler         = hex "#383838"
-        foldingMarker       = hex "#808080"
-        foldingMarkerBg     = hex "#252526"
-        foldingMarkerSel    = hex "#D4D4D4"
-        foldingMarkerSelBg  = hex "#252526"
-        searchMarker        = hex "#3B5E3B"
-        selection           = hex "#264F78"
-        selectionHighlight  = hex "#234B50"
-        evaluatedBg         = hex "#2A2A2A"
-        evaluatedBorder     = hex "#505050" |> pen 1.0
-        bracketPair         = hex "#2D5A2D"
-        bracketError        = hex "#FF5050"
-        bracketErrorBg      = hex "#6EC85A00"
-        bracketNesting      = [| // the bracket pair colors of VS Code, after the outermost brackets in the Punctuation color
-                                null
-                                hex "#FFD700"
-                                hex "#DA70D6"
-                                hex "#179FFF"
-                                hex "#FFD700"
-                                |]
-        }
+    /// Reads the 'Editor.' and 'Log.' colors from the xshd file for the light or the dark theme.
+    /// A color is taken from the 'foreground' attribute, or from the 'background' attribute if there is no 'foreground'.
+    /// A missing color is magenta and gets reported in problems.
+    let private readColors (dark:bool) : XshdColors =
+        let problems = ResizeArray<string>()
+        let colors   = Dictionary<string, SolidColorBrush>()
+        let ok =
+            try
+                let doc = XmlDocument()
+                doc.Load xshdPath
+                applyDarkAttributes dark doc
+                for el in doc.GetElementsByTagName "Color" |> Seq.cast<XmlElement> do
+                    let name = el.GetAttribute "name"
+                    if name.StartsWith "Editor." || name.StartsWith "Log." then
+                        let value = match el.GetAttribute "foreground" with | "" -> el.GetAttribute "background" | v -> v
+                        if value <> "" then
+                            try colors.[name] <- hex value
+                            with _ -> problems.Add $"The color '{name}' in SyntaxHighlightingFSharp.xshd has an invalid value: '{value}'"
+                true
+            with e ->
+                problems.Add $"Failed to read the colors of the editor and the Log from {xshdPath}: {e.Message}"
+                false
+        let missing = hex "#FF00FF"
+        let get (name:string) =
+            match colors.TryGetValue name with
+            | true, b -> b
+            | _ ->
+                if ok then problems.Add $"The color '{name}' is missing in the syntax highlighting file SyntaxHighlightingFSharp.xshd"
+                missing
+        let opt (name:string) =
+            match colors.TryGetValue name with
+            | true, b -> b
+            | _ -> null
+        let editor : EditorColors = {
+            background          = get "Editor.Background"
+            foreground          = get "Editor.Foreground"
+            currentLine         = get "Editor.CurrentLine"
+            link                = get "Editor.Link"
+            margin              = get "Editor.Margin"
+            lineNumbers         = get "Editor.LineNumbers"
+            currentLineNumber   = get "Editor.CurrentLineNumber"
+            columnRuler         = get "Editor.ColumnRuler"
+            foldingMarker       = get "Editor.FoldingMarker"
+            foldingMarkerBg     = get "Editor.FoldingMarkerBg"
+            foldingMarkerSel    = get "Editor.FoldingMarkerSelected"
+            foldingMarkerSelBg  = get "Editor.FoldingMarkerSelectedBg"
+            searchMarker        = get "Editor.SearchMarker"
+            selection           = opt "Editor.Selection"
+            selectionHighlight  = get "Editor.SelectionHighlight"
+            evaluatedBg         = get "Editor.EvaluatedBg"
+            evaluatedBorder     = get "Editor.EvaluatedBorder" |> pen 1.0
+            bracketPair         = get "Editor.BracketPair"
+            bracketError        = get "Editor.BracketError"
+            bracketErrorBg      = get "Editor.BracketErrorBg"
+            bracketNesting      = [| null; get "Editor.BracketNesting1"; get "Editor.BracketNesting2"; get "Editor.BracketNesting3"; get "Editor.BracketNesting4" |]
+            }
+        let log : LogWindowColors = {
+            background          = get "Log.Background"
+            foreground          = get "Log.Foreground"
+            link                = get "Log.Link"
+            border              = get "Log.Border"
+            selectionHighlight  = get "Log.SelectionHighlight"
+            margin              = get "Log.Margin"
+            lineNumbers         = get "Log.LineNumbers"
+            }
+        { editor = editor; log = log; ok = ok; problems = List.ofSeq problems }
 
     // -------------------- Errors --------------------
 
@@ -273,22 +311,6 @@ module Theme =
         }
 
     // -------------------- Log --------------------
-
-    let lightLog : LogWindowColors = {
-        background          = Brushes.White
-        foreground          = Brushes.Black
-        link                = Brushes.Blue
-        border              = Brushes.Black
-        selectionHighlight  = Brushes.Blue |> brighter 220 |> freeze
-        }
-
-    let darkLog : LogWindowColors = {
-        background          = hex "#1B1B1C"
-        foreground          = hex "#D4D4D4"
-        link                = hex "#4FA3FF"
-        border              = hex "#3F3F46"
-        selectionHighlight  = hex "#2E2E5E"
-        }
 
     /// The Log uses these brushes for printing in both themes.
     /// In the dark theme they get replaced by the ones from darkLogText when rendering.
@@ -457,10 +479,12 @@ module Theme =
     /// The key in the settings file
     let SettingsStr = "DarkTheme"
 
+    let private lightColors = readColors false
+
     let mutable isDark      = false
-    let mutable editor      = lightEditor
+    let mutable editor      = lightColors.editor
     let mutable errors      = lightErrors
-    let mutable log         = lightLog
+    let mutable log         = lightColors.log
     let mutable statusBar   = lightStatusBar
     let mutable tabs        = lightTabs
     let mutable toolTip     = lightToolTip
@@ -472,19 +496,37 @@ module Theme =
     [<CLIEvent>]
     let Changed = changedEv.Publish
 
+    /// Problems found when the colors were read from the xshd file the last time, e.g. missing colors.
+    /// Empty if all colors were read.
+    let mutable colorProblems = lightColors.problems
+
     /// Switch between light and dark theme. Call from the UI thread.
     /// Raises the Changed event if the theme is different from the current one.
     let set (dark:bool) =
         if dark <> isDark then
+            let c = if dark then readColors true else lightColors
+            colorProblems <- c.problems
             isDark      <- dark
-            editor      <- if dark then darkEditor     else lightEditor
+            editor      <- c.editor
             errors      <- if dark then darkErrors     else lightErrors
-            log         <- if dark then darkLog        else lightLog
+            log         <- c.log
             statusBar   <- if dark then darkStatusBar  else lightStatusBar
             tabs        <- if dark then darkTabs       else lightTabs
             toolTip     <- if dark then darkToolTip    else lightToolTip
             nugetHints  <- if dark then darkNugetHints else lightNugetHints
             changedEv.Trigger()
+
+    /// Reads the colors of the editor and the Log window from the xshd file again, e.g. after it was edited.
+    /// Raises the Changed event. Keeps the current colors if the file can not be read. Call from the UI thread.
+    /// Returns the problems found, see colorProblems.
+    let reloadColors () : string list =
+        let c = readColors isDark
+        colorProblems <- c.problems
+        if c.ok then
+            editor <- c.editor
+            log    <- c.log
+            changedEv.Trigger()
+        c.problems
 
     /// For colors that come from outside of Fesh, e.g. the ones printed with a custom RGB color to the log.
     /// In the dark theme, dark colors get lighter, so that they are readable on a dark background.

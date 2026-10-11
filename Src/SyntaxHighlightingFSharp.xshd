@@ -142,6 +142,46 @@
   <Color name="Semantic.Unused"                       foreground="#A8A8A8" darkForeground="#6A6A6A" fontWeight="bold" />
   <Color name="Semantic.BadIndent"                    background="#28FFB400" darkBackground="#30FFB400" /> <!-- transparent to show the column rulers behind -->
 
+  <!--
+  Colors of the code editor and of the Log window:
+  These are not used for highlighting text, Fesh reads them from this file. They update when this file is reloaded.
+  The color is the foreground attribute. If there is no foreground attribute the background attribute is the color.
+  Only 'Editor.Selection' is optional, if it is missing AvalonEdit's default selection color is used.
+  Colors can have an alpha value, e.g. #28FFB400
+  -->
+  <Color name="Editor.Background"                 background="#FFFFFF" darkBackground="#1E1E1E" />
+  <Color name="Editor.Foreground"                 foreground="#000000" darkForeground="#D4D4D4" /> <!-- text that no rule colors -->
+  <Color name="Editor.CurrentLine"                background="#F6FFFF" darkBackground="#2A2D2E" />
+  <Color name="Editor.Link"                       foreground="#006400" darkForeground="#5DBB63" />
+  <Color name="Editor.Margin"                     background="#F7F7F7" darkBackground="#252526" /> <!-- the line number and folding margin -->
+  <Color name="Editor.LineNumbers"                foreground="#C0C0C0" darkForeground="#858585" />
+  <Color name="Editor.CurrentLineNumber"          foreground="#000000" darkForeground="#C6C6C6" /> <!-- the line with the caret -->
+  <Color name="Editor.ColumnRuler"                foreground="#E7E7E7" darkForeground="#383838" /> <!-- the first ruler, the following ones fade out -->
+  <Color name="Editor.FoldingMarker"              foreground="#808080" darkForeground="#808080" />
+  <Color name="Editor.FoldingMarkerBg"            background="#FFFFFF" darkBackground="#252526" />
+  <Color name="Editor.FoldingMarkerSelected"      foreground="#000000" darkForeground="#D4D4D4" />
+  <Color name="Editor.FoldingMarkerSelectedBg"    background="#FFFFFF" darkBackground="#252526" />
+  <Color name="Editor.SearchMarker"               background="#90EE90" darkBackground="#3B5E3B" /> <!-- results of the search panel (Ctrl + F) -->
+  <Color name="Editor.Selection"                                       darkBackground="#264F78" /> <!-- no light color, to use the default of AvalonEdit -->
+  <Color name="Editor.SelectionHighlight"         background="#CDFFFF" darkBackground="#234B50" /> <!-- all other occurrences of the selected word -->
+  <Color name="Editor.EvaluatedBg"                background="#EEEEEE" darkBackground="#2A2A2A" /> <!-- the code that was evaluated in FSI already -->
+  <Color name="Editor.EvaluatedBorder"            foreground="#6C6C6C" darkForeground="#505050" />
+  <Color name="Editor.BracketPair"                background="#A0FFA0" darkBackground="#2D5A2D" /> <!-- the matching brackets at the caret -->
+  <Color name="Editor.BracketError"               foreground="#FF0000" darkForeground="#FF5050" />
+  <Color name="Editor.BracketErrorBg"             background="#5AFF9600" darkBackground="#6EC85A00" />
+  <Color name="Editor.BracketNesting1"            foreground="#A828A8" darkForeground="#FFD700" /> <!-- the colors of nested brackets. The outermost brackets have the Punctuation color -->
+  <Color name="Editor.BracketNesting2"            foreground="#E18700" darkForeground="#DA70D6" />
+  <Color name="Editor.BracketNesting3"            foreground="#1E9E1E" darkForeground="#179FFF" />
+  <Color name="Editor.BracketNesting4"            foreground="#00D7D7" darkForeground="#FFD700" />
+
+  <Color name="Log.Background"                    background="#FFFFFF" darkBackground="#1B1B1C" />
+  <Color name="Log.Foreground"                    foreground="#000000" darkForeground="#D4D4D4" />
+  <Color name="Log.Link"                          foreground="#0000FF" darkForeground="#4FA3FF" />
+  <Color name="Log.Border"                        foreground="#000000" darkForeground="#3F3F46" />
+  <Color name="Log.SelectionHighlight"            background="#DCDCFF" darkBackground="#2E2E5E" /> <!-- all other occurrences of the selected word -->
+  <Color name="Log.Margin"                        background="#FFFFFF" darkBackground="#1B1B1C" /> <!-- the line number margin -->
+  <Color name="Log.LineNumbers"                   foreground="#C0C0C0" darkForeground="#858585" />
+
 
   <!-- ReExes that are listed higher have precedence of lower positions in this list
   Spans are overwriting rules even if rule appears before the span!-->

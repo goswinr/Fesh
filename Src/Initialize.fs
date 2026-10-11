@@ -174,6 +174,7 @@ module Initialize =
 
         let config = new Config(log, mode, startupArgs)
         Theme.set (config.Settings.GetBool(Theme.SettingsStr, false)) // before any UI is created, except the log
+        for problem in Theme.colorProblems do log.PrintfnAppErrorMsg "%s" problem
         log.FinishLogSetup(config)
 
         let fesh = Fesh(config, log)
