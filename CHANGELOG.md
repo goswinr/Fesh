@@ -8,7 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ### Added
 - a dark theme. Switch it with 'Toggle Dark / Light Theme' in the View menu. It switches right away, including the text already printed to the Log. The choice is saved as `DarkTheme` in the Settings.txt file.
-- the dark colors of the syntax highlighting are in the SyntaxHighlightingFSharp.xshd file, as `darkForeground` attributes next to the light colors
+- the dark colors of the syntax highlighting are in the SyntaxHighlightingFSharp.xshd file, as `darkForeground` attributes next to the light colors. They are based on the colors of F# in VS Code with its default dark theme and the Ionide extension, including the colors of nested brackets. All the distinctions of the light theme are kept, with shades of these colors
+- mutable values and mutable record fields are underlined, in both themes. They have their own color, and so do the `mutable` keyword and the `<-` assignment
 - a completion list for the package name in `#r "nuget: ..."` lines, with the previously used packages, the most used first. A package counts as used when it is picked from this list, and when code with its `#r "nuget: ..."` line is evaluated without errors. The counts are saved in the NuGet-Statistic.txt file in the Settings folder. From the third typed character on, the packages found on nuget.org are added to the list
 - Go to Definition (F12, or right-click a name): selects where the name is defined, in the same file or in a file loaded with `#load`. For names from assemblies, like NuGet packages, it asks to open their source in VS Code. A source file on this computer opens with its git repository folder. Otherwise the source is found via SourceLink, or via the GitHub repository and commit in the .nuspec file of the package. Then either only the file is downloaded, or the repository is cloned with git at that commit, so that VS Code can load the project. From big repositories only the folder of the project is checked out. Both are cached in the Temp folder
 ### Changed
@@ -16,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - reloading the SyntaxHighlightingFSharp.xshd file after an edit updates all open tabs, not only the current one
 - on .NET, cancelling a running script calls `System.Runtime.ControlledExecution` directly instead of changing private fields of FSharp.Compiler.Service via reflection. For this FSI always runs with `--exec`, it is added if it is missing in the FSI-Arguments.txt file
 ### Fixed
+- in `p.X` only the record field `X` gets the color of record fields, not the `p.` before it
 - typing a dot after a closing bracket, like in `System.Guid.NewGuid().` or `xs[0].`, opens the completion list with the members of that expression. Whitespace before the dot is skipped too, so it also works at the start of a correctly indented line, like in a method chain on several lines
 - on .NET, cancelling a script that waits in a blocking call like `Thread.Sleep` no longer freezes the editor until that call returns
 - a reset of FSI disposes the previous session. Before, every reset kept the previous session with its loaded references and its assembly resolve handler. If an evaluation of the previous session is still running, the session is disposed when that evaluation ends

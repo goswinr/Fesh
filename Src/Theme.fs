@@ -229,12 +229,12 @@ module Theme =
         bracketPair         = hex "#2D5A2D"
         bracketError        = hex "#FF5050"
         bracketErrorBg      = hex "#6EC85A00"
-        bracketNesting      = [|
+        bracketNesting      = [| // the bracket pair colors of VS Code, after the outermost brackets in the Punctuation color
                                 null
-                                hex "#D070D0"
-                                hex "#E5A040"
-                                hex "#4CC04C"
-                                hex "#30C8D0"
+                                hex "#FFD700"
+                                hex "#DA70D6"
+                                hex "#179FFF"
+                                hex "#FFD700"
                                 |]
         }
 

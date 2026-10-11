@@ -161,7 +161,7 @@ type SemanticHighlighter (state: InteractionState) =
                         | Sc.UnionCaseField              -> push(st,en, semActs.UnionCaseField             )
                         | Sc.Function                    -> if not(skipFunc(st,en)) then pushCorr(st,en, semActs.Function)
                         | Sc.Property                    -> pushCorr(st,en, semActs.Property)// correct so that a string or number literal before the dot does not get colored
-                        | Sc.MutableVar                  -> push(st,en, semActs.MutableVar                 )
+                        | Sc.MutableVar                  -> pushCorr(st,en, semActs.MutableVar)// correct so that a qualifier before the dot is not underlined
                         | Sc.Module                      -> if not(skipModul(st,en)) then push(st,en, semActs.Module)
                         | Sc.Namespace                   -> push(st,en, semActs.Namespace                  )
                         | Sc.ComputationExpression       -> push(st,en, semActs.ComputationExpression      )
@@ -178,9 +178,9 @@ type SemanticHighlighter (state: InteractionState) =
                         | Sc.ConstructorForReferenceType -> push(st,en, semActs.ConstructorForReferenceType)
                         | Sc.ConstructorForValueType     -> push(st,en, semActs.ConstructorForValueType    )
                         | Sc.Literal                     -> push(st,en, semActs.Literal                    )
-                        | Sc.RecordField                 -> push(st,en, semActs.RecordField                )
-                        | Sc.MutableRecordField          -> push(st,en, semActs.MutableRecordField         )
-                        | Sc.RecordFieldAsFunction       -> push(st,en, semActs.RecordFieldAsFunction      )
+                        | Sc.RecordField                 -> pushCorr(st,en, semActs.RecordField)// the range of 'p.X' includes the 'p.'
+                        | Sc.MutableRecordField          -> pushCorr(st,en, semActs.MutableRecordField)
+                        | Sc.RecordFieldAsFunction       -> pushCorr(st,en, semActs.RecordFieldAsFunction)
                         | Sc.Exception                   -> push(st,en, semActs.Exception                  )
                         | Sc.Field                       -> push(st,en, semActs.Field                      )
                         | Sc.Event                       -> push(st,en, semActs.Event                      )

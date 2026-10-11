@@ -19,6 +19,7 @@ module SemanticColors =
         background : Brush
         bold       : bool
         italic     : bool
+        underline  : bool
         }
 
     /// The names of the colors in the xshd file, without the 'Semantic.' prefix
@@ -30,7 +31,7 @@ module SemanticColors =
         "Event"; "Delegate"; "NamedArgument"; "Value"; "LocalValue"; "Type"; "TypeDef"; "Plaintext"
         "Unused"; "BadIndent" |]
 
-    let private empty = { foreground = null; background = null; bold = false; italic = false }
+    let private empty = { foreground = null; background = null; bold = false; italic = false; underline = false }
 
     /// Replaced when the xshd file is loaded for another theme or reloaded after an edit
     let mutable private styles : SemStyle[] = Array.create names.Length empty
@@ -52,6 +53,7 @@ module SemanticColors =
                     if   s.bold && s.italic then StyleState.italicBoldEditorTf
                     elif s.bold             then StyleState.boldEditorTf
                     else                         StyleState.italicEditorTf )
+            if s.underline then p.SetTextDecorations TextDecorations.Underline
             )
 
     /// Reads the 'Semantic.' colors from the highlighting definition
@@ -68,6 +70,7 @@ module SemanticColors =
                     background = if isNull c.Background then null else c.Background.GetBrush(null)
                     bold       = c.FontWeight.HasValue && c.FontWeight.Value.ToOpenTypeWeight() >= 600
                     italic     = c.FontStyle.HasValue  && c.FontStyle.Value <> FontStyles.Normal
+                    underline  = c.Underline.HasValue  && c.Underline.Value
                     }
                 )
 

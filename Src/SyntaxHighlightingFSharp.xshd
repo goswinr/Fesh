@@ -22,53 +22,62 @@
   Any attribute can have a version for the dark theme, prefixed with 'dark', e.g. darkForeground, darkBackground or darkFontWeight.
   In the dark theme Fesh uses it instead of the original attribute.
   Fesh removes all these 'dark...' attributes before loading this file, they are not part of the xshd schema.
+  The dark colors are based on F# in the Dark+ theme of VS Code, with the semantic highlighting of the Ionide extension.
+  Where the light theme has more distinctions than VS Code, the dark theme has them too, with shades of the VS Code colors.
   -->
-  <Color name="Comment"           foreground="#777777" darkForeground="#858585" fontWeight="300" fontStyle="italic" stylisticSet1="true"/>
-  <Color name="DocComment"          foreground="#009900" darkForeground="#5FB55F" fontWeight="400" fontStyle="italic" stylisticSet1="true"/>
-  <Color name="BracketComment"      foreground="#555555" darkForeground="#A0A0A0" fontWeight="800" fontStyle="italic" stylisticSet1="true"/>
+  <Color name="Comment"           foreground="#777777" darkForeground="#6A9955" fontWeight="300" fontStyle="italic" stylisticSet1="true"/>
+  <Color name="DocComment"          foreground="#009900" darkForeground="#8CC57E" fontWeight="400" fontStyle="italic" stylisticSet1="true"/>
+  <Color name="BracketComment"      foreground="#555555" darkForeground="#B5CEA8" fontWeight="800" fontStyle="italic" stylisticSet1="true"/>
   <Color name="TODO"                foreground="#EE0000" darkForeground="#FF5050" fontWeight="800"/>
   <Color name="HACK"                foreground="#A0A000" darkForeground="#D7D750" fontWeight="800"/>
 
-  <Color name="String"              foreground="#BB1111" darkForeground="#F06464" />
-  <Color name="StringQuote"         foreground="#E08070" darkForeground="#A0584E" />
-  <Color name="StringVerbatim"      foreground="#CC0000" darkForeground="#FF5A5A" />
-  <Color name="StringFormatting"    foreground="#990099" darkForeground="#E070E0" />
-  <Color name="StringEscaped"       foreground="#A050CC" darkForeground="#C080F0" />
-  <Color name="CodeInString"        foreground="#50C030" darkForeground="#7ED864" />
-  <Color name="DollarInlines"       foreground="#000088" darkForeground="#9CA8FF" />
-  <Color name="Char"                foreground="#FF0040" darkForeground="#FF5C7A" />
+  <Color name="String"              foreground="#BB1111" darkForeground="#CE9178" />
+  <Color name="StringQuote"         foreground="#E08070" darkForeground="#A1715E" />
+  <Color name="StringVerbatim"      foreground="#CC0000" darkForeground="#DBA088" />
+  <Color name="StringFormatting"    foreground="#990099" darkForeground="#569CD6" />
+  <Color name="StringEscaped"       foreground="#A050CC" darkForeground="#569CD6" />
+  <Color name="CodeInString"        foreground="#50C030" darkForeground="#73C991" />
+  <Color name="DollarInlines"       foreground="#000088" darkForeground="#B8C4F0" />
+  <Color name="Char"                foreground="#FF0040" darkForeground="#D16969" />
 
-  <Color name="CompilerDirectives"  foreground="#FF8800" darkForeground="#FFA040" /> <!-- eg: #if COMPILED-->
+  <Color name="CompilerDirectives"  foreground="#FF8800" darkForeground="#E8A35C" /> <!-- eg: #if COMPILED-->
 
-  <Color name="LoadDirectives"      foreground="#BB1111" darkForeground="#F06464" /> <!-- the #r or #load or #I-->
+  <Color name="LoadDirectives"      foreground="#BB1111" darkForeground="#CE9178" /> <!-- the #r or #load or #I-->
   <Color name="LoadDllPath"         foreground="#778899" darkForeground="#8A99A8" /> <!-- #r the directory path including the quotes-->
-  <Color name="LoadDll"             foreground="#DD20B0" darkForeground="#EA5CC8" /> <!-- #r the dll name -->
-  <Color name="LoadNuget"           foreground="#CD10A0" darkForeground="#F05CCF" fontWeight="bold" /> <!-- #r the nuget name -->
-  <Color name="LoadPath"            foreground="#0000B0" darkForeground="#7C9CFF" /> <!-- for #I path -->
+  <Color name="LoadDll"             foreground="#DD20B0" darkForeground="#E36BC8" /> <!-- #r the dll name -->
+  <Color name="LoadNuget"           foreground="#CD10A0" darkForeground="#DA70D6" fontWeight="bold" /> <!-- #r the nuget name -->
+  <Color name="LoadPath"            foreground="#0000B0" darkForeground="#7FA8F0" /> <!-- for #I path -->
 
-  <Color name="Punctuation"         foreground="#8855FF" darkForeground="#A07CFF" />
+  <Color name="Punctuation"         foreground="#8855FF" darkForeground="#8C9EEB" />
   <Color name="Attributes"          foreground="#AA88AA" darkForeground="#B898B8" />
-  <Color name="Keywords"            foreground="#0000DD" darkForeground="#6E8CFF"  fontWeight="normal" fontStyle="italic"  stylisticSet1="true"/>
-  <Color name="KeywordsBang"        foreground="#2200DD" darkForeground="#8A78FF"  fontWeight="bold"   fontStyle="italic"  stylisticSet1="true"/>
-  <Color name="Keywords2"           foreground="#BB0044" darkForeground="#FF5C8A"  fontWeight="bold"   fontStyle="italic"  stylisticSet1="true"/>
-  <Color name="Keywords2Bang"       foreground="#BB0044" darkForeground="#FF5C8A"  fontWeight="bold"   fontStyle="italic"  stylisticSet1="true"/>
-  <Color name="ReservedKeywords"    foreground="#7777FF" darkForeground="#9090FF" /> <!-- fontWeight="bold" -->
-  <Color name="MethodCall"          foreground="#0000AA" darkForeground="#7C9CFF" /> <!-- fontWeight="bold" fontStyle="italic"-->
-  <Color name="NumberLiteral"       foreground="#CD10A0" darkForeground="#F05CCF" />
-  <Color name="NegNumberLiteral"    foreground="#df78a8" darkForeground="#E485B5" /> <!--fontWeight="bold" -->
-  <Color name="ExponentNumberLit"   foreground="#1199DD" darkForeground="#4BBAF1" />
-  <Color name="HexNumberLiteral"    foreground="#FF8800" darkForeground="#FFA040" />
-  <Color name="BinNumberLiteral"    foreground="#FF8800" darkForeground="#FFA040" />
+  <Color name="Keywords"            foreground="#0000DD" darkForeground="#569CD6"  fontWeight="normal" fontStyle="italic"  stylisticSet1="true"/>
+  <Color name="KeywordsBang"        foreground="#2200DD" darkForeground="#5E9EE0"  fontWeight="bold"   fontStyle="italic"  stylisticSet1="true"/>
+  <Color name="Keywords2"           foreground="#BB0044" darkForeground="#EF7A8F"  fontWeight="bold"   fontStyle="italic"  stylisticSet1="true"/>
+  <Color name="Keywords2Bang"       foreground="#BB0044" darkForeground="#EF7A8F"  fontWeight="bold"   fontStyle="italic"  stylisticSet1="true"/>
+  <!-- the control flow keywords, in the light theme the same as the keywords above: -->
+  <Color name="KeywordsControl"     foreground="#0000DD" darkForeground="#C586C0"  fontWeight="normal" fontStyle="italic"  stylisticSet1="true"/>
+  <Color name="KeywordsBangControl" foreground="#2200DD" darkForeground="#CC8ECA"  fontWeight="bold"   fontStyle="italic"  stylisticSet1="true"/>
+  <Color name="Keywords2Control"    foreground="#BB0044" darkForeground="#EF7A8F"  fontWeight="bold"   fontStyle="italic"  stylisticSet1="true"/>
+  <!-- mutability: the mutable keyword and the assignment arrow have the color of the mutable values. Semantic.MutableVar and Semantic.MutableRecordField are underlined too -->
+  <Color name="KeywordsMutable"     foreground="#C6910C" darkForeground="#FFAF5F"  fontWeight="normal" fontStyle="italic"  stylisticSet1="true"/>
+  <Color name="Assignment"          foreground="#C6910C" darkForeground="#FFAF5F" /> <!-- the <- arrow -->
+  <Color name="ReservedKeywords"    foreground="#7777FF" darkForeground="#569CD6" /> <!-- fontWeight="bold" -->
+  <Color name="MethodCall"          foreground="#0000AA" darkForeground="#DCDCAA" /> <!-- fontWeight="bold" fontStyle="italic"-->
+  <Color name="NumberLiteral"       foreground="#CD10A0" darkForeground="#B5CEA8" />
+  <Color name="NegNumberLiteral"    foreground="#df78a8" darkForeground="#93AB86" /> <!--fontWeight="bold" -->
+  <Color name="ExponentNumberLit"   foreground="#1199DD" darkForeground="#6CB6E0" />
+  <Color name="HexNumberLiteral"    foreground="#FF8800" darkForeground="#E8A35C" />
+  <Color name="BinNumberLiteral"    foreground="#FF8800" darkForeground="#E8A35C" />
   <Color name="NumberType"          foreground="#888888" darkForeground="#8A8A8A" />
   <Color name="FailStatement"       foreground="#888888" darkForeground="#8A8A8A" />
-  <Color name="FailString"          foreground="#D0A040" darkForeground="#C09A50" fontWeight="normal" fontStyle="italic" />
+  <Color name="FailString"          foreground="#D0A040" darkForeground="#D7BA7D" fontWeight="normal" fontStyle="italic" />
   <Color name="Exception"           foreground="#C06030" darkForeground="#E0885A" />
-  <Color name="PrintStatement"      foreground="#206060" darkForeground="#5FB3B3" />
-  <Color name="PrintString"         foreground="#E08070" darkForeground="#C07868" />
-  <Color name="TrueCol"             foreground="#008090" darkForeground="#3CC8D8" fontWeight="800" fontStyle="italic" />
-  <Color name="FalseCol"            foreground="#A70090" darkForeground="#E060D0" fontWeight="800" fontStyle="italic" />
-  <Color name="Semicolon"           foreground="#A0A0A0" darkForeground="#6A6A6A" />
-  <Color name="EscapeSlash"         foreground="#CCCCCC" darkForeground="#555555" />
+  <Color name="PrintStatement"      foreground="#206060" darkForeground="#70A8A0" />
+  <Color name="PrintString"         foreground="#E08070" darkForeground="#A1715E" />
+  <Color name="TrueCol"             foreground="#008090" darkForeground="#4FD1D9" fontWeight="800" fontStyle="italic" />
+  <Color name="FalseCol"            foreground="#A70090" darkForeground="#E07CC8" fontWeight="800" fontStyle="italic" />
+  <Color name="Semicolon"           foreground="#A0A0A0" darkForeground="#707070" />
+  <Color name="EscapeSlash"         foreground="#CCCCCC" darkForeground="#484848" />
   <!--
   <Color name="TypeAnnotation"      foreground="#2080B0" darkForeground="#5FA8D8" />
   <Color name="RecordNames"         foreground="#B06000" darkForeground="#E09040" />
@@ -80,56 +89,56 @@
   <Color name="InDoubleTicks"       foreground="#000000" darkForeground="#D4D4D4" /><!-- just black like the rest, don't highlight symbols-->
 
   <Color name="DocCommentStart"     foreground="#CCCCCC" darkForeground="#505050" /> <!-- taken from https://github.com/icsharpcode/AvalonEdit/blob/master/ICSharpCode.AvalonEdit/Highlighting/Resources/XmlDoc.xshd-->
-  <Color name="XmlString"           foreground="#EE3333" darkForeground="#F06464" />
+  <Color name="XmlString"           foreground="#EE3333" darkForeground="#CE9178" />
   <Color name="XmlPunctuation"      foreground="#888888" darkForeground="#808080" />
-  <Color name="KnownDocTags"        foreground="#8888EE" darkForeground="#9A9AF0" />
+  <Color name="KnownDocTags"        foreground="#8888EE" darkForeground="#569CD6" />
 
-  <Color name="NonEval"             foreground="#CCCCCC" darkForeground="#555555" />
+  <Color name="NonEval"             foreground="#CCCCCC" darkForeground="#484848" />
 
   <!--
   Semantic highlighting:
   These colors are not used by the rules in this file, but by the semantic highlighting from the F# compiler service.
   It is applied on top of the highlighting from this file, once the type check has finished.
   The names are 'Semantic.' + the case name of FSharp.Compiler.EditorServices.SemanticClassificationType.
-  Only foreground, background, fontWeight="bold" and fontStyle="italic" are used.
+  Only foreground, background, fontWeight="bold", fontStyle="italic" and underline="true" are used.
   'Semantic.Unused' and 'Semantic.BadIndent' are not from the compiler service, they mark unused declarations and indents that are not a multiple of the indentation size.
   -->
-  <Color name="Semantic.ReferenceType"                foreground="#8B0049" darkForeground="#E06AA8" />
-  <Color name="Semantic.ValueType"                    foreground="#922DAB" darkForeground="#C778DD" />
-  <Color name="Semantic.UnionCase"                    foreground="#236A96" darkForeground="#69B0DC" />
-  <Color name="Semantic.UnionCaseField"               foreground="#236A96" darkForeground="#69B0DC" />
-  <Color name="Semantic.Function"                     foreground="#905E00" darkForeground="#DCAA50" />
-  <Color name="Semantic.Property"                     foreground="#006063" darkForeground="#4FB0B0" />
-  <Color name="Semantic.MutableVar"                   foreground="#C6910C" darkForeground="#F4C348" />
+  <Color name="Semantic.ReferenceType"                foreground="#8B0049" darkForeground="#4EC9B0" />
+  <Color name="Semantic.ValueType"                    foreground="#922DAB" darkForeground="#83C691" />
+  <Color name="Semantic.UnionCase"                    foreground="#236A96" darkForeground="#4FC1FF" />
+  <Color name="Semantic.UnionCaseField"               foreground="#236A96" darkForeground="#4FC1FF" />
+  <Color name="Semantic.Function"                     foreground="#905E00" darkForeground="#DCDCAA" />
+  <Color name="Semantic.Property"                     foreground="#006063" darkForeground="#98E2E2" />
+  <Color name="Semantic.MutableVar"                   foreground="#C6910C" darkForeground="#FFAF5F" underline="true" />
   <Color name="Semantic.Module"                       foreground="#000000" darkForeground="#D4D4D4" />
   <Color name="Semantic.Namespace"                    foreground="#000000" darkForeground="#D4D4D4" />
-  <Color name="Semantic.ComputationExpression"        foreground="#4B0082" darkForeground="#B080F0" />
-  <Color name="Semantic.IntrinsicFunction"            foreground="#00008B" darkForeground="#8C9CFF" />
-  <Color name="Semantic.Enumeration"                  foreground="#4B0082" darkForeground="#B080F0" />
-  <Color name="Semantic.Interface"                    foreground="#B30171" darkForeground="#F060B8" />
-  <Color name="Semantic.TypeArgument"                 foreground="#6A5ACD" darkForeground="#9A8CF0" />
-  <Color name="Semantic.Operator"                     foreground="#7B68EE" darkForeground="#9A8CFF" />
-  <Color name="Semantic.DisposableType"               foreground="#9932CC" darkForeground="#C080E8" />
-  <Color name="Semantic.DisposableTopLevelValue"      foreground="#9932CC" darkForeground="#C080E8" />
-  <Color name="Semantic.DisposableLocalValue"         foreground="#9932CC" darkForeground="#C080E8" />
-  <Color name="Semantic.Method"                       foreground="#009295" darkForeground="#5CCFD0" />
-  <Color name="Semantic.ExtensionMethod"              foreground="#00B0B3" darkForeground="#70E0E0" />
-  <Color name="Semantic.ConstructorForReferenceType"  foreground="#A52A2A" darkForeground="#E07070" />
-  <Color name="Semantic.ConstructorForValueType"      foreground="#A45410" darkForeground="#E89A5A" />
-  <Color name="Semantic.Literal"                      foreground="#2E8B57" darkForeground="#6CC890" />
-  <Color name="Semantic.RecordField"                  foreground="#254545" darkForeground="#A8C8C8" />
-  <Color name="Semantic.MutableRecordField"           foreground="#C6910C" darkForeground="#F4C348" />
-  <Color name="Semantic.RecordFieldAsFunction"        foreground="#DDA0DD" darkForeground="#DDA0DD" />
-  <Color name="Semantic.Exception"                    foreground="#D7418C" darkForeground="#E86AA6" />
-  <Color name="Semantic.Field"                        foreground="#9370DB" darkForeground="#A88CE8" />
-  <Color name="Semantic.Event"                        foreground="#808000" darkForeground="#C8C850" />
-  <Color name="Semantic.Delegate"                     foreground="#556B2F" darkForeground="#A8C070" />
-  <Color name="Semantic.NamedArgument"                foreground="#8B2043" darkForeground="#E07898" />
-  <Color name="Semantic.Value"                        foreground="#770000" darkForeground="#F09090" />
-  <Color name="Semantic.LocalValue"                   foreground="#630000" darkForeground="#E0B0B0" />
-  <Color name="Semantic.Type"                         foreground="#9F005D" darkForeground="#F080C0" />
-  <Color name="Semantic.TypeDef"                      foreground="#800080" darkForeground="#E080E0" />
-  <Color name="Semantic.Plaintext"                    foreground="#C30900" darkForeground="#FF6A60" />
+  <Color name="Semantic.ComputationExpression"        foreground="#4B0082" darkForeground="#D19AE8" />
+  <Color name="Semantic.IntrinsicFunction"            foreground="#00008B" darkForeground="#6E8CFF" />
+  <Color name="Semantic.Enumeration"                  foreground="#4B0082" darkForeground="#D19AE8" />
+  <Color name="Semantic.Interface"                    foreground="#B30171" darkForeground="#B7D7A3" />
+  <Color name="Semantic.TypeArgument"                 foreground="#6A5ACD" darkForeground="#9AB8F0" />
+  <Color name="Semantic.Operator"                     foreground="#7B68EE" darkForeground="#B4A7F5" />
+  <Color name="Semantic.DisposableType"               foreground="#9932CC" darkForeground="#A98BFF" />
+  <Color name="Semantic.DisposableTopLevelValue"      foreground="#9932CC" darkForeground="#A98BFF" />
+  <Color name="Semantic.DisposableLocalValue"         foreground="#9932CC" darkForeground="#A98BFF" />
+  <Color name="Semantic.Method"                       foreground="#009295" darkForeground="#E4BD79" />
+  <Color name="Semantic.ExtensionMethod"              foreground="#00B0B3" darkForeground="#F2DA8E" />
+  <Color name="Semantic.ConstructorForReferenceType"  foreground="#A52A2A" darkForeground="#2E9E86" />
+  <Color name="Semantic.ConstructorForValueType"      foreground="#A45410" darkForeground="#5FA868" />
+  <Color name="Semantic.Literal"                      foreground="#2E8B57" darkForeground="#53E0A0" />
+  <Color name="Semantic.RecordField"                  foreground="#254545" darkForeground="#ABCDCD" />
+  <Color name="Semantic.MutableRecordField"           foreground="#C6910C" darkForeground="#FFAF5F" underline="true" />
+  <Color name="Semantic.RecordFieldAsFunction"        foreground="#DDA0DD" darkForeground="#F0C0D8" />
+  <Color name="Semantic.Exception"                    foreground="#D7418C" darkForeground="#E88AB8" />
+  <Color name="Semantic.Field"                        foreground="#9370DB" darkForeground="#C8B8F0" />
+  <Color name="Semantic.Event"                        foreground="#808000" darkForeground="#C8C269" />
+  <Color name="Semantic.Delegate"                     foreground="#556B2F" darkForeground="#8FB860" />
+  <Color name="Semantic.NamedArgument"                foreground="#8B2043" darkForeground="#F0A8A0" />
+  <Color name="Semantic.Value"                        foreground="#770000" darkForeground="#9CDCFE" />
+  <Color name="Semantic.LocalValue"                   foreground="#630000" darkForeground="#B7E6FF" />
+  <Color name="Semantic.Type"                         foreground="#9F005D" darkForeground="#7EE0C8" />
+  <Color name="Semantic.TypeDef"                      foreground="#800080" darkForeground="#2BB7C9" />
+  <Color name="Semantic.Plaintext"                    foreground="#C30900" darkForeground="#F44747" />
   <Color name="Semantic.Unused"                       foreground="#A8A8A8" darkForeground="#6A6A6A" fontWeight="bold" />
   <Color name="Semantic.BadIndent"                    background="#28FFB400" darkBackground="#30FFB400" /> <!-- transparent to show the column rulers behind -->
 
@@ -222,20 +231,41 @@
     <Keywords color="TrueCol">    <Word>true</Word>    </Keywords>
     <Keywords color="FalseCol">   <Word>false</Word>   </Keywords>
 
-    <Rule color="KeywordsBang">match!</Rule> <!-- because exclamation mark does not work in <Word> tag -->
+    <Rule color="KeywordsBangControl">match!</Rule> <!-- because exclamation mark does not work in <Word> tag -->
     <Rule color="KeywordsBang">let!</Rule>
-    <Rule color="KeywordsBang">do!</Rule>
+    <Rule color="KeywordsBangControl">do!</Rule>
     <Rule color="Keywords2Bang">yield!</Rule>
     <Rule color="Keywords2Bang">return!</Rule>
     <Rule color="Keywords2Bang">use!</Rule>
 
 
-    <Keywords color="Keywords2">
+    <Keywords color="Keywords2Control">
       <Word>yield</Word>
       <Word>return</Word>
+    </Keywords>
+
+    <Keywords color="Keywords2">
       <Word>rec</Word>
       <Word>and</Word>
+    </Keywords>
 
+    <Keywords color="KeywordsMutable">
+      <Word>mutable</Word>
+    </Keywords>
+
+    <Keywords color="KeywordsControl">
+      <Word>do</Word>
+      <Word>elif</Word>
+      <Word>else</Word>
+      <Word>finally</Word>
+      <Word>for</Word>
+      <Word>if</Word>
+      <Word>in</Word>
+      <Word>match</Word>
+      <Word>then</Word>
+      <Word>try</Word>
+      <Word>while</Word>
+      <Word>with</Word>
     </Keywords>
 
     <Keywords color="Keywords">
@@ -252,34 +282,25 @@
       <Word>class</Word>
       <Word>default</Word>
       <Word>delegate</Word>
-      <Word>do</Word>
       <Word>done</Word>
       <Word>downcast</Word>
       <Word>downto</Word>
-      <Word>elif</Word>
-      <Word>else</Word>
       <Word>end</Word>
       <Word>exception</Word>
       <Word>extern</Word>
       <!-- <Word>FALSE</Word> -->
-      <Word>finally</Word>
       <Word>fixed</Word>
-      <Word>for</Word>
       <Word>fun</Word>
       <Word>function</Word>
       <Word>global</Word>
-      <Word>if</Word>
-      <Word>in</Word>
       <Word>inherit</Word>
       <Word>inline</Word>
       <Word>interface</Word>
       <Word>internal</Word>
       <Word>lazy</Word>
       <Word>let</Word>
-      <Word>match</Word>
       <Word>member</Word>
       <Word>module</Word>
-      <Word>mutable</Word>
       <Word>namespace</Word>
       <Word>new</Word>
       <Word>not</Word>
@@ -293,10 +314,8 @@
       <Word>select</Word>
       <Word>static</Word>
       <Word>struct</Word>
-      <Word>then</Word>
       <Word>to</Word>
       <!-- <Word>TRUE</Word> -->
-      <Word>try</Word>
       <Word>typeof</Word>
       <Word>type</Word>
       <Word>upcast</Word>
@@ -304,8 +323,6 @@
       <Word>val</Word>
       <Word>void</Word>
       <Word>when</Word>
-      <Word>while</Word>
-      <Word>with</Word>
     </Keywords>
 
     <!-- exclude for now to keep highlighting rules faster
@@ -511,7 +528,7 @@
   <RuleSet name="PunctuationSet">
     <!-- the back and forward arrows : -->
     <Rule color="Punctuation">-&gt;</Rule>
-    <Rule color="Punctuation">&lt;-</Rule>
+    <Rule color="Assignment">&lt;-</Rule>
 
     <!-- any single character punctuation
      . $ ^ { [ ( | ) * + ? \ need escape
