@@ -81,7 +81,7 @@
 
   <ItemGroup>
     <PackageReference Include="Velopack" Version="1.2.161" />
-    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="10.0.401" PrivateAssets="all" IncludeAssets="runtime; build; native; contentfiles; analyzers; buildtransitive" />
+    <!-- SourceLink is built into the .NET 8+ SDK, no Microsoft.SourceLink.GitHub package needed -->
     <PackageReference Include="Ionide.KeepAChangelog.Tasks" Version="0.4.0" PrivateAssets="all" />
 
     <PackageReference Include="Microsoft.VisualBasic" Version="10.3.0" Condition="'$(TargetFramework)' == 'net472'" /> <!-- to move files to the recycle bin instead of deleting them -->
