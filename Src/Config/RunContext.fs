@@ -10,6 +10,7 @@ open Fesh.Model
 /// hostAssembly: to get version number of hosting assembly
 /// canRunAsync: bool to indicate if the hosted app can run async code
 /// libFolders: folders to search for assemblies referenced via #r, passed as '--lib:' arguments to the type checker and to FSI. Can be empty.
+/// defines: conditional compilation symbols for use with #if, passed as '--define:' arguments to the type checker and to FSI. Can be empty. FESH (and FESHFX on .NET Framework) are always defined.
 type HostedStartUpData = {
     hostName:string
     mainWindowHandel: nativeint
@@ -19,6 +20,7 @@ type HostedStartUpData = {
     hostAssembly :option<Reflection.Assembly>
     canRunAsync: bool
     libFolders: string[]
+    defines: string[]
     }
 
 
@@ -139,6 +141,14 @@ type RunContext (host:HostedStartUpData option) =
 
     /// Folders given by the host to search for assemblies referenced via #r. Empty in standalone mode.
     member this.LibFolders   = match host with None -> [||] | Some sd -> if isNull sd.libFolders then [||] else sd.libFolders
+
+    /// Conditional compilation symbols for use with #if: always FESH, FESHFX when running on .NET Framework, and the ones given by the host.
+    member this.Defines      =
+        [|  "FESH"
+            if not isRunningOnDotNetCore then "FESHFX"
+            match host with
+            | Some sd when not (isNull sd.defines) -> yield! sd.defines
+            | _ -> () |]
 
     member this.IsRunningOnDotNetCore = isRunningOnDotNetCore
 

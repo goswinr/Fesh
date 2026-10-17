@@ -140,6 +140,8 @@ module FsCheckerUtil =
                             "--langversion:preview"
                             for dir in config.RunContext.LibFolders do
                                 "--lib:" + dir
+                            for d in config.RunContext.Defines do
+                                "--define:" + d
                             |]
                         ,useSdkRefs            = isNet8
                         ,assumeDotNetFramework = not isNet8

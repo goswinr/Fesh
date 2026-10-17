@@ -250,6 +250,7 @@ type Fsi private (config:Config) =
             // Reload from disk so that a Reset FSI picks up edits to FSI-Arguments.txt
             let args = config.FsiArguments.Reload()
             let args = Array.append args [| for dir in config.RunContext.LibFolders do "--lib:" + dir |] // same folders as used by the type checker in Editor/Checker.fs
+            let args = Array.append args [| for d in config.RunContext.Defines do "--define:" + d |] // FESH, FESHFX and the host symbols, same as used by the type checker in Editor/Checker.fs
             // Without --exec (or the same --noninteractive) FCS runs each evaluation in its own ControlledExecution.Run block.
             // Then evalCancellable would fail with 'The thread is already executing the ControlledExecution.Run method'.
             // see https://github.com/dotnet/fsharp/pull/15184
