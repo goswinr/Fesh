@@ -61,6 +61,57 @@ module GoTo =
             if i >= 0 then lineTillExtension.Substring(i + 4)
             else lineTillExtension.Trim()
 
+/// Looks for the .NET SDK that FSI needs for  #r "nuget: ..."  lines.
+/// For them FSharp.DependencyManager.Nuget runs 'dotnet msbuild -restore'.
+/// Without an SDK dotnet.exe prints an error that FCS reports line by line.
+/// Without dotnet.exe FCS reports no error at all, only the names from the package are not defined.
+module DotnetSdk =
+
+    let private nugetLine = Text.RegularExpressions.Regex("^\s*#r\s*@?\"nuget:", Text.RegularExpressions.RegexOptions.Multiline)
+
+    /// True if the code has a  #r "nuget: ..."  line.
+    let hasNugetReference (code:string) = nugetLine.IsMatch code
+
+    /// Returns the path of dotnet.exe, searched in the same order as FCS does,
+    /// see getDotnetHostPath in https://github.com/dotnet/fsharp/blob/main/src/Compiler/Facilities/CompilerLocation.fs
+    let findDotnetExe () : string option =
+        let tryFile (getPath: unit -> string) =
+            try
+                let p = getPath()
+                if not (String.IsNullOrWhiteSpace p) && File.Exists p then Some (Path.GetFullPath p) else None
+            with _ -> None // e.g. an invalid folder in the PATH variable
+        seq {
+            yield fun () -> Environment.GetEnvironmentVariable "DOTNET_HOST_PATH"
+            // on .NET the runtime is in dotnet\shared\Microsoft.NETCore.App\<version>\
+            yield fun () -> Path.Combine(Path.GetDirectoryName(typeof<int>.Assembly.Location), "..", "..", "..", "dotnet.exe")
+            let path = Environment.GetEnvironmentVariable "PATH"
+            if not (isNull path) then
+                for dir in path.Split Path.PathSeparator do
+                    yield fun () -> Path.Combine(dir, "dotnet.exe")
+            yield fun () ->
+                let pf = Environment.GetEnvironmentVariable "ProgramW6432"
+                let pf = if String.IsNullOrEmpty pf then Environment.GetFolderPath Environment.SpecialFolder.ProgramFiles else pf
+                Path.Combine(pf, "dotnet", "dotnet.exe")
+        }
+        |> Seq.tryPick tryFile
+
+    /// An SDK is a folder like  dotnet\sdk\10.0.100\  with a dotnet.dll in it.
+    let private hasSdk (dotnetExe:string) =
+        let sdkDir = Path.Combine(Path.GetDirectoryName dotnetExe, "sdk")
+        Directory.Exists sdkDir
+        && Directory.EnumerateDirectories sdkDir |> Seq.exists (fun d -> File.Exists(Path.Combine(d, "dotnet.dll")))
+
+    /// Returns None if an SDK is found, otherwise the explanation to print when an evaluation with  #r "nuget: ..."  lines fails.
+    let missingReason () : string option =
+        let install = "Without it the packages are not downloaded and not referenced.\r\nInstall the .NET SDK from https://aka.ms/dotnet/download , then reset FSI."
+        try
+            match findDotnetExe() with
+            | None     -> Some $"#r \"nuget: ...\" lines need the .NET SDK, but dotnet.exe was not found on this computer.\r\n{install}"
+            | Some exe ->
+                if hasSdk exe then None
+                else Some $"#r \"nuget: ...\" lines need the .NET SDK, but there is none next to {exe}\r\n{install}"
+        with _ -> None // don't explain anything if the check itself fails
+
 #nowarn "44" // Runtime.ControlledExecution.Run is obsolete (SYSLIB0046), but it is the only way to cancel a running evaluation on .NET
 
 type Fsi private (config:Config) =
@@ -109,6 +160,19 @@ type Fsi private (config:Config) =
     let mutable pendingEval :option<EvalData> = None // for storing evaluations that are triggered before fsi is ready
 
     let mutable runningEval :option<EvalRequest> = None // the evaluation that is compiling or running now, for the OnCanceled event
+
+    /// Why  #r "nuget: ..."  lines can't work, if no .NET SDK was found. Checked on startup and on each reset, see checkSdk.
+    let mutable missingSdk : string option = None
+
+    /// Checks on a background thread, so that this does not delay the session.
+    let checkSdk () =
+        async { missingSdk <- DotnetSdk.missingReason() } |> Async.Start
+
+    /// After an evaluation with errors: explains them if the code has  #r "nuget: ..."  lines but no .NET SDK was found.
+    let explainMissingSdk (code:string) =
+        match missingSdk with
+        | Some reason when DotnetSdk.hasNugetReference code -> log.PrintfnFsiErrorMsg "%s" reason
+        | _ -> ()
 
     //let mutable codeInEval : option<CodeToEval> = None
     // let _ = // just for OnEmitting Event !!
@@ -345,6 +409,8 @@ type Fsi private (config:Config) =
                     | FSharpDiagnosticSeverity.Hidden  -> () //log.PrintfnInfoMsg "EvalInteractionNonThrowing returned Hidden: %s" e.Message
                     | FSharpDiagnosticSeverity.Info    -> () //log.PrintfnInfoMsg "EvalInteractionNonThrowing returned Info: %s" e.Message
 
+                if errs.Length > 0 then explainMissingSdk evalData.code
+
                 //match evaluatedToValue with   //|Some v -> log.PrintfnDebugMsg "Interaction evaluated to %A <%A>" v.ReflectionValue v.ReflectionType //|None-> ()
                 if config.Settings.GetBool("printDoneAfterEval",false) then log.PrintfnInfoMsg "*Done!"
 
@@ -373,6 +439,8 @@ type Fsi private (config:Config) =
                         log.PrintfnInfoMsg "%s" "For assembly reference errors that are not shown by editor tooling try to re-arrange the initial loading sequences of '#r' statements"
                         log.PrintfnInfoMsg "%s" "This error might happen when you are loading a dll with #r that is already loaded, but from a different location"
                         log.PrintfnInfoMsg "%s" "E.G. as a dependency from a already loaded dll."
+
+                    explainMissingSdk evalData.code
 
 
                 | _ -> // any other runtime exception
@@ -550,6 +618,7 @@ type Fsi private (config:Config) =
         | NotLoaded | Ready | Compiling | Evaluating ->
             let  prevState = state
             state <- Initializing
+            checkSdk() // only here, so on startup and on each reset, e.g. after the SDK got installed
             async{
                 try
                     //let timer = Fesh.Timer()

@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - a `defines` field in `HostedStartUpData`, for conditional compilation symbols of the host app. They are passed as `--define:` arguments to FSI and to the type checker, so that `#if` blocks for the host are evaluated and checked.
 - `FESH` is always defined for FSI and the type checker, and `FESHFX` too when running on .NET Framework, for `#if FESH` blocks in scripts.
+- when an evaluation with `#r "nuget: ..."` lines fails and no .NET SDK is installed, the Log says that these lines need the .NET SDK and where to get it. Without the SDK the packages are not restored, and if there is no dotnet.exe at all, F# Interactive reports no error for these lines, only the names from the package are not defined. The SDK is looked for on startup and on each reset of FSI, on a background thread
 
 ## [0.35.0] - 2026-10-11
 ### Added
