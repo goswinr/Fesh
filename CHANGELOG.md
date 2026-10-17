@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [0.36.0] - 2026-10-17
 ### Added
 - a `defines` field in `HostedStartUpData`, for conditional compilation symbols of the host app. They are passed as `--define:` arguments to FSI and to the type checker, so that `#if` blocks for the host are evaluated and checked.
 - `FESH` is always defined for FSI and the type checker, and `FESHFX` too when running on .NET Framework, for `#if FESH` blocks in scripts.
@@ -283,7 +285,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - first public release
 
-[Unreleased]: https://github.com/goswinr/Fesh/compare/0.35.0...HEAD
+[Unreleased]: https://github.com/goswinr/Fesh/compare/0.36.0...HEAD
+[0.36.0]: https://github.com/goswinr/Fesh/compare/0.35.0...0.36.0
 [0.35.0]: https://github.com/goswinr/Fesh/compare/0.34.0...0.35.0
 [0.34.0]: https://github.com/goswinr/Fesh/compare/0.33.5...0.34.0
 [0.33.5]: https://github.com/goswinr/Fesh/compare/0.33.2...0.33.5
