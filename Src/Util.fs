@@ -1,8 +1,9 @@
 ﻿namespace Fesh.Util
 
 open System
+open System.ComponentModel
 
-[<AutoOpen>]
+[<AutoOpen; EditorBrowsable(EditorBrowsableState.Never)>]
 module AutoOpenDateTime =
 
     type DateTime with
