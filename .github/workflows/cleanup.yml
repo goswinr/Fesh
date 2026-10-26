@@ -1,0 +1,59 @@
+name: Delete old workflow runs
+# Keeps only the newest run of every workflow, whatever its conclusion, so the badges in the readme always have a run.
+# Workflows are read from the API, so this file works unchanged in any repo (dynamic ones like Dependabot included).
+# Only run IDs that were just listed get deleted, so a failed or incomplete listing deletes less, never more.
+on:
+  schedule:
+    - cron: "0 4 * * 1" # Weekly on Monday at 04:00 UTC
+  # to allow manual triggering of the workflow from the GitHub Actions tab:
+  workflow_dispatch:
+
+jobs:
+  delete-runs:
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    steps:
+      - name: Delete all but the newest run of each workflow
+        env:
+          GH_TOKEN: ${{ github.token }} # used by the gh CLI for authentication
+          REPO: ${{ github.repository }} # owner/name, e.g. goswinr/Rhino.Scripting.FSharp
+        run: | # shell
+          # stop on any error, on unset variables, and if any command in a pipe fails (not just the last one)
+          set -euo pipefail
+
+          # list all workflows of the repo, one line per workflow: "<id><TAB><name>"
+          # --paginate fetches all pages, --jq formats each workflow with jq
+          gh api --paginate "repos/$REPO/actions/workflows" --jq '.workflows[] | "\(.id)\t\(.name)"' |
+          # read each line, split at the tab into the two variables
+          while IFS=$'\t' read -r wfId wfName; do
+
+            # list all runs of this workflow, one line per run: "<created_at><TAB><run id><TAB><status>"
+            # sort -r: newest first, created_at is an ISO timestamp so text order is time order
+            # awk: drop lines whose run id (field 2) was already seen,
+            #      so that a run listed twice can't push the newest run onto the delete list
+            runs=$(gh api --paginate "repos/$REPO/actions/workflows/$wfId/runs?per_page=100" \
+                     --jq '.workflow_runs[] | "\(.created_at)\t\(.id)\t\(.status)"' | sort -r | awk -F '\t' '!seen[$2]++')
+
+            # workflows without any runs have nothing to delete
+            if [ -z "$runs" ]; then
+              echo "== $wfName: no runs"
+              continue
+            fi
+
+            # the first line is the newest run, keep it (cut -f 2 takes the run id)
+            echo "== $wfName: keeping run $(head -n 1 <<< "$runs" | cut -f 2)"
+
+            # all lines from the second one on are older runs, delete them one by one
+            tail -n +2 <<< "$runs" | while IFS=$'\t' read -r created runId status; do
+              if [ "$status" != "completed" ]; then
+                # queued or in progress runs can't be deleted yet, the next cleanup will get them
+                echo "   skipping run $runId ($status)"
+              elif gh api -X DELETE "repos/$REPO/actions/runs/$runId" --silent; then
+                echo "   deleted run $runId from $created"
+              else
+                # a failed delete is reported as a warning in the run summary but does not stop the cleanup
+                echo "::warning::Could not delete run $runId of $wfName"
+              fi
+            done
+          done
