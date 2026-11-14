@@ -4,8 +4,9 @@
     <OutputType>WinExe</OutputType>
     <UseWPF>true</UseWPF>
     <UseWindowsForms>true</UseWindowsForms>    <!--inherited from Avalonedit ?-->
-	  <TargetFrameworks>net48;net10.0-windows</TargetFrameworks>
+	  <TargetFrameworks>net48;net11.0-windows</TargetFrameworks>
     <DefineConstants Condition="'$(TargetFramework)' == 'net48'">NETFRAMEWORK</DefineConstants>
+    <DefineConstants>$(DefineConstants);FSHARP11</DefineConstants> <!-- FSharp.Compiler.Service 43.13 API: RichText in tooltips, TextTag.UnresolvedName -->
     <!-- <RuntimeIdentifiers>win-x64;win-x86</RuntimeIdentifiers> -->
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
 
@@ -47,8 +48,8 @@
 
     <PackageReference Include="Microsoft.VisualBasic" Version="10.3.0" Condition="'$(TargetFramework)' == 'net48'" /> <!-- to move files to the recycle bin instead of deleting them -->
     <PackageReference Include="System.Private.Uri" Version="4.3.2" Condition="'$(TargetFramework)' == 'net48'" />    <!-- warning NU1903: Package 'System.Private.Uri' 4.3.0 has a known high severity vulnerability, https://github.com/advisories/GHSA-5f2m-466j-3848 -->
-    <PackageReference Include="FSharp.Compiler.Service" Version="43.12.401" />
-    <PackageReference Include="FSharp.Core"             Version="10.1.401" />
+    <PackageReference Include="FSharp.Compiler.Service" Version="43.13.101" /> <!-- F# 11, from the .NET 11 SDK 11.0.100. (43.13.404 is the F# 10 servicing build of SDK 10.0.404) -->
+    <PackageReference Include="FSharp.Core"             Version="11.0.101" /> <!-- FSharp.Compiler.Service pins this exact version -->
 
     <PackageReference Include="Fittings" Version="0.10.0" />
     <PackageReference Include="AvalonLog" Version="0.21.0" /> <!-- includes AvalonEditB -->

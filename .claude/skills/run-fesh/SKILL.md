@@ -16,7 +16,7 @@ All paths are relative to the repo root.
 ## Build
 
 ```powershell
-dotnet build FeshStandalone.fsproj -f net10.0-windows
+dotnet build FeshStandalone.fsproj -f net11.0-windows
 dotnet build FeshStandalone.fsproj -f net48
 ```
 
@@ -52,7 +52,7 @@ To test a typed trigger character, set the code without it, then type only the l
 
 ## Run (human path)
 
-`bin\Debug\net10.0-windows\win-x64\Fesh.exe` opens the tabs of the last session. With a file path as argument, it opens only that file.
+`bin\Debug\net11.0-windows\win-x64\Fesh.exe` opens the tabs of the last session. With a file path as argument, it opens only that file.
 
 ## Test
 
@@ -83,7 +83,7 @@ Use it as a template for other editor features: a list of (code, key, expected i
 
 ## Troubleshooting
 
-- **`error MSB3027: Could not copy ... apphost.exe to bin\Debug\net10.0-windows\win-x64\Fesh.exe ... The file is locked by: "Fesh (<pid>)"`**: Fesh is running. Run `driver.ps1 stop`, or ask the user to close their instance.
+- **`error MSB3027: Could not copy ... apphost.exe to bin\Debug\net11.0-windows\win-x64\Fesh.exe ... The file is locked by: "Fesh (<pid>)"`**: Fesh is running. Run `driver.ps1 stop`, or ask the user to close their instance.
 - **`a previous run was not stopped, run 'stop' first`**: a crashed or forgotten run left `state.json`. Run `stop`; it restores the Settings from that run's backup.
 - **`a Fesh process is already running, close it first`**: the user's own Fesh is open. Don't kill it; ask the user to close it.
 - **`Fesh is not in the foreground (process N is), not sending keys`**: another window took the focus, e.g. a dialog in Fesh or another app. Take a `shot` to see it, then `stop` and `launch` again.

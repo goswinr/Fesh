@@ -6,7 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Added
+- hosting NuGet package for .NET 11 and F# 11, with a `-net11` suffix
 ### Changed
+- the standalone app uses F# 11, with FSharp.Compiler.Service `43.13.101` and FSharp.Core `11.0.101`, for .NET Framework 4.8 and for .NET 11. The .NET version needs the .NET 11 Desktop Runtime and updates from the .NET 10 version
+- the package without a suffix is for .NET 11 and F# 11 now. Hosts on .NET 10 should use the package with the `-net10` suffix
 - Hide AutoOpen modules from editor completion lists with EditorBrowsable(EditorBrowsableState.Never).
 
 ## [0.36.0] - 2026-10-17

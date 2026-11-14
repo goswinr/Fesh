@@ -31,7 +31,7 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
       with:
-        dotnet-version: '10.x'
+        dotnet-version: '11.x'
 
     - name: Replace <br> in README.md with two spaces for nuget.org
       run: |
@@ -40,18 +40,18 @@ jobs:
         Set-Content -Path README.md -Value $content
 
 
-    # All five packages are built first and only pushed at the end,
+    # All six packages are built first and only pushed at the end,
     # so that a failing build can't leave a partial set of packages on nuget.org.
 
-    # build net 10 with no suffix
-    - name: Set target framework to net10 in FeshHosting.fsproj
+    # build net 11 with no suffix
+    - name: Set target framework to net11 in FeshHosting.fsproj
       run: |
         $projFile = Get-Content -Path FeshHosting.fsproj -Raw
-        $projFile = $projFile -replace "<TargetFramework>.*?</TargetFramework>", "<TargetFramework>net10.0-windows</TargetFramework>"
+        $projFile = $projFile -replace "<TargetFramework>.*?</TargetFramework>", "<TargetFramework>net11.0-windows</TargetFramework>"
         Set-Content -Path FeshHosting.fsproj -Value $projFile
 
-    - name: Dotnet build FeshHosting for net10
-      run:  dotnet build FeshHosting.fsproj --configuration Release --output bin/publishNuget/net10
+    - name: Dotnet build FeshHosting for net11
+      run:  dotnet build FeshHosting.fsproj --configuration Release --output bin/publishNuget/net11
 
     - name: Check version consistency of git tag and CHANGELOG.md after build
       # needs in fsproj:
@@ -75,7 +75,7 @@ jobs:
     # now packages with suffix:
 
     # all of this is only needed because  <TargetFrameworks>net8.0-windows;net472</TargetFrameworks> does no make a valid nuget package for net48
-    # so we make a separate build for net8 and net472 and net9 and net10
+    # so we make a separate build for net8 and net472 and net9 and net10 and net11
 
     - name: Set target framework to net472 in FeshHosting.fsproj
       run: |
@@ -130,7 +130,7 @@ jobs:
       run: dotnet build FeshHosting.fsproj --configuration Release --output bin/publishNuget/net9
 
 
-    # now that net9 is done build net10 again, this time with a suffix like the others
+    # now that net9 is done do the same for net10
     - name: Set target framework to net10 in FeshHosting.fsproj
       run: |
         $projFile = Get-Content -Path FeshHosting.fsproj -Raw
@@ -144,8 +144,26 @@ jobs:
         $content = $content -replace [regex]::Escape("$v-net9"), "$v-net10"
         Set-Content -Path CHANGELOG.md -Value $content
 
-    - name: Dotnet build FeshHosting for net10 with suffix
+    - name: Dotnet build FeshHosting for net10
       run: dotnet build FeshHosting.fsproj --configuration Release --output bin/publishNuget/net10
+
+
+    # now that net10 is done build net11 again, this time with a suffix like the others
+    - name: Set target framework to net11 in FeshHosting.fsproj
+      run: |
+        $projFile = Get-Content -Path FeshHosting.fsproj -Raw
+        $projFile = $projFile -replace "<TargetFramework>.*?</TargetFramework>", "<TargetFramework>net11.0-windows</TargetFramework>"
+        Set-Content -Path FeshHosting.fsproj -Value $projFile
+
+    - name : Set -net11 suffix in changelog
+      run: |
+        $v = $env:GITHUB_REF_NAME
+        $content = Get-Content -Path CHANGELOG.md -Raw
+        $content = $content -replace [regex]::Escape("$v-net10"), "$v-net11"
+        Set-Content -Path CHANGELOG.md -Value $content
+
+    - name: Dotnet build FeshHosting for net11 with suffix
+      run: dotnet build FeshHosting.fsproj --configuration Release --output bin/publishNuget/net11
 
 
     # Trusted Publishing: https://learn.microsoft.com/en-us/nuget/nuget-org/trusted-publishing
@@ -169,11 +187,12 @@ jobs:
       run: |
         $v = $env:GITHUB_REF_NAME
         $packages =
-          "net10/Fesh.$v", # the package without suffix is net10 too
+          "net11/Fesh.$v", # the package without suffix is net11 too
           "net472/Fesh.$v-net472",
           "net8/Fesh.$v-net8",
           "net9/Fesh.$v-net9",
-          "net10/Fesh.$v-net10"
+          "net10/Fesh.$v-net10",
+          "net11/Fesh.$v-net11"
         foreach ($p in $packages) {
           # --skip-duplicate so that the workflow can be re-run if only some of the pushes succeeded
           dotnet nuget push "./bin/publishNuget/$p.symbols.nupkg" `

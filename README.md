@@ -16,7 +16,7 @@ But it works just as well on its own.
 ![Screenshot](https://raw.githubusercontent.com/goswinr/Fesh/main/Media/screen-light.png#gh-light-mode-only)
 
 Fesh is built on the excellent [AvalonEdit](https://github.com/goswinr/AvalonEditB). That is why it only runs on Windows (for now).
-It supports F# 10 and has the IDE features you would expect: semantic syntax highlighting, type info, autocomplete and go to definition.
+It supports F# 11 and has the IDE features you would expect: semantic syntax highlighting, type info, autocomplete and go to definition.
 
 Unlike a typical F# REPL, Fesh has the input and the output in two separate windows.
 Just [like Don Syme always wanted it](https://github.com/dotnet/fsharp/issues/2161#issuecomment-270465310).
@@ -105,7 +105,7 @@ You can change the font in the Settings.txt file, via the menu: `About` → `Ope
 
 The easiest way is to run the Setup.exe from [Releases](https://github.com/goswinr/Fesh/releases).
 Fesh will offer to update itself when a new version is available.
-There is a .NET 10 and a .NET Framework 4.8 version. Apart from the runtime they are the same.
+There is a .NET 11 and a .NET Framework 4.8 version. Apart from the runtime they are the same.
 
 The installer is made with [Velopack](https://velopack.io) and is digitally signed.
 
@@ -132,8 +132,9 @@ You still get notified about new releases, but you have to install them yourself
 ## How to host Fesh in another app
 
 Use the NuGet package [Fesh](https://www.nuget.org/packages/Fesh/).
-Each release has a package version for each runtime: one with a `-net472`, `-net8`, `-net9` or `-net10` suffix.
-The version without a suffix is for .NET 10.
+Each release has a package version for each runtime: one with a `-net472`, `-net8`, `-net9`, `-net10` or `-net11` suffix.
+The version without a suffix is for .NET 11.
+Each .NET version comes with its own F# version: F# 8 for `-net8`, F# 9 for `-net9`, F# 10 for `-net10` and F# 11 for `-net11`. `-net472` uses F# 10.
 
 To build the package yourself, run:
 

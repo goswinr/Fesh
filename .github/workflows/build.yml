@@ -25,7 +25,7 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
-          dotnet-version: '10.x'
+          dotnet-version: '11.x'
 
       - name: Build FeshHosting.fsproj
         run: dotnet build FeshHosting.fsproj --configuration Release
@@ -39,12 +39,12 @@ jobs:
             --framework net48 `
             --no-self-contained
 
-      - name: Run dotnet publish net10.0
+      - name: Run dotnet publish net11.0
         run: |
           dotnet publish FeshStandalone.fsproj `
             --configuration Release `
             --runtime win-x64 `
-            --framework net10.0-windows `
+            --framework net11.0-windows `
             --no-self-contained
 
 

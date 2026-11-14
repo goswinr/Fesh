@@ -9,11 +9,12 @@
     <UseWindowsForms>true</UseWindowsForms><!--inherited from Avalonedit ?-->
     <!-- using TargetFrameworks = net472;net8.0-windows somehow the resultant nuget from multiple target frameworks
     does get unified to 8.0 and does not work on net48 so for now the the releaseNuget.yml action
-    will change this and also publish a net472,net8,net9,net10 nuget separately: -->
+    will change this and also publish a net472,net8,net9,net10,net11 nuget separately: -->
     <TargetFramework>net8.0-windows</TargetFramework> <!-- use the lowest F# here by default, will be replace by other versions in releaseNuget.yml -->
 
     <DefineConstants Condition="'$(TargetFramework)' == 'net472'">NETFRAMEWORK</DefineConstants> <!-- so thread.Abort() can be used -->
     <DefineConstants Condition="'$(TargetFramework)' == 'net8.0-windows'">NET8</DefineConstants> <!-- so that caret in GetProjectOptionsFromScript can be skipped-->
+    <DefineConstants Condition="'$(TargetFramework)' == 'net11.0-windows'">FSHARP11</DefineConstants> <!-- FSharp.Compiler.Service 43.13 API: RichText in tooltips, TextTag.UnresolvedName -->
 
     <LangVersion>preview</LangVersion><!-- to enable indexing from end via ^ -->
 
@@ -76,6 +77,10 @@
   <ItemGroup Condition="'$(TargetFramework)' == 'net10.0-windows'"> <!-- 43.11.x depends on the 10.x versions of System.Diagnostics.DiagnosticSource etc, 43.10.x still on 9.x -->
     <PackageReference Include="FSharp.Compiler.Service" Version="43.12.401" />
     <PackageReference Include="FSharp.Core"             Version="10.1.401" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)' == 'net11.0-windows'"> <!-- F# 11, from the .NET 11 SDK 11.0.100 -->
+    <PackageReference Include="FSharp.Compiler.Service" Version="43.13.101" />
+    <PackageReference Include="FSharp.Core"             Version="11.0.101" />
   </ItemGroup>
 
 

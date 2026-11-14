@@ -45,7 +45,7 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
       with:
-        dotnet-version: '10.x'
+        dotnet-version: '11.x'
 
     - name: Run dotnet publish net48
       run: | #shell
@@ -56,13 +56,13 @@ jobs:
           --framework net48 `
           --no-self-contained
 
-    - name: Run dotnet publish net10.0
+    - name: Run dotnet publish net11.0
       run: | #shell
         dotnet publish FeshStandalone.fsproj `
           --configuration Release `
           --runtime win-x64 `
-          --output bin/publish/net10.0 `
-          --framework net10.0-windows `
+          --output bin/publish/net11.0 `
+          --framework net11.0-windows `
           --no-self-contained
 
     - name: Check version consistency of git tag and CHANGELOG.md
@@ -135,7 +135,7 @@ jobs:
 
         # The -net48 tag doesn't exist yet: GitHub creates it at --targetCommitish, the released commit,
         # when vpk publishes the draft release after uploading. So a run that fails before, e.g. at
-        # signing, leaves no tag behind. (The net10 release uses the tag that triggered this run.)
+        # signing, leaves no tag behind. (The net11 release uses the tag that triggered this run.)
         vpk upload github `
           --publish `
           --repoUrl https://github.com/goswinr/Fesh `
@@ -145,20 +145,20 @@ jobs:
           --outputDir bin/installer/net48 `
           --channel framework
           
-    - name: Pack, Sign and Release with Velopack .NET 10.0
+    - name: Pack, Sign and Release with Velopack .NET 11.0
       # https://docs.velopack.io/reference/cli/content/vpk-windows
       # If you are publishing your application with --no-self-contained, then you should provide the --framework argument. https://docs.velopack.io/packaging/bootstrapping
       # The channel name is just an identifier; it is not shown in the app.
       # See also checkForNewVelopackRelease(config:Config, fesh:Fesh) in Initialize.fs
       # and https://docs.velopack.io/integrating/switching-channels for channels.
       #
-      # Channel rename (e.g. net10 -> net11 in the future):
+      # Channel rename (e.g. net11 -> net12 in the future):
       # Per https://docs.velopack.io/packaging/channels#renaming-a-channel a channel cannot be
       # renamed directly. To migrate users, pack/upload the next release on the new channel
-      # (e.g. --channel net11) and then upload a copy of releases.net11.json as releases.net10.json
-      # to the same GitHub release. Existing net10 clients will fetch releases.net10.json, update
-      # to that build, and from then on poll releases.net11.json (because the package itself is
-      # stamped with --channel net11). Keep the redirect step on every release so latecomers
+      # (e.g. --channel net12) and then upload a copy of releases.net12.json as releases.net11.json
+      # to the same GitHub release. Existing net11 clients will fetch releases.net11.json, update
+      # to that build, and from then on poll releases.net12.json (because the package itself is
+      # stamped with --channel net12). Keep the redirect step on every release so latecomers
       # always get pulled forward to the latest build on the new channel.
       env:
         GH_TOKEN: ${{secrets.GITHUB_TOKEN}}   # used by `gh release upload` below
@@ -169,38 +169,39 @@ jobs:
 
         vpk download github `
           --repoUrl https://github.com/goswinr/Fesh `
-          --outputDir bin/installer/net10.0 `
-          --channel net10
+          --outputDir bin/installer/net11.0 `
+          --channel net11
 
         vpk pack `
           --packId Fesh `
           --packVersion ${{github.ref_name}} `
-          --packDir bin/publish/net10.0 `
+          --packDir bin/publish/net11.0 `
           --mainExe Fesh.exe `
-          --framework net10.0-x64-desktop `
+          --framework net11.0-x64-desktop `
           --icon Media/logoInstaller.ico  `
           --packAuthors "Goswin R" `
-          --releaseNotes .github/InstallNotes-net10.md `
+          --releaseNotes .github/InstallNotes-net11.md `
           --azureTrustedSignFile .github/signing-metadata.json `
           --splashImage Media/logo128.png `
-          --outputDir bin/installer/net10.0 `
-          --channel net10
+          --outputDir bin/installer/net11.0 `
+          --channel net11
 
-        # Redirect file for the previous channel name (net9 -> net10 migration).
-        # Existing net9 clients fetch releases.net9.json, see this newer build, and update.
-        # Once updated they poll releases.net10.json from then on. Safe to remove this line
-        # after enough time has passed that no net9 clients remain in the wild.
-        Copy-Item bin/installer/net10.0/releases.net10.json bin/installer/net10.0/releases.net9.json
+        # Redirect files for the previous channel names (net9 -> net10 -> net11 migration).
+        # Existing net9 and net10 clients fetch releases.net9.json or releases.net10.json, see this newer build, and update.
+        # Once updated they poll releases.net11.json from then on. Safe to remove these lines
+        # after enough time has passed that no net9 or net10 clients remain in the wild.
+        Copy-Item bin/installer/net11.0/releases.net11.json bin/installer/net11.0/releases.net10.json
+        Copy-Item bin/installer/net11.0/releases.net11.json bin/installer/net11.0/releases.net9.json
 
         vpk upload github `
           --publish `
           --repoUrl https://github.com/goswinr/Fesh `
-          --releaseName "Fesh ${{github.ref_name}} net10" `
+          --releaseName "Fesh ${{github.ref_name}} net11" `
           --tag ${{github.ref_name}} `
-          --outputDir bin/installer/net10.0 `
-          --channel net10
+          --outputDir bin/installer/net11.0 `
+          --channel net11
 
-        # Attach the net9 redirect manifest to the same GitHub release so old clients can find it.
-        gh release upload "${{github.ref_name}}" bin/installer/net10.0/releases.net9.json --clobber
+        # Attach the net9 and net10 redirect manifests to the same GitHub release so old clients can find them.
+        gh release upload "${{github.ref_name}}" bin/installer/net11.0/releases.net10.json bin/installer/net11.0/releases.net9.json --clobber
           
 

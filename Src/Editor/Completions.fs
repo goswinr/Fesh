@@ -135,7 +135,12 @@ type CompletionItem(state: InteractionState, info:CompletionInfo , isDotCompleti
                             | ToolTipElement.Group(tooTipElemDataList) ->
                                 match tooTipElemDataList with
                                 |[]  -> None
-                                |[eld] -> Some eld.MainDescription
+                                |[eld] ->
+                                    #if FSHARP11
+                                    Some eld.MainDescription.Parts
+                                    #else
+                                    Some eld.MainDescription
+                                    #endif
                                 | _ -> None // there are multiple signatures
                     | _ -> None // there are multiple signatures
 

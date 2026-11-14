@@ -5,15 +5,15 @@ Fesh is an F# editor and scripting host for Windows, built on WPF and AvalonEdit
 ## Commands
 
 ```powershell
-dotnet build FeshStandalone.fsproj                     # the app, for net48 and net10.0-windows
-dotnet build FeshStandalone.fsproj -f net10.0-windows  # faster: one target only
+dotnet build FeshStandalone.fsproj                     # the app, for net48 and net11.0-windows
+dotnet build FeshStandalone.fsproj -f net11.0-windows  # faster: one target only
 dotnet build FeshHosting.fsproj                        # the NuGet library, net8.0-windows by default
 ```
 
 CI (`.github/workflows/build.yml`) builds `FeshHosting.fsproj` in Release and publishes the app for both frameworks:
 
 ```powershell
-dotnet publish FeshStandalone.fsproj --configuration Release --runtime win-x64 --framework net10.0-windows --no-self-contained
+dotnet publish FeshStandalone.fsproj --configuration Release --runtime win-x64 --framework net11.0-windows --no-self-contained
 dotnet publish FeshStandalone.fsproj --configuration Release --runtime win-x64 --framework net48 --no-self-contained
 ```
 
@@ -50,9 +50,10 @@ Namespaces are `Fesh`, `Fesh.Model`, `Fesh.Config`, `Fesh.Editor` and `Fesh.View
 
 ## Target frameworks
 
-- The app targets `net48` and `net10.0-windows`.
-- The hosting library has a single `<TargetFramework>`, `net8.0-windows` by default. `releaseNuget.yml` replaces it with a regex to build one package each for net472, net8, net9 and net10. Each target uses the FSharp.Compiler.Service and FSharp.Core versions from its conditional `ItemGroup` in `FeshHosting.fsproj`. Keep `<TargetFramework>` on a single line so the regex still matches.
-- `NETFRAMEWORK` is defined for net48 and net472, e.g. for `Thread.Abort` to cancel FSI (.NET uses `ControlledExecution`). `NET8` is defined for the net8 hosting build. At runtime, check `RunContext.IsRunningOnDotNetCore`.
+- Building needs the .NET 11 SDK.
+- The app targets `net48` and `net11.0-windows`, with F# 11 for both (FSharp.Compiler.Service 43.13.101, FSharp.Core 11.0.101). F# 11 on .NET always goes with net11. FSharp.Compiler.Service 43.13.404 is not F# 11: it is the F# 10 servicing build of SDK 10.0.404, with FSharp.Core 10.1.404.
+- The hosting library has a single `<TargetFramework>`, `net8.0-windows` by default. `releaseNuget.yml` replaces it with a regex to build one package each for net472, net8, net9, net10 and net11 (also the package without suffix). Each target uses the FSharp.Compiler.Service and FSharp.Core versions from its conditional `ItemGroup` in `FeshHosting.fsproj`. Keep `<TargetFramework>` on a single line so the regex still matches.
+- `NETFRAMEWORK` is defined for net48 and net472, e.g. for `Thread.Abort` to cancel FSI (.NET uses `ControlledExecution`). `NET8` is defined for the net8 hosting build. `FSHARP11` is defined for the standalone app and the net11 hosting build, for the FSharp.Compiler.Service 43.13 API (e.g. `ToolTipElementData.MainDescription` is a `RichText`, use `.Parts`). The other hosting builds use older versions. At runtime, check `RunContext.IsRunningOnDotNetCore`.
 
 ## Theme and highlighting
 

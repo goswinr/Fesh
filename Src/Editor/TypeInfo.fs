@@ -177,6 +177,9 @@ type TypeInfo private () =
 
             | TextTag.UnknownType   -> append null t.Text
             | TextTag.UnknownEntity -> append null t.Text
+            #if FSHARP11
+            | TextTag.UnresolvedName -> append null t.Text
+            #endif
 
 
             | TextTag.LineBreak ->
@@ -605,7 +608,11 @@ type TypeInfo private () =
                     | ToolTipElement.Group(tooTipElemDataList) ->
                         for tooTipElemData in tooTipElemDataList do
                             { name      = Option.defaultValue "" tooTipElemData.ParamName
+                              #if FSHARP11
+                              signature = tooTipElemData.MainDescription.Parts
+                              #else
                               signature = tooTipElemData.MainDescription
+                              #endif
                               fullName  = fullName
                               xmlDoc    = findXmlDoc tooTipElemData.XmlDoc
                               }

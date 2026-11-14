@@ -2,7 +2,7 @@
 Drives the Fesh standalone app (WPF) via Windows UI Automation and SendKeys.
 Each call is one command, the state between calls (process id, settings backup) is kept in $env:TEMP\fesh-run\state.json.
 
-  pwsh -File .claude/skills/run-fesh/driver.ps1 <command> [arg] [-Framework net10.0-windows|net48] [-WaitMs 4000] [-DelayMs 40]
+  pwsh -File .claude/skills/run-fesh/driver.ps1 <command> [arg] [-Framework net11.0-windows|net48] [-WaitMs 4000] [-DelayMs 40]
 
   launch [code]   back up the Settings folder, open a scratch .fsx with [code] in a new Fesh process, wait for the first type check
   settext <code>  replace the whole editor text (one change, does not trigger completion), caret goes to the end, waits for the type check
@@ -19,7 +19,7 @@ Each call is one command, the state between calls (process id, settings backup) 
 param(
     [Parameter(Position=0)][string]$Command = "help",
     [Parameter(Position=1)][string]$Arg = "",
-    [ValidateSet("net10.0-windows", "net48")][string]$Framework = "net10.0-windows",
+    [ValidateSet("net11.0-windows", "net48")][string]$Framework = "net11.0-windows",
     [int]$WaitMs = 4000,
     [int]$DelayMs = 40
 )
@@ -125,7 +125,7 @@ switch ($Command) {
 "launch" {
     if (Test-Path $stateFile) { throw "a previous run was not stopped, run 'stop' first (it restores the settings from that run's backup)" }
     if (Get-Process Fesh -ErrorAction SilentlyContinue) { throw "a Fesh process is already running, close it first: it shares the Settings folder" }
-    $exe = if ($Framework -eq "net48") { "bin\Debug\net48\win-x64\Fesh.exe" } else { "bin\Debug\net10.0-windows\win-x64\Fesh.exe" }
+    $exe = if ($Framework -eq "net48") { "bin\Debug\net48\win-x64\Fesh.exe" } else { "bin\Debug\net11.0-windows\win-x64\Fesh.exe" }
     $exe = Join-Path $repo $exe
     if (-not (Test-Path $exe)) { throw "$exe not found, build first: dotnet build FeshStandalone.fsproj -f $Framework" }
     $settingsDir = Join-Path $env:APPDATA $(if ($Framework -eq "net48") { "Fesh.net48\Settings" } else { "Fesh\Settings" })

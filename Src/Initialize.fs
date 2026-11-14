@@ -44,13 +44,13 @@ module Initialize =
                             let updateManager = new UpdateManager(source)
                             match updateManager.CheckForUpdatesAsync().Result with
                             | null ->
-                                let updateManager10 = new UpdateManager(source, UpdateOptions (ExplicitChannel = "net10" ))  // match .github\workflows\release.yml
-                                match updateManager10.CheckForUpdatesAsync().Result with
+                                let updateManager11 = new UpdateManager(source, UpdateOptions (ExplicitChannel = "net11" ))  // match .github\workflows\release.yml
+                                match updateManager11.CheckForUpdatesAsync().Result with
                                 | null ->
-                                    let updateManager11= new UpdateManager(source, UpdateOptions (ExplicitChannel = "net11" ))
-                                    (updateManager11.CheckForUpdatesAsync().Result, updateManager11)
+                                    let updateManager10 = new UpdateManager(source, UpdateOptions (ExplicitChannel = "net10" )) // the channel before net11
+                                    (updateManager10.CheckForUpdatesAsync().Result, updateManager10)
                                 | u ->
-                                    (u, updateManager10)
+                                    (u, updateManager11)
                             | u ->
                                 (u, updateManager)
 
