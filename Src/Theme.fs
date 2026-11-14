@@ -145,6 +145,15 @@ type NugetHintColors = {
     linkFgHover         : SolidColorBrush
     }
 
+/// Colors of the completion window.
+/// The colors of the items and their icons are the ones from SyntaxHighlightingFSharp.xshd, see Completions.fs
+type CompletionColors = {
+    /// Background of the selected item. Light enough in the light theme to keep the colors of the item readable.
+    selection           : SolidColorBrush
+    /// Text of the selected item, if it has no color from the xshd file
+    selectionText       : SolidColorBrush
+    }
+
 /// Colors of the WPF controls in the dark theme. In the light theme the default WPF styles are used.
 type ChromeColors = {
     background          : SolidColorBrush
@@ -474,6 +483,18 @@ module Theme =
         buttonBg            = hex "#3A3A3D"
         }
 
+    // -------------------- Completion window --------------------
+
+    let lightCompletion : CompletionColors = {
+        selection           = hex "#CCE8FF" // like the selection in the Windows Explorer, instead of the dark SystemColors.Highlight
+        selectionText       = Brushes.Black
+        }
+
+    let darkCompletion : CompletionColors = {
+        selection           = darkChrome.highlight
+        selectionText       = darkChrome.text
+        }
+
     // -------------------- current theme --------------------
 
     /// The key in the settings file
@@ -489,6 +510,7 @@ module Theme =
     let mutable tabs        = lightTabs
     let mutable toolTip     = lightToolTip
     let mutable nugetHints  = lightNugetHints
+    let mutable completion  = lightCompletion
 
     let private changedEv = new Event<unit>()
 
@@ -514,6 +536,7 @@ module Theme =
             tabs        <- if dark then darkTabs       else lightTabs
             toolTip     <- if dark then darkToolTip    else lightToolTip
             nugetHints  <- if dark then darkNugetHints else lightNugetHints
+            completion  <- if dark then darkCompletion else lightCompletion
             changedEv.Trigger()
 
     /// Reads the colors of the editor and the Log window from the xshd file again, e.g. after it was edited.

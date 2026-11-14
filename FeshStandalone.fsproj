@@ -118,6 +118,7 @@
     <Compile Include="Src/Editor/GoToDefinition.fs" />
     <Compile Include="Src/Editor/SourceLink.fs" />
     <Compile Include="Src/Editor/NugetVersions.fs" />
+    <Compile Include="Src/Editor/CompletionIcons.fs" />
     <Compile Include="Src/Editor/Completions.fs" />
     <Compile Include="Src/Editor/Foldings.fs" />
     <Compile Include="Src/Editor/EvaluationTracker.fs" />

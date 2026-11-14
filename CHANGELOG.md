@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ### Added
 - hosting NuGet package for .NET 11 and F# 11, with a `-net11` suffix
+- icons in the completion list for the kind of each item, e.g. method, function, property, event, record field, type, union case, namespace, keyword, directive and NuGet package. The icon and the name have the color the editor uses for that kind, from the `Semantic.` and keyword colors in SyntaxHighlightingFSharp.xshd. Keywords are italic like in the editor. In the light theme the selected item has a pale blue background instead of the dark blue one, so that its colors stay readable
 ### Changed
 - the standalone app uses F# 11, with FSharp.Compiler.Service `43.13.101` and FSharp.Core `11.0.101`, for .NET Framework 4.8 and for .NET 11. The .NET version needs the .NET 11 Desktop Runtime and updates from the .NET 10 version
 - the package without a suffix is for .NET 11 and F# 11 now. Hosts on .NET 10 should use the package with the `-net10` suffix

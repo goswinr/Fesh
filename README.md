@@ -129,6 +129,14 @@ dotnet build FeshStandalone.fsproj
 ```
 You still get notified about new releases, but you have to install them yourself.
 
+## Run from source
+
+After building the standalone app from source, you can run it with:
+
+```bash
+dotnet run --project FeshStandalone.fsproj -f net11.0-windows
+```
+
 ## How to host Fesh in another app
 
 Use the NuGet package [Fesh](https://www.nuget.org/packages/Fesh/).

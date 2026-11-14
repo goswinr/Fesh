@@ -35,20 +35,35 @@ type RestrictedShowList =
 
 module UtilCompletion =
 
-    let mkTexBlock(txt,style) = // the displayed item in the completion window
-        let mutable tb = Controls.TextBlock()
-        tb.Text <- txt
+    /// The displayed text of an item in the completion window, styled by styleTexBlock
+    let mkTexBlock(txt:string) =
+        Controls.TextBlock(Text = txt)
+
+    /// Sets the font, the color of the kind and the gap to the icon.
+    /// Called each time the item gets shown, so that items that are kept for several completion windows,
+    /// like the keywords, follow changes of the font and the theme.
+    let styleTexBlock (tb:TextBlock, kind:CompletionKind, textArea:TextArea) =
         tb.FontFamily <- StyleState.fontEditor
-        tb.FontSize <-   StyleState.fontSize
-        //tb.Foreground  <- col // fails on selection, does not get color inverted//check  https://blogs.msdn.microsoft.com/text/2009/08/28/selection-brush/ ??
-        tb.FontStyle <- style
-        tb.Padding <- Thickness(0. , 0. , 8. , 0. ) //left top right bottom / so that it does not appear to be trimmed
-        tb
+        tb.FontSize   <- StyleState.fontSize
+        // left: half a character after the icon, so that the icon does not read as part of the text.
+        // right: so that the text does not appear to be trimmed.
+        tb.Padding    <- Thickness(textArea.TextView.WideSpaceWidth * 0.5, 0., 8., 0.)
+        match CompletionKind.textStyle kind with
+        | ValueSome s ->
+            tb.Foreground <- s.brush // stays on the selected item too, the selection is pale in the light theme, see setTheme
+            tb.FontStyle  <- if s.italic then FontStyles.Italic else FontStyles.Normal
+        | ValueNone ->
+            tb.ClearValue TextBlock.ForegroundProperty
+            tb.FontStyle  <- FontStyles.Normal
 
     let setTheme (w:CompletionWindow) =
         ThemeChrome.registerWindow w null Theme.darkChrome.popup
         // the ToolTip for the item descriptions has no parent to inherit the theme from, so it needs to be registered too:
         ThemeChrome.register w.DescriptionToolTip
+        // The selected item: The default in the light theme is dark blue with white text.
+        // The items keep their colors from the xshd file when selected, so they need a light background:
+        w.Resources.[SystemColors.HighlightBrushKey]     <- Theme.completion.selection
+        w.Resources.[SystemColors.HighlightTextBrushKey] <- Theme.completion.selectionText
 
     let isAtLineStart (completionSegment:ISegment) (textArea:TextArea) =
         let doc = textArea.Document
@@ -86,18 +101,24 @@ type CompletionItem(state: InteractionState, info:CompletionInfo , isDotCompleti
             | Decl (it,_)      ->  1.0 + state.Config.AutoCompleteStatistic.Get(it.NameInList) //if p>1.0 then log.PrintfnDebugMsg "%s %g" it.Name p
             | KeyWord (text,_) ->  1.0 + state.Config.AutoCompleteStatistic.Get(text) // create once and cache ?
 
-    let textVal, textDisplay=
+    let textVal, kind =
         match info with
-        | Decl (it,_)      -> it.NameInList ,UtilCompletion.mkTexBlock(it.NameInList , FontStyles.Normal)   // create once and cache ?
-        | KeyWord (text,_) -> text          ,UtilCompletion.mkTexBlock(text , FontStyles.Normal)   // create once and cache ?
+        | Decl (it,_)      -> it.NameInList, CompletionKind.ofDeclaration it
+        | KeyWord (text,_) -> text         , CompletionKind.ofKeyword text
 
-    member this.Content = textDisplay :> obj // the displayed item in the completion window
+    let textDisplay = UtilCompletion.mkTexBlock textVal
+
+    /// the displayed item in the completion window
+    member this.Content =
+        UtilCompletion.styleTexBlock(textDisplay, kind, state.Editor.TextArea)
+        textDisplay :> obj
+
     member this.Description =
         match info with
         | Decl    (it, getToolTip)  -> getToolTip(it) // this gets called on demand only, not when initially filling the list.
         | KeyWord (_ , toolTip)      -> toolTip :> obj
 
-    member this.Image = null //TODO or part of text box ?
+    member this.Image : ImageSource = CompletionIcons.ofKind kind
     member this.Priority = priority
     member this.Text = textVal // not used for display, but for priority sorting ?
     member this.Complete (textArea:TextArea, completionSegment:ISegment, e:EventArgs) =
@@ -210,7 +231,7 @@ type CompletionItem(state: InteractionState, info:CompletionInfo , isDotCompleti
 /// usedCount: how often the package was used before, 0 if it was only found on nuget.org.
 type NugetCompletionItem(state: InteractionState, name:string, usedCount:int, found:NugetSearchResult option) =
 
-    let textDisplay = UtilCompletion.mkTexBlock(name, FontStyles.Normal)
+    let textDisplay = UtilCompletion.mkTexBlock name
 
     let description = lazy (
         let lines = ResizeArray<string>()
@@ -228,9 +249,11 @@ type NugetCompletionItem(state: InteractionState, name:string, usedCount:int, fo
         TextBlock(Text = String.Join("\r\n", lines), TextWrapping = TextWrapping.Wrap, MaxWidth = 500.0) :> obj
         )
 
-    member this.Content = textDisplay :> obj
+    member this.Content =
+        UtilCompletion.styleTexBlock(textDisplay, CompletionKind.NugetPackage, state.Editor.TextArea)
+        textDisplay :> obj
     member this.Description = description.Value
-    member this.Image = null
+    member this.Image : ImageSource = CompletionIcons.ofKind CompletionKind.NugetPackage
     member this.Priority = 1.0 + float usedCount
     member this.Text = name
     member this.Complete (textArea:TextArea, completionSegment:ISegment, e:EventArgs) =

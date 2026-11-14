@@ -56,8 +56,34 @@ module SemanticColors =
             if s.underline then p.SetTextDecorations TextDecorations.Underline
             )
 
-    /// Reads the 'Semantic.' colors from the highlighting definition
+    /// The foreground and font style of a named color, for drawing outside of the editor, e.g. in the completion list
+    [<NoComparison; NoEquality>]
+    type TextStyle = {
+        brush  : Brush
+        italic : bool
+        }
+
+    /// All named colors of the xshd file that have a foreground, by name, e.g. 'Keywords' or 'Semantic.Method'
+    let mutable private textStyles = Collections.Generic.Dictionary<string, TextStyle>()
+
+    /// The foreground and font style of a named color in the xshd file, e.g. 'Keywords' or 'Semantic.Method'.
+    /// ValueNone if the color has no foreground, is missing, or the file is not loaded yet.
+    /// The brushes are replaced when the theme changes or the file is reloaded.
+    let textStyle (name:string) : TextStyle voption =
+        match textStyles.TryGetValue name with
+        | true, s -> ValueSome s
+        | _ -> ValueNone
+
+    /// Reads the 'Semantic.' colors and the text styles of all named colors from the highlighting definition
     let update (def:IHighlightingDefinition) =
+        let ts = Collections.Generic.Dictionary<string, TextStyle>()
+        for c in def.NamedHighlightingColors do
+            if notNull c.Foreground then
+                match c.Foreground.GetBrush(null) with
+                | null -> ()
+                | b -> ts.[c.Name] <- { brush = b; italic = c.FontStyle.HasValue && c.FontStyle.Value <> FontStyles.Normal }
+        textStyles <- ts
+
         styles <-
             names |> Array.map (fun n ->
                 match def.GetNamedColor("Semantic." + n) with
