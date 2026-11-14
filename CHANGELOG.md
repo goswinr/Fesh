@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [0.37.0] - 2026-11-14
 ### Added
 - hosting NuGet package for .NET 11 and F# 11, with a `-net11` suffix
 - icons in the completion list for the kind of each item, e.g. method, function, property, event, record field, type, union case, namespace, keyword, directive and NuGet package. Like in the menus, most of each icon is gray and one detail shows the family of the kind in color: purple for methods and functions, blue for properties, fields, values and union cases, amber for types and events, and red for exceptions. The names have the color the editor uses for their kind, from the `Semantic.` and keyword colors in SyntaxHighlightingFSharp.xshd. Keywords are italic like in the editor. In the light theme the selected item has a pale blue background instead of the dark blue one, so that its colors stay readable
@@ -295,7 +297,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - first public release
 
-[Unreleased]: https://github.com/goswinr/Fesh/compare/0.36.0...HEAD
+[Unreleased]: https://github.com/goswinr/Fesh/compare/0.37.0...HEAD
+[0.37.0]: https://github.com/goswinr/Fesh/compare/0.36.0...0.37.0
 [0.36.0]: https://github.com/goswinr/Fesh/compare/0.35.0...0.36.0
 [0.35.0]: https://github.com/goswinr/Fesh/compare/0.34.0...0.35.0
 [0.34.0]: https://github.com/goswinr/Fesh/compare/0.33.5...0.34.0
