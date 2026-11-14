@@ -9,10 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - hosting NuGet package for .NET 11 and F# 11, with a `-net11` suffix
 - icons in the completion list for the kind of each item, e.g. method, function, property, event, record field, type, union case, namespace, keyword, directive and NuGet package. The icon and the name have the color the editor uses for that kind, from the `Semantic.` and keyword colors in SyntaxHighlightingFSharp.xshd. Keywords are italic like in the editor. In the light theme the selected item has a pale blue background instead of the dark blue one, so that its colors stay readable
+- icons in the main menu and in the context menus of the editor, the log and the status bar. Most of each icon is in the text color, one detail shows the kind of command in color: green for evaluating in FSI, red for stop, close, delete and errors, blue for files and selections, amber for new, open, find and build, purple for view and folding, teal for text changes and olive for comments. The icons change color with the theme and fade when the menu item is disabled
 ### Changed
 - the standalone app uses F# 11, with FSharp.Compiler.Service `43.13.101` and FSharp.Core `11.0.101`, for .NET Framework 4.8 and for .NET 11. The .NET version needs the .NET 11 Desktop Runtime and updates from the .NET 10 version
 - the package without a suffix is for .NET 11 and F# 11 now. Hosts on .NET 10 should use the package with the `-net10` suffix
 - Hide AutoOpen modules from editor completion lists with EditorBrowsable(EditorBrowsableState.Never).
+- "Auto-Reload External Changes" in the File menu shows a checkbox, also when it is off, so that it looks like a setting and not like a command. The menu stays open when you click it, so that you see the checkbox change
+- the group headers in the recent files list of the File menu, like "Yesterday", are dim labels aligned with the file names. The mouse doesn't highlight them and the arrow keys skip them
 
 ## [0.36.0] - 2026-10-17
 ### Added

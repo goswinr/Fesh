@@ -20,7 +20,7 @@ open Fittings.DependencyProps
 
 module MenuUtil =
     let menuItem (cmd:CommandInfo) =
-        MenuItem(Header = cmd.name, InputGestureText = cmd.gesture, ToolTip = cmd.tip, Command = cmd.cmd):> Control
+        MenuItem(Header = cmd.name, InputGestureText = cmd.gesture, ToolTip = cmd.tip, Command = cmd.cmd, Icon = box (MenuIcons.image cmd.icon)):> Control
 
 open MenuUtil
 

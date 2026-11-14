@@ -4,6 +4,7 @@ open System
 open System.Windows
 open System.Windows.Input
 open System.Windows.Controls
+open System.Windows.Media
 open System.Collections.Generic
 
 open AvalonEditB
@@ -11,6 +12,7 @@ open AvalonEditB
 open Fittings.Command
 open Fittings.DependencyProps
 
+open Fesh
 open Fesh.Model
 open Fesh.Util
 open Fesh.Config
@@ -72,6 +74,7 @@ module RecognizePath =
                                 gesture = ""
                                 cmd = mkCmdSimple (fun _ -> General.browseTo(sprintf "https://www.google.com/search?q=%s" txt)  )
                                 tip = sprintf "This Command will open your default browser and do a google search for\r\n'%s'" txt
+                                icon = MenuIcon.Find
                                 }
                             menu.Items.Insert(0, Separator():> Control)
                             incr tempItemsInMenu
@@ -123,6 +126,7 @@ module RecognizePath =
                                         //else IFeshLog.log.PrintfnIOErrorMsg "Directory '%s' does not exist" dir
                                         )
                                     tip = sprintf "Try to open folder in Explorer at \r\n%s\r\n(Tries to open at parent folder if this folder is not found.)" dir
+                                    icon = MenuIcon.Folder
                                     }
                             menu.Items.Insert(0, sep()       )
                             incr tempItemsInMenu
@@ -139,6 +143,7 @@ module RecognizePath =
                                         gesture = ""
                                         cmd = mkCmdSimple (fun _ -> openFile(fi,true)  |> ignore ) // does not need check if file exists !
                                         tip = sprintf "Try to open file %s from  at \r\n%s" name fullPath
+                                        icon = MenuIcon.OpenFile
                                         }
 
                                 menu.Items.Insert(0, menuItem cmd)
@@ -158,6 +163,7 @@ module RecognizePath =
                                         IFeshLog.log.PrintfnIOErrorMsg "Directory or file \r\n%s\r\n does not exist" fullPath
                                     )
                                 tip = sprintf "Try to open file in VS Code:\r\n%s" fullPath
+                                icon = MenuIcon.OpenExternal
                                 }
 
                         menu.Items.Insert(0, menuItem cmd)
@@ -184,21 +190,30 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, statusBar:FeshStatusBar, log:
     let sep() = Separator():> Control
 
     let autoReloadKey = "AutoReloadExternalChangesIfClean"
+    /// A setting, not a command: a real CheckBox in the icon column shows its state, also when it is off.
+    /// The CheckBox ignores the mouse, a click anywhere on the item toggles it. The menu stays open, so that you see the box change.
     let autoReloadMenuItem =
+        let checkBox = CheckBox(IsChecked = Nullable(config.Settings.GetBool(autoReloadKey, true)), Focusable = false, IsHitTestVisible = false, VerticalAlignment = VerticalAlignment.Center)
         let mi = MenuItem(
-                    Header = "Auto-Reload External Changes",
-                    IsCheckable = true,
-                    IsChecked = config.Settings.GetBool(autoReloadKey, true),
+                    Header = "Auto-Reload External File Changes ?",
+                    Icon = checkBox,
+                    StaysOpenOnClick = true,
                     ToolTip = "When checked, externally changed files are reloaded silently if the editor has no unsaved changes.\r\nWhen unchecked, you will always be asked before reloading.")
-        mi.Checked.Add  (fun _ -> config.Settings.SetBool(autoReloadKey, true ); config.Settings.Save())
-        mi.Unchecked.Add(fun _ -> config.Settings.SetBool(autoReloadKey, false); config.Settings.Save())
+        mi.Click.Add (fun _ ->
+            let on = not (checkBox.IsChecked.GetValueOrDefault())
+            checkBox.IsChecked <- Nullable on
+            config.Settings.SetBool(autoReloadKey, on)
+            config.Settings.Save())
         mi :> Control
 
     // let item (ngc: string * string * #ICommand * string) =
     //     let n,g,c,tt = ngc
     //     MenuItem(Header = n, InputGestureText = g, ToolTip = tt, Command = c):> Control
 
-
+    /// The color of the group headers in the recent files list.
+    /// Not frozen, so that the headers follow the theme without rebuilding the list.
+    let groupHeaderBrush = SolidColorBrush(Theme.menu.groupHeader.Color)
+    do Theme.Changed.Add (fun () -> groupHeaderBrush.Color <- Theme.menu.groupHeader.Color)
 
     let setRecentFiles()=
         async{
@@ -216,14 +231,12 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, statusBar:FeshStatusBar, log:
 
             let HeaderIsIn=HashSet()
 
-            //create time separator if not existing yet
-            let tb(s) =
-                if not<| HeaderIsIn.Contains s then // so that header appears only once
-                    HeaderIsIn.Add s  |> ignore
-                    let tb = TextBlock (Text= "          - " + s + " -", FontWeight = FontWeights.Bold)
-                    let mi = MenuItem (Header = tb )
-                    mi.Focusable <- false // to not highlight it ?
-                    fileMenu.Items.Add( mi)  |> ignore
+            /// A group header like 'Yesterday', added only once. It is a label, not a command:
+            /// dim and without icon, aligned with the file names. It ignores the mouse and the arrow keys skip it.
+            let tb(s:string) =
+                if HeaderIsIn.Add s then
+                    let label = TextBlock(Text = s, FontWeight = FontWeights.SemiBold, FontSize = SystemFonts.MenuFontSize - 1.0, Foreground = groupHeaderBrush, Margin = Thickness(0., 4., 0., 0.))
+                    fileMenu.Items.Add(MenuItem(Header = label, Focusable = false, IsHitTestVisible = false)) |> ignore
 
             // then insert all again
             let now = DateTime.Now
@@ -233,14 +246,14 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, statusBar:FeshStatusBar, log:
                 let lol = uf.lastOpenedUTC.ToLocalTime()
 
                 //create time separator if not existing yet:
-                if   lol.Year = thisYear && lol.DayOfYear >= today      then tb "last used today"
-                elif lol.Year = thisYear && lol.DayOfYear  = today - 1  then tb "yesterday"
+                if   lol.Year = thisYear && lol.DayOfYear >= today      then tb "Today"
+                elif lol.Year = thisYear && lol.DayOfYear  = today - 1  then tb "Yesterday"
                 else
                     let age = now - uf.lastOpenedUTC
-                    if   age < TimeSpan.FromDays(7.0)  then  tb "up to a week ago"
-                    elif age < TimeSpan.FromDays(31.0) then  tb "up to a month ago"
-                    elif age < TimeSpan.FromDays(365.0) then tb "up to a year ago"
-                    else                                     tb "older"
+                    if   age < TimeSpan.FromDays(7.0)  then  tb "Up to a week ago"
+                    elif age < TimeSpan.FromDays(31.0) then  tb "Up to a month ago"
+                    elif age < TimeSpan.FromDays(365.0) then tb "Up to a year ago"
+                    else                                     tb "Older"
 
                 // create menu item:
                 let openCom  = mkCmdSimple ( fun _ -> tabs.AddFile(uf.fileInfo, true)  |> ignore )
@@ -283,7 +296,7 @@ type Menu (config:Config,cmds:Commands, tabs:Tabs, statusBar:FeshStatusBar, log:
                 | InAssembly (asm, _, _) ->
                     sprintf "Go to Definition of '%s' in VS Code (from %s)" name (asm.Replace("_", "__")),
                     sprintf "%s\r\nis defined in the assembly %s.\r\nIts source is not on this computer.\r\nFesh looks it up via SourceLink and asks to download it and open it in VS Code." d.fullName asm
-            let cmd = {name = header; gesture = "F12"; cmd = mkCmdSimple (fun _ -> cmds.GoToDefinitionOf d); tip = tip}
+            let cmd = {name = header; gesture = "F12"; cmd = mkCmdSimple (fun _ -> cmds.GoToDefinitionOf d); tip = tip; icon = MenuIcon.GoToDefinition}
             let menu = tabs.Control.ContextMenu
             menu.Items.Insert(0, sep())
             incr tempItemsInEditorMenu

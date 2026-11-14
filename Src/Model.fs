@@ -191,12 +191,42 @@ type PositionInCode = {
     offset:int
     }
 
+/// The icon of a menu item, drawn in Fesh.Views.MenuIcons
+[<RequireQualifiedAccess>]
+type MenuIcon =
+    /// For menu items without an icon
+    | NoIcon
+    // files:
+    | NewFile | OpenFile | OpenExternal | EditTemplate | Folder
+    | Save | SaveAs | SaveIncrementing | SaveAll | Export | Rename | Close | Delete
+    | SaveLog | SaveLogSelection
+    // edit:
+    | Copy | Cut | Paste | Undo | Redo
+    | Comment | Uncomment | ToggleComment
+    | Find | Replace | GoToDefinition
+    | DeleteLine | DeletePreviousWord | DeleteNextWord
+    | Uppercase | Lowercase | Titlecase | TrailingWhitespace | ToggleBool | AlignCode
+    // select:
+    | SelectLine | SwapLineUp | SwapLineDown | SwapWordLeft | SwapWordRight
+    | BoxSelectLeftByCharacter | BoxSelectRightByCharacter | BoxSelectLeftByWord | BoxSelectRightByWord
+    | BoxSelectUpByLine | BoxSelectDownByLine | BoxSelectToLineStart | BoxSelectToLineEnd
+    // FSI:
+    | EvaluateLines | EvaluateSelection | MarkEvaluated | EvaluateTillLine | ContinueEvaluation
+    | EvaluateAll | SaveEvaluateAll | ClearSaveEvaluateAll
+    | GoToError | ClearLog | Cancel | Reset | ResetArguments | ToggleSync | CompileSdk | CompileMSBuild
+    // view:
+    | ToggleSplit | MaximizeLog | LineWrap | FontBigger | FontSmaller | ToggleTheme
+    | Collapse | Expand | CollapseAll | CollapsePrimary | ExpandAll | Pin
+    // about:
+    | Help | SettingsFolder | AppFolder | SyntaxColors
+
 /// UI Menu and commands:
 type CommandInfo = {
     name:string
     gesture:string
     cmd:ICommand
     tip:string
+    icon:MenuIcon
     }
 
 [<AutoOpen>]

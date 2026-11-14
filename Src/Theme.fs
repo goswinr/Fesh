@@ -154,6 +154,29 @@ type CompletionColors = {
     selectionText       : SolidColorBrush
     }
 
+/// Colors in the menus that don't come from the WPF style: the icons, see MenuIcons.fs, and the group headers of the recent files.
+/// Most parts of an icon are in the text color, one detail is in the color of the kind of command.
+type MenuColors = {
+    /// The group headers in the recent files list, e.g. 'Yesterday'
+    groupHeader         : SolidColorBrush
+    /// Most parts of each icon. A bit softer than the menu text.
+    text                : SolidColorBrush
+    /// Files, saving and selections
+    blue                : SolidColorBrush
+    /// New, open, find and build
+    amber               : SolidColorBrush
+    /// Evaluating in FSI
+    green               : SolidColorBrush
+    /// Stop, close, delete and errors
+    red                 : SolidColorBrush
+    /// View and folding
+    purple              : SolidColorBrush
+    /// Text changes
+    teal                : SolidColorBrush
+    /// Comments
+    olive               : SolidColorBrush
+    }
+
 /// Colors of the WPF controls in the dark theme. In the light theme the default WPF styles are used.
 type ChromeColors = {
     background          : SolidColorBrush
@@ -495,6 +518,34 @@ module Theme =
         selectionText       = darkChrome.text
         }
 
+    // -------------------- Menu icons --------------------
+
+    /// For the menu background #F0F0F0 of the default WPF style
+    let lightMenu : MenuColors = {
+        groupHeader         = hex "#6B6B6B"
+        text                = hex "#3B3B3B"
+        blue                = hex "#1F6FD1"
+        amber               = hex "#BF7600"
+        green               = hex "#178A3A"
+        red                 = hex "#CF333A"
+        purple              = hex "#7B4FCF"
+        teal                = hex "#00808A"
+        olive               = hex "#5C8A24"
+        }
+
+    /// For the menu background darkChrome.popup
+    let darkMenu : MenuColors = {
+        groupHeader         = darkChrome.textDim
+        text                = hex "#C8C8C8"
+        blue                = hex "#5AAAF5"
+        amber               = hex "#EDB24A"
+        green               = hex "#5BC46F"
+        red                 = hex "#F0727A"
+        purple              = hex "#B494F2"
+        teal                = hex "#4CC6C0"
+        olive               = hex "#6A9955" // the dark comment color in SyntaxHighlightingFSharp.xshd
+        }
+
     // -------------------- current theme --------------------
 
     /// The key in the settings file
@@ -511,6 +562,7 @@ module Theme =
     let mutable toolTip     = lightToolTip
     let mutable nugetHints  = lightNugetHints
     let mutable completion  = lightCompletion
+    let mutable menu        = lightMenu
 
     let private changedEv = new Event<unit>()
 
@@ -537,6 +589,7 @@ module Theme =
             toolTip     <- if dark then darkToolTip    else lightToolTip
             nugetHints  <- if dark then darkNugetHints else lightNugetHints
             completion  <- if dark then darkCompletion else lightCompletion
+            menu        <- if dark then darkMenu       else lightMenu
             changedEv.Trigger()
 
     /// Reads the colors of the editor and the Log window from the xshd file again, e.g. after it was edited.

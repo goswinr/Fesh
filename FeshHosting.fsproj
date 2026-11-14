@@ -173,6 +173,7 @@
     <Compile Include="Src/Views/Tabs.fs" />
     <Compile Include="Src/Views/TabsAndLog.fs" />
     <Compile Include="Src/Views/Fonts.fs" />
+    <Compile Include="Src/Views/MenuIcons.fs" />
     <Compile Include="Src/Views/StatusBar.fs" />
     <Compile Include="Src/Views/PopOut.fs" />
     <Compile Include="Src/Views/Commands.fs" />
