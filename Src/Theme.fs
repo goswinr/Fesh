@@ -146,12 +146,15 @@ type NugetHintColors = {
     }
 
 /// Colors of the completion window.
-/// The colors of the items and their icons are the ones from SyntaxHighlightingFSharp.xshd, see Completions.fs
+/// The names of the items have the colors from SyntaxHighlightingFSharp.xshd, see Completions.fs.
+/// The colored detail of each icon has a color of the menu icons, see CompletionIcons.fs.
 type CompletionColors = {
     /// Background of the selected item. Light enough in the light theme to keep the colors of the item readable.
     selection           : SolidColorBrush
     /// Text of the selected item, if it has no color from the xshd file
     selectionText       : SolidColorBrush
+    /// Most parts of each icon. A bit softer than the icons in the menu, because the names next to them are colored.
+    iconBody            : SolidColorBrush
     }
 
 /// Colors in the menus that don't come from the WPF style: the icons, see MenuIcons.fs, and the group headers of the recent files.
@@ -511,11 +514,13 @@ module Theme =
     let lightCompletion : CompletionColors = {
         selection           = hex "#CCE8FF" // like the selection in the Windows Explorer, instead of the dark SystemColors.Highlight
         selectionText       = Brushes.Black
+        iconBody            = hex "#707070"
         }
 
     let darkCompletion : CompletionColors = {
         selection           = darkChrome.highlight
         selectionText       = darkChrome.text
+        iconBody            = hex "#ABABAB"
         }
 
     // -------------------- Menu icons --------------------
