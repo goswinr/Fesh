@@ -29,30 +29,15 @@ module Initialize =
                     let source = new GithubSource("https://github.com/goswinr/Fesh", accessToken = readOnlyToken, prerelease = false)
 
 
-                    // see https://docs.velopack.io/integrating/switching-channels for channels
-                    let updateInfoMaybe, updateManager =
-                        if config.RunContext.IsRunningOnDotNetCore then
-                            let updateManager = new UpdateManager(source)
-                            match updateManager.CheckForUpdatesAsync().Result with
-                            | null ->
-                                let updateManager48 = new UpdateManager(source, UpdateOptions (ExplicitChannel = "framework48" ))  // match .github\workflows\release.yml
-                                updateManager48.CheckForUpdatesAsync().Result, updateManager48
-                            | u ->
-                                u, updateManager
-
-                        else
-                            let updateManager = new UpdateManager(source)
-                            match updateManager.CheckForUpdatesAsync().Result with
-                            | null ->
-                                let updateManager11 = new UpdateManager(source, UpdateOptions (ExplicitChannel = "net11" ))  // match .github\workflows\release.yml
-                                match updateManager11.CheckForUpdatesAsync().Result with
-                                | null ->
-                                    let updateManager10 = new UpdateManager(source, UpdateOptions (ExplicitChannel = "net10" )) // the channel before net11
-                                    (updateManager10.CheckForUpdatesAsync().Result, updateManager10)
-                                | u ->
-                                    (u, updateManager11)
-                            | u ->
-                                (u, updateManager)
+                    // Without an explicit channel, the UpdateManager uses the channel the installed package was packed with,
+                    // see --channel in .github\workflows\release.yml: 'net11' for the .NET version and 'framework' for the .NET Framework version.
+                    // Older .NET installs, packed with 'net9' or 'net10', find the new releases too,
+                    // because release.yml uploads copies of releases.net11.json with those names.
+                    // See https://docs.velopack.io/integrating/switching-channels for channels.
+                    // Don't also check the channel of the other version: the UpdateManager doesn't compare package ids,
+                    // so it would offer the other version as an update, if its release is newer.
+                    let updateManager = new UpdateManager(source)
+                    let updateInfoMaybe = updateManager.CheckForUpdatesAsync().Result
 
 
                     match updateInfoMaybe with
