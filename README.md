@@ -105,13 +105,23 @@ You can change the font in the Settings.txt file, via the menu: `About` → `Ope
 
 The easiest way is to run the Setup.exe from [Releases](https://github.com/goswinr/Fesh/releases).
 Fesh will offer to update itself when a new version is available.
-There is a .NET 11 and a .NET Framework 4.8 version. Apart from the runtime they are the same.
+Each release has four versions. Apart from the runtime they are the same, all with F# 11:
+
+| Setup.exe | Runtime | Folder |
+|---|---|---|
+| `Fesh-dotnetLatest-Setup.exe` | the latest .NET, now .NET 11 | `Fesh` |
+| `Fesh.net10-dotnet10-Setup.exe` | .NET 10 | `Fesh.net10` |
+| `Fesh.net8-dotnet8-Setup.exe` | .NET 8 | `Fesh.net8` |
+| `Fesh.net48-dotnetFramework-Setup.exe` | .NET Framework 4.8 | `Fesh.net48` |
+
+The latest version moves to each new .NET version with its updates. The others stay on their runtime.
+They can be installed side by side.
 
 The installer is made with [Velopack](https://velopack.io) and is digitally signed.
 
 No admin rights are needed to install or run Fesh.
-It gets installed in `%LOCALAPPDATA%\Fesh` (or `%LOCALAPPDATA%\Fesh.net48`),
-and it keeps its settings in `%APPDATA%\Fesh\Settings` (or `%APPDATA%\Fesh.net48\Settings`).
+It gets installed in `%LOCALAPPDATA%\<Folder>`,
+and it keeps its settings in `%APPDATA%\<Folder>\Settings`.
 A shortcut is created on the desktop.
 
 ### Portable

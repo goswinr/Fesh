@@ -4,7 +4,7 @@
     <OutputType>WinExe</OutputType>
     <UseWPF>true</UseWPF>
     <UseWindowsForms>true</UseWindowsForms>    <!--inherited from Avalonedit ?-->
-	  <TargetFrameworks>net48;net11.0-windows</TargetFrameworks>
+	  <TargetFrameworks>net48;net8.0-windows;net10.0-windows;net11.0-windows</TargetFrameworks> <!-- one install and update channel each, see .github/workflows/release.yml -->
     <DefineConstants Condition="'$(TargetFramework)' == 'net48'">NETFRAMEWORK</DefineConstants>
     <DefineConstants>$(DefineConstants);FSHARP11</DefineConstants> <!-- FSharp.Compiler.Service 43.13 API: RichText in tooltips, TextTag.UnresolvedName -->
     <!-- <RuntimeIdentifiers>win-x64;win-x86</RuntimeIdentifiers> -->
@@ -48,6 +48,9 @@
 
     <PackageReference Include="Microsoft.VisualBasic" Version="10.3.0" Condition="'$(TargetFramework)' == 'net48'" /> <!-- to move files to the recycle bin instead of deleting them -->
     <PackageReference Include="System.Private.Uri" Version="4.3.2" Condition="'$(TargetFramework)' == 'net48'" />    <!-- warning NU1903: Package 'System.Private.Uri' 4.3.0 has a known high severity vulnerability, https://github.com/advisories/GHSA-5f2m-466j-3848 -->
+    <!-- F# 11 for all targets, also net8 and net10: AvalonLog 0.21 needs FSharp.Core 10.1 and Fittings 0.10 needs FSharp.Core 9.0.
+    In an app on .NET they don't load with an older FSharp.Core, so the F# 8 of the net8 hosting build doesn't work here.
+    (Hosts like Rhino resolve assemblies by name only.) Its System.* dependencies (10.0.x) have net8.0 builds. -->
     <PackageReference Include="FSharp.Compiler.Service" Version="43.13.101" /> <!-- F# 11, from the .NET 11 SDK 11.0.100. (43.13.404 is the F# 10 servicing build of SDK 10.0.404) -->
     <PackageReference Include="FSharp.Core"             Version="11.0.101" /> <!-- FSharp.Compiler.Service pins this exact version -->
 

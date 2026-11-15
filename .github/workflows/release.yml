@@ -56,6 +56,24 @@ jobs:
           --framework net48 `
           --no-self-contained
 
+    - name: Run dotnet publish net8.0
+      run: | #shell
+        dotnet publish FeshStandalone.fsproj `
+          --configuration Release `
+          --runtime win-x64 `
+          --output bin/publish/net8.0 `
+          --framework net8.0-windows `
+          --no-self-contained
+
+    - name: Run dotnet publish net10.0
+      run: | #shell
+        dotnet publish FeshStandalone.fsproj `
+          --configuration Release `
+          --runtime win-x64 `
+          --output bin/publish/net10.0 `
+          --framework net10.0-windows `
+          --no-self-contained
+
     - name: Run dotnet publish net11.0
       run: | #shell
         dotnet publish FeshStandalone.fsproj `
@@ -101,6 +119,32 @@ jobs:
         # module. Enabling the PS session only adds an unused login whose post-job teardown
         # (Clear-AzContext) emits the noisy "Az version is out of date" warnings.
 
+    - name: Install vpk
+      # Pin the vpk version (supply-chain): an unpinned `tool install` pulls whatever is latest at
+      # build time and runs it against the active signing session. Bump this manually when updating.
+      run: dotnet tool install vpk --global --version 1.2.161
+
+    # The update channels. https://docs.velopack.io/packaging/channels
+    # See also checkForNewVelopackRelease in Initialize.fs: the app only checks the channel it was packed with.
+    # Each channel has its own --packId, so that they install side by side in %LOCALAPPDATA%\<packId>,
+    # and its own GitHub release, with a suffix on the tag. dotnetLatest uses the tag that triggered this run.
+    #   channel          packId      tag suffix
+    #   dotnetFramework  Fesh.net48  -net48     stays on .NET Framework 4.8
+    #   dotnet8          Fesh.net8   -net8      stays on .NET 8
+    #   dotnet10         Fesh.net10  -net10     stays on .NET 10
+    #   dotnetLatest     Fesh                   moves to the newest .NET, now .NET 11
+    # All of them use F# 11, see FeshStandalone.fsproj.
+    # To move dotnetLatest to .NET 12: replace net11.0 with net12.0 in its publish and pack steps and in FeshStandalone.fsproj.
+    # Its installs then get the .NET 12 build as their next update, and Velopack asks to install the .NET 12 Desktop Runtime while applying it.
+    # To keep offering .NET 11 too, add a dotnet11 channel like dotnet10, with a net11.0-windows target in FeshStandalone.fsproj and a NET11_0 case in settingsFolder in RunContext.fs.
+    #
+    # A channel can't be renamed, https://docs.velopack.io/packaging/channels#renaming-a-channel
+    # Installs from before these channel names keep checking their old channel:
+    # 'framework' for the .NET Framework version, and 'net9', 'net10' or 'net11' for the .NET version with packId Fesh.
+    # So each release also uploads copies of releases.dotnetFramework.json and releases.dotnetLatest.json with those names.
+    # The old installs see the new build as an update, and after updating they check the new channel.
+    # Keep these copies for a while, so that installs that update late move over too.
+
     - name: Pack, Sign and Release with Velopack .NET Framework 4.8
       # https://docs.velopack.io/reference/cli/content/vpk-windows
       # If you are publishing your application with --no-self-contained,
@@ -109,15 +153,12 @@ jobs:
         # vpk reads the token from VPK_TOKEN, so it is never placed on the command line / process
         # table. Actions already masks GITHUB_TOKEN in logs; this also covers the arg-exposure path.
         VPK_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }} # used by `gh release upload` below
       run: |
-        # Pin the vpk version (supply-chain): an unpinned `tool install` pulls whatever is latest at
-        # build time and runs it against the active signing session. Bump this manually when updating.
-        dotnet tool install vpk --global --version 1.2.161
-
         vpk download github `
           --repoUrl https://github.com/goswinr/Fesh `
           --outputDir bin/installer/net48 `
-          --channel framework
+          --channel dotnetFramework
 
         vpk pack `
           --packId Fesh.net48 `
@@ -131,11 +172,11 @@ jobs:
           --azureTrustedSignFile .github/signing-metadata.json `
           --splashImage Media/logo128.png `
           --outputDir bin/installer/net48 `
-          --channel framework
+          --channel dotnetFramework
 
         # The -net48 tag doesn't exist yet: GitHub creates it at --targetCommitish, the released commit,
         # when vpk publishes the draft release after uploading. So a run that fails before, e.g. at
-        # signing, leaves no tag behind. (The net11 release uses the tag that triggered this run.)
+        # signing, leaves no tag behind. The same goes for the -net8 and -net10 tags.
         vpk upload github `
           --publish `
           --repoUrl https://github.com/goswinr/Fesh `
@@ -143,34 +184,86 @@ jobs:
           --tag "${{github.ref_name}}-net48" `
           --targetCommitish "${{github.sha}}" `
           --outputDir bin/installer/net48 `
-          --channel framework
-          
-    - name: Pack, Sign and Release with Velopack .NET 11.0
-      # https://docs.velopack.io/reference/cli/content/vpk-windows
-      # If you are publishing your application with --no-self-contained, then you should provide the --framework argument. https://docs.velopack.io/packaging/bootstrapping
-      # The channel name is just an identifier; it is not shown in the app.
-      # See also checkForNewVelopackRelease(config:Config, fesh:Fesh) in Initialize.fs
-      # and https://docs.velopack.io/integrating/switching-channels for channels.
-      #
-      # Channel rename (e.g. net11 -> net12 in the future):
-      # Per https://docs.velopack.io/packaging/channels#renaming-a-channel a channel cannot be
-      # renamed directly. To migrate users, pack/upload the next release on the new channel
-      # (e.g. --channel net12) and then upload a copy of releases.net12.json as releases.net11.json
-      # to the same GitHub release. Existing net11 clients will fetch releases.net11.json, update
-      # to that build, and from then on poll releases.net12.json (because the package itself is
-      # stamped with --channel net12). Keep the redirect step on every release so latecomers
-      # always get pulled forward to the latest build on the new channel.
+          --channel dotnetFramework
+
+        # For installs from before the channel was renamed from framework to dotnetFramework, see above.
+        Copy-Item bin/installer/net48/releases.dotnetFramework.json bin/installer/net48/releases.framework.json
+        gh release upload "${{github.ref_name}}-net48" bin/installer/net48/releases.framework.json --clobber
+
+    - name: Pack, Sign and Release with Velopack .NET 8
+      env:
+        VPK_TOKEN: ${{ secrets.GITHUB_TOKEN }} # used by vpk instead of --token on the command line
+      run: |
+        vpk download github `
+          --repoUrl https://github.com/goswinr/Fesh `
+          --outputDir bin/installer/net8.0 `
+          --channel dotnet8
+
+        vpk pack `
+          --packId Fesh.net8 `
+          --packVersion "${{github.ref_name}}" `
+          --packDir bin/publish/net8.0 `
+          --mainExe Fesh.exe `
+          --framework net8.0-x64-desktop `
+          --icon Media/logoInstaller.ico `
+          --packAuthors "Goswin R" `
+          --releaseNotes .github/InstallNotes-net8.md `
+          --azureTrustedSignFile .github/signing-metadata.json `
+          --splashImage Media/logo128.png `
+          --outputDir bin/installer/net8.0 `
+          --channel dotnet8
+
+        vpk upload github `
+          --publish `
+          --repoUrl https://github.com/goswinr/Fesh `
+          --releaseName "Fesh ${{github.ref_name}} net8" `
+          --tag "${{github.ref_name}}-net8" `
+          --targetCommitish "${{github.sha}}" `
+          --outputDir bin/installer/net8.0 `
+          --channel dotnet8
+
+    - name: Pack, Sign and Release with Velopack .NET 10
+      env:
+        VPK_TOKEN: ${{ secrets.GITHUB_TOKEN }} # used by vpk instead of --token on the command line
+      run: |
+        vpk download github `
+          --repoUrl https://github.com/goswinr/Fesh `
+          --outputDir bin/installer/net10.0 `
+          --channel dotnet10
+
+        vpk pack `
+          --packId Fesh.net10 `
+          --packVersion "${{github.ref_name}}" `
+          --packDir bin/publish/net10.0 `
+          --mainExe Fesh.exe `
+          --framework net10.0-x64-desktop `
+          --icon Media/logoInstaller.ico `
+          --packAuthors "Goswin R" `
+          --releaseNotes .github/InstallNotes-net10.md `
+          --azureTrustedSignFile .github/signing-metadata.json `
+          --splashImage Media/logo128.png `
+          --outputDir bin/installer/net10.0 `
+          --channel dotnet10
+
+        vpk upload github `
+          --publish `
+          --repoUrl https://github.com/goswinr/Fesh `
+          --releaseName "Fesh ${{github.ref_name}} net10" `
+          --tag "${{github.ref_name}}-net10" `
+          --targetCommitish "${{github.sha}}" `
+          --outputDir bin/installer/net10.0 `
+          --channel dotnet10
+
+    - name: Pack, Sign and Release with Velopack .NET 11.0 as the latest .NET
+      # Last, so that GitHub shows this release as the latest one.
       env:
         GH_TOKEN: ${{secrets.GITHUB_TOKEN}}   # used by `gh release upload` below
         VPK_TOKEN: ${{secrets.GITHUB_TOKEN}}  # used by vpk instead of --token on the command line
       run: |
-        # Pinned vpk version (supply-chain) — keep in sync with the net48 step. Bump manually.
-        dotnet tool install vpk --global --version 1.2.161
-
         vpk download github `
           --repoUrl https://github.com/goswinr/Fesh `
           --outputDir bin/installer/net11.0 `
-          --channel net11
+          --channel dotnetLatest
 
         vpk pack `
           --packId Fesh `
@@ -180,18 +273,11 @@ jobs:
           --framework net11.0-x64-desktop `
           --icon Media/logoInstaller.ico  `
           --packAuthors "Goswin R" `
-          --releaseNotes .github/InstallNotes-net11.md `
+          --releaseNotes .github/InstallNotes-latest.md `
           --azureTrustedSignFile .github/signing-metadata.json `
           --splashImage Media/logo128.png `
           --outputDir bin/installer/net11.0 `
-          --channel net11
-
-        # Redirect files for the previous channel names (net9 -> net10 -> net11 migration).
-        # Existing net9 and net10 clients fetch releases.net9.json or releases.net10.json, see this newer build, and update.
-        # Once updated they poll releases.net11.json from then on. Safe to remove these lines
-        # after enough time has passed that no net9 or net10 clients remain in the wild.
-        Copy-Item bin/installer/net11.0/releases.net11.json bin/installer/net11.0/releases.net10.json
-        Copy-Item bin/installer/net11.0/releases.net11.json bin/installer/net11.0/releases.net9.json
+          --channel dotnetLatest
 
         vpk upload github `
           --publish `
@@ -199,9 +285,10 @@ jobs:
           --releaseName "Fesh ${{github.ref_name}} net11" `
           --tag ${{github.ref_name}} `
           --outputDir bin/installer/net11.0 `
-          --channel net11
+          --channel dotnetLatest
 
-        # Attach the net9 and net10 redirect manifests to the same GitHub release so old clients can find them.
-        gh release upload "${{github.ref_name}}" bin/installer/net11.0/releases.net10.json bin/installer/net11.0/releases.net9.json --clobber
-          
-
+        # For installs from before the channel was renamed from net9, net10 or net11 to dotnetLatest, see above.
+        Copy-Item bin/installer/net11.0/releases.dotnetLatest.json bin/installer/net11.0/releases.net11.json
+        Copy-Item bin/installer/net11.0/releases.dotnetLatest.json bin/installer/net11.0/releases.net10.json
+        Copy-Item bin/installer/net11.0/releases.dotnetLatest.json bin/installer/net11.0/releases.net9.json
+        gh release upload "${{github.ref_name}}" bin/installer/net11.0/releases.net11.json bin/installer/net11.0/releases.net10.json bin/installer/net11.0/releases.net9.json --clobber

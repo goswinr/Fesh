@@ -2,7 +2,7 @@
 Drives the Fesh standalone app (WPF) via Windows UI Automation and SendKeys.
 Each call is one command, the state between calls (process id, settings backup) is kept in $env:TEMP\fesh-run\state.json.
 
-  pwsh -File .claude/skills/run-fesh/driver.ps1 <command> [arg] [-Framework net11.0-windows|net48] [-WaitMs 4000] [-DelayMs 40]
+  pwsh -File .claude/skills/run-fesh/driver.ps1 <command> [arg] [-Framework net11.0-windows|net10.0-windows|net8.0-windows|net48] [-WaitMs 4000] [-DelayMs 40]
 
   launch [code]   back up the Settings folder, open a scratch .fsx with [code] in a new Fesh process, wait for the first type check
   settext <code>  replace the whole editor text (one change, does not trigger completion), caret goes to the end, waits for the type check
@@ -19,7 +19,7 @@ Each call is one command, the state between calls (process id, settings backup) 
 param(
     [Parameter(Position=0)][string]$Command = "help",
     [Parameter(Position=1)][string]$Arg = "",
-    [ValidateSet("net11.0-windows", "net48")][string]$Framework = "net11.0-windows",
+    [ValidateSet("net11.0-windows", "net10.0-windows", "net8.0-windows", "net48")][string]$Framework = "net11.0-windows",
     [int]$WaitMs = 4000,
     [int]$DelayMs = 40
 )
@@ -125,10 +125,13 @@ switch ($Command) {
 "launch" {
     if (Test-Path $stateFile) { throw "a previous run was not stopped, run 'stop' first (it restores the settings from that run's backup)" }
     if (Get-Process Fesh -ErrorAction SilentlyContinue) { throw "a Fesh process is already running, close it first: it shares the Settings folder" }
-    $exe = if ($Framework -eq "net48") { "bin\Debug\net48\win-x64\Fesh.exe" } else { "bin\Debug\net11.0-windows\win-x64\Fesh.exe" }
-    $exe = Join-Path $repo $exe
+    $exe = Join-Path $repo "bin\Debug\$Framework\win-x64\Fesh.exe"
     if (-not (Test-Path $exe)) { throw "$exe not found, build first: dotnet build FeshStandalone.fsproj -f $Framework" }
-    $settingsDir = Join-Path $env:APPDATA $(if ($Framework -eq "net48") { "Fesh.net48\Settings" } else { "Fesh\Settings" })
+    # each framework has its own settings folder, see settingsFolder in Src/Config/RunContext.fs
+    $appFolder = switch ($Framework) { "net48" { "Fesh.net48" } "net8.0-windows" { "Fesh.net8" } "net10.0-windows" { "Fesh.net10" } default { "Fesh" } }
+    $settingsDir = Join-Path $env:APPDATA "$appFolder\Settings"
+    # if this run creates the folder, 'stop' removes it again
+    $createdAppDir = if (Test-Path (Join-Path $env:APPDATA $appFolder)) { "" } else { Join-Path $env:APPDATA $appFolder }
     $backupDir = Join-Path $work "SettingsBackup"
     New-Item -ItemType Directory -Force $work | Out-Null
     if (Test-Path $backupDir) { Remove-Item -Recurse -Force $backupDir }
@@ -138,7 +141,7 @@ switch ($Command) {
     Set-Content -Path $scratch -Value (ConvertTo-CrLf $Arg) -NoNewline -Encoding utf8
     # with a file as argument Fesh opens only that file, not the previously open tabs
     $proc = Start-Process $exe -ArgumentList "`"$scratch`"" -PassThru
-    @{ pid = $proc.Id; framework = $Framework; settingsDir = $settingsDir; backupDir = $backupDir; scratch = $scratch } | ConvertTo-Json | Set-Content $stateFile
+    @{ pid = $proc.Id; framework = $Framework; settingsDir = $settingsDir; createdAppDir = $createdAppDir; backupDir = $backupDir; scratch = $scratch } | ConvertTo-Json | Set-Content $stateFile
     $main = $null; $ed = $null
     for ($i = 0; $i -lt 120 -and -not $ed; $i++) {
         Start-Sleep -Milliseconds 500
@@ -222,6 +225,11 @@ switch ($Command) {
     $s = Get-Content $stateFile -Raw | ConvertFrom-Json
     # kill instead of closing the window: closing asks to save the changed scratch file
     if (Get-Process -Id $s.pid -ErrorAction SilentlyContinue) { Stop-Process -Id $s.pid -Force; Start-Sleep -Milliseconds 500 }
+    if ($s.createdAppDir) {
+        # the folder didn't exist before 'launch', e.g. %APPDATA%\Fesh.net8 on a first run of the net8 build
+        if (Test-Path $s.createdAppDir) { Remove-Item -Recurse -Force $s.createdAppDir; "removed $($s.createdAppDir), it was created during the run" }
+        Remove-Item $stateFile; "stopped"; return
+    }
     foreach ($f in Get-ChildItem $s.backupDir) {
         $t = Join-Path $s.settingsDir $f.Name
         if (-not (Test-Path $t) -or (Get-FileHash $t).Hash -ne (Get-FileHash $f.FullName).Hash) { Copy-Item $f.FullName $t -Force; "restored $($f.Name)" }

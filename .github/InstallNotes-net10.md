@@ -1,0 +1,29 @@
+#### for .NET 10
+
+To install just download and run `Fesh.net10-dotnet10-Setup.exe` from the Assets.
+
+This version stays on .NET 10. Like the other versions it uses F# 11.<br>
+For the newest .NET use `Fesh-dotnetLatest-Setup.exe` from the latest release.
+
+<details>
+
+<summary>More Info on Installation</summary>
+
+No admin rights are required to install or run the app.
+The app will be installed in `C:\Users\{username}\AppData\Local\Fesh.net10\current`.<br>
+A shortcut will be created on the desktop.
+It will automatically offer to update Fesh when a new version is available.
+
+There is also a portable package `Fesh.net10-dotnet10-Portable.zip`.<br>
+Extract that zip and place it wherever you'd like.<br>
+It has identical functionality to the installer.<br>
+It will also automatically offer to update itself when a new version is available.
+
+The installer is digitally code-signed via Azure Trusted Signing Service.<br>
+It should not raise any security warnings.
+
+See the [Changelog](https://github.com/goswinr/Fesh/blob/main/CHANGELOG.md) for changes in this release.
+
+This release was created with [Velopack](https://velopack.io/).
+
+</details>

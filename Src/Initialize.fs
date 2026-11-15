@@ -30,11 +30,11 @@ module Initialize =
 
 
                     // Without an explicit channel, the UpdateManager uses the channel the installed package was packed with,
-                    // see --channel in .github\workflows\release.yml: 'net11' for the .NET version and 'framework' for the .NET Framework version.
-                    // Older .NET installs, packed with 'net9' or 'net10', find the new releases too,
-                    // because release.yml uploads copies of releases.net11.json with those names.
+                    // see --channel in .github\workflows\release.yml: 'dotnetLatest', 'dotnet10', 'dotnet8' or 'dotnetFramework'.
+                    // Installs from before these names, packed with 'net9', 'net10', 'net11' or 'framework', find the new releases too,
+                    // because release.yml uploads copies of releases.dotnetLatest.json and releases.dotnetFramework.json with those names.
                     // See https://docs.velopack.io/integrating/switching-channels for channels.
-                    // Don't also check the channel of the other version: the UpdateManager doesn't compare package ids,
+                    // Don't also check the channel of another version: the UpdateManager doesn't compare package ids,
                     // so it would offer the other version as an update, if its release is newer.
                     let updateManager = new UpdateManager(source)
                     let updateInfoMaybe = updateManager.CheckForUpdatesAsync().Result

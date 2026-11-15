@@ -1,17 +1,20 @@
-#### for .NET 11
+#### for .NET 8
 
-To install just download and run `Fesh-net11-Setup.exe` from the Assets.
+To install just download and run `Fesh.net8-dotnet8-Setup.exe` from the Assets.
+
+This version stays on .NET 8. Like the other versions it uses F# 11.<br>
+For the newest .NET use `Fesh-dotnetLatest-Setup.exe` from the latest release.
 
 <details>
 
 <summary>More Info on Installation</summary>
 
 No admin rights are required to install or run the app.
-The app will be installed in `C:\Users\{username}\AppData\Local\Fesh\current`.<br>
+The app will be installed in `C:\Users\{username}\AppData\Local\Fesh.net8\current`.<br>
 A shortcut will be created on the desktop.
 It will automatically offer to update Fesh when a new version is available.
 
-There is also a portable package `Fesh-net11-Portable.zip`.<br>
+There is also a portable package `Fesh.net8-dotnet8-Portable.zip`.<br>
 Extract that zip and place it wherever you'd like.<br>
 It has identical functionality to the installer.<br>
 It will also automatically offer to update itself when a new version is available.

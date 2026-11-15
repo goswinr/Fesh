@@ -24,7 +24,7 @@ dotnet build FeshStandalone.fsproj -f net48
 
 ```powershell
 $d = ".claude/skills/run-fesh/driver.ps1"
-pwsh -NoProfile -File $d launch "let s = `"abc`"`nlet t = s.Substring(1)"   # -Framework net48 for the .NET Framework build
+pwsh -NoProfile -File $d launch "let s = `"abc`"`nlet t = s.Substring(1)"   # -Framework net48, net8.0-windows or net10.0-windows for the other builds
 pwsh -NoProfile -File $d keys "."        # a real key press at the caret (the end of the text)
 pwsh -NoProfile -File $d popup           # -> Chars, Length, Clone, ... (or "no completion window")
 pwsh -NoProfile -File $d shot my_case    # -> C:\Users\<you>\AppData\Local\Temp\fesh-run\shots\my_case.png
@@ -45,7 +45,7 @@ pwsh -NoProfile -File $d stop            # kill Fesh, restore the Settings folde
 | `status` | Prints the status bar texts: type check result like `1 compiler errors, first one on line: 3`, and the FSI state. |
 | `log` | Prints the text of the log panel on the right. |
 | `shot [name]` | Screenshot of the Fesh window plus the completion window. Prints the png path. |
-| `stop` | Kills Fesh, copies changed Settings files back from the backup, and removes files created during the run. |
+| `stop` | Kills Fesh, copies changed Settings files back from the backup, and removes files created during the run. If the run created the whole settings folder, e.g. `%APPDATA%\Fesh.net8` on a first run of that build, it removes that folder. |
 
 To test a typed trigger character, set the code without it, then type only the last character:
 `settext` followed by `keys "."`.
@@ -68,7 +68,7 @@ Use it as a template for other editor features: a list of (code, key, expected i
 
 ## Gotchas
 
-- **Launching Fesh rewrites the user's Settings.** Even a file argument does. Affected files in `%APPDATA%\Fesh\Settings` (net48: `%APPDATA%\Fesh.net48\Settings`) include `Currently-Open-Files.txt` (the user's tab list), `AutoComplete-Statistic.txt`, `Folding-States.txt`, `Position-of-Window-on-Screen.txt` and `Settings.txt`. A missing `NuGet-Statistic.txt` gets created. This is why only `launch`/`stop` should start and stop Fesh.
+- **Launching Fesh rewrites the user's Settings.** Even a file argument does. Affected files in `%APPDATA%\Fesh\Settings` (net48: `Fesh.net48`, net8: `Fesh.net8`, net10: `Fesh.net10`) include `Currently-Open-Files.txt` (the user's tab list), `AutoComplete-Statistic.txt`, `Folding-States.txt`, `Position-of-Window-on-Screen.txt` and `Settings.txt`. A missing `NuGet-Statistic.txt` gets created. This is why only `launch`/`stop` should start and stop Fesh.
 - **The completion window is not a child of the desktop** in the UI Automation tree. It is an owned window, so it sits under the Fesh main window. Searching the desktop's children by process id never finds it.
 - **The completion list is virtualized.** Only the roughly 25 visible items exist for UI Automation. Check for items near the top of the list (e.g. `Length` for a string, not `Substring`).
 - **The editor has no class name.** It is a `Document` element, and so is the log panel. Each also appears twice (TextEditor and TextArea). The current tab's editor is the first `Document` under the `TabControl`.

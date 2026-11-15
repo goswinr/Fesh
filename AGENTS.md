@@ -5,15 +5,17 @@ Fesh is an F# editor and scripting host for Windows, built on WPF and AvalonEdit
 ## Commands
 
 ```powershell
-dotnet build FeshStandalone.fsproj                     # the app, for net48 and net11.0-windows
+dotnet build FeshStandalone.fsproj                     # the app, for net48, net8.0-windows, net10.0-windows and net11.0-windows
 dotnet build FeshStandalone.fsproj -f net11.0-windows  # faster: one target only
 dotnet build FeshHosting.fsproj                        # the NuGet library, net8.0-windows by default
 ```
 
-CI (`.github/workflows/build.yml`) builds `FeshHosting.fsproj` in Release and publishes the app for both frameworks:
+CI (`.github/workflows/build.yml`) builds `FeshHosting.fsproj` in Release and publishes the app for each framework:
 
 ```powershell
 dotnet publish FeshStandalone.fsproj --configuration Release --runtime win-x64 --framework net11.0-windows --no-self-contained
+dotnet publish FeshStandalone.fsproj --configuration Release --runtime win-x64 --framework net10.0-windows --no-self-contained
+dotnet publish FeshStandalone.fsproj --configuration Release --runtime win-x64 --framework net8.0-windows --no-self-contained
 dotnet publish FeshStandalone.fsproj --configuration Release --runtime win-x64 --framework net48 --no-self-contained
 ```
 
@@ -51,9 +53,10 @@ Namespaces are `Fesh`, `Fesh.Model`, `Fesh.Config`, `Fesh.Editor` and `Fesh.View
 ## Target frameworks
 
 - Building needs the .NET 11 SDK.
-- The app targets `net48` and `net11.0-windows`, with F# 11 for both (FSharp.Compiler.Service 43.13.101, FSharp.Core 11.0.101). F# 11 on .NET always goes with net11. FSharp.Compiler.Service 43.13.404 is not F# 11: it is the F# 10 servicing build of SDK 10.0.404, with FSharp.Core 10.1.404.
+- The app targets `net48`, `net8.0-windows`, `net10.0-windows` and `net11.0-windows`, with F# 11 for all (FSharp.Compiler.Service 43.13.101, FSharp.Core 11.0.101). F# 11 works on every runtime, as long as the FSharp.Core that runs is the version FSharp.Compiler.Service pins (it pins one exact version, so bump both together). The older F# of the net8 hosting build doesn't work in the app: AvalonLog and Fittings need a newer FSharp.Core, and the app on .NET has no host that resolves assemblies by name only. F# 11 on .NET always goes with net11 for the hosting builds. FSharp.Compiler.Service 43.13.404 is not F# 11: it is the F# 10 servicing build of SDK 10.0.404, with FSharp.Core 10.1.404.
+- Each app target is its own install with its own Velopack update channel, see the comment above the pack steps in `.github/workflows/release.yml`: `dotnetLatest` (net11, packId `Fesh`) moves to each new .NET, `dotnet10`, `dotnet8` and `dotnetFramework` stay on their runtime. Each keeps its settings in its own folder, see `settingsFolder` in `Src/Config/RunContext.fs`.
 - The hosting library has a single `<TargetFramework>`, `net8.0-windows` by default. `releaseNuget.yml` replaces it with a regex to build one package each for net472, net8, net9, net10 and net11 (also the package without suffix). Each target uses the FSharp.Compiler.Service and FSharp.Core versions from its conditional `ItemGroup` in `FeshHosting.fsproj`. Keep `<TargetFramework>` on a single line so the regex still matches.
-- `NETFRAMEWORK` is defined for net48 and net472, e.g. for `Thread.Abort` to cancel FSI (.NET uses `ControlledExecution`). `NET8` is defined for the net8 hosting build. `FSHARP11` is defined for the standalone app and the net11 hosting build, for the FSharp.Compiler.Service 43.13 API (e.g. `ToolTipElementData.MainDescription` is a `RichText`, use `.Parts`). The other hosting builds use older versions. At runtime, check `RunContext.IsRunningOnDotNetCore`.
+- `NETFRAMEWORK` is defined for net48 and net472, e.g. for `Thread.Abort` to cancel FSI (.NET uses `ControlledExecution`). `NET8` is defined for the net8 hosting build, for its older FSharp.Compiler.Service without the `caret` argument in `Checker.fs`. Not for the net8 app, which uses 43.13. The SDK also defines `NET8_0`, `NET10_0` and so on for each target. `FSHARP11` is defined for the standalone app and the net11 hosting build, for the FSharp.Compiler.Service 43.13 API (e.g. `ToolTipElementData.MainDescription` is a `RichText`, use `.Parts`). The other hosting builds use older versions. At runtime, check `RunContext.IsRunningOnDotNetCore`.
 
 ## Theme and highlighting
 

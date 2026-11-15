@@ -89,8 +89,18 @@ type RunContext (host:HostedStartUpData option) =
                     IO.Path.Combine(mainFolder.FullName, "Settings")  // for portable version don't have an outside folder
                 else
                     let roamingAppData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) // Roaming AppData folder
-                    if isRunningOnDotNetCore then IO.Path.Combine(roamingAppData, $"Fesh", "Settings")  // Standalone
-                    else                          IO.Path.Combine(roamingAppData, $"Fesh.net48", "Settings")  // Standalone .NET Framework
+                    // One settings folder for each install, so that they can be used side by side. Named like the --packId in .github\workflows\release.yml
+                    let appFolder =
+                        #if NETFRAMEWORK
+                        "Fesh.net48" // channel dotnetFramework
+                        #elif NET8_0 // defined by the .NET SDK for net8.0 targets
+                        "Fesh.net8"  // channel dotnet8
+                        #elif NET10_0
+                        "Fesh.net10" // channel dotnet10
+                        #else
+                        "Fesh"       // channel dotnetLatest, it keeps its settings when it moves to a newer .NET
+                        #endif
+                    IO.Path.Combine(roamingAppData, appFolder, "Settings")
 
             |Some sd ->
                 let roamingAppData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) // Roaming AppData folder

@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Added
+- the standalone app for .NET 10 and for .NET 8, installed with `Fesh.net10-dotnet10-Setup.exe` and `Fesh.net8-dotnet8-Setup.exe`. They stay on their .NET version and use F# 11 like the other versions. They install next to the other versions, in `%LOCALAPPDATA%\Fesh.net10` and `%LOCALAPPDATA%\Fesh.net8`, and keep their own settings in `%APPDATA%\Fesh.net10` and `%APPDATA%\Fesh.net8`
+### Changed
+- the update channels are named after what they follow: `dotnetLatest` for the latest .NET, now .NET 11, and `dotnetFramework` for .NET Framework 4.8. The latest .NET version moves to each new .NET version with its updates. Existing installs switch to the new channels with their next update. The installers are `Fesh-dotnetLatest-Setup.exe` and `Fesh.net48-dotnetFramework-Setup.exe` now
 
 ## [0.37.0] - 2026-11-14
 ### Added
