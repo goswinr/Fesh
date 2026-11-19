@@ -1,0 +1,13 @@
+# Use LF for all text files, both in the repository and in the working copy,
+# on every OS and independent of each contributor's core.autocrlf setting.
+# So local Windows builds see the same bytes as CI on Linux.
+* text=auto eol=lf
+
+# Except Windows batch files: cmd.exe can misread labels and goto in LF-only files.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Binary files, never convert:
+*.3dm binary
+*.png binary
+*.ico binary

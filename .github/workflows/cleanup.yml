@@ -1,5 +1,6 @@
 name: Delete old workflow runs
-# Keeps only the newest run of every workflow, whatever its conclusion, so the badges in the readme always have a run.
+# Keeps only the newest run of every workflow, whatever its conclusion, and also the newest run on the default branch,
+# because the badges in the readme show the default branch, and its newest run may be older than one from a pull request.
 # Workflows are read from the API, so this file works unchanged in any repo (dynamic ones like Dependabot included).
 # Only run IDs that were just listed get deleted, so a failed or incomplete listing deletes less, never more.
 on:
@@ -14,7 +15,7 @@ jobs:
     permissions:
       actions: write
     steps:
-      - name: Delete all but the newest run of each workflow
+      - name: Delete all but the newest run of each workflow, and the newest one on the default branch
         env:
           GH_TOKEN: ${{ github.token }} # used by the gh CLI for authentication
           REPO: ${{ github.repository }} # owner/name, e.g. goswinr/Rhino.Scripting.FSharp
@@ -22,18 +23,22 @@ jobs:
           # stop on any error, on unset variables, and if any command in a pipe fails (not just the last one)
           set -euo pipefail
 
+          # the branch the readme badges show when they have no ?branch= parameter, usually main
+          defaultBranch=$(gh api "repos/$REPO" --jq '.default_branch')
+
           # list all workflows of the repo, one line per workflow: "<id><TAB><name>"
           # --paginate fetches all pages, --jq formats each workflow with jq
           gh api --paginate "repos/$REPO/actions/workflows" --jq '.workflows[] | "\(.id)\t\(.name)"' |
           # read each line, split at the tab into the two variables
           while IFS=$'\t' read -r wfId wfName; do
 
-            # list all runs of this workflow, one line per run: "<created_at><TAB><run id><TAB><status>"
+            # list all runs of this workflow, one line per run: "<created_at><TAB><run id><TAB><status><TAB><branch>"
+            # (git branch names can't contain a tab, so the branch is always one whole field)
             # sort -r: newest first, created_at is an ISO timestamp so text order is time order
             # awk: drop lines whose run id (field 2) was already seen,
             #      so that a run listed twice can't push the newest run onto the delete list
             runs=$(gh api --paginate "repos/$REPO/actions/workflows/$wfId/runs?per_page=100" \
-                     --jq '.workflow_runs[] | "\(.created_at)\t\(.id)\t\(.status)"' | sort -r | awk -F '\t' '!seen[$2]++')
+                     --jq '.workflow_runs[] | "\(.created_at)\t\(.id)\t\(.status)\t\(.head_branch)"' | sort -r | awk -F '\t' '!seen[$2]++')
 
             # workflows without any runs have nothing to delete
             if [ -z "$runs" ]; then
@@ -41,19 +46,28 @@ jobs:
               continue
             fi
 
-            # the first line is the newest run, keep it (cut -f 2 takes the run id)
-            echo "== $wfName: keeping run $(head -n 1 <<< "$runs" | cut -f 2)"
+            # keep the first line, the newest run of any branch (cut -f 2 takes the run id),
+            # and the first line whose branch (field 4) is the default branch, the run the badge shows.
+            # Without the second one, a pull request run that is newer than the last push to main
+            # would be the only run kept, and the badge would show "no status".
+            # Both are the same run if the newest run is on the default branch.
+            keepNewest=$(head -n 1 <<< "$runs" | cut -f 2)
+            keepDefault=$(awk -F '\t' -v branch="$defaultBranch" '$4 == branch { print $2; exit }' <<< "$runs")
+            echo "== $wfName: keeping newest run $keepNewest and newest run on $defaultBranch ${keepDefault:-(none)}"
 
-            # all lines from the second one on are older runs, delete them one by one
-            tail -n +2 <<< "$runs" | while IFS=$'\t' read -r created runId status; do
-              if [ "$status" != "completed" ]; then
+            # all other runs are older, delete them one by one
+            while IFS=$'\t' read -r created runId status branch; do
+              if [ "$runId" = "$keepNewest" ] || [ "$runId" = "$keepDefault" ]; then
+                continue
+              elif [ "$status" != "completed" ]; then
                 # queued or in progress runs can't be deleted yet, the next cleanup will get them
                 echo "   skipping run $runId ($status)"
-              elif gh api -X DELETE "repos/$REPO/actions/runs/$runId" --silent; then
-                echo "   deleted run $runId from $created"
+              elif gh api -X DELETE "repos/$REPO/actions/runs/$runId" --silent < /dev/null; then
+                # < /dev/null: gh must not read stdin, that is the list of runs this loop reads
+                echo "   deleted run $runId from $created on $branch"
               else
                 # a failed delete is reported as a warning in the run summary but does not stop the cleanup
                 echo "::warning::Could not delete run $runId of $wfName"
               fi
-            done
+            done <<< "$runs"
           done
