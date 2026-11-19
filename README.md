@@ -154,6 +154,12 @@ Each release has a package version for each runtime: one with a `-net472`, `-net
 The version without a suffix is for .NET 11.
 Each .NET version comes with its own F# version: F# 8 for `-net8`, F# 9 for `-net9`, F# 10 for `-net10` and F# 11 for `-net11`. `-net472` uses F# 10.
 
+Use the package for the .NET version that your host app runs on.
+The F# compilers of the newer packages need newer versions of `System.Reflection.Metadata`, `System.Collections.Immutable` and `System.Diagnostics.DiagnosticSource` than .NET 8 has.
+These are part of .NET, so a plugin can't bring its own. It always gets the ones of the .NET that the host app runs on.
+That's why `-net8` stays on F# 8: F# 11 in Rhino 8 on .NET 8, for example, fails with a `MissingMethodException`.
+The standalone app doesn't have this limit, it has F# 11 on every runtime.
+
 To build the package yourself, run:
 
 ```bash
