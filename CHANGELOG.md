@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [0.38.0] - 2026-11-22
 ### Added
 - the standalone app for .NET 10 and for .NET 8, installed with `Fesh.net10-dotnet10-Setup.exe` and `Fesh.net8-dotnet8-Setup.exe`. They stay on their .NET version and use F# 11 like the other versions. They install next to the other versions, in `%LOCALAPPDATA%\Fesh.net10` and `%LOCALAPPDATA%\Fesh.net8`, and keep their own settings in `%APPDATA%\Fesh.net10` and `%APPDATA%\Fesh.net8`
 ### Changed
@@ -301,7 +303,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - first public release
 
-[Unreleased]: https://github.com/goswinr/Fesh/compare/0.37.0...HEAD
+[Unreleased]: https://github.com/goswinr/Fesh/compare/0.38.0...HEAD
+[0.38.0]: https://github.com/goswinr/Fesh/compare/0.37.0...0.38.0
 [0.37.0]: https://github.com/goswinr/Fesh/compare/0.36.0...0.37.0
 [0.36.0]: https://github.com/goswinr/Fesh/compare/0.35.0...0.36.0
 [0.35.0]: https://github.com/goswinr/Fesh/compare/0.34.0...0.35.0
