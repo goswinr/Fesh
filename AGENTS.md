@@ -77,7 +77,7 @@ The version of the app and the package comes from `CHANGELOG.md`, through `Ionid
 
 - Add user-facing changes under `## [Unreleased]`, in `### Added`, `### Changed` or `### Fixed`, worded like the existing entries.
 - Write every bullet on a single line, with no wrapped lines and no nested bullets. The parser crashes on them.
-- Don't mix line endings in the file (it is CRLF in the working tree). Mixed line endings fail the build with IKC0002.
+- Don't mix line endings in the file. It is LF, like all text files (see `.gitattributes`). Mixed line endings fail the build with IKC0002. In the release workflows, write it back with `Set-Content -NoNewline`, otherwise PowerShell appends a CRLF.
 - Run `dotnet build` after editing the changelog.
 
 ## Conventions
