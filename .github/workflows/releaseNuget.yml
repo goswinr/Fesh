@@ -37,7 +37,7 @@ jobs:
       run: |
         $content = Get-Content -Path README.md -Raw
         $content = $content -replace "<br>", "  "
-        Set-Content -Path README.md -Value $content
+        Set-Content -Path README.md -Value $content -NoNewline
 
 
     # All six packages are built first and only pushed at the end,
@@ -48,7 +48,7 @@ jobs:
       run: |
         $projFile = Get-Content -Path FeshHosting.fsproj -Raw
         $projFile = $projFile -replace "<TargetFramework>.*?</TargetFramework>", "<TargetFramework>net11.0-windows</TargetFramework>"
-        Set-Content -Path FeshHosting.fsproj -Value $projFile
+        Set-Content -Path FeshHosting.fsproj -Value $projFile -NoNewline
 
     - name: Dotnet build FeshHosting for net11
       run:  dotnet build FeshHosting.fsproj --configuration Release --output bin/publishNuget/net11
@@ -81,14 +81,14 @@ jobs:
       run: |
         $projFile = Get-Content -Path FeshHosting.fsproj -Raw
         $projFile = $projFile -replace "<TargetFramework>.*?</TargetFramework>", "<TargetFramework>net472</TargetFramework>"
-        Set-Content -Path FeshHosting.fsproj -Value $projFile
+        Set-Content -Path FeshHosting.fsproj -Value $projFile -NoNewline
 
     - name : Set -net472 suffix in changelog
       run: |
         $v = $env:GITHUB_REF_NAME
         $content = Get-Content -Path CHANGELOG.md -Raw
         $content = $content -replace [regex]::Escape($v), "$v-net472"
-        Set-Content -Path CHANGELOG.md -Value $content
+        Set-Content -Path CHANGELOG.md -Value $content -NoNewline
 
     - name: Dotnet build FeshHosting for net472
       run: dotnet build FeshHosting.fsproj --configuration Release --output bin/publishNuget/net472
@@ -99,14 +99,14 @@ jobs:
       run: |
         $projFile = Get-Content -Path FeshHosting.fsproj -Raw
         $projFile = $projFile -replace "<TargetFramework>.*?</TargetFramework>", "<TargetFramework>net8.0-windows</TargetFramework>"
-        Set-Content -Path FeshHosting.fsproj -Value $projFile
+        Set-Content -Path FeshHosting.fsproj -Value $projFile -NoNewline
 
     - name : Set -net8 suffix in changelog
       run: |
         $v = $env:GITHUB_REF_NAME
         $content = Get-Content -Path CHANGELOG.md -Raw
         $content = $content -replace [regex]::Escape("$v-net472"), "$v-net8"
-        Set-Content -Path CHANGELOG.md -Value $content
+        Set-Content -Path CHANGELOG.md -Value $content -NoNewline
 
     - name: Dotnet build FeshHosting for net8
       run: dotnet build FeshHosting.fsproj --configuration Release --output bin/publishNuget/net8
@@ -117,14 +117,14 @@ jobs:
       run: |
         $projFile = Get-Content -Path FeshHosting.fsproj -Raw
         $projFile = $projFile -replace "<TargetFramework>.*?</TargetFramework>", "<TargetFramework>net9.0-windows</TargetFramework>"
-        Set-Content -Path FeshHosting.fsproj -Value $projFile
+        Set-Content -Path FeshHosting.fsproj -Value $projFile -NoNewline
 
     - name : Set -net9 suffix in changelog
       run: |
         $v = $env:GITHUB_REF_NAME
         $content = Get-Content -Path CHANGELOG.md -Raw
         $content = $content -replace [regex]::Escape("$v-net8"), "$v-net9"
-        Set-Content -Path CHANGELOG.md -Value $content
+        Set-Content -Path CHANGELOG.md -Value $content -NoNewline
 
     - name: Dotnet build FeshHosting for net9
       run: dotnet build FeshHosting.fsproj --configuration Release --output bin/publishNuget/net9
@@ -135,14 +135,14 @@ jobs:
       run: |
         $projFile = Get-Content -Path FeshHosting.fsproj -Raw
         $projFile = $projFile -replace "<TargetFramework>.*?</TargetFramework>", "<TargetFramework>net10.0-windows</TargetFramework>"
-        Set-Content -Path FeshHosting.fsproj -Value $projFile
+        Set-Content -Path FeshHosting.fsproj -Value $projFile -NoNewline
 
     - name : Set -net10 suffix in changelog
       run: |
         $v = $env:GITHUB_REF_NAME
         $content = Get-Content -Path CHANGELOG.md -Raw
         $content = $content -replace [regex]::Escape("$v-net9"), "$v-net10"
-        Set-Content -Path CHANGELOG.md -Value $content
+        Set-Content -Path CHANGELOG.md -Value $content -NoNewline
 
     - name: Dotnet build FeshHosting for net10
       run: dotnet build FeshHosting.fsproj --configuration Release --output bin/publishNuget/net10
@@ -153,14 +153,14 @@ jobs:
       run: |
         $projFile = Get-Content -Path FeshHosting.fsproj -Raw
         $projFile = $projFile -replace "<TargetFramework>.*?</TargetFramework>", "<TargetFramework>net11.0-windows</TargetFramework>"
-        Set-Content -Path FeshHosting.fsproj -Value $projFile
+        Set-Content -Path FeshHosting.fsproj -Value $projFile -NoNewline
 
     - name : Set -net11 suffix in changelog
       run: |
         $v = $env:GITHUB_REF_NAME
         $content = Get-Content -Path CHANGELOG.md -Raw
         $content = $content -replace [regex]::Escape("$v-net10"), "$v-net11"
-        Set-Content -Path CHANGELOG.md -Value $content
+        Set-Content -Path CHANGELOG.md -Value $content -NoNewline
 
     - name: Dotnet build FeshHosting for net11 with suffix
       run: dotnet build FeshHosting.fsproj --configuration Release --output bin/publishNuget/net11
